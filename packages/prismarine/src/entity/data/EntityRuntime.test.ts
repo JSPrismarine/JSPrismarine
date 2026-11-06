@@ -2488,6 +2488,85 @@ describe('EntityRuntime', () => {
         });
     });
 
+    describe('villager work', () => {
+        const villagerFile = {
+            'minecraft:villager_v2': {
+                components: {
+                    'minecraft:health': { value: 20, max: 20 },
+                    'minecraft:movement': { value: 2 },
+                    'minecraft:collision_box': { width: 0.6, height: 1.9 },
+                    'minecraft:physics': {},
+                    'minecraft:navigation.walk': {}
+                }
+            }
+        };
+        const village = () => {
+            const world = new TestEntityWorld();
+            const { runtime } = entityFixture(world, {}, villagerFile);
+            return { world, runtime };
+        };
+        const composterAt = { x: 3, y: FLOOR_Y + 1, z: 0 };
+
+        it('lists a composter as a farmer’s job site and gives each site to one villager', () => {
+            const { world, runtime } = village();
+            world.setBlock(composterAt, 'minecraft:composter');
+
+            const sites = runtime.javaPointsOfInterest(GROUND, 16, (type) => type === 'minecraft:farmer');
+
+            expect(sites).toEqual([{ pos: composterAt, type: 'minecraft:farmer', hasSpace: true }]);
+            expect(runtime.claimPoi(composterAt, 1)).toBe(true);
+            expect(runtime.claimPoi(composterAt, 2)).toBe(false);
+            expect(runtime.javaPointsOfInterest(GROUND, 16, () => true)[0]?.hasSpace).toBe(false);
+
+            runtime.releasePoi(composterAt, 1);
+            expect(runtime.claimPoi(composterAt, 2)).toBe(true);
+        });
+
+        it('bakes bread at the composter the brain names', () => {
+            const { world, runtime } = village();
+            world.setBlock(composterAt, 'minecraft:composter');
+            const villager = runtime.spawn('minecraft:villager_v2', GROUND);
+            if (villager === undefined) throw new Error('the fixture declares no minecraft:villager_v2');
+            villager.body.inventory.push('minecraft:wheat', 'minecraft:wheat', 'minecraft:wheat');
+
+            expect(runtime.villagerTask(villager.body, 'work_at_composter', composterAt)).toBe(true);
+
+            expect(villager.body.inventory).toEqual(['minecraft:bread']);
+        });
+
+        it('has a child only when both are fed, grown and a bed is free', () => {
+            const { world, runtime } = village();
+            const first = runtime.spawn('minecraft:villager_v2', GROUND);
+            const second = runtime.spawn('minecraft:villager_v2', { ...GROUND, x: 1.5 });
+            if (first === undefined || second === undefined) throw new Error('no villagers');
+            for (const villager of [first, second]) villager.body.inventory.push(...Array(3).fill('minecraft:bread'));
+            const before = runtime.all().length;
+
+            expect(runtime.villagerTask(first.body, 'make_love', second.id)).toBe(false);
+            expect(runtime.all()).toHaveLength(before);
+
+            world.setBlock({ x: 4, y: FLOOR_Y + 1, z: 0 }, 'minecraft:bed');
+            runtime.invalidateBlockCaches();
+            expect(runtime.villagerTask(first.body, 'make_love', second.id)).toBe(true);
+
+            expect(runtime.all()).toHaveLength(before + 1);
+            expect(first.body.inventory).toEqual([]);
+            expect(runtime.villagerCanBreed(first.body, second.id)).toBe(false);
+        });
+
+        it('shares food with a villager that has too little', () => {
+            const { runtime } = village();
+            const first = runtime.spawn('minecraft:villager_v2', GROUND);
+            const second = runtime.spawn('minecraft:villager_v2', { ...GROUND, x: 1.5 });
+            if (first === undefined || second === undefined) throw new Error('no villagers');
+            first.body.inventory.push(...Array(4).fill('minecraft:bread'));
+
+            expect(runtime.villagerTask(first.body, 'trade_with_villager', second.id)).toBe(true);
+
+            expect(second.body.inventory).toEqual(['minecraft:bread', 'minecraft:bread']);
+        });
+    });
+
     describe('brains', () => {
         it('runs a brain mob’s brain and reaches an activity', () => {
             const { runtime } = runtimeOf();

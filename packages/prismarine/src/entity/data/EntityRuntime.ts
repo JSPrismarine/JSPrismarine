@@ -64,7 +64,7 @@ import {
     WARDEN
 } from '@jsprismarine/entity-brains';
 import { blockPosTracker } from '@jsprismarine/entity-brains';
-import type { VillagerRaidEffect, VillagerRaidState } from '@jsprismarine/entity-brains';
+import type { VillagerRaidEffect, VillagerRaidState, VillagerTask } from '@jsprismarine/entity-brains';
 import { entityData } from '@jsprismarine/items';
 import type { RecipeBook } from '@jsprismarine/recipes';
 import type {
@@ -123,10 +123,20 @@ import type { CachedNavigationView } from './navigationView';
 import type { DataEntityRecord } from './persistence';
 import { applyDataEntityRecord } from './persistence';
 import type { EntityItemInteraction } from './itemInteraction';
-import { PointsOfInterest } from './poi';
+import { JAVA_POI_TYPES, PointsOfInterest } from './poi';
 import { RideIndex } from './riding';
 import type { EntityScene, SpawnOptions } from './scene';
-import { merchantFor } from './trading';
+import { merchantFor, professionOf } from './trading';
+import {
+    WILLING_FOOD_POINTS,
+    digest,
+    farmWorkAround,
+    foodPointsOf,
+    harvestFarmland,
+    shareWithVillager,
+    useBonemeal,
+    workAtComposter
+} from './villagerWork';
 import { bedrockEntityIdentifierOf } from '../identifierMapping';
 import { DEFAULT_FUSE_TICKS, randomShortFuse } from '../fuse';
 import { isDay } from '../../world/DayCycle';
@@ -428,6 +438,8 @@ export class EntityRuntime implements EntityScene {
     private readonly byPersistentIdentity = new Map<string, DataEntity>();
     /** The points of interest of the dimension, which eleven goals search. */
     private readonly interest = new PointsOfInterest({ navigation: () => this.navigation() });
+    /** Who holds a ticket on each Java point of interest, by block position. */
+    private readonly poiClaims = new Map<string, Set<number>>();
     /** The point-of-interest kinds already reported as unindexed, so each is said once. */
     private readonly unindexedPoi = new Set<string>();
     private readonly lookupContent: () => ServerContent;
@@ -872,8 +884,10 @@ export class EntityRuntime implements EntityScene {
         this.spawningRunsGoals = true;
 
         let entityForBarter: DataEntity | undefined;
+        const profession = brainMob?.id === 'minecraft:villager' ? professionOf(instance) : undefined;
         const brain = brainMob?.makeBrain({
             baby: instance.hasComponent('minecraft:is_baby'),
+            ...(profession === undefined ? {} : { variant: `minecraft:${profession}` }),
             ...(brainMob.id === 'minecraft:piglin'
                 ? {
                       onBarter: () => {
@@ -964,6 +978,10 @@ export class EntityRuntime implements EntityScene {
         this.pools.delete(id);
         this.merchants.delete(id);
         this.restocks.delete(id);
+        for (const [key, claimants] of this.poiClaims) {
+            claimants.delete(id);
+            if (claimants.size === 0) this.poiClaims.delete(key);
+        }
         this.merchantSnapshots.delete(id);
         this.fallingBlocks.delete(id);
         this.projectiles.delete(id);
@@ -3201,6 +3219,144 @@ export class EntityRuntime implements EntityScene {
         this.restocks.set(entity.id, { day, count: today + 1, at: now });
     }
 
+    /** How many villagers one Java point of interest holds: a bed or a workstation one, a bell many. */
+    private poiCapacity(block: string | undefined): number {
+        return block === 'minecraft:bell' ? 32 : 1;
+    }
+
+    /**
+     * The Java points of interest of the types `matches` accepts within a radius.
+     *
+     * The villager brain names them as Java does (`minecraft:home`, `minecraft:farmer`); the block
+     * each stands for, and whether a ticket is left on it, come from the dimension and the claims
+     * the villagers hold.
+     */
+    public javaPointsOfInterest(
+        center: EntityPosition,
+        radius: number,
+        matches: (type: string) => boolean
+    ): readonly { readonly pos: EntityPosition; readonly type: string; readonly hasSpace: boolean }[] {
+        const found: { pos: EntityPosition; type: string; hasSpace: boolean }[] = [];
+        for (const type of JAVA_POI_TYPES) {
+            if (!matches(type)) continue;
+            for (const pos of this.interest.within(type, center, radius)) {
+                const taken = this.poiClaims.get(`${pos.x},${pos.y},${pos.z}`)?.size ?? 0;
+                found.push({ pos, type, hasSpace: taken < this.poiCapacity(this.world.blocks.get(pos)?.identifier) });
+            }
+        }
+        return found;
+    }
+
+    /** Takes a ticket on a point of interest; false when it had none left. */
+    public claimPoi(pos: EntityPosition, claimant: number): boolean {
+        const key = `${pos.x},${pos.y},${pos.z}`;
+        const claimants = this.poiClaims.get(key) ?? new Set<number>();
+        if (claimants.has(claimant)) return true;
+        if (claimants.size >= this.poiCapacity(this.world.blocks.get(pos)?.identifier)) return false;
+        claimants.add(claimant);
+        this.poiClaims.set(key, claimants);
+        return true;
+    }
+
+    /** Gives a ticket back. */
+    public releasePoi(pos: EntityPosition, claimant: number): void {
+        const key = `${pos.x},${pos.y},${pos.z}`;
+        const claimants = this.poiClaims.get(key);
+        claimants?.delete(claimant);
+        if (claimants?.size === 0) this.poiClaims.delete(key);
+    }
+
+    /** The world a villager's work happens in. */
+    private villagerWorld() {
+        return { blocks: this.world.blocks, effects: this.world.effects, random: this.world.random };
+    }
+
+    /** Where a farmer has farming to do, or undefined when there is none or mobs may not grief. */
+    public villagerWorkSpot(body: MobBody, task: 'harvest_farmland' | 'use_bonemeal'): EntityPosition | undefined {
+        if (!ruleIsOn(this.world.level, MOB_GRIEFING)) return undefined;
+        const spot = farmWorkAround(this.villagerWorld(), body.inventory, blockPositionOf(body.position), task);
+        return spot === undefined ? undefined : { ...spot };
+    }
+
+    /** Whether a free bed is within reach of a villager, which a child needs. */
+    private hasVacantBed(body: MobBody): boolean {
+        return this.javaPointsOfInterest(body.position, 48, (type) => type === 'minecraft:home').some(
+            (poi) => poi.hasSpace
+        );
+    }
+
+    /** Whether two villagers are both willing and able to have a child now. */
+    public villagerCanBreed(body: MobBody, partnerId: number): boolean {
+        const self = this.entities.get(body.id);
+        const partner = this.entities.get(partnerId);
+        if (self === undefined || partner === undefined || partner.removed !== undefined) return false;
+        const ready = (entity: DataEntity): boolean =>
+            !entity.instance.hasComponent('minecraft:is_baby') &&
+            entity.body.breedCooldown === 0 &&
+            foodPointsOf(entity.body.inventory) >= WILLING_FOOD_POINTS;
+        return ready(self) && ready(partner) && this.hasVacantBed(body);
+    }
+
+    /** Whether a player carries Hero of the Village. */
+    public isVillageHero(playerId: number): boolean {
+        const effects = this.host.playerView?.(playerId)?.names?.('has_mob_effect') ?? [];
+        return effects.includes('minecraft:village_hero') || effects.includes('minecraft:hero_of_the_village');
+    }
+
+    /**
+     * Carries out one piece of villager work for the brain.
+     *
+     * @param target - The block the work is at, or the runtime id of the entity it is about.
+     * @returns Whether anything happened.
+     */
+    public villagerTask(body: MobBody, task: VillagerTask, target?: EntityPosition | number): boolean {
+        const self = this.entities.get(body.id);
+        if (self === undefined) return false;
+        const other = typeof target === 'number' ? this.entities.get(target) : undefined;
+
+        switch (task) {
+            case 'work_at_composter':
+                return typeof target === 'object' && workAtComposter(this.villagerWorld(), body.inventory, target);
+            case 'harvest_farmland':
+                return typeof target === 'object' && harvestFarmland(this.villagerWorld(), body.inventory, target);
+            case 'use_bonemeal':
+                return typeof target === 'object' && useBonemeal(this.villagerWorld(), body.inventory, target);
+            case 'trade_with_villager':
+                return (
+                    other !== undefined &&
+                    shareWithVillager(
+                        body.inventory,
+                        other.body.inventory,
+                        professionOf(other.instance) === 'farmer',
+                        professionOf(self.instance) === 'farmer'
+                    )
+                );
+            case 'give_gift_to_hero': {
+                if (typeof target !== 'number' || !this.isVillageHero(target)) return false;
+                const profession = professionOf(self.instance) ?? 'unemployed';
+                this.dropLoot(`loot_tables/gameplay/hero_of_the_village/${profession}_gift.json`, {
+                    x: body.position.x,
+                    y: body.position.y + 1,
+                    z: body.position.z
+                });
+                return true;
+            }
+            case 'make_love': {
+                if (other === undefined || !this.villagerCanBreed(body, other.id)) return false;
+                digest(body.inventory, WILLING_FOOD_POINTS);
+                digest(other.body.inventory, WILLING_FOOD_POINTS);
+                self.body.breedCooldown = VILLAGER_BREED_COOLDOWN_TICKS;
+                other.body.breedCooldown = VILLAGER_BREED_COOLDOWN_TICKS;
+                return (
+                    this.spawn(self.identifier, midpoint(self.position, other.position), {
+                        cause: 'born',
+                        event: 'minecraft:entity_born'
+                    }) !== undefined
+                );
+            }
+        }
+    }
+
     /** The raid facts at this villager's position, supplied by its host's raid owner. */
     public villagerRaidState(body: MobBody): VillagerRaidState | undefined {
         return this.host.villagerRaidStateAt?.(body.position);
@@ -4189,6 +4345,8 @@ const FIRE_DAMAGE_INTERVAL_TICKS = 20;
 
 /** Java's `Villager` allows two restocks a day, at least this many ticks apart. */
 const RESTOCKS_PER_DAY = 2;
+/** Java stops a villager from breeding again for five minutes. */
+const VILLAGER_BREED_COOLDOWN_TICKS = 6000;
 const RESTOCK_GAP_TICKS = 2400;
 const TICKS_PER_DAY = 24000;
 

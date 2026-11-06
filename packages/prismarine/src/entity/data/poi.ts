@@ -99,6 +99,34 @@ const DOORS = [
 ] as const;
 
 /**
+ * Java's point-of-interest types, by their registry id, and the block each one is.
+ *
+ * The villager brain asks for these by name, where the goals ask for the bare kinds below. A
+ * profession's job site is the block it works at, so these are the thirteen of {@link JOB_SITES}
+ * under the profession that owns each, plus the two a village is made of.
+ */
+const JAVA_POI_BLOCKS: readonly (readonly [string, ReadonlySet<string>])[] = [
+    ['minecraft:home', new Set(['minecraft:bed'])],
+    ['minecraft:meeting', new Set(['minecraft:bell'])],
+    ['minecraft:armorer', new Set(['minecraft:blast_furnace'])],
+    ['minecraft:butcher', new Set(['minecraft:smoker'])],
+    ['minecraft:cartographer', new Set(['minecraft:cartography_table'])],
+    ['minecraft:cleric', new Set(['minecraft:brewing_stand'])],
+    ['minecraft:farmer', new Set(['minecraft:composter'])],
+    ['minecraft:fisherman', new Set(['minecraft:barrel'])],
+    ['minecraft:fletcher', new Set(['minecraft:fletching_table'])],
+    ['minecraft:leatherworker', new Set(['minecraft:cauldron'])],
+    ['minecraft:librarian', new Set(['minecraft:lectern'])],
+    ['minecraft:mason', new Set(['minecraft:stonecutter'])],
+    ['minecraft:shepherd', new Set(['minecraft:loom'])],
+    ['minecraft:toolsmith', new Set(['minecraft:smithing_table'])],
+    ['minecraft:weaponsmith', new Set(['minecraft:grindstone'])]
+];
+
+/** The Java point-of-interest types {@link PointsOfInterest.within} can list. */
+export const JAVA_POI_TYPES: readonly string[] = JAVA_POI_BLOCKS.map(([type]) => type);
+
+/**
  * The blocks that mark each kind of point of interest.
  *
  * `bed`, `home` and `hide` are one kind under three names, because the
@@ -116,6 +144,7 @@ const POI_BLOCKS: ReadonlyMap<string, ReadonlySet<string>> = new Map([
     ['village', new Set(['minecraft:bell', 'minecraft:bed'])],
     ['work', new Set<string>(JOB_SITES)],
     ['composter', new Set(['minecraft:composter'])],
+    ...JAVA_POI_BLOCKS,
     ['noteblock', new Set(['minecraft:noteblock'])]
 ]);
 
@@ -242,6 +271,43 @@ export class PointsOfInterest {
         if (this.searchCache.size >= MAX_CACHED_SEARCHES) this.searchCache.clear();
         this.searchCache.set(key, found ?? null);
         return found === undefined ? undefined : { ...found };
+    }
+
+    /**
+     * Every block of a kind within a radius, nearest first.
+     *
+     * @returns The block positions themselves, unlike {@link nearest}, which answers where to stand.
+     *   Empty for a kind no block marks.
+     */
+    public within(kind: string, center: EntityPosition, radius: number): EntityPosition[] {
+        const markers = POI_BLOCKS.get(kind);
+        if (markers === undefined) return [];
+
+        this.prepareBlockCache();
+        const navigation = this.cachedNavigation(this.world.navigation());
+        const origin = { x: Math.floor(center.x), y: Math.floor(center.y), z: Math.floor(center.z) };
+        const lastRing = Math.floor(radius);
+        const found: EntityPosition[] = [];
+        for (
+            let chunkX = Math.floor((origin.x - lastRing) / 16);
+            chunkX <= Math.floor((origin.x + lastRing) / 16);
+            chunkX += 1
+        ) {
+            for (
+                let chunkZ = Math.floor((origin.z - lastRing) / 16);
+                chunkZ <= Math.floor((origin.z + lastRing) / 16);
+                chunkZ += 1
+            ) {
+                for (const identifier of markers) {
+                    for (const cell of this.markerCells(chunkX, chunkZ, origin.y, navigation).get(identifier) ?? []) {
+                        if (Math.max(Math.abs(cell.x - origin.x), Math.abs(cell.z - origin.z)) <= lastRing) {
+                            found.push({ ...cell });
+                        }
+                    }
+                }
+            }
+        }
+        return found.sort((a, b) => distance(center, a) - distance(center, b));
     }
 
     private nearestShelter(

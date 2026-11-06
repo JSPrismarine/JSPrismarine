@@ -38,6 +38,27 @@ export interface MerchantOptions {
 }
 
 /**
+ * The profession a villager's trade table names, such as `farmer` for `farmer_trades.json`.
+ *
+ * Bedrock gives a villager its profession through the table it trades from rather than a field of
+ * its own, so this is where the brain's job-site and work behaviors learn it.
+ *
+ * @returns The bare profession, or undefined when the entity names no table or one that is not
+ *   `<profession>_trades`.
+ */
+export const professionOf = (entity: EntityInstance): string | undefined => {
+    const economy = entity.componentParams(ECONOMY_TRADE_TABLE);
+    const legacy = entity.componentParams(LEGACY_TRADE_TABLE);
+    const path =
+        economy === undefined
+            ? legacy === undefined
+                ? undefined
+                : parseTradeTableComponent(legacy).table
+            : parseEconomyTradeTable(economy).table;
+    return path?.match(/([a-z_]+?)_trades?\.json$/)?.[1];
+};
+
+/**
  * Builds the merchant one entity trades through.
  *
  * @returns The merchant, or undefined when the entity carries neither trade

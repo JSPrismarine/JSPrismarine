@@ -28,6 +28,7 @@ import {
 import type { Brain } from '@jsprismarine/entity-brains';
 import type { EntityPosition } from '@jsprismarine/entities';
 import { Navigator, navigationProfile } from '@jsprismarine/entity-goals';
+import { javaEntityTypeToBedrock } from '@jsprismarine/mapping';
 
 import { EYE_HEIGHT } from '../Human';
 import type { ContentTags } from '../../content/tags';
@@ -56,6 +57,18 @@ const brainPlayerViews = new WeakMap<ContentEntity, WeakMap<EntityScene, BrainEn
 const tagsByContent = new WeakMap<ContentTags, Map<string, Map<string, ReadonlySet<string>>>>();
 const itemsByContent = new WeakMap<ContentTags, Map<string, BrainItemEntity['item']>>();
 
+/**
+ * The entity type a brain reads, which is Java's: the brains are written against Java's
+ * `minecraft:villager`, and the villager spawns here as `minecraft:villager_v2`.
+ */
+const javaTypeOf = (identifier: string): string =>
+    identifier === VILLAGER_BEDROCK_TYPE ? 'minecraft:villager' : identifier;
+
+const VILLAGER_BEDROCK_TYPE = (() => {
+    const mapped = javaEntityTypeToBedrock('minecraft:villager');
+    return mapped.kind === 'mapped' ? mapped.bedrock : 'minecraft:villager';
+})();
+
 /** One live entity as a brain sees it. */
 export const brainEntityOf = (entity: DataEntity, scene: EntityScene): BrainEntity => {
     let viewsByScene = brainEntityViews.get(entity);
@@ -78,7 +91,7 @@ export const brainEntityOf = (entity: DataEntity, scene: EntityScene): BrainEnti
     // Memories keep BrainEntity references across ticks, like Java keeps Entity references.
     const view: BrainEntity = {
         id: String(entity.id),
-        type: entity.identifier,
+        type: javaTypeOf(entity.identifier),
         get typeTags() {
             const token = entity.instance.componentSetToken;
             if (familyToken !== token) {
@@ -485,9 +498,14 @@ export const brainWorldOf = (scene: EntityScene): BrainWorld => {
         },
         // Points of interest need a village index the server does not keep. A brain whose
         // behavior needs one finds nothing, which is Java's own answer in an unvillaged world.
-        pointsOfInterest: (): readonly PoiRecord[] => [],
-        claimPoi: () => false,
-        releasePoi: () => undefined,
+        pointsOfInterest: (center, radius, type): readonly PoiRecord[] =>
+            scene.javaPointsOfInterest(center, radius, type).map(({ pos, type: kind, hasSpace }) => ({
+                pos: { x: pos.x, y: pos.y, z: pos.z },
+                type: kind,
+                hasSpace
+            })),
+        claimPoi: (pos, claimant) => scene.claimPoi(pos, Number(claimant.id)),
+        releasePoi: (pos, claimant) => scene.releasePoi(pos, Number(claimant.id)),
         playSound: (sound, pos) => scene.world.effects.playSound(blockPositionOf(pos), sound),
         emitGameEvent: (event, pos, source) =>
             scene.world.effects.emitGameEvent(
@@ -514,6 +532,24 @@ export const brainWorldOf = (scene: EntityScene): BrainWorld => {
         villagerRaidEffect: (body, effect) => {
             const entity = scene.byId(Number(body.id));
             if (entity !== undefined) scene.villagerRaidEffect(entity.body, effect);
+        },
+        villagerWorkSpot: (body, task) => {
+            const entity = scene.byId(Number(body.id));
+            return entity === undefined ? undefined : scene.villagerWorkSpot(entity.body, task);
+        },
+        villagerTask: (body, task, target) => {
+            const entity = scene.byId(Number(body.id));
+            if (entity === undefined) return false;
+            return scene.villagerTask(
+                entity.body,
+                task,
+                target === undefined ? undefined : 'id' in target ? Number(target.id) : target
+            );
+        },
+        isVillageHero: (player) => scene.isVillageHero(Number(player.id)),
+        villagerCanBreed: (body, partner) => {
+            const entity = scene.byId(Number(body.id));
+            return entity !== undefined && scene.villagerCanBreed(entity.body, Number(partner.id));
         },
         villagerRestock: (body) => {
             const entity = scene.byId(Number(body.id));

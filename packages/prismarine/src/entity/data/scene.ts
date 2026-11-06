@@ -20,7 +20,7 @@ import type {
 import type { ServerContent } from '../../content/ServerContent';
 import type { DataEntity, MobBody } from './DataEntity';
 import type { EntityHostFacts, EntityWorldFacts } from './host';
-import type { VillagerRaidEffect, VillagerRaidState } from '@jsprismarine/entity-brains';
+import type { VillagerRaidEffect, VillagerRaidState, VillagerTask } from '@jsprismarine/entity-brains';
 
 /** How an entity came to exist, which decides the spawn event it runs. */
 export interface SpawnOptions {
@@ -142,6 +142,24 @@ export interface EntityScene {
     villagerRaidEffect(body: MobBody, effect: VillagerRaidEffect): void;
     /** Restocks a villager's trades, within the day's allowance. */
     villagerRestock(body: MobBody): void;
+    /** The Java points of interest of the accepted types near a position. */
+    javaPointsOfInterest(
+        center: EntityPosition,
+        radius: number,
+        matches: (type: string) => boolean
+    ): readonly { readonly pos: EntityPosition; readonly type: string; readonly hasSpace: boolean }[];
+    /** Takes a ticket on a point of interest. */
+    claimPoi(pos: EntityPosition, claimant: number): boolean;
+    /** Gives a ticket back. */
+    releasePoi(pos: EntityPosition, claimant: number): void;
+    /** Where a farmer has farming to do. */
+    villagerWorkSpot(body: MobBody, task: 'harvest_farmland' | 'use_bonemeal'): EntityPosition | undefined;
+    /** Carries out one piece of villager work. */
+    villagerTask(body: MobBody, task: VillagerTask, target?: EntityPosition | number): boolean;
+    /** Whether a player carries Hero of the Village. */
+    isVillageHero(playerId: number): boolean;
+    /** Whether two villagers may have a child now. */
+    villagerCanBreed(body: MobBody, partnerId: number): boolean;
     /** Fires an entity event on a named subject, which `trigger` with a target does. */
     trigger(source: MobBody, event: string, target: string): void;
     /** Records what the runtime met and could not carry out. */
