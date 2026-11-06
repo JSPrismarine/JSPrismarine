@@ -785,6 +785,9 @@ importers:
       '@jsprismarine/entities':
         specifier: workspace:*
         version: link:../entities
+      '@jsprismarine/math':
+        specifier: workspace:*
+        version: link:../math
     devDependencies:
       '@jsprismarine/packs':
         specifier: workspace:*

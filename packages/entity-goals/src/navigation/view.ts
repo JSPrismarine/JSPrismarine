@@ -1,4 +1,5 @@
 import type { EntityPosition } from '@jsprismarine/entities';
+import { hypot3 } from '@jsprismarine/math';
 
 /**
  * What the path finder asks the world about one block.
@@ -69,7 +70,7 @@ export const centerOf = (block: EntityPosition): EntityPosition => ({
 
 /** The straight-line distance between two positions. */
 export const distanceBetween = (a: EntityPosition, b: EntityPosition): number =>
-    Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z);
+    hypot3(a.x - b.x, a.y - b.y, a.z - b.z);
 
 /** The horizontal distance between two positions, ignoring height. */
 export const horizontalDistance = (a: EntityPosition, b: EntityPosition): number => Math.hypot(a.x - b.x, a.z - b.z);

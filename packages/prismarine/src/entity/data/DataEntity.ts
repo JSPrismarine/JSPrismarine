@@ -15,6 +15,7 @@
  */
 import type { EntityInstance, EntityPosition } from '@jsprismarine/entities';
 import { isRecord } from '@jsprismarine/entities';
+import { hypot3 } from '@jsprismarine/math';
 import type { Brain, BrainMobDefinition } from '@jsprismarine/entity-brains';
 import { randomUUID } from 'node:crypto';
 
@@ -604,7 +605,7 @@ export class DataEntity {
 
 /** The straight-line distance between two positions. */
 export const distance = (from: EntityPosition, to: EntityPosition): number =>
-    Math.hypot(to.x - from.x, to.y - from.y, to.z - from.z);
+    hypot3(to.x - from.x, to.y - from.y, to.z - from.z);
 
 /** The horizontal distance between two positions, ignoring height. */
 const horizontalDistance = (from: EntityPosition, to: EntityPosition): number =>

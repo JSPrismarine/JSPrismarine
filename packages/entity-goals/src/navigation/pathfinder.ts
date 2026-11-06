@@ -1,4 +1,5 @@
 import type { EntityPosition } from '@jsprismarine/entities';
+import { hypot3 } from '@jsprismarine/math';
 
 import type { NavigationProfile } from './profile';
 import type { NavigationView } from './view';
@@ -95,7 +96,7 @@ const keyOf = (origin: EntityPosition, x: number, y: number, z: number): number 
 };
 
 const distance = (a: { x: number; y: number; z: number }, b: EntityPosition): number =>
-    Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z);
+    hypot3(a.x - b.x, a.y - b.y, a.z - b.z);
 
 /** A binary heap over search nodes, ordered by cost plus estimate. */
 class NodeQueue {
@@ -497,7 +498,7 @@ const goalIsOccupiable = (cells: CellReader, goal: EntityPosition, goalRadius: n
     for (let dx = -span; dx <= span; dx += 1)
         for (let dy = -span; dy <= span; dy += 1)
             for (let dz = -span; dz <= span; dz += 1) {
-                if (Math.hypot(dx, dy, dz) > goalRadius) continue;
+                if (hypot3(dx, dy, dz) > goalRadius) continue;
                 if (cells.enterable(goal.x + dx, goal.y + dy, goal.z + dz) !== undefined) return true;
             }
     return false;
