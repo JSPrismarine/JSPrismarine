@@ -316,7 +316,7 @@ jobs:
                   fail-on-cache-miss: true
 
             - name: 🍿 Install ffmpeg for recording
-              if: ${{ (inputs.record || github.event_name == 'pull_request' || github.event_name == 'push') && matrix.protocol == needs.protocol-matrix.outputs.latest }}
+              if: ${{ (inputs.record || github.event_name == 'pull_request') && matrix.protocol == needs.protocol-matrix.outputs.latest }}
               run: brew install ffmpeg
 
             - name: 🎮 Run the client e2e scenarios
@@ -324,7 +324,7 @@ jobs:
                   # Both expand unquoted below: empty vanishes, and scenarios word-split by design.
                   # run.mts calls ensureCinnabar too; it finds the restored build and compiles nothing.
                   JSP_CINNABAR_CACHE_DIR: ${{ runner.temp }}/jsprismarine/cinnabar
-                  RECORD: ${{ (inputs.record || github.event_name == 'pull_request' || github.event_name == 'push') && matrix.protocol == needs.protocol-matrix.outputs.latest && '--record' || '' }}
+                  RECORD: ${{ (inputs.record || github.event_name == 'pull_request') && matrix.protocol == needs.protocol-matrix.outputs.latest && '--record' || '' }}
                   SCENARIOS: ${{ inputs.scenarios || needs.protocol-matrix.outputs.scenarios }}
                   PROTOCOL: ${{ matrix.protocol }}
                   NODE_OPTIONS: --max-old-space-size=4096

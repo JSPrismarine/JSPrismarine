@@ -19,6 +19,19 @@ const diagnostics = async (client: CinnabarClient) => {
     return { feet, server_position, health, rotation, screens, dimension };
 };
 
+/** Waits until the client's feet stop moving for half a second. */
+const settled = async (client: CinnabarClient): Promise<void> => {
+    const deadline = Date.now() + 15_000;
+    let last = vec3(await client.state(), 'feet');
+    let stillSince = Date.now();
+    while (Date.now() - stillSince < 500 && Date.now() < deadline) {
+        await sleep(100);
+        const feet = vec3(await client.state(), 'feet');
+        if (Math.hypot(feet[0] - last[0], feet[2] - last[2]) > 0.02) stillSince = Date.now();
+        last = feet;
+    }
+};
+
 export const lookDirection: Scenario = {
     name: 'look-direction',
     description: 'walking forward after turning heads toward the matching world axis',
@@ -26,6 +39,9 @@ export const lookDirection: Scenario = {
         server.command('fill -12 63 -12 12 63 12 minecraft:stone');
 
         for (const heading of headings) {
+            // A starved client applies the release late and keeps walking; let it stop first, or
+            // the walk carries on across the next heading.
+            await settled(client);
             server.command(`teleport ${playerName} 0.5 64 0.5`);
             const deadline = Date.now() + 15_000;
             for (;;) {
