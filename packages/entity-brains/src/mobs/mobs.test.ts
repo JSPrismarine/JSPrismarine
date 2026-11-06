@@ -33,7 +33,14 @@ import { PIGLIN, canAdmire, admireGoldItem, isBarterCurrency, wantsToPickUp } fr
 import { PIGLIN_BRUTE } from './piglinBrute.js';
 import { SNIFFER } from './sniffer.js';
 import { TADPOLE } from './tadpole.js';
-import { VILLAGER, VILLAGER_SCHEDULE } from './villager.js';
+import {
+    farmTask,
+    giveGiftToHero,
+    tradeWithVillager,
+    VILLAGER,
+    VILLAGER_SCHEDULE,
+    villagerMakeLove
+} from './villager.js';
 import { AngerManagement, makeWardenBrain, WARDEN, angerLevelByAnger, setDisturbanceLocation } from './warden.js';
 import { ZOGLIN } from './zoglin.js';
 import {
@@ -1029,6 +1036,88 @@ describe('the villager', () => {
         run(body, VILLAGER_BRAIN, 400);
 
         expect(world.villagerRestocks).toContain(body.id);
+    });
+
+    describe('its work with the world', () => {
+        it('walks a farmer to the spot the host picked and works it when it arrives', () => {
+            const world = new TestWorld();
+            world.farmSpot = { x: 1, y: 64, z: 0 };
+            const { body, brain } = spawn(VILLAGER_BRAIN, { world, brain: { variant: 'minecraft:farmer' } });
+            const harvest = farmTask('HarvestFarmland', 'harvest_farmland', true);
+
+            expect(harvest.tryStart(body.context, 0)).toBe(true);
+            expect(brain.getMemory(MemoryModuleTypes.WALK_TARGET)?.target.currentBlockPosition()).toEqual(
+                world.farmSpot
+            );
+            expect(world.villagerTasks).toEqual([]);
+
+            body.position = { x: 1.5, y: 64, z: 0.5 };
+            harvest.tickOrStop(body.context, 1);
+
+            expect(world.villagerTasks).toEqual([{ body: body.id, task: 'harvest_farmland', target: world.farmSpot }]);
+        });
+
+        it('never starts farming for a villager who is not a farmer, or when there is no farming to do', () => {
+            const world = new TestWorld();
+            const { body } = spawn(VILLAGER_BRAIN, { world });
+            world.farmSpot = { x: 1, y: 64, z: 0 };
+
+            expect(farmTask('HarvestFarmland', 'harvest_farmland', false).tryStart(body.context, 0)).toBe(false);
+
+            world.farmSpot = undefined;
+            expect(farmTask('UseBonemeal', 'use_bonemeal', true).tryStart(body.context, 0)).toBe(false);
+        });
+
+        it('shares with the villager it is talking to, within five blocks', () => {
+            const world = new TestWorld();
+            const { body, brain } = spawn(VILLAGER_BRAIN, { world });
+            const near = world.place('minecraft:villager', { x: 2, y: 64, z: 0 });
+            brain.setMemory(MemoryModuleTypes.INTERACTION_TARGET, near);
+
+            expect(tradeWithVillager().tryStart(body.context, 0)).toBe(true);
+            expect(world.villagerTasks.map(({ task }) => task)).toEqual(['trade_with_villager']);
+
+            const far = world.place('minecraft:villager', { x: 9, y: 64, z: 0 });
+            brain.setMemory(MemoryModuleTypes.INTERACTION_TARGET, far);
+            expect(tradeWithVillager().tryStart(body.context, 0)).toBe(false);
+        });
+
+        it('thanks only a hero, and not again for at least 600 ticks', () => {
+            const world = new TestWorld({ randomValues: [0] });
+            const { body, brain } = spawn(VILLAGER_BRAIN, { world });
+            brain.setMemory(
+                MemoryModuleTypes.NEAREST_VISIBLE_PLAYER,
+                world.place('minecraft:player', { x: 2, y: 64, z: 0 })
+            );
+            const gift = giveGiftToHero();
+
+            expect(gift.tryStart(body.context, 0)).toBe(false);
+
+            world.hero = true;
+            expect(gift.tryStart(body.context, 10)).toBe(true);
+            gift.doStop(body.context, 11);
+            expect(gift.tryStart(body.context, 400)).toBe(false);
+            expect(gift.tryStart(body.context, 700)).toBe(true);
+            expect(world.villagerTasks.map(({ task }) => task)).toEqual(['give_gift_to_hero', 'give_gift_to_hero']);
+        });
+
+        it('has the child once it has stayed with its partner for the whole time', () => {
+            const world = new TestWorld();
+            const { body, brain } = spawn(VILLAGER_BRAIN, { world });
+            const partner = world.place('minecraft:villager', { x: 1, y: 64, z: 0 });
+            brain.setMemory(MemoryModuleTypes.BREED_TARGET, partner);
+            const love = villagerMakeLove();
+
+            expect(love.tryStart(body.context, 0)).toBe(false);
+
+            world.canBreed = true;
+            expect(love.tryStart(body.context, 0)).toBe(true);
+            love.tickOrStop(body.context, 100);
+            expect(world.villagerTasks).toEqual([]);
+
+            love.tickOrStop(body.context, 301);
+            expect(world.villagerTasks).toEqual([{ body: body.id, task: 'make_love', target: partner }]);
+        });
     });
 
     it('stays idle at 2000 when it never acquired a job site', () => {

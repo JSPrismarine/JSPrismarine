@@ -34,7 +34,7 @@ import {
     updateActivityFromSchedule
 } from '../behavior/common.js';
 import type { BehaviorControl } from '../behavior/control.js';
-import { DoNothing, OneShot } from '../behavior/control.js';
+import { Behavior, conditions, DoNothing, OneShot } from '../behavior/control.js';
 import { GateBehavior, RunOne, triggerOneShuffled } from '../behavior/gate.js';
 import { MemoryModuleTypes } from '../memory.js';
 import type { BrainMobDefinition, BrainMobOptions } from '../registry.js';
@@ -49,8 +49,8 @@ import {
     VillagerBabiesSensor,
     VillagerHostilesSensor
 } from '../sensing/sensors.js';
-import type { BrainContext, VillagerRaidEffect } from '../world.js';
-import { blockContaining, blockPosTracker, bottomCenterOf, distanceSquared } from '../world.js';
+import type { BlockPos, BrainContext, VillagerRaidEffect } from '../world.js';
+import { blockContaining, blockPosTracker, bottomCenterOf, distanceSquared, entityTracker } from '../world.js';
 
 /** The named constants of `VillagerGoalPackages`. */
 export const VILLAGER = {
@@ -262,9 +262,138 @@ function workAtPoi(): BehaviorControl {
             }
             lastWorked.set(context.world.gameTime());
             context.world.villagerRestock(context.body);
+            // Java's `WorkAtComposter`, which a farmer's `WorkAtPoi` becomes at a composter.
+            if (context.world.blockAt(site.pos) === 'minecraft:composter') {
+                context.world.villagerTask(context.body, 'work_at_composter', site.pos);
+            }
             context.world.emitGameEvent('minecraft:block_change', bottomCenterOf(site.pos), context.body);
             return true;
         });
+}
+
+/** How close a villager has to be to the block it farms, in blocks. */
+const FARM_REACH = 2;
+/** Java's `HarvestFarmland` and `UseBonemeal` walk at this fraction of the villager's speed. */
+const FARM_SPEED = 0.5;
+
+/**
+ * Java's `HarvestFarmland` and `UseBonemeal`: a farmer walks to a spot the host picked and works it.
+ * Anyone who is not a farmer never starts either.
+ */
+export function farmTask(name: string, task: 'harvest_farmland' | 'use_bonemeal', farmer: boolean): BehaviorControl {
+    let spot: BlockPos | undefined;
+    let done = false;
+    return new Behavior(
+        name,
+        conditions(),
+        {
+            checkExtraStartConditions: (context) => {
+                if (!farmer) return false;
+                spot = context.world.villagerWorkSpot(context.body, task);
+                done = false;
+                return spot !== undefined;
+            },
+            start: (context) => {
+                if (spot === undefined) return;
+                const brain = context.body.brain;
+                brain.setMemory(MemoryModuleTypes.LOOK_TARGET, blockPosTracker(spot));
+                brain.setMemory(MemoryModuleTypes.WALK_TARGET, {
+                    target: blockPosTracker(spot),
+                    speedModifier: FARM_SPEED,
+                    closeEnoughDist: 1
+                });
+            },
+            canStillUse: () => !done && spot !== undefined,
+            tick: (context) => {
+                if (
+                    spot === undefined ||
+                    distanceSquared(bottomCenterOf(spot), context.body.position) > FARM_REACH ** 2
+                ) {
+                    return;
+                }
+                context.world.villagerTask(context.body, task, spot);
+                done = true;
+            },
+            stop: () => {
+                spot = undefined;
+            }
+        },
+        { minDuration: 20, maxDuration: 200 }
+    );
+}
+
+/** Java's `TradeWithVillager`: food and seeds change hands between two villagers who meet. */
+export function tradeWithVillager(): BehaviorControl {
+    return new OneShot('TradeWithVillager', [MemoryModuleTypes.INTERACTION_TARGET], (context) => {
+        const partner = context.body.brain.getMemory(MemoryModuleTypes.INTERACTION_TARGET);
+        if (partner === undefined || partner.type !== 'minecraft:villager') return false;
+        if (distanceSquared(partner.position, context.body.position) > 5 * 5) return false;
+        return context.world.villagerTask(context.body, 'trade_with_villager', partner);
+    });
+}
+
+/** Java's `GiveGiftToHero`: a villager thanks the hero of its village, every so often. */
+export function giveGiftToHero(): BehaviorControl {
+    let nextGift = 0;
+    return new OneShot('GiveGiftToHero', [MemoryModuleTypes.NEAREST_VISIBLE_PLAYER], (context, timestamp) => {
+        const player = context.body.brain.getMemory(MemoryModuleTypes.NEAREST_VISIBLE_PLAYER);
+        if (context.body.baby || player === undefined || timestamp < nextGift) return false;
+        if (!context.world.isVillageHero(player)) return false;
+        if (distanceSquared(player.position, context.body.position) > 5 * 5) return false;
+        if (!context.world.villagerTask(context.body, 'give_gift_to_hero', player)) return false;
+        nextGift = timestamp + 600 + context.world.randomInt(6000);
+        return true;
+    });
+}
+
+/** How long two villagers stay together before a child is born, in ticks. */
+const LOVE_DURATION = 300;
+
+/**
+ * Java's `VillagerMakeLove`: the two walk to each other, and when they have stayed a while the
+ * host decides whether a child comes.
+ */
+export function villagerMakeLove(): BehaviorControl {
+    let birthTime = 0;
+    let born = false;
+    return new Behavior(
+        'VillagerMakeLove',
+        conditions([MemoryModuleTypes.BREED_TARGET, 'value_present']),
+        {
+            checkExtraStartConditions: (context) => {
+                const partner = context.body.brain.getMemory(MemoryModuleTypes.BREED_TARGET);
+                return (
+                    partner !== undefined &&
+                    partner.type === 'minecraft:villager' &&
+                    context.world.villagerCanBreed(context.body, partner)
+                );
+            },
+            start: (context, timestamp) => {
+                birthTime = timestamp + LOVE_DURATION;
+                born = false;
+                const partner = context.body.brain.getMemory(MemoryModuleTypes.BREED_TARGET);
+                if (partner === undefined) return;
+                context.body.brain.setMemory(MemoryModuleTypes.LOOK_TARGET, entityTracker(partner));
+                context.body.brain.setMemory(MemoryModuleTypes.WALK_TARGET, {
+                    target: entityTracker(partner),
+                    speedModifier: VILLAGER.baseSpeedModifier,
+                    closeEnoughDist: 2
+                });
+            },
+            canStillUse: (context) => !born && context.body.brain.hasMemoryValue(MemoryModuleTypes.BREED_TARGET),
+            tick: (context, timestamp) => {
+                const partner = context.body.brain.getMemory(MemoryModuleTypes.BREED_TARGET);
+                if (partner === undefined || timestamp < birthTime) return;
+                if (distanceSquared(partner.position, context.body.position) > 5) return;
+                context.world.villagerTask(context.body, 'make_love', partner);
+                born = true;
+            },
+            stop: (context) => {
+                context.body.brain.eraseMemory(MemoryModuleTypes.BREED_TARGET);
+            }
+        },
+        { minDuration: LOVE_DURATION + 50, maxDuration: LOVE_DURATION + 50 }
+    );
 }
 
 /** Java's `VillagerPanicTrigger`: a hostile or an attacker forces the `panic` activity. */
@@ -450,8 +579,8 @@ export function workPackage(profession: VillagerProfession, speedModifier: numbe
                 [strollAroundPoi(MemoryModuleTypes.JOB_SITE, VILLAGER.strollSpeedModifier, 4), 2],
                 [strollToPoi(MemoryModuleTypes.JOB_SITE, VILLAGER.strollSpeedModifier, 1, 10), 5],
                 [timedState('StrollToPoiList', 1), 5],
-                [timedState('HarvestFarmland', 1), isFarmer ? 2 : 5],
-                [timedState('UseBonemeal', 1), isFarmer ? 4 : 7]
+                [farmTask('HarvestFarmland', 'harvest_farmland', isFarmer), isFarmer ? 2 : 5],
+                [farmTask('UseBonemeal', 'use_bonemeal', isFarmer), isFarmer ? 4 : 7]
             ])
         ],
         [10, timedState('ShowTradesToPlayer', VILLAGER.showTradesDuration.min)],
@@ -466,7 +595,7 @@ export function workPackage(profession: VillagerProfession, speedModifier: numbe
                 1200
             )
         ],
-        [3, timedState('GiveGiftToHero', VILLAGER.giveGiftDuration)],
+        [3, giveGiftToHero()],
         [99, updateActivityFromSchedule()]
     ];
 }
@@ -547,11 +676,11 @@ export function meetPackage(speedModifier: number): readonly PrioritizedBehavior
                 200
             )
         ],
-        [3, timedState('GiveGiftToHero', VILLAGER.giveGiftDuration)],
+        [3, giveGiftToHero()],
         [3, validateNearbyPoi('minecraft:meeting', MemoryModuleTypes.MEETING_POINT)],
         [
             3,
-            new GateBehavior('ordered', 'run_one', [[timedState('TradeWithVillager', 1), 1]], {
+            new GateBehavior('ordered', 'run_one', [[tradeWithVillager(), 1]], {
                 exitErasedMemories: [MemoryModuleTypes.INTERACTION_TARGET]
             })
         ],
@@ -575,18 +704,18 @@ export function idlePackage(speedModifier: number): readonly PrioritizedBehavior
                 [new DoNothing(30, 60), 1]
             ])
         ],
-        [3, timedState('GiveGiftToHero', VILLAGER.giveGiftDuration)],
+        [3, giveGiftToHero()],
         [3, setLookAndInteract('minecraft:player', 4)],
         [3, timedState('ShowTradesToPlayer', VILLAGER.showTradesDuration.min)],
         [
             3,
-            new GateBehavior('ordered', 'run_one', [[timedState('TradeWithVillager', 1), 1]], {
+            new GateBehavior('ordered', 'run_one', [[tradeWithVillager(), 1]], {
                 exitErasedMemories: [MemoryModuleTypes.INTERACTION_TARGET]
             })
         ],
         [
             3,
-            new GateBehavior('ordered', 'run_one', [[timedState('VillagerMakeLove', 1), 1]], {
+            new GateBehavior('ordered', 'run_one', [[villagerMakeLove(), 1]], {
                 exitErasedMemories: [MemoryModuleTypes.BREED_TARGET]
             })
         ],

@@ -325,10 +325,14 @@ that need facts the seam deliberately does not carry.
   15-by-20-block range and resistance-scaled knockback. The breeze's wind charge still leaves its
   projectile effect to the host.
 - **Villager professions and trading.** `VillagerProfession` carries only what the brain reads: the
-  profession id, its job-site point of interest and its secondary blocks. `WorkAtComposter`,
-  `HarvestFarmland`, `UseBonemeal`, `ShowTradesToPlayer`, `TradeWithVillager`, `GiveGiftToHero` and
-  `VillagerMakeLove` are present by name with their real priorities and weights, and their effects
-  belong to `@jsprismarine/trading` and the farming code.
+  profession id, its job-site point of interest and its secondary blocks. The brain decides when a
+  villager works and the host does the work through `BrainWorld.villagerTask`: baking bread and
+  composting at a composter (`WorkAtComposter`, as a `WorkAtPoi` at a composter block), harvesting,
+  sowing and bone-mealing crops (`HarvestFarmland`, `UseBonemeal`, farmers only, through
+  `villagerWorkSpot`), sharing food and wheat (`TradeWithVillager`), thanking a hero
+  (`GiveGiftToHero`) and having a child (`VillagerMakeLove`). `WorkAtPoi` also asks the host to
+  restock the villager's trades. The trades themselves belong to `@jsprismarine/trading`.
+  `ShowTradesToPlayer` is still a placeholder.
 - **Raids.** The villager brain reads raid status from its host and requests bell, sky-seeking,
   celebration, and reset effects through that seam. The host still owns raid creation, waves, and
   victory state; this server does not start pillager patrols or village raids.

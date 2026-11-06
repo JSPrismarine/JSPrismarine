@@ -29,7 +29,8 @@ import type {
     RandomPosRequest,
     Vec3,
     VillagerRaidEffect,
-    VillagerRaidState
+    VillagerRaidState,
+    VillagerTask
 } from './world.js';
 import {
     blockContaining,
@@ -546,6 +547,36 @@ export class TestWorld implements BrainWorld {
     /** Records the villagers that were asked to restock their trades. */
     public villagerRestock(body: BrainMob): void {
         this.villagerRestocks.push(body.id);
+    }
+
+    /** Where the farmer's next piece of farming is, which a test sets. */
+    public farmSpot: BlockPos | undefined;
+    /** Every villager task the host was asked to carry out, in order. */
+    public readonly villagerTasks: { body: string; task: VillagerTask; target?: BlockPos | BrainEntity }[] = [];
+    /** Whether the host counts a player as a hero. */
+    public hero = false;
+    /** Whether the host says two villagers may breed. */
+    public canBreed = false;
+
+    /** Returns {@link TestWorld.farmSpot}. */
+    public villagerWorkSpot(_body: BrainMob, _task: 'harvest_farmland' | 'use_bonemeal'): BlockPos | undefined {
+        return this.farmSpot;
+    }
+
+    /** Records the task. */
+    public villagerTask(body: BrainMob, task: VillagerTask, target?: BlockPos | BrainEntity): boolean {
+        this.villagerTasks.push({ body: body.id, task, ...(target === undefined ? {} : { target }) });
+        return true;
+    }
+
+    /** Returns {@link TestWorld.hero}. */
+    public isVillageHero(_player: BrainEntity): boolean {
+        return this.hero;
+    }
+
+    /** Returns {@link TestWorld.canBreed}. */
+    public villagerCanBreed(_body: BrainMob, _partner: BrainEntity): boolean {
+        return this.canBreed;
     }
 }
 

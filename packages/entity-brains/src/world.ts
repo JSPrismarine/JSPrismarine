@@ -86,6 +86,18 @@ export interface VillagerRaidState {
 export type VillagerRaidEffect = 'ring_bell' | 'move_to_sky_seeing_spot' | 'celebrate_victory' | 'reset_status';
 
 /**
+ * A piece of villager work whose effect belongs to the world: the brain decides when, the host
+ * changes blocks, inventories and entities.
+ */
+export type VillagerTask =
+    | 'work_at_composter'
+    | 'harvest_farmland'
+    | 'use_bonemeal'
+    | 'trade_with_villager'
+    | 'give_gift_to_hero'
+    | 'make_love';
+
+/**
  * Java's `PositionTracker`: either a fixed block (`BlockPosTracker`) or a moving entity
  * (`EntityTracker`). A walk or look target holds one of these rather than a bare position, which is
  * what lets a mob keep following a target that moves.
@@ -349,6 +361,18 @@ export interface BrainWorld {
     villagerRaidEffect(body: BrainMob, effect: VillagerRaidEffect): void;
     /** Restocks a villager's trades, as Java's `Villager.restock` does once it works at its job site. */
     villagerRestock(body: BrainMob): void;
+    /** Where a farmer has farming to do near itself, or undefined when there is none. */
+    villagerWorkSpot(body: BrainMob, task: 'harvest_farmland' | 'use_bonemeal'): BlockPos | undefined;
+    /**
+     * Carries out a {@link VillagerTask}. `target` is the block or the entity the task is about.
+     *
+     * @returns Whether anything happened.
+     */
+    villagerTask(body: BrainMob, task: VillagerTask, target?: BlockPos | BrainEntity): boolean;
+    /** Whether a player carries Hero of the Village, which is what makes a villager give gifts. */
+    isVillageHero(player: BrainEntity): boolean;
+    /** Whether two villagers are both willing and able to have a child now. */
+    villagerCanBreed(body: BrainMob, partner: BrainEntity): boolean;
 }
 
 /** Everything one brain tick needs. Every behavior and sensor takes exactly this. */
