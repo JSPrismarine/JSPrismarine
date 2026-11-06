@@ -83,3 +83,36 @@ export const vec3 = (state: Record<string, unknown>, key: string): [number, numb
     }
     return value as [number, number, number];
 };
+
+/** Matches every reply `testforblock` gives, whether or not the block is there. */
+const BLOCK_CHECK_REPLY = /Found the block at|The block is |The \w+ state does not match|That chunk is not loaded/;
+
+/** Asks the server whether `block` stands at the position, returning its raw reply. */
+export const testForBlock = (server: JspServer, at: { x: number; y: number; z: number }, block: string) => {
+    const reply = server.waitForLine(BLOCK_CHECK_REPLY, 10_000);
+    server.command(`testforblock ${at.x} ${at.y} ${at.z} ${block}`);
+    return reply;
+};
+
+/**
+ * Sets a block and waits until the server reports it there, retrying while its chunk is unloaded.
+ *
+ * `setblock` into a chunk the server has not loaded is dropped, and the client only loads the
+ * chunks around where it stands, so a scenario that builds far from the spawn cannot assume the
+ * first command lands.
+ */
+export const placeBlockAndWait = async (
+    server: JspServer,
+    at: { x: number; y: number; z: number },
+    block: string,
+    timeoutMs = 20_000
+): Promise<void> => {
+    const deadline = Date.now() + timeoutMs;
+    for (;;) {
+        server.command(`setblock ${at.x} ${at.y} ${at.z} ${block}`);
+        const reply = await testForBlock(server, at, block);
+        if (/Found the block at/.test(reply)) return;
+        if (Date.now() > deadline) throw new Error(`${block} never appeared at ${at.x} ${at.y} ${at.z}: ${reply}`);
+        await sleep(250);
+    }
+};

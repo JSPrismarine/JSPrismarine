@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 
 import type { Scenario } from '../scenario.mts';
-import { sleep, vec3 } from '../scenario.mts';
+import { sleep, testForBlock, vec3 } from '../scenario.mts';
 
 /** Counts item actors visible to the client. */
 const itemActorCount = (state: Record<string, unknown>): number => {
@@ -53,17 +53,21 @@ export const subChunkBlockChanges: Scenario = {
         // come out of it - and only a client that applied the fill knows the wall is there.
         await client.input({ look: { yaw: 0, pitch: 0, frames: 0 } });
         const before = itemActorCount(await client.state());
-        // A slow runner can lose the start of the hold, so swing again if no drop appeared.
-        let after = before;
-        for (let swing = 0; after <= before && swing < 3; swing += 1) {
-            await client.input({ hold: ['key.attack'] });
-            await sleep(1_250);
-            await client.input({ release_all: true });
+        // Hold until the server has broken the block, since a slow runner can lose the start of a
+        // fixed-length hold and then nothing drops at all.
+        await client.input({ hold: ['key.attack'] });
+        const brokeBy = Date.now() + 20_000;
+        for (;;) {
+            const reply = await testForBlock(server, { x: x + 1, y: y + 2, z: z + 3 }, 'minecraft:air');
+            if (/Found the block at/.test(reply) || Date.now() > brokeBy) break;
+            await sleep(250);
+        }
+        await client.input({ release_all: true });
 
-            for (let attempt = 0; after <= before && attempt < 12; attempt += 1) {
-                await sleep(250);
-                after = itemActorCount(await client.state());
-            }
+        let after = before;
+        for (let attempt = 0; after <= before && attempt < 20; attempt += 1) {
+            await sleep(250);
+            after = itemActorCount(await client.state());
         }
 
         assert.ok(after > before, `breaking a block of the filled wall exposed ${after - before} item actors`);

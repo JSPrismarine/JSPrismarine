@@ -35,9 +35,21 @@ export const lookDirection: Scenario = {
             // walking player covers, and the heading is what this scenario is about.
             const walkDeadline = Date.now() + 8_000;
             let feet = vec3(await client.state(), 'feet');
+            let lastAlong = (feet[heading.axis] - 0.5) * heading.sign;
+            let lastProgress = Date.now();
             while ((feet[heading.axis] - 0.5) * heading.sign <= 2 && Date.now() < walkDeadline) {
                 await sleep(250);
                 feet = vec3(await client.state(), 'feet');
+                const along = (feet[heading.axis] - 0.5) * heading.sign;
+                if (along - lastAlong > 0.1) {
+                    lastAlong = along;
+                    lastProgress = Date.now();
+                } else if (Date.now() - lastProgress > 1_500) {
+                    // A slow runner can lose the start of the key press; ask again.
+                    await client.input({ look: { yaw: heading.yaw, pitch: 0, frames: 0 } });
+                    await client.input({ move: { forward: 1 } });
+                    lastProgress = Date.now();
+                }
             }
             await client.input({ move: { forward: 0 }, release_all: true });
 
