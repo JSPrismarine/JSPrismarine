@@ -54,6 +54,11 @@ const logFileName = (): string => {
  */
 const dataPath = (...segments: string[]): string => path.resolve(process.cwd(), process.env.JSP_DIR || '', ...segments);
 
+/** Whether this process loads the workspace packages' built output instead of their TypeScript source. */
+const runsBuiltOutput = (): boolean =>
+    process.execArgv.join(' ').replace('--conditions=', '--conditions ').includes('--conditions jsprismarine:dist') ||
+    process.env.NODE_OPTIONS?.includes('jsprismarine:dist') === true;
+
 /** The monorepo's `packages/` directory, which `--watch` watches and generates bedrock-data in. */
 const packagesDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 
@@ -277,6 +282,7 @@ const runHost = async (args: ServerArgs, frontend: ConsoleFrontend | undefined):
     if (args.watch) {
         await new Watcher({
             packagesDir,
+            built: runsBuiltOutput(),
             contentPackPaths: contentPackPaths(),
             onEvent: (event) => supervisor.emit(event),
             requestRestart: (reason) => supervisor.restart(reason)

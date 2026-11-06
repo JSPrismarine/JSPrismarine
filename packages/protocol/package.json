@@ -52,9 +52,9 @@
         "build": "vite build && node ../../scripts/emit-dts.mts",
         "bench:compression": "vitest bench benchmarks/compression.bench.ts",
         "bench:compression-variants": "vitest bench benchmarks/compression-variants.bench.ts",
-        "bench:batch-codec": "node --import tsx benchmarks/batchCodec.bench.mjs",
-        "bench:layout": "node --import tsx benchmarks/layout.bench.ts",
-        "bench:layout-cache": "node --import tsx bench/layout.bench.ts",
+        "bench:batch-codec": "node ../../scripts/run-ts.mjs benchmarks/batchCodec.bench.mjs",
+        "bench:layout": "node ../../scripts/run-ts.mjs benchmarks/layout.bench.ts",
+        "bench:layout-cache": "node ../../scripts/run-ts.mjs bench/layout.bench.ts",
         "test:dist-contract": "node --conditions=jsprismarine:dist --import tsx scripts/check-packet-class-names.mjs",
         "typecheck": "tsc-ts --noEmit && tsc-ts --noEmit -p tsconfig.test.json"
     },

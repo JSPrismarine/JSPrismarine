@@ -48,7 +48,7 @@
         "bench:startup": "node benchmarks/startup.mjs",
         "bench:host-startup": "node benchmarks/hostStartup.mjs",
         "start": "pnpm --filter @jsprismarine/server... run build && cross-env NODE_ENV=production node --conditions=jsprismarine:dist --unhandled-rejections=strict ./dist/Server.es.js",
-        "dev": "cross-env NODE_ENV=development node --import tsx ./src/Server.ts --watch",
+        "dev": "pnpm -w run server:build && concurrently --kill-others --raw \"turbo run build:watch --filter=@jsprismarine/server... --concurrency 64 --ui stream > ../../node_modules/.cache/jsprismarine-dev-build.log 2>&1\" \"cross-env NODE_ENV=development node --conditions=jsprismarine:dist --unhandled-rejections=strict ./dist/Server.es.js --watch\"",
         "dev:native-prototype": "cross-env NODE_ENV=development node --import ./scripts/native-typescript-loader.mjs ./src/Server.ts --watch",
         "bench:native-typescript": "node ./scripts/native-typescript-benchmark.mjs"
     },

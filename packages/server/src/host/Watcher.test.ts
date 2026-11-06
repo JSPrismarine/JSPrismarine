@@ -77,7 +77,8 @@ const DEBOUNCE_MS = 20;
 const startWatcher = async (
     packagesDir: string,
     generate: () => boolean | Promise<boolean> = () => true,
-    contentPackPaths: readonly string[] = []
+    contentPackPaths: readonly string[] = [],
+    built = false
 ) => {
     const fs = fakeWatch();
     const events: SupervisorEvent[] = [];
@@ -85,6 +86,7 @@ const startWatcher = async (
     const watcher = new Watcher({
         packagesDir,
         contentPackPaths,
+        built,
         onEvent: (event) => events.push(event),
         requestRestart,
         generate,
@@ -146,6 +148,25 @@ describe('Watcher', () => {
         expect(requestRestart).toHaveBeenCalledTimes(1);
         expect(requestRestart).toHaveBeenCalledWith(path.join('packages', 'alpha', 'src', 'a.ts'));
         expect(events.filter((event) => event.type === 'supervisor.changed')).toHaveLength(1);
+    });
+
+    it('watches built output instead of source when the server runs from it', async () => {
+        const packagesDir = makePackages();
+        mkdirSync(path.join(packagesDir, 'alpha', 'dist'), { recursive: true });
+        const { requestRestart, fs, started } = await startWatcher(packagesDir, () => true, [], true);
+        await started;
+
+        expect(fs.watched()).toContain(path.join(packagesDir, 'alpha', 'dist'));
+        expect(fs.watched()).not.toContain(path.join(packagesDir, 'alpha', 'src'));
+
+        // A rebuild writes modules and leaves declarations and maps that nothing loads.
+        fs.change(path.join(packagesDir, 'alpha', 'dist'), 'index.es.js');
+        fs.change(path.join(packagesDir, 'alpha', 'dist'), 'index.d.ts');
+        fs.change(path.join(packagesDir, 'alpha', 'dist'), 'index.es.js.map');
+        await advanceDebounce();
+
+        expect(requestRestart).toHaveBeenCalledOnce();
+        expect(requestRestart).toHaveBeenCalledWith(path.join('packages', 'alpha', 'dist', 'index.es.js'));
     });
 
     it('restarts for a nested block overlay definition change', async () => {

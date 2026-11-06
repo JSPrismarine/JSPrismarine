@@ -206,6 +206,9 @@ importers:
       '@nordcom/prettier':
         specifier: 0.1.1
         version: 0.1.1
+      '@scriptc/threads':
+        specifier: 0.4.8
+        version: 0.4.8
       '@turbo/gen':
         specifier: 2.11.10
         version: 2.11.10(@types/node@24.19.2)
@@ -247,7 +250,7 @@ importers:
         version: 2.6.1
       tsc-ts:
         specifier: 0.1.2
-        version: 0.1.2
+        version: 0.1.2(@scriptc/threads@0.4.8)
       turbo:
         specifier: 2.11.10
         version: 2.11.10
@@ -743,9 +746,6 @@ importers:
       rimraf:
         specifier: 6.1.4
         version: 6.1.4
-      tsx:
-        specifier: 4.23.15
-        version: 4.23.15
       typescript:
         specifier: 7.0.2
         version: 7.0.2
@@ -801,9 +801,6 @@ importers:
       rimraf:
         specifier: 6.1.4
         version: 6.1.4
-      tsx:
-        specifier: 4.23.15
-        version: 4.23.15
       typescript:
         specifier: 7.0.2
         version: 7.0.2
@@ -1687,9 +1684,6 @@ importers:
       rimraf:
         specifier: 6.1.4
         version: 6.1.4
-      tsx:
-        specifier: 4.23.15
-        version: 4.23.15
       typescript:
         specifier: 7.0.2
         version: 7.0.2
@@ -2883,6 +2877,10 @@ packages:
 
   '@scriptc/runtime-win32-x64-msvc@0.4.8':
     resolution: {integrity: sha512-JFqMo9ygo1Q7zp558Lg+NyIb9HdGUd/81oTIl4Rc68Dyw7VbUjGodNvXe7dDc/quwr4D2iHuam5WGbWzOrd3Aw==}
+
+  '@scriptc/threads@0.4.8':
+    resolution: {integrity: sha512-lNsi1dpR9hBhh7BhwrfpNyyGxyIh3YzOzbH+0KGdBgIvZ3xTbG+r3zp0BRX7jHR4Apr8puPW2NLbZraBKsqluQ==}
+    engines: {node: '>=24.0.0'}
 
   '@shikijs/core@4.5.0':
     resolution: {integrity: sha512-6CIgwq+bt2JZ3OSjb/nBkkwEf/CfpHcbam+Mg5Pllco7HAGRQ2/EFhZrrJtbyNTgKwknfVS+llsXGygiDGwJWw==}
@@ -5975,6 +5973,8 @@ snapshots:
   '@scriptc/runtime-win32-x64-msvc@0.4.8':
     optional: true
 
+  '@scriptc/threads@0.4.8': {}
+
   '@shikijs/core@4.5.0':
     dependencies:
       '@shikijs/primitive': 4.5.0
@@ -7713,8 +7713,9 @@ snapshots:
     dependencies:
       lodash: 4.18.1
 
-  tsc-ts@0.1.2:
+  tsc-ts@0.1.2(@scriptc/threads@0.4.8):
     optionalDependencies:
+      '@scriptc/threads': 0.4.8
       '@tsc-ts/darwin-arm64': 0.1.2
       '@tsc-ts/darwin-x64': 0.1.2
       '@tsc-ts/linux-arm64-gnu': 0.1.2

@@ -43,6 +43,10 @@ const outfile = join(outputDirectory, 'bench.mjs');
 try {
     await esbuild.build({
         absWorkingDir: root,
+        banner: {
+            // CommonJS dependencies in the bundle call require() for Node builtins.
+            js: "import { createRequire as __jspCreateRequire } from 'node:module'; const require = __jspCreateRequire(import.meta.url);"
+        },
         bundle: true,
         entryPoints: [entryPath],
         external: ['node:*'],

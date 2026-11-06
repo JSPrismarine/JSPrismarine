@@ -65,15 +65,19 @@ To arrange the cache by hand, or to refresh it:
 ## 3. Running
 
 ```bash
-    # Development: runs from source, restarts on file changes, opens the terminal UI
+    # Development: runs the built output, rebuilds and restarts on source changes, opens the terminal UI
     $ pnpm run dev
 
     # Production: builds the workspace packages and starts the compiled server
     $ pnpm run start
 ```
 
-`pnpm run dev` is `prismarine --watch`: the server runs from TypeScript source and restarts when
-a watched source file or content pack data changes.
+`pnpm run dev` is `prismarine --watch`: it builds the server and its workspace packages once, then runs
+the compiled entry next to `vite build --watch` for each package, so there is no TypeScript loader in
+the server process or its workers. Editing a source file rebuilds that package, and the server restarts
+when its `dist` output or content pack data changes. The first restart a few seconds after start-up is
+the watch builds writing their initial output. The watch builds log to
+`node_modules/.cache/jsprismarine-dev-build.log` so they stay out of the terminal UI.
 `pnpm run start` builds the server and its workspace dependencies, then runs the compiled entry
 without the watcher. Both open the terminal UI described in the next section when they can, and
 fall back to the plain line console otherwise.

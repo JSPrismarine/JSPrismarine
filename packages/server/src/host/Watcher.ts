@@ -32,6 +32,12 @@ export interface WatcherOptions {
      * fetches the resources submodule when a fresh clone left it empty.
      */
     generate?: () => boolean | Promise<boolean>;
+    /**
+     * Whether the server runs from the packages' built `dist/` rather than their `src/`. Source
+     * edits then do nothing until a `build:watch` rebuilds them, so the watcher waits for the
+     * rebuilt output: restarting on the source change would start the old code again.
+     */
+    built?: boolean;
     /** Defaults to the global timers. */
     timers?: Timers;
     /** Defaults to `fs.watch`. */
@@ -48,6 +54,8 @@ const shouldIgnore = (pkg: string, filename: string): boolean =>
     (pkg === 'bedrock-data' && (filename.startsWith('resources') || filename.startsWith('generated')));
 
 const SOURCE_FILE = /\.(ts|json)$/;
+/** What a package build writes that the server loads; declarations and source maps are not loaded. */
+const BUILT_FILE = /\.(m?js|json)$/;
 const PACK_DATA_FILE = /\.(json|mcfunction|mcmeta|brarchive)$/i;
 
 /**
@@ -106,9 +114,12 @@ export class Watcher {
         for (const entry of readdirSync(this.options.packagesDir, { withFileTypes: true })) {
             if (!entry.isDirectory()) continue;
             const pkg = entry.name;
-            this.watch(path.join(this.options.packagesDir, pkg, 'src'), (filename) => {
-                if (!filename || !SOURCE_FILE.test(filename) || shouldIgnore(pkg, filename)) return;
-                this.requestRestart(path.join('packages', pkg, 'src', filename));
+            const built = this.options.built === true;
+            const directory = built ? 'dist' : 'src';
+            this.watch(path.join(this.options.packagesDir, pkg, directory), (filename) => {
+                if (!filename || !(built ? BUILT_FILE : SOURCE_FILE).test(filename)) return;
+                if (!built && shouldIgnore(pkg, filename)) return;
+                this.requestRestart(path.join('packages', pkg, directory, filename));
             });
         }
 
