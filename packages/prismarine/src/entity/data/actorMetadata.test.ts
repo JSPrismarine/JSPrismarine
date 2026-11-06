@@ -6,7 +6,14 @@ import { Vector3 } from '@jsprismarine/math';
 import type { Entity } from '../Entity';
 import { Metadata, MetadataFlag } from '@jsprismarine/protocol/wire/structures/Metadata';
 import { stub } from '../../testing/stub.test.helper';
-import { applyActorMetadataProjection, actorMetadataProjection, sameActorMetadataProjection } from './actorMetadata';
+import {
+    actorMetadataInputs,
+    actorMetadataProjection,
+    applyActorMetadataProjection,
+    sameActorMetadataInputs,
+    sameActorMetadataProjection
+} from './actorMetadata';
+import { referenceActorMetadataProjection } from './actorMetadata.reference.test.helper';
 import { FLOOR_Y, TestEntityWorld, entityFixture } from './testing';
 
 describe('actor metadata from entity components', () => {
@@ -213,5 +220,102 @@ describe('actor metadata from entity components', () => {
 
         applyActorMetadataProjection(body, actorMetadataProjection(actor));
         expectFlags(false);
+    });
+
+    describe('against the projection that read every component each time', () => {
+        const marker = {
+            'jsprismarine:marked': {
+                components: { 'minecraft:physics': {}, 'minecraft:scale': { value: 1 } },
+                component_groups: {
+                    charged: { 'minecraft:is_charged': {}, 'minecraft:scale': 2 },
+                    tame: { 'minecraft:is_tamed': {}, 'minecraft:is_saddled': {}, 'minecraft:variant': { value: 3 } },
+                    climber: { 'minecraft:navigation.climb': { can_pass_doors: true } }
+                },
+                events: {
+                    charge: { add: { component_groups: ['charged'] } },
+                    discharge: { remove: { component_groups: ['charged'] } },
+                    tame: { add: { component_groups: ['tame'] } },
+                    climb: { add: { component_groups: ['climber'] } }
+                }
+            }
+        };
+
+        const spawn = () => {
+            const fixture = entityFixture(new TestEntityWorld(), {}, marker);
+            const actor = fixture.runtime.spawn('jsprismarine:marked', { x: 0.5, y: FLOOR_Y + 1, z: 0.5 });
+            if (actor === undefined) throw new Error('the fixture did not declare a marked actor');
+            return { fixture, actor };
+        };
+
+        it('projects the same metadata before and after the component set changes', () => {
+            const { fixture, actor } = spawn();
+            let tick = 1;
+            const expectSame = (): void => {
+                expect(actorMetadataProjection(actor)).toEqual(referenceActorMetadataProjection(actor));
+            };
+
+            expectSame();
+            for (const event of ['charge', 'tame', 'climb', 'discharge']) {
+                fixture.runtime.trigger(actor.body, event, 'self');
+                fixture.runtime.tick(tick++);
+                expectSame();
+            }
+        });
+
+        it('projects the same metadata as the entity state moves', () => {
+            const { actor } = spawn();
+            const states: Array<() => void> = [
+                () => (actor.body.fireTicks = 40),
+                () => (actor.body.fuseTicks = 30),
+                () => (actor.body.nameTag = 'Bessie'),
+                () => (actor.body.color = 7),
+                () => (actor.body.showBottom = false),
+                () => (actor.body.beamTarget = { x: 3.7, y: 128.2, z: -4.1 }),
+                () => (actor.body.fireTicks = 0),
+                () => (actor.body.fuseTicks = undefined),
+                () => (actor.body.beamTarget = undefined)
+            ];
+
+            for (const leash of [undefined, 12]) {
+                for (const change of states) {
+                    change();
+                    expect(actorMetadataProjection(actor, leash)).toEqual(
+                        referenceActorMetadataProjection(actor, leash)
+                    );
+                }
+            }
+        });
+
+        it('reports the inputs as changed exactly when a projected value can have changed', () => {
+            const { fixture, actor } = spawn();
+            const before = actorMetadataInputs(actor);
+
+            // A read with nothing different is the same, which is what lets a tick skip the projection.
+            expect(sameActorMetadataInputs(before, actorMetadataInputs(actor))).toBe(true);
+
+            const changes: Array<[string, () => void]> = [
+                ['fire', () => (actor.body.fireTicks = 5)],
+                ['fuse', () => (actor.body.fuseTicks = 5)],
+                ['name', () => (actor.body.nameTag = 'Bessie')],
+                ['color', () => (actor.body.color = 3)],
+                ['base plate', () => (actor.body.showBottom = false)],
+                ['beam', () => (actor.body.beamTarget = { x: 1, y: 2, z: 3 })]
+            ];
+            for (const [name, change] of changes) {
+                const reference = actorMetadataInputs(actor);
+                change();
+                expect(sameActorMetadataInputs(reference, actorMetadataInputs(actor)), name).toBe(false);
+            }
+
+            expect(sameActorMetadataInputs(actorMetadataInputs(actor, undefined), actorMetadataInputs(actor, 4))).toBe(
+                false
+            );
+
+            // A new component set invalidates the cached facts and the inputs together.
+            const marked = actorMetadataInputs(actor);
+            fixture.runtime.trigger(actor.body, 'charge', 'self');
+            fixture.runtime.tick(1);
+            expect(sameActorMetadataInputs(marked, actorMetadataInputs(actor))).toBe(false);
+        });
     });
 });

@@ -65,6 +65,7 @@
         "bench:entity-ai": "node --conditions=jsprismarine:dist benchmarks/runExternal.mjs benchmarks/entityAi.bench.ts",
         "bench:entity-ai:source": "node --import tsx benchmarks/runExternal.mjs benchmarks/entityAi.bench.ts",
         "bench:entity-ai:dist": "node --conditions=jsprismarine:dist benchmarks/runExternal.mjs benchmarks/entityAi.bench.ts",
+        "bench:actor-metadata": "node --import tsx benchmarks/actorMetadata.bench.ts",
         "bench:entity-ai-digest": "node --conditions=jsprismarine:dist benchmarks/runExternal.mjs benchmarks/entityAiDigest.bench.ts",
         "bench:entity-ai-digest:source": "node --import tsx benchmarks/runExternal.mjs benchmarks/entityAiDigest.bench.ts",
         "bench:entity-ai-digest:dist": "node --conditions=jsprismarine:dist benchmarks/runExternal.mjs benchmarks/entityAiDigest.bench.ts",

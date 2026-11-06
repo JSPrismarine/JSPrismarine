@@ -42,7 +42,14 @@ import { normalizeStatusEffectId } from '../StatusEffect';
 import { GenericEntity } from '../GenericEntity';
 import type { DataEntity } from './DataEntity';
 import type { EntityRuntime } from './EntityRuntime';
-import { actorMetadataProjection, applyActorMetadataProjection, sameActorMetadataProjection } from './actorMetadata';
+import {
+    actorMetadataInputs,
+    actorMetadataProjection,
+    applyActorMetadataProjection,
+    sameActorMetadataInputs,
+    sameActorMetadataProjection
+} from './actorMetadata';
+import type { ActorMetadataInputs } from './actorMetadata';
 import { dataEntityRecordOf, writeDataEntityRecord } from './persistence';
 
 /** How far an entity has to move before the movement is worth putting on the wire, in blocks. */
@@ -190,6 +197,8 @@ export class LiveBodies {
     private readonly equipped = new Map<number, number>();
     /** The data-derived actor metadata last mirrored to each body. */
     private readonly actorMetadata = new Map<number, ReturnType<typeof actorMetadataProjection>>();
+    /** What each entity's last projection was built from, so an unchanged read skips building one. */
+    private readonly actorMetadataInputs = new Map<number, ActorMetadataInputs>();
     /** The owner last reflected in actor metadata, so owner rebinding can update idle bodies. */
     private readonly owners = new Map<number, number | undefined>();
     private readonly options: LiveBodiesOptions;
@@ -301,6 +310,7 @@ export class LiveBodies {
         this.synced.delete(id);
         this.equipped.delete(id);
         this.actorMetadata.delete(id);
+        this.actorMetadataInputs.delete(id);
         this.owners.delete(id);
         return id;
     }
@@ -344,11 +354,17 @@ export class LiveBodies {
             if (ownerChanged) this.owners.set(entity.id, entity.body.owner);
             let actorMetadataChanged = false;
             if (isTicking || ownerChanged || !this.actorMetadata.has(entity.id)) {
-                const metadata = actorMetadataProjection(entity, runtime.leashHolderIdOf(entity.id));
-                actorMetadataChanged = !sameActorMetadataProjection(this.actorMetadata.get(entity.id), metadata);
-                if (actorMetadataChanged) {
-                    applyActorMetadataProjection(body, metadata);
-                    this.actorMetadata.set(entity.id, metadata);
+                const leashHolderId = runtime.leashHolderIdOf(entity.id);
+                // Most ticks nothing a projection reads has changed, so it is not built at all.
+                const inputs = actorMetadataInputs(entity, leashHolderId);
+                if (!sameActorMetadataInputs(this.actorMetadataInputs.get(entity.id), inputs)) {
+                    this.actorMetadataInputs.set(entity.id, inputs);
+                    const metadata = actorMetadataProjection(entity, leashHolderId);
+                    actorMetadataChanged = !sameActorMetadataProjection(this.actorMetadata.get(entity.id), metadata);
+                    if (actorMetadataChanged) {
+                        applyActorMetadataProjection(body, metadata);
+                        this.actorMetadata.set(entity.id, metadata);
+                    }
                 }
             }
             const properties = isTicking ? this.showSyncedProperties(entity, body) : undefined;
