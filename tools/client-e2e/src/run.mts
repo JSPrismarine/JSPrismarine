@@ -19,7 +19,7 @@ import { parseArgs } from 'node:util';
 import { ensureCinnabar } from './cinnabar.mts';
 import { CinnabarClient } from './client.mts';
 import { startServer } from './jsp-server.mts';
-import { sleep, vec3 } from './scenario.mts';
+import { sleep, standAt } from './scenario.mts';
 import type { Scenario } from './scenario.mts';
 import { chat } from './scenarios/chat.mts';
 import { miningDrops } from './scenarios/mining-drops.mts';
@@ -240,12 +240,12 @@ const resetBetweenScenarios = async (
 
     const reset = `e2e-reset-${Date.now()}`;
     const resetComplete = server.waitForLine(new RegExp(reset), 15_000);
-    server.command(`gamemode survival ${playerName}`);
+    // Creative until the player stands on the floor again: a scenario can finish far from the spawn
+    // pad, where the floor is not loaded and the pad is not there yet, and a survival player
+    // teleported above nothing falls a hundred blocks to their death.
+    server.command(`gamemode creative ${playerName}`);
     server.command(`clear ${playerName}`);
     server.command('kill @e[type=item]');
-    // Movement travels about twelve blocks in three seconds; keep a floor under its full path
-    // so cleanup can respawn a player that finishes the scenario away from the spawn pad.
-    server.command('fill -2 63 -2 2 63 20 minecraft:stone');
     server.command(`execute in minecraft:overworld run teleport ${playerName} 0.5 64 0.5`);
     server.command(`say ${reset}`);
     await resetComplete;
@@ -256,21 +256,19 @@ const resetBetweenScenarios = async (
     await client.input({ look: { yaw: 0, pitch: 0, frames: 0 } });
     await client.waitFor('in_world', 30_000);
     await client.waitForScreenAbsent('Loading', 30_000);
-    await client.armInput();
+    await client.waitFor({ chunks_loaded: { radius: 2 } }, 60_000);
 
-    const deadline = Date.now() + 15_000;
-    for (;;) {
-        const state = await client.state();
-        const feet = vec3(state, 'feet');
-        const inOverworld = [0, 'minecraft:overworld', 'Overworld'].some((value) => value === state.dimension);
-        if (inOverworld && Math.hypot(feet[0] - 0.5, feet[1] - 64, feet[2] - 0.5) < 1) return;
-        if (Date.now() >= deadline) {
-            throw new Error(
-                `client did not return to the reset spawn; dimension ${String(state.dimension)}, feet ${feet.join(', ')}`
-            );
-        }
-        await sleep(250);
+    // Movement travels about twelve blocks in three seconds; keep a floor under its full path
+    // so cleanup can respawn a player that finishes the scenario away from the spawn pad. Only now
+    // does the fill land, since the chunks it writes to are loaded around the player.
+    server.command('fill -2 63 -2 2 63 20 minecraft:stone');
+    await standAt({ server, client, playerName }, { x: 0.5, y: 64, z: 0.5 });
+    const { dimension } = await client.state();
+    if (![0, 'minecraft:overworld', 'Overworld'].some((value) => value === dimension)) {
+        throw new Error(`client did not return to the overworld; dimension ${String(dimension)}`);
     }
+    server.command(`gamemode survival ${playerName}`);
+    await client.armInput();
 };
 
 /** Whether the client has fallen out of the world, back to a menu, as when the server drops it. */
@@ -278,7 +276,10 @@ const clientLeftTheWorld = async (client: CinnabarClient): Promise<boolean> => {
     try {
         const state = await client.state();
         const screens = Array.isArray(state.screens) ? state.screens : [];
-        return state.in_world !== true || screens.some((screen) => typeof screen === 'string' && /^Menu/.test(screen));
+        return (
+            state.in_world !== true ||
+            screens.some((screen) => typeof screen === 'string' && /^Menu/.test(screen) && !/Death/.test(screen))
+        );
     } catch {
         return true;
     }
