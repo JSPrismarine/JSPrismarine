@@ -1,6 +1,7 @@
 /** Verifies the client's yaw decides which way forward is, in the server's coordinates. */
 import assert from 'node:assert/strict';
 
+import type { CinnabarClient } from '../client.mts';
 import type { Scenario } from '../scenario.mts';
 import { lookTo, sleep, vec3 } from '../scenario.mts';
 
@@ -11,6 +12,12 @@ const headings = [
     { yaw: 180, axis: 2, sign: -1, name: '-Z' },
     { yaw: 270, axis: 0, sign: 1, name: '+X' }
 ] as const;
+
+/** The few state fields that say why a walk went nowhere, kept short for the CI log. */
+const diagnostics = async (client: CinnabarClient) => {
+    const { feet, server_position, health, rotation, screens, dimension } = await client.state();
+    return { feet, server_position, health, rotation, screens, dimension };
+};
 
 export const lookDirection: Scenario = {
     name: 'look-direction',
@@ -58,7 +65,7 @@ export const lookDirection: Scenario = {
             const across = Math.abs(feet[heading.axis === 0 ? 2 : 0] - 0.5);
             assert.ok(
                 along > 2,
-                `facing yaw ${heading.yaw} moved ${along.toFixed(2)} along ${heading.name}; ${JSON.stringify(await client.state())}`
+                `facing yaw ${heading.yaw} moved ${along.toFixed(2)} along ${heading.name}; ${JSON.stringify(await diagnostics(client))}`
             );
             assert.ok(across < 1, `facing yaw ${heading.yaw} drifted ${across.toFixed(2)} sideways`);
             log(`yaw ${heading.yaw} walked ${along.toFixed(2)} blocks toward ${heading.name}`);
