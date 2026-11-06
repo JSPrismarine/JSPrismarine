@@ -347,6 +347,8 @@ export interface BrainWorld {
     villagerRaidState(body: BrainMob): VillagerRaidState | undefined;
     /** Performs a world-owned effect requested by a villager raid behavior. */
     villagerRaidEffect(body: BrainMob, effect: VillagerRaidEffect): void;
+    /** Restocks a villager's trades, as Java's `Villager.restock` does once it works at its job site. */
+    villagerRestock(body: BrainMob): void;
 }
 
 /** Everything one brain tick needs. Every behavior and sensor takes exactly this. */

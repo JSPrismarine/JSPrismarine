@@ -261,6 +261,7 @@ function workAtPoi(): BehaviorControl {
                 return false;
             }
             lastWorked.set(context.world.gameTime());
+            context.world.villagerRestock(context.body);
             context.world.emitGameEvent('minecraft:block_change', bottomCenterOf(site.pos), context.body);
             return true;
         });

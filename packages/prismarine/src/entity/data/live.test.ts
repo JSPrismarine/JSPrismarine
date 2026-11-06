@@ -2048,6 +2048,52 @@ describe('the data-driven entity runtime over a live world', () => {
             expect(restored === undefined ? undefined : live.runtime.merchant(restored)?.offers()[0]?.uses).toBe(0);
         });
 
+        describe('restocking', () => {
+            const used = () => {
+                const villager = live.runtime.spawn('minecraft:villager_v2', { x: 0.5, y: GROUND_Y, z: 0.5 });
+                if (villager === undefined) throw new Error('the fixture declares no minecraft:villager_v2');
+                const merchant = live.runtime.merchant(villager);
+                if (merchant === undefined) throw new Error('the villager carries no trade table');
+                merchant.trade(0);
+                return { villager, merchant };
+            };
+
+            it('refills what was used, and not more than twice a day', () => {
+                const time = (tick: number) => world.getLevel().setTicks(tick);
+                time(100);
+                const { villager, merchant } = used();
+
+                live.runtime.villagerRestock(villager.body);
+                expect(merchant.offers()[0]?.uses).toBe(0);
+
+                merchant.trade(0);
+                live.runtime.villagerRestock(villager.body);
+                expect(merchant.offers()[0]?.uses).toBe(1);
+
+                time(100 + 2400);
+                live.runtime.villagerRestock(villager.body);
+                expect(merchant.offers()[0]?.uses).toBe(0);
+
+                merchant.trade(0);
+                time(100 + 4800);
+                live.runtime.villagerRestock(villager.body);
+                expect(merchant.offers()[0]?.uses).toBe(1);
+
+                time(24000 + 100);
+                live.runtime.villagerRestock(villager.body);
+                expect(merchant.offers()[0]?.uses).toBe(0);
+            });
+
+            it('waits while a player has the trade screen open', () => {
+                const { villager, merchant } = used();
+                villager.body.tradingPlayer = 7;
+
+                live.runtime.villagerRestock(villager.body);
+
+                expect(merchant.offers()[0]?.uses).toBe(1);
+            });
+        });
+
         describe('the trade screen', () => {
             /** A player whose session records the trade windows it is asked to open. */
             const tradingPlayer = (x: number, z: number, sneaking = false) => {

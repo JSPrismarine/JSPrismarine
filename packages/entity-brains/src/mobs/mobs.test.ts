@@ -1021,6 +1021,16 @@ describe('the villager', () => {
         expect(brain.getActiveNonCoreActivity()).toBe(Activities.WORK);
     });
 
+    it('asks its host to restock its trades once it works at the job site', () => {
+        const world = new TestWorld({ dayTime: 2500, gameTime: 1000 });
+        world.addPoi({ x: 0, y: 64, z: 0 }, 'minecraft:farmer');
+        const { body } = spawn(VILLAGER_BRAIN, { world, brain: { variant: 'minecraft:farmer' } });
+
+        run(body, VILLAGER_BRAIN, 400);
+
+        expect(world.villagerRestocks).toContain(body.id);
+    });
+
     it('stays idle at 2000 when it never acquired a job site', () => {
         const world = new TestWorld({ dayTime: 2000, gameTime: 1000 });
         const { body, brain } = spawn(VILLAGER_BRAIN, { world });

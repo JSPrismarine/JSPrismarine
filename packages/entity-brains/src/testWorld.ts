@@ -282,6 +282,8 @@ export class TestWorld implements BrainWorld {
     public readonly sonicBooms: { source: string; target: string }[] = [];
     /** Villager raid effects, in the order the host received them. */
     public readonly villagerRaidEffects: { body: string; effect: VillagerRaidEffect }[] = [];
+    /** Villagers that were asked to restock, in order. */
+    public readonly villagerRestocks: string[] = [];
     /**
      * What {@link TestWorld.randomPos} returns. A test sets it to make a wander deterministic;
      * `undefined` means the draw found nothing, which is a real outcome in Java too.
@@ -539,6 +541,11 @@ export class TestWorld implements BrainWorld {
     /** Records a world-owned effect requested by a villager brain. */
     public villagerRaidEffect(body: BrainMob, effect: VillagerRaidEffect): void {
         this.villagerRaidEffects.push({ body: body.id, effect });
+    }
+
+    /** Records the villagers that were asked to restock their trades. */
+    public villagerRestock(body: BrainMob): void {
+        this.villagerRestocks.push(body.id);
     }
 }
 

@@ -514,6 +514,10 @@ export const brainWorldOf = (scene: EntityScene): BrainWorld => {
         villagerRaidEffect: (body, effect) => {
             const entity = scene.byId(Number(body.id));
             if (entity !== undefined) scene.villagerRaidEffect(entity.body, effect);
+        },
+        villagerRestock: (body) => {
+            const entity = scene.byId(Number(body.id));
+            if (entity !== undefined) scene.villagerRestock(entity.body);
         }
     };
 };

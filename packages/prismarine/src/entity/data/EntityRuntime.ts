@@ -413,6 +413,11 @@ export class EntityRuntime implements EntityScene {
     private readonly fuses = new Map<number, FuseState>();
     /** One merchant per trading entity, kept because `persist_trades` means the offers are drawn once. */
     private readonly merchants = new Map<number, Merchant>();
+    /** When each trader last restocked, and how often that day. */
+    private readonly restocks = new Map<
+        number,
+        { readonly day: number; readonly count: number; readonly at: number }
+    >();
     /** What a save kept of a restored trader, held until its merchant is first built from it. */
     private readonly merchantSnapshots = new Map<number, MerchantSnapshot>();
     /** Who rides whom, which both the rider's and the vehicle's goals read. */
@@ -958,6 +963,7 @@ export class EntityRuntime implements EntityScene {
         entity.body.onMove = undefined;
         this.pools.delete(id);
         this.merchants.delete(id);
+        this.restocks.delete(id);
         this.merchantSnapshots.delete(id);
         this.fallingBlocks.delete(id);
         this.projectiles.delete(id);
@@ -3174,6 +3180,27 @@ export class EntityRuntime implements EntityScene {
         this.host.applySonicBoom?.(targetId, WARDEN.sonicBoom.damage, source.id, impulse);
     }
 
+    /**
+     * Restocks a villager's trades at its job site, by Java's `Villager.shouldRestock` rule: only
+     * when something was used, at most {@link RESTOCKS_PER_DAY} times a day and no sooner than
+     * {@link RESTOCK_GAP_TICKS} after the last one. A villager with a player at its screen waits.
+     */
+    public villagerRestock(body: MobBody): void {
+        const entity = this.entities.get(body.id);
+        if (entity === undefined || body.tradingPlayer !== undefined) return;
+        const merchant = this.merchant(entity);
+        if (merchant === undefined || merchant.offers().every((live) => live.uses === 0)) return;
+
+        const now = this.world.level.gameTime();
+        const day = Math.floor(now / TICKS_PER_DAY);
+        const last = this.restocks.get(entity.id);
+        const today = last?.day === day ? last.count : 0;
+        if (today >= RESTOCKS_PER_DAY || (last !== undefined && now < last.at + RESTOCK_GAP_TICKS)) return;
+
+        merchant.resupply();
+        this.restocks.set(entity.id, { day, count: today + 1, at: now });
+    }
+
     /** The raid facts at this villager's position, supplied by its host's raid owner. */
     public villagerRaidState(body: MobBody): VillagerRaidState | undefined {
         return this.host.villagerRaidStateAt?.(body.position);
@@ -4159,6 +4186,11 @@ const DAYLIGHT_BURN_TICKS = 160;
 
 /** How often a burning entity takes fire damage, in ticks. */
 const FIRE_DAMAGE_INTERVAL_TICKS = 20;
+
+/** Java's `Villager` allows two restocks a day, at least this many ticks apart. */
+const RESTOCKS_PER_DAY = 2;
+const RESTOCK_GAP_TICKS = 2400;
+const TICKS_PER_DAY = 24000;
 
 /** Damage from one fire tick, in half-hearts. */
 const FIRE_DAMAGE_AMOUNT = 1;

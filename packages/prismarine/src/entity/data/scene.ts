@@ -140,6 +140,8 @@ export interface EntityScene {
     villagerRaidState(body: MobBody): VillagerRaidState | undefined;
     /** Performs a raid effect through the host that owns that world state. */
     villagerRaidEffect(body: MobBody, effect: VillagerRaidEffect): void;
+    /** Restocks a villager's trades, within the day's allowance. */
+    villagerRestock(body: MobBody): void;
     /** Fires an entity event on a named subject, which `trigger` with a target does. */
     trigger(source: MobBody, event: string, target: string): void;
     /** Records what the runtime met and could not carry out. */
