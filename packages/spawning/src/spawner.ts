@@ -1,6 +1,8 @@
 import type { EvaluateFilterOptions } from '@jsprismarine/entities';
 import type { RandomSource } from '@jsprismarine/predicates';
 
+import type { AttemptWorld } from './attemptWorld';
+import { attemptWorldOf } from './attemptWorld';
 import type { SpawnConditionContext } from './conditions';
 import { SpawnDelays, evaluateSpawnCondition } from './conditions';
 import type { SpawnConstants } from './constants';
@@ -138,6 +140,8 @@ const eventForMember = (
 export class Spawner {
     private readonly rulesByPool = new Map<string, SpawnRule[]>();
     private readonly world: SpawnWorld;
+    /** The world as an attempt reads it; reset at the start of each one. */
+    private readonly attemptWorld: AttemptWorld;
     private readonly random: RandomSource;
     private readonly constants: SpawnConstants;
     private readonly minimumSpawnDistance: number;
@@ -147,6 +151,7 @@ export class Spawner {
 
     public constructor(options: SpawnerOptions) {
         this.world = options.world;
+        this.attemptWorld = attemptWorldOf(options.world);
         this.random = options.random;
         this.constants = options.constants ?? SPAWN_CONSTANTS;
         this.minimumSpawnDistance = this.constants.minimumSpawnDistance ?? SPAWN_CONSTANTS.minimumSpawnDistance;
@@ -278,8 +283,8 @@ export class Spawner {
     }
 
     /** Whether an entity fits at a position: its own block and the one over its head are free. */
-    private fits(at: SpawnPosition): boolean {
-        return !this.world.solid(at) && !this.world.solid({ ...at, y: at.y + 1 });
+    private fits(at: SpawnPosition, world: SpawnWorld = this.world): boolean {
+        return !world.solid(at) && !world.solid({ ...at, y: at.y + 1 });
     }
 
     /** Whether the block center clears Java's player and same-dimension world-spawn exclusions. */
@@ -323,16 +328,20 @@ export class Spawner {
     ): readonly SpawnRequest[] {
         const candidates: Candidate[] = [];
         let totalWeight = 0;
+        // Every rule below reads the same facts about this position, so they are read once.
+        const world = this.attemptWorld;
+        world.begin(position);
 
         for (const rule of rules) {
-            if (this.world.structureSpawnOverrideAt?.(rule.identifier, position) === false) continue;
+            if (world.structureSpawnOverrideAt?.(rule.identifier, position) === false) continue;
 
             const engineRule = this.engineRules.get(rule.identifier);
-            if (engineRule !== undefined && !engineRule(position, { world: this.world, random: this.random })) continue;
+            if (engineRule !== undefined && !engineRule(position, { world, random: this.random })) continue;
 
             for (const condition of rule.conditions) {
-                if (!evaluateSpawnCondition(condition, position, this.contextFor(rule, tick), pass).passed) continue;
-                if (!this.validSpawnPosition(position, condition)) continue;
+                if (!evaluateSpawnCondition(condition, position, this.contextFor(rule, tick, world), pass).passed)
+                    continue;
+                if (!this.validSpawnPosition(position, condition, world)) continue;
                 candidates.push({ rule, condition });
                 totalWeight += Math.max(0, condition.weight.default);
             }
@@ -422,18 +431,18 @@ export class Spawner {
     }
 
     /** Whether the entity clears its body and has ground or its rule's allowed medium beneath it. */
-    private validSpawnPosition(at: SpawnPosition, condition: SpawnCondition): boolean {
-        if (!this.fits(at)) return false;
-        if (this.world.solid({ ...at, y: at.y - 1 })) return true;
+    private validSpawnPosition(at: SpawnPosition, condition: SpawnCondition, world: SpawnWorld = this.world): boolean {
+        if (!this.fits(at, world)) return false;
+        if (world.solid({ ...at, y: at.y - 1 })) return true;
         return (
-            (condition.spawnsUnderwater && this.world.site('underwater', at)) ||
-            (condition.spawnsLava && this.world.site('lava', at))
+            (condition.spawnsUnderwater && world.site('underwater', at)) ||
+            (condition.spawnsLava && world.site('lava', at))
         );
     }
 
-    private contextFor(rule: SpawnRule, tick: number): SpawnConditionContext {
+    private contextFor(rule: SpawnRule, tick: number, world: SpawnWorld = this.world): SpawnConditionContext {
         const context: { -readonly [Key in keyof SpawnConditionContext]: SpawnConditionContext[Key] } = {
-            world: this.world,
+            world,
             identifier: rule.identifier,
             random: this.random,
             tick,
