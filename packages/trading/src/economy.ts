@@ -57,6 +57,39 @@ export interface TradeResult {
     readonly leveledUp: boolean;
 }
 
+/** One item stack of a saved offer, with its components as entries so it survives JSON. */
+export interface StackSnapshot {
+    readonly item: string;
+    readonly count: number;
+    readonly components: readonly (readonly [string, unknown])[];
+}
+
+/** One offer as a save holds it: what it is, and how far its stock and price have moved. */
+export interface OfferSnapshot {
+    readonly tier: number;
+    readonly wants: readonly StackSnapshot[];
+    readonly gives: readonly StackSnapshot[];
+    readonly priceMultipliers: readonly number[];
+    readonly traderExp: number;
+    readonly maxUses: number;
+    readonly rewardExp: boolean;
+    readonly uses: number;
+    readonly demand: number;
+}
+
+/**
+ * Everything about a trader that cannot be drawn again: the offers it generated, how much of each
+ * was used, the demand on each, its experience and the cured discount it drew. Plain JSON, so a
+ * save can hold it as a string.
+ */
+export interface MerchantSnapshot {
+    readonly version: 1;
+    readonly experience: number;
+    readonly generatedTiers: number;
+    readonly curedDiscount?: number;
+    readonly offers: readonly OfferSnapshot[];
+}
+
 /** How to build a {@link Merchant}. */
 export interface MerchantOptions {
     readonly table: TradeTable;
@@ -74,6 +107,12 @@ export interface MerchantOptions {
      */
     readonly playerRewardExp?: { readonly min: number; readonly max: number };
     readonly report?: (code: string, message: string) => void;
+    /**
+     * What {@link Merchant.snapshot} saved. The offers, uses, demand, experience and cured discount
+     * come back exactly, and nothing is drawn again for tiers the snapshot already holds, which is
+     * what `persist_trades` asks for across a restart. Takes precedence over `experience`.
+     */
+    readonly snapshot?: MerchantSnapshot;
 }
 
 interface OfferState {
@@ -81,6 +120,93 @@ interface OfferState {
     uses: number;
     demand: number;
 }
+
+const stackSnapshotOf = (stack: TradeStack): StackSnapshot => ({
+    item: stack.item,
+    count: stack.count,
+    components: [...stack.components]
+});
+
+const stackOf = (saved: StackSnapshot): TradeStack => ({
+    item: saved.item,
+    count: saved.count,
+    components: new Map(saved.components)
+});
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+    typeof value === 'object' && value !== null && !Array.isArray(value);
+
+const finite = (value: unknown): value is number => typeof value === 'number' && Number.isFinite(value);
+
+const stackSnapshotIn = (value: unknown): StackSnapshot | undefined => {
+    if (!isRecord(value) || typeof value.item !== 'string' || !finite(value.count) || !Array.isArray(value.components))
+        return undefined;
+    const components: (readonly [string, unknown])[] = [];
+    for (const entry of value.components) {
+        if (!Array.isArray(entry) || entry.length !== 2 || typeof entry[0] !== 'string') return undefined;
+        components.push([entry[0], entry[1]]);
+    }
+    return { item: value.item, count: value.count, components };
+};
+
+const stacksIn = (value: unknown): StackSnapshot[] | undefined => {
+    if (!Array.isArray(value)) return undefined;
+    const stacks = value.map(stackSnapshotIn);
+    return stacks.every((stack) => stack !== undefined) ? stacks : undefined;
+};
+
+/**
+ * Reads a saved snapshot back, checking every field it will use.
+ *
+ * @param value - Parsed JSON, from a save that may be old, hand-edited or damaged.
+ * @returns The snapshot, or undefined when anything about it is wrong; the caller then lets the
+ * trader draw its offers afresh rather than trading from numbers nothing vouches for.
+ */
+export const merchantSnapshotIn = (value: unknown): MerchantSnapshot | undefined => {
+    if (!isRecord(value) || value.version !== 1) return undefined;
+    if (!finite(value.experience) || !finite(value.generatedTiers) || !Array.isArray(value.offers)) return undefined;
+    if (value.curedDiscount !== undefined && !finite(value.curedDiscount)) return undefined;
+
+    const offers: OfferSnapshot[] = [];
+    for (const saved of value.offers) {
+        if (!isRecord(saved)) return undefined;
+        const wants = stacksIn(saved.wants);
+        const gives = stacksIn(saved.gives);
+        const multipliers = saved.priceMultipliers;
+        if (
+            wants === undefined ||
+            gives === undefined ||
+            !Array.isArray(multipliers) ||
+            !multipliers.every(finite) ||
+            !finite(saved.tier) ||
+            !finite(saved.traderExp) ||
+            !finite(saved.maxUses) ||
+            !finite(saved.uses) ||
+            !finite(saved.demand) ||
+            typeof saved.rewardExp !== 'boolean'
+        )
+            return undefined;
+        offers.push({
+            tier: saved.tier,
+            wants,
+            gives,
+            priceMultipliers: multipliers,
+            traderExp: saved.traderExp,
+            maxUses: saved.maxUses,
+            rewardExp: saved.rewardExp,
+            uses: saved.uses,
+            demand: saved.demand
+        });
+    }
+
+    return {
+        version: 1,
+        experience: value.experience,
+        generatedTiers: value.generatedTiers,
+        ...(value.curedDiscount === undefined ? {} : { curedDiscount: value.curedDiscount }),
+        offers
+    };
+};
 
 /** Draws an integer in the inclusive range. */
 const between = (random: RandomSource, min: number, max: number): number =>
@@ -128,7 +254,51 @@ export class Merchant {
         if (options.report !== undefined) generation.report = options.report;
         this.generation = generation;
 
+        if (options.snapshot !== undefined) this.restoreFrom(options.snapshot);
         this.generateUpTo(unlockedTierCount(this.table, this.experiencePoints));
+    }
+
+    /** Takes the trader's state back from a save, leaving only tiers the save lacks to be generated. */
+    private restoreFrom(snapshot: MerchantSnapshot): void {
+        this.experiencePoints = snapshot.experience;
+        this.generatedTiers = snapshot.generatedTiers;
+        this.curedDiscount = snapshot.curedDiscount;
+        for (const saved of snapshot.offers) {
+            this.states.push({
+                offer: {
+                    tier: saved.tier,
+                    wants: saved.wants.map(stackOf),
+                    gives: saved.gives.map(stackOf),
+                    priceMultipliers: saved.priceMultipliers,
+                    traderExp: saved.traderExp,
+                    maxUses: saved.maxUses,
+                    rewardExp: saved.rewardExp
+                },
+                uses: saved.uses,
+                demand: saved.demand
+            });
+        }
+    }
+
+    /** The state a save has to keep for this trader to come back as the same trader. */
+    public snapshot(): MerchantSnapshot {
+        return {
+            version: 1,
+            experience: this.experiencePoints,
+            generatedTiers: this.generatedTiers,
+            ...(this.curedDiscount === undefined ? {} : { curedDiscount: this.curedDiscount }),
+            offers: this.states.map(({ offer, uses, demand }) => ({
+                tier: offer.tier,
+                wants: offer.wants.map(stackSnapshotOf),
+                gives: offer.gives.map(stackSnapshotOf),
+                priceMultipliers: offer.priceMultipliers,
+                traderExp: offer.traderExp,
+                maxUses: offer.maxUses,
+                rewardExp: offer.rewardExp,
+                uses,
+                demand
+            }))
+        };
     }
 
     /** The trader's experience, which is what unlocks tiers. */

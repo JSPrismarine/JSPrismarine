@@ -173,3 +173,13 @@ JSP_VANILLA_TRADE_TABLES=1 pnpm --filter @jsprismarine/trading exec vitest run s
   `minecraft:scheduler` fires `minecraft:resupply_trades` belongs to the entity runtime.
 - **The gossip system.** `nearbyCured` is a number the host supplies. Nothing here tracks which
   villagers gossip about which player.
+
+## Saving a trader
+
+`merchant.snapshot()` returns plain JSON: the offers a trader generated, the uses and demand on each,
+its experience and the cured discount it drew. Pass it back as `new Merchant({ ..., snapshot })` and
+the trader comes back as the same trader, with nothing drawn again, whatever random source it is
+given. A tier the save lacks, because the table gained one since, is generated on top.
+`merchantSnapshotIn(value)` checks a parsed snapshot field by field and returns `undefined` for
+anything damaged, so a corrupt save draws fresh offers rather than trading from numbers nothing
+vouches for.

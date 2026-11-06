@@ -1996,6 +1996,57 @@ describe('the data-driven entity runtime over a live world', () => {
             ]);
         });
 
+        it('keeps a villager’s offers, uses and experience across a save and a restore', () => {
+            const villager = live.runtime.spawn('minecraft:villager_v2', { x: 0.5, y: GROUND_Y, z: 0.5 });
+            if (villager === undefined) throw new Error('the fixture declares no minecraft:villager_v2');
+            const merchant = live.runtime.merchant(villager);
+            if (merchant === undefined) throw new Error('the villager carries no trade table');
+            merchant.trade(0);
+            merchant.trade(0);
+            const body = live.bodies.bodyOf(villager.id);
+            if (body === undefined) throw new Error('the villager has no client-facing body');
+
+            live.bodies.persist(live.runtime);
+            if (body.persistentNbt === null) throw new Error('the villager has no saved actor data');
+            const record = dataEntityRecordIn(body.persistentNbt);
+            if (record === undefined) throw new Error('the saved villager record could not be read back');
+            const restored = live.runtime.restore(record, villager.position);
+            if (restored === undefined) throw new Error('the villager was not restored');
+            const back = live.runtime.merchant(restored);
+
+            const summary = (value: typeof merchant | undefined) =>
+                value?.offers().map((entry) => ({
+                    gives: entry.offer.gives.map((stack) => `${stack.count} ${stack.item}`),
+                    uses: entry.uses,
+                    demand: entry.demand
+                }));
+            expect(record.merchant?.offers[0]?.uses).toBe(2);
+            expect(summary(back)).toEqual(summary(merchant));
+            expect(back?.experience).toBe(merchant.experience);
+        });
+
+        it('draws a villager’s offers fresh when its saved trade state is damaged', () => {
+            const villager = live.runtime.spawn('minecraft:villager_v2', { x: 0.5, y: GROUND_Y, z: 0.5 });
+            if (villager === undefined) throw new Error('the fixture declares no minecraft:villager_v2');
+            live.runtime.merchant(villager)?.trade(0);
+            const body = live.bodies.bodyOf(villager.id);
+            live.bodies.persist(live.runtime);
+            if (body?.persistentNbt === null || body === undefined) throw new Error('nothing was saved');
+            const saved = JSON.parse(body.persistentNbt.getString('jsprismarine:entity', '')) as Record<
+                string,
+                unknown
+            >;
+            saved.merchant = { version: 1, experience: 'lots', offers: [] };
+            body.persistentNbt.addValue('jsprismarine:entity', new Types.StringVal(JSON.stringify(saved)));
+            const record = dataEntityRecordIn(body.persistentNbt);
+            if (record === undefined) throw new Error('the record could not be read back');
+
+            const restored = live.runtime.restore(record, villager.position);
+
+            expect(record.merchant).toBeUndefined();
+            expect(restored === undefined ? undefined : live.runtime.merchant(restored)?.offers()[0]?.uses).toBe(0);
+        });
+
         it('opens a screen for a player without running goals on a brain-only villager', async () => {
             const player = addPlayer(2, 0);
             const villager = live.runtime.spawn('minecraft:villager_v2', { x: 0.5, y: GROUND_Y, z: 0.5 });

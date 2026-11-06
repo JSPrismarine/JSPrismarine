@@ -26,6 +26,8 @@
 import type { AttributeName, EntityPosition, PropertyValue } from '@jsprismarine/entities';
 import { ATTRIBUTES, noEffects } from '@jsprismarine/entities';
 import type { NBTTagCompound } from '@jsprismarine/nbt';
+import { merchantSnapshotIn } from '@jsprismarine/trading';
+import type { MerchantSnapshot } from '@jsprismarine/trading';
 import { Types } from '@jsprismarine/nbt';
 import { randomUUID } from 'node:crypto';
 
@@ -93,6 +95,8 @@ export interface DataEntityRecord {
         readonly age: number;
         readonly stuck: boolean;
     };
+    /** A trader's offers, their uses and demand, and its experience, so a restart does not redraw them. */
+    readonly merchant?: MerchantSnapshot;
     /** Entity-specific fields supplied by the source that spawned it. */
     readonly spawnData?: Readonly<Record<string, unknown>>;
 }
@@ -107,7 +111,8 @@ export interface DataEntityRecord {
 export const dataEntityRecordOf = (
     entity: DataEntity,
     pool: string | undefined,
-    leashHolderIdentity?: string
+    leashHolderIdentity?: string,
+    merchant?: MerchantSnapshot
 ): DataEntityRecord => {
     const { body, instance } = entity;
 
@@ -162,6 +167,7 @@ export const dataEntityRecordOf = (
                   }
               }
             : {}),
+        ...(merchant === undefined ? {} : { merchant }),
         ...(entity.spawnData === undefined ? {} : { spawnData: entity.spawnData })
     };
 };
@@ -339,6 +345,7 @@ export const dataEntityRecordIn = (nbt: NBTTagCompound): DataEntityRecord | unde
     const equipmentInventorySlots = equipmentInventorySlotsOf(parsed['equipmentInventorySlots']);
     const containerSlots = containerSlotsOf(parsed['containerSlots']);
     const projectile = projectileOf(parsed['projectile']);
+    const merchant = merchantSnapshotIn(parsed['merchant']);
 
     return {
         identifier,
@@ -373,6 +380,7 @@ export const dataEntityRecordIn = (nbt: NBTTagCompound): DataEntityRecord | unde
             ? { fireTicks: Math.max(0, Math.trunc(parsed['fireTicks'])) }
             : {}),
         ...(projectile === undefined ? {} : { projectile }),
+        ...(merchant === undefined ? {} : { merchant }),
         ...(spawnData === undefined ? {} : { spawnData })
     };
 };

@@ -14,6 +14,7 @@
  */
 import type { EntityInstance } from '@jsprismarine/entities';
 import { Merchant, parseEconomyTradeTable, parseTradeTableComponent } from '@jsprismarine/trading';
+import type { MerchantSnapshot } from '@jsprismarine/trading';
 import type { RandomSource } from '@jsprismarine/predicates';
 
 import type { ServerContent } from '../../content/ServerContent';
@@ -30,6 +31,8 @@ export interface MerchantOptions {
     readonly random: RandomSource;
     /** The trader's experience when it comes back from a save rather than being created. */
     readonly experience?: number;
+    /** What a save kept of this trader's offers and progression; they come back instead of being drawn. */
+    readonly snapshot?: MerchantSnapshot;
     /** Receives what the trade table generation met and could not carry out. */
     readonly report?: (code: string, message: string) => void;
 }
@@ -59,6 +62,7 @@ export const merchantFor = (entity: EntityInstance, options: MerchantOptions): M
         random: options.random,
         ...(settings === undefined ? {} : { settings }),
         ...(options.experience === undefined ? {} : { experience: options.experience }),
+        ...(options.snapshot === undefined ? {} : { snapshot: options.snapshot }),
         ...(options.report === undefined ? {} : { report: options.report })
     });
 };

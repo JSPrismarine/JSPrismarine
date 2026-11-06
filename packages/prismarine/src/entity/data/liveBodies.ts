@@ -397,7 +397,12 @@ export class LiveBodies {
             body.persistentNbt ??= new NBTTagCompound('');
             writeDataEntityRecord(
                 body.persistentNbt,
-                dataEntityRecordOf(entity, runtime.poolOf(entity.id), runtime.leashHolderIdentityOf(entity.id))
+                dataEntityRecordOf(
+                    entity,
+                    runtime.poolOf(entity.id),
+                    runtime.leashHolderIdentityOf(entity.id),
+                    runtime.merchantSnapshotOf(entity)
+                )
             );
         }
     }

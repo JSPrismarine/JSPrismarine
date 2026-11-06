@@ -2,7 +2,7 @@ import { constantRandom, scriptedRandom, seededRandom } from '@jsprismarine/pred
 import { describe, expect, it } from 'vitest';
 
 import { parseEconomyTradeTable } from './component';
-import { Merchant } from './economy';
+import { Merchant, merchantSnapshotIn } from './economy';
 import type { TradeTable } from './tables';
 import { parseTradeTable } from './tables';
 
@@ -267,5 +267,102 @@ describe('a whole trading session', () => {
         const basePrice = merchant.offers()[0]?.wants[0]?.count ?? 0;
 
         expect(heroPrice).toBe(basePrice - 20);
+    });
+});
+
+describe('a saved Merchant', () => {
+    /** The offers as a player sees them, without the table objects, for comparing two traders. */
+    const seen = (merchant: Merchant) =>
+        merchant.offers({ nearbyCured: 1 }).map((entry) => ({
+            gives: entry.offer.gives.map((stack) => `${stack.count} ${stack.item}`),
+            wants: entry.wants.map((stack) => `${stack.count} ${stack.item}`),
+            uses: entry.uses,
+            demand: entry.demand,
+            available: entry.available
+        }));
+
+    const traded = () => {
+        const merchant = new Merchant({ table: FARMER, random: seededRandom(1) });
+        for (let round = 0; round < 3; round += 1) merchant.trade(0);
+        merchant.resupply();
+        merchant.trade(0);
+        return merchant;
+    };
+
+    it('comes back with the offers, uses, demand and experience it left with', () => {
+        const merchant = traded();
+
+        const restored = new Merchant({
+            table: FARMER,
+            random: seededRandom(999),
+            snapshot: merchantSnapshotIn(JSON.parse(JSON.stringify(merchant.snapshot())))!
+        });
+
+        expect(seen(restored)).toEqual(seen(merchant));
+        expect(restored.experience).toBe(merchant.experience);
+        expect(restored.level).toBe(merchant.level);
+    });
+
+    it('draws nothing again, whatever random source the restored trader is given', () => {
+        const merchant = new Merchant({ table: FARMER, random: seededRandom(1) });
+        const first = seen(merchant);
+
+        for (const seed of [2, 3, 4]) {
+            const restored = new Merchant({ table: FARMER, random: seededRandom(seed), snapshot: merchant.snapshot() });
+            expect(seen(restored)).toEqual(first);
+        }
+    });
+
+    it('keeps the earlier tier when a trade after the restore unlocks the next', () => {
+        const merchant = new Merchant({ table: FARMER, random: seededRandom(1) });
+        merchant.trade(0);
+        const restored = new Merchant({ table: FARMER, random: seededRandom(5), snapshot: merchant.snapshot() });
+        const before = seen(restored)[0];
+
+        for (let round = 0; round < 5; round += 1) restored.trade(0);
+
+        expect(restored.level).toBe(2);
+        expect(seen(restored)).toHaveLength(2);
+        expect(seen(restored)[0]?.gives).toEqual(before?.gives);
+    });
+
+    it('generates a tier the save lacks, when the table gained one since', () => {
+        const merchant = new Merchant({ table: FARMER, random: seededRandom(1), experience: 0 });
+        const snapshot = { ...merchant.snapshot(), experience: 50 };
+
+        const restored = new Merchant({ table: FARMER, random: seededRandom(2), snapshot });
+
+        expect(restored.level).toBe(2);
+        expect(seen(restored)).toHaveLength(2);
+        expect(seen(restored)[0]).toEqual(seen(merchant)[0]);
+    });
+
+    it('keeps the cured discount it drew', () => {
+        const merchant = new Merchant({
+            table: FARMER,
+            random: seededRandom(1),
+            settings: parseEconomyTradeTable({ cured_discount: { min: -25, max: -5 } })
+        });
+        const price = merchant.offers({ curedByPlayer: true })[0]?.wants[0]?.count;
+
+        const restored = new Merchant({
+            table: FARMER,
+            random: seededRandom(77),
+            settings: parseEconomyTradeTable({ cured_discount: { min: -25, max: -5 } }),
+            snapshot: merchant.snapshot()
+        });
+
+        expect(restored.offers({ curedByPlayer: true })[0]?.wants[0]?.count).toBe(price);
+    });
+
+    it('rejects a snapshot that is damaged rather than trading from it', () => {
+        const good = JSON.parse(JSON.stringify(traded().snapshot())) as Record<string, unknown>;
+
+        expect(merchantSnapshotIn(good)).toBeDefined();
+        expect(merchantSnapshotIn({ ...good, version: 2 })).toBeUndefined();
+        expect(merchantSnapshotIn({ ...good, experience: 'lots' })).toBeUndefined();
+        expect(merchantSnapshotIn({ ...good, offers: [{ tier: 0 }] })).toBeUndefined();
+        expect(merchantSnapshotIn(null)).toBeUndefined();
+        expect(merchantSnapshotIn('{}')).toBeUndefined();
     });
 });

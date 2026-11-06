@@ -80,7 +80,7 @@ import type {
 import { navigationProfile } from '@jsprismarine/entity-goals';
 import type { SpawnRequest, SpawnWorld } from '@jsprismarine/spawning';
 import { Spawner, despawnReason } from '@jsprismarine/spawning';
-import type { Merchant } from '@jsprismarine/trading';
+import type { Merchant, MerchantSnapshot } from '@jsprismarine/trading';
 import type { EntityView, ItemStack } from '@jsprismarine/predicates';
 
 import type { ContentEntity, ContentItemDrop } from '../../content/world/adapter';
@@ -413,6 +413,8 @@ export class EntityRuntime implements EntityScene {
     private readonly fuses = new Map<number, FuseState>();
     /** One merchant per trading entity, kept because `persist_trades` means the offers are drawn once. */
     private readonly merchants = new Map<number, Merchant>();
+    /** What a save kept of a restored trader, held until its merchant is first built from it. */
+    private readonly merchantSnapshots = new Map<number, MerchantSnapshot>();
     /** Who rides whom, which both the rider's and the vehicle's goals read. */
     private readonly rides = new RideIndex();
     /** Stable identities of the entities or players holding data-driven entity leashes. */
@@ -709,6 +711,7 @@ export class EntityRuntime implements EntityScene {
         }
 
         applyDataEntityRecord(entity, record);
+        if (record.merchant !== undefined) this.merchantSnapshots.set(entity.id, record.merchant);
         this.watchEquipment(entity);
         if (record.leashHolderIdentity !== undefined) this.leashHolders.set(entity.id, record.leashHolderIdentity);
         if (entity.instance.hasComponent('minecraft:projectile')) {
@@ -955,6 +958,7 @@ export class EntityRuntime implements EntityScene {
         entity.body.onMove = undefined;
         this.pools.delete(id);
         this.merchants.delete(id);
+        this.merchantSnapshots.delete(id);
         this.fallingBlocks.delete(id);
         this.projectiles.delete(id);
         this.fuses.delete(id);
@@ -3254,13 +3258,26 @@ export class EntityRuntime implements EntityScene {
         const cached = this.merchants.get(entity.id);
         if (cached !== undefined) return cached;
 
+        const saved = this.merchantSnapshots.get(entity.id);
+        this.merchantSnapshots.delete(entity.id);
         const built = merchantFor(entity.instance, {
             content: this.content(),
             random: this.world.random,
+            ...(saved === undefined ? {} : { snapshot: saved }),
             report: (code, message) => this.report(`${entity.identifier} trade table ${code}: ${message}`)
         });
         if (built !== undefined) this.merchants.set(entity.id, built);
         return built;
+    }
+
+    /**
+     * What a save has to keep of one trader, or undefined when it has not traded or been asked.
+     *
+     * A trader nobody has asked has drawn nothing yet, so there is nothing to keep: its offers are
+     * drawn on the first ask after a load, exactly as they would have been before the save.
+     */
+    public merchantSnapshotOf(entity: DataEntity): MerchantSnapshot | undefined {
+        return this.merchants.get(entity.id)?.snapshot() ?? this.merchantSnapshots.get(entity.id);
     }
 
     /** Records what the runtime met and could not carry out. */
