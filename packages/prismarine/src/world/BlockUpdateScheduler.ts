@@ -141,6 +141,32 @@ export class BlockUpdateScheduler {
         return ready;
     }
 
+    /**
+     * Hands back updates {@link due} gave out that the tick ran out of time for.
+     *
+     * They go to the front of the queue, still due, so the next tick takes them before anything
+     * queued since: leftover work keeps its place in line, as it does when the count budget
+     * leaves it. A position that was queued again meanwhile keeps that later entry's time if it
+     * is the earlier one.
+     * @param {readonly BlockUpdate[]} updates - The unprocessed tail, in processing order.
+     * @param {number} now - The current tick.
+     */
+    public defer(updates: readonly BlockUpdate[], now: number): void {
+        if (updates.length === 0) return;
+
+        const waiting = new Map<BlockPositionKey, PendingUpdate>();
+        for (const update of updates) {
+            const key = blockPositionKey(update.x, update.y, update.z);
+            const queued = this.pending.get(key);
+            waiting.set(key, { at: queued !== undefined && queued.at < now ? queued.at : now, update });
+        }
+        for (const [key, entry] of this.pending) if (!waiting.has(key)) waiting.set(key, entry);
+
+        this.pending.clear();
+        for (const [key, entry] of waiting) this.pending.set(key, entry);
+        this.earliestDue = Math.min(this.earliestDue, now);
+    }
+
     /** Re-scans only after the current earliest due tick has left the queue. */
     private recomputeEarliestDue(): void {
         this.earliestDue = Number.POSITIVE_INFINITY;

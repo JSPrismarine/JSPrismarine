@@ -166,9 +166,17 @@ export class TickList {
      * @param currentTick - The game tick to run.
      * @param run - Called once per due tick, in order.
      * @param maxTicks - The per-tick budget, defaulting to Java's 65536.
+     * @param deadline - A `performance.now()` time after which no further tick starts. The ticks it
+     * leaves stay queued, still due, and run first on the next game tick. A count is no bound on
+     * time: a slow host, or ticks that each scan a neighborhood, spend seconds inside 65536.
      * @returns How many ticks ran.
      */
-    tick(currentTick: number, run: TickHandler, maxTicks: number = MAX_SCHEDULED_TICKS_PER_TICK): number {
+    tick(
+        currentTick: number,
+        run: TickHandler,
+        maxTicks: number = MAX_SCHEDULED_TICKS_PER_TICK,
+        deadline: number = Number.POSITIVE_INFINITY
+    ): number {
         this.queue.sort(drainOrder);
 
         let dueCount = 0;
@@ -187,14 +195,23 @@ export class TickList {
         this.batchIdentities.clear();
         for (const tick of collected) this.batchIdentities.add(identity(tick));
 
+        let ran = 0;
         for (const tick of this.batch) {
+            if (ran > 0 && performance.now() > deadline) {
+                // Out of time: what has not run goes back, still due, in the order it had.
+                const left = collected.slice(ran);
+                for (const waiting of left) this.queued.add(identity(waiting));
+                this.queue.unshift(...left);
+                break;
+            }
             this.batchIdentities.delete(identity(tick));
             run(tick);
+            ran += 1;
         }
 
         this.batch = [];
         this.batchIdentities.clear();
-        return collected.length;
+        return ran;
     }
 }
 
@@ -223,15 +240,17 @@ export class TickScheduler {
      * @param currentTick - The game tick to run.
      * @param run - Called with each due tick and the list it came from.
      * @param maxTicks - The per-list budget, defaulting to Java's 65536.
+     * @param deadline - A `performance.now()` time shared by both lists; see {@link TickList.tick}.
      * @returns How many ticks ran across both lists.
      */
     tick(
         currentTick: number,
         run: (kind: TickKind, tick: ScheduledTick) => void,
-        maxTicks: number = MAX_SCHEDULED_TICKS_PER_TICK
+        maxTicks: number = MAX_SCHEDULED_TICKS_PER_TICK,
+        deadline: number = Number.POSITIVE_INFINITY
     ): number {
-        const blocks = this.lists.block.tick(currentTick, (tick) => run('block', tick), maxTicks);
-        const fluids = this.lists.fluid.tick(currentTick, (tick) => run('fluid', tick), maxTicks);
+        const blocks = this.lists.block.tick(currentTick, (tick) => run('block', tick), maxTicks, deadline);
+        const fluids = this.lists.fluid.tick(currentTick, (tick) => run('fluid', tick), maxTicks, deadline);
         return blocks + fluids;
     }
 }

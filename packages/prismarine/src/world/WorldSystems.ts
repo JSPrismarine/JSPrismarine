@@ -52,6 +52,15 @@ export const LIGHT_BUDGET_PER_TICK = 4096;
  */
 export const SCHEDULED_TICK_BUDGET_PER_TICK = 65536;
 
+/**
+ * How long one world tick may spend running scheduled ticks before it leaves the rest for the next.
+ *
+ * Java has only the count above. This server also has hosts that run a tick of 20,000 leaf decay
+ * checks in two seconds, long enough that every connected client times out, so the clock bounds
+ * what the count does not.
+ */
+export const SCHEDULED_TICK_TIME_BUDGET_MS = 25;
+
 /** What one world tick's systems pass did. */
 export interface WorldSystemsReport {
     /** How many scheduled block and fluid ticks ran. */
@@ -325,7 +334,8 @@ export class WorldSystems {
                 }
                 contentHandler?.(tick.at);
             },
-            SCHEDULED_TICK_BUDGET_PER_TICK
+            SCHEDULED_TICK_BUDGET_PER_TICK,
+            performance.now() + SCHEDULED_TICK_TIME_BUDGET_MS
         );
 
         return {

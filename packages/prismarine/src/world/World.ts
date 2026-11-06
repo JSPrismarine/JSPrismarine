@@ -2547,14 +2547,25 @@ export class World implements Service {
      */
     private async runBlockUpdates(): Promise<void> {
         const due = this.blockUpdates.due(this.getTicks());
+        const startedAt = performance.now();
 
-        for (const { x, y, z } of due) {
+        for (const [index, { x, y, z }] of due.entries()) {
+            // A count alone is no budget: a slow host spends seconds on 4096 updates, and a tick
+            // that long drops every client's input. What is left keeps its place for the next tick.
+            if (index > 0 && performance.now() - startedAt > World.BLOCK_UPDATE_BUDGET_MS) {
+                this.blockUpdates.defer(due.slice(index), this.getTicks());
+                return;
+            }
+
             const update = this.physics.update(x, y, z, this.getTicks());
             // Settled positions finish synchronously; state-changing updates still await here
             // before the next position so block writes keep their Java tick order.
             if (update !== undefined) await update;
         }
     }
+
+    /** Milliseconds one tick may spend on block updates before leaving the rest for the next. */
+    private static readonly BLOCK_UPDATE_BUDGET_MS = 20;
 
     /**
      * The most dropped stacks one world keeps on the ground at once.
