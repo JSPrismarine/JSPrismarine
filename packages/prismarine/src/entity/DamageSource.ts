@@ -61,24 +61,47 @@ export class DamageSource {
     /** A custom localization key to use if this damage kills a player. */
     public readonly deathMessageOverride: string | undefined;
 
+    /** The Java damage type this blow was dealt as, when it came from data such as `/damage`. */
+    public readonly damageType: string | undefined;
+
+    /**
+     * The `damage_type` tags of {@link DamageSource.damageType}, as the loaded datapacks define them.
+     *
+     * When present they decide what the damage bypasses, instead of the fixed sets kept for causes
+     * with no data behind them, so a datapack that retags a type changes how it lands.
+     */
+    public readonly tags: ReadonlySet<string> | undefined;
+
+    /** Where the blow came from, for `/damage ... at <location>`, when no entity made it. */
+    public readonly position: Vector3 | null;
+
     public constructor({
         cause,
         attacker = null,
         projectile = null,
         knockbackLevels = 0,
-        deathMessageOverride
+        deathMessageOverride,
+        damageType,
+        tags,
+        position = null
     }: {
         cause: DamageCause;
         attacker?: Entity | null;
         projectile?: Entity | null;
         knockbackLevels?: number;
         deathMessageOverride?: string;
+        damageType?: string;
+        tags?: ReadonlySet<string>;
+        position?: Vector3 | null;
     }) {
         this.cause = cause;
         this.attacker = attacker;
         this.projectile = projectile;
         this.knockbackLevels = knockbackLevels;
         this.deathMessageOverride = deathMessageOverride;
+        this.damageType = damageType;
+        this.tags = tags;
+        this.position = position;
     }
 
     /**
@@ -129,21 +152,25 @@ export class DamageSource {
 
     /** Whether armor points do anything about this. */
     public bypassesArmor(): boolean {
+        if (this.tags !== undefined) return this.tags.has('minecraft:bypasses_armor');
         return bypassesArmor(this.cause);
     }
 
     /** Whether the enchantments on that armor do either. */
     public bypassesEnchantments(): boolean {
+        if (this.tags !== undefined) return this.tags.has('minecraft:bypasses_enchantments');
         return bypassesEnchantments(this.cause);
     }
 
     /** Whether this ignores the grace period after a hit. */
     public bypassesInvulnerability(): boolean {
+        if (this.tags !== undefined) return this.tags.has('minecraft:bypasses_invulnerability');
         return BYPASSES_INVULNERABILITY.has(this.cause);
     }
 
     /** Whether Fire Protection is the enchantment that applies. */
     public isFire(): boolean {
+        if (this.tags !== undefined) return this.tags.has('minecraft:is_fire');
         return FIRE_CAUSES.has(this.cause);
     }
 
@@ -156,7 +183,8 @@ export class DamageSource {
      * @returns {Vector3 | null} Where the blow came from, or null for no knockback.
      */
     public getKnockbackOrigin(): Vector3 | null {
-        return this.projectile?.getPosition() ?? this.attacker?.getPosition() ?? null;
+        if (this.tags?.has('minecraft:no_knockback') === true) return null;
+        return this.projectile?.getPosition() ?? this.attacker?.getPosition() ?? this.position;
     }
 }
 

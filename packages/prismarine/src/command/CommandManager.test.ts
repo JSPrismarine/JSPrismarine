@@ -381,7 +381,8 @@ describe('command', () => {
                             }),
                             blocks: stub<ServerContent['blocks']>({ types: new Map() }),
                             items: stub<ServerContent['items']>({ types: new Map() }),
-                            enchantments: stub<ServerContent['enchantments']>({ ids: [] })
+                            enchantments: stub<ServerContent['enchantments']>({ ids: [] }),
+                            definitions: stub<ServerContent['definitions']>({ damageTypes: new Map() })
                         }),
                     emit: async () => {},
                     post: () => 0,

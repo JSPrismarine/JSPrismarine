@@ -45,7 +45,6 @@ export const UNWIRED_COMMANDS: Readonly<Record<string, string>> = {
  * it.
  *
  * The registries left out fail that test for their own reasons.
- * `minecraft:damage_type` has no registry on this server at all, and
  * `minecraft:mob_effect` uses Mojang's published list because the host keeps
  * no custom effect registry. `minecraft:attribute`,
  * `minecraft:particle_type` and `minecraft:worldgen/biome` are not validated
@@ -59,7 +58,8 @@ export const contentRegistryIds = (content: ServerContent): ContentRegistryIds =
     entityTypes: content.entities.registry.keys(),
     blocks: [...content.blocks.types.keys()],
     items: [...content.items.types.keys()],
-    enchantments: content.enchantments.ids
+    enchantments: content.enchantments.ids,
+    damageTypes: [...content.definitions.damageTypes.keys()]
 });
 
 /**

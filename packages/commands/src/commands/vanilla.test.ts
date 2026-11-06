@@ -92,6 +92,70 @@ describe('the command set', () => {
 describe('the entity commands', () => {
     const pig = testEntity({ id: 'pig-1', type: 'minecraft:pig', name: 'Pig', isPlayer: false });
 
+    describe('/damage', () => {
+        const target = testEntity({ id: 'dragon-1' });
+        const attacker = testEntity({ id: 'player-1' });
+        const owner = testEntity({ id: 'skeleton-1' });
+        const content = { damageTypes: ['minecraft:generic', 'minecraft:in_fire', 'minecraft:arrow'] };
+
+        /**
+         * Runs a damage line and returns the calls that reached the host. `selections` answers the
+         * selectors in the order the command resolves them: `by`, then `from`, then the target.
+         */
+        const damaged = (line: string, ...selections: EntityRef[][]) => {
+            const calls: Array<{ id: string; amount: number; type: string; origin: unknown }> = [];
+            const queue = [...selections];
+            run(
+                line,
+                {
+                    entities: {
+                        select: () => queue.shift() ?? [target],
+                        damage: (entity, amount, type, origin) => {
+                            calls.push({ id: entity.id, amount, type, origin });
+                            return true;
+                        }
+                    }
+                },
+                { entity: attacker, content }
+            );
+            return calls;
+        };
+
+        it('has no source entity when no clause names one, whoever ran the command', () => {
+            expect(damaged('damage @e 1000')).toEqual([
+                { id: 'dragon-1', amount: 1000, type: 'minecraft:generic', origin: undefined }
+            ]);
+            expect(damaged('damage @e 5 minecraft:in_fire')).toEqual([
+                { id: 'dragon-1', amount: 5, type: 'minecraft:in_fire', origin: undefined }
+            ]);
+        });
+
+        it('attributes the blow only when `by` names the entity', () => {
+            const [call] = damaged('damage @e 5 minecraft:generic by @s', [attacker], [target]);
+
+            expect(call?.origin).toEqual({ by: attacker });
+        });
+
+        it('takes an indirect `from` cause behind a `by` entity', () => {
+            const [call] = damaged('damage @e 5 minecraft:arrow by @s from @a', [attacker], [owner], [target]);
+
+            expect(call?.type).toBe('minecraft:arrow');
+            expect(call?.origin).toEqual({ by: attacker, from: owner });
+        });
+
+        it('carries the location of an `at` clause', () => {
+            const [call] = damaged('damage @e 5 minecraft:generic at 1 64 2');
+
+            expect(call?.origin).toMatchObject({ at: { x: 1, y: 64, z: 2 } });
+        });
+
+        it('refuses a `by` selector that matches more than one entity', () => {
+            expect(() => damaged('damage @e 5 minecraft:generic by @e', [attacker, owner], [target])).toThrow(
+                /Only one entity/
+            );
+        });
+    });
+
     it('/kill kills every selected entity and returns the count', () => {
         const killed: string[] = [];
         const { results } = run('kill @e', {

@@ -10,6 +10,7 @@ import { describe, expect, it } from 'vitest';
 import { reportProgress } from '../../../../.test/reportProgress';
 
 import type { EnchantmentRegistry } from '@jsprismarine/enchantments';
+import type { Definition } from '@jsprismarine/packs';
 import type { Registry } from '@jsprismarine/content';
 import type { EntityType } from '@jsprismarine/entities';
 import type { BlockType } from '@jsprismarine/blocks';
@@ -98,21 +99,25 @@ describe('the vanilla command set this server runs', () => {
         expect(registerVanillaCommands().getNames().sort()).toEqual([...implemented].sort());
     });
 
-    it('reads the four validated registries off the content build', () => {
+    it('reads the validated registries off the content build', () => {
         const content = stub<ServerContent>({
             entities: stub<ServerContentEntities>({
                 registry: stub<Registry<EntityType>>({ keys: () => ['mypack:dragon'] })
             }),
             blocks: stub<ServerContentBlocks>({ types: new Map([['mypack:brass_block', stub<BlockType>()]]) }),
             items: stub<ServerContentItems>({ types: new Map([['mypack:wrench', stub<ItemType>()]]) }),
-            enchantments: stub<EnchantmentRegistry>({ ids: ['mypack:keen'] })
+            enchantments: stub<EnchantmentRegistry>({ ids: ['mypack:keen'] }),
+            definitions: stub<ServerContent['definitions']>({
+                damageTypes: new Map([['mypack:acid', stub<Definition>()]])
+            })
         });
 
         expect(contentRegistryIds(content)).toEqual({
             entityTypes: ['mypack:dragon'],
             blocks: ['mypack:brass_block'],
             items: ['mypack:wrench'],
-            enchantments: ['mypack:keen']
+            enchantments: ['mypack:keen'],
+            damageTypes: ['mypack:acid']
         });
     });
 

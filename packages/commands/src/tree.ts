@@ -62,6 +62,8 @@ export interface ContentRegistryIds {
     readonly items?: readonly string[];
     /** Every enchantment id the host can apply. */
     readonly enchantments?: readonly string[];
+    /** Every damage type the loaded datapacks declare, `/damage`'s argument. */
+    readonly damageTypes?: readonly string[];
 }
 
 /** How a registry decides what it will hold. */

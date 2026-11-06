@@ -21,6 +21,7 @@ import type { ServerContent } from '../../content/ServerContent';
 import { AttributeIds, Attributes } from '@jsprismarine/protocol/wire/structures/Attribute';
 import { DamageCause } from '../../entity/DamageCause';
 import { Entity } from '../../entity/Entity';
+import { DamageSource } from '../../entity/DamageSource';
 import ContainerEntry from '../../inventory/ContainerEntry';
 import HumanInventory from '../../inventory/HumanInventory';
 import { Item as ItemStack } from '../../item/Item';
@@ -567,6 +568,30 @@ describe('the server command host', () => {
 
             await expect(fixture.run('damage @e 4')).resolves.toBe(1);
             expect(pig.damage).toHaveBeenCalledWith(4, expect.anything());
+        });
+
+        describe('/damage sources', () => {
+            /** The source the pig was hurt with, by whichever player ran the command. */
+            const hurtWith = async (line: string) => {
+                const pig = mobAt(fixture, 1n, 'minecraft:pig', new Vector3(0, 64, 0));
+                const player = playerAt(fixture, 2n, 'Steve', new Vector3(1, 64, 0));
+                await fixture.run(line, player);
+                const [, source] = vi.mocked(pig.damage).mock.calls[0] ?? [];
+                return { pig, player, source };
+            };
+
+            it('has no source entity when the command names none, even from a player', async () => {
+                const { source } = await hurtWith('damage @e[type=pig] 4');
+
+                expect(source).toBeInstanceOf(DamageSource);
+                expect((source as DamageSource).attacker).toBeNull();
+            });
+
+            it('blames the entity a `by` clause names', async () => {
+                const { player, source } = await hurtWith('damage @e[type=pig] 4 minecraft:fire by @s');
+
+                expect((source as DamageSource).attacker).toBe(player);
+            });
         });
     });
 

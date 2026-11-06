@@ -18,7 +18,7 @@ import Player from '../../Player';
 import type Server from '../../Server';
 import { AttributeIds } from '@jsprismarine/protocol/wire/structures/Attribute';
 import { DamageCause } from '../../entity/DamageCause';
-import { DamageSource } from '../../entity/DamageSource';
+import { damageSourceOfType, hasDamageType } from '../../entity/damageTypes';
 import { normalizeStatusEffectId } from '../../entity/StatusEffect';
 import type { DataEntity } from '../../entity/data/DataEntity';
 import type { Entity } from '../../entity/Entity';
@@ -267,14 +267,24 @@ export const entityCommandHost = (server: Server, scoreboard: Scoreboard): Entit
                 : carryOut(entity.getWorld().removeEntity(entity), true);
         },
 
-        damage: (ref, amount, _damageType, attacker) => {
+        damage: (ref, amount, damageType, origin) => {
             const entity = resolveEntity(server, ref);
             if (entity === undefined || !entity.isAlive()) return false;
 
-            // `/damage` names a Java damage type and this server models causes
-            // rather than types, so the attacker is what survives the trip.
-            const by = attacker === undefined ? undefined : resolveEntity(server, attacker);
-            const source = by === undefined ? DamageCause.Generic : DamageSource.entity(by);
+            // The type is data the loaded packs declare, and its tags decide what the blow
+            // bypasses. A bare `/damage` has no source entity: `execute as @p run damage` does
+            // not make @p the attacker, as Java does not.
+            const content = server.getContent();
+            const type = damageType.includes(':') ? damageType : `minecraft:${damageType}`;
+            if (!hasDamageType(content, type)) return false;
+
+            const by = origin?.by === undefined ? undefined : resolveEntity(server, origin.by);
+            const from = origin?.from === undefined ? undefined : resolveEntity(server, origin.from);
+            const source = damageSourceOfType(content, type, {
+                ...(by === undefined ? {} : { by }),
+                ...(from === undefined ? {} : { from }),
+                ...(origin?.at === undefined ? {} : { at: vectorOf(origin.at) })
+            });
             return carryOut(entity.damage(amount, source), true);
         },
 

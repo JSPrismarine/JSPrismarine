@@ -19,7 +19,7 @@ import {
     resourceArgument,
     stringArgument
 } from '../argumentTypes';
-import type { CommandSource } from '../host';
+import type { CommandSource, DamageOrigin } from '../host';
 import type { CommandRegistry } from '../tree';
 import type { Context } from './support';
 import {
@@ -160,15 +160,41 @@ export const registerEntityCommands = (registry: CommandRegistry<CommandSource>)
         { description: 'Teleports entities.', aliases: ['tp'], ...CHEATS }
     );
 
+    // Java's forms: `damage <target> <amount> [<damageType>]`, then `<damageType> at <location>`,
+    // `<damageType> by <entity>` and `<damageType> by <entity> from <cause>`. A bare form has no
+    // source entity, so `execute as @p run damage ...` does not make @p the attacker.
     registry.register(
         lit('damage').then(
             arg('target', entityArgument()).then(
                 arg('amount', floatArgument({ min: 0 }))
                     .executes(command((context) => damage(context, 'minecraft:generic')))
                     .then(
-                        arg('damageType', resourceArgument('minecraft:damage_type')).executes(
-                            command((context) => damage(context, value(context, 'damageType')))
-                        )
+                        arg('damageType', resourceArgument('minecraft:damage_type', content.damageTypes))
+                            .executes(command((context) => damage(context, value(context, 'damageType'))))
+                            .then(
+                                lit('at').then(
+                                    arg('location', positionArgument()).executes(
+                                        command((context) => damage(context, value(context, 'damageType'), 'at'))
+                                    )
+                                )
+                            )
+                            .then(
+                                lit('by').then(
+                                    arg('entity', entityArgument())
+                                        .executes(
+                                            command((context) => damage(context, value(context, 'damageType'), 'by'))
+                                        )
+                                        .then(
+                                            lit('from').then(
+                                                arg('cause', entityArgument()).executes(
+                                                    command((context) =>
+                                                        damage(context, value(context, 'damageType'), 'from')
+                                                    )
+                                                )
+                                            )
+                                        )
+                                )
+                            )
                     )
             )
         ),
@@ -586,12 +612,22 @@ const teleportTo = (context: Context, withRotation: 'rotation' | undefined): num
     return report(current, moved, `Teleported ${moved} entities`);
 };
 
-const damage = (context: Context, damageType: string): number => {
+const damage = (context: Context, damageType: string, clause?: 'at' | 'by' | 'from'): number => {
     const current = source(context);
     const amount = value<number>(context, 'amount');
-    const hurt = select(current, value(context, 'target')).filter((entity) =>
-        current.host.entities.damage(entity, amount, damageType, current.entity)
-    ).length;
+    // Each clause is optional and single: `by` and `from` must name exactly one entity.
+    const origin: DamageOrigin | undefined =
+        clause === undefined
+            ? undefined
+            : clause === 'at'
+              ? { at: resolvePosition(value(context, 'location'), current) }
+              : {
+                    by: selectOne(current, value(context, 'entity')),
+                    ...(clause === 'from' ? { from: selectOne(current, value(context, 'cause')) } : {})
+                };
+    // Java's target is a single entity, so a selector that matches several is refused.
+    const target = selectOne(current, value(context, 'target'));
+    const hurt = current.host.entities.damage(target, amount, damageType, origin) ? 1 : 0;
     return report(current, hurt, `Damaged ${hurt} entities`);
 };
 

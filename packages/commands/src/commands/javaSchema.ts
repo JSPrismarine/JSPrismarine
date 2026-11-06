@@ -186,6 +186,7 @@ const registryValues = (registry: string, commands: CommandRegistry<CommandSourc
     if (registry === 'minecraft:item') return content.items;
     if (registry === 'minecraft:entity_type') return content.entityTypes;
     if (registry === 'minecraft:enchantment') return content.enchantments;
+    if (registry === 'minecraft:damage_type') return content.damageTypes;
     return undefined;
 };
 

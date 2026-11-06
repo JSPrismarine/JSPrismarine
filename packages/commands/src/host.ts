@@ -116,7 +116,13 @@ export interface EntityCommandHost {
         }
     ): EntityRef | undefined;
     kill(entity: EntityRef): boolean;
-    damage(entity: EntityRef, amount: number, damageType: string, attacker?: EntityRef): boolean;
+    /**
+     * Applies `/damage`.
+     * @param damageType - A damage type id such as `minecraft:in_fire`; `minecraft:generic` by default.
+     * @param origin - Who and where it came from. Without it the blow has no source entity, which is
+     * what Java does for a bare `/damage`, whoever ran the command.
+     */
+    damage(entity: EntityRef, amount: number, damageType: string, origin?: DamageOrigin): boolean;
     teleport(entity: EntityRef, position: Vector3, rotation: Rotation, dimension: string): boolean;
     /** Mounts `rider` on `vehicle`, or dismounts it when `vehicle` is undefined. */
     ride(rider: EntityRef, vehicle: EntityRef | undefined): boolean;
@@ -507,6 +513,16 @@ export interface ServerCommandHost {
      * @returns The formatted help lines.
      */
     usage(target?: string): readonly string[];
+}
+
+/** The optional source clauses of `/damage <target> <amount> <type> [at <location>] [by <entity> [from <cause>]]`. */
+export interface DamageOrigin {
+    /** `by`: the entity that made contact, such as an arrow or the attacker's fist. */
+    readonly by?: EntityRef;
+    /** `from`: the entity answerable for `by`, such as the archer. */
+    readonly from?: EntityRef;
+    /** `at`: the point the blow came from. */
+    readonly at?: Vector3;
 }
 
 /** Everything a command in this package can ask the server to do. */

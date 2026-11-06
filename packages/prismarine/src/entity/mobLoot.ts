@@ -268,7 +268,7 @@ const tagIndexes = new WeakMap<ServerContent, Map<string, readonly string[]>>();
  * `tags/damage_type/` files rather than listed here. A turtle struck by
  * lightning and a ghast killed by its own fireball both turn on one.
  */
-const damageTagsOf = (content: ServerContent, type: string): readonly string[] => {
+export const damageTagsOf = (content: ServerContent, type: string): readonly string[] => {
     let index = tagIndexes.get(content);
     if (index === undefined) {
         index = new Map();
