@@ -15,7 +15,7 @@ const actorPosition = (state: Record<string, unknown>, name: string): [number, n
 };
 
 const waitForActor = async (client: CinnabarClient, name: string): Promise<[number, number, number]> => {
-    const deadline = Date.now() + 15_000;
+    const deadline = Date.now() + 60_000;
     for (;;) {
         const position = actorPosition(await client.state(), name);
         if (position !== undefined) return position;

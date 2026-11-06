@@ -41,11 +41,18 @@ export const subChunkBlockChanges: Scenario = {
         server.command(`fill ${x + 1} ${y + 2} ${z + 3} ${x + 1} ${y + 4} ${z + 3} minecraft:dirt`);
         server.command(`teleport ${playerName} ${standX} ${y + 1} ${standZ}`);
 
-        const deadline = Date.now() + 30_000;
+        const deadline = Date.now() + 45_000;
+        let nextAsk = Date.now() + 5_000;
         for (;;) {
             const feet = vec3(await client.state(), 'feet');
             if (Math.hypot(feet[0] - standX, feet[1] - (y + 1), feet[2] - standZ) < 1) break;
             assert.ok(Date.now() < deadline, `the client did not reach the platform; at ${feet.join(', ')}`);
+            // The client may have fallen through ground it had no blocks for before the fill
+            // reached it, or lost the teleport; ask again now that the platform is there.
+            if (Date.now() >= nextAsk) {
+                server.command(`teleport ${playerName} ${standX} ${y + 1} ${standZ}`);
+                nextAsk = Date.now() + 5_000;
+            }
             await sleep(250);
         }
 

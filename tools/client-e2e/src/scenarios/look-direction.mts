@@ -53,6 +53,10 @@ export const lookDirection: Scenario = {
                     lastProgress = Date.now();
                 } else if (Date.now() - lastProgress > 1_500) {
                     // A slow runner can lose the start of the key press; ask again.
+                    // The first click after a reset is also what makes the client take gameplay
+                    // input; with nothing held it does nothing else.
+                    await client.input({ press: ['MouseRight'], press_frames: 1 });
+                    await client.input({ release_all: true });
                     await lookTo(client, heading.yaw, 0);
                     await client.input({ move: { forward: 1 } });
                     lastProgress = Date.now();
