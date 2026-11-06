@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 
 import type { Scenario } from '../scenario.mts';
-import { sleep, vec3 } from '../scenario.mts';
+import { lookTo, sleep, vec3 } from '../scenario.mts';
 
 /** Bedrock yaw 0 faces +Z, 90 faces -X, 180 faces -Z, and 270 faces +X. */
 const headings = [
@@ -28,7 +28,7 @@ export const lookDirection: Scenario = {
                 await sleep(250);
             }
 
-            await client.input({ look: { yaw: heading.yaw, pitch: 0, frames: 0 } });
+            await lookTo(client, heading.yaw, 0);
             await client.input({ move: { forward: 1 } });
             // Walk until the distance is covered rather than for a fixed second: a loaded CI
             // client has been measured walking 1.3 blocks in that second, a third of what a
@@ -46,7 +46,7 @@ export const lookDirection: Scenario = {
                     lastProgress = Date.now();
                 } else if (Date.now() - lastProgress > 1_500) {
                     // A slow runner can lose the start of the key press; ask again.
-                    await client.input({ look: { yaw: heading.yaw, pitch: 0, frames: 0 } });
+                    await lookTo(client, heading.yaw, 0);
                     await client.input({ move: { forward: 1 } });
                     lastProgress = Date.now();
                 }
@@ -56,7 +56,10 @@ export const lookDirection: Scenario = {
             feet = vec3(await client.state(), 'feet');
             const along = (feet[heading.axis] - 0.5) * heading.sign;
             const across = Math.abs(feet[heading.axis === 0 ? 2 : 0] - 0.5);
-            assert.ok(along > 2, `facing yaw ${heading.yaw} moved ${along.toFixed(2)} along ${heading.name}`);
+            assert.ok(
+                along > 2,
+                `facing yaw ${heading.yaw} moved ${along.toFixed(2)} along ${heading.name}; ${JSON.stringify(await client.state())}`
+            );
             assert.ok(across < 1, `facing yaw ${heading.yaw} drifted ${across.toFixed(2)} sideways`);
             log(`yaw ${heading.yaw} walked ${along.toFixed(2)} blocks toward ${heading.name}`);
         }

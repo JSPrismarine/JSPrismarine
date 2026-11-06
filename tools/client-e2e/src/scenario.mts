@@ -1,4 +1,6 @@
 /** The scenario contract: a named check run against a live server and an in-world client. */
+import assert from 'node:assert/strict';
+
 import type { CinnabarClient } from './client.mts';
 import type { JspServer } from './jsp-server.mts';
 
@@ -114,5 +116,33 @@ export const placeBlockAndWait = async (
         if (/Found the block at/.test(reply)) return;
         if (Date.now() > deadline) throw new Error(`${block} never appeared at ${at.x} ${at.y} ${at.z}: ${reply}`);
         await sleep(250);
+    }
+};
+
+/**
+ * Turns the client and waits until it reports the new heading.
+ *
+ * The look input is applied over the client's next frames, so a click or a walk issued right
+ * after it can still use the old aim. A slow runner makes that gap long enough to matter.
+ */
+export const lookTo = async (client: CinnabarClient, yaw: number, pitch: number): Promise<void> => {
+    await client.input({ look: { yaw, pitch, frames: 0 } });
+    const deadline = Date.now() + 10_000;
+    for (;;) {
+        const rotation = (await client.state()).rotation;
+        const observedYaw =
+            typeof rotation === 'object' && rotation !== null && 'yaw' in rotation ? rotation.yaw : undefined;
+        const observedPitch =
+            typeof rotation === 'object' && rotation !== null && 'pitch' in rotation ? rotation.pitch : undefined;
+        if (typeof observedYaw === 'number' && typeof observedPitch === 'number') {
+            // Yaw wraps, so compare the shortest way around.
+            const yawGap = Math.abs(((((observedYaw - yaw) % 360) + 540) % 360) - 180);
+            if (yawGap < 0.5 && Math.abs(observedPitch - pitch) < 0.5) return;
+        }
+        assert.ok(
+            Date.now() < deadline,
+            `client never looked to yaw ${yaw} pitch ${pitch}; at ${JSON.stringify(rotation)}`
+        );
+        await sleep(100);
     }
 };

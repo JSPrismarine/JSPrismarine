@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 
 import type { Scenario } from '../scenario.mts';
-import { sleep, vec3 } from '../scenario.mts';
+import { lookTo, sleep, vec3 } from '../scenario.mts';
 
 const BLOCK_REPLY = /Found the block at|The block is |That chunk is not loaded/;
 const PLACEMENT_OFFSET_X = 32;
@@ -42,26 +42,6 @@ const waitForFeet = async (
     }
 };
 
-/**
- * Turns the client and waits until it has turned.
- *
- * A look the client has not applied yet leaves a click that follows it aimed at the old
- * target: here that placed the dirt against another block, spent it, and left the overlap
- * the scenario is about untried.
- */
-const lookDown = async (client: Parameters<Scenario['run']>[0]['client'], pitch: number): Promise<void> => {
-    await client.input({ look: { yaw: 0, pitch, frames: 0 } });
-    const deadline = Date.now() + 10_000;
-    for (;;) {
-        const rotation = (await client.state()).rotation;
-        const observed =
-            typeof rotation === 'object' && rotation !== null && 'pitch' in rotation ? rotation.pitch : undefined;
-        if (typeof observed === 'number' && Math.abs(observed - pitch) < 0.5) return;
-        assert.ok(Date.now() < deadline, `client never looked to pitch ${pitch}; at ${String(observed)}`);
-        await sleep(100);
-    }
-};
-
 export const placementOverlap: Scenario = {
     name: 'placement-overlap',
     description: 'the server refuses a colliding block placed in the player body',
@@ -76,7 +56,7 @@ export const placementOverlap: Scenario = {
         await ready;
         await waitForFeet(client, [PLACEMENT_OFFSET_X + 0.5, 64, 0.5]);
 
-        await lookDown(client, 21);
+        await lookTo(client, 0, 21);
         await rightClick(client);
         const control = await blockAt(server, PLACEMENT_OFFSET_X, 65, 2, 'minecraft:dirt');
         assert.match(control, /Found the block at/, `ordinary client placement reached the server: ${control}`);
@@ -94,7 +74,7 @@ export const placementOverlap: Scenario = {
         await sleep(200);
         await client.input({ hotbar: 2 });
         await sleep(300);
-        await lookDown(client, 85);
+        await lookTo(client, 0, 85);
         await rightClick(client);
         // Give the server time to answer the click, so the check below sees its verdict and
         // not the world from before it arrived.

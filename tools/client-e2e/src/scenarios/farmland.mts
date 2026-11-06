@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import path from 'node:path';
 
-import { sleep, vec3 } from '../scenario.mts';
+import { lookTo, sleep, vec3 } from '../scenario.mts';
 import type { Scenario } from '../scenario.mts';
 
 /** Where the player stands; the tilled block is two south of it, on the flat world's surface. */
@@ -55,7 +55,7 @@ export const farmland: Scenario = {
         }
 
         // Down at the grass two blocks south, which is where the crosshair stays all scenario.
-        await client.input({ look: { yaw: 0, pitch: 46, frames: 0 } });
+        await lookTo(client, 0, 46);
         // The client keeps the slot an earlier scenario selected, so ask for the hoe's slot.
         await client.input({ hotbar: 1 });
         await sleep(250);
