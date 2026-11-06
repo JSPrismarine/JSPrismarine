@@ -489,7 +489,8 @@ export default class PlayerSession {
         const world = online ? this.player.getWorld() : undefined;
         const dimension = world?.getDimension();
         const cacheEnabled = this.clientCacheEnabled;
-        const entries = packet.offsets.map((offset) => {
+        const entries: SubChunkEntry[] = [];
+        for (const offset of packet.offsets) {
             const y = packet.centerPos.y + offset.y;
             const entry: SubChunkEntry = {
                 offset: new SubChunkPosOffset(offset.x, offset.y, offset.z),
@@ -497,23 +498,43 @@ export default class PlayerSession {
                 heightMaps: new SubChunkHeightmapData()
             };
 
-            if (!online || world === undefined || dimension === undefined) return entry;
+            if (!online || world === undefined || dimension === undefined) {
+                entries.push(entry);
+                continue;
+            }
             if (packet.dimensionType !== dimension.bedrockId) {
                 entry.result = SubChunkRequestResult.WRONG_DIMENSION;
-                return entry;
+                entries.push(entry);
+                continue;
             }
             const clientRange = dimension.custom ? dimension : (dimensionByBedrockId(dimension.bedrockId) ?? dimension);
             if (y < minSubChunk(clientRange) || y > maxSubChunk(clientRange)) {
                 entry.result = SubChunkRequestResult.INDEX_OUT_OF_BOUNDS;
-                return entry;
+                entries.push(entry);
+                continue;
             }
 
             const x = packet.centerPos.x + offset.x;
             const z = packet.centerPos.z + offset.z;
-            const chunk = world.getLoadedChunk(x, z);
+            let chunk = world.getLoadedChunk(x, z);
+            // A chunk this client was told about has to be answerable. The client asks for its
+            // sub chunks only once, and a "doesn't exist" is final for that column, so one the
+            // world evicted between the announcement and the request would stay a hole for as
+            // long as the player stood there. Read it back instead; a chunk nobody announced is
+            // not loaded on a client's say-so.
+            if (chunk === null && this.loadedChunks.has(Chunk.packXZ(x, z))) {
+                chunk = await world.getChunk(x, z, { urgency: 'immediate' });
+            }
             if (chunk === null || chunk.getX() !== x || chunk.getZ() !== z) {
+                this.server
+                    .getLogger()
+                    .warn(
+                        `${this.player.getName()} asked for sub chunk ${x}, ${y}, ${z}, which is not loaded`,
+                        'PlayerSession/handleSubChunkRequest'
+                    );
                 entry.result = SubChunkRequestResult.LEVEL_CHUNK_DOESNT_EXIST;
-                return entry;
+                entries.push(entry);
+                continue;
             }
 
             const blob = cacheEnabled ? this.clientBlobCache.prepareRequestSubChunk(chunk, y) : undefined;
@@ -528,12 +549,15 @@ export default class PlayerSession {
 
                 // The client can reuse a confirmed blob. An all-air section also carries only
                 // its hash when caching is enabled; a miss is answered through the cache packet.
-                if (allAir || this.clientBlobCache.hasClientBlob(blob.id)) return entry;
+                if (allAir || this.clientBlobCache.hasClientBlob(blob.id)) {
+                    entries.push(entry);
+                    continue;
+                }
             }
 
             Object.assign(entry, { serializedSubChunk: data });
-            return entry;
-        });
+            entries.push(entry);
+        }
 
         const response = new SubChunkPacket({
             cacheEnabled,

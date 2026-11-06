@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
+import type { Logger } from '@jsprismarine/logger';
 import type Player from '../Player';
 import type Server from '../Server';
 import type { Config } from '../config/Config';
@@ -54,6 +55,7 @@ describe('network', () => {
         };
 
         const server = stub<Server>({
+            getLogger: () => stub<Logger>({ warn: () => {} }),
             getChunkScheduler: () => stub<ChunkScheduler>({ add: () => {}, remove: () => {} }),
             // Read once in the constructor, to build the session's entity tracker.
             getConfig: () =>
@@ -245,7 +247,11 @@ describe('network', () => {
                 getDimension: () => Dimensions.Overworld,
                 getLoadedChunk: (x, z) => (x === 1 && z === 2 ? chunk : null)
             });
-            const playerWithWorld = stub<Player>({ getWorld: () => world, isOnline: () => true });
+            const playerWithWorld = stub<Player>({
+                getWorld: () => world,
+                isOnline: () => true,
+                getName: () => 'tester'
+            });
             const sentPackets: NetworkPacket<unknown>[] = [];
             const sessionWithResponses = new PlayerSession(
                 server,
@@ -290,6 +296,61 @@ describe('network', () => {
             const wrongDimensionData = wrongDimension.getPacketData();
             if (wrongDimensionData === null) throw new Error('Wrong-dimension response data is unavailable');
             expect(wrongDimensionData.entries[0]?.result).toBe(SubChunkRequestResult.WRONG_DIMENSION);
+        });
+
+        it('reads back a chunk the client was told about when the world evicted it before the request', async () => {
+            // The client asks for a column's sub chunks once, and "doesn't exist" is final for
+            // that column, so a chunk unloaded between the LevelChunk and the request would stay
+            // a hole in the client's view for good.
+            const chunk = new Chunk(1, 2, new Map(), Dimensions.Overworld);
+            chunk.setBlockRuntimeId(1, -64, 2, BlockRuntimeIds.getByName('minecraft:stone'));
+            let resident: Chunk | null = chunk;
+            const reads: string[] = [];
+            const world = stub<World>({
+                getDimension: () => Dimensions.Overworld,
+                getLoadedChunk: () => resident,
+                getChunk: async (x, z) => {
+                    reads.push(`${x},${z}`);
+                    resident = chunk;
+                    return chunk;
+                }
+            });
+            const playerWithWorld = stub<Player>({
+                viewDistance: 2,
+                getPosition: () => new Position(0, 64, 0, world),
+                getWorld: () => world,
+                getName: () => 'tester',
+                isOnline: () => true
+            });
+            const sent: NetworkPacket<unknown>[] = [];
+            const connection = stub<ClientConnection>({
+                codec: Codec2225,
+                sendDataPacket: async (packet) => void sent.push(packet),
+                sendSharedCompressedBatchAsync: async () => {}
+            });
+            const announced = new PlayerSession(server, connection, playerWithWorld);
+            announced.tryDeliverLoaded(1, 2);
+            await announced.flush();
+            resident = null;
+
+            const request = new SubChunkRequestPacket();
+            request.dimensionType = 0;
+            request.centerPos = { x: 1, y: -4, z: 2 };
+            request.offsets = [
+                { x: 0, y: 0, z: 0 },
+                { x: 5, y: 0, z: 0 }
+            ];
+            await announced.handleSubChunkRequest(request);
+
+            const response = sent.at(-1);
+            if (!(response instanceof SubChunkPacket)) throw new Error('SubChunkPacket response was not sent');
+            const entries = response.getPacketData()?.entries ?? [];
+            // The announced column is served; one nobody announced is not loaded on request.
+            expect(entries.map(({ result }) => result)).toEqual([
+                SubChunkRequestResult.SUCCESS,
+                SubChunkRequestResult.LEVEL_CHUNK_DOESNT_EXIST
+            ]);
+            expect(reads).toEqual(['1,2']);
         });
 
         it('uses confirmed subchunk blobs on repeat requests and serves cache misses', async () => {
