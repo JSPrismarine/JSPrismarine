@@ -115,10 +115,11 @@ const { values, positionals } = parseArgs({
         port: { type: 'string' },
         protocol: { type: 'string' },
         'compression-algorithm': { type: 'string', default: 'snappy' },
-        'raknet-worker': { type: 'boolean', default: false },
+        'raknet-worker': { type: 'boolean', default: true },
         concurrency: { type: 'string', default: '2' }
     },
-    allowPositionals: true
+    allowPositionals: true,
+    allowNegative: true
 });
 
 const allScenarios = suites.flatMap((suite) => suite.scenarios);

@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 
 import type { Scenario } from '../scenario.mts';
-import { sleep, testForBlock, vec3, waitTicks } from '../scenario.mts';
+import { sleep, standAt, testForBlock, waitTicks } from '../scenario.mts';
 
 /** Counts item actors visible to the client. */
 const itemActorCount = (state: Record<string, unknown>): number => {
@@ -20,7 +20,8 @@ const FLOOR = { x: 100, y: 63, z: 100 };
 export const subChunkBlockChanges: Scenario = {
     name: 'sub-chunk-block-changes',
     description: 'blocks a single fill changed in one sub chunk reach the client',
-    run: async ({ server, client, playerName, log }) => {
+    run: async (context) => {
+        const { server, client, playerName, log } = context;
         await client.waitFor({ chunks_loaded: { radius: 2 } }, 120_000);
 
         const { x, y, z } = FLOOR;
@@ -29,6 +30,9 @@ export const subChunkBlockChanges: Scenario = {
         // The platform is far from where the client joined. Go there first and let its chunks
         // arrive, or the client falls through ground it has not been sent yet and the fill lands
         // in a chunk it has not loaded.
+        // Nothing stands up here yet, so the player falls until the platform exists; a survival
+        // player falls a hundred blocks and dies, and a dead player cannot mine.
+        server.command(`gamemode creative ${playerName}`);
         server.command(`teleport ${playerName} ${standX} ${y + 1} ${standZ}`);
         await waitTicks(server, 40);
         await client.waitFor({ chunks_loaded: { radius: 2 } }, 120_000);
@@ -39,22 +43,8 @@ export const subChunkBlockChanges: Scenario = {
         server.command(`fill ${x} ${y} ${z} ${x + 2} ${y} ${z + 2} minecraft:stone`);
         // Dirt, because the wall is what gets mined and a bare hand takes nothing off stone.
         server.command(`fill ${x + 1} ${y + 2} ${z + 3} ${x + 1} ${y + 4} ${z + 3} minecraft:dirt`);
-        server.command(`teleport ${playerName} ${standX} ${y + 1} ${standZ}`);
-
-        const deadline = Date.now() + 45_000;
-        let nextAsk = Date.now() + 5_000;
-        for (;;) {
-            const feet = vec3(await client.state(), 'feet');
-            if (Math.hypot(feet[0] - standX, feet[1] - (y + 1), feet[2] - standZ) < 1) break;
-            assert.ok(Date.now() < deadline, `the client did not reach the platform; at ${feet.join(', ')}`);
-            // The client may have fallen through ground it had no blocks for before the fill
-            // reached it, or lost the teleport; ask again now that the platform is there.
-            if (Date.now() >= nextAsk) {
-                server.command(`teleport ${playerName} ${standX} ${y + 1} ${standZ}`);
-                nextAsk = Date.now() + 5_000;
-            }
-            await sleep(250);
-        }
+        await standAt(context, { x: standX, y: y + 1, z: standZ });
+        server.command(`gamemode survival ${playerName}`);
 
         // Yaw 0 faces the wall and nothing else is within reach up here, so a drop can only
         // come out of it - and only a client that applied the fill knows the wall is there.

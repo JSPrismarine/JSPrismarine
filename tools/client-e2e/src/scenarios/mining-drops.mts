@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 
 import type { Scenario } from '../scenario.mts';
-import { sleep, vec3 } from '../scenario.mts';
+import { lookTo, sleep, vec3 } from '../scenario.mts';
 
 /** Counts item actors visible to the client. */
 const itemActorCount = (state: Record<string, unknown>): number => {
@@ -25,10 +25,19 @@ export const miningDrops: Scenario = {
         const y = Math.floor(feet[1]) + 1;
         const z = Math.floor(feet[2]) + 3;
 
-        await client.input({ look: { yaw: 0, pitch: 0, frames: 0 } });
+        await lookTo(client, 0, 0);
 
         for (const block of ['minecraft:dirt', 'minecraft:sand', 'minecraft:gravel']) {
-            const previousDrops = itemActorCount(await client.state());
+            // The last block's drop lies within reach and is picked up some time after it lands, which
+            // on a loaded host can be mid-way through this block's break and cancel out its new drop.
+            // Start from a world with no drops and wait until the client agrees.
+            server.command('kill @e[type=item]');
+            const cleared = Date.now() + 20_000;
+            while (itemActorCount(await client.state()) > 0) {
+                assert.ok(Date.now() < cleared, 'the client kept drawing item actors after they were killed');
+                await sleep(100);
+            }
+            const previousDrops = 0;
             server.command(`setblock ${x} ${y - 1} ${z} minecraft:stone`);
             server.command(`setblock ${x} ${y} ${z} ${block}`);
             await sleep(250);

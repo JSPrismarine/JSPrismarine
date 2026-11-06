@@ -103,6 +103,46 @@ export const waitTicks = async (server: JspServer, ticks: number, timeoutMs = 12
     }
 };
 
+/**
+ * Teleports the player and waits until the client stands at the spot for a full second.
+ *
+ * Reaching it is not enough: a client that has not applied the blocks it should stand on yet
+ * arrives for a moment and falls on through, and a teleport can be lost. Ask again every five
+ * seconds until it stays put.
+ *
+ * @param context - The server, the client and the player's name.
+ * @param at - Where the feet should be.
+ * @param timeoutMs - How long to keep trying.
+ */
+export const standAt = async (
+    context: Pick<ScenarioContext, 'server' | 'client' | 'playerName'>,
+    at: { x: number; y: number; z: number },
+    timeoutMs = 60_000
+): Promise<void> => {
+    const { server, client, playerName } = context;
+    const teleport = () => server.command(`teleport ${playerName} ${at.x} ${at.y} ${at.z}`);
+    teleport();
+
+    const deadline = Date.now() + timeoutMs;
+    let nextAsk = Date.now() + 5_000;
+    let standingSince: number | undefined;
+    for (;;) {
+        const feet = vec3(await client.state(), 'feet');
+        const there = Math.hypot(feet[0] - at.x, feet[1] - at.y, feet[2] - at.z) < 0.3;
+        if (!there) standingSince = undefined;
+        else standingSince ??= Date.now();
+        if (standingSince !== undefined && Date.now() - standingSince >= 1_000) return;
+        if (Date.now() >= deadline) {
+            throw new Error(`the client never stood at ${at.x}, ${at.y}, ${at.z}; at ${feet.join(', ')}`);
+        }
+        if (!there && Date.now() >= nextAsk) {
+            teleport();
+            nextAsk = Date.now() + 5_000;
+        }
+        await sleep(100);
+    }
+};
+
 /** Reads `[x, y, z]` out of a state snapshot key such as `feet` or `server_position`. */
 export const vec3 = (state: Record<string, unknown>, key: string): [number, number, number] => {
     const value = state[key];

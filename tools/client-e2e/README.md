@@ -36,6 +36,10 @@ pnpm run e2e:client -- --concurrency 1 --record --artifacts /tmp/evidence
 `--compression-algorithm` selects the algorithm the scratch server advertises: `snappy` (the
 default), `zlib`, or `none`.
 
+The scratch server runs RakNet on a worker thread, so a tick that overruns its budget does not
+stop it answering the client's keepalives and acknowledgements, and the client keeps its session
+through a stall. `--no-raknet-worker` runs it on the game thread instead.
+
 Gameplay and dimension scenarios share one server and client; natural spawning uses a separate
 server because it needs a cow spawn fixture that could affect gameplay checks. The runner resets
 the player, inventory, drops, and controls between scenarios, then stops each server and removes

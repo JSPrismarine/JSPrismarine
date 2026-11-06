@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 
 import type { Scenario } from '../scenario.mts';
-import { placeBlockAndWait, sleep, vec3, waitTicks } from '../scenario.mts';
+import { lookTo, placeBlockAndWait, standAt, sleep, waitTicks } from '../scenario.mts';
 
 type Context = Parameters<Scenario['run']>[0];
 
@@ -29,10 +29,13 @@ const waitForLamp = async (server: Context['server'], expected: string, timeoutM
 export const leverLamp: Scenario = {
     name: 'lever-lamp',
     description: 'flipping a lever lights the redstone lamp on its block, and flipping it back puts it out',
-    run: async ({ client, server, playerName, log }) => {
+    run: async (context) => {
+        const { client, server, playerName, log } = context;
         await client.waitFor({ chunks_loaded: { radius: 2 } }, 30_000);
         // The fixture is four chunks from the spawn, and `setblock` into a chunk the server has
-        // not loaded is dropped. Stand there first so the chunks load, then build.
+        // not loaded is dropped. Stand there first so the chunks load, then build. Nothing holds
+        // the player up meanwhile, and a survival player falls to their death and cannot click.
+        server.command(`gamemode creative ${playerName}`);
         server.command(`teleport ${playerName} ${FIXTURE_X + 0.5} 64 0.5`);
         await waitTicks(server, 40);
         await client.waitFor({ chunks_loaded: { radius: 2 } }, 60_000);
@@ -41,32 +44,23 @@ export const leverLamp: Scenario = {
         await placeBlockAndWait(server, { x: FIXTURE_X, y: 64, z: 2 }, 'minecraft:stone');
         await placeBlockAndWait(server, { x: FIXTURE_X, y: 65, z: 2 }, 'minecraft:redstone_lamp');
         server.command(`setblock ${FIXTURE_X} 64 1 minecraft:lever ["lever_direction"="north"]`);
-        server.command(`teleport ${playerName} ${FIXTURE_X + 0.5} 64 0.5`);
-
-        const deadline = Date.now() + 15_000;
-        for (;;) {
-            const feet = vec3(await client.state(), 'feet');
-            if (Math.hypot(feet[0] - (FIXTURE_X + 0.5), feet[1] - 64, feet[2] - 0.5) < 1) break;
-            assert.ok(Date.now() < deadline, `client did not arrive at the fixture; still at ${feet.join(', ')}`);
-            await sleep(250);
-        }
+        await standAt(context, { x: FIXTURE_X + 0.5, y: 64, z: 0.5 });
+        server.command(`gamemode survival ${playerName}`);
 
         const unlit = await blockAt(server, FIXTURE_X, 65, 2, 'minecraft:redstone_lamp');
         assert.match(unlit, /Found the block at/, `the lamp starts unlit: ${unlit}`);
 
         // The lever is one block ahead and level with the player's feet; look down at it.
-        await client.input({ look: { yaw: 0, pitch: 40, frames: 0 } });
-        /** Clicks the lever until the lamp reads `expected`, since the first click after a teleport can be dropped. */
+        await lookTo(client, 0, 40);
+        /**
+         * Clicks the lever once and waits for the lamp to read `expected`. A second click would flip
+         * the lever back if the first was only slow, so a click that does not land fails the scenario.
+         */
         const flipUntil = async (expected: string): Promise<string> => {
-            let reply = '';
-            for (let attempt = 0; attempt < 2; attempt += 1) {
-                await client.input({ press: ['MouseRight'], press_frames: 1 });
-                await waitTicks(server, 6);
-                await client.input({ release_all: true });
-                reply = await waitForLamp(server, expected, 3_000);
-                if (/Found the block at/.test(reply)) break;
-            }
-            return reply;
+            await client.input({ press: ['MouseRight'], press_frames: 3 });
+            await client.waitFrames(10);
+            await client.input({ release_all: true });
+            return waitForLamp(server, expected, 20_000);
         };
 
         const lit = await flipUntil('minecraft:lit_redstone_lamp');
