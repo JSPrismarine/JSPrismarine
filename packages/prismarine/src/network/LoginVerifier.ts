@@ -67,6 +67,7 @@ export class MojangKeys implements LoginKeySource {
         private readonly now: () => number = Date.now
     ) {}
 
+    /** The published key for a token's `kid`, fetching the set when it is stale or the id is new. */
     public async keyFor(kid: string): Promise<KeyObject | undefined> {
         const stale = this.now() - this.fetchedAt > KEY_LIFETIME_MS;
         if (stale || (!this.keys.has(kid) && this.now() - this.fetchedAt > REFETCH_INTERVAL_MS)) await this.refresh();
