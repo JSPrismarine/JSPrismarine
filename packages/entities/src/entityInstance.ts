@@ -48,6 +48,26 @@ import type { TriggerComponentName } from './triggers';
 import { isTriggerParams } from './triggers';
 
 /**
+ * Keeps the tuple materialized across the generic hook call; scriptc mislowers
+ * direct forwarding here.
+ */
+const dispatchEntityHook = <K extends keyof EntityHooks & string>(
+    table: HookTable<EntityHooks>,
+    hook: K,
+    args: Parameters<EntityHooks[K]>
+): void => table.dispatch(hook, ...args);
+
+/**
+ * Keeps the tuple materialized across the generic hook call; scriptc mislowers
+ * direct forwarding here.
+ */
+const dispatchEntityHookFirst = <K extends keyof EntityHooks & string>(
+    table: HookTable<EntityHooks>,
+    hook: K,
+    args: Parameters<EntityHooks[K]>
+): ReturnType<EntityHooks[K]> | undefined => table.dispatchFirst(hook, ...args);
+
+/**
  * The third content layer for entities: one live entity, holding its active
  * components, its attributes, its properties, its Molang variables, its goal
  * scheduler and the events waiting for its next tick.
@@ -388,7 +408,7 @@ export class EntityInstance extends Instance<EntityHooks, EntityState, EntityTyp
 
     /** Dispatches through the active component set rather than the type's base components. */
     public override dispatch<K extends keyof EntityHooks & string>(hook: K, ...args: Parameters<EntityHooks[K]>): void {
-        this.table.dispatch(hook, ...args);
+        dispatchEntityHook(this.table, hook, args);
     }
 
     /** Dispatches through the active component set until one handler answers. */
@@ -396,7 +416,7 @@ export class EntityInstance extends Instance<EntityHooks, EntityState, EntityTyp
         hook: K,
         ...args: Parameters<EntityHooks[K]>
     ): ReturnType<EntityHooks[K]> | undefined {
-        return this.table.dispatchFirst(hook, ...args);
+        return dispatchEntityHookFirst(this.table, hook, args);
     }
 
     /**
