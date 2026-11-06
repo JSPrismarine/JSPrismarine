@@ -9,6 +9,7 @@ import ClientCacheBlobStatusHandler from './handler/ClientCacheBlobStatusHandler
 import ClientCacheStatusHandler from './handler/ClientCacheStatusHandler';
 import ClientCameraAimAssistHandler from './handler/ClientCameraAimAssistHandler';
 import ClientMovementPredictionSyncHandler from './handler/ClientMovementPredictionSyncHandler';
+import ClientToServerHandshakeHandler from './handler/ClientToServerHandshakeHandler';
 import CommandBlockUpdateHandler from './handler/CommandBlockUpdateHandler';
 import CommandRequestHandler from './handler/CommandRequestHandler';
 import ContainerCloseHandler from './handler/ContainerCloseHandler';
@@ -82,6 +83,7 @@ export {
     ClientCacheStatusHandler,
     ClientCameraAimAssistHandler,
     ClientMovementPredictionSyncHandler,
+    ClientToServerHandshakeHandler,
     CommandBlockUpdateHandler,
     CommandRequestHandler,
     ContainerCloseHandler,

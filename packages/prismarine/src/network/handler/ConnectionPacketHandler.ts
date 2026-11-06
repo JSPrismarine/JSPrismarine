@@ -8,7 +8,7 @@ import type PacketHandler from './PacketHandler';
  * Handles a packet that arrives before the connection has a player session.
  *
  * Such a handler receives the raw `ClientConnection` instead of a `PlayerSession`, and its
- * {@link phases} name only phases in which no session exists yet - `handshake` and `login` -
+ * {@link phases} name only phases in which no session exists yet - `handshake`, `login` and `encryption` -
  * which is how {@link takesConnection} tells the two handler kinds apart at runtime.
  */
 export default interface ConnectionPacketHandler<T extends NetworkPacket<unknown>> {
@@ -28,5 +28,5 @@ export default interface ConnectionPacketHandler<T extends NetworkPacket<unknown
 export const takesConnection = (
     handler: PacketHandler<any> | ConnectionPacketHandler<any>
 ): handler is ConnectionPacketHandler<any> => {
-    return handler.phases.every((phase) => phase === 'handshake' || phase === 'login');
+    return handler.phases.every((phase) => phase === 'handshake' || phase === 'login' || phase === 'encryption');
 };

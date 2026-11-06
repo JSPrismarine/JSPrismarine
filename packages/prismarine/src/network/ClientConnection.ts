@@ -26,6 +26,13 @@ export default class ClientConnection extends MinecraftSession {
      */
     public phase: SessionPhase = 'handshake';
 
+    /**
+     * What remains of the login once the client has answered the encryption handshake.
+     * Set by `LoginHandler` when it sends `ServerToClientHandshake`, and run once by
+     * `ClientToServerHandshakeHandler`.
+     */
+    public resumeLogin: (() => Promise<void>) | null = null;
+
     public constructor(
         private readonly transportConnection: RakNetTransportConnection,
         logger: Logger,

@@ -1,7 +1,7 @@
 import type { Logger } from '@jsprismarine/logger';
 import type { InetAddress } from '@jsprismarine/raknet';
 import type { EventEmitter } from '../events/EventEmitter';
-import { PacketCompressionAlgorithm } from '@jsprismarine/minecraft';
+import { DisconnectReason, PacketCompressionAlgorithm } from '@jsprismarine/minecraft';
 import { BatchCodec } from '@jsprismarine/protocol';
 import RaknetDisconnectEvent from '../events/raknet/RaknetDisconnectEvent';
 import type Server from '../Server';
@@ -245,7 +245,23 @@ export default class NetworkDispatcher<C extends TransportConnection> {
     }
 
     /** Inflates one frame into the encoded packets batched inside it. */
-    private async splitBatch(payload: Buffer, connection: ClientConnection): Promise<readonly Buffer[]> {
+    private async splitBatch(frame: Buffer, connection: ClientConnection): Promise<readonly Buffer[]> {
+        let payload: Buffer;
+        try {
+            // First and synchronous: the keystream is continuous, so frames must be decrypted in
+            // arrival order, which the per-connection frame queue guarantees up to here.
+            payload = connection.decryptFrame(frame);
+        } catch (error: unknown) {
+            // An altered, dropped or replayed frame leaves the keystream unusable for every frame
+            // after it, so the connection ends rather than limping on with garbage.
+            this.logger.warn(
+                `Closing a connection over an invalid encrypted frame: ${error instanceof Error ? error.message : String(error)}`,
+                'NetworkDispatcher/splitBatch'
+            );
+            void connection.disconnect('Invalid encrypted packet', false, DisconnectReason.UNEXPECTED_PACKET);
+            return [];
+        }
+
         const batchCodec = connection.hasCompression ? this.compressedBatchCodec : this.uncompressedBatchCodec;
         return batchCodec.decodeAsync(payload);
     }

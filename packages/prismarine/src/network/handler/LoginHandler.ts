@@ -1,5 +1,7 @@
 import { DisconnectReason } from '@jsprismarine/minecraft';
 import { PlayStatus, PlayStatusPacket } from '@jsprismarine/protocol';
+import ServerToClientHandshakePacket from '@jsprismarine/protocol/packet/ServerToClientHandshakePacket';
+import { sessionEncryption } from '../SessionEncryption';
 import Player from '../../Player';
 import type Server from '../../Server';
 import UUID from '@jsprismarine/protocol/wire/structures/UUID';
@@ -46,8 +48,8 @@ export default class LoginHandler implements ConnectionPacketHandler<LoginPacket
      * Everything else is a `Disconnect` whose `DisconnectReason` names the cause on the
      * client's disconnect screen, with the message shown.
      *
-     * Known gap: the server never sends `ServerToClientHandshake`, so sessions stay in
-     * plaintext. A client accepts that when no handshake arrives.
+     * A login that names an identity key is answered with `ServerToClientHandshake` and
+     * finishes in {@link LoginHandler.admit} once the client replies encrypted.
      */
     public async handle(packet: LoginPacket, server: Server, connection: ClientConnection): Promise<void> {
         const login = packet.getPacketData();
@@ -106,6 +108,50 @@ export default class LoginHandler implements ConnectionPacketHandler<LoginPacket
             return;
         }
 
+        // A login that names an identity key is answered with the encryption handshake, and the rest
+        // of it waits for the client's encrypted reply. One that names none stays in plaintext.
+        if (identity.identityPublicKey && (await LoginHandler.beginEncryption(identity, login, server, connection))) {
+            return;
+        }
+
+        await LoginHandler.admit(identity, server, connection);
+    }
+
+    /**
+     * Sends `ServerToClientHandshake` and turns encryption on, leaving the login to finish when
+     * the client answers.
+     *
+     * The key comes from the identity key the login chain names. That key is only as trustworthy
+     * as the chain, which this server does not verify yet, so the session is protected from
+     * somebody watching the wire and not from somebody rewriting the login.
+     * @returns Whether the handshake is under way; false means the login was refused.
+     */
+    private static async beginEncryption(
+        identity: LoginIdentity,
+        login: NonNullable<ReturnType<LoginPacket['getPacketData']>>,
+        server: Server,
+        connection: ClientConnection
+    ): Promise<boolean> {
+        let handshake: ReturnType<ReturnType<typeof sessionEncryption>['begin']>;
+        try {
+            handshake = sessionEncryption().begin(identity.identityPublicKey!);
+        } catch (error: unknown) {
+            LoginHandler.reportRefusal(login.protocolVersion, identity, server, 'unusable identity key');
+            server.getLogger().debug(String(error), 'LoginHandler/beginEncryption');
+            await connection.disconnect('Invalid identity!', false, DisconnectReason.INVALID_PLAYER);
+            return true;
+        }
+
+        connection.resumeLogin = () => LoginHandler.admit(identity, server, connection);
+        connection.phase = 'encryption';
+        // The last frame in the clear: the client turns encryption on when it reads this.
+        await connection.sendDataPacket(new ServerToClientHandshakePacket({ jwt: handshake.jwt }), true);
+        connection.startEncryption(handshake.codec);
+        return true;
+    }
+
+    /** The part of a login after the client is known and, when it can be, the session encrypted. */
+    private static async admit(identity: LoginIdentity, server: Server, connection: ClientConnection): Promise<void> {
         // Resolved here because this is where a world is first available and awaiting is
         // allowed. An entity has to be given somewhere to be, so there is no longer a moment
         // where one exists at the origin waiting to be told where it really is.

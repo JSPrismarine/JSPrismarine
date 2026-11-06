@@ -3,7 +3,7 @@ import { PacketCompressionAlgorithm } from '@jsprismarine/minecraft';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import { CompressionThreshold } from '@jsprismarine/protocol';
 import HandshakeCodec from './codec/HandshakeCodec';
-import type { ProtocolCodec } from '@jsprismarine/protocol';
+import type { EncryptionCodec, ProtocolCodec } from '@jsprismarine/protocol';
 import type { TransportConnection } from './transport/Transport';
 import type { encodePacketBatch } from './encodePacketBatch';
 import {
@@ -85,9 +85,10 @@ const sameBatchOptions = (left: PacketBatchOptions, right: PacketBatchOptions): 
  * Whether a batch is compressed is the caller's decision, taken from the connection's
  * negotiated state. `RequestNetworkSettingsHandler` sends `NetworkSettings` uncompressed
  * and flips `ClientConnection.hasCompression` at the same time, so the next packet in either
- * direction is the first one with an algorithm prefix. Nothing is encrypted: the server never
- * sends `ServerToClientHandshake`, and a client accepts a plaintext session when no handshake
- * arrives - and the transport's own `capabilities.encrypted` says whether the wire covers it.
+ * direction is the first one with an algorithm prefix. Encryption starts with
+ * {@link MinecraftSession.startEncryption}, after the login handler has sent
+ * `ServerToClientHandshake`; a login that names no identity key stays plaintext, and the
+ * transport's own `capabilities.encrypted` says whether the wire covers it.
  */
 export default class MinecraftSession {
     /**
@@ -105,6 +106,9 @@ export default class MinecraftSession {
     public compressionThreshold: number = CompressionThreshold.COMPRESS_EVERYTHING;
 
     protected readonly connection: TransportConnection;
+
+    /** Set once the encryption handshake has been sent; every frame in either direction goes through it. */
+    private encryption: EncryptionCodec | undefined;
 
     /**
      * Tail of the outbound chain, and how many asynchronous sends have not framed yet.
@@ -375,7 +379,32 @@ export default class MinecraftSession {
     }
 
     private frame(content: Buffer, direct: boolean): void {
-        this.connection.sendFrame(content, direct);
+        this.connection.sendFrame(this.encryption?.encrypt(content) ?? content, direct);
+    }
+
+    /**
+     * Encrypts every frame framed from now on, and expects the same of every frame received.
+     *
+     * Call it once the `ServerToClientHandshake` has been framed: that packet is the last one
+     * the client reads in the clear. The stream is continuous, so a frame framed before this
+     * call must not be sent after it.
+     * @param codec - The codec both ends derived their key for.
+     */
+    public startEncryption(codec: EncryptionCodec): void {
+        this.encryption = codec;
+    }
+
+    /** Whether frames are encrypted in both directions. */
+    public get isEncrypted(): boolean {
+        return this.encryption !== undefined;
+    }
+
+    /**
+     * The frame a client sent, decrypted when the session is encrypted.
+     * @throws when the checksum disagrees, which means the frame was altered, dropped or replayed.
+     */
+    public decryptFrame(frame: Buffer): Buffer {
+        return this.encryption?.decrypt(frame) ?? frame;
     }
 
     /** Reads the tick after queued work finishes, at the same boundary where the frame is sent. */

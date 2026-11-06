@@ -1,3 +1,4 @@
+import { DisconnectReason } from '@jsprismarine/minecraft';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { Logger } from '@jsprismarine/logger';
@@ -182,6 +183,7 @@ const makeDispatcher = (options?: {
                 hasCompression: options?.compressed ?? false,
                 codec: options?.codec ?? Codec2193,
                 phase: 'handshake',
+                decryptFrame: (frame) => frame,
                 getPlayerSession: () => null,
                 closePlayerSession: async () => {},
                 setOutboundPacketRecorder: (recorder, connectionId, getTick) =>
@@ -249,6 +251,28 @@ describe('network', () => {
             expect(lines.some(({ level, message: m }) => level === 'warn' && m.includes("isn't implemented"))).toBe(
                 true
             );
+        });
+
+        it('disconnects a connection whose encrypted frame fails its checksum, and dispatches nothing', async () => {
+            const { transport, lines, built } = makeDispatcher();
+            await transport.emitConnect(fakeConnection('a:1').connection);
+            const disconnect = vi.fn(async () => {});
+            built[0]!.decryptFrame = () => {
+                throw new Error('Checksum mismatch on batch 0');
+            };
+            built[0]!.disconnect = disconnect;
+
+            await transport.emitFrame(frameOf(message('tampered')), address('a:1'));
+
+            expect(disconnect).toHaveBeenCalledWith(
+                'Invalid encrypted packet',
+                false,
+                DisconnectReason.UNEXPECTED_PACKET
+            );
+            expect(lines.some(({ level, message: m }) => level === 'warn' && m.includes('Checksum mismatch'))).toBe(
+                true
+            );
+            expect(lines.some(({ message: m }) => m.includes("isn't implemented"))).toBe(false);
         });
 
         it('rejects a frame from a connection the registry no longer holds', async () => {

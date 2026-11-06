@@ -2,6 +2,7 @@ import type { Logger } from '@jsprismarine/logger';
 import { DisconnectReason } from '@jsprismarine/minecraft';
 import { Vector3 } from '@jsprismarine/math';
 import type { InetAddress, RakNetSession } from '@jsprismarine/raknet';
+import { generateKeyPairSync } from 'node:crypto';
 import { assert, describe, expect, it, vi } from 'vitest';
 
 import type Player from '../../Player';
@@ -20,6 +21,10 @@ import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import LoginPacket from '@jsprismarine/protocol/packet/LoginPacket';
 import { PlayStatus, PlayStatusPacket } from '@jsprismarine/protocol';
 import ResourcePacksInfoPacket from '@jsprismarine/protocol/packet/ResourcePacksInfoPacket';
+import ServerToClientHandshakePacket from '@jsprismarine/protocol/packet/ServerToClientHandshakePacket';
+import type { EncryptionCodec } from '@jsprismarine/protocol';
+import type ClientToServerHandshakePacket from '@jsprismarine/protocol/packet/ClientToServerHandshakePacket';
+import ClientToServerHandshakeHandler from './ClientToServerHandshakeHandler';
 import LoginHandler from './LoginHandler';
 import { testContent } from '../../testing/entityServer';
 import { fakeLevel } from '../../testing/level';
@@ -33,7 +38,8 @@ const jwt = (claims: Record<string, unknown>): string =>
 const loginPacket = (
     displayName = 'runner',
     identity: string | null = IDENTITY,
-    protocolVersion = Codec2193.protocolVersion
+    protocolVersion = Codec2193.protocolVersion,
+    cpk?: string
 ): LoginPacket => {
     const clientData: Record<string, unknown> = {
         DeviceId: '00000000-0000-0000-0000-000000000000',
@@ -71,7 +77,7 @@ const loginPacket = (
 
     return new LoginPacket({
         protocolVersion,
-        chainData: JSON.stringify({ chain: [] }),
+        chainData: JSON.stringify({ chain: cpk === undefined ? [] : [jwt({ identityPublicKey: cpk })] }),
         clientData: jwt(clientData)
     });
 };
@@ -185,6 +191,86 @@ describe('network', () => {
                 await new LoginHandler().handle(pk, server, quiet);
 
                 expect(sent).toEqual(['PlayStatusPacket', 'ResourcePacksInfoPacket']);
+            });
+
+            describe('encryption handshake', () => {
+                const identityKey = generateKeyPairSync('ec', { namedCurve: 'secp384r1' })
+                    .publicKey.export({ type: 'spki', format: 'der' })
+                    .toString('base64');
+
+                const encrypting = () => {
+                    const sent: string[] = [];
+                    const started: EncryptionCodec[] = [];
+                    const stubbed = stub<ClientConnection>({
+                        codec: Codec2193,
+                        phase: 'login',
+                        resumeLogin: null,
+                        getRakNetSession: () =>
+                            stub<RakNetSession>({ getAddress: () => stub<InetAddress>({ toToken: () => 'token' }) }),
+                        sendDataPacket: async (packet) => void sent.push(packet.constructor.name),
+                        startEncryption: (codec) => void started.push(codec),
+                        attachPlayerSession: vi.fn(),
+                        closePlayerSession: async () => {},
+                        disconnect: vi.fn(async () => {})
+                    });
+                    return { connection: stubbed, sent, started };
+                };
+
+                it('answers a login that names an identity key with ServerToClientHandshake and waits', async () => {
+                    const { connection: held, sent, started } = encrypting();
+
+                    await new LoginHandler().handle(
+                        loginPacket('runner', IDENTITY, undefined, identityKey),
+                        server,
+                        held
+                    );
+
+                    expect(sent).toEqual([ServerToClientHandshakePacket.name]);
+                    expect(started).toHaveLength(1);
+                    expect(held.phase).toBe('encryption');
+                    expect(held.attachPlayerSession).not.toHaveBeenCalled();
+                });
+
+                it('finishes the login when the client answers the handshake', async () => {
+                    const { connection: held, sent } = encrypting();
+                    await new LoginHandler().handle(
+                        loginPacket('runner', IDENTITY, undefined, identityKey),
+                        server,
+                        held
+                    );
+
+                    await new ClientToServerHandshakeHandler().handle(
+                        stub<ClientToServerHandshakePacket>({}),
+                        server,
+                        held
+                    );
+
+                    expect(held.attachPlayerSession).toHaveBeenCalledOnce();
+                    expect(sent).toEqual([
+                        ServerToClientHandshakePacket.name,
+                        'PlayStatusPacket',
+                        'ResourcePacksInfoPacket'
+                    ]);
+                    expect(held.resumeLogin).toBeNull();
+                });
+
+                it('refuses a login whose identity key is not usable', async () => {
+                    const { connection: held, sent, started } = encrypting();
+
+                    await new LoginHandler().handle(
+                        loginPacket('runner', IDENTITY, undefined, 'bm90IGEga2V5'),
+                        server,
+                        held
+                    );
+
+                    expect(sent).toEqual([]);
+                    expect(started).toEqual([]);
+                    expect(held.disconnect).toHaveBeenCalledWith(
+                        'Invalid identity!',
+                        false,
+                        DisconnectReason.INVALID_PLAYER
+                    );
+                });
             });
 
             it('sends the ResourcePacksInfo a server with no packs sends', async () => {
