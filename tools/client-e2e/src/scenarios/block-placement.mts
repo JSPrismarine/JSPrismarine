@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 
 import type { Scenario } from '../scenario.mts';
-import { sleep, vec3 } from '../scenario.mts';
+import { sleep, vec3, waitTicks } from '../scenario.mts';
 
 type Context = Parameters<Scenario['run']>[0];
 
@@ -39,13 +39,13 @@ export const blockPlacement: Scenario = {
         /** Right clicks with `slot` selected until `block` stands on the target, since the first click after a reset can be dropped. */
         const placeUntil = async (slot: number, block: string): Promise<string> => {
             await client.input({ hotbar: slot });
-            await sleep(300);
+            await waitTicks(server, 6);
             let reply = '';
             for (let attempt = 0; attempt < 3; attempt += 1) {
                 await client.input({ press: ['MouseRight'], press_frames: 1 });
                 await sleep(100);
                 await client.input({ release: ['MouseRight'] });
-                await sleep(400);
+                await waitTicks(server, 8);
                 reply = await blockAt(server, FIXTURE_X, 65, 2, block);
                 if (/Found the block at/.test(reply)) break;
             }
@@ -58,9 +58,9 @@ export const blockPlacement: Scenario = {
         // A click that auto-repeats leaves a second block against the first; clear both so the
         // next ray lands on the stone again.
         await client.input({ release_all: true });
-        await sleep(500);
+        await waitTicks(server, 10);
         server.command(`fill ${FIXTURE_X} 65 1 ${FIXTURE_X} 65 2 minecraft:air`);
-        await sleep(300);
+        await waitTicks(server, 6);
         const dirt = await placeUntil(1, 'minecraft:dirt');
         assert.match(dirt, /Found the block at/, `hotbar slot 1 should have placed dirt: ${dirt}`);
 

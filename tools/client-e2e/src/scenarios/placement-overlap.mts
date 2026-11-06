@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 
 import type { Scenario } from '../scenario.mts';
-import { lookTo, sleep, vec3 } from '../scenario.mts';
+import { lookTo, sleep, vec3, waitTicks } from '../scenario.mts';
 
 const BLOCK_REPLY = /Found the block at|The block is |That chunk is not loaded/;
 const PLACEMENT_OFFSET_X = 32;
@@ -21,11 +21,12 @@ const blockAt = async (
 };
 
 /** Sends one right click and releases the button before the next action. */
-const rightClick = async (client: Parameters<Scenario['run']>[0]['client']): Promise<void> => {
+const rightClick = async (context: Parameters<Scenario['run']>[0]): Promise<void> => {
+    const { client, server } = context;
     await client.input({ press: ['MouseRight'], press_frames: 1 });
     await sleep(100);
     await client.input({ release: ['MouseRight'] });
-    await sleep(300);
+    await waitTicks(server, 6);
 };
 
 /** Waits until the client has received the server teleport. */
@@ -45,7 +46,8 @@ const waitForFeet = async (
 export const placementOverlap: Scenario = {
     name: 'placement-overlap',
     description: 'the server refuses a colliding block placed in the player body',
-    run: async ({ client, server, playerName, log }) => {
+    run: async (context) => {
+        const { client, server, playerName, log } = context;
         await client.waitFor({ chunks_loaded: { radius: 2 } }, 30_000);
         server.command(`setblock ${PLACEMENT_OFFSET_X} 63 0 minecraft:stone`);
         server.command(`setblock ${PLACEMENT_OFFSET_X} 64 2 minecraft:stone`);
@@ -57,7 +59,7 @@ export const placementOverlap: Scenario = {
         await waitForFeet(client, [PLACEMENT_OFFSET_X + 0.5, 64, 0.5]);
 
         await lookTo(client, 0, 21);
-        await rightClick(client);
+        await rightClick(context);
         const control = await blockAt(server, PLACEMENT_OFFSET_X, 65, 2, 'minecraft:dirt');
         assert.match(control, /Found the block at/, `ordinary client placement reached the server: ${control}`);
 
@@ -66,19 +68,19 @@ export const placementOverlap: Scenario = {
         // different slot from the one the control click emptied and select that slot only now, so
         // a late stray click lands on the empty slot instead of spending the dirt.
         await client.input({ release_all: true });
-        await sleep(500);
+        await waitTicks(server, 10);
         const rearmed = server.waitForLine(/placement-overlap-rearmed/, 10_000);
         server.command(`replaceitem entity ${playerName} slot.hotbar 1 minecraft:dirt 1`);
         server.command('say placement-overlap-rearmed');
         await rearmed;
         await sleep(200);
         await client.input({ hotbar: 2 });
-        await sleep(300);
+        await waitTicks(server, 6);
         await lookTo(client, 0, 85);
-        await rightClick(client);
+        await rightClick(context);
         // Give the server time to answer the click, so the check below sees its verdict and
         // not the world from before it arrived.
-        await sleep(1_000);
+        await waitTicks(server, 20);
         const overlap = await blockAt(server, PLACEMENT_OFFSET_X, 64, 0, 'minecraft:air');
         assert.match(overlap, /Found the block at/, `overlapping placement left the target air: ${overlap}`);
 

@@ -9,9 +9,15 @@ export const movement: Scenario = {
     run: async ({ client, log }) => {
         const before = vec3(await client.state(), 'feet');
         await client.input({ move: { forward: 1 } });
-        await sleep(3000);
+        // Until the distance is covered rather than for a fixed three seconds: a loaded client
+        // simulates fewer frames in them, and walking is what this scenario is about, not its speed.
+        const deadline = Date.now() + 15_000;
+        let after = before;
+        while (Math.hypot(after[0] - before[0], after[2] - before[2]) <= 1 && Date.now() < deadline) {
+            await sleep(250);
+            after = vec3(await client.state(), 'feet');
+        }
         await client.input({ move: { forward: 0 }, release_all: true });
-        const after = vec3(await client.state(), 'feet');
 
         const traveled = Math.hypot(after[0] - before[0], after[2] - before[2]);
         assert.ok(

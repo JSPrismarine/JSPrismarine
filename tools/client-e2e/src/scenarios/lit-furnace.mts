@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import path from 'node:path';
 
-import { sleep, vec3 } from '../scenario.mts';
+import { sleep, vec3, waitTicks } from '../scenario.mts';
 import type { Scenario } from '../scenario.mts';
 
 /** Sends a left click and lets Cinnabar release the button before the next click. */
@@ -57,7 +57,7 @@ export const litFurnace: Scenario = {
             const reply = await blockReply(server, 'lit_furnace');
             if (/Found the block at/.test(reply)) break;
             assert.ok(Date.now() < litDeadline, `the furnace never lit itself: ${reply}`);
-            await sleep(500);
+            await waitTicks(server, 10);
         }
 
         await client.waitFor({ chunks_loaded: { radius: 2 } }, 30_000);
@@ -72,7 +72,7 @@ export const litFurnace: Scenario = {
         // The fire and smoke are the client's own, drawn for the block it believes is there,
         // so the screenshot is the particle evidence and the screen is the inventory check.
         await client.input({ look: { yaw: 0, pitch: 29, frames: 0 } });
-        await sleep(500);
+        await waitTicks(server, 10);
         await client.screenshot(path.join(artifacts, 'lit-furnace.png'));
 
         await client.input({ press: ['MouseRight'], press_frames: 3 });
@@ -85,7 +85,7 @@ export const litFurnace: Scenario = {
 
         // Two frames a few seconds apart: the arrow and the flame are drawn from the cook and
         // burn properties, so a screen that is never told them renders the same pixels twice.
-        await sleep(3_000);
+        await waitTicks(server, 60);
         await client.screenshot(path.join(artifacts, 'lit-furnace-progress.png'));
 
         // The screen showing what the block holds is the inventory check: pick the ore out of
@@ -93,10 +93,10 @@ export const litFurnace: Scenario = {
         await click(client, [732, 241]);
         await sleep(250);
         await click(client, [688, 498]);
-        await sleep(750);
+        await waitTicks(server, 15);
         await client.input({ press: ['Escape'] });
         await client.waitForScreenAbsent('Container', 5_000);
-        await sleep(500);
+        await waitTicks(server, 10);
 
         // A clean floor, so the drop the mining produces is the only item standing.
         const cleared = server.waitForLine(/Killed \d+ entities/, 10_000);
@@ -123,7 +123,7 @@ export const litFurnace: Scenario = {
         const pickupBy = Date.now() + 15_000;
         let furnaceDrop: string;
         for (;;) {
-            await sleep(500);
+            await waitTicks(server, 10);
             const pickedUp = server.waitForLine(/Removed \d+ items|Could not/, 10_000);
             server.command(`clear ${playerName} minecraft:furnace 64`);
             furnaceDrop = await pickedUp;

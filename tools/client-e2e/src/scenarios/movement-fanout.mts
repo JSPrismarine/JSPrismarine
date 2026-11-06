@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import type { CinnabarClient } from '../client.mts';
 import type { Scenario } from '../scenario.mts';
-import { sleep, vec3 } from '../scenario.mts';
+import { sleep, vec3, waitTicks } from '../scenario.mts';
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
     typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -30,10 +30,10 @@ const distance = (left: readonly [number, number, number], right: readonly [numb
 export const movementFanout: Scenario = {
     name: 'movement-fanout',
     description: "idle movement stays quiet and an observer sees a player's walk",
-    run: async ({ client, createClient, playerName, log }) => {
+    run: async ({ client, server, createClient, playerName, log }) => {
         const observer = await createClient('jsp-e2e-observer');
         const still = await waitForActor(observer, playerName);
-        await sleep(1500);
+        await waitTicks(server, 30);
         const stillAfterWait = await waitForActor(observer, playerName);
         assert.ok(
             distance(still, stillAfterWait) < 0.1,

@@ -77,6 +77,32 @@ export const advanceTicks = async (server: JspServer, ticks: number, timeoutMs =
     }
 };
 
+/**
+ * Waits until the world has run `ticks` more ticks.
+ *
+ * What a scenario means by "give the server a moment" is a number of ticks, not a number of
+ * milliseconds: a host that falls behind runs fewer of them in the same wall-clock time, and a
+ * fixed sleep then ends before the server has reacted. The client's own frames still pass in real
+ * time, so a wait that is the client's to make stays a {@link sleep}.
+ *
+ * @param server - The server whose clock counts.
+ * @param ticks - How many ticks to let pass.
+ * @param timeoutMs - Wall-clock budget; a server that never gets there fails the scenario.
+ */
+export const waitTicks = async (server: JspServer, ticks: number, timeoutMs = 120_000): Promise<void> => {
+    const start = await gameTime(server);
+    if (!Number.isFinite(start)) throw new Error('the server did not answer `time query gametime`');
+
+    const deadline = Date.now() + timeoutMs;
+    for (;;) {
+        const now = await gameTime(server);
+        if (now - start >= ticks) return;
+        if (Date.now() >= deadline)
+            throw new Error(`the world ran ${now - start} of ${ticks} ticks in ${timeoutMs} ms`);
+        await sleep(50);
+    }
+};
+
 /** Reads `[x, y, z]` out of a state snapshot key such as `feet` or `server_position`. */
 export const vec3 = (state: Record<string, unknown>, key: string): [number, number, number] => {
     const value = state[key];

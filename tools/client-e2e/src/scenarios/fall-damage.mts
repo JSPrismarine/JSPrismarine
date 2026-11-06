@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 
 import type { Scenario } from '../scenario.mts';
-import { sleep, vec3 } from '../scenario.mts';
+import { sleep, vec3, waitTicks } from '../scenario.mts';
 
 type Context = Parameters<Scenario['run']>[0];
 
@@ -32,15 +32,15 @@ export const fallDamage: Scenario = {
     name: 'fall-damage',
     description: 'an eleven block fall costs health while a three block drop costs none',
     run: async (context) => {
-        const { client, log } = context;
+        const { client, server, log } = context;
         const start = await health(client);
 
         await dropFrom(context, 67);
-        await sleep(500);
+        await waitTicks(server, 10);
         assert.equal(await health(client), start, 'a three block drop should not hurt');
 
         await dropFrom(context, 75);
-        await sleep(500);
+        await waitTicks(server, 10);
         const hurt = await health(client);
         assert.ok(hurt < start - 4, `an eleven block fall left health at ${hurt} from ${start}`);
 

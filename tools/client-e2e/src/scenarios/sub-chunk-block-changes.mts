@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 
 import type { Scenario } from '../scenario.mts';
-import { sleep, testForBlock, vec3 } from '../scenario.mts';
+import { sleep, testForBlock, vec3, waitTicks } from '../scenario.mts';
 
 /** Counts item actors visible to the client. */
 const itemActorCount = (state: Record<string, unknown>): number => {
@@ -30,7 +30,7 @@ export const subChunkBlockChanges: Scenario = {
         // arrive, or the client falls through ground it has not been sent yet and the fill lands
         // in a chunk it has not loaded.
         server.command(`teleport ${playerName} ${standX} ${y + 1} ${standZ}`);
-        await sleep(2_000);
+        await waitTicks(server, 40);
         await client.waitFor({ chunks_loaded: { radius: 2 } }, 120_000);
 
         // Something to stand on, then a wall in front of it. Each is one fill, so its blocks

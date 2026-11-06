@@ -10,11 +10,22 @@ export const jump: Scenario = {
     run: async ({ client, log }) => {
         const ground = vec3(await client.state(), 'feet')[1];
 
+        // Measured in the client's frames, not seconds: a loaded client draws fewer of them in 1.5 s,
+        // and a hold it lost at the start would otherwise read as a jump that never happened.
+        const frames = async (): Promise<number> => Number((await client.state()).frame_count);
         await client.input({ jump: true });
         let peak = ground;
-        const deadline = Date.now() + 1_500;
-        while (Date.now() < deadline) {
-            peak = Math.max(peak, vec3(await client.state(), 'feet')[1]);
+        const start = await frames();
+        const deadline = Date.now() + 30_000;
+        for (let reasserted = false; Date.now() < deadline;) {
+            const feet = vec3(await client.state(), 'feet')[1];
+            peak = Math.max(peak, feet);
+            const elapsed = (await frames()) - start;
+            if (elapsed >= 90) break;
+            if (!reasserted && elapsed >= 20 && peak - ground < 0.05) {
+                await client.input({ jump: true });
+                reasserted = true;
+            }
             await sleep(25);
         }
         await client.input({ jump: false, release_all: true });

@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 
 import type { Scenario } from '../scenario.mts';
-import { placeBlockAndWait, sleep, vec3 } from '../scenario.mts';
+import { placeBlockAndWait, sleep, vec3, waitTicks } from '../scenario.mts';
 
 type Context = Parameters<Scenario['run']>[0];
 
@@ -34,7 +34,7 @@ export const leverLamp: Scenario = {
         // The fixture is four chunks from the spawn, and `setblock` into a chunk the server has
         // not loaded is dropped. Stand there first so the chunks load, then build.
         server.command(`teleport ${playerName} ${FIXTURE_X + 0.5} 64 0.5`);
-        await sleep(2_000);
+        await waitTicks(server, 40);
         await client.waitFor({ chunks_loaded: { radius: 2 } }, 60_000);
         // A stone block two ahead with a lever on its player-facing side and a lamp on top.
         await placeBlockAndWait(server, { x: FIXTURE_X, y: 63, z: 0 }, 'minecraft:stone');
@@ -61,7 +61,7 @@ export const leverLamp: Scenario = {
             let reply = '';
             for (let attempt = 0; attempt < 2; attempt += 1) {
                 await client.input({ press: ['MouseRight'], press_frames: 1 });
-                await sleep(300);
+                await waitTicks(server, 6);
                 await client.input({ release_all: true });
                 reply = await waitForLamp(server, expected, 3_000);
                 if (/Found the block at/.test(reply)) break;

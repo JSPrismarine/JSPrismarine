@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 
 import type { Scenario } from '../scenario.mts';
-import { sleep, vec3 } from '../scenario.mts';
+import { vec3, waitTicks } from '../scenario.mts';
 
 export const teleport: Scenario = {
     name: 'teleport',
@@ -36,7 +36,7 @@ export const teleport: Scenario = {
                 Date.now() < deadline,
                 `client never arrived at ${target.join(', ')}; still at ${feet.join(', ')}`
             );
-            await sleep(500);
+            await waitTicks(server, 10);
         }
     }
 };

@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import path from 'node:path';
 
-import { lookTo, sleep, vec3 } from '../scenario.mts';
+import { advanceTicks, lookTo, sleep, vec3, waitTicks } from '../scenario.mts';
 import type { Scenario } from '../scenario.mts';
 
 /** Where the player stands; the tilled block is two south of it, on the flat world's surface. */
@@ -34,7 +34,7 @@ const waitForBlock = async (
         const reply = await blockReply(server, at, block);
         if (/Found the block at/.test(reply)) return reply;
         if (Date.now() > deadline) return reply;
-        await sleep(1_000);
+        await waitTicks(server, 20);
     }
 };
 
@@ -58,7 +58,7 @@ export const farmland: Scenario = {
         await lookTo(client, 0, 46);
         // The client keeps the slot an earlier scenario selected, so ask for the hoe's slot.
         await client.input({ hotbar: 1 });
-        await sleep(250);
+        await waitTicks(server, 5);
 
         await client.input({ press: ['MouseRight'], press_frames: 3 });
         let tilled = await waitForBlock(server, SOIL, 'minecraft:farmland', 3_000);
@@ -70,7 +70,7 @@ export const farmland: Scenario = {
         assert.match(tilled, /Found the block at/, `the hoe tilled the grass into farmland: ${tilled}`);
 
         server.command(`replaceitem entity ${playerName} slot.hotbar 0 minecraft:wheat_seeds 1`);
-        await sleep(500);
+        await waitTicks(server, 10);
         await client.input({ press: ['MouseRight'], press_frames: 3 });
         const planted = await waitForBlock(server, { ...SOIL, y: SOIL.y + 1 }, 'minecraft:wheat', 5_000);
         assert.match(planted, /Found the block at/, `the seeds planted wheat on the farmland: ${planted}`);
@@ -81,7 +81,10 @@ export const farmland: Scenario = {
         server.command('gamerule random_tick_speed 100');
         try {
             server.command(`setblock ${SOIL.x + 3} ${SOIL.y} ${SOIL.z} minecraft:water`);
-            const moist = await waitForBlock(server, SOIL, 'minecraft:farmland ["moisturized_amount"=7]', 60_000);
+            // Ticks, not seconds: a starved host runs fewer of them in a minute, and the random tick
+            // this waits for is a matter of how many the world has had.
+            await advanceTicks(server, 400);
+            const moist = await waitForBlock(server, SOIL, 'minecraft:farmland ["moisturized_amount"=7]', 10_000);
             assert.match(moist, /Found the block at/, `water within four blocks moistened the farmland: ${moist}`);
         } finally {
             server.command('gamerule random_tick_speed 3');

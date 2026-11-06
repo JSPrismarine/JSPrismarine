@@ -256,6 +256,8 @@ export const startServer = async (
     const config = {
         port: port,
         'online-mode': false,
+        // Verbose, so the transactions and moves the server drops on purpose show in the evidence log.
+        'log-level': 'verbose',
         'packet-compression-algorithm': options.compressionAlgorithm ?? 'snappy',
         'use-raknet-worker': options.raknetWorker ?? false,
         'level-name': 'e2e',

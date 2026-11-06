@@ -255,6 +255,7 @@ const resetBetweenScenarios = async (
     await client.input({ look: { yaw: 0, pitch: 0, frames: 0 } });
     await client.waitFor('in_world', 30_000);
     await client.waitForScreenAbsent('Loading', 30_000);
+    await client.armInput();
 
     const deadline = Date.now() + 15_000;
     for (;;) {
@@ -268,6 +269,17 @@ const resetBetweenScenarios = async (
             );
         }
         await sleep(250);
+    }
+};
+
+/** Whether the client has fallen out of the world, back to a menu, as when the server drops it. */
+const clientLeftTheWorld = async (client: CinnabarClient): Promise<boolean> => {
+    try {
+        const state = await client.state();
+        const screens = Array.isArray(state.screens) ? state.screens : [];
+        return state.in_world !== true || screens.some((screen) => typeof screen === 'string' && /^Menu/.test(screen));
+    } catch {
+        return true;
     }
 };
 
@@ -298,13 +310,18 @@ const runSuite = async (suite: ScenarioSuite, index: number): Promise<ScenarioRe
         });
         const suiteServer = server;
         console.log(`${suite.name}: server listening on 127.0.0.1:${suiteServer.port}`);
-        client = await CinnabarClient.start(cinnabar.checkout, cinnabar.binaries.mcp);
-        await client.launch({
-            userRoot: path.join(suiteServer.dir, 'client-user-root'),
-            clientBinary: cinnabar.clientBinary,
-            displayName: playerName,
-            muteAudio: !values.record
-        });
+        /** Starts a client and launches it; joining is left to the caller. */
+        const launchClient = async (): Promise<CinnabarClient> => {
+            const launched = await CinnabarClient.start(cinnabar.checkout, cinnabar.binaries.mcp);
+            await launched.launch({
+                userRoot: path.join(suiteServer.dir, 'client-user-root'),
+                clientBinary: cinnabar.clientBinary,
+                displayName: playerName,
+                muteAudio: !values.record
+            });
+            return launched;
+        };
+        client = await launchClient();
 
         // A suite that boots the Java noise Overworld generates real terrain and runs the climate
         // spawn search before the first join, which took a minute on a developer machine and
@@ -349,6 +366,7 @@ const runSuite = async (suite: ScenarioSuite, index: number): Promise<ScenarioRe
         }
         await client.waitForScreenAbsent('Loading', joinBudgetMs);
         await joined;
+        await client.armInput();
         console.log(`${suite.name}: join ok`);
 
         for (const [scenarioIndex, scenario] of suite.scenarios.entries()) {
@@ -416,7 +434,23 @@ const runSuite = async (suite: ScenarioSuite, index: number): Promise<ScenarioRe
 
             if (scenarioIndex < suite.scenarios.length - 1) {
                 try {
-                    await resetBetweenScenarios(server, client);
+                    try {
+                        await resetBetweenScenarios(server, client);
+                    } catch (error) {
+                        // A client the server dropped under load is not a failure of the next
+                        // scenarios: bring a fresh one in and reset again. Any other reset failure
+                        // is still a failure.
+                        if (!(await clientLeftTheWorld(client))) throw error;
+                        console.warn(`${suite.name}: the client left the world (${String(error)}); rejoining`);
+                        await client.close().catch(() => {});
+                        client = await launchClient();
+                        const rejoined = suiteServer.waitForLine(new RegExp(`${playerName} joined the game`), 120_000);
+                        await client.connect(suiteServer.port);
+                        await client.waitFor('in_world', 120_000);
+                        await client.waitForScreenAbsent('Loading', 120_000);
+                        await rejoined;
+                        await resetBetweenScenarios(server, client);
+                    }
                 } catch (error) {
                     const note = `suite reset failed: ${error instanceof Error ? error.message : String(error)}`;
                     console.error(`${suite.name}: ${note}`);

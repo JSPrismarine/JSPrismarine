@@ -123,6 +123,42 @@ export class CinnabarClient {
         await this.call('input', args);
     }
 
+    /**
+     * Waits until the client has rendered `frames` more frames.
+     *
+     * Input is applied a frame at a time, so this is how long the client needs to have seen it,
+     * however slowly a loaded host renders: a fixed sleep is a different number of frames on every run.
+     */
+    async waitFrames(frames: number, timeoutMs = 60_000): Promise<void> {
+        const count = async (): Promise<number> => {
+            const { frame_count } = await this.state();
+            if (typeof frame_count !== 'number') throw new Error('state.frame_count is not a number');
+            return frame_count;
+        };
+        const target = (await count()) + frames;
+        const deadline = Date.now() + timeoutMs;
+        while ((await count()) < target) {
+            if (Date.now() > deadline) throw new Error(`the client did not render ${frames} frames in ${timeoutMs} ms`);
+            await new Promise((resolve) => setTimeout(resolve, 20));
+        }
+    }
+
+    /**
+     * Gives the client gameplay input, which a loaded window can lose.
+     *
+     * The first click after a focus change is the one that captures the pointer, and it does nothing
+     * else, so a scenario's own first click was the one that went nowhere. Tap once at the sky with
+     * an empty hand, where it is harmless, and wait for the client to have drawn the frames after it.
+     */
+    async armInput(): Promise<void> {
+        await this.input({ release_all: true });
+        await this.input({ look: { yaw: 0, pitch: -60, frames: 0 } });
+        await this.input({ press: ['MouseLeft'], press_frames: 3 });
+        await this.waitFrames(15);
+        await this.input({ release_all: true });
+        await this.input({ look: { yaw: 0, pitch: 0, frames: 0 } });
+    }
+
     /** Sends a chat line as the player; a leading `/` runs a command. */
     async chat(text: string): Promise<void> {
         await this.call('chat', { text });

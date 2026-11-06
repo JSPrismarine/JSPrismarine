@@ -83,9 +83,18 @@ export const naturalSpawnUnderCanopy: Scenario = {
 
         // The cow may have spawned 64 blocks out, beyond what the client has been sent, so
         // bring one over to where the player can see it.
-        server.command(`teleport @e[type=cow,limit=1] 0.5 ${SURFACE_Y + 1} 4.5`);
-
-        await client.waitFor({ entity: { matches: 'cow', radius: 80 } }, 60_000);
+        // A cow wanders, and one that has wandered off the player's screen is not there to be seen;
+        // keep putting one beside the player until the client reports it.
+        const seeBy = Date.now() + 90_000;
+        for (;;) {
+            server.command(`teleport @e[type=cow,limit=1] 0.5 ${SURFACE_Y + 1} 4.5`);
+            try {
+                await client.waitFor({ entity: { matches: 'cow', radius: 80 } }, 10_000);
+                break;
+            } catch (error) {
+                if (Date.now() > seeBy) throw error;
+            }
+        }
         await client.screenshot(path.join(artifacts, 'natural-spawn-under-canopy.png'));
         log('a natural cow stood on the grass under the canopy, and the client saw one');
     }

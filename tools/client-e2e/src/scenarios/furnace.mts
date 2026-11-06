@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import path from 'node:path';
 
-import { sleep, vec3 } from '../scenario.mts';
+import { sleep, vec3, waitTicks } from '../scenario.mts';
 import type { Scenario } from '../scenario.mts';
 
 const BLOCK_REPLY = /Found the block at|The block is |That chunk is not loaded/;
@@ -76,11 +76,11 @@ export const furnace: Scenario = {
         await click(client, [646, 498]);
         await sleep(250);
         await click(client, [732, 317]);
-        await sleep(750);
+        await waitTicks(server, 15);
         await client.screenshot(path.join(artifacts, 'furnace-fuel-slot.png'));
         await client.input({ press: ['Escape'] });
         await client.waitForScreenAbsent('Container', 5_000);
-        await sleep(750);
+        await waitTicks(server, 15);
 
         const clearedCoal = server.waitForLine(/Removed \d+ items/, 10_000);
         server.command(`clear ${playerName} minecraft:coal 64`);

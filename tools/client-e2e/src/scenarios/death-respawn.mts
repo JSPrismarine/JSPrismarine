@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 
 import type { Scenario } from '../scenario.mts';
-import { sleep } from '../scenario.mts';
+import { sleep, waitTicks } from '../scenario.mts';
 
 /** Polls for a screen whose name contains `fragment`; returns its full name. */
 const screenContaining = async (
@@ -29,7 +29,7 @@ export const deathRespawn: Scenario = {
         const deathScreen = await screenContaining(client, 'Death');
 
         // The death screen ignores clicks for a moment after it opens.
-        await sleep(1_500);
+        await waitTicks(server, 30);
         await client.input({ pointer: [640, 510], press: ['MouseLeft'], press_frames: 3 });
         await client.input({ release_all: true });
         await client.waitForScreenAbsent(deathScreen, 15_000);

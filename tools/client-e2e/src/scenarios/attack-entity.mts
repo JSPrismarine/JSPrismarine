@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 
 import type { Scenario } from '../scenario.mts';
-import { sleep, vec3 } from '../scenario.mts';
+import { sleep, vec3, waitTicks } from '../scenario.mts';
 
 /** Counts actors of one type visible to the client. */
 const actorCount = (state: Record<string, unknown>, type: string): number => {
@@ -36,9 +36,9 @@ export const attackEntity: Scenario = {
         while (actorCount(await client.state(), 'minecraft:pig') > 0) {
             assert.ok(Date.now() < deadline, 'the pig survived every swing');
             server.command(`teleport @e[type=minecraft:pig] ${front}`);
-            await sleep(400);
+            await waitTicks(server, 8);
             await client.input({ press: ['MouseLeft'], press_frames: 1 });
-            await sleep(700);
+            await waitTicks(server, 14);
         }
         await client.input({ release_all: true });
 

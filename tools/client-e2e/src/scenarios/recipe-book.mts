@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import path from 'node:path';
 
-import { sleep, vec3 } from '../scenario.mts';
+import { sleep, vec3, waitTicks } from '../scenario.mts';
 import type { Scenario } from '../scenario.mts';
 
 /** Waits for a screen without racing the first click that captures gameplay input. */
@@ -49,16 +49,16 @@ export const recipeBook: Scenario = {
         await client.screenshot(path.join(artifacts, 'crafting-table-open.png'));
         await client.input({ pointer: [430, 248], press: ['MouseLeft'], press_frames: 3 });
         await client.input({ text: 'Oak Planks' });
-        await sleep(500);
+        await waitTicks(server, 10);
         await client.screenshot(path.join(artifacts, 'crafting-recipe-filtered.png'));
         await client.input({ pointer: [387, 287], hold: ['ShiftLeft'], press: ['MouseLeft'], press_frames: 3 });
         await sleep(200);
         await client.input({ release: ['ShiftLeft', 'MouseLeft'] });
-        await sleep(1_000);
+        await waitTicks(server, 20);
         await client.screenshot(path.join(artifacts, 'crafting-table-shift-click.png'));
         await client.input({ press: ['Escape'] });
         await client.waitForScreenAbsent('Container', 5_000);
-        await sleep(750);
+        await waitTicks(server, 15);
 
         const clearedTables = server.waitForLine(/Removed \d+ items/, 10_000);
         server.command(`clear ${playerName} minecraft:oak_planks 64`);

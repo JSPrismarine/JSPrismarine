@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 
 import type { Scenario } from '../scenario.mts';
-import { sleep, vec3 } from '../scenario.mts';
+import { sleep, vec3, waitTicks } from '../scenario.mts';
 
 /** Counts item actors visible to the client. */
 const itemActorCount = (state: Record<string, unknown>): number => {
@@ -36,11 +36,11 @@ export const edgeChunkBlockChange: Scenario = {
 
         // The client stands in chunk z=-1 and receives the update for chunk z=0.
         server.command('setblock -1 65 0 minecraft:dirt');
-        await sleep(500);
+        await waitTicks(server, 10);
         await client.input({ look: { yaw: 0, pitch: 0, frames: 0 } });
         const before = itemActorCount(await client.state());
         await client.input({ hold: ['key.attack'] });
-        await sleep(1_250);
+        await waitTicks(server, 25);
         await client.input({ release_all: true });
 
         let after = itemActorCount(await client.state());
