@@ -124,6 +124,7 @@ export const fakePlayer = ({ underwater = false, worlds: others = [] }: FakePlay
         getBlockState: async () => new BlockState(blockName),
         getChunk: async (x, z) => new Chunk(x, z),
         sendActorEvent: async (_entity, event) => void actorEvents.push(event),
+        sendStatusEffect: async () => {},
         sendActorSound: async (_entity, sound) => void actorSounds.push(sound),
         playNamedSoundAt: (_position, sound) => void namedSounds.push(sound),
         savePlayerData: async () => void roster.push('save'),

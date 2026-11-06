@@ -22,6 +22,7 @@ import { boxOf } from './data/facts';
 import { Metadata, MetadataFlag } from '@jsprismarine/protocol/wire/structures/Metadata';
 import type { ViewableEquipment } from './predicateView';
 import type { StatusEffect, StatusEffectChange, StatusEffectInput } from './StatusEffect';
+import { effectHealthChange, isInstantEffect } from './StatusEffectTick';
 import { PORTAL_COOLDOWN_TICKS, PORTAL_TRANSITION_TICKS, PortalContact } from './PortalContact';
 import type { PortalBlockRef } from '../world/portal/DimensionTravel';
 import { portalRuleOf } from '../world/portal/rules';
@@ -172,6 +173,8 @@ export class Entity {
 
     /** Active effects, shared with a data entity body when one owns this actor. */
     private readonly statusEffects = new Map<string, StatusEffect>();
+    /** Ticks this entity has had effects ticked, which times an effect that never expires. */
+    private statusEffectAge = 0;
 
     /**
      * Whether this entity is standing on something rather than being carried through the air.
@@ -511,7 +514,7 @@ export class Entity {
             } else if (!ready && contact.hasExpired()) this.portalContactState = undefined;
         }
 
-        this.tickStatusEffects();
+        await this.tickStatusEffects();
     }
 
     /**
@@ -1036,16 +1039,44 @@ export class Entity {
         return true;
     }
 
-    /** Counts down finite effects and tells clients when one expires. */
-    private tickStatusEffects(): void {
+    /**
+     * Applies the effects that act on the server, then counts finite ones down and tells clients
+     * when one expires.
+     *
+     * Speed, jump boost, night vision and the like are the client's to apply once it has been told
+     * of the effect; what lands here is what changes health, food and the damage taken. An instant
+     * effect acts on the first tick and is spent, and an effect with a duration of one tick still
+     * acts before it expires.
+     */
+    private async tickStatusEffects(): Promise<void> {
+        this.statusEffectAge++;
         for (const effect of this.getStatusEffects()) {
-            if (effect.durationTicks < 0) continue;
-            if (effect.durationTicks <= 1) {
+            const clock = effect.durationTicks < 0 ? this.statusEffectAge : effect.durationTicks;
+            await this.applyStatusEffectTick(effect, clock);
+
+            // Applying an effect can kill the holder, clear its effects or replace this one.
+            if (this.statusEffectMap().get(effect.id) !== effect) continue;
+            if (isInstantEffect(effect.id) || (effect.durationTicks >= 0 && effect.durationTicks <= 1)) {
                 this.removeStatusEffect(effect.id);
                 continue;
             }
+            if (effect.durationTicks < 0) continue;
             this.statusEffectMap().set(effect.id, { ...effect, durationTicks: effect.durationTicks - 1 });
         }
+    }
+
+    /**
+     * What one effect does this tick. Health effects are handled here; a subclass adds the ones
+     * that belong to it, such as a player's hunger, and calls up.
+     * @param effect - The effect as it stands, with its duration before this tick.
+     * @param clock - What its repeat interval counts; see {@link effectHealthChange}.
+     */
+    protected async applyStatusEffectTick(effect: StatusEffect, clock: number): Promise<void> {
+        const change = effectHealthChange(effect.id, effect.amplifier, clock, this.getHealth(), this.getMaxHealth());
+        if (change === undefined) return;
+
+        if (change.kind === 'heal') await this.heal(change.amount);
+        else await this.damage(change.amount, change.cause);
     }
 
     /** Announces one accepted effect change to the world's network sink. */

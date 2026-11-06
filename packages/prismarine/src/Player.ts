@@ -1,4 +1,5 @@
 import { Vector3 } from '@jsprismarine/math';
+import type { StatusEffect } from './entity/StatusEffect';
 import type { EntityPosition } from '@jsprismarine/entities';
 import { ActorEvent, DisconnectReason, Gametype, getGametypeId } from '@jsprismarine/minecraft';
 import type { InetAddress } from '@jsprismarine/raknet';
@@ -82,6 +83,9 @@ export const EXHAUSTION = {
 
 /** Hunger's slower effects - starving and healing - run on a four-second clock. */
 const VITALS_INTERVAL = 80;
+
+/** Exhaustion per level, per tick, while the hunger effect is on. */
+const HUNGER_EFFECT_EXHAUSTION = 0.005;
 
 /** Food at or above this heals the player, at the cost of {@link EXHAUSTION.regeneration}. */
 const REGENERATION_FOOD_LEVEL = 18;
@@ -944,6 +948,17 @@ export default class Player extends Human {
         if (food >= REGENERATION_FOOD_LEVEL && this.getHealth() < this.getMaxHealth()) {
             await this.heal(1);
             this.addExhaustion(EXHAUSTION.regeneration);
+        }
+    }
+
+    /** Hunger drains food faster and saturation fills it; the rest are the entity's. */
+    protected override async applyStatusEffectTick(effect: StatusEffect, clock: number): Promise<void> {
+        await super.applyStatusEffectTick(effect, clock);
+
+        if (effect.id === 'minecraft:hunger') this.addExhaustion(HUNGER_EFFECT_EXHAUSTION * (effect.amplifier + 1));
+        else if (effect.id === 'minecraft:saturation') {
+            // Java's `FoodData.eat(amplifier + 1, 1.0F)`: that much food, and twice as much saturation.
+            this.addFood(effect.amplifier + 1, (effect.amplifier + 1) * 2);
         }
     }
 

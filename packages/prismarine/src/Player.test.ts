@@ -364,6 +364,99 @@ describe('Player', () => {
         });
     });
 
+    describe('status effects', () => {
+        const give = (player: Player, id: string, durationTicks: number, amplifier = 0) =>
+            player.addStatusEffect({ id, durationTicks, amplifier }, false);
+
+        it('restores health at once for instant health, scaled by level', async () => {
+            const { player } = fakePlayer();
+            await player.setHealth(4);
+
+            give(player, 'minecraft:instant_health', 1, 1);
+            await tick(player, 1);
+
+            expect(player.getHealth()).toBe(12);
+            expect(player.getStatusEffect('minecraft:instant_health')).toBeUndefined();
+        });
+
+        it('applies an instant effect once however long it was given for', async () => {
+            const { player } = fakePlayer();
+            await player.setHealth(1);
+
+            give(player, 'minecraft:instant_health', 20 * 30, 0);
+            await tick(player, 5);
+
+            expect(player.getHealth()).toBe(5);
+        });
+
+        it('heals over time with regeneration, then stops when it runs out', async () => {
+            const { player } = fakePlayer();
+            // Not fed enough to heal on its own, so only the effect can.
+            player.setFood(10);
+            await player.setHealth(10);
+
+            give(player, 'minecraft:regeneration', 100, 0);
+            await tick(player, 100);
+
+            expect(player.getHealth()).toBe(12);
+            expect(player.getStatusEffect('minecraft:regeneration')).toBeUndefined();
+        });
+
+        it('poisons the player down to half a heart and no further', async () => {
+            const { player } = fakePlayer();
+            player.setFood(10);
+            await player.setHealth(3);
+
+            give(player, 'minecraft:poison', 20 * 20, 0);
+            await tick(player, 20 * 20);
+
+            expect(player.getHealth()).toBe(1);
+            expect(player.isAlive()).toBe(true);
+        });
+
+        it('kills with wither', async () => {
+            const { player } = fakePlayer();
+            player.setFood(10);
+            await player.setHealth(2);
+
+            give(player, 'minecraft:wither', 200, 0);
+            await tick(player, 200);
+
+            expect(player.isAlive()).toBe(false);
+        });
+
+        it('drains food faster while hunger is on', async () => {
+            const { player } = fakePlayer();
+
+            // 0.005 a tick for a minute is 6 exhaustion, which costs a point of saturation.
+            give(player, 'minecraft:hunger', 1200, 0);
+            await tick(player, 1200);
+
+            expect(player.getFood() + player.getSaturation()).toBeLessThan(40);
+        });
+
+        it('feeds the player with saturation', async () => {
+            const { player } = fakePlayer();
+            player.setFood(4);
+            player.setSaturation(0);
+
+            give(player, 'minecraft:saturation', 1, 1);
+            await tick(player, 1);
+
+            expect(player.getFood()).toBe(6);
+            expect(player.getSaturation()).toBe(4);
+        });
+
+        it('still expires an effect that does nothing on the server', async () => {
+            const { player } = fakePlayer();
+
+            give(player, 'minecraft:speed', 5, 0);
+            await tick(player, 5);
+
+            expect(player.getStatusEffect('minecraft:speed')).toBeUndefined();
+        });
+    });
+
     describe('death', () => {
         it('announces it, and says how', async () => {
             const { player, events } = fakePlayer({ underwater: true });
