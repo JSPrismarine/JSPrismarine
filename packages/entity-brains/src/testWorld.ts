@@ -569,6 +569,14 @@ export class TestWorld implements BrainWorld {
         return true;
     }
 
+    /** What a villager was showing, in order; `undefined` is an emptied hand. */
+    public readonly villagerShown: boolean[] = [];
+
+    /** Records the change. */
+    public villagerShowTrade(_body: BrainMob, shown: boolean): void {
+        this.villagerShown.push(shown);
+    }
+
     /** Returns {@link TestWorld.hero}. */
     public isVillageHero(_player: BrainEntity): boolean {
         return this.hero;

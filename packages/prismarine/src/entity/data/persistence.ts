@@ -65,6 +65,8 @@ export interface DataEntityRecord {
     readonly home?: EntityPosition;
     /** Stable identity of the player who tamed or launched this entity. */
     readonly ownerIdentity?: string;
+    /** The player who cured this villager of being a zombie villager. */
+    readonly curedBy?: string;
     /** What the entity holds in its main hand. */
     readonly carried?: string;
     /** What it carries that is not in its hand, as item identifiers. */
@@ -142,6 +144,7 @@ export const dataEntityRecordOf = (
         ...(body.color === undefined ? {} : { color: body.color }),
         ...(body.home === undefined ? {} : { home: body.home }),
         ...(body.ownerIdentity === undefined ? {} : { ownerIdentity: body.ownerIdentity }),
+        ...(body.curedBy === undefined ? {} : { curedBy: body.curedBy }),
         ...(body.carried === undefined ? {} : { carried: body.carried }),
         inventory: [...body.inventory],
         equipment: body.equipment,
@@ -326,7 +329,7 @@ export const dataEntityRecordIn = (nbt: NBTTagCompound): DataEntityRecord | unde
     }
 
     if (!isObject(parsed)) return undefined;
-    const { identifier, pool, carried, ownerIdentity } = parsed;
+    const { identifier, pool, carried, ownerIdentity, curedBy } = parsed;
     if (typeof identifier !== 'string' || identifier === '') return undefined;
 
     const persistentIdentity =
@@ -361,6 +364,7 @@ export const dataEntityRecordIn = (nbt: NBTTagCompound): DataEntityRecord | unde
         ...(typeof parsed['color'] === 'number' && Number.isInteger(parsed['color']) ? { color: parsed['color'] } : {}),
         ...(home === undefined ? {} : { home }),
         ...(typeof ownerIdentity === 'string' ? { ownerIdentity } : {}),
+        ...(typeof curedBy === 'string' ? { curedBy } : {}),
         ...(typeof carried === 'string' ? { carried } : {}),
         inventory: stringsOf(parsed['inventory']),
         ...(equipment === undefined ? {} : { equipment }),
@@ -415,6 +419,7 @@ export const applyDataEntityRecord = (entity: DataEntity, record: DataEntityReco
     body.home = record.home;
     instance.setHomePosition(record.home);
     body.ownerIdentity = record.ownerIdentity;
+    body.curedBy = record.curedBy;
     if (record.equipment === undefined) body.carried = record.carried;
     else {
         body.setEquipment(record.equipment);

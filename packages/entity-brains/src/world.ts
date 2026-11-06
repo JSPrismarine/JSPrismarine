@@ -369,6 +369,11 @@ export interface BrainWorld {
      * @returns Whether anything happened.
      */
     villagerTask(body: BrainMob, task: VillagerTask, target?: BlockPos | BrainEntity): boolean;
+    /**
+     * Shows the next of a villager's trades in its hand, or empties the hand when `shown` is false.
+     * Java's `ShowTradesToPlayer` cycles the items of the villager's offers.
+     */
+    villagerShowTrade(body: BrainMob, shown: boolean): void;
     /** Whether a player carries Hero of the Village, which is what makes a villager give gifts. */
     isVillageHero(player: BrainEntity): boolean;
     /** Whether two villagers are both willing and able to have a child now. */

@@ -15,6 +15,17 @@ const written = (record: ReturnType<typeof dataEntityRecordOf>): NBTTagCompound 
 };
 
 describe('the data entity record', () => {
+    it('keeps who cured a villager', () => {
+        const { runtime } = entityFixture();
+        const hatchling = runtime.spawn('jsprismarine:hatchling', GROUND);
+        if (hatchling === undefined) throw new Error('the fixture declares no jsprismarine:hatchling');
+        hatchling.body.curedBy = 'player-xuid';
+
+        const back = dataEntityRecordIn(written(dataEntityRecordOf(hatchling, undefined)));
+
+        expect(back?.curedBy).toBe('player-xuid');
+    });
+
     it('carries the component groups, properties, attributes and body state', () => {
         const { runtime } = entityFixture();
         const hatchling = runtime.spawn('jsprismarine:hatchling', GROUND);

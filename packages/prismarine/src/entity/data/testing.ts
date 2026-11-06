@@ -509,6 +509,7 @@ export class TestEntityWorld {
             },
             applySonicBoom: (id, amount, sourceId, impulse) =>
                 this.sonicBoomHits.push({ id, amount, sourceId, impulse }),
+            playerIdentityOf: (id) => `player-${id}`,
             villagerRaidStateAt: () => this.villagerRaidState,
             villagerRaidEffect: (id, effect) => this.villagerRaidEffects.push({ id, effect }),
             attackSound: (id) => this.attackSounds.push(id),

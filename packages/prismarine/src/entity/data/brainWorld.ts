@@ -546,6 +546,10 @@ export const brainWorldOf = (scene: EntityScene): BrainWorld => {
                 target === undefined ? undefined : 'id' in target ? Number(target.id) : target
             );
         },
+        villagerShowTrade: (body, shown) => {
+            const entity = scene.byId(Number(body.id));
+            if (entity !== undefined) scene.villagerShowTrade(entity.body, shown);
+        },
         isVillageHero: (player) => scene.isVillageHero(Number(player.id)),
         villagerCanBreed: (body, partner) => {
             const entity = scene.byId(Number(body.id));

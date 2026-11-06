@@ -2554,6 +2554,30 @@ describe('EntityRuntime', () => {
             expect(runtime.villagerCanBreed(first.body, second.id)).toBe(false);
         });
 
+        it('remembers the player who fed the golden apple, and discounts that player alone', () => {
+            const { runtime } = entityFixture(
+                new TestEntityWorld(),
+                {},
+                {
+                    ...villagerFile,
+                    'minecraft:zombie_villager_v2': villagerFile['minecraft:villager_v2']
+                }
+            );
+            const zombie = runtime.spawn('minecraft:zombie_villager_v2', GROUND);
+            if (zombie === undefined) throw new Error('the fixture declares no zombie villager');
+
+            runtime.interactWithItem(zombie.id, 7, 'minecraft:golden_apple');
+            const cured = runtime.spawn('minecraft:villager_v2', { ...GROUND, x: 2.5 });
+            const bystander = runtime.spawn('minecraft:villager_v2', { ...GROUND, x: 5.5 });
+            if (cured === undefined || bystander === undefined) throw new Error('no villagers');
+            cured.body.curedBy = zombie.body.curedBy;
+
+            expect(zombie.body.curedBy).toBe('player-7');
+            expect(runtime.curedFacts(cured.id, 7)).toEqual({ curedByPlayer: true, nearbyCured: 0 });
+            expect(runtime.curedFacts(cured.id, 8)).toEqual({ curedByPlayer: false, nearbyCured: 0 });
+            expect(runtime.curedFacts(bystander.id, 8)).toEqual({ curedByPlayer: false, nearbyCured: 1 });
+        });
+
         it('shares food with a villager that has too little', () => {
             const { runtime } = village();
             const first = runtime.spawn('minecraft:villager_v2', GROUND);

@@ -53,12 +53,12 @@ villager schedule is the one exception, because Mojang moved it into a datapack:
 
 ### Measured counts, against the research note
 
-| Registry | Note | Measured | Where |
-| --- | --- | --- | --- |
-| `minecraft:memory_module_type` | 115 | 115 | `MemoryModuleType.<clinit>` |
-| `minecraft:sensor_type` | 24 | 24 | `SensorType.<clinit>` |
-| `minecraft:activity` | 26 | 26 | `Activity.<clinit>` |
-| Mobs with a brain | 20 | 20 | `brainProvider` and `makeBrain` references |
+| Registry                       | Note | Measured | Where                                      |
+| ------------------------------ | ---- | -------- | ------------------------------------------ |
+| `minecraft:memory_module_type` | 115  | 115      | `MemoryModuleType.<clinit>`                |
+| `minecraft:sensor_type`        | 24   | 24       | `SensorType.<clinit>`                      |
+| `minecraft:activity`           | 26   | 26       | `Activity.<clinit>`                        |
+| Mobs with a brain              | 20   | 20       | `brainProvider` and `makeBrain` references |
 
 All three match. Six of the 115 memory modules register under a name that differs from their Java
 field name, which is worth knowing when reading a saved brain: `NEAREST_LIVING_ENTITIES` registers
@@ -153,33 +153,33 @@ proportional to its weight.
 Priorities are Java's. A number in parentheses after an activity is the priority its first behavior
 takes; `ActivityData.createPriorityPairs` numbers the rest upward from there.
 
-| Mob | Activities | Gated by | Sensors |
-| --- | --- | --- | --- |
-| allay | `core` (0), `idle` (0) | | 4 |
-| armadillo | `core` (0), `idle` (0 to 4), `panic` (0) | `panic`: `DANGER_DETECTED_RECENTLY` present and `IS_PANICKING` absent | 5 |
-| axolotl | `core` (0), `idle` (0 to 4), `fight` (0), `play_dead` (0) | `fight`: `ATTACK_TARGET`; `play_dead`: `PLAY_DEAD_TICKS` | 5 |
-| breeze | `core` (0), `idle` (0 to 3), `fight` (0 to 4) | `fight`: `ATTACK_TARGET` present, `WALK_TARGET` absent | 4 |
-| camel | `core` (0), `idle` (0 to 4) | | 4 |
-| copper golem | `core` (0), `idle` (0 to 2) | | 2 |
-| creaking | `core` (0), `idle` (10), `fight` (10) | `fight`: `ATTACK_TARGET` | 2 |
-| frog | `core` (0), `idle` (0 to 4), `swim` (0 to 5), `lay_spawn` (0 to 4), `tongue` (0), `long_jump` (0 to 1) | three activities split on `IS_IN_WATER`, `IS_PREGNANT` and `LONG_JUMP_MID_JUMP` | 5 |
-| goat | `core` (0), `idle` (0 to 3), `long_jump` (0 to 1), `ram` (0 to 1) | `idle` needs both cooldowns *present* | 6 |
-| happy ghast | `core` (0), `idle` (1 to 4), `panic` (no behaviors) | `panic`: `IS_PANICKING` | 5 |
-| hoglin | `core` (0), `idle` (10), `fight` (10), `avoid` (10) | `fight`: `ATTACK_TARGET`; `avoid`: `AVOID_TARGET` | 4 |
-| nautilus | `core` (0), `idle` (1 to 4), `fight` (0) | `fight`: four memory conditions | 5 |
-| piglin | `core` (0), `idle` (10), `admire_item` (10), `fight` (10), `celebrate` (10), `avoid` (10), `ride` (10) | one memory each | 5 |
-| piglin brute | `core` (0), `idle` (10), `fight` (10) | `fight`: `ATTACK_TARGET` | 5 |
-| sniffer | `core` (0), `idle` (0 to 4), `sniff` (0), `dig` (0) | `sniff` and `dig`: three memories each | 4 |
-| tadpole | `core` (0), `idle` (0 to 2) | | 4 |
-| villager | `core` (0 to 10), `work`, `play`, `rest`, `meet`, `idle`, `panic`, `pre_raid`, `raid`, `hide` | `work`: `JOB_SITE`; `meet`: `MEETING_POINT` | 9 |
-| warden | `core` (0), `emerge` (5), `dig` (0 to 1), `idle` (10), `roar` (10), `fight` (10), `investigate` (5), `sniff` (5) | one memory each | 2 |
-| zoglin | `core` (0), `idle` (10), `fight` (10) | `fight`: `ATTACK_TARGET` | 2 |
-| zombie nautilus | `core` (0), `idle` (1 to 3), `fight` (0) | `fight`: four memory conditions | 5 |
+| Mob             | Activities                                                                                                       | Gated by                                                                        | Sensors |
+| --------------- | ---------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- | ------- |
+| allay           | `core` (0), `idle` (0)                                                                                           |                                                                                 | 4       |
+| armadillo       | `core` (0), `idle` (0 to 4), `panic` (0)                                                                         | `panic`: `DANGER_DETECTED_RECENTLY` present and `IS_PANICKING` absent           | 5       |
+| axolotl         | `core` (0), `idle` (0 to 4), `fight` (0), `play_dead` (0)                                                        | `fight`: `ATTACK_TARGET`; `play_dead`: `PLAY_DEAD_TICKS`                        | 5       |
+| breeze          | `core` (0), `idle` (0 to 3), `fight` (0 to 4)                                                                    | `fight`: `ATTACK_TARGET` present, `WALK_TARGET` absent                          | 4       |
+| camel           | `core` (0), `idle` (0 to 4)                                                                                      |                                                                                 | 4       |
+| copper golem    | `core` (0), `idle` (0 to 2)                                                                                      |                                                                                 | 2       |
+| creaking        | `core` (0), `idle` (10), `fight` (10)                                                                            | `fight`: `ATTACK_TARGET`                                                        | 2       |
+| frog            | `core` (0), `idle` (0 to 4), `swim` (0 to 5), `lay_spawn` (0 to 4), `tongue` (0), `long_jump` (0 to 1)           | three activities split on `IS_IN_WATER`, `IS_PREGNANT` and `LONG_JUMP_MID_JUMP` | 5       |
+| goat            | `core` (0), `idle` (0 to 3), `long_jump` (0 to 1), `ram` (0 to 1)                                                | `idle` needs both cooldowns _present_                                           | 6       |
+| happy ghast     | `core` (0), `idle` (1 to 4), `panic` (no behaviors)                                                              | `panic`: `IS_PANICKING`                                                         | 5       |
+| hoglin          | `core` (0), `idle` (10), `fight` (10), `avoid` (10)                                                              | `fight`: `ATTACK_TARGET`; `avoid`: `AVOID_TARGET`                               | 4       |
+| nautilus        | `core` (0), `idle` (1 to 4), `fight` (0)                                                                         | `fight`: four memory conditions                                                 | 5       |
+| piglin          | `core` (0), `idle` (10), `admire_item` (10), `fight` (10), `celebrate` (10), `avoid` (10), `ride` (10)           | one memory each                                                                 | 5       |
+| piglin brute    | `core` (0), `idle` (10), `fight` (10)                                                                            | `fight`: `ATTACK_TARGET`                                                        | 5       |
+| sniffer         | `core` (0), `idle` (0 to 4), `sniff` (0), `dig` (0)                                                              | `sniff` and `dig`: three memories each                                          | 4       |
+| tadpole         | `core` (0), `idle` (0 to 2)                                                                                      |                                                                                 | 4       |
+| villager        | `core` (0 to 10), `work`, `play`, `rest`, `meet`, `idle`, `panic`, `pre_raid`, `raid`, `hide`                    | `work`: `JOB_SITE`; `meet`: `MEETING_POINT`                                     | 9       |
+| warden          | `core` (0), `emerge` (5), `dig` (0 to 1), `idle` (10), `roar` (10), `fight` (10), `investigate` (5), `sniff` (5) | one memory each                                                                 | 2       |
+| zoglin          | `core` (0), `idle` (10), `fight` (10)                                                                            | `fight`: `ATTACK_TARGET`                                                        | 2       |
+| zombie nautilus | `core` (0), `idle` (1 to 3), `fight` (0)                                                                         | `fight`: four memory conditions                                                 | 5       |
 
 A few of these are worth calling out.
 
 **The goat is inverted.** Its `idle` activity requires `RAM_COOLDOWN_TICKS` and
-`LONG_JUMP_COOLDOWN_TICKS` to be *present*, so a goat is idle precisely while it is still waiting out
+`LONG_JUMP_COOLDOWN_TICKS` to be _present_, so a goat is idle precisely while it is still waiting out
 its timers. `GoatAi.initMemories` fills both on spawn.
 
 **The happy ghast's panic activity has no behaviors at all.** It exists so that `IS_PANICKING`
@@ -206,15 +206,15 @@ The villager is the only brain mob with a schedule, and in 26.1 Mojang moved it 
 `minecraft:timeline` datapack type. `VILLAGER_SCHEDULE` and `BABY_VILLAGER_SCHEDULE` are the two
 tracks of `data/minecraft/timeline/villager_schedule.json`.
 
-| Tick | Adult | Baby |
-| --- | --- | --- |
-| 10 | `idle` | `idle` |
-| 2000 | `work` | |
-| 3000 | | `play` |
-| 6000 | | `idle` |
-| 9000 | `meet` | |
-| 10000 | | `play` |
-| 11000 | `idle` | |
+| Tick  | Adult  | Baby   |
+| ----- | ------ | ------ |
+| 10    | `idle` | `idle` |
+| 2000  | `work` |        |
+| 3000  |        | `play` |
+| 6000  |        | `idle` |
+| 9000  | `meet` |        |
+| 10000 |        | `play` |
+| 11000 | `idle` |        |
 | 12000 | `rest` | `rest` |
 
 `Brain.updateActivityFromSchedule` reads the schedule at most once every twenty ticks, which is
@@ -332,7 +332,7 @@ that need facts the seam deliberately does not carry.
   `villagerWorkSpot`), sharing food and wheat (`TradeWithVillager`), thanking a hero
   (`GiveGiftToHero`) and having a child (`VillagerMakeLove`). `WorkAtPoi` also asks the host to
   restock the villager's trades. The trades themselves belong to `@jsprismarine/trading`.
-  `ShowTradesToPlayer` is still a placeholder.
+  `ShowTradesToPlayer` cycles the items of its trades in the villager's hand through `villagerShowTrade`.
 - **Raids.** The villager brain reads raid status from its host and requests bell, sky-seeking,
   celebration, and reset effects through that seam. The host still owns raid creation, waves, and
   victory state; this server does not start pillager patrols or village raids.

@@ -620,7 +620,10 @@ export class LiveEntityRuntime {
                 source: merchant,
                 context: () => {
                     const hero = player.getStatusEffect('minecraft:village_hero');
-                    return hero === undefined ? {} : { heroOfTheVillage: hero.amplifier + 1 };
+                    return {
+                        ...this.runtime.curedFacts(id, playerId),
+                        ...(hero === undefined ? {} : { heroOfTheVillage: hero.amplifier + 1 })
+                    };
                 },
                 release: () => this.runtime.endTrade(id, playerId),
                 traded: (result) => {

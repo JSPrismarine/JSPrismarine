@@ -35,6 +35,7 @@ import { SNIFFER } from './sniffer.js';
 import { TADPOLE } from './tadpole.js';
 import {
     farmTask,
+    showTradesToPlayer,
     giveGiftToHero,
     tradeWithVillager,
     VILLAGER,
@@ -1066,6 +1067,29 @@ describe('the villager', () => {
 
             world.farmSpot = undefined;
             expect(farmTask('UseBonemeal', 'use_bonemeal', true).tryStart(body.context, 0)).toBe(false);
+        });
+
+        it('holds up its trades for a player close by, and puts them away when it stops', () => {
+            const world = new TestWorld();
+            const { body, brain } = spawn(VILLAGER_BRAIN, { world });
+            const show = showTradesToPlayer(400, 1600);
+            brain.setMemory(
+                MemoryModuleTypes.INTERACTION_TARGET,
+                world.place('minecraft:player', { x: 9, y: 64, z: 0 })
+            );
+
+            expect(show.tryStart(body.context, 0)).toBe(false);
+
+            brain.setMemory(
+                MemoryModuleTypes.INTERACTION_TARGET,
+                world.place('minecraft:player', { x: 2, y: 64, z: 0 })
+            );
+            expect(show.tryStart(body.context, 0)).toBe(true);
+            show.tickOrStop(body.context, 20);
+            show.tickOrStop(body.context, 45);
+            show.doStop(body.context, 50);
+
+            expect(world.villagerShown).toEqual([true, true, false]);
         });
 
         it('shares with the villager it is talking to, within five blocks', () => {

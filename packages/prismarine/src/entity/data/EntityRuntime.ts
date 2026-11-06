@@ -2500,6 +2500,26 @@ export class EntityRuntime implements EntityScene {
         return true;
     }
 
+    /**
+     * What a trader's cured-villager discounts need to know about one player.
+     *
+     * @returns Whether this player cured the trader, and how many other cured villagers stand
+     *   within 16 blocks of it, which is the `nearby_cured_discount` count.
+     */
+    public curedFacts(id: number, playerId: number): { curedByPlayer: boolean; nearbyCured: number } {
+        const entity = this.entities.get(id);
+        if (entity === undefined) return { curedByPlayer: false, nearbyCured: 0 };
+
+        const identity = this.host.playerIdentityOf?.(playerId);
+        let nearbyCured = 0;
+        for (const other of this.all()) {
+            if (other.id === id || other.body.curedBy === undefined || other.removed !== undefined) continue;
+            if (other.identifier.startsWith('minecraft:zombie_villager')) continue;
+            if (distance(entity.position, other.position) <= NEARBY_CURED_RANGE) nearbyCured += 1;
+        }
+        return { curedByPlayer: identity !== undefined && entity.body.curedBy === identity, nearbyCured };
+    }
+
     /** Frees a trader once its player has left the screen, if that player is still the one it trades with. */
     public endTrade(id: number, playerId: number): void {
         const entity = this.entities.get(id);
@@ -2590,6 +2610,16 @@ export class EntityRuntime implements EntityScene {
 
         if (itemIdentifier === 'minecraft:shears' && heldItem.count > 0 && this.cutLeashesAt(entity)) {
             return { accepted: true, hurtItem: 1, consumeItem: false };
+        }
+
+        if (
+            itemIdentifier === 'minecraft:golden_apple' &&
+            heldItem.count > 0 &&
+            entity.identifier.startsWith('minecraft:zombie_villager')
+        ) {
+            // The player who feeds the apple is the one the villager remembers as its cure.
+            const identity = this.host.playerIdentityOf?.(owner);
+            if (identity !== undefined) entity.body.curedBy = identity;
         }
 
         const content = this.content();
@@ -3295,6 +3325,22 @@ export class EntityRuntime implements EntityScene {
             entity.body.breedCooldown === 0 &&
             foodPointsOf(entity.body.inventory) >= WILLING_FOOD_POINTS;
         return ready(self) && ready(partner) && this.hasVacantBed(body);
+    }
+
+    /** Holds one item of a random trade in the villager's hand, or empties the hand. */
+    public villagerShowTrade(body: MobBody, shown: boolean): void {
+        const entity = this.entities.get(body.id);
+        if (entity === undefined) return;
+        if (!shown) {
+            body.carried = undefined;
+            return;
+        }
+
+        const offers = this.merchant(entity)?.offers() ?? [];
+        if (offers.length === 0) return;
+        const offer = offers[this.world.random.nextInt(offers.length)];
+        const stack = offer === undefined ? undefined : offer.offer.gives[0];
+        if (stack !== undefined) body.carried = stack.item;
     }
 
     /** Whether a player carries Hero of the Village. */
@@ -4297,8 +4343,11 @@ export class EntityRuntime implements EntityScene {
             cause: 'transformed',
             event: request.event
         });
-        if (replacement !== undefined)
+        if (replacement !== undefined) {
             for (const group of request.addGroups) replacement.instance.applyEffects(addGroup(group));
+            if (entity.identifier.startsWith('minecraft:zombie_villager'))
+                replacement.body.curedBy = entity.body.curedBy;
+        }
         this.remove(entity.id, 'transformation');
     }
 }
@@ -4345,6 +4394,8 @@ const FIRE_DAMAGE_INTERVAL_TICKS = 20;
 
 /** Java's `Villager` allows two restocks a day, at least this many ticks apart. */
 const RESTOCKS_PER_DAY = 2;
+/** How close another cured villager counts as nearby for the trading discount, in blocks. */
+const NEARBY_CURED_RANGE = 16;
 /** Java stops a villager from breeding again for five minutes. */
 const VILLAGER_BREED_COOLDOWN_TICKS = 6000;
 const RESTOCK_GAP_TICKS = 2400;

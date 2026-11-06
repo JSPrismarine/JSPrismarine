@@ -230,6 +230,11 @@ export class MobBody {
 
     /** Stable player identity behind {@link MobBody.owner}, retained across server restarts. */
     public ownerIdentity: string | undefined;
+    /**
+     * The identity of the player who cured this villager. A zombie villager holds the player who
+     * fed it the golden apple here, and the villager it becomes inherits it.
+     */
+    public curedBy: string | undefined;
 
     /** The player with the entity's trade screen open, by runtime id. */
     public tradingPlayer: number | undefined;

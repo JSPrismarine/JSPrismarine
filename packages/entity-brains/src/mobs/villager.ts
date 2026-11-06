@@ -322,6 +322,54 @@ export function farmTask(name: string, task: 'harvest_farmland' | 'use_bonemeal'
     );
 }
 
+/** How long `ShowTradesToPlayer` holds one item before it shows the next, in ticks. */
+const SHOW_TRADE_INTERVAL = 40;
+
+/**
+ * Java's `ShowTradesToPlayer`: a grown villager talking to a player within about four blocks holds
+ * up the items of its trades, one after the other, and empties its hand when it stops.
+ */
+export function showTradesToPlayer(minDuration: number, maxDuration: number): BehaviorControl {
+    let shownAt = 0;
+    return new Behavior(
+        'ShowTradesToPlayer',
+        conditions([MemoryModuleTypes.INTERACTION_TARGET, 'value_present']),
+        {
+            checkExtraStartConditions: (context) => {
+                const target = context.body.brain.getMemory(MemoryModuleTypes.INTERACTION_TARGET);
+                return (
+                    target !== undefined &&
+                    target.type === 'minecraft:player' &&
+                    target.alive &&
+                    !context.body.baby &&
+                    distanceSquared(target.position, context.body.position) <= 17
+                );
+            },
+            start: (context, timestamp) => {
+                shownAt = timestamp;
+                context.world.villagerShowTrade(context.body, true);
+            },
+            canStillUse: (context) => {
+                const target = context.body.brain.getMemory(MemoryModuleTypes.INTERACTION_TARGET);
+                return (
+                    target !== undefined &&
+                    target.alive &&
+                    distanceSquared(target.position, context.body.position) <= 17
+                );
+            },
+            tick: (context, timestamp) => {
+                if (timestamp - shownAt < SHOW_TRADE_INTERVAL) return;
+                shownAt = timestamp;
+                context.world.villagerShowTrade(context.body, true);
+            },
+            stop: (context) => {
+                context.world.villagerShowTrade(context.body, false);
+            }
+        },
+        { minDuration, maxDuration }
+    );
+}
+
 /** Java's `TradeWithVillager`: food and seeds change hands between two villagers who meet. */
 export function tradeWithVillager(): BehaviorControl {
     return new OneShot('TradeWithVillager', [MemoryModuleTypes.INTERACTION_TARGET], (context) => {
@@ -583,7 +631,7 @@ export function workPackage(profession: VillagerProfession, speedModifier: numbe
                 [farmTask('UseBonemeal', 'use_bonemeal', isFarmer), isFarmer ? 4 : 7]
             ])
         ],
-        [10, timedState('ShowTradesToPlayer', VILLAGER.showTradesDuration.min)],
+        [10, showTradesToPlayer(VILLAGER.showTradesDuration.min, VILLAGER.showTradesDuration.max)],
         [10, setLookAndInteract('minecraft:player', 4)],
         [
             2,
@@ -664,7 +712,7 @@ export function meetPackage(speedModifier: number): readonly PrioritizedBehavior
                 [(context, timestamp) => timedState('SocializeAtBell', 1).tryStart(context, timestamp), 2]
             ])
         ],
-        [10, timedState('ShowTradesToPlayer', VILLAGER.showTradesDuration.min)],
+        [10, showTradesToPlayer(VILLAGER.showTradesDuration.min, VILLAGER.showTradesDuration.max)],
         [10, setLookAndInteract('minecraft:player', 4)],
         [
             2,
@@ -706,7 +754,7 @@ export function idlePackage(speedModifier: number): readonly PrioritizedBehavior
         ],
         [3, giveGiftToHero()],
         [3, setLookAndInteract('minecraft:player', 4)],
-        [3, timedState('ShowTradesToPlayer', VILLAGER.showTradesDuration.min)],
+        [3, showTradesToPlayer(VILLAGER.showTradesDuration.min, VILLAGER.showTradesDuration.max)],
         [
             3,
             new GateBehavior('ordered', 'run_one', [[tradeWithVillager(), 1]], {

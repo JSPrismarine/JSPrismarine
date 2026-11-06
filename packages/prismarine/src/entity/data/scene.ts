@@ -156,6 +156,8 @@ export interface EntityScene {
     villagerWorkSpot(body: MobBody, task: 'harvest_farmland' | 'use_bonemeal'): EntityPosition | undefined;
     /** Carries out one piece of villager work. */
     villagerTask(body: MobBody, task: VillagerTask, target?: EntityPosition | number): boolean;
+    /** Shows a trade in the villager's hand, or empties it. */
+    villagerShowTrade(body: MobBody, shown: boolean): void;
     /** Whether a player carries Hero of the Village. */
     isVillageHero(playerId: number): boolean;
     /** Whether two villagers may have a child now. */
