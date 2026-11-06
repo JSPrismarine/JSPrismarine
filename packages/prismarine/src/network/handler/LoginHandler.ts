@@ -10,7 +10,8 @@ import type ClientConnection from '../ClientConnection';
 import { createConnectedPlayer } from '../createConnectedPlayer';
 import type LoginPacket from '@jsprismarine/protocol/packet/LoginPacket';
 import ResourcePacksInfoPacket from '@jsprismarine/protocol/packet/ResourcePacksInfoPacket';
-import { parseLoginIdentity } from '../LoginIdentity';
+import { identityFromXUID, parseLoginIdentity } from '../LoginIdentity';
+import { LoginRefused, verifyLogin } from '../LoginVerifier';
 import type ConnectionPacketHandler from './ConnectionPacketHandler';
 
 type LoginIdentity = ReturnType<typeof parseLoginIdentity>;
@@ -78,7 +79,7 @@ export default class LoginHandler implements ConnectionPacketHandler<LoginPacket
             return;
         }
 
-        const identity = parseLoginIdentity(login);
+        let identity = parseLoginIdentity(login);
 
         // The client renders this status as "server full", so the player learns why without
         // the server building a player it would only tear down again. The disconnect that
@@ -90,6 +91,27 @@ export default class LoginHandler implements ConnectionPacketHandler<LoginPacket
             );
             await connection.disconnect('Server is full!', false, DisconnectReason.SERVER_FULL);
             return;
+        }
+
+        // With online mode on, the account comes from the signed token and nowhere else. The claims
+        // parsed above are whatever the client wrote; they are replaced, not trusted, and a login
+        // that cannot be verified is refused before anything about it is acted on.
+        if (server.getConfig().getOnlineMode()) {
+            try {
+                const verified = await verifyLogin(login);
+                identity = {
+                    ...identity,
+                    xuid: verified.xuid,
+                    displayName: verified.displayName,
+                    identity: verified.identity ?? identityFromXUID(verified.xuid),
+                    identityPublicKey: verified.identityPublicKey
+                };
+            } catch (error: unknown) {
+                if (!(error instanceof LoginRefused)) throw error;
+                LoginHandler.reportRefusal(login.protocolVersion, identity, server, error.detail);
+                await connection.disconnect(error.message, false, DisconnectReason.NOT_AUTHENTICATED);
+                return;
+            }
         }
 
         // Kick the player if their username is invalid
@@ -170,13 +192,6 @@ export default class LoginHandler implements ConnectionPacketHandler<LoginPacket
             }
         });
 
-        // Player with same name or xuid is already connected,
-        // so kick the old player and let the new player connect.
-        await server
-            .getSessionManager()
-            .findPlayer({ name: identity.displayName, xuid: identity.xuid })
-            ?.kick('Logged in from another location', DisconnectReason.LOGGED_IN_OTHER_LOCATION);
-
         // Rejected through the connection, not through the player: this one has no session
         // yet and has joined nothing, so `kick` had nothing to send the reason on and
         // `disable` would have announced a departure for somebody who never arrived.
@@ -194,6 +209,14 @@ export default class LoginHandler implements ConnectionPacketHandler<LoginPacket
             );
             return;
         }
+
+        // Player with same name or xuid is already connected, so kick the old player and let the
+        // new player connect. Only now: a login that was refused above never touches the session
+        // it named, which is the whole of the impersonation this used to allow.
+        await server
+            .getSessionManager()
+            .findPlayer({ name: identity.displayName, xuid: identity.xuid })
+            ?.kick('Logged in from another location', DisconnectReason.LOGGED_IN_OTHER_LOCATION);
 
         // Joined to its connection only once it is going to be let in, and torn down as a
         // pair if the join itself fails - otherwise the session would keep its place in the

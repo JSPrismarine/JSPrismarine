@@ -64,7 +64,7 @@ const claimsOf = <T>(token: string): T => {
 };
 
 /** Derives the protocol's version 3 identity UUID from an Xbox Live id. */
-const identityFromXUID = (xuid: string): string => {
+export const identityFromXUID = (xuid: string): string => {
     if (!xuid) return '';
 
     const hash = createHash('md5').update('pocket-auth-1-xuid:').update(xuid).digest();

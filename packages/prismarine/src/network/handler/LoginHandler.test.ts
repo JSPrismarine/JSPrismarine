@@ -2,8 +2,8 @@ import type { Logger } from '@jsprismarine/logger';
 import { DisconnectReason } from '@jsprismarine/minecraft';
 import { Vector3 } from '@jsprismarine/math';
 import type { InetAddress, RakNetSession } from '@jsprismarine/raknet';
-import { generateKeyPairSync } from 'node:crypto';
-import { assert, describe, expect, it, vi } from 'vitest';
+import { generateKeyPairSync, sign } from 'node:crypto';
+import { afterEach, assert, describe, expect, it, vi } from 'vitest';
 
 import type Player from '../../Player';
 import Codec2193 from '../codec/Codec2193';
@@ -26,6 +26,7 @@ import type { EncryptionCodec } from '@jsprismarine/protocol';
 import type ClientToServerHandshakePacket from '@jsprismarine/protocol/packet/ClientToServerHandshakePacket';
 import ClientToServerHandshakeHandler from './ClientToServerHandshakeHandler';
 import LoginHandler from './LoginHandler';
+import { TOKEN_ISSUER, useLoginKeys } from '../LoginVerifier';
 import { testContent } from '../../testing/entityServer';
 import { fakeLevel } from '../../testing/level';
 
@@ -35,12 +36,8 @@ const IDENTITY = 'd1b3f8a24c5e4f6a9b7c8d9e0f1a2b3c';
 const jwt = (claims: Record<string, unknown>): string =>
     `e30.${Buffer.from(JSON.stringify(claims)).toString('base64url')}.signature`;
 
-const loginPacket = (
-    displayName = 'runner',
-    identity: string | null = IDENTITY,
-    protocolVersion = Codec2193.protocolVersion,
-    cpk?: string
-): LoginPacket => {
+/** The client data a login carries, before it is signed or framed. */
+const clientDataOf = (displayName: string, identity: string | null = null): Record<string, unknown> => {
     const clientData: Record<string, unknown> = {
         DeviceId: '00000000-0000-0000-0000-000000000000',
         DeviceOS: 7,
@@ -74,17 +71,27 @@ const loginPacket = (
     };
 
     if (identity !== null) clientData.SelfSignedId = identity;
+    return clientData;
+};
 
-    return new LoginPacket({
+const loginPacket = (
+    displayName = 'runner',
+    identity: string | null = IDENTITY,
+    protocolVersion = Codec2193.protocolVersion,
+    cpk?: string
+): LoginPacket =>
+    new LoginPacket({
         protocolVersion,
         chainData: JSON.stringify({ chain: cpk === undefined ? [] : [jwt({ identityPublicKey: cpk })] }),
-        clientData: jwt(clientData)
+        clientData: jwt(clientDataOf(displayName, identity))
     });
-};
 
 describe('network', () => {
     describe('handler', () => {
         describe('LoginHandler', () => {
+            let onlineMode = false;
+            let findPlayer: (...args: unknown[]) => Player | null = () => null;
+
             // `createConnectedPlayer` enables the session, which is what puts it in the
             // chunk rotation - the constructor no longer does it.
             const chunkScheduler = (): ChunkScheduler => stub<ChunkScheduler>({ add: () => {}, remove: () => {} });
@@ -95,7 +102,7 @@ describe('network', () => {
             const sessionManager = (): SessionManager =>
                 stub<SessionManager>({
                     getAllPlayers: () => [],
-                    findPlayer: () => null,
+                    findPlayer: (...args: unknown[]) => findPlayer(...args),
                     getPlayerByExactName: () => null
                 });
 
@@ -118,7 +125,7 @@ describe('network', () => {
 
             const config = (): Config =>
                 stub<Config>({
-                    getOnlineMode: () => false,
+                    getOnlineMode: () => onlineMode,
                     getMaxPlayers: () => 2,
                     getGamemode: () => 'survival',
                     getProximityBroadcast: () => true,
@@ -191,6 +198,170 @@ describe('network', () => {
                 await new LoginHandler().handle(pk, server, quiet);
 
                 expect(sent).toEqual(['PlayStatusPacket', 'ResourcePacksInfoPacket']);
+            });
+
+            describe('online mode', () => {
+                const issuer = generateKeyPairSync('rsa', { modulusLength: 2048 });
+                const account = generateKeyPairSync('ec', { namedCurve: 'secp384r1' });
+                const accountKey = account.publicKey.export({ type: 'spki', format: 'der' }).toString('base64');
+                const segment = (value: unknown): string => Buffer.from(JSON.stringify(value)).toString('base64url');
+
+                const signedToken = (claims: Record<string, unknown> = {}): string => {
+                    const head = segment({ alg: 'RS256', kid: 'k' });
+                    const body = segment({
+                        iss: TOKEN_ISSUER,
+                        exp: Date.now() / 1000 + 3600,
+                        xid: '2535400000000001',
+                        xname: 'Steve',
+                        cpk: accountKey,
+                        ...claims
+                    });
+                    const signature = sign('RSA-SHA256', Buffer.from(`${head}.${body}`), issuer.privateKey);
+                    return `${head}.${body}.${signature.toString('base64url')}`;
+                };
+
+                const signedLogin = (request: Record<string, unknown>): LoginPacket => {
+                    const head = segment({ alg: 'ES384', x5u: accountKey });
+                    const body = segment(clientDataOf('Steve'));
+                    const signature = sign('sha384', Buffer.from(`${head}.${body}`), {
+                        key: account.privateKey,
+                        dsaEncoding: 'ieee-p1363'
+                    });
+                    return new LoginPacket({
+                        protocolVersion: Codec2193.protocolVersion,
+                        chainData: JSON.stringify(request),
+                        clientData: `${head}.${body}.${signature.toString('base64url')}`
+                    });
+                };
+
+                const quiet = () => {
+                    const disconnects: Array<[string, DisconnectReason | undefined]> = [];
+                    const stubbed = stub<ClientConnection>({
+                        codec: Codec2193,
+                        getRakNetSession: () =>
+                            stub<RakNetSession>({ getAddress: () => stub<InetAddress>({ toToken: () => 'token' }) }),
+                        phase: 'login',
+                        resumeLogin: null,
+                        sendDataPacket: async () => {},
+                        startEncryption: () => {},
+                        attachPlayerSession: vi.fn(),
+                        closePlayerSession: async () => {},
+                        disconnect: async (reason, _hide, code) => void disconnects.push([reason ?? '', code])
+                    });
+                    return { connection: stubbed, disconnects };
+                };
+
+                const kicked: string[] = [];
+                const existing = stub<Player>({
+                    kick: async (reason) => void kicked.push(reason ?? '')
+                });
+                const chainClaiming = (xuid: string, name: string) => ({
+                    chain: [
+                        `${segment({})}.${segment({ extraData: { XUID: xuid, identity: 'x', displayName: name } })}.sig`
+                    ]
+                });
+
+                const restore: Array<() => void> = [];
+                const arrange = () => {
+                    onlineMode = true;
+                    kicked.length = 0;
+                    findPlayer = () => existing;
+                    restore.push(useLoginKeys({ keyFor: async (kid) => (kid === 'k' ? issuer.publicKey : undefined) }));
+                };
+                afterEach(() => {
+                    onlineMode = false;
+                    findPlayer = () => null;
+                    for (const undo of restore.splice(0)) undo();
+                });
+
+                it('lets a verified account in and then replaces its other session', async () => {
+                    arrange();
+                    const { connection: held, disconnects } = quiet();
+
+                    await new LoginHandler().handle(
+                        signedLogin({ AuthenticationType: 0, Token: signedToken() }),
+                        server,
+                        held
+                    );
+                    // The account is verified, so the handshake is under way; the other session is
+                    // still connected until the client answers it.
+                    expect(kicked).toEqual([]);
+                    await held.resumeLogin?.();
+
+                    expect(disconnects).toEqual([]);
+                    expect(held.attachPlayerSession).toHaveBeenCalledOnce();
+                    expect(kicked).toEqual(['Logged in from another location']);
+                });
+
+                it('takes the account from the token, not from the claims the client wrote', async () => {
+                    arrange();
+                    const queries: unknown[] = [];
+                    findPlayer = (query) => {
+                        queries.push(query);
+                        return null;
+                    };
+                    const { connection: held } = quiet();
+
+                    await new LoginHandler().handle(
+                        signedLogin({ AuthenticationType: 0, Token: signedToken(), ...chainClaiming('999', 'Notch') }),
+                        server,
+                        held
+                    );
+                    await held.resumeLogin?.();
+
+                    expect(queries).toEqual([{ name: 'Steve', xuid: '2535400000000001' }]);
+                });
+
+                it('refuses a forged token and leaves the named account connected', async () => {
+                    arrange();
+                    const { connection: held, disconnects } = quiet();
+                    const [head, , signature] = signedToken().split('.');
+                    const claims = {
+                        iss: TOKEN_ISSUER,
+                        exp: Date.now() / 1000 + 3600,
+                        xid: '2535400000000001',
+                        xname: 'Steve',
+                        cpk: accountKey,
+                        forged: true
+                    };
+
+                    await new LoginHandler().handle(
+                        signedLogin({ AuthenticationType: 0, Token: `${head}.${segment(claims)}.${signature}` }),
+                        server,
+                        held
+                    );
+
+                    expect(disconnects.map(([, code]) => code)).toEqual([DisconnectReason.NOT_AUTHENTICATED]);
+                    expect(kicked).toEqual([]);
+                    expect(held.attachPlayerSession).not.toHaveBeenCalled();
+                });
+
+                it('refuses a self-signed login and a claimed XUID with no token', async () => {
+                    arrange();
+
+                    for (const request of [
+                        { AuthenticationType: 2 },
+                        { AuthenticationType: 0, ...chainClaiming('2535400000000001', 'Steve') }
+                    ]) {
+                        const { connection: held, disconnects } = quiet();
+                        await new LoginHandler().handle(signedLogin(request), server, held);
+
+                        expect(disconnects.map(([, code]) => code)).toEqual([DisconnectReason.NOT_AUTHENTICATED]);
+                        expect(held.attachPlayerSession).not.toHaveBeenCalled();
+                    }
+                    expect(kicked).toEqual([]);
+                });
+
+                it('does not verify anything when online mode is off', async () => {
+                    arrange();
+                    onlineMode = false;
+                    const { connection: held, disconnects } = quiet();
+
+                    await new LoginHandler().handle(loginPacket(), server, held);
+
+                    expect(disconnects).toEqual([]);
+                    expect(held.attachPlayerSession).toHaveBeenCalledOnce();
+                });
             });
 
             describe('encryption handshake', () => {
@@ -351,7 +522,7 @@ describe('network', () => {
                 const disconnect = await refused(online, login());
 
                 expect(disconnect).toHaveBeenCalledWith(
-                    'Server is in online-mode!',
+                    'Please sign in to Xbox Live to join.',
                     false,
                     DisconnectReason.NOT_AUTHENTICATED
                 );
