@@ -3,7 +3,7 @@ import { fileURLToPath } from 'node:url';
 
 import { defineProject, mergeConfig } from 'vitest/config';
 
-import base from '../../vitest.config';
+import base from '../../vitest.config.ts';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const distConditions = process.env.JSP_PARITY_USE_DIST === '1' ? ['jsprismarine:dist'] : [];
