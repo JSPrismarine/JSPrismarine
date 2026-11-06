@@ -4,16 +4,6 @@ import assert from 'node:assert/strict';
 import type { Scenario } from '../scenario.mts';
 import { sleep, standAt, testForBlock, waitTicks } from '../scenario.mts';
 
-/** Counts item actors visible to the client. */
-const itemActorCount = (state: Record<string, unknown>): number => {
-    const actors = state.actors;
-    assert.ok(Array.isArray(actors), 'state.actors is an array');
-
-    return actors.filter(
-        (actor) => typeof actor === 'object' && actor !== null && 'type' in actor && actor.type === 'minecraft:item'
-    ).length;
-};
-
 /** A spot in the air, clear of the flat surface and of what the other scenarios build. */
 const FLOOR = { x: 100, y: 63, z: 100 };
 
@@ -49,25 +39,21 @@ export const subChunkBlockChanges: Scenario = {
         // Yaw 0 faces the wall and nothing else is within reach up here, so a drop can only
         // come out of it - and only a client that applied the fill knows the wall is there.
         await client.input({ look: { yaw: 0, pitch: 0, frames: 0 } });
-        const before = itemActorCount(await client.state());
-        // Hold until the server has broken the block, since a slow runner can lose the start of a
-        // fixed-length hold and then nothing drops at all.
+        // Hold until the server has broken the block. Nothing else in this world breaks blocks, so
+        // an air wall is the client's own break, and it can only have aimed at a wall it knew was
+        // there. The drop is not the evidence: it pops to the player a block and a half away and
+        // is picked up within moments, which is faster than a loaded client reports it.
         await client.input({ hold: ['key.attack'] });
-        const brokeBy = Date.now() + 20_000;
+        const brokeBy = Date.now() + 30_000;
+        let broken = '';
         for (;;) {
-            const reply = await testForBlock(server, { x: x + 1, y: y + 2, z: z + 3 }, 'minecraft:air');
-            if (/Found the block at/.test(reply) || Date.now() > brokeBy) break;
+            broken = await testForBlock(server, { x: x + 1, y: y + 2, z: z + 3 }, 'minecraft:air');
+            if (/Found the block at/.test(broken) || Date.now() > brokeBy) break;
             await sleep(250);
         }
         await client.input({ release_all: true });
 
-        let after = before;
-        for (let attempt = 0; after <= before && attempt < 20; attempt += 1) {
-            await sleep(250);
-            after = itemActorCount(await client.state());
-        }
-
-        assert.ok(after > before, `breaking a block of the filled wall exposed ${after - before} item actors`);
+        assert.match(broken, /Found the block at/, `the client never broke a block of the filled wall: ${broken}`);
         log('the client stood on a platform one fill placed and broke a block out of the wall beside it');
     }
 };
