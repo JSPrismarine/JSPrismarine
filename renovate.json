@@ -1,5 +1,16 @@
 {
     "$schema": "https://docs.renovatebot.com/renovate-schema.json",
     "extends": ["local>NordcomInc/renovate-config", ":semanticCommits", ":automergeMajor"],
-    "commitMessageAction": "update"
+    "commitMessageAction": "update",
+    "packageRules": [
+        {
+            "matchManagers": ["github-actions"],
+            "commitMessageTopic": "{{{depName}}}"
+        },
+        {
+            "matchManagers": ["dockerfile"],
+            "matchUpdateTypes": ["digest"],
+            "commitMessageTopic": "{{{depName}}} digest"
+        }
+    ]
 }
