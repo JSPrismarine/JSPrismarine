@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import path from 'node:path';
 
-import { advanceTicks, lookTo, sleep, vec3, waitTicks } from '../scenario.mts';
+import { advanceTicks, lookTo, waitTicks, standAt } from '../scenario.mts';
 import type { Scenario } from '../scenario.mts';
 
 /** Where the player stands; the tilled block is two south of it, on the flat world's surface. */
@@ -41,18 +41,10 @@ const waitForBlock = async (
 export const farmland: Scenario = {
     name: 'farmland',
     description: 'a client tills grass with a hoe, plants seeds, and water moistens the field',
-    run: async ({ client, server, playerName, artifacts, log }) => {
+    run: async (context) => {
+        const { client, server, playerName, artifacts, log } = context;
         server.command(`replaceitem entity ${playerName} slot.hotbar 0 minecraft:iron_hoe 1`);
-        server.command(`teleport ${playerName} ${STAND.x} ${STAND.y} ${STAND.z}`);
-
-        await client.waitFor({ chunks_loaded: { radius: 2 } }, 30_000);
-        const landed = Date.now() + 10_000;
-        for (;;) {
-            const feet = vec3(await client.state(), 'feet');
-            if (Math.hypot(feet[0] - STAND.x, feet[1] - STAND.y, feet[2] - STAND.z) < 1) break;
-            assert.ok(Date.now() < landed, `the client never reached the field: ${feet.join(', ')}`);
-            await sleep(250);
-        }
+        await standAt(context, STAND);
 
         // Down at the grass two blocks south, which is where the crosshair stays all scenario.
         await lookTo(client, 0, 46);

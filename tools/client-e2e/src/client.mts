@@ -159,6 +159,26 @@ export class CinnabarClient {
         await this.input({ look: { yaw: 0, pitch: 0, frames: 0 } });
     }
 
+    /**
+     * Left-clicks a point on screen, counting the client's frames rather than milliseconds.
+     *
+     * A screen reacts to a click on the frame after the pointer reaches it, once it has drawn the
+     * hover, and a press needs a few frames to register. A fixed sleep is a different number of
+     * frames on every run, and on a loaded host it is sometimes none, which sent the click to
+     * wherever the pointer had been.
+     *
+     * @param pointer - Window coordinates to click.
+     * @param options.hold - Keys held through the click, such as `ShiftLeft`.
+     */
+    async clickAt(pointer: [number, number], options: { hold?: string[] } = {}): Promise<void> {
+        await this.input({ pointer, ...(options.hold === undefined ? {} : { hold: options.hold }) });
+        await this.waitFrames(6);
+        await this.input({ press: ['MouseLeft'], press_frames: 3 });
+        await this.waitFrames(8);
+        await this.input({ release: ['MouseLeft', ...(options.hold ?? [])] });
+        await this.waitFrames(4);
+    }
+
     /** Sends a chat line as the player; a leading `/` runs a command. */
     async chat(text: string): Promise<void> {
         await this.call('chat', { text });

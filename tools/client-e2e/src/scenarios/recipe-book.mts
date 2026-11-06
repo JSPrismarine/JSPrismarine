@@ -47,13 +47,11 @@ export const recipeBook: Scenario = {
         }
         await client.waitFor({ screen: { name: 'Container' } }, 15_000);
         await client.screenshot(path.join(artifacts, 'crafting-table-open.png'));
-        await client.input({ pointer: [430, 248], press: ['MouseLeft'], press_frames: 3 });
+        await client.clickAt([430, 248]);
         await client.input({ text: 'Oak Planks' });
         await waitTicks(server, 10);
         await client.screenshot(path.join(artifacts, 'crafting-recipe-filtered.png'));
-        await client.input({ pointer: [387, 287], hold: ['ShiftLeft'], press: ['MouseLeft'], press_frames: 3 });
-        await sleep(200);
-        await client.input({ release: ['ShiftLeft', 'MouseLeft'] });
+        await client.clickAt([387, 287], { hold: ['ShiftLeft'] });
         await waitTicks(server, 20);
         await client.screenshot(path.join(artifacts, 'crafting-table-shift-click.png'));
         await client.input({ press: ['Escape'] });
