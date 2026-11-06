@@ -244,13 +244,17 @@ export default class NetworkDispatcher<C extends TransportConnection> {
         }
     }
 
-    /** Inflates one frame into the encoded packets batched inside it. */
-    private async splitBatch(frame: Buffer, connection: ClientConnection): Promise<readonly Buffer[]> {
+    /**
+     * Inflates one frame into the encoded packets batched inside it.
+     * @param decrypt - Whether the frame arrived encrypted. A replayed record is rebuilt from the
+     * recorded packet bytes and is plain, whatever the original connection negotiated.
+     */
+    private async splitBatch(frame: Buffer, connection: ClientConnection, decrypt = true): Promise<readonly Buffer[]> {
         let payload: Buffer;
         try {
             // First and synchronous: the keystream is continuous, so frames must be decrypted in
             // arrival order, which the per-connection frame queue guarantees up to here.
-            payload = connection.decryptFrame(frame);
+            payload = decrypt ? connection.decryptFrame(frame) : frame;
         } catch (error: unknown) {
             // An altered, dropped or replayed frame leaves the keystream unusable for every frame
             // after it, so the connection ends rather than limping on with garbage.
@@ -445,7 +449,7 @@ export default class NetworkDispatcher<C extends TransportConnection> {
             const frame = connection.hasCompression
                 ? BatchCodec.compressed({ algorithm: PacketCompressionAlgorithm.ZLIB }).encode([payload])
                 : BatchCodec.uncompressed().encode([payload]);
-            const packetPayloads = await this.splitBatch(frame, connection);
+            const packetPayloads = await this.splitBatch(frame, connection, false);
             if (packetPayloads.length !== 1) {
                 throw new Error(`Replay frame for ${record.packetName} contained ${packetPayloads.length} packets`);
             }

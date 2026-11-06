@@ -439,6 +439,31 @@ describe('network', () => {
             expect(trace.records()).toHaveLength(1);
         });
 
+        it('replays plain bytes into a connection that negotiated encryption', async () => {
+            // The record holds the packet as the client built it, not the encrypted frame that
+            // carried it, so replay must not run it back through the session's cipher.
+            const trace = new InboundPacketTrace();
+            const handled: string[] = [];
+            const handler = {
+                phases: ['handshake'] as const,
+                handle: async (packet: unknown) => {
+                    if (packet instanceof TextPacket) handled.push(packet.getPacketData()!.message);
+                }
+            };
+            const first = makeDispatcher({ recorder: trace, tick: () => 3, handler });
+            await first.transport.emitConnect(fakeConnection('first:1').connection);
+            await first.transport.emitFrame(frameOf(message('recorded')), address('first:1'));
+
+            const replay = makeDispatcher({ tick: () => 3, handler });
+            await replay.transport.emitConnect(fakeConnection('restored:1').connection);
+            replay.built[0]!.decryptFrame = () => {
+                throw new Error('a replayed record is not encrypted');
+            };
+            await replay.dispatcher.replayInboundRecord(trace.records()[0]!);
+
+            expect(handled).toEqual(['recorded', 'recorded']);
+        });
+
         it('requires replay to follow captured order across connections', async () => {
             const trace = new InboundPacketTrace();
             const handler = { phases: ['handshake'] as const, handle: async () => {} };
