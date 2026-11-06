@@ -152,6 +152,10 @@ jobs:
                 protocol: ${{ fromJSON(needs.protocol-matrix.outputs.protocols) }}
         runs-on: macos-latest
         timeout-minutes: 120
+        permissions:
+            contents: read
+            # Lets the last step delete the builds of pins this one replaced.
+            actions: write
         steps:
             - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
@@ -226,6 +230,21 @@ jobs:
               with:
                   path: ${{ runner.temp }}/jsprismarine/cinnabar/v${{ matrix.protocol }}
                   key: ${{ steps.pin.outputs.key }}
+
+            # A bumped pin leaves its predecessor's 680 MB entry behind, and enough of those push the
+            # repository over its cache limit, which evicts whichever entry was used least recently.
+            # Only master prunes: a pull request that dropped them would take away what other
+            # pull requests fall back to.
+            - name: Delete the builds of replaced pins
+              if: ${{ github.ref == 'refs/heads/master' && github.event_name != 'pull_request' }}
+              env:
+                  GH_TOKEN: ${{ github.token }}
+                  KEY: ${{ steps.pin.outputs.key }}
+                  PREFIX: ${{ runner.os }}-cinnabar-v${{ matrix.protocol }}-
+              run: |
+                  gh cache list --repo "$GITHUB_REPOSITORY" --key "$PREFIX" --limit 100 --json id,key \
+                      --jq ".[] | select(.key != \"$KEY\") | .id" |
+                      while read -r id; do gh cache delete "$id" --repo "$GITHUB_REPOSITORY"; done
 
     client-e2e:
         name: 🎮 Client E2E (protocol ${{ matrix.protocol }})
