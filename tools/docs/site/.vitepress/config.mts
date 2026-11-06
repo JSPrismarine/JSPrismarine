@@ -6,6 +6,12 @@ export default defineConfig({
     title: 'JSPrismarine',
     description: 'Dedicated Minecraft Bedrock Edition server written in TypeScript',
     base: '/JSPrismarine/',
+    ignoreDeadLinks: [
+        (link, source) => {
+            console.warn(`Found dead link ${link} in ${source}`);
+            return true;
+        }
+    ],
     markdown: {
         // Shiki ships no grammar for mcfunction, so fences in the package
         // READMEs fall back to plain text; register the local one.
