@@ -622,7 +622,15 @@ export class LiveEntityRuntime {
                     const hero = player.getStatusEffect('minecraft:village_hero');
                     return hero === undefined ? {} : { heroOfTheVillage: hero.amplifier + 1 };
                 },
-                release: () => this.runtime.endTrade(id, playerId)
+                release: () => this.runtime.endTrade(id, playerId),
+                traded: (result) => {
+                    if (!result.traded) return;
+                    // Java's `notifyTrade` plays the villager's yes after every completed trade.
+                    void this.options
+                        .liveWorld()
+                        ?.sendActorSound(trader, LevelSoundEvent.HAGGLE_YES)
+                        .catch((error: unknown) => this.options.report(String(error)));
+                }
             })
             .then((window) => {
                 // Already open on this trader: nothing was opened, so there is nothing to release.

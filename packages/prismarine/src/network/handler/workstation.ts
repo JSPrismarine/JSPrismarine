@@ -30,6 +30,7 @@ export const WORKSTATION_MATERIAL = 1;
 const SLOT_IDS: Partial<Record<WindowTypes, readonly number[]>> = {
     [WindowTypes.ENCHANTMENT]: [ContainerUiId.ENCHANTING_INPUT_CONTAINER, ContainerUiId.ENCHANTING_MATERIAL_CONTAINER],
     [WindowTypes.ANVIL]: [ContainerUiId.ANVIL_INPUT_CONTAINER, ContainerUiId.ANVIL_MATERIAL_CONTAINER],
+    [WindowTypes.TRADE]: [ContainerUiId.TRADE2_INGREDIENT1_CONTAINER, ContainerUiId.TRADE2_INGREDIENT2_CONTAINER],
     [WindowTypes.STONECUTTER]: [ContainerUiId.STONECUTTER_INPUT_CONTAINER],
     [WindowTypes.SMITHING_TABLE]: [
         ContainerUiId.SMITHING_TABLE_TEMPLATE_CONTAINER,

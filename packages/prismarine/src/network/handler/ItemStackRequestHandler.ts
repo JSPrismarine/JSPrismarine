@@ -36,6 +36,7 @@ import type { ItemStackRequest, ItemStackRequestSlotInfo } from '@jsprismarine/p
 import { ContainerUiId, ItemStackRequestActionType } from '@jsprismarine/protocol';
 import type { OpenBlockContainer } from '../PlayerSession';
 import type PacketHandler from './PacketHandler';
+import { selectTrade } from './tradeScreen';
 import {
     refreshEnchantOptions,
     takeAnvilResult,
@@ -127,6 +128,8 @@ interface WorkstationContext {
     readonly containerChanged: Set<number>;
     /** Accepted item drops, spawned after the batch response is sent. */
     readonly drops: Item[];
+    /** Work to do once the batch response is out, such as redrawing a trade screen. */
+    readonly after: Array<() => Promise<void>>;
 }
 
 /** Amount, as the docs bound it: a request moves between one item and a full stack of 64. */
@@ -354,6 +357,7 @@ export default class ItemStackRequestHandler implements PacketHandler<ItemStackR
         // other player with the same block open can be told once the packet has been answered.
         const containerChanged = new Set<number>();
         const drops: Item[] = [];
+        const after: Array<() => Promise<void>> = [];
 
         const response = new ItemStackResponsePacket();
         response.responses = packet.requests.map((request) =>
@@ -361,11 +365,13 @@ export default class ItemStackRequestHandler implements PacketHandler<ItemStackR
                 session,
                 changed: workstationChanged,
                 containerChanged,
-                drops
+                drops,
+                after
             })
         );
 
         await session.send(response);
+        for (const work of after) await work();
 
         if (drops.length > 0) await player.getWorld().dropFromPlayer(player, drops);
 
@@ -575,6 +581,8 @@ export default class ItemStackRequestHandler implements PacketHandler<ItemStackR
         // Effects stay local until every action passes. A later refusal restores the inventory
         // and must not leave the item entity that an accepted drop would have spawned.
         const requestDrops: Item[] = [];
+        // The same for a trader: its state moves only when the request that made the trade passed.
+        const commits: Array<() => void> = [];
 
         // A craft whose request names no slot to spend is spent by the server, from the grid it
         // matched. The retail client at 1.26.52 names each one, but nothing says every client
@@ -733,6 +741,33 @@ export default class ItemStackRequestHandler implements PacketHandler<ItemStackR
                             // stack per use, so it is this request's own already.
                             created = enchanted.stack;
                             touch([WORKSTATION, WORKSTATION_ITEM, workstationContainerId(open, WORKSTATION_ITEM), 0]);
+                            break;
+                        }
+
+                        // An open trade screen takes this action first, and the number is the
+                        // `netId` the offer was sent under, for the same reason an enchanting
+                        // table's is a row.
+                        if (open?.screen === WindowTypes.TRADE) {
+                            if (unpaid()) return deny('a trade began before the last one was paid for');
+
+                            const trade = selectTrade(player, open, action.recipeNetId ?? 0);
+                            if (trade === undefined) return deny('the villager refused the offer');
+
+                            created = trade.stack;
+                            if (spendsByStep) {
+                                owed = trade.owed;
+                                owedStore = WORKSTATION;
+                            } else {
+                                for (const [slot, amount] of trade.owed) {
+                                    const at: Located = [WORKSTATION, slot, workstationContainerId(open, slot), 0];
+                                    if (!take(at, amount))
+                                        return deny(`payment slot ${slot} holds fewer than ${amount}`);
+                                }
+                            }
+                            commits.push(() => {
+                                trade.commit();
+                                context.after.push(() => context.session.sendTradeOffers(open));
+                            });
                             break;
                         }
 
@@ -1085,6 +1120,7 @@ export default class ItemStackRequestHandler implements PacketHandler<ItemStackR
         // a refusal has to leave the block holding what it held.
         store?.commit();
         context.drops.push(...requestDrops);
+        for (const commit of commits) commit();
 
         for (const [kept, index] of touched.values()) {
             if (kept === WORKSTATION) context.changed.add(index);

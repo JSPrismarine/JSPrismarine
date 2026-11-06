@@ -264,6 +264,8 @@ export interface OpenTrade {
     context(): TradeContext;
     /** Called once when the screen closes, so the trader is free to trade with someone else. */
     release(): void;
+    /** Called after each trade that went through, for what the villager does about it. */
+    traded?(result: TradeResult): void;
 }
 
 /**
