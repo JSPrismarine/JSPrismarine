@@ -92,8 +92,6 @@ const sourceRevision = computed(() =>
 );
 const sourceUrl = (file: string, line?: number): string =>
     `https://github.com/JSPrismarine/JSPrismarine/blob/${sourceRevision.value}/${file}${line === undefined ? '' : `#L${line}`}`;
-const evidenceUrl = (file: string): string => withBase(`/${file}`);
-const videoType = (file: string): string => (file.toLowerCase().endsWith('.webm') ? 'video/webm' : 'video/mp4');
 
 const visibleFamilies = computed(() => {
     const snapshot = tracker.value;
@@ -111,7 +109,6 @@ const visibleFamilies = computed(() => {
                     entry.context,
                     entry.details,
                     entry.references?.map((part) => part.text).join(' '),
-                    entry.videos?.map((video) => [video.label, video.caption].filter(Boolean).join(' ')).join(' '),
                     entry.runtimeSupport?.status,
                     entry.runtimeSupport?.details,
                     entry.sourceFile
@@ -334,39 +331,6 @@ const percentage = trackerProgressPercent;
                         >
                             {{ entry.sourceFile.split('/').at(-1) }}
                         </a>
-                        <details v-if="entry.videos?.length" class="case-evidence">
-                            <summary>
-                                <span>Video evidence</span>
-                                <span class="evidence-count"
-                                    >{{ entry.videos.length }} {{ entry.videos.length === 1 ? 'clip' : 'clips' }}</span
-                                >
-                            </summary>
-                            <div class="evidence-clips">
-                                <figure v-for="video in entry.videos" :key="video.src" class="evidence-clip">
-                                    <video
-                                        controls
-                                        preload="none"
-                                        playsinline
-                                        :poster="video.poster ? evidenceUrl(video.poster) : undefined"
-                                        :aria-label="video.label"
-                                    >
-                                        <source :src="evidenceUrl(video.src)" :type="videoType(video.src)" />
-                                        Video playback is unavailable.
-                                    </video>
-                                    <figcaption>
-                                        <strong class="evidence-label">{{ video.label }}</strong>
-                                        <a
-                                            class="evidence-open"
-                                            :href="evidenceUrl(video.src)"
-                                            target="_blank"
-                                            rel="noreferrer"
-                                            >Open clip</a
-                                        >
-                                        <span v-if="video.caption" class="evidence-caption">{{ video.caption }}</span>
-                                    </figcaption>
-                                </figure>
-                            </div>
-                        </details>
                     </li>
                     <li v-if="family.visibleCases.length < family.matchCount" class="case-more">
                         <button type="button" @click="loadMoreCases(family.id)">
@@ -787,73 +751,6 @@ progress::-webkit-progress-value {
 .case-details {
     max-width: 65ch;
 }
-.case-evidence {
-    grid-column: 2 / -1;
-    border: 1px solid var(--tracker-border);
-    border-radius: 7px;
-    background: var(--tracker-surface);
-}
-.case-evidence > summary {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.75rem;
-    padding: 0.48rem 0.65rem;
-    color: var(--vp-c-brand-1);
-    cursor: pointer;
-    font-size: 0.72rem;
-    font-weight: 600;
-}
-.case-evidence > summary::marker {
-    color: var(--vp-c-brand-1);
-}
-.evidence-count {
-    color: var(--tracker-muted);
-    font-size: 0.66rem;
-    font-weight: 500;
-}
-.evidence-clips {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
-    gap: 0.85rem;
-    padding: 0.15rem 0.65rem 0.7rem;
-}
-.evidence-clip {
-    min-width: 0;
-    margin: 0;
-}
-.evidence-clip video {
-    display: block;
-    width: 100%;
-    aspect-ratio: 16 / 9;
-    border-radius: 5px;
-    background: var(--vp-c-bg-alt);
-    object-fit: contain;
-}
-.evidence-clip figcaption {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    gap: 0.2rem 0.65rem;
-    padding-top: 0.4rem;
-}
-.evidence-label {
-    overflow-wrap: anywhere;
-    font-size: 0.72rem;
-}
-.evidence-caption {
-    grid-column: 1 / -1;
-    color: var(--tracker-muted);
-    font-size: 0.68rem;
-    line-height: 1.45;
-}
-.evidence-open {
-    color: var(--vp-c-brand-1);
-    font-size: 0.68rem;
-    text-decoration: none;
-}
-.evidence-open:hover {
-    text-decoration: underline;
-}
 .status-badge {
     padding: 0.22rem 0.45rem;
     border-radius: 5px;
@@ -902,9 +799,7 @@ button:focus-visible,
 input:focus-visible,
 .family > summary:focus-visible,
 .file-link:focus-visible,
-.reference-link:focus-visible,
-.case-evidence > summary:focus-visible,
-.evidence-open:focus-visible {
+.reference-link:focus-visible {
     outline: 2px solid var(--vp-c-brand-1);
     outline-offset: 3px;
 }

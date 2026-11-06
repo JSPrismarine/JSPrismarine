@@ -7,27 +7,6 @@ name: Client E2E
 # once per protocol pin in cinnabar-build, only when the cache has no entry for that exact commit.
 # Every client-e2e job then restores that entry, so a run only boots the server, joins, and plays.
 on:
-    workflow_call:
-        inputs:
-            scenarios:
-                description: Space-separated scenario names; empty runs them all
-                type: string
-                required: false
-                default: ''
-            record:
-                description: Record the latest supported protocol as an MP4 artifact
-                type: boolean
-                required: false
-                default: false
-            latest_only:
-                description: Run only the latest supported protocol
-                type: boolean
-                required: false
-                default: false
-        outputs:
-            latest_protocol:
-                description: Latest supported Bedrock protocol
-                value: ${{ jobs.protocol-matrix.outputs.latest }}
     push:
         branches:
             - master
@@ -45,16 +24,24 @@ on:
             - packages/wire/**
             - packages/bedrock-data/sources.json
     pull_request:
-        # Keep one client-e2e run per PR and scale it down when no client runtime paths changed.
+        paths:
+            - .github/workflows/client-e2e.yml
+            - tools/client-e2e/**
+            - packages/auth/**
+            - packages/binaryutils/**
+            - packages/minecraft/**
+            - packages/nbt/**
+            - packages/prismarine/**
+            - packages/protocol/**
+            - packages/raknet/**
+            - packages/server/**
+            - packages/wire/**
+            - packages/bedrock-data/sources.json
     workflow_dispatch:
         inputs:
             scenarios:
                 description: Space-separated scenario names; empty runs them all
                 default: ''
-            record:
-                description: Also record the latest supported protocol as an MP4 artifact
-                type: boolean
-                default: false
             latest_only:
                 description: Run only the latest supported protocol
                 type: boolean
@@ -98,39 +85,8 @@ jobs:
                       throw new Error("BDS protocol pins must contain numeric protocol keys");
                   }
                   const latest = allProtocols.at(-1);
-                  const runtimePath = (file) => [
-                      ".github/workflows/client-e2e.yml",
-                      "tools/client-e2e/",
-                      "packages/auth/",
-                      "packages/binaryutils/",
-                      "packages/minecraft/",
-                      "packages/nbt/",
-                      "packages/prismarine/",
-                      "packages/protocol/",
-                      "packages/raknet/",
-                      "packages/server/",
-                      "packages/wire/",
-                      "packages/bedrock-data/sources.json",
-                  ].some((path) => path.endsWith("/") ? file.startsWith(path) : file === path);
-                  let files = [];
-                  if (process.env.EVENT_NAME === "pull_request") {
-                      const headers = {
-                          Accept: "application/vnd.github+json",
-                          Authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
-                          "X-GitHub-Api-Version": "2022-11-28",
-                      };
-                      for (let page = 1; ; page += 1) {
-                          const url = `https://api.github.com/repos/${process.env.GITHUB_REPOSITORY}/pulls/${process.env.PR_NUMBER}/files?per_page=100&page=${page}`;
-                          const response = await fetch(url, { headers });
-                          if (!response.ok) throw new Error(`Unable to read changed PR files: ${response.status} ${await response.text()}`);
-                          const pageFiles = await response.json();
-                          files.push(...pageFiles.map(({ filename }) => filename));
-                          if (pageFiles.length < 100) break;
-                      }
-                  }
-                  const evidenceOnly = process.env.EVENT_NAME === "pull_request" && files.length > 0 && !files.some(runtimePath);
-                  const latestOnly = process.env.LATEST_ONLY === "true" || evidenceOnly;
-                  const scenarios = process.env.SCENARIOS || (evidenceOnly ? "ender-dragon" : "");
+                  const latestOnly = process.env.LATEST_ONLY === "true";
+                  const scenarios = process.env.SCENARIOS || "";
                   const protocols = latestOnly ? [latest] : allProtocols;
                   console.log(`protocols=${JSON.stringify(protocols)}`);
                   console.log(`latest=${latest}`);
@@ -139,9 +95,6 @@ jobs:
               env:
                   LATEST_ONLY: ${{ inputs.latest_only }}
                   SCENARIOS: ${{ inputs.scenarios || '' }}
-                  EVENT_NAME: ${{ github.event_name }}
-                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-                  PR_NUMBER: ${{ github.event.pull_request.number }}
 
     cinnabar-build:
         name: 🔨 Build cinnabar client (protocol ${{ matrix.protocol }})
@@ -315,22 +268,17 @@ jobs:
                   key: ${{ steps.pin.outputs.key }}
                   fail-on-cache-miss: true
 
-            - name: 🍿 Install ffmpeg for recording
-              if: ${{ (inputs.record || github.event_name == 'pull_request') && matrix.protocol == needs.protocol-matrix.outputs.latest }}
-              run: brew install ffmpeg
-
             - name: 🎮 Run the client e2e scenarios
               env:
-                  # Both expand unquoted below: empty vanishes, and scenarios word-split by design.
+                  # Expands unquoted below: empty vanishes, and scenarios word-split by design.
                   # run.mts calls ensureCinnabar too; it finds the restored build and compiles nothing.
                   JSP_CINNABAR_CACHE_DIR: ${{ runner.temp }}/jsprismarine/cinnabar
-                  RECORD: ${{ (inputs.record || github.event_name == 'pull_request') && matrix.protocol == needs.protocol-matrix.outputs.latest && '--record' || '' }}
                   SCENARIOS: ${{ inputs.scenarios || needs.protocol-matrix.outputs.scenarios }}
                   PROTOCOL: ${{ matrix.protocol }}
                   NODE_OPTIONS: --max-old-space-size=4096
               run: |
                   # shellcheck disable=SC2086
-                  pnpm run e2e:client -- --artifacts "$RUNNER_TEMP/client-e2e" --protocol "$PROTOCOL" --concurrency 1 $RECORD $SCENARIOS
+                  pnpm run e2e:client -- --artifacts "$RUNNER_TEMP/client-e2e" --protocol "$PROTOCOL" --concurrency 1 $SCENARIOS
 
             - name: 🔎 Verify client e2e coverage
               id: client-e2e-coverage

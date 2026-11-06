@@ -16,18 +16,6 @@ export interface TrackerReferencePart {
     readonly href?: string;
 }
 
-/** A recording associated with a parity case and hosted in the docs site's public assets. */
-export interface TrackerVideo {
-    /** Short label that distinguishes this clip, such as "Before fix" or "After fix". */
-    readonly label: string;
-    /** Path relative to the VitePress public directory. */
-    readonly src: string;
-    /** Additional context shown below the player. */
-    readonly caption?: string;
-    /** Optional path relative to the VitePress public directory for the preview frame. */
-    readonly poster?: string;
-}
-
 /** One named data comparison or expected difference shown in the public parity tracker. */
 export interface TrackerCase {
     /** Stable id derived from the family and the compared data record, or the allow-list gap. */
@@ -50,8 +38,6 @@ export interface TrackerCase {
     readonly details?: string;
     /** Human-readable reference text, with repository files and URLs made clickable. */
     readonly references?: readonly TrackerReferencePart[];
-    /** Optional screen recordings that demonstrate this case. */
-    readonly videos?: readonly TrackerVideo[];
     /** Runtime entity support, reported separately from behavior parity. */
     readonly runtimeSupport?: TrackerRuntimeSupport;
 }

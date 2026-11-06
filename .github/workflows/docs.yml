@@ -37,52 +37,11 @@ jobs:
                   [ -n "$run_id" ] || { echo "No Linting run found for $TARGET_SHA" >&2; exit 1; }
                   gh run watch "$run_id" --repo "$GITHUB_REPOSITORY" --exit-status
 
-    find-client-e2e:
-        name: 🔎 Find existing client e2e artifact
-        needs: await-lint
-        runs-on: ubuntu-latest
-        outputs:
-            run_id: ${{ steps.find.outputs.run_id }}
-        steps:
-            - name: 🔎 Locate client e2e run for this commit
-              id: find
-              env:
-                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-                  TARGET_SHA: ${{ github.sha }}
-              run: |
-                  run_id="$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/client-e2e.yml/runs?head_sha=$TARGET_SHA&event=push&branch=master&per_page=100" --jq '.workflow_runs[0].id // ""')"
-                  echo "run_id=$run_id" >> "$GITHUB_OUTPUT"
-
-    await-client-e2e:
-        name: ⏳ Wait for existing client e2e run
-        if: needs.find-client-e2e.outputs.run_id != ''
-        needs: find-client-e2e
-        runs-on: ubuntu-latest
-        steps:
-            - name: ⏳ Wait for the matching client e2e run
-              env:
-                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-                  RUN_ID: ${{ needs.find-client-e2e.outputs.run_id }}
-              run: gh run watch "$RUN_ID" --repo "$GITHUB_REPOSITORY" --exit-status
-
-    parity-evidence:
-        name: 🎬 Record parity evidence
-        if: ${{ needs.find-client-e2e.outputs.run_id == '' }}
-        needs: find-client-e2e
-        uses: ./.github/workflows/client-e2e.yml
-        with:
-            scenarios: ender-dragon
-            record: true
-            latest_only: true
-        secrets: inherit
-
     build-and-publish-docs:
         name: 📖 Build and Publish Docs
         runs-on: ubuntu-latest
-        if: ${{ always() && (needs.await-client-e2e.result == 'success' || needs.parity-evidence.result == 'success') }}
-        needs: [find-client-e2e, await-client-e2e, parity-evidence]
+        needs: await-lint
         permissions:
-            actions: read
             contents: write
         env:
             TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
@@ -93,29 +52,8 @@ jobs:
             - name: 📦 Install
               uses: ./.github/common/install
 
-            - name: 🧭 Read latest supported protocol
-              id: protocol
-              run: |
-                  node --input-type=module -e 'import fs from "node:fs"; const { bds } = JSON.parse(fs.readFileSync("packages/bedrock-data/sources.json", "utf8")); const protocols = Object.keys(bds.versions).map(Number).sort((a, b) => a - b); if (protocols.length === 0) throw new Error("No supported Bedrock protocols are configured"); console.log("latest=" + protocols.at(-1));' >> "$GITHUB_OUTPUT"
-
-            - name: 📥 Download latest-protocol client evidence
-              uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
-              with:
-                  name: client-e2e-evidence-protocol-${{ steps.protocol.outputs.latest }}
-                  run-id: ${{ needs.find-client-e2e.outputs.run_id || github.run_id }}
-                  github-token: ${{ secrets.GITHUB_TOKEN }}
-                  path: ${{ runner.temp }}/parity-evidence
-
-            - name: 🎞️ Stage parity evidence for GitHub Pages
-              run: |
-                  mkdir -p tools/docs/site/public/parity-evidence
-                  cp "$RUNNER_TEMP/parity-evidence/ender-dragon/run.mp4" tools/docs/site/public/parity-evidence/ender-dragon.mp4
-                  cp "$RUNNER_TEMP/parity-evidence/ender-dragon/fountain.png" tools/docs/site/public/parity-evidence/ender-dragon.png
-
-            - name: 📖 Build docs with CI-generated parity evidence
+            - name: 📖 Build docs
               run: pnpm run build:docs
-              env:
-                  PARITY_EVIDENCE_REQUIRED: 'true'
 
             - uses: peaceiris/actions-gh-pages@84c30a85c19949d7eee79c4ff27748b70285e453 # v4
               with:
