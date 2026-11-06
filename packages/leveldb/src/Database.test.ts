@@ -1,5 +1,6 @@
 import { spawn } from 'node:child_process';
 import fs from 'node:fs';
+import { createRequire } from 'node:module';
 import os from 'node:os';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -580,18 +581,18 @@ describe('leveldb', () => {
                 // Killed for real, in a child process: simulating it from here would only exercise
                 // the same-process guard, which is a different mechanism.
                 const directory = scratch();
-                const built = path.resolve(import.meta.dirname, '..', 'dist', 'index.es.js');
-                if (!fs.existsSync(built)) {
-                    throw new Error(`This test needs the built package at ${built} - run its build first`);
-                }
+                const source = path.resolve(import.meta.dirname, 'index.ts');
+                const tsxLoader = pathToFileURL(createRequire(import.meta.url).resolve('tsx')).href;
                 const packageRoot = path.resolve(import.meta.dirname, '..');
 
                 const child = spawn(
                     process.execPath,
                     [
+                        '--import',
+                        tsxLoader,
                         '--input-type=module',
                         '-e',
-                        `import { Database } from ${JSON.stringify(pathToFileURL(built).href)};
+                        `import { Database } from ${JSON.stringify(pathToFileURL(source).href)};
                          const db = await Database.open(${JSON.stringify(directory)}, { writeBufferSize: 1 });
                          db.put(Buffer.from('written'), Buffer.alloc(4 * 1024 * 1024, 0x5a));
                          console.log('ready');
