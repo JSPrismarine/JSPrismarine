@@ -30,6 +30,24 @@ actor array). Source that fails to parse still compiles, to a constant 0 with a 
 diagnostic, which matches how the engine turns a broken expression into a content error rather
 than a crash.
 
+## Writing expressions
+
+Expressions are written as Bedrock behavior packs write them, and the docs highlight them as `molang`:
+
+```molang
+query.is_baby ? 0.02 : 0.001
+```
+
+A complex expression is a list of statements ending in `;`. Its value is whatever `return` gives, and
+`v.` and `t.` are short for `variable.` and `temp.`:
+
+```molang
+v.total = 0; loop(5, { v.total = v.total + 2; }); return v.total;
+```
+
+The package README lists ten more, each with the values it produces under a given scope. They are
+exported as `MOLANG_EXAMPLES` and checked by the test suite, so they can be copied as they are.
+
 ## Scopes
 
 A scope is everything one evaluation can see. All of its members are optional; supply the ones

@@ -1,5 +1,6 @@
 import { defineConfig } from 'vitepress';
 import mcfunction from './mcfunction.tmLanguage.json';
+import molang from './molang.tmLanguage.json';
 import typedocSidebar from '../api/typedoc-sidebar.json';
 
 export default defineConfig({
@@ -13,9 +14,9 @@ export default defineConfig({
         }
     ],
     markdown: {
-        // Shiki ships no grammar for mcfunction, so fences in the package
-        // READMEs fall back to plain text; register the local one.
-        languages: [mcfunction]
+        // Shiki ships no grammar for mcfunction or Molang, so their fences fall
+        // back to plain text; register the local ones.
+        languages: [mcfunction, molang]
     },
     themeConfig: {
         nav: [

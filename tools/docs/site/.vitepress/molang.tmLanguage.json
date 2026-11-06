@@ -1,0 +1,108 @@
+{
+    "name": "molang",
+    "scopeName": "source.molang",
+    "patterns": [
+        {
+            "include": "#string"
+        },
+        {
+            "include": "#number"
+        },
+        {
+            "include": "#control"
+        },
+        {
+            "include": "#constant"
+        },
+        {
+            "include": "#namespace"
+        },
+        {
+            "include": "#member"
+        },
+        {
+            "include": "#operator"
+        },
+        {
+            "include": "#punctuation"
+        },
+        {
+            "include": "#identifier"
+        }
+    ],
+    "repository": {
+        "string": {
+            "name": "string.quoted.single.molang",
+            "begin": "'",
+            "end": "'",
+            "patterns": [
+                {
+                    "match": "\\\\.",
+                    "name": "constant.character.escape.molang"
+                }
+            ]
+        },
+        "number": {
+            "match": "(?<![\\w.])(?:\\d+\\.?\\d*|\\.\\d+)(?:[eE][+-]?\\d+)?(?![\\w.])",
+            "name": "constant.numeric.molang"
+        },
+        "control": {
+            "match": "\\b(?:return|loop|for_each|break|continue)\\b",
+            "name": "keyword.control.molang"
+        },
+        "constant": {
+            "match": "\\b(?:true|false|this)\\b",
+            "name": "constant.language.molang"
+        },
+        "operator": {
+            "patterns": [
+                {
+                    "match": "\\?\\?|&&|\\|\\||==|!=|<=|>=|->",
+                    "name": "keyword.operator.molang"
+                },
+                {
+                    "match": "[?:<>!=+\\-*/]",
+                    "name": "keyword.operator.molang"
+                }
+            ]
+        },
+        "punctuation": {
+            "match": "[(){}\\[\\],;]",
+            "name": "punctuation.separator.molang"
+        },
+        "identifier": {
+            "match": "\\b[A-Za-z_][\\w]*\\b",
+            "name": "variable.other.molang"
+        },
+        "namespace": {
+            "match": "\\b(?:query|q|math|variable|v|temp|t|context|c|geometry|material|texture|array)\\b(?=\\s*\\.)",
+            "name": "support.class.molang"
+        },
+        "member": {
+            "patterns": [
+                {
+                    "match": "(\\.)\\s*([A-Za-z_]\\w*)(?=\\s*\\()",
+                    "captures": {
+                        "1": {
+                            "name": "punctuation.accessor.molang"
+                        },
+                        "2": {
+                            "name": "support.function.molang"
+                        }
+                    }
+                },
+                {
+                    "match": "(\\.)\\s*([A-Za-z_]\\w*)",
+                    "captures": {
+                        "1": {
+                            "name": "punctuation.accessor.molang"
+                        },
+                        "2": {
+                            "name": "variable.other.property.molang"
+                        }
+                    }
+                }
+            ]
+        }
+    }
+}

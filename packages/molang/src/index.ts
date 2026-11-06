@@ -8,3 +8,4 @@ export * from './parser';
 export * from './queries';
 export * from './scope';
 export * from './version';
+export * from './examples';
