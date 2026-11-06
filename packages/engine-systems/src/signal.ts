@@ -21,7 +21,7 @@ const LEVER_DIRECTION_STATE = 'lever_direction';
 const OBSERVER_POWERED_STATE = 'powered_bit';
 const SIGNAL_STATE = 'redstone_signal';
 const FACING_STATE = 'facing_direction';
-const ATTACHMENT_STATE = 'attachment_face';
+const TORCH_FACING_STATE = 'torch_facing_direction';
 const REDSTONE_WIRE = 'minecraft:redstone_wire';
 const REDSTONE_BLOCK = 'minecraft:redstone_block';
 const REDSTONE_TORCH = { lit: 'minecraft:redstone_torch', unlit: 'minecraft:unlit_redstone_torch' } as const;
@@ -55,7 +55,22 @@ const directionState = (block: BlockRef, state: string, fallback: Direction): Di
 };
 
 const facingOf = (block: BlockRef): Direction => directionState(block, FACING_STATE, 'north');
-const attachmentOf = (block: BlockRef): Direction => directionState(block, ATTACHMENT_STATE, 'down');
+
+/**
+ * Bedrock's `facing_direction` values, in its order: 0 is down and 5 is east. A button's names the
+ * face it points out of, away from the block it is mounted on.
+ */
+const FACING_DIRECTION_VALUES: readonly Direction[] = ['down', 'up', 'north', 'south', 'west', 'east'];
+
+/**
+ * The direction from a redstone torch to the block it stands on or hangs from.
+ *
+ * Bedrock's `torch_facing_direction` names that direction itself for a wall torch, the opposite of
+ * Java's `facing`, which is why the generated state vocabulary swaps north with south and west with
+ * east. A torch on the floor says `top`, or `unknown` before it is placed, and rests on the block
+ * below.
+ */
+const torchSupportOf = (block: BlockRef): Direction => directionState(block, TORCH_FACING_STATE, 'down');
 /**
  * The direction from a lever's support block to the lever, which is the one way it powers that
  * block strongly. Bedrock names it in `lever_direction`: a wall lever by the way it faces, and a
@@ -69,8 +84,18 @@ const leverConnectedDirection = (block: BlockRef): Direction => {
     return DIRECTIONS_BY_NAME[value] ?? 'up';
 };
 
+/**
+ * The direction from a button's support block to the button, which is the one way it powers that
+ * block strongly. A floor button faces up and a ceiling button down, as Java's connected direction
+ * does; a wall button faces the way it points out of its wall.
+ */
+const buttonConnectedDirection = (block: BlockRef): Direction => {
+    const value = block.states[FACING_STATE];
+    return (typeof value === 'number' ? FACING_DIRECTION_VALUES[value] : undefined) ?? 'up';
+};
+
 const connectedDirectionOf = (block: BlockRef): Direction =>
-    block.name === LEVER ? leverConnectedDirection(block) : opposite(attachmentOf(block));
+    block.name === LEVER ? leverConnectedDirection(block) : buttonConnectedDirection(block);
 const isButton = (name: string): boolean => name.endsWith('_button');
 const isPressurePlate = (name: string): boolean => name.endsWith('_pressure_plate');
 const isDaylightDetector = (name: string): boolean =>
@@ -134,7 +159,7 @@ export const weakSignalOf = (world: WorldAccess, at: BlockPosition, direction: D
     }
 
     if (name === REDSTONE_TORCH.lit || name === REDSTONE_TORCH.unlit) {
-        return direction === opposite(attachmentOf(block)) ? SIGNAL_NONE : ownSignalOf(world, at, block);
+        return direction === opposite(torchSupportOf(block)) ? SIGNAL_NONE : ownSignalOf(world, at, block);
     }
 
     if (isDiode(name) || name === OBSERVER) {
