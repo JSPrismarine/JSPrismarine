@@ -6,6 +6,7 @@ import type ContainerEntry from '../../inventory/ContainerEntry';
 import type PlayerSession from '../../network/PlayerSession';
 import { TakeItemActorPacket } from '@jsprismarine/protocol';
 import { Entity } from '../Entity';
+import type { DamageSource } from '../DamageSource';
 
 /**
  * How an item moves, as a Bedrock Dedicated Server 1.26.52 moves one.
@@ -163,6 +164,18 @@ export class Item extends Entity {
     /** A dropped stack goes on the wire as an item actor, not as a generic one. */
     public override async spawnTo(session: PlayerSession): Promise<void> {
         await session.sendAddItemActor(this);
+    }
+
+    /**
+     * A killed stack leaves the world, as `/kill` on a dropped item does in vanilla.
+     *
+     * It has the health a living thing has, so a kill reduces it to zero, and with nothing to
+     * play out - no death animation, no loot - the stack stayed in the world and on every
+     * client's screen, dead and still pickable, until a second `/kill` took it away.
+     */
+    protected override async onDeath(source: DamageSource): Promise<void> {
+        await super.onDeath(source);
+        await this.getWorld().removeEntity(this);
     }
 
     public async update(tick: number) {

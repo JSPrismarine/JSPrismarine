@@ -475,4 +475,13 @@ describe('entity', () => {
             });
         });
     });
+
+    it('leaves the world when it is killed, rather than lying there dead', async () => {
+        const world = fakeWorld(63);
+        const stack = droppedAt(world, 64);
+
+        await stack.setHealth(0);
+
+        expect(world.removed).toEqual([stack]);
+    });
 });
