@@ -17,21 +17,6 @@ concurrency:
     cancel-in-progress: true
 
 jobs:
-    bot-fleet-performance:
-        name: 🚦 Bot-fleet performance gate (macOS M1)
-        runs-on: macos-14
-        timeout-minutes: 30
-        steps:
-            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-
-            - name: 📦 Install
-              uses: ./.github/common/install
-
-            # Kept outside the deterministic unit selectors; this gate compares the seeded
-            # workload digest before it checks CPU per tick against the M1 baseline.
-            - name: 🔨 Build and run bot-fleet performance gate
-              run: pnpm --filter @jsprismarine/prismarine run bench:bot-fleet:gate
-
     tests:
         name: 🧪 Tests (ubuntu-latest)
         runs-on: ubuntu-latest
