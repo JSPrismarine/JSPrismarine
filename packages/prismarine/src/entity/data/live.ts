@@ -596,6 +596,45 @@ export class LiveEntityRuntime {
         return id !== undefined && this.runtime.dyeEntity(id, color);
     }
 
+    /**
+     * Opens a villager's trade screen for a player who used an empty hand or a non-egg item on it.
+     *
+     * A spawn egg and a sneaking player are left to the usual interaction, as Java's
+     * `Villager.mobInteract` leaves them. Everything else on a trader that has offers opens the
+     * screen, and one that has none or is a baby does nothing.
+     */
+    private openTradeScreen(id: number, trader: Entity, player: Entity, itemIdentifier: string): boolean {
+        if (!(player instanceof Player) || itemIdentifier.endsWith('_spawn_egg') || player.isSneaking()) return false;
+        const entity = this.runtime.byId(id);
+        if (entity === undefined) return false;
+        const merchant = this.runtime.merchant(entity);
+        if (merchant === undefined) return false;
+
+        const playerId = Number(player.getRuntimeId());
+        if (!this.runtime.beginTrade(id, playerId)) return false;
+
+        void player
+            .getNetworkSession()
+            .openTradeWindow({
+                trader,
+                source: merchant,
+                context: () => {
+                    const hero = player.getStatusEffect('minecraft:village_hero');
+                    return hero === undefined ? {} : { heroOfTheVillage: hero.amplifier + 1 };
+                },
+                release: () => this.runtime.endTrade(id, playerId)
+            })
+            .then((window) => {
+                // Already open on this trader: nothing was opened, so there is nothing to release.
+                if (window === undefined) this.runtime.endTrade(id, playerId);
+            })
+            .catch((error: unknown) => {
+                this.runtime.endTrade(id, playerId);
+                this.options.report(String(error));
+            });
+        return true;
+    }
+
     /** Applies a held item to a data-driven entity and carries out its world, item, and animation effects. */
     public interactWithItem(
         target: Entity,
@@ -605,6 +644,8 @@ export class LiveEntityRuntime {
     ): EntityItemInteraction {
         const id = this.bodies.entityIdOf(target);
         if (id === undefined) return { accepted: false };
+
+        if (this.openTradeScreen(id, target, player, itemIdentifier)) return { accepted: true, swing: true };
 
         const previousLoveTicks = this.runtime.byId(id)?.body.loveTicks ?? 0;
         const interaction = this.runtime.interactWithItem(

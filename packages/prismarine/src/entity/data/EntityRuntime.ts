@@ -2459,6 +2459,29 @@ export class EntityRuntime implements EntityScene {
         trader.tradingPlayer = player.id;
     }
 
+    /**
+     * Claims a trader for one player, the way Java's `Villager.startTrading` does.
+     *
+     * @returns Whether the trader may be traded with: it is alive, awake, grown, not already
+     * trading and has offers. A baby only shakes its head, so it does not open a screen.
+     */
+    public beginTrade(id: number, playerId: number): boolean {
+        const entity = this.entities.get(id);
+        if (entity === undefined || entity.removed !== undefined) return false;
+        if (entity.body.tradingPlayer !== undefined || entity.body.sleeping) return false;
+        if (entity.instance.hasComponent('minecraft:is_baby')) return false;
+        if ((this.merchant(entity)?.offers().length ?? 0) === 0) return false;
+
+        entity.body.tradingPlayer = playerId;
+        return true;
+    }
+
+    /** Frees a trader once its player has left the screen, if that player is still the one it trades with. */
+    public endTrade(id: number, playerId: number): void {
+        const entity = this.entities.get(id);
+        if (entity !== undefined && entity.body.tradingPlayer === playerId) entity.body.tradingPlayer = undefined;
+    }
+
     /** Whether two entities may breed with each other now. */
     public canBreedWith(parent: MobBody, mate: GoalMob): boolean {
         const self = this.entities.get(parent.id);

@@ -11,6 +11,10 @@ import type { ProtocolCodec } from '@jsprismarine/protocol';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import ContainerOpenPacket from '@jsprismarine/protocol/packet/ContainerOpenPacket';
 import InventoryContentPacket from '@jsprismarine/protocol/packet/InventoryContentPacket';
+import UpdateTradePacket from '@jsprismarine/protocol/packet/UpdateTradePacket';
+import { Merchant, parseTradeTable } from '@jsprismarine/trading';
+import { seededRandom } from '@jsprismarine/predicates';
+import type { Entity } from '../entity/Entity';
 import PlayerSession from './PlayerSession';
 
 const protocolCodec = stub<ProtocolCodec>({ context: { protocolVersion: 2193 } });
@@ -183,6 +187,104 @@ describe('network', () => {
 
             expect(session.closeWindow(WindowIds.INVENTORY)).toBe(false);
             expect(session.closeWindow(42)).toBe(false);
+        });
+
+        describe('a trade screen', () => {
+            const table = parseTradeTable(
+                {
+                    tiers: [
+                        {
+                            total_exp_required: 0,
+                            groups: [
+                                {
+                                    num_to_select: -1,
+                                    trades: [
+                                        {
+                                            wants: [{ item: 'minecraft:emerald', quantity: 1 }],
+                                            gives: [{ item: 'minecraft:bread', quantity: 6 }],
+                                            trader_exp: 2,
+                                            max_uses: 12
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                },
+                { pack: 'test' }
+            )!;
+
+            const trader = () =>
+                stub<Entity>({
+                    getRuntimeId: () => 42n,
+                    getType: () => 'minecraft:villager_v2',
+                    getName: () => 'Farmer',
+                    getPosition: () => new Vector3(1, 64, 2)
+                } as Partial<Entity>);
+
+            it('opens on the trader and sends its offers', async () => {
+                const { session, sent } = sessionFor();
+                const released: string[] = [];
+                const merchant = new Merchant({ table, random: seededRandom(1) });
+
+                const opened = await session.openTradeWindow({
+                    trader: trader(),
+                    source: merchant,
+                    context: () => ({}),
+                    release: () => void released.push('released')
+                });
+
+                const [open, offers] = sent;
+                expect(open).toBeInstanceOf(ContainerOpenPacket);
+                expect(open).toMatchObject({
+                    windowId: WindowIds.FIRST,
+                    containerType: WindowTypes.TRADE,
+                    containerEntityId: 42n
+                });
+                expect(offers).toBeInstanceOf(UpdateTradePacket);
+                expect((offers as UpdateTradePacket).getPacketData()).toMatchObject({
+                    containerId: WindowIds.FIRST,
+                    size: 1,
+                    traderTier: 0,
+                    entityUniqueId: 42n,
+                    displayName: 'Farmer'
+                });
+                expect(opened?.inputs).toEqual([null, null]);
+                expect(released).toEqual([]);
+            });
+
+            it('releases the trader when the client closes the screen', async () => {
+                const { session } = sessionFor();
+                const released: string[] = [];
+                await session.openTradeWindow({
+                    trader: trader(),
+                    source: new Merchant({ table, random: seededRandom(1) }),
+                    context: () => ({}),
+                    release: () => void released.push('released')
+                });
+
+                expect(session.closeWindow(WindowIds.FIRST)).toBe(true);
+
+                expect(released).toEqual(['released']);
+                expect(session.getOpenBlockContainer()).toBeUndefined();
+            });
+
+            it('does not open a second screen on the trader it already has open', async () => {
+                const { session, sent } = sessionFor();
+                const same = trader();
+                const open = () =>
+                    session.openTradeWindow({
+                        trader: same,
+                        source: new Merchant({ table, random: seededRandom(1) }),
+                        context: () => ({}),
+                        release: () => undefined
+                    });
+                await open();
+                const before = sent.length;
+
+                expect(await open()).toBeUndefined();
+                expect(sent.length).toBe(before);
+            });
         });
     });
 });

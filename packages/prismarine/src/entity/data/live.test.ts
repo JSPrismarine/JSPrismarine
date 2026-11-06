@@ -66,6 +66,7 @@ import { EntitySerializer } from '../EntitySerializer';
 import { MetadataFlag } from '@jsprismarine/protocol/wire/structures/Metadata';
 import { Item as ItemEntity } from '../other/Item';
 import { loose } from '../Archery';
+import type { OpenBlockContainer, OpenTrade } from '../../network/PlayerSession';
 import { dataEntityRecordIn } from './persistence';
 import { EntityRuntimes } from './live';
 import type { LiveEntityRuntime } from './live';
@@ -2045,6 +2046,79 @@ describe('the data-driven entity runtime over a live world', () => {
 
             expect(record.merchant).toBeUndefined();
             expect(restored === undefined ? undefined : live.runtime.merchant(restored)?.offers()[0]?.uses).toBe(0);
+        });
+
+        describe('the trade screen', () => {
+            /** A player whose session records the trade windows it is asked to open. */
+            const tradingPlayer = (x: number, z: number, sneaking = false) => {
+                const player = addPlayer(x, z);
+                const opened: OpenTrade[] = [];
+                Object.assign(player, {
+                    inventory: new HumanInventory(),
+                    isSneaking: () => sneaking,
+                    getStatusEffect: () => undefined,
+                    getNetworkSession: () =>
+                        stub<PlayerSession>({
+                            openTradeWindow: async (trade: OpenTrade) => {
+                                opened.push(trade);
+                                return stub<OpenBlockContainer>({});
+                            }
+                        })
+                });
+                return { player, opened };
+            };
+            const villagerBody = () => {
+                const villager = live.runtime.spawn('minecraft:villager_v2', { x: 0.5, y: GROUND_Y, z: 0.5 });
+                if (villager === undefined) throw new Error('the fixture declares no minecraft:villager_v2');
+                const body = live.bodies.bodyOf(villager.id);
+                if (body === undefined) throw new Error('the villager has no client-facing body');
+                return { villager, body };
+            };
+
+            it('opens for a player who uses an empty hand on a villager that has offers', async () => {
+                const { player, opened } = tradingPlayer(1, 0);
+                const { villager, body } = villagerBody();
+
+                await useHeldItemOnEntity(player, body.getRuntimeId());
+
+                expect(opened).toHaveLength(1);
+                expect(opened[0]?.trader).toBe(body);
+                expect(villager.body.tradingPlayer).toBe(Number(player.getRuntimeId()));
+            });
+
+            it('frees the villager again when the player closes the screen', async () => {
+                const { player, opened } = tradingPlayer(1, 0);
+                const { villager, body } = villagerBody();
+                await useHeldItemOnEntity(player, body.getRuntimeId());
+
+                opened[0]?.release();
+
+                expect(villager.body.tradingPlayer).toBeUndefined();
+            });
+
+            it('trades with one player at a time', async () => {
+                const first = tradingPlayer(1, 0);
+                const { body } = villagerBody();
+                await useHeldItemOnEntity(first.player, body.getRuntimeId());
+                const second = tradingPlayer(2, 0);
+
+                await useHeldItemOnEntity(second.player, body.getRuntimeId());
+
+                expect(first.opened).toHaveLength(1);
+                expect(second.opened).toHaveLength(0);
+            });
+
+            it('does not open for a sneaking player, a sleeping villager or a baby', async () => {
+                const sneaking = tradingPlayer(1, 0, true);
+                const { villager, body } = villagerBody();
+                await useHeldItemOnEntity(sneaking.player, body.getRuntimeId());
+                expect(sneaking.opened).toHaveLength(0);
+
+                const standing = tradingPlayer(1, 1);
+                villager.body.sleeping = true;
+                await useHeldItemOnEntity(standing.player, body.getRuntimeId());
+                expect(standing.opened).toHaveLength(0);
+            });
         });
 
         it('opens a screen for a player without running goals on a brain-only villager', async () => {

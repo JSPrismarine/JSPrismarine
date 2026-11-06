@@ -29,6 +29,9 @@ import { vanillaPermissionOf } from '../command/CommandManager';
 import { commandDataOf } from '../command/availableCommands';
 import type { Attribute, Attributes } from '@jsprismarine/protocol/wire/structures/Attribute';
 import type { Entity } from '../entity/Entity';
+import type { LiveOffer, TradeContext, TradeResult } from '@jsprismarine/trading';
+import UpdateTradePacket from '@jsprismarine/protocol/packet/UpdateTradePacket';
+import { tradeOffersPayload } from './tradeOffers';
 import type { StatusEffect, StatusEffectChange } from '../entity/StatusEffect';
 import { bedrockMobEffectId } from '../entity/StatusEffect';
 import type { Metadata } from '@jsprismarine/protocol/wire/structures/Metadata';
@@ -237,6 +240,30 @@ export interface OpenBlockContainer {
      * row that is applied are drawn from one number. Zero for every other screen.
      */
     bookshelfPower: number;
+    /** Set when the window is a villager's trade screen rather than a block's container. */
+    readonly trade?: OpenTrade;
+}
+
+/** What a trade screen needs from the trader it is open on. */
+export interface TradeSource {
+    /** The offers with the prices the player pays now. */
+    offers(context?: TradeContext): readonly LiveOffer[];
+    /** Runs one trade; see {@link Merchant.trade}. */
+    trade(index: number, context?: TradeContext): TradeResult;
+    /** The experience each level asks for. */
+    tierRequirements(): readonly number[];
+    /** The trader's level, from one. */
+    readonly level: number;
+}
+
+/** A trade screen's trader, and what happens when the player stops trading. */
+export interface OpenTrade {
+    readonly trader: Entity;
+    readonly source: TradeSource;
+    /** The player's own state the discounts read, such as Hero of the Village. */
+    context(): TradeContext;
+    /** Called once when the screen closes, so the trader is free to trade with someone else. */
+    release(): void;
 }
 
 /**
@@ -1298,6 +1325,83 @@ export default class PlayerSession {
         return opened;
     }
 
+    /**
+     * Opens a villager's trade screen and shows it the trader's offers.
+     *
+     * The screen is a window like a block's: it has two payment slots the player's items go into
+     * and a result the trade comes out of, and closing it gives the payment back. It differs in
+     * being open on an actor, which the packet names, and in what follows the open: an
+     * `UpdateTradePacket` carrying the offers, which the client draws the screen from.
+     *
+     * @param trade - The trader, where its offers come from and what happens when the player leaves.
+     * @returns The window, or undefined when this session already has a trade open on that trader.
+     */
+    public async openTradeWindow(trade: OpenTrade): Promise<OpenBlockContainer | undefined> {
+        if (this.blockContainer?.trade?.trader === trade.trader) return undefined;
+        this.releaseTrade();
+
+        const packet = new ContainerOpenPacket();
+        packet.windowId = this.nextWindowId();
+        packet.containerType = WindowTypes.TRADE;
+        packet.containerPos = trade.trader.getPosition();
+        packet.containerEntityId = trade.trader.getRuntimeId();
+        this.openWindows.set(packet.windowId, packet.containerType);
+        this.containerData.clear();
+        const opened: OpenBlockContainer = {
+            windowId: packet.windowId,
+            position: trade.trader.getPosition(),
+            identifier: trade.trader.getType(),
+            screen: WindowTypes.TRADE,
+            inputs: [null, null],
+            bookshelfPower: 0,
+            trade
+        };
+        this.blockContainer = opened;
+
+        try {
+            await this.connection.sendDataPacket(packet);
+            await this.sendTradeOffers(opened);
+        } catch (error) {
+            this.openWindows.delete(packet.windowId);
+            if (this.blockContainer === opened) this.blockContainer = undefined;
+            trade.release();
+            throw error;
+        }
+
+        return opened;
+    }
+
+    /** Sends the open trade screen the trader's offers as they stand, after a trade or a restock. */
+    public async sendTradeOffers(window: OpenBlockContainer | undefined = this.blockContainer): Promise<void> {
+        const trade = window?.trade;
+        if (window === undefined || trade === undefined) return;
+
+        const context = trade.context();
+        const offers = trade.source.offers(context);
+        const packet = new UpdateTradePacket({
+            containerId: window.windowId,
+            type: WindowTypes.TRADE,
+            size: offers.length,
+            traderTier: trade.source.level - 1,
+            entityUniqueId: trade.trader.getRuntimeId(),
+            lastTradingPlayer: this.player.getRuntimeId(),
+            displayName: trade.trader.getName(),
+            useNewTradeScreen: true,
+            usingEconomyTrade: true,
+            data: tradeOffersPayload(offers, trade.source.tierRequirements())
+        });
+        await this.connection.sendDataPacket(packet);
+    }
+
+    /** Tells the trader the player has stopped trading, if a trade screen is open. */
+    private releaseTrade(): void {
+        const trade = this.blockContainer?.trade;
+        if (trade === undefined) return;
+
+        this.blockContainer = undefined;
+        trade.release();
+    }
+
     /** The block container this session has open, or undefined for none. */
     public getOpenBlockContainer(): OpenBlockContainer | undefined {
         return this.blockContainer;
@@ -1348,8 +1452,10 @@ export default class PlayerSession {
      */
     public closeWindow(windowId: number): boolean {
         if (this.blockContainer?.windowId === windowId) {
+            const trade = this.blockContainer.trade;
             this.blockContainer = undefined;
             this.containerData.clear();
+            trade?.release();
         }
 
         return this.openWindows.delete(windowId);
