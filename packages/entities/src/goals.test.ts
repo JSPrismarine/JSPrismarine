@@ -276,4 +276,48 @@ describe('GoalScheduler', () => {
         expect(scheduler.names()).toEqual(['kept']);
         expect(scheduler.runningGoals()).toEqual(['kept']);
     });
+
+    it('calls every callback in the same order across a preemption sequence', () => {
+        const log: string[] = [];
+        const scheduler = new GoalScheduler();
+        const low = new RecordingGoal('low', log);
+        const mid = new RecordingGoal('mid', log);
+        const high = new RecordingGoal('high', log);
+        const free = new RecordingGoal('free', log);
+        scheduler.add(entry('low', 3, ['move', 'look'], low));
+        scheduler.add(entry('mid', 2, ['look', 'jump'], mid));
+        scheduler.add(entry('high', 1, ['move'], high));
+        scheduler.add(entry('free', 5, [], free));
+
+        low.ready = true;
+        free.ready = true;
+        scheduler.tick();
+        mid.ready = true;
+        scheduler.tick();
+        high.ready = true;
+        scheduler.tick();
+        low.ready = false;
+        mid.ready = false;
+        scheduler.tick();
+
+        expect(log).toEqual([
+            'start low',
+            'start free',
+            'tick low',
+            'tick free',
+            'stop low',
+            'start mid',
+            'tick mid',
+            'tick free',
+            'start high',
+            'tick high',
+            'tick mid',
+            'tick free',
+            'stop mid',
+            'tick high',
+            'tick free'
+        ]);
+        expect(scheduler.holderOf('move')).toBe('high');
+        expect(scheduler.holderOf('look')).toBeUndefined();
+    });
 });

@@ -121,6 +121,14 @@ export interface ScheduledGoal extends GoalSettings {
     readonly goal: Goal;
 }
 
+/** A registered goal with the state the scheduler keeps beside it, so a tick never looks one up by name. */
+interface GoalSlot {
+    readonly entry: ScheduledGoal;
+    running: boolean;
+    /** The goal's control flags as indices into {@link CONTROL_FLAGS}. */
+    readonly flagIndices: readonly number[];
+}
+
 /**
  * Runs one goal per control flag, choosing by priority.
  *
@@ -134,12 +142,12 @@ export interface ScheduledGoal extends GoalSettings {
  * the targeting goals work.
  */
 export class GoalScheduler {
-    private readonly entries = new Map<string, ScheduledGoal>();
-    private readonly running = new Set<string>();
-    private readonly holders = new Map<ControlFlag, string>();
+    private readonly entries = new Map<string, GoalSlot>();
+    /** The slot holding each control flag, indexed by position in {@link CONTROL_FLAGS}. */
+    private readonly holders: Array<GoalSlot | undefined> = CONTROL_FLAGS.map(() => undefined);
 
     /**
-     * The entries in priority order, kept until a goal is added or taken off.
+     * The slots in priority order, kept until a goal is added or taken off.
      *
      * {@link GoalScheduler.tick} walks the order three times a tick, and the
      * order only changes when the component set does, which is rare: an entity
@@ -147,20 +155,24 @@ export class GoalScheduler {
      * group in. Sorting it per walk made the sort and its `localeCompare`
      * comparator a tenth of what ticking a mob cost.
      */
-    private order: readonly ScheduledGoal[] | undefined;
+    private order: readonly GoalSlot[] | undefined;
 
     /** Registers a goal, replacing any goal already registered under the name. */
     public add(entry: ScheduledGoal): void {
         this.remove(entry.name);
-        this.entries.set(entry.name, entry);
+        this.entries.set(entry.name, {
+            entry,
+            running: false,
+            flagIndices: entry.controlFlags.map((flag) => CONTROL_FLAGS.indexOf(flag))
+        });
         this.order = undefined;
     }
 
     /** Takes a goal off, stopping it first when it is running. */
     public remove(name: string): void {
-        const entry = this.entries.get(name);
-        if (entry === undefined) return;
-        if (this.running.has(name)) this.stop(entry);
+        const slot = this.entries.get(name);
+        if (slot === undefined) return;
+        if (slot.running) this.stop(slot);
         this.entries.delete(name);
         this.order = undefined;
     }
@@ -168,18 +180,18 @@ export class GoalScheduler {
     /** The names of the goals running now, in priority order. */
     public runningGoals(): readonly string[] {
         return this.sorted()
-            .filter((entry) => this.running.has(entry.name))
-            .map((entry) => entry.name);
+            .filter((slot) => slot.running)
+            .map((slot) => slot.entry.name);
     }
 
     /** The goal holding a control flag now, or undefined when the flag is free. */
     public holderOf(flag: ControlFlag): string | undefined {
-        return this.holders.get(flag);
+        return this.holders[CONTROL_FLAGS.indexOf(flag)]?.entry.name;
     }
 
     /** Every registered goal name, in priority order. */
     public names(): readonly string[] {
-        return this.sorted().map((entry) => entry.name);
+        return this.sorted().map((slot) => slot.entry.name);
     }
 
     /**
@@ -191,70 +203,69 @@ export class GoalScheduler {
      *   selector pass.
      */
     public tick(updateSelector = true): void {
+        const slots = this.sorted();
+
         if (!updateSelector) {
-            for (const entry of this.sorted()) {
-                if (this.running.has(entry.name) && entry.goal.requiresUpdateEveryTick?.() === true)
-                    entry.goal.tick?.();
+            for (const slot of slots) {
+                if (slot.running && slot.entry.goal.requiresUpdateEveryTick?.() === true) slot.entry.goal.tick?.();
             }
             return;
         }
 
-        for (const entry of this.sorted()) {
-            if (!this.running.has(entry.name)) continue;
-            const keep = entry.goal.canContinue?.() ?? entry.goal.canStart();
-            if (!keep) this.stop(entry);
+        for (const slot of slots) {
+            if (!slot.running) continue;
+            const { goal } = slot.entry;
+            const keep = goal.canContinue?.() ?? goal.canStart();
+            if (!keep) this.stop(slot);
         }
 
-        for (const entry of this.sorted()) {
-            if (this.running.has(entry.name)) continue;
-            if (!this.canTakeFlags(entry)) continue;
-            if (!entry.goal.canStart()) continue;
-            this.preempt(entry);
-            this.start(entry);
+        for (const slot of slots) {
+            if (slot.running) continue;
+            if (!this.canTakeFlags(slot)) continue;
+            if (!slot.entry.goal.canStart()) continue;
+            this.preempt(slot);
+            this.start(slot);
         }
 
-        for (const entry of this.sorted()) {
-            if (this.running.has(entry.name)) entry.goal.tick?.();
+        for (const slot of slots) {
+            if (slot.running) slot.entry.goal.tick?.();
         }
     }
 
     /** Registered goals sorted by priority, then by name so the order is stable. */
-    private sorted(): readonly ScheduledGoal[] {
+    private sorted(): readonly GoalSlot[] {
         this.order ??= [...this.entries.values()].sort(
-            (a, b) => a.priority - b.priority || a.name.localeCompare(b.name)
+            (a, b) => a.entry.priority - b.entry.priority || a.entry.name.localeCompare(b.entry.name)
         );
         return this.order;
     }
 
-    private canTakeFlags(entry: ScheduledGoal): boolean {
-        return entry.controlFlags.every((flag) => {
-            const holder = this.holders.get(flag);
-            if (holder === undefined) return true;
-            const current = this.entries.get(holder);
-            return current !== undefined && entry.priority < current.priority;
-        });
+    private canTakeFlags(slot: GoalSlot): boolean {
+        for (const index of slot.flagIndices) {
+            const holder = this.holders[index];
+            if (holder !== undefined && slot.entry.priority >= holder.entry.priority) return false;
+        }
+        return true;
     }
 
-    private preempt(entry: ScheduledGoal): void {
-        for (const flag of entry.controlFlags) {
-            const holder = this.holders.get(flag);
-            if (holder === undefined) continue;
-            const current = this.entries.get(holder);
-            if (current !== undefined) this.stop(current);
+    private preempt(slot: GoalSlot): void {
+        for (const index of slot.flagIndices) {
+            const holder = this.holders[index];
+            if (holder !== undefined) this.stop(holder);
         }
     }
 
-    private start(entry: ScheduledGoal): void {
-        this.running.add(entry.name);
-        for (const flag of entry.controlFlags) this.holders.set(flag, entry.name);
-        entry.goal.start?.();
+    private start(slot: GoalSlot): void {
+        slot.running = true;
+        for (const index of slot.flagIndices) this.holders[index] = slot;
+        slot.entry.goal.start?.();
     }
 
-    private stop(entry: ScheduledGoal): void {
-        this.running.delete(entry.name);
-        for (const flag of entry.controlFlags) {
-            if (this.holders.get(flag) === entry.name) this.holders.delete(flag);
+    private stop(slot: GoalSlot): void {
+        slot.running = false;
+        for (const index of slot.flagIndices) {
+            if (this.holders[index] === slot) this.holders[index] = undefined;
         }
-        entry.goal.stop?.();
+        slot.entry.goal.stop?.();
     }
 }
