@@ -234,6 +234,31 @@ describe('modules/ticker', () => {
         }
     });
 
+    it('keeps the event loop awake between back-to-back catch-up ticks', async () => {
+        const harness = buildHarness();
+        let stalled = false;
+        harness.deps.tickFunctions = async () => {
+            if (!stalled) {
+                stalled = true;
+                vi.advanceTimersByTime(75);
+            }
+        };
+        const immediate = vi.spyOn(globalThis, 'setImmediate');
+        const handle = await startTestModule(tickerModule(harness.ticker));
+        try {
+            await vi.advanceTimersByTimeAsync(0);
+
+            // An unref'd immediate lets the loop sleep in its poll phase until some other event
+            // wakes it, which with the socket on a worker is a timer tens of milliseconds away.
+            const scheduled = immediate.mock.results.map((result) => result.value as { hasRef(): boolean });
+            expect(scheduled.length).toBeGreaterThan(0);
+            expect(scheduled.every((handle) => handle.hasRef())).toBe(true);
+        } finally {
+            await handle.stop();
+            immediate.mockRestore();
+        }
+    });
+
     it('does not tick when ticking is disabled', async () => {
         const harness = buildHarness({ isTickingEnabled: () => false });
         const handle = await startTestModule(tickerModule(harness.ticker));

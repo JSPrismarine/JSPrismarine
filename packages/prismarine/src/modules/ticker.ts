@@ -491,8 +491,14 @@ export class ServerTicker implements Ticker, TickControl {
                         // Node clamps an overdue zero-delay timeout to roughly 1 ms. An
                         // immediate keeps catch-up ticks back-to-back while still yielding
                         // through the event loop so sockets and other I/O get a turn.
+                        //
+                        // Not unref'd, unlike the timeout below. An unref'd immediate does not
+                        // keep the loop from waiting in its poll phase, so the next tick ran
+                        // when something else woke the loop: with the UDP socket on a worker
+                        // thread that was a timer about 20 ms away, and a sprint of back-to-back
+                        // ticks crawled at 2 a second behind it. It never outlives a tick, and
+                        // `stop` clears it.
                         const immediate = setImmediate(tick);
-                        immediate.unref();
                         this.cancelPendingTick = () => clearImmediate(immediate);
                     } else {
                         const timeout = setTimeout(tick, sleepTime);
