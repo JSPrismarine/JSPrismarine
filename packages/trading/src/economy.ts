@@ -306,6 +306,11 @@ export class Merchant {
         return this.experiencePoints;
     }
 
+    /** The experience each tier needs, in tier order, which the trade screen draws as its progress bar. */
+    public tierRequirements(): readonly number[] {
+        return this.table.tiers.map((tier) => tier.totalExpRequired);
+    }
+
     /** The trader's level, which is how many tiers its experience has unlocked. */
     public get level(): number {
         return unlockedTierCount(this.table, this.experiencePoints);
