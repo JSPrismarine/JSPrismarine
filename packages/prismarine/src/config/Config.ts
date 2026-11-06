@@ -118,7 +118,7 @@ const DEFAULTS = {
     'entity-tracking-hysteresis': 2,
     'entity-tracking-interval': 4,
     'online-mode': true,
-    'use-raknet-worker': false,
+    'use-raknet-worker': true,
     'packet-compression-level': DEFAULT_PACKET_COMPRESSION_LEVEL,
     'packet-compression-algorithm': DEFAULT_PACKET_COMPRESSION_ALGORITHM,
     'packet-compression-threshold': DEFAULT_PACKET_COMPRESSION_THRESHOLD,

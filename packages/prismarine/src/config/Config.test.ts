@@ -91,8 +91,8 @@ describe('config', () => {
             expect(config.getOnlineMode()).toBe(true);
         });
 
-        it('keeps RakNet worker networking opt-in by default', () => {
-            expect(config.getUseRakNetWorker()).toBe(false);
+        it('runs RakNet on a worker thread by default', () => {
+            expect(config.getUseRakNetWorker()).toBe(true);
         });
 
         it('should have the default packet compression level', () => {

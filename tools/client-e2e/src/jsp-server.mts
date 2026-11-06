@@ -259,7 +259,7 @@ export const startServer = async (
         // Verbose, so the transactions and moves the server drops on purpose show in the evidence log.
         'log-level': 'verbose',
         'packet-compression-algorithm': options.compressionAlgorithm ?? 'snappy',
-        'use-raknet-worker': options.raknetWorker ?? false,
+        'use-raknet-worker': options.raknetWorker ?? true,
         'level-name': 'e2e',
         worlds: {
             e2e: {
