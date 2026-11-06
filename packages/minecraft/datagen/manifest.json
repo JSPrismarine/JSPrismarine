@@ -290,10 +290,11 @@
         "dir": "unversioned",
         "knownGaps": {
             "LevelEvent": [
-                "Incomplete above 2168. ParticleCreakingHeartTrail = 9816 was added after 1.26.40",
-                "and is not below; Mojang's changelog records four more, SoundPaintingPlace 9817",
-                "through CauldronDyeShulkerBox 9820, added after 1.26.40 and removed again at",
-                "1.26.60, which this dump never saw either way.",
+                "Incomplete above 2168. ParticleCreakingHeartTrail = 9816 was added in protocol 766,",
+                "which the 1.26.40 dump lacks, so it is added by hand under `rules`. Mojang's",
+                "changelog records four more, SoundPaintingPlace 9817 through CauldronDyeShulkerBox",
+                "9820, which were removed again at 1.26.60-preview.30. They are not members of this",
+                "enum, because they are not current values at any protocol it serves.",
                 "",
                 "ALL_PLAYERS_SLEEPING = 3617, DEPRECATED = 3618 and _9800 = 3619 are the numbers",
                 "the 1.26.40 dump printed, and they are list positions rather than values:",
@@ -365,7 +366,8 @@
                 "deprecated": "DEPRECATED"
             },
             "extras": {
-                "PARTICLE_LEGACY_EVENT": 16384
+                "PARTICLE_LEGACY_EVENT": 16384,
+                "PARTICLE_CREAKING_HEART_TRAIL": 9816
             }
         },
         "PacketCompressionAlgorithm": {

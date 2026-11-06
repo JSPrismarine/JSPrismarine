@@ -74,11 +74,17 @@ describe('minecraft datagen', () => {
     describe('LevelEvent, the one with a recorded gap', () => {
         // Each of these is a fact the manifest's note states. If regenerating changes one the
         // note has gone stale, and a stale note about stale data is worse than no note.
-        it('is still missing the members added after 1.26.40', async () => {
+        it('carries ParticleCreakingHeartTrail, which the 1.26.40 dump lacks', async () => {
+            const { LevelEvent } = await import('../src/generated/unversioned/LevelEvent');
+
+            expect(LevelEvent.PARTICLE_CREAKING_HEART_TRAIL).toBe(9816);
+        });
+
+        it('does not present the removed 9817-9820 members as current', async () => {
             const { LevelEvent } = await import('../src/generated/unversioned/LevelEvent');
             const values = new Set(Object.values(LevelEvent).filter((value) => typeof value === 'number'));
 
-            for (const added of [9816, 9817, 9818, 9819, 9820]) expect(values).not.toContain(added);
+            for (const added of [9817, 9818, 9819, 9820]) expect(values).not.toContain(added);
         });
 
         it('still numbers its last three members the way the 1.26.40 dump printed them', async () => {
