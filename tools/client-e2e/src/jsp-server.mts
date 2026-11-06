@@ -191,6 +191,63 @@ export const startServer = async (
             4
         )}\n`
     );
+    fs.writeFileSync(
+        path.join(behaviorPack, 'entities', 'villager_v2.json'),
+        `${JSON.stringify(
+            {
+                format_version: '1.21.0',
+                'minecraft:entity': {
+                    description: {
+                        identifier: 'minecraft:villager_v2',
+                        is_spawnable: true,
+                        is_summonable: true
+                    },
+                    components: {
+                        'minecraft:health': { value: 20, max: 20 },
+                        'minecraft:collision_box': { width: 0.6, height: 1.9 },
+                        'minecraft:physics': { has_gravity: true, has_collision: true },
+                        'minecraft:type_family': { family: ['villager', 'mob'] },
+                        'minecraft:economy_trade_table': {
+                            table: 'trading/economy_trades/farmer_trades.json',
+                            display_name: 'Farmer',
+                            persist_trades: true
+                        }
+                    }
+                }
+            },
+            null,
+            4
+        )}\n`
+    );
+    fs.mkdirSync(path.join(behaviorPack, 'trading', 'economy_trades'), { recursive: true });
+    fs.writeFileSync(
+        path.join(behaviorPack, 'trading', 'economy_trades', 'farmer_trades.json'),
+        `${JSON.stringify(
+            {
+                tiers: [
+                    {
+                        total_exp_required: 0,
+                        groups: [
+                            {
+                                num_to_select: -1,
+                                trades: [
+                                    {
+                                        wants: [{ item: 'minecraft:emerald', quantity: 1 }],
+                                        gives: [{ item: 'minecraft:bread', quantity: 4 }],
+                                        trader_exp: 2,
+                                        max_uses: 2,
+                                        reward_exp: true
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            },
+            null,
+            4
+        )}\n`
+    );
     if (options.naturalCowSpawning) {
         fs.writeFileSync(
             path.join(behaviorPack, 'entities', 'cow.json'),
