@@ -56,7 +56,22 @@ const seededRandom = (seed: number): RandomSource => {
 
 const keyOf = (at: ContentPosition): string => `${at.x},${at.y},${at.z}`;
 
-const digestWorld = (random: RandomSource, sounds: string[]) => {
+/** Water, a wall, and the night: the same terrain `entityAi.bench.ts` builds with `ENTITY_AI_TERRAIN`. */
+const terrainBlock = (at: ContentPosition): ContentBlock | undefined => {
+    const localX = ((at.x % 16) + 16) % 16;
+    const localZ = ((at.z % 16) + 16) % 16;
+    if ((at.y === FLOOR_Y || at.y === FLOOR_Y - 1) && localX >= 2 && localX < 6 && localZ >= 2 && localZ < 6) {
+        return { identifier: 'minecraft:water', states: {} };
+    }
+    if (at.y > FLOOR_Y && at.y <= FLOOR_Y + 3 && localX === 8 && localZ < 12) {
+        return { identifier: 'minecraft:stone', states: {} };
+    }
+    return undefined;
+};
+
+const digestWorld = (random: RandomSource, sounds: string[], terrain = false, currentTick: () => number = () => 0) => {
+    const dayTime = (): number => (terrain ? (currentTick() * 24) % 24000 : 0);
+    const isNight = (): boolean => terrain && dayTime() >= 13000 && dayTime() < 23000;
     const placed = new Map<string, ContentBlock>();
     const chunkIdentities = new Map<string, object>();
     const chunkRevisions = new Map<string, number>();
@@ -79,8 +94,8 @@ const digestWorld = (random: RandomSource, sounds: string[]) => {
             hasSkyLight: true,
             seaLevel: 62,
             seed: 0n,
-            gameTime: () => 0,
-            dayTime: () => 0,
+            gameTime: () => (terrain ? currentTick() : 0),
+            dayTime,
             difficulty: () => 'normal',
             weather: () => 'clear',
             isRainingAt: () => false,
@@ -89,7 +104,8 @@ const digestWorld = (random: RandomSource, sounds: string[]) => {
         },
         blocks: {
             get: (at) =>
-                placed.get(keyOf(at)) ?? {
+                placed.get(keyOf(at)) ??
+                (terrain ? terrainBlock(at) : undefined) ?? {
                     identifier: at.y > FLOOR_Y ? 'minecraft:air' : 'minecraft:stone',
                     states: {}
                 },
@@ -105,7 +121,7 @@ const digestWorld = (random: RandomSource, sounds: string[]) => {
             notifyNeighbors: () => undefined,
             data: () => undefined,
             setData: () => undefined,
-            light: (at) => (at.y > FLOOR_Y ? 15 : 0),
+            light: (at) => (at.y > FLOOR_Y ? (isNight() ? 4 : 15) : 0),
             power: () => 0,
             isLoaded: () => true,
             surfaceY: () => FLOOR_Y + 1,
@@ -155,6 +171,8 @@ interface Scenario {
     readonly players: number;
     readonly seed: number;
     readonly ticks: number;
+    /** Whether the world has a pond, a wall, a night and a block placed and broken every tick. */
+    readonly terrain?: boolean;
     readonly extras?: readonly { readonly identifier: string; readonly position: EntityPosition }[];
 }
 
@@ -241,6 +259,18 @@ const SCENARIOS: readonly Scenario[] = [
         ticks: 300
     },
     {
+        // Water, a wall, a night and a block write every tick, so the navigation caches see what a
+        // running server gives them. A night is 240 ticks at the compressed clock.
+        name: 'terrain',
+        mobs: ['minecraft:zombie', 'minecraft:cow', 'minecraft:villager', 'minecraft:skeleton', 'minecraft:sheep'],
+        count: 40,
+        spread: 40,
+        players: 3,
+        seed: 77,
+        ticks: 600,
+        terrain: true
+    },
+    {
         name: 'collision-base',
         mobs: ['minecraft:cow'],
         count: 48,
@@ -270,6 +300,7 @@ const EXPECTED_DIGESTS: Readonly<Partial<Record<string, string>>> = {
     stacked: '4c5c494e2391bf5a7d47ce9e267b032b0869dc56c8bf087e621d69a8cf914f32',
     sparse: 'e24bba7482eceb19efd7f4efe65093fbb5bb73875cc3c57eb0548ad1d5b6cafe',
     'brain-mix': 'faf24e611778cbe494d7a768a0dd1e5b23eff35a2c7a723a6fcd7f4227e2d85e',
+    terrain: '7771788312bbd59205a23f2f2bff6b76e465fcde383723bda42b6118c99c2442',
     'collision-base': '3639c7b2536bd32f7319036c8482e56eb63388efe2042c07057269e348283a7f',
     'collision-dragon': 'c15c0abd3e538c42d5a6472d9972683b269c2143caa6c86ac94bb65045654b92'
 };
@@ -290,7 +321,8 @@ const digestOf = (
     const drops: string[] = [];
     const tickDigests: string[] = [];
     const random = seededRandom(scenario.seed);
-    const world = digestWorld(random, sounds);
+    let currentTick = 0;
+    const world = digestWorld(random, sounds, scenario.terrain === true, () => currentTick);
     const players: ContentEntity[] = Array.from({ length: scenario.players }, (_unused, index) => ({
         id: 100_000 + index,
         identifier: 'minecraft:player',
@@ -326,6 +358,17 @@ const digestOf = (
     let recordedSounds = 0;
     let recordedDrops = 0;
     for (let tick = 0; tick < scenario.ticks; tick += 1) {
+        currentTick = tick;
+        if (scenario.terrain === true) {
+            world.blocks.set(
+                { x: 6 + (tick % 10), y: FLOOR_Y + 1, z: 6 },
+                { identifier: 'minecraft:stone', states: {} }
+            );
+            world.blocks.set(
+                { x: 6 + ((tick + 9) % 10), y: FLOOR_Y + 1, z: 6 },
+                { identifier: 'minecraft:air', states: {} }
+            );
+        }
         for (const [index, player] of players.entries()) {
             const angle = tick / 40 + (index * 2 * Math.PI) / Math.max(1, scenario.players);
             player.position = {

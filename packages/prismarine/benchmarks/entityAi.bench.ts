@@ -14,8 +14,25 @@
  * query every five ticks and report matching query results.
  * Set `ENTITY_AI_SENSING=1` to make hostile mobs repeat `canSee` against one
  * nearby player each tick and report calls that reached the block ray.
+ * Set `ENTITY_AI_TERRAIN=1` for real chunk storage with a pond, a wall in every chunk, a day and
+ * night cycle that also dims the sky light, and a block placed and broken every tick, so the
+ * navigation caches see the water, walls, light and block writes a running server has. It implies
+ * `ENTITY_AI_REAL_CHUNKS`. Set `ENTITY_AI_PROFILE` to a path to write a `.cpuprofile` of the
+ * measured ticks only for each mob count, as `<path>-<count>.cpuprofile`, sampled every 500 microseconds with the setup and warm-up left out.
  * Set `ENTITY_AI_COLLISION_SCENE=end` or `nether` to benchmark a crowded End
  * with a dragon, or a ghast-heavy Nether.
+ *
+ * How this relates to the live bot-fleet benchmark (`bench:bot-fleet`, #2727): this harness runs
+ * only the entity runtime, in process, so its numbers isolate AI cost and are repeatable to the
+ * digest. The fleet benchmark runs a whole server under real client load and shows what the rest
+ * of the tick adds (replication, compression, chunk work). A regression here should show up there
+ * too; the reverse is not true.
+ *
+ * Player families: the production `playerFilterView` answers `is_family` with `['player']` only,
+ * and the fallback goal mob used when no host supplies one answers `['player', 'mob']`. This
+ * harness models production (see `benchHost`). Whether Java's player counts as a `mob` family is
+ * an open question to settle against `player.json`'s `type_family` before treating the difference
+ * as a parity finding.
  *
  * Run: node packages/prismarine/benchmarks/run.mjs \
  *        packages/prismarine/benchmarks/entityAi.bench.ts [mob counts...]
@@ -34,6 +51,8 @@
  * Ghast-heavy Nether run: ENTITY_AI_COLLISION_SCENE=nether ENTITY_AI_TICKS=40 node \
  *        packages/prismarine/benchmarks/run.mjs packages/prismarine/benchmarks/entityAi.bench.ts 300
  */
+import { PerformanceObserver } from 'node:perf_hooks';
+
 import type { EntityPosition, FilterEntityView } from '@jsprismarine/entities';
 import type { GoalMob } from '@jsprismarine/entity-goals';
 import { BRAIN_MOBS } from '@jsprismarine/entity-brains';
@@ -60,7 +79,9 @@ import Chunk from '@jsprismarine/prismarine/world/chunk/Chunk';
 
 /** The y the flat floor's top sits at; everything above it is air. */
 const FLOOR_Y = 63;
-const PRODUCTION_CHUNKS = process.env.ENTITY_AI_REAL_CHUNKS === '1';
+const TERRAIN_PROFILE = process.env.ENTITY_AI_TERRAIN === '1';
+const PRODUCTION_CHUNKS = process.env.ENTITY_AI_REAL_CHUNKS === '1' || TERRAIN_PROFILE;
+const PROFILE_PATH = process.env.ENTITY_AI_PROFILE;
 const PRODUCTION_PLAYERS = process.env.ENTITY_AI_LIVE_PLAYERS === '1';
 const BRAIN_MOB_PROFILE = process.env.ENTITY_AI_BRAIN_MOBS === '1';
 const AVOID_BLOCK_PROFILE = process.env.ENTITY_AI_AVOID_BLOCK === '1';
@@ -99,6 +120,9 @@ const benchWorld = (
     const chunks = new Map<string, Chunk>();
     const chunkAt = (at: ContentPosition): Chunk | undefined => chunks.get(`${at.x >> 4},${at.z >> 4}`);
     let blockRevision = 0;
+    /** Night runs from tick 13000 to 23000 of the day, the span mobs treat as dark. */
+    const isNight = (): boolean =>
+        TERRAIN_PROFILE && (gameTime() * 24) % 24000 >= 13000 && (gameTime() * 24) % 24000 < 23000;
     if (PRODUCTION_CHUNKS) {
         const stone = BlockRuntimeIds.getByName('minecraft:stone');
         for (let x = -CHUNK_RADIUS; x <= CHUNK_RADIUS; x += 1) {
@@ -107,6 +131,18 @@ const benchWorld = (
                 for (let localX = 0; localX < 16; localX += 1) {
                     for (let localZ = 0; localZ < 16; localZ += 1) {
                         chunk.fillColumn(localX, localZ, FLOOR_Y, FLOOR_Y, stone);
+                    }
+                }
+                if (TERRAIN_PROFILE) {
+                    const water = BlockRuntimeIds.getByName('minecraft:water');
+                    // A pond two blocks deep and a three-high wall, the same in every chunk.
+                    for (let localX = 2; localX < 6; localX += 1) {
+                        for (let localZ = 2; localZ < 6; localZ += 1) {
+                            chunk.fillColumn(localX, localZ, FLOOR_Y - 1, FLOOR_Y, water);
+                        }
+                    }
+                    for (let localZ = 0; localZ < 12; localZ += 1) {
+                        chunk.fillColumn(8, localZ, FLOOR_Y + 1, FLOOR_Y + 3, stone);
                     }
                 }
                 chunks.set(`${x},${z}`, chunk);
@@ -122,7 +158,7 @@ const benchWorld = (
             seaLevel: 62,
             seed: 0n,
             gameTime,
-            dayTime: () => 0,
+            dayTime: () => (TERRAIN_PROFILE ? (gameTime() * 24) % 24000 : 0),
             difficulty: () => 'normal',
             weather: () => 'clear',
             isRainingAt: () => false,
@@ -174,7 +210,7 @@ const benchWorld = (
             notifyNeighbors: () => undefined,
             data: () => undefined,
             setData: () => undefined,
-            light: (at) => (at.y > FLOOR_Y ? 15 : 0),
+            light: (at) => (at.y > FLOOR_Y ? (isNight() ? 4 : 15) : 0),
             power: () => 0,
             isLoaded: (at) => !PRODUCTION_CHUNKS || chunkAt(at) !== undefined,
             surfaceY: () => FLOOR_Y + 1,
@@ -297,7 +333,12 @@ const scenario = (count: number, seed: number) => {
             : COLLISION_SCENE === 'nether'
               ? 'minecraft:the_nether'
               : 'minecraft:overworld';
-    const world = benchWorld(random, blockReads, () => (SENSING_PROFILE ? currentTick : 0), dimension);
+    const world = benchWorld(
+        random,
+        blockReads,
+        () => (SENSING_PROFILE || TERRAIN_PROFILE ? currentTick : 0),
+        dimension
+    );
     const players: ContentEntity[] = Array.from({ length: PLAYERS }, (_unused, index) => ({
         id: 100_000 + index,
         identifier: 'minecraft:player',
@@ -313,6 +354,17 @@ const scenario = (count: number, seed: number) => {
      */
     const walkPlayers = (tick: number): void => {
         currentTick = tick;
+        if (TERRAIN_PROFILE) {
+            // One block placed and the last one broken a tick later, so block revisions keep moving.
+            world.blocks.set(
+                { x: 6 + (tick % 10), y: FLOOR_Y + 1, z: 6 },
+                { identifier: 'minecraft:stone', states: {} }
+            );
+            world.blocks.set(
+                { x: 6 + ((tick + 9) % 10), y: FLOOR_Y + 1, z: 6 },
+                { identifier: 'minecraft:air', states: {} }
+            );
+        }
         for (const [index, player] of players.entries()) {
             if (SENSING_PROFILE) {
                 player.position = { x: 0, y: FLOOR_Y + 1, z: 0 };
@@ -459,6 +511,31 @@ const scenario = (count: number, seed: number) => {
     };
 };
 
+/**
+ * Samples the measured ticks with the inspector's profiler and writes a `.cpuprofile`.
+ * Started after the warm-up and stopped before anything is reported, so neither is in the profile.
+ */
+const profiler = (path: string | undefined) => {
+    if (path === undefined) return { start: () => undefined, stop: () => undefined };
+    const inspector = process.getBuiltinModule('node:inspector');
+    const session = new inspector.Session();
+    session.connect();
+    return {
+        start: () => {
+            session.post('Profiler.enable');
+            session.post('Profiler.setSamplingInterval', { interval: 500 });
+            session.post('Profiler.start');
+        },
+        stop: () => {
+            session.post('Profiler.stop', (error, result) => {
+                if (error !== null) throw error;
+                process.getBuiltinModule('node:fs').writeFileSync(path, JSON.stringify(result.profile));
+            });
+            session.disconnect();
+        }
+    };
+};
+
 /** The timing of one run: every tick's wall time, in milliseconds. */
 const run = (
     count: number,
@@ -476,6 +553,10 @@ const run = (
     readonly measuredSensingRays: number;
     readonly measuredCollisionQueries: number;
     readonly measuredCollisionCandidates: number;
+    readonly cpuMicrosPerTick: number;
+    readonly gcCount: number;
+    readonly gcMilliseconds: number;
+    readonly heapUsedMegabytes: number;
 } => {
     const {
         runtime,
@@ -538,6 +619,11 @@ const run = (
     const collisionQueriesBeforeMeasure = collisionCounts.calls;
     const collisionCandidatesBeforeMeasure = collisionCounts.candidates;
     startBreeding();
+    const gcObserver = new PerformanceObserver(() => undefined);
+    gcObserver.observe({ entryTypes: ['gc'] });
+    const cpuBeforeMeasure = process.cpuUsage();
+    const sampler = profiler(PROFILE_PATH?.replace(/(\.cpuprofile)?$/, `-${count}$1`));
+    sampler.start();
     for (let tick = WARMUP; tick < tickCount; tick += 1) {
         walkPlayers(tick);
         const started = performance.now();
@@ -546,7 +632,15 @@ const run = (
         runSensingQueries();
         times.push(performance.now() - started);
     }
+    sampler.stop();
+    const cpu = process.cpuUsage(cpuBeforeMeasure);
+    const collections = gcObserver.takeRecords();
+    gcObserver.disconnect();
     return {
+        cpuMicrosPerTick: (cpu.user + cpu.system) / Math.max(1, times.length),
+        gcCount: collections.length,
+        gcMilliseconds: collections.reduce((total, entry) => total + entry.duration, 0),
+        heapUsedMegabytes: process.memoryUsage().heapUsed / (1024 * 1024),
         times,
         measuredBlockReads: blockReads.count - readsBeforeMeasure,
         measuredPlayerLists: allocations.playerLists - playerListsBeforeMeasure,
@@ -589,6 +683,8 @@ const report = (count: number): void => {
             `  (${BREEDING_PAIRS > 0 ? `${BREEDING_PAIRS} breeding pairs, ` : ''}` +
             `${result.measuredBlockReads} measured block reads` +
             `${PRODUCTION_CHUNKS ? ` across ${CHUNK_COUNT} loaded chunks` : ''}` +
+            `, ${result.cpuMicrosPerTick.toFixed(0)} us CPU/tick, ${result.gcCount} GCs (${result.gcMilliseconds.toFixed(1)} ms), ${result.heapUsedMegabytes.toFixed(0)} MB heap` +
+            `${TERRAIN_PROFILE ? ', with a pond, walls, day and night and a block write every tick' : ''}` +
             `${PRODUCTION_PLAYERS ? `, ${result.measuredPlayerLists} measured player-list allocations, ${result.playerViewsCreated} cached player views` : ''}` +
             `${BRAIN_MOB_PROFILE ? `, ${result.measuredTagEnumerations} tag enumerations, ${result.measuredTagMembershipChecks} tag membership checks` : ''}` +
             `${AVOID_BLOCK_PROFILE ? `, ${result.measuredAvoidBlockResults} avoid_block query results` : ''}` +
