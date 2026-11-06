@@ -2,7 +2,7 @@
 # The build context must include the bedrock-data resources submodule.
 FROM eclipse-temurin:25-jdk-jammy@sha256:917e4ad2363fb761904f2e515237171bb6867521f03b1ab2cbf466c8ebd92399 AS temurin-jdk
 
-FROM node:26-slim@sha256:36793bcbb160a6a16cede1e62b93f84e26b78a972a8a4c0b879c1c12f22761ec AS builder
+FROM node:26-slim@sha256:5adad64f9a1fca2d51972caa65983634c8a774eb300d72b20f7f2a0f60368072 AS builder
 
 COPY --from=temurin-jdk /opt/java/openjdk /opt/java/openjdk
 
@@ -24,7 +24,7 @@ RUN pnpm install --frozen-lockfile \
     && pnpm --filter @jsprismarine/bedrock-data run generate \
     && pnpm run server:build
 
-FROM node:26-slim@sha256:36793bcbb160a6a16cede1e62b93f84e26b78a972a8a4c0b879c1c12f22761ec AS runtime
+FROM node:26-slim@sha256:5adad64f9a1fca2d51972caa65983634c8a774eb300d72b20f7f2a0f60368072 AS runtime
 
 WORKDIR /app
 
