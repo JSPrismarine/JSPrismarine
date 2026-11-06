@@ -105,11 +105,24 @@ export const placementOverlap: Scenario = {
         const heldStack = server.waitForLine(/Removed \d+ items?/, 10_000);
         server.command(`clear ${playerName} minecraft:dirt 64`);
         const cleared = await heldStack;
-        assert.match(
-            cleared,
-            /Removed 1 item/,
-            `refused placement kept the dirt in the player's inventory: ${cleared}`
-        );
+        if (!/Removed 1 item/.test(cleared)) {
+            // The dirt is gone with no refusal in the way: say where it went, because a block
+            // of it standing next to the player means a click that was never the overlap.
+            const strays: string[] = [];
+            for (let dx = -2; dx <= 2; dx += 1) {
+                for (let dz = -2; dz <= 4; dz += 1) {
+                    for (const y of [64, 65]) {
+                        const at = [PLACEMENT_OFFSET_X + dx, y, dz] as const;
+                        const reply = await blockAt(server, at[0], at[1], at[2], 'minecraft:dirt');
+                        if (/Found the block at/.test(reply)) strays.push(at.join(','));
+                    }
+                }
+            }
+            assert.fail(
+                `refused placement kept the dirt in the player's inventory: ${cleared}; ` +
+                    `dirt blocks near the player: ${strays.join(' ') || 'none'}`
+            );
+        }
 
         log('a normal placement succeeded; the self-overlap target stayed air, and the dirt remained in inventory');
     }
