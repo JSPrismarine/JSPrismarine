@@ -114,7 +114,7 @@ const { values, positionals } = parseArgs({
         artifacts: { type: 'string' },
         port: { type: 'string' },
         protocol: { type: 'string' },
-        'compression-algorithm': { type: 'string', default: 'zlib' },
+        'compression-algorithm': { type: 'string', default: 'snappy' },
         'raknet-worker': { type: 'boolean', default: false },
         concurrency: { type: 'string', default: '2' }
     },

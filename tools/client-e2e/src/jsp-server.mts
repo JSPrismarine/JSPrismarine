@@ -54,7 +54,7 @@ const reserveFreeUdpPort = async (): Promise<number> => {
  * @param options.dir - Scratch server directory; defaults to a temporary directory.
  * @param options.seconds - Startup budget before the boot is declared failed. Default 120.
  * @param options.naturalCowSpawning - Adds the cow spawn fixture for natural-spawn scenarios.
- * @param options.compressionAlgorithm - Batch algorithm advertised to the client. Defaults to ZLib.
+ * @param options.compressionAlgorithm - Batch algorithm advertised to the client. Defaults to Snappy.
  * @param options.raknetWorker - Runs RakNet socket and reliability work in a worker thread.
  * @param options.profile - Enables Node DevTools and preserves the shutdown trace for inspection.
  * @param options.preloadRadius - Chunks around spawn to generate and keep resident before listening.
@@ -256,7 +256,7 @@ export const startServer = async (
     const config = {
         port: port,
         'online-mode': false,
-        'packet-compression-algorithm': options.compressionAlgorithm ?? 'zlib',
+        'packet-compression-algorithm': options.compressionAlgorithm ?? 'snappy',
         'use-raknet-worker': options.raknetWorker ?? false,
         'level-name': 'e2e',
         worlds: {
