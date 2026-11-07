@@ -7,7 +7,6 @@
  * these functions move it.
  */
 import type { HookBlock } from '@jsprismarine/blocks';
-import { BLOCK_FACES } from '@jsprismarine/blocks';
 
 import { offset } from '../geometry';
 import { bareName, setStates, stateNumber } from '../state';
@@ -124,6 +123,42 @@ export const isLogName = (identifier: string): boolean => {
     return name.endsWith('_log') || name.endsWith('_wood') || name.endsWith('_stem') || name.endsWith('_hyphae');
 };
 
+/** What a block is to the leaf search: a log holds the canopy up, a leaf passes the search on. */
+const enum CanopyKind {
+    Other,
+    Log,
+    Leaves
+}
+
+/** The classification of each identifier the search has met, since the same few come up thousands of times a tick. */
+const canopyKinds = new Map<string, CanopyKind>();
+
+const canopyKindOf = (identifier: string): CanopyKind => {
+    let kind = canopyKinds.get(identifier);
+    if (kind === undefined) {
+        kind = isLogName(identifier)
+            ? CanopyKind.Log
+            : bareName(identifier).endsWith('leaves')
+              ? CanopyKind.Leaves
+              : CanopyKind.Other;
+        canopyKinds.set(identifier, kind);
+    }
+    return kind;
+};
+
+/** The six face steps as x, y, z triples; the search is order-independent, so the order is free. */
+const NEIGHBOR_STEPS = [0, -1, 0, 0, 1, 0, 0, 0, -1, 0, 0, 1, -1, 0, 0, 1, 0, 0];
+
+/** Cells per axis of the visited grid: the reach on each side of the leaf, and the leaf itself. */
+const GRID_SPAN = 2 * MAX_LEAF_DISTANCE + 1;
+
+const cellOf = (dx: number, dy: number, dz: number): number =>
+    ((dx + MAX_LEAF_DISTANCE) * GRID_SPAN + (dy + MAX_LEAF_DISTANCE)) * GRID_SPAN + (dz + MAX_LEAF_DISTANCE);
+
+/** Which search last reached each cell; a cell is visited when it holds the current epoch, so nothing is cleared between searches. */
+const visited = new Uint16Array(GRID_SPAN ** 3);
+let visitedEpoch = 0;
+
 /**
  * Whether a log near enough to hold a leaf block up is within
  * {@link MAX_LEAF_DISTANCE} of it.
@@ -138,26 +173,39 @@ export const isLogName = (identifier: string): boolean => {
  * the same assumption about ground it cannot read.
  */
 export const hasNearbyLog = (world: WorldActions, block: HookBlock): boolean => {
-    const seen = new Set<string>([`${block.position.x},${block.position.y},${block.position.z}`]);
-    let frontier = [block.position];
+    const { x, y, z } = block.position;
+    visitedEpoch += 1;
+    if (visitedEpoch === 0xffff) {
+        visited.fill(0);
+        visitedEpoch = 1;
+    }
+    visited[cellOf(0, 0, 0)] = visitedEpoch;
 
+    // Offsets from the leaf, three to a cell, so the search allocates no keys and no positions
+    // beyond the one `getBlock` is handed.
+    let frontier = [0, 0, 0];
     for (let distance = 1; distance <= MAX_LEAF_DISTANCE; distance += 1) {
-        const next: typeof frontier = [];
-        for (const position of frontier) {
-            for (const face of BLOCK_FACES) {
-                const neighborPosition = offset(position, face);
-                const key = `${neighborPosition.x},${neighborPosition.y},${neighborPosition.z}`;
-                if (seen.has(key)) continue;
-                seen.add(key);
+        const next: number[] = [];
+        for (let at = 0; at < frontier.length; at += 3) {
+            const fx = frontier[at]!;
+            const fy = frontier[at + 1]!;
+            const fz = frontier[at + 2]!;
+            for (let step = 0; step < NEIGHBOR_STEPS.length; step += 3) {
+                const dx = fx + NEIGHBOR_STEPS[step]!;
+                const dy = fy + NEIGHBOR_STEPS[step + 1]!;
+                const dz = fz + NEIGHBOR_STEPS[step + 2]!;
+                const cell = cellOf(dx, dy, dz);
+                if (visited[cell] === visitedEpoch) continue;
+                visited[cell] = visitedEpoch;
 
-                const neighbor = world.getBlock(neighborPosition);
+                const neighbor = world.getBlock({ x: x + dx, y: y + dy, z: z + dz });
                 if (neighbor === undefined) return true;
-                if (isLogName(neighbor.identifier)) return true;
-                if (bareName(neighbor.identifier).endsWith('leaves')) next.push(neighborPosition);
+                const kind = canopyKindOf(neighbor.identifier);
+                if (kind === CanopyKind.Log) return true;
+                if (kind === CanopyKind.Leaves) next.push(dx, dy, dz);
             }
         }
         frontier = next;
     }
-
     return false;
 };
