@@ -403,6 +403,19 @@ export class Level {
         }
     }
 
+    /**
+     * The ready world whose dimension type has this id, or undefined.
+     *
+     * {@link Level.worlds} filtered by type, without the iterator: the content adapter asks on
+     * every block it reads, which made the lookup one of the busier calls of a tick.
+     */
+    public readyWorldOfType(typeId: string): World | undefined {
+        for (const entry of this.built.values()) {
+            if (entry.isReady && entry.world.getDimension().id === typeId) return entry.world;
+        }
+        return undefined;
+    }
+
     /** Every world built so far, ready or not, which is what a shutdown has to close. */
     private *builtWorlds(): IterableIterator<World> {
         for (const entry of this.built.values()) yield entry.world;

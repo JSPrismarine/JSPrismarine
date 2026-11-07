@@ -64,6 +64,8 @@ interface PreparedLevel {
 export default class WorldManager implements Service {
     /** The loaded levels by folder name, in load order. */
     private readonly levels = new Map<string, Level>();
+    /** Each dimension name asked for, resolved to the dimension type id it names; the table never changes. */
+    private readonly dimensionIds = new Map<string, string>();
     private defaultLevel!: Level;
     private defaultWorld!: World;
     private readonly generatorFactories = new GeneratorFactories();
@@ -431,11 +433,12 @@ export default class WorldManager implements Service {
      *   is still lazy.
      */
     public getWorldByDimension(dimension: string): World | undefined {
-        const wanted = dimensionByName(dimension)?.id ?? dimension;
-        for (const world of this.defaultLevel?.worlds() ?? []) {
-            if (world.getDimension().id === wanted) return world;
+        let wanted = this.dimensionIds.get(dimension);
+        if (wanted === undefined) {
+            wanted = dimensionByName(dimension)?.id ?? dimension;
+            this.dimensionIds.set(dimension, wanted);
         }
-        return undefined;
+        return this.defaultLevel?.readyWorldOfType(wanted);
     }
 
     /**
