@@ -1108,6 +1108,17 @@ export default class PlayerSession {
     }
 
     /**
+     * The id the client will name a block's stack by, or null for an empty slot.
+     *
+     * A stack sent without one cannot be picked up: the server authoritative inventory has
+     * nothing to name it by, so the click on a furnace's input never became a request.
+     */
+    private stackIdFor(item: Item): number | null {
+        const id = this.player.getInventory().assignStackNetworkId(item);
+        return id > 0 ? id : null;
+    }
+
+    /**
      * Tells the client what the player is carrying.
      *
      * The send was commented out, so the client was never told: it had no model of the
@@ -1284,7 +1295,7 @@ export default class PlayerSession {
                     content.containerId = ContainerUiId.LEVEL_ENTITY_CONTAINER;
                     content.items = contents.map((entry) => {
                         const item = entry.toItemStack().withCount(entry.getCount());
-                        return item.toStackDescriptor(context, item.stackNetworkId > 0 ? item.stackNetworkId : null);
+                        return item.toStackDescriptor(context, this.stackIdFor(item));
                     });
                     await this.connection.sendDataPacket(content);
                 } else {
@@ -1304,10 +1315,7 @@ export default class PlayerSession {
                         content.containerId = containerId;
                         content.items = slots.map((entry) => {
                             const item = entry.toItemStack().withCount(entry.getCount());
-                            return item.toStackDescriptor(
-                                context,
-                                item.stackNetworkId > 0 ? item.stackNetworkId : null
-                            );
+                            return item.toStackDescriptor(context, this.stackIdFor(item));
                         });
                         await this.connection.sendDataPacket(content);
                     }

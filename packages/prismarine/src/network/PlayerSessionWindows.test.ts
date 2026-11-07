@@ -3,6 +3,7 @@ import { ContainerUiId, WindowIds, WindowTypes } from '@jsprismarine/minecraft';
 import { describe, expect, it } from 'vitest';
 
 import ContainerEntry from '../inventory/ContainerEntry';
+import type HumanInventory from '../inventory/HumanInventory';
 import { Item } from '../item/Item';
 import type Player from '../Player';
 import { stub } from '../testing/stub.test.helper';
@@ -34,7 +35,16 @@ const sessionFor = () => {
         codec: protocolCodec,
         sendDataPacket: async (packet) => void sent.push(packet)
     });
-    const player = stub<Player>({ getRuntimeId: () => 7n });
+    // Ids as the player's own inventory hands them out: one per stack, none for air.
+    let nextStackId = 1;
+    const inventory = stub<HumanInventory>({
+        assignStackNetworkId: (item) => {
+            if (item.getName() === 'minecraft:air') return 0;
+            if (item.stackNetworkId === 0) item.stackNetworkId = nextStackId++;
+            return item.stackNetworkId;
+        }
+    });
+    const player = stub<Player>({ getRuntimeId: () => 7n, getInventory: () => inventory });
 
     const session: PlayerSession = Object.assign(Object.create(PlayerSession.prototype), {
         connection,
@@ -124,6 +134,25 @@ describe('network', () => {
                 expect(packets[0]?.items[1]?.stackSize).toBe(8);
             }
         );
+
+        it('names every stack a furnace shows by an id, so the client can pick it up', async () => {
+            const { session, sent } = sessionFor();
+            const contents = [
+                new ContainerEntry({ item: new Item({ name: 'minecraft:iron_ore', count: 1 }), count: 1 }),
+                new ContainerEntry({ item: new Item({ name: 'minecraft:coal', count: 1 }), count: 8 }),
+                new ContainerEntry({ item: Item.air() })
+            ];
+
+            await session.openBlockContainer(new Vector3(0, 64, 0), 'minecraft:furnace', contents);
+
+            const content = sent.find((packet) => packet instanceof InventoryContentPacket);
+            if (!(content instanceof InventoryContentPacket)) throw new Error('Inventory content was not sent');
+            const [ore, coal, empty] = content.items.map((item) => item.stackNetId);
+            expect(ore).toBeGreaterThan(0);
+            expect(coal).toBeGreaterThan(0);
+            expect(coal).not.toBe(ore);
+            expect(empty ?? 0).toBe(0);
+        });
 
         it('opens a workstation without a contents packet, since it stores nothing', async () => {
             const { session, sent, inventories } = sessionFor();

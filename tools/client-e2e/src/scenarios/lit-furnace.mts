@@ -87,9 +87,7 @@ export const litFurnace: Scenario = {
             server.command(`clear ${playerName} minecraft:iron_ore 0`);
             moved = await counted;
         }
-        // The pointer injection can go dead for a whole container session (#2864), which no
-        // retry here recovers from; the furnace drop below is what this scenario gates on.
-        if (!/Found [1-9]/.test(moved)) log(`the ore click never landed (#2864): ${moved}`);
+        assert.match(moved, /Found [1-9]/, `the ore clicked out of the furnace input never arrived: ${moved}`);
 
         await client.input({ press: ['Escape'] });
         await client.waitForScreenAbsent('Container', 5_000);

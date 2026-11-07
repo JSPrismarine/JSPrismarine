@@ -31,7 +31,7 @@ const hasScreen = async (
 
 export const furnace: Scenario = {
     name: 'furnace',
-    description: 'a client can put coal in the furnace fuel slot',
+    description: 'a client can put coal in the furnace fuel slot and take the ore out of its input',
     run: async (context) => {
         const { client, server, playerName, artifacts, log } = context;
         server.command('fill -2 63 -2 2 63 4 minecraft:stone');
@@ -61,6 +61,16 @@ export const furnace: Scenario = {
         await client.clickAt([732, 317]);
         await waitTicks(server, 15);
         await client.screenshot(path.join(artifacts, 'furnace-fuel-slot.png'));
+
+        // And back out: the ore in the input slot, picked up and dropped on the hotbar. The
+        // server has to have told the client an id for it, or the click never becomes a request.
+        await client.clickAt([732, 241]);
+        await client.waitFrames(15);
+        await client.clickAt([688, 498]);
+        await waitTicks(server, 15);
+        const countedOre = server.waitForLine(/Found \d+ matching/, 10_000);
+        server.command(`clear ${playerName} minecraft:iron_ore 0`);
+        assert.match(await countedOre, /Found [1-9]/, 'the ore taken out of the furnace input reached the player');
         await client.input({ press: ['Escape'] });
         await client.waitForScreenAbsent('Container', 5_000);
         await waitTicks(server, 15);
