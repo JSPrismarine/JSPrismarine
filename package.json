@@ -94,7 +94,7 @@
         "@commitlint/config-conventional": "21.2.4",
         "@commitlint/types": "21.2.3",
         "@nordcom/prettier": "0.1.1",
-        "@scriptc/threads": "0.4.8",
+        "@scriptc/threads": "0.4.9",
         "@turbo/gen": "2.11.10",
         "@types/node": "26.6.6",
         "@vitest/coverage-v8": "5.1.0",

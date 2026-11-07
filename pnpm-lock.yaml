@@ -207,8 +207,8 @@ importers:
         specifier: 0.1.1
         version: 0.1.1
       '@scriptc/threads':
-        specifier: 0.4.8
-        version: 0.4.8
+        specifier: 0.4.9
+        version: 0.4.9
       '@turbo/gen':
         specifier: 2.11.10
         version: 2.11.10(@types/node@26.6.6)
@@ -250,7 +250,7 @@ importers:
         version: 2.6.1
       tsc-ts:
         specifier: 0.1.2
-        version: 0.1.2(@scriptc/threads@0.4.8)
+        version: 0.1.2(@scriptc/threads@0.4.9)
       turbo:
         specifier: 2.11.10
         version: 2.11.10
@@ -2998,8 +2998,8 @@ packages:
   '@scriptc/runtime-win32-x64-msvc@0.4.9':
     resolution: {integrity: sha512-/c8yYXaVuWPFu37q4ffz58g9jtV3T65NH+nMfBoJmhRjXVk6mx31VGaCabJBaMei0oEmpTo8a+E9a+oMLEBmdA==}
 
-  '@scriptc/threads@0.4.8':
-    resolution: {integrity: sha512-lNsi1dpR9hBhh7BhwrfpNyyGxyIh3YzOzbH+0KGdBgIvZ3xTbG+r3zp0BRX7jHR4Apr8puPW2NLbZraBKsqluQ==}
+  '@scriptc/threads@0.4.9':
+    resolution: {integrity: sha512-x3z9prNcSAU5x4z6ZFwgffmNYMIemx2zhUHZfRDlbc3hhu+KmC82QEv+yHt57bBYfvzQ1FamcwAZeZB+WR+EqQ==}
     engines: {node: '>=24.0.0'}
 
   '@shikijs/core@4.5.0':
@@ -6182,7 +6182,7 @@ snapshots:
   '@scriptc/runtime-win32-x64-msvc@0.4.9':
     optional: true
 
-  '@scriptc/threads@0.4.8': {}
+  '@scriptc/threads@0.4.9': {}
 
   '@shikijs/core@4.5.0':
     dependencies:
@@ -7955,9 +7955,9 @@ snapshots:
     dependencies:
       lodash: 4.18.1
 
-  tsc-ts@0.1.2(@scriptc/threads@0.4.8):
+  tsc-ts@0.1.2(@scriptc/threads@0.4.9):
     optionalDependencies:
-      '@scriptc/threads': 0.4.8
+      '@scriptc/threads': 0.4.9
       '@tsc-ts/darwin-arm64': 0.1.2
       '@tsc-ts/darwin-x64': 0.1.2
       '@tsc-ts/linux-arm64-gnu': 0.1.2
