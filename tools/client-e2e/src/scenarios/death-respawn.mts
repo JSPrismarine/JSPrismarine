@@ -25,6 +25,12 @@ export const deathRespawn: Scenario = {
     name: 'death-respawn',
     description: 'dying shows the death screen, respawning restores a healthy player, and it can still teleport itself',
     run: async ({ client, server, playerName, log }) => {
+        // The world spawn names the stone pad's own block, as a world whose spawn was written as
+        // its top block does, so the respawn has to lift the player out of it.
+        server.command('setworldspawn 0 63 0');
+        server.command('fill -2 63 -2 2 63 2 minecraft:stone');
+        await waitTicks(server, 5);
+
         // Die in the Nether, so the respawn is a change of world: that is the one a later command
         // into another dimension used to be held behind.
         server.command('execute in minecraft:the_nether run fill -4 99 -4 4 99 4 minecraft:netherrack');
@@ -56,6 +62,12 @@ export const deathRespawn: Scenario = {
             );
             await sleep(250);
         }
+
+        const feet = (await client.state()).feet as number[] | undefined;
+        assert.ok(
+            Array.isArray(feet) && feet[1]! >= 64 - 0.01,
+            `the respawn stood the player inside the stone spawn block: feet ${JSON.stringify(feet)}`
+        );
 
         // Respawned in the Overworld, the player has to be able to run a command that sends
         // them back: `@s` names them, and the change of world must not still be pending.

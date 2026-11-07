@@ -83,6 +83,42 @@ export const respawnPoint = (spawn: Vector3, eyeHeight: number) => {
 };
 
 /**
+ * The feet height a respawn can stand at: the spawn's own, raised until the body fits.
+ *
+ * The respawn exchange puts the player over a block's corner, so the body covers the four
+ * columns around it, not one. The stored height is where a Bedrock Dedicated Server's spawn
+ * stood, and it can be the ground itself on a world whose spawn was written as the top block, so
+ * a column that is solid at the feet or the head moves the player up to the first height where
+ * all four are free, as {@link placePlayerSpawn} does for a join. A spot already free is kept.
+ * @param spawn - the spawn, in block coordinates.
+ * @param terrain - what to ask about the blocks around it.
+ */
+export const clearRespawnFeet = async (
+    spawn: Vector3,
+    terrain: Pick<SpawnTerrain, 'maxY' | 'isObstructed'>
+): Promise<number> => {
+    const x = Math.floor(spawn.getX());
+    const z = Math.floor(spawn.getZ());
+    let feet = Math.floor(spawn.getY());
+
+    const blocked = async (y: number): Promise<boolean> => {
+        for (const [dx, dz] of [
+            [-1, -1],
+            [-1, 0],
+            [0, -1],
+            [0, 0]
+        ] as const) {
+            if ((await terrain.isObstructed(x + dx, y, z + dz)) || (await terrain.isObstructed(x + dx, y + 1, z + dz)))
+                return true;
+        }
+        return false;
+    };
+
+    while (feet < terrain.maxY && (await blocked(feet))) feet++;
+    return feet;
+};
+
+/**
  * Places a player who has no position of their own, the way a Bedrock Dedicated Server does.
  *
  * Measured against BDS 1.26.52, one fresh player per case:

@@ -44,7 +44,7 @@ import type Skin from '@jsprismarine/protocol/wire/structures/skin/Skin';
 import type { World, WorldPlayerData } from './world/';
 import { GameRules } from './world/GameRuleManager';
 import type { Position } from './world/Position';
-import { requestedSpawnPosition, respawnPoint } from './world/SpawnPlacement';
+import { clearRespawnFeet, requestedSpawnPosition, respawnPoint } from './world/SpawnPlacement';
 import { resolveRespawn } from './world/RespawnPoint';
 import type { StoredSpawnPoint } from './world/RespawnPoint';
 import { dimensionByName } from './world/DimensionType';
@@ -1062,8 +1062,16 @@ export default class Player extends Human {
         const own = await this.resolveOwnSpawn();
         if (own !== undefined) return { world: own.world, ...respawnPoint(own.position, EYE_HEIGHT) };
 
+        // The world spawn is raised out of any block it overlaps: it is the ground on a world whose
+        // spawn was stored as the top block, and the respawn stands the body over a corner.
         const overworld = this.server.getWorldManager().getDefaultWorld();
-        return { world: overworld, ...respawnPoint(await overworld.getSpawnPosition(), EYE_HEIGHT) };
+        const spawn = await overworld.getSpawnPosition();
+        const { minY, height } = overworld.getDimension();
+        const feet = await clearRespawnFeet(spawn, {
+            maxY: minY + height,
+            isObstructed: async (x, y, z) => (await overworld.getBlock(x, y, z)).isSolid()
+        });
+        return { world: overworld, ...respawnPoint(new Vector3(spawn.getX(), feet, spawn.getZ()), EYE_HEIGHT) };
     }
 
     /**

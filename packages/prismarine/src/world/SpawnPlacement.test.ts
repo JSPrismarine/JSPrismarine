@@ -1,6 +1,6 @@
 import { Vector3 } from '@jsprismarine/math';
 import { describe, expect, it } from 'vitest';
-import { SPAWN_RELOCATION_RANGE, UNKNOWN_SPAWN_HEIGHT, placePlayerSpawn } from './SpawnPlacement';
+import { SPAWN_RELOCATION_RANGE, UNKNOWN_SPAWN_HEIGHT, clearRespawnFeet, placePlayerSpawn } from './SpawnPlacement';
 
 import type { SpawnTerrain } from './SpawnPlacement';
 
@@ -130,5 +130,31 @@ describe('placing a player at the world spawn', () => {
             expect(Math.abs(position.getZ() + 6.5)).toBeLessThanOrEqual(SPAWN_RELOCATION_RANGE);
             expect(Number.isInteger(position.getX() - 0.5)).toBe(true);
         }
+    });
+});
+
+describe('clearing a respawn out of the blocks around it', () => {
+    const solidAt = (blocks: ReadonlyArray<readonly [number, number, number]>) => ({
+        maxY: 320,
+        isObstructed: async (x: number, y: number, z: number) =>
+            blocks.some(([bx, by, bz]) => bx === x && by === y && bz === z)
+    });
+
+    it('keeps a spawn whose body already fits', async () => {
+        expect(await clearRespawnFeet(new Vector3(5, 63, -6), solidAt([]))).toBe(63);
+    });
+
+    it('raises a spawn stored as the ground block to the first free height', async () => {
+        const ground = [[5, 63, -6]] as const;
+        expect(await clearRespawnFeet(new Vector3(5, 63, -6), solidAt(ground))).toBe(64);
+    });
+
+    it('counts the four columns a body over a block corner covers', async () => {
+        // The corner at (5, -6) overlaps columns 4..5 by -7..-6; the hill is in (4, -7).
+        const hill = [
+            [4, 64, -7],
+            [4, 65, -7]
+        ] as const;
+        expect(await clearRespawnFeet(new Vector3(5, 64, -6), solidAt(hill))).toBe(66);
     });
 });
