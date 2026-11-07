@@ -254,7 +254,7 @@ export class GenerationCanceledError extends Error {
 
 /** The subset of piscina this uses, so the pool can be built over a double in a test. */
 interface TaskRunner {
-    run(task: GenerationTask, options?: { transferList?: readonly ArrayBuffer[] }): Promise<GenerationResult>;
+    run(task: GenerationTask): Promise<GenerationResult>;
     destroy(): Promise<void>;
     readonly threads: readonly unknown[];
 }
@@ -472,7 +472,9 @@ class EmbeddedTaskRunner implements TaskRunner {
             }
             this.dispatch();
         });
-        worker.on('error', (error) => this.failWorker(slot, error));
+        worker.on('error', (error: unknown) =>
+            this.failWorker(slot, error instanceof Error ? error : new Error(String(error)))
+        );
         worker.on('exit', (code) => {
             if (!this.closed) this.failWorker(slot, new Error(`Generation worker exited with code ${code}`));
         });

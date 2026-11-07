@@ -398,7 +398,9 @@ export class Database {
             else request.resolve(reply.result);
         });
 
-        worker.on('error', (error) => this.failTableWorker(worker, error));
+        worker.on('error', (error: unknown) =>
+            this.failTableWorker(worker, error instanceof Error ? error : new Error(String(error)))
+        );
         worker.on('exit', (code) => {
             if (this.tableWorker === worker) this.tableWorker = null;
             this.failTableWorker(worker, new Error(`Table worker exited before replying with code ${code}`));

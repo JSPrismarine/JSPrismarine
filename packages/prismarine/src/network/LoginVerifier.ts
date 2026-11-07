@@ -1,6 +1,6 @@
 import { createPublicKey, verify } from 'node:crypto';
 
-import type { JsonWebKey, KeyObject } from 'node:crypto';
+import type { KeyObject, webcrypto } from 'node:crypto';
 
 import type { Login } from '@jsprismarine/protocol/packet/LoginPacket';
 
@@ -49,7 +49,7 @@ export interface VerifiedLogin {
 }
 
 interface JsonWebKeySet {
-    keys?: Array<JsonWebKey & { kid?: string }>;
+    keys?: Array<webcrypto.JsonWebKey & { kid?: string }>;
 }
 
 /**
