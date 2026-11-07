@@ -25,7 +25,13 @@ const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..'
 // Resolve the compiler from the workspace root so the script also works when it is
 // started directly rather than through a package script that puts .bin on PATH.
 const tscTs = path.join(repoRoot, 'node_modules', 'tsc-ts', 'bin', 'tsc-ts.js');
-execFileSync(process.execPath, [tscTs, '-p', 'tsconfig.dts.json'], { cwd: packageDir, stdio: 'inherit' });
+// The run records are off: tsc-ts 0.1.2 stores a NaN share as `null` for a package with nothing
+// to measure, then throws when the next build reads it back, so every second build fails.
+execFileSync(process.execPath, [tscTs, '-p', 'tsconfig.dts.json'], {
+    cwd: packageDir,
+    stdio: 'inherit',
+    env: { ...process.env, TSC_TS_CACHE: '0' }
+});
 
 const walk = (directory: string, visit: (file: string) => void): void => {
     for (const entry of readdirSync(directory, { withFileTypes: true })) {
