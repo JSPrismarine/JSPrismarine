@@ -65,6 +65,7 @@ import type { ContentPosition } from '../content/world/adapter';
 import { profileSpanStarter } from '../profiling/ServerProfiler';
 import Chunk from './chunk/Chunk';
 import { DragonFight } from './end/DragonFight';
+import { exposedFluidsOf } from './exposedFluids';
 import type { DragonFightState } from './WorldPersistence';
 import { isMidDimensionChange } from './portal/DimensionTravel';
 import type { PortalBlockRef } from './portal/DimensionTravel';
@@ -85,6 +86,10 @@ import type { Level } from './Level';
 export type { LevelData, StoredPlayerAttribute, WorldConfig, WorldPlayerData } from '../config/JsonConfigTypes';
 
 /** How far out to look for dry land, and how coarsely, before giving up. */
+/** The delay a fluid's first tick waits, Java's five ticks for water and thirty for overworld lava. */
+const WATER_SPREAD_TICKS = 5;
+const LAVA_SPREAD_TICKS = 30;
+
 const SPAWN_SEARCH_RADIUS = 256;
 const SPAWN_SEARCH_STEP = 8;
 
@@ -1365,6 +1370,23 @@ export class World implements Service {
         }
     }
 
+    /**
+     * Gives the fluid of a loaded chunk that borders air a tick, so water over an empty cave falls
+     * and a lake edge spreads instead of hanging there; see {@link exposedFluidsOf}.
+     */
+    private scheduleExposedFluids(chunk: Chunk): void {
+        const fluidTicks = this.systems.ticks.list('fluid');
+        const now = this.getTicks();
+        for (const fluid of exposedFluidsOf(chunk)) {
+            const at = { x: chunk.getX() * 16 + fluid.x, y: fluid.y, z: chunk.getZ() * 16 + fluid.z };
+            fluidTicks.schedule(
+                at,
+                fluid.name,
+                now + (fluid.name.endsWith('lava') ? LAVA_SPREAD_TICKS : WATER_SPREAD_TICKS)
+            );
+        }
+    }
+
     /** The body of {@link World.loadChunk}, once it is this call's job to do the loading. */
     private async readChunkInto(
         index: number,
@@ -1408,6 +1430,8 @@ export class World implements Service {
                 key: this.lightingCompletionKey(index)
             });
         }
+
+        this.scheduleExposedFluids(chunk);
 
         const discardedStacklessItems = await this.createStoredEntities(chunk);
         await this.createGeneratedEntities(chunk);
