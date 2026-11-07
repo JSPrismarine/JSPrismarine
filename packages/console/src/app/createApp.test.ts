@@ -556,6 +556,21 @@ describe('createApp', () => {
             return { x: rows[y]!.indexOf(text), y };
         };
 
+        it('never shows more than 20 TPS', async () => {
+            const t = await setup({ width: 120, height: 40 });
+            dispose = t.dispose;
+            await focusLog(t);
+            reportTps(t, [20.84, 21.5]);
+            t.mockInput.pressKey('t');
+            await t.renderOnce();
+
+            const frame = t.captureCharFrame();
+            expect(frame).toMatch(/now 20\.00\s+avg 20\.00\s+min 20\.00\s+max 20\.00/);
+            expect(frame).toContain('TPS 20.00');
+            expect(frame).not.toMatch(/2[1-9]\.\d\d/);
+            expect(frame).not.toMatch(/ 2[1-9] [┤└]/);
+        });
+
         it('opens when the side pane graph is clicked', async () => {
             const t = await setup({ width: 120, height: 40 });
             dispose = t.dispose;

@@ -4,7 +4,7 @@ import type { KeyEvent, MouseEvent, TextChunk } from '@opentui/core';
 import type { ConsoleContext } from '../context';
 import { formatTickMs } from '../status/segments';
 import { graphChunks } from './graphChunks';
-import { TPS_DANGER_BELOW, TPS_WARNING_BELOW, plotGraph, tpsTone } from './plotGraph';
+import { TPS_DANGER_BELOW, TPS_TARGET, TPS_WARNING_BELOW, plotGraph, tpsTone } from './plotGraph';
 import { TPS_WINDOWS, seriesForWindow, summarizeWindow } from './tpsHistory';
 import type { TpsSample } from './tpsHistory';
 
@@ -51,7 +51,6 @@ const BORDER = 2;
 const CHROME_ROWS = 4;
 const MIN_CHART_ROWS = 2;
 const DEFAULT_WINDOW = 1;
-const AXIS_TARGET = 20;
 const AXIS_STEP = 5;
 const AXIS_FLOOR = 15;
 /** Widest tick label, such as `17.5`. */
@@ -98,7 +97,7 @@ function spreadLabels(left: string, middle: string, right: string, width: number
 }
 
 /**
- * Creates the TPS page. The chart range follows the data: it always reaches the target of 20 and
+ * Creates the TPS page. The chart range follows the data: it always tops out at the target of 20 and
  * drops in steps of 5, down to 0, when the server falls behind.
  */
 export function createTpsPage(ctx: Pick<ConsoleContext, 'renderer' | 'theme'>, props: TpsPageProps): TpsPage {
@@ -235,7 +234,7 @@ export function createTpsPage(ctx: Pick<ConsoleContext, 'renderer' | 'theme'>, p
         const plotColumns = Math.max(1, innerWidth - AXIS_WIDTH);
         const series = seriesForWindow(model.samples, model.now, span.ms, plotColumns * 2);
         const present = series.filter((value) => value !== undefined);
-        const max = Math.max(AXIS_TARGET, Math.ceil(Math.max(...present, 0)));
+        const max = TPS_TARGET;
         const min =
             present.length === 0
                 ? AXIS_FLOOR

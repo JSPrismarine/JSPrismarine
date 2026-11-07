@@ -13,6 +13,15 @@ export const TICK_BUDGET_MS = 50;
 /** Tick duration from which the status bar warns before the budget is gone. */
 export const TICK_WARNING_MS = 40;
 
+/** The rate a healthy server holds, and the most the console ever shows. */
+export const TPS_TARGET = 20;
+
+/**
+ * The reading the console shows for a server's TPS. The server reports a loop that is catching up
+ * as above 20, but a rate over the target is not extra health, so every view caps it there.
+ */
+export const displayTps = (tps: number): number => Math.min(tps, TPS_TARGET);
+
 /** Colors a TPS reading: green at 19 or more, yellow from 15, red below. */
 export function tpsTone(tps: number): GraphTone {
     if (tps < TPS_DANGER_BELOW) return 'danger';

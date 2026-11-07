@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { plotGraph, tickTone, tpsTone } from './plotGraph';
+import { displayTps, plotGraph, tickTone, tpsTone } from './plotGraph';
 
 const options = { columns: 4, rows: 2, min: 10, max: 20 };
 
@@ -14,6 +14,12 @@ describe('tpsTone', () => {
             'danger',
             'danger'
         ]);
+    });
+});
+
+describe('displayTps', () => {
+    it('caps a catching-up loop at the target and leaves lower readings alone', () => {
+        expect([21.7, 20, 19.4, 0].map(displayTps)).toEqual([20, 20, 19.4, 0]);
     });
 });
 

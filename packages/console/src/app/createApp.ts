@@ -23,7 +23,7 @@ import { formatMemory, formatPlayers, formatTickMs, formatTps, formatUptime, sta
 import type { Segment, SegmentBounds, ServerState } from '../status/segments';
 import type { DropdownOption } from '../status/dropdown';
 import { createToastStack } from '../status/toasts';
-import { tickTone, tpsTone } from '../tps/plotGraph';
+import { displayTps, tickTone, tpsTone } from '../tps/plotGraph';
 import { pruneSamples } from '../tps/tpsHistory';
 import type { TpsSample } from '../tps/tpsHistory';
 import { createTpsPage } from '../tps/tpsPage';
@@ -1000,14 +1000,14 @@ export function createApp(ctx: AppContext, props: AppProps): App {
                 return;
             case 'status':
                 metrics = {
-                    tps: message.tps,
+                    tps: displayTps(message.tps),
                     tickMs: message.tickMs,
                     players: { online: message.players, max: message.maxPlayers },
                     playerNames: message.playerNames,
                     rssBytes: message.rssBytes,
                     uptimeMs: message.uptimeMs
                 };
-                tpsSamples.push({ at: now(), tps: message.tps });
+                tpsSamples.push({ at: now(), tps: displayTps(message.tps) });
                 pruneSamples(tpsSamples, now());
                 refreshStatus();
                 refreshSidePane();
