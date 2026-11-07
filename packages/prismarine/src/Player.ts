@@ -1069,7 +1069,10 @@ export default class Player extends Human {
         const { minY, height } = overworld.getDimension();
         const feet = await clearRespawnFeet(spawn, {
             maxY: minY + height,
-            isObstructed: async (x, y, z) => (await overworld.getBlock(x, y, z)).isSolid()
+            // Air is the common answer, and settles it without building the block.
+            isObstructed: async (x, y, z) =>
+                (await overworld.getBlockState(x, y, z)).name !== 'minecraft:air' &&
+                (await overworld.getBlock(x, y, z)).isSolid()
         });
         return { world: overworld, ...respawnPoint(new Vector3(spawn.getX(), feet, spawn.getZ()), EYE_HEIGHT) };
     }
