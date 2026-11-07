@@ -656,7 +656,8 @@ export class LiveEntityRuntime {
         const id = this.bodies.entityIdOf(target);
         if (id === undefined) return { accepted: false };
 
-        if (this.openTradeScreen(id, target, player, itemIdentifier)) return { accepted: true, swing: true };
+        if (this.openTradeScreen(id, target, player, itemIdentifier))
+            return { accepted: true, swing: true, consumeItem: false };
 
         const previousLoveTicks = this.runtime.byId(id)?.body.loveTicks ?? 0;
         const interaction = this.runtime.interactWithItem(

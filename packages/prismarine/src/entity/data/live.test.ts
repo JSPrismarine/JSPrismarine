@@ -2132,6 +2132,15 @@ describe('the data-driven entity runtime over a live world', () => {
                 expect(villager.body.tradingPlayer).toBe(Number(player.getRuntimeId()));
             });
 
+            it('leaves the held item alone when it opens the screen', () => {
+                const { player } = tradingPlayer(1, 0);
+                const { body } = villagerBody();
+
+                const outcome = live.interactWithItem(body, player, 'minecraft:emerald');
+
+                expect(outcome).toMatchObject({ accepted: true, consumeItem: false });
+            });
+
             it('frees the villager again when the player closes the screen', async () => {
                 const { player, opened } = tradingPlayer(1, 0);
                 const { villager, body } = villagerBody();
