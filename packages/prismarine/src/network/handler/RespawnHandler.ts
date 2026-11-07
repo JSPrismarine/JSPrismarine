@@ -59,7 +59,8 @@ export default class RespawnHandler implements PacketHandler<RespawnPacket> {
                     position: point.block,
                     yaw: player.yaw,
                     pitch: player.pitch,
-                    respawn: true
+                    respawn: true,
+                    closesLoadingScreen: false
                 });
             }
             await session.sendRespawn(point.block, PlayerRespawnState.SEARCHING_FOR_SPAWN);

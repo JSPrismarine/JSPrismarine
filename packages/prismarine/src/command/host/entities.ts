@@ -262,9 +262,13 @@ export const entityCommandHost = (server: Server, scoreboard: Scoreboard): Entit
             // only way to kill it is to take it out of the world. The cause is
             // the one nothing turns aside: the ender dragon's damage rules
             // refuse a generic attacker-less blow, and `/kill` must not be one.
-            return entity.isAlive()
-                ? carryOut(entity.setHealth(0, DamageCause.SelfDestruct), true)
-                : carryOut(entity.getWorld().removeEntity(entity), true);
+            if (entity.isAlive()) return carryOut(entity.setHealth(0, DamageCause.SelfDestruct), true);
+
+            // A dead player is on the death screen, not an entity to clear away: taking it out of
+            // the world leaves it out when it respawns, and no `@s` finds it again.
+            if (entity instanceof Player) return false;
+
+            return carryOut(entity.getWorld().removeEntity(entity), true);
         },
 
         damage: (ref, amount, damageType, origin) => {

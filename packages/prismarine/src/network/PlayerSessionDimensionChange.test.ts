@@ -440,6 +440,21 @@ describe('PlayerSession.changeWorld', () => {
         expect(await session.completeCredits()).toBe(false);
     });
 
+    it('does not hold later moves behind a death respawn, which the client closes no screen for', async () => {
+        const { player } = fakePlayer();
+        const session = player.getNetworkSession();
+
+        await session.changeWorld({
+            ...arrivalIn(worldOf(Dimensions.Nether)),
+            respawn: true,
+            closesLoadingScreen: false
+        });
+        expect(session.pendingDimensionChange()).toBeUndefined();
+
+        await session.changeWorld(arrivalIn(worldOf(Dimensions.Overworld)));
+        expect(session.pendingDimensionChange()?.arrival.world).toBe(player.getWorld());
+    });
+
     it('does not record a batch that was on the wire during the change as loaded', async () => {
         const { player, connection, sent } = fakePlayer();
         const session = player.getNetworkSession();

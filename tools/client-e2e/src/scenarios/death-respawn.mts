@@ -23,8 +23,16 @@ const screenContaining = async (
 
 export const deathRespawn: Scenario = {
     name: 'death-respawn',
-    description: 'dying shows the death screen and respawning restores a healthy player',
+    description: 'dying shows the death screen, respawning restores a healthy player, and it can still teleport itself',
     run: async ({ client, server, playerName, log }) => {
+        // Die in the Nether, so the respawn is a change of world: that is the one a later command
+        // into another dimension used to be held behind.
+        server.command('execute in minecraft:the_nether run fill -4 99 -4 4 99 4 minecraft:netherrack');
+        server.command(`execute in minecraft:the_nether run teleport ${playerName} 0 100 0`);
+        const there = Date.now() + 30_000;
+        while ((await client.state()).dimension !== 1 && Date.now() < there) await sleep(250);
+        assert.equal((await client.state()).dimension, 1, 'the client never reached the Nether');
+        await waitTicks(server, 40);
         server.command(`kill ${playerName}`);
         const deathScreen = await screenContaining(client, 'Death');
 
@@ -40,7 +48,7 @@ export const deathRespawn: Scenario = {
             const health = (await client.state()).health as { current?: unknown } | undefined;
             if (typeof health?.current === 'number' && health.current > 0) {
                 log(`respawned with ${health.current} health`);
-                return;
+                break;
             }
             assert.ok(
                 Date.now() < deadline,
@@ -48,5 +56,22 @@ export const deathRespawn: Scenario = {
             );
             await sleep(250);
         }
+
+        // Respawned in the Overworld, the player has to be able to run a command that sends
+        // them back: `@s` names them, and the change of world must not still be pending.
+        server.command(`op ${playerName}`);
+        await waitTicks(server, 10);
+        await client.chat('/execute in minecraft:the_nether run tp @s 0 100 0');
+        const arrivalBy = Date.now() + 30_000;
+        for (;;) {
+            const dimension = (await client.state()).dimension;
+            if ([1, 'minecraft:the_nether', 'Nether'].some((value) => value === dimension)) break;
+            assert.ok(
+                Date.now() < arrivalBy,
+                `/execute in the_nether run tp @s did not move the respawned player: ${JSON.stringify(dimension)}`
+            );
+            await sleep(250);
+        }
+        log('the respawned player followed /execute in minecraft:the_nether run tp @s back into the Nether');
     }
 };

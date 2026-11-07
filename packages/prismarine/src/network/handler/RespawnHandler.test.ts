@@ -114,7 +114,8 @@ describe('RespawnHandler', () => {
             position: new Vector3(100, 70, 100),
             yaw: 90,
             pitch: -5,
-            respawn: true
+            respawn: true,
+            closesLoadingScreen: false
         });
         expect(done.map((step) => step.what ?? step.state)).toEqual([
             'changeWorld',

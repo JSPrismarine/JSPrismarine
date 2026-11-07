@@ -186,6 +186,11 @@ export interface Arrival {
     pitch: number;
     /** Whether the change follows a death rather than a portal or a teleport. Defaults to false. */
     respawn?: boolean;
+    /**
+     * Whether the client closes a loading screen for this change, which the change then stays
+     * pending on. Defaults to true; a respawn after a death is the one the client does not.
+     */
+    closesLoadingScreen?: boolean;
 }
 
 /** A dimension change the client has not yet closed the loading screen for. */
@@ -2035,7 +2040,12 @@ export default class PlayerSession {
         if (left.bedrockId === target.bedrockId) await this.detourFrom(target.bedrockId, eyes);
 
         const loadingScreenId = this.beginLoadingScreen();
-        this.pendingChange = { loadingScreenId, arrival, left: left.name, sinceTick: this.server.getTick() };
+        // A death's respawn change is not pending: the client does not close a loading screen for
+        // it, the `Respawn` exchange that follows settles it. Held as pending, it blocked every
+        // later change, a `/tp` into another dimension among them, for the whole timeout.
+        if (arrival.closesLoadingScreen !== false) {
+            this.pendingChange = { loadingScreenId, arrival, left: left.name, sinceTick: this.server.getTick() };
+        }
         await this.send(
             new ChangeDimensionPacket({
                 dimension: target.bedrockId,
