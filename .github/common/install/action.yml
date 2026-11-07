@@ -1,13 +1,22 @@
 name: 📦 Install
 description: Install dependencies
 
+inputs:
+    registry-url:
+        description: >-
+            Registry setup-node writes an .npmrc for. Only a job that publishes needs one, with
+            NODE_AUTH_TOKEN set: the .npmrc reads its token from that variable, and every other job
+            gets pnpm's "Failed to replace env in config" warning for it.
+        required: false
+        default: ''
+
 runs:
     using: 'composite'
     steps:
         - name: 🏎️ Setup Node
           uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
           with:
-              registry-url: 'https://registry.npmjs.org/'
+              registry-url: ${{ inputs.registry-url }}
               node-version-file: '.nvmrc'
 
         - name: 🏎️ Setup pnpm

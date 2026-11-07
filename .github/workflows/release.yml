@@ -54,6 +54,8 @@ jobs:
 
             - name: 📦 Install
               uses: ./.github/common/install
+              with:
+                  registry-url: 'https://registry.npmjs.org/'
 
             - name: 🔨 Build
               run: pnpm run build
