@@ -161,6 +161,22 @@ describe('the goal world over the entity runtime', () => {
         });
     });
 
+    describe('construction', () => {
+        it('does not read the world, which a mob restored with its chunk is built before it can answer', () => {
+            const fixture = fixtureOf();
+            const mob = spawned(fixture, 'jsprismarine:pet', groundAt(0, 0));
+            const notEnabled = Object.create(fixture.runtime, {
+                world: {
+                    get: () => {
+                        throw new Error('no minecraft:overworld world is loaded');
+                    }
+                }
+            });
+
+            expect(() => goalWorldOf(mob.body, notEnabled)).not.toThrow();
+        });
+    });
+
     describe('visibility', () => {
         it('checks solid blocks between the eyes of entities in follow range', () => {
             const world = new TestEntityWorld();

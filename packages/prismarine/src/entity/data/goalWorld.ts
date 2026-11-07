@@ -167,7 +167,9 @@ const nearestPlayerTo = (here: EntityPosition, scene: EntityScene, maxDistance: 
  */
 export const goalWorldOf = (entity: MobBody, scene: EntityScene): Required<GoalWorld> => {
     const sightByTarget = new Map<GoalMob['id'], CachedLineOfSight>();
-    let sightStep = scene.world.level.gameTime();
+    // Read on the first sight check, not here: a mob restored with its chunk is built before its
+    // world has finished enabling, and the world answers nothing until then.
+    let sightStep: number | undefined;
 
     return {
         navigation: () => scene.navigation(),
