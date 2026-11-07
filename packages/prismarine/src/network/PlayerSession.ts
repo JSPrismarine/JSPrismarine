@@ -549,15 +549,20 @@ export default class PlayerSession {
             // A chunk this client was told about has to be answerable. The client asks for its
             // sub chunks only once, and a "doesn't exist" is final for that column, so one the
             // world evicted between the announcement and the request would stay a hole for as
-            // long as the player stood there. Read it back instead; a chunk nobody announced is
-            // not loaded on a client's say-so.
-            if (chunk === null && this.loadedChunks.has(Chunk.packXZ(x, z))) {
+            // long as the player stood there. Read it back instead. A column still queued for this
+            // client is the same: the publisher update that opens the radius goes out ahead of its
+            // LevelChunks, so the client can ask for it first, and a "doesn't exist" would leave the
+            // hole. A chunk nobody announced or queued is not loaded on a client's say-so.
+            const hash = Chunk.packXZ(x, z);
+            if (chunk === null && (this.loadedChunks.has(hash) || this.loadingChunks.has(hash))) {
                 chunk = await world.getChunk(x, z, { urgency: 'immediate' });
             }
             if (chunk === null || chunk.getX() !== x || chunk.getZ() !== z) {
+                // Debug: a client that has moved or changed dimension asks for columns of its old
+                // view, one line per sub chunk, and there is nothing for an operator to do about it.
                 this.server
                     .getLogger()
-                    .warn(
+                    .debug(
                         `${this.player.getName()} asked for sub chunk ${x}, ${y}, ${z}, which is not loaded`,
                         'PlayerSession/handleSubChunkRequest'
                     );
