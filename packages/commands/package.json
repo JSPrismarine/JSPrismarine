@@ -72,7 +72,7 @@
     },
     "devDependencies": {
         "@types/node": "24.19.2",
-        "glob": "13.0.6",
+        "glob": "13.0.7",
         "prettier": "3.9.10",
         "rimraf": "6.1.4",
         "typescript": "7.0.2",
