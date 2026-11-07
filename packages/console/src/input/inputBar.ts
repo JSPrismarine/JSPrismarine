@@ -56,6 +56,10 @@ export interface InputBar {
     setValue(value: string): void;
     /** The current line. */
     getValue(): string;
+    /** The text selected in the line, or an empty string. */
+    getSelectedText(): string;
+    /** Inserts `text` at the cursor the way a terminal paste does, replacing any selection. */
+    paste(text: string): void;
     /** Destroys the renderables. The bar must not be used afterwards. */
     dispose(): void;
 }
@@ -64,6 +68,24 @@ const DEFAULT_PROMPT = '> ';
 const PLACEHOLDER = 'type a command, ? for help';
 const DISABLED_HINT = 'server is not running';
 const STOP_HINT = 'press Ctrl+C again to stop the server';
+
+// Matches terminal escape sequences and the control characters a command line cannot hold.
+const ESCAPES_AND_CONTROLS =
+    // biome-ignore lint/suspicious/noControlCharactersInRegex: the pattern exists to match control characters.
+    /\u001B\[[0-9;?]*[ -/]*[@-~]|\u001B[@-Z\\-_]|[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g;
+
+/**
+ * Turns pasted text into something a one-line command can hold. Terminal escapes and control
+ * characters are dropped, a trailing line break is ignored, and every other run of line breaks
+ * and tabs becomes one space, so a pasted block reads as the words it had instead of running
+ * its lines together.
+ */
+export function normalizePaste(text: string): string {
+    return text
+        .replace(ESCAPES_AND_CONTROLS, '')
+        .replace(/[\r\n]+$/, '')
+        .replace(/[ \t]*[\r\n]+[ \t]*|\t/g, ' ');
+}
 
 /** Milliseconds within which repeated empty-line Ctrl+C presses escalate. */
 export const INTERRUPT_WINDOW_MS = 2000;
@@ -154,12 +176,16 @@ export function createInputBar(ctx: Pick<ConsoleContext, 'renderer' | 'theme'>, 
         showHint(undefined);
     }
 
+    function insertPasted(text: string): void {
+        input.focus();
+        handlePaste();
+        input.insertText(normalizePaste(text));
+    }
+
     const onPaste = (event: PasteEvent): void => {
         if (disposed) return;
         event.preventDefault();
-        input.focus();
-        handlePaste();
-        input.handlePaste(event);
+        insertPasted(new TextDecoder().decode(event.bytes));
     };
 
     function layoutStrip(): void {
@@ -301,6 +327,8 @@ export function createInputBar(ctx: Pick<ConsoleContext, 'renderer' | 'theme'>, 
             setLine(value);
         },
         getValue: () => input.value,
+        getSelectedText: () => input.getSelectedText(),
+        paste: insertPasted,
         dispose: () => {
             disposed = true;
             renderer.off(CliRenderEvents.RESIZE, layoutStrip);

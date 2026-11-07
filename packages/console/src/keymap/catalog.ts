@@ -30,6 +30,11 @@ export interface CommandSpec {
     bindings: readonly KeyBinding[];
     /** Shown in the key column when the command has no binding of its own. */
     hint?: string;
+    /**
+     * Whether the bindings also run while the input line has focus. Only chords that cannot be
+     * typed, such as Cmd+C, may set it.
+     */
+    global?: true;
 }
 
 /** A command catalog, in the order the help overlay lists commands within a group. */
@@ -53,13 +58,15 @@ const plainShift = (name: string): KeyBinding => ({ name, shift: true });
  */
 export const COMMAND_CATALOG = [
     { id: 'input.historySearch', title: 'Search history', group: 'Input', bindings: [ctrl('r')] },
+    { id: 'input.paste', title: 'Paste', group: 'Input', bindings: [superKey('v'), ctrlShift('v')], global: true },
     { id: 'log.pageUp', title: 'Page up', group: 'Log', bindings: [plain('pageup'), ctrl('u')] },
     { id: 'log.pageDown', title: 'Page down', group: 'Log', bindings: [plain('pagedown'), ctrl('d')] },
     {
         id: 'log.copySelection',
         title: 'Copy selection',
         group: 'Log',
-        bindings: [ctrlShift('c'), superKey('c')]
+        bindings: [ctrlShift('c'), superKey('c')],
+        global: true
     },
     { id: 'log.top', title: 'Jump to top', group: 'Log', bindings: [plain('home'), plain('g')] },
     { id: 'log.bottom', title: 'Jump to bottom', group: 'Log', bindings: [plain('end'), plainShift('g')] },
@@ -133,12 +140,13 @@ const matches = (binding: KeyBinding, key: CommandKey): boolean =>
     (binding.super ?? false) === (key.super ?? false);
 
 /**
- * Returns the command the key runs, or `undefined` when the input has focus or no binding
- * matches. Input focus leaves every key available for editing, including unmodified shortcuts.
+ * Returns the command the key runs, or `undefined` when no binding matches. Input focus leaves
+ * every key available for editing, including unmodified shortcuts, so only `global` commands
+ * resolve then.
  */
 export function resolveCommand(key: CommandKey, context: ResolveContext): CommandId | undefined {
-    if (context.inputFocused) return undefined;
     for (const command of COMMAND_CATALOG) {
+        if (context.inputFocused && !('global' in command)) continue;
         for (const binding of command.bindings) {
             if (matches(binding, key)) return command.id;
         }

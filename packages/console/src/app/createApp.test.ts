@@ -25,8 +25,13 @@ async function setup(
     const actions = { restart: vi.fn(), stop: vi.fn(), forceStop: vi.fn() };
     const store = new LogStore();
     const history = new CommandHistory();
+    const clipboard = {
+        copy: vi.fn(async (_text: string) => true),
+        read: vi.fn(async (): Promise<string | undefined> => undefined),
+        dispose: vi.fn(async () => {})
+    };
     const app = createApp(
-        { renderer: test.renderer, theme: defaultTheme, store, history, now },
+        { renderer: test.renderer, theme: defaultTheme, store, history, now, clipboard },
         {
             onCommand: async (line): Promise<CommandOutcome> => {
                 commands.push(line);
@@ -46,7 +51,7 @@ async function setup(
         app.dispose();
         await test.dispose();
     };
-    return { ...test, dispose, app, store, history, commands, actions };
+    return { ...test, dispose, app, store, history, commands, actions, clipboard };
 }
 
 type AppHarness = Awaited<ReturnType<typeof setup>>;
@@ -224,23 +229,125 @@ describe('createApp', () => {
         expect(t.captureCharFrame()).toContain('INPUT · Esc log');
     });
 
-    it('copies selected log text with Ctrl+C when the log pane has focus', async () => {
-        const t = await setup({ width: 120, height: 40 });
-        dispose = t.dispose;
-        const copyToClipboard = vi.spyOn(t.renderer, 'copyToClipboardOSC52').mockReturnValue(true);
+    describe('clipboard', () => {
+        /** Selects `text` in the log with the mouse and returns where it sits. */
+        const selectInLog = async (t: AppHarness, text: string): Promise<void> => {
+            t.app.applyServerMessage(logMessage(text));
+            await t.renderOnce();
+            const rows = t.captureCharFrame().split('\n');
+            const row = rows.findIndex((line) => line.includes(text));
+            const start = rows[row]?.indexOf(text) ?? -1;
+            expect(row).toBeGreaterThanOrEqual(0);
+            await t.mockMouse.drag(start, row, start + text.length, row);
+            await t.renderOnce();
+        };
+        const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
+        /** `CSI code;9u` is a Super-modified key in the kitty keyboard protocol. */
+        const cmd = (letter: string) => `\u001B[${letter.charCodeAt(0)};9u`;
 
-        t.app.applyServerMessage(logMessage('copy me'));
-        await t.renderOnce();
-        const rows = t.captureCharFrame().split('\n');
-        const row = rows.findIndex((line) => line.includes('copy me'));
-        const start = rows[row]?.indexOf('copy me') ?? -1;
-        expect(row).toBeGreaterThanOrEqual(0);
-        await t.mockMouse.drag(start, row, start + 'copy me'.length, row);
-        t.mockInput.pressCtrlC();
-        await t.renderOnce();
+        it('copies a selection as soon as the mouse is released', async () => {
+            const t = await setup({ width: 120, height: 40 });
+            dispose = t.dispose;
 
-        expect(copyToClipboard).toHaveBeenCalledWith('copy me');
-        expect(t.captureCharFrame()).toContain('copied selection to clipboard');
+            await selectInLog(t, 'copy me');
+            await flush();
+            await t.renderOnce();
+
+            expect(t.clipboard.copy).toHaveBeenCalledExactlyOnceWith('copy me');
+            expect(t.captureCharFrame()).toContain('copied selection to clipboard');
+        });
+
+        it('copies the selection again on Ctrl+C when the log pane has focus', async () => {
+            const t = await setup({ width: 120, height: 40 });
+            dispose = t.dispose;
+            await selectInLog(t, 'copy me');
+            t.clipboard.copy.mockClear();
+
+            t.mockInput.pressCtrlC();
+            await flush();
+            await t.renderOnce();
+
+            expect(t.clipboard.copy).toHaveBeenCalledExactlyOnceWith('copy me');
+        });
+
+        it('copies on Cmd+C even when the command line has focus', async () => {
+            const t = await setup({ width: 120, height: 40 });
+            dispose = t.dispose;
+            await selectInLog(t, 'copy me');
+            t.clipboard.copy.mockClear();
+            t.app.focus();
+            await t.renderOnce();
+            expect(t.captureCharFrame()).toContain('INPUT · Esc log');
+
+            t.mockInput.pressKey(cmd('c'));
+            await flush();
+            await t.renderOnce();
+
+            expect(t.clipboard.copy).toHaveBeenCalledExactlyOnceWith('copy me');
+            expect(t.captureCharFrame()).not.toContain('c> ');
+        });
+
+        it('copies text selected in the command line on Cmd+C', async () => {
+            const t = await setup({ width: 120, height: 40 });
+            dispose = t.dispose;
+            await t.mockInput.typeText('say hello');
+            t.mockInput.pressArrow('left', { shift: true });
+            t.mockInput.pressArrow('left', { shift: true });
+            await t.renderOnce();
+
+            t.mockInput.pressKey(cmd('c'));
+            await flush();
+
+            expect(t.clipboard.copy).toHaveBeenCalledExactlyOnceWith('lo');
+        });
+
+        it('says so when no clipboard could be reached', async () => {
+            const t = await setup({ width: 120, height: 40 });
+            dispose = t.dispose;
+            t.clipboard.copy.mockResolvedValue(false);
+
+            await selectInLog(t, 'copy me');
+            await flush();
+            await t.renderOnce();
+
+            expect(t.captureCharFrame()).toContain('could not reach the clipboard');
+        });
+
+        it('asks for a selection when there is nothing to copy', async () => {
+            const t = await setup({ width: 120, height: 40 });
+            dispose = t.dispose;
+
+            t.mockInput.pressKey(cmd('c'));
+            await t.renderOnce();
+
+            expect(t.clipboard.copy).not.toHaveBeenCalled();
+            expect(t.captureCharFrame()).toContain('select text to copy');
+        });
+
+        it('pastes the clipboard text on Cmd+V into the command line and focuses it', async () => {
+            const t = await setup({ width: 120, height: 40 });
+            dispose = t.dispose;
+            t.clipboard.read.mockResolvedValue('say pasted');
+            await focusLog(t);
+
+            t.mockInput.pressKey(cmd('v'));
+            await flush();
+            await t.renderOnce();
+
+            const frame = t.captureCharFrame();
+            expect(frame).toContain('> say pasted');
+            expect(frame).toContain('INPUT · Esc log');
+        });
+
+        it('turns a pasted block into one line', async () => {
+            const t = await setup({ width: 120, height: 40 });
+            dispose = t.dispose;
+
+            await t.mockInput.pasteBracketedText('say one\nsay two\n');
+            await t.renderOnce();
+
+            expect(t.captureCharFrame()).toContain('> say one say two');
+        });
     });
 
     it('shows a toast when the command fails', async () => {
@@ -712,6 +819,9 @@ describe('createApp', () => {
             },
             'view.toggleSidePane': async (t) => {
                 expect(t.captureCharFrame()).not.toContain('Players');
+            },
+            'input.paste': async (t) => {
+                expect(count(t.captureCharFrame(), 'the clipboard has no text to paste')).toBe(1);
             },
             'view.tpsGraph': async (t) => {
                 expect(count(t.captureCharFrame(), 'span  1m  5m  15m')).toBe(1);

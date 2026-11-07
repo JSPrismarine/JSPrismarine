@@ -102,7 +102,7 @@ describe('createHelpOverlay', () => {
         try {
             t.overlay.show();
             const frame = await t.frame();
-            expect(frame).toContain('Page up');
+            expect(frame).toContain('Search history');
             expect(frame).toContain('…');
             expect(frame).toContain('Esc to close');
             expect(rows(frame).length).toBe(12);

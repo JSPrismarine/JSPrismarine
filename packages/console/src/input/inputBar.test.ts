@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { defaultTheme } from '../theme/theme';
 import { CommandHistory } from './history';
 import type { CompletionResult, InputBarProps } from './inputBar';
-import { createInputBar } from './inputBar';
+import { createInputBar, normalizePaste } from './inputBar';
 import type { InterruptKind } from './keys';
 
 const SHIFT_TAB = '\u001B[Z';
@@ -353,5 +353,29 @@ describe('createInputBar', () => {
 
         expect(t.bar.getValue()).toBe('stop');
         expect(t.captureCharFrame()).toContain('> stop');
+    });
+});
+
+describe('normalizePaste', () => {
+    it('keeps a single line as it is', () => {
+        expect(normalizePaste('say hello world')).toBe('say hello world');
+    });
+
+    it('ignores a trailing line break', () => {
+        expect(normalizePaste('list\n')).toBe('list');
+        expect(normalizePaste('list\r\n\r\n')).toBe('list');
+    });
+
+    it('joins lines with one space instead of running them together', () => {
+        expect(normalizePaste('say one\nsay two')).toBe('say one say two');
+        expect(normalizePaste('say one  \r\n\r\n   say two')).toBe('say one say two');
+    });
+
+    it('turns tabs into spaces', () => {
+        expect(normalizePaste('give\tSteve\tstone')).toBe('give Steve stone');
+    });
+
+    it('drops terminal escapes and control characters', () => {
+        expect(normalizePaste('\u001B[31mred\u001B[0m\u0007 text\u007F')).toBe('red text');
     });
 });

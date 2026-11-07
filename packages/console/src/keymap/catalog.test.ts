@@ -82,6 +82,21 @@ describe('resolveCommand', () => {
         expect(resolveCommand(press, inputFocused)).toBeUndefined();
     });
 
+    it('resolves copy and paste chords whichever pane has focus', () => {
+        const cmdC = { ...key('c'), super: true };
+        const cmdV = { ...key('v'), super: true };
+        for (const context of [inputFocused, logFocused]) {
+            expect(resolveCommand(cmdC, context)).toBe('log.copySelection');
+            expect(resolveCommand(key('c', { ctrl: true, shift: true }), context)).toBe('log.copySelection');
+            expect(resolveCommand(cmdV, context)).toBe('input.paste');
+            expect(resolveCommand(key('v', { ctrl: true, shift: true }), context)).toBe('input.paste');
+        }
+    });
+
+    it('keeps bare Ctrl+C for the input line', () => {
+        expect(resolveCommand(ctrl('c'), inputFocused)).toBeUndefined();
+    });
+
     it('restarts on Ctrl+Shift+R and searches history on Ctrl+R', () => {
         expect(resolveCommand(key('r', { ctrl: true, shift: true }), logFocused)).toBe('server.restart');
         expect(resolveCommand(ctrl('r'), logFocused)).toBe('input.historySearch');

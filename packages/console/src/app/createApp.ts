@@ -4,6 +4,8 @@ import type { LogLevel } from '@jsprismarine/logger';
 import { BoxRenderable, CliRenderEvents, MouseButton } from '@opentui/core';
 import type { KeyEvent, MouseEvent } from '@opentui/core';
 
+import { createConsoleClipboard } from '../clipboard';
+import type { ConsoleClipboard } from '../clipboard';
 import { createHelpOverlay } from '../help/helpOverlay';
 import { createInputBar } from '../input/inputBar';
 import type { CompletionResult } from '../input/inputBar';
@@ -40,6 +42,8 @@ export interface AppContext extends ConsoleContext {
     history: CommandHistory;
     /** Clock in epoch milliseconds; defaults to `Date.now`. */
     now?: () => number;
+    /** The clipboard copies go to and pastes come from; defaults to the system clipboard. */
+    clipboard?: ConsoleClipboard;
 }
 
 /** What the server answered to a command line. */
@@ -115,6 +119,8 @@ const PANE_HISTORY_LIMIT = 30;
 export function createApp(ctx: AppContext, props: AppProps): App {
     const { renderer, theme, store, history } = ctx;
     const now = ctx.now ?? Date.now;
+    const clipboard = ctx.clipboard ?? createConsoleClipboard(renderer);
+    const ownsClipboard = ctx.clipboard === undefined;
     const components = { renderer, theme };
 
     let disposed = false;
@@ -772,6 +778,43 @@ export function createApp(ctx: AppContext, props: AppProps): App {
         }
     }
 
+    /** The text selected in the log, or else in the command line. */
+    function selectedText(): string {
+        const fromLog = view.getSelectedText();
+        return fromLog === '' ? input.getSelectedText() : fromLog;
+    }
+
+    function copySelection(): void {
+        const text = selectedText();
+        if (text === '') {
+            toasts.push({ tone: 'muted', text: 'select text to copy' });
+            return;
+        }
+        void clipboard.copy(text).then(
+            guard((copied: boolean) => {
+                toasts.push(
+                    copied
+                        ? { tone: 'muted', text: 'copied selection to clipboard' }
+                        : { tone: 'warning', text: 'could not reach the clipboard; copy from your terminal instead' }
+                );
+            })
+        );
+    }
+
+    /** Pastes the clipboard text for terminals that deliver Cmd+V as a key instead of a paste. */
+    function pasteFromClipboard(): void {
+        void clipboard.read().then(
+            guard((text: string | undefined) => {
+                if (text === undefined || text === '') {
+                    toasts.push({ tone: 'muted', text: 'the clipboard has no text to paste' });
+                    return;
+                }
+                focusInput();
+                input.paste(text);
+            })
+        );
+    }
+
     function toggleWrap(): void {
         wrap = !wrap;
         view.setWrap(wrap);
@@ -793,19 +836,12 @@ export function createApp(ctx: AppContext, props: AppProps): App {
             case 'log.pageDown':
                 view.pageDown();
                 return;
-            case 'log.copySelection': {
-                const selectedText = view.getSelectedText();
-                if (selectedText.length === 0) {
-                    toasts.push({ tone: 'muted', text: 'select text to copy' });
-                    return;
-                }
-                if (!renderer.copyToClipboardOSC52(selectedText)) {
-                    toasts.push({ tone: 'muted', text: 'clipboard copy is unavailable in this terminal' });
-                    return;
-                }
-                toasts.push({ tone: 'muted', text: 'copied selection to clipboard' });
+            case 'log.copySelection':
+                copySelection();
                 return;
-            }
+            case 'input.paste':
+                pasteFromClipboard();
+                return;
             case 'log.top':
                 view.toTop();
                 return;
@@ -926,7 +962,17 @@ export function createApp(ctx: AppContext, props: AppProps): App {
     const onResize = guard(applyLayout);
 
     renderer.keyInput.on('keypress', onKey);
+    /**
+     * Copies a finished mouse selection at once. With mouse reporting on, the terminal's own
+     * selection is unavailable, and many terminals keep Cmd+C for it, so the app cannot count on
+     * ever seeing the key.
+     */
+    const onSelection = guard(() => {
+        if (selectedText() !== '') copySelection();
+    });
+
     renderer.on(CliRenderEvents.RESIZE, onResize);
+    renderer.on(CliRenderEvents.SELECTION, onSelection);
     applyLayout();
     refreshSidePane();
 
@@ -1009,6 +1055,8 @@ export function createApp(ctx: AppContext, props: AppProps): App {
             disposed = true;
             renderer.keyInput.off('keypress', onKey);
             renderer.off(CliRenderEvents.RESIZE, onResize);
+            renderer.off(CliRenderEvents.SELECTION, onSelection);
+            if (ownsClipboard) void clipboard.dispose();
             view.dispose();
             input.dispose();
             statusBar.dispose();
