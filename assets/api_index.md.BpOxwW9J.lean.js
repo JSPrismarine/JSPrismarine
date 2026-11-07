@@ -1,0 +1,1 @@
+import{at as e,it as t,n,vt as r}from"./chunks/framework.BUQROvXk.js";var i=JSON.parse(`{"title":"JSPrismarine","description":"","frontmatter":{},"headers":[],"relativePath":"api/index.md","filePath":"api/index.md"}`),a={name:`api/index.md`};function o(n,i,a,o,s,c){return r(),t(`div`,null,[...i[0]||=[e("",3)]])}var s=n(a,[[`render`,o]]);export{i as __pageData,s as default};
