@@ -220,6 +220,29 @@ describe('the number-lane random math', () => {
         }
     });
 
+    it('matches the BigInt low-64-bit product at the lane boundaries', () => {
+        const lanes = [0, 1, 0xffff, 0x10000, 0x7fffffff, 0x80000000, 0xffff0000, 0xffffffff];
+        const result = { hi: 0, lo: 0 };
+
+        for (const aHi of lanes) {
+            for (const aLo of lanes) {
+                for (const bHi of lanes) {
+                    for (const bLo of lanes) {
+                        mulLow64(aHi, aLo, bHi, bLo, result);
+                        const expected = BigInt.asUintN(
+                            64,
+                            ((BigInt(aHi) << 32n) | BigInt(aLo)) * ((BigInt(bHi) << 32n) | BigInt(bLo))
+                        );
+                        expect([result.hi, result.lo]).toEqual([
+                            Number(expected >> 32n),
+                            Number(expected & 0xffffffffn)
+                        ]);
+                    }
+                }
+            }
+        }
+    });
+
     it('matches the retained BigInt legacy LCG through randomized state transitions', () => {
         const mask = (1n << 48n) - 1n;
         const seeds = [
