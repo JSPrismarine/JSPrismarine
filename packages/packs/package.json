@@ -69,7 +69,7 @@
         "@spyglassmc/java-edition": "0.3.70",
         "@spyglassmc/json": "0.3.61",
         "@spyglassmc/mcdoc": "0.3.61",
-        "@types/node": "24.19.2",
+        "@types/node": "26.6.6",
         "glob": "13.0.7",
         "rimraf": "6.1.4",
         "typescript": "7.0.2",

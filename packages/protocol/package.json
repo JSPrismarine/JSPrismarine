@@ -73,7 +73,7 @@
         "@jsprismarine/bedrock-data": "workspace:*",
         "@jsprismarine/packs": "workspace:*",
         "@mtcute/wasm": "0.32.6",
-        "@types/node": "24.19.2",
+        "@types/node": "26.6.6",
         "glob": "13.0.7",
         "tsx": "4.23.15",
         "typescript": "7.0.2",

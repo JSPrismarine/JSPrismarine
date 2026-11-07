@@ -45,7 +45,7 @@
         "@jsprismarine/recipes": "workspace:*",
         "@jsprismarine/spawning": "workspace:*",
         "@jsprismarine/worldgen": "workspace:*",
-        "@types/node": "24.19.2",
+        "@types/node": "26.6.6",
         "rimraf": "6.1.4",
         "typescript": "7.0.2",
         "vite": "8.3.6",
