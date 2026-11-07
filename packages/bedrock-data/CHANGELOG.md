@@ -1,5 +1,21 @@
 # @jsprismarine/bedrock-data
 
+## 0.18.0
+
+### Patch Changes
+
+- [`2f242cd`](https://github.com/JSPrismarine/JSPrismarine/commit/2f242cdd46bca371c7658e208b20a7bc2b42b4cf) Thanks [@filiphsps](https://github.com/filiphsps)! - A checkout without the Bedrock vanilla behavior pack no longer runs silently without mobs. `pnpm dev` now downloads the pack when the cache lacks it, and the server logs a warning that names the consequence when the pack is missing. Before, a fresh clone or git worktree started with one entity type: nothing spawned, `/summon` answered "Unable to summon entity" for every type, and the End had no ender dragon.
+
+- [#2890](https://github.com/JSPrismarine/JSPrismarine/pull/2890) [`2ed840e`](https://github.com/JSPrismarine/JSPrismarine/commit/2ed840e8fd0ec1651fbba1bdfb3e2ab728c8bfe1) Thanks [@renovate](https://github.com/apps/renovate)! - chore(deps): update dependency glob to v13.0.7
+
+- [#2893](https://github.com/JSPrismarine/JSPrismarine/pull/2893) [`2d468b0`](https://github.com/JSPrismarine/JSPrismarine/commit/2d468b068fa56b158a7fe43168368dbef0c49015) Thanks [@renovate](https://github.com/apps/renovate)! - chore(deps): update dependency vite to v8.3.6
+
+- [#2902](https://github.com/JSPrismarine/JSPrismarine/pull/2902) [`0a03bb6`](https://github.com/JSPrismarine/JSPrismarine/commit/0a03bb69b0c8b11d9432f8f306111b66d7ff3596) Thanks [@renovate](https://github.com/apps/renovate)! - chore(deps): update dependency glob to v14
+
+- [`cd2a60d`](https://github.com/JSPrismarine/JSPrismarine/commit/cd2a60d428ee7f983601dc0fdf2638bdec7e4fe5) Thanks [@filiphsps](https://github.com/filiphsps)! - Name the built files `index.js` and so on instead of `index.es.js`. Every `exports`, `main`, `module` and `bin` path in the packages points at the new names, so a consumer that imports through a package name needs no change; one that reaches into `dist/` by file name has to drop the `.es`.
+
+- [`7418be1`](https://github.com/JSPrismarine/JSPrismarine/commit/7418be10dd694d6bb5f284896ea80cab1efdb551) Thanks [@filiphsps](https://github.com/filiphsps)! - Villagers of every profession trade, wear their biome's clothes and show their profession on the trade screen. The Bedrock Dedicated Server ships some definitions as binary files the loader cannot read and leaves out others, and an unreadable file shadowed the readable copy of the same path in an earlier pack, so butchers, clerics and stone masons had no trade table at all. The pack stack now puts `bedrock-samples` beneath the server's pack, an unreadable file no longer hides a readable one, and `pnpm dev` downloads both. The client is also sent a villager's `mark_variant` and `skin_id`, which choose its clothes, and the trade screen is titled with the table's `display_name` instead of the entity's type name.
+
 ## 0.17.0
 
 ### Minor Changes
