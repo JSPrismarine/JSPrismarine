@@ -471,6 +471,27 @@ describe('neighbor chunk data', () => {
         expect(destination.centerEntitySpawns()).toHaveLength(1);
     });
 
+    it('does not let a patch drop grass or leaf litter over a block it never saw', () => {
+        const position = { x: 16, y: 64, z: 8 };
+        const built = terrainTile(1, 0);
+        built.beginWriteTracking();
+        const builtWorld = built.featureWorld();
+        builtWorld.setBlock(position, { name: 'minecraft:leaf_litter', properties: {} });
+        builtWorld.setBlock({ ...position, y: 65 }, { name: 'minecraft:air', properties: {} });
+        const [patch] = built.takeTrackedPatches();
+        if (patch === undefined) throw new Error('The writes did not produce a patch');
+
+        // Another chunk's tree stands here, which the patch was drawn without.
+        const destination = terrainTile(1, 0);
+        destination.featureWorld().setBlock(position, { name: 'minecraft:oak_log', properties: { axis: 'y' } });
+        destination.featureWorld().setBlock({ ...position, y: 65 }, { name: 'minecraft:oak_log', properties: {} });
+        destination.applyPatch(patch);
+
+        expect(destination.stateAt(position.x, position.y, position.z).name).toBe('minecraft:oak_log');
+        // Air is a carve, not ground cover, and still goes through.
+        expect(destination.stateAt(position.x, 65, position.z).name).toBe('minecraft:air');
+    });
+
     it('returns block entity removals in patches', () => {
         const position = { x: 16, y: 64, z: 8 };
         const built = terrainTile(1, 0);

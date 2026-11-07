@@ -219,6 +219,23 @@ interface MutableRegionPatch {
     readonly structureBlocks: RegionBlockPosition[];
 }
 
+/** The ground cover blocks no tag lists: Java 26.3's leaf litter and wildflowers. */
+const GROUND_COVER_NAMES: ReadonlySet<string> = new Set([
+    'minecraft:leaf_litter',
+    'minecraft:wildflowers',
+    'minecraft:short_grass',
+    'minecraft:tall_grass',
+    'minecraft:fern',
+    'minecraft:large_fern',
+    'minecraft:firefly_bush',
+    'minecraft:bush',
+    'minecraft:sweet_berry_bush',
+    'minecraft:dead_bush',
+    'minecraft:nether_sprouts',
+    'minecraft:crimson_roots',
+    'minecraft:warped_roots'
+]);
+
 /** What {@link GenerationRegion.applyPatch} leaves alone. */
 export interface ApplyPatchOptions {
     /**
@@ -823,6 +840,15 @@ export class GenerationRegion {
         }
         for (const write of patch.blocks) {
             if (isKept(write.x, write.y, write.z)) continue;
+            // A patch was drawn against terrain that did not hold the blocks another chunk's
+            // trees put here, so its grass and leaf litter believe this spot is air. Java's
+            // ground cover only goes where the block is replaceable; it must not erase a trunk.
+            if (
+                write.block.bedrock === undefined &&
+                this.isGroundCover(write.block.java) &&
+                !this.isOpenSpace(this.stateAt(write.x, write.y, write.z))
+            )
+                continue;
             if (write.block.bedrock === undefined) this.write(write.x, write.y, write.z, write.block.java);
             else this.writeBedrock(write.x, write.y, write.z, write.block.bedrock);
         }
@@ -831,6 +857,22 @@ export class GenerationRegion {
             this.attachBlockEntity({ x: blockEntity.x, y: blockEntity.y, z: blockEntity.z }, blockEntity.request);
         }
         this.entitySpawns.push(...patch.entitySpawns);
+    }
+
+    /** Whether a block is one of the plants a ground cover feature scatters: grass, ferns, flowers and leaf litter. */
+    private isGroundCover(state: BlockState): boolean {
+        // Not `#replaceable`, which also lists air, water and fire: a write of air is a carve, not a plant.
+        return GROUND_COVER_NAMES.has(state.name) || this.options.blocks.hasTag(state, 'minecraft:flowers');
+    }
+
+    /** Whether ground cover may go over a block: air, water, or a plant of the same kind. */
+    private isOpenSpace(state: BlockState): boolean {
+        return (
+            state.name === 'minecraft:air' ||
+            state.name === 'minecraft:cave_air' ||
+            state.name === 'minecraft:water' ||
+            this.isGroundCover(state)
+        );
     }
 
     /** The bookkeeping every write does once its state has landed in the buffer. */
