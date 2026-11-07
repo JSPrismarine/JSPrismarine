@@ -1375,9 +1375,12 @@ export class World implements Service {
      * and a lake edge spreads instead of hanging there; see {@link exposedFluidsOf}.
      */
     private scheduleExposedFluids(chunk: Chunk): void {
+        const exposed = exposedFluidsOf(chunk);
+        if (exposed.length === 0) return;
+
         const fluidTicks = this.systems.ticks.list('fluid');
         const now = this.getTicks();
-        for (const fluid of exposedFluidsOf(chunk)) {
+        for (const fluid of exposed) {
             const at = { x: chunk.getX() * 16 + fluid.x, y: fluid.y, z: chunk.getZ() * 16 + fluid.z };
             fluidTicks.schedule(
                 at,
