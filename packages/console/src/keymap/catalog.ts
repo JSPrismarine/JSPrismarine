@@ -72,6 +72,7 @@ export const COMMAND_CATALOG = [
     { id: 'log.clearView', title: 'Clear view', group: 'Log', bindings: [ctrl('l')] },
     { id: 'log.filter', title: 'Filter', group: 'Log', bindings: [ctrl('f')] },
     { id: 'view.toggleSidePane', title: 'Toggle side pane', group: 'View', bindings: [ctrl('b')] },
+    { id: 'view.tpsGraph', title: 'TPS graph', group: 'View', bindings: [plain('t')] },
     { id: 'view.help', title: 'Help', group: 'View', bindings: [plain('?')] },
     { id: 'view.palette', title: 'Command palette', group: 'View', bindings: [ctrl('k')] },
     { id: 'view.toggleFocus', title: 'Toggle input/log focus', group: 'Input', bindings: [plain('escape')] },

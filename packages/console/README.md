@@ -20,6 +20,7 @@ Each component is a factory in its own file, `create<Name>(ctx, props)`, with a 
 | `src/input/` | The input bar, command history, and completion state |
 | `src/status/` | The status bar, its segments, and toasts |
 | `src/help/` | The help overlay generated from the key map |
+| `src/tps/` | TPS history, the braille line chart shared by the details pane, and the TPS page |
 | `src/app/` | Layout, breakpoints, focus, and wiring; exports `startConsole` |
 
 ## Tests

@@ -21,6 +21,10 @@ import { formatMemory, formatPlayers, formatTickMs, formatTps, formatUptime, sta
 import type { Segment, SegmentBounds, ServerState } from '../status/segments';
 import type { DropdownOption } from '../status/dropdown';
 import { createToastStack } from '../status/toasts';
+import { tickTone, tpsTone } from '../tps/plotGraph';
+import { pruneSamples } from '../tps/tpsHistory';
+import type { TpsSample } from '../tps/tpsHistory';
+import { createTpsPage } from '../tps/tpsPage';
 import type { ToastInput } from '../status/toastQueue';
 import type { ConsoleContext } from '../context';
 import { INITIAL_DEV_STATE, reduceDevState } from './devState';
@@ -96,7 +100,8 @@ interface Metrics {
     uptimeMs?: number;
 }
 
-const TPS_HISTORY_LIMIT = 30;
+/** Readings the side pane graph draws. */
+const PANE_HISTORY_LIMIT = 30;
 
 /**
  * Builds the console tree and wires its components together.
@@ -125,7 +130,9 @@ export function createApp(ctx: AppContext, props: AppProps): App {
     let inputFocused = true;
     let sidePanePreference: boolean | undefined;
     let sidePaneWidth = SIDE_PANE_WIDTH;
-    let tpsHistory: number[] = [];
+    let tpsSamples: TpsSample[] = [];
+    /** Whether the input line had focus before the TPS page took it, so closing hands it back. */
+    let inputFocusedBeforeTps = true;
     let resizingSidePane = false;
     let resizeStartX = 0;
     let resizeStartWidth = SIDE_PANE_WIDTH;
@@ -166,6 +173,9 @@ export function createApp(ctx: AppContext, props: AppProps): App {
         onClose() {
             sidePanePreference = false;
             applyLayout();
+        },
+        onOpenTps() {
+            guard(openTps)();
         }
     });
     const sidePaneResizer = new BoxRenderable(renderer, {
@@ -205,6 +215,11 @@ export function createApp(ctx: AppContext, props: AppProps): App {
         }
     });
     const statusBar = createStatusBar(components);
+    const tpsPage = createTpsPage(components, {
+        onClose() {
+            guard(closeTps)();
+        }
+    });
     const help = createHelpOverlay(components, { catalog: COMMAND_CATALOG });
     const dropdown = createDropdown(components);
 
@@ -302,6 +317,7 @@ export function createApp(ctx: AppContext, props: AppProps): App {
         else focusInput();
     }
 
+    logColumn.add(tpsPage.renderable);
     logColumn.add(toasts.renderable);
     main.add(logColumn);
     main.add(sidePane.renderable);
@@ -330,7 +346,15 @@ export function createApp(ctx: AppContext, props: AppProps): App {
             priority: 97,
             onActivate: store.warningCount > 0 ? () => showLevel('warn') : undefined
         });
-        if (metrics.tps !== undefined) left.push({ id: 'tps', text: formatTps(metrics.tps), tone: 'ok', priority: 90 });
+        if (metrics.tps !== undefined) {
+            left.push({
+                id: 'tps',
+                text: formatTps(metrics.tps),
+                tone: tpsTone(metrics.tps),
+                priority: 90,
+                onActivate: toggleTps
+            });
+        }
         if (metrics.players) {
             left.push({
                 id: 'players',
@@ -341,7 +365,12 @@ export function createApp(ctx: AppContext, props: AppProps): App {
         }
         if (!layout.compactStatus) {
             if (metrics.tickMs !== undefined) {
-                left.push({ id: 'tick', text: formatTickMs(metrics.tickMs), tone: 'muted', priority: 50 });
+                left.push({
+                    id: 'tick',
+                    text: formatTickMs(metrics.tickMs),
+                    tone: tickTone(metrics.tickMs) ?? 'muted',
+                    priority: 50
+                });
             }
             if (metrics.rssBytes !== undefined) {
                 left.push({ id: 'memory', text: formatMemory(metrics.rssBytes), tone: 'muted', priority: 60 });
@@ -515,13 +544,39 @@ export function createApp(ctx: AppContext, props: AppProps): App {
             players: metrics.players,
             playerNames: metrics.playerNames,
             tps: metrics.tps,
-            tpsHistory,
+            tpsHistory: tpsSamples.slice(-PANE_HISTORY_LIMIT).map((sample) => sample.tps),
             tickMs: metrics.tickMs,
             server,
             uptimeMs: metrics.uptimeMs,
             rssBytes: metrics.rssBytes,
             dev
         });
+    }
+
+    function refreshTpsPage(): void {
+        tpsPage.update({ samples: tpsSamples, now: now(), tickMs: metrics.tickMs });
+    }
+
+    /** Shows the TPS page and takes keyboard focus off the input so the page's keys are not typed. */
+    function openTps(): void {
+        if (tpsPage.isVisible) return;
+        dropdown.close();
+        help.hide();
+        inputFocusedBeforeTps = inputFocused;
+        focusLog();
+        refreshTpsPage();
+        tpsPage.show();
+    }
+
+    function closeTps(): void {
+        if (!tpsPage.isVisible) return;
+        tpsPage.hide();
+        if (inputFocusedBeforeTps) focusInput();
+    }
+
+    function toggleTps(): void {
+        if (tpsPage.isVisible) closeTps();
+        else openTps();
     }
 
     function applyLayout(): void {
@@ -534,6 +589,7 @@ export function createApp(ctx: AppContext, props: AppProps): App {
 
         titleBar.renderable.visible = next.titleBar;
         sidePane.setMode(next.sidePane, next.sidePaneWidth);
+        tpsPage.setSize(next.logWidth, next.logHeight);
         sidePaneResizer.visible = next.sidePane !== 'hidden';
         sidePaneResizer.position = 'absolute';
         sidePaneResizer.width = SIDE_PANE_RESIZER_WIDTH;
@@ -784,6 +840,9 @@ export function createApp(ctx: AppContext, props: AppProps): App {
             case 'view.toggleSidePane':
                 toggleSidePane();
                 return;
+            case 'view.tpsGraph':
+                toggleTps();
+                return;
             case 'view.help':
                 help.toggle();
                 return;
@@ -806,6 +865,10 @@ export function createApp(ctx: AppContext, props: AppProps): App {
     function escape(): boolean {
         if (dropdown.isOpen) {
             dropdown.close();
+            return true;
+        }
+        if (tpsPage.isVisible) {
+            closeTps();
             return true;
         }
         if (inputFocused && input.isCompleting()) return false;
@@ -845,6 +908,11 @@ export function createApp(ctx: AppContext, props: AppProps): App {
             help.handleKeyPress(key);
             return;
         }
+        if (tpsPage.isVisible && !key.ctrl && !key.meta && !key.super) {
+            key.preventDefault();
+            tpsPage.handleKeyPress(key);
+            return;
+        }
         if (!inputFocused && key.ctrl && !key.shift && !key.meta && key.name === 'c') {
             key.preventDefault();
             run('log.copySelection');
@@ -866,8 +934,9 @@ export function createApp(ctx: AppContext, props: AppProps): App {
         switch (message.type) {
             case 'hello':
                 server = { version: message.serverVersion, pid: message.pid };
-                tpsHistory = [];
+                tpsSamples = [];
                 refreshSidePane();
+                refreshTpsPage();
                 learnCommandNames();
                 return;
             case 'log': {
@@ -888,10 +957,11 @@ export function createApp(ctx: AppContext, props: AppProps): App {
                     rssBytes: message.rssBytes,
                     uptimeMs: message.uptimeMs
                 };
-                tpsHistory.push(message.tps);
-                if (tpsHistory.length > TPS_HISTORY_LIMIT) tpsHistory.shift();
+                tpsSamples.push({ at: now(), tps: message.tps });
+                pruneSamples(tpsSamples, now());
                 refreshStatus();
                 refreshSidePane();
+                refreshTpsPage();
                 return;
             case 'lifecycle':
                 setState(message.state);
@@ -914,8 +984,9 @@ export function createApp(ctx: AppContext, props: AppProps): App {
             if (event.state === 'starting' && event.generation > 1) {
                 store.startGeneration('server restarted', now());
                 metrics = {};
-                tpsHistory = [];
+                tpsSamples = [];
                 refreshSidePane();
+                refreshTpsPage();
             }
             state = event.state;
         }
@@ -944,6 +1015,7 @@ export function createApp(ctx: AppContext, props: AppProps): App {
             dropdown.dispose();
             toasts.dispose();
             help.dispose();
+            tpsPage.dispose();
             sidePane.dispose();
             titleBar.dispose();
             renderer.root.remove(root);

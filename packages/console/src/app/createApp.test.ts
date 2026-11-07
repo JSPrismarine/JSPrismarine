@@ -15,14 +15,18 @@ const AT = new Date(2026, 0, 1, 12, 0, 1).getTime();
 const logMessage = (message: string, level: LogLevel = 'info') =>
     ({ type: 'log', v: 1, seq: 1, level, namespace: 'Server', at: AT, message, formatted: message }) as const;
 
-async function setup(size: { width: number; height: number }, overrides: Partial<AppProps> = {}) {
+async function setup(
+    size: { width: number; height: number },
+    overrides: Partial<AppProps> = {},
+    now: () => number = () => AT
+) {
     const test = await createTestRenderer({ ...size, exitOnCtrlC: false });
     const commands: string[] = [];
     const actions = { restart: vi.fn(), stop: vi.fn(), forceStop: vi.fn() };
     const store = new LogStore();
     const history = new CommandHistory();
     const app = createApp(
-        { renderer: test.renderer, theme: defaultTheme, store, history, now: () => AT },
+        { renderer: test.renderer, theme: defaultTheme, store, history, now },
         {
             onCommand: async (line): Promise<CommandOutcome> => {
                 commands.push(line);
@@ -382,6 +386,232 @@ describe('createApp', () => {
         expect(frame).not.toContain('JSPrismarine 0.15.2');
     });
 
+    describe('TPS page', () => {
+        const SPAN_ROW = 'span  1m  5m  15m';
+
+        const reportTps = (t: AppHarness, readings: readonly number[]): void => {
+            for (const tps of readings) {
+                t.app.applyServerMessage({
+                    type: 'status',
+                    v: 1,
+                    tps,
+                    tickMs: 4.1,
+                    players: 0,
+                    maxPlayers: 20,
+                    rssBytes: 100 * 1024 * 1024,
+                    uptimeMs: 1000
+                });
+            }
+        };
+
+        /** Column and row of the first occurrence of `text` in the frame. */
+        const find = (t: AppHarness, text: string): { x: number; y: number } => {
+            const rows = t.captureCharFrame().split('\n');
+            const y = rows.findIndex((row) => row.includes(text));
+            expect(y, `"${text}" is on screen`).toBeGreaterThanOrEqual(0);
+            return { x: rows[y]!.indexOf(text), y };
+        };
+
+        it('opens when the side pane graph is clicked', async () => {
+            const t = await setup({ width: 120, height: 40 });
+            dispose = t.dispose;
+            reportTps(t, [20, 19.5, 18]);
+            await t.renderOnce();
+            expect(t.captureCharFrame()).not.toContain(SPAN_ROW);
+
+            const axis = find(t, '15 ┤');
+            await t.mockMouse.click(axis.x + 8, axis.y);
+            await t.renderOnce();
+
+            const frame = t.captureCharFrame();
+            expect(frame).toContain(SPAN_ROW);
+            expect(frame).toMatch(/now 18\.00\s+avg/);
+        });
+
+        it('opens when the TPS segment in the status bar is clicked and closes on a second click', async () => {
+            const t = await setup({ width: 120, height: 40 });
+            dispose = t.dispose;
+            reportTps(t, [20]);
+            await t.renderOnce();
+
+            const segment = find(t, 'TPS 20.00');
+            await t.mockMouse.click(segment.x + 2, segment.y);
+            await t.renderOnce();
+            expect(t.captureCharFrame()).toContain(SPAN_ROW);
+
+            await t.mockMouse.click(segment.x + 2, segment.y);
+            await t.renderOnce();
+            expect(t.captureCharFrame()).not.toContain(SPAN_ROW);
+        });
+
+        it('opens on T with the log focused, and closes on Esc and hands the input back its focus', async () => {
+            const t = await setup({ width: 120, height: 40 });
+            dispose = t.dispose;
+            await focusLog(t);
+
+            t.mockInput.pressKey('t');
+            await t.renderOnce();
+            expect(t.captureCharFrame()).toContain(SPAN_ROW);
+
+            t.mockInput.pressEscape();
+            await new Promise((resolve) => setTimeout(resolve, 30));
+            await t.waitForFrame((frame) => !frame.includes(SPAN_ROW));
+            expect(t.captureCharFrame()).toContain('LOG · Esc input');
+        });
+
+        it('restores input focus when it closes after opening from the input', async () => {
+            const t = await setup({ width: 120, height: 40 });
+            dispose = t.dispose;
+            reportTps(t, [20]);
+            await t.renderOnce();
+
+            const segment = find(t, 'TPS 20.00');
+            await t.mockMouse.click(segment.x + 2, segment.y);
+            await t.renderOnce();
+            expect(t.captureCharFrame()).toContain('LOG · Esc input');
+
+            t.mockInput.pressKey('t');
+            await t.renderOnce();
+
+            const frame = t.captureCharFrame();
+            expect(frame).not.toContain(SPAN_ROW);
+            expect(frame).toContain('INPUT · Esc log');
+        });
+
+        it('does not type into the command line while it is open', async () => {
+            const t = await setup({ width: 120, height: 40 });
+            dispose = t.dispose;
+            await focusLog(t);
+            t.mockInput.pressKey('t');
+            await t.renderOnce();
+
+            await t.mockInput.typeText('abc');
+            await t.renderOnce();
+
+            t.mockInput.pressKey('t');
+            await t.renderOnce();
+            expect(t.captureCharFrame()).toContain('> type a command');
+        });
+
+        it('switches the span with the number keys, arrows, and a click', async () => {
+            const t = await setup({ width: 120, height: 40 });
+            dispose = t.dispose;
+            await focusLog(t);
+            t.mockInput.pressKey('t');
+            await t.renderOnce();
+            expect(t.captureCharFrame()).toContain('-5m');
+
+            t.mockInput.pressKey('3');
+            await t.renderOnce();
+            expect(t.captureCharFrame()).toContain('-15m');
+
+            t.mockInput.pressArrow('left');
+            await t.renderOnce();
+            expect(t.captureCharFrame()).toContain('-5m');
+
+            t.mockInput.pressKey('1');
+            await t.renderOnce();
+            expect(t.captureCharFrame()).toContain('-1m');
+
+            const tab = find(t, ' 15m ');
+            await t.mockMouse.click(tab.x + 1, tab.y);
+            await t.renderOnce();
+            expect(t.captureCharFrame()).toContain('-15m');
+        });
+
+        it('draws the summary of the chosen span and follows new readings', async () => {
+            let clock = AT;
+            const t = await setup({ width: 120, height: 40 }, {}, () => clock);
+            dispose = t.dispose;
+            await focusLog(t);
+            t.mockInput.pressKey('t');
+            reportTps(t, [20]);
+            clock += 10_000;
+            reportTps(t, [16]);
+            clock += 10_000;
+            reportTps(t, [16]);
+            await t.renderOnce();
+
+            expect(t.captureCharFrame()).toMatch(/now 16\.00\s+avg 18\.00\s+min 16\.00\s+max 20\.00/);
+
+            reportTps(t, [12]);
+            await t.renderOnce();
+            const frame = t.captureCharFrame();
+            expect(frame).toMatch(/now 12\.00/);
+            expect(frame).toContain('10 └');
+        });
+
+        it('says it is waiting before the first reading', async () => {
+            const t = await setup({ width: 120, height: 40 });
+            dispose = t.dispose;
+            await focusLog(t);
+
+            t.mockInput.pressKey('t');
+            await t.renderOnce();
+
+            expect(t.captureCharFrame()).toContain('waiting for the first status update');
+        });
+
+        it('closes on the close control', async () => {
+            const t = await setup({ width: 120, height: 40 });
+            dispose = t.dispose;
+            await focusLog(t);
+            t.mockInput.pressKey('t');
+            await t.renderOnce();
+
+            const close = find(t, '× close');
+            await t.mockMouse.click(close.x + 2, close.y);
+            await t.renderOnce();
+
+            expect(t.captureCharFrame()).not.toContain(SPAN_ROW);
+        });
+
+        it('leaves the input line and status bar visible and fits a small terminal', async () => {
+            const t = await setup({ width: 80, height: 24 });
+            dispose = t.dispose;
+            reportTps(t, [20, 19]);
+            t.mockInput.pressEscape();
+            await new Promise((resolve) => setTimeout(resolve, 30));
+            t.mockInput.pressKey('t');
+            await t.renderOnce();
+
+            const rows = t.captureCharFrame().split('\n').slice(0, 24);
+            expect(rows).toHaveLength(24);
+            expect(rows[0]).toContain('╭');
+            expect(rows[21]).toContain('╰');
+            expect(rows[22]).toContain('> type a command');
+            expect(rows[23]).toContain('TPS 19.00');
+        });
+
+        it('keeps toasts readable above the page', async () => {
+            const t = await setup({ width: 120, height: 40 });
+            dispose = t.dispose;
+            await focusLog(t);
+            t.mockInput.pressKey('t');
+            await t.renderOnce();
+
+            t.app.applySupervisorEvent({ type: 'supervisor.state', state: 'crashed', code: 1, generation: 1 });
+            await t.renderOnce();
+
+            const frame = t.captureCharFrame();
+            expect(frame).toContain(SPAN_ROW);
+            expect(frame).toContain('server crashed (exit 1)');
+        });
+
+        it('keeps the side pane beside the page', async () => {
+            const t = await setup({ width: 120, height: 40 });
+            dispose = t.dispose;
+            await focusLog(t);
+
+            t.mockInput.pressKey('t');
+            await t.renderOnce();
+
+            const frame = t.captureCharFrame();
+            expect(frame).toContain(SPAN_ROW);
+            expect(frame).toContain('Performance');
+        });
+    });
+
     describe('command catalog', () => {
         type Harness = AppHarness;
         const NAMED_KEYS: Readonly<Record<string, string>> = {
@@ -482,6 +712,9 @@ describe('createApp', () => {
             },
             'view.toggleSidePane': async (t) => {
                 expect(t.captureCharFrame()).not.toContain('Players');
+            },
+            'view.tpsGraph': async (t) => {
+                expect(count(t.captureCharFrame(), 'span  1m  5m  15m')).toBe(1);
             },
             'view.help': async (t) => {
                 expect(t.captureCharFrame()).toContain('Keyboard shortcuts');

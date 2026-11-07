@@ -5,6 +5,9 @@ import type { ConsoleContext } from '../context';
 import { formatTime } from '../log/logLine';
 import { formatMemory, formatPlayers, formatTickMs, formatTps, formatUptime } from '../status/segments';
 import type { ServerState } from '../status/segments';
+import { graphChunks } from '../tps/graphChunks';
+import { plotGraph, tickTone, tpsTone } from '../tps/plotGraph';
+import type { GraphTone } from '../tps/plotGraph';
 import type { DevState } from './devState';
 import type { SidePaneMode } from './layout';
 
@@ -26,6 +29,8 @@ export interface SidePaneModel {
 export interface SidePaneProps {
     /** Hides the pane when the user presses its close control. */
     onClose(): void;
+    /** Opens the TPS page when the user clicks the performance section. */
+    onOpenTps(): void;
 }
 
 /** The resizable server details column or narrow-terminal flyout. */
@@ -39,90 +44,18 @@ export interface SidePane {
 }
 
 type Row =
-    | { kind: 'header'; text: string }
+    | { kind: 'header'; text: string; hint?: string; opensTps?: true }
     | { kind: 'player'; name: string }
-    | { kind: 'value'; label: string; value: string; tone?: GraphTone | 'muted' }
-    | { kind: 'graph'; values: readonly number[] }
+    | { kind: 'value'; label: string; value: string; tone?: GraphTone | 'muted' | 'text'; opensTps?: true }
+    | { kind: 'graph'; values: readonly number[]; opensTps?: true }
     | { kind: 'blank' };
 
 const DASH = '—';
 const MAX_VISIBLE_PLAYERS = 5;
 const GRAPH_ROWS = 3;
-const GRAPH_DOTS_PER_ROW = 4;
 const GRAPH_MIN_TPS = 10;
 const GRAPH_MAX_TPS = 20;
-const BRAILLE_DOT_BITS = [
-    [0x01, 0x02, 0x04, 0x40],
-    [0x08, 0x10, 0x20, 0x80]
-] as const;
-
-type GraphTone = 'ok' | 'warning' | 'danger';
-
-interface GraphLine {
-    axis: string;
-    cells: string;
-    tones: readonly (GraphTone | undefined)[];
-}
-
-function graphTone(tps: number): GraphTone {
-    if (tps < 15) return 'danger';
-    if (tps < 19) return 'warning';
-    return 'ok';
-}
-
-function graphLines(values: readonly number[], columns: number): GraphLine[] {
-    const dotWidth = columns * 2;
-    const height = GRAPH_ROWS * GRAPH_DOTS_PER_ROW;
-    const dots = new Array<number>(dotWidth).fill(0);
-    const tones = new Array<GraphTone | undefined>(dotWidth);
-    const samples = values.slice(-dotWidth);
-    const yFor = (value: number): number => {
-        const tps = Math.max(GRAPH_MIN_TPS, Math.min(GRAPH_MAX_TPS, value));
-        return Math.round(((GRAPH_MAX_TPS - tps) / (GRAPH_MAX_TPS - GRAPH_MIN_TPS)) * (height - 1));
-    };
-    const xFor = (index: number): number =>
-        samples.length <= 1 ? dotWidth - 1 : Math.round((index / (samples.length - 1)) * (dotWidth - 1));
-    const plot = (x: number, y: number, tone: GraphTone): void => {
-        dots[x] = (dots[x] ?? 0) | (1 << y);
-        tones[x] = tone;
-    };
-
-    samples.forEach((sample, index) => {
-        const x = xFor(index);
-        const y = yFor(sample);
-        plot(x, y, graphTone(sample));
-        if (index === 0) return;
-
-        const previousX = xFor(index - 1);
-        const previousValue = samples[index - 1] ?? sample;
-        const span = x - previousX;
-        for (let step = 1; step < span; step += 1) {
-            const progress = step / span;
-            const value = previousValue + (sample - previousValue) * progress;
-            plot(previousX + step, yFor(value), graphTone(value));
-        }
-    });
-
-    const axes = ['20 ┤', '15 ┤', '10 └'];
-    return axes.map((axis, row) => {
-        let cells = '';
-        const cellTones: (GraphTone | undefined)[] = [];
-        for (let column = 0; column < columns; column += 1) {
-            let bits = 0;
-            for (let side = 0; side < 2; side += 1) {
-                const dotX = column * 2 + side;
-                const dotMask = dots[dotX] ?? 0;
-                for (let dotY = 0; dotY < GRAPH_DOTS_PER_ROW; dotY += 1) {
-                    const y = row * GRAPH_DOTS_PER_ROW + dotY;
-                    if ((dotMask & (1 << y)) !== 0) bits |= BRAILLE_DOT_BITS[side]![dotY]!;
-                }
-            }
-            cells += String.fromCodePoint(0x2800 + bits);
-            cellTones.push(tones[column * 2] ?? tones[column * 2 + 1]);
-        }
-        return { axis, cells, tones: cellTones };
-    });
-}
+const GRAPH_AXIS = ['20 ┤', '15 ┤', '10 └'] as const;
 
 function rowsFor(model: SidePaneModel): Row[] {
     const names = model.playerNames ?? [];
@@ -145,17 +78,31 @@ function rowsFor(model: SidePaneModel): Row[] {
         rows.push({ kind: 'value', label: 'names', value: online === 0 ? 'none online' : 'unavailable' });
     }
 
+    const low = model.tpsHistory.length > 1 ? Math.min(...model.tpsHistory) : undefined;
     rows.push(
         { kind: 'blank' },
-        { kind: 'header', text: 'Performance' },
+        { kind: 'header', text: 'Performance', hint: ' ▸ graph', opensTps: true },
         {
             kind: 'value',
             label: 'TPS',
             value: model.tps === undefined ? DASH : formatTps(model.tps).slice(4),
-            tone: model.tps === undefined ? 'muted' : graphTone(model.tps)
+            tone: model.tps === undefined ? 'muted' : tpsTone(model.tps),
+            opensTps: true
         },
-        { kind: 'graph', values: model.tpsHistory },
-        { kind: 'value', label: 'tick', value: model.tickMs === undefined ? DASH : formatTickMs(model.tickMs) },
+        { kind: 'graph', values: model.tpsHistory, opensTps: true },
+        {
+            kind: 'value',
+            label: 'low',
+            value: low === undefined ? DASH : low.toFixed(2),
+            tone: low === undefined ? 'muted' : tpsTone(low),
+            opensTps: true
+        },
+        {
+            kind: 'value',
+            label: 'tick',
+            value: model.tickMs === undefined ? DASH : formatTickMs(model.tickMs),
+            tone: model.tickMs === undefined ? 'muted' : (tickTone(model.tickMs) ?? 'text')
+        },
         { kind: 'value', label: 'memory', value: model.rssBytes === undefined ? DASH : formatMemory(model.rssBytes) },
         { kind: 'blank' },
         { kind: 'header', text: 'Server' },
@@ -216,7 +163,7 @@ export function createSidePane(ctx: Pick<ConsoleContext, 'renderer' | 'theme'>, 
     const chunksFor = (row: Exclude<Row, { kind: 'graph' }>, labelWidth: number): TextChunk[] => {
         switch (row.kind) {
             case 'header':
-                return [fg(theme.accent)(row.text)];
+                return [fg(theme.accent)(row.text), ...(row.hint === undefined ? [] : [fg(theme.textMuted)(row.hint)])];
             case 'player':
                 return [fg(theme.text)(`• ${row.name}`)];
             case 'value':
@@ -240,55 +187,39 @@ export function createSidePane(ctx: Pick<ConsoleContext, 'renderer' | 'theme'>, 
             const rows = rowsFor(model);
             const labelWidth = Math.max(0, ...rows.map((row) => (row.kind === 'value' ? row.label.length : 0)));
             let line = 0;
+            const addRow = (chunks: TextChunk[], opensTps = false): void => {
+                const text = new TextRenderable(renderer, {
+                    id: `side-pane-row-${line}`,
+                    height: 1,
+                    truncate: true,
+                    content: new StyledText(chunks)
+                });
+                if (opensTps) {
+                    text.onMouseDown = (event: MouseEvent) => {
+                        if (event.button !== MouseButton.LEFT) return;
+                        event.preventDefault();
+                        props.onOpenTps();
+                    };
+                }
+                renderable.add(text);
+                line += 1;
+            };
             for (const row of rows) {
-                if (row.kind === 'graph') {
-                    const width = Math.max(1, Math.min(32, renderable.width - 6));
-                    for (const graphLine of graphLines(row.values, width)) {
-                        const chunks: TextChunk[] = [fg(theme.textMuted)(graphLine.axis)];
-                        let chunkText = '';
-                        let chunkTone: GraphTone | undefined;
-                        graphLine.cells.split('').forEach((cell, column) => {
-                            const tone = graphLine.tones[column];
-                            if (tone !== chunkTone && chunkText !== '') {
-                                chunks.push(fg(theme[chunkTone ?? 'muted'])(chunkText));
-                                chunkText = '';
-                            }
-                            chunkText += cell;
-                            chunkTone = tone;
-                        });
-                        if (chunkText !== '') chunks.push(fg(theme[chunkTone ?? 'muted'])(chunkText));
-                        renderable.add(
-                            new TextRenderable(renderer, {
-                                id: `side-pane-row-${line}`,
-                                height: 1,
-                                truncate: true,
-                                content: new StyledText(chunks)
-                            })
-                        );
-                        line += 1;
-                    }
-                    if (row.values.length === 0) {
-                        renderable.add(
-                            new TextRenderable(renderer, {
-                                id: `side-pane-row-${line}`,
-                                height: 1,
-                                truncate: true,
-                                content: new StyledText([fg(theme.textMuted)('       awaiting samples')])
-                            })
-                        );
-                        line += 1;
-                    }
+                if (row.kind !== 'graph') {
+                    addRow(chunksFor(row, labelWidth), 'opensTps' in row);
                     continue;
                 }
-                renderable.add(
-                    new TextRenderable(renderer, {
-                        id: `side-pane-row-${line}`,
-                        height: 1,
-                        truncate: true,
-                        content: new StyledText(chunksFor(row, labelWidth))
-                    })
-                );
-                line += 1;
+                const columns = Math.max(1, Math.min(32, renderable.width - 6));
+                const plot = plotGraph(row.values, {
+                    columns,
+                    rows: GRAPH_ROWS,
+                    min: GRAPH_MIN_TPS,
+                    max: GRAPH_MAX_TPS
+                });
+                plot.forEach((graphRow, index) => {
+                    addRow([fg(theme.textMuted)(GRAPH_AXIS[index] ?? '    '), ...graphChunks(graphRow, theme)], true);
+                });
+                if (row.values.length === 0) addRow([fg(theme.textMuted)('       awaiting samples')], true);
             }
             renderable.remove(closeButton);
             renderable.add(closeButton);
