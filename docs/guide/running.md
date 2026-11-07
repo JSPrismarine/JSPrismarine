@@ -55,6 +55,11 @@ To arrange the cache by hand, or to refresh it:
     $ pnpm --filter @jsprismarine/bedrock-data run ensure:worldgen
 ```
 
+`pnpm dev` also runs `ensure:bedrock-pack`, which downloads Mojang's Bedrock Dedicated Server archive
+once so the server can read the vanilla behavior pack. Without it the server logs a warning and runs
+with no mobs, no `/summon` and no dragon. Run it by hand with
+`pnpm --filter @jsprismarine/bedrock-data run ensure:bedrock-pack`.
+
 ## 2. Install dependencies
 
 ```bash
