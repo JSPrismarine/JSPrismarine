@@ -64,6 +64,13 @@ const packIndices = (indices: ArrayLike<number>, bitsPerBlock: number): Uint32Ar
 const MAX_PALETTE_SIZE = 65536;
 
 export default class BlockStorage {
+    /**
+     * Counts every block write and storage swap in this process. A chunk whose last block
+     * revision was read at the current value cannot have changed since, so it skips summing its
+     * sections.
+     */
+    public static writeEpoch = 0;
+
     /** Identical uniform palette/index states share one immutable backing. */
     private static readonly internedUniformStorages = new Map<string, WeakRef<InternedUniformStorage>>();
     private static readonly internedUniformStorageFinalizer = new FinalizationRegistry<{
@@ -188,6 +195,7 @@ export default class BlockStorage {
         if (previous === this.airRuntimeId && runtimeId !== this.airRuntimeId) this.nonAirBlocks++;
         else if (previous !== this.airRuntimeId && runtimeId === this.airRuntimeId) this.nonAirBlocks--;
         this.revision++;
+        BlockStorage.writeEpoch++;
         this.packedNetworkStorage = undefined;
     }
 

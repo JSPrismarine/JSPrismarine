@@ -52,6 +52,7 @@ export default class SubChunk {
     private setStorage(index: number, storage: BlockStorage): void {
         if (this.storages[index] === undefined) this.storageOrder.push(index);
         this.storages[index] = storage;
+        BlockStorage.writeEpoch++;
     }
 
     private getOrCreateStorage(index: number): BlockStorage {

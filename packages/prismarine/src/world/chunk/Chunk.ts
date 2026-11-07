@@ -14,6 +14,7 @@ import { Dimensions, maxSubChunk, maxY, minSubChunk, subChunkCount } from '../Di
 import type { DimensionType } from '../Dimension';
 import type { EntitySpawn } from '../EntitySpawn';
 import { ChunkBiomes } from './ChunkBiomes';
+import BlockStorage from './BlockStorage';
 import SubChunk from './SubChunk';
 import { sectionTakesRandomTicks } from '../randomTickSections';
 
@@ -97,6 +98,8 @@ export default class Chunk {
     private readonly subChunks: Array<SubChunk | undefined>;
     private readonly subChunkOrder: number[] = [];
     private storedSubChunkCount = 0;
+    /** The block revision and the write epoch and layout it was summed under. */
+    private readonly blockRevisionCache = { epoch: -1, layout: -1, total: 0 };
     private subChunkLayoutRevision = 0;
     private cachedRandomTickLayoutRevision = -1;
     private cachedRandomTickSectionRevision = -1;
@@ -948,8 +951,14 @@ export default class Chunk {
      * Subchunk revisions also cover direct {@link SubChunk.setBlock} writes and column fills.
      */
     public getBlockRevision(): number {
+        const cache = this.blockRevisionCache;
+        if (cache.epoch === BlockStorage.writeEpoch && cache.layout === this.subChunkLayoutRevision) return cache.total;
+
         let total = this.storedSubChunkCount;
         for (const index of this.subChunkOrder) total += this.subChunkAtIndex(index)!.getRevision();
+        cache.epoch = BlockStorage.writeEpoch;
+        cache.layout = this.subChunkLayoutRevision;
+        cache.total = total;
         return total;
     }
 

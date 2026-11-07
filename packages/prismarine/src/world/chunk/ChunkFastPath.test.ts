@@ -90,6 +90,18 @@ describe('world', () => {
             expect(chunk.getBlockRevision()).toBeGreaterThan(afterFill);
         });
 
+        it('keeps the block revision stable between writes and sees a write straight through a storage', () => {
+            const chunk = new Chunk(0, 0);
+            const stone = BlockRuntimeIds.getByName('minecraft:stone');
+            chunk.setBlockRuntimeId(0, 1, 0, stone);
+            const settled = chunk.getBlockRevision();
+
+            expect(chunk.getBlockRevision()).toBe(settled);
+
+            chunk.getSubChunk(0)!.getStorages()[0]!.setBlock(3, 1, 3, stone);
+            expect(chunk.getBlockRevision()).toBeGreaterThan(settled);
+        });
+
         it('setBlockRuntimeId and setBlock agree', () => {
             const grass = blockOf('minecraft:grass_block');
 

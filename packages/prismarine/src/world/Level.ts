@@ -175,6 +175,8 @@ export class Level {
 
     /** The worlds built so far, by dimension id, in build order. */
     private readonly built = new Map<string, BuiltWorld>();
+    /** Ready worlds by dimension type id, because every block read asks; cleared when `built` changes. */
+    private readonly readyByType = new Map<string, World>();
 
     /** The provider open and the saved state read, or undefined before {@link Level.enable}. */
     private opened: Promise<void> | undefined;
@@ -366,9 +368,11 @@ export class Level {
                 .then(
                     () => {
                         entry.isReady = true;
+                        this.readyByType.clear();
                     },
                     (error: unknown) => {
                         if (this.built.get(dimensionId) === entry) this.built.delete(dimensionId);
+                        this.readyByType.clear();
                         throw error;
                     }
                 )
@@ -410,8 +414,14 @@ export class Level {
      * every block it reads, which made the lookup one of the busier calls of a tick.
      */
     public readyWorldOfType(typeId: string): World | undefined {
+        const cached = this.readyByType.get(typeId);
+        if (cached !== undefined) return cached;
+
         for (const entry of this.built.values()) {
-            if (entry.isReady && entry.world.getDimension().id === typeId) return entry.world;
+            if (entry.isReady && entry.world.getDimension().id === typeId) {
+                this.readyByType.set(typeId, entry.world);
+                return entry.world;
+            }
         }
         return undefined;
     }
