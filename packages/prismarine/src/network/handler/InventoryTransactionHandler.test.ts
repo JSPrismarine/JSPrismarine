@@ -436,6 +436,16 @@ describe('InventoryTransactionHandler', () => {
         expect(world.logged).toEqual([]);
     });
 
+    it('does not throw an eye of ender for the air-use echo of a click on a block', async () => {
+        const world = fake(Gametype.SURVIVAL, new Item({ runtimeId: 2, name: 'minecraft:ender_eye' }));
+        vi.mocked(useItemInAir).mockClear();
+
+        await handle(transaction(TransactionType.USE_ITEM, useItem()), world);
+        await handle(transaction(TransactionType.USE_ITEM, useItem({ actionType: ItemUseActionType.USE })), world);
+
+        expect(vi.mocked(useItemInAir)).not.toHaveBeenCalled();
+    });
+
     it('swings at the entity the runtime id names, with the damage of the item the server holds', async () => {
         const world = fake();
         vi.mocked(meleeAttack).mockClear();

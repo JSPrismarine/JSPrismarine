@@ -49,6 +49,18 @@ const SIMULATION_TICK_TRIGGER = 2;
 const ENDER_EYE = 'minecraft:ender_eye';
 
 /**
+ * How many ticks after an eye of ender was used on a block the same client's click at nothing
+ * is still taken for that click's echo.
+ *
+ * The client reports one right click on an end portal frame as a block use and as a use in the
+ * air, in either tick. The frame takes the eye, so the second report must not throw it.
+ */
+const EYE_ECHO_TICKS = 2;
+
+/** The tick each player last used an eye of ender on a block. */
+const eyeUsedOnBlockAt = new WeakMap<Player, number>();
+
+/**
  * One right click on a block, offered to the content hooks.
  *
  * @returns Whether a behavior family or a placement consumed the click. A behavior that throws
@@ -493,6 +505,9 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
                     // The block's and the item's behavior families get the click, and the block
                     // in hand goes down when neither takes it. What a click they all decline
                     // gets is nothing: the item places no block, so the client predicted none.
+                    if (player.getInventory().getItemInHand().getName() === ENDER_EYE) {
+                        eyeUsedOnBlockAt.set(player, server.getTick());
+                    }
                     contentUse(server, player, data, interactionRotation);
                     return;
                 }
@@ -518,13 +533,13 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
             }
 
             case ItemUseActionType.USE:
-                // A held input is not a new Eye of Ender click. In particular, after the
-                // frame hook fills a frame, a simulation tick must not also throw the eye.
-                if (
-                    data.triggerType === SIMULATION_TICK_TRIGGER &&
-                    player.getInventory().getItemInHand().getName() === ENDER_EYE
-                ) {
-                    return;
+                // A held input is not a new Eye of Ender click, and neither is the air-use report of
+                // a click that was just used on a block. In particular, after the frame hook fills
+                // a frame, neither a simulation tick nor the click's own echo may throw the eye.
+                if (player.getInventory().getItemInHand().getName() === ENDER_EYE) {
+                    const onBlockAt = eyeUsedOnBlockAt.get(player);
+                    const echo = onBlockAt !== undefined && Math.abs(server.getTick() - onBlockAt) <= EYE_ECHO_TICKS;
+                    if (data.triggerType === SIMULATION_TICK_TRIGGER || echo) return;
                 }
 
                 // Bedrock never says how long a bow was drawn for. It says "started" here and
