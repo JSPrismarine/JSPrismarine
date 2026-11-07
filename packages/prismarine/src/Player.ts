@@ -565,6 +565,7 @@ export default class Player extends Human {
         await this.getNetworkSession().update(tick);
 
         await this.updateVitals(tick);
+        await this.tickConsuming();
         await this.updateVoid(tick);
 
         // With server-authoritative block breaking the server animates the cracks itself, every
@@ -1451,6 +1452,44 @@ export default class Player extends Human {
      * what it is told.
      */
     private fallDistance = 0;
+
+    /**
+     * The meal the player has started, or null.
+     *
+     * A client says when an eating begins and never when it ends, so the server counts the meal
+     * out: it is over `ticks` after `startedAt`, if the same item is still in hand.
+     */
+    private consuming: { startedAt: number; ticks: number; item: string; finish: () => Promise<void> } | null = null;
+
+    /**
+     * Notes that the player has started eating or drinking what is in their hand.
+     * @param {number} tick - The server tick it began on.
+     * @param {number} ticks - How long the meal takes.
+     * @param {() => Promise<void>} finish - What a finished meal does.
+     */
+    public beginConsuming(tick: number, ticks: number, finish: () => Promise<void>): void {
+        const item = this.getInventory().getItemInHand().getName();
+        // A held button makes the client report its use again part way through the meal, and
+        // that is the same meal, not a new one that would start the clock over.
+        if (this.consuming?.item === item) return;
+
+        this.consuming = { startedAt: tick, ticks, item, finish };
+    }
+
+    /** Forgets an unfinished meal, as letting go of the button or putting the item away does. */
+    public cancelConsuming(): void {
+        this.consuming = null;
+    }
+
+    /** Finishes the meal once its time is up, unless another item is in hand by then. */
+    private async tickConsuming(): Promise<void> {
+        const meal = this.consuming;
+        if (meal === null || this.server.getTick() - meal.startedAt < meal.ticks) return;
+
+        this.consuming = null;
+        if (this.getInventory().getItemInHand().getName() !== meal.item) return;
+        await meal.finish();
+    }
 
     /**
      * The tick a held-item use began on, or null if nothing is being drawn.

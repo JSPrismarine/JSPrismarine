@@ -10,7 +10,7 @@ import ContainerEntry from '../../inventory/ContainerEntry';
 import HumanInventory from '../../inventory/HumanInventory';
 import { WindowIds } from '../../inventory/WindowIds';
 import type { Item } from '../../item/Item';
-import { useItemInAir, useItemOnBlock, useItemOnEntity } from '../../item/interaction';
+import { consumeHeldItem, consumeTicksOf, useItemInAir, useItemOnBlock, useItemOnEntity } from '../../item/interaction';
 import type { InteractionResult, InteractionRotation } from '../../item/interaction';
 import type InventoryTransactionPacket from '@jsprismarine/protocol/packet/InventoryTransactionPacket';
 import type {
@@ -452,6 +452,26 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
     }
 
     /**
+     * Starts the clock on eating or drinking the item in hand, if it is a consumable.
+     *
+     * The client reports the start of a meal and nothing at its end, so the player finishes it
+     * itself once the item's `consume_seconds` have passed.
+     */
+    private startMeal(server: Server, player: Player): void {
+        const ticks = consumeTicksOf(server.getContent(), player);
+        if (ticks === undefined) return;
+
+        const actors = server.getContentWorld().actorsAt(player.getWorld().getDimension().name);
+        player.beginConsuming(server.getTick(), ticks, async () => {
+            try {
+                consumeHeldItem({ content: server.getContent(), actors, player });
+            } catch (error: unknown) {
+                server.getLogger().error(error);
+            }
+        });
+    }
+
+    /**
      * A held item let go of, which for a bow means the arrow leaves.
      *
      * The charge is measured rather than sent; see the `USE` branch of
@@ -464,6 +484,8 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
      * what is in a player's hand is worse than one that has not got round to the accounting.
      */
     private async handleReleaseItem(data: ReleaseItemData, server: Server, player: Player): Promise<void> {
+        // Letting go of the button ends a meal that has not finished.
+        player.cancelConsuming();
         const drawn = player.takeItemUseTicks(server.getTick());
 
         if (data.actionType !== ItemReleaseActionType.RELEASE) return;
@@ -551,7 +573,7 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
 
                 // The item's own `onUse`, which is how an eye of ender or a snowball leaves the
                 // hand. Eating is not here: it ends in a release the content has no path for yet.
-                contentUseInAir(server, player);
+                if (contentUseInAir(server, player) === 'handled') this.startMeal(server, player);
                 return;
 
             // A swing at nothing. Hitting an entity arrives as `USE_ITEM_ON_ENTITY` instead,

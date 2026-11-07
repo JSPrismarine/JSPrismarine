@@ -81,6 +81,7 @@ const fake = (
     const broken: BlockPosition[] = [];
     const logged: string[] = [];
     const itemUse: string[] = [];
+    const meals: string[] = [];
     const entityInteractions: number[] = [];
     const dropped: Item[] = [];
     const inventorySyncs: Array<readonly [number, number, number, Item | null]> = [];
@@ -124,6 +125,7 @@ const fake = (
             exhaustion += amount;
         },
         beginItemUse: (tick) => void itemUse.push(`begin ${tick}`),
+        cancelConsuming: () => void meals.push('cancel'),
         takeItemUseTicks: (tick) => {
             itemUse.push(`take ${tick}`);
             return 15;
@@ -174,6 +176,7 @@ const fake = (
         broken,
         logged,
         itemUse,
+        meals,
         entityInteractions,
         dropped,
         inventorySyncs,
@@ -409,6 +412,14 @@ describe('InventoryTransactionHandler', () => {
 
         expect(withBow.itemUse).toEqual([`begin ${TICK}`]);
         expect(withStone.itemUse).toEqual([]);
+    });
+
+    it('forgets an unfinished meal when the button is let go', async () => {
+        const world = fake(Gametype.SURVIVAL, new Item({ runtimeId: 2, name: 'minecraft:bread' }));
+
+        await handle(transaction(TransactionType.RELEASE_ITEM, releaseItem()), world);
+
+        expect(world.meals).toEqual(['cancel']);
     });
 
     it('offers a click at nothing to the item in hand', async () => {

@@ -26,6 +26,7 @@ import { miningDrops } from './scenarios/mining-drops.mts';
 import { farmland } from './scenarios/farmland.mts';
 import { furnace } from './scenarios/furnace.mts';
 import { villagerTrade } from './scenarios/villager-trade.mts';
+import { eating } from './scenarios/eating.mts';
 import { litFurnace } from './scenarios/lit-furnace.mts';
 import { recipeBook } from './scenarios/recipe-book.mts';
 import { jump } from './scenarios/jump.mts';
@@ -91,6 +92,7 @@ const suites: ScenarioSuite[] = [
             furnace,
             litFurnace,
             villagerTrade,
+            eating,
             recipeBook,
             placementOverlap,
             enderDragon,

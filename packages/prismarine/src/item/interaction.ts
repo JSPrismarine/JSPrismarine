@@ -21,6 +21,7 @@ import { BLOCK_FACES, collisionBox, containerOpenSound } from '@jsprismarine/blo
 import type { BlockFace, BlockStateValue, FaceLocation, HookBlock } from '@jsprismarine/blocks';
 import { facingFromYaw, opposite } from '@jsprismarine/block-behaviors';
 import { relative } from '@jsprismarine/engine-systems';
+import { consumable, food } from '@jsprismarine/items';
 import type { ItemSource } from '@jsprismarine/items';
 import { bedrockBlockStates, javaBlockStateToBedrock } from '@jsprismarine/mapping';
 import { Vector3 } from '@jsprismarine/math';
@@ -643,5 +644,53 @@ export const useItemInAir = (interaction: AirInteraction): InteractionResult => 
         putBackStack(player, used.stack);
         resendInventory(player);
         return 'handled';
+    });
+};
+
+/** How long eating or drinking takes when the item's `minecraft:consumable` does not say, Java's 1.6 s. */
+const DEFAULT_CONSUME_SECONDS = 1.6;
+
+/** Server ticks per second, to turn a meal's seconds into ticks. */
+const TICKS_PER_SECOND = 20;
+
+/**
+ * How many ticks the item in hand takes to eat or drink, or undefined when it is not a consumable.
+ *
+ * Read from `minecraft:consumable.consume_seconds`, which is how a dried kelp is quicker than a
+ * steak. The client never says when a meal is over, so the server has to count this out itself.
+ */
+export const consumeTicksOf = (content: ServerContent, player: Player): number | undefined => {
+    const held = player.getInventory().getItemInHand();
+    const stack = contentStackOf(content, held, held.getAmount());
+    if (stack === undefined) return undefined;
+    if (stack.params(food) === undefined && stack.params(consumable) === undefined) return undefined;
+
+    const seconds = stack.params(consumable)?.consume_seconds ?? DEFAULT_CONSUME_SECONDS;
+    return Math.max(1, Math.round(seconds * TICKS_PER_SECOND));
+};
+
+/**
+ * Finishes a meal: the item in hand runs `onConsume`, which feeds the player, applies its
+ * effects and hands back the stack with one fewer, or the bowl or bottle it leaves behind.
+ *
+ * @returns Whether a behavior took the meal.
+ */
+export const consumeHeldItem = (interaction: AirInteraction): boolean => {
+    const { content, actors, player } = interaction;
+
+    const inventory = player.getInventory();
+    const heldEntry = inventory.getEntry(inventory.getHandSlotIndex());
+    const held = inventory.getItemInHand();
+    const stack = contentStackOf(content, held, heldEntry?.getCount() ?? held.getAmount());
+    if (stack === undefined) return false;
+    const source = { identifier: 'minecraft:player', runtimeId: Number(player.getRuntimeId()) };
+
+    return actors.duringInteraction(source, undefined, () => {
+        const consumed = stack.dispatchFirst('onConsume', { itemStack: stack, source });
+        if (consumed === undefined) return false;
+
+        putBackStack(player, consumed.stack);
+        resendInventory(player);
+        return true;
     });
 };
