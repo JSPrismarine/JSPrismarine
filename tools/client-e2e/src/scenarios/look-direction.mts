@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 
 import type { CinnabarClient } from '../client.mts';
 import type { Scenario } from '../scenario.mts';
-import { lookTo, sleep, vec3 } from '../scenario.mts';
+import { lookTo, sleep, vec3, waitTicks } from '../scenario.mts';
 
 /** Bedrock yaw 0 faces +Z, 90 faces -X, 180 faces -Z, and 270 faces +X. */
 const headings = [
@@ -36,7 +36,13 @@ export const lookDirection: Scenario = {
     name: 'look-direction',
     description: 'walking forward after turning heads toward the matching world axis',
     run: async ({ client, server, playerName, log }) => {
-        server.command('fill -12 63 -12 12 63 12 minecraft:stone');
+        // A floor a late-released walk cannot leave: a starved client has covered 9 blocks. It goes
+        // down in slabs, since one 625-block fill stalled a CI server for 3 s and a walk begun
+        // inside that stall was held back by the server.
+        for (let x = -12; x <= 12; x += 5) {
+            server.command(`fill ${x} 63 -12 ${Math.min(x + 4, 12)} 63 12 minecraft:stone`);
+            await waitTicks(server, 5);
+        }
 
         for (const heading of headings) {
             // A starved client applies the release late and keeps walking; let it stop first, or
