@@ -1,6 +1,7 @@
 /**
- * Stages VitePress inputs that live outside this package: handwritten guides,
- * generated bedrock-data, and a parity tracker snapshot from the full suite.
+ * Stages VitePress inputs that live outside this package: handwritten guides and a parity
+ * tracker snapshot from the full suite. The suite reads the generated bedrock-data, which
+ * `pnpm run docs:generate` writes first.
  */
 
 import { execFileSync } from 'node:child_process';
@@ -16,11 +17,6 @@ const repoRoot = path.resolve(packageDir, '..', '..');
 const siteDir = path.join(packageDir, 'site');
 const publicDir = path.join(siteDir, 'public');
 const trackerPath = path.join(publicDir, 'parity-tracker.json');
-
-execFileSync('pnpm', ['--filter', '@jsprismarine/bedrock-data', 'run', 'generate'], {
-    cwd: repoRoot,
-    stdio: 'inherit'
-});
 
 execFileSync('pnpm', ['--filter', '@jsprismarine/parity', 'run', 'dashboard'], {
     cwd: repoRoot,

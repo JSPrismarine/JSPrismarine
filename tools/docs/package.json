@@ -6,9 +6,13 @@
     "type": "module",
     "scripts": {
         "docs:sources": "pnpm --filter @jsprismarine/bedrock-data run fetch:sources && pnpm --filter @jsprismarine/bedrock-data run datagen:java",
-        "docs": "pnpm run docs:sources && node assemble.mts && typedoc && node fix-typedoc-media-links.mts && vitepress build site",
-        "docs:check": "node assemble.mts && typedoc --emit none",
-        "docs:dev": "pnpm run docs:sources && node assemble.mts && typedoc && node fix-typedoc-media-links.mts && vitepress dev site"
+        "docs:generate": "pnpm --filter @jsprismarine/bedrock-data run generate",
+        "docs:stage": "node assemble.mts",
+        "docs:api": "typedoc && node fix-typedoc-media-links.mts",
+        "docs:content": "concurrently --prefix '{name}' --kill-others-on-fail pnpm:docs:stage pnpm:docs:api",
+        "docs": "pnpm run docs:sources && pnpm run docs:generate && pnpm run docs:content && vitepress build site",
+        "docs:check": "pnpm run docs:generate && concurrently --prefix '{name}' --kill-others-on-fail pnpm:docs:stage \"typedoc --emit none\"",
+        "docs:dev": "pnpm run docs:sources && pnpm run docs:generate && pnpm run docs:content && vitepress dev site"
     },
     "devDependencies": {
         "typedoc": "0.28.20",
