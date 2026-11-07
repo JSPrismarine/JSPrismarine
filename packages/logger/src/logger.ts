@@ -169,10 +169,8 @@ export class Logger {
             normalizedFile.match(/\/(?:src|dist)\/(.+)$/u)?.[1] ?? normalizedFile.split('/').at(-1) ?? '';
         if (!moduleFile) return '';
 
-        // Bundlers commonly add `.es` before `.js`; it is a format suffix, not part of the module name.
-        const sourceFile = moduleFile.replace(/\.es(?=\.js$)/u, '');
-        const extension = sourceFile.match(/\.(?:[cm]?[jt]s|tsx|jsx)$/u)?.[0] ?? '';
-        const modulePath = extension ? sourceFile.slice(0, -extension.length) : sourceFile;
+        const extension = moduleFile.match(/\.(?:[cm]?[jt]s|tsx|jsx)$/u)?.[0] ?? '';
+        const modulePath = extension ? moduleFile.slice(0, -extension.length) : moduleFile;
         if (!modulePath) return '';
 
         if (this.level === 'silly' || this.level === 'debug' || this.level === 'verbose') {

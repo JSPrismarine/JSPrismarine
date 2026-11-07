@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { performance } from 'node:perf_hooks';
-import { Database } from '../dist/index.es.js';
+import { Database } from '../dist/index.js';
 
 const targetBytes = Number.parseInt(process.argv[2] ?? `${40 * 1024 * 1024}`, 10);
 if (!Number.isSafeInteger(targetBytes) || targetBytes < 1) throw new RangeError('Bytes must be a positive integer');

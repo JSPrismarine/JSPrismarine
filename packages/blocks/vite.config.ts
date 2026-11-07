@@ -37,7 +37,7 @@ export default mergeConfig(
             lib: {
                 entry: input,
                 formats: ['es'],
-                fileName: (format, name) => `${name}.${format}.js`,
+                fileName: (_format, name) => `${name}.js`,
                 name: pkg.name
             },
             rollupOptions: {

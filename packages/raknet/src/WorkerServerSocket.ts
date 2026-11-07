@@ -116,7 +116,7 @@ export default class WorkerServerSocket extends EventEmitter implements RakNetLi
 
         const sourceWorker = import.meta.url.endsWith('.ts');
         const workerUrl = new URL(
-            sourceWorker ? './WorkerServerSocket.worker.ts' : './WorkerServerSocket.worker.es.js',
+            sourceWorker ? './WorkerServerSocket.worker.ts' : './WorkerServerSocket.worker.js',
             import.meta.url
         );
         // `--input-type` is valid for the parent when it runs `-e` or stdin, but Node

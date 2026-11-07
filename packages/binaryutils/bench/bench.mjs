@@ -19,7 +19,7 @@
  *    macrotask turn before the counters are read.
  */
 import { PerformanceObserver } from 'node:perf_hooks';
-import { BinaryStream } from '../dist/BinaryStream.es.js';
+import { BinaryStream } from '../dist/BinaryStream.js';
 
 const BUDGET_NS = 10_000_000n; // 10 ms
 const WINDOWS = 40;

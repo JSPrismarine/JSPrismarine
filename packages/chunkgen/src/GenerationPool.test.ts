@@ -288,7 +288,7 @@ describe('workerExecArgv', () => {
     const bare = { execArgv: ['--max-old-space-size=4096'], nodeOptions: '' };
 
     it('lets a worker inherit the host flags for a built pipeline', () => {
-        expect(workerExecArgv({ pipeline: FAKE_PIPELINE, worker: '/somewhere/generationWorker.es.js' }, bare)).toBe(
+        expect(workerExecArgv({ pipeline: FAKE_PIPELINE, worker: '/somewhere/generationWorker.js' }, bare)).toBe(
             undefined
         );
     });

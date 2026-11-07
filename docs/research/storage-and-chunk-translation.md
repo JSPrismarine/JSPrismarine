@@ -463,7 +463,7 @@ The protocol pages also exist for `sub-chunk-packet`, `sub-chunk-request-packet`
 
 ### Measure this repository
 
-The benchmark imports the already built `packages/*/dist` output, because Node 26's type stripping rejects the `enum` declarations in `packages/nbt`. A resolver hook maps `@jsprismarine/<pkg>` to that package's `dist/*.es.js`. Both scratch files live outside the repository.
+The benchmark imports the already built `packages/*/dist` output, because Node 26's type stripping rejects the `enum` declarations in `packages/nbt`. A resolver hook maps `@jsprismarine/<pkg>` to that package's `dist/*.js`. Both scratch files live outside the repository.
 
 ```bash
 mkdir -p /tmp/jsp-bench
@@ -474,13 +474,13 @@ const ROOT = '/Users/filiphsandstrom/.cache/claude-hfi/-Users-filiphsandstrom-JS
 export async function resolve(specifier, context, next) {
   const m = /^@jsprismarine\/([^/]+)(?:\/(.*))?$/.exec(specifier);
   if (m) {
-    const file = `${ROOT}${m[1]}/dist/${m[2] ?? 'index'}.es.js`;
+    const file = `${ROOT}${m[1]}/dist/${m[2] ?? 'index'}.js`;
     if (existsSync(file)) return { url: pathToFileURL(file).href, shortCircuit: true, format: 'module' };
   }
   try { return await next(specifier, context); } catch (error) {
     if (!specifier.startsWith('.')) throw error;
     const base = new URL(specifier, context.parentURL);
-    for (const suffix of ['.es.js', '/index.es.js', '.js']) {
+    for (const suffix of ['.js', '/index.js', '.js']) {
       const candidate = new URL(base.href + suffix);
       if (existsSync(fileURLToPath(candidate))) return { url: candidate.href, shortCircuit: true, format: 'module' };
     }
@@ -499,10 +499,10 @@ The benchmark builds one 16x16 column from y -64 to about y 72 out of eight bloc
 ```bash
 cat > /tmp/jsp-bench/bench.mjs <<'EOF'
 const R = '/Users/filiphsandstrom/.cache/claude-hfi/-Users-filiphsandstrom-JSPrismarine/oak/packages/prismarine/dist';
-const { default: Chunk } = await import(R + '/world/chunk/Chunk.es.js');
-const { BlockRuntimeIds } = await import(R + '/block/state/BlockRuntimeIds.es.js');
-const { encodeSubChunk } = await import(R + '/world/providers/leveldb/SubChunkCodec.es.js');
-const { Dimensions } = await import(R + '/world/Dimension.es.js');
+const { default: Chunk } = await import(R + '/world/chunk/Chunk.js');
+const { BlockRuntimeIds } = await import(R + '/block/state/BlockRuntimeIds.js');
+const { encodeSubChunk } = await import(R + '/world/providers/leveldb/SubChunkCodec.js');
+const { Dimensions } = await import(R + '/world/Dimension.js');
 
 const names = ['minecraft:stone','minecraft:dirt','minecraft:grass_block','minecraft:gravel',
                'minecraft:deepslate','minecraft:water','minecraft:sand','minecraft:andesite'];

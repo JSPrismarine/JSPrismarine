@@ -380,10 +380,7 @@ export class Database {
         // embedded asset instead of resolving a path beside the bundled Database module.
         const workerPath =
             typeof JSP_SEA_TABLE_BUILDER_WORKER === 'undefined'
-                ? new URL(
-                      isTypeScript ? './db/TableBuilderWorker.ts' : './db/TableBuilderWorker.es.js',
-                      import.meta.url
-                  )
+                ? new URL(isTypeScript ? './db/TableBuilderWorker.ts' : './db/TableBuilderWorker.js', import.meta.url)
                 : this.singleExecutableTableWorkerUrl(JSP_SEA_TABLE_BUILDER_WORKER);
         const worker = new Worker(workerPath, {
             execArgv: isTypeScript ? this.tableWorkerExecArgv() : process.execArgv

@@ -80,7 +80,7 @@ if (existsSync(srcDir) && existsSync(distDir)) {
     walk(srcDir, (file) => {
         if (!file.endsWith('.json')) return;
         const relative = path.relative(srcDir, file).slice(0, -'.json'.length);
-        if (!existsSync(path.join(distDir, `${relative}.es.js`))) return;
+        if (!existsSync(path.join(distDir, `${relative}.js`))) return;
         declareJson(file, path.join(distDir, `${relative}.d.ts`));
         declareJson(file, path.join(distDir, `${relative}.json.d.ts`));
     });

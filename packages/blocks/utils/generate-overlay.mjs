@@ -27,7 +27,7 @@ import { fileURLToPath } from 'node:url';
 
 import { blockSchemas } from '@jsprismarine/minecraft/generated/block-schemas';
 
-import { OVERLAY_PACK_NAME, generateVanillaOverlay } from '../dist/overlay.es.js';
+import { OVERLAY_PACK_NAME, generateVanillaOverlay } from '../dist/overlay.js';
 
 const packageDir = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const repoRoot = resolve(packageDir, '../..');

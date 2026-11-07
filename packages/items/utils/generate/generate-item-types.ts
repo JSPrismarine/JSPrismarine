@@ -54,7 +54,7 @@ const mappingDist = resolve(packageDir, '../mapping/dist');
 if (!existsSync(mappingDist)) {
     throw new Error('Build the mapping package first: pnpm exec turbo run build --filter=@jsprismarine/mapping');
 }
-const { javaItemToBedrock } = await import(`${mappingDist}/index.es.js`);
+const { javaItemToBedrock } = await import(`${mappingDist}/index.js`);
 
 /** The item table captured from a Bedrock Dedicated Server, the Bedrock side's authority. */
 const bedrockItemTable = readJson(join(repoRoot, 'packages/bedrock-data/src/generated/item_table.json')) as Record<

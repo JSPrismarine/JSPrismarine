@@ -110,14 +110,14 @@ describe('namespace resolution', () => {
 
     it.each([
         ['source files', 'file:///repo/packages/prismarine/src/Server.ts:42:5', 'Server'],
-        ['built files', 'file:///repo/packages/prismarine/dist/Server.es.js:42:5', 'Server'],
+        ['built files', 'file:///repo/packages/prismarine/dist/Server.js:42:5', 'Server'],
         ['bundled files', 'file:///app/server.bundle.js:42:5', 'server.bundle']
     ])('derives a module name from %s without source maps', (_description, location, expected) => {
         const { logger } = makeLogger();
         const stack = [
             'Error',
-            '    at Logger.getNamespace (file:///repo/packages/logger/dist/logger.es.js:1:1)',
-            '    at Logger.info (file:///repo/packages/logger/dist/logger.es.js:2:2)',
+            '    at Logger.getNamespace (file:///repo/packages/logger/dist/logger.js:1:1)',
+            '    at Logger.info (file:///repo/packages/logger/dist/logger.js:2:2)',
             `    at invoke (${location})`
         ].join('\n');
 
@@ -128,8 +128,8 @@ describe('namespace resolution', () => {
         const { logger } = makeLogger();
         const stack = [
             'Error',
-            '    at Logger.getNamespace (file:///repo/packages/logger/dist/logger.es.js:1:1)',
-            '    at Logger.info (file:///repo/packages/logger/dist/logger.es.js:2:2)',
+            '    at Logger.getNamespace (file:///repo/packages/logger/dist/logger.js:1:1)',
+            '    at Logger.info (file:///repo/packages/logger/dist/logger.js:2:2)',
             '    at file:///repo/packages/prismarine/src/Worker.ts:42:5'
         ].join('\n');
 
@@ -141,8 +141,8 @@ describe('namespace resolution', () => {
         const malformedPath = 'part:1'.repeat(5_000);
         const stack = [
             'Error',
-            '    at Logger.getNamespace (file:///repo/packages/logger/dist/logger.es.js:1:1)',
-            '    at Logger.info (file:///repo/packages/logger/dist/logger.es.js:2:2)',
+            '    at Logger.getNamespace (file:///repo/packages/logger/dist/logger.js:1:1)',
+            '    at Logger.info (file:///repo/packages/logger/dist/logger.js:2:2)',
             `    at invoke (${malformedPath}:not-a-line)`
         ].join('\n');
 
@@ -153,9 +153,9 @@ describe('namespace resolution', () => {
         const { logger, written } = makeLogger();
         const stack = [
             'Error',
-            '    at getNamespace (file:///repo/packages/logger/dist/logger.es.js:1:1)',
-            '    at Logger.info (file:///repo/packages/logger/dist/logger.es.js:2:2)',
-            '    at Server.start (file:///repo/packages/server/dist/Server.es.js:123:4)'
+            '    at getNamespace (file:///repo/packages/logger/dist/logger.js:1:1)',
+            '    at Logger.info (file:///repo/packages/logger/dist/logger.js:2:2)',
+            '    at Server.start (file:///repo/packages/server/dist/Server.js:123:4)'
         ].join('\n');
         const NativeError = globalThis.Error;
 

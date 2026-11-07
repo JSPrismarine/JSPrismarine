@@ -23,7 +23,7 @@ import process from 'node:process';
 import { setTimeout as sleep } from 'node:timers/promises';
 import { parseArgs } from 'node:util';
 
-import { Client } from '../dist/index.es.js';
+import { Client } from '../dist/index.js';
 
 const { values } = parseArgs({
     options: {

@@ -160,13 +160,13 @@ describe('Watcher', () => {
         expect(fs.watched()).not.toContain(path.join(packagesDir, 'alpha', 'src'));
 
         // A rebuild writes modules and leaves declarations and maps that nothing loads.
-        fs.change(path.join(packagesDir, 'alpha', 'dist'), 'index.es.js');
+        fs.change(path.join(packagesDir, 'alpha', 'dist'), 'index.js');
         fs.change(path.join(packagesDir, 'alpha', 'dist'), 'index.d.ts');
-        fs.change(path.join(packagesDir, 'alpha', 'dist'), 'index.es.js.map');
+        fs.change(path.join(packagesDir, 'alpha', 'dist'), 'index.js.map');
         await advanceDebounce();
 
         expect(requestRestart).toHaveBeenCalledOnce();
-        expect(requestRestart).toHaveBeenCalledWith(path.join('packages', 'alpha', 'dist', 'index.es.js'));
+        expect(requestRestart).toHaveBeenCalledWith(path.join('packages', 'alpha', 'dist', 'index.js'));
     });
 
     it('restarts for a nested block overlay definition change', async () => {

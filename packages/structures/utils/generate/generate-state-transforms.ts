@@ -32,8 +32,8 @@ const mappingDist = resolve(here, '../../../mapping/dist');
 if (!existsSync(mappingDist)) {
     throw new Error('Build the mapping package first: pnpm exec turbo run build --filter=@jsprismarine/mapping');
 }
-const { javaBlockStateToBedrock } = await import(`${mappingDist}/index.es.js`);
-const { blocksTable } = await import(`${mappingDist}/tables.es.js`);
+const { javaBlockStateToBedrock } = await import(`${mappingDist}/index.js`);
+const { blocksTable } = await import(`${mappingDist}/tables.js`);
 
 /** Compares strings by code unit so generated keys do not depend on the host locale. */
 const compareCodeUnits = (left: string, right: string): number => (left < right ? -1 : left > right ? 1 : 0);

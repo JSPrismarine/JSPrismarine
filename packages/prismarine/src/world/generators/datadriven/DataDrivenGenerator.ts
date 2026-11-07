@@ -337,7 +337,7 @@ export interface TerrainPoolOptions {
 /**
  * This package's own terrain pipeline module, beside this file or in a packaged executable.
  *
- * `.ts` in a dev checkout, `.es.js` in a built package, or a SEA asset specifier in the packaged
+ * `.ts` in a dev checkout, `.js` in a built package, or a SEA asset specifier in the packaged
  * executable. A worker inherits `process.execArgv`, so a host started with `--import tsx` hands
  * its workers the same loader, and the single executable loads its bundled asset from `node:sea`.
  *
@@ -346,7 +346,7 @@ export interface TerrainPoolOptions {
 export const defaultTerrainPipeline = (): string => {
     if (typeof JSP_SEA_TERRAIN_PIPELINE !== 'undefined') return `sea-asset:${JSP_SEA_TERRAIN_PIPELINE}`;
     if (typeof JSP_EMBEDDED_TERRAIN_PIPELINE !== 'undefined') return JSP_EMBEDDED_TERRAIN_PIPELINE;
-    const beside = import.meta.url.endsWith('.ts') ? './terrainPipeline.ts' : './terrainPipeline.es.js';
+    const beside = import.meta.url.endsWith('.ts') ? './terrainPipeline.ts' : './terrainPipeline.js';
     return fileURLToPath(new URL(beside, import.meta.url));
 };
 
@@ -371,7 +371,7 @@ declare const JSP_SEA_TERRAIN_PIPELINE: string | undefined;
 export const defaultChunkPipeline = (): string => {
     if (typeof JSP_SEA_CHUNK_PIPELINE !== 'undefined') return `sea-asset:${JSP_SEA_CHUNK_PIPELINE}`;
     if (typeof JSP_EMBEDDED_CHUNK_PIPELINE !== 'undefined') return JSP_EMBEDDED_CHUNK_PIPELINE;
-    const beside = import.meta.url.endsWith('.ts') ? './chunkPipeline.ts' : './chunkPipeline.es.js';
+    const beside = import.meta.url.endsWith('.ts') ? './chunkPipeline.ts' : './chunkPipeline.js';
     return fileURLToPath(new URL(beside, import.meta.url));
 };
 

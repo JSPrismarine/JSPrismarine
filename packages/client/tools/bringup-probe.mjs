@@ -28,9 +28,9 @@
 import process from 'node:process';
 import { parseArgs } from 'node:util';
 
-import { Logger } from '../../logger/dist/index.es.js';
-import { PacketIdentifier, PlayStatus } from '../../protocol/dist/index.es.js';
-import { Client } from '../dist/index.es.js';
+import { Logger } from '../../logger/dist/index.js';
+import { PacketIdentifier, PlayStatus } from '../../protocol/dist/index.js';
+import { Client } from '../dist/index.js';
 
 const { values } = parseArgs({
     options: {

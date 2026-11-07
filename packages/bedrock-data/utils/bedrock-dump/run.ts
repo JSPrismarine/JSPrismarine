@@ -465,7 +465,7 @@ const runPalettePass = async (): Promise<void> => {
 const runPacketPass = async (): Promise<void> => {
     console.log('Pass 3 of 4: the packet capture');
     const tool = join(repositoryRoot, 'packages/client/tools/capture-server-data.mjs');
-    if (!existsSync(join(repositoryRoot, 'packages/client/dist/index.es.js'))) {
+    if (!existsSync(join(repositoryRoot, 'packages/client/dist/index.js'))) {
         throw new Error('The capture client is not built. Run `pnpm run build` first.');
     }
 

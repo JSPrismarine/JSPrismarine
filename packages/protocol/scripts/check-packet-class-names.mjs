@@ -13,7 +13,7 @@ const packetNames = readdirSync(packetSource).filter((filename) => {
 for (const filename of packetNames) {
     const name = filename.slice(0, -3);
     const source = await import(new URL(`../src/packet/${filename}`, import.meta.url));
-    const dist = await import(new URL(`../dist/packet/${name}.es.js`, import.meta.url));
+    const dist = await import(new URL(`../dist/packet/${name}.js`, import.meta.url));
     assert.equal(dist.default.name, source.default.name, `${filename} class name`);
 }
 

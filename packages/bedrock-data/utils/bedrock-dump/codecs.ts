@@ -24,7 +24,7 @@ const load = async (): Promise<typeof LevelDb> => {
     try {
         return await import('@jsprismarine/leveldb');
     } catch {
-        const bundle = join(dirname(require.resolve('@jsprismarine/leveldb/package.json')), 'dist', 'index.es.js');
+        const bundle = join(dirname(require.resolve('@jsprismarine/leveldb/package.json')), 'dist', 'index.js');
         if (!existsSync(bundle)) {
             throw new Error(
                 '@jsprismarine/leveldb is not built and plain Node cannot load its sources. ' +

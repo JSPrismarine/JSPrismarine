@@ -56,7 +56,7 @@ interface WorkerSmokeResult {
 const repositoryRoot = resolve(fileURLToPath(new URL('../../..', import.meta.url)));
 const serverRoot = join(repositoryRoot, 'packages/server');
 const serverSource = join(serverRoot, 'src/Server.ts');
-const serverBuilt = join(serverRoot, 'dist/Server.es.js');
+const serverBuilt = join(serverRoot, 'dist/Server.js');
 const workerSmokeEntry = fileURLToPath(new URL('./compileCacheWorker.ts', import.meta.url));
 const probe = fileURLToPath(new URL('./compileCacheProbe.mjs', import.meta.url));
 const STARTUP_TIMEOUT_MS = 180_000;
@@ -157,10 +157,10 @@ for (const manifestPath of packageDirectories) {
 }
 
 const builtServerRoot = consumerPackages.get('@jsprismarine/server');
-if (builtServerRoot === undefined || !existsSync(join(builtServerRoot, 'dist/Server.es.js'))) {
-    throw new Error('The built server consumer view is missing dist/Server.es.js.');
+if (builtServerRoot === undefined || !existsSync(join(builtServerRoot, 'dist/Server.js'))) {
+    throw new Error('The built server consumer view is missing dist/Server.js.');
 }
-const builtServerEntry = join(builtServerRoot, 'dist/Server.es.js');
+const builtServerEntry = join(builtServerRoot, 'dist/Server.js');
 
 const config = {
     'preload-radius': 0,

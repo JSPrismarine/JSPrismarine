@@ -321,7 +321,7 @@ const main = async (): Promise<void> => {
         return;
     }
 
-    // `packages/` for both `src/Server.ts` and `dist/Server.es.js` in the monorepo, but
+    // `packages/` for both `src/Server.ts` and `dist/Server.js` in the monorepo, but
     // `node_modules/@jsprismarine/` for an installed package, where there is nothing to watch.
     if (args.watch && !existsSync(path.join(packagesDir, '..', 'pnpm-workspace.yaml'))) {
         process.stderr.write('prismarine: --watch needs the JSPrismarine repository\n');

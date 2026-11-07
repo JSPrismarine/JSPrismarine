@@ -8,13 +8,13 @@
         "exports": {
             ".": {
                 "types": "./dist/index.d.ts",
-                "import": "./dist/index.es.js",
-                "module": "./dist/index.es.js"
+                "import": "./dist/index.js",
+                "module": "./dist/index.js"
             },
             "./*": {
                 "types": "./dist/*.d.ts",
-                "import": "./dist/*.es.js",
-                "module": "./dist/*.es.js"
+                "import": "./dist/*.js",
+                "module": "./dist/*.js"
             },
             "./package.json": "./package.json"
         }
@@ -26,15 +26,15 @@
         "CHANGELOG.md",
         "README.md"
     ],
-    "module": "./dist/index.es.js",
+    "module": "./dist/index.js",
     "types": "./dist/index.d.ts",
     "exports": {
         ".": {
-            "jsprismarine:dist": "./dist/index.es.js",
+            "jsprismarine:dist": "./dist/index.js",
             "default": "./src/index.ts"
         },
         "./*": {
-            "jsprismarine:dist": "./dist/*.es.js",
+            "jsprismarine:dist": "./dist/*.js",
             "default": "./src/*.ts"
         },
         "./package.json": "./package.json"

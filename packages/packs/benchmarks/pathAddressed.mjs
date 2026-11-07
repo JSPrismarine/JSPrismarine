@@ -9,7 +9,7 @@ if (roots.length === 0) {
 }
 
 const { isPathAddressedRegistry, load, parseLenientJson, parseManifest, routeForPath } =
-    await import('../dist/index.es.js');
+    await import('../dist/index.js');
 const stack = roots.map((path) => ({ kind: 'directory', path }));
 const files = [];
 const lastProvider = new Map();

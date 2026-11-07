@@ -272,7 +272,7 @@ interface Waiting {
 /**
  * This package's own worker entry, beside this file or embedded in a packaged executable.
  *
- * `.es.js` in a built package and `.ts` in a dev checkout, which a worker thread can import
+ * `.js` in a built package and `.ts` in a dev checkout, which a worker thread can import
  * either way because Node strips types. Single executables load their embedded worker from a
  * data URL. Resolved rather than configured, so a caller does not have to know which is running.
  */
@@ -284,7 +284,7 @@ export const defaultGenerationWorker = (): string => {
         return singleExecutableModuleUrl(JSP_SEA_GENERATION_WORKER) ?? `sea-asset:${JSP_SEA_GENERATION_WORKER}`;
     }
 
-    const beside = import.meta.url.endsWith('.ts') ? './generationWorker.ts' : './generationWorker.es.js';
+    const beside = import.meta.url.endsWith('.ts') ? './generationWorker.ts' : './generationWorker.js';
     return fileURLToPath(new URL(beside, import.meta.url));
 };
 

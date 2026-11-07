@@ -353,7 +353,7 @@ export const startServer = async (
         throw new Error(`JSP_E2E_SERVER_ENTRY must be 'source' or 'dist', got '${entryMode}'`);
     }
     const built = entryMode === 'dist';
-    const serverEntry = path.join(serverPackage, built ? 'dist' : 'src', built ? 'Server.es.js' : 'Server.ts');
+    const serverEntry = path.join(serverPackage, built ? 'dist' : 'src', built ? 'Server.js' : 'Server.ts');
     if (built && !fs.existsSync(serverEntry)) {
         throw new Error(`built server entry is missing at ${serverEntry}; run pnpm run server:build first`);
     }

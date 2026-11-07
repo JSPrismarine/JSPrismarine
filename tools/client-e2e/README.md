@@ -47,7 +47,7 @@ its temporary data. The two suites run concurrently by default; use `--concurren
 debugging or when passing `--port`. `--record` writes a separate `run.mp4` under each scenario's
 artifact directory and leaves audio enabled. Headless client audio is muted otherwise.
 
-`pnpm run e2e:client:dist` selects the built `Server.es.js` entry and the workspace's
+`pnpm run e2e:client:dist` selects the built `Server.js` entry and the workspace's
 `jsprismarine:dist` exports. Build it first with `pnpm run server:build` or `pnpm run start`.
 
 The runner prints the artifacts directory (screenshots, recordings, a combined server log, and a

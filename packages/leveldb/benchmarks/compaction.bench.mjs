@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { performance } from 'node:perf_hooks';
 
-import { Database, WriteBatch } from '../dist/index.es.js';
+import { Database, WriteBatch } from '../dist/index.js';
 
 const requestedSizes = process.argv
     .slice(2)

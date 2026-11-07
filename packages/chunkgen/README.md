@@ -226,7 +226,7 @@ sends it to a thread pool and keeps `features`, which writes radius 1, on a sing
 published install needs nothing: the specifier is a built `.js`. A dev checkout runs under
 `node --import tsx`, and its workers do too, which is what follows the extensionless
 `@jsprismarine/*` imports a `.ts` pipeline module is full of. Nothing has to be built first. A
-production workspace start selects the compiled `.es.js` exports with the `jsprismarine:dist`
+production workspace start selects the compiled `.js` exports with the `jsprismarine:dist`
 condition, so the pool picks its built pipeline and worker entries without adding a TypeScript
 loader to either thread.
 

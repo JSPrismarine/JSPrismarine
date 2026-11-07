@@ -99,7 +99,7 @@ Bug 5, design 7, nit 10, lint failure 0.
    callback with a message, or run the host headless with the watcher and no frontend.
 10. **nit**, `packages/server/src/Server.ts:130`. `packagesDir` is derived from
     `import.meta.url` with `../..`, which is `packages/` for both `src/Server.ts` and
-    `dist/Server.es.js` in the monorepo but `node_modules/@jsprismarine/` for an installed
+    `dist/Server.js` in the monorepo but `node_modules/@jsprismarine/` for an installed
     package, where it watches nothing and `pnpm run generate` fails on every start. Fix: require
     `pnpm-workspace.yaml` next to `packagesDir` and print one line (`--watch needs the
     JSPrismarine repository`) otherwise.

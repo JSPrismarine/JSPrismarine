@@ -91,8 +91,8 @@ import { defaultGenerationWorker, workerExecArgv } from '@jsprismarine/chunkgen/
 import { defaultChunkPipeline } from '@jsprismarine/prismarine/world/generators/datadriven/DataDrivenGenerator';
 const pipeline = defaultChunkPipeline();
 const worker = defaultGenerationWorker();
-assert.equal(basename(pipeline), 'chunkPipeline.es.js');
-assert.equal(basename(worker), 'generationWorker.es.js');
+assert.equal(basename(pipeline), 'chunkPipeline.js');
+assert.equal(basename(worker), 'generationWorker.js');
 assert.equal(workerExecArgv({ pipeline, workers: 1 }, { execArgv: process.execArgv, nodeOptions: '' }), undefined);
 process.stdout.write(JSON.stringify({ pipeline, worker, workerExecArgv: undefined }));
 `

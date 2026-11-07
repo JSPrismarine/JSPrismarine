@@ -43,4 +43,4 @@ WORKDIR /app/packages/server
 EXPOSE 19132/udp
 
 # Node runs as PID 1 so SIGTERM reaches the server, which saves the world before it exits.
-CMD ["node", "--conditions=jsprismarine:dist", "--unhandled-rejections=strict", "./dist/Server.es.js"]
+CMD ["node", "--conditions=jsprismarine:dist", "--unhandled-rejections=strict", "./dist/Server.js"]

@@ -50,10 +50,10 @@ import path from 'node:path';
 import process from 'node:process';
 import { parseArgs } from 'node:util';
 
-import BinaryStream from '../../binaryutils/dist/index.es.js';
-import { ByteOrder, NBTReader, NBTWriter } from '../../nbt/dist/index.es.js';
-import { PacketIdentifier } from '../../protocol/dist/index.es.js';
-import { Client } from '../dist/index.es.js';
+import BinaryStream from '../../binaryutils/dist/index.js';
+import { ByteOrder, NBTReader, NBTWriter } from '../../nbt/dist/index.js';
+import { PacketIdentifier } from '../../protocol/dist/index.js';
+import { Client } from '../dist/index.js';
 
 const HERE = path.dirname(new URL(import.meta.url).pathname);
 const BEDROCK_DATA = path.resolve(HERE, '../../bedrock-data');

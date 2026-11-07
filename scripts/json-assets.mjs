@@ -11,19 +11,19 @@ const cases = [
     {
         packageDirectory: 'packages/blocks',
         asset: 'tables/blockGeometry.json',
-        wrapper: 'tables/blockGeometry.es.js',
-        runtime: 'geometry.es.js'
+        wrapper: 'tables/blockGeometry.js',
+        runtime: 'geometry.js'
     },
     {
         packageDirectory: 'packages/items',
         asset: 'tables/itemTypes.json',
-        wrapper: 'tables/itemTypes.es.js',
-        runtime: 'tables.es.js'
+        wrapper: 'tables/itemTypes.js',
+        runtime: 'tables.js'
     },
     {
         packageDirectory: 'packages/minecraft',
         asset: 'generated/v2193/recipes.json',
-        wrapper: 'generated/v2193/recipes.es.js'
+        wrapper: 'generated/v2193/recipes.js'
     }
 ];
 
@@ -92,7 +92,7 @@ if (child) {
                 `${testCase.packageDirectory} JSON wrapper matches its asset`
             );
 
-            if (testCase.runtime === 'geometry.es.js') {
+            if (testCase.runtime === 'geometry.js') {
                 const runtime = await import(pathToFileURL(path.join(distDirectory, testCase.runtime)).href);
                 for (const [identifier, row] of Object.entries(parsed.default.blocks)) {
                     assert.equal(
@@ -101,7 +101,7 @@ if (child) {
                         `packed geometry lookup for ${identifier}`
                     );
                 }
-            } else if (testCase.runtime === 'tables.es.js') {
+            } else if (testCase.runtime === 'tables.js') {
                 const runtime = await import(pathToFileURL(path.join(distDirectory, testCase.runtime)).href);
                 assert.deepEqual(runtime.itemTypesTable, parsed.default, 'packed item table matches its JSON asset');
             }

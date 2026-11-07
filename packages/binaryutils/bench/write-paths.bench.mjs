@@ -1,4 +1,4 @@
-import { BinaryStream } from '../dist/BinaryStream.es.js';
+import { BinaryStream } from '../dist/BinaryStream.js';
 
 const ITERATIONS = 500_000;
 const stream = new BinaryStream(undefined, 0, 1024);

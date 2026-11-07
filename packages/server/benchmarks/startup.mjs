@@ -18,7 +18,7 @@ const entries = {
         probe,
         '--conditions=jsprismarine:dist',
         '--unhandled-rejections=strict',
-        './dist/Server.es.js'
+        './dist/Server.js'
     ]
 };
 

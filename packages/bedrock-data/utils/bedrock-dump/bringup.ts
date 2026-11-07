@@ -111,7 +111,7 @@ if (!existsSync(join(unpacked, SERVER_BINARY))) {
 }
 
 const probeTool = join(repositoryRoot, 'packages/client/tools/bringup-probe.mjs');
-if (!existsSync(join(repositoryRoot, 'packages/client/dist/index.es.js'))) {
+if (!existsSync(join(repositoryRoot, 'packages/client/dist/index.js'))) {
     console.error('FAIL client: the client is not built. Run `pnpm run build` first.');
     process.exit(1);
 }

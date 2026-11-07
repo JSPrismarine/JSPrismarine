@@ -22,7 +22,7 @@ const build = spawn(
 );
 const server = spawn(
     process.execPath,
-    ['--conditions=jsprismarine:dist', '--unhandled-rejections=strict', './dist/Server.es.js', '--watch'],
+    ['--conditions=jsprismarine:dist', '--unhandled-rejections=strict', './dist/Server.js', '--watch'],
     { stdio: 'inherit', env: { ...process.env, NODE_ENV: 'development' } }
 );
 
