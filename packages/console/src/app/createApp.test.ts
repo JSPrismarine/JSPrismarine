@@ -533,13 +533,14 @@ describe('createApp', () => {
     describe('TPS page', () => {
         const SPAN_ROW = 'span  1m  5m  15m';
 
-        const reportTps = (t: AppHarness, readings: readonly number[]): void => {
+        const reportTps = (t: AppHarness, readings: readonly number[], tickRate?: number): void => {
             for (const tps of readings) {
                 t.app.applyServerMessage({
                     type: 'status',
                     v: 1,
                     tps,
                     tickMs: 4.1,
+                    tickRate,
                     players: 0,
                     maxPlayers: 20,
                     rssBytes: 100 * 1024 * 1024,
@@ -569,6 +570,66 @@ describe('createApp', () => {
             expect(frame).toContain('TPS 20.00');
             expect(frame).not.toMatch(/2[1-9]\.\d\d/);
             expect(frame).not.toMatch(/ 2[1-9] [┤└]/);
+        });
+
+        it('measures a server with its own tick rate against that rate', async () => {
+            let clock = AT;
+            const t = await setup({ width: 120, height: 40 }, {}, () => clock);
+            dispose = t.dispose;
+            await focusLog(t);
+            for (const tps of [40.7, 38, 40.2, 40]) {
+                reportTps(t, [tps], 40);
+                clock += 10_000;
+            }
+            t.mockInput.pressKey('t');
+            await t.renderOnce();
+
+            const frame = t.captureCharFrame();
+            expect(frame).toMatch(/now 40\.00\s+avg \d+\.\d\d\s+min 38\.00\s+max 40\.00/);
+            expect(frame).toContain('TPS 40.00');
+            expect(frame).toMatch(/40 ┤/);
+            expect(frame).toContain('38+');
+            expect(frame).toContain('30-38');
+            expect(frame).not.toMatch(/ 2[0-9] ┤/);
+        });
+
+        it('shows the highest rate set in the span on the axis', async () => {
+            let clock = AT;
+            const t = await setup({ width: 120, height: 40 }, {}, () => clock);
+            dispose = t.dispose;
+            await focusLog(t);
+            reportTps(t, [40], 40);
+            clock += 10_000;
+            reportTps(t, [20], 20);
+            clock += 10_000;
+            reportTps(t, [20], 20);
+            t.mockInput.pressKey('t');
+            await t.renderOnce();
+
+            // The 5 minute span still includes the time at 40, so the page keeps measuring against it.
+            expect(t.captureCharFrame()).toContain('38+');
+
+            t.mockInput.pressKey('1');
+            clock += 120_000;
+            reportTps(t, [20], 20);
+            await t.renderOnce();
+
+            // A minute later that rate has left the 1 minute span.
+            const frame = t.captureCharFrame();
+            expect(frame).not.toContain('38+');
+            expect(frame).toContain('19+');
+        });
+
+        it('keeps the side pane graph on the tick rate', async () => {
+            const t = await setup({ width: 120, height: 40 });
+            dispose = t.dispose;
+
+            reportTps(t, [40, 39], 40);
+            await t.renderOnce();
+
+            const frame = t.captureCharFrame();
+            expect(frame).toMatch(/40 ┤/);
+            expect(frame).toMatch(/20 └/);
         });
 
         it('opens when the side pane graph is clicked', async () => {

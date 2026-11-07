@@ -1,9 +1,16 @@
 import { describe, expect, it } from 'vitest';
 
-import { TPS_RETENTION_MS, TPS_WINDOWS, pruneSamples, seriesForWindow, summarizeWindow } from './tpsHistory';
+import {
+    TPS_RETENTION_MS,
+    TPS_WINDOWS,
+    pruneSamples,
+    rateForWindow,
+    seriesForWindow,
+    summarizeWindow
+} from './tpsHistory';
 import type { TpsSample } from './tpsHistory';
 
-const sample = (at: number, tps: number): TpsSample => ({ at, tps });
+const sample = (at: number, tps: number, rate = 20): TpsSample => ({ at, tps, rate });
 
 describe('TPS_WINDOWS', () => {
     it('ends at the retention limit so the longest span always has its data', () => {
@@ -51,6 +58,30 @@ describe('seriesForWindow', () => {
         const samples = [sample(10_000, 14)];
 
         expect(seriesForWindow(samples, 10_000, 10_000, 2)).toEqual([undefined, 14]);
+    });
+});
+
+describe('rateForWindow', () => {
+    it('is the highest rate set during the window', () => {
+        const samples = [sample(1_000, 20), sample(5_000, 40, 40), sample(8_000, 20)];
+
+        expect(rateForWindow(samples, 10_000, 10_000)).toBe(40);
+    });
+
+    it('forgets a rate that ended before the window opened', () => {
+        const samples = [sample(0, 40, 40), sample(1_000, 20), sample(15_000, 20)];
+
+        expect(rateForWindow(samples, 20_000, 10_000)).toBe(20);
+    });
+
+    it('counts the rate that was in effect when the window opened', () => {
+        const samples = [sample(0, 40, 40), sample(15_000, 20)];
+
+        expect(rateForWindow(samples, 20_000, 10_000)).toBe(40);
+    });
+
+    it('has no rate without a reading', () => {
+        expect(rateForWindow([], 10_000, 10_000)).toBeUndefined();
     });
 });
 

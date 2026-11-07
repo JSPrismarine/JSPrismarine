@@ -23,7 +23,7 @@ import { formatMemory, formatPlayers, formatTickMs, formatTps, formatUptime, sta
 import type { Segment, SegmentBounds, ServerState } from '../status/segments';
 import type { DropdownOption } from '../status/dropdown';
 import { createToastStack } from '../status/toasts';
-import { displayTps, tickTone, tpsTone } from '../tps/plotGraph';
+import { DEFAULT_TICK_RATE, displayTps, tickTone, tpsTone } from '../tps/plotGraph';
 import { pruneSamples } from '../tps/tpsHistory';
 import type { TpsSample } from '../tps/tpsHistory';
 import { createTpsPage } from '../tps/tpsPage';
@@ -98,6 +98,7 @@ const NOT_AVAILABLE = (what: string): ToastInput => ({ tone: 'muted', text: `${w
 interface Metrics {
     tps?: number;
     tickMs?: number;
+    tickRate?: number;
     players?: { online: number; max: number };
     playerNames?: readonly string[];
     rssBytes?: number;
@@ -356,7 +357,7 @@ export function createApp(ctx: AppContext, props: AppProps): App {
             left.push({
                 id: 'tps',
                 text: formatTps(metrics.tps),
-                tone: tpsTone(metrics.tps),
+                tone: tpsTone(metrics.tps, metrics.tickRate),
                 priority: 90,
                 onActivate: toggleTps
             });
@@ -374,7 +375,7 @@ export function createApp(ctx: AppContext, props: AppProps): App {
                 left.push({
                     id: 'tick',
                     text: formatTickMs(metrics.tickMs),
-                    tone: tickTone(metrics.tickMs) ?? 'muted',
+                    tone: tickTone(metrics.tickMs, metrics.tickRate) ?? 'muted',
                     priority: 50
                 });
             }
@@ -545,13 +546,17 @@ export function createApp(ctx: AppContext, props: AppProps): App {
     }
 
     function refreshSidePane(): void {
+        const paneSamples = tpsSamples.slice(-PANE_HISTORY_LIMIT);
         sidePane.update({
             state,
             players: metrics.players,
             playerNames: metrics.playerNames,
             tps: metrics.tps,
-            tpsHistory: tpsSamples.slice(-PANE_HISTORY_LIMIT).map((sample) => sample.tps),
+            tpsHistory: paneSamples.map((sample) => sample.tps),
+            tpsRate:
+                paneSamples.length === 0 ? metrics.tickRate : Math.max(...paneSamples.map((sample) => sample.rate)),
             tickMs: metrics.tickMs,
+            tickRate: metrics.tickRate,
             server,
             uptimeMs: metrics.uptimeMs,
             rssBytes: metrics.rssBytes,
@@ -1000,14 +1005,19 @@ export function createApp(ctx: AppContext, props: AppProps): App {
                 return;
             case 'status':
                 metrics = {
-                    tps: displayTps(message.tps),
+                    tps: displayTps(message.tps, message.tickRate),
+                    tickRate: message.tickRate,
                     tickMs: message.tickMs,
                     players: { online: message.players, max: message.maxPlayers },
                     playerNames: message.playerNames,
                     rssBytes: message.rssBytes,
                     uptimeMs: message.uptimeMs
                 };
-                tpsSamples.push({ at: now(), tps: displayTps(message.tps) });
+                tpsSamples.push({
+                    at: now(),
+                    tps: displayTps(message.tps, message.tickRate),
+                    rate: message.tickRate ?? DEFAULT_TICK_RATE
+                });
                 pruneSamples(tpsSamples, now());
                 refreshStatus();
                 refreshSidePane();

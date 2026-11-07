@@ -6,7 +6,7 @@ import { formatTime } from '../log/logLine';
 import { formatMemory, formatPlayers, formatTickMs, formatTps, formatUptime } from '../status/segments';
 import type { ServerState } from '../status/segments';
 import { graphChunks } from '../tps/graphChunks';
-import { plotGraph, tickTone, tpsTone } from '../tps/plotGraph';
+import { DEFAULT_TICK_RATE, plotGraph, tickTone, tpsTone } from '../tps/plotGraph';
 import type { GraphTone } from '../tps/plotGraph';
 import type { DevState } from './devState';
 import type { SidePaneMode } from './layout';
@@ -18,7 +18,11 @@ export interface SidePaneModel {
     playerNames?: readonly string[];
     tps?: number;
     tpsHistory: readonly number[];
+    /** The tick rate the server aims for; the graph tops out there. Defaults to 20. */
+    tpsRate?: number;
     tickMs?: number;
+    /** The tick rate the server aims for; a tick has `1000 / tickRate` milliseconds. Defaults to 20. */
+    tickRate?: number;
     server?: { version: string; pid: number };
     uptimeMs?: number;
     rssBytes?: number;
@@ -53,9 +57,10 @@ type Row =
 const DASH = '—';
 const MAX_VISIBLE_PLAYERS = 5;
 const GRAPH_ROWS = 3;
-const GRAPH_MIN_TPS = 10;
-const GRAPH_MAX_TPS = 20;
-const GRAPH_AXIS = ['20 ┤', '15 ┤', '10 └'] as const;
+/** The graph spans the top half of the tick rate: 10 to 20 at the default. */
+const GRAPH_MIN_SHARE = 0.5;
+
+const formatAxis = (value: number): string => (Number.isInteger(value) ? String(value) : value.toFixed(1));
 
 function rowsFor(model: SidePaneModel): Row[] {
     const names = model.playerNames ?? [];
@@ -86,7 +91,7 @@ function rowsFor(model: SidePaneModel): Row[] {
             kind: 'value',
             label: 'TPS',
             value: model.tps === undefined ? DASH : formatTps(model.tps).slice(4),
-            tone: model.tps === undefined ? 'muted' : tpsTone(model.tps),
+            tone: model.tps === undefined ? 'muted' : tpsTone(model.tps, model.tpsRate),
             opensTps: true
         },
         { kind: 'graph', values: model.tpsHistory, opensTps: true },
@@ -94,14 +99,14 @@ function rowsFor(model: SidePaneModel): Row[] {
             kind: 'value',
             label: 'low',
             value: low === undefined ? DASH : low.toFixed(2),
-            tone: low === undefined ? 'muted' : tpsTone(low),
+            tone: low === undefined ? 'muted' : tpsTone(low, model.tpsRate),
             opensTps: true
         },
         {
             kind: 'value',
             label: 'tick',
             value: model.tickMs === undefined ? DASH : formatTickMs(model.tickMs),
-            tone: model.tickMs === undefined ? 'muted' : (tickTone(model.tickMs) ?? 'text')
+            tone: model.tickMs === undefined ? 'muted' : (tickTone(model.tickMs, model.tickRate) ?? 'text')
         },
         { kind: 'value', label: 'memory', value: model.rssBytes === undefined ? DASH : formatMemory(model.rssBytes) },
         { kind: 'blank' },
@@ -209,15 +214,15 @@ export function createSidePane(ctx: Pick<ConsoleContext, 'renderer' | 'theme'>, 
                     addRow(chunksFor(row, labelWidth), 'opensTps' in row);
                     continue;
                 }
-                const columns = Math.max(1, Math.min(32, renderable.width - 6));
-                const plot = plotGraph(row.values, {
-                    columns,
-                    rows: GRAPH_ROWS,
-                    min: GRAPH_MIN_TPS,
-                    max: GRAPH_MAX_TPS
-                });
+                const max = model.tpsRate ?? DEFAULT_TICK_RATE;
+                const min = max * GRAPH_MIN_SHARE;
+                const labels = [max, (max + min) / 2, min].map(formatAxis);
+                const axisWidth = Math.max(...labels.map((label) => label.length));
+                const columns = Math.max(1, Math.min(32, renderable.width - 4 - axisWidth));
+                const plot = plotGraph(row.values, { columns, rows: GRAPH_ROWS, min, max });
                 plot.forEach((graphRow, index) => {
-                    addRow([fg(theme.textMuted)(GRAPH_AXIS[index] ?? '    '), ...graphChunks(graphRow, theme)], true);
+                    const axis = `${(labels[index] ?? '').padStart(axisWidth)} ${index === GRAPH_ROWS - 1 ? '└' : '┤'}`;
+                    addRow([fg(theme.textMuted)(axis), ...graphChunks(graphRow, theme)], true);
                 });
                 if (row.values.length === 0) addRow([fg(theme.textMuted)('       awaiting samples')], true);
             }

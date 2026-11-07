@@ -4,8 +4,8 @@ import type { KeyEvent, MouseEvent, TextChunk } from '@opentui/core';
 import type { ConsoleContext } from '../context';
 import { formatTickMs } from '../status/segments';
 import { graphChunks } from './graphChunks';
-import { TPS_DANGER_BELOW, TPS_TARGET, TPS_WARNING_BELOW, plotGraph, tpsTone } from './plotGraph';
-import { TPS_WINDOWS, seriesForWindow, summarizeWindow } from './tpsHistory';
+import { DEFAULT_TICK_RATE, plotGraph, tpsThresholds, tpsTone } from './plotGraph';
+import { TPS_WINDOWS, rateForWindow, seriesForWindow, summarizeWindow } from './tpsHistory';
 import type { TpsSample } from './tpsHistory';
 
 /** What the page draws; the host pushes a new model whenever a status message arrives. */
@@ -51,8 +51,8 @@ const BORDER = 2;
 const CHROME_ROWS = 4;
 const MIN_CHART_ROWS = 2;
 const DEFAULT_WINDOW = 1;
-const AXIS_STEP = 5;
-const AXIS_FLOOR = 15;
+/** The axis always shows at least this share of the tick rate, so a healthy line sits near the top. */
+const AXIS_STEPS = 4;
 /** Widest tick label, such as `17.5`. */
 const AXIS_LABEL_WIDTH = 4;
 /** Tick label, a space, and the axis marker. */
@@ -145,14 +145,19 @@ export function createTpsPage(ctx: Pick<ConsoleContext, 'renderer' | 'theme'>, p
         layout();
     };
 
+    /** The highest tick rate in the chosen span; the chart tops out there and tones are measured against it. */
+    const currentRate = (): number =>
+        rateForWindow(model.samples, model.now, TPS_WINDOWS[windowIndex]!.ms) ?? DEFAULT_TICK_RATE;
+
     const summaryChunks = (): TextChunk[] => {
         const span = TPS_WINDOWS[windowIndex]!.ms;
+        const rate = currentRate();
         const stats = summarizeWindow(model.samples, model.now, span);
         if (stats === undefined) return [fg(theme.textMuted)('waiting for the first status update')];
         const latest = model.samples.at(-1)?.tps ?? stats.average;
         const pair = (label: string, value: number): TextChunk[] => [
             fg(theme.textMuted)(`${label} `),
-            fg(theme[tpsTone(value)])(value.toFixed(2)),
+            fg(theme[tpsTone(value, rate)])(value.toFixed(2)),
             fg(theme.textMuted)('   ')
         ];
         return [
@@ -184,13 +189,14 @@ export function createTpsPage(ctx: Pick<ConsoleContext, 'renderer' | 'theme'>, p
             tab.onMouseDown = click(() => selectWindow(index));
             tabs.add(tab);
         });
+        const { warning, danger } = tpsThresholds(currentRate());
         const legend = text('tps-legend', [
             fg(theme.ok)('● '),
-            fg(theme.textMuted)(`${TPS_WARNING_BELOW}+  `),
+            fg(theme.textMuted)(`${formatTick(warning)}+  `),
             fg(theme.warning)('● '),
-            fg(theme.textMuted)(`${TPS_DANGER_BELOW}-${TPS_WARNING_BELOW}  `),
+            fg(theme.textMuted)(`${formatTick(danger)}-${formatTick(warning)}  `),
             fg(theme.danger)('● '),
-            fg(theme.textMuted)(`<${TPS_DANGER_BELOW}`)
+            fg(theme.textMuted)(`<${formatTick(danger)}`)
         ]);
         legend.flexShrink = 1;
         row.add(tabs);
@@ -234,11 +240,10 @@ export function createTpsPage(ctx: Pick<ConsoleContext, 'renderer' | 'theme'>, p
         const plotColumns = Math.max(1, innerWidth - AXIS_WIDTH);
         const series = seriesForWindow(model.samples, model.now, span.ms, plotColumns * 2);
         const present = series.filter((value) => value !== undefined);
-        const max = TPS_TARGET;
-        const min =
-            present.length === 0
-                ? AXIS_FLOOR
-                : Math.max(0, Math.min(AXIS_FLOOR, Math.floor(Math.min(...present) / AXIS_STEP) * AXIS_STEP));
+        const max = currentRate();
+        const step = max / AXIS_STEPS;
+        const lowest = present.length === 0 ? max : Math.min(...present);
+        const min = Math.max(0, Math.min(max - step, Math.floor(lowest / step) * step));
         const labels = axisLabels(chartRows, min, max);
         const plot = plotGraph(series, { columns: plotColumns, rows: chartRows, min, max });
 

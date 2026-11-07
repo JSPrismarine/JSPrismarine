@@ -1,42 +1,52 @@
 /** Tone a graph column is drawn with, from the worst sample that lands in it. */
 export type GraphTone = 'ok' | 'warning' | 'danger';
 
-/** Ticks per second below which the server is lagging. */
-export const TPS_DANGER_BELOW = 15;
+/** The ticks per second a server aims for unless it says otherwise. */
+export const DEFAULT_TICK_RATE = 20;
 
-/** Ticks per second below which the server is slower than its target of 20. */
-export const TPS_WARNING_BELOW = 19;
+/** Share of the tick rate below which the server is lagging. */
+const DANGER_RATIO = 0.75;
 
-/** Tick duration in milliseconds at which a 20 TPS server runs out of time. */
-export const TICK_BUDGET_MS = 50;
+/** Share of the tick rate below which the server is slower than it aims to be. */
+const WARNING_RATIO = 0.95;
 
-/** Tick duration from which the status bar warns before the budget is gone. */
-export const TICK_WARNING_MS = 40;
-
-/** The rate a healthy server holds, and the most the console ever shows. */
-export const TPS_TARGET = 20;
+/** Share of a tick's period from which the status bar warns before the budget is gone. */
+const TICK_WARNING_RATIO = 0.8;
 
 /**
  * The reading the console shows for a server's TPS. The server reports a loop that is catching up
- * as above 20, but a rate over the target is not extra health, so every view caps it there.
+ * as above its tick rate, but a rate over the target is not extra health, so every view caps it.
  */
-export const displayTps = (tps: number): number => Math.min(tps, TPS_TARGET);
+export const displayTps = (tps: number, rate: number = DEFAULT_TICK_RATE): number => Math.min(tps, rate);
 
-/** Colors a TPS reading: green at 19 or more, yellow from 15, red below. */
-export function tpsTone(tps: number): GraphTone {
-    if (tps < TPS_DANGER_BELOW) return 'danger';
-    if (tps < TPS_WARNING_BELOW) return 'warning';
+/** The TPS below which a reading is yellow and the TPS below which it is red, for a tick rate. */
+export const tpsThresholds = (rate: number): { warning: number; danger: number } => ({
+    warning: rate * WARNING_RATIO,
+    danger: rate * DANGER_RATIO
+});
+
+/** Colors a TPS reading against the tick rate: green near it, yellow below 95%, red below 75%. */
+export function tpsTone(tps: number, rate: number = DEFAULT_TICK_RATE): GraphTone {
+    if (tps < rate * DANGER_RATIO) return 'danger';
+    if (tps < rate * WARNING_RATIO) return 'warning';
     return 'ok';
 }
 
-/** Colors a tick duration, or returns `undefined` while it leaves comfortable headroom. */
-export function tickTone(tickMs: number): GraphTone | undefined {
-    if (tickMs >= TICK_BUDGET_MS) return 'danger';
-    if (tickMs >= TICK_WARNING_MS) return 'warning';
+/**
+ * Colors a tick duration, or returns `undefined` while it leaves comfortable headroom. A tick has
+ * one period of `1000 / rate` milliseconds; yellow starts at 80% of it and red once it is gone.
+ */
+export function tickTone(tickMs: number, rate: number = DEFAULT_TICK_RATE): GraphTone | undefined {
+    const period = 1000 / rate;
+    if (tickMs >= period) return 'danger';
+    if (tickMs >= period * TICK_WARNING_RATIO) return 'warning';
     return undefined;
 }
 
-/** Value range the vertical axis covers and the size of the plot in terminal cells. */
+/**
+ * Value range the vertical axis covers and the size of the plot in terminal cells. `max` is also
+ * the tick rate that colors the line.
+ */
 export interface PlotOptions {
     columns: number;
     rows: number;
@@ -101,13 +111,18 @@ export function plotGraph(values: readonly (number | undefined)[], options: Plot
         }
         const x = xFor(index);
         if (previous === undefined) {
-            plot(x, yFor(sample), yFor(sample), tpsTone(sample));
+            plot(x, yFor(sample), yFor(sample), tpsTone(sample, max));
         } else {
             const gap = Math.max(1, x - previous.x);
             for (let step = 1; step <= gap; step += 1) {
                 const before = previous.value + ((sample - previous.value) * (step - 1)) / gap;
                 const value = previous.value + ((sample - previous.value) * step) / gap;
-                plot(previous.x + step, yFor(before), yFor(value), worse(tpsTone(before), tpsTone(value)) ?? 'ok');
+                plot(
+                    previous.x + step,
+                    yFor(before),
+                    yFor(value),
+                    worse(tpsTone(before, max), tpsTone(value, max)) ?? 'ok'
+                );
             }
         }
         previous = { x, value: sample };

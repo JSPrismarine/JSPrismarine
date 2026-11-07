@@ -2,7 +2,10 @@
 export interface TpsSample {
     /** Epoch milliseconds. */
     at: number;
+    /** Already capped at `rate`. */
     tps: number;
+    /** The ticks per second the server aimed for when it sent the reading. */
+    rate: number;
 }
 
 /** How far back the console keeps readings; the longest {@link TPS_WINDOWS} entry. */
@@ -14,6 +17,23 @@ export const TPS_WINDOWS = [
     { label: '5m', ms: 5 * 60_000 },
     { label: '15m', ms: TPS_RETENTION_MS }
 ] as const;
+
+/**
+ * The highest tick rate in effect during the last `windowMs`: the readings inside it and the one
+ * that was current when it opened. `undefined` when there is no such reading.
+ */
+export function rateForWindow(samples: readonly TpsSample[], now: number, windowMs: number): number | undefined {
+    const start = now - windowMs;
+    let rate: number | undefined;
+    let carried: number | undefined;
+    for (const sample of samples) {
+        if (sample.at > now) break;
+        if (sample.at < start) carried = sample.rate;
+        else rate = Math.max(rate ?? 0, sample.rate);
+    }
+    if (carried !== undefined) rate = Math.max(rate ?? 0, carried);
+    return rate;
+}
 
 /** Min, max, and time-weighted average over a window. */
 export interface TpsStats {

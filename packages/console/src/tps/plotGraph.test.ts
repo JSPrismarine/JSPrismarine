@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
-import { displayTps, plotGraph, tickTone, tpsTone } from './plotGraph';
+import { displayTps, plotGraph, tickTone, tpsThresholds, tpsTone } from './plotGraph';
 
 const options = { columns: 4, rows: 2, min: 10, max: 20 };
 
 describe('tpsTone', () => {
     it('is ok from 19, warning from 15, and danger below', () => {
-        expect([20, 19, 18.99, 15, 14.99, 0].map(tpsTone)).toEqual([
+        expect([20, 19, 18.99, 15, 14.99, 0].map((tps) => tpsTone(tps))).toEqual([
             'ok',
             'ok',
             'warning',
@@ -19,13 +19,38 @@ describe('tpsTone', () => {
 
 describe('displayTps', () => {
     it('caps a catching-up loop at the target and leaves lower readings alone', () => {
-        expect([21.7, 20, 19.4, 0].map(displayTps)).toEqual([20, 20, 19.4, 0]);
+        expect([21.7, 20, 19.4, 0].map((tps) => displayTps(tps))).toEqual([20, 20, 19.4, 0]);
+    });
+});
+
+describe('a server with its own tick rate', () => {
+    it('lets a loop run up to its rate and no further', () => {
+        expect(displayTps(41, 40)).toBe(40);
+        expect(displayTps(35, 40)).toBe(35);
+    });
+
+    it('colors TPS against the rate: yellow below 95%, red below 75%', () => {
+        expect([40, 38, 37.9, 30, 29.9].map((tps) => tpsTone(tps, 40))).toEqual([
+            'ok',
+            'ok',
+            'warning',
+            'warning',
+            'danger'
+        ]);
+        expect(tpsTone(19, 10)).toBe('ok');
+        expect(tpsThresholds(40)).toEqual({ warning: 38, danger: 30 });
+    });
+
+    it('measures a tick against its own period', () => {
+        // 40 TPS leaves 25 ms a tick: yellow from 20 ms, red from 25 ms.
+        expect([19.9, 20, 24.9, 25].map((ms) => tickTone(ms, 40))).toEqual([undefined, 'warning', 'warning', 'danger']);
+        expect(tickTone(60, 10)).toBeUndefined();
     });
 });
 
 describe('tickTone', () => {
     it('stays quiet while a tick leaves headroom and warns near the 50 ms budget', () => {
-        expect([12, 39.9, 40, 49.9, 50, 80].map(tickTone)).toEqual([
+        expect([12, 39.9, 40, 49.9, 50, 80].map((ms) => tickTone(ms))).toEqual([
             undefined,
             undefined,
             'warning',
