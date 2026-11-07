@@ -257,6 +257,43 @@ describe('createApp', () => {
             expect(t.captureCharFrame()).toContain('copied selection to clipboard');
         });
 
+        it('does not copy again when the notice about a copy is dismissed', async () => {
+            const t = await setup({ width: 120, height: 40 });
+            dispose = t.dispose;
+            await selectInLog(t, 'copy me');
+            await flush();
+            await t.renderOnce();
+            expect(t.clipboard.copy).toHaveBeenCalledOnce();
+
+            const rows = t.captureCharFrame().split('\n');
+            const y = rows.findIndex((row) => row.includes('[x]'));
+            expect(y).toBeGreaterThanOrEqual(0);
+            const x = rows[y]!.indexOf('[x]');
+            await t.mockMouse.click(x + 1, y);
+            await flush();
+            await t.renderOnce();
+
+            expect(t.clipboard.copy).toHaveBeenCalledOnce();
+            expect(t.captureCharFrame()).not.toContain('copied selection to clipboard');
+        });
+
+        it('does not copy the text of a notice when it is pressed', async () => {
+            const t = await setup({ width: 120, height: 40 });
+            dispose = t.dispose;
+            await selectInLog(t, 'copy me');
+            await flush();
+            await t.renderOnce();
+            t.clipboard.copy.mockClear();
+
+            const rows = t.captureCharFrame().split('\n');
+            const y = rows.findIndex((row) => row.includes('copied selection'));
+            const x = rows[y]!.indexOf('copied selection');
+            await t.mockMouse.drag(x, y, x + 'copied selection'.length, y);
+            await flush();
+
+            expect(t.clipboard.copy).not.toHaveBeenCalled();
+        });
+
         it('copies the selection again on Ctrl+C when the log pane has focus', async () => {
             const t = await setup({ width: 120, height: 40 });
             dispose = t.dispose;

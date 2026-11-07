@@ -2,7 +2,7 @@ import type { ServerMessage, SupervisorEvent } from '@jsprismarine/console-proto
 import { isLogLevel, LOG_LEVELS } from '@jsprismarine/logger';
 import type { LogLevel } from '@jsprismarine/logger';
 import { BoxRenderable, CliRenderEvents, MouseButton } from '@opentui/core';
-import type { KeyEvent, MouseEvent } from '@opentui/core';
+import type { KeyEvent, MouseEvent, Selection } from '@opentui/core';
 
 import { createConsoleClipboard } from '../clipboard';
 import type { ConsoleClipboard } from '../clipboard';
@@ -967,7 +967,11 @@ export function createApp(ctx: AppContext, props: AppProps): App {
      * selection is unavailable, and many terminals keep Cmd+C for it, so the app cannot count on
      * ever seeing the key.
      */
-    const onSelection = guard(() => {
+    let copiedSelection: Selection | undefined;
+    const onSelection = guard((selection: Selection) => {
+        // A press that ends without moving finishes the same selection again; copy each one once.
+        if (selection === copiedSelection) return;
+        copiedSelection = selection;
         if (selectedText() !== '') copySelection();
     });
 

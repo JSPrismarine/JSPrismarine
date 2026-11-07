@@ -95,7 +95,11 @@ export function createToastStack(
                 paddingLeft: 1,
                 paddingRight: 1
             });
-            box.add(new TextRenderable(renderer, { id: `${toast.id}-text`, content: toast.text, fg: theme.text }));
+            // A notice is not content: pressing on it must not start a selection, or the console would
+            // copy the notice's own text and show a new notice about it.
+            const label = new TextRenderable(renderer, { id: `${toast.id}-text`, content: toast.text, fg: theme.text });
+            label.selectable = false;
+            box.add(label);
 
             const close = new TextRenderable(renderer, {
                 id: `${toast.id}-close`,
@@ -107,6 +111,7 @@ export function createToastStack(
                     dismissToast(toast.id);
                 }
             });
+            close.selectable = false;
             box.add(close);
             renderable.add(box);
             renderedToasts.set(toast.id, box);
