@@ -2615,9 +2615,11 @@ export class EntityRuntime implements EntityScene {
         if (
             itemIdentifier === 'minecraft:golden_apple' &&
             heldItem.count > 0 &&
-            entity.identifier.startsWith('minecraft:zombie_villager')
+            entity.identifier.startsWith('minecraft:zombie_villager') &&
+            entity.body.statusEffects.has('minecraft:weakness')
         ) {
-            // The player who feeds the apple is the one the villager remembers as its cure.
+            // Only a weakened zombie villager starts to cure, so only then does the apple count.
+            // The player who feeds it is the one the villager remembers as its cure.
             const identity = this.host.playerIdentityOf?.(owner);
             if (identity !== undefined) entity.body.curedBy = identity;
         }

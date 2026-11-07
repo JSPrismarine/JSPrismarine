@@ -6,6 +6,7 @@ import type { FilterEntityView } from '@jsprismarine/entities';
 import { vanillaItemDefinitions } from '@jsprismarine/items';
 import type { ContentEntity } from '../../content/world/adapter';
 
+import { mergeStatusEffect } from '../StatusEffect';
 import { brainEntityOf, brainMobOf, tickBrainNavigation } from './brainWorld';
 import { dataEntityRecordOf } from './persistence';
 import { entityFixture, FLOOR_Y, TestEntityWorld } from './testing';
@@ -2566,6 +2567,14 @@ describe('EntityRuntime', () => {
             const zombie = runtime.spawn('minecraft:zombie_villager_v2', GROUND);
             if (zombie === undefined) throw new Error('the fixture declares no zombie villager');
 
+            runtime.interactWithItem(zombie.id, 6, 'minecraft:golden_apple');
+            expect(zombie.body.curedBy).toBeUndefined();
+
+            mergeStatusEffect(zombie.body.statusEffects, {
+                id: 'minecraft:weakness',
+                amplifier: 0,
+                durationTicks: 200
+            });
             runtime.interactWithItem(zombie.id, 7, 'minecraft:golden_apple');
             const cured = runtime.spawn('minecraft:villager_v2', { ...GROUND, x: 2.5 });
             const bystander = runtime.spawn('minecraft:villager_v2', { ...GROUND, x: 5.5 });
