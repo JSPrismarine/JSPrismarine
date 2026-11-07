@@ -1,6 +1,7 @@
 import type { SharedStat } from '@jsprismarine/entities';
 import { JAVA_STAT_EXCEPTIONS, SHARED_STATS, statRuling } from '@jsprismarine/entities';
 import { BLOCK_LOSSES, BLOCK_MERGES } from '@jsprismarine/mapping';
+import { ENTITY_LOSSES } from '@jsprismarine/mapping/lossList';
 import { describe, expect, it } from 'vitest';
 
 import { FAMILIES } from './families.ts';
@@ -49,7 +50,9 @@ describe('allow list', () => {
         // The id is `<stat>:<identifier>`, and the stat has to be one the decision knows, or
         // `statRuling` would read an authority that is not there.
         const isSharedStat = (value: string): value is SharedStat => value in SHARED_STATS;
-        const stats = allowList.filter((entry) => entry.family === FAMILIES.entitiesStats);
+        const stats = allowList.filter(
+            (entry) => entry.family === FAMILIES.entitiesStats && !entry.id.startsWith('loss:')
+        );
 
         expect(stats.length).toBeGreaterThan(0);
         for (const entry of stats) {
@@ -61,6 +64,21 @@ describe('allow list', () => {
             const ruling = statRuling(entry.id.slice(divider + 1), stat);
             expect(entry.kind, entry.id).toBe(ruling.kind === 'java' ? 'defect' : 'intentional');
             expect(entry.reason, entry.id).toBe(ruling.reason);
+        }
+    });
+
+    it('takes each entity stat loss row from the mapping loss list', () => {
+        const losses = allowList.filter(
+            (entry) => entry.family === FAMILIES.entitiesStats && entry.id.startsWith('loss:')
+        );
+
+        expect(losses.length).toBeGreaterThan(0);
+        for (const entry of losses) {
+            const loss = ENTITY_LOSSES.find(({ javaId }) => `loss:${javaId}` === entry.id);
+            expect(loss, entry.id).toBeDefined();
+            expect(entry.kind, entry.id).toBe('intentional');
+            expect(entry.reason, entry.id).toContain(loss?.reason);
+            expect(entry.reference, entry.id).toBe(loss?.reference);
         }
     });
 

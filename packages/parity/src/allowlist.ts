@@ -2,6 +2,8 @@
 // index, which keeps the graph to the two decisions this file derives its rows from. The
 // `scripts/dashboard.ts` runner loads this file under plain node, which resolves a bare
 // sibling import only through the hook that script registers.
+import { readFileSync } from 'node:fs';
+
 import type { SharedStat } from '@jsprismarine/entities/javaStats';
 import { JAVA_STAT_EXCEPTIONS, statRuling } from '@jsprismarine/entities/javaStats';
 import {
@@ -218,6 +220,34 @@ const entityStatEntries = (): readonly AllowListEntry[] => [
 ];
 
 /**
+ * The Java entity types the stat comparison visits: the ones the attribute supplier dump has a row for.
+ *
+ * Read straight from the dump rather than through `goldens.ts`, whose imports this file keeps out
+ * of the graph so `scripts/dashboard.ts` can load it under plain node.
+ */
+const javaStatTypes = (): ReadonlySet<string> => {
+    const dump: Record<string, unknown> = JSON.parse(
+        readFileSync(new URL('../../bedrock-data/src/jsp/java/entity_attributes.json', import.meta.url), 'utf8')
+    );
+    return new Set(Object.keys(dump));
+};
+
+/**
+ * Java mobs the stat comparison cannot reach because Bedrock has no entity of their own.
+ *
+ * Their stats have no Bedrock side to compare with, so the comparison reports the reviewed loss
+ * instead of a number it never measured. The reason and reference come from the loss itself.
+ */
+const entityStatLossEntries = (): readonly AllowListEntry[] =>
+    ENTITY_LOSSES.filter(({ javaId }) => javaStatTypes().has(javaId)).map((loss) => ({
+        family: 'entities.stats' as const,
+        id: `loss:${loss.javaId}`,
+        kind: 'intentional' as const,
+        reason: `${loss.reason} Its Java stats have no Bedrock entity to be compared with.`,
+        reference: loss.reference
+    }));
+
+/**
  * Advertised actor types Mojang's behavior pack defines no entity file for.
  *
  * Five are engine entities whose behavior is code in both editions, and three are Education
@@ -339,6 +369,7 @@ export const allowList: readonly AllowListEntry[] = [
     ...engineActorEntries(),
     ...bodilessActorEntries(),
     ...entityStatEntries(),
+    ...entityStatLossEntries(),
     ...mappingLossEntries(),
     ...untranslatedRegistryEntries()
 ];

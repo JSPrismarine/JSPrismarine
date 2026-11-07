@@ -29,7 +29,8 @@ import { loadVanillaEntityTypes } from './vanillaEntities.ts';
  * dashboard; a `java` ruling means the server should already be running Java's number and is
  * not, which is a defect.
  *
- * Gap ids: `no-definition:<bedrock id>` for a Java mob the vanilla pack has no entity for, and
+ * Gap ids: `no-definition:<bedrock id>` for a Java mob the vanilla pack has no entity for,
+ * `loss:<java id>` for a Java mob Bedrock has no entity of its own for, and
  * `<stat>:<bedrock id>` for a stat the two editions still disagree on after the spawn. A stat
  * only one edition publishes is not compared at all - Mojang's `player.json` declares no health
  * component, so the player contributes no `max_health` row.
@@ -76,6 +77,10 @@ const compareEntityStats = (): {
 
     for (const [javaId, row] of Object.entries(java)) {
         const mapped = javaEntityTypeToBedrock(javaId);
+        if (mapped.kind === 'loss') {
+            gaps.push(`loss:${javaId}`);
+            continue;
+        }
         if (mapped.kind !== 'mapped') continue;
 
         // The server spawns with the Java stat table in the environment, which is what applies
@@ -150,14 +155,16 @@ describeFamily(
         reportParityCases(
             FAMILIES.entitiesStats,
             import.meta.filename,
-            Object.keys(java).map((javaId) => {
+            Object.keys(java).flatMap((javaId) => {
                 const mapped = javaEntityTypeToBedrock(javaId);
+                // A reviewed loss is an allow-listed gap, which the dashboard counts as intentional.
+                if (mapped.kind === 'loss') return [];
                 if (mapped.kind !== 'mapped') {
                     return {
                         id: javaId,
                         title: javaId,
                         context: `Java entity stats · ${mapped.kind} mapping`,
-                        status: 'not measured'
+                        status: 'not measured' as const
                     };
                 }
 
@@ -170,7 +177,11 @@ describeFamily(
                     id: javaId,
                     title: javaId,
                     context: `Java entity attributes · ${rows.map((row) => row.stat).join(', ')}`,
-                    status: failed ? 'failed' : rows.length === 0 ? 'not measured' : 'passed',
+                    status: failed
+                        ? ('failed' as const)
+                        : rows.length === 0
+                          ? ('not measured' as const)
+                          : ('passed' as const),
                     ...(differing.length === 0
                         ? {}
                         : {
