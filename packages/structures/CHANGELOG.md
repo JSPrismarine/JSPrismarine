@@ -1,5 +1,21 @@
 # @jsprismarine/structures
 
+## 0.17.0
+
+### Minor Changes
+
+- [#2661](https://github.com/JSPrismarine/JSPrismarine/pull/2661) [`9061024`](https://github.com/JSPrismarine/JSPrismarine/commit/9061024a45c9e8b00be4963b61406d7474f2f82d) Thanks [@filiphsps](https://github.com/filiphsps)! - Remove CommonJS package outputs
+
+### Patch Changes
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`be9d70e`](https://github.com/JSPrismarine/JSPrismarine/commit/be9d70ecdf777806b80868294cf09c53538b9811) Thanks [@filiphsps](https://github.com/filiphsps)! - Cache rotated jigsaw transforms and weighted pools
+
+- [#2664](https://github.com/JSPrismarine/JSPrismarine/pull/2664) [`d731b85`](https://github.com/JSPrismarine/JSPrismarine/commit/d731b85039c2c6ebcc1a5c187813ea06def716ff) Thanks [@filiphsps](https://github.com/filiphsps)! - Turn the block states structure processors introduce with the template they land in. Java turns a template's states after its processors run, so a jigsaw block's `final_state` and a rule's `output_state` face the way the building faces; this server turns the template first, so those states were placed as written and every village house got an east-facing doorstep stair and a pen gate set into the wrong wall. `ProcessorContext` now carries the placement, the jigsaw replacement and rule processors turn the states they name by it, and both template placement paths pass it.
+- Updated dependencies [[`d499106`](https://github.com/JSPrismarine/JSPrismarine/commit/d49910658d7aa57fedfe32512977f79aa0023832), [`9061024`](https://github.com/JSPrismarine/JSPrismarine/commit/9061024a45c9e8b00be4963b61406d7474f2f82d)]:
+  - @jsprismarine/binaryutils@0.17.0
+  - @jsprismarine/nbt@0.17.0
+  - @jsprismarine/mapping@0.17.0
+
 ## 0.16.0
 
 ### Minor Changes

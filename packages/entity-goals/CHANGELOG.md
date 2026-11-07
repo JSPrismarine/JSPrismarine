@@ -1,5 +1,31 @@
 # @jsprismarine/entity-goals
 
+## 0.17.0
+
+### Minor Changes
+
+- [#2661](https://github.com/JSPrismarine/JSPrismarine/pull/2661) [`9061024`](https://github.com/JSPrismarine/JSPrismarine/commit/9061024a45c9e8b00be4963b61406d7474f2f82d) Thanks [@filiphsps](https://github.com/filiphsps)! - Remove CommonJS package outputs
+
+### Patch Changes
+
+- [`ac02142`](https://github.com/JSPrismarine/JSPrismarine/commit/ac021424a6534c7b023d1288b6d78da999a65fb0) Thanks [@filiphsps](https://github.com/filiphsps)! - Add `hypot3`, a three-argument `Math.hypot` with identical results that runs 2-3 times faster, and use it for entity and path distances.
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`f5b3d7c`](https://github.com/JSPrismarine/JSPrismarine/commit/f5b3d7c830dc19189d85e21af834391192ccb481) Thanks [@filiphsps](https://github.com/filiphsps)! - Match Java flee-sun preconditions and bounded candidate draws.
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`57d0d17`](https://github.com/JSPrismarine/JSPrismarine/commit/57d0d17d8577cde351c634e6b0dadd00a1ea6428) Thanks [@filiphsps](https://github.com/filiphsps)! - Match Java goal selector cadence and inactivity.
+
+- [#2699](https://github.com/JSPrismarine/JSPrismarine/pull/2699) [`d7e9d45`](https://github.com/JSPrismarine/JSPrismarine/commit/d7e9d45c682e633ae7d4d90221193785ae9d2760) Thanks [@filiphsps](https://github.com/filiphsps)! - Reduce repeated navigation planning and redundant world work, and add repeatable performance benchmarks.
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`d8e0a48`](https://github.com/JSPrismarine/JSPrismarine/commit/d8e0a48ead973091d46f81760e9dbfde08522449) Thanks [@filiphsps](https://github.com/filiphsps)! - Cache component-derived entity facts by active set.
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`67296ae`](https://github.com/JSPrismarine/JSPrismarine/commit/67296ae70a02eef49106f7f35460aedc497946c0) Thanks [@filiphsps](https://github.com/filiphsps)! - Use family-indexed candidates for mob avoidance.
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`57340c6`](https://github.com/JSPrismarine/JSPrismarine/commit/57340c66f59a010f29eac04f15f2bd1f7df8ca9d) Thanks [@filiphsps](https://github.com/filiphsps)! - Add limited nearest-first block queries and reuse navigation reads.
+- Updated dependencies [[`b4940f3`](https://github.com/JSPrismarine/JSPrismarine/commit/b4940f32e1fcd3640af201432f67ee382d50efc6), [`ac02142`](https://github.com/JSPrismarine/JSPrismarine/commit/ac021424a6534c7b023d1288b6d78da999a65fb0), [`f5b3d7c`](https://github.com/JSPrismarine/JSPrismarine/commit/f5b3d7c830dc19189d85e21af834391192ccb481), [`57d0d17`](https://github.com/JSPrismarine/JSPrismarine/commit/57d0d17d8577cde351c634e6b0dadd00a1ea6428), [`d8e0a48`](https://github.com/JSPrismarine/JSPrismarine/commit/d8e0a48ead973091d46f81760e9dbfde08522449), [`9061024`](https://github.com/JSPrismarine/JSPrismarine/commit/9061024a45c9e8b00be4963b61406d7474f2f82d), [`f44af22`](https://github.com/JSPrismarine/JSPrismarine/commit/f44af22c7f60d46edff66d84c478b7e2f07a76cf), [`86915c4`](https://github.com/JSPrismarine/JSPrismarine/commit/86915c42d90df184dbb200ecd81e52cc11a76892), [`3934d28`](https://github.com/JSPrismarine/JSPrismarine/commit/3934d281e96f022a0d57c95d8de99794ed6dd244)]:
+  - @jsprismarine/entities@0.17.0
+  - @jsprismarine/math@0.17.0
+  - @jsprismarine/content@0.17.0
+
 ## 0.16.0
 
 ### Minor Changes

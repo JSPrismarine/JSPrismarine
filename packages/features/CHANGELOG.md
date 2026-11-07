@@ -1,5 +1,19 @@
 # @jsprismarine/features
 
+## 0.17.0
+
+### Minor Changes
+
+- [#2661](https://github.com/JSPrismarine/JSPrismarine/pull/2661) [`9061024`](https://github.com/JSPrismarine/JSPrismarine/commit/9061024a45c9e8b00be4963b61406d7474f2f82d) Thanks [@filiphsps](https://github.com/filiphsps)! - Remove CommonJS package outputs
+
+### Patch Changes
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`d049765`](https://github.com/JSPrismarine/JSPrismarine/commit/d04976541aee27f8e3fc198e703173e56740b515) Thanks [@filiphsps](https://github.com/filiphsps)! - Add serializable random states and a versioned replay initial-state manifest.
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`e5c9812`](https://github.com/JSPrismarine/JSPrismarine/commit/e5c98121aac113c02f7684752b26e228a86c57b8) Thanks [@filiphsps](https://github.com/filiphsps)! - Replace hot random BigInt math with exact number-lane operations.
+- Updated dependencies [[`9bbe11b`](https://github.com/JSPrismarine/JSPrismarine/commit/9bbe11b9563745852c71506dc22c911fde0114fa), [`f1a2771`](https://github.com/JSPrismarine/JSPrismarine/commit/f1a2771104f57bbe927d330b4b162bc3673edc9d), [`ab7daa1`](https://github.com/JSPrismarine/JSPrismarine/commit/ab7daa106d8c35b07cf64e5c8166f361644b8360), [`52e899b`](https://github.com/JSPrismarine/JSPrismarine/commit/52e899b729f1b77452d638107628764771303093), [`318a038`](https://github.com/JSPrismarine/JSPrismarine/commit/318a0386c1322b77799192cd90d1c1c44a13b5b4), [`8bdc3d4`](https://github.com/JSPrismarine/JSPrismarine/commit/8bdc3d447250cfa6589155c5a7ebfdd6a9d3ab6e), [`4196b67`](https://github.com/JSPrismarine/JSPrismarine/commit/4196b676e0d0b35e1c81e85e48fa74176dbba17b), [`0a8ae9a`](https://github.com/JSPrismarine/JSPrismarine/commit/0a8ae9a0c378e3b5e59366d52cb52a898d647d9a), [`9406146`](https://github.com/JSPrismarine/JSPrismarine/commit/94061468716fef624e21ca3b76fb18938a979f7c), [`b1ebfe6`](https://github.com/JSPrismarine/JSPrismarine/commit/b1ebfe6071afaeaf5b6795ec215a75b92753b1fb), [`98dea94`](https://github.com/JSPrismarine/JSPrismarine/commit/98dea94c94ce084f2cbce6170d826a808a63384a), [`9061024`](https://github.com/JSPrismarine/JSPrismarine/commit/9061024a45c9e8b00be4963b61406d7474f2f82d), [`99a59f0`](https://github.com/JSPrismarine/JSPrismarine/commit/99a59f0604675678339b39b764a56267413b9687), [`05d61f9`](https://github.com/JSPrismarine/JSPrismarine/commit/05d61f9c6cb7000d1b81908ca94dc1af7bd8fec8), [`3000120`](https://github.com/JSPrismarine/JSPrismarine/commit/3000120a653848f2fc8596d7cdccb55d8f21f064), [`d049765`](https://github.com/JSPrismarine/JSPrismarine/commit/d04976541aee27f8e3fc198e703173e56740b515), [`e5c9812`](https://github.com/JSPrismarine/JSPrismarine/commit/e5c98121aac113c02f7684752b26e228a86c57b8), [`ffa08fb`](https://github.com/JSPrismarine/JSPrismarine/commit/ffa08fb0ebcaff9b5edbc68fcbc4cb2632fc8f18), [`c6b0b49`](https://github.com/JSPrismarine/JSPrismarine/commit/c6b0b49e4b59e03b9b7dd0366f280ff7832c77b2)]:
+  - @jsprismarine/worldgen@0.17.0
+
 ## 0.16.0
 
 ### Minor Changes

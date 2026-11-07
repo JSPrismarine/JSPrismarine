@@ -1,5 +1,15 @@
 # @jsprismarine/molang
 
+## 0.17.0
+
+### Minor Changes
+
+- [#2661](https://github.com/JSPrismarine/JSPrismarine/pull/2661) [`9061024`](https://github.com/JSPrismarine/JSPrismarine/commit/9061024a45c9e8b00be4963b61406d7474f2f82d) Thanks [@filiphsps](https://github.com/filiphsps)! - Remove CommonJS package outputs
+
+### Patch Changes
+
+- [`5d424a0`](https://github.com/JSPrismarine/JSPrismarine/commit/5d424a05c2c9721f9d6a9863949f95d290cc13a5) Thanks [@filiphsps](https://github.com/filiphsps)! - Export `MOLANG_EXAMPLES`, ten Molang expressions with the scopes they are shown under and the values they produce, and list them in the README. The test suite checks that they compile cleanly, evaluate as documented and match the README.
+
 ## 0.16.0
 
 ### Minor Changes

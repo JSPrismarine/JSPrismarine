@@ -1,5 +1,15 @@
 # @jsprismarine/binaryutils
 
+## 0.17.0
+
+### Minor Changes
+
+- [#2661](https://github.com/JSPrismarine/JSPrismarine/pull/2661) [`9061024`](https://github.com/JSPrismarine/JSPrismarine/commit/9061024a45c9e8b00be4963b61406d7474f2f82d) Thanks [@filiphsps](https://github.com/filiphsps)! - Remove CommonJS package outputs
+
+### Patch Changes
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`d499106`](https://github.com/JSPrismarine/JSPrismarine/commit/d49910658d7aa57fedfe32512977f79aa0023832) Thanks [@filiphsps](https://github.com/filiphsps)! - Write varlongs and UTF-8 strings directly into reserved stream capacity to reduce encoding overhead.
+
 ## 0.16.0
 
 No changes in this release.

@@ -1,6 +1,6 @@
 {
     "name": "@jsprismarine/content",
-    "version": "0.16.0",
+    "version": "0.17.0",
     "description": "The content runtime shared by every domain: registries, tags, components, behaviors, hook dispatch and load-time flattening",
     "sideEffects": false,
     "publishConfig": {

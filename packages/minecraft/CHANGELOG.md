@@ -1,5 +1,20 @@
 # @jsprismarine/minecraft
 
+## 0.17.0
+
+### Minor Changes
+
+- [#2661](https://github.com/JSPrismarine/JSPrismarine/pull/2661) [`9061024`](https://github.com/JSPrismarine/JSPrismarine/commit/9061024a45c9e8b00be4963b61406d7474f2f82d) Thanks [@filiphsps](https://github.com/filiphsps)! - Remove CommonJS package outputs
+
+### Patch Changes
+
+- [`183e92c`](https://github.com/JSPrismarine/JSPrismarine/commit/183e92c7f577bc34608555a13aaa88fd64f61530) Thanks [@filiphsps](https://github.com/filiphsps)! - Add `LevelEvent.PARTICLE_CREAKING_HEART_TRAIL` (9816).
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`09d523c`](https://github.com/JSPrismarine/JSPrismarine/commit/09d523c5fbd04af60800bee5ad2b12f2a7619e02) Thanks [@filiphsps](https://github.com/filiphsps)! - Load large startup tables from JSON assets.
+- Updated dependencies [[`d499106`](https://github.com/JSPrismarine/JSPrismarine/commit/d49910658d7aa57fedfe32512977f79aa0023832), [`9061024`](https://github.com/JSPrismarine/JSPrismarine/commit/9061024a45c9e8b00be4963b61406d7474f2f82d)]:
+  - @jsprismarine/nbt@0.17.0
+  - @jsprismarine/errors@0.17.0
+
 ## 0.16.0
 
 ### Patch Changes

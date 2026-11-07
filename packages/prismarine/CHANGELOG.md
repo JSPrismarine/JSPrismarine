@@ -1,5 +1,322 @@
 # @jsprismarine/prismarine
 
+## 0.17.0
+
+### Minor Changes
+
+- [#2865](https://github.com/JSPrismarine/JSPrismarine/pull/2865) [`8cc701d`](https://github.com/JSPrismarine/JSPrismarine/commit/8cc701d6dc05532abf27c10d87d0a3b6dbd25b73) Thanks [@filiphsps](https://github.com/filiphsps)! - Load Java's `block_transformer` registry and resolve tool transforms from it, which is what makes a hoe till, a shovel path, and an axe strip. The behaviors and the item components were already in place, but the table behind `WorldActions.transform` was an injection point nothing injected, so every tool declined every block. `@jsprismarine/packs` routes `data/<namespace>/block_transformer/` files, the server parses them into `ServerContent.blockTransformers`, and the resolver answers the rule-based providers over the real tag stack and block mapping, including `copy_properties` (a stripped log keeps its axis), the offset predicates (tilling needs air above), and `disallowed_faces` - which is why `transform` now takes the clicked face.
+
+- [#2661](https://github.com/JSPrismarine/JSPrismarine/pull/2661) [`9061024`](https://github.com/JSPrismarine/JSPrismarine/commit/9061024a45c9e8b00be4963b61406d7474f2f82d) Thanks [@filiphsps](https://github.com/filiphsps)! - Remove CommonJS package outputs
+
+- [#2865](https://github.com/JSPrismarine/JSPrismarine/pull/2865) [`541e593`](https://github.com/JSPrismarine/JSPrismarine/commit/541e59345f26ff2ebd70447ebac643fb4e10267a) Thanks [@filiphsps](https://github.com/filiphsps)! - Spawn mobs on the ground under leaves and plants instead of on top of them. The surface spawn pass tries one position per column, and the world adapter answered with one above the highest block that is not air: the canopy over a forest and the tall grass standing on a plain. Every passive spawn rule names the ground it belongs on, so those columns rejected every rule and most of an overworld spawned nothing. `ContentBlockAccess.surfaceY` now walks down to the first block that blocks motion and is not leaves, which is Java's `MOTION_BLOCKING_NO_LEAVES` heightmap and the one its `SpawnPlacements` reads. `WorldContentBiomes` is now `WorldContentFacts` and carries the block types, their flattened columns and the tag stack that the walk reads.
+
+- [#2684](https://github.com/JSPrismarine/JSPrismarine/pull/2684) [`15dc167`](https://github.com/JSPrismarine/JSPrismarine/commit/15dc167df09a9595ea31ad475259f2c489bd3519) Thanks [@filiphsps](https://github.com/filiphsps)! - Route sniffer seed drops, warden sonic boom damage and knockback, and villager raid effects through host capabilities.
+
+### Patch Changes
+
+- [`43ecda5`](https://github.com/JSPrismarine/JSPrismarine/commit/43ecda5cfb6ca77835b4a6f83ad7cfcc4856d571) Thanks [@filiphsps](https://github.com/filiphsps)! - Verify the Minecraft services token and the client data signature before trusting a login when `online-mode` is on. The account now comes only from the signed token, a login that cannot be verified is refused, and an existing session is replaced only after the new login is accepted.
+
+- [`bbc5ab9`](https://github.com/JSPrismarine/JSPrismarine/commit/bbc5ab99c159551840bfca058f307a621b664bc4) Thanks [@filiphsps](https://github.com/filiphsps)! - Encrypt RakNet sessions with the Bedrock handshake: the server sends `ServerToClientHandshake` to a login that names an identity key, and finishes the login once the client answers encrypted.
+
+- [`73efe0d`](https://github.com/JSPrismarine/JSPrismarine/commit/73efe0da742b65ad1548501d913b6613463f738e) Thanks [@filiphsps](https://github.com/filiphsps)! - Save a trader's offers, their uses and demand, and its experience with the entity, so a villager keeps them across a restart instead of drawing new ones. A damaged saved state is ignored.
+
+- [`0e4b2a8`](https://github.com/JSPrismarine/JSPrismarine/commit/0e4b2a81759a4c44262bed5c36936ada2c6e5581) Thanks [@filiphsps](https://github.com/filiphsps)! - Villagers trade with players: the trade screen opens on a villager, shows its offers with their live prices, and a trade spends the payment, hands over the result and moves the villager's stock, demand, experience and level. A villager that works at its job site restocks, up to twice a day. Villagers also work with the world: farmers bake bread, compost seeds, harvest, sow and bone-meal crops, villagers share food, thank a hero of the village and have children, and a villager takes its profession and job site from its trade table. A villager remembers the player who cured it and charges that player less, and holds up its trades to a player who talks to it.
+
+- [`d84076a`](https://github.com/JSPrismarine/JSPrismarine/commit/d84076a845dc9be3e53ba9304ab7bfb05a4116a9) Thanks [@filiphsps](https://github.com/filiphsps)! - Make `/damage` follow Java 26.3: no source entity unless `by` names one, `from` for an indirect cause, `at` for a location, a single target, and the damage type read from the loaded datapacks, whose tags decide what the blow bypasses.
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`169eec3`](https://github.com/JSPrismarine/JSPrismarine/commit/169eec37eee8c905d1741efb860a6ffe143a9d84) Thanks [@filiphsps](https://github.com/filiphsps)! - Store section palette indices in bytes until a section needs a 257th state.
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`a1ba15f`](https://github.com/JSPrismarine/JSPrismarine/commit/a1ba15f2fd8aa3657eae478bac9f075e6f02729d) Thanks [@filiphsps](https://github.com/filiphsps)! - Use indexed arrays for sub chunk and storage layer reads while retaining ordered Map snapshots.
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`ceb3d00`](https://github.com/JSPrismarine/JSPrismarine/commit/ceb3d00dd58c210a187b276d139404310c4a78ae) Thanks [@filiphsps](https://github.com/filiphsps)! - Use Bedrock's client blob cache for chunk delivery when a client advertises support.
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`fccb2d3`](https://github.com/JSPrismarine/JSPrismarine/commit/fccb2d3632cf80f8cd2987a79df4994e74195399) Thanks [@filiphsps](https://github.com/filiphsps)! - Compact network palettes to used states and omit packed words for uniform sections.
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`03a484c`](https://github.com/JSPrismarine/JSPrismarine/commit/03a484c9d98248e768fb258eb3453228dd0fd6e1) Thanks [@filiphsps](https://github.com/filiphsps)! - Keep uniform non-air sub chunks in chunk height, network, and persistence data.
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`7838686`](https://github.com/JSPrismarine/JSPrismarine/commit/783868612e2dec2ca6aa4a7d75d63a81d82bc340) Thanks [@filiphsps](https://github.com/filiphsps)! - Return air when a sub chunk read targets a storage layer that has not been created.
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`9bbe11b`](https://github.com/JSPrismarine/JSPrismarine/commit/9bbe11b9563745852c71506dc22c911fde0114fa) Thanks [@filiphsps](https://github.com/filiphsps)! - Share immutable climate search tables across generation workers, retain local parsing as a fallback, and add worker heap snapshot diagnostics.
+
+- [`33f8956`](https://github.com/JSPrismarine/JSPrismarine/commit/33f8956dc55072616023389caf288f3745b1d624) Thanks [@filiphsps](https://github.com/filiphsps)! - Read an entity's component-derived actor metadata once per component set, and skip building its metadata projection on ticks when nothing it reads has changed.
+
+- [`ac02142`](https://github.com/JSPrismarine/JSPrismarine/commit/ac021424a6534c7b023d1288b6d78da999a65fb0) Thanks [@filiphsps](https://github.com/filiphsps)! - Add `hypot3`, a three-argument `Math.hypot` with identical results that runs 2-3 times faster, and use it for entity and path distances.
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`8e01a55`](https://github.com/JSPrismarine/JSPrismarine/commit/8e01a5515fc6e06d93d06885f4cd5643b028024f) Thanks [@filiphsps](https://github.com/filiphsps)! - Complete each class-based entity update in world roster order before starting the next one, keeping asynchronous server ticks replay-stable.
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`b55ed8f`](https://github.com/JSPrismarine/JSPrismarine/commit/b55ed8fdd5389666bfc90b1f0426bf0aeeb1dcd6) Thanks [@filiphsps](https://github.com/filiphsps)! - Include pending simulation queues and random tick state in replay digests.
+
+- [`671523a`](https://github.com/JSPrismarine/JSPrismarine/commit/671523a8c4438167e3ee1b584dec9c5217635492) Thanks [@filiphsps](https://github.com/filiphsps)! - Apply status effects on the server: instant health and damage, regeneration, poison, fatal poison and wither change health on vanilla's schedule, and hunger and saturation change a player's food.
+
+- [`b274d47`](https://github.com/JSPrismarine/JSPrismarine/commit/b274d47056925a0397856cdbd39c75a2b5e3bf5e) Thanks [@filiphsps](https://github.com/filiphsps)! - Read a chunk back when a client asks for the sub chunks of one it was already sent but the world has since unloaded, and log a request for a chunk that is not loaded.
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`ca3cabc`](https://github.com/JSPrismarine/JSPrismarine/commit/ca3cabc9d123d5bccb6fc06b7b9e323f6676c37e) Thanks [@filiphsps](https://github.com/filiphsps)! - Match Java liquid and land search rules.
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`1a9fad5`](https://github.com/JSPrismarine/JSPrismarine/commit/1a9fad5a52f9a21c4c43d34e85c3ec462c34573c) Thanks [@filiphsps](https://github.com/filiphsps)! - Assemble packet batches in pre-sized buffers and expose a transient packet encoder for synchronous framing.
+
+- [`64a050f`](https://github.com/JSPrismarine/JSPrismarine/commit/64a050f4117438c698a7d7b78c4cd51704ab950a) Thanks [@filiphsps](https://github.com/filiphsps)! - Run the benchmark scripts without the tsx loader: from a plain bundle, or from the built `dist` output when they start workers.
+
+- [`f017fc7`](https://github.com/JSPrismarine/JSPrismarine/commit/f017fc7d2aa6e8c458d001fe8a89fb1d1387bbc1) Thanks [@filiphsps](https://github.com/filiphsps)! - Cap the time a tick spends on block updates, not only their count, so a slow host no longer stalls a tick for seconds when a fill or a chunk load queues thousands of them.
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`789529d`](https://github.com/JSPrismarine/JSPrismarine/commit/789529da3edbd7b5a1a69b455fbce66fcbeeaec5) Thanks [@filiphsps](https://github.com/filiphsps)! - Cache block behavior action closures for each stable world adapter.
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`9468aaf`](https://github.com/JSPrismarine/JSPrismarine/commit/9468aafd3c3ab50619283322c8276b86a3abed8f) Thanks [@filiphsps](https://github.com/filiphsps)! - Budget background chunk promotion and lighting across server ticks, with a separate completion queue.
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`14a0a37`](https://github.com/JSPrismarine/JSPrismarine/commit/14a0a37cb3956ff4af5aa10b6e922cc71849e958) Thanks [@filiphsps](https://github.com/filiphsps)! - Keep generation workers available inside Node single executable applications.
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`eaedbce`](https://github.com/JSPrismarine/JSPrismarine/commit/eaedbce474dd9e6d85e0d1eea06c03aa98ba269b) Thanks [@filiphsps](https://github.com/filiphsps)! - Encode shared actor movement, state, and block updates once per protocol codec.
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`6f43359`](https://github.com/JSPrismarine/JSPrismarine/commit/6f43359f4b6ced088700b7a29b6694c105629d69) Thanks [@filiphsps](https://github.com/filiphsps)! - Share identical uniform block sections with copy-on-write storage.
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`f5b3d7c`](https://github.com/JSPrismarine/JSPrismarine/commit/f5b3d7c830dc19189d85e21af834391192ccb481) Thanks [@filiphsps](https://github.com/filiphsps)! - Match Java flee-sun preconditions and bounded candidate draws.
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`ac6967c`](https://github.com/JSPrismarine/JSPrismarine/commit/ac6967ce77cd38430626a37e6470503b739c4459) Thanks [@filiphsps](https://github.com/filiphsps)! - Filter random ticks using Bedrock runtime-id properties ([#2818](https://github.com/JSPrismarine/JSPrismarine/issues/2818))
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`68dd1db`](https://github.com/JSPrismarine/JSPrismarine/commit/68dd1db6d09db81fb9bd557dfdc27388b035508e) Thanks [@filiphsps](https://github.com/filiphsps)! - Deliver resident chunks before generation work and bound each player's queued chunk payloads
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`52e899b`](https://github.com/JSPrismarine/JSPrismarine/commit/52e899b729f1b77452d638107628764771303093) Thanks [@filiphsps](https://github.com/filiphsps)! - Select a source chunk's carvers from the noise biome at Java's quart coordinates instead of the jittered block biome. A data pack whose neighboring biomes list different carvers now digs the carvers Java digs, and each carved chunk skips 289 fuzzy biome lookups.
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`0570ab6`](https://github.com/JSPrismarine/JSPrismarine/commit/0570ab6a02e2dd9f5194a724e065effb26466826) Thanks [@filiphsps](https://github.com/filiphsps)! - Expose structure-start cache-miss timing for generation profiling and add a sharded duplication benchmark.
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`f2c6247`](https://github.com/JSPrismarine/JSPrismarine/commit/f2c62477597c8375be8c12cbeb0fd5aedce0c1fb) Thanks [@filiphsps](https://github.com/filiphsps)! - Share bounded compressed chunk batches across viewers until serialized chunk data changes
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`54a0ba8`](https://github.com/JSPrismarine/JSPrismarine/commit/54a0ba81058376479f456df13fe8eed8b42c9d4b) Thanks [@filiphsps](https://github.com/filiphsps)! - Configure the packet compression threshold for outbound batches.
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`92a7e35`](https://github.com/JSPrismarine/JSPrismarine/commit/92a7e35e438239ef5abe037161068c630d253857) Thanks [@filiphsps](https://github.com/filiphsps)! - Defer chunk lighting to the simulation guard ring and settle loaded reads on demand.
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`47335b7`](https://github.com/JSPrismarine/JSPrismarine/commit/47335b76a530ad70631dcf1b4601548fb38f0a36) Thanks [@filiphsps](https://github.com/filiphsps)! - Persist only chunk sections whose storage revisions changed, and avoid rewriting block records for entity-only saves.
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`678e192`](https://github.com/JSPrismarine/JSPrismarine/commit/678e192e09582001760956a2f215619776fffa8e) Thanks [@filiphsps](https://github.com/filiphsps)! - Cache composed vanilla pack prefixes to speed warm content builds.
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`b8f11a0`](https://github.com/JSPrismarine/JSPrismarine/commit/b8f11a0b7d199822412bf38fc317e753f4995725) Thanks [@filiphsps](https://github.com/filiphsps)! - Name worlds from their configured generator kind
+
+- [#2660](https://github.com/JSPrismarine/JSPrismarine/pull/2660) [`9891b80`](https://github.com/JSPrismarine/JSPrismarine/commit/9891b80b249f88d1bfbc9b347bcb31555a754698) Thanks [@filiphsps](https://github.com/filiphsps)! - Run furnace-style cooking and match stonecutter and smithing recipes against their station slots.
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`af29d5d`](https://github.com/JSPrismarine/JSPrismarine/commit/af29d5d5267cc901bc11ec370f017cfb4c104091) Thanks [@filiphsps](https://github.com/filiphsps)! - Add provider snapshots for deterministic replay
+
+- [#2664](https://github.com/JSPrismarine/JSPrismarine/pull/2664) [`55b2f24`](https://github.com/JSPrismarine/JSPrismarine/commit/55b2f24e951a61b3c7d260280ce06f2151655254) Thanks [@filiphsps](https://github.com/filiphsps)! - Play the eye of ender's own sounds instead of the client's fallbacks. The actor `DEATH` and `LAUNCH` sound events have no entry for the eye in the client's sound tables, so the eye ended with the player's hurt sound and left the hand with a firework launch. It now plays `block.itemframe.break` when it finishes and `random.bow` at half volume and a low pitch when thrown, by name, as vanilla Bedrock does; `World.playNamedSoundAt` plays a named sound at an exact point with an optional volume and pitch.
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`0a8ae9a`](https://github.com/JSPrismarine/JSPrismarine/commit/0a8ae9a0c378e3b5e59366d52cb52a898d647d9a) Thanks [@filiphsps](https://github.com/filiphsps)! - Pool and reset terrain sample contexts between generation tasks.
+
+- [#2672](https://github.com/JSPrismarine/JSPrismarine/pull/2672) [`7c7335c`](https://github.com/JSPrismarine/JSPrismarine/commit/7c7335cfc93b58e6da2097c4cded8af046abee2b) Thanks [@filiphsps](https://github.com/filiphsps)! - Refuse block placements whose collision boxes overlap the player.
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`9406146`](https://github.com/JSPrismarine/JSPrismarine/commit/94061468716fef624e21ca3b76fb18938a979f7c) Thanks [@filiphsps](https://github.com/filiphsps)! - Skip proven global-fluid interpolation cells during terrain fill.
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`a3c8477`](https://github.com/JSPrismarine/JSPrismarine/commit/a3c8477097570eb5920113ab13e02d8fbc2b1a2c) Thanks [@filiphsps](https://github.com/filiphsps)! - Cache function command parses and rebind each result to the current source.
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`1c6d485`](https://github.com/JSPrismarine/JSPrismarine/commit/1c6d48537662583da44540423a2240ab712dbf78) Thanks [@filiphsps](https://github.com/filiphsps)! - Index player coverage by movement strips and queue chunks in one nearest-first sender.
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`f7a3e09`](https://github.com/JSPrismarine/JSPrismarine/commit/f7a3e09a67d19b5f804851671ce775b97db1606d) Thanks [@filiphsps](https://github.com/filiphsps)! - Skip idle furnace serialization and avoid recipe scans when the furnace cannot cook.
+
+- [#2865](https://github.com/JSPrismarine/JSPrismarine/pull/2865) [`ca0e3d8`](https://github.com/JSPrismarine/JSPrismarine/commit/ca0e3d8daefa131554441e3756165ffc029df078) Thanks [@filiphsps](https://github.com/filiphsps)! - Move the furnace progress bar. A cooking station wrote its counters to the block entity and told nobody, so `ContainerSetDataPacket` — the only thing a Bedrock client draws the arrow and the flame from — was never sent by this server at all, and a furnace cooked behind a dead screen. Each tick now hands the three furnace properties to every player with that station open: the cook ticks the arrow is drawn from, and the fuel left and what it started with that the flame is a fraction of. A property is sent only when its value changes, so a station nobody is cooking in costs one priming send per open and nothing after it.
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`8bd3293`](https://github.com/JSPrismarine/JSPrismarine/commit/8bd3293bc539cab60473fd93c38d7e937858fde7) Thanks [@filiphsps](https://github.com/filiphsps)! - Use the configured server RNG for weather, record global packet order, hash pending chunk loads,
+  and validate the inbound replay benchmark workload
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`57d0d17`](https://github.com/JSPrismarine/JSPrismarine/commit/57d0d17d8577cde351c634e6b0dadd00a1ea6428) Thanks [@filiphsps](https://github.com/filiphsps)! - Match Java goal selector cadence and inactivity.
+
+- [#2699](https://github.com/JSPrismarine/JSPrismarine/pull/2699) [`d7e9d45`](https://github.com/JSPrismarine/JSPrismarine/commit/d7e9d45c682e633ae7d4d90221193785ae9d2760) Thanks [@filiphsps](https://github.com/filiphsps)! - Reduce repeated navigation planning and redundant world work, and add repeatable performance benchmarks.
+
+- [`3e9dde3`](https://github.com/JSPrismarine/JSPrismarine/commit/3e9dde3ca2b9a42405a7103e8869f53d8bde57c3) Thanks [@filiphsps](https://github.com/filiphsps)! - Carry out a world change requested while another is still loading, such as a second `/teleport` across dimensions, once the client closes its loading screen. It was dropped before, so the player stayed where the first change put them.
+
+- [#2664](https://github.com/JSPrismarine/JSPrismarine/pull/2664) [`9683c28`](https://github.com/JSPrismarine/JSPrismarine/commit/9683c28f6c9fe1e6e6438279b5585b12a23d6ce2) Thanks [@filiphsps](https://github.com/filiphsps)! - Make `/kill` land on the ender dragon. The command now deals the `self_destruct` cause, which the dragon's damage rules admit whole instead of refusing it as an attacker-less generic blow, so `/kill @e[type=!player]` kills the dragon, starts its death animation, and completes the fight.
+
+- [`2e35622`](https://github.com/JSPrismarine/JSPrismarine/commit/2e356223895f3a1a2e8834afceecb6665c282636) Thanks [@filiphsps](https://github.com/filiphsps)! - Make `/kill` remove a dropped item stack. It only set the stack's health to zero, so it stayed in the world and on every client's screen until a second `/kill`.
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`d8e0a48`](https://github.com/JSPrismarine/JSPrismarine/commit/d8e0a48ead973091d46f81760e9dbfde08522449) Thanks [@filiphsps](https://github.com/filiphsps)! - Cache component-derived entity facts by active set.
+
+- [#2865](https://github.com/JSPrismarine/JSPrismarine/pull/2865) [`9cb01aa`](https://github.com/JSPrismarine/JSPrismarine/commit/9cb01aa56f926743cf69a8a41667ebe80b385219) Thanks [@filiphsps](https://github.com/filiphsps)! - Read `minecraft:tool` rules for a Bedrock block through the Java names its tags know. The rules name Java blocks, and Java has no lit variants: its furnace and its redstone ore light up as a state rather than as a block of their own. A rule read against the Bedrock name alone made every pickaxe the wrong tool for `minecraft:lit_furnace` and `minecraft:lit_redstone_ore`, so mining one spilled the contents, dropped no block, and dug at bare-hand speed.
+
+- [`5587f3d`](https://github.com/JSPrismarine/JSPrismarine/commit/5587f3df4bd11feef0c61100c6748c1ee8df3232) Thanks [@filiphsps](https://github.com/filiphsps)! - Finish a dimension change for a client that has not closed its loading screen after a minute, so the change is not held open for as long as the player stays connected.
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`e0531ce`](https://github.com/JSPrismarine/JSPrismarine/commit/e0531ce961986b4cf3a5fd970d47c59f1306900f) Thanks [@filiphsps](https://github.com/filiphsps)! - Improve block and tick hot paths without changing event, lighting, or physics order ([#2816](https://github.com/JSPrismarine/JSPrismarine/issues/2816))
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`c4ab4c5`](https://github.com/JSPrismarine/JSPrismarine/commit/c4ab4c5e6b1da4d83cc12d664d6777263ab0e47b) Thanks [@filiphsps](https://github.com/filiphsps)! - Stop after delivering console stop feedback
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`fa402ef`](https://github.com/JSPrismarine/JSPrismarine/commit/fa402ef47f444451ea3b4d687b5451e3e0decc05) Thanks [@filiphsps](https://github.com/filiphsps)! - Expose a public log-level check and use it to skip per-packet traffic log formatting when `silly` is disabled.
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`f2730d3`](https://github.com/JSPrismarine/JSPrismarine/commit/f2730d33d6fa00c0b1a3f6eaa78b4c90d99deba4) Thanks [@filiphsps](https://github.com/filiphsps)! - Honor the configured compression level for all outgoing packet batches.
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`99a59f0`](https://github.com/JSPrismarine/JSPrismarine/commit/99a59f0604675678339b39b764a56267413b9687) Thanks [@filiphsps](https://github.com/filiphsps)! - Share climate search indexes across generation workers
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`6638a37`](https://github.com/JSPrismarine/JSPrismarine/commit/6638a3719e9c9eeea142f6eb699860c6da307564) Thanks [@filiphsps](https://github.com/filiphsps)! - Prevent merged item stacks from also being picked up during the same tick.
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`fef6553`](https://github.com/JSPrismarine/JSPrismarine/commit/fef6553cf756b42e913b195cd1d6fd6aea13967d) Thanks [@filiphsps](https://github.com/filiphsps)! - Cache block entity network snapshots for unchanged writes ([#2817](https://github.com/JSPrismarine/JSPrismarine/issues/2817))
+
+- [#2657](https://github.com/JSPrismarine/JSPrismarine/pull/2657) [`02f919d`](https://github.com/JSPrismarine/JSPrismarine/commit/02f919dc0053ce98b35a23d6f51c76c783c05cdb) Thanks [@filiphsps](https://github.com/filiphsps)! - Ignore held Eye of Ender ticks after a frame interaction
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`af648ab`](https://github.com/JSPrismarine/JSPrismarine/commit/af648abe6db4d91eef566d05d2bc894f0fdaa0b9) Thanks [@filiphsps](https://github.com/filiphsps)! - Fixes [#2813](https://github.com/JSPrismarine/JSPrismarine/issues/2813): pack hot world coordinates and skip scans when no updates are due
+
+- [#2658](https://github.com/JSPrismarine/JSPrismarine/pull/2658) [`3b06d39`](https://github.com/JSPrismarine/JSPrismarine/commit/3b06d39b25b4c19555b079e53cc285f105ce52e0) Thanks [@filiphsps](https://github.com/filiphsps)! - Route nonmob actor hits through the data runtime so they avoid generic mob hurt and death effects. Actors without `minecraft:health` no longer receive a default living health attribute.
+
+- [#2670](https://github.com/JSPrismarine/JSPrismarine/pull/2670) [`ee71f06`](https://github.com/JSPrismarine/JSPrismarine/commit/ee71f06491a40ba6e3f8da149d78d16d396720ce) Thanks [@filiphsps](https://github.com/filiphsps)! - Process each client's reliable-ordered packet frames sequentially so a later mining action cannot overtake the drop from an earlier break.
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`50e0bc9`](https://github.com/JSPrismarine/JSPrismarine/commit/50e0bc9f1cf417b0fa3d81309bcda5c0e9d16d8a) Thanks [@filiphsps](https://github.com/filiphsps)! - Skip light scans for sections whose revision-keyed palettes cannot emit or dampen light.
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`1dcc5c0`](https://github.com/JSPrismarine/JSPrismarine/commit/1dcc5c00567890e8ec6cef0e07c88c6f1fec92e9) Thanks [@filiphsps](https://github.com/filiphsps)! - Fix chunk benchmark cache reuse and document retained chunk ownership ([#2778](https://github.com/JSPrismarine/JSPrismarine/issues/2778))
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`3007468`](https://github.com/JSPrismarine/JSPrismarine/commit/300746857aedf99c2329414eb9da1e06fb8749a5) Thanks [@filiphsps](https://github.com/filiphsps)! - Add an opt-in full-flush fragment batch prototype
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`3014980`](https://github.com/JSPrismarine/JSPrismarine/commit/30149803e191e6ebe1e7aac47677c6f0154eceb2) Thanks [@filiphsps](https://github.com/filiphsps)! - Run chunk unload persistence in the background without blocking world ticks
+
+- [#2671](https://github.com/JSPrismarine/JSPrismarine/pull/2671) [`491111a`](https://github.com/JSPrismarine/JSPrismarine/commit/491111a25245981ded1895f788ea6484d6bd53ee) Thanks [@filiphsps](https://github.com/filiphsps)! - Fix furnace fuel insertion and recipe-book auto-crafting.
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`6c3b074`](https://github.com/JSPrismarine/JSPrismarine/commit/6c3b074a44173fcb417b13064afc5b40c1af4764) Thanks [@filiphsps](https://github.com/filiphsps)! - Coalesce queued clientbound packets into ordered per-session batches.
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`0cd32b0`](https://github.com/JSPrismarine/JSPrismarine/commit/0cd32b07332d0df75ea5da59e8292b3fbcdc576e) Thanks [@filiphsps](https://github.com/filiphsps)! - Skip redundant movement updates for players whose reported pose has not changed.
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`e1a2050`](https://github.com/JSPrismarine/JSPrismarine/commit/e1a205023089ce24d6babcc1061f55e22266ebfc) Thanks [@filiphsps](https://github.com/filiphsps)! - Replay accepted packet traces through live handlers, capture clientbound packet digests, and hash per-tick world state including player inventories
+
+- [`4152620`](https://github.com/JSPrismarine/JSPrismarine/commit/4152620011a11f1db4f53bd93b3ea4d3d7e16d93) Thanks [@filiphsps](https://github.com/filiphsps)! - Run RakNet on a worker thread by default. A tick that overruns, such as a large `/fill`, no longer stops the server answering keepalives and acknowledgements, so connected players keep their session through it. Set `use-raknet-worker` to `false` to run it on the game thread as before; an existing `config.json` keeps the value it already holds.
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`f44af22`](https://github.com/JSPrismarine/JSPrismarine/commit/f44af22c7f60d46edff66d84c478b7e2f07a76cf) Thanks [@filiphsps](https://github.com/filiphsps)! - Skip Bedrock goal scheduling for brain-only entities.
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`0560f8f`](https://github.com/JSPrismarine/JSPrismarine/commit/0560f8fe0c92da772f9013fd05a318d543b948dd) Thanks [@filiphsps](https://github.com/filiphsps)! - Index crafting matches by occupied grid shape and cache immutable villager crafting candidates.
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`47a0283`](https://github.com/JSPrismarine/JSPrismarine/commit/47a028319f375c43ccb7e5475d775e9e2fa2c1da) Thanks [@filiphsps](https://github.com/filiphsps)! - Skip redstone power scans for block states without redstone update hooks.
+
+- [`db37b47`](https://github.com/JSPrismarine/JSPrismarine/commit/db37b4741f6807d34efb3fadef15825e7304e0b9) Thanks [@filiphsps](https://github.com/filiphsps)! - Replay recorded inbound packets into a connection that negotiated encryption without decrypting them again.
+
+- [`769d47d`](https://github.com/JSPrismarine/JSPrismarine/commit/769d47d7c3fb2cf9d629485e2bb1ffbc8e5a7506) Thanks [@filiphsps](https://github.com/filiphsps)! - Send protocol 2193 clients whole chunks again instead of a request-mode skeleton. A 2193 client asked to fetch its sub chunks never closed its loading screen in a world with more than one, so it could not join. Protocol 2225 clients keep request mode and are now told how many sub chunks they may fetch rather than the index of the last one, so a column that fills only its lowest sub chunk, like a flat world, no longer leaves them without a floor.
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`a1fd861`](https://github.com/JSPrismarine/JSPrismarine/commit/a1fd8614c03f1ff61b554fd822488c3d783f1c11) Thanks [@filiphsps](https://github.com/filiphsps)! - Send player movement to observers once with the current rotation, and skip the player's own session.
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`6ecdc2f`](https://github.com/JSPrismarine/JSPrismarine/commit/6ecdc2fd3e11a39a442e727889da424fea7c7f94) Thanks [@filiphsps](https://github.com/filiphsps)! - Use exact numeric keys for hot internal runtime ID indexes.
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`ba3bd76`](https://github.com/JSPrismarine/JSPrismarine/commit/ba3bd760af1d8b3579021951229843993f9faa5e) Thanks [@filiphsps](https://github.com/filiphsps)! - Avoid polynomial backtracking when converting entity loot table paths.
+
+- [`f017fc7`](https://github.com/JSPrismarine/JSPrismarine/commit/f017fc7d2aa6e8c458d001fe8a89fb1d1387bbc1) Thanks [@filiphsps](https://github.com/filiphsps)! - Bound the time a world tick spends on scheduled ticks as well as their count, so thousands of due ticks, such as the leaf decay checks of a freshly filled canopy, spread over several ticks instead of stalling one for seconds.
+
+- [#2865](https://github.com/JSPrismarine/JSPrismarine/pull/2865) [`f508fb7`](https://github.com/JSPrismarine/JSPrismarine/commit/f508fb7d8257e32c2869f66afad1088cf1d93a38) Thanks [@filiphsps](https://github.com/filiphsps)! - Place a seed item's crop. Java links `wheat_seeds` to `wheat`, `carrot` to `carrots`, and the rest of the plantables to their blocks in code rather than data, so the click path's item-to-block table has to carry them; a click that resolved the seed to no block planted nothing. Sweet berries, glow berries, cocoa beans, and string place their blocks the same way.
+
+- [#2865](https://github.com/JSPrismarine/JSPrismarine/pull/2865) [`a383244`](https://github.com/JSPrismarine/JSPrismarine/commit/a383244eb499091c0f9e541676d8d4ddd0448c45) Thanks [@filiphsps](https://github.com/filiphsps)! - Answer `@e[family=...]` with the entity's real type families. The command host supplied no families at all, and a selector test whose fact is absent fails, so every family selector matched nothing: `/testfor @e[family=mob]` found none of the mobs standing in front of it and `/kill @e[family=monster]` reached nothing. A live entity answers with the families of its active components, so a component group added at runtime counts; the player and a dropped stack, which no data instance backs, answer with the families their own declaration carries.
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`67296ae`](https://github.com/JSPrismarine/JSPrismarine/commit/67296ae70a02eef49106f7f35460aedc497946c0) Thanks [@filiphsps](https://github.com/filiphsps)! - Use family-indexed candidates for mob avoidance.
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`1e9805c`](https://github.com/JSPrismarine/JSPrismarine/commit/1e9805c6948004808d9883d78a6172de369d8515) Thanks [@filiphsps](https://github.com/filiphsps)! - Start chunk generation workers on first use, keep them warm, and configure their count.
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`12a2355`](https://github.com/JSPrismarine/JSPrismarine/commit/12a2355ad468ccf73d0b9e2372c420210938ce42) Thanks [@filiphsps](https://github.com/filiphsps)! - Reuse brain worlds and entity views while keeping mutable values live; cache tag lookups and behavior priority order.
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`9cfeecd`](https://github.com/JSPrismarine/JSPrismarine/commit/9cfeecd46ce63af8342950a63a7306492a9fa649) Thanks [@filiphsps](https://github.com/filiphsps)! - Treat empty block filters as match-all.
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`d6e75e9`](https://github.com/JSPrismarine/JSPrismarine/commit/d6e75e9ab5c107d3937e78a744ac33b425d4f36b) Thanks [@filiphsps](https://github.com/filiphsps)! - Move biome sampling and section packing into generation workers to reduce main-thread chunk promotion CPU.
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`7640800`](https://github.com/JSPrismarine/JSPrismarine/commit/764080023c78983a962c992bfa25bdce17140a71) Thanks [@filiphsps](https://github.com/filiphsps)! - Write terrain and surface blocks directly by palette slot.
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`0d60c16`](https://github.com/JSPrismarine/JSPrismarine/commit/0d60c161c06ca65e42ea0e694164956738cdc4c7) Thanks [@filiphsps](https://github.com/filiphsps)! - Inflate small inbound batches synchronously to avoid waiting on the shared worker pool.
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`64b8573`](https://github.com/JSPrismarine/JSPrismarine/commit/64b8573fc7ad1f5a9c6dfa319433feab7804f250) Thanks [@filiphsps](https://github.com/filiphsps)! - Support negotiated ZLib, Snappy, and no-compression batch algorithms, while keeping ZLib as the default.
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`ea01a93`](https://github.com/JSPrismarine/JSPrismarine/commit/ea01a934ad5452ecbffadd5db67276218d49b668) Thanks [@filiphsps](https://github.com/filiphsps)! - Cache engine block facts by runtime ID
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`b0294f6`](https://github.com/JSPrismarine/JSPrismarine/commit/b0294f67358624eff6ec1b634c0a3394bda2cf4e) Thanks [@filiphsps](https://github.com/filiphsps)! - Snapshot host players once per runtime tick and reuse live player filter views.
+
+- [#2664](https://github.com/JSPrismarine/JSPrismarine/pull/2664) [`5e1c982`](https://github.com/JSPrismarine/JSPrismarine/commit/5e1c982a462544ab659fbb43ca38252e862cb446) Thanks [@filiphsps](https://github.com/filiphsps)! - Make monster spawners show their mob and spawn it. A generated spawner's block entity now carries the display fields the client needs to draw the mob in the cage, along with vanilla's spawn rates, and spawners in simulated chunks run Java's cycle: with a player within sixteen blocks they count down, then spawn up to four of their mob on open ground within four blocks, pausing while six already stand there.
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`57340c6`](https://github.com/JSPrismarine/JSPrismarine/commit/57340c66f59a010f29eac04f15f2bd1f7df8ca9d) Thanks [@filiphsps](https://github.com/filiphsps)! - Add limited nearest-first block queries and reuse navigation reads.
+
+- [#2700](https://github.com/JSPrismarine/JSPrismarine/pull/2700) [`fbe361a`](https://github.com/JSPrismarine/JSPrismarine/commit/fbe361a4fb460486f4dc4a7a6636dcb05bf4bb14) Thanks [@filiphsps](https://github.com/filiphsps)! - Allow players to travel to custom dimensions
+
+- [#2665](https://github.com/JSPrismarine/JSPrismarine/pull/2665) [`7adad03`](https://github.com/JSPrismarine/JSPrismarine/commit/7adad036c07cc1be29f4fbd08c4d1b33beb2e8a5) Thanks [@filiphsps](https://github.com/filiphsps)! - Send block inventory contents under each screen's named containers
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`d049765`](https://github.com/JSPrismarine/JSPrismarine/commit/d04976541aee27f8e3fc198e703173e56740b515) Thanks [@filiphsps](https://github.com/filiphsps)! - Add serializable random states and a versioned replay initial-state manifest.
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`991dda0`](https://github.com/JSPrismarine/JSPrismarine/commit/991dda025150c66de0f9ec01894eeecc89abfe75) Thanks [@filiphsps](https://github.com/filiphsps)! - Fail replay capture when player or chunk persistence fails.
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`b86d57a`](https://github.com/JSPrismarine/JSPrismarine/commit/b86d57a06d9e1253046b754b64ee89b4cb229de2) Thanks [@filiphsps](https://github.com/filiphsps)! - Cache static join packets and offload compression for large batches.
+
+- [#2664](https://github.com/JSPrismarine/JSPrismarine/pull/2664) [`5b8dab2`](https://github.com/JSPrismarine/JSPrismarine/commit/5b8dab249894edcbe0f73960f21a71383f1ea3bb) Thanks [@filiphsps](https://github.com/filiphsps)! - Keep structure blocks against features from neighboring chunks. A neighbor's decoration pass runs over bare terrain and never sees the pieces a chunk placed, so ore veins and grass patches reaching across the border replaced fortress walls, stronghold libraries, and village houses. The structure's writes now travel with the chunk's patch and the merge drops inbound writes at those positions, which is the outcome Java reaches in either decoration order.
+
+- [#2865](https://github.com/JSPrismarine/JSPrismarine/pull/2865) [`7aadbcf`](https://github.com/JSPrismarine/JSPrismarine/commit/7aadbcfff2dfd71b775da25edc6af6a4e332def9) Thanks [@filiphsps](https://github.com/filiphsps)! - Send a tick's block changes as one `UpdateSubChunkBlocksPacket` per sub chunk instead of one `UpdateBlockPacket` per block. A `/fill` of twenty thousand blocks put twenty thousand packets in a single batch, and a real Bedrock client drops the connection about ten seconds later with nothing logged on either side; the same region now travels as eighty-one packets in a batch of the same size, and the client stays on. A sub chunk with one change still sends the shorter single-block update, which is what a placement or a break is.
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`9770942`](https://github.com/JSPrismarine/JSPrismarine/commit/977094203278d4f13434bd487c069a986b565b75) Thanks [@filiphsps](https://github.com/filiphsps)! - Add request-mode subchunk delivery with client blob-cache reuse.
+
+- [#2682](https://github.com/JSPrismarine/JSPrismarine/pull/2682) [`ab8dc23`](https://github.com/JSPrismarine/JSPrismarine/commit/ab8dc23b2a2f3818384fef561cd9f05fb49dfce1) Thanks [@filiphsps](https://github.com/filiphsps)! - Fix natural mob spawn placement
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`b34e75d`](https://github.com/JSPrismarine/JSPrismarine/commit/b34e75d8d7ad3635ab2ed523fb3b0f02a7616e44) Thanks [@filiphsps](https://github.com/filiphsps)! - Use immediate scheduling for overdue ticks
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`86915c4`](https://github.com/JSPrismarine/JSPrismarine/commit/86915c42d90df184dbb200ecd81e52cc11a76892) Thanks [@filiphsps](https://github.com/filiphsps)! - Index large entity collision boxes by overlapped cells to keep collision and area-attack queries local. Fixes [#2793](https://github.com/JSPrismarine/JSPrismarine/issues/2793).
+
+- [#2876](https://github.com/JSPrismarine/JSPrismarine/pull/2876) [`1f62c79`](https://github.com/JSPrismarine/JSPrismarine/commit/1f62c79181e437a23348339436d405a3f0e59073) Thanks [@filiphsps](https://github.com/filiphsps)! - Make `/teleport` move data-driven mobs. The command wrote the new position onto the mob's body, but the entity runtime owns where a mob stands and copies that onto the body every tick, so the mob snapped back and the client never saw it move. The command now teleports the runtime entity and its body follows.
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`bc2d048`](https://github.com/JSPrismarine/JSPrismarine/commit/bc2d04837063c4e3e5f4aae8904e42c84eb29b44) Thanks [@filiphsps](https://github.com/filiphsps)! - Use Java nearest-first brain block searches.
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`e52ebdd`](https://github.com/JSPrismarine/JSPrismarine/commit/e52ebdd566403769c87a72281e60a9ed41d8b248) Thanks [@filiphsps](https://github.com/filiphsps)! - Trim inbound frame overhead ([#2821](https://github.com/JSPrismarine/JSPrismarine/issues/2821))
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`4912cd7`](https://github.com/JSPrismarine/JSPrismarine/commit/4912cd72747ddc6e65947f6ebeb412e68614b6ad) Thanks [@filiphsps](https://github.com/filiphsps)! - Cache Java command shapes and flattened command lists
+
+- [#2876](https://github.com/JSPrismarine/JSPrismarine/pull/2876) [`7468217`](https://github.com/JSPrismarine/JSPrismarine/commit/74682176453a6d9c76b6717be8406149c8e49a58) Thanks [@filiphsps](https://github.com/filiphsps)! - Add Java's `/tick` command. `/tick rate <ticks per second>` sets the target tick rate, `/tick freeze` and `/tick unfreeze` hold the world and its functions still while the server keeps serving players, `/tick step [time]` runs a frozen world forward a few ticks, `/tick sprint <time>` runs ticks back to back, and `/tick query` reports the rate and how long a tick takes. `ServerCommandHost` gains a required `ticking` group for the command to drive the tick loop.
+
+- [`efb72ec`](https://github.com/JSPrismarine/JSPrismarine/commit/efb72ec2db15766433cf6694efdcda386dcea66c) Thanks [@filiphsps](https://github.com/filiphsps)! - Keep the event loop awake between back-to-back catch-up and sprint ticks. They waited on an unreferenced immediate, which let the loop sleep until another event woke it, so with RakNet on a worker thread a sprint ran two ticks a second instead of as fast as the host allows.
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`f135b5a`](https://github.com/JSPrismarine/JSPrismarine/commit/f135b5a403445c32b6256c52e913432977eeba2e) Thanks [@filiphsps](https://github.com/filiphsps)! - Optimize per-tick chunk work by indexing tickable block entities, simulated chunks, random-tick sections, and retention-unload candidates.
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`d566325`](https://github.com/JSPrismarine/JSPrismarine/commit/d56632555578d79999515e5259010d30aa3c614e) Thanks [@filiphsps](https://github.com/filiphsps)! - Share immutable structure-start layouts between whole-chunk workers.
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`fc74161`](https://github.com/JSPrismarine/JSPrismarine/commit/fc74161ec03b54a1c711125a866c7992e772d21d) Thanks [@filiphsps](https://github.com/filiphsps)! - Support rebinding resolved content registries to a restored world and seed.
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`7cab907`](https://github.com/JSPrismarine/JSPrismarine/commit/7cab907223a7f7a214994c554857f2886c14c025) Thanks [@filiphsps](https://github.com/filiphsps)! - Include cursor-held items in world replay digests.
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`ecb2e37`](https://github.com/JSPrismarine/JSPrismarine/commit/ecb2e37d2b970a65964be4f809945515c242495b) Thanks [@filiphsps](https://github.com/filiphsps)! - Match Java nearest-living AABB query bounds.
+
+- [#2664](https://github.com/JSPrismarine/JSPrismarine/pull/2664) [`d731b85`](https://github.com/JSPrismarine/JSPrismarine/commit/d731b85039c2c6ebcc1a5c187813ea06def716ff) Thanks [@filiphsps](https://github.com/filiphsps)! - Turn the block states structure processors introduce with the template they land in. Java turns a template's states after its processors run, so a jigsaw block's `final_state` and a rule's `output_state` face the way the building faces; this server turns the template first, so those states were placed as written and every village house got an east-facing doorstep stair and a pen gate set into the wrong wall. `ProcessorContext` now carries the placement, the jigsaw replacement and rule processors turn the states they name by it, and both template placement paths pass it.
+
+- [#2865](https://github.com/JSPrismarine/JSPrismarine/pull/2865) [`82b3c66`](https://github.com/JSPrismarine/JSPrismarine/commit/82b3c66de90f6b4a78940ce791b26de86a08051b) Thanks [@filiphsps](https://github.com/filiphsps)! - Answer `WorldActions.hasBlockTag` with undefined for a tag the loaded stack does not declare, which is not the same answer as `false`. A rule whose tag nobody loaded read every block as being outside it, so on a server booted without the Java vanilla datapack a tag-driven rule silently flipped: crops would have stopped growing and popped off their farmland. Each rule now falls back to its own names, the way it already did for a host that answers no tags at all.
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`67c8b2f`](https://github.com/JSPrismarine/JSPrismarine/commit/67c8b2fcd45f8cbad3007eb70d34f3c3455f3e09) Thanks [@filiphsps](https://github.com/filiphsps)! - Add an opt-in, bounded terrain proto cache
+
+- [#2664](https://github.com/JSPrismarine/JSPrismarine/pull/2664) [`1ebe485`](https://github.com/JSPrismarine/JSPrismarine/commit/1ebe485c15054851919e45f1758ffee12c8fc99a) Thanks [@filiphsps](https://github.com/filiphsps)! - Kill players and mobs that fall out of the world. Sixty-four blocks under the dimension's floor, a player or a data-driven mob now takes four half-hearts every half second, as vanilla does; the void reaches creative players but not spectators, and anything without health down there, a dropped stack or an arrow, is discarded.
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`c6b0b49`](https://github.com/JSPrismarine/JSPrismarine/commit/c6b0b49e4b59e03b9b7dd0366f280ff7832c77b2) Thanks [@filiphsps](https://github.com/filiphsps)! - Use Java's climate spawn-target search and resolve the spawn position inside its selected chunk.
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`43b168e`](https://github.com/JSPrismarine/JSPrismarine/commit/43b168e1cd986986e7258922b52a22be3792de58) Thanks [@filiphsps](https://github.com/filiphsps)! - Add an opt-in bounded shared-memory terrain tile store for worker generation, with atomic publication and recovery after worker exits.
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`650f7ea`](https://github.com/JSPrismarine/JSPrismarine/commit/650f7eaaa3086fbf5a6df0f122e2cbb03a35212e) Thanks [@filiphsps](https://github.com/filiphsps)! - Cache navigation reads by chunk revision across ticks.
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`1dffdad`](https://github.com/JSPrismarine/JSPrismarine/commit/1dffdad407e75cfbb4ca2961bc4698ec2b304da8) Thanks [@filiphsps](https://github.com/filiphsps)! - Add an opt-in worker-backed RakNet listener with bounded shared-memory queues, per-session ordered handoff, and a seeded bot-fleet benchmark.
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`4977589`](https://github.com/JSPrismarine/JSPrismarine/commit/4977589802efa7ffd23a0ab7bf42db8875aa3bdc) Thanks [@filiphsps](https://github.com/filiphsps)! - Reuse entity and actor indexes across each chunk save pass.
+- Updated dependencies [[`73efe0d`](https://github.com/JSPrismarine/JSPrismarine/commit/73efe0da742b65ad1548501d913b6613463f738e), [`0e4b2a8`](https://github.com/JSPrismarine/JSPrismarine/commit/0e4b2a81759a4c44262bed5c36936ada2c6e5581), [`d84076a`](https://github.com/JSPrismarine/JSPrismarine/commit/d84076a845dc9be3e53ba9304ab7bfb05a4116a9), [`183e92c`](https://github.com/JSPrismarine/JSPrismarine/commit/183e92c7f577bc34608555a13aaa88fd64f61530), [`021acfb`](https://github.com/JSPrismarine/JSPrismarine/commit/021acfb1b4f361e01b555ba0f51062b05c386256), [`29ad03a`](https://github.com/JSPrismarine/JSPrismarine/commit/29ad03ac2692758023d27728d649407c41cc22a3), [`9bbe11b`](https://github.com/JSPrismarine/JSPrismarine/commit/9bbe11b9563745852c71506dc22c911fde0114fa), [`b4940f3`](https://github.com/JSPrismarine/JSPrismarine/commit/b4940f32e1fcd3640af201432f67ee382d50efc6), [`e5ac505`](https://github.com/JSPrismarine/JSPrismarine/commit/e5ac5054d96de0f9e80675731147fe6d57f2ad76), [`ac02142`](https://github.com/JSPrismarine/JSPrismarine/commit/ac021424a6534c7b023d1288b6d78da999a65fb0), [`b55ed8f`](https://github.com/JSPrismarine/JSPrismarine/commit/b55ed8fdd5389666bfc90b1f0426bf0aeeb1dcd6), [`dde74e3`](https://github.com/JSPrismarine/JSPrismarine/commit/dde74e3d93602c66989dbab974281140090e821c), [`f138dec`](https://github.com/JSPrismarine/JSPrismarine/commit/f138dec7bdbd36d0bfb06da1475a4debf9790107), [`ca3cabc`](https://github.com/JSPrismarine/JSPrismarine/commit/ca3cabc9d123d5bccb6fc06b7b9e323f6676c37e), [`1a9fad5`](https://github.com/JSPrismarine/JSPrismarine/commit/1a9fad5a52f9a21c4c43d34e85c3ec462c34573c), [`be9d70e`](https://github.com/JSPrismarine/JSPrismarine/commit/be9d70ecdf777806b80868294cf09c53538b9811), [`8cc701d`](https://github.com/JSPrismarine/JSPrismarine/commit/8cc701d6dc05532abf27c10d87d0a3b6dbd25b73), [`f1a2771`](https://github.com/JSPrismarine/JSPrismarine/commit/f1a2771104f57bbe927d330b4b162bc3673edc9d), [`796ca0b`](https://github.com/JSPrismarine/JSPrismarine/commit/796ca0b433725f814f7ce1c730911b0e6091329d), [`14a0a37`](https://github.com/JSPrismarine/JSPrismarine/commit/14a0a37cb3956ff4af5aa10b6e922cc71849e958), [`dcab390`](https://github.com/JSPrismarine/JSPrismarine/commit/dcab3900eb6a2b9dde2305407c7ce6e459b2c30e), [`f5b3d7c`](https://github.com/JSPrismarine/JSPrismarine/commit/f5b3d7c830dc19189d85e21af834391192ccb481), [`ac6967c`](https://github.com/JSPrismarine/JSPrismarine/commit/ac6967ce77cd38430626a37e6470503b739c4459), [`ab7daa1`](https://github.com/JSPrismarine/JSPrismarine/commit/ab7daa106d8c35b07cf64e5c8166f361644b8360), [`52e899b`](https://github.com/JSPrismarine/JSPrismarine/commit/52e899b729f1b77452d638107628764771303093), [`09d523c`](https://github.com/JSPrismarine/JSPrismarine/commit/09d523c5fbd04af60800bee5ad2b12f2a7619e02), [`c9462f2`](https://github.com/JSPrismarine/JSPrismarine/commit/c9462f23a25592472260072973fe3e76f651c7d1), [`7238fbe`](https://github.com/JSPrismarine/JSPrismarine/commit/7238fbe48bf5853fc86e3f0bccb332050f1c717e), [`318a038`](https://github.com/JSPrismarine/JSPrismarine/commit/318a0386c1322b77799192cd90d1c1c44a13b5b4), [`2d68618`](https://github.com/JSPrismarine/JSPrismarine/commit/2d686188fff4b00ca1e6ce728cb73dbef23bebb9), [`d499106`](https://github.com/JSPrismarine/JSPrismarine/commit/d49910658d7aa57fedfe32512977f79aa0023832), [`8bdc3d4`](https://github.com/JSPrismarine/JSPrismarine/commit/8bdc3d447250cfa6589155c5a7ebfdd6a9d3ab6e), [`92a7e35`](https://github.com/JSPrismarine/JSPrismarine/commit/92a7e35e438239ef5abe037161068c630d253857), [`678e192`](https://github.com/JSPrismarine/JSPrismarine/commit/678e192e09582001760956a2f215619776fffa8e), [`2726b0a`](https://github.com/JSPrismarine/JSPrismarine/commit/2726b0a801b97e53d0187989a913c4d01a95aa89), [`2d58d62`](https://github.com/JSPrismarine/JSPrismarine/commit/2d58d62a921430d98f958321c0d2a741b723c362), [`4196b67`](https://github.com/JSPrismarine/JSPrismarine/commit/4196b676e0d0b35e1c81e85e48fa74176dbba17b), [`9891b80`](https://github.com/JSPrismarine/JSPrismarine/commit/9891b80b249f88d1bfbc9b347bcb31555a754698), [`7e631e5`](https://github.com/JSPrismarine/JSPrismarine/commit/7e631e58adc3f67fc62bcdd0379c113a9fca97e1), [`0a8ae9a`](https://github.com/JSPrismarine/JSPrismarine/commit/0a8ae9a0c378e3b5e59366d52cb52a898d647d9a), [`dd31bb1`](https://github.com/JSPrismarine/JSPrismarine/commit/dd31bb11dba9ef22110fbd8f8c32b19fe8cfac58), [`ed5c149`](https://github.com/JSPrismarine/JSPrismarine/commit/ed5c1497c577dc3c01f0dc196c927743fac343bc), [`9406146`](https://github.com/JSPrismarine/JSPrismarine/commit/94061468716fef624e21ca3b76fb18938a979f7c), [`a3c8477`](https://github.com/JSPrismarine/JSPrismarine/commit/a3c8477097570eb5920113ab13e02d8fbc2b1a2c), [`57d0d17`](https://github.com/JSPrismarine/JSPrismarine/commit/57d0d17d8577cde351c634e6b0dadd00a1ea6428), [`56f5028`](https://github.com/JSPrismarine/JSPrismarine/commit/56f5028e4a723c4e01b36f6eb293dcdc8cfaf805), [`d7e9d45`](https://github.com/JSPrismarine/JSPrismarine/commit/d7e9d45c682e633ae7d4d90221193785ae9d2760), [`b1ebfe6`](https://github.com/JSPrismarine/JSPrismarine/commit/b1ebfe6071afaeaf5b6795ec215a75b92753b1fb), [`8cced47`](https://github.com/JSPrismarine/JSPrismarine/commit/8cced47f85ef42f2758be9b45ec07374485bcc32), [`d8e0a48`](https://github.com/JSPrismarine/JSPrismarine/commit/d8e0a48ead973091d46f81760e9dbfde08522449), [`81500d0`](https://github.com/JSPrismarine/JSPrismarine/commit/81500d03121008375fee0af0bb321469bd28c2fd), [`8026821`](https://github.com/JSPrismarine/JSPrismarine/commit/8026821d4584b86fe5924f502242c58ad12a6cdc), [`98dea94`](https://github.com/JSPrismarine/JSPrismarine/commit/98dea94c94ce084f2cbce6170d826a808a63384a), [`06e6111`](https://github.com/JSPrismarine/JSPrismarine/commit/06e6111a1a4c4b9554aea36f14b1932c52714001), [`e0531ce`](https://github.com/JSPrismarine/JSPrismarine/commit/e0531ce961986b4cf3a5fd970d47c59f1306900f), [`9061024`](https://github.com/JSPrismarine/JSPrismarine/commit/9061024a45c9e8b00be4963b61406d7474f2f82d), [`fa402ef`](https://github.com/JSPrismarine/JSPrismarine/commit/fa402ef47f444451ea3b4d687b5451e3e0decc05), [`569ad6e`](https://github.com/JSPrismarine/JSPrismarine/commit/569ad6e134e70eefe3e9aba65e048b3f63101462), [`99a59f0`](https://github.com/JSPrismarine/JSPrismarine/commit/99a59f0604675678339b39b764a56267413b9687), [`50e0bc9`](https://github.com/JSPrismarine/JSPrismarine/commit/50e0bc9f1cf417b0fa3d81309bcda5c0e9d16d8a), [`4a977ec`](https://github.com/JSPrismarine/JSPrismarine/commit/4a977ec6ac873e0804783ec5ddee0f76ca5fe997), [`a31852f`](https://github.com/JSPrismarine/JSPrismarine/commit/a31852ffef421e2f267847a81102781165b407e0), [`3007468`](https://github.com/JSPrismarine/JSPrismarine/commit/300746857aedf99c2329414eb9da1e06fb8749a5), [`05d61f9`](https://github.com/JSPrismarine/JSPrismarine/commit/05d61f9c6cb7000d1b81908ca94dc1af7bd8fec8), [`04f77b2`](https://github.com/JSPrismarine/JSPrismarine/commit/04f77b2085280aa4fe951da3e99243a6c8f79ece), [`f44af22`](https://github.com/JSPrismarine/JSPrismarine/commit/f44af22c7f60d46edff66d84c478b7e2f07a76cf), [`0560f8f`](https://github.com/JSPrismarine/JSPrismarine/commit/0560f8fe0c92da772f9013fd05a318d543b948dd), [`b79f018`](https://github.com/JSPrismarine/JSPrismarine/commit/b79f018812a78f61fc9af2c29ec094c351c15a9e), [`47a0283`](https://github.com/JSPrismarine/JSPrismarine/commit/47a028319f375c43ccb7e5475d775e9e2fa2c1da), [`f921837`](https://github.com/JSPrismarine/JSPrismarine/commit/f9218378b1ee52a0ed06b3bedf6a978577f0ace7), [`7aabb3a`](https://github.com/JSPrismarine/JSPrismarine/commit/7aabb3a82903eae555ca83bddcb409bb0a4f693c), [`3000120`](https://github.com/JSPrismarine/JSPrismarine/commit/3000120a653848f2fc8596d7cdccb55d8f21f064), [`075aef8`](https://github.com/JSPrismarine/JSPrismarine/commit/075aef899917c6cb480ed129d9157b21e86e67ca), [`f017fc7`](https://github.com/JSPrismarine/JSPrismarine/commit/f017fc7d2aa6e8c458d001fe8a89fb1d1387bbc1), [`1b01a18`](https://github.com/JSPrismarine/JSPrismarine/commit/1b01a18f03fb8f751011330535a7f20f0cf10369), [`67296ae`](https://github.com/JSPrismarine/JSPrismarine/commit/67296ae70a02eef49106f7f35460aedc497946c0), [`1e9805c`](https://github.com/JSPrismarine/JSPrismarine/commit/1e9805c6948004808d9883d78a6172de369d8515), [`12a2355`](https://github.com/JSPrismarine/JSPrismarine/commit/12a2355ad468ccf73d0b9e2372c420210938ce42), [`0d60c16`](https://github.com/JSPrismarine/JSPrismarine/commit/0d60c161c06ca65e42ea0e694164956738cdc4c7), [`64b8573`](https://github.com/JSPrismarine/JSPrismarine/commit/64b8573fc7ad1f5a9c6dfa319433feab7804f250), [`ea01a93`](https://github.com/JSPrismarine/JSPrismarine/commit/ea01a934ad5452ecbffadd5db67276218d49b668), [`57340c6`](https://github.com/JSPrismarine/JSPrismarine/commit/57340c66f59a010f29eac04f15f2bd1f7df8ca9d), [`487ac40`](https://github.com/JSPrismarine/JSPrismarine/commit/487ac401339e3c4be9fe643d35957ace011b3983), [`d049765`](https://github.com/JSPrismarine/JSPrismarine/commit/d04976541aee27f8e3fc198e703173e56740b515), [`9770942`](https://github.com/JSPrismarine/JSPrismarine/commit/977094203278d4f13434bd487c069a986b565b75), [`aedeea4`](https://github.com/JSPrismarine/JSPrismarine/commit/aedeea48664db01e25e98a8a231bd1d6d7b2adcd), [`26cc9bf`](https://github.com/JSPrismarine/JSPrismarine/commit/26cc9bf7a48edbad36911d663fdc1e84018b33c2), [`ab8dc23`](https://github.com/JSPrismarine/JSPrismarine/commit/ab8dc23b2a2f3818384fef561cd9f05fb49dfce1), [`86915c4`](https://github.com/JSPrismarine/JSPrismarine/commit/86915c42d90df184dbb200ecd81e52cc11a76892), [`e5c9812`](https://github.com/JSPrismarine/JSPrismarine/commit/e5c98121aac113c02f7684752b26e228a86c57b8), [`bc2d048`](https://github.com/JSPrismarine/JSPrismarine/commit/bc2d04837063c4e3e5f4aae8904e42c84eb29b44), [`e52ebdd`](https://github.com/JSPrismarine/JSPrismarine/commit/e52ebdd566403769c87a72281e60a9ed41d8b248), [`ffa08fb`](https://github.com/JSPrismarine/JSPrismarine/commit/ffa08fb0ebcaff9b5edbc68fcbc4cb2632fc8f18), [`4912cd7`](https://github.com/JSPrismarine/JSPrismarine/commit/4912cd72747ddc6e65947f6ebeb412e68614b6ad), [`7468217`](https://github.com/JSPrismarine/JSPrismarine/commit/74682176453a6d9c76b6717be8406149c8e49a58), [`d566325`](https://github.com/JSPrismarine/JSPrismarine/commit/d56632555578d79999515e5259010d30aa3c614e), [`ecb2e37`](https://github.com/JSPrismarine/JSPrismarine/commit/ecb2e37d2b970a65964be4f809945515c242495b), [`d731b85`](https://github.com/JSPrismarine/JSPrismarine/commit/d731b85039c2c6ebcc1a5c187813ea06def716ff), [`c36489a`](https://github.com/JSPrismarine/JSPrismarine/commit/c36489a66251a6f1b134ac4864d8722247a97dca), [`82b3c66`](https://github.com/JSPrismarine/JSPrismarine/commit/82b3c66de90f6b4a78940ce791b26de86a08051b), [`c6b0b49`](https://github.com/JSPrismarine/JSPrismarine/commit/c6b0b49e4b59e03b9b7dd0366f280ff7832c77b2), [`43b168e`](https://github.com/JSPrismarine/JSPrismarine/commit/43b168e1cd986986e7258922b52a22be3792de58), [`3934d28`](https://github.com/JSPrismarine/JSPrismarine/commit/3934d281e96f022a0d57c95d8de99794ed6dd244), [`15dc167`](https://github.com/JSPrismarine/JSPrismarine/commit/15dc167df09a9595ea31ad475259f2c489bd3519), [`1dffdad`](https://github.com/JSPrismarine/JSPrismarine/commit/1dffdad407e75cfbb4ca2961bc4698ec2b304da8)]:
+  - @jsprismarine/trading@0.17.0
+  - @jsprismarine/entity-brains@0.17.0
+  - @jsprismarine/commands@0.17.0
+  - @jsprismarine/minecraft@0.17.0
+  - @jsprismarine/leveldb@0.17.0
+  - @jsprismarine/chunkgen@0.17.0
+  - @jsprismarine/worldgen@0.17.0
+  - @jsprismarine/entities@0.17.0
+  - @jsprismarine/spawning@0.17.0
+  - @jsprismarine/math@0.17.0
+  - @jsprismarine/entity-goals@0.17.0
+  - @jsprismarine/engine-systems@0.17.0
+  - @jsprismarine/protocol@0.17.0
+  - @jsprismarine/structures@0.17.0
+  - @jsprismarine/packs@0.17.0
+  - @jsprismarine/item-behaviors@0.17.0
+  - @jsprismarine/raknet@0.17.0
+  - @jsprismarine/blocks@0.17.0
+  - @jsprismarine/items@0.17.0
+  - @jsprismarine/brigadier@0.17.0
+  - @jsprismarine/binaryutils@0.17.0
+  - @jsprismarine/nbt@0.17.0
+  - @jsprismarine/lighting@0.17.0
+  - @jsprismarine/block-behaviors@0.17.0
+  - @jsprismarine/logger@0.17.0
+  - @jsprismarine/advancements@0.17.0
+  - @jsprismarine/bedrock-data@0.17.0
+  - @jsprismarine/color-parser@0.17.0
+  - @jsprismarine/console-protocol@0.17.0
+  - @jsprismarine/content@0.17.0
+  - @jsprismarine/enchantments@0.17.0
+  - @jsprismarine/errors@0.17.0
+  - @jsprismarine/features@0.17.0
+  - @jsprismarine/kernel@0.17.0
+  - @jsprismarine/loot@0.17.0
+  - @jsprismarine/mapping@0.17.0
+  - @jsprismarine/mcfunction@0.17.0
+  - @jsprismarine/predicates@0.17.0
+  - @jsprismarine/recipes@0.17.0
+
 ## 0.16.0
 
 ### Minor Changes

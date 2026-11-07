@@ -1,5 +1,17 @@
 # @jsprismarine/client
 
+## 0.17.0
+
+### Minor Changes
+
+- [#2661](https://github.com/JSPrismarine/JSPrismarine/pull/2661) [`9061024`](https://github.com/JSPrismarine/JSPrismarine/commit/9061024a45c9e8b00be4963b61406d7474f2f82d) Thanks [@filiphsps](https://github.com/filiphsps)! - Remove CommonJS package outputs
+
+### Patch Changes
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`2d68618`](https://github.com/JSPrismarine/JSPrismarine/commit/2d686188fff4b00ca1e6ce728cb73dbef23bebb9) Thanks [@filiphsps](https://github.com/filiphsps)! - Disable command syntax exception stack traces by default to match Java Brigadier, with a diagnostic opt-in.
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`a3c8477`](https://github.com/JSPrismarine/JSPrismarine/commit/a3c8477097570eb5920113ab13e02d8fbc2b1a2c) Thanks [@filiphsps](https://github.com/filiphsps)! - Cache function command parses and rebind each result to the current source.
+
 ## 0.16.0
 
 ### Minor Changes

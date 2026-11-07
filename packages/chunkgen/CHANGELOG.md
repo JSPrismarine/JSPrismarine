@@ -1,5 +1,25 @@
 # @jsprismarine/chunkgen
 
+## 0.17.0
+
+### Minor Changes
+
+- [#2661](https://github.com/JSPrismarine/JSPrismarine/pull/2661) [`9061024`](https://github.com/JSPrismarine/JSPrismarine/commit/9061024a45c9e8b00be4963b61406d7474f2f82d) Thanks [@filiphsps](https://github.com/filiphsps)! - Remove CommonJS package outputs
+
+### Patch Changes
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`9bbe11b`](https://github.com/JSPrismarine/JSPrismarine/commit/9bbe11b9563745852c71506dc22c911fde0114fa) Thanks [@filiphsps](https://github.com/filiphsps)! - Share immutable climate search tables across generation workers, retain local parsing as a fallback, and add worker heap snapshot diagnostics.
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`14a0a37`](https://github.com/JSPrismarine/JSPrismarine/commit/14a0a37cb3956ff4af5aa10b6e922cc71849e958) Thanks [@filiphsps](https://github.com/filiphsps)! - Keep generation workers available inside Node single executable applications.
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`99a59f0`](https://github.com/JSPrismarine/JSPrismarine/commit/99a59f0604675678339b39b764a56267413b9687) Thanks [@filiphsps](https://github.com/filiphsps)! - Share climate search indexes across generation workers
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`1e9805c`](https://github.com/JSPrismarine/JSPrismarine/commit/1e9805c6948004808d9883d78a6172de369d8515) Thanks [@filiphsps](https://github.com/filiphsps)! - Start chunk generation workers on first use, keep them warm, and configure their count.
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`d566325`](https://github.com/JSPrismarine/JSPrismarine/commit/d56632555578d79999515e5259010d30aa3c614e) Thanks [@filiphsps](https://github.com/filiphsps)! - Share immutable structure-start layouts between whole-chunk workers.
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`43b168e`](https://github.com/JSPrismarine/JSPrismarine/commit/43b168e1cd986986e7258922b52a22be3792de58) Thanks [@filiphsps](https://github.com/filiphsps)! - Add an opt-in bounded shared-memory terrain tile store for worker generation, with atomic publication and recovery after worker exits.
+
 ## 0.16.0
 
 ### Minor Changes

@@ -1,6 +1,6 @@
 {
     "name": "@jsprismarine/entities",
-    "version": "0.16.0",
+    "version": "0.17.0",
     "description": "The Bedrock entity runtime: definition parsing, components, component groups, the event engine, entity properties, filters and the goal scheduler",
     "sideEffects": false,
     "publishConfig": {

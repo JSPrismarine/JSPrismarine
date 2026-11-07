@@ -1,6 +1,6 @@
 {
     "name": "@jsprismarine/errors",
-    "version": "0.16.0",
+    "version": "0.17.0",
     "description": "JSPrismarine shared errors",
     "sideEffects": false,
     "publishConfig": {

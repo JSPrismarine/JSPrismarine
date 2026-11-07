@@ -1,5 +1,35 @@
 # @jsprismarine/raknet
 
+## 0.17.0
+
+### Minor Changes
+
+- [#2661](https://github.com/JSPrismarine/JSPrismarine/pull/2661) [`9061024`](https://github.com/JSPrismarine/JSPrismarine/commit/9061024a45c9e8b00be4963b61406d7474f2f82d) Thanks [@filiphsps](https://github.com/filiphsps)! - Remove CommonJS package outputs
+
+### Patch Changes
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`dcab390`](https://github.com/JSPrismarine/JSPrismarine/commit/dcab3900eb6a2b9dde2305407c7ce6e459b2c30e) Thanks [@filiphsps](https://github.com/filiphsps)! - Add per-session congestion control and reliable-send backpressure to RakNet.
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`7e631e5`](https://github.com/JSPrismarine/JSPrismarine/commit/7e631e58adc3f67fc62bcdd0379c113a9fca97e1) Thanks [@filiphsps](https://github.com/filiphsps)! - Add configurable UDP socket buffers ([#2820](https://github.com/JSPrismarine/JSPrismarine/issues/2820))
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`ed5c149`](https://github.com/JSPrismarine/JSPrismarine/commit/ed5c1497c577dc3c01f0dc196c927743fac343bc) Thanks [@filiphsps](https://github.com/filiphsps)! - Skip idle retransmission scans and index ACK ranges
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`56f5028`](https://github.com/JSPrismarine/JSPrismarine/commit/56f5028e4a723c4e01b36f6eb293dcdc8cfaf805) Thanks [@filiphsps](https://github.com/filiphsps)! - Run RakNet session maintenance after the event loop has polled pending datagrams to avoid retransmitting acknowledged frames or timing out active peers after stalls.
+
+- [`4a977ec`](https://github.com/JSPrismarine/JSPrismarine/commit/4a977ec6ac873e0804783ec5ddee0f76ca5fe997) Thanks [@filiphsps](https://github.com/filiphsps)! - Resend an unanswered `ClientSocket.ping` every 500 ms until its deadline instead of sending it once, so one dropped datagram no longer fails the ping.
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`04f77b2`](https://github.com/JSPrismarine/JSPrismarine/commit/04f77b2085280aa4fe951da3e99243a6c8f79ece) Thanks [@filiphsps](https://github.com/filiphsps)! - Keep unacknowledged reliable messages available after datagram history pruning.
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`075aef8`](https://github.com/JSPrismarine/JSPrismarine/commit/075aef899917c6cb480ed129d9157b21e86e67ca) Thanks [@filiphsps](https://github.com/filiphsps)! - Add an opt-in scatter-gather send path for RakNet frame sets, with the existing contiguous encoder as the default and fallback.
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`487ac40`](https://github.com/JSPrismarine/JSPrismarine/commit/487ac401339e3c4be9fe643d35957ace011b3983) Thanks [@filiphsps](https://github.com/filiphsps)! - Cache the stable unconnected pong payload and the formatted server name while keeping each timestamped response buffer independent.
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`e52ebdd`](https://github.com/JSPrismarine/JSPrismarine/commit/e52ebdd566403769c87a72281e60a9ed41d8b248) Thanks [@filiphsps](https://github.com/filiphsps)! - Trim inbound frame overhead ([#2821](https://github.com/JSPrismarine/JSPrismarine/issues/2821))
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`1dffdad`](https://github.com/JSPrismarine/JSPrismarine/commit/1dffdad407e75cfbb4ca2961bc4698ec2b304da8) Thanks [@filiphsps](https://github.com/filiphsps)! - Add an opt-in worker-backed RakNet listener with bounded shared-memory queues, per-session ordered handoff, and a seeded bot-fleet benchmark.
+- Updated dependencies [[`d499106`](https://github.com/JSPrismarine/JSPrismarine/commit/d49910658d7aa57fedfe32512977f79aa0023832), [`9061024`](https://github.com/JSPrismarine/JSPrismarine/commit/9061024a45c9e8b00be4963b61406d7474f2f82d)]:
+  - @jsprismarine/binaryutils@0.17.0
+
 ## 0.16.0
 
 ### Minor Changes
