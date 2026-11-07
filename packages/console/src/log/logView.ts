@@ -1,4 +1,4 @@
-import type { MouseEvent } from '@opentui/core';
+import type { MouseEvent, Selection } from '@opentui/core';
 import { BoxRenderable, MouseButton, TextBuffer, TextRenderable } from '@opentui/core';
 import type { ConsoleContext } from '../context';
 import { columns, sliceColumns } from '../text';
@@ -46,6 +46,8 @@ export interface LogView {
     clearView(): void;
     /** Returns selected log text with soft wraps and visual indentation removed. */
     getSelectedText(): string;
+    /** Whether `selection` covers log rows and nothing else, so it is text the user meant to take from the log. */
+    isLogSelection(selection: Selection): boolean;
     setWrap(wrap: boolean): void;
     setShowNamespace(show: boolean): void;
     setLevelStyle(style: LevelStyle): void;
@@ -336,6 +338,13 @@ export function createLogView(ctx: Pick<ConsoleContext, 'renderer' | 'theme'>, p
             repeatBoundary = store.visible().length;
             window.clear();
             schedule();
+        },
+        isLogSelection(selection) {
+            const { selectedRenderables } = selection;
+            return (
+                selectedRenderables.length > 0 &&
+                selectedRenderables.every((selected) => rows.some((row) => row.text === selected))
+            );
         },
         getSelectedText() {
             const selection = renderer.getSelection();

@@ -242,6 +242,17 @@ describe('createApp', () => {
             await t.renderOnce();
         };
         const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
+        const reportTps = (t: AppHarness, tps: number): void =>
+            t.app.applyServerMessage({
+                type: 'status',
+                v: 1,
+                tps,
+                tickMs: 4.1,
+                players: 0,
+                maxPlayers: 20,
+                rssBytes: 100 * 1024 * 1024,
+                uptimeMs: 1000
+            });
         /** `CSI code;9u` is a Super-modified key in the kitty keyboard protocol. */
         const cmd = (letter: string) => `\u001B[${letter.charCodeAt(0)};9u`;
 
@@ -289,6 +300,43 @@ describe('createApp', () => {
             const y = rows.findIndex((row) => row.includes('copied selection'));
             const x = rows[y]!.indexOf('copied selection');
             await t.mockMouse.drag(x, y, x + 'copied selection'.length, y);
+            await flush();
+
+            expect(t.clipboard.copy).not.toHaveBeenCalled();
+        });
+
+        it('does not copy when a tab on the TPS page is clicked', async () => {
+            const t = await setup({ width: 120, height: 40 });
+            dispose = t.dispose;
+            await focusLog(t);
+            t.mockInput.pressKey('t');
+            await t.renderOnce();
+
+            const rows = t.captureCharFrame().split('\n');
+            const y = rows.findIndex((row) => row.includes(' 15m '));
+            const x = rows[y]!.indexOf(' 15m ');
+            await t.mockMouse.click(x + 1, y);
+            await t.mockMouse.drag(x, y, x + 4, y);
+            await flush();
+            await t.renderOnce();
+
+            expect(t.clipboard.copy).not.toHaveBeenCalled();
+            expect(t.captureCharFrame()).toContain('-15m');
+        });
+
+        it('does not copy when a status bar item or the details pane is selected', async () => {
+            const t = await setup({ width: 120, height: 40 });
+            dispose = t.dispose;
+            reportTps(t, 20);
+            await t.renderOnce();
+            const rows = t.captureCharFrame().split('\n');
+            const bar = rows.findIndex((row) => row.includes('WARN 0'));
+            const barX = rows[bar]!.indexOf('WARN 0');
+            const pane = rows.findIndex((row) => row.includes('Players'));
+            const paneX = rows[pane]!.indexOf('Players');
+
+            await t.mockMouse.drag(barX, bar, barX + 6, bar);
+            await t.mockMouse.drag(paneX, pane, paneX + 7, pane);
             await flush();
 
             expect(t.clipboard.copy).not.toHaveBeenCalled();

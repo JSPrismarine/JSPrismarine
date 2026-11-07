@@ -968,16 +968,18 @@ export function createApp(ctx: AppContext, props: AppProps): App {
 
     renderer.keyInput.on('keypress', onKey);
     /**
-     * Copies a finished mouse selection at once. With mouse reporting on, the terminal's own
-     * selection is unavailable, and many terminals keep Cmd+C for it, so the app cannot count on
-     * ever seeing the key.
+     * Copies a finished mouse selection of log text at once. With mouse reporting on, the terminal's
+     * own selection is unavailable and many terminals keep Cmd+C for it, so the app cannot count on
+     * ever seeing the key. Pressing anything else, such as a tab, a status bar item, or a notice,
+     * can also finish a selection and must not touch the clipboard. Cmd+C still copies whatever is
+     * selected.
      */
     let copiedSelection: Selection | undefined;
     const onSelection = guard((selection: Selection) => {
         // A press that ends without moving finishes the same selection again; copy each one once.
         if (selection === copiedSelection) return;
         copiedSelection = selection;
-        if (selectedText() !== '') copySelection();
+        if (view.isLogSelection(selection) && selectedText() !== '') copySelection();
     });
 
     renderer.on(CliRenderEvents.RESIZE, onResize);

@@ -144,6 +144,7 @@ export function createStatusBar(
                     content: part.text,
                     fg: part.color
                 });
+                text.selectable = false;
                 const current: StatusTextPart = { ...part, renderable: text };
                 text.onMouseDown = (event) => {
                     if (

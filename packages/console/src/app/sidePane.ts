@@ -199,6 +199,7 @@ export function createSidePane(ctx: Pick<ConsoleContext, 'renderer' | 'theme'>, 
                     truncate: true,
                     content: new StyledText(chunks)
                 });
+                text.selectable = false;
                 if (opensTps) {
                     text.onMouseDown = (event: MouseEvent) => {
                         if (event.button !== MouseButton.LEFT) return;

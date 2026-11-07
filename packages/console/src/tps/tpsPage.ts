@@ -125,14 +125,18 @@ export function createTpsPage(ctx: Pick<ConsoleContext, 'renderer' | 'theme'>, p
         paddingRight: PADDING_X
     });
 
-    const text = (id: string, chunks: TextChunk[]): TextRenderable =>
-        new TextRenderable(renderer, {
+    // The page is controls and a chart, not text to take: pressing a tab must not select it.
+    const text = (id: string, chunks: TextChunk[]): TextRenderable => {
+        const renderable = new TextRenderable(renderer, {
             id,
             height: 1,
             truncate: true,
             wrapMode: 'none',
             content: new StyledText(chunks)
         });
+        renderable.selectable = false;
+        return renderable;
+    };
 
     const click = (handler: () => void) => (event: MouseEvent) => {
         if (event.button !== MouseButton.LEFT) return;
