@@ -144,6 +144,7 @@ function toggle(login: string) {
     flex: none;
     gap: 8px;
     align-items: center;
+    min-height: 44px;
     padding: 4px 8px;
     font-size: 13px;
     font-variant-numeric: tabular-nums;

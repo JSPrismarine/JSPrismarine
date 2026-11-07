@@ -89,7 +89,9 @@ onBeforeUnmount(() => abort.abort());
 
 <template>
     <div class="commits">
-        <p v-if="loading && !commits.length" class="commits__status" role="status">Loading commits…</p>
+        <div v-if="loading && !commits.length" class="commits__skeleton" role="status" aria-label="Loading commits">
+            <span v-for="row in 4" :key="row" class="commits__skeleton-row"></span>
+        </div>
         <p v-else-if="failed && !commits.length" class="commits__status">
             Could not load commits, which usually means GitHub's rate limit. See them on
             <a :href="allCommitsUrl" rel="noopener">GitHub</a>.
@@ -113,7 +115,7 @@ onBeforeUnmount(() => abort.abort());
                         :aria-posinset="first + offset + 1"
                         :aria-setsize="commits.length"
                     >
-                        <a class="commits__link" :href="commit.url" rel="noopener">
+                        <a class="commits__link" :href="commit.url" :title="commit.message" rel="noopener">
                             <span class="commits__message">{{ commit.message }}</span>
                             <span class="commits__meta"
                                 ><code>{{ commit.sha.slice(0, 7) }}</code>
@@ -197,6 +199,35 @@ onBeforeUnmount(() => abort.abort());
     padding: 0;
     font-size: 12px;
     background: none;
+}
+
+.commits__skeleton {
+    display: grid;
+    border: 1px solid var(--vp-c-divider);
+    border-radius: 8px;
+}
+
+.commits__skeleton-row {
+    height: 44px;
+    background: linear-gradient(90deg, transparent, var(--vp-c-default-soft), transparent) 0 0 / 200% 100%;
+    border-top: 1px solid var(--vp-c-divider);
+    animation: commits-shimmer 1.4s linear infinite;
+}
+
+.commits__skeleton-row:first-child {
+    border-top: 0;
+}
+
+@keyframes commits-shimmer {
+    to {
+        background-position: -200% 0;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .commits__skeleton-row {
+        animation: none;
+    }
 }
 
 .commits__status {
