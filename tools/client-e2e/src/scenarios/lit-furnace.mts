@@ -74,9 +74,18 @@ export const litFurnace: Scenario = {
         // The screen showing what the block holds is the inventory check: pick the ore out of
         // the input slot and drop it on the hotbar, then ask the server whether it arrived.
         await client.clickAt([732, 241]);
-        await sleep(250);
+        await client.waitFrames(15);
         await client.clickAt([688, 498]);
         await waitTicks(server, 15);
+        // Ask without removing: the ore is checked again at the end, and the screen is closed
+        // only once the move has landed, so a slow reply is not mistaken for a lost click.
+        const landedBy = Date.now() + 15_000;
+        for (;;) {
+            const counted = server.waitForLine(/Found \d+ matching|Could not/, 10_000);
+            server.command(`clear ${playerName} minecraft:iron_ore 0`);
+            if (/Found [1-9]/.test(await counted) || Date.now() > landedBy) break;
+            await waitTicks(server, 10);
+        }
         await client.input({ press: ['Escape'] });
         await client.waitForScreenAbsent('Container', 5_000);
         await waitTicks(server, 10);
