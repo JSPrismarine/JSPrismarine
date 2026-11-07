@@ -64,7 +64,7 @@
         "@jsprismarine/prismarine": "workspace:*",
         "@types/node": "26.6.6",
         "@types/yargs": "17.0.35",
-        "glob": "13.0.7",
+        "glob": "14.0.4",
         "rimraf": "6.1.4",
         "typescript": "7.0.2",
         "vite": "8.3.6",
