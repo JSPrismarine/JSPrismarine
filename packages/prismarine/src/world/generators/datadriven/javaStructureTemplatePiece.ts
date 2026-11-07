@@ -52,8 +52,76 @@ const JIGSAW = 'minecraft:jigsaw';
  */
 const JIGSAW_REPLACEMENT = createProcessor({ processor_type: 'minecraft:jigsaw_replacement' });
 
+/**
+ * What a street dropped onto the ground may replace: the ground itself, plants growing on it, air
+ * and water. Named rather than looked up by tag, because the writer answers in either edition's
+ * spelling and the tag tables do not know the generator's blocks yet.
+ */
+const GROUND_NAMES: ReadonlySet<string> = new Set(
+    [
+        'air',
+        'water',
+        'flowing_water',
+        'grass_block',
+        'grass',
+        'short_grass',
+        'tall_grass',
+        'fern',
+        'dirt',
+        'coarse_dirt',
+        'podzol',
+        'mycelium',
+        'rooted_dirt',
+        'mud',
+        'clay',
+        'sand',
+        'red_sand',
+        'gravel',
+        'stone',
+        'deepslate',
+        'andesite',
+        'diorite',
+        'granite',
+        'tuff',
+        'sandstone',
+        'red_sandstone',
+        'snow',
+        'snow_layer',
+        'snow_block',
+        'powder_snow',
+        'ice',
+        'packed_ice',
+        'farmland',
+        'dirt_path',
+        'grass_path',
+        'hardened_clay'
+    ].map((name) => `minecraft:${name}`)
+);
+
+/**
+ * What Java's `StructureTemplatePool.Projection.TERRAIN_MATCHING` adds to an element's processors:
+ * a gravity processor that drops each block to the world surface, one below, so a village street
+ * follows the ground instead of keeping the height its template was drawn at.
+ */
+const TERRAIN_MATCHING = createProcessor({
+    processor_type: 'minecraft:gravity',
+    heightmap: 'WORLD_SURFACE_WG',
+    offset: -1
+});
+
 /** A processor chain named by identifier, or written inline as Java 26.3 lets a field be. */
 export type ProcessorsReference = string | { readonly processors: readonly unknown[] } | undefined;
+
+/** Whether the block at a position is ground, air or water: what a street may be laid over. */
+const isGround = (writer: StructureWriter, x: number, y: number, z: number): boolean => {
+    const existing = writer.blockAt(x, y, z).name;
+    return (
+        GROUND_NAMES.has(existing) ||
+        existing.endsWith('_leaves') ||
+        existing.endsWith('_log') ||
+        existing.endsWith('terracotta')
+    );
+};
 
 /** A `structure_block` in DATA mode: how a legacy structure marks a spot it fills in from code. */
 export interface DataMarker {
@@ -273,6 +341,8 @@ export interface TemplatePieceOptions {
     readonly groundLevelDelta?: number;
     /** Whether the terrain adaptation leaves this piece alone, as it does a terrain-matching one. */
     readonly ignoresTerrainAdaptation?: boolean;
+    /** Whether the element is `terrain_matching`, which hugs the ground through a gravity processor. */
+    readonly terrainMatching?: boolean;
     /** Jigsaw junctions Java stores on this pool element piece. */
     readonly junctions?: StructurePiece['junctions'];
     /** A registered marker action in place of a callback closure that cannot cross worker threads. */
@@ -361,7 +431,10 @@ export class TemplatePiece implements StructurePiece {
 
         const [originX, originY, originZ] = this.options.position;
         const named = this.options.store.processors(this.options.processors);
-        const chain = prepared.hasJigsaw && this.options.keepJigsaws !== true ? [JIGSAW_REPLACEMENT, ...named] : named;
+        const withJigsaws =
+            prepared.hasJigsaw && this.options.keepJigsaws !== true ? [JIGSAW_REPLACEMENT, ...named] : named;
+        // After the element's own processors, as Java appends the projection's last.
+        const chain = this.options.terrainMatching === true ? [...withJigsaws, TERRAIN_MATCHING] : withJigsaws;
 
         const processed =
             chain.length === 0
@@ -389,6 +462,9 @@ export class TemplatePiece implements StructurePiece {
             const x = originX + block.pos[0];
             const y = originY + block.pos[1];
             const z = originZ + block.pos[2];
+            // A street dropped onto the ground can land on the footprint of a building that
+            // another piece already put there, and it must not paint over the well and its bell.
+            if (this.options.terrainMatching === true && !isGround(writer, x, y, z)) continue;
             if (!writer.setBedrockBlock(x, y, z, state)) continue;
 
             const request =

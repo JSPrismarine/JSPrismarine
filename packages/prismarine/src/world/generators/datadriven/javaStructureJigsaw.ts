@@ -109,6 +109,7 @@ const piecesOf = (placed: PlacedPiece, context: StructureBuildContext): Structur
             groundLevelDelta: placed.groundLevelDelta ?? GROUND_LEVEL_DELTA,
             ...(carriesJunctions ? { junctions: placed.junctions } : {}),
             ignoresTerrainAdaptation: element.projection !== 'rigid',
+            terrainMatching: element.projection === 'terrain_matching',
             // Java places a legacy element through `BlockIgnoreProcessor.STRUCTURE_AND_AIR`,
             // so the air inside a village house leaves the ground under it alone instead of
             // punching a hole in the hillside the house is bearded into.

@@ -195,6 +195,38 @@ describe('a template piece', () => {
         ]);
     });
 
+    it('drops a terrain-matching piece onto the surface, one below, and leaves a rigid one where it is', () => {
+        // Java adds a gravity processor for a `terrain_matching` element, which is what makes a
+        // village street follow the ground instead of floating over a hollow at template height.
+        const placeAt = (terrainMatching: boolean): number[] => {
+            const ys: number[] = [];
+            const writer: StructureWriter = {
+                level,
+                blockAt: () => ({ name: 'minecraft:air', properties: {} }),
+                setBlock: () => true,
+                setBedrockBlock: (_x, y) => {
+                    ys.push(y);
+                    return true;
+                },
+                setBlockEntity: () => {},
+                spawnEntity: () => {},
+                heightAt: () => 70,
+                hasTag: () => false
+            };
+            new TemplatePiece({
+                store: store(),
+                template: DOORSTEP,
+                position: [10, 64, 20],
+                placement: {},
+                terrainMatching
+            }).place(writer, createLegacyRandom(1n));
+            return ys;
+        };
+
+        expect(placeAt(false)).toEqual([64]);
+        expect(placeAt(true)).toEqual([69]);
+    });
+
     it('attaches the block entity a template block carries', () => {
         const { blockEntities } = place({});
 
