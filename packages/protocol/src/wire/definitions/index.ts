@@ -33,11 +33,13 @@ import { blockActorDataPacket, updateBlockPacket } from './blocks';
 import { bossEventPacket } from './bossEvent';
 import { cameraAimAssistPresetsPacket } from './cameraAimAssistPresets';
 import { cameraPresetsPacket } from './cameraPresets';
+import { cameraSplinePacket } from './cameraSpline';
 import { setTitlePacket, textPacket } from './chat';
 import { chunkRadiusUpdatedPacket, requestChunkRadiusPacket } from './chunkRadiusUpdated';
 import { clientCacheStatusPacket } from './clientCache';
 import { clientToServerHandshakePacket } from './clientToServerHandshake';
 import { commandOutputPacket, commandRequestPacket } from './commands';
+import { currentStructureFeaturePacket } from './currentStructureFeature';
 import { disconnectPacket } from './disconnect';
 import { onScreenTextureAnimationPacket, spawnParticleEffectPacket } from './effects';
 import {
@@ -102,6 +104,7 @@ import { setActorDataPacket } from './setActorData';
 import { showCreditsPacket } from './showCredits';
 import { startGamePacket } from './startGame';
 import { syncActorPropertyPacket } from './syncActorProperty';
+import { syncWorldClocksPacket } from './syncWorldClocks';
 import { trimDataPacket } from './trimData';
 import { updateAbilitiesPacket } from './updateAbilities';
 import { updateAttributesPacket } from './updateAttributes';
@@ -124,6 +127,7 @@ export const wireDefinitions: ReadonlyMap<string, PacketDefinition> = new Map(
         bossEventPacket,
         cameraAimAssistPresetsPacket,
         cameraPresetsPacket,
+        cameraSplinePacket,
         chunkRadiusUpdatedPacket,
         clientCacheStatusPacket,
         clientToServerHandshakePacket,
@@ -132,6 +136,7 @@ export const wireDefinitions: ReadonlyMap<string, PacketDefinition> = new Map(
         containerClosePacket,
         containerOpenPacket,
         containerSetDataPacket,
+        currentStructureFeaturePacket,
         disconnectPacket,
         inventoryContentPacket,
         inventorySlotPacket,
@@ -184,6 +189,7 @@ export const wireDefinitions: ReadonlyMap<string, PacketDefinition> = new Map(
         takeItemActorPacket,
         textPacket,
         syncActorPropertyPacket,
+        syncWorldClocksPacket,
         trimDataPacket,
         updateAbilitiesPacket,
         updateAttributesPacket,
