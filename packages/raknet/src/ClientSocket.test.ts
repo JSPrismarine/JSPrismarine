@@ -46,7 +46,7 @@ const stalledSessionState = (stallDurationMs: number) => {
     };
 };
 
-const logger = stub<Logger>({ error: () => {}, debug: () => {}, verbose: () => {}, warn: () => {} });
+const logger = stub<Logger>({ info: () => {}, error: () => {}, debug: () => {}, verbose: () => {}, warn: () => {} });
 
 describe('ClientSocket tick ordering', () => {
     afterEach(() => vi.useRealTimers());
@@ -89,5 +89,25 @@ describe('ClientSocket tick ordering', () => {
 
         client['stopped'] = true;
         clearTimeout(client['ticker']);
+    });
+});
+
+describe('ClientSocket ping', () => {
+    it('sends the ping again while no pong has come back', async () => {
+        const { createSocket } = await import('node:dgram');
+        const silent = createSocket('udp4');
+        let received = 0;
+        silent.on('message', () => received++);
+        await new Promise<void>((resolve) => silent.bind(0, '127.0.0.1', resolve));
+
+        const client = new ClientSocket(logger);
+        try {
+            await expect(client.ping('127.0.0.1', silent.address().port, 1_300)).rejects.toThrow('timed out');
+        } finally {
+            client.kill();
+            silent.close();
+        }
+
+        expect(received).toBeGreaterThanOrEqual(2);
     });
 });

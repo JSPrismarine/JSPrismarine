@@ -63,6 +63,9 @@ interface ConnectAttempt {
     settled: boolean;
 }
 
+/** How often an unanswered ping is sent again. */
+const PING_RESEND_INTERVAL_MS = 500;
+
 interface PendingPing {
     readonly token: string;
     readonly resolve: (result: PingResult) => void;
@@ -200,16 +203,28 @@ export default class ClientSocket extends EventEmitter implements RakNetPeer {
 
         const sentAt = monotonicNow();
 
+        const to = { address, port, family: 'IPv4', size: 0 } as const;
+
         return new Promise<PingResult>((resolve, reject) => {
+            // A datagram is not guaranteed to arrive, and a server that is still starting or busy
+            // drops the first one, so ask again until the deadline rather than once.
+            const resend = setInterval(() => this.sendPacket(packet, to), PING_RESEND_INTERVAL_MS);
+
             this.pendingPings.push({
                 token: `${address}:${port}`,
-                resolve,
-                reject,
+                resolve: (result) => {
+                    clearInterval(resend);
+                    resolve(result);
+                },
+                reject: (error) => {
+                    clearInterval(resend);
+                    reject(error);
+                },
                 sentAt,
                 deadline: sentAt + timeoutMs
             });
 
-            this.sendPacket(packet, { address, port, family: 'IPv4', size: 0 });
+            this.sendPacket(packet, to);
         });
     }
 
