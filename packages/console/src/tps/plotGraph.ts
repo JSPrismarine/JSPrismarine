@@ -56,8 +56,8 @@ const worse = (a: GraphTone | undefined, b: GraphTone | undefined): GraphTone | 
 /**
  * Draws a line chart with braille cells, two dots across and four down per cell.
  *
- * The values spread evenly over the plot's width. A gap (`undefined`) leaves the columns it covers
- * empty and breaks the line, and values outside `min` to `max` stick to the nearest edge.
+ * The values spread evenly over the plot's width and neighboring values are joined by a stroke. A
+ * gap (`undefined`) leaves the columns it covers empty and breaks the line, and values outside `min` to `max` stick to the nearest edge.
  *
  * @param values - One reading per horizontal position, oldest first.
  * @returns `options.rows` rows from the top of the plot down.
@@ -77,11 +77,13 @@ export function plotGraph(values: readonly (number | undefined)[], options: Plot
     };
     const xFor = (index: number): number =>
         samples.length <= 1 ? dotWidth - 1 : Math.round((index / (samples.length - 1)) * (dotWidth - 1));
-    const plot = (x: number, y: number, tone: GraphTone): void => {
-        dots[x * dotHeight + y] = 1;
+    const plot = (x: number, fromY: number, toY: number, tone: GraphTone): void => {
+        for (let y = Math.min(fromY, toY); y <= Math.max(fromY, toY); y += 1) dots[x * dotHeight + y] = 1;
         tones[x] = worse(tones[x], tone);
     };
 
+    // Each column fills the dots between where the line leaves the previous column and where it
+    // reaches this one, so a steep change draws a connected stroke instead of loose dots.
     let previous: { x: number; value: number } | undefined;
     samples.forEach((sample, index) => {
         if (sample === undefined) {
@@ -89,12 +91,14 @@ export function plotGraph(values: readonly (number | undefined)[], options: Plot
             return;
         }
         const x = xFor(index);
-        plot(x, yFor(sample), tpsTone(sample));
-        if (previous !== undefined) {
-            const gap = x - previous.x;
-            for (let step = 1; step < gap; step += 1) {
+        if (previous === undefined) {
+            plot(x, yFor(sample), yFor(sample), tpsTone(sample));
+        } else {
+            const gap = Math.max(1, x - previous.x);
+            for (let step = 1; step <= gap; step += 1) {
+                const before = previous.value + ((sample - previous.value) * (step - 1)) / gap;
                 const value = previous.value + ((sample - previous.value) * step) / gap;
-                plot(previous.x + step, yFor(value), tpsTone(value));
+                plot(previous.x + step, yFor(before), yFor(value), worse(tpsTone(before), tpsTone(value)) ?? 'ok');
             }
         }
         previous = { x, value: sample };

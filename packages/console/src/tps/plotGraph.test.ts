@@ -48,19 +48,28 @@ describe('plotGraph', () => {
         expect(rows.flatMap((row) => row.tones).every((tone) => tone === undefined)).toBe(true);
     });
 
-    it('puts a full-speed reading in the top row and a stalled one in the bottom row', () => {
-        const [top, bottom] = plotGraph([20, 20, 10, 10], options);
+    it('puts full-speed readings in the top row and stalled ones in the bottom row', () => {
+        const [top, bottom] = plotGraph([20, 20, 20, 20, 10, 10, 10, 10], options);
 
-        expect(top?.cells.slice(0, 2)).not.toBe('⠀⠀');
-        expect(top?.cells.slice(2)).toBe('⠀⠀');
-        expect(bottom?.cells.slice(0, 2)).toBe('⠀⠀');
-        expect(bottom?.cells.slice(2)).not.toBe('⠀⠀');
+        expect(top?.cells.slice(0, 2)).not.toBe('\u2800\u2800');
+        expect(top?.cells[3]).toBe('\u2800');
+        expect(bottom?.cells.slice(0, 2)).toBe('\u2800\u2800');
+        expect(bottom?.cells.slice(2)).not.toBe('\u2800\u2800');
     });
 
-    it('colors each column by its worst reading, including the slope that joins two readings', () => {
-        const [top, bottom] = plotGraph([20, 20, 10, 10], options);
+    it('joins a steep change with a stroke through every row it crosses', () => {
+        const [top, bottom] = plotGraph([20, 10], { ...options, columns: 1 });
 
-        expect(top?.tones).toEqual(['ok', 'warning', undefined, undefined]);
+        // The right-hand dots of the single cell run the full height: 0x08 | 0x10 | 0x20 | 0x80 in the
+        // top row, and the same four in the bottom row.
+        expect(top?.cells.codePointAt(0)).toBe(0x2800 + 0x01 + 0xb8);
+        expect(bottom?.cells.codePointAt(0)).toBe(0x2800 + 0xb8);
+    });
+
+    it('colors each column by its worst reading, including the stroke that joins two readings', () => {
+        const [top, bottom] = plotGraph([20, 20, 20, 20, 10, 10, 10, 10], options);
+
+        expect(top?.tones).toEqual(['ok', 'ok', 'danger', undefined]);
         expect(bottom?.tones).toEqual([undefined, undefined, 'danger', 'danger']);
     });
 
