@@ -21,7 +21,7 @@ jobs:
         name: 🏷️ Resolve nightly version
         concurrency:
             group: nightly-version-${{ github.event.pull_request.number || github.ref }}
-            cancel-in-progress: true
+            cancel-in-progress: false
         runs-on: ubuntu-latest
         permissions:
             actions: read
@@ -50,7 +50,7 @@ jobs:
         name: 🗃️ Prepare executable data
         concurrency:
             group: nightly-data-${{ github.event.pull_request.number || github.ref }}
-            cancel-in-progress: true
+            cancel-in-progress: false
         runs-on: ubuntu-latest
         permissions:
             contents: read
@@ -106,7 +106,7 @@ jobs:
         runs-on: ${{ matrix.runner }}
         concurrency:
             group: nightly-build-${{ github.event.pull_request.number || github.ref }}-${{ matrix.platform }}
-            cancel-in-progress: true
+            cancel-in-progress: false
         env:
             BUILD_TYPE: nightly
             BUILD_VERSION: ${{ needs.nightly-version.outputs.version }}
