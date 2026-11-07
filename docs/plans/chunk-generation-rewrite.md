@@ -42,7 +42,7 @@ Name them by these labels; later slices refer to them.
 | **types** | `pnpm run typecheck` | 43 of 43, test files included |
 
 Also run `pnpm run lint`. Add a Changeset for every package a slice changes, choosing the bump
-from [the versioning policy](../versioning.md).
+from [the versioning policy](../guide/versioning.md).
 
 A slice that changes generated blocks says so in its own section and says which digests to
 re-capture. Every other slice must leave **corpus**, **generator** and **sampler** byte-identical.

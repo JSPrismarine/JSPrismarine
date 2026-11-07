@@ -4,7 +4,7 @@ Reviewed the committed state at `95bb07e01b` for `packages/server/src/{Server.ts
 `packages/prismarine/src/console/**`, the remote console wiring in `packages/prismarine/src/Server.ts`,
 `packages/console/src/{app/**,startConsole.ts,help/**}`, and the four changesets added since
 `1990d875c3`. Judged against `plan.md`, the judge amendments in `votes/judge-2.md` and
-`votes/judge-3.md`, `AGENTS.md`, and `docs/versioning.md`. Findings already queued in
+`votes/judge-3.md`, `AGENTS.md`, and `docs/guide/versioning.md`. Findings already queued in
 `review-wave1.md` are not repeated.
 
 Working tree at review time: `packages/server/src/Server.ts` and `packages/server/src/host/frontends.ts`
@@ -183,7 +183,7 @@ Bug 5, design 7, nit 10, lint failure 0.
     already tolerates its absence once `loadTuiFrontend` catches the import error), and say so
     in the changeset.
 
-Bump levels check out against `docs/versioning.md`: server, console, console-protocol, and
+Bump levels check out against `docs/guide/versioning.md`: server, console, console-protocol, and
 logger are additive at 0.x and take `patch`; prismarine removes `writeAbovePrompt` and
 `PromptWriter` and takes `minor`. The logger changeset names `LOG_LEVELS`, `isLogLevel`, and
 `isAtLeastLevel`. The flags in `hosts-watch-terminals.md` (`--watch`, `--no-tui`,

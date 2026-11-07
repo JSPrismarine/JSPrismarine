@@ -27,7 +27,7 @@ URL or a repository path. Items marked "unverified" were not confirmed against a
   constructing `Console` and skips the `process.title` TPS update. `shutdown()` ends with
   `process.exit(...)` unless `stayAlive` is set.
 - The `Dockerfile` runs Node as PID 1 with no TTY and relies on SIGTERM for a graceful stop.
-  `docs/running.md` section 5 promises the console keeps working across dev restarts.
+  `docs/guide/running.md` section 5 promises the console keeps working across dev restarts.
 - `scripts/package-sea.mts` bundles `packages/server/src/Server.ts` to one CommonJS file with
   rolldown and builds it with `node --build-sea` (Node 25.5 or newer). The SEA main is CommonJS.
 

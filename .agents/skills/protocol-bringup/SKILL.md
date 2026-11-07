@@ -13,7 +13,7 @@ and [docs/research/bedrock-data-pipeline.md](../../../docs/research/bedrock-data
 Read both before starting.
 
 Work the steps in order; each later step consumes the one before it. Commit each completed,
-validated slice (commit-discipline skill) and add Changesets per [docs/versioning.md](../../../docs/versioning.md).
+validated slice (commit-discipline skill) and add Changesets per [docs/guide/versioning.md](../../../docs/guide/versioning.md).
 
 ## 1. Pin the docs release
 

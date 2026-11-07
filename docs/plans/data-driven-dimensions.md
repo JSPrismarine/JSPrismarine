@@ -55,7 +55,7 @@ Run **corpus** in every chunk that touches `packages/prismarine/src/world/genera
 blocks; a corpus diff is a defect in the chunk.
 
 Every chunk that changes a published package adds a Changeset with `pnpm changeset`, choosing the
-bump from [the versioning policy](../versioning.md): every package here is below 1.0.0, so a
+bump from [the versioning policy](../guide/versioning.md): every package here is below 1.0.0, so a
 breaking change is `minor` and a feature or fix is `patch`. The Changeset file is part of the
 chunk's commit. Where a chunk edits a package README or a `docs/` page, that edit is in the same
 commit as the code it describes.
@@ -556,7 +556,7 @@ new shape.
 51), new `packages/prismarine/src/config/normalizeWorldData.ts` with test,
 `packages/prismarine/utils/generate-schemas.mjs` only if a new type needs listing,
 `packages/prismarine/schemas/config.schema.json` (regenerated with
-`pnpm --filter @jsprismarine/prismarine run generate`), `JsonSchemas.test.ts`, `docs/running.md`
+`pnpm --filter @jsprismarine/prismarine run generate`), `JsonSchemas.test.ts`, `docs/guide/running.md`
 (section 1.3 "set `generator` to `Flat`" at line 48 and the seed example at 229).
 
 **Public API.**
@@ -595,7 +595,7 @@ save (follow the existing comment-preserving write tests).
 **Verify.** **package** on prismarine, **types**, **custom**.
 
 **Done when** `WorldManager` consumes `NormalizedWorldData` (still loading only `level-name`;
-chunk 15 loads the rest) and `docs/running.md` shows the new shape with a sentence on the old
+chunk 15 loads the rest) and `docs/guide/running.md` shows the new shape with a sentence on the old
 keys.
 
 **Depends on** chunk 1 (the stem JSON types).
@@ -1082,7 +1082,7 @@ it captures the sequence from chunk 16's `changeWorld` directly; then 21 is not 
 **Files.** New `docs/data-driven/dimensions.md` (what a dimension type, stem and preset are; the
 config shape with the three examples from the dimension note's section 4.6; the migration table;
 `load`; which presets work; portals and what the client sequence looks like; the answers to the
-open questions above), `docs/data-driven/README.md` reading map entry, `docs/running.md`
+open questions above), `docs/data-driven/README.md` reading map entry, `docs/guide/running.md`
 (section 5 final form), `packages/prismarine/README.md` if it lists generators,
 `packages/worldgen/README.md` and `packages/block-behaviors/README.md` for anything chunks 1 and 5
 left for later.

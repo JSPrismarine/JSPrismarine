@@ -128,5 +128,5 @@ Wave 2 (after protocol): remote console in prismarine; host modules and entry wi
 and log view.
 Wave 3 (after wave 2): app composition and `startConsole`; help overlay and keymap; dev launcher
 replacement and `dev-smoke.exp` retirement; host integration test with a fake child.
-Wave 4: docs (`docs/running.md`, READMEs, `Dockerfile` `JSP_NO_TUI`), changesets, baseline
+Wave 4: docs (`docs/guide/running.md`, READMEs, `Dockerfile` `JSP_NO_TUI`), changesets, baseline
 cleanups, full lint and test.

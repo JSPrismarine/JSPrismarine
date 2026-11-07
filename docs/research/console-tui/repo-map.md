@@ -174,7 +174,7 @@ Bun: `Console.ts:94-96` guards `setNoDelay`/`setKeepAlive` because Bun lacks the
 
 ## 3. What a new workspace package needs
 
-Reference packages: `packages/color-parser` (no deps) and `packages/logger` (depends on color-parser). Both are at `0.15.2`, as is every package in the repo (`auth`, `bedrock-data`, `binaryutils`, `brigadier`, `client`, `color-parser`, `errors`, `leveldb`, `logger`, `math`, `minecraft`, `nbt`, `prismarine`, `protocol`, `raknet`, `server`, and `tools/docs`). Per `docs/versioning.md`, below `1.0.0` a feature is `patch`, a breaking change is `minor`. `.changeset/config.json` has one `fixed` group covering all `@jsprismarine/*` except `color-parser`, `brigadier`, `bedrock-data`; `updateInternalDependencies: patch`. Pending changesets: 14 `prismarine` patches, one `prismarine` minor (`tender-items-say.md`, UUID-keyed permissions), two `brigadier` patches, one `server` patch.
+Reference packages: `packages/color-parser` (no deps) and `packages/logger` (depends on color-parser). Both are at `0.15.2`, as is every package in the repo (`auth`, `bedrock-data`, `binaryutils`, `brigadier`, `client`, `color-parser`, `errors`, `leveldb`, `logger`, `math`, `minecraft`, `nbt`, `prismarine`, `protocol`, `raknet`, `server`, and `tools/docs`). Per `docs/guide/versioning.md`, below `1.0.0` a feature is `patch`, a breaking change is `minor`. `.changeset/config.json` has one `fixed` group covering all `@jsprismarine/*` except `color-parser`, `brigadier`, `bedrock-data`; `updateInternalDependencies: patch`. Pending changesets: 14 `prismarine` patches, one `prismarine` minor (`tender-items-say.md`, UUID-keyed permissions), two `brigadier` patches, one `server` patch.
 
 Files in each package (identical scaffolding, copy from `packages/logger`):
 
@@ -234,8 +234,8 @@ Event bus: `Server extends EventEmitter` (`events/EventEmitter.ts:149-190`): `on
 
 ## 6. Docs to update
 
-- `docs/running.md:30-37` (`pnpm run dev` / `pnpm run start`), `:85-96` ("How the development server works": supervisor, "the interactive console keeps working across restarts"), `:107,120-123` (env vars with `pnpm run dev`). New flags or a `console` subcommand belong here.
-- `docs/log-levels.md`: level list only; mention if the TUI filters by level.
+- `docs/guide/running.md:30-37` (`pnpm run dev` / `pnpm run start`), `:85-96` ("How the development server works": supervisor, "the interactive console keeps working across restarts"), `:107,120-123` (env vars with `pnpm run dev`). New flags or a `console` subcommand belong here.
+- `docs/guide/log-levels.md`: level list only; mention if the TUI filters by level.
 - `tools/docs/site/index.md:18`: feature blurb "pnpm run dev starts the server from source and restarts it when any package changes, with a working interactive console."
 - `tools/docs/site/.vitepress/config.mts:14-20`: guide sidebar lists `running` and `log-levels`; `tools/docs/assemble.mts:23-26` copies only top-level `docs/*.md` into the site, so a new guide page needs a sidebar entry and `docs/agents/**` stays out of the site.
 - `README.md:46-49` ("Run the server (use `pnpm run dev` for development)").

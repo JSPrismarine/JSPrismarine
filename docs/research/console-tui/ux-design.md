@@ -15,7 +15,7 @@ are design proposals, not findings.
   namespace is the caller's file name, or `path.ts:line:col` at `verbose` and below. Transports
   receive a `LogRecord` (`level`, `message`, `namespace`, `timestamp`, `formatted`), and
   `PrismarineTransport` buffers records until a console attaches. `FileTransport` strips ANSI
-  and `§` codes. The six levels are documented in `docs/log-levels.md`.
+  and `§` codes. The six levels are documented in `docs/guide/log-levels.md`.
 - `packages/prismarine/src/chat/ConsoleText.ts` turns translation keys into English
   (`filfat joined the game`) and prefixes player chat with `<name>`.
 - `packages/server/scripts/dev.mts` spawns the server with inherited stdio and prints

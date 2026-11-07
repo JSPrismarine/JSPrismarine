@@ -50,7 +50,7 @@ const locationFromFrame = (frame: string): [string, string, string] | undefined 
 
 /**
  * Helper class for general logging.
- * @document ../../../docs/log-levels.md
+ * @document ../../../docs/guide/log-levels.md
  * @class
  * @public
  */

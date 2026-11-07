@@ -47,7 +47,7 @@ Use American English spelling in prose and documentation. Do not use British spe
   `.claude/skills/<name>` pointing to that directory so Claude Code discovers it. Keep the skill
   files in `.agents/skills/` as the source of truth.
 - For package changes that need a release, add a Changeset with `pnpm changeset`. Let Changesets
-  manage package versions and release changelogs. Read [the versioning policy](docs/versioning.md)
+  manage package versions and release changelogs. Read [the versioning policy](docs/guide/versioning.md)
   before adding or editing a Changeset, and choose a bump for each affected package based on its
   current version and the impact of the change.
 - Treat `packages/bedrock-data/src/generated/` as generated output. Its inputs are the pinned

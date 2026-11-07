@@ -212,7 +212,7 @@ Exit: the allow list contains only RNG-dependent rows and the open questions in 
 
 ## 10. Migration and breaking changes
 
-Every package is below 1.0.0, so by [the versioning policy](https://github.com/JSPrismarine/JSPrismarine/blob/master/docs/versioning.md) each breaking change is a `minor` bump through the fixed group in `.changeset/config.json`.
+Every package is below 1.0.0, so by [the versioning policy](https://github.com/JSPrismarine/JSPrismarine/blob/master/docs/guide/versioning.md) each breaking change is a `minor` bump through the fixed group in `.changeset/config.json`.
 
 - The block and item registration events and manager facades are removed; the pack stack owns their definitions. Entity compatibility paths and the remaining subclassable runtime classes still need to go.
 - `BlockIdsType`, `ItemIdsType` and every legacy numeric id go. Reading an old world still needs `legacy_block_ids.json` and `legacy_item_ids.json`, which the LevelDB provider owns.

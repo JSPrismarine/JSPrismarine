@@ -11,7 +11,7 @@ Java Edition describes it: a dimension type for its physics, a level stem that b
 generator, and a world preset that supplies the stems. This page explains those three objects,
 how a `worlds.<name>` entry in `config.json` turns into running worlds, which generators and
 presets work, how portals and the client's dimension change behave, and which parts have not been
-checked against a real Bedrock client yet. [running.md](../running.md) has the short version for
+checked against a real Bedrock client yet. [running.md](../guide/running.md) has the short version for
 somebody who only wants to configure a server.
 
 ## Three objects from Java's data
@@ -61,7 +61,7 @@ loaded datapacks into the server's registries. `WorldManager` builds the worldge
 the server's pack stack the first time a level needs them, so a datapack in the stack, through
 `content-datapacks` or a world pack, adds a `dimension_type` or a `noise_settings` document that
 stems and the noise generator can name. The vanilla documents come from the Java data cache that
-`pnpm run dev` arranges ([running.md section 1.3](../running.md#13-world-generation-data)), and so
+`pnpm run dev` arranges ([running.md section 1.3](../guide/running.md#13-world-generation-data)), and so
 do the biome parameter reports, which no datapack carries.
 
 Two things are copied into `@jsprismarine/prismarine` so that a vanilla level opens without that
@@ -130,7 +130,7 @@ A `worlds.<name>` entry is `{ seed, provider, preset?, dimensions? }`. Every key
 
 | Key | What it does |
 | --- | --- |
-| `seed` | The world seed, written as a string. A value that parses as a 64-bit integer is that integer and anything else is its Java `String.hashCode`. A number is accepted and exact below 2^53; see [World seeds](../running.md#world-seeds). |
+| `seed` | The world seed, written as a string. A value that parses as a 64-bit integer is that integer and anything else is its Java `String.hashCode`. A number is accepted and exact below 2^53; see [World seeds](../guide/running.md#world-seeds). |
 | `provider` | How the save is stored. `LevelDB`, the default, is Bedrock's format with every dimension in one database. `Anvil` reads Java's format, with `dimensions/<namespace>/<path>/region` per dimension and `DIM-1` and `DIM1` as fallbacks for saves written before Java 26.1. |
 | `preset` | The `worldgen/world_preset` id that supplies the stems. Defaults to `minecraft:normal`. An id the loaded presets do not have stops the server with an error that lists the ones they do. |
 | `dimensions.<id>` | One entry per dimension to override or add, keyed by the Java dimension id such as `minecraft:the_nether`. An id the preset has is overridden one key at a time; an id it lacks adds a dimension and then needs both `type` and `generator`. |

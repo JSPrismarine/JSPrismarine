@@ -266,7 +266,7 @@ Each phase ships independently with tests green; early phases are pure extractio
 - **Phase 6 — decompose `Server.ts` (in progress):** extract ticker, networking, and lifecycle modules (moving
   catch-up clamping, double-Ctrl+C, and reconnect-race behavior verbatim); formalize the
   `WorldChange` stream; deprecate getters; publish the module API from `packages/server`; major
-  changesets per `docs/versioning.md`.
+  changesets per `docs/guide/versioning.md`.
 - **Phase 7 — Protocol package ownership (complete):** move packet classes, ids, wire definitions,
   structures, and codec construction into `@jsprismarine/protocol`; pass server-owned item, block,
   and capture data through `ProtocolContext`; remove Prismarine's packet and Protocol re-exports.

@@ -27,14 +27,52 @@ export const megaMenus = [
                         link: '/guide/log-levels'
                     }
                 ]
+            },
+            {
+                text: 'Data-driven engine',
+                items: [
+                    {
+                        text: 'Overview',
+                        description: 'How vanilla behavior comes from data.',
+                        link: '/data-driven/'
+                    },
+                    {
+                        text: 'Using packs',
+                        description: 'Load and write your own data packs.',
+                        link: '/data-driven/using-packs'
+                    }
+                ]
             }
         ]
     },
     {
-        text: 'Parity tracker',
-        description: 'Behavior checked against the vanilla server.',
-        link: '/parity',
-        sections: []
+        text: 'Project',
+        description: 'Where the server stands and where it is going.',
+        sections: [
+            {
+                text: 'Status',
+                items: [
+                    {
+                        text: 'Parity tracker',
+                        description: 'Behavior checked against the vanilla server.',
+                        link: '/parity'
+                    },
+                    {
+                        text: 'Versioning policy',
+                        description: 'How packages are versioned and released.',
+                        link: '/guide/versioning'
+                    }
+                ]
+            },
+            {
+                text: 'Direction',
+                items: [
+                    { text: 'Plans', description: 'Execution order for larger efforts.', link: '/plans/' },
+                    { text: 'Decisions', description: 'Architecture decision records.', link: '/adr/' },
+                    { text: 'Research', description: 'Notes from primary sources.', link: '/research/' }
+                ]
+            }
+        ]
     },
     { text: 'API', description: 'Generated reference for the published packages.', link: '/api/', sections: [] },
     { text: 'Contributors', description: 'The people who write the code.', link: '/contributors', sections: [] }

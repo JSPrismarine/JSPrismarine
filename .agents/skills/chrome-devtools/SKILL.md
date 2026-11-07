@@ -8,7 +8,7 @@ description: Debug and profile JSPrismarine through Chrome DevTools Protocol wit
 Use the server's `--devtools` integration as the default runtime debugger and profiler. Send all
 live DevTools Protocol commands through [`cdp.mjs`](cdp.mjs). Do not open the DevTools frontend,
 drive a browser, or use browser automation to connect to this server's inspector.
-Read [Live debugging and profiling](../../../docs/running.md#live-debugging-and-profiling) for
+Read [Live debugging and profiling](../../../docs/guide/running.md#live-debugging-and-profiling) for
 startup flags and trace artifacts. Use this skill's CLI route for inspector access. Keep the
 diagnosis loop in [diagnosing-bugs](../diagnosing-bugs/SKILL.md);
 this skill supplies its runtime inspection and measurement tools. Build, lint, and type errors
