@@ -399,6 +399,13 @@ export default class Server extends EventEmitter {
         if (unapplied !== undefined) this.logger.warn(unapplied);
 
         if (errors > 0) this.logger.warn(`The pack stack reported §c${errors}§r error(s); see the content report`);
+
+        // A pack that is not on disk costs the server its content without stopping it, so say so
+        // rather than let it run with no mobs, a `/summon` that refuses every type and an End
+        // without a dragon.
+        for (const diagnostic of this.content.diagnostics) {
+            if (diagnostic.code === 'pack.missing') this.logger.warn(diagnostic.message);
+        }
     }
 
     /**

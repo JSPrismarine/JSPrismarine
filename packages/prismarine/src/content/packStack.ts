@@ -259,7 +259,7 @@ export const resolvePackStack = (request: PackStackRequest = {}): ResolvedPackSt
         } else {
             missing(
                 'the vanilla Bedrock behavior pack',
-                `run \`pnpm --filter @jsprismarine/bedrock-data run fetch:sources\` or set ${PACK_STACK_ENV.vanillaBedrockPack}`
+                `without it no mob spawns, \`/summon\` refuses every entity and the End has no dragon; run \`pnpm --filter @jsprismarine/bedrock-data run ensure:bedrock-pack\` or set ${PACK_STACK_ENV.vanillaBedrockPack}`
             );
         }
     }
