@@ -1,5 +1,17 @@
 # @jsprismarine/lighting
 
+## 0.17.0
+
+### Minor Changes
+
+- [#2661](https://github.com/JSPrismarine/JSPrismarine/pull/2661) [`9061024`](https://github.com/JSPrismarine/JSPrismarine/commit/9061024a45c9e8b00be4963b61406d7474f2f82d) Thanks [@filiphsps](https://github.com/filiphsps)! - Remove CommonJS package outputs
+
+### Patch Changes
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`92a7e35`](https://github.com/JSPrismarine/JSPrismarine/commit/92a7e35e438239ef5abe037161068c630d253857) Thanks [@filiphsps](https://github.com/filiphsps)! - Defer chunk lighting to the simulation guard ring and settle loaded reads on demand.
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`50e0bc9`](https://github.com/JSPrismarine/JSPrismarine/commit/50e0bc9f1cf417b0fa3d81309bcda5c0e9d16d8a) Thanks [@filiphsps](https://github.com/filiphsps)! - Skip light scans for sections whose revision-keyed palettes cannot emit or dampen light.
+
 ## 0.16.0
 
 ### Patch Changes

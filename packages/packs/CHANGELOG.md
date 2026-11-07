@@ -1,5 +1,19 @@
 # @jsprismarine/packs
 
+## 0.17.0
+
+### Minor Changes
+
+- [#2865](https://github.com/JSPrismarine/JSPrismarine/pull/2865) [`8cc701d`](https://github.com/JSPrismarine/JSPrismarine/commit/8cc701d6dc05532abf27c10d87d0a3b6dbd25b73) Thanks [@filiphsps](https://github.com/filiphsps)! - Load Java's `block_transformer` registry and resolve tool transforms from it, which is what makes a hoe till, a shovel path, and an axe strip. The behaviors and the item components were already in place, but the table behind `WorldActions.transform` was an injection point nothing injected, so every tool declined every block. `@jsprismarine/packs` routes `data/<namespace>/block_transformer/` files, the server parses them into `ServerContent.blockTransformers`, and the resolver answers the rule-based providers over the real tag stack and block mapping, including `copy_properties` (a stripped log keeps its axis), the offset predicates (tilling needs air above), and `disallowed_faces` - which is why `transform` now takes the clicked face.
+
+- [#2661](https://github.com/JSPrismarine/JSPrismarine/pull/2661) [`9061024`](https://github.com/JSPrismarine/JSPrismarine/commit/9061024a45c9e8b00be4963b61406d7474f2f82d) Thanks [@filiphsps](https://github.com/filiphsps)! - Remove CommonJS package outputs
+
+### Patch Changes
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`678e192`](https://github.com/JSPrismarine/JSPrismarine/commit/678e192e09582001760956a2f215619776fffa8e) Thanks [@filiphsps](https://github.com/filiphsps)! - Cache composed vanilla pack prefixes to speed warm content builds.
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`7aabb3a`](https://github.com/JSPrismarine/JSPrismarine/commit/7aabb3a82903eae555ca83bddcb409bb0a4f693c) Thanks [@filiphsps](https://github.com/filiphsps)! - Skip superseded path-addressed definitions during pack composition
+
 ## 0.16.0
 
 ### Minor Changes

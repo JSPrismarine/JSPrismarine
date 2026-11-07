@@ -1,6 +1,6 @@
 {
     "name": "@jsprismarine/items",
-    "version": "0.16.0",
+    "version": "0.17.0",
     "description": "The item definition and component runtime: Java 26.3's 122 data component types over Bedrock item identities",
     "sideEffects": false,
     "publishConfig": {

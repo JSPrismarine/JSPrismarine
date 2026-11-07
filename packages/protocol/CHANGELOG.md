@@ -1,5 +1,38 @@
 # @jsprismarine/protocol
 
+## 0.17.0
+
+### Minor Changes
+
+- [#2661](https://github.com/JSPrismarine/JSPrismarine/pull/2661) [`9061024`](https://github.com/JSPrismarine/JSPrismarine/commit/9061024a45c9e8b00be4963b61406d7474f2f82d) Thanks [@filiphsps](https://github.com/filiphsps)! - Remove CommonJS package outputs
+
+### Patch Changes
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`1a9fad5`](https://github.com/JSPrismarine/JSPrismarine/commit/1a9fad5a52f9a21c4c43d34e85c3ec462c34573c) Thanks [@filiphsps](https://github.com/filiphsps)! - Assemble packet batches in pre-sized buffers and expose a transient packet encoder for synchronous framing.
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`7238fbe`](https://github.com/JSPrismarine/JSPrismarine/commit/7238fbe48bf5853fc86e3f0bccb332050f1c717e) Thanks [@filiphsps](https://github.com/filiphsps)! - Compile declarative wire layouts into straight-line encoders and decoders.
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`d499106`](https://github.com/JSPrismarine/JSPrismarine/commit/d49910658d7aa57fedfe32512977f79aa0023832) Thanks [@filiphsps](https://github.com/filiphsps)! - Write varlongs and UTF-8 strings directly into reserved stream capacity to reduce encoding overhead.
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`a31852f`](https://github.com/JSPrismarine/JSPrismarine/commit/a31852ffef421e2f267847a81102781165b407e0) Thanks [@filiphsps](https://github.com/filiphsps)! - Cache the version-gate check for each immutable packet definition.
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`3007468`](https://github.com/JSPrismarine/JSPrismarine/commit/300746857aedf99c2329414eb9da1e06fb8749a5) Thanks [@filiphsps](https://github.com/filiphsps)! - Add an opt-in full-flush fragment batch prototype
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`0d60c16`](https://github.com/JSPrismarine/JSPrismarine/commit/0d60c161c06ca65e42ea0e694164956738cdc4c7) Thanks [@filiphsps](https://github.com/filiphsps)! - Inflate small inbound batches synchronously to avoid waiting on the shared worker pool.
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`64b8573`](https://github.com/JSPrismarine/JSPrismarine/commit/64b8573fc7ad1f5a9c6dfa319433feab7804f250) Thanks [@filiphsps](https://github.com/filiphsps)! - Support negotiated ZLib, Snappy, and no-compression batch algorithms, while keeping ZLib as the default.
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`9770942`](https://github.com/JSPrismarine/JSPrismarine/commit/977094203278d4f13434bd487c069a986b565b75) Thanks [@filiphsps](https://github.com/filiphsps)! - Add request-mode subchunk delivery with client blob-cache reuse.
+- Updated dependencies [[`183e92c`](https://github.com/JSPrismarine/JSPrismarine/commit/183e92c7f577bc34608555a13aaa88fd64f61530), [`ac02142`](https://github.com/JSPrismarine/JSPrismarine/commit/ac021424a6534c7b023d1288b6d78da999a65fb0), [`09d523c`](https://github.com/JSPrismarine/JSPrismarine/commit/09d523c5fbd04af60800bee5ad2b12f2a7619e02), [`d499106`](https://github.com/JSPrismarine/JSPrismarine/commit/d49910658d7aa57fedfe32512977f79aa0023832), [`9061024`](https://github.com/JSPrismarine/JSPrismarine/commit/9061024a45c9e8b00be4963b61406d7474f2f82d), [`0560f8f`](https://github.com/JSPrismarine/JSPrismarine/commit/0560f8fe0c92da772f9013fd05a318d543b948dd), [`3934d28`](https://github.com/JSPrismarine/JSPrismarine/commit/3934d281e96f022a0d57c95d8de99794ed6dd244)]:
+  - @jsprismarine/minecraft@0.17.0
+  - @jsprismarine/math@0.17.0
+  - @jsprismarine/blocks@0.17.0
+  - @jsprismarine/items@0.17.0
+  - @jsprismarine/binaryutils@0.17.0
+  - @jsprismarine/nbt@0.17.0
+  - @jsprismarine/content@0.17.0
+  - @jsprismarine/recipes@0.17.0
+
 ## 0.16.0
 
 ### Minor Changes

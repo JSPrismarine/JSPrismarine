@@ -1,5 +1,32 @@
 # @jsprismarine/engine-systems
 
+## 0.17.0
+
+### Minor Changes
+
+- [#2661](https://github.com/JSPrismarine/JSPrismarine/pull/2661) [`9061024`](https://github.com/JSPrismarine/JSPrismarine/commit/9061024a45c9e8b00be4963b61406d7474f2f82d) Thanks [@filiphsps](https://github.com/filiphsps)! - Remove CommonJS package outputs
+
+### Patch Changes
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`b55ed8f`](https://github.com/JSPrismarine/JSPrismarine/commit/b55ed8fdd5389666bfc90b1f0426bf0aeeb1dcd6) Thanks [@filiphsps](https://github.com/filiphsps)! - Include pending simulation queues and random tick state in replay digests.
+
+- [`f138dec`](https://github.com/JSPrismarine/JSPrismarine/commit/f138dec7bdbd36d0bfb06da1475a4debf9790107) Thanks [@filiphsps](https://github.com/filiphsps)! - Read a button's `facing_direction` and a redstone torch's `torch_facing_direction` to find the block each is mounted on, so a pressed button powers its support block and a wall torch stops powering the block it hangs on.
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`ac6967c`](https://github.com/JSPrismarine/JSPrismarine/commit/ac6967ce77cd38430626a37e6470503b739c4459) Thanks [@filiphsps](https://github.com/filiphsps)! - Filter random ticks using Bedrock runtime-id properties ([#2818](https://github.com/JSPrismarine/JSPrismarine/issues/2818))
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`2726b0a`](https://github.com/JSPrismarine/JSPrismarine/commit/2726b0a801b97e53d0187989a913c4d01a95aa89) Thanks [@filiphsps](https://github.com/filiphsps)! - Drain due scheduled ticks with one prefix removal while preserving Java's ordering.
+
+- [#2876](https://github.com/JSPrismarine/JSPrismarine/pull/2876) [`8026821`](https://github.com/JSPrismarine/JSPrismarine/commit/8026821d4584b86fe5924f502242c58ad12a6cdc) Thanks [@filiphsps](https://github.com/filiphsps)! - Let a flipped lever power the block it hangs on. The signal code read a state named `attachment_face` that no Bedrock lever has, so every lever fell back to "down" and never powered a block resting on its support block. A lamp touching the lever lit, but a lamp on the lever's wall did not. It now reads `lever_direction`.
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`47a0283`](https://github.com/JSPrismarine/JSPrismarine/commit/47a028319f375c43ccb7e5475d775e9e2fa2c1da) Thanks [@filiphsps](https://github.com/filiphsps)! - Skip redstone power scans for block states without redstone update hooks.
+
+- [`f017fc7`](https://github.com/JSPrismarine/JSPrismarine/commit/f017fc7d2aa6e8c458d001fe8a89fb1d1387bbc1) Thanks [@filiphsps](https://github.com/filiphsps)! - Bound the time a world tick spends on scheduled ticks as well as their count, so thousands of due ticks, such as the leaf decay checks of a freshly filled canopy, spread over several ticks instead of stalling one for seconds.
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`ea01a93`](https://github.com/JSPrismarine/JSPrismarine/commit/ea01a934ad5452ecbffadd5db67276218d49b668) Thanks [@filiphsps](https://github.com/filiphsps)! - Cache engine block facts by runtime ID
+- Updated dependencies [[`09d523c`](https://github.com/JSPrismarine/JSPrismarine/commit/09d523c5fbd04af60800bee5ad2b12f2a7619e02), [`9061024`](https://github.com/JSPrismarine/JSPrismarine/commit/9061024a45c9e8b00be4963b61406d7474f2f82d), [`3934d28`](https://github.com/JSPrismarine/JSPrismarine/commit/3934d281e96f022a0d57c95d8de99794ed6dd244)]:
+  - @jsprismarine/blocks@0.17.0
+  - @jsprismarine/mapping@0.17.0
+
 ## 0.16.0
 
 ### Minor Changes

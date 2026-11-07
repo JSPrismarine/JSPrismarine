@@ -1,5 +1,21 @@
 # @jsprismarine/spawning
 
+## 0.17.0
+
+### Minor Changes
+
+- [#2661](https://github.com/JSPrismarine/JSPrismarine/pull/2661) [`9061024`](https://github.com/JSPrismarine/JSPrismarine/commit/9061024a45c9e8b00be4963b61406d7474f2f82d) Thanks [@filiphsps](https://github.com/filiphsps)! - Remove CommonJS package outputs
+
+### Patch Changes
+
+- [`e5ac505`](https://github.com/JSPrismarine/JSPrismarine/commit/e5ac5054d96de0f9e80675731147fe6d57f2ad76) Thanks [@filiphsps](https://github.com/filiphsps)! - Read each fact about a spawn candidate once per attempt instead of once per rule and condition.
+
+- [#2682](https://github.com/JSPrismarine/JSPrismarine/pull/2682) [`ab8dc23`](https://github.com/JSPrismarine/JSPrismarine/commit/ab8dc23b2a2f3818384fef561cd9f05fb49dfce1) Thanks [@filiphsps](https://github.com/filiphsps)! - Fix natural mob spawn placement
+- Updated dependencies [[`b4940f3`](https://github.com/JSPrismarine/JSPrismarine/commit/b4940f32e1fcd3640af201432f67ee382d50efc6), [`8cc701d`](https://github.com/JSPrismarine/JSPrismarine/commit/8cc701d6dc05532abf27c10d87d0a3b6dbd25b73), [`f5b3d7c`](https://github.com/JSPrismarine/JSPrismarine/commit/f5b3d7c830dc19189d85e21af834391192ccb481), [`678e192`](https://github.com/JSPrismarine/JSPrismarine/commit/678e192e09582001760956a2f215619776fffa8e), [`57d0d17`](https://github.com/JSPrismarine/JSPrismarine/commit/57d0d17d8577cde351c634e6b0dadd00a1ea6428), [`d8e0a48`](https://github.com/JSPrismarine/JSPrismarine/commit/d8e0a48ead973091d46f81760e9dbfde08522449), [`9061024`](https://github.com/JSPrismarine/JSPrismarine/commit/9061024a45c9e8b00be4963b61406d7474f2f82d), [`f44af22`](https://github.com/JSPrismarine/JSPrismarine/commit/f44af22c7f60d46edff66d84c478b7e2f07a76cf), [`7aabb3a`](https://github.com/JSPrismarine/JSPrismarine/commit/7aabb3a82903eae555ca83bddcb409bb0a4f693c), [`d049765`](https://github.com/JSPrismarine/JSPrismarine/commit/d04976541aee27f8e3fc198e703173e56740b515), [`86915c4`](https://github.com/JSPrismarine/JSPrismarine/commit/86915c42d90df184dbb200ecd81e52cc11a76892), [`3934d28`](https://github.com/JSPrismarine/JSPrismarine/commit/3934d281e96f022a0d57c95d8de99794ed6dd244)]:
+  - @jsprismarine/entities@0.17.0
+  - @jsprismarine/packs@0.17.0
+  - @jsprismarine/predicates@0.17.0
+
 ## 0.16.0
 
 ### Minor Changes

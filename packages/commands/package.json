@@ -1,6 +1,6 @@
 {
     "name": "@jsprismarine/commands",
-    "version": "0.16.0",
+    "version": "0.17.0",
     "description": "Data-driven command layer: Mojang's Bedrock command table, a Java-shaped command tree, the Bedrock packet flattener and the selector grammars.",
     "sideEffects": false,
     "publishConfig": {

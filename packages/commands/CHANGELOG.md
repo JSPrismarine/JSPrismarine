@@ -1,5 +1,33 @@
 # @jsprismarine/commands
 
+## 0.17.0
+
+### Minor Changes
+
+- [#2661](https://github.com/JSPrismarine/JSPrismarine/pull/2661) [`9061024`](https://github.com/JSPrismarine/JSPrismarine/commit/9061024a45c9e8b00be4963b61406d7474f2f82d) Thanks [@filiphsps](https://github.com/filiphsps)! - Remove CommonJS package outputs
+
+- [#2876](https://github.com/JSPrismarine/JSPrismarine/pull/2876) [`7468217`](https://github.com/JSPrismarine/JSPrismarine/commit/74682176453a6d9c76b6717be8406149c8e49a58) Thanks [@filiphsps](https://github.com/filiphsps)! - Add Java's `/tick` command. `/tick rate <ticks per second>` sets the target tick rate, `/tick freeze` and `/tick unfreeze` hold the world and its functions still while the server keeps serving players, `/tick step [time]` runs a frozen world forward a few ticks, `/tick sprint <time>` runs ticks back to back, and `/tick query` reports the rate and how long a tick takes. `ServerCommandHost` gains a required `ticking` group for the command to drive the tick loop.
+
+- [#2865](https://github.com/JSPrismarine/JSPrismarine/pull/2865) [`c36489a`](https://github.com/JSPrismarine/JSPrismarine/commit/c36489a66251a6f1b134ac4864d8722247a97dca) Thanks [@filiphsps](https://github.com/filiphsps)! - Keep a bare block-state literal on the type Bedrock's grammar gives it: `=7` parses as an integer and `=true` as a boolean, with quoted values staying strings. The block catalog hashes a state with its types, so a `"7"` where an `int` property stands named no block and `/setblock minecraft:farmland ["moisturized_amount"=7]` reported success while placing nothing. `/testforblock` compares `true` and a stored `1` as the same byte.
+
+### Patch Changes
+
+- [`d84076a`](https://github.com/JSPrismarine/JSPrismarine/commit/d84076a845dc9be3e53ba9304ab7bfb05a4116a9) Thanks [@filiphsps](https://github.com/filiphsps)! - Make `/damage` follow Java 26.3: no source entity unless `by` names one, `from` for an indirect cause, `at` for a location, a single target, and the damage type read from the loaded datapacks, whose tags decide what the blow bypasses.
+
+- [#2883](https://github.com/JSPrismarine/JSPrismarine/pull/2883) [`dde74e3`](https://github.com/JSPrismarine/JSPrismarine/commit/dde74e3d93602c66989dbab974281140090e821c) Thanks [@CloudCorpRecords](https://github.com/CloudCorpRecords)! - Report the matching item count for `/clear` with a max count of 0 instead of removing nothing and reporting 0.
+
+- [#2865](https://github.com/JSPrismarine/JSPrismarine/pull/2865) [`dd31bb1`](https://github.com/JSPrismarine/JSPrismarine/commit/dd31bb11dba9ef22110fbd8f8c32b19fe8cfac58) Thanks [@filiphsps](https://github.com/filiphsps)! - Read a block state list in `/fill`, as `/setblock` already does. Both of Bedrock's and Java's grammars put one between the block and the handling mode, and without it every fill wrote the block's default state: a region of logs all pointed the same way and a region of leaves was always the kind that decays.
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`f921837`](https://github.com/JSPrismarine/JSPrismarine/commit/f9218378b1ee52a0ed06b3bedf6a978577f0ace7) Thanks [@filiphsps](https://github.com/filiphsps)! - Build Java block and item resource parsers once per command tree.
+
+- [#2876](https://github.com/JSPrismarine/JSPrismarine/pull/2876) [`aedeea4`](https://github.com/JSPrismarine/JSPrismarine/commit/aedeea48664db01e25e98a8a231bd1d6d7b2adcd) Thanks [@filiphsps](https://github.com/filiphsps)! - Report a failed `/summon` as "Unable to summon entity". It sent the error "Summoned new entity" when the pack did not declare the type, which read like a success.
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`4912cd7`](https://github.com/JSPrismarine/JSPrismarine/commit/4912cd72747ddc6e65947f6ebeb412e68614b6ad) Thanks [@filiphsps](https://github.com/filiphsps)! - Cache Java command shapes and flattened command lists
+- Updated dependencies [[`183e92c`](https://github.com/JSPrismarine/JSPrismarine/commit/183e92c7f577bc34608555a13aaa88fd64f61530), [`09d523c`](https://github.com/JSPrismarine/JSPrismarine/commit/09d523c5fbd04af60800bee5ad2b12f2a7619e02), [`2d68618`](https://github.com/JSPrismarine/JSPrismarine/commit/2d686188fff4b00ca1e6ce728cb73dbef23bebb9), [`a3c8477`](https://github.com/JSPrismarine/JSPrismarine/commit/a3c8477097570eb5920113ab13e02d8fbc2b1a2c), [`9061024`](https://github.com/JSPrismarine/JSPrismarine/commit/9061024a45c9e8b00be4963b61406d7474f2f82d)]:
+  - @jsprismarine/minecraft@0.17.0
+  - @jsprismarine/brigadier@0.17.0
+  - @jsprismarine/mapping@0.17.0
+
 ## 0.16.0
 
 ### Minor Changes

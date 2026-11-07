@@ -1,5 +1,21 @@
 # @jsprismarine/trading
 
+## 0.17.0
+
+### Minor Changes
+
+- [#2661](https://github.com/JSPrismarine/JSPrismarine/pull/2661) [`9061024`](https://github.com/JSPrismarine/JSPrismarine/commit/9061024a45c9e8b00be4963b61406d7474f2f82d) Thanks [@filiphsps](https://github.com/filiphsps)! - Remove CommonJS package outputs
+
+### Patch Changes
+
+- [`73efe0d`](https://github.com/JSPrismarine/JSPrismarine/commit/73efe0da742b65ad1548501d913b6613463f738e) Thanks [@filiphsps](https://github.com/filiphsps)! - Save a trader's offers, their uses and demand, and its experience with the entity, so a villager keeps them across a restart instead of drawing new ones. A damaged saved state is ignored.
+
+- [`0e4b2a8`](https://github.com/JSPrismarine/JSPrismarine/commit/0e4b2a81759a4c44262bed5c36936ada2c6e5581) Thanks [@filiphsps](https://github.com/filiphsps)! - Villagers trade with players: the trade screen opens on a villager, shows its offers with their live prices, and a trade spends the payment, hands over the result and moves the villager's stock, demand, experience and level. A villager that works at its job site restocks, up to twice a day. Villagers also work with the world: farmers bake bread, compost seeds, harvest, sow and bone-meal crops, villagers share food, thank a hero of the village and have children, and a villager takes its profession and job site from its trade table. A villager remembers the player who cured it and charges that player less, and holds up its trades to a player who talks to it.
+- Updated dependencies [[`b4940f3`](https://github.com/JSPrismarine/JSPrismarine/commit/b4940f32e1fcd3640af201432f67ee382d50efc6), [`8cc701d`](https://github.com/JSPrismarine/JSPrismarine/commit/8cc701d6dc05532abf27c10d87d0a3b6dbd25b73), [`f5b3d7c`](https://github.com/JSPrismarine/JSPrismarine/commit/f5b3d7c830dc19189d85e21af834391192ccb481), [`678e192`](https://github.com/JSPrismarine/JSPrismarine/commit/678e192e09582001760956a2f215619776fffa8e), [`57d0d17`](https://github.com/JSPrismarine/JSPrismarine/commit/57d0d17d8577cde351c634e6b0dadd00a1ea6428), [`d8e0a48`](https://github.com/JSPrismarine/JSPrismarine/commit/d8e0a48ead973091d46f81760e9dbfde08522449), [`9061024`](https://github.com/JSPrismarine/JSPrismarine/commit/9061024a45c9e8b00be4963b61406d7474f2f82d), [`f44af22`](https://github.com/JSPrismarine/JSPrismarine/commit/f44af22c7f60d46edff66d84c478b7e2f07a76cf), [`7aabb3a`](https://github.com/JSPrismarine/JSPrismarine/commit/7aabb3a82903eae555ca83bddcb409bb0a4f693c), [`d049765`](https://github.com/JSPrismarine/JSPrismarine/commit/d04976541aee27f8e3fc198e703173e56740b515), [`86915c4`](https://github.com/JSPrismarine/JSPrismarine/commit/86915c42d90df184dbb200ecd81e52cc11a76892), [`3934d28`](https://github.com/JSPrismarine/JSPrismarine/commit/3934d281e96f022a0d57c95d8de99794ed6dd244)]:
+  - @jsprismarine/entities@0.17.0
+  - @jsprismarine/packs@0.17.0
+  - @jsprismarine/predicates@0.17.0
+
 ## 0.16.0
 
 ### Patch Changes

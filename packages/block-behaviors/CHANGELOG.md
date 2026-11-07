@@ -1,5 +1,31 @@
 # @jsprismarine/block-behaviors
 
+## 0.17.0
+
+### Minor Changes
+
+- [#2661](https://github.com/JSPrismarine/JSPrismarine/pull/2661) [`9061024`](https://github.com/JSPrismarine/JSPrismarine/commit/9061024a45c9e8b00be4963b61406d7474f2f82d) Thanks [@filiphsps](https://github.com/filiphsps)! - Remove CommonJS package outputs
+
+### Patch Changes
+
+- [#2865](https://github.com/JSPrismarine/JSPrismarine/pull/2865) [`2d58d62`](https://github.com/JSPrismarine/JSPrismarine/commit/2d58d62a921430d98f958321c0d2a741b723c362) Thanks [@filiphsps](https://github.com/filiphsps)! - Keep the crop when farmland dries all the way out. Java's `shouldMaintainFarmland` turns only bare farmland back to dirt; this server reverted a dry field on its next random tick with the wheat still standing in it, which popped the crop.
+
+- [#2660](https://github.com/JSPrismarine/JSPrismarine/pull/2660) [`9891b80`](https://github.com/JSPrismarine/JSPrismarine/commit/9891b80b249f88d1bfbc9b347bcb31555a754698) Thanks [@filiphsps](https://github.com/filiphsps)! - Run furnace-style cooking and match stonecutter and smithing recipes against their station slots.
+
+- [#2876](https://github.com/JSPrismarine/JSPrismarine/pull/2876) [`81500d0`](https://github.com/JSPrismarine/JSPrismarine/commit/81500d03121008375fee0af0bb321469bd28c2fd) Thanks [@filiphsps](https://github.com/filiphsps)! - Tell the neighbors of the block a lever hangs on when the lever is flipped. Flipping told only the lever's own neighbors, so a redstone lamp resting on the support block never saw the change.
+
+- [#2865](https://github.com/JSPrismarine/JSPrismarine/pull/2865) [`06e6111`](https://github.com/JSPrismarine/JSPrismarine/commit/06e6111a1a4c4b9554aea36f14b1932c52714001) Thanks [@filiphsps](https://github.com/filiphsps)! - Keep a lit cooker at three slots. Lighting a furnace, blast furnace, or smoker swaps it for its own `lit_` block, and the slot table only knew the cold names, so a burning one fell back to a chest's 27. That put a 27-slot backing behind the three-slot furnace screen, which the client drew as empty: a furnace mid-smelt opened showing no input, no fuel, and no output.
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`e0531ce`](https://github.com/JSPrismarine/JSPrismarine/commit/e0531ce961986b4cf3a5fd970d47c59f1306900f) Thanks [@filiphsps](https://github.com/filiphsps)! - Improve block and tick hot paths without changing event, lighting, or physics order ([#2816](https://github.com/JSPrismarine/JSPrismarine/issues/2816))
+
+- [#2865](https://github.com/JSPrismarine/JSPrismarine/pull/2865) [`569ad6e`](https://github.com/JSPrismarine/JSPrismarine/commit/569ad6e134e70eefe3e9aba65e048b3f63101462) Thanks [@filiphsps](https://github.com/filiphsps)! - Decide what keeps farmland from reverting with Java's `#minecraft:maintains_farmland`, and read the ground a crop stands and grows on through `#minecraft:supports_crops` and `#minecraft:grows_crops`. Farmland used to keep its field for anything carrying a `growth` state, which is neither what the tag holds nor what Java asks: a torchflower holds a field without growing and a sweet berry bush grows without holding one. `VoxelDimension.tag` seeds tag membership so a behavior test can state the rule it is testing instead of reaching the name fallback.
+
+- [#2865](https://github.com/JSPrismarine/JSPrismarine/pull/2865) [`82b3c66`](https://github.com/JSPrismarine/JSPrismarine/commit/82b3c66de90f6b4a78940ce791b26de86a08051b) Thanks [@filiphsps](https://github.com/filiphsps)! - Answer `WorldActions.hasBlockTag` with undefined for a tag the loaded stack does not declare, which is not the same answer as `false`. A rule whose tag nobody loaded read every block as being outside it, so on a server booted without the Java vanilla datapack a tag-driven rule silently flipped: crops would have stopped growing and popped off their farmland. Each rule now falls back to its own names, the way it already did for a host that answers no tags at all.
+- Updated dependencies [[`09d523c`](https://github.com/JSPrismarine/JSPrismarine/commit/09d523c5fbd04af60800bee5ad2b12f2a7619e02), [`9061024`](https://github.com/JSPrismarine/JSPrismarine/commit/9061024a45c9e8b00be4963b61406d7474f2f82d), [`3934d28`](https://github.com/JSPrismarine/JSPrismarine/commit/3934d281e96f022a0d57c95d8de99794ed6dd244)]:
+  - @jsprismarine/blocks@0.17.0
+  - @jsprismarine/content@0.17.0
+  - @jsprismarine/mapping@0.17.0
+
 ## 0.16.0
 
 ### Minor Changes

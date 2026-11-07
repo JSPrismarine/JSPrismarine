@@ -1,6 +1,6 @@
 {
     "name": "@jsprismarine/trading",
-    "version": "0.16.0",
+    "version": "0.17.0",
     "description": "Bedrock trade tables: the economy and legacy grammars, offer generation and the villager trading economy.",
     "sideEffects": false,
     "publishConfig": {

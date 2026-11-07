@@ -1,5 +1,25 @@
 # @jsprismarine/entity-brains
 
+## 0.17.0
+
+### Minor Changes
+
+- [#2661](https://github.com/JSPrismarine/JSPrismarine/pull/2661) [`9061024`](https://github.com/JSPrismarine/JSPrismarine/commit/9061024a45c9e8b00be4963b61406d7474f2f82d) Thanks [@filiphsps](https://github.com/filiphsps)! - Remove CommonJS package outputs
+
+- [#2684](https://github.com/JSPrismarine/JSPrismarine/pull/2684) [`15dc167`](https://github.com/JSPrismarine/JSPrismarine/commit/15dc167df09a9595ea31ad475259f2c489bd3519) Thanks [@filiphsps](https://github.com/filiphsps)! - Route sniffer seed drops, warden sonic boom damage and knockback, and villager raid effects through host capabilities.
+
+### Patch Changes
+
+- [`0e4b2a8`](https://github.com/JSPrismarine/JSPrismarine/commit/0e4b2a81759a4c44262bed5c36936ada2c6e5581) Thanks [@filiphsps](https://github.com/filiphsps)! - Villagers trade with players: the trade screen opens on a villager, shows its offers with their live prices, and a trade spends the payment, hands over the result and moves the villager's stock, demand, experience and level. A villager that works at its job site restocks, up to twice a day. Villagers also work with the world: farmers bake bread, compost seeds, harvest, sow and bone-meal crops, villagers share food, thank a hero of the village and have children, and a villager takes its profession and job site from its trade table. A villager remembers the player who cured it and charges that player less, and holds up its trades to a player who talks to it.
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`ca3cabc`](https://github.com/JSPrismarine/JSPrismarine/commit/ca3cabc9d123d5bccb6fc06b7b9e323f6676c37e) Thanks [@filiphsps](https://github.com/filiphsps)! - Match Java liquid and land search rules.
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`12a2355`](https://github.com/JSPrismarine/JSPrismarine/commit/12a2355ad468ccf73d0b9e2372c420210938ce42) Thanks [@filiphsps](https://github.com/filiphsps)! - Reuse brain worlds and entity views while keeping mutable values live; cache tag lookups and behavior priority order.
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`bc2d048`](https://github.com/JSPrismarine/JSPrismarine/commit/bc2d04837063c4e3e5f4aae8904e42c84eb29b44) Thanks [@filiphsps](https://github.com/filiphsps)! - Use Java nearest-first brain block searches.
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`ecb2e37`](https://github.com/JSPrismarine/JSPrismarine/commit/ecb2e37d2b970a65964be4f809945515c242495b) Thanks [@filiphsps](https://github.com/filiphsps)! - Match Java nearest-living AABB query bounds.
+
 ## 0.16.0
 
 ### Minor Changes

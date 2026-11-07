@@ -1,5 +1,19 @@
 # @jsprismarine/item-behaviors
 
+## 0.17.0
+
+### Minor Changes
+
+- [#2865](https://github.com/JSPrismarine/JSPrismarine/pull/2865) [`8cc701d`](https://github.com/JSPrismarine/JSPrismarine/commit/8cc701d6dc05532abf27c10d87d0a3b6dbd25b73) Thanks [@filiphsps](https://github.com/filiphsps)! - Load Java's `block_transformer` registry and resolve tool transforms from it, which is what makes a hoe till, a shovel path, and an axe strip. The behaviors and the item components were already in place, but the table behind `WorldActions.transform` was an injection point nothing injected, so every tool declined every block. `@jsprismarine/packs` routes `data/<namespace>/block_transformer/` files, the server parses them into `ServerContent.blockTransformers`, and the resolver answers the rule-based providers over the real tag stack and block mapping, including `copy_properties` (a stripped log keeps its axis), the offset predicates (tilling needs air above), and `disallowed_faces` - which is why `transform` now takes the clicked face.
+
+- [#2661](https://github.com/JSPrismarine/JSPrismarine/pull/2661) [`9061024`](https://github.com/JSPrismarine/JSPrismarine/commit/9061024a45c9e8b00be4963b61406d7474f2f82d) Thanks [@filiphsps](https://github.com/filiphsps)! - Remove CommonJS package outputs
+
+### Patch Changes
+
+- Updated dependencies [[`09d523c`](https://github.com/JSPrismarine/JSPrismarine/commit/09d523c5fbd04af60800bee5ad2b12f2a7619e02), [`9061024`](https://github.com/JSPrismarine/JSPrismarine/commit/9061024a45c9e8b00be4963b61406d7474f2f82d), [`3934d28`](https://github.com/JSPrismarine/JSPrismarine/commit/3934d281e96f022a0d57c95d8de99794ed6dd244)]:
+  - @jsprismarine/items@0.17.0
+  - @jsprismarine/content@0.17.0
+
 ## 0.16.0
 
 ### Minor Changes

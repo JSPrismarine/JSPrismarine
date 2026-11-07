@@ -1,6 +1,6 @@
 {
     "name": "@jsprismarine/worldgen",
-    "version": "0.16.0",
+    "version": "0.17.0",
     "description": "Java Edition terrain generation: randoms, noise, density functions, aquifers and chunk sampling",
     "sideEffects": false,
     "publishConfig": {

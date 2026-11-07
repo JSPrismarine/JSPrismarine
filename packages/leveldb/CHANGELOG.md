@@ -1,5 +1,23 @@
 # @jsprismarine/leveldb
 
+## 0.17.0
+
+### Minor Changes
+
+- [#2661](https://github.com/JSPrismarine/JSPrismarine/pull/2661) [`9061024`](https://github.com/JSPrismarine/JSPrismarine/commit/9061024a45c9e8b00be4963b61406d7474f2f82d) Thanks [@filiphsps](https://github.com/filiphsps)! - Remove CommonJS package outputs
+
+### Patch Changes
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`021acfb`](https://github.com/JSPrismarine/JSPrismarine/commit/021acfb1b4f361e01b555ba0f51062b05c386256) Thanks [@filiphsps](https://github.com/filiphsps)! - Bound the shared decompressed block cache by bytes and keep table index blocks pinned.
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`29ad03a`](https://github.com/JSPrismarine/JSPrismarine/commit/29ad03ac2692758023d27728d649407c41cc22a3) Thanks [@filiphsps](https://github.com/filiphsps)! - Keep deletion markers while deeper table levels may contain older values.
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`796ca0b`](https://github.com/JSPrismarine/JSPrismarine/commit/796ca0b433725f814f7ce1c730911b0e6091329d) Thanks [@filiphsps](https://github.com/filiphsps)! - Add compatible Bloom filters and reduce point-lookup allocations.
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`c9462f2`](https://github.com/JSPrismarine/JSPrismarine/commit/c9462f23a25592472260072973fe3e76f651c7d1) Thanks [@filiphsps](https://github.com/filiphsps)! - Move table flush and compaction off-thread with leveled size budgets
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`26cc9bf`](https://github.com/JSPrismarine/JSPrismarine/commit/26cc9bf7a48edbad36911d663fdc1e84018b33c2) Thanks [@filiphsps](https://github.com/filiphsps)! - Embed self-contained server and LevelDB workers for single-executable startup.
+
 ## 0.16.0
 
 ### Patch Changes

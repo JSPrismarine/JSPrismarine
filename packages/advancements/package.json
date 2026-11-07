@@ -1,6 +1,6 @@
 {
     "name": "@jsprismarine/advancements",
-    "version": "0.16.0",
+    "version": "0.17.0",
     "description": "Java Edition advancement engine: the 58 trigger types, the requirements grammar, per-player progress and reward hooks.",
     "sideEffects": false,
     "publishConfig": {

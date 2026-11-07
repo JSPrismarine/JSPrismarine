@@ -1,5 +1,23 @@
 # @jsprismarine/blocks
 
+## 0.17.0
+
+### Minor Changes
+
+- [#2661](https://github.com/JSPrismarine/JSPrismarine/pull/2661) [`9061024`](https://github.com/JSPrismarine/JSPrismarine/commit/9061024a45c9e8b00be4963b61406d7474f2f82d) Thanks [@filiphsps](https://github.com/filiphsps)! - Remove CommonJS package outputs
+
+### Patch Changes
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`09d523c`](https://github.com/JSPrismarine/JSPrismarine/commit/09d523c5fbd04af60800bee5ad2b12f2a7619e02) Thanks [@filiphsps](https://github.com/filiphsps)! - Load large startup tables from JSON assets.
+
+- [#2795](https://github.com/JSPrismarine/JSPrismarine/pull/2795) [`3934d28`](https://github.com/JSPrismarine/JSPrismarine/commit/3934d281e96f022a0d57c95d8de99794ed6dd244) Thanks [@filiphsps](https://github.com/filiphsps)! - Reduce allocations while resolving blocks and content types.
+- Updated dependencies [[`183e92c`](https://github.com/JSPrismarine/JSPrismarine/commit/183e92c7f577bc34608555a13aaa88fd64f61530), [`5d424a0`](https://github.com/JSPrismarine/JSPrismarine/commit/5d424a05c2c9721f9d6a9863949f95d290cc13a5), [`8cc701d`](https://github.com/JSPrismarine/JSPrismarine/commit/8cc701d6dc05532abf27c10d87d0a3b6dbd25b73), [`09d523c`](https://github.com/JSPrismarine/JSPrismarine/commit/09d523c5fbd04af60800bee5ad2b12f2a7619e02), [`678e192`](https://github.com/JSPrismarine/JSPrismarine/commit/678e192e09582001760956a2f215619776fffa8e), [`9061024`](https://github.com/JSPrismarine/JSPrismarine/commit/9061024a45c9e8b00be4963b61406d7474f2f82d), [`7aabb3a`](https://github.com/JSPrismarine/JSPrismarine/commit/7aabb3a82903eae555ca83bddcb409bb0a4f693c), [`3934d28`](https://github.com/JSPrismarine/JSPrismarine/commit/3934d281e96f022a0d57c95d8de99794ed6dd244)]:
+  - @jsprismarine/minecraft@0.17.0
+  - @jsprismarine/molang@0.17.0
+  - @jsprismarine/packs@0.17.0
+  - @jsprismarine/content@0.17.0
+  - @jsprismarine/mapping@0.17.0
+
 ## 0.16.0
 
 ### Minor Changes
