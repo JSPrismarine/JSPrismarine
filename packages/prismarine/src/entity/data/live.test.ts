@@ -758,8 +758,6 @@ const liveWorld = (
         // constructor, and the content level group reads the rules and the clock through it.
         level: fakeLevel({ server, seed: 1234n, spawn: new Vector3(8, GROUND_Y, 8), provider }),
         dimension: Dimensions.Overworld,
-        // `getFormattedName` reads the selected stem while the constructor is bypassed here.
-        stem: { generator: { type: 'test' } },
         generator: stub<Generator>({}),
         blockUpdates: new BlockUpdateScheduler(),
         entities: new Map(),

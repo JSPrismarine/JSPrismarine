@@ -3604,8 +3604,9 @@ export class World implements Service {
         return this.name;
     }
     public getFormattedName(): string {
-        // Data-driven generators are per-stem object views, whose constructor is only `Object`.
-        return `§b'${this.name}'/${this.stem.generator.type}§r`;
+        // The level and the dimension it is, not the generator: every generated world is called
+        // `minecraft:noise`, which says nothing about which one a log line is about.
+        return `§b'${this.name}'/${this.dimension.id}§r`;
     }
 
     /**
