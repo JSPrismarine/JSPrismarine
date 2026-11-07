@@ -19,6 +19,6 @@ describe('composed prefix cache key', () => {
         expect(prefixCacheKeyFor([{ kind: 'directory', path: './other-vanilla' }], options)).not.toBe(key);
         expect(prefixCacheKeyFor(stack, { ...options, fingerprint: 'overlay-b' })).not.toBe(key);
         expect(prefixCacheKeyFor(stack, { ...options, validatorKey: 'schema-validator-v1' })).not.toBe(key);
-        expect(prefixCacheKeyFor(stack, options, '0.17.0')).not.toBe(key);
+        expect(prefixCacheKeyFor(stack, options, '0.0.0-other')).not.toBe(key);
     });
 });
