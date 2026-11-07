@@ -248,9 +248,14 @@ export const resolvePackStack = (request: PackStackRequest = {}): ResolvedPackSt
         const root = cacheRoot();
         const override = process.env[PACK_STACK_ENV.vanillaBedrockPack];
         const layers = sourcePath(override, () => bdsBehaviorPacks(join(root, 'bds')));
-        const loose = layers || override ? undefined : samplesBehaviorPack(join(root, 'bedrock-samples'));
+        const samples = override ? undefined : samplesBehaviorPack(join(root, 'bedrock-samples'));
+        const loose = layers ? undefined : samples;
 
         if (layers) {
+            // Under the server's own pack, which wins wherever it is readable: BDS ships some
+            // definitions as binary files this loader cannot read, and leaves others out, so the
+            // villagers of three professions had no trades at all.
+            if (samples) stack.push({ kind: 'directory', path: samples });
             stack.push(bedrockSource(layers, request.bedrockPacks ?? [VANILLA_BEHAVIOR_PACK_UUID]));
             prefixLength = stack.length;
         } else if (loose) {

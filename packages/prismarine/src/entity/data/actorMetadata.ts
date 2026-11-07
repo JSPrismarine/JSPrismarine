@@ -104,6 +104,8 @@ interface ComponentMetadataFacts {
     readonly componentColor: unknown;
     readonly color2: unknown;
     readonly variant: unknown;
+    readonly markVariant: unknown;
+    readonly skinId: unknown;
     readonly fallingBlock: boolean;
 }
 
@@ -164,6 +166,8 @@ const componentFactsOf = (entity: DataEntity): ComponentMetadataFacts => {
         componentColor: instance.componentParams('minecraft:color'),
         color2: instance.componentParams('minecraft:color2'),
         variant: instance.componentParams('minecraft:variant'),
+        markVariant: instance.componentParams('minecraft:mark_variant'),
+        skinId: instance.componentParams('minecraft:skin_id'),
         fallingBlock: has('jsprismarine:falling_block')
     };
     componentFactsByEntity.set(entity, facts);
@@ -322,6 +326,14 @@ export const actorMetadataProjection = (entity: DataEntity, leashHolderId?: numb
     } else if (typeof facts.variant === 'number') {
         properties.push({ kind: 'int', id: MetadataFlag.VARIANT, value: facts.variant });
     }
+
+    // A villager's outfit is two numbers on top of its profession: the biome skin the client
+    // reads as `mark_variant`, and the skin it was given at spawn. Without them every villager
+    // wears the plains clothes of an unskilled one.
+    if (typeof facts.markVariant === 'number')
+        properties.push({ kind: 'int', id: ActorDataID.MARK_VARIANT, value: facts.markVariant });
+    if (typeof facts.skinId === 'number')
+        properties.push({ kind: 'int', id: ActorDataID.SKIN_ID, value: facts.skinId });
 
     return { flags, properties };
 };

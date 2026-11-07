@@ -132,7 +132,9 @@ const lastProviderOfPath = (
         if (unit.kind !== 'bedrock') continue;
         for (const pack of unit.packs) {
             if (!loadablePacks.has(pack)) continue;
-            for (const path of pack.files.keys()) providers.set(path, pack);
+            // A binary definition this loader cannot read provides nothing, so it must not shadow
+            // the readable copy of the same path in an earlier pack.
+            for (const [path, bytes] of pack.files) if (!isMcb(bytes)) providers.set(path, pack);
         }
     }
     return providers;
@@ -205,7 +207,8 @@ const composeUnits = (
             if (packName === undefined) continue;
 
             for (const [path, bytes] of pack.files) {
-                const superseded = lastProvider.get(path) !== pack;
+                const provider = lastProvider.get(path);
+                const superseded = provider !== undefined && provider !== pack;
                 const registry = routeForPath(path);
                 // Path-addressed registries use the file path as their identifier, so an
                 // earlier copy can be skipped once a later loadable pack provides that path.

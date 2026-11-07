@@ -264,6 +264,8 @@ export interface TradeSource {
 /** A trade screen's trader, and what happens when the player stops trading. */
 export interface OpenTrade {
     readonly trader: Entity;
+    /** The title of the screen as a translation key, such as `entity.villager.farmer`; the trader's name when absent. */
+    readonly title?: string;
     readonly source: TradeSource;
     /** The player's own state the discounts read, such as Hero of the Village. */
     context(): TradeContext;
@@ -1405,7 +1407,7 @@ export default class PlayerSession {
             traderTier: trade.source.level - 1,
             entityUniqueId: trade.trader.getRuntimeId(),
             lastTradingPlayer: this.player.getRuntimeId(),
-            displayName: trade.trader.getName(),
+            displayName: trade.title ?? trade.trader.getName(),
             useNewTradeScreen: true,
             usingEconomyTrade: true,
             data: tradeOffersPayload(offers, trade.source.tierRequirements())

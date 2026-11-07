@@ -196,6 +196,24 @@ describe('load', () => {
         );
     });
 
+    it('keeps the readable copy of a file when a later pack ships it as unreadable binary', () => {
+        const base = temporaryDir();
+        const later = temporaryDir();
+        const manifest = readFileSync(join(basePack, 'manifest.json'));
+        for (const pack of [base, later]) writeFileSync(join(pack, 'manifest.json'), manifest);
+        for (const pack of [base, later]) mkdirSync(join(pack, 'trading'), { recursive: true });
+        writeFileSync(join(base, 'trading', 'butcher_trades.json'), JSON.stringify({ tiers: [] }));
+        // The magic number of Mojang's binary definition format.
+        writeFileSync(join(later, 'trading', 'butcher_trades.json'), Buffer.from([0x7f, 0x4d, 0x43, 0x42, 1, 2, 3]));
+
+        const { definitions } = load([
+            { kind: 'directory', path: base },
+            { kind: 'directory', path: later }
+        ]);
+
+        expect(definitions.tradeTables.get('trading/butcher_trades.json')?.data).toEqual({ tiers: [] });
+    });
+
     it('skips superseded invalid path-addressed files without reporting diagnostics', () => {
         const base = temporaryDir();
         const override = temporaryDir();

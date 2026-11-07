@@ -48,6 +48,7 @@ import type { EntityItemInteraction } from './itemInteraction';
 import type { ContentItemEntity, EntityHostFacts, EntityWorldFacts } from './host';
 import { EntityRuntime, PROJECTILE_EYE_HEIGHT_FRACTION } from './EntityRuntime';
 import { LiveBodies } from './liveBodies';
+import { tradeDisplayNameOf } from './trading';
 import type { DataEntityRecord } from './persistence';
 import { Item as ItemEntity } from '../other/Item';
 import type { Item } from '../../item/Item';
@@ -609,6 +610,7 @@ export class LiveEntityRuntime {
         if (entity === undefined) return false;
         const merchant = this.runtime.merchant(entity);
         if (merchant === undefined) return false;
+        const title = tradeDisplayNameOf(entity.instance);
 
         const playerId = Number(player.getRuntimeId());
         if (!this.runtime.beginTrade(id, playerId)) return false;
@@ -618,6 +620,7 @@ export class LiveEntityRuntime {
             .openTradeWindow({
                 trader,
                 source: merchant,
+                ...(title === undefined ? {} : { title }),
                 context: () => {
                     const hero = player.getStatusEffect('minecraft:village_hero');
                     return {

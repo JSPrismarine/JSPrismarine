@@ -87,3 +87,17 @@ export const merchantFor = (entity: EntityInstance, options: MerchantOptions): M
         ...(options.report === undefined ? {} : { report: options.report })
     });
 };
+
+/**
+ * The name a trade screen is titled with, such as `entity.villager.farmer`, which the client
+ * translates into the profession.
+ *
+ * @returns The table component's `display_name`, or undefined when the entity names none.
+ */
+export const tradeDisplayNameOf = (entity: EntityInstance): string | undefined => {
+    const economy = entity.componentParams(ECONOMY_TRADE_TABLE);
+    if (economy !== undefined) return parseEconomyTradeTable(economy).displayName;
+
+    const legacy = entity.componentParams(LEGACY_TRADE_TABLE);
+    return legacy === undefined ? undefined : parseTradeTableComponent(legacy).displayName;
+};
