@@ -53,6 +53,9 @@ jobs:
               uses: ./.github/common/install
 
             - name: 📖 Build docs
+              env:
+                  # The contributors page reads GitHub's contributor list at build time.
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
               run: pnpm run build:docs
 
             - uses: peaceiris/actions-gh-pages@84c30a85c19949d7eee79c4ff27748b70285e453 # v4

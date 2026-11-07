@@ -2,6 +2,7 @@ import { defineConfig } from 'vitepress';
 import mcfunction from './mcfunction.tmLanguage.json';
 import molang from './molang.tmLanguage.json';
 import typedocSidebar from '../api/typedoc-sidebar.json';
+import { megaMenus, nav } from './menus.mts';
 
 export default defineConfig({
     title: 'JSPrismarine',
@@ -19,11 +20,8 @@ export default defineConfig({
         languages: [mcfunction, molang]
     },
     themeConfig: {
-        nav: [
-            { text: 'Guide', link: '/guide/running' },
-            { text: 'Parity tracker', link: '/parity' },
-            { text: 'API', link: '/api/' }
-        ],
+        nav,
+        megaMenus,
         sidebar: {
             '/guide/': [
                 {
