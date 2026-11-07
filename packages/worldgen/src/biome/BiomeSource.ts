@@ -11,11 +11,14 @@ export type BiomeResolver = (quartX: number, quartY: number, quartZ: number) => 
 /**
  * How many biome cells a memoized resolver remembers.
  *
- * A chunk spans 1536 cells and the surface pass reaches into its neighbors, so a 3 by 3 region
- * of chunks works in about 14000. Rounding that up to a power of two keeps the whole working
- * set resident and the slot index a mask away.
+ * A chunk spans 1536 cells and the surface pass reaches into its neighbors. A decorated chunk
+ * also drives the terrain of the chunks around it, so a worker that finishes several of them
+ * visits well over 100000 distinct cells. Sampled at 2 to the 15th, about a quarter of the
+ * lookups in a run of nine decorated chunks were evictions refilled; at 2 to the 17th the
+ * recomputation falls by 15% for about 2.7 MB per resolver. A power of two keeps the slot
+ * index a mask away.
  */
-const BIOME_CELL_SLOTS = 1 << 15;
+const BIOME_CELL_SLOTS = 1 << 17;
 
 /**
  * Wraps a resolver so each biome cell is resolved once.
