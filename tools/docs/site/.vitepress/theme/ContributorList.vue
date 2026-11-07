@@ -1,39 +1,59 @@
 <script setup lang="ts">
+import { reactive } from 'vue';
 import type { Contributor } from '../../contributors.data.mts';
+import ContributorCommits from './ContributorCommits.vue';
 
-defineProps<{ contributors: Contributor[] }>();
+defineProps<{ contributors: Contributor[]; repo: string }>();
 
 const count = new Intl.NumberFormat('en-US');
+const open = reactive(new Set<string>());
+
+function toggle(login: string) {
+    if (!open.delete(login)) open.add(login);
+}
 </script>
 
 <template>
     <p v-if="!contributors.length" class="contributors-empty">
         The contributor list could not be loaded. See it on
-        <a href="https://github.com/JSPrismarine/JSPrismarine/graphs/contributors">GitHub</a>.
+        <a :href="`https://github.com/${repo}/graphs/contributors`">GitHub</a>.
     </p>
     <ul v-else class="contributors">
-        <li v-for="person in contributors" :key="person.login">
-            <a class="contributors__person" :href="person.url" rel="noopener">
-                <img
-                    class="contributors__avatar"
-                    :src="`${person.avatar}&s=96`"
-                    width="48"
-                    height="48"
-                    loading="lazy"
-                    alt=""
-                />
-                <span class="contributors__identity">
-                    <span class="contributors__name">
-                        {{ person.name }}
-                        <span v-if="person.isOwner" class="contributors__badge">Owner</span>
+        <li v-for="person in contributors" :key="person.login" :class="{ 'is-open': open.has(person.login) }">
+            <div class="contributors__person">
+                <a class="contributors__profile" :href="person.url" rel="noopener">
+                    <img
+                        class="contributors__avatar"
+                        :src="`${person.avatar}&s=96`"
+                        width="48"
+                        height="48"
+                        loading="lazy"
+                        alt=""
+                    />
+                    <span class="contributors__identity">
+                        <span class="contributors__name">
+                            {{ person.name }}
+                            <span v-if="person.isOwner" class="contributors__badge">Owner</span>
+                        </span>
+                        <span class="contributors__login">@{{ person.login }}</span>
                     </span>
-                    <span class="contributors__login">@{{ person.login }}</span>
-                </span>
-                <span class="contributors__count"
-                    >{{ count.format(person.contributions) }}
-                    {{ person.contributions === 1 ? 'commit' : 'commits' }}</span
+                </a>
+                <button
+                    class="contributors__toggle"
+                    type="button"
+                    :aria-expanded="open.has(person.login)"
+                    :aria-controls="`commits-${person.login}`"
+                    :aria-label="`Latest commits by ${person.login}`"
+                    @click="toggle(person.login)"
                 >
-            </a>
+                    {{ count.format(person.contributions) }}
+                    {{ person.contributions === 1 ? 'commit' : 'commits' }}
+                    <span class="contributors__chevron" aria-hidden="true"></span>
+                </button>
+            </div>
+            <div v-if="open.has(person.login)" :id="`commits-${person.login}`">
+                <ContributorCommits :login="person.login" :repo="repo" />
+            </div>
         </li>
     </ul>
 </template>
@@ -53,19 +73,31 @@ const count = new Intl.NumberFormat('en-US');
     border-top: 1px solid var(--vp-c-divider);
 }
 
+.contributors li.is-open {
+    grid-column: 1 / -1;
+}
+
 .contributors__person {
     display: flex;
-    gap: 14px;
+    gap: 8px;
     align-items: center;
     padding: 14px 8px;
     margin: 0 -8px;
-    text-decoration: none;
     border-radius: 8px;
     transition: background-color 0.2s;
 }
 
-.contributors__person:is(:hover, :focus-visible) {
+.contributors__person:hover {
     background: var(--vp-c-default-soft);
+}
+
+.contributors__profile {
+    display: flex;
+    flex: 1;
+    gap: 14px;
+    align-items: center;
+    min-width: 0;
+    text-decoration: none;
 }
 
 .contributors__avatar {
@@ -107,10 +139,39 @@ const count = new Intl.NumberFormat('en-US');
     color: var(--vp-c-text-2);
 }
 
-.contributors__count {
+.contributors__toggle {
+    display: inline-flex;
     flex: none;
+    gap: 8px;
+    align-items: center;
+    padding: 4px 8px;
     font-size: 13px;
     font-variant-numeric: tabular-nums;
     color: var(--vp-c-text-2);
+    border-radius: 6px;
+    transition: color 0.2s;
+}
+
+.contributors__toggle:is(:hover, [aria-expanded='true']) {
+    color: var(--vp-c-brand-1);
+}
+
+.contributors__toggle:focus-visible,
+.contributors__profile:focus-visible {
+    outline: 2px solid var(--vp-c-brand-1);
+    outline-offset: 2px;
+}
+
+.contributors__chevron {
+    width: 5px;
+    height: 5px;
+    border-right: 1.5px solid currentColor;
+    border-bottom: 1.5px solid currentColor;
+    transform: translateY(-2px) rotate(45deg);
+    transition: transform 0.2s;
+}
+
+.contributors__toggle[aria-expanded='true'] .contributors__chevron {
+    transform: translateY(1px) rotate(225deg);
 }
 </style>

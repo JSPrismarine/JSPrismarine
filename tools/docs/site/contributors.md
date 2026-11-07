@@ -4,7 +4,7 @@ description: The people who build JSPrismarine.
 ---
 
 <script setup>
-import { data as contributors } from './contributors.data.mts';
+import { data } from './contributors.data.mts';
 </script>
 
 # Contributors
@@ -12,4 +12,4 @@ import { data as contributors } from './contributors.data.mts';
 These people write the code, the tests and the documentation behind JSPrismarine. The list comes from
 GitHub's contributor graph and is refreshed on every docs build, ordered by commit count.
 
-<ContributorList :contributors="contributors" />
+<ContributorList :contributors="data.contributors" :repo="data.repo" />

@@ -31,7 +31,13 @@ export interface Contributor {
     url: string;
 }
 
-declare const data: Contributor[];
+/** The repository the contributors belong to and its people, most commits first (the owner leads). */
+export interface ContributorData {
+    contributors: Contributor[];
+    repo: string;
+}
+
+declare const data: ContributorData;
 export { data };
 
 const repo = new URL(manifest.repository.url.replace(/^git\+/, '')).pathname.slice(1).replace(/\.git$/, '');
@@ -91,7 +97,7 @@ async function fetchNames(people: GitHubContributor[]) {
 /** Loads human contributors at build time, so the token never reaches the client bundle. */
 export default {
     watch: ['../../../package.json'],
-    async load(): Promise<Contributor[]> {
+    async load(): Promise<ContributorData> {
         let people: GitHubContributor[];
         try {
             people = await fetchContributors();
@@ -100,10 +106,10 @@ export default {
             // biome-ignore lint/suspicious/noUndeclaredEnvVars: VitePress runs outside Turborepo.
             if (process.env.CI) throw error;
             console.warn(`${error} Rendering an empty contributor list.`);
-            return [];
+            return { repo, contributors: [] };
         }
         const names = await fetchNames(people);
-        return people
+        const contributors = people
             .map((person) => ({
                 avatar: person.avatar_url,
                 contributions: person.contributions,
@@ -118,5 +124,6 @@ export default {
                     right.contributions - left.contributions ||
                     left.login.localeCompare(right.login)
             );
+        return { repo, contributors };
     }
 } satisfies LoaderModule;
