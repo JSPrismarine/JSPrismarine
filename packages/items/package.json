@@ -67,7 +67,7 @@
         "@jsprismarine/bedrock-data": "workspace:*",
         "@jsprismarine/mapping": "workspace:*",
         "@types/node": "26.6.6",
-        "glob": "13.0.7",
+        "glob": "14.0.4",
         "prettier": "3.9.10",
         "rimraf": "6.1.4",
         "typescript": "7.0.2",
