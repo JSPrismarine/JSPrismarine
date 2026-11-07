@@ -62,7 +62,7 @@
     "homepage": "https://github.com/JSPrismarine/JSPrismarine/tree/master/packages/client",
     "devDependencies": {
         "@jsprismarine/prismarine": "workspace:*",
-        "@types/node": "24.19.2",
+        "@types/node": "26.6.6",
         "@types/yargs": "17.0.35",
         "glob": "13.0.7",
         "rimraf": "6.1.4",
