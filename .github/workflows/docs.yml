@@ -52,6 +52,48 @@ jobs:
             - name: 📦 Install
               uses: ./.github/common/install
 
+            # The Java data generator needs a JDK of the jar's class file version, and the parity
+            # tracker reports "not measured" for every row whose Java or Bedrock sources are missing.
+            # The caches use the test workflow's keys, so a master run reuses what it stored.
+            # `sources.json` pins Java 26.3, whose `version.json` asks for 25.
+            - name: ☕ Setup JDK
+              uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6
+              with:
+                  distribution: temurin
+                  java-version: '25'
+
+            - name: Cache the fetched sources
+              uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+              with:
+                  path: node_modules/.cache/jsprismarine
+                  key: ${{ runner.os }}-jsp-sources-${{ hashFiles('packages/bedrock-data/sources.json', 'packages/bedrock-data/pack-hashes.json') }}
+                  restore-keys: |
+                      ${{ runner.os }}-jsp-sources-
+
+            # These outputs are derived from the pinned Java source jar and the repository's
+            # generator. Restore them before extraction and datagen:java on repeat runs.
+            - name: Cache generated Java data
+              id: java_data_cache
+              uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+              with:
+                  path: |
+                      node_modules/.cache/jsprismarine/java
+                      node_modules/.cache/jsprismarine/java-reports
+                      node_modules/.cache/jsprismarine/java-structures
+                      node_modules/.cache/jsprismarine/vanilla-datapack
+                  key: ${{ runner.os }}-jsp-java-data-${{ hashFiles('packages/bedrock-data/sources.json', 'packages/bedrock-data/utils/java/**', 'packages/bedrock-data/utils/java-dump/**') }}
+
+            # The fetched-source cache predates the separate generated-data key. On a miss,
+            # discard its old generated outputs so datagen cannot mistake them for this key.
+            - name: Discard uncached Java data
+              if: ${{ steps.java_data_cache.outputs.cache-hit != 'true' }}
+              run: |
+                  rm -rf node_modules/.cache/jsprismarine/java-reports
+                  rm -rf node_modules/.cache/jsprismarine/java-structures
+                  rm -rf node_modules/.cache/jsprismarine/vanilla-datapack
+                  rm -rf node_modules/.cache/jsprismarine/java/*/dump-classes
+                  rm -rf node_modules/.cache/jsprismarine/java/*/dump-out
+
             - name: 📖 Build docs
               env:
                   # The contributors page reads GitHub's contributor list at build time.

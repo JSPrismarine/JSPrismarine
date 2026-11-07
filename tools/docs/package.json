@@ -5,9 +5,10 @@
     "description": "Builds the documentation site with VitePress; the API reference comes from TypeDoc, which still needs TypeScript 6",
     "type": "module",
     "scripts": {
-        "docs": "node assemble.mts && typedoc && node fix-typedoc-media-links.mts && vitepress build site",
+        "docs:sources": "pnpm --filter @jsprismarine/bedrock-data run fetch:sources && pnpm --filter @jsprismarine/bedrock-data run datagen:java",
+        "docs": "pnpm run docs:sources && node assemble.mts && typedoc && node fix-typedoc-media-links.mts && vitepress build site",
         "docs:check": "node assemble.mts && typedoc --emit none",
-        "docs:dev": "pnpm --filter @jsprismarine/bedrock-data run fetch:sources && pnpm --filter @jsprismarine/bedrock-data run datagen:java && node assemble.mts && typedoc && node fix-typedoc-media-links.mts && vitepress dev site"
+        "docs:dev": "pnpm run docs:sources && node assemble.mts && typedoc && node fix-typedoc-media-links.mts && vitepress dev site"
     },
     "devDependencies": {
         "typedoc": "0.28.20",
