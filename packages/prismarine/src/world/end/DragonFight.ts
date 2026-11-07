@@ -446,7 +446,9 @@ export class DragonFight {
         if (dragon === undefined) {
             if (!this.reportedMissingDragonType) {
                 this.reportedMissingDragonType = true;
-                this.report(`no loaded pack declares ${DRAGON_IDENTIFIER}, so the fight has no dragon`);
+                this.report(
+                    `no loaded pack declares ${DRAGON_IDENTIFIER}, so the fight has no dragon; the Bedrock vanilla behavior pack is usually missing, which \`pnpm --filter @jsprismarine/bedrock-data run ensure:bedrock-pack\` downloads`
+                );
             }
             return;
         }
@@ -650,7 +652,9 @@ export class DragonFight {
         if (spawned === undefined) {
             if (!this.reportedMissingDragonType) {
                 this.reportedMissingDragonType = true;
-                this.report(`no loaded pack declares ${DRAGON_IDENTIFIER}, so the fight has no dragon`);
+                this.report(
+                    `no loaded pack declares ${DRAGON_IDENTIFIER}, so the fight has no dragon; the Bedrock vanilla behavior pack is usually missing, which \`pnpm --filter @jsprismarine/bedrock-data run ensure:bedrock-pack\` downloads`
+                );
             }
             return;
         }
