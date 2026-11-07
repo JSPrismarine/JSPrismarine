@@ -218,32 +218,37 @@ describe('the spawn floor of a column', () => {
 });
 
 describe('dimension brightness', () => {
-    it('keeps the End and Nether ambient light floors in rule-facing brightness', () => {
-        const lightAt = (dimension: (typeof Dimensions)[keyof typeof Dimensions]) => {
-            const world: World = Object.assign(Object.create(World.prototype), {
-                dimension,
-                systems: {
-                    lighting: {
-                        getBlockLight: () => 0,
-                        getSkyLight: () => 15
-                    }
+    const lightAt = (dimension: (typeof Dimensions)[keyof typeof Dimensions], blockLight = 0) => {
+        const world: World = Object.assign(Object.create(World.prototype), {
+            dimension,
+            systems: {
+                lighting: {
+                    getBlockLight: () => blockLight,
+                    // What the light engine answers: a dimension with no sky has no sky light.
+                    getSkyLight: () => (dimension.java.hasSkylight ? 15 : 0)
                 }
-            });
-            const groups = worldContentGroups({
-                dimension: dimension.id,
-                world: () => world,
-                seed: 0n,
-                difficulty: () => 2,
-                random: constantRandom(0),
-                content: () => contentWith({})
-            });
+            }
+        });
+        const groups = worldContentGroups({
+            dimension: dimension.id,
+            world: () => world,
+            seed: 0n,
+            difficulty: () => 2,
+            random: constantRandom(0),
+            content: () => contentWith({})
+        });
 
-            return groups.blocks.light({ x: 0, y: 80, z: 0 });
-        };
+        return groups.blocks.light({ x: 0, y: 80, z: 0 });
+    };
 
-        expect(lightAt(Dimensions.TheEnd)).toBe(3);
-        expect(lightAt(Dimensions.Nether)).toBe(1);
+    it('reads the End as Java does: full sky light on open ground', () => {
+        expect(lightAt(Dimensions.TheEnd)).toBe(15);
         expect(lightAt(Dimensions.Overworld)).toBe(15);
+    });
+
+    it('leaves the Nether dark, since it has no sky light and its ambient light is only drawn', () => {
+        expect(lightAt(Dimensions.Nether)).toBe(0);
+        expect(lightAt(Dimensions.Nether, 9)).toBe(9);
     });
 });
 

@@ -223,7 +223,7 @@ export interface ContentLevelFacts {
     readonly minY: number;
     /** One past the highest block y. The overworld is 320, the nether 128. */
     readonly maxY: number;
-    /** Whether the dimension has a sky, which the nether and the end do not. */
+    /** Whether the dimension has sky light, which the nether does not. */
     readonly hasSkyLight: boolean;
     /** Whether the dimension clock is fixed, which prevents Java from being bright outside. */
     readonly hasFixedTime?: boolean;

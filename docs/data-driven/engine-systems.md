@@ -30,15 +30,15 @@ Natural spawning is the one item on that list with a data form. Bedrock publishe
 the server reads the 60 vanilla `spawn_rules/*.json` files through `@jsprismarine/spawning` and
 only the loop around them is code. [entities.md](entities.md) covers it; this page does not.
 
-| What | Where |
-| --- | --- |
-| Scheduler, redstone signal calculation, random tick driver, explosions | `packages/engine-systems/` |
-| Fluid, fire, redstone, and piston behavior | `packages/block-behaviors/src/families/` |
-| Block light and sky light | `packages/lighting/` |
-| Driving all of it from one world tick | `packages/prismarine/src/world/WorldSystems.ts` |
-| The world those systems read and write | `packages/prismarine/src/world/EngineWorld.ts` |
-| What happens to a block the world destroys | `packages/prismarine/src/world/blockDestroy.ts` |
-| A blast over the server's own entities | `packages/prismarine/src/entity/Explosion.ts` |
+| What                                                                   | Where                                           |
+| ---------------------------------------------------------------------- | ----------------------------------------------- |
+| Scheduler, redstone signal calculation, random tick driver, explosions | `packages/engine-systems/`                      |
+| Fluid, fire, redstone, and piston behavior                             | `packages/block-behaviors/src/families/`        |
+| Block light and sky light                                              | `packages/lighting/`                            |
+| Driving all of it from one world tick                                  | `packages/prismarine/src/world/WorldSystems.ts` |
+| The world those systems read and write                                 | `packages/prismarine/src/world/EngineWorld.ts`  |
+| What happens to a block the world destroys                             | `packages/prismarine/src/world/blockDestroy.ts` |
+| A blast over the server's own entities                                 | `packages/prismarine/src/entity/Explosion.ts`   |
 
 Engine-owned systems read and write the world through `WorldAccess`; data-driven families use
 `WorldActions`. Neither seam touches a chunk or a palette, which is why the same explosion code
@@ -126,11 +126,11 @@ For other Bedrock blocks, the fluid rule maps their states back to Java, so mapp
 plants and waterlogged states count as water during spread. Kelp survives only when the block below
 has a sturdy top face.
 
-| Fluid | Drop-off | Hole search | Tick delay | Reach from a source |
-| --- | --- | --- | --- | --- |
-| Water, every dimension | 1 | 4 | 5 | 7 blocks |
-| Lava, overworld and the end | 2 | 2 | 30 | 3 blocks |
-| Lava, nether | 1 | 4 | 10 | 7 blocks |
+| Fluid                       | Drop-off | Hole search | Tick delay | Reach from a source |
+| --------------------------- | -------- | ----------- | ---------- | ------------------- |
+| Water, every dimension      | 1        | 4           | 5          | 7 blocks            |
+| Lava, overworld and the end | 2        | 2           | 30         | 3 blocks            |
+| Lava, nether                | 1        | 4           | 10         | 7 blocks            |
 
 The hole search is `getSlopeDistance`, which scores each candidate side by how far away the
 nearest hole is and sends fluid only to the sides tied for the lowest score. Two sources touching
@@ -199,9 +199,9 @@ A blast is a ray cast, not a sphere, and `packages/engine-systems/src/explosions
 `ServerExplosion` transcribed from the pinned jar's bytecode. One ray leaves the center for every
 cell on the surface of a 16 by 16 by 16 grid, which is 1352 of them, since the 14-cube inside
 contributes no new directions. Each ray draws a starting intensity of `radius * (0.7 + nextFloat()
-* 0.6)` and steps 0.30000001192092896 blocks at a time. Every step costs a flat 0.22500001, plus
-`(blastResistance + 0.3) * 0.3` for the block the ray is standing in. Every position a ray still
-has intensity at joins the set that comes out.
+
+- 0.6)`and steps 0.30000001192092896 blocks at a time. Every step costs a flat 0.22500001, plus`(blastResistance + 0.3) * 0.3` for the block the ray is standing in. Every position a ray still
+  has intensity at joins the set that comes out.
 
 Trace a radius-4 blast with solid stone around it and the consequences fall out of those four
 numbers:
@@ -301,10 +301,11 @@ The world keeps light for the player simulation area and one chunk around it. As
 drops columns outside that ring and rebuilds them if they return. A rule that reads light in another
 loaded chunk initializes and settles that column on demand.
 
-The `blocks.light` value those rules read also applies the dimension's visual sky-light factor and
-ambient light. The End's ambient light sets a minimum of 3, while the Nether's sets a minimum of 1;
-both dimensions suppress sky light. These are server-side rule values. They do not change what the
-client renders, because the packets this server sends carry no light arrays.
+The `blocks.light` value those rules read is Java's gameplay brightness, the brighter of block light
+and sky light. The End has sky light, so its open ground reads 15; the Nether has none. The
+dimension's `ambient_light` and `sky_light_factor` only shape what a client draws, so no rule reads
+them. They do not change what the client renders, because the packets this server sends carry no
+light arrays.
 
 The package follows Bedrock on one visible point. Java's lighting has directional opacity and reads
 the shape of slabs, stairs, farmland and a dozen other blocks, so light passes through them only in
@@ -316,16 +317,16 @@ for every slab in the world.
 
 A tick is 50 ms. Here is what the engine systems take out of it, with the budgets that bound them.
 
-| Work | Cost or budget |
-| --- | --- |
+| Work                                             | Cost or budget            |
+| ------------------------------------------------ | ------------------------- |
 | Scheduled block ticks, and fluid ticks, per tick | 65536 each, Java's number |
-| Light queue nodes per tick | 4096 |
-| Random ticks, 441 chunks, nobody online | nothing |
-| Random ticks, 441 chunks, one player, flat world | 3.5 ms, down from 29.5 |
-| Radius-4 blast | about 0.5 ms |
-| Radius-6 blast, a charged creeper | about 1.1 ms |
-| 24 blasts detonating in one tick | about 16 ms |
-| Lighting 441 chunks during a preload | 1.2 s, down from 5.4 |
+| Light queue nodes per tick                       | 4096                      |
+| Random ticks, 441 chunks, nobody online          | nothing                   |
+| Random ticks, 441 chunks, one player, flat world | 3.5 ms, down from 29.5    |
+| Radius-4 blast                                   | about 0.5 ms              |
+| Radius-6 blast, a charged creeper                | about 1.1 ms              |
+| 24 blasts detonating in one tick                 | about 16 ms               |
+| Lighting 441 chunks during a preload             | 1.2 s, down from 5.4      |
 
 The explosion figures are the package README's own measurements. A blast is 1352 rays of up to 18
 steps, so the inner loop runs roughly 24,000 times; two flat arrays over the cube a ray can reach

@@ -248,19 +248,16 @@ export const worldContentGroups = (options: WorldContentGroupOptions): WorldCont
                 .getLoadedChunk(at.x >> 4, at.z >> 4)
                 ?.getBlockRevision(),
         runtimeIdAt: (at) => live().loadedBlockRuntimeIdAt(at.x, at.y, at.z),
-        // Preserve dimension ambient light and the visual sky-light factor when the data-driven
-        // rules ask for brightness. The End and Nether suppress sky light, but their ambient
-        // floors keep the dimension from reading as pitch black.
+        // Java's gameplay brightness: the brighter of block light and sky light. A dimension with no
+        // sky (the Nether) has no sky light to read, and the End does have one, so its open ground
+        // is 15. The dimension's `ambient_light` and `sky_light_factor` are lightmap values: they
+        // brighten and tint what the client draws and no rule reads them.
         light: (at) => {
             const systems = live().getSystems();
             const lighting = systems.lighting;
-            const ambientLight = Math.floor((level.ambientLight ?? 0) * 15);
-            const skyLight = Math.floor(
-                (systems.getSkyLight?.(at.x, at.y, at.z) ?? lighting.getSkyLight(at.x, at.y, at.z)) *
-                    (level.skyLightFactor ?? (level.hasSkyLight ? 1 : 0))
-            );
+            const skyLight = systems.getSkyLight?.(at.x, at.y, at.z) ?? lighting.getSkyLight(at.x, at.y, at.z);
             const blockLight = systems.getBlockLight?.(at.x, at.y, at.z) ?? lighting.getBlockLight(at.x, at.y, at.z);
-            return Math.max(blockLight, skyLight, ambientLight);
+            return Math.max(blockLight, skyLight);
         },
         skyLight: (at) => {
             const systems = live().getSystems();
