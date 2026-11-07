@@ -55,9 +55,11 @@ export const villagerTrade: Scenario = {
         await client.waitForScreenAbsent('Container', 5_000);
         await waitTicks(server, 15);
 
-        // The trade handed over four bread. How the leftover emeralds are split between the
-        // client's cursor and the payment slot is the client's own business, so only the bread
-        // is counted.
+        // The trade handed over four bread and cost one emerald; the other one went back to the
+        // inventory when the screen closed.
+        const emeralds = server.waitForLine(/Removed \d+ items/, 10_000);
+        server.command(`clear ${playerName} minecraft:emerald 64`);
+        assert.match(await emeralds, /Removed 1 items/, 'the unspent emerald came back on close');
         const bread = server.waitForLine(/Removed \d+ items/, 10_000);
         server.command(`clear ${playerName} minecraft:bread 64`);
         assert.match(await bread, /Removed 4 items/, 'the trade handed over four bread');

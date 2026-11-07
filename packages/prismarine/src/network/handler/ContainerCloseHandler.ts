@@ -28,6 +28,16 @@ export default class ContainerCloseHandler implements PacketHandler<ContainerClo
      * the server forced.
      */
     public async handle(packet: ContainerClosePacket, server: Server, session: PlayerSession): Promise<void> {
+        // The slots a workstation or trade screen kept are gone once the window is, so take them first.
+        const open = session.getOpenBlockContainer();
+        const left = open?.windowId === packet.containerId ? open.inputs.filter((item) => item !== null) : [];
+        // Whatever the player still holds on the cursor goes back with them, since the screen it was held over is gone.
+        const cursor = session.getPlayer().getInventory().getCursor();
+        if (cursor !== null && open?.windowId === packet.containerId) {
+            left.push(cursor);
+            session.getPlayer().getInventory().setCursor(null);
+        }
+
         if (!session.closeWindow(packet.containerId)) {
             server
                 .getLogger()
@@ -43,11 +53,12 @@ export default class ContainerCloseHandler implements PacketHandler<ContainerClo
         pk.serverInitiatedClose = false;
         await session.getConnection().sendDataPacket(pk);
 
-        await this.emptyCraftingGrid(session);
+        await this.emptyCraftingGrid(session, left);
     }
 
     /**
-     * Gives back whatever was left in the crafting grid, as vanilla does.
+     * Gives back whatever was left in the crafting grid and in the slots of the window that
+     * closed, as vanilla does. A trade screen's payment slots and an anvil's are the second kind.
      *
      * Closing the window is also the one moment the server and the client are certain to
      * agree about the grid: it is empty on both sides afterwards. That matters beyond the
@@ -59,13 +70,18 @@ export default class ContainerCloseHandler implements PacketHandler<ContainerClo
      * Dropped rather than discarded: a full inventory is the ordinary case for a player who
      * has been mining, and silently eating the grid there is the same bug the grid itself was.
      */
-    private async emptyCraftingGrid(session: PlayerSession): Promise<void> {
+    private async emptyCraftingGrid(session: PlayerSession, windowItems: readonly Item[]): Promise<void> {
         const player = session.getPlayer();
         const craftingInput = player.getCraftingInput();
-        if (craftingInput.isEmpty()) return;
+        if (craftingInput.isEmpty() && windowItems.length === 0) return;
 
         const inventory = player.getInventory();
         const overflow: Item[] = [];
+
+        for (const item of windowItems) {
+            const left = inventory.addItem(new ContainerEntry({ item, count: item.getAmount() }));
+            if (left > 0) overflow.push(item.withCount(left));
+        }
 
         for (let slot = 0; slot < CraftingInput.SLOTS; slot++) {
             const item = craftingInput.get(slot);

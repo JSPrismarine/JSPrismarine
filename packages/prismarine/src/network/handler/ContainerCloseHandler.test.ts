@@ -6,6 +6,7 @@ import type Server from '../../Server';
 import CraftingInput from '../../crafting/CraftingInput';
 import ContainerEntry from '../../inventory/ContainerEntry';
 import HumanInventory from '../../inventory/HumanInventory';
+import { WindowTypes } from '../../inventory/WindowTypes';
 import { Item } from '../../item/Item';
 import type { StubMembers } from '../../testing/stub.test.helper';
 import { stub } from '../../testing/stub.test.helper';
@@ -25,6 +26,8 @@ interface Scenario {
     inventory?: HumanInventory;
     /** The window ids the session has open; the handler's close is checked against them. */
     openWindows?: number[];
+    /** What the open window kept in its own slots, such as a trade screen's payment. */
+    windowItems?: Item[];
     /** The three fields the client sent. */
     packet?: StubMembers<ContainerClosePacket>;
 }
@@ -34,6 +37,7 @@ const run = async ({
     craftingInput = new CraftingInput(),
     inventory = new HumanInventory(),
     openWindows = [3],
+    windowItems = [],
     packet: fields = {}
 }: Scenario = {}) => {
     const sent: NetworkPacket[] = [];
@@ -63,6 +67,17 @@ const run = async ({
                 getWorld: () => world,
                 getPosition: () => new Position(1, 2, 3, world)
             }),
+        getOpenBlockContainer: () =>
+            windowItems.length === 0
+                ? undefined
+                : {
+                      windowId: 3,
+                      position: new Position(0, 0, 0, world),
+                      identifier: 'minecraft:villager_v2',
+                      screen: WindowTypes.TRADE,
+                      inputs: windowItems,
+                      bookshelfPower: 0
+                  },
         closeWindow: (windowId) => {
             if (!windows.delete(windowId)) return false;
             closed.push(windowId);
@@ -125,6 +140,25 @@ describe('network', () => {
             expect(craftingInput.isEmpty()).toBe(true);
             expect(inventory.getItem(0).getName()).toBe('minecraft:oak_planks');
             expect(dropped).toEqual([]);
+        });
+
+        it('gives back what the closed window kept in its own slots', async () => {
+            const emerald = new Item({ runtimeId: 6, name: 'minecraft:emerald', count: 3 });
+            const inventory = new HumanInventory();
+            const { dropped } = await run({ inventory, windowItems: [emerald] });
+
+            expect(inventory.getItem(0).getName()).toBe('minecraft:emerald');
+            expect(inventory.getItem(0).getAmount()).toBe(3);
+            expect(dropped).toEqual([]);
+        });
+
+        it('gives back the cursor of a player who closes a window over it', async () => {
+            const inventory = new HumanInventory();
+            inventory.setCursor(new Item({ runtimeId: 6, name: 'minecraft:emerald', count: 1 }));
+            await run({ inventory, windowItems: [new Item({ runtimeId: 6, name: 'minecraft:emerald', count: 2 })] });
+
+            expect(inventory.getCursor()).toBeNull();
+            expect(inventory.getItem(0).getAmount()).toBe(3);
         });
 
         it('drops what the inventory has no room for rather than eating it', async () => {
