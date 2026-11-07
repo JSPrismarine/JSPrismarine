@@ -16,6 +16,7 @@ import { entityData, vanillaItemDefinitions } from '@jsprismarine/items';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { EYE_HEIGHT } from '../../entity/Human';
+import type { RaidRecord } from '../../world/raid/RaidManager';
 import Player from '../../Player';
 import type Server from '../../Server';
 import type { Config } from '../../config/Config';
@@ -1980,6 +1981,54 @@ describe('the data-driven entity runtime over a live world', () => {
             expect(babyBody?.metadata.getPropertyValue(MetadataFlag.SCALE)).toBe(0.5);
             // The lamb is in the world too, not only in the index.
             expect(typesIn(world).filter((type) => type === 'minecraft:sheep')).toHaveLength(3);
+        });
+    });
+
+    describe('village raids', () => {
+        const record = (overrides: Partial<RaidRecord>): RaidRecord => ({
+            id: 1,
+            center: { x: 0, y: 64, z: 0 },
+            status: 'ongoing',
+            omenLevel: 1,
+            groupsSpawned: 0,
+            numGroups: 5,
+            ticksActive: 0,
+            waveCountdown: 300,
+            celebrationTicks: 0,
+            raiders: [],
+            ...overrides
+        });
+        const withRaid = (raid: RaidRecord | undefined) => {
+            const host = { raidAt: () => raid };
+            Object.assign(world, { getRaidManager: () => host });
+        };
+
+        it('tells a villager nothing while no raid runs near it', () => {
+            withRaid(undefined);
+
+            expect(live.runtime.host.villagerRaidStateAt?.({ x: 0, y: 64, z: 0 })).toBeUndefined();
+        });
+
+        it('says the village waits between waves once a wave has come and its raiders are dead', () => {
+            withRaid(record({ groupsSpawned: 1, waveCountdown: 120 }));
+
+            expect(live.runtime.host.villagerRaidStateAt?.({ x: 0, y: 64, z: 0 })).toEqual({
+                hasStarted: true,
+                betweenWaves: true,
+                victory: false
+            });
+        });
+
+        it('says a wave is on while raiders live, and that the village won once it did', () => {
+            withRaid(record({ groupsSpawned: 2, raiders: ['pillager-1'] }));
+            expect(live.runtime.host.villagerRaidStateAt?.({ x: 0, y: 64, z: 0 })).toMatchObject({
+                hasStarted: true,
+                betweenWaves: false,
+                victory: false
+            });
+
+            withRaid(record({ groupsSpawned: 5, status: 'victory', celebrationTicks: 100 }));
+            expect(live.runtime.host.villagerRaidStateAt?.({ x: 0, y: 64, z: 0 })).toMatchObject({ victory: true });
         });
     });
 

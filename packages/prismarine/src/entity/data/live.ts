@@ -385,9 +385,25 @@ const liveHost = (options: LiveEntityOptions, bodies: LiveBodies): EntityHostFac
         const target = options.liveWorld()?.getEntity(BigInt(id));
         target?.applyKnockback(directionX, directionZ, strength);
     },
-    // Nothing on this server runs the pillager patrol or the village raid, so no named mob
-    // event is ever active. Said as a fact rather than guessed: the rules that gate on one
-    // refuse, which is what keeps a patrol from spawning every cycle.
+    // The village raid is the world's; what a villager's brain reads of it is the same facts
+    // Java's `Raid` answers: whether a wave has come, whether the village waits between waves
+    // and whether it won.
+    villagerRaidStateAt: (at) => {
+        const raid = options.liveWorld()?.getRaidManager()?.raidAt(at);
+        if (raid === undefined) return undefined;
+        return {
+            hasStarted: raid.groupsSpawned > 0,
+            betweenWaves:
+                raid.status === 'ongoing' &&
+                raid.groupsSpawned > 0 &&
+                raid.raiders.length === 0 &&
+                raid.waveCountdown > 0,
+            victory: raid.status === 'victory'
+        };
+    },
+    // No pillager patrol runs on this server, so that named mob event is never active. Said as a
+    // fact rather than guessed: the rules that gate on one refuse, which is what keeps a patrol
+    // from spawning every cycle. A raid is not a named mob event the spawn rules gate on.
     mobEventActive: () => false,
     structureSpawnOverrideAt: (identifier, at) => {
         const world = options.liveWorld();

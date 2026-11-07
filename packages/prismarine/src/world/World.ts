@@ -66,6 +66,8 @@ import { profileSpanStarter } from '../profiling/ServerProfiler';
 import Chunk from './chunk/Chunk';
 import { DragonFight } from './end/DragonFight';
 import { exposedFluidsOf } from './exposedFluids';
+import type { RaidHost, RaidRecord } from './raid/RaidManager';
+import { RaidManager } from './raid/RaidManager';
 import type { DragonFightState } from './WorldPersistence';
 import { isMidDimensionChange } from './portal/DimensionTravel';
 import type { PortalBlockRef } from './portal/DimensionTravel';
@@ -608,6 +610,7 @@ export class World implements Service {
 
     /** The End's dragon fight, created on the first ask in a dimension that has one. */
     private dragonFight: DragonFight | undefined;
+    private raidManager: RaidManager | undefined;
     private readonly physics: BlockPhysics;
 
     /**
@@ -992,6 +995,7 @@ export class World implements Service {
         const endSystemsProfile = startProfile?.(`World.systems:${this.name}`);
         try {
             this.systems.tick(this.getTicks());
+            this.getRaidManager()?.tick();
         } finally {
             endSystemsProfile?.();
         }
@@ -2347,6 +2351,62 @@ export class World implements Service {
     /** The lit nether portal blocks of this world, kept in step with its block writes and chunk loads. */
     public getPortalIndex(): PortalIndex {
         return (this.portalIndex ??= new PortalIndex());
+    }
+
+    /**
+     * The village raids of this dimension, which only the Overworld has.
+     *
+     * Built on first use from what the level saved, so a raid that was running when the server
+     * stopped carries on.
+     */
+    public getRaidManager(): RaidManager | undefined {
+        if (this.dimension.id !== Dimensions.Overworld.id) return undefined;
+        // `?.` because a world built by hand has a level that saved nothing.
+        return (this.raidManager ??= new RaidManager(this.raidHost(), this.level.storedRaids?.() ?? []));
+    }
+
+    /** The raids to save, or undefined when this world never ran one. */
+    public raidSaveState(): RaidRecord[] | undefined {
+        return this.raidManager?.records();
+    }
+
+    /** What the raid manager asks of this world. */
+    private raidHost(): RaidHost {
+        const livePlayers = () =>
+            this.getPlayers()
+                .filter((player) => player.gamemode !== Gametype.SPECTATOR)
+                .map((player) => ({
+                    id: Number(player.getRuntimeId()),
+                    position: {
+                        x: player.getPosition().getX(),
+                        y: player.getPosition().getY(),
+                        z: player.getPosition().getZ()
+                    },
+                    get badOmenLevel() {
+                        const omen = player.getStatusEffect('minecraft:bad_omen');
+                        return omen === undefined ? 0 : omen.amplifier + 1;
+                    },
+                    clearBadOmen: () => void player.removeStatusEffect('minecraft:bad_omen'),
+                    grantHero: (amplifier: number, ticks: number) =>
+                        void player.addStatusEffect({
+                            id: 'minecraft:village_hero',
+                            amplifier,
+                            durationTicks: ticks
+                        })
+                }));
+        return {
+            difficulty: () => this.server.getConfig().getDifficulty(),
+            random: () => this.server.getRandom()(),
+            players: livePlayers,
+            villageCenterAt: (at) => this.dataEntities().runtime.villageCenterNear(at),
+            isVillage: (at) => this.dataEntities().runtime.villageCenterNear(at) !== undefined,
+            surfaceAt: (x, z) => {
+                const chunk = this.getLoadedChunk(x >> 4, z >> 4);
+                return chunk === null ? undefined : chunk.getTopStoredY() + 1;
+            },
+            spawnRaider: (type, at) => this.dataEntities().runtime.spawn(type, at)?.persistentIdentity,
+            raiderAlive: (identity) => this.dataEntities().runtime.isAliveByIdentity(identity)
+        };
     }
 
     /**

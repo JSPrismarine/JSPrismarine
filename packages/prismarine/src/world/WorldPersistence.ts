@@ -9,6 +9,7 @@ import type {
 } from '@jsprismarine/worldgen';
 import { parseLevelStem, unquantizeClimateCoord } from '@jsprismarine/worldgen';
 
+import type { RaidRecord } from './raid/RaidManager';
 import type { SavedWeather } from './Weather';
 import { savedWeatherOf } from './Weather';
 
@@ -80,6 +81,9 @@ export interface DragonFightState {
     respawnCrystalIds: string[];
 }
 
+/** One village raid as a save holds it: {@link RaidRecord}, which is plain data. */
+export type SavedRaid = RaidRecord;
+
 /** World state a provider stores outside the chunk data. */
 export interface WorldPersistenceData {
     spawn?: { x: number; y: number; z: number };
@@ -91,6 +95,8 @@ export interface WorldPersistenceData {
     worldGenSettings?: WorldGenSettings;
     /** The End's dragon fight, present once a world with one has saved. */
     dragonFight?: DragonFightState;
+    /** The village raids that were running, which carry on after a restart. */
+    raids?: SavedRaid[];
 }
 
 /**
@@ -111,6 +117,7 @@ export const worldPersistenceDataOf = (value: unknown): WorldPersistenceData => 
     const entities = entitiesOf(value['entities']);
     const worldGenSettings = worldGenSettingsOf(value['worldGenSettings']);
     const dragonFight = dragonFightOf(value['dragonFight']);
+    const raids = raidsOf(value['raids']);
 
     return {
         ...(spawn === undefined ? {} : { spawn }),
@@ -118,7 +125,8 @@ export const worldPersistenceDataOf = (value: unknown): WorldPersistenceData => 
         ...(weather === undefined ? {} : { weather }),
         ...(entities === undefined ? {} : { entities }),
         ...(worldGenSettings === undefined ? {} : { worldGenSettings }),
-        ...(dragonFight === undefined ? {} : { dragonFight })
+        ...(dragonFight === undefined ? {} : { dragonFight }),
+        ...(raids === undefined ? {} : { raids })
     };
 };
 
@@ -318,6 +326,38 @@ const dragonFightOf = (value: unknown): DragonFightState | undefined => {
         respawnTime,
         respawnCrystalIds
     };
+};
+
+/** A raid is taken whole or dropped: half of one would send waves nobody planned. */
+const raidOf = (value: unknown): SavedRaid | undefined => {
+    if (!isRecord(value)) return undefined;
+    const { id, status, omenLevel, groupsSpawned, numGroups, ticksActive, waveCountdown, celebrationTicks, raiders } =
+        value;
+    const center = spawnOf(value['center']);
+    if (center === undefined) return undefined;
+    if (!(status === 'ongoing' || status === 'victory')) return undefined;
+    if (![id, omenLevel, groupsSpawned, numGroups, ticksActive, waveCountdown, celebrationTicks].every(isFiniteNumber))
+        return undefined;
+    if (!Array.isArray(raiders) || !raiders.every((identity) => typeof identity === 'string')) return undefined;
+
+    return {
+        id: id as number,
+        center,
+        status,
+        omenLevel: omenLevel as number,
+        groupsSpawned: groupsSpawned as number,
+        numGroups: numGroups as number,
+        ticksActive: ticksActive as number,
+        waveCountdown: waveCountdown as number,
+        celebrationTicks: celebrationTicks as number,
+        raiders
+    };
+};
+
+const raidsOf = (value: unknown): SavedRaid[] | undefined => {
+    if (!Array.isArray(value)) return undefined;
+    const raids = value.flatMap((entry) => raidOf(entry) ?? []);
+    return raids.length === 0 ? undefined : raids;
 };
 
 const isRespawnStage = (value: unknown): value is DragonRespawnStage =>

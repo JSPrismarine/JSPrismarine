@@ -367,6 +367,12 @@ interface EntityGameEventRegistration {
     readonly remove: () => void;
 }
 
+/** The kinds of point of interest that make a place a village, Java's `#minecraft:village`. */
+const VILLAGE_POI_KINDS: readonly string[] = ['home', 'meeting', ...JAVA_POI_TYPES];
+
+/** How far from a position Java looks for the points of interest of its village. */
+const VILLAGE_RADIUS = 64;
+
 /** The live entities of one dimension, and the AI that drives them. */
 export class EntityRuntime implements EntityScene {
     public readonly world: EntityWorldFacts;
@@ -3403,6 +3409,34 @@ export class EntityRuntime implements EntityScene {
                 );
             }
         }
+    }
+
+    /**
+     * The center of the village a position stands in, which Java averages out of every bed, bell
+     * and job site within 64 blocks, or undefined when there is none.
+     */
+    public villageCenterNear(center: EntityPosition): EntityPosition | undefined {
+        let count = 0;
+        let x = 0;
+        let y = 0;
+        let z = 0;
+        for (const kind of VILLAGE_POI_KINDS) {
+            for (const at of this.interest.within(kind, center, VILLAGE_RADIUS)) {
+                count += 1;
+                x += at.x;
+                y += at.y;
+                z += at.z;
+            }
+        }
+        return count === 0 ? undefined : { x: x / count, y: y / count, z: z / count };
+    }
+
+    /** Whether a raider spawned earlier is still alive here. */
+    public isAliveByIdentity(identity: string): boolean {
+        for (const entity of this.entities.values()) {
+            if (entity.persistentIdentity === identity) return entity.removed === undefined;
+        }
+        return false;
     }
 
     /** The raid facts at this villager's position, supplied by its host's raid owner. */

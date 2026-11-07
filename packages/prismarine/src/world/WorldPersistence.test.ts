@@ -339,3 +339,34 @@ describe('world persistence', () => {
         }
     });
 });
+
+describe('persisted raids', () => {
+    const raid = {
+        id: 3,
+        center: { x: 100, y: 64, z: -40 },
+        status: 'ongoing' as const,
+        omenLevel: 2,
+        groupsSpawned: 2,
+        numGroups: 5,
+        ticksActive: 1840,
+        waveCountdown: 120,
+        celebrationTicks: 0,
+        raiders: ['7c6c9c2e-7f64-4b5e-8e0a-1a2b3c4d5e6f', 'f0e1d2c3-b4a5-4968-8776-655443322110']
+    };
+
+    it('reads an active raid back equal through JSON', () => {
+        const data: WorldPersistenceData = {
+            raids: [raid, { ...raid, id: 4, status: 'victory', celebrationTicks: 90 }]
+        };
+
+        expect(parseWorldPersistenceData(JSON.stringify(worldPersistenceJsonOf(data)))).toEqual(data);
+    });
+
+    it('drops a malformed raid and keeps the rest', () => {
+        const parsed = parseWorldPersistenceData(
+            JSON.stringify({ raids: [{ ...raid, status: 'confused' }, { ...raid, center: 'here' }, raid] })
+        );
+
+        expect(parsed.raids).toEqual([raid]);
+    });
+});

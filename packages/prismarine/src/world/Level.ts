@@ -43,7 +43,8 @@ import { WorldWeather } from './Weather';
 import { World } from './World';
 import { PLAYER_DATA_FOLDER } from './WorldPaths';
 import type { WorldData } from './World';
-import type { DragonFightState, LegacyWorldEntity, WorldPersistenceData } from './WorldPersistence';
+import type { RaidRecord } from './raid/RaidManager';
+import type { DragonFightState, LegacyWorldEntity, SavedRaid, WorldPersistenceData } from './WorldPersistence';
 import { isFlatGenerator, isNoiseGenerator, legacyWorldPersistenceDataOf } from './WorldPersistence';
 
 /** What older versions wrote beside the save before the provider kept the level's state. */
@@ -169,6 +170,7 @@ export class Level {
 
     /** The dragon fight the save held, handed to the End world's fight when it is created. */
     private storedDragonFight: DragonFightState | undefined;
+    private savedRaids: SavedRaid[] = [];
 
     /** Entity snapshots the save kept outside its chunks, for a provider without actor storage. */
     private legacy: readonly LegacyWorldEntity[] = [];
@@ -753,6 +755,7 @@ export class Level {
         }
         if (stored.entities && this.provider.supportsChunkUnload !== true) this.legacy = stored.entities;
         this.storedDragonFight = stored.dragonFight;
+        this.savedRaids = stored.raids ?? [];
 
         // The clock is written to `level.dat` alone, so it is read back from there; without it
         // every boot started the day over at tick zero.
@@ -843,6 +846,7 @@ export class Level {
         const stems = Object.fromEntries(this.stems);
         const stored = (await this.provider.readWorldData()) ?? {};
         const dragonFight = this.dragonFightState();
+        const raids = this.raidState();
         const data: WorldPersistenceData = {
             ...stored,
             ...(spawn ? { spawn: { x: spawn.getX(), y: spawn.getY(), z: spawn.getZ() } } : {}),
@@ -850,7 +854,8 @@ export class Level {
             weather: this.weather.saved(),
             ...(this.provider.supportsChunkUnload === true ? {} : { entities: this.entitySnapshots() }),
             worldGenSettings: { seed: this.seed.toString(), dimensions: stems },
-            ...(dragonFight === undefined ? {} : { dragonFight })
+            ...(dragonFight === undefined ? {} : { dragonFight }),
+            ...(raids === undefined ? {} : { raids })
         };
         await this.provider.writeWorldData(data);
         this.provider.saveLevelData({
@@ -859,6 +864,23 @@ export class Level {
             stems,
             netherScale: this.netherScale()
         });
+    }
+
+    /** The raids the save held, which the Overworld's raid manager starts from. */
+    public storedRaids(): RaidRecord[] {
+        return this.savedRaids;
+    }
+
+    /**
+     * The live raids to save. A world that ran none keeps what the save held, so a raid is not
+     * forgotten because the world holding it never woke.
+     */
+    private raidState(): SavedRaid[] | undefined {
+        for (const world of this.worlds()) {
+            const records = world.raidSaveState();
+            if (records !== undefined) return records;
+        }
+        return this.savedRaids.length === 0 ? undefined : this.savedRaids;
     }
 
     /** The dragon fight the save held, which the End world's fight starts from. */
