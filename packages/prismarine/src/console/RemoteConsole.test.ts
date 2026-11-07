@@ -10,6 +10,7 @@ import type { ConsoleSender } from '../command/ConsoleSender';
 import type { Chat } from '../chat/Chat';
 import { ChatType } from '../chat/Chat';
 import type { Config } from '../config/Config';
+import type { TickControl } from '../modules/ticker';
 import type Player from '../Player';
 import { EventEmitter } from '../events/EventEmitter';
 import ChatEvent from '../events/chat/ChatEvent';
@@ -34,11 +35,13 @@ const fakeServer = (overrides: { dispatchCommand?: () => Promise<boolean>; playe
     ]);
     let players = overrides.players ?? 0;
     let tps = 20;
+    let tickRate = 20;
     const events = new EventEmitter();
     const server: Server = stub<Server>({
         getVersion: () => '1.2.3',
         getTPS: () => tps,
         getTickMs: () => 12.5,
+        getTickControl: () => stub<TickControl>({ getTickRate: () => tickRate }),
         getConsole: () => undefined,
         getConsoleSender: () => sender,
         getCommandManager: () => stub<CommandManager>({ dispatchCommand, getCommands: () => commands }),
@@ -70,6 +73,9 @@ const fakeServer = (overrides: { dispatchCommand?: () => Promise<boolean>; playe
         events,
         setPlayers: (count: number) => {
             players = count;
+        },
+        setTickRate: (value: number) => {
+            tickRate = value;
         },
         setTps: (value: number) => {
             tps = value;
@@ -293,7 +299,7 @@ describe('RemoteConsole', () => {
         const statuses = () => received.filter((message) => message.type === 'status');
         expect(statuses()).toHaveLength(1);
         // The measured tick duration, not the 50 ms the rate implies.
-        expect(statuses()[0]).toMatchObject({ tps: 20, tickMs: 12.5, players: 0, maxPlayers: 20 });
+        expect(statuses()[0]).toMatchObject({ tps: 20, tickMs: 12.5, tickRate: 20, players: 0, maxPlayers: 20 });
         expect(statuses()[0]?.rssBytes).toBeGreaterThan(0);
         expect(statuses()[0]?.uptimeMs).toBeGreaterThan(0);
 
@@ -334,6 +340,27 @@ describe('RemoteConsole', () => {
         expect(statuses()).toHaveLength(2);
         expect(statuses()[1]).toMatchObject({ tps: 18 });
 
+        await remote.disable();
+    });
+
+    it('sends a status when the tick rate changes and reports the rate', async () => {
+        vi.useFakeTimers();
+        const { server, setTickRate } = fakeServer();
+        const { serverEnd, received } = linked();
+        const remote = new RemoteConsole(server, serverEnd, new RemoteLogTransport(serverEnd), {
+            statusIntervalMs: 1000,
+            statusKeepAliveMs: 5000
+        });
+        await remote.enable();
+        const statuses = () => received.filter((message) => message.type === 'status');
+        await vi.advanceTimersByTimeAsync(1000);
+        expect(statuses()).toHaveLength(1);
+
+        setTickRate(40);
+        await vi.advanceTimersByTimeAsync(1000);
+
+        expect(statuses()).toHaveLength(2);
+        expect(statuses()[1]).toMatchObject({ tickRate: 40 });
         await remote.disable();
     });
 

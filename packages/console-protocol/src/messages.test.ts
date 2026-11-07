@@ -16,6 +16,22 @@ describe('isServerMessage', () => {
         for (const message of messages) expect(isServerMessage(message), message.type).toBe(true);
     });
 
+    it('accepts a status with a tick rate and rejects one whose tick rate is not a number', () => {
+        const status = {
+            type: 'status',
+            v: 1,
+            tps: 40,
+            tickMs: 2,
+            players: 0,
+            maxPlayers: 20,
+            rssBytes: 1,
+            uptimeMs: 1
+        };
+
+        expect(isServerMessage({ ...status, tickRate: 40 })).toBe(true);
+        expect(isServerMessage({ ...status, tickRate: '40' })).toBe(false);
+    });
+
     it('rejects non-objects, unknown types, and other protocol versions', () => {
         expect(isServerMessage(null)).toBe(false);
         expect(isServerMessage('hello')).toBe(false);

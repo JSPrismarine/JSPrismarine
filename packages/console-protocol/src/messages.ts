@@ -50,6 +50,8 @@ export type ServerMessage =
     | (Envelope<'status'> & {
           tps: number;
           tickMs: number;
+          /** The ticks per second the server aims for. Consoles assume 20 when it is absent. */
+          tickRate?: number;
           players: number;
           /** Online player names for consoles that show a player list. */
           playerNames?: readonly string[];
@@ -196,8 +198,9 @@ const matchesTable = (value: unknown, table: Record<string, Record<string, Field
  */
 export function isServerMessage(value: unknown): value is ServerMessage {
     if (!matchesTable(value, SERVER_FIELDS)) return false;
-    if (!isRecord(value) || value.type !== 'status' || !Object.hasOwn(value, 'playerNames')) return true;
-    return isStringArray(value.playerNames);
+    if (!isRecord(value) || value.type !== 'status') return true;
+    if (Object.hasOwn(value, 'tickRate') && typeof value.tickRate !== 'number') return false;
+    return !Object.hasOwn(value, 'playerNames') || isStringArray(value.playerNames);
 }
 
 /**
