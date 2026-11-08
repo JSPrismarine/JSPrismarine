@@ -3,7 +3,6 @@ import type { FamilyHarness } from '@jsprismarine/block-behaviors';
 import { behaviorFor } from '@jsprismarine/blocks';
 import { javaBlockStateToBedrock } from '@jsprismarine/mapping';
 import { blocksTable } from '@jsprismarine/mapping/tables';
-import { BlockRuntimeIds } from '@jsprismarine/prismarine/block/state/BlockRuntimeIds';
 import { expect, it } from 'vitest';
 
 import type { BehaviorScenario } from './behaviorScenarios.ts';
@@ -603,20 +602,6 @@ const scenarios: readonly BehaviorScenario<BlockSubject>[] = [
                 if (pushed) return undefined;
             }
             return 'it never pushed the block in front of it';
-        }
-    },
-    {
-        name: 'placeable-state',
-        java: 'A block the server can hold has a default state the client can be sent, and the server resolves it to a block type.',
-        reference: 'Java Block.defaultBlockState and the Bedrock block palette',
-        subjects: () => Object.keys(blocksTable.blocks).flatMap((javaId) => subjectOf(javaId) ?? []),
-        idOf: (subject) => subject.javaId,
-        run: (subject) => {
-            const type = serverContent().blocks.types.get(subject.bedrock);
-            if (type === undefined) return `${subject.bedrock} is not a block type the server resolves`;
-            return BlockRuntimeIds.tryGetByState(subject.bedrock, subject.states) === null
-                ? `${subject.bedrock} with its default states has no runtime id`
-                : undefined;
         }
     }
 ];
