@@ -636,6 +636,56 @@ const scenarios: readonly BehaviorScenario<BlockSubject>[] = [
                 JSON.stringify(tables.get(table)?.data) === JSON.stringify(tables.get(wanted)?.data);
             return same ? undefined : `it rolls ${String(table)}, Java's table is ${wanted}`;
         }
+    },
+    {
+        name: 'observer-pulse-delay',
+        java: 'An observer schedules its pulse two game ticks after the block in front of it changes.',
+        reference: 'Java ObserverBlock.updateShape and startSignal (2 ticks)',
+        subjects: () => named('minecraft:observer'),
+        idOf: (subject) => subject.javaId,
+        run: (subject) => {
+            const harness = bind(subject);
+            harness.dimension.set(ORIGIN, subject.bedrock, {
+                ...subject.states,
+                'minecraft:facing_direction': 'east',
+                powered_bit: false
+            });
+            harness.neighborChanged(ORIGIN, 'east');
+            const delay = harness.dimension.scheduled.at(-1)?.delay;
+            return delay === 2 ? undefined : `it schedules its pulse after ${String(delay)} ticks, Java uses 2`;
+        }
+    },
+    {
+        name: 'torch-inversion-delay',
+        java: 'A redstone torch inverts two game ticks after its support changes power.',
+        reference: 'Java RedstoneTorchBlock.neighborChanged (2 ticks)',
+        subjects: () => named('minecraft:redstone_torch'),
+        idOf: (subject) => subject.javaId,
+        run: (subject) => {
+            const harness = bind(subject);
+            harness.dimension.set({ x: 0, y: 4, z: 0 }, 'minecraft:stone');
+            harness.dimension.setPower({ x: 0, y: 4, z: 0 }, 15);
+            harness.dimension.set(ORIGIN, subject.bedrock, { ...subject.states, torch_facing_direction: 'top' });
+            harness.place(ORIGIN);
+            const delay = harness.dimension.scheduled.at(-1)?.delay;
+            return delay === 2 ? undefined : `it inverts after ${String(delay)} ticks, Java uses 2`;
+        }
+    },
+    {
+        name: 'lamp-off-delay',
+        java: 'A lit redstone lamp stays lit for four game ticks after it loses power.',
+        reference: 'Java RedstoneLampBlock.neighborChanged (4 ticks)',
+        subjects: () => named('minecraft:redstone_lamp'),
+        idOf: (subject) => subject.javaId,
+        run: (subject) => {
+            const harness = bind(subject);
+            harness.dimension.set(ORIGIN, 'minecraft:lit_redstone_lamp');
+            harness.redstone(ORIGIN, 0);
+            const stillLit = harness.dimension.identifierAt(ORIGIN) === 'minecraft:lit_redstone_lamp';
+            const delay = harness.dimension.scheduled.at(-1)?.delay;
+            if (!stillLit) return 'it went dark the moment power was removed';
+            return delay === 4 ? undefined : `it goes dark after ${String(delay)} ticks, Java uses 4`;
+        }
     }
 ];
 const REFERENCES_NEEDED = [
