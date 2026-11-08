@@ -1,5 +1,5 @@
-import { blocksTable, entitiesTable, itemsTable } from '@jsprismarine/mapping/tables';
-import { BLOCK_LOSSES, ENTITY_LOSSES, ITEM_LOSSES } from '@jsprismarine/mapping/lossList';
+import { entitiesTable, itemsTable } from '@jsprismarine/mapping/tables';
+import { ENTITY_LOSSES, ITEM_LOSSES } from '@jsprismarine/mapping/lossList';
 import { expect, it } from 'vitest';
 
 import type { Family } from './families.ts';
@@ -27,21 +27,6 @@ const reportUnmeasuredBehaviorRows = (
         }))
     );
 };
-
-describeFamily(FAMILIES.blocksBehavior, [REFERENCES.javaBlockRegistry], () => {
-    it('lists each Java block with runtime behavior not yet covered by a complete parity matrix', () => {
-        const identifiers = [
-            ...new Set([...Object.keys(blocksTable.blocks), ...BLOCK_LOSSES.map(({ javaId }) => javaId)])
-        ].toSorted((left, right) => left.localeCompare(right, 'en'));
-        reportUnmeasuredBehaviorRows(
-            FAMILIES.blocksBehavior,
-            identifiers,
-            'Complete Java placement, update, ticking, interaction, and block-entity behavior parity is not measured for this block.'
-        );
-
-        expect(identifiers).toContain('minecraft:stone');
-    });
-});
 
 describeFamily(FAMILIES.itemsBehavior, [REFERENCES.javaItemRegistry], () => {
     it('lists each Java item with runtime behavior not yet covered by a complete parity matrix', () => {

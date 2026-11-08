@@ -2,7 +2,7 @@
 // index, which keeps the graph to the two decisions this file derives its rows from. The
 // `scripts/dashboard.ts` runner loads this file under plain node, which resolves a bare
 // sibling import only through the hook that script registers.
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 
 import type { SharedStat } from '@jsprismarine/entities/javaStats';
 import { JAVA_STAT_EXCEPTIONS, statRuling } from '@jsprismarine/entities/javaStats';
@@ -293,6 +293,32 @@ const bodilessActorEntries = (): readonly AllowListEntry[] =>
     }));
 
 /**
+ * The behavior scenario rows known to differ from Java, read from the committed baseline.
+ *
+ * `goldens/behavior-gaps.json` is written by running the scenario suites with
+ * `PARITY_UPDATE_BEHAVIOR_GAPS=1`, so a row is added by a scenario observing it and removed
+ * when the server is fixed. `checkAllowList` fails both ways, so the file cannot go stale.
+ */
+const behaviorGapEntries = (): readonly AllowListEntry[] => {
+    const path = new URL('../goldens/behavior-gaps.json', import.meta.url);
+    if (!existsSync(path)) return [];
+    // Parsed JSON boundary; the file is only written by the scenario suites.
+    const baseline: Record<string, Record<string, { kind: GapKind; reason: string; reference: string }>> = JSON.parse(
+        readFileSync(path, 'utf8')
+    );
+    return Object.entries(baseline).flatMap(([family, rows]) =>
+        Object.entries(rows).map(([id, row]) => ({
+            // The baseline is keyed by the family ids declared in families.ts, which the suites write.
+            family: family as Family,
+            id,
+            kind: row.kind,
+            reason: row.reason,
+            reference: row.reference
+        }))
+    );
+};
+
+/**
  * Every expected gap the suite carries. Entries land here when a comparison starts failing for
  * a reason the project records, and leave when the gap closes - `checkAllowList` fails the
  * suite in both directions, so this list can neither hide a new gap nor go stale.
@@ -371,7 +397,8 @@ export const allowList: readonly AllowListEntry[] = [
     ...entityStatEntries(),
     ...entityStatLossEntries(),
     ...mappingLossEntries(),
-    ...untranslatedRegistryEntries()
+    ...untranslatedRegistryEntries(),
+    ...behaviorGapEntries()
 ];
 
 /** The allow-listed gap ids for one family. */

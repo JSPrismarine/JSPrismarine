@@ -25,13 +25,8 @@ import { ENTITY_LOSSES } from '@jsprismarine/mapping/lossList';
 import { entitiesTable } from '@jsprismarine/mapping/tables';
 import { Item as PrismarineItem } from '@jsprismarine/prismarine/item/Item';
 import { resolveTransform } from '@jsprismarine/prismarine/item/blockTransformers';
-import { buildServerContent } from '@jsprismarine/prismarine/content/ServerContent';
 import type { ServerContent } from '@jsprismarine/prismarine/content/ServerContent';
-import { singleDimension } from '@jsprismarine/prismarine/content/world/adapter';
-import { entityContentGroups } from '@jsprismarine/prismarine/entity/contentAdapter';
 import { brainMobOf } from '@jsprismarine/prismarine/entity/data/brainWorld';
-import { EntityRuntime } from '@jsprismarine/prismarine/entity/data/EntityRuntime';
-import { TestEntityWorld } from '@jsprismarine/prismarine/entity/data/testing';
 import { buildNetworkContentPayloads } from '@jsprismarine/prismarine/network/index';
 import { worldContentGroups } from '@jsprismarine/prismarine/world/contentAdapter';
 import { Dimensions } from '@jsprismarine/prismarine/world/Dimension';
@@ -44,6 +39,9 @@ import { takesRandomTicks } from '@jsprismarine/prismarine/world/randomTickSecti
 import { expect, it } from 'vitest';
 
 import { FAMILIES } from './families.ts';
+import { realStack } from './serverStack.ts';
+import type { RealStack } from './serverStack.ts';
+import type { EntityRuntime } from '@jsprismarine/prismarine/entity/data/EntityRuntime';
 import { checkAllowList } from './allowlist.ts';
 import { describeFamily } from './measure.ts';
 import { loadBlockPaletteCapture, loadRequiredItemList } from './goldens.ts';
@@ -56,25 +54,6 @@ import {
     loadJavaWorldgenRegistries
 } from '@jsprismarine/prismarine/world/generators/datadriven/javaWorldgenData';
 
-import type { ServerWorldAdapter } from '@jsprismarine/prismarine/content/world/adapter';
-
-interface RealStack {
-    readonly content: ServerContent;
-    readonly runtime: EntityRuntime;
-    readonly world: TestEntityWorld;
-    readonly reports: EntityRuntimeReport[];
-    readonly reportContext: EntityReportContext;
-}
-
-interface EntityRuntimeReport {
-    readonly identifier: string | undefined;
-    readonly message: string;
-}
-
-interface EntityReportContext {
-    identifier: string | undefined;
-}
-
 interface EntityCoverageCounts {
     declared: number;
     hookBacked: number;
@@ -86,37 +65,6 @@ interface EntityCoverageCounts {
     spawnActive: number;
     spawnActiveGoals: number;
 }
-
-let builtStack: RealStack | undefined;
-
-/** Builds the fetched Bedrock and Java content with a live data-driven entity runtime attached. */
-const realStack = (): RealStack => {
-    if (builtStack !== undefined) return builtStack;
-
-    const world = new TestEntityWorld();
-    let content: ServerContent | undefined;
-    const reports: EntityRuntimeReport[] = [];
-    const reportContext: EntityReportContext = { identifier: undefined };
-    const runtime = new EntityRuntime({
-        content: () => {
-            if (content === undefined) throw new Error('the entity runtime was read before the content build finished');
-            return content;
-        },
-        world: world.world,
-        host: world.host,
-        report: (message) => reports.push({ identifier: reportContext.identifier, message })
-    });
-    const adapter: ServerWorldAdapter = {
-        ...world.world,
-        ticks: world.ticks,
-        ...entityContentGroups(runtime)
-    };
-
-    content = buildServerContent({ world: singleDimension(adapter) });
-    builtStack = { content, runtime, world, reports, reportContext };
-
-    return builtStack;
-};
 
 class JavaTagDimension extends VoxelDimension {
     public constructor(private readonly content: ServerContent) {
