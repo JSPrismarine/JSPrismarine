@@ -1,5 +1,103 @@
 # @jsprismarine/prismarine
 
+## 0.18.0
+
+### Minor Changes
+
+- [`ccf5f0b`](https://github.com/JSPrismarine/JSPrismarine/commit/ccf5f0b3b4185407e0411509644e84c4db9d2775) Thanks [@filiphsps](https://github.com/filiphsps)! - Village raids run. A player with Bad Omen who stands in a village starts one: the omen is spent, a countdown runs, and Java's waves of pillagers, vindicators, evokers, witches and ravagers spawn around the village, three, five or seven by difficulty and one more for a stronger omen, each only once the last is dead. Clearing every wave wins the raid and gives the players nearby Hero of the Village; a village that stops being one, a raid that outlasts 48000 ticks or one nobody is near ends it. Villagers read the raid state, so they take cover between waves and celebrate a win, and an active raid is saved with the level and carries on after a restart.
+
+### Patch Changes
+
+- [`2f242cd`](https://github.com/JSPrismarine/JSPrismarine/commit/2f242cdd46bca371c7658e208b20a7bc2b42b4cf) Thanks [@filiphsps](https://github.com/filiphsps)! - A checkout without the Bedrock vanilla behavior pack no longer runs silently without mobs. `pnpm dev` now downloads the pack when the cache lacks it, and the server logs a warning that names the consequence when the pack is missing. Before, a fresh clone or git worktree started with one entity type: nothing spawned, `/summon` answered "Unable to summon entity" for every type, and the End had no ender dragon.
+
+- [`b1e7419`](https://github.com/JSPrismarine/JSPrismarine/commit/b1e74197edca1faa0264d37a050241bfcbc767aa) Thanks [@filiphsps](https://github.com/filiphsps)! - Mob pathfinding reads blocks faster. Each block read checked its chunk's revision by summing every section's write counts, and looked up its world by scanning the level's worlds. A chunk now reuses its revision until a block is written, and a level remembers its ready worlds by dimension type. In a CPU profile of a server with eight players and their mobs, tick-loop busy time fell from about 84% to about 53%.
+
+- [`df11bd2`](https://github.com/JSPrismarine/JSPrismarine/commit/df11bd22c2250c76812828c3577176d8f54c2f27) Thanks [@filiphsps](https://github.com/filiphsps)! - Generating terrain no longer stalls the tick loop. Each terrain chunk hashed the pipeline's whole dimension and noise settings to build its cache key on the main thread; those inputs are now written once per pipeline, and the key stays identical so existing caches still hit. The cache also stopped listing and statting every record on each write. Per-tick bookkeeping got cheaper too: lighting and portal checks skip work when nothing changed, random-tick section lists skip their revision sum when no block was written, and entities without status effects skip that pass. In a CPU profile of a fresh world with eight walking bots, main-thread busy time over a 45 second window fell from about 41 seconds to about 12 seconds.
+
+- [`9e700bc`](https://github.com/JSPrismarine/JSPrismarine/commit/9e700bc950005d45861cdab21e82a6f5612ce883) Thanks [@filiphsps](https://github.com/filiphsps)! - The console follows a server's own tick rate. The `status` message carries an optional `tickRate`, and the server sends it, so a rate set with `/tick rate` reaches the console. The console caps TPS at that rate instead of 20, colors TPS and tick time against it, and draws the TPS page's graph up to the highest rate in the chosen span, so a span that includes a rate change shows the higher one. A console that gets no `tickRate` assumes 20.
+
+- [`7ebbc42`](https://github.com/JSPrismarine/JSPrismarine/commit/7ebbc420ead93854ca5ee274e1ebc94d5f3acf4d) Thanks [@filiphsps](https://github.com/filiphsps)! - Settle the change of world after the End credits with the respawn exchange instead of a loading screen the client never closes. The client stayed on its loading screen for the server's one minute timeout, which left the next dimension change refused and the player waiting for chunks.
+
+- [#2890](https://github.com/JSPrismarine/JSPrismarine/pull/2890) [`2ed840e`](https://github.com/JSPrismarine/JSPrismarine/commit/2ed840e8fd0ec1651fbba1bdfb3e2ab728c8bfe1) Thanks [@renovate](https://github.com/apps/renovate)! - chore(deps): update dependency glob to v13.0.7
+
+- [#2893](https://github.com/JSPrismarine/JSPrismarine/pull/2893) [`2d468b0`](https://github.com/JSPrismarine/JSPrismarine/commit/2d468b068fa56b158a7fe43168368dbef0c49015) Thanks [@renovate](https://github.com/apps/renovate)! - chore(deps): update dependency vite to v8.3.6
+
+- [#2902](https://github.com/JSPrismarine/JSPrismarine/pull/2902) [`0a03bb6`](https://github.com/JSPrismarine/JSPrismarine/commit/0a03bb69b0c8b11d9432f8f306111b66d7ff3596) Thanks [@renovate](https://github.com/apps/renovate)! - chore(deps): update dependency glob to v14
+
+- [`7c3ef46`](https://github.com/JSPrismarine/JSPrismarine/commit/7c3ef46530ab4cfb0d86b25d3563541082c8fc6e) Thanks [@filiphsps](https://github.com/filiphsps)! - The dragon fight's "no loaded pack declares minecraft:ender_dragon" report now names the usual cause, a missing Bedrock vanilla behavior pack, and the command that downloads it.
+
+- [`cd2a60d`](https://github.com/JSPrismarine/JSPrismarine/commit/cd2a60d428ee7f983601dc0fdf2638bdec7e4fe5) Thanks [@filiphsps](https://github.com/filiphsps)! - Name the built files `index.js` and so on instead of `index.es.js`. Every `exports`, `main`, `module` and `bin` path in the packages points at the new names, so a consumer that imports through a package name needs no change; one that reaches into `dist/` by file name has to drop the `.es`.
+
+- [`dd794e7`](https://github.com/JSPrismarine/JSPrismarine/commit/dd794e7c57b64955aae74cf091caa5e56951c24a) Thanks [@filiphsps](https://github.com/filiphsps)! - Eating and drinking work. The client reports the start of a meal and never its end, so nothing ever consumed the food: the item stayed in hand and the hunger bar never moved. The server now counts the meal out from the item's `consume_seconds` (1.6 seconds unless the item says otherwise) and, if the same item is still in hand, runs its consume behavior: it feeds the player, applies the effects and spends one item. Letting go of the button cancels the meal.
+
+- [`78a0d2f`](https://github.com/JSPrismarine/JSPrismarine/commit/78a0d2f2440b86b862c6126b69538d8025a50e4e) Thanks [@filiphsps](https://github.com/filiphsps)! - Read the End's light as Java does in server-side rules. The End has sky light, so open ground is 15 rather than 3, and the dimension's ambient light and sky-light factor no longer lift or cut a rule's light value, since Java only uses them to draw the lightmap.
+
+- [`431c877`](https://github.com/JSPrismarine/JSPrismarine/commit/431c87743a02f7efa501b206600a2e2f32f3694b) Thanks [@filiphsps](https://github.com/filiphsps)! - Filling an end portal frame with an eye of ender no longer also throws an eye. The client reports one right click on a frame as a block use and as a use in the air, and the server now ignores the air use that follows within two ticks of an eye used on a block.
+
+- [`4140be2`](https://github.com/JSPrismarine/JSPrismarine/commit/4140be2612300efb7cd335350bc25a1d783d404c) Thanks [@filiphsps](https://github.com/filiphsps)! - Give every stack shown in a furnace, chest or brewing stand a stack id when it opens. A stack sent without one could not be picked up, so a client could put items into a furnace but never take them out.
+
+- [`c594b6a`](https://github.com/JSPrismarine/JSPrismarine/commit/c594b6abf8b1db0df5300edd33de1ff459e55e90) Thanks [@filiphsps](https://github.com/filiphsps)! - Water and lava that world generation leaves over air now flow when their chunk loads. Java marks those fluids for post-processing and schedules a fluid tick for each, so an aquifer over an empty cave falls and a lake edge spreads. This server never scheduled one, and the water hung in the air until something disturbed it.
+
+- [`89a67ec`](https://github.com/JSPrismarine/JSPrismarine/commit/89a67ec70b12d318f7c2cb64c5b1a93375f9029f) Thanks [@filiphsps](https://github.com/filiphsps)! - Grass, ferns, flowers and leaf litter no longer replace tree trunks. Each chunk's decoration is drawn without the trees its neighbors place, and the replay of one chunk's writes believed a trunk's base block was still air and put ground cover over it. The replay now leaves anything that is not air, water or another plant alone when the write is ground cover.
+
+- [`5eefc6b`](https://github.com/JSPrismarine/JSPrismarine/commit/5eefc6b0bc8d1792e6ef697326f8f37b8ef37def) Thanks [@filiphsps](https://github.com/filiphsps)! - A raider whose chunk unloads still counts as alive for its raid, so a wave no longer ends early when the raiders wander out of loaded chunks. Raiders saved with a raid are followed again after a restart.
+
+- [`4da36e5`](https://github.com/JSPrismarine/JSPrismarine/commit/4da36e5e215b04f7f9ecd6dc53850cbe943a913b) Thanks [@filiphsps](https://github.com/filiphsps)! - Stop holding every later change of world behind a respawn in another dimension. The client closes no loading screen for it, so the change stayed pending for a minute and a `/tp` or `/execute in <dimension> run tp @s` after dying elsewhere did nothing. `/kill` on a player who is already dead no longer takes them out of the world.
+
+- [`9588b5f`](https://github.com/JSPrismarine/JSPrismarine/commit/9588b5f62ff2698625739b3478ef1fe77590d3b4) Thanks [@filiphsps](https://github.com/filiphsps)! - Raise a respawn at the world spawn out of the blocks around it. The respawn stands the player over a block corner at the stored spawn height, so on a spawn stored as the ground block, or beside higher terrain, a player came back from a death or an End exit inside a block.
+
+- [`0981497`](https://github.com/JSPrismarine/JSPrismarine/commit/098149719b40efd7e1c0f01d659657ba192325b1) Thanks [@filiphsps](https://github.com/filiphsps)! - A world with a saved mob starts again. Restoring a mob with its chunk built its goals before the world had finished enabling, and reading the level clock there threw, so the server stopped on startup. The clock is now read on the first sight check. The lookup of a world by dimension, which every block read through the content adapter makes, also no longer walks the level's worlds each time.
+
+- [`d1f3754`](https://github.com/JSPrismarine/JSPrismarine/commit/d1f37545d2d2765a69ffad0572cd56c5147214c1) Thanks [@filiphsps](https://github.com/filiphsps)! - Answer a sub chunk request for a column that is queued for the client but not yet sent, instead of replying that it does not exist. A request for a column the server never queued is now logged at debug rather than as one warning per sub chunk.
+
+- [`d0e55de`](https://github.com/JSPrismarine/JSPrismarine/commit/d0e55de4cab3f45c538fecdc0dbab455e8486bc0) Thanks [@filiphsps](https://github.com/filiphsps)! - Keep generated terrain tiles on disk, in a `cache/terrain` folder next to `worlds`, so a restart does not rebuild terrain it already generated. Generating the same area with a warm cache took a third less time and 43% less CPU in a 9 by 9 chunk run. The `terrain-cache-size-mb` option sets the budget, 1024 by default, and 0 turns the cache off. Records are keyed by the server version, so an upgrade never reads tiles an older build wrote.
+
+- [`648639f`](https://github.com/JSPrismarine/JSPrismarine/commit/648639f7dc5c4be5a6b5dc1d0104a96e575e1677) Thanks [@filiphsps](https://github.com/filiphsps)! - Village streets follow the ground. A terrain-matching pool element now gets Java's gravity processor, which drops each of its blocks onto the world surface, so paths no longer hang over hollows at the height their template was drawn at. A street laid this way only replaces ground, plants, air and water, so it does not paint over a fountain or a well.
+
+- [`7418be1`](https://github.com/JSPrismarine/JSPrismarine/commit/7418be10dd694d6bb5f284896ea80cab1efdb551) Thanks [@filiphsps](https://github.com/filiphsps)! - Villagers of every profession trade, wear their biome's clothes and show their profession on the trade screen. The Bedrock Dedicated Server ships some definitions as binary files the loader cannot read and leaves out others, and an unreadable file shadowed the readable copy of the same path in an earlier pack, so butchers, clerics and stone masons had no trade table at all. The pack stack now puts `bedrock-samples` beneath the server's pack, an unreadable file no longer hides a readable one, and `pnpm dev` downloads both. The client is also sent a villager's `mark_variant` and `skin_id`, which choose its clothes, and the trade screen is titled with the table's `display_name` instead of the entity's type name.
+
+- [`cc2f7dd`](https://github.com/JSPrismarine/JSPrismarine/commit/cc2f7ddc14b98a0fc38e2e54c0df678bf4f0670f) Thanks [@filiphsps](https://github.com/filiphsps)! - Name the dimension in world log lines, such as `'world'/minecraft:the_end`, instead of the generator, which read `minecraft:noise` for every dimension.
+- Updated dependencies [[`2f242cd`](https://github.com/JSPrismarine/JSPrismarine/commit/2f242cdd46bca371c7658e208b20a7bc2b42b4cf), [`9e700bc`](https://github.com/JSPrismarine/JSPrismarine/commit/9e700bc950005d45861cdab21e82a6f5612ce883), [`8f946da`](https://github.com/JSPrismarine/JSPrismarine/commit/8f946da228aef4f47cf78f6cb579bf40438d7d3b), [`2ed840e`](https://github.com/JSPrismarine/JSPrismarine/commit/2ed840e8fd0ec1651fbba1bdfb3e2ab728c8bfe1), [`2d468b0`](https://github.com/JSPrismarine/JSPrismarine/commit/2d468b068fa56b158a7fe43168368dbef0c49015), [`0a03bb6`](https://github.com/JSPrismarine/JSPrismarine/commit/0a03bb69b0c8b11d9432f8f306111b66d7ff3596), [`cd2a60d`](https://github.com/JSPrismarine/JSPrismarine/commit/cd2a60d428ee7f983601dc0fdf2638bdec7e4fe5), [`e5de5cc`](https://github.com/JSPrismarine/JSPrismarine/commit/e5de5ccd8629ea56fba8b4f495cc4c9403e3c4bc), [`7418be1`](https://github.com/JSPrismarine/JSPrismarine/commit/7418be10dd694d6bb5f284896ea80cab1efdb551), [`13dd1a1`](https://github.com/JSPrismarine/JSPrismarine/commit/13dd1a15e5e2c7db2ee5072db28a0b327a8a5e26), [`8d90227`](https://github.com/JSPrismarine/JSPrismarine/commit/8d90227f749c3b016bf066b770adc6ce15814c6d)]:
+  - @jsprismarine/bedrock-data@0.18.0
+  - @jsprismarine/console-protocol@0.18.0
+  - @jsprismarine/protocol@0.18.0
+  - @jsprismarine/advancements@0.18.0
+  - @jsprismarine/binaryutils@0.18.0
+  - @jsprismarine/block-behaviors@0.18.0
+  - @jsprismarine/blocks@0.18.0
+  - @jsprismarine/brigadier@0.18.0
+  - @jsprismarine/chunkgen@0.18.0
+  - @jsprismarine/color-parser@0.18.0
+  - @jsprismarine/commands@0.18.0
+  - @jsprismarine/content@0.18.0
+  - @jsprismarine/enchantments@0.18.0
+  - @jsprismarine/engine-systems@0.18.0
+  - @jsprismarine/entities@0.18.0
+  - @jsprismarine/entity-brains@0.18.0
+  - @jsprismarine/entity-goals@0.18.0
+  - @jsprismarine/errors@0.18.0
+  - @jsprismarine/features@0.18.0
+  - @jsprismarine/item-behaviors@0.18.0
+  - @jsprismarine/items@0.18.0
+  - @jsprismarine/kernel@0.18.0
+  - @jsprismarine/leveldb@0.18.0
+  - @jsprismarine/lighting@0.18.0
+  - @jsprismarine/logger@0.18.0
+  - @jsprismarine/loot@0.18.0
+  - @jsprismarine/mapping@0.18.0
+  - @jsprismarine/math@0.18.0
+  - @jsprismarine/mcfunction@0.18.0
+  - @jsprismarine/minecraft@0.18.0
+  - @jsprismarine/nbt@0.18.0
+  - @jsprismarine/packs@0.18.0
+  - @jsprismarine/predicates@0.18.0
+  - @jsprismarine/raknet@0.18.0
+  - @jsprismarine/recipes@0.18.0
+  - @jsprismarine/spawning@0.18.0
+  - @jsprismarine/structures@0.18.0
+  - @jsprismarine/trading@0.18.0
+  - @jsprismarine/worldgen@0.18.0
+
 ## 0.17.0
 
 ### Minor Changes
