@@ -256,8 +256,8 @@
         "minecraft:wooden_pressure_plate"
     ],
     "behaviorCounts": {
-        "jsprismarine:plain_block": 215,
         "jsprismarine:inert": 202,
+        "jsprismarine:plain_block": 199,
         "jsprismarine:slab": 109,
         "jsprismarine:stairs": 97,
         "jsprismarine:double_slab": 93,
@@ -277,6 +277,7 @@
         "jsprismarine:trapdoor": 22,
         "jsprismarine:ore": 20,
         "jsprismarine:pressure_plate": 17,
+        "jsprismarine:concrete_powder": 16,
         "jsprismarine:button": 15,
         "jsprismarine:crop": 15,
         "jsprismarine:fence": 15,

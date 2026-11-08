@@ -78,6 +78,56 @@ export const isHydrated = (world: WorldActions, block: HookBlock): boolean => {
     return false;
 };
 
+/** Whether water touches a concrete powder on any side but below, which is what turns it to concrete. */
+const touchesWater = (world: WorldActions, block: HookBlock): boolean =>
+    BLOCK_FACES.some((face) => {
+        if (face === 'down') return false;
+        const neighbor = world.getBlock(offset(block.position, face));
+        return neighbor !== undefined && isWater(neighbor.identifier);
+    });
+
+/** Replaces a powder with the concrete of its color, keeping it where it is. */
+const harden = (world: WorldActions, block: HookBlock): void => {
+    world.setBlock(block.position, sibling(block.identifier, bareName(block.identifier).replace('_powder', '')));
+    world.notifyNeighbors(block.position);
+};
+
+/** Concrete powder: it falls like sand and sets into concrete when water touches it. */
+export const concretePowderFamily = defineFamily(
+    'jsprismarine:concrete_powder',
+    'Falls when nothing holds it up, and turns into concrete of its color when water touches any side but below, or when it falls into water.',
+    {
+        onPlace: (event, world) => {
+            if (touchesWater(world, event.block)) {
+                harden(world, event.block);
+                return;
+            }
+            scheduleFall(world, event.block);
+        },
+        onNeighborChanged: (event, world) => {
+            if (touchesWater(world, event.block)) {
+                harden(world, event.block);
+                return;
+            }
+            scheduleFall(world, event.block);
+        },
+        onTick: (event, world) => {
+            const enteringWater = isWater(world.getBlock(offset(event.block.position, 'down'))?.identifier ?? AIR);
+            if (fallOneStep(world, event.block) !== 'fell') {
+                if (touchesWater(world, event.block)) harden(world, event.block);
+                return;
+            }
+            if (enteringWater) {
+                const landed = world.getBlock(offset(event.block.position, 'down'));
+                if (landed !== undefined) harden(world, landed);
+            }
+        },
+        onBreak: (event, world) => {
+            dropSelf(world, event.brokenBlock);
+        }
+    }
+);
+
 /**
  * Soil: dirt and its variants, sand and gravel, farmland and the spreading
  * ground covers.

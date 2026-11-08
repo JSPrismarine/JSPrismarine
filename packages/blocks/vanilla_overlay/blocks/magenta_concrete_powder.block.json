@@ -18,7 +18,7 @@
                 "movement_type": "push_pull"
             },
             "minecraft:display_name": "tile.concretePowder.magenta.name",
-            "jsprismarine:behavior": "jsprismarine:plain_block",
+            "jsprismarine:behavior": "jsprismarine:concrete_powder",
             "jsprismarine:block_properties": {
                 "friction": 0.6,
                 "random_tick": false,

@@ -4,7 +4,15 @@ import { bindFamily, heldItem, silkTouchTool } from '../harness';
 import { AIR } from '../identifiers';
 import { FALL_DELAY } from '../rules/gravity';
 import { createVoxelWorld } from '../voxelWorld';
-import { dripstoneFamily, iceFamily, MAINTAINS_FARMLAND_TAG, MELT_LIGHT, snowFamily, soilFamily } from './ground';
+import {
+    concretePowderFamily,
+    dripstoneFamily,
+    iceFamily,
+    MAINTAINS_FARMLAND_TAG,
+    MELT_LIGHT,
+    snowFamily,
+    soilFamily
+} from './ground';
 
 const origin = { x: 0, y: 4, z: 0 };
 
@@ -47,6 +55,51 @@ describe('soilFamily: gravity', () => {
         harness.place(origin);
 
         expect(harness.dimension.scheduled).toEqual([]);
+    });
+});
+
+describe('concretePowderFamily', () => {
+    const powder = 'minecraft:white_concrete_powder';
+
+    it('sets into concrete when water is beside it', () => {
+        const harness = bindFamily(concretePowderFamily, powder);
+        harness.dimension.set({ x: 0, y: 3, z: 0 }, 'minecraft:stone');
+        harness.dimension.set({ x: 1, y: 4, z: 0 }, 'minecraft:water');
+        harness.dimension.set(origin, powder);
+
+        harness.place(origin);
+
+        expect(harness.dimension.identifierAt(origin)).toBe('minecraft:white_concrete');
+    });
+
+    it('does not set into concrete for water only below it', () => {
+        const harness = bindFamily(concretePowderFamily, powder);
+        harness.dimension.set({ x: 0, y: 3, z: 0 }, 'minecraft:water');
+        harness.dimension.set(origin, powder);
+
+        harness.neighborChanged(origin, 'east');
+
+        expect(harness.dimension.identifierAt(origin)).toBe(powder);
+    });
+
+    it('falls like sand when dry', () => {
+        const harness = bindFamily(concretePowderFamily, powder);
+        harness.dimension.set(origin, powder);
+
+        harness.place(origin);
+
+        expect(harness.dimension.scheduled).toEqual([{ position: origin, delay: FALL_DELAY }]);
+    });
+
+    it('sets into concrete when it falls into water', () => {
+        const harness = bindFamily(concretePowderFamily, powder);
+        harness.dimension.set({ x: 0, y: 3, z: 0 }, 'minecraft:water');
+        harness.dimension.set(origin, powder);
+
+        harness.tick(origin);
+
+        expect(harness.dimension.identifierAt({ x: 0, y: 3, z: 0 })).toBe('minecraft:white_concrete');
+        expect(harness.dimension.identifierAt(origin)).toBe(AIR);
     });
 });
 

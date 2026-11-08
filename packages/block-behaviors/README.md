@@ -5,7 +5,7 @@ place in the palette. Every component factory there returns `{}`, so all 1477 va
 with no behavior at all until this package registers one.
 
 A behavior is a named set of handlers over `BlockHooks`, attached by family rather than by block, so
-49 families cover the whole palette. One call wires them up:
+50 families cover the whole palette. One call wires them up:
 
 ```typescript
 import { BehaviorRegistry } from '@jsprismarine/content';
@@ -193,28 +193,29 @@ portal, a frame and a fire are.
 
 ## The families
 
-49 names, 48 of them with palette blocks, 1477 blocks. The count is how many palette blocks the family rule in
+50 names, 49 of them with palette blocks, 1477 blocks. The count is how many palette blocks the family rule in
 `@jsprismarine/blocks` sends to it, which matches `vanilla_overlay/report.json`. `registry.test.ts`
 fails when a name in `BLOCK_BEHAVIOR_NAMES` has no behavior, so the table cannot go stale.
 
 | Family | Blocks | Hooks | What it does |
 | --- | --- | --- | --- |
-| `plain_block` | 217 | onBreak | A full cube that proposes itself as a drop; the content break host applies the correct-tool rule. |
+| `plain_block` | 199 | onBreak | A full cube that proposes itself as a drop; the content break host applies the correct-tool rule. |
 | `inert` | 202 | none | No hooks. The engine and editor blocks whose behavior is not a block behavior. |
 | `slab` | 109 | onPlace, onBreak, onRandomTick, onPlayerInteract | Takes its half from where the click landed, merges with the slab it replaced into the double block, waxes and scrapes, and oxidizes when it is copper. |
 | `stairs` | 97 | onPlace, onBreak, onNeighborChanged, onRandomTick, onPlayerInteract | Turns to the placer, flips upside down for a click in the upper half, recomputes minecraft:corner on placement and on every neighbor change, and oxidizes when it is copper. |
 | `double_slab` | 93 | onBreak, onRandomTick, onPlayerInteract | Drops two of the slab it is made of, waxes and scrapes, and oxidizes when it is copper. |
 | `copper` | 84 | onBreak, onRandomTick, onPlayerInteract, onRedstoneUpdate | Waxes with honeycomb, scrapes with an axe, and oxidizes a stage per random tick at the isolated-block rate. |
-| `bamboo` | 52 | onBreak, onNeighborChanged, onRandomTick, onTick | Grows a stalk upward to its height limit, takes every block above with it when it breaks, and kills coral that is not in water. |
+| `bamboo` | 54 | onBreak, onNeighborChanged, onRandomTick, onTick | Grows a stalk upward to its height limit, takes every block above with it when it breaks, and kills coral that is not in water. |
 | `log` | 48 | onPlace, onBreak | Takes pillar_axis from the face the placement was made against, falling back to the placer, and drops itself. |
 | `utility` | 47 | onPlace, onBreak, onNeighborChanged, onTick, onStepOn, onEntityFallOn | Counts a beacon pyramid, falls when it is an anvil, runs the spawner timer, and hurts an entity standing on magma. The screens the workstations open belong to the item runtime. |
-| `flora` | 46 | onBreak, onNeighborChanged, onStepOn | Pops without soil below, keeps the two halves of a tall plant together, and marks an entity that walks into a wither rose. The effect itself is the entity runtime. |
+| `flora` | 47 | onBreak, onNeighborChanged, onStepOn | Pops without soil below, keeps the two halves of a tall plant together, and marks an entity that walks into a wither rose. The effect itself is the entity runtime. |
 | `sign` | 39 | onPlace, onBreak, onNeighborChanged, onPlayerInteract | Keeps the sign text in a block entity, seals it against edits when honeycomb waxes it, and pops a wall sign whose backing block goes. |
 | `soil` | 39 | onPlace, onBreak, onNeighborChanged, onRandomTick, onTick, onEntityFallOn | Falls when it is sand, gravel or a suspicious block, keeps farmland moisture from nearby water, turns farmland back to dirt when something lands on it, spreads grass onto dirt, and turns grass or mycelium to dirt under a dark cover that blocks light. |
+| `concrete_powder` | 16 | onPlace, onBreak, onNeighborChanged, onTick | Falls when nothing holds it up, and turns into concrete of its color when water touches any side but below, or when it falls into water. |
 | `glass` | 35 | onBreak | Drops itself to a silk touch tool and shatters into nothing otherwise. |
 | `candle` | 34 | onPlace, onBreak, onNeighborChanged, onPlayerInteract | Stacks up to four candles in one block, lights to flint and steel, snuffs to a bare hand, and goes out when water reaches it. |
 | `wall` | 32 | onPlace, onBreak, onNeighborChanged | Recomputes the four wall_connection_type states and wall_post_bit from its neighbors and what sits on it. |
-| `redstone` | 31 | onPlace, onBreak, onNeighborChanged, onTick, onPlayerInteract, onRedstoneUpdate, onBlockStateChange | Branches by name over the 31 redstone blocks: initializes wire and diode state, handles piston placement and movement, schedules repeater and comparator delays, pulses the observer, updates lit and unlit pairs and triggered containers, and primes TNT with flint and steel. |
+| `redstone` | 32 | onPlace, onBreak, onNeighborChanged, onTick, onPlayerInteract, onRedstoneUpdate, onBlockStateChange | Branches by name over the 31 redstone blocks: initializes wire and diode state, handles piston placement and movement, schedules repeater and comparator delays, pulses the observer, updates lit and unlit pairs and triggered containers, and primes TNT with flint and steel. |
 | `container` | 22 | onPlace, onBreak, onPlayerInteract | Gives a container its block entity, pairs a chest with the chest beside it, spills its contents on break unless it is a shulker box, and marks a barrel open while a player uses it. |
 | `door` | 22 | onPlace, onBreak, onNeighborChanged, onRandomTick, onPlayerInteract, onRedstoneUpdate | Places the upper half, picks the hinge from its neighbors, toggles both halves on interact unless it is iron or the player sneaks with an item, lets sneaking wax or scrape copper doors, follows redstone, and breaks with its other half. |
 | `trapdoor` | 22 | onBreak, onRandomTick, onPlayerInteract, onRedstoneUpdate | Toggles open_bit on interact unless it is iron or the player sneaks with an item, lets sneaking wax or scrape copper trapdoors, follows redstone, and oxidizes when it is copper. |
@@ -222,7 +223,7 @@ fails when a name in `BLOCK_BEHAVIOR_NAMES` has no behavior, so the table cannot
 | `pressure_plate` | 17 | onPlace, onNeighborChanged, onTick, onStepOn | Checks support on placement and puts out redstone_signal while something stands on it, with the weighted plates counting entities, and releases on a scheduled tick. |
 | `button` | 15 | onPlace, onNeighborChanged, onTick, onPlayerInteract | Checks support on placement, presses on interact, powers for 30 ticks on wood and 20 on stone, then releases on the scheduled tick. |
 | `fence` | 15 | onPlace, onBreak, onNeighborChanged, onRandomTick, onPlayerInteract | Recomputes the four minecraft:connection states, and waxes, scrapes and oxidizes when it is copper. Iron bars follow the pane rule, which refuses fences. |
-| `crop` | 14 | onBreak, onNeighborChanged, onRandomTick, onPlayerInteract | Advances growth on a random tick at a chance the farmland moisture sets, pops off anything but farmland, and harvests the berry blocks on interact. |
+| `crop` | 15 | onBreak, onNeighborChanged, onRandomTick, onPlayerInteract | Advances growth on a random tick at a chance the farmland moisture sets, pops off anything but farmland, and harvests the berry blocks on interact. |
 | `leaves` | 14 | onBreak, onRandomTick | Decays on a random tick when no log is within six blocks through other leaves, unless persistent_bit is set, drops a sapling by chance, and drops itself to shears or silk touch. |
 | `fence_gate` | 13 | onPlace, onBreak, onNeighborChanged, onPlayerInteract, onRedstoneUpdate | Toggles open_bit on interact and on redstone, and sets in_wall_bit when a wall sits on either side. |
 | `climbing` | 11 | onPlace, onBreak, onNeighborChanged, onTick | Pops without the face it hangs on, gives scaffolding its stability distance from the supported block, and holds a vine or a lichen back from anything but shears. |
@@ -236,7 +237,7 @@ fails when a name in `BLOCK_BEHAVIOR_NAMES` has no behavior, so the table cannot
 | `liquid` | 4 | onPlace, onNeighborChanged, onRandomTick, onTick, onPlayerInteract, onStepOn | Spreads on a scheduled tick at the rate its dimension sets, turns to rock where water meets lava, burns what stands in lava, and gives a source block up to a bucket or a bottle. |
 | `rail` | 4 | onPlace, onBreak, onNeighborChanged, onRedstoneUpdate | Pops without a block below, and sets rail_data_bit on the powered rails from the signal reaching them. |
 | `sculk` | 4 | onBreak, onTick, onStepOn | Runs the shrieker warning, cycles the sensor through its three phases, and gives experience for breaking sculk. The catalyst needs a mob death, which no block hook reports. |
-| `torch` | 4 | onBreak, onNeighborChanged | Reads torch_facing_direction to find the face it stands on and pops when that face stops holding it. |
+| `torch` | 2 | onBreak, onNeighborChanged | Reads torch_facing_direction to find the face it stands on and pops when that face stops holding it. |
 | `dripleaf` | 3 | onNeighborChanged, onTick, onStepOn | Tilts a big dripleaf a stage per scheduled tick while an entity stands on it, then drops it and resets. |
 | `egg` | 3 | onRandomTick, onEntityFallOn | Cracks through cracked_state on a random tick and hatches the entity when it is fully cracked. |
 | `lantern` | 3 | onBreak, onNeighborChanged, onRandomTick, onPlayerInteract | Checks the block above when it hangs and the one below when it stands, and waxes, scrapes and oxidizes when it is copper. |

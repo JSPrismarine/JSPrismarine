@@ -166,6 +166,7 @@ export const BLOCK_FAMILIES: readonly BlockFamilyRule[] = [
     { behavior: 'jsprismarine:cauldron', contains: ['cauldron'] },
     { behavior: 'jsprismarine:composter', exact: ['composter'] },
     { behavior: 'jsprismarine:flower_pot', exact: ['flower_pot'] },
+    { behavior: 'jsprismarine:concrete_powder', suffix: ['concrete_powder'] },
     { behavior: 'jsprismarine:torch', suffix: ['torch'] },
     { behavior: 'jsprismarine:lantern', contains: ['lantern'] },
     { behavior: 'jsprismarine:leaves', contains: ['leaves'] },

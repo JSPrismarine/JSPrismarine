@@ -30,7 +30,7 @@ import {
     signFamily,
     torchFamily
 } from './furniture';
-import { dripstoneFamily, iceFamily, snowFamily, soilFamily } from './ground';
+import { concretePowderFamily, dripstoneFamily, iceFamily, snowFamily, soilFamily } from './ground';
 import { doorFamily, fenceGateFamily, trapdoorFamily } from './openable';
 import {
     bambooFamily,
@@ -77,6 +77,7 @@ export const VANILLA_BLOCK_FAMILIES: readonly BlockFamily[] = [
     dripleafFamily,
     eggFamily,
     soilFamily,
+    concretePowderFamily,
     iceFamily,
     snowFamily,
     dripstoneFamily,
