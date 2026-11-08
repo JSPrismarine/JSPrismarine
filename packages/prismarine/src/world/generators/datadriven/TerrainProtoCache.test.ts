@@ -5,7 +5,12 @@ import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import type { GenerationRegionPayload } from './GenerationRegion';
-import { fingerprintWorldgenInput, TerrainProtoCache, terrainProtoCacheKey } from './TerrainProtoCache';
+import {
+    canonicalWorldgenInput,
+    fingerprintWorldgenInput,
+    TerrainProtoCache,
+    terrainProtoCacheKey
+} from './TerrainProtoCache';
 
 const directories: string[] = [];
 
@@ -124,6 +129,22 @@ describe('TerrainProtoCache', () => {
         expect(files).toHaveLength(2);
         expect(events).toContain('evict');
         await expect(cache.read(key(3), identity(3, 0))).resolves.toMatchObject({ chunkX: 3 });
+    });
+
+    it('hashes a pre-serialized input exactly like the value it came from', () => {
+        const dimension = { id: 'minecraft:overworld', minY: -64, height: 384 };
+        const settings = new Map<string, unknown>([
+            ['seaLevel', 63],
+            ['noise', { sizeHorizontal: 1, tags: ['a', 'b'], legacy: null, lava: true }]
+        ]);
+
+        expect(
+            fingerprintWorldgenInput({
+                dimension: canonicalWorldgenInput(dimension),
+                settings: canonicalWorldgenInput(settings),
+                chunk: { x: 3, z: -4 }
+            })
+        ).toBe(fingerprintWorldgenInput({ dimension, settings, chunk: { x: 3, z: -4 } }));
     });
 
     it('fingerprints registry maps independent of insertion order and separates changed inputs', () => {

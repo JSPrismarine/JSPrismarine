@@ -311,31 +311,44 @@ export class TerrainProtoCache {
     }
 }
 
-/** Hashes JSON values and string-keyed maps in canonical key order. */
-export const fingerprintWorldgenInput = (value: unknown): string => {
-    const hash = createHash('sha256');
+/**
+ * A value already written in the canonical form {@link fingerprintWorldgenInput} hashes.
+ *
+ * Hashing one is byte-for-byte hashing the value it came from, so a large input that every key
+ * repeats can be written once with {@link canonicalWorldgenInput} and reused.
+ */
+export class CanonicalWorldgenInput {
+    public constructor(public readonly text: string) {}
+}
+
+/** Writes JSON values and string-keyed maps in canonical key order to `write`. */
+const writeCanonical = (value: unknown, write: (text: string) => void): void => {
     const append = (entry: unknown): void => {
+        if (entry instanceof CanonicalWorldgenInput) {
+            write(entry.text);
+            return;
+        }
         if (entry === null) {
-            hash.update('null;');
+            write('null;');
             return;
         }
         if (typeof entry === 'string') {
-            hash.update(`string:${JSON.stringify(entry)};`);
+            write(`string:${JSON.stringify(entry)};`);
             return;
         }
         if (typeof entry === 'boolean') {
-            hash.update(entry ? 'boolean:true;' : 'boolean:false;');
+            write(entry ? 'boolean:true;' : 'boolean:false;');
             return;
         }
         if (typeof entry === 'number') {
             if (!Number.isFinite(entry)) throw new TypeError('Persistent terrain cache inputs must use finite numbers');
-            hash.update(`number:${entry};`);
+            write(`number:${entry};`);
             return;
         }
         if (Array.isArray(entry)) {
-            hash.update('array:[');
+            write('array:[');
             for (const item of entry) append(item);
-            hash.update(']array;');
+            write(']array;');
             return;
         }
         if (entry instanceof Map) {
@@ -343,12 +356,12 @@ export const fingerprintWorldgenInput = (value: unknown): string => {
             if (entries.some(([key]) => typeof key !== 'string')) {
                 throw new TypeError('Persistent terrain cache maps must use string keys');
             }
-            hash.update('map:{');
+            write('map:{');
             for (const [key, item] of entries.sort(([left], [right]) => compareStrings(String(left), String(right)))) {
                 append(key);
                 append(item);
             }
-            hash.update('}map;');
+            write('}map;');
             return;
         }
         if (typeof entry === 'object') {
@@ -356,12 +369,12 @@ export const fingerprintWorldgenInput = (value: unknown): string => {
             if (prototype !== Object.prototype && prototype !== null) {
                 throw new TypeError('Persistent terrain cache inputs must use plain objects');
             }
-            hash.update('object:{');
+            write('object:{');
             for (const [key, item] of Object.entries(entry).sort(([left], [right]) => compareStrings(left, right))) {
                 append(key);
                 append(item);
             }
-            hash.update('}object;');
+            write('}object;');
             return;
         }
 
@@ -369,7 +382,22 @@ export const fingerprintWorldgenInput = (value: unknown): string => {
     };
 
     append(value);
+};
+
+/** Hashes JSON values and string-keyed maps in canonical key order. */
+export const fingerprintWorldgenInput = (value: unknown): string => {
+    const hash = createHash('sha256');
+    writeCanonical(value, (text) => void hash.update(text));
     return hash.digest('hex');
+};
+
+/** Writes a value in canonical form once, for reuse inside many {@link fingerprintWorldgenInput} calls. */
+export const canonicalWorldgenInput = (value: unknown): CanonicalWorldgenInput => {
+    let text = '';
+    writeCanonical(value, (piece) => {
+        text += piece;
+    });
+    return new CanonicalWorldgenInput(text);
 };
 
 /** Creates a cache key that changes with the record schema, generator version, or status. */
