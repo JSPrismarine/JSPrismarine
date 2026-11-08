@@ -28,9 +28,37 @@ Each test file covers one behavior family, named by its top-level `describe`
 | `packs.*`       | composition                        | Active vanilla definitions after layered-pack composition, compared with composing each layer's definitions in order |
 | `worldgen.*`    | biomes, spawn, carvers, terrain, corpus, features, structures, determinism, dimensions | Java's biome lookups and climate-selected spawn chunks, source-chunk carver selection, and dumped columns; the generation corpus, this server's own output recorded at a named commit; and Java's dimension types and presets through the parsers, with one chunk per vanilla dimension |
 | `commands.*`    | tree                                | The published command tree against Mojang's Bedrock command metadata                                                  |
-| `gameplay.*`    | brain-effects, end-fight            | Sniffer digging loot, warden sonic-boom damage, and villager raid host effects against Java 26.3; the End crystal and dragon data used by the respawn fight |
+| `gameplay.*`    | brain-effects, end-fight, raids, datapack | Sniffer digging loot, warden sonic-boom damage, and villager raid host effects against Java 26.3; the End crystal and dragon data used by the respawn fight; every entry of Java's vanilla datapack registries, by whether the server loads it |
 | `protocol.*`    | negotiation, wire-roundtrip, dimension-change | Each registered protocol version negotiates its own codec from a real first packet; an unsupported version gets the right `PlayStatus` sidedness; declarative layouts re-encode a real server's bytes; the packet sequence a world change sends round-trips through every codec |
 | `conformance.*` | claim, classification, exclusions   | The claim, the table it counts, and the eight exclusions                                                              |
+
+## Behavior scenarios
+
+`blocks.behavior`, `items.behavior`, `entities.behavior` and `gameplay.datapack` measure what the
+server does against what Java does, one row per Java block, item, entity or datapack entry. A
+scenario in [`src/behaviorScenarios.ts`](src/behaviorScenarios.ts) states one Java rule, picks the
+Java subjects it covers from Java's own data (a tag, a component, a registry), runs each through the
+server's real handlers, and returns what differed.
+
+- A block, item or entity a scenario reached reads as one row: passed when every scenario that
+  reached it agreed with Java, failed when one did not.
+- One no scenario reached is **not measured**. It is not a pass: nothing compared its behavior with
+  Java, so it stays in the tracker's denominator until a scenario covers it.
+- A difference is recorded in [`goldens/behavior-gaps.json`](goldens/behavior-gaps.json) as a
+  `defect`, a `deferred` gap or an `intentional` edition difference, each with its reason. The allow
+  list reads that file and `checkAllowList` fails both ways, so a new difference fails the suite and
+  a fixed one makes its row stale.
+
+Rewrite the baseline after a deliberate change with:
+
+```sh
+PARITY_UPDATE_BEHAVIOR_GAPS=1 pnpm --filter @jsprismarine/parity exec vitest run \
+    src/blocks.behavior.test.ts src/items.behavior.test.ts \
+    src/entities.behavior.test.ts src/gameplay.datapack.test.ts
+```
+
+Fix the difference when it is a defect. Record it only when the server cannot match Java yet, and
+say why in the row.
 
 ## The generation corpus
 

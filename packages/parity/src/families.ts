@@ -103,6 +103,8 @@ export const FAMILIES = {
     gameplayBrainEffects: 'gameplay.brain-effects',
     /** The raider table and wave counts the village raid manager spawns from. */
     gameplayRaids: 'gameplay.raids',
+    /** Every entry of Java's vanilla datapack registries, by whether the server loads it. */
+    gameplayDatapack: 'gameplay.datapack',
 
     /** Every registered protocol version negotiates its own codec from a real first packet. */
     protocolNegotiation: 'protocol.negotiation',
