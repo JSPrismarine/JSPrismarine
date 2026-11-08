@@ -1,5 +1,27 @@
 # @jsprismarine/server
 
+## 0.18.0
+
+### Patch Changes
+
+- [#2890](https://github.com/JSPrismarine/JSPrismarine/pull/2890) [`2ed840e`](https://github.com/JSPrismarine/JSPrismarine/commit/2ed840e8fd0ec1651fbba1bdfb3e2ab728c8bfe1) Thanks [@renovate](https://github.com/apps/renovate)! - chore(deps): update dependency glob to v13.0.7
+
+- [#2893](https://github.com/JSPrismarine/JSPrismarine/pull/2893) [`2d468b0`](https://github.com/JSPrismarine/JSPrismarine/commit/2d468b068fa56b158a7fe43168368dbef0c49015) Thanks [@renovate](https://github.com/apps/renovate)! - chore(deps): update dependency vite to v8.3.6
+
+- [#2902](https://github.com/JSPrismarine/JSPrismarine/pull/2902) [`0a03bb6`](https://github.com/JSPrismarine/JSPrismarine/commit/0a03bb69b0c8b11d9432f8f306111b66d7ff3596) Thanks [@renovate](https://github.com/apps/renovate)! - chore(deps): update dependency glob to v14
+
+- [`2e30839`](https://github.com/JSPrismarine/JSPrismarine/commit/2e30839963574e5ddae3ead4dc9b6878b07371b9) Thanks [@filiphsps](https://github.com/filiphsps)! - The server package's `dev` script now prepares the Java world generation data and the Bedrock vanilla behavior pack itself, so every way of starting a development server, not only the root `pnpm dev`, ends up with mobs.
+
+- [`cd2a60d`](https://github.com/JSPrismarine/JSPrismarine/commit/cd2a60d428ee7f983601dc0fdf2638bdec7e4fe5) Thanks [@filiphsps](https://github.com/filiphsps)! - Name the built files `index.js` and so on instead of `index.es.js`. Every `exports`, `main`, `module` and `bin` path in the packages points at the new names, so a consumer that imports through a package name needs no change; one that reaches into `dist/` by file name has to drop the `.es`.
+- Updated dependencies [[`2f242cd`](https://github.com/JSPrismarine/JSPrismarine/commit/2f242cdd46bca371c7658e208b20a7bc2b42b4cf), [`b1e7419`](https://github.com/JSPrismarine/JSPrismarine/commit/b1e74197edca1faa0264d37a050241bfcbc767aa), [`df11bd2`](https://github.com/JSPrismarine/JSPrismarine/commit/df11bd22c2250c76812828c3577176d8f54c2f27), [`9e700bc`](https://github.com/JSPrismarine/JSPrismarine/commit/9e700bc950005d45861cdab21e82a6f5612ce883), [`7ebbc42`](https://github.com/JSPrismarine/JSPrismarine/commit/7ebbc420ead93854ca5ee274e1ebc94d5f3acf4d), [`2ed840e`](https://github.com/JSPrismarine/JSPrismarine/commit/2ed840e8fd0ec1651fbba1bdfb3e2ab728c8bfe1), [`2d468b0`](https://github.com/JSPrismarine/JSPrismarine/commit/2d468b068fa56b158a7fe43168368dbef0c49015), [`0a03bb6`](https://github.com/JSPrismarine/JSPrismarine/commit/0a03bb69b0c8b11d9432f8f306111b66d7ff3596), [`7c3ef46`](https://github.com/JSPrismarine/JSPrismarine/commit/7c3ef46530ab4cfb0d86b25d3563541082c8fc6e), [`cd2a60d`](https://github.com/JSPrismarine/JSPrismarine/commit/cd2a60d428ee7f983601dc0fdf2638bdec7e4fe5), [`dd794e7`](https://github.com/JSPrismarine/JSPrismarine/commit/dd794e7c57b64955aae74cf091caa5e56951c24a), [`78a0d2f`](https://github.com/JSPrismarine/JSPrismarine/commit/78a0d2f2440b86b862c6126b69538d8025a50e4e), [`431c877`](https://github.com/JSPrismarine/JSPrismarine/commit/431c87743a02f7efa501b206600a2e2f32f3694b), [`4140be2`](https://github.com/JSPrismarine/JSPrismarine/commit/4140be2612300efb7cd335350bc25a1d783d404c), [`c594b6a`](https://github.com/JSPrismarine/JSPrismarine/commit/c594b6abf8b1db0df5300edd33de1ff459e55e90), [`89a67ec`](https://github.com/JSPrismarine/JSPrismarine/commit/89a67ec70b12d318f7c2cb64c5b1a93375f9029f), [`5eefc6b`](https://github.com/JSPrismarine/JSPrismarine/commit/5eefc6b0bc8d1792e6ef697326f8f37b8ef37def), [`4da36e5`](https://github.com/JSPrismarine/JSPrismarine/commit/4da36e5e215b04f7f9ecd6dc53850cbe943a913b), [`9588b5f`](https://github.com/JSPrismarine/JSPrismarine/commit/9588b5f62ff2698625739b3478ef1fe77590d3b4), [`0981497`](https://github.com/JSPrismarine/JSPrismarine/commit/098149719b40efd7e1c0f01d659657ba192325b1), [`d1f3754`](https://github.com/JSPrismarine/JSPrismarine/commit/d1f37545d2d2765a69ffad0572cd56c5147214c1), [`d0e55de`](https://github.com/JSPrismarine/JSPrismarine/commit/d0e55de4cab3f45c538fecdc0dbab455e8486bc0), [`ccf5f0b`](https://github.com/JSPrismarine/JSPrismarine/commit/ccf5f0b3b4185407e0411509644e84c4db9d2775), [`648639f`](https://github.com/JSPrismarine/JSPrismarine/commit/648639f7dc5c4be5a6b5dc1d0104a96e575e1677), [`7418be1`](https://github.com/JSPrismarine/JSPrismarine/commit/7418be10dd694d6bb5f284896ea80cab1efdb551), [`cc2f7dd`](https://github.com/JSPrismarine/JSPrismarine/commit/cc2f7ddc14b98a0fc38e2e54c0df678bf4f0670f)]:
+  - @jsprismarine/prismarine@0.18.0
+  - @jsprismarine/console-protocol@0.18.0
+  - @jsprismarine/color-parser@0.18.0
+  - @jsprismarine/logger@0.18.0
+  - @jsprismarine/minecraft@0.18.0
+  - @jsprismarine/packs@0.18.0
+  - @jsprismarine/raknet@0.18.0
+
 ## 0.17.0
 
 ### Patch Changes
