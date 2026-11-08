@@ -23,10 +23,12 @@ import type { NetworkWorldReplicator, WorldReplicators } from '../network/Networ
 import type Server from '../Server';
 import { inertEntityRuntime, testContent } from '../testing/entityServer';
 import { stub } from '../testing/stub.test.helper';
+import { withCwd } from '../utils/cwd';
 import Chunk from './chunk/Chunk';
 import { Dimensions } from './Dimension';
 import type { DimensionType } from './Dimension';
 import type { Generator } from './Generator';
+import type { TerrainCacheSettings } from './GeneratorFactories';
 import { findJavaWorldgenSources } from './generators/datadriven/javaWorldgenData';
 import WorldManager from './WorldManager';
 import { ChunkCompletionQueue } from './ChunkCompletionQueue';
@@ -129,7 +131,8 @@ const buildManager = (
     levelName: string,
     worlds: Record<string, LegacyWorldData>,
     content: ServerContent = testContent(),
-    chunkWorkers = 4
+    chunkWorkers = 4,
+    terrainCacheSizeMb = 0
 ) => {
     const logged: string[] = [];
     const setWorld = vi.fn<Config['setWorld']>();
@@ -150,10 +153,12 @@ const buildManager = (
                 // Nothing preloads: the start region is covered by the world tests.
                 getPreloadRadius: () => 0,
                 getChunkWorkers: () => chunkWorkers,
+                getTerrainCacheSizeMb: () => terrainCacheSizeMb,
                 getEntityTrackingInterval: () => 20
             }),
         getChunkCompletionQueue: () => new ChunkCompletionQueue(),
         getContent: () => content,
+        getVersion: () => '9.9.9',
         getEntityRuntime: () => inertEntityRuntime(),
         getWorldReplicators: () =>
             stub<WorldReplicators>({ for: () => stub<NetworkWorldReplicator>({ worldChanged: () => {} }) }),
@@ -167,6 +172,8 @@ const buildManager = (
     const noiseSettingsSeen = new Map<string, readonly string[]>();
     /** Worker limits forwarded from the server config, by kind and dimension. */
     const workersSeen = new Map<string, number | undefined>();
+    /** The terrain cache forwarded from the server config, by kind and dimension. */
+    const terrainCacheSeen = new Map<string, TerrainCacheSettings | undefined>();
     for (const kind of [TEST_KIND, OTHER_KIND]) {
         manager.getGeneratorFactories().register({
             kind,
@@ -174,6 +181,7 @@ const buildManager = (
                 const key = `${kind} ${context.dimension.id}`;
                 builds.set(key, (builds.get(key) ?? 0) + 1);
                 workersSeen.set(key, context.workers);
+                terrainCacheSeen.set(key, context.terrainCache);
                 if (context.dimension.custom) {
                     noiseSettingsSeen.set(context.dimension.id, [...context.worldgen().noiseSettings.keys()]);
                 }
@@ -182,7 +190,7 @@ const buildManager = (
         });
     }
 
-    return { manager, logged, setWorld, builds, noiseSettingsSeen, workersSeen };
+    return { manager, logged, setWorld, builds, noiseSettingsSeen, workersSeen, terrainCacheSeen };
 };
 
 describe('WorldManager', () => {
@@ -191,6 +199,27 @@ describe('WorldManager', () => {
         await manager.enable();
 
         expect(workersSeen.get(`${TEST_KIND} ${Dimensions.Overworld.id}`)).toBe(2);
+
+        await manager.disable();
+    });
+
+    it('forwards the configured terrain cache, keyed by the server version', async () => {
+        const { manager, terrainCacheSeen } = buildManager('main', { main: entryOf() }, testContent(), 2, 64);
+        await manager.enable();
+
+        const cache = terrainCacheSeen.get(`${TEST_KIND} ${Dimensions.Overworld.id}`);
+        expect(cache?.maxBytes).toBe(64 * 1024 * 1024);
+        expect(cache?.codeVersion).toBe('9.9.9');
+        expect(cache?.directory).toBe(withCwd('cache', 'terrain'));
+
+        await manager.disable();
+    });
+
+    it('leaves the terrain cache out when its size is zero', async () => {
+        const { manager, terrainCacheSeen } = buildManager('main', { main: entryOf() });
+        await manager.enable();
+
+        expect(terrainCacheSeen.get(`${TEST_KIND} ${Dimensions.Overworld.id}`)).toBeUndefined();
 
         await manager.disable();
     });

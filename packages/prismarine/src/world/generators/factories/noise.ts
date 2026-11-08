@@ -77,6 +77,15 @@ const openShared = (registries: JavaWorldgenRegistries, context: GeneratorBuildC
         registries,
         templates: findJavaTemplateSource(cacheRoot(), registries.processorLists),
         ...(context.completionQueue === undefined ? {} : { completionQueue: context.completionQueue }),
+        ...(stages === undefined || context.terrainCache === undefined
+            ? {}
+            : {
+                  persistentProtoCache: {
+                      directory: context.terrainCache.directory,
+                      maxBytes: context.terrainCache.maxBytes,
+                      codeVersion: context.terrainCache.codeVersion
+                  }
+              }),
         ...(stages === undefined ? {} : { stages })
     });
     context.logger.info(

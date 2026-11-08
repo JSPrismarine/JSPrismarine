@@ -120,6 +120,7 @@ export interface ConfigFile {
     'preload-radius'?: number;
     /** How many worker threads to use for chunk generation. 0 keeps generation on the server thread. @asType integer @minimum 0 */
     'chunk-workers'?: number;
+    'terrain-cache-size-mb'?: number;
     /** How long each tick may spend sending chunks, out of its 50 ms. @minimum 0 */
     'chunk-send-budget-ms'?: number;
     /** Whether positional packets only go to nearby players. */
@@ -186,6 +187,7 @@ export const CONFIG_KEY_ORDER = [
     'view-distance',
     'preload-radius',
     'chunk-workers',
+    'terrain-cache-size-mb',
     'chunk-send-budget-ms',
     'proximity-broadcast',
     'server-authoritative-block-breaking',

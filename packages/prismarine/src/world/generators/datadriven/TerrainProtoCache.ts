@@ -45,6 +45,13 @@ export interface TerrainProtoCacheOptions {
     readonly directory: string;
     /** Maximum bytes held by cache records and temporary writes. */
     readonly maxBytes: number;
+    /**
+     * Identifies the code that builds the tiles, such as the server version.
+     *
+     * It becomes part of every record's key, so a build that generates different terrain never
+     * reads what an older one wrote. The records left behind age out under `maxBytes`.
+     */
+    readonly codeVersion?: string;
     /** Observe cache events without changing generation behavior. Observer errors are ignored. */
     readonly onEvent?: (event: TerrainProtoCacheEvent) => void;
 }

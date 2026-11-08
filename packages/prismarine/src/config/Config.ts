@@ -62,6 +62,8 @@ const COMMENTS = {
     'view-distance': 'How far players see, in chunks.',
     'preload-radius': 'How many chunks around spawn to generate before accepting players. 0 skips it.',
     'chunk-workers': 'How many worker threads to use for chunk generation. 0 keeps it on the server thread.',
+    'terrain-cache-size-mb':
+        'How many megabytes of generated terrain to keep on disk so it is not rebuilt after a restart. 0 turns the cache off.',
     'chunk-send-budget-ms': 'How long each tick may spend sending chunks, out of its 50 ms.',
     'proximity-broadcast': 'Whether positional packets only go to players near them. Turn off only to debug.',
     'server-authoritative-block-breaking':
@@ -112,6 +114,7 @@ const DEFAULTS = {
     'view-distance': 10,
     'preload-radius': 10,
     'chunk-workers': Math.max(0, chunkWorkerCount()),
+    'terrain-cache-size-mb': 1024,
     'chunk-send-budget-ms': 5,
     'proximity-broadcast': true,
     'server-authoritative-block-breaking': true,
@@ -199,6 +202,7 @@ export class Config {
     private viewDistance: number = DEFAULTS['view-distance'];
     private preloadRadius: number = DEFAULTS['preload-radius'];
     private chunkWorkers: number = DEFAULTS['chunk-workers'];
+    private terrainCacheSizeMb: number = DEFAULTS['terrain-cache-size-mb'];
     private chunkSendBudgetMs: number = DEFAULTS['chunk-send-budget-ms'];
     private proximityBroadcast: boolean = DEFAULTS['proximity-broadcast'];
     private serverAuthoritativeBlockBreaking: boolean = DEFAULTS['server-authoritative-block-breaking'];
@@ -289,6 +293,7 @@ export class Config {
         this.viewDistance = read('view-distance', DEFAULTS['view-distance']);
         this.preloadRadius = read('preload-radius', DEFAULTS['preload-radius']);
         this.chunkWorkers = read('chunk-workers', DEFAULTS['chunk-workers']);
+        this.terrainCacheSizeMb = read('terrain-cache-size-mb', DEFAULTS['terrain-cache-size-mb']);
         this.chunkSendBudgetMs = read('chunk-send-budget-ms', DEFAULTS['chunk-send-budget-ms']);
         this.proximityBroadcast = read('proximity-broadcast', DEFAULTS['proximity-broadcast']);
         this.serverAuthoritativeBlockBreaking = read(
@@ -477,6 +482,16 @@ export class Config {
     public getChunkWorkers(): number {
         const workers = Number(this.chunkWorkers);
         return Number.isFinite(workers) ? Math.max(0, Math.trunc(workers)) : DEFAULTS['chunk-workers'];
+    }
+
+    /**
+     * How many megabytes of generated terrain tiles the server keeps on disk.
+     *
+     * @returns A nonnegative integer; zero turns the cache off
+     */
+    public getTerrainCacheSizeMb(): number {
+        const megabytes = Number(this.terrainCacheSizeMb);
+        return Number.isFinite(megabytes) ? Math.max(0, Math.trunc(megabytes)) : DEFAULTS['terrain-cache-size-mb'];
     }
 
     /**

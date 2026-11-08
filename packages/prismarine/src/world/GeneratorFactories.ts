@@ -46,6 +46,23 @@ export interface GeneratorBuildContext {
      * sizes it and later ones are not read.
      */
     readonly workers?: number;
+    /**
+     * Where generated terrain tiles are kept between runs, and how much room they may take.
+     *
+     * Absent keeps every tile in memory only. Like `workers`, the noise factory reads it once,
+     * from the first stem it builds, because one generator serves every dimension.
+     */
+    readonly terrainCache?: TerrainCacheSettings;
+}
+
+/** A disk budget for generated terrain tiles. */
+export interface TerrainCacheSettings {
+    /** A directory used only for terrain records. */
+    readonly directory: string;
+    /** The most bytes the records may take. */
+    readonly maxBytes: number;
+    /** Identifies the code that builds the tiles, so an upgrade does not reuse older records. */
+    readonly codeVersion: string;
 }
 
 /** Builds the generator for one kind of stem. */

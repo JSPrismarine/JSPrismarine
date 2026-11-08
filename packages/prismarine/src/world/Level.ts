@@ -34,7 +34,7 @@ import Player from '../Player';
 import { Dimensions, FIRST_CUSTOM_DIMENSION_ID, dimensionTypeOf } from './Dimension';
 import type { DimensionType } from './Dimension';
 import GameRuleManager, { GameRules } from './GameRuleManager';
-import type { GeneratorFactories } from './GeneratorFactories';
+import type { GeneratorFactories, TerrainCacheSettings } from './GeneratorFactories';
 import type { JavaWorldgenRegistries } from './generators/datadriven/javaWorldgenData';
 import { requireJavaWorldgenRegistries } from './generators/datadriven/javaWorldgenData';
 import type BaseProvider from './providers/BaseProvider';
@@ -107,6 +107,8 @@ export interface LevelOptions {
     readonly worldgen?: () => JavaWorldgenRegistries;
     /** The chunk worker limit from server configuration, forwarded to generator factories. */
     readonly chunkWorkers?: number;
+    /** The terrain tile cache from server configuration, forwarded to generator factories. */
+    readonly terrainCache?: TerrainCacheSettings;
     /** The `worlds.<name>` entry as configured, which a provider may read when generating. */
     readonly config?: WorldConfig;
     /** The handlers each world runs; see {@link WorldHandlersFactory}. */
@@ -151,6 +153,7 @@ export class Level {
     private readonly factories: GeneratorFactories;
     private readonly worldgen: () => JavaWorldgenRegistries;
     private readonly chunkWorkers: number | undefined;
+    private readonly terrainCache: TerrainCacheSettings | undefined;
     private readonly config: WorldConfig;
     private readonly handlers: WorldHandlersFactory | undefined;
     private readonly onWorldBuilt: ((world: World) => void) | undefined;
@@ -204,6 +207,7 @@ export class Level {
         this.factories = options.factories;
         this.worldgen = options.worldgen ?? requireJavaWorldgenRegistries;
         this.chunkWorkers = options.chunkWorkers;
+        this.terrainCache = options.terrainCache;
         this.config = options.config ?? {};
         this.handlers = options.handlers;
         this.onWorldBuilt = options.onWorldBuilt;
@@ -470,6 +474,7 @@ export class Level {
             content: () => this.server.getContent(),
             worldgen: this.worldgen,
             ...(this.chunkWorkers === undefined ? {} : { workers: this.chunkWorkers }),
+            ...(this.terrainCache === undefined ? {} : { terrainCache: this.terrainCache }),
             logger: this.server.getLogger(),
             completionQueue: this.server.getChunkCompletionQueue()
         });

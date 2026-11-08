@@ -10,7 +10,10 @@
  * pnpm --filter @jsprismarine/prismarine exec vitest run src/world/generators
  * ```
  */
-import { beforeAll, describe, expect, it } from 'vitest';
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { BlockRuntimeIds } from '../../../block/state/BlockRuntimeIds';
 import type Chunk from '../../chunk/Chunk';
@@ -45,6 +48,51 @@ describe.skipIf(!enabled)('the data-driven overworld', { tags: ['real-data'] }, 
         for (let y = chunk.getMinY(); y <= chunk.getMaxY(); y++) column.push(chunk.getBlock(x, y, z).name);
         return column;
     };
+
+    describe('terrain tile cache', () => {
+        const root = mkdtempSync(join(tmpdir(), 'jsp-terrain-cache-'));
+        afterAll(() => rmSync(root, { recursive: true, force: true }));
+
+        /** Generates one chunk and reports what the cache did, then stops the generator. */
+        const generateWith = async (
+            codeVersion: string
+        ): Promise<{ events: string[]; first: number; chunk: Chunk }> => {
+            const events: string[] = [];
+            const generator = new DataDrivenGenerator({
+                registries,
+                decorate: false,
+                carve: false,
+                persistentProtoCache: {
+                    directory: root,
+                    maxBytes: 64 * 1024 * 1024,
+                    codeVersion,
+                    onEvent: ({ type }) => events.push(type)
+                }
+            });
+            const chunk = await generator.generateChunk(3, -2, SEED);
+            generator.stopGenerating();
+            return { events, first: chunk.getBlockRuntimeId(1, 0, 1), chunk };
+        };
+
+        it(
+            'rebuilds a tile for a different code version and reuses it for the same one',
+            async () => {
+                const written = await generateWith('1.0.0');
+                expect(written.events).toContain('miss');
+                expect(written.events).toContain('write');
+
+                const reused = await generateWith('1.0.0');
+                expect(reused.events).toContain('hit');
+                expect(reused.events).not.toContain('write');
+                expect(reused.first).toBe(written.first);
+
+                const upgraded = await generateWith('2.0.0');
+                expect(upgraded.events).not.toContain('hit');
+                expect(upgraded.events).toContain('write');
+            },
+            CHUNK_TIMEOUT
+        );
+    });
 
     it(
         'builds terrain with a stone floor, a surface and air above it',

@@ -87,6 +87,27 @@ describe('config', () => {
             expect(configured.getChunkWorkers()).toBe(0);
         });
 
+        it('keeps up to a gigabyte of terrain on disk by default', () => {
+            expect(config.getTerrainCacheSizeMb()).toBe(1024);
+        });
+
+        it('turns the terrain cache off at zero and clamps invalid sizes', async () => {
+            for (const [configured, expected] of [
+                ['0', 0],
+                ['256', 256],
+                ['-5', 0],
+                ['2.9', 2],
+                ['"lots"', 1024]
+            ] as const) {
+                writeFileSync(path.join(configDirectory, 'config.json'), `{"terrain-cache-size-mb":${configured}}`);
+
+                const reconfigured = new Config();
+                await reconfigured.enable();
+
+                expect(reconfigured.getTerrainCacheSizeMb(), configured).toBe(expected);
+            }
+        });
+
         it('should have online mode enabled by default', () => {
             expect(config.getOnlineMode()).toBe(true);
         });

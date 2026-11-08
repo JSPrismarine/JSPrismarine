@@ -1886,6 +1886,7 @@ export class DataDrivenGenerator implements Generator {
             templateFingerprint: fingerprints.templates,
             carve: this.options.carve !== false,
             structures: this.options.structures !== false,
+            codeVersion: this.options.persistentProtoCache?.codeVersion ?? null,
             chunk: { x: cx, z: cz }
         });
     }

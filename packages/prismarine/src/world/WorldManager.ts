@@ -5,6 +5,7 @@ import type { Server, Service } from '../';
 import { withCwd } from '../utils/cwd';
 import { worldSeedOf } from '../utils/Seed';
 import { GeneratorFactories } from './GeneratorFactories';
+import type { TerrainCacheSettings } from './GeneratorFactories';
 import { dimensionByName } from './Dimension';
 import {
     findJavaWorldgenSources,
@@ -294,6 +295,7 @@ export default class WorldManager implements Service {
             factories: this.generatorFactories,
             worldgen: registries,
             chunkWorkers: this.server.getConfig().getChunkWorkers(),
+            ...this.terrainCacheOption(),
             config: { ...worldData },
             handlers: (world) => ({
                 randomTickHandlers: contentRandomTickHandlers({ content, world, report: report('a random tick') }),
@@ -346,6 +348,25 @@ export default class WorldManager implements Service {
      *
      * @throws {Error} When the Java data cache is cold, naming what to fetch.
      */
+    /**
+     * The terrain tile cache from configuration, or nothing when it is turned off.
+     *
+     * One directory serves every level: a record's key holds its seed, so two worlds never read
+     * each other's tiles.
+     */
+    private terrainCacheOption(): { terrainCache: TerrainCacheSettings } | Record<string, never> {
+        const megabytes = this.server.getConfig().getTerrainCacheSizeMb();
+        if (megabytes === 0) return {};
+
+        return {
+            terrainCache: {
+                directory: withCwd('cache', 'terrain'),
+                maxBytes: megabytes * 1024 * 1024,
+                codeVersion: this.server.getVersion()
+            }
+        };
+    }
+
     private registries(): JavaWorldgenRegistries {
         return (this.worldgenRegistries ??= loadJavaWorldgenRegistriesFrom(
             this.server.getContent().definitions,
