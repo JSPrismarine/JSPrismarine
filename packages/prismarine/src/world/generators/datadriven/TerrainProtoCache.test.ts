@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -144,6 +145,27 @@ describe('TerrainProtoCache', () => {
         const heldBytes = files.reduce((total, file) => total + statSync(join(root, file)).size, 0);
         expect(heldBytes).toBeLessThanOrEqual(recordSize * 3);
         await expect(cache.read(key(8), identity(8, 0))).resolves.toMatchObject({ chunkX: 8 });
+    });
+
+    it('hashes a large input the same as its pieces written one at a time', () => {
+        const large = { rows: Array.from({ length: 20000 }, (_, index) => ({ index, name: `row:${index}` })) };
+        const reference = createHash('sha256');
+        const write = (text: string): void => void reference.update(text);
+        write('object:{');
+        write(`string:${JSON.stringify('rows')};`);
+        write('array:[');
+        for (const row of large.rows) {
+            write('object:{');
+            write(`string:${JSON.stringify('index')};`);
+            write(`number:${row.index};`);
+            write(`string:${JSON.stringify('name')};`);
+            write(`string:${JSON.stringify(row.name)};`);
+            write('}object;');
+        }
+        write(']array;');
+        write('}object;');
+
+        expect(fingerprintWorldgenInput(large)).toBe(reference.digest('hex'));
     });
 
     it('hashes a pre-serialized input exactly like the value it came from', () => {

@@ -21,6 +21,8 @@ const CACHE_FILE = /^terrain-[a-f0-9]{64}\.bin$/;
 // Writes between full directory scans. Between them the budget is tracked in memory, since
 // listing and statting every record on each write grows with the cache.
 const WRITES_PER_SCAN = 256;
+// Text gathered before it is handed to the hash.
+const HASH_CHUNK_CHARS = 1 << 16;
 
 /** The chunk geometry a cached terrain tile must match before the generator can adopt it. */
 export interface TerrainProtoIdentity {
@@ -408,7 +410,15 @@ const writeCanonical = (value: unknown, write: (text: string) => void): void => 
 /** Hashes JSON values and string-keyed maps in canonical key order. */
 export const fingerprintWorldgenInput = (value: unknown): string => {
     const hash = createHash('sha256');
-    writeCanonical(value, (text) => void hash.update(text));
+    // Each update crosses into native code, so the pieces go in as a few large writes.
+    let pending = '';
+    writeCanonical(value, (text) => {
+        pending += text;
+        if (pending.length < HASH_CHUNK_CHARS) return;
+        hash.update(pending);
+        pending = '';
+    });
+    hash.update(pending);
     return hash.digest('hex');
 };
 
