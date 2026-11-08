@@ -14,7 +14,9 @@ export const eating: Scenario = {
         await sleep(500);
 
         await client.input({ hold: ['MouseRight'] });
-        await sleep(3_000);
+        // A golden apple takes 32 ticks; count them on the server, since a loaded CI runner
+        // ticks slower than a wall clock second would suggest and an early release cancels the meal.
+        await waitTicks(server, 60);
         await client.input({ release: ['MouseRight'] });
         await waitTicks(server, 10);
 
