@@ -1,7 +1,7 @@
 /** Verifies a real Bedrock client can eat: holding use on food spends one item and feeds the player. */
 import assert from 'node:assert/strict';
 
-import { sleep, waitTicks } from '../scenario.mts';
+import { lookTo, sleep, waitTicks } from '../scenario.mts';
 import type { Scenario } from '../scenario.mts';
 
 export const eating: Scenario = {
@@ -13,6 +13,9 @@ export const eating: Scenario = {
         server.command(`replaceitem entity ${playerName} slot.hotbar 0 minecraft:golden_apple 3`);
         await sleep(500);
 
+        // Aim at the sky: a scenario run earlier can leave a villager in front, and using an item
+        // on a villager opens its trades instead of eating.
+        await lookTo(client, 0, -80);
         await client.input({ hold: ['MouseRight'] });
         // A golden apple takes 32 ticks; count them on the server, since a loaded CI runner
         // ticks slower than a wall clock second would suggest and an early release cancels the meal.
