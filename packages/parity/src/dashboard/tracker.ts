@@ -149,9 +149,11 @@ const mergedParityCases = (records: readonly ReportedParityCase[]): ReportedPari
             record.runtimeSupport !== undefined && record.runtimeSupport.status !== 'not checked';
         const runtimeSupport = hasMeasuredSupport ? record.runtimeSupport : current.runtimeSupport;
         const sourceFile = hasMeasuredSupport ? record.sourceFile : current.sourceFile;
+        // A comparison that measured the record outranks a listing that only noted it was not measured.
+        const measured = current.status === 'not measured' && record.status !== 'not measured';
         merged.set(key, {
-            ...current,
-            sourceFile,
+            ...(measured ? record : current),
+            sourceFile: measured ? record.sourceFile : sourceFile,
             ...(runtimeSupport === undefined ? {} : { runtimeSupport })
         });
     }

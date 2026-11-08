@@ -86,5 +86,447 @@
             "reference": "Java SaplingBlock randomTick and advanceTree"
         }
     },
+    "entities.behavior": {
+        "breeding-food:minecraft:axolotl": {
+            "kind": "defect",
+            "reason": "An animal breeds with exactly the items in its Java food tag. Observed: the server breeds it with nothing; Java accepts minecraft:tropical_fish_bucket.",
+            "reference": "Java Animal.isFood and the data/minecraft/tags/item/*_food tags"
+        },
+        "breeding-food:minecraft:bee": {
+            "kind": "defect",
+            "reason": "An animal breeds with exactly the items in its Java food tag. Observed: the server breeds it with minecraft:allium, minecraft:azalea_leaves_flowered, minecraft:azure_bluet, minecraft:blue_orchid, minecraft:cactus_flower, minecraft:cherry_leaves, minecraft:chorus_flower, minecraft:cornflower, minecraft:dandelion, minecraft:flowering_azalea, minecraft:lilac, minecraft:lily_of_the_valley, minecraft:mangrove_propagule, minecraft:orange_tulip, minecraft:oxeye_daisy, minecraft:peony, minecraft:pink_petals, minecraft:pink_tulip, minecraft:pitcher_plant, minecraft:poppy, minecraft:red_tulip, minecraft:rose_bush, minecraft:spore_blossom, minecraft:sunflower, minecraft:torchflower, minecraft:white_tulip, minecraft:wildflowers, minecraft:wither_rose; Java accepts minecraft:allium, minecraft:azalea_leaves_flowered, minecraft:azure_bluet, minecraft:blue_orchid, minecraft:cactus_flower, minecraft:cherry_leaves, minecraft:chorus_flower, minecraft:cornflower, minecraft:dandelion, minecraft:flowering_azalea, minecraft:lilac, minecraft:lily_of_the_valley, minecraft:mangrove_propagule, minecraft:open_eyeblossom, minecraft:orange_tulip, minecraft:oxeye_daisy, minecraft:peony, minecraft:pink_petals, minecraft:pink_tulip, minecraft:pitcher_plant, minecraft:poppy, minecraft:red_tulip, minecraft:rose_bush, minecraft:spore_blossom, minecraft:sunflower, minecraft:torchflower, minecraft:white_tulip, minecraft:wildflowers, minecraft:wither_rose.",
+            "reference": "Java Animal.isFood and the data/minecraft/tags/item/*_food tags"
+        },
+        "breeding-food:minecraft:wolf": {
+            "kind": "defect",
+            "reason": "An animal breeds with exactly the items in its Java food tag. Observed: the server breeds it with minecraft:beef, minecraft:chicken, minecraft:cooked_beef, minecraft:cooked_chicken, minecraft:cooked_mutton, minecraft:cooked_porkchop, minecraft:cooked_rabbit, minecraft:mutton, minecraft:porkchop, minecraft:rabbit, minecraft:rotten_flesh; Java accepts minecraft:beef, minecraft:chicken, minecraft:cod, minecraft:cooked_beef, minecraft:cooked_chicken, minecraft:cooked_cod, minecraft:cooked_mutton, minecraft:cooked_porkchop, minecraft:cooked_rabbit, minecraft:cooked_salmon, minecraft:mutton, minecraft:porkchop, minecraft:pufferfish, minecraft:rabbit, minecraft:rabbit_stew, minecraft:rotten_flesh, minecraft:salmon, minecraft:tropical_fish.",
+            "reference": "Java Animal.isFood and the data/minecraft/tags/item/*_food tags"
+        },
+        "spawns-in-biome:minecraft:badlands/minecraft:zombie_villager": {
+            "kind": "intentional",
+            "reason": "Bedrock gives zombie villagers no spawn rule of their own: the zombie rule swaps in a villager zombie for 5 to 9 percent of its spawns, where Java lists the zombie villager at weight 1 in each overworld monster list.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute"
+        },
+        "spawns-in-biome:minecraft:bamboo_jungle/minecraft:zombie_villager": {
+            "kind": "intentional",
+            "reason": "Bedrock gives zombie villagers no spawn rule of their own: the zombie rule swaps in a villager zombie for 5 to 9 percent of its spawns, where Java lists the zombie villager at weight 1 in each overworld monster list.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute"
+        },
+        "spawns-in-biome:minecraft:beach/minecraft:zombie_villager": {
+            "kind": "intentional",
+            "reason": "Bedrock gives zombie villagers no spawn rule of their own: the zombie rule swaps in a villager zombie for 5 to 9 percent of its spawns, where Java lists the zombie villager at weight 1 in each overworld monster list.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute"
+        },
+        "spawns-in-biome:minecraft:birch_forest/minecraft:zombie_villager": {
+            "kind": "intentional",
+            "reason": "Bedrock gives zombie villagers no spawn rule of their own: the zombie rule swaps in a villager zombie for 5 to 9 percent of its spawns, where Java lists the zombie villager at weight 1 in each overworld monster list.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute"
+        },
+        "spawns-in-biome:minecraft:cherry_grove/minecraft:zombie_villager": {
+            "kind": "intentional",
+            "reason": "Bedrock gives zombie villagers no spawn rule of their own: the zombie rule swaps in a villager zombie for 5 to 9 percent of its spawns, where Java lists the zombie villager at weight 1 in each overworld monster list.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute"
+        },
+        "spawns-in-biome:minecraft:cold_ocean/minecraft:zombie_villager": {
+            "kind": "intentional",
+            "reason": "Bedrock gives zombie villagers no spawn rule of their own: the zombie rule swaps in a villager zombie for 5 to 9 percent of its spawns, where Java lists the zombie villager at weight 1 in each overworld monster list.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute"
+        },
+        "spawns-in-biome:minecraft:dappled_forest/minecraft:zombie_villager": {
+            "kind": "intentional",
+            "reason": "Bedrock gives zombie villagers no spawn rule of their own: the zombie rule swaps in a villager zombie for 5 to 9 percent of its spawns, where Java lists the zombie villager at weight 1 in each overworld monster list.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute"
+        },
+        "spawns-in-biome:minecraft:dark_forest/minecraft:zombie_villager": {
+            "kind": "intentional",
+            "reason": "Bedrock gives zombie villagers no spawn rule of their own: the zombie rule swaps in a villager zombie for 5 to 9 percent of its spawns, where Java lists the zombie villager at weight 1 in each overworld monster list.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute"
+        },
+        "spawns-in-biome:minecraft:deep_cold_ocean/minecraft:zombie_villager": {
+            "kind": "intentional",
+            "reason": "Bedrock gives zombie villagers no spawn rule of their own: the zombie rule swaps in a villager zombie for 5 to 9 percent of its spawns, where Java lists the zombie villager at weight 1 in each overworld monster list.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute"
+        },
+        "spawns-in-biome:minecraft:deep_frozen_ocean/minecraft:skeleton": {
+            "kind": "defect",
+            "reason": "A mob in a biome's natural spawn list can spawn there. Observed: no minecraft:skeleton spawn rule admits minecraft:deep_frozen_ocean.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute"
+        },
+        "spawns-in-biome:minecraft:deep_frozen_ocean/minecraft:zombie_villager": {
+            "kind": "intentional",
+            "reason": "Bedrock gives zombie villagers no spawn rule of their own: the zombie rule swaps in a villager zombie for 5 to 9 percent of its spawns, where Java lists the zombie villager at weight 1 in each overworld monster list.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute"
+        },
+        "spawns-in-biome:minecraft:deep_lukewarm_ocean/minecraft:zombie_villager": {
+            "kind": "intentional",
+            "reason": "Bedrock gives zombie villagers no spawn rule of their own: the zombie rule swaps in a villager zombie for 5 to 9 percent of its spawns, where Java lists the zombie villager at weight 1 in each overworld monster list.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute"
+        },
+        "spawns-in-biome:minecraft:deep_ocean/minecraft:zombie_villager": {
+            "kind": "intentional",
+            "reason": "Bedrock gives zombie villagers no spawn rule of their own: the zombie rule swaps in a villager zombie for 5 to 9 percent of its spawns, where Java lists the zombie villager at weight 1 in each overworld monster list.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute"
+        },
+        "spawns-in-biome:minecraft:desert/minecraft:zombie_villager": {
+            "kind": "intentional",
+            "reason": "Bedrock gives zombie villagers no spawn rule of their own: the zombie rule swaps in a villager zombie for 5 to 9 percent of its spawns, where Java lists the zombie villager at weight 1 in each overworld monster list.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute"
+        },
+        "spawns-in-biome:minecraft:dripstone_caves/minecraft:zombie_villager": {
+            "kind": "intentional",
+            "reason": "Bedrock gives zombie villagers no spawn rule of their own: the zombie rule swaps in a villager zombie for 5 to 9 percent of its spawns, where Java lists the zombie villager at weight 1 in each overworld monster list.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute"
+        },
+        "spawns-in-biome:minecraft:eroded_badlands/minecraft:zombie_villager": {
+            "kind": "intentional",
+            "reason": "Bedrock gives zombie villagers no spawn rule of their own: the zombie rule swaps in a villager zombie for 5 to 9 percent of its spawns, where Java lists the zombie villager at weight 1 in each overworld monster list.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute"
+        },
+        "spawns-in-biome:minecraft:flower_forest/minecraft:zombie_villager": {
+            "kind": "intentional",
+            "reason": "Bedrock gives zombie villagers no spawn rule of their own: the zombie rule swaps in a villager zombie for 5 to 9 percent of its spawns, where Java lists the zombie villager at weight 1 in each overworld monster list.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute"
+        },
+        "spawns-in-biome:minecraft:forest/minecraft:zombie_villager": {
+            "kind": "intentional",
+            "reason": "Bedrock gives zombie villagers no spawn rule of their own: the zombie rule swaps in a villager zombie for 5 to 9 percent of its spawns, where Java lists the zombie villager at weight 1 in each overworld monster list.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute"
+        },
+        "spawns-in-biome:minecraft:frozen_ocean/minecraft:skeleton": {
+            "kind": "defect",
+            "reason": "A mob in a biome's natural spawn list can spawn there. Observed: no minecraft:skeleton spawn rule admits minecraft:frozen_ocean.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute"
+        },
+        "spawns-in-biome:minecraft:frozen_ocean/minecraft:zombie_villager": {
+            "kind": "intentional",
+            "reason": "Bedrock gives zombie villagers no spawn rule of their own: the zombie rule swaps in a villager zombie for 5 to 9 percent of its spawns, where Java lists the zombie villager at weight 1 in each overworld monster list.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute"
+        },
+        "spawns-in-biome:minecraft:frozen_peaks/minecraft:skeleton": {
+            "kind": "defect",
+            "reason": "A mob in a biome's natural spawn list can spawn there. Observed: no minecraft:skeleton spawn rule admits minecraft:frozen_peaks.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute"
+        },
+        "spawns-in-biome:minecraft:frozen_peaks/minecraft:zombie_villager": {
+            "kind": "intentional",
+            "reason": "Bedrock gives zombie villagers no spawn rule of their own: the zombie rule swaps in a villager zombie for 5 to 9 percent of its spawns, where Java lists the zombie villager at weight 1 in each overworld monster list.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute"
+        },
+        "spawns-in-biome:minecraft:frozen_river/minecraft:creeper": {
+            "kind": "defect",
+            "reason": "A mob in a biome's natural spawn list can spawn there. Observed: no minecraft:creeper spawn rule admits minecraft:frozen_river.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute"
+        },
+        "spawns-in-biome:minecraft:frozen_river/minecraft:enderman": {
+            "kind": "defect",
+            "reason": "A mob in a biome's natural spawn list can spawn there. Observed: no minecraft:enderman spawn rule admits minecraft:frozen_river.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute"
+        },
+        "spawns-in-biome:minecraft:frozen_river/minecraft:skeleton": {
+            "kind": "defect",
+            "reason": "A mob in a biome's natural spawn list can spawn there. Observed: no minecraft:skeleton spawn rule admits minecraft:frozen_river.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute"
+        },
+        "spawns-in-biome:minecraft:frozen_river/minecraft:spider": {
+            "kind": "defect",
+            "reason": "A mob in a biome's natural spawn list can spawn there. Observed: no minecraft:spider spawn rule admits minecraft:frozen_river.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute"
+        },
+        "spawns-in-biome:minecraft:frozen_river/minecraft:witch": {
+            "kind": "defect",
+            "reason": "A mob in a biome's natural spawn list can spawn there. Observed: no minecraft:witch spawn rule admits minecraft:frozen_river.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute"
+        },
+        "spawns-in-biome:minecraft:frozen_river/minecraft:zombie": {
+            "kind": "defect",
+            "reason": "A mob in a biome's natural spawn list can spawn there. Observed: no minecraft:zombie spawn rule admits minecraft:frozen_river.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute"
+        },
+        "spawns-in-biome:minecraft:frozen_river/minecraft:zombie_villager": {
+            "kind": "intentional",
+            "reason": "Bedrock gives zombie villagers no spawn rule of their own: the zombie rule swaps in a villager zombie for 5 to 9 percent of its spawns, where Java lists the zombie villager at weight 1 in each overworld monster list.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute"
+        },
+        "spawns-in-biome:minecraft:grove/minecraft:zombie_villager": {
+            "kind": "intentional",
+            "reason": "Bedrock gives zombie villagers no spawn rule of their own: the zombie rule swaps in a villager zombie for 5 to 9 percent of its spawns, where Java lists the zombie villager at weight 1 in each overworld monster list.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute"
+        },
+        "spawns-in-biome:minecraft:ice_spikes/minecraft:rabbit": {
+            "kind": "defect",
+            "reason": "A mob in a biome's natural spawn list can spawn there. Observed: no minecraft:rabbit spawn rule admits minecraft:ice_plains_spikes.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute"
+        },
+        "spawns-in-biome:minecraft:ice_spikes/minecraft:skeleton": {
+            "kind": "defect",
+            "reason": "A mob in a biome's natural spawn list can spawn there. Observed: no minecraft:skeleton spawn rule admits minecraft:ice_plains_spikes.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute"
+        },
+        "spawns-in-biome:minecraft:ice_spikes/minecraft:zombie_villager": {
+            "kind": "intentional",
+            "reason": "Bedrock gives zombie villagers no spawn rule of their own: the zombie rule swaps in a villager zombie for 5 to 9 percent of its spawns, where Java lists the zombie villager at weight 1 in each overworld monster list.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute"
+        },
+        "spawns-in-biome:minecraft:jagged_peaks/minecraft:skeleton": {
+            "kind": "defect",
+            "reason": "A mob in a biome's natural spawn list can spawn there. Observed: no minecraft:skeleton spawn rule admits minecraft:jagged_peaks.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute"
+        },
+        "spawns-in-biome:minecraft:jagged_peaks/minecraft:zombie_villager": {
+            "kind": "intentional",
+            "reason": "Bedrock gives zombie villagers no spawn rule of their own: the zombie rule swaps in a villager zombie for 5 to 9 percent of its spawns, where Java lists the zombie villager at weight 1 in each overworld monster list.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute"
+        },
+        "spawns-in-biome:minecraft:jungle/minecraft:zombie_villager": {
+            "kind": "intentional",
+            "reason": "Bedrock gives zombie villagers no spawn rule of their own: the zombie rule swaps in a villager zombie for 5 to 9 percent of its spawns, where Java lists the zombie villager at weight 1 in each overworld monster list.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute"
+        },
+        "spawns-in-biome:minecraft:lukewarm_ocean/minecraft:zombie_villager": {
+            "kind": "intentional",
+            "reason": "Bedrock gives zombie villagers no spawn rule of their own: the zombie rule swaps in a villager zombie for 5 to 9 percent of its spawns, where Java lists the zombie villager at weight 1 in each overworld monster list.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute"
+        },
+        "spawns-in-biome:minecraft:lush_caves/minecraft:zombie_villager": {
+            "kind": "intentional",
+            "reason": "Bedrock gives zombie villagers no spawn rule of their own: the zombie rule swaps in a villager zombie for 5 to 9 percent of its spawns, where Java lists the zombie villager at weight 1 in each overworld monster list.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute"
+        },
+        "spawns-in-biome:minecraft:mangrove_swamp/minecraft:skeleton": {
+            "kind": "defect",
+            "reason": "A mob in a biome's natural spawn list can spawn there. Observed: no minecraft:skeleton spawn rule admits minecraft:mangrove_swamp.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute"
+        },
+        "spawns-in-biome:minecraft:mangrove_swamp/minecraft:zombie_villager": {
+            "kind": "intentional",
+            "reason": "Bedrock gives zombie villagers no spawn rule of their own: the zombie rule swaps in a villager zombie for 5 to 9 percent of its spawns, where Java lists the zombie villager at weight 1 in each overworld monster list.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute"
+        },
+        "spawns-in-biome:minecraft:meadow/minecraft:zombie_villager": {
+            "kind": "intentional",
+            "reason": "Bedrock gives zombie villagers no spawn rule of their own: the zombie rule swaps in a villager zombie for 5 to 9 percent of its spawns, where Java lists the zombie villager at weight 1 in each overworld monster list.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute"
+        },
+        "spawns-in-biome:minecraft:ocean/minecraft:zombie_villager": {
+            "kind": "intentional",
+            "reason": "Bedrock gives zombie villagers no spawn rule of their own: the zombie rule swaps in a villager zombie for 5 to 9 percent of its spawns, where Java lists the zombie villager at weight 1 in each overworld monster list.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute"
+        },
+        "spawns-in-biome:minecraft:old_growth_birch_forest/minecraft:bat": {
+            "kind": "defect",
+            "reason": "A mob in a biome's natural spawn list can spawn there. Observed: no minecraft:bat spawn rule admits minecraft:birch_forest_mutated.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute"
+        },
+        "spawns-in-biome:minecraft:old_growth_birch_forest/minecraft:zombie_villager": {
+            "kind": "intentional",
+            "reason": "Bedrock gives zombie villagers no spawn rule of their own: the zombie rule swaps in a villager zombie for 5 to 9 percent of its spawns, where Java lists the zombie villager at weight 1 in each overworld monster list.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute"
+        },
+        "spawns-in-biome:minecraft:old_growth_pine_taiga/minecraft:rabbit": {
+            "kind": "defect",
+            "reason": "A mob in a biome's natural spawn list can spawn there. Observed: no minecraft:rabbit spawn rule admits minecraft:mega_taiga.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute"
+        },
+        "spawns-in-biome:minecraft:old_growth_pine_taiga/minecraft:zombie_villager": {
+            "kind": "intentional",
+            "reason": "Bedrock gives zombie villagers no spawn rule of their own: the zombie rule swaps in a villager zombie for 5 to 9 percent of its spawns, where Java lists the zombie villager at weight 1 in each overworld monster list.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute"
+        },
+        "spawns-in-biome:minecraft:old_growth_spruce_taiga/minecraft:rabbit": {
+            "kind": "defect",
+            "reason": "A mob in a biome's natural spawn list can spawn there. Observed: no minecraft:rabbit spawn rule admits minecraft:redwood_taiga_mutated.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute"
+        },
+        "spawns-in-biome:minecraft:old_growth_spruce_taiga/minecraft:zombie_villager": {
+            "kind": "intentional",
+            "reason": "Bedrock gives zombie villagers no spawn rule of their own: the zombie rule swaps in a villager zombie for 5 to 9 percent of its spawns, where Java lists the zombie villager at weight 1 in each overworld monster list.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute"
+        },
+        "spawns-in-biome:minecraft:pale_garden/minecraft:zombie_villager": {
+            "kind": "intentional",
+            "reason": "Bedrock gives zombie villagers no spawn rule of their own: the zombie rule swaps in a villager zombie for 5 to 9 percent of its spawns, where Java lists the zombie villager at weight 1 in each overworld monster list.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute"
+        },
+        "spawns-in-biome:minecraft:plains/minecraft:zombie_villager": {
+            "kind": "intentional",
+            "reason": "Bedrock gives zombie villagers no spawn rule of their own: the zombie rule swaps in a villager zombie for 5 to 9 percent of its spawns, where Java lists the zombie villager at weight 1 in each overworld monster list.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute"
+        },
+        "spawns-in-biome:minecraft:river/minecraft:creeper": {
+            "kind": "defect",
+            "reason": "A mob in a biome's natural spawn list can spawn there. Observed: no minecraft:creeper spawn rule admits minecraft:river.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute"
+        },
+        "spawns-in-biome:minecraft:river/minecraft:enderman": {
+            "kind": "defect",
+            "reason": "A mob in a biome's natural spawn list can spawn there. Observed: no minecraft:enderman spawn rule admits minecraft:river.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute"
+        },
+        "spawns-in-biome:minecraft:river/minecraft:skeleton": {
+            "kind": "defect",
+            "reason": "A mob in a biome's natural spawn list can spawn there. Observed: no minecraft:skeleton spawn rule admits minecraft:river.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute"
+        },
+        "spawns-in-biome:minecraft:river/minecraft:slime": {
+            "kind": "defect",
+            "reason": "A mob in a biome's natural spawn list can spawn there. Observed: no minecraft:slime spawn rule admits minecraft:river.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute"
+        },
+        "spawns-in-biome:minecraft:river/minecraft:spider": {
+            "kind": "defect",
+            "reason": "A mob in a biome's natural spawn list can spawn there. Observed: no minecraft:spider spawn rule admits minecraft:river.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute"
+        },
+        "spawns-in-biome:minecraft:river/minecraft:witch": {
+            "kind": "defect",
+            "reason": "A mob in a biome's natural spawn list can spawn there. Observed: no minecraft:witch spawn rule admits minecraft:river.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute"
+        },
+        "spawns-in-biome:minecraft:river/minecraft:zombie": {
+            "kind": "defect",
+            "reason": "A mob in a biome's natural spawn list can spawn there. Observed: no minecraft:zombie spawn rule admits minecraft:river.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute"
+        },
+        "spawns-in-biome:minecraft:river/minecraft:zombie_villager": {
+            "kind": "intentional",
+            "reason": "Bedrock gives zombie villagers no spawn rule of their own: the zombie rule swaps in a villager zombie for 5 to 9 percent of its spawns, where Java lists the zombie villager at weight 1 in each overworld monster list.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute"
+        },
+        "spawns-in-biome:minecraft:savanna_plateau/minecraft:zombie_villager": {
+            "kind": "intentional",
+            "reason": "Bedrock gives zombie villagers no spawn rule of their own: the zombie rule swaps in a villager zombie for 5 to 9 percent of its spawns, where Java lists the zombie villager at weight 1 in each overworld monster list.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute"
+        },
+        "spawns-in-biome:minecraft:savanna/minecraft:zombie_villager": {
+            "kind": "intentional",
+            "reason": "Bedrock gives zombie villagers no spawn rule of their own: the zombie rule swaps in a villager zombie for 5 to 9 percent of its spawns, where Java lists the zombie villager at weight 1 in each overworld monster list.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute"
+        },
+        "spawns-in-biome:minecraft:snowy_beach/minecraft:zombie_villager": {
+            "kind": "intentional",
+            "reason": "Bedrock gives zombie villagers no spawn rule of their own: the zombie rule swaps in a villager zombie for 5 to 9 percent of its spawns, where Java lists the zombie villager at weight 1 in each overworld monster list.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute"
+        },
+        "spawns-in-biome:minecraft:snowy_plains/minecraft:creeper": {
+            "kind": "defect",
+            "reason": "A mob in a biome's natural spawn list can spawn there. Observed: no minecraft:creeper spawn rule admits minecraft:ice_plains.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute"
+        },
+        "spawns-in-biome:minecraft:snowy_plains/minecraft:enderman": {
+            "kind": "defect",
+            "reason": "A mob in a biome's natural spawn list can spawn there. Observed: no minecraft:enderman spawn rule admits minecraft:ice_plains.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute"
+        },
+        "spawns-in-biome:minecraft:snowy_plains/minecraft:rabbit": {
+            "kind": "defect",
+            "reason": "A mob in a biome's natural spawn list can spawn there. Observed: no minecraft:rabbit spawn rule admits minecraft:ice_plains.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute"
+        },
+        "spawns-in-biome:minecraft:snowy_plains/minecraft:skeleton": {
+            "kind": "defect",
+            "reason": "A mob in a biome's natural spawn list can spawn there. Observed: no minecraft:skeleton spawn rule admits minecraft:ice_plains.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute"
+        },
+        "spawns-in-biome:minecraft:snowy_plains/minecraft:spider": {
+            "kind": "defect",
+            "reason": "A mob in a biome's natural spawn list can spawn there. Observed: no minecraft:spider spawn rule admits minecraft:ice_plains.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute"
+        },
+        "spawns-in-biome:minecraft:snowy_plains/minecraft:witch": {
+            "kind": "defect",
+            "reason": "A mob in a biome's natural spawn list can spawn there. Observed: no minecraft:witch spawn rule admits minecraft:ice_plains.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute"
+        },
+        "spawns-in-biome:minecraft:snowy_plains/minecraft:zombie": {
+            "kind": "defect",
+            "reason": "A mob in a biome's natural spawn list can spawn there. Observed: no minecraft:zombie spawn rule admits minecraft:ice_plains.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute"
+        },
+        "spawns-in-biome:minecraft:snowy_plains/minecraft:zombie_villager": {
+            "kind": "intentional",
+            "reason": "Bedrock gives zombie villagers no spawn rule of their own: the zombie rule swaps in a villager zombie for 5 to 9 percent of its spawns, where Java lists the zombie villager at weight 1 in each overworld monster list.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute"
+        },
+        "spawns-in-biome:minecraft:snowy_slopes/minecraft:skeleton": {
+            "kind": "defect",
+            "reason": "A mob in a biome's natural spawn list can spawn there. Observed: no minecraft:skeleton spawn rule admits minecraft:snowy_slopes.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute"
+        },
+        "spawns-in-biome:minecraft:snowy_slopes/minecraft:zombie_villager": {
+            "kind": "intentional",
+            "reason": "Bedrock gives zombie villagers no spawn rule of their own: the zombie rule swaps in a villager zombie for 5 to 9 percent of its spawns, where Java lists the zombie villager at weight 1 in each overworld monster list.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute"
+        },
+        "spawns-in-biome:minecraft:snowy_taiga/minecraft:zombie_villager": {
+            "kind": "intentional",
+            "reason": "Bedrock gives zombie villagers no spawn rule of their own: the zombie rule swaps in a villager zombie for 5 to 9 percent of its spawns, where Java lists the zombie villager at weight 1 in each overworld monster list.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute"
+        },
+        "spawns-in-biome:minecraft:sparse_jungle/minecraft:zombie_villager": {
+            "kind": "intentional",
+            "reason": "Bedrock gives zombie villagers no spawn rule of their own: the zombie rule swaps in a villager zombie for 5 to 9 percent of its spawns, where Java lists the zombie villager at weight 1 in each overworld monster list.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute"
+        },
+        "spawns-in-biome:minecraft:stony_peaks/minecraft:zombie_villager": {
+            "kind": "intentional",
+            "reason": "Bedrock gives zombie villagers no spawn rule of their own: the zombie rule swaps in a villager zombie for 5 to 9 percent of its spawns, where Java lists the zombie villager at weight 1 in each overworld monster list.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute"
+        },
+        "spawns-in-biome:minecraft:stony_shore/minecraft:zombie_villager": {
+            "kind": "intentional",
+            "reason": "Bedrock gives zombie villagers no spawn rule of their own: the zombie rule swaps in a villager zombie for 5 to 9 percent of its spawns, where Java lists the zombie villager at weight 1 in each overworld monster list.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute"
+        },
+        "spawns-in-biome:minecraft:sulfur_caves/minecraft:zombie_villager": {
+            "kind": "intentional",
+            "reason": "Bedrock gives zombie villagers no spawn rule of their own: the zombie rule swaps in a villager zombie for 5 to 9 percent of its spawns, where Java lists the zombie villager at weight 1 in each overworld monster list.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute"
+        },
+        "spawns-in-biome:minecraft:sunflower_plains/minecraft:zombie_villager": {
+            "kind": "intentional",
+            "reason": "Bedrock gives zombie villagers no spawn rule of their own: the zombie rule swaps in a villager zombie for 5 to 9 percent of its spawns, where Java lists the zombie villager at weight 1 in each overworld monster list.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute"
+        },
+        "spawns-in-biome:minecraft:swamp/minecraft:zombie_villager": {
+            "kind": "intentional",
+            "reason": "Bedrock gives zombie villagers no spawn rule of their own: the zombie rule swaps in a villager zombie for 5 to 9 percent of its spawns, where Java lists the zombie villager at weight 1 in each overworld monster list.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute"
+        },
+        "spawns-in-biome:minecraft:taiga/minecraft:zombie_villager": {
+            "kind": "intentional",
+            "reason": "Bedrock gives zombie villagers no spawn rule of their own: the zombie rule swaps in a villager zombie for 5 to 9 percent of its spawns, where Java lists the zombie villager at weight 1 in each overworld monster list.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute"
+        },
+        "spawns-in-biome:minecraft:warm_ocean/minecraft:zombie_villager": {
+            "kind": "intentional",
+            "reason": "Bedrock gives zombie villagers no spawn rule of their own: the zombie rule swaps in a villager zombie for 5 to 9 percent of its spawns, where Java lists the zombie villager at weight 1 in each overworld monster list.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute"
+        },
+        "spawns-in-biome:minecraft:windswept_forest/minecraft:zombie_villager": {
+            "kind": "intentional",
+            "reason": "Bedrock gives zombie villagers no spawn rule of their own: the zombie rule swaps in a villager zombie for 5 to 9 percent of its spawns, where Java lists the zombie villager at weight 1 in each overworld monster list.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute"
+        },
+        "spawns-in-biome:minecraft:windswept_gravelly_hills/minecraft:zombie_villager": {
+            "kind": "intentional",
+            "reason": "Bedrock gives zombie villagers no spawn rule of their own: the zombie rule swaps in a villager zombie for 5 to 9 percent of its spawns, where Java lists the zombie villager at weight 1 in each overworld monster list.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute"
+        },
+        "spawns-in-biome:minecraft:windswept_hills/minecraft:zombie_villager": {
+            "kind": "intentional",
+            "reason": "Bedrock gives zombie villagers no spawn rule of their own: the zombie rule swaps in a villager zombie for 5 to 9 percent of its spawns, where Java lists the zombie villager at weight 1 in each overworld monster list.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute"
+        },
+        "spawns-in-biome:minecraft:windswept_savanna/minecraft:zombie_villager": {
+            "kind": "intentional",
+            "reason": "Bedrock gives zombie villagers no spawn rule of their own: the zombie rule swaps in a villager zombie for 5 to 9 percent of its spawns, where Java lists the zombie villager at weight 1 in each overworld monster list.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute"
+        },
+        "spawns-in-biome:minecraft:wooded_badlands/minecraft:zombie_villager": {
+            "kind": "intentional",
+            "reason": "Bedrock gives zombie villagers no spawn rule of their own: the zombie rule swaps in a villager zombie for 5 to 9 percent of its spawns, where Java lists the zombie villager at weight 1 in each overworld monster list.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute"
+        }
+    },
     "items.behavior": {}
 }

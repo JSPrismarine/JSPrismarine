@@ -177,6 +177,35 @@ describe('parity tracker data', () => {
         });
     });
 
+    it('keeps a measured result over a listing that only noted the record was not measured', () => {
+        const tracker = buildTrackerData(report, [], repositoryRoot, parityRoot, {}, [
+            {
+                family: FAMILIES.entitiesBehavior,
+                id: 'runtime-behavior:minecraft:cow',
+                title: 'minecraft:cow',
+                status: 'not measured',
+                sourceFile: 'packages/parity/src/integration.test.ts',
+                runtimeSupport: { status: 'spawnable', details: 'Spawns and ticks.' }
+            },
+            {
+                family: FAMILIES.entitiesBehavior,
+                id: 'runtime-behavior:minecraft:cow',
+                title: 'minecraft:cow',
+                context: 'Breeding food',
+                status: 'passed',
+                sourceFile: 'packages/parity/src/entities.behavior.test.ts'
+            }
+        ]);
+
+        const cow = tracker.cases.filter(({ title }) => title === 'minecraft:cow');
+        expect(cow).toHaveLength(1);
+        expect(cow[0]).toMatchObject({
+            status: 'passed',
+            context: 'Breeding food',
+            runtimeSupport: { status: 'spawnable', details: 'Spawns and ticks.' }
+        });
+    });
+
     it('omits families with no parity cases from the snapshot', () => {
         const tracker = buildTrackerData(report, allowList, repositoryRoot, parityRoot, {}, parityCases);
 

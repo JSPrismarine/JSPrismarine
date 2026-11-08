@@ -2,16 +2,15 @@ import { VANILLA_BLOCK_FAMILIES, bindFamily, isFallingBlock } from '@jsprismarin
 import type { FamilyHarness } from '@jsprismarine/block-behaviors';
 import { behaviorFor } from '@jsprismarine/blocks';
 import { javaBlockStateToBedrock } from '@jsprismarine/mapping';
+import { blocksTable } from '@jsprismarine/mapping/tables';
 import { expect, it } from 'vitest';
 
-import { checkAllowList } from './allowlist.ts';
 import type { BehaviorScenario } from './behaviorScenarios.ts';
-import { runScenarios, updatingBehaviorGaps, writeBehaviorGaps } from './behaviorScenarios.ts';
+import { measureScenarios, reportCoverage, scenarioGroup } from './behaviorScenarios.ts';
 import { FAMILIES } from './families.ts';
 import { describeFamily } from './measure.ts';
 import { REFERENCES } from './references.ts';
 import { serverContent } from './serverStack.ts';
-import { reportParityCases } from './trackerCases.ts';
 
 /** A Java block with the Bedrock block and default states the server represents it with. */
 interface BlockSubject {
@@ -389,47 +388,15 @@ const REFERENCES_NEEDED = [
 
 describeFamily(FAMILIES.blocksBehavior, REFERENCES_NEEDED, () => {
     it('exercises each Java block behavior against the server block families', { timeout: 180_000 }, () => {
-        const rows = runScenarios(scenarios);
-        const gaps = rows.filter((row) => row.difference !== undefined).map((row) => row.id);
+        const rows = measureScenarios(FAMILIES.blocksBehavior, import.meta.filename, scenarioGroup(scenarios));
 
-        if (updatingBehaviorGaps()) {
-            writeBehaviorGaps(
-                FAMILIES.blocksBehavior,
-                Object.fromEntries(
-                    rows
-                        .filter((row) => row.difference !== undefined)
-                        .map((row) => {
-                            const scenario = scenarios.find((candidate) => row.id.startsWith(`${candidate.name}:`));
-                            return [
-                                row.id,
-                                {
-                                    kind: scenario?.gapKind ?? 'defect',
-                                    reason: `${scenario?.java ?? ''} Observed: ${row.difference}.`,
-                                    reference: scenario?.reference ?? ''
-                                }
-                            ] as const;
-                        })
-                )
-            );
-        }
-
-        reportParityCases(
+        reportCoverage(
             FAMILIES.blocksBehavior,
             import.meta.filename,
-            rows.map((row) => ({
-                id: row.id,
-                title: row.title,
-                context: row.context,
-                status: row.difference === undefined ? 'passed' : 'failed',
-                ...(row.difference === undefined ? {} : { details: row.difference })
-            }))
+            Object.keys(blocksTable.blocks).sort((left, right) => left.localeCompare(right, 'en')),
+            rows,
+            "No scenario compares this block's Java placement, update, ticking, interaction or block-entity behavior with the server."
         );
-
         expect(rows.length).toBeGreaterThan(0);
-        if (!updatingBehaviorGaps()) {
-            const verdict = checkAllowList(FAMILIES.blocksBehavior, gaps);
-            expect(verdict.unexpected).toEqual([]);
-            expect(verdict.stale).toEqual([]);
-        }
     });
 });

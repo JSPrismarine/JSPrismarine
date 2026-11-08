@@ -17,14 +17,12 @@ import { holderSetIncludes } from '@jsprismarine/prismarine/item/holderSets';
 import { itemsTable } from '@jsprismarine/mapping/tables';
 import { expect, it } from 'vitest';
 
-import { checkAllowList } from './allowlist.ts';
 import type { BehaviorScenario } from './behaviorScenarios.ts';
-import { runScenarios, updatingBehaviorGaps, writeBehaviorGaps } from './behaviorScenarios.ts';
+import { measureScenarios, reportCoverage, scenarioGroup } from './behaviorScenarios.ts';
 import { FAMILIES } from './families.ts';
 import { describeFamily } from './measure.ts';
 import { REFERENCES } from './references.ts';
 import { serverContent } from './serverStack.ts';
-import { reportParityCases } from './trackerCases.ts';
 
 /** A Java item, the Bedrock identity the server holds it under, and its Java default components. */
 interface ItemSubject {
@@ -236,50 +234,18 @@ describeFamily(
     [REFERENCES.javaItemRegistry, REFERENCES.bedrockBehaviorPack, REFERENCES.javaWorldgenData],
     () => {
         it('exercises each Java item behavior through the real item hooks', { timeout: 180_000 }, () => {
-            const rows = runScenarios(scenarios);
-            const gaps = rows.filter((row) => row.difference !== undefined).map((row) => row.id);
+            const rows = measureScenarios(FAMILIES.itemsBehavior, import.meta.filename, scenarioGroup(scenarios));
 
-            if (updatingBehaviorGaps()) {
-                writeBehaviorGaps(
-                    FAMILIES.itemsBehavior,
-                    Object.fromEntries(
-                        rows
-                            .filter((row) => row.difference !== undefined)
-                            .map((row) => {
-                                const scenario = scenarios.find((candidate) => row.id.startsWith(`${candidate.name}:`));
-                                return [
-                                    row.id,
-                                    {
-                                        kind: scenario?.gapKind ?? 'defect',
-                                        reason: `${scenario?.java ?? ''} Observed: ${row.difference}.`,
-                                        reference: scenario?.reference ?? ''
-                                    }
-                                ] as const;
-                            })
-                    )
-                );
-            }
-
-            reportParityCases(
+            reportCoverage(
                 FAMILIES.itemsBehavior,
                 import.meta.filename,
-                rows.map((row) => ({
-                    id: row.id,
-                    title: row.title,
-                    context: row.context,
-                    status: row.difference === undefined ? 'passed' : 'failed',
-                    ...(row.difference === undefined ? {} : { details: row.difference })
-                }))
+                Object.keys(itemsTable.items).sort((left, right) => left.localeCompare(right, 'en')),
+                rows,
+                "No scenario compares this item's Java use, durability, combat or inventory behavior with the server."
             );
-
             expect(rows.length).toBeGreaterThan(0);
             expect(Object.keys(itemsTable.items)).toContain('minecraft:diamond_pickaxe');
             expect(javaItemToBedrock('minecraft:diamond_pickaxe').kind).toBe('mapped');
-            if (!updatingBehaviorGaps()) {
-                const verdict = checkAllowList(FAMILIES.itemsBehavior, gaps);
-                expect(verdict.unexpected).toEqual([]);
-                expect(verdict.stale).toEqual([]);
-            }
         });
     }
 );
