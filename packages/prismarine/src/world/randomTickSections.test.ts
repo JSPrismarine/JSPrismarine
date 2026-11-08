@@ -130,3 +130,21 @@ describe('chunk random-tick section cache', () => {
         expect(chunk.getRandomTickSections()).toEqual([0]);
     });
 });
+
+describe('Chunk.getRandomTickSections', () => {
+    it('reuses the list while nothing is written and follows a write that adds a ticking block', () => {
+        const chunk = new Chunk(0, 0);
+        chunk.setBlockRuntimeId(1, 5, 1, idOf('minecraft:stone'));
+
+        const before = chunk.getRandomTickSections();
+        expect(before).toEqual([]);
+        expect(chunk.getRandomTickSections()).toBe(before);
+
+        // A write in another chunk moves the process-wide count without touching this one.
+        new Chunk(1, 0).setBlockRuntimeId(1, 5, 1, idOf('minecraft:stone'));
+        expect(chunk.getRandomTickSections()).toBe(before);
+
+        chunk.setBlockRuntimeId(2, 5, 2, idOf('minecraft:wheat'));
+        expect(chunk.getRandomTickSections()).toEqual([chunk.getSubChunkEntries().next().value![0]]);
+    });
+});

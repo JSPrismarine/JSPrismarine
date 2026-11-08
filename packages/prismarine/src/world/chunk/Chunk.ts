@@ -103,6 +103,8 @@ export default class Chunk {
     private subChunkLayoutRevision = 0;
     private cachedRandomTickLayoutRevision = -1;
     private cachedRandomTickSectionRevision = -1;
+    /** The process-wide write count at the last check, which no write has moved since if it still matches. */
+    private cachedRandomTickEpoch = -1;
     private cachedRandomTickSections: readonly number[] = [];
 
     /**
@@ -597,8 +599,16 @@ export default class Chunk {
 
     /** Sections that can draw random-tick positions, cached until their stored blocks change. */
     public getRandomTickSections(): readonly number[] {
+        // No block was written anywhere since the last check, so there is nothing to sum.
+        if (
+            this.cachedRandomTickEpoch === BlockStorage.writeEpoch &&
+            this.cachedRandomTickLayoutRevision === this.subChunkLayoutRevision
+        )
+            return this.cachedRandomTickSections;
+
         // SubChunk revisions only increase, so their sum changes on every block write. The
         // separate layout revision catches replacing a section with another at a lower revision.
+        const epoch = BlockStorage.writeEpoch;
         let sectionRevision = 0;
         for (const index of this.subChunkOrder)
             sectionRevision += this.subChunks[index - this.minSubChunkY]!.getRevision();
@@ -606,8 +616,10 @@ export default class Chunk {
         if (
             this.cachedRandomTickLayoutRevision === this.subChunkLayoutRevision &&
             this.cachedRandomTickSectionRevision === sectionRevision
-        )
+        ) {
+            this.cachedRandomTickEpoch = epoch;
             return this.cachedRandomTickSections;
+        }
 
         const sections: number[] = [];
         for (const index of this.subChunkOrder) {
@@ -616,6 +628,7 @@ export default class Chunk {
 
         this.cachedRandomTickLayoutRevision = this.subChunkLayoutRevision;
         this.cachedRandomTickSectionRevision = sectionRevision;
+        this.cachedRandomTickEpoch = epoch;
         this.cachedRandomTickSections = sections;
         return sections;
     }
