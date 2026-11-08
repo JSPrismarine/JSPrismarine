@@ -275,6 +275,31 @@ const resetBetweenScenarios = async (
     await client.armInput();
 };
 
+/**
+ * What a failed scenario leaves behind in the CI log: the client's own view of itself and the
+ * server's recent warnings. The artifacts hold the full logs, but a failure that is read from
+ * the job page alone should still say whether the server complained and where the client was.
+ */
+const reportFailureContext = async (
+    server: { lines: string[] },
+    client: CinnabarClient,
+    scenario: string
+): Promise<void> => {
+    try {
+        const { screens, dimension, in_world, feet, health, chunks_loaded } = await client.state();
+        console.error(
+            `${scenario}: client ${JSON.stringify({ screens, dimension, in_world, feet, health, chunks_loaded })}`
+        );
+    } catch (error) {
+        console.error(`${scenario}: client state unavailable (${String(error)})`);
+    }
+
+    const noteworthy = server.lines
+        .filter((line) => /\b(WARN|ERROR)\b/.test(line) && !/PermissionManager|BanManager|Can't keep up/.test(line))
+        .slice(-8);
+    for (const line of noteworthy) console.error(`${scenario}: server: ${line.slice(0, 240)}`);
+};
+
 /** Whether the client has fallen out of the world, back to a menu, as when the server drops it. */
 const clientLeftTheWorld = async (client: CinnabarClient): Promise<boolean> => {
     try {
@@ -424,6 +449,7 @@ const runSuite = async (suite: ScenarioSuite, index: number): Promise<ScenarioRe
                 const note = error instanceof Error ? error.message : String(error);
                 console.error(`${scenario.name}: FAILED`);
                 console.error(error);
+                await reportFailureContext(suiteServer, client, scenario.name);
                 results.push({ name: scenario.name, ok: false, note });
                 await client.screenshot(path.join(scenarioArtifacts, 'failure.png')).catch(() => {});
             } finally {
