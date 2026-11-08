@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 
 import type { Scenario } from '../scenario.mts';
-import { sleep, vec3 } from '../scenario.mts';
+import { sleep, vec3, waitTicks } from '../scenario.mts';
 
 const dimensions = [
     { id: 'minecraft:nether', acceptedState: [1, 'minecraft:nether', 'Nether'] },
@@ -62,6 +62,12 @@ export const dimensionsScenario: Scenario = {
                 `client arrived in ${destination.id} at ${position.join(', ')}, expected near ${x}, ${y}, ${z}`
             );
             log(`${index + 1}/${dimensions.length}: client entered ${destination.id} at ${position.join(', ')}`);
+
+            // Let the client finish with this arrival before the next one is asked for. A change
+            // that follows the close of the last loading screen within a second has left the
+            // protocol 2193 client sitting on its next loading screen for ever in CI, where the
+            // server's log shows it open the screen and never close it.
+            await waitTicks(server, 40);
         }
     }
 };
