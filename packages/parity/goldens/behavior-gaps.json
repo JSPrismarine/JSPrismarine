@@ -1,5 +1,370 @@
 {
     "blocks.behavior": {
+        "breaking-drops-loot:minecraft:blue_banner": {
+            "kind": "defect",
+            "reason": "Breaking a block rolls the block loot table Java names for it, and a block with no table drops nothing. Observed: it rolls minecraft:blocks/black_banner, Java's table is minecraft:blocks/blue_banner.",
+            "reference": "Java block loot tables, data/minecraft/loot_table/blocks; issue #2914"
+        },
+        "breaking-drops-loot:minecraft:blue_bed": {
+            "kind": "defect",
+            "reason": "Breaking a block rolls the block loot table Java names for it, and a block with no table drops nothing. Observed: it rolls minecraft:blocks/black_bed, Java's table is minecraft:blocks/blue_bed.",
+            "reference": "Java block loot tables, data/minecraft/loot_table/blocks; issue #2914"
+        },
+        "breaking-drops-loot:minecraft:brown_banner": {
+            "kind": "defect",
+            "reason": "Breaking a block rolls the block loot table Java names for it, and a block with no table drops nothing. Observed: it rolls minecraft:blocks/black_banner, Java's table is minecraft:blocks/brown_banner.",
+            "reference": "Java block loot tables, data/minecraft/loot_table/blocks; issue #2914"
+        },
+        "breaking-drops-loot:minecraft:brown_bed": {
+            "kind": "defect",
+            "reason": "Breaking a block rolls the block loot table Java names for it, and a block with no table drops nothing. Observed: it rolls minecraft:blocks/black_bed, Java's table is minecraft:blocks/brown_bed.",
+            "reference": "Java block loot tables, data/minecraft/loot_table/blocks; issue #2914"
+        },
+        "breaking-drops-loot:minecraft:cave_vines_plant": {
+            "kind": "intentional",
+            "reason": "Bedrock merges a vine or kelp body into its head block, and both tables drop the same item.",
+            "reference": "Java block loot tables, data/minecraft/loot_table/blocks; issue #2914"
+        },
+        "breaking-drops-loot:minecraft:cyan_banner": {
+            "kind": "defect",
+            "reason": "Breaking a block rolls the block loot table Java names for it, and a block with no table drops nothing. Observed: it rolls minecraft:blocks/black_banner, Java's table is minecraft:blocks/cyan_banner.",
+            "reference": "Java block loot tables, data/minecraft/loot_table/blocks; issue #2914"
+        },
+        "breaking-drops-loot:minecraft:cyan_bed": {
+            "kind": "defect",
+            "reason": "Breaking a block rolls the block loot table Java names for it, and a block with no table drops nothing. Observed: it rolls minecraft:blocks/black_bed, Java's table is minecraft:blocks/cyan_bed.",
+            "reference": "Java block loot tables, data/minecraft/loot_table/blocks; issue #2914"
+        },
+        "breaking-drops-loot:minecraft:gray_banner": {
+            "kind": "defect",
+            "reason": "Breaking a block rolls the block loot table Java names for it, and a block with no table drops nothing. Observed: it rolls minecraft:blocks/black_banner, Java's table is minecraft:blocks/gray_banner.",
+            "reference": "Java block loot tables, data/minecraft/loot_table/blocks; issue #2914"
+        },
+        "breaking-drops-loot:minecraft:gray_bed": {
+            "kind": "defect",
+            "reason": "Breaking a block rolls the block loot table Java names for it, and a block with no table drops nothing. Observed: it rolls minecraft:blocks/black_bed, Java's table is minecraft:blocks/gray_bed.",
+            "reference": "Java block loot tables, data/minecraft/loot_table/blocks; issue #2914"
+        },
+        "breaking-drops-loot:minecraft:green_banner": {
+            "kind": "defect",
+            "reason": "Breaking a block rolls the block loot table Java names for it, and a block with no table drops nothing. Observed: it rolls minecraft:blocks/black_banner, Java's table is minecraft:blocks/green_banner.",
+            "reference": "Java block loot tables, data/minecraft/loot_table/blocks; issue #2914"
+        },
+        "breaking-drops-loot:minecraft:green_bed": {
+            "kind": "defect",
+            "reason": "Breaking a block rolls the block loot table Java names for it, and a block with no table drops nothing. Observed: it rolls minecraft:blocks/black_bed, Java's table is minecraft:blocks/green_bed.",
+            "reference": "Java block loot tables, data/minecraft/loot_table/blocks; issue #2914"
+        },
+        "breaking-drops-loot:minecraft:kelp_plant": {
+            "kind": "intentional",
+            "reason": "Bedrock merges a vine or kelp body into its head block, and both tables drop the same item.",
+            "reference": "Java block loot tables, data/minecraft/loot_table/blocks; issue #2914"
+        },
+        "breaking-drops-loot:minecraft:light_blue_banner": {
+            "kind": "defect",
+            "reason": "Breaking a block rolls the block loot table Java names for it, and a block with no table drops nothing. Observed: it rolls minecraft:blocks/black_banner, Java's table is minecraft:blocks/light_blue_banner.",
+            "reference": "Java block loot tables, data/minecraft/loot_table/blocks; issue #2914"
+        },
+        "breaking-drops-loot:minecraft:light_blue_bed": {
+            "kind": "defect",
+            "reason": "Breaking a block rolls the block loot table Java names for it, and a block with no table drops nothing. Observed: it rolls minecraft:blocks/black_bed, Java's table is minecraft:blocks/light_blue_bed.",
+            "reference": "Java block loot tables, data/minecraft/loot_table/blocks; issue #2914"
+        },
+        "breaking-drops-loot:minecraft:light_gray_banner": {
+            "kind": "defect",
+            "reason": "Breaking a block rolls the block loot table Java names for it, and a block with no table drops nothing. Observed: it rolls minecraft:blocks/black_banner, Java's table is minecraft:blocks/light_gray_banner.",
+            "reference": "Java block loot tables, data/minecraft/loot_table/blocks; issue #2914"
+        },
+        "breaking-drops-loot:minecraft:light_gray_bed": {
+            "kind": "defect",
+            "reason": "Breaking a block rolls the block loot table Java names for it, and a block with no table drops nothing. Observed: it rolls minecraft:blocks/black_bed, Java's table is minecraft:blocks/light_gray_bed.",
+            "reference": "Java block loot tables, data/minecraft/loot_table/blocks; issue #2914"
+        },
+        "breaking-drops-loot:minecraft:lime_banner": {
+            "kind": "defect",
+            "reason": "Breaking a block rolls the block loot table Java names for it, and a block with no table drops nothing. Observed: it rolls minecraft:blocks/black_banner, Java's table is minecraft:blocks/lime_banner.",
+            "reference": "Java block loot tables, data/minecraft/loot_table/blocks; issue #2914"
+        },
+        "breaking-drops-loot:minecraft:lime_bed": {
+            "kind": "defect",
+            "reason": "Breaking a block rolls the block loot table Java names for it, and a block with no table drops nothing. Observed: it rolls minecraft:blocks/black_bed, Java's table is minecraft:blocks/lime_bed.",
+            "reference": "Java block loot tables, data/minecraft/loot_table/blocks; issue #2914"
+        },
+        "breaking-drops-loot:minecraft:magenta_banner": {
+            "kind": "defect",
+            "reason": "Breaking a block rolls the block loot table Java names for it, and a block with no table drops nothing. Observed: it rolls minecraft:blocks/black_banner, Java's table is minecraft:blocks/magenta_banner.",
+            "reference": "Java block loot tables, data/minecraft/loot_table/blocks; issue #2914"
+        },
+        "breaking-drops-loot:minecraft:magenta_bed": {
+            "kind": "defect",
+            "reason": "Breaking a block rolls the block loot table Java names for it, and a block with no table drops nothing. Observed: it rolls minecraft:blocks/black_bed, Java's table is minecraft:blocks/magenta_bed.",
+            "reference": "Java block loot tables, data/minecraft/loot_table/blocks; issue #2914"
+        },
+        "breaking-drops-loot:minecraft:orange_banner": {
+            "kind": "defect",
+            "reason": "Breaking a block rolls the block loot table Java names for it, and a block with no table drops nothing. Observed: it rolls minecraft:blocks/black_banner, Java's table is minecraft:blocks/orange_banner.",
+            "reference": "Java block loot tables, data/minecraft/loot_table/blocks; issue #2914"
+        },
+        "breaking-drops-loot:minecraft:orange_bed": {
+            "kind": "defect",
+            "reason": "Breaking a block rolls the block loot table Java names for it, and a block with no table drops nothing. Observed: it rolls minecraft:blocks/black_bed, Java's table is minecraft:blocks/orange_bed.",
+            "reference": "Java block loot tables, data/minecraft/loot_table/blocks; issue #2914"
+        },
+        "breaking-drops-loot:minecraft:pink_banner": {
+            "kind": "defect",
+            "reason": "Breaking a block rolls the block loot table Java names for it, and a block with no table drops nothing. Observed: it rolls minecraft:blocks/black_banner, Java's table is minecraft:blocks/pink_banner.",
+            "reference": "Java block loot tables, data/minecraft/loot_table/blocks; issue #2914"
+        },
+        "breaking-drops-loot:minecraft:pink_bed": {
+            "kind": "defect",
+            "reason": "Breaking a block rolls the block loot table Java names for it, and a block with no table drops nothing. Observed: it rolls minecraft:blocks/black_bed, Java's table is minecraft:blocks/pink_bed.",
+            "reference": "Java block loot tables, data/minecraft/loot_table/blocks; issue #2914"
+        },
+        "breaking-drops-loot:minecraft:potted_acacia_sapling": {
+            "kind": "intentional",
+            "reason": "Bedrock has one flower pot block and keeps the plant in its block entity, so the pot rolls the pot table and the plant comes from the entity.",
+            "reference": "Java block loot tables, data/minecraft/loot_table/blocks; issue #2914"
+        },
+        "breaking-drops-loot:minecraft:potted_allium": {
+            "kind": "intentional",
+            "reason": "Bedrock has one flower pot block and keeps the plant in its block entity, so the pot rolls the pot table and the plant comes from the entity.",
+            "reference": "Java block loot tables, data/minecraft/loot_table/blocks; issue #2914"
+        },
+        "breaking-drops-loot:minecraft:potted_azalea_bush": {
+            "kind": "intentional",
+            "reason": "Bedrock has one flower pot block and keeps the plant in its block entity, so the pot rolls the pot table and the plant comes from the entity.",
+            "reference": "Java block loot tables, data/minecraft/loot_table/blocks; issue #2914"
+        },
+        "breaking-drops-loot:minecraft:potted_azure_bluet": {
+            "kind": "intentional",
+            "reason": "Bedrock has one flower pot block and keeps the plant in its block entity, so the pot rolls the pot table and the plant comes from the entity.",
+            "reference": "Java block loot tables, data/minecraft/loot_table/blocks; issue #2914"
+        },
+        "breaking-drops-loot:minecraft:potted_bamboo": {
+            "kind": "intentional",
+            "reason": "Bedrock has one flower pot block and keeps the plant in its block entity, so the pot rolls the pot table and the plant comes from the entity.",
+            "reference": "Java block loot tables, data/minecraft/loot_table/blocks; issue #2914"
+        },
+        "breaking-drops-loot:minecraft:potted_birch_sapling": {
+            "kind": "intentional",
+            "reason": "Bedrock has one flower pot block and keeps the plant in its block entity, so the pot rolls the pot table and the plant comes from the entity.",
+            "reference": "Java block loot tables, data/minecraft/loot_table/blocks; issue #2914"
+        },
+        "breaking-drops-loot:minecraft:potted_blue_orchid": {
+            "kind": "intentional",
+            "reason": "Bedrock has one flower pot block and keeps the plant in its block entity, so the pot rolls the pot table and the plant comes from the entity.",
+            "reference": "Java block loot tables, data/minecraft/loot_table/blocks; issue #2914"
+        },
+        "breaking-drops-loot:minecraft:potted_brown_mushroom": {
+            "kind": "intentional",
+            "reason": "Bedrock has one flower pot block and keeps the plant in its block entity, so the pot rolls the pot table and the plant comes from the entity.",
+            "reference": "Java block loot tables, data/minecraft/loot_table/blocks; issue #2914"
+        },
+        "breaking-drops-loot:minecraft:potted_cactus": {
+            "kind": "intentional",
+            "reason": "Bedrock has one flower pot block and keeps the plant in its block entity, so the pot rolls the pot table and the plant comes from the entity.",
+            "reference": "Java block loot tables, data/minecraft/loot_table/blocks; issue #2914"
+        },
+        "breaking-drops-loot:minecraft:potted_cherry_sapling": {
+            "kind": "intentional",
+            "reason": "Bedrock has one flower pot block and keeps the plant in its block entity, so the pot rolls the pot table and the plant comes from the entity.",
+            "reference": "Java block loot tables, data/minecraft/loot_table/blocks; issue #2914"
+        },
+        "breaking-drops-loot:minecraft:potted_closed_eyeblossom": {
+            "kind": "intentional",
+            "reason": "Bedrock has one flower pot block and keeps the plant in its block entity, so the pot rolls the pot table and the plant comes from the entity.",
+            "reference": "Java block loot tables, data/minecraft/loot_table/blocks; issue #2914"
+        },
+        "breaking-drops-loot:minecraft:potted_cornflower": {
+            "kind": "intentional",
+            "reason": "Bedrock has one flower pot block and keeps the plant in its block entity, so the pot rolls the pot table and the plant comes from the entity.",
+            "reference": "Java block loot tables, data/minecraft/loot_table/blocks; issue #2914"
+        },
+        "breaking-drops-loot:minecraft:potted_crimson_fungus": {
+            "kind": "intentional",
+            "reason": "Bedrock has one flower pot block and keeps the plant in its block entity, so the pot rolls the pot table and the plant comes from the entity.",
+            "reference": "Java block loot tables, data/minecraft/loot_table/blocks; issue #2914"
+        },
+        "breaking-drops-loot:minecraft:potted_crimson_roots": {
+            "kind": "intentional",
+            "reason": "Bedrock has one flower pot block and keeps the plant in its block entity, so the pot rolls the pot table and the plant comes from the entity.",
+            "reference": "Java block loot tables, data/minecraft/loot_table/blocks; issue #2914"
+        },
+        "breaking-drops-loot:minecraft:potted_dandelion": {
+            "kind": "intentional",
+            "reason": "Bedrock has one flower pot block and keeps the plant in its block entity, so the pot rolls the pot table and the plant comes from the entity.",
+            "reference": "Java block loot tables, data/minecraft/loot_table/blocks; issue #2914"
+        },
+        "breaking-drops-loot:minecraft:potted_dark_oak_sapling": {
+            "kind": "intentional",
+            "reason": "Bedrock has one flower pot block and keeps the plant in its block entity, so the pot rolls the pot table and the plant comes from the entity.",
+            "reference": "Java block loot tables, data/minecraft/loot_table/blocks; issue #2914"
+        },
+        "breaking-drops-loot:minecraft:potted_dead_bush": {
+            "kind": "intentional",
+            "reason": "Bedrock has one flower pot block and keeps the plant in its block entity, so the pot rolls the pot table and the plant comes from the entity.",
+            "reference": "Java block loot tables, data/minecraft/loot_table/blocks; issue #2914"
+        },
+        "breaking-drops-loot:minecraft:potted_fern": {
+            "kind": "intentional",
+            "reason": "Bedrock has one flower pot block and keeps the plant in its block entity, so the pot rolls the pot table and the plant comes from the entity.",
+            "reference": "Java block loot tables, data/minecraft/loot_table/blocks; issue #2914"
+        },
+        "breaking-drops-loot:minecraft:potted_flowering_azalea_bush": {
+            "kind": "intentional",
+            "reason": "Bedrock has one flower pot block and keeps the plant in its block entity, so the pot rolls the pot table and the plant comes from the entity.",
+            "reference": "Java block loot tables, data/minecraft/loot_table/blocks; issue #2914"
+        },
+        "breaking-drops-loot:minecraft:potted_golden_dandelion": {
+            "kind": "intentional",
+            "reason": "Bedrock has one flower pot block and keeps the plant in its block entity, so the pot rolls the pot table and the plant comes from the entity.",
+            "reference": "Java block loot tables, data/minecraft/loot_table/blocks; issue #2914"
+        },
+        "breaking-drops-loot:minecraft:potted_jungle_sapling": {
+            "kind": "intentional",
+            "reason": "Bedrock has one flower pot block and keeps the plant in its block entity, so the pot rolls the pot table and the plant comes from the entity.",
+            "reference": "Java block loot tables, data/minecraft/loot_table/blocks; issue #2914"
+        },
+        "breaking-drops-loot:minecraft:potted_lily_of_the_valley": {
+            "kind": "intentional",
+            "reason": "Bedrock has one flower pot block and keeps the plant in its block entity, so the pot rolls the pot table and the plant comes from the entity.",
+            "reference": "Java block loot tables, data/minecraft/loot_table/blocks; issue #2914"
+        },
+        "breaking-drops-loot:minecraft:potted_mangrove_propagule": {
+            "kind": "intentional",
+            "reason": "Bedrock has one flower pot block and keeps the plant in its block entity, so the pot rolls the pot table and the plant comes from the entity.",
+            "reference": "Java block loot tables, data/minecraft/loot_table/blocks; issue #2914"
+        },
+        "breaking-drops-loot:minecraft:potted_oak_sapling": {
+            "kind": "intentional",
+            "reason": "Bedrock has one flower pot block and keeps the plant in its block entity, so the pot rolls the pot table and the plant comes from the entity.",
+            "reference": "Java block loot tables, data/minecraft/loot_table/blocks; issue #2914"
+        },
+        "breaking-drops-loot:minecraft:potted_open_eyeblossom": {
+            "kind": "intentional",
+            "reason": "Bedrock has one flower pot block and keeps the plant in its block entity, so the pot rolls the pot table and the plant comes from the entity.",
+            "reference": "Java block loot tables, data/minecraft/loot_table/blocks; issue #2914"
+        },
+        "breaking-drops-loot:minecraft:potted_orange_tulip": {
+            "kind": "intentional",
+            "reason": "Bedrock has one flower pot block and keeps the plant in its block entity, so the pot rolls the pot table and the plant comes from the entity.",
+            "reference": "Java block loot tables, data/minecraft/loot_table/blocks; issue #2914"
+        },
+        "breaking-drops-loot:minecraft:potted_oxeye_daisy": {
+            "kind": "intentional",
+            "reason": "Bedrock has one flower pot block and keeps the plant in its block entity, so the pot rolls the pot table and the plant comes from the entity.",
+            "reference": "Java block loot tables, data/minecraft/loot_table/blocks; issue #2914"
+        },
+        "breaking-drops-loot:minecraft:potted_pale_oak_sapling": {
+            "kind": "intentional",
+            "reason": "Bedrock has one flower pot block and keeps the plant in its block entity, so the pot rolls the pot table and the plant comes from the entity.",
+            "reference": "Java block loot tables, data/minecraft/loot_table/blocks; issue #2914"
+        },
+        "breaking-drops-loot:minecraft:potted_pink_tulip": {
+            "kind": "intentional",
+            "reason": "Bedrock has one flower pot block and keeps the plant in its block entity, so the pot rolls the pot table and the plant comes from the entity.",
+            "reference": "Java block loot tables, data/minecraft/loot_table/blocks; issue #2914"
+        },
+        "breaking-drops-loot:minecraft:potted_poplar_sapling": {
+            "kind": "intentional",
+            "reason": "Bedrock has one flower pot block and keeps the plant in its block entity, so the pot rolls the pot table and the plant comes from the entity.",
+            "reference": "Java block loot tables, data/minecraft/loot_table/blocks; issue #2914"
+        },
+        "breaking-drops-loot:minecraft:potted_poppy": {
+            "kind": "intentional",
+            "reason": "Bedrock has one flower pot block and keeps the plant in its block entity, so the pot rolls the pot table and the plant comes from the entity.",
+            "reference": "Java block loot tables, data/minecraft/loot_table/blocks; issue #2914"
+        },
+        "breaking-drops-loot:minecraft:potted_red_mushroom": {
+            "kind": "intentional",
+            "reason": "Bedrock has one flower pot block and keeps the plant in its block entity, so the pot rolls the pot table and the plant comes from the entity.",
+            "reference": "Java block loot tables, data/minecraft/loot_table/blocks; issue #2914"
+        },
+        "breaking-drops-loot:minecraft:potted_red_tulip": {
+            "kind": "intentional",
+            "reason": "Bedrock has one flower pot block and keeps the plant in its block entity, so the pot rolls the pot table and the plant comes from the entity.",
+            "reference": "Java block loot tables, data/minecraft/loot_table/blocks; issue #2914"
+        },
+        "breaking-drops-loot:minecraft:potted_spruce_sapling": {
+            "kind": "intentional",
+            "reason": "Bedrock has one flower pot block and keeps the plant in its block entity, so the pot rolls the pot table and the plant comes from the entity.",
+            "reference": "Java block loot tables, data/minecraft/loot_table/blocks; issue #2914"
+        },
+        "breaking-drops-loot:minecraft:potted_torchflower": {
+            "kind": "intentional",
+            "reason": "Bedrock has one flower pot block and keeps the plant in its block entity, so the pot rolls the pot table and the plant comes from the entity.",
+            "reference": "Java block loot tables, data/minecraft/loot_table/blocks; issue #2914"
+        },
+        "breaking-drops-loot:minecraft:potted_warped_fungus": {
+            "kind": "intentional",
+            "reason": "Bedrock has one flower pot block and keeps the plant in its block entity, so the pot rolls the pot table and the plant comes from the entity.",
+            "reference": "Java block loot tables, data/minecraft/loot_table/blocks; issue #2914"
+        },
+        "breaking-drops-loot:minecraft:potted_warped_roots": {
+            "kind": "intentional",
+            "reason": "Bedrock has one flower pot block and keeps the plant in its block entity, so the pot rolls the pot table and the plant comes from the entity.",
+            "reference": "Java block loot tables, data/minecraft/loot_table/blocks; issue #2914"
+        },
+        "breaking-drops-loot:minecraft:potted_white_tulip": {
+            "kind": "intentional",
+            "reason": "Bedrock has one flower pot block and keeps the plant in its block entity, so the pot rolls the pot table and the plant comes from the entity.",
+            "reference": "Java block loot tables, data/minecraft/loot_table/blocks; issue #2914"
+        },
+        "breaking-drops-loot:minecraft:potted_wither_rose": {
+            "kind": "intentional",
+            "reason": "Bedrock has one flower pot block and keeps the plant in its block entity, so the pot rolls the pot table and the plant comes from the entity.",
+            "reference": "Java block loot tables, data/minecraft/loot_table/blocks; issue #2914"
+        },
+        "breaking-drops-loot:minecraft:purple_banner": {
+            "kind": "defect",
+            "reason": "Breaking a block rolls the block loot table Java names for it, and a block with no table drops nothing. Observed: it rolls minecraft:blocks/black_banner, Java's table is minecraft:blocks/purple_banner.",
+            "reference": "Java block loot tables, data/minecraft/loot_table/blocks; issue #2914"
+        },
+        "breaking-drops-loot:minecraft:purple_bed": {
+            "kind": "defect",
+            "reason": "Breaking a block rolls the block loot table Java names for it, and a block with no table drops nothing. Observed: it rolls minecraft:blocks/black_bed, Java's table is minecraft:blocks/purple_bed.",
+            "reference": "Java block loot tables, data/minecraft/loot_table/blocks; issue #2914"
+        },
+        "breaking-drops-loot:minecraft:red_banner": {
+            "kind": "defect",
+            "reason": "Breaking a block rolls the block loot table Java names for it, and a block with no table drops nothing. Observed: it rolls minecraft:blocks/black_banner, Java's table is minecraft:blocks/red_banner.",
+            "reference": "Java block loot tables, data/minecraft/loot_table/blocks; issue #2914"
+        },
+        "breaking-drops-loot:minecraft:red_bed": {
+            "kind": "defect",
+            "reason": "Breaking a block rolls the block loot table Java names for it, and a block with no table drops nothing. Observed: it rolls minecraft:blocks/black_bed, Java's table is minecraft:blocks/red_bed.",
+            "reference": "Java block loot tables, data/minecraft/loot_table/blocks; issue #2914"
+        },
+        "breaking-drops-loot:minecraft:twisting_vines_plant": {
+            "kind": "intentional",
+            "reason": "Bedrock merges a vine or kelp body into its head block, and both tables drop the same item.",
+            "reference": "Java block loot tables, data/minecraft/loot_table/blocks; issue #2914"
+        },
+        "breaking-drops-loot:minecraft:weeping_vines_plant": {
+            "kind": "intentional",
+            "reason": "Bedrock merges a vine or kelp body into its head block, and both tables drop the same item.",
+            "reference": "Java block loot tables, data/minecraft/loot_table/blocks; issue #2914"
+        },
+        "breaking-drops-loot:minecraft:white_banner": {
+            "kind": "defect",
+            "reason": "Breaking a block rolls the block loot table Java names for it, and a block with no table drops nothing. Observed: it rolls minecraft:blocks/black_banner, Java's table is minecraft:blocks/white_banner.",
+            "reference": "Java block loot tables, data/minecraft/loot_table/blocks; issue #2914"
+        },
+        "breaking-drops-loot:minecraft:white_bed": {
+            "kind": "defect",
+            "reason": "Breaking a block rolls the block loot table Java names for it, and a block with no table drops nothing. Observed: it rolls minecraft:blocks/black_bed, Java's table is minecraft:blocks/white_bed.",
+            "reference": "Java block loot tables, data/minecraft/loot_table/blocks; issue #2914"
+        },
+        "breaking-drops-loot:minecraft:yellow_banner": {
+            "kind": "defect",
+            "reason": "Breaking a block rolls the block loot table Java names for it, and a block with no table drops nothing. Observed: it rolls minecraft:blocks/black_banner, Java's table is minecraft:blocks/yellow_banner.",
+            "reference": "Java block loot tables, data/minecraft/loot_table/blocks; issue #2914"
+        },
+        "breaking-drops-loot:minecraft:yellow_bed": {
+            "kind": "defect",
+            "reason": "Breaking a block rolls the block loot table Java names for it, and a block with no table drops nothing. Observed: it rolls minecraft:blocks/black_bed, Java's table is minecraft:blocks/yellow_bed.",
+            "reference": "Java block loot tables, data/minecraft/loot_table/blocks; issue #2914"
+        },
         "sapling-grows-tree:minecraft:mangrove_propagule": {
             "kind": "defect",
             "reason": "A sapling turns into a tree on random ticks once it reaches its second stage. Observed: it never grew into a tree.",

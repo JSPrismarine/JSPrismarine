@@ -3,6 +3,7 @@ import type { FamilyHarness } from '@jsprismarine/block-behaviors';
 import { behaviorFor } from '@jsprismarine/blocks';
 import { javaBlockStateToBedrock } from '@jsprismarine/mapping';
 import { blocksTable } from '@jsprismarine/mapping/tables';
+import { blockLootTableOf } from '@jsprismarine/prismarine/block/blockLoot';
 import { expect, it } from 'vitest';
 
 import type { BehaviorScenario } from './behaviorScenarios.ts';
@@ -602,6 +603,38 @@ const scenarios: readonly BehaviorScenario<BlockSubject>[] = [
                 if (pushed) return undefined;
             }
             return 'it never pushed the block in front of it';
+        }
+    },
+    {
+        name: 'breaking-drops-loot',
+        java: 'Breaking a block rolls the block loot table Java names for it, and a block with no table drops nothing.',
+        reference: 'Java block loot tables, data/minecraft/loot_table/blocks; issue #2914',
+        classify: (subject) =>
+            subject.javaId.startsWith('minecraft:potted_')
+                ? {
+                      kind: 'intentional',
+                      reason: 'Bedrock has one flower pot block and keeps the plant in its block entity, so the pot rolls the pot table and the plant comes from the entity.'
+                  }
+                : subject.javaId.endsWith('_plant')
+                  ? {
+                        kind: 'intentional',
+                        reason: 'Bedrock merges a vine or kelp body into its head block, and both tables drop the same item.'
+                    }
+                  : undefined,
+        subjects: () => Object.keys(blocksTable.blocks).flatMap((javaId) => subjectOf(javaId) ?? []),
+        idOf: (subject) => subject.javaId,
+        run: (subject) => {
+            const content = serverContent();
+            const tables = content.definitions.lootTablesJava;
+            const wanted = `minecraft:blocks/${subject.javaId.replace('minecraft:', '')}`;
+            // Java ties some blocks to another block's table (wall signs to the standing sign), so only a block with its own table is compared.
+            if (!tables.has(wanted)) return undefined;
+            const table = blockLootTableOf(content, subject.bedrock, subject.states);
+            if (table === wanted) return undefined;
+            const same =
+                table !== undefined &&
+                JSON.stringify(tables.get(table)?.data) === JSON.stringify(tables.get(wanted)?.data);
+            return same ? undefined : `it rolls ${String(table)}, Java's table is ${wanted}`;
         }
     }
 ];
