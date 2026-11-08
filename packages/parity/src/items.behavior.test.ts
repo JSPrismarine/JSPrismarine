@@ -15,7 +15,9 @@ import { itemTypesTable } from '@jsprismarine/items/tables';
 import { javaBlockStateToBedrock, javaEntityTypeToBedrock, javaItemToBedrock } from '@jsprismarine/mapping';
 import { bedrockEntityIdentifierOf } from '@jsprismarine/prismarine/entity/identifierMapping';
 import { holderSetIncludes } from '@jsprismarine/prismarine/item/holderSets';
-import { itemsTable } from '@jsprismarine/mapping/tables';
+import { blocksTable, itemsTable } from '@jsprismarine/mapping/tables';
+import { blockFromContent } from '@jsprismarine/prismarine/block/Block';
+import { BlockRuntimeIds } from '@jsprismarine/prismarine/block/state/BlockRuntimeIds';
 import { expect, it } from 'vitest';
 
 import type { BehaviorScenario } from './behaviorScenarios.ts';
@@ -265,6 +267,85 @@ const scenarios: readonly BehaviorScenario<ItemSubject>[] = [
             if (spent.amount !== expected)
                 return `mining a block cost ${spent.amount}, Java's tool component says ${String(expected)}`;
             return undefined;
+        }
+    },
+    {
+        name: 'consume-applies-effects',
+        java: 'Finishing a consumable applies the status effects its `apply_effects` consume effects name, with their duration and amplifier.',
+        reference: 'Java ApplyStatusEffectsConsumeEffect',
+        subjects: () =>
+            withComponent('minecraft:consumable').filter((item) =>
+                JSON.stringify(field(item.components['minecraft:consumable'], 'on_consume_effects') ?? []).includes(
+                    'apply_effects'
+                )
+            ),
+        idOf: (subject) => subject.javaId,
+        run: (subject) => {
+            current = createTestWorld({ randoms: [0] });
+            const stack = stackOf(subject.bedrock);
+            stack.type.hooks.dispatchFirst('onConsume', { itemStack: stack, source: player });
+            const applied = current.performed('apply-effects').flatMap((action) => action.effects);
+            const wanted = (
+                field(subject.components['minecraft:consumable'], 'on_consume_effects') as unknown[]
+            ).flatMap((entry) =>
+                field(entry, 'type') === 'minecraft:apply_effects' && Array.isArray(field(entry, 'effects'))
+                    ? (field(entry, 'effects') as unknown[])
+                    : []
+            );
+            for (const effect of wanted) {
+                const id = field(effect, 'id');
+                const match = applied.find((candidate) => candidate.id === id);
+                if (match === undefined) return `${String(id)} was never applied`;
+                if (match.durationTicks !== (field(effect, 'duration') ?? 600))
+                    return `${String(id)} lasts ${match.durationTicks}, Java says ${String(field(effect, 'duration') ?? 600)}`;
+                if ((match.amplifier ?? 0) !== (field(effect, 'amplifier') ?? 0))
+                    return `${String(id)} has amplifier ${match.amplifier}, Java says ${String(field(effect, 'amplifier') ?? 0)}`;
+            }
+            return undefined;
+        }
+    },
+    {
+        name: 'use-cooldown',
+        java: 'Using an item with `minecraft:use_cooldown` starts a cooldown of that many seconds.',
+        reference: 'Java UseCooldown.apply',
+        subjects: () => withComponent('minecraft:use_cooldown'),
+        idOf: (subject) => subject.javaId,
+        run: (subject) => {
+            current = createTestWorld({ target: testSource('minecraft:zombie', 2) });
+            const stack = stackOf(subject.bedrock);
+            stack.type.hooks.dispatchFirst('onUse', { itemStack: stack, source: player, useDuration: 0 });
+            stack.type.hooks.dispatchFirst('onUseOn', {
+                itemStack: stack,
+                source: player,
+                useDuration: 0,
+                block: testBlock('minecraft:stone'),
+                blockFace: 'up',
+                faceLocation: { x: 0.5, y: 1, z: 0.5 }
+            });
+            stack.type.hooks.dispatchFirst('onConsume', { itemStack: stack, source: player });
+            const started = current.performed('start-cooldown')[0];
+            const seconds = field(subject.components['minecraft:use_cooldown'], 'seconds');
+            if (started === undefined) return 'using it started no cooldown';
+            return started.ticks === Math.round(Number(seconds) * 20)
+                ? undefined
+                : `the cooldown is ${started.ticks} ticks, Java says ${String(seconds)} seconds`;
+        }
+    },
+    {
+        name: 'block-item-places',
+        java: 'An item named for a block places that block when used on another block.',
+        reference: 'Java BlockItem.place',
+        subjects: () =>
+            javaItems().filter((item) => item.javaId in blocksTable.blocks && item.javaId !== 'minecraft:air'),
+        idOf: (subject) => subject.javaId,
+        run: (subject) => {
+            const mapping = javaBlockStateToBedrock(subject.javaId);
+            if (mapping.kind !== 'mapped') return 'the block it names has no Bedrock block';
+            const name = mapping.bedrock.name;
+            if (BlockRuntimeIds.tryGetByName(name) === null) return `${name} has no runtime id`;
+            return blockFromContent(name, serverContent())?.canBePlaced() === true
+                ? undefined
+                : `the server refuses to place ${name}`;
         }
     },
     {
