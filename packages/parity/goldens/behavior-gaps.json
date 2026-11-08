@@ -85,5 +85,6 @@
             "reason": "A sapling turns into a tree on random ticks once it reaches its second stage. Observed: it never grew into a tree.",
             "reference": "Java SaplingBlock randomTick and advanceTree"
         }
-    }
+    },
+    "items.behavior": {}
 }

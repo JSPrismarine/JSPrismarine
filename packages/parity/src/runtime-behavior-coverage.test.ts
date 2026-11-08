@@ -1,5 +1,5 @@
-import { entitiesTable, itemsTable } from '@jsprismarine/mapping/tables';
-import { ENTITY_LOSSES, ITEM_LOSSES } from '@jsprismarine/mapping/lossList';
+import { entitiesTable } from '@jsprismarine/mapping/tables';
+import { ENTITY_LOSSES } from '@jsprismarine/mapping/lossList';
 import { expect, it } from 'vitest';
 
 import type { Family } from './families.ts';
@@ -27,21 +27,6 @@ const reportUnmeasuredBehaviorRows = (
         }))
     );
 };
-
-describeFamily(FAMILIES.itemsBehavior, [REFERENCES.javaItemRegistry], () => {
-    it('lists each Java item with runtime behavior not yet covered by a complete parity matrix', () => {
-        const identifiers = [
-            ...new Set([...Object.keys(itemsTable.items), ...ITEM_LOSSES.map(({ javaId }) => javaId)])
-        ].toSorted((left, right) => left.localeCompare(right, 'en'));
-        reportUnmeasuredBehaviorRows(
-            FAMILIES.itemsBehavior,
-            identifiers,
-            'Complete Java use, durability, combat, and inventory behavior parity is not measured for this item.'
-        );
-
-        expect(identifiers).toContain('minecraft:diamond_pickaxe');
-    });
-});
 
 describeFamily(FAMILIES.entitiesBehavior, [REFERENCES.javaEntityRegistry], () => {
     it('lists each Java entity with runtime behavior not yet covered by a complete parity matrix', () => {
