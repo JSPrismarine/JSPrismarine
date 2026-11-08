@@ -353,53 +353,6 @@ describe('network', () => {
             expect(reads).toEqual(['1,2']);
         });
 
-        it('serves a column that is queued for the client but not yet sent', async () => {
-            // The publisher update that opens the radius precedes the LevelChunks, so a client can
-            // ask for a column the server is about to announce.
-            const chunk = new Chunk(1, 2, new Map(), Dimensions.Overworld);
-            chunk.setBlockRuntimeId(1, -64, 2, BlockRuntimeIds.getByName('minecraft:stone'));
-            const reads: string[] = [];
-            const world = stub<World>({
-                getDimension: () => Dimensions.Overworld,
-                getLoadedChunk: () => null,
-                getChunk: async (x, z) => {
-                    reads.push(`${x},${z}`);
-                    return chunk;
-                }
-            });
-            const playerWithWorld = stub<Player>({
-                viewDistance: 2,
-                getPosition: () => new Position(0, 64, 0, world),
-                getWorld: () => world,
-                getName: () => 'tester',
-                isOnline: () => true
-            });
-            const sent: NetworkPacket<unknown>[] = [];
-            const connection = stub<ClientConnection>({
-                codec: Codec2225,
-                sendDataPacket: async (packet) => void sent.push(packet)
-            });
-            const queued = new PlayerSession(server, connection, playerWithWorld);
-            queued['loadingChunks'].set(Chunk.packXZ(1, 2), { x: 1, z: 2 });
-
-            const request = new SubChunkRequestPacket();
-            request.dimensionType = 0;
-            request.centerPos = { x: 1, y: -4, z: 2 };
-            request.offsets = [
-                { x: 0, y: 0, z: 0 },
-                { x: 5, y: 0, z: 0 }
-            ];
-            await queued.handleSubChunkRequest(request);
-
-            const response = sent.at(-1);
-            if (!(response instanceof SubChunkPacket)) throw new Error('SubChunkPacket response was not sent');
-            expect((response.getPacketData()?.entries ?? []).map(({ result }) => result)).toEqual([
-                SubChunkRequestResult.SUCCESS,
-                SubChunkRequestResult.LEVEL_CHUNK_DOESNT_EXIST
-            ]);
-            expect(reads).toEqual(['1,2']);
-        });
-
         it('uses confirmed subchunk blobs on repeat requests and serves cache misses', async () => {
             const chunk = new Chunk(1, 2, new Map(), Dimensions.Overworld);
             const world = stub<World>({
