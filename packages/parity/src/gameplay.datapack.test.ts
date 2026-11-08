@@ -4,7 +4,7 @@ import { join, relative } from 'node:path';
 import { expect, it } from 'vitest';
 
 import type { BehaviorScenario } from './behaviorScenarios.ts';
-import { measureScenarios, scenarioGroup } from './behaviorScenarios.ts';
+import { measureScenarios, reportCoverage, scenarioGroup } from './behaviorScenarios.ts';
 import { FAMILIES } from './families.ts';
 import { unpackVanillaDatapack } from './javaDatapack.ts';
 import { describeFamily } from './measure.ts';
@@ -93,7 +93,9 @@ const scenarios: readonly BehaviorScenario<DatapackEntry>[] = [
         reference: 'Java 26.3 data/minecraft datapack registries',
         subjects: javaEntries,
         idOf: (entry) => `${entry.registry}/${entry.path}`,
-        covers: () => undefined,
+        // A loaded registry reports as one row, passed when every entry is loaded; an entry the server
+        // has no loader for is its own row, because each is a Java behavior the server lacks.
+        covers: (entry) => (LOADED[entry.registry] === undefined ? undefined : entry.registry),
         classify: (entry) => {
             const reason = JAVA_ONLY[entry.registry];
             return reason === undefined
@@ -119,6 +121,13 @@ describeFamily(FAMILIES.gameplayDatapack, [REFERENCES.javaWorldgenData, REFERENC
     it('loads each vanilla datapack registry entry into the server content', { timeout: 180_000 }, () => {
         const rows = measureScenarios(FAMILIES.gameplayDatapack, import.meta.filename, scenarioGroup(scenarios));
 
+        reportCoverage(
+            FAMILIES.gameplayDatapack,
+            import.meta.filename,
+            Object.keys(LOADED),
+            rows,
+            'Every entry of this vanilla datapack registry is present in the content the server loads.'
+        );
         expect(rows.length).toBeGreaterThan(0);
         expect(
             rows.some((row) => row.id === 'registry-entry-loaded:enchantment/sharpness' && row.difference === undefined)
