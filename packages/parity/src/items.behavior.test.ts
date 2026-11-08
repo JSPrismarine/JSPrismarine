@@ -12,7 +12,8 @@ import type { TestWorld, WorldActions } from '@jsprismarine/item-behaviors';
 import { ItemStack, loadItemTypes } from '@jsprismarine/items';
 import type { ItemHooks, ItemRegistry } from '@jsprismarine/items';
 import { itemTypesTable } from '@jsprismarine/items/tables';
-import { javaBlockStateToBedrock, javaItemToBedrock } from '@jsprismarine/mapping';
+import { javaBlockStateToBedrock, javaEntityTypeToBedrock, javaItemToBedrock } from '@jsprismarine/mapping';
+import { bedrockEntityIdentifierOf } from '@jsprismarine/prismarine/entity/identifierMapping';
 import { holderSetIncludes } from '@jsprismarine/prismarine/item/holderSets';
 import { itemsTable } from '@jsprismarine/mapping/tables';
 import { expect, it } from 'vitest';
@@ -204,6 +205,65 @@ const scenarios: readonly BehaviorScenario<ItemSubject>[] = [
             }
             if (wrong.length > 0)
                 return `${wrong.length} blocks drop wrongly, such as ${[...new Set(wrong)].slice(0, 3).join(', ')}`;
+            return undefined;
+        }
+    },
+    {
+        name: 'spawn-egg-spawns-mob',
+        java: 'A spawn egg spawns the mob its `minecraft:entity_data` names.',
+        reference: 'Java SpawnEggItem and the data/minecraft/items entity_data component',
+        subjects: () => withComponent('minecraft:entity_data').filter((item) => item.javaId.endsWith('_spawn_egg')),
+        idOf: (subject) => subject.javaId,
+        run: (subject) => {
+            const javaMob = field(subject.components['minecraft:entity_data'], 'id');
+            if (typeof javaMob !== 'string') return 'its Java entity data names no mob';
+            current = createTestWorld();
+            const stack = stackOf(subject.bedrock);
+            stack.type.hooks.dispatchFirst('onUseOn', {
+                itemStack: stack,
+                source: player,
+                useDuration: 0,
+                block: testBlock('minecraft:stone'),
+                blockFace: 'up',
+                faceLocation: { x: 0.5, y: 1, z: 0.5 }
+            });
+            const spawned = current.performed('spawn-entity')[0];
+            if (spawned === undefined) return 'using it spawned nothing';
+            const content = serverContent();
+            const resolved = bedrockEntityIdentifierOf(spawned.identifier, (id) => content.entities.registry.has(id));
+            const mapping = javaEntityTypeToBedrock(javaMob);
+            // A mob Bedrock has no entity for spawns its reviewed substitute, which the mapping records as an intentional loss.
+            const expected =
+                mapping.kind === 'loss'
+                    ? mapping.loss.bedrockFallback
+                    : mapping.kind === 'mapped'
+                      ? mapping.bedrock
+                      : undefined;
+            if (resolved === undefined) return `${spawned.identifier} resolves to no server entity`;
+            if (resolved !== expected) return `it spawns ${resolved}, Java's ${javaMob} maps to ${String(expected)}`;
+            if (!content.entities.registry.has(resolved)) return `${resolved} is not an entity the server runs`;
+            return undefined;
+        }
+    },
+    {
+        name: 'mining-damages-tool',
+        java: 'Breaking a block with hardness above zero costs a tool the durability its `damage_per_block` names.',
+        reference: 'Java Tool.damagePerBlock and ItemStack.mineBlock',
+        subjects: () => withComponent('minecraft:tool').filter((item) => 'minecraft:max_damage' in item.components),
+        idOf: (subject) => subject.javaId,
+        run: (subject) => {
+            current = createTestWorld({ hardness: { 'minecraft:stone': 1.5 } });
+            const stack = stackOf(subject.bedrock);
+            stack.type.hooks.dispatch('onMineBlock', {
+                itemStack: stack,
+                source: player,
+                block: testBlock('minecraft:stone')
+            });
+            const spent = current.performed('consume-durability')[0];
+            const expected = field(subject.components['minecraft:tool'], 'damage_per_block') ?? 1;
+            if (spent === undefined) return 'mining a block cost no durability';
+            if (spent.amount !== expected)
+                return `mining a block cost ${spent.amount}, Java's tool component says ${String(expected)}`;
             return undefined;
         }
     },
