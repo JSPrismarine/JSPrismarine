@@ -734,14 +734,15 @@ export const redstoneFamily = defineFamily(
 /** Buttons, which power the block they are on for a fixed time. */
 export const buttonFamily = defineFamily(
     'jsprismarine:button',
-    'Presses on interact, powers for 30 ticks on wood and 20 on stone, then releases on the scheduled tick.',
+    'Presses on interact, powers for 30 ticks on wood and 20 on stone and polished blackstone, then releases on the scheduled tick.',
     {
         onPlayerInteract: (event, world, context) => {
             if (stateBoolean(event.block, 'button_pressed_bit')) return true;
             setStates(world, event.block, { button_pressed_bit: true });
             world.playSound(event.block.position, 'random.click');
             world.notifyNeighbors(event.block.position);
-            const wooden = !bareName(context.identifier).startsWith('stone_');
+            const name = bareName(context.identifier);
+            const wooden = !name.startsWith('stone_') && !name.startsWith('polished_blackstone_');
             world.scheduleTick(event.block.position, BUTTON_PRESS_TICKS[wooden ? 'wooden' : 'stone']);
             return true;
         },

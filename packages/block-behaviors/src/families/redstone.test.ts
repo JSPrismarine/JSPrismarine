@@ -366,6 +366,18 @@ describe('buttonFamily', () => {
 
         expect(harness.dimension.scheduled).toEqual([{ position: origin, delay: BUTTON_PRESS_TICKS.wooden }]);
     });
+
+    it('releases a polished blackstone button on the stone schedule', () => {
+        const harness = bindFamily(buttonFamily, 'minecraft:polished_blackstone_button');
+        harness.dimension.set(origin, 'minecraft:polished_blackstone_button', {
+            button_pressed_bit: false,
+            facing_direction: facingDirectionOf('up')
+        });
+
+        harness.interact(origin);
+
+        expect(harness.dimension.scheduled).toEqual([{ position: origin, delay: BUTTON_PRESS_TICKS.stone }]);
+    });
 });
 
 describe('pressurePlateFamily', () => {
