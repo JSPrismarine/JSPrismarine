@@ -1,4 +1,4 @@
-import { VANILLA_BLOCK_FAMILIES, bindFamily, isFallingBlock } from '@jsprismarine/block-behaviors';
+import { VANILLA_BLOCK_FAMILIES, bindFamily, heldItem, isFallingBlock } from '@jsprismarine/block-behaviors';
 import type { FamilyHarness } from '@jsprismarine/block-behaviors';
 import { behaviorFor } from '@jsprismarine/blocks';
 import { javaBlockStateToBedrock } from '@jsprismarine/mapping';
@@ -43,6 +43,29 @@ const ORIGIN = { x: 0, y: 5, z: 0 } as const;
 
 const named = (...javaIds: readonly string[]): readonly BlockSubject[] =>
     javaIds.flatMap((javaId) => subjectOf(javaId) ?? []);
+
+/** A Java copper block, the Java block one oxidation stage further along, and the server's identity for it. */
+interface CopperChain {
+    readonly subject: BlockSubject;
+    readonly next: BlockSubject;
+}
+
+const COPPER_STAGES = ['exposed_', 'weathered_', 'oxidized_'] as const;
+
+/** Java's `WeatheringCopper` pairs, read off the block names: each copper block that has a next stage. */
+const weatheringCopper = (): readonly CopperChain[] =>
+    Object.keys(blocksTable.blocks).flatMap((javaId) => {
+        const bare = javaId.replace('minecraft:', '');
+        if (!bare.includes('copper') || bare.startsWith('waxed_') || bare.startsWith('oxidized_')) return [];
+        const stage = COPPER_STAGES.findIndex((prefix) => bare.startsWith(prefix));
+        const base = stage === -1 ? bare : bare.slice(COPPER_STAGES[stage]?.length ?? 0);
+        // `copper_block` is the only name whose unoxidized form is not the shape itself.
+        const shape = base === 'copper_block' ? 'copper' : base;
+        const nextShape = stage === -1 && base === 'copper_block' ? 'copper' : shape;
+        const next = subjectOf(`minecraft:${COPPER_STAGES[stage + 1]}${nextShape}`);
+        const subject = subjectOf(javaId);
+        return subject === undefined || next === undefined ? [] : [{ subject, next }];
+    });
 
 const BELOW = { x: 0, y: 4, z: 0 } as const;
 
@@ -377,6 +400,114 @@ const scenarios: readonly BehaviorScenario<BlockSubject>[] = [
             harness.interact(ORIGIN);
             if (harness.dimension.stateAt(ORIGIN, 'open_bit') !== false) return 'using it again did not switch it off';
             return undefined;
+        }
+    },
+    {
+        name: 'copper-oxidizes',
+        java: 'An exposed copper block advances one oxidation stage on random ticks until oxidized; waxed copper never does.',
+        reference: 'Java WeatheringCopper.getNext and ChangeOverTimeBlock.changeOverTime',
+        subjects: () => weatheringCopper().map((chain) => chain.subject),
+        idOf: (subject) => subject.javaId,
+        run: (subject) => {
+            const next = weatheringCopper().find((chain) => chain.subject.javaId === subject.javaId)?.next;
+            if (next === undefined) return undefined;
+            const harness = bind(subject);
+            harness.dimension.set(ORIGIN, subject.bedrock, subject.states);
+            harness.dimension.queueRandom(...Array.from({ length: 4096 }, () => 0));
+            for (let tick = 0; tick < 512 && harness.dimension.identifierAt(ORIGIN) === subject.bedrock; tick += 1) {
+                harness.randomTick(ORIGIN, tick);
+            }
+            const now = harness.dimension.identifierAt(ORIGIN);
+            if (now === subject.bedrock) return 'it never oxidized';
+            if (now !== next.bedrock) return `it oxidized into ${now}, Java's next stage is ${next.bedrock}`;
+            return undefined;
+        }
+    },
+    {
+        name: 'copper-waxes',
+        java: 'Honeycomb seals a copper block into its waxed form, which keeps its oxidation stage.',
+        reference: 'Java HoneycombItem.WAXABLES',
+        // Java waxes a door or trapdoor only for a sneaking player, which the harness cannot send.
+        subjects: () =>
+            weatheringCopper()
+                .map((chain) => chain.subject)
+                .filter((subject) => !/_(door|trapdoor)$/.test(subject.javaId)),
+        idOf: (subject) => subject.javaId,
+        run: (subject) => {
+            const waxed = subjectOf(`minecraft:waxed_${subject.javaId.replace('minecraft:', '')}`);
+            if (waxed === undefined) return undefined;
+            const harness = bind(subject);
+            harness.dimension.set(ORIGIN, subject.bedrock, subject.states);
+            harness.interact(ORIGIN, { itemStack: heldItem('minecraft:honeycomb') });
+            const now = harness.dimension.identifierAt(ORIGIN);
+            return now === waxed.bedrock ? undefined : `honeycomb left ${now}, Java gives ${waxed.bedrock}`;
+        }
+    },
+    {
+        name: 'candle-lights',
+        java: 'A candle or candle cake lights when used with flint and steel.',
+        reference: 'Java CandleBlock and CandleCakeBlock useItemOn',
+        subjects: () => [...tagMembers('minecraft:candles'), ...tagMembers('minecraft:candle_cakes')],
+        idOf: (subject) => subject.javaId,
+        run: (subject) => {
+            const harness = bind(subject);
+            harness.dimension.set(ORIGIN, subject.bedrock, subject.states);
+            harness.interact(ORIGIN, { itemStack: heldItem('minecraft:flint_and_steel') });
+            const lit = harness.dimension.stateAt(ORIGIN, 'lit');
+            if (lit !== true) return 'flint and steel did not light it';
+            return undefined;
+        }
+    },
+    {
+        name: 'water-spreads-seven',
+        java: 'Water flows seven blocks from a source over a flat floor and no further.',
+        reference: 'Java FlowingFluid.getSpreadDelay and WaterFluid.getDropOff',
+        subjects: () => named('minecraft:water'),
+        idOf: (subject) => subject.javaId,
+        run: (subject) => {
+            const harness = bind(subject);
+            harness.dimension.fill({ x: -10, y: 4, z: -10 }, { x: 10, y: 4, z: 10 }, 'minecraft:stone');
+            harness.dimension.set(ORIGIN, subject.bedrock, subject.states);
+            for (let round = 0; round < 64; round += 1) {
+                for (let x = -9; x <= 9; x += 1) {
+                    for (let z = -9; z <= 9; z += 1) {
+                        const id = harness.dimension.identifierAt({ x, y: 5, z });
+                        if (id === 'minecraft:water' || id === 'minecraft:flowing_water') harness.tick({ x, y: 5, z });
+                    }
+                }
+            }
+            let reach = 0;
+            for (let x = 0; x <= 9; x += 1) {
+                const id = harness.dimension.identifierAt({ x, y: 5, z: 0 });
+                if (id === 'minecraft:water' || id === 'minecraft:flowing_water') reach = x;
+            }
+            return reach === 7 ? undefined : `water reached ${reach} blocks from the source`;
+        }
+    },
+    {
+        name: 'lava-spreads-three',
+        java: 'Lava flows three blocks from a source in the overworld and no further.',
+        reference: 'Java LavaFluid.getSlopeFindDistance and getDropOff',
+        subjects: () => named('minecraft:lava'),
+        idOf: (subject) => subject.javaId,
+        run: (subject) => {
+            const harness = bind(subject);
+            harness.dimension.fill({ x: -10, y: 4, z: -10 }, { x: 10, y: 4, z: 10 }, 'minecraft:stone');
+            harness.dimension.set(ORIGIN, subject.bedrock, subject.states);
+            for (let round = 0; round < 64; round += 1) {
+                for (let x = -9; x <= 9; x += 1) {
+                    for (let z = -9; z <= 9; z += 1) {
+                        const id = harness.dimension.identifierAt({ x, y: 5, z });
+                        if (id === 'minecraft:lava' || id === 'minecraft:flowing_lava') harness.tick({ x, y: 5, z });
+                    }
+                }
+            }
+            let reach = 0;
+            for (let x = 0; x <= 9; x += 1) {
+                const id = harness.dimension.identifierAt({ x, y: 5, z: 0 });
+                if (id === 'minecraft:lava' || id === 'minecraft:flowing_lava') reach = x;
+            }
+            return reach === 3 ? undefined : `lava reached ${reach} blocks from the source`;
         }
     }
 ];
