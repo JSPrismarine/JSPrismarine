@@ -90,7 +90,7 @@ const scenarios: readonly BehaviorScenario<DatapackEntry>[] = [
     {
         name: 'registry-entry-loaded',
         java: 'Every entry of a vanilla datapack registry is loaded and used by the server.',
-        reference: 'Java 26.3 data/minecraft datapack registries',
+        reference: 'Java 26.3 data/minecraft datapack registries; issue #2912',
         subjects: javaEntries,
         idOf: (entry) => `${entry.registry}/${entry.path}`,
         // A loaded registry reports as one row, passed when every entry is loaded; an entry the server

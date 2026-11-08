@@ -146,7 +146,7 @@ const entityScenarios: readonly BehaviorScenario<EntitySubject>[] = [
     {
         name: 'breeding-food',
         java: 'An animal breeds with exactly the items in its Java food tag.',
-        reference: 'Java Animal.isFood and the data/minecraft/tags/item/*_food tags',
+        reference: 'Java Animal.isFood and the data/minecraft/tags/item/*_food tags; issue #2911',
         subjects: () => BREEDING_FOOD.flatMap(([javaId, tag]) => mappedEntity(javaId, tag) ?? []),
         idOf: (subject) => subject.javaId,
         run: (subject) => {
@@ -195,7 +195,7 @@ const scenarios: readonly BehaviorScenario<NaturalSpawn>[] = [
     {
         name: 'spawns-in-biome',
         java: "A mob in a biome's natural spawn list can spawn there.",
-        reference: 'Java Biome minecraft:gameplay/natural_mob_spawns attribute',
+        reference: 'Java Biome minecraft:gameplay/natural_mob_spawns attribute; issue #2910',
         classify: (spawn) =>
             spawn.mob === 'minecraft:zombie_villager'
                 ? {

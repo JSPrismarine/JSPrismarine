@@ -357,7 +357,7 @@ const scenarios: readonly BehaviorScenario<BlockSubject>[] = [
     {
         name: 'sapling-grows-tree',
         java: 'A sapling turns into a tree on random ticks once it reaches its second stage.',
-        reference: 'Java SaplingBlock randomTick and advanceTree',
+        reference: 'Java SaplingBlock randomTick and advanceTree; issue #2909',
         subjects: () => tagMembers('minecraft:saplings').filter((subject) => !subject.javaId.endsWith('azalea')),
         idOf: (subject) => subject.javaId,
         run: (subject) => {
@@ -513,7 +513,7 @@ const scenarios: readonly BehaviorScenario<BlockSubject>[] = [
     {
         name: 'composter-chance',
         java: "A composter takes only compostable items, and each adds a layer with the item's composting chance.",
-        reference: 'Java ComposterBlock.addItem and ComposterBlock.COMPOSTABLES',
+        reference: 'Java ComposterBlock.addItem and ComposterBlock.COMPOSTABLES; issue #2908',
         subjects: () => named('minecraft:composter'),
         idOf: (subject) => subject.javaId,
         run: (subject) => {
@@ -541,7 +541,7 @@ const scenarios: readonly BehaviorScenario<BlockSubject>[] = [
     {
         name: 'sponge-absorbs-water',
         java: 'A sponge placed next to water soaks it up and becomes a wet sponge.',
-        reference: 'Java SpongeBlock.tryAbsorbWater',
+        reference: 'Java SpongeBlock.tryAbsorbWater; issue #2907',
         subjects: () => named('minecraft:sponge'),
         idOf: (subject) => subject.javaId,
         run: (subject) => {
