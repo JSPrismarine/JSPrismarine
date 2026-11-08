@@ -1050,6 +1050,9 @@ export class Entity {
      */
     private async tickStatusEffects(): Promise<void> {
         this.statusEffectAge++;
+        // Most entities carry no effects, and copying an empty map into an array every tick adds up.
+        if (this.statusEffectMap().size === 0) return;
+
         for (const effect of this.getStatusEffects()) {
             const clock = effect.durationTicks < 0 ? this.statusEffectAge : effect.durationTicks;
             await this.applyStatusEffectTick(effect, clock);
