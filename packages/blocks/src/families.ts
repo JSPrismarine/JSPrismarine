@@ -166,7 +166,7 @@ export const BLOCK_FAMILIES: readonly BlockFamilyRule[] = [
     { behavior: 'jsprismarine:cauldron', contains: ['cauldron'] },
     { behavior: 'jsprismarine:composter', exact: ['composter'] },
     { behavior: 'jsprismarine:flower_pot', exact: ['flower_pot'] },
-    { behavior: 'jsprismarine:torch', contains: ['torch'] },
+    { behavior: 'jsprismarine:torch', suffix: ['torch'] },
     { behavior: 'jsprismarine:lantern', contains: ['lantern'] },
     { behavior: 'jsprismarine:leaves', contains: ['leaves'] },
     { behavior: 'jsprismarine:sapling', contains: ['sapling', 'propagule'] },
@@ -190,7 +190,11 @@ export const BLOCK_FAMILIES: readonly BlockFamilyRule[] = [
             'pitcher_plant'
         ]
     },
-    { behavior: 'jsprismarine:bamboo', contains: ['bamboo', 'chorus', 'kelp', 'seagrass', 'sea_pickle', 'coral'] },
+    {
+        behavior: 'jsprismarine:bamboo',
+        exact: ['cactus', 'reeds'],
+        contains: ['bamboo', 'chorus', 'kelp', 'seagrass', 'sea_pickle', 'coral']
+    },
     {
         behavior: 'jsprismarine:climbing',
         contains: [
@@ -233,6 +237,7 @@ export const BLOCK_FAMILIES: readonly BlockFamilyRule[] = [
         behavior: 'jsprismarine:flora',
         contains: [
             'flower',
+            'lily_of_the_valley',
             'mushroom',
             'fungus',
             'roots',

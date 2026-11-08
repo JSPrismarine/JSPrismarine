@@ -19,7 +19,7 @@
             },
             "minecraft:display_name": "tile.reeds.name",
             "minecraft:collision_box": false,
-            "jsprismarine:behavior": "jsprismarine:plain_block",
+            "jsprismarine:behavior": "jsprismarine:bamboo",
             "jsprismarine:block_properties": {
                 "friction": 0.6,
                 "random_tick": true,

@@ -22,7 +22,7 @@
                 "origin": [-7, 0, -7],
                 "size": [14, 16, 14]
             },
-            "jsprismarine:behavior": "jsprismarine:flora",
+            "jsprismarine:behavior": "jsprismarine:bamboo",
             "jsprismarine:block_properties": {
                 "friction": 0.6,
                 "random_tick": true,

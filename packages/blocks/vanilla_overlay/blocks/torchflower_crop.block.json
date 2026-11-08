@@ -19,7 +19,7 @@
             },
             "minecraft:display_name": "tile.torchflower_crop.name",
             "minecraft:collision_box": false,
-            "jsprismarine:behavior": "jsprismarine:torch",
+            "jsprismarine:behavior": "jsprismarine:crop",
             "jsprismarine:block_properties": {
                 "friction": 0.6,
                 "random_tick": true,
