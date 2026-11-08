@@ -17,16 +17,24 @@ export const eating: Scenario = {
         // on a villager opens its trades instead of eating.
         await lookTo(client, 0, -80);
         await client.input({ hold: ['MouseRight'] });
-        // A golden apple takes 32 ticks; count them on the server, since a loaded CI runner
-        // ticks slower than a wall clock second would suggest and an early release cancels the meal.
-        await waitTicks(server, 60);
-        await client.input({ release: ['MouseRight'] });
-        await waitTicks(server, 10);
 
-        const left = server.waitForLine(/Removed \d+ items/, 10_000);
-        server.command(`clear ${playerName} minecraft:golden_apple 64`);
-        const line = await left;
-        log(line);
-        assert.match(line, /Removed 2 items/, 'one golden apple was eaten');
+        // The client keeps the use held and starts another apple as soon as one is done, so the
+        // release has to follow the first meal rather than a fixed count of ticks after it: on a
+        // starved runner the second apple is eaten before a release that waits for 60 ticks.
+        const applesLeft = async (): Promise<number> => {
+            const counted = server.waitForLine(/Found \d+ matching/, 10_000);
+            server.command(`clear ${playerName} minecraft:golden_apple 0`);
+            return Number(/Found (\d+) matching/.exec(await counted)?.[1]);
+        };
+        const deadline = Date.now() + 120_000;
+        while ((await applesLeft()) > 2) {
+            assert.ok(Date.now() < deadline, 'the first golden apple was never eaten');
+            await waitTicks(server, 2);
+        }
+        await client.input({ release: ['MouseRight'] });
+        await waitTicks(server, 40);
+
+        assert.equal(await applesLeft(), 2, 'one golden apple was eaten');
+        log('exactly one golden apple was eaten');
     }
 };
