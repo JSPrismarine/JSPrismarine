@@ -188,6 +188,43 @@ const entityScenarios: readonly BehaviorScenario<EntitySubject>[] = [
             );
             return families.includes(family) ? undefined : `it is not in the ${family} family on the server`;
         }
+    },
+    {
+        name: 'burns-in-daylight',
+        java: "A mob in Java's burn_in_daylight tag catches fire in sunlight, and no other mob does.",
+        reference: 'Java entity type tag burn_in_daylight and Mob.isSunBurnTick',
+        subjects: () => {
+            const burning = new Set(serverContent().tags.members('entity_type', 'minecraft:burn_in_daylight'));
+            return Object.keys(entitiesTable.entities).flatMap(
+                (javaId) => mappedEntity(javaId, burning.has(javaId) ? 'burns' : 'safe') ?? []
+            );
+        },
+        idOf: (subject) => subject.javaId,
+        covers: (subject) => subject.javaId,
+        run: (subject) => {
+            const burns = componentValues(subject.bedrock, 'minecraft:burns_in_daylight').length > 0;
+            if (subject.tag === 'burns' && !burns) return 'Java burns it in daylight; the server does not';
+            if (subject.tag === 'safe' && burns) return 'the server burns it in daylight; Java does not';
+            return undefined;
+        }
+    },
+    {
+        name: 'breathes-underwater',
+        java: "A mob in Java's can_breathe_under_water tag does not drown, and every other mob that breathes air does.",
+        reference: 'Java entity type tag can_breathe_under_water and LivingEntity.canBreatheUnderwater',
+        subjects: () => {
+            const gills = new Set(serverContent().tags.members('entity_type', 'minecraft:can_breathe_under_water'));
+            return [...gills].flatMap((javaId) => mappedEntity(javaId, 'gills') ?? []);
+        },
+        idOf: (subject) => subject.javaId,
+        covers: (subject) => subject.javaId,
+        run: (subject) => {
+            const breathable = componentValues(subject.bedrock, 'minecraft:breathable');
+            const underwater = breathable.some(
+                (value) => field(value, 'breathes_water') === true || field(value, 'breathes_air') === false
+            );
+            return underwater ? undefined : 'the server drowns it, though Java lets it breathe underwater';
+        }
     }
 ];
 

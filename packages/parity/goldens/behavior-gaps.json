@@ -372,6 +372,16 @@
         }
     },
     "entities.behavior": {
+        "breathes-underwater:minecraft:armor_stand": {
+            "kind": "defect",
+            "reason": "A mob in Java's can_breathe_under_water tag does not drown, and every other mob that breathes air does. Observed: the server drowns it, though Java lets it breathe underwater.",
+            "reference": "Java entity type tag can_breathe_under_water and LivingEntity.canBreatheUnderwater"
+        },
+        "breathes-underwater:minecraft:copper_golem": {
+            "kind": "defect",
+            "reason": "A mob in Java's can_breathe_under_water tag does not drown, and every other mob that breathes air does. Observed: the server drowns it, though Java lets it breathe underwater.",
+            "reference": "Java entity type tag can_breathe_under_water and LivingEntity.canBreatheUnderwater"
+        },
         "breeding-food:minecraft:axolotl": {
             "kind": "defect",
             "reason": "An animal breeds with exactly the items in its Java food tag. Observed: the server breeds it with nothing; Java accepts minecraft:tropical_fish_bucket.",
@@ -386,6 +396,16 @@
             "kind": "defect",
             "reason": "An animal breeds with exactly the items in its Java food tag. Observed: the server breeds it with minecraft:beef, minecraft:chicken, minecraft:cooked_beef, minecraft:cooked_chicken, minecraft:cooked_mutton, minecraft:cooked_porkchop, minecraft:cooked_rabbit, minecraft:mutton, minecraft:porkchop, minecraft:rabbit, minecraft:rotten_flesh; Java accepts minecraft:beef, minecraft:chicken, minecraft:cod, minecraft:cooked_beef, minecraft:cooked_chicken, minecraft:cooked_cod, minecraft:cooked_mutton, minecraft:cooked_porkchop, minecraft:cooked_rabbit, minecraft:cooked_salmon, minecraft:mutton, minecraft:porkchop, minecraft:pufferfish, minecraft:rabbit, minecraft:rabbit_stew, minecraft:rotten_flesh, minecraft:salmon, minecraft:tropical_fish.",
             "reference": "Java Animal.isFood and the data/minecraft/tags/item/*_food tags; issue #2911"
+        },
+        "burns-in-daylight:minecraft:magma_cube": {
+            "kind": "defect",
+            "reason": "A mob in Java's burn_in_daylight tag catches fire in sunlight, and no other mob does. Observed: the server burns it in daylight; Java does not.",
+            "reference": "Java entity type tag burn_in_daylight and Mob.isSunBurnTick"
+        },
+        "burns-in-daylight:minecraft:wither_skeleton": {
+            "kind": "defect",
+            "reason": "A mob in Java's burn_in_daylight tag catches fire in sunlight, and no other mob does. Observed: Java burns it in daylight; the server does not.",
+            "reference": "Java entity type tag burn_in_daylight and Mob.isSunBurnTick"
         },
         "spawns-in-biome:minecraft:badlands/minecraft:zombie_villager": {
             "kind": "intentional",
