@@ -435,13 +435,17 @@ describe('PlayerSession.changeWorld', () => {
         expect(change?.getPacketData()?.dimension).toBe(Dimensions.Nether.bedrockId);
         expect(change?.getPacketData()?.respawn).toBe(true);
         expect(session.pendingCreditsArrival()).toBeUndefined();
-        // Settled by the respawn exchange, which follows, not by a loading screen the client
-        // never closes for a respawn change.
+        // Settled by the respawn exchange rather than by a loading screen the client never closes
+        // for a respawn change, and told once the terrain is on the wire, not before.
         expect(session.pendingDimensionChange()).toBeUndefined();
-        const states = sent
-            .filter((p): p is RespawnPacket => p instanceof RespawnPacket)
-            .map((p) => p.getPacketData()?.state);
-        expect(states).toEqual([PlayerRespawnState.SEARCHING_FOR_SPAWN, PlayerRespawnState.READY_TO_SPAWN]);
+        const respawnStates = () =>
+            sent.filter((p): p is RespawnPacket => p instanceof RespawnPacket).map((p) => p.getPacketData()?.state);
+        expect(respawnStates()).toEqual([]);
+
+        session['chunkSendQueue'].length = 0;
+        session['loadingChunks'].clear();
+        await session['answerRespawnIfReady']();
+        expect(respawnStates()).toEqual([PlayerRespawnState.SEARCHING_FOR_SPAWN, PlayerRespawnState.READY_TO_SPAWN]);
 
         // The client repeating the finish is not a second change.
         expect(await session.completeCredits()).toBe(false);

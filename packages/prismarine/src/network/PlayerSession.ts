@@ -335,6 +335,9 @@ export default class PlayerSession {
     /** Set while the spawn chunks are still draining - see {@link PlayerSession.announceSpawnIfReady}. */
     private spawnChunksPending = false;
 
+    /** Where a respawn change is waiting to tell the client it comes back: see {@link PlayerSession.answerRespawnIfReady}. */
+    private pendingRespawnAnswer: Vector3 | undefined;
+
     /**
      * The chunk the player was in when anything last checked.
      *
@@ -853,6 +856,7 @@ export default class PlayerSession {
 
             // The spawn status waits for this, not the other way round.
             await this.announceSpawnIfReady();
+            await this.answerRespawnIfReady();
         } catch (error: unknown) {
             // Nothing is marked loaded unless every batch reached the ordered send path. If a
             // later chunk in this partial group fails, re-requesting earlier chunks is harmless.
@@ -1849,6 +1853,20 @@ export default class PlayerSession {
     }
 
     /**
+     * Answers a respawn change with the two `Respawn` states once its terrain is on the wire.
+     * Called whenever a batch of chunks lands, and when the change is made.
+     */
+    private async answerRespawnIfReady(): Promise<void> {
+        const at = this.pendingRespawnAnswer;
+        if (at === undefined) return;
+        if (this.loadingChunks.size > 0 || this.chunkSendQueue.length > 0) return;
+
+        this.pendingRespawnAnswer = undefined;
+        await this.sendRespawn(at, PlayerRespawnState.SEARCHING_FOR_SPAWN);
+        await this.sendRespawn(eyePositionAt(at), PlayerRespawnState.READY_TO_SPAWN);
+    }
+
+    /**
      * Tells the client it has spawned, once the terrain it spawns into is actually on the wire.
      *
      * The order is taken from a Bedrock Dedicated Server 1.26.51: it answers `RequestChunkRadius`
@@ -2161,9 +2179,11 @@ export default class PlayerSession {
 
         // A respawn change is settled by the respawn exchange, as after a death: the client
         // waits for where it comes back and shows its loading screen until it is told, so
-        // without these it sat there until the server gave up on it a minute later.
-        await this.sendRespawn(arrival.position, PlayerRespawnState.SEARCHING_FOR_SPAWN);
-        await this.sendRespawn(eyePositionAt(arrival.position), PlayerRespawnState.READY_TO_SPAWN);
+        // without it the client sat there until the server gave up on it a minute later. It goes
+        // out once the terrain is on the wire: told sooner, the client stands the player in a
+        // world with no ground and falls through it.
+        this.pendingRespawnAnswer = arrival.position;
+        await this.answerRespawnIfReady();
         return true;
     }
 

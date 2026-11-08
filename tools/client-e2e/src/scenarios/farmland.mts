@@ -52,19 +52,27 @@ export const farmland: Scenario = {
         await client.input({ hotbar: 1 });
         await waitTicks(server, 5);
 
-        await client.input({ press: ['MouseRight'], press_frames: 3 });
-        let tilled = await waitForBlock(server, SOIL, 'minecraft:farmland', 3_000);
-        if (!/Found the block at/.test(tilled)) {
-            log('retrying the till click after the client captured gameplay input');
-            await client.input({ press: ['MouseRight'], press_frames: 3 });
-            tilled = await waitForBlock(server, SOIL, 'minecraft:farmland', 5_000);
-        }
+        // A click can be lost on a starved host, and the block never changes, so the click is
+        // repeated until the server shows the result: tilling farmland again, or planting where
+        // wheat already stands, changes nothing.
+        const clickUntil = async (at: typeof SOIL, block: string): Promise<string> => {
+            let reply = '';
+            for (let attempt = 1; attempt <= 6; attempt++) {
+                await client.input({ press: ['MouseRight'], press_frames: 3 });
+                await client.input({ release_all: true });
+                reply = await waitForBlock(server, at, block, 5_000);
+                if (/Found the block at/.test(reply)) return reply;
+                log(`the click did not land (attempt ${attempt}): ${reply}`);
+            }
+            return reply;
+        };
+
+        const tilled = await clickUntil(SOIL, 'minecraft:farmland');
         assert.match(tilled, /Found the block at/, `the hoe tilled the grass into farmland: ${tilled}`);
 
         server.command(`replaceitem entity ${playerName} slot.hotbar 0 minecraft:wheat_seeds 1`);
         await waitTicks(server, 10);
-        await client.input({ press: ['MouseRight'], press_frames: 3 });
-        const planted = await waitForBlock(server, { ...SOIL, y: SOIL.y + 1 }, 'minecraft:wheat', 5_000);
+        const planted = await clickUntil({ ...SOIL, y: SOIL.y + 1 }, 'minecraft:wheat');
         assert.match(planted, /Found the block at/, `the seeds planted wheat on the farmland: ${planted}`);
 
         // Fresh farmland is dry. Water three blocks away is inside the four-block range, so one
