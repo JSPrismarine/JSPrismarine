@@ -509,6 +509,100 @@ const scenarios: readonly BehaviorScenario<BlockSubject>[] = [
             }
             return reach === 3 ? undefined : `lava reached ${reach} blocks from the source`;
         }
+    },
+    {
+        name: 'composter-chance',
+        java: "A composter takes only compostable items, and each adds a layer with the item's composting chance.",
+        reference: 'Java ComposterBlock.addItem and ComposterBlock.COMPOSTABLES',
+        subjects: () => named('minecraft:composter'),
+        idOf: (subject) => subject.javaId,
+        run: (subject) => {
+            const layers = (item: string, components: Record<string, unknown>, roll: number): number => {
+                const harness = bind(subject);
+                harness.dimension.set(ORIGIN, subject.bedrock, { ...subject.states, composter_fill_level: 1 });
+                harness.dimension.queueRandom(roll);
+                harness.interact(ORIGIN, { itemStack: heldItem(item, components) });
+                const level = harness.dimension.stateAt(ORIGIN, 'composter_fill_level');
+                return typeof level === 'number' ? level - 1 : 0;
+            };
+            if (layers('minecraft:stone', {}, 0) !== 0) return 'a stone added a layer, though it is not compostable';
+            if (
+                layers(
+                    'minecraft:wheat_seeds',
+                    { 'minecraft:compostable': { layers: 'minecraft:compostable/low' } },
+                    0.99
+                ) !== 0
+            ) {
+                return 'a failed 30 percent roll still added a layer';
+            }
+            return undefined;
+        }
+    },
+    {
+        name: 'sponge-absorbs-water',
+        java: 'A sponge placed next to water soaks it up and becomes a wet sponge.',
+        reference: 'Java SpongeBlock.tryAbsorbWater',
+        subjects: () => named('minecraft:sponge'),
+        idOf: (subject) => subject.javaId,
+        run: (subject) => {
+            const harness = bind(subject);
+            harness.dimension.set({ x: 1, y: 5, z: 0 }, 'minecraft:water');
+            harness.dimension.set(ORIGIN, subject.bedrock, subject.states);
+            harness.place(ORIGIN);
+            if (harness.dimension.identifierAt({ x: 1, y: 5, z: 0 }) === 'minecraft:water')
+                return 'the water stayed after the sponge was placed';
+            if (harness.dimension.identifierAt(ORIGIN) === subject.bedrock) return 'the sponge did not become wet';
+            return undefined;
+        }
+    },
+    {
+        name: 'ice-melts-in-light',
+        java: 'Ice melts into water on a random tick when the block light is above 11.',
+        reference: 'Java IceBlock.randomTick',
+        subjects: () => named('minecraft:ice'),
+        idOf: (subject) => subject.javaId,
+        run: (subject) => {
+            const harness = bind(subject);
+            harness.dimension.set(ORIGIN, subject.bedrock, subject.states);
+            harness.dimension.setLight(ORIGIN, 14);
+            harness.randomTick(ORIGIN);
+            return harness.dimension.identifierAt(ORIGIN) === 'minecraft:water'
+                ? undefined
+                : 'it did not melt in bright light';
+        }
+    },
+    {
+        name: 'piston-pushes',
+        java: 'A piston receiving power pushes the block in front of it one position.',
+        reference: 'Java PistonBaseBlock.checkIfExtend and moveBlocks',
+        subjects: () => named('minecraft:piston', 'minecraft:sticky_piston'),
+        idOf: (subject) => subject.javaId,
+        run: (subject) => {
+            // Bedrock reverses a piston's horizontal facing values, so try each one and look for any push.
+            for (const facing of [2, 3, 4, 5]) {
+                const harness = bind(subject);
+                harness.dimension.set(ORIGIN, subject.bedrock, { ...subject.states, facing_direction: facing });
+                for (const [dx, dz] of [
+                    [1, 0],
+                    [-1, 0],
+                    [0, 1],
+                    [0, -1]
+                ] as const) {
+                    harness.dimension.set({ x: dx, y: 5, z: dz }, 'minecraft:stone');
+                }
+                harness.redstone(ORIGIN, 15);
+                const pushed = (
+                    [
+                        [2, 0],
+                        [-2, 0],
+                        [0, 2],
+                        [0, -2]
+                    ] as const
+                ).some(([dx, dz]) => harness.dimension.identifierAt({ x: dx, y: 5, z: dz }) === 'minecraft:stone');
+                if (pushed) return undefined;
+            }
+            return 'it never pushed the block in front of it';
+        }
     }
 ];
 const REFERENCES_NEEDED = [
