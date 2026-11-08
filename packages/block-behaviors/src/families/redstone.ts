@@ -36,6 +36,9 @@ import { dropSelf } from './shared';
 export const TNT_FUSE_TICKS = 80;
 
 /** The two blocks a redstone lamp switches between. */
+/** How many game ticks a lit lamp waits after losing power before it goes dark. */
+const LAMP_OFF_TICKS = 4;
+
 const LAMP_PAIR = { off: 'redstone_lamp', on: 'lit_redstone_lamp' } as const;
 
 /** The two blocks a redstone torch switches between. */
@@ -448,7 +451,10 @@ const onRedstone = (event: { block: HookBlock; power: number }, world: WorldActi
         }
         case 'redstone_lamp':
         case 'lit_redstone_lamp':
-            swapPair(world, block, LAMP_PAIR, powered);
+            // Java lights a lamp at once but keeps it lit for four more ticks after power goes.
+            if (powered) swapPair(world, block, LAMP_PAIR, true);
+            else if (bareName(block.identifier) === 'lit_redstone_lamp')
+                world.scheduleTick(block.position, LAMP_OFF_TICKS);
             return;
         case 'redstone_torch':
         case 'unlit_redstone_torch':
@@ -584,6 +590,9 @@ export const redstoneFamily = defineFamily(
         onTick: (event, world, context) => {
             const block = event.block;
             switch (bareName(block.identifier)) {
+                case 'lit_redstone_lamp':
+                    if (world.redstonePower(block.position) === 0) swapPair(world, block, LAMP_PAIR, false);
+                    return;
                 case 'observer': {
                     const powered = stateBoolean(block, 'powered_bit');
                     setStates(world, block, { powered_bit: !powered });

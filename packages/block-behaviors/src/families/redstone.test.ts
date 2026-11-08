@@ -91,6 +91,32 @@ describe('redstoneFamily: pistons', () => {
     });
 });
 
+describe('redstoneFamily: the lamp', () => {
+    it('stays lit for four ticks after power goes, then goes dark', () => {
+        const harness = bindFamily(redstoneFamily, 'minecraft:lit_redstone_lamp');
+        harness.dimension.set(origin, 'minecraft:lit_redstone_lamp');
+
+        harness.redstone(origin, 0);
+
+        expect(harness.dimension.identifierAt(origin)).toBe('minecraft:lit_redstone_lamp');
+        expect(harness.dimension.scheduled).toEqual([{ position: origin, delay: 4 }]);
+
+        harness.tick(origin);
+
+        expect(harness.dimension.identifierAt(origin)).toBe('minecraft:redstone_lamp');
+    });
+
+    it('stays lit when power came back before the tick', () => {
+        const harness = bindFamily(redstoneFamily, 'minecraft:lit_redstone_lamp');
+        harness.dimension.set(origin, 'minecraft:lit_redstone_lamp');
+        harness.dimension.setPower(origin, 15);
+
+        harness.tick(origin);
+
+        expect(harness.dimension.identifierAt(origin)).toBe('minecraft:lit_redstone_lamp');
+    });
+});
+
 describe('redstoneFamily: the observer', () => {
     it('pulses on the scheduled tick, then clears on the next scheduled tick', () => {
         const harness = bindFamily(redstoneFamily, 'minecraft:observer');
