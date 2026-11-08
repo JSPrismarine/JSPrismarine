@@ -283,12 +283,38 @@ describe('cauldronFamily', () => {
     });
 });
 
+describe('utilityFamily: sponge', () => {
+    it('soaks up water within six steps and becomes wet', () => {
+        const harness = bindFamily(utilityFamily, 'minecraft:sponge');
+        harness.dimension.set({ x: 1, y: 4, z: 0 }, 'minecraft:water');
+        harness.dimension.set({ x: 3, y: 4, z: 0 }, 'minecraft:water');
+        harness.dimension.set({ x: 0, y: 4, z: 0 }, 'minecraft:sponge');
+
+        harness.place({ x: 0, y: 4, z: 0 });
+
+        expect(harness.dimension.identifierAt({ x: 1, y: 4, z: 0 })).toBe('minecraft:air');
+        expect(harness.dimension.identifierAt({ x: 0, y: 4, z: 0 })).toBe('minecraft:wet_sponge');
+    });
+
+    it('stays dry with no water in reach', () => {
+        const harness = bindFamily(utilityFamily, 'minecraft:sponge');
+        harness.dimension.set({ x: 0, y: 4, z: 0 }, 'minecraft:sponge');
+
+        harness.place({ x: 0, y: 4, z: 0 });
+
+        expect(harness.dimension.identifierAt({ x: 0, y: 4, z: 0 })).toBe('minecraft:sponge');
+    });
+});
+
 describe('composterFamily', () => {
     it('fills a layer per use and gives bone meal when it is full', () => {
         const harness = bindFamily(composterFamily, 'minecraft:composter');
         harness.dimension.set(origin, 'minecraft:composter', { composter_fill_level: 0 });
 
-        for (let use = 0; use <= COMPOSTER_FULL; use += 1) harness.interact(origin);
+        const wheat = heldItem('minecraft:wheat', {
+            'minecraft:compostable': { layers: 'minecraft:compostable/guaranteed' }
+        });
+        for (let use = 0; use <= COMPOSTER_FULL; use += 1) harness.interact(origin, { itemStack: wheat });
 
         expect(harness.dimension.stateAt(origin, 'composter_fill_level')).toBe(COMPOSTER_FULL + 1);
 
@@ -296,6 +322,25 @@ describe('composterFamily', () => {
 
         expect(harness.dimension.stateAt(origin, 'composter_fill_level')).toBe(0);
         expect(harness.dimension.drops.map((entry) => entry.drop.identifier)).toEqual(['minecraft:bone_meal']);
+    });
+
+    it('refuses an item that is not compostable and rolls the chance of one that is', () => {
+        const harness = bindFamily(composterFamily, 'minecraft:composter');
+        harness.dimension.set(origin, 'minecraft:composter', { composter_fill_level: 1 });
+
+        expect(harness.interact(origin, { itemStack: heldItem('minecraft:stone') })).toBeUndefined();
+        expect(harness.dimension.stateAt(origin, 'composter_fill_level')).toBe(1);
+
+        const seeds = heldItem('minecraft:wheat_seeds', {
+            'minecraft:compostable': { layers: 'minecraft:compostable/low' }
+        });
+        harness.dimension.queueRandom(0.99);
+        harness.interact(origin, { itemStack: seeds });
+        expect(harness.dimension.stateAt(origin, 'composter_fill_level')).toBe(1);
+
+        harness.dimension.queueRandom(0.1);
+        harness.interact(origin, { itemStack: seeds });
+        expect(harness.dimension.stateAt(origin, 'composter_fill_level')).toBe(2);
     });
 });
 

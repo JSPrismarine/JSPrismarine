@@ -270,6 +270,24 @@ export const cauldronFamily = defineFamily(
     }
 );
 
+/** The layer chance Java's number provider references name, by reference. */
+const COMPOST_CHANCES: Readonly<Record<string, number>> = {
+    'minecraft:compostable/low': 0.3,
+    'minecraft:compostable/medium': 0.5,
+    'minecraft:compostable/high': 0.65,
+    'minecraft:compostable/very_high': 0.85,
+    'minecraft:compostable/guaranteed': 1
+};
+
+/** The chance an item adds a composter layer, or undefined when it is not compostable. */
+const compostChance = (item: { get(name: string): unknown } | undefined): number | undefined => {
+    const component = item?.get('minecraft:compostable');
+    if (typeof component !== 'object' || component === null) return undefined;
+    const layers: unknown = Reflect.get(component, 'layers');
+    if (typeof layers === 'number') return layers;
+    return typeof layers === 'string' ? COMPOST_CHANCES[layers] : undefined;
+};
+
 /** The composter, which turns a stack of plant matter into bone meal. */
 export const composterFamily = defineFamily(
     'jsprismarine:composter',
@@ -283,8 +301,13 @@ export const composterFamily = defineFamily(
                 world.playSound(event.block.position, 'block.composter.empty');
                 return true;
             }
-            setStates(world, event.block, { composter_fill_level: level + 1 });
-            world.playSound(event.block.position, 'block.composter.fill');
+            const chance = compostChance(event.itemStack);
+            if (chance === undefined) return undefined;
+            // The first item into an empty composter always lands; the rest roll against the chance.
+            if (level === 0 || world.random() < chance) {
+                setStates(world, event.block, { composter_fill_level: level + 1 });
+                world.playSound(event.block.position, 'block.composter.fill');
+            }
             return true;
         }
     }
@@ -356,12 +379,53 @@ export const beaconLevels = (world: WorldActions, position: BlockPosition): numb
  * whose rule is a block rule: the beacon's pyramid, the anvil's fall, the
  * spawner's timer and the blocks that hurt what stands on them.
  */
+/** How far from a sponge, in steps, water is soaked up, and the most blocks one sponge soaks. */
+const SPONGE_RANGE = 6;
+const SPONGE_LIMIT = 65;
+
+/**
+ * Java's `SpongeBlock.removeWaterBreadthFirstSearch`: water within six steps, up to 65 blocks.
+ *
+ * @returns Whether any water was removed.
+ */
+const soakUpWater = (world: WorldActions, origin: BlockPosition): boolean => {
+    const queue: { position: BlockPosition; steps: number }[] = [{ position: origin, steps: 0 }];
+    const seen = new Set<string>([`${origin.x},${origin.y},${origin.z}`]);
+    let removed = 0;
+    for (let index = 0; index < queue.length && removed < SPONGE_LIMIT; index += 1) {
+        const { position, steps } = queue[index]!;
+        for (const face of ['down', 'up', 'north', 'south', 'west', 'east'] as const) {
+            const next = offset(position, face);
+            const key = `${next.x},${next.y},${next.z}`;
+            if (seen.has(key)) continue;
+            seen.add(key);
+            const found = world.getBlock(next);
+            if (found === undefined) continue;
+            if (isWater(found.identifier)) {
+                world.setBlock(next, 'minecraft:air');
+                removed += 1;
+                if (steps < SPONGE_RANGE) queue.push({ position: next, steps: steps + 1 });
+            } else if (found.identifier === 'minecraft:air' && steps < SPONGE_RANGE) {
+                queue.push({ position: next, steps: steps + 1 });
+            }
+        }
+    }
+    return removed > 0;
+};
+
+/** Turns a dry sponge wet when it soaked up water. */
+const absorbWater = (world: WorldActions, block: { position: BlockPosition; identifier: string }): void => {
+    if (bareName(block.identifier) !== 'sponge') return;
+    if (soakUpWater(world, block.position)) world.setBlock(block.position, 'minecraft:wet_sponge');
+};
+
 export const utilityFamily = defineFamily(
     'jsprismarine:utility',
-    'Counts a beacon pyramid, falls when it is an anvil, runs the spawner timer, and hurts an entity standing on magma. The screens the workstations open belong to the item runtime.',
+    'Counts a beacon pyramid, soaks up water when it is a sponge, falls when it is an anvil, runs the spawner timer, and hurts an entity standing on magma. The screens the workstations open belong to the item runtime.',
     {
         onPlace: (event, world) => {
             if (isFallingBlock(event.block.identifier)) scheduleFall(world, event.block);
+            absorbWater(world, event.block);
             if (bareName(event.block.identifier) === 'beacon') {
                 world.setBlockData(event.block.position, { levels: beaconLevels(world, event.block.position) });
             }
@@ -371,6 +435,7 @@ export const utilityFamily = defineFamily(
                 scheduleFall(world, event.block);
                 return;
             }
+            absorbWater(world, event.block);
             if (bareName(event.block.identifier) !== 'beacon') return;
             world.setBlockData(event.block.position, { levels: beaconLevels(world, event.block.position) });
         },
