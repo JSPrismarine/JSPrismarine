@@ -90,7 +90,7 @@ import PlayerActionPacket from '@jsprismarine/protocol/packet/PlayerActionPacket
 import PlayerListPacket from '@jsprismarine/protocol/packet/PlayerListPacket';
 import { PlayerListAction, PlayerListEntry } from '@jsprismarine/protocol/wire/structures/PlayerListEntry';
 import RemoveActorPacket from '@jsprismarine/protocol/packet/RemoveActorPacket';
-import type { PlayerRespawnState } from '@jsprismarine/minecraft';
+import { PlayerRespawnState } from '@jsprismarine/minecraft';
 import RespawnPacket from '@jsprismarine/protocol/packet/RespawnPacket';
 import ActorEventPacket, { ActorEvent } from '@jsprismarine/protocol/packet/ActorEventPacket';
 import SetActorDataPacket from '@jsprismarine/protocol/packet/SetActorDataPacket';
@@ -2157,7 +2157,13 @@ export default class PlayerSession {
         if (arrival === undefined) return false;
 
         this.pendingCredits = undefined;
-        await this.changeWorld({ ...arrival, respawn: true });
+        await this.changeWorld({ ...arrival, respawn: true, closesLoadingScreen: false });
+
+        // A respawn change is settled by the respawn exchange, as after a death: the client
+        // waits for where it comes back and shows its loading screen until it is told, so
+        // without these it sat there until the server gave up on it a minute later.
+        await this.sendRespawn(arrival.position, PlayerRespawnState.SEARCHING_FOR_SPAWN);
+        await this.sendRespawn(eyePositionAt(arrival.position), PlayerRespawnState.READY_TO_SPAWN);
         return true;
     }
 

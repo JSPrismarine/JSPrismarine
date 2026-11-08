@@ -1,5 +1,5 @@
 import { Vector3 } from '@jsprismarine/math';
-import { Dimension } from '@jsprismarine/minecraft';
+import { Dimension, PlayerRespawnState } from '@jsprismarine/minecraft';
 import {
     ClientPlayMode,
     InputMode,
@@ -16,6 +16,7 @@ import NetworkChunkPublisherUpdatePacket from '@jsprismarine/protocol/packet/Net
 import PlayerActionPacket from '@jsprismarine/protocol/packet/PlayerActionPacket';
 import PlayerAuthInputPacket from '@jsprismarine/protocol/packet/PlayerAuthInputPacket';
 import { PlayStatusPacket } from '@jsprismarine/protocol';
+import RespawnPacket from '@jsprismarine/protocol/packet/RespawnPacket';
 import RemoveActorPacket from '@jsprismarine/protocol/packet/RemoveActorPacket';
 import SetSpawnPositionPacket, { SpawnPositionType } from '@jsprismarine/protocol/packet/SetSpawnPositionPacket';
 import ShowCreditsPacket, { CreditsState } from '@jsprismarine/protocol/packet/ShowCreditsPacket';
@@ -434,7 +435,13 @@ describe('PlayerSession.changeWorld', () => {
         expect(change?.getPacketData()?.dimension).toBe(Dimensions.Nether.bedrockId);
         expect(change?.getPacketData()?.respawn).toBe(true);
         expect(session.pendingCreditsArrival()).toBeUndefined();
-        expect(session.pendingDimensionChange()?.arrival.world).toBe(player.getWorld());
+        // Settled by the respawn exchange, which follows, not by a loading screen the client
+        // never closes for a respawn change.
+        expect(session.pendingDimensionChange()).toBeUndefined();
+        const states = sent
+            .filter((p): p is RespawnPacket => p instanceof RespawnPacket)
+            .map((p) => p.getPacketData()?.state);
+        expect(states).toEqual([PlayerRespawnState.SEARCHING_FOR_SPAWN, PlayerRespawnState.READY_TO_SPAWN]);
 
         // The client repeating the finish is not a second change.
         expect(await session.completeCredits()).toBe(false);
