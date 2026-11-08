@@ -101,6 +101,8 @@ export const FAMILIES = {
     gameplayEndFight: 'gameplay.end-fight',
     /** Sniffer digging, warden sonic-boom damage, and villager raid host effects. */
     gameplayBrainEffects: 'gameplay.brain-effects',
+    /** The raider table and wave counts the village raid manager spawns from. */
+    gameplayRaids: 'gameplay.raids',
 
     /** Every registered protocol version negotiates its own codec from a real first packet. */
     protocolNegotiation: 'protocol.negotiation',
