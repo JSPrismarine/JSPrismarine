@@ -3,13 +3,14 @@ import {
     deferredItemFactory,
     registerVanillaItemBehaviors,
     correctForDrops,
+    isDamageable,
     toolSpeedFor,
     createTestWorld,
     testBlock,
     testSource
 } from '@jsprismarine/item-behaviors';
 import type { TestWorld, WorldActions } from '@jsprismarine/item-behaviors';
-import { ItemStack, loadItemTypes } from '@jsprismarine/items';
+import { ItemStack, loadItemTypes, maxStackSizeOf, mergeStacks } from '@jsprismarine/items';
 import type { ItemHooks, ItemRegistry } from '@jsprismarine/items';
 import { itemTypesTable } from '@jsprismarine/items/tables';
 import { javaBlockStateToBedrock, javaEntityTypeToBedrock, javaItemToBedrock } from '@jsprismarine/mapping';
@@ -265,6 +266,39 @@ const scenarios: readonly BehaviorScenario<ItemSubject>[] = [
             if (spent.amount !== expected)
                 return `mining a block cost ${spent.amount}, Java's tool component says ${String(expected)}`;
             return undefined;
+        }
+    },
+    {
+        name: 'stack-limit',
+        java: 'An item stacks to the size its `minecraft:max_stack_size` names, and merging two stacks respects it.',
+        reference: 'Java ItemStack.getMaxStackSize and ItemStack.limitSize',
+        subjects: () => javaItems(),
+        idOf: (subject) => subject.javaId,
+        run: (subject) => {
+            const declared = subject.components['minecraft:max_stack_size'];
+            const expected = typeof declared === 'number' ? declared : 1;
+            const stack = stackOf(subject.bedrock);
+            if (maxStackSizeOf(stack) !== expected)
+                return `it stacks to ${maxStackSizeOf(stack)}, Java says ${expected}`;
+            const full = new ItemStack(registry().holder(subject.bedrock), expected);
+            const merged = mergeStacks(full, stackOf(subject.bedrock));
+            const kept = expected > 1 ? merged.remainder.count === 1 : merged.remainder.count === 1;
+            return kept ? undefined : 'merging onto a full stack lost or invented items';
+        }
+    },
+    {
+        name: 'durability-limit',
+        java: 'A damageable item breaks after the `minecraft:max_damage` its Java components name.',
+        reference: 'Java ItemStack.getMaxDamage and isDamageableItem',
+        subjects: () => withComponent('minecraft:max_damage'),
+        idOf: (subject) => subject.javaId,
+        run: (subject) => {
+            const stack = stackOf(subject.bedrock);
+            const max = subject.components['minecraft:max_damage'];
+            if (!isDamageable(stack)) return 'the server does not treat it as damageable';
+            return stack.get('minecraft:max_damage') === max
+                ? undefined
+                : `it holds ${String(stack.get('minecraft:max_damage'))} durability, Java says ${String(max)}`;
         }
     },
     {

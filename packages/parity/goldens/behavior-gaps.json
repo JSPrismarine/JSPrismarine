@@ -1,19 +1,9 @@
 {
     "blocks.behavior": {
-        "composter-chance:minecraft:composter": {
-            "kind": "defect",
-            "reason": "A composter takes only compostable items, and each adds a layer with the item's composting chance. Observed: a stone added a layer, though it is not compostable.",
-            "reference": "Java ComposterBlock.addItem and ComposterBlock.COMPOSTABLES; issue #2908"
-        },
         "sapling-grows-tree:minecraft:mangrove_propagule": {
             "kind": "defect",
             "reason": "A sapling turns into a tree on random ticks once it reaches its second stage. Observed: it never grew into a tree.",
             "reference": "Java SaplingBlock randomTick and advanceTree; issue #2909"
-        },
-        "sponge-absorbs-water:minecraft:sponge": {
-            "kind": "defect",
-            "reason": "A sponge placed next to water soaks it up and becomes a wet sponge. Observed: the water stayed after the sponge was placed.",
-            "reference": "Java SpongeBlock.tryAbsorbWater; issue #2907"
         }
     },
     "entities.behavior": {
