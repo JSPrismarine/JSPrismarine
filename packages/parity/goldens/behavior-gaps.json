@@ -1,3 +1,89 @@
 {
-    "blocks.behavior": {}
+    "blocks.behavior": {
+        "concrete-powder-hardens:minecraft:black_concrete_powder": {
+            "kind": "defect",
+            "reason": "Concrete powder turns into concrete of the same color when it touches water. Observed: it stayed powder next to water.",
+            "reference": "Java ConcretePowderBlock updateShape and onPlace"
+        },
+        "concrete-powder-hardens:minecraft:blue_concrete_powder": {
+            "kind": "defect",
+            "reason": "Concrete powder turns into concrete of the same color when it touches water. Observed: it stayed powder next to water.",
+            "reference": "Java ConcretePowderBlock updateShape and onPlace"
+        },
+        "concrete-powder-hardens:minecraft:brown_concrete_powder": {
+            "kind": "defect",
+            "reason": "Concrete powder turns into concrete of the same color when it touches water. Observed: it stayed powder next to water.",
+            "reference": "Java ConcretePowderBlock updateShape and onPlace"
+        },
+        "concrete-powder-hardens:minecraft:cyan_concrete_powder": {
+            "kind": "defect",
+            "reason": "Concrete powder turns into concrete of the same color when it touches water. Observed: it stayed powder next to water.",
+            "reference": "Java ConcretePowderBlock updateShape and onPlace"
+        },
+        "concrete-powder-hardens:minecraft:gray_concrete_powder": {
+            "kind": "defect",
+            "reason": "Concrete powder turns into concrete of the same color when it touches water. Observed: it stayed powder next to water.",
+            "reference": "Java ConcretePowderBlock updateShape and onPlace"
+        },
+        "concrete-powder-hardens:minecraft:green_concrete_powder": {
+            "kind": "defect",
+            "reason": "Concrete powder turns into concrete of the same color when it touches water. Observed: it stayed powder next to water.",
+            "reference": "Java ConcretePowderBlock updateShape and onPlace"
+        },
+        "concrete-powder-hardens:minecraft:light_blue_concrete_powder": {
+            "kind": "defect",
+            "reason": "Concrete powder turns into concrete of the same color when it touches water. Observed: it stayed powder next to water.",
+            "reference": "Java ConcretePowderBlock updateShape and onPlace"
+        },
+        "concrete-powder-hardens:minecraft:light_gray_concrete_powder": {
+            "kind": "defect",
+            "reason": "Concrete powder turns into concrete of the same color when it touches water. Observed: it stayed powder next to water.",
+            "reference": "Java ConcretePowderBlock updateShape and onPlace"
+        },
+        "concrete-powder-hardens:minecraft:lime_concrete_powder": {
+            "kind": "defect",
+            "reason": "Concrete powder turns into concrete of the same color when it touches water. Observed: it stayed powder next to water.",
+            "reference": "Java ConcretePowderBlock updateShape and onPlace"
+        },
+        "concrete-powder-hardens:minecraft:magenta_concrete_powder": {
+            "kind": "defect",
+            "reason": "Concrete powder turns into concrete of the same color when it touches water. Observed: it stayed powder next to water.",
+            "reference": "Java ConcretePowderBlock updateShape and onPlace"
+        },
+        "concrete-powder-hardens:minecraft:orange_concrete_powder": {
+            "kind": "defect",
+            "reason": "Concrete powder turns into concrete of the same color when it touches water. Observed: it stayed powder next to water.",
+            "reference": "Java ConcretePowderBlock updateShape and onPlace"
+        },
+        "concrete-powder-hardens:minecraft:pink_concrete_powder": {
+            "kind": "defect",
+            "reason": "Concrete powder turns into concrete of the same color when it touches water. Observed: it stayed powder next to water.",
+            "reference": "Java ConcretePowderBlock updateShape and onPlace"
+        },
+        "concrete-powder-hardens:minecraft:purple_concrete_powder": {
+            "kind": "defect",
+            "reason": "Concrete powder turns into concrete of the same color when it touches water. Observed: it stayed powder next to water.",
+            "reference": "Java ConcretePowderBlock updateShape and onPlace"
+        },
+        "concrete-powder-hardens:minecraft:red_concrete_powder": {
+            "kind": "defect",
+            "reason": "Concrete powder turns into concrete of the same color when it touches water. Observed: it stayed powder next to water.",
+            "reference": "Java ConcretePowderBlock updateShape and onPlace"
+        },
+        "concrete-powder-hardens:minecraft:white_concrete_powder": {
+            "kind": "defect",
+            "reason": "Concrete powder turns into concrete of the same color when it touches water. Observed: it stayed powder next to water.",
+            "reference": "Java ConcretePowderBlock updateShape and onPlace"
+        },
+        "concrete-powder-hardens:minecraft:yellow_concrete_powder": {
+            "kind": "defect",
+            "reason": "Concrete powder turns into concrete of the same color when it touches water. Observed: it stayed powder next to water.",
+            "reference": "Java ConcretePowderBlock updateShape and onPlace"
+        },
+        "sapling-grows-tree:minecraft:mangrove_propagule": {
+            "kind": "defect",
+            "reason": "A sapling turns into a tree on random ticks once it reaches its second stage. Observed: it never grew into a tree.",
+            "reference": "Java SaplingBlock randomTick and advanceTree"
+        }
+    }
 }
