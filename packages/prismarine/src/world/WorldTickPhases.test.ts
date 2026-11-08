@@ -93,6 +93,7 @@ const worldTicking = ({
 
     // Built on the real prototype, so `update` is the code under test rather than more of the
     // stand-in. Only what would reach the disk, a chunk or the network is replaced.
+    const runtimeIds = new Map<string, number>();
     const world: World = Object.assign(Object.create(World.prototype), {
         entities: new Map(),
         players: new Map(),
@@ -113,6 +114,13 @@ const worldTicking = ({
         getEntities: () => entities,
         getPlayers: () => [],
         loadedBlockAt: blockAt,
+        // A runtime id names one block, so the stand-in numbers each name the first time it is read.
+        loadedBlockRuntimeIdAt: (x: number, y: number, z: number) => {
+            const name = blockAt(x, y, z)?.name;
+            if (name === undefined) return undefined;
+            if (!runtimeIds.has(name)) runtimeIds.set(name, runtimeIds.size);
+            return runtimeIds.get(name);
+        },
         runBlockUpdates: async () => void calls.push('blockUpdates'),
         systems: { tick: () => void calls.push('systems') },
         save: async () => {},

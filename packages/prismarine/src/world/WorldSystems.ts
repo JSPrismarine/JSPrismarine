@@ -111,7 +111,12 @@ export interface WorldSystemsView {
     topOfColumn?(x: number, z: number): number;
     /** The chunk coordinates held in memory, used by fallbacks and world-wide reads. */
     loadedChunks(): Iterable<{ readonly x: number; readonly z: number }>;
-    /** Chunks whose simulation distance and guard ring currently require lighting. */
+    /**
+     * Chunks whose simulation distance and guard ring currently require lighting.
+     *
+     * A view that returns the same object across calls promises the set has not changed in
+     * between; one that changes the set returns a new object.
+     */
     lightChunks?(): Iterable<{ readonly x: number; readonly z: number }>;
     /** Whether a newly loaded chunk should be initialized for light immediately. */
     shouldInitializeLight?(chunkX: number, chunkZ: number): boolean;
@@ -192,6 +197,8 @@ export class WorldSystems {
     /** What each runtime id this world has read does to light - see {@link lightPropertiesAt}. */
     private readonly lightByRuntimeId = new Map<number, BlockLightProperties>();
     /** Per chunk section facts, replaced whenever that section's palette revision changes. */
+    /** The list the last {@link prepareLighting} pass found fully lit, while it is still the current one. */
+    private litLightChunks: Iterable<{ readonly x: number; readonly z: number }> | undefined;
     private readonly lightHintsByChunk = new Map<string, Map<number, { revision: number; hint: LightSectionHint }>>();
 
     public constructor(options: WorldSystemsOptions) {
@@ -228,6 +235,9 @@ export class WorldSystems {
     public prepareLighting(): void {
         const lightChunks = this.view.lightChunks?.();
         if (lightChunks === undefined) return;
+        // The view hands back the same list while nothing has loaded, unloaded or moved, and the
+        // pass that saw it lit every chunk in it.
+        if (lightChunks === this.litLightChunks) return;
 
         const required = new Map<string, { readonly x: number; readonly z: number }>();
         for (const chunk of lightChunks) required.set(this.lightChunkKey(chunk.x, chunk.z), chunk);
@@ -240,7 +250,12 @@ export class WorldSystems {
             this.litChunks.delete(key);
         }
 
-        for (const { x, z } of required.values()) this.initializeLightChunk(x, z);
+        let allLit = true;
+        for (const { x, z } of required.values()) {
+            this.initializeLightChunk(x, z);
+            if (!this.lighting.hasChunk(x, z)) allLit = false;
+        }
+        this.litLightChunks = allLit ? lightChunks : undefined;
     }
 
     /** Whether all active light propagation has settled enough for simulation reads. */

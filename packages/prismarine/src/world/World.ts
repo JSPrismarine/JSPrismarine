@@ -24,6 +24,7 @@ import Player from '../Player';
 import { storedAdvancements } from '../advancement/progress';
 import { enchantmentSeedOf } from '../enchantment/enchantingTable';
 import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
+import { BlockStateSchemas } from '../block/state/BlockStateSchema';
 import type { BlockState } from '../block/state/BlockState';
 import { AttributeIds } from '@jsprismarine/protocol/wire/structures/Attribute';
 import { writtenEntities } from '../entity/Entities';
@@ -524,6 +525,15 @@ export class World implements Service {
     private blockWriteVersion = World.nextBlockWriteVersion++;
     private playerChunkRefCounts: PlayerChunkRefCounts | undefined;
     private loadedChunksRevision = 0;
+    private portalRuntimeIds: Map<number, boolean> | undefined;
+    private portalRuntimeIdsRevision: number | undefined;
+    private lightChunksCache:
+        | {
+              readonly coverageRevision: number;
+              readonly loadedRevision: number;
+              readonly chunks: readonly { readonly x: number; readonly z: number }[];
+          }
+        | undefined;
     private simulationChunksCache:
         | { readonly coverageRevision: number; readonly loadedRevision: number; readonly chunks: readonly Chunk[] }
         | undefined;
@@ -2563,15 +2573,29 @@ export class World implements Service {
         return playerChunkRefCounts.lights(chunkX, chunkZ);
     }
 
-    /** Loaded chunks in the simulation area and its one-chunk light guard ring. */
-    private *lightChunks(): Iterable<{ readonly x: number; readonly z: number }> {
+    /**
+     * Loaded chunks in the simulation area and its one-chunk light guard ring.
+     *
+     * The same array comes back until a chunk loads, unloads or a player's coverage changes, so a
+     * caller can tell that nothing moved by comparing identity.
+     */
+    private lightChunks(): readonly { readonly x: number; readonly z: number }[] {
         const playerChunkRefCounts = this.getPlayerChunkRefCounts();
         playerChunkRefCounts.synchronize(this.players);
 
+        const coverageRevision = playerChunkRefCounts.getRevision();
+        const loadedRevision = this.loadedChunksRevision;
+        const cached = this.lightChunksCache;
+        if (cached?.coverageRevision === coverageRevision && cached.loadedRevision === loadedRevision)
+            return cached.chunks;
+
+        const chunks: { readonly x: number; readonly z: number }[] = [];
         for (const chunk of this.chunks.values()) {
-            if (!playerChunkRefCounts.lights(chunk.getX(), chunk.getZ())) continue;
-            yield { x: chunk.getX(), z: chunk.getZ() };
+            if (playerChunkRefCounts.lights(chunk.getX(), chunk.getZ()))
+                chunks.push({ x: chunk.getX(), z: chunk.getZ() });
         }
+        this.lightChunksCache = { coverageRevision, loadedRevision, chunks };
+        return chunks;
     }
 
     /** The block layer palette for one section; its revision invalidates cached light facts. */
@@ -3151,13 +3175,42 @@ export class World implements Service {
         for (let y = minY; y <= maxY; y += 1) {
             for (let x = minX; x <= maxX; x += 1) {
                 for (let z = minZ; z <= maxZ; z += 1) {
+                    if (!this.isPortalAt(x, y, z)) continue;
                     const block = this.loadedBlockAt(x, y, z);
-                    if (block === undefined || !isPortalBlock(block.name)) continue;
+                    if (block === undefined) continue;
                     return { world: this, position: new Vector3(x, y, z), block: block.name };
                 }
             }
         }
         return undefined;
+    }
+
+    /**
+     * Whether a loaded position holds a portal block.
+     *
+     * Every entity scans its body cells each tick and nearly all of them are air or stone, so the
+     * answer is memoised per runtime id, which names one block state, instead of building a block
+     * for each cell. The memo is dropped when a plugin changes the block catalog.
+     */
+    private isPortalAt(x: number, y: number, z: number): boolean {
+        const runtimeId = this.loadedBlockRuntimeIdAt(x, y, z);
+        if (runtimeId === undefined) return false;
+
+        // Created here, for the same hand-built worlds as {@link World.runtimeIdsByChunk}.
+        const memo = (this.portalRuntimeIds ??= new Map());
+        const catalogRevision = BlockStateSchemas.getRevision();
+        if (catalogRevision !== this.portalRuntimeIdsRevision) {
+            memo.clear();
+            this.portalRuntimeIdsRevision = catalogRevision;
+        }
+
+        let portal = memo.get(runtimeId);
+        if (portal === undefined) {
+            const block = this.loadedBlockAt(x, y, z);
+            portal = block !== undefined && isPortalBlock(block.name);
+            memo.set(runtimeId, portal);
+        }
+        return portal;
     }
 
     private chunkNeededByPlayers(chunk: Chunk): boolean {
