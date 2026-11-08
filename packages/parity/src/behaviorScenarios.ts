@@ -119,8 +119,8 @@ export const runScenarios = <Subject>(scenarios: readonly BehaviorScenario<Subje
     );
 
 /** An intentional difference is the project's own decision, so it reads as a pass beside its gap row. */
-const trackerStatusOf = (row: ScenarioRow): 'passed' | 'failed' =>
-    row.gap === undefined || row.gap.kind === 'intentional' ? 'passed' : 'failed';
+const trackerStatusOf = (row: ScenarioRow): 'passed' | 'defect' | 'deferred' =>
+    row.gap === undefined || row.gap.kind === 'intentional' ? 'passed' : row.gap.kind;
 
 /** Scenarios over one kind of subject, erased to the rows they produce so a family can mix kinds. */
 export type ScenarioGroup = () => ScenarioRow[];
@@ -218,13 +218,16 @@ export const reportCoverage = (
                 uncovered += 1;
                 return { ...base, status: 'not measured' as const };
             }
-            const failed = covering.filter((row) => trackerStatusOf(row) === 'failed');
+            const failed = covering.filter((row) => trackerStatusOf(row) !== 'passed');
             const evidence = `${covering.length} scenario${covering.length === 1 ? '' : 's'}: ${[...new Set(covering.map((row) => row.id.split(':')[0]))].join(', ')}`;
             return failed.length === 0
                 ? { ...base, status: 'passed' as const, details: evidence }
                 : {
                       ...base,
-                      status: 'failed' as const,
+                      // One defect makes the Java thing a defect; it is only deferred when every difference is.
+                      status: failed.some((row) => trackerStatusOf(row) === 'defect')
+                          ? ('defect' as const)
+                          : ('deferred' as const),
                       details: failed.map((row) => `${row.id.split(':')[0]}: ${row.difference}`).join('; ')
                   };
         })

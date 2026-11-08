@@ -5,7 +5,13 @@ import { ALL_FAMILIES, familyOf } from '../families.ts';
 import type { Family } from '../families.ts';
 import type { ParityTrackerRecord, TrackerRuntimeSupport } from '../trackerCases.ts';
 import type { ReportedTest, VitestJsonReport } from './render.ts';
-export { trackerPrimaryProgressPercent, trackerProgressPercent, trackerProgressTotal } from './trackerProgress.ts';
+export {
+    behaviorProgress,
+    isBehaviorFamily,
+    trackerPrimaryProgressPercent,
+    trackerProgressPercent,
+    trackerProgressTotal
+} from './trackerProgress.ts';
 
 /** The outcome recorded for a comparison or an allow-listed parity gap. */
 export type TrackerStatus = 'passed' | 'failed' | 'not measured' | 'intentional' | 'deferred' | 'defect';
@@ -203,8 +209,11 @@ const gapCase = (entry: AllowListEntry, revision: string): TrackerCase => ({
     references: referenceParts(entry.reference, revision)
 });
 
+const isRecordedGap = (status: TrackerStatus): boolean => status === 'defect' || status === 'deferred';
+
 const emptyFamily = (id: string, cases: TrackerCase[]): TrackerFamily => {
-    const checks = cases.filter((entry) => entry.kind === 'check');
+    // A check that is itself a known defect or deferred work is counted by those totals, not as a check as well.
+    const checks = cases.filter((entry) => entry.kind === 'check' && !isRecordedGap(entry.status));
     return {
         id,
         group: id.split('.')[0] ?? id,
@@ -259,7 +268,8 @@ export const buildTrackerData = (
         }
     }
     const revision = metadata.sourceCommit ?? 'master';
-    for (const entry of allowList) cases.push(gapCase(entry, revision));
+    // A behavior scenario row already carries its own defect or deferred kind, so counting its gap too would count one difference twice.
+    for (const entry of allowList) if (entry.trackedByCheck !== true) cases.push(gapCase(entry, revision));
 
     const caseMap = new Map<string, TrackerCase[]>();
     for (const family of ALL_FAMILIES) caseMap.set(family, []);
@@ -280,7 +290,7 @@ export const buildTrackerData = (
                 )
             )
         );
-    const checks = cases.filter((entry) => entry.kind === 'check');
+    const checks = cases.filter((entry) => entry.kind === 'check' && !isRecordedGap(entry.status));
 
     return {
         generatedAt: metadata.generatedAt ?? new Date().toISOString(),

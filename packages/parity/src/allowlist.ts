@@ -50,6 +50,11 @@ export interface AllowListEntry {
     reason: string;
     /** A research note section or issue that records the gap, for example `docs/research/edition-behavior-differences.md section 2`. */
     reference: string;
+    /**
+     * Whether a check row of the same comparison already carries this gap's kind, so the
+     * tracker lists the check and leaves the gap out of the counts instead of counting it twice.
+     */
+    trackedByCheck?: boolean;
 }
 
 /**
@@ -313,7 +318,9 @@ const behaviorGapEntries = (): readonly AllowListEntry[] => {
             id,
             kind: row.kind,
             reason: row.reason,
-            reference: row.reference
+            reference: row.reference,
+            // An intentional difference is not a failing row, so its gap stays the only record of it.
+            trackedByCheck: row.kind !== 'intentional'
         }))
     );
 };

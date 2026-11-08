@@ -25,3 +25,28 @@ export const trackerPrimaryProgressPercent = (passed: number, tracked: number): 
     if (Number(score) >= 100) return '99.99';
     return score.replace(/\.0+$/, '').replace(/(\.\d*[1-9])0+$/, '$1');
 };
+
+/**
+ * The families that measure what the server does in play, as opposed to whether a table it
+ * ships matches a reference table.
+ *
+ * One registry comparison alone holds twelve thousand rows, so a headline over every row mostly
+ * reports how well the data tables agree. The behavior score counts only these families, and
+ * leaves out the tag and client payload comparisons, which are data tables read through the server.
+ */
+const BEHAVIOR_FAMILY_PATTERN =
+    /^(?:blocks\.behavior|items\.behavior|entities\.behavior|gameplay\..+|integration\.(?:block-behaviors|entity-.+|spawning)|worldgen\..+)$/;
+
+/** Whether a family measures runtime behavior rather than a data table. */
+export const isBehaviorFamily = (family: string): boolean => BEHAVIOR_FAMILY_PATTERN.test(family);
+
+/** The counts of the behavior families, summed, for the headline behavior score. */
+export const behaviorProgress = (
+    families: readonly (TrackerProgressCounts & { readonly id: string; readonly passed: number })[]
+): { readonly passed: number; readonly tracked: number } => {
+    const behavior = families.filter((family) => isBehaviorFamily(family.id));
+    return {
+        passed: behavior.reduce((sum, family) => sum + family.passed, 0),
+        tracked: behavior.reduce((sum, family) => sum + trackerProgressTotal(family), 0)
+    };
+};

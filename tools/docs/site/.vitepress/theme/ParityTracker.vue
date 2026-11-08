@@ -4,6 +4,7 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
 import type { TrackerData } from '../../../../../packages/parity/src/dashboard/tracker.ts';
 import {
+    behaviorProgress,
     trackerPrimaryProgressPercent,
     trackerProgressPercent,
     trackerProgressTotal
@@ -44,6 +45,10 @@ watch([activeGroup, activeStatus], () => {
 onBeforeUnmount(() => {
     if (searchTimer !== undefined) clearTimeout(searchTimer);
 });
+
+const behavior = computed(() =>
+    tracker.value === null ? { passed: 0, tracked: 0 } : behaviorProgress(tracker.value.families)
+);
 
 const groups = computed(() => {
     const snapshot = tracker.value;
@@ -161,14 +166,17 @@ const percentage = trackerProgressPercent;
             <div class="overview-heading">
                 <div class="overview-score">
                     <strong class="score-percent"
-                        >{{ trackerPrimaryProgressPercent(tracker.passed, trackerProgressTotal(tracker))
-                        }}<span>%</span></strong
+                        >{{ trackerPrimaryProgressPercent(behavior.passed, behavior.tracked) }}<span>%</span></strong
                     >
                     <div class="score-copy">
-                        <h2>tracked comparison pass rate</h2>
+                        <h2>gameplay behavior parity</h2>
                         <span
-                            >{{ tracker.passed.toLocaleString() }} of
-                            {{ trackerProgressTotal(tracker).toLocaleString() }} tracked comparisons passing</span
+                            >{{ behavior.passed.toLocaleString() }} of {{ behavior.tracked.toLocaleString() }} tracked
+                            behavior comparisons passing. All comparisons, including data tables:
+                            {{ trackerPrimaryProgressPercent(tracker.passed, trackerProgressTotal(tracker)) }}% ({{
+                                tracker.passed.toLocaleString()
+                            }}
+                            of {{ trackerProgressTotal(tracker).toLocaleString() }}).</span
                         >
                     </div>
                 </div>
@@ -205,9 +213,11 @@ const percentage = trackerProgressPercent;
                 >
             </div>
             <p class="coverage-note">
-                The percentage uses listed comparisons, including not-measured, deferred, and known-defect rows. It is
-                not a score for all Java behavior; intentional differences are excluded. Entity runtime support is
-                listed separately from behavior parity.
+                The headline counts the families that run the server against Java rules: block, item and entity
+                behavior, gameplay, integration and world generation. Data tables are counted in the second figure, so
+                twelve thousand registry rows cannot hide a block that does nothing. Each percentage uses listed
+                comparisons, including not-measured, deferred, and known-defect rows; intentional differences are
+                excluded. A block, item or entity no scenario reached is not measured, not passing.
             </p>
         </section>
 

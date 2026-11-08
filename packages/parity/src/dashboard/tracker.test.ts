@@ -6,6 +6,8 @@ import type { VitestJsonReport } from './render.ts';
 import type { ReportedParityCase } from './tracker.ts';
 import {
     buildTrackerData,
+    behaviorProgress,
+    isBehaviorFamily,
     trackerPrimaryProgressPercent,
     trackerProgressPercent,
     trackerProgressTotal
@@ -204,6 +206,64 @@ describe('parity tracker data', () => {
             context: 'Breeding food',
             runtimeSupport: { status: 'spawnable', details: 'Spawns and ticks.' }
         });
+    });
+
+    it('counts a check recorded as a known defect once, and drops the gap it came from', () => {
+        const tracker = buildTrackerData(
+            report,
+            [
+                {
+                    family: FAMILIES.blocksBehavior,
+                    id: 'concrete-powder-hardens:minecraft:white_concrete_powder',
+                    kind: 'defect',
+                    reason: 'It stays powder.',
+                    reference: 'Java ConcretePowderBlock',
+                    trackedByCheck: true
+                }
+            ],
+            repositoryRoot,
+            parityRoot,
+            {},
+            [
+                {
+                    family: FAMILIES.blocksBehavior,
+                    id: 'runtime-behavior:minecraft:white_concrete_powder',
+                    title: 'minecraft:white_concrete_powder',
+                    status: 'defect',
+                    sourceFile: 'packages/parity/src/blocks.behavior.test.ts'
+                },
+                {
+                    family: FAMILIES.blocksBehavior,
+                    id: 'runtime-behavior:minecraft:stone',
+                    title: 'minecraft:stone',
+                    status: 'passed',
+                    sourceFile: 'packages/parity/src/blocks.behavior.test.ts'
+                }
+            ]
+        );
+
+        const family = tracker.families.find(({ id }) => id === FAMILIES.blocksBehavior);
+        expect(family).toMatchObject({ checks: 1, passed: 1, defects: 1 });
+        expect(trackerProgressTotal(family ?? { checks: 0, deferred: 0, defects: 0 })).toBe(2);
+        expect(tracker.cases.filter(({ kind }) => kind === 'gap')).toEqual([]);
+    });
+
+    it('scores behavior families apart from data tables', () => {
+        expect(isBehaviorFamily('blocks.behavior')).toBe(true);
+        expect(isBehaviorFamily('gameplay.datapack')).toBe(true);
+        expect(isBehaviorFamily('worldgen.terrain')).toBe(true);
+        expect(isBehaviorFamily('registry.items-2225')).toBe(false);
+        expect(isBehaviorFamily('integration.tags')).toBe(false);
+        expect(isBehaviorFamily('integration.spawning')).toBe(true);
+        expect(isBehaviorFamily('blocks.properties')).toBe(false);
+
+        expect(
+            behaviorProgress([
+                { id: 'registry.items-2225', passed: 12000, checks: 12000, deferred: 0, defects: 0 },
+                { id: 'blocks.behavior', passed: 600, checks: 1000, deferred: 0, defects: 20 },
+                { id: 'gameplay.datapack', passed: 900, checks: 1000, deferred: 100, defects: 0 }
+            ])
+        ).toEqual({ passed: 1500, tracked: 2120 });
     });
 
     it('omits families with no parity cases from the snapshot', () => {

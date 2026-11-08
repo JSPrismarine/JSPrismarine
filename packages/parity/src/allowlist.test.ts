@@ -39,11 +39,17 @@ describe('allow list', () => {
 
     it('gives every entry a distinct intentional, deferred, or defect classification', () => {
         for (const entry of allowList) expect(['intentional', 'deferred', 'defect']).toContain(entry.kind);
-        expect(allowList.filter((entry) => entry.kind === 'deferred').map((entry) => entry.id)).toEqual([
-            'untranslated:banner_pattern',
-            'untranslated:instrument',
-            'untranslated:painting_variant'
-        ]);
+        // The behavior scenario baseline records its own deferred rows, each with a reason; the
+        // hand-written ones are the three registries no mapping covers yet.
+        expect(
+            allowList
+                .filter((entry) => entry.kind === 'deferred' && entry.trackedByCheck !== true)
+                .map((entry) => entry.id)
+        ).toEqual(['untranslated:banner_pattern', 'untranslated:instrument', 'untranslated:painting_variant']);
+        for (const entry of allowList.filter((candidate) => candidate.trackedByCheck === true)) {
+            expect(entry.reason, entry.id).not.toBe('');
+            expect(entry.reference, entry.id).not.toBe('');
+        }
     });
 
     it('takes every entity stat verdict from the decision rather than restating it', () => {

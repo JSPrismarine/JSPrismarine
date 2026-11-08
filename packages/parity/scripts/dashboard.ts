@@ -85,7 +85,7 @@ const isParityMeasurement = (value: unknown): value is ParityMeasurement =>
     typeof value.value === 'number' &&
     Number.isFinite(value.value);
 const isTrackerStatus = (value: unknown): value is ReportedParityCase['status'] =>
-    value === 'passed' || value === 'failed' || value === 'not measured';
+    value === 'passed' || value === 'failed' || value === 'not measured' || value === 'defect' || value === 'deferred';
 const isParityCase = (value: unknown): value is ReportedParityCase =>
     isRecord(value) &&
     typeof value.family === 'string' &&

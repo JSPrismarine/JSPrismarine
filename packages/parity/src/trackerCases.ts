@@ -21,8 +21,11 @@ export interface ParityTrackerRecord {
     readonly id: string;
     /** Searchable name shown in the tracker. */
     readonly title: string;
-    /** Outcome of this record's comparison. */
-    readonly status: 'passed' | 'failed' | 'not measured';
+    /**
+     * Outcome of this record's comparison. A difference the suite records as a known defect or
+     * as deferred work carries that kind, so the tracker counts it once.
+     */
+    readonly status: 'passed' | 'failed' | 'not measured' | 'defect' | 'deferred';
     /** Optional searchable behavior, registry, or data context. */
     readonly context?: string;
     /** Specific mismatch details, when the comparison found one. */
