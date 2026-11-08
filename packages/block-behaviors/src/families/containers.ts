@@ -371,14 +371,6 @@ export const beaconLevels = (world: WorldActions, position: BlockPosition): numb
     return levels;
 };
 
-/**
- * The workstations, the beacon, the conduit, the spawners and the sticky and
- * damaging blocks.
- *
- * Forty-seven blocks with little in common, so the family answers the ones
- * whose rule is a block rule: the beacon's pyramid, the anvil's fall, the
- * spawner's timer and the blocks that hurt what stands on them.
- */
 /** How far from a sponge, in steps, water is soaked up, and the most blocks one sponge soaks. */
 const SPONGE_RANGE = 6;
 const SPONGE_LIMIT = 65;
@@ -419,6 +411,14 @@ const absorbWater = (world: WorldActions, block: { position: BlockPosition; iden
     if (soakUpWater(world, block.position)) world.setBlock(block.position, 'minecraft:wet_sponge');
 };
 
+/**
+ * The workstations, the beacon, the conduit, the spawners and the sticky and
+ * damaging blocks.
+ *
+ * Forty-seven blocks with little in common, so the family answers the ones
+ * whose rule is a block rule: the beacon's pyramid, the anvil's fall, the
+ * spawner's timer and the blocks that hurt what stands on them.
+ */
 export const utilityFamily = defineFamily(
     'jsprismarine:utility',
     'Counts a beacon pyramid, soaks up water when it is a sponge, falls when it is an anvil, runs the spawner timer, and hurts an entity standing on magma. The screens the workstations open belong to the item runtime.',
