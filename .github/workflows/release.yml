@@ -4,6 +4,15 @@ on:
     push:
         branches:
             - master
+    # Recovery: rebuild and republish the standalone executables of a release whose later jobs
+    # failed after the packages were already published. Run it from the branch whose build
+    # scripts work; it builds the source of the release's tag. See scripts/recover-release.mjs.
+    workflow_dispatch:
+        inputs:
+            recover-version:
+                description: 'The published JSPrismarine version to build executables for, such as 0.17.1'
+                required: true
+                type: string
 
 # Let an active release finish because it may publish packages or create a release.
 concurrency:
@@ -32,6 +41,7 @@ permissions:
 jobs:
     release:
         name: 🚚 Release
+        if: ${{ github.event_name == 'push' }}
         runs-on: ubuntu-latest
         outputs:
             published: ${{ steps.changesets.outputs.published }}
@@ -112,13 +122,15 @@ jobs:
     aot-data:
         name: 🗃️ Prepare executable data
         needs: release
-        if: ${{ needs.release.result == 'success' && needs.release.outputs.published == 'true' }}
+        if: ${{ always() && (github.event_name == 'workflow_dispatch' || (needs.release.result == 'success' && needs.release.outputs.published == 'true')) }}
         runs-on: ubuntu-latest
         permissions:
             contents: read
         steps:
             - name: 🕶️ Checkout repository
               uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+              with:
+                  ref: ${{ github.event_name == 'workflow_dispatch' && format('@jsprismarine/server@{0}', inputs.recover-version) || github.sha }}
 
             - name: 📦 Install
               uses: ./.github/common/install
@@ -148,7 +160,7 @@ jobs:
     aot-build:
         name: 🗃️ Build standalone executables (${{ matrix.group }})
         needs: [release, aot-data]
-        if: ${{ needs.release.result == 'success' && needs.release.outputs.published == 'true' }}
+        if: ${{ always() && needs.aot-data.result == 'success' }}
         strategy:
             matrix:
                 include:
@@ -175,10 +187,27 @@ jobs:
             contents: read
         env:
             BUILD_TYPE: release
-            RELEASE_VERSION: ${{ needs.release.outputs.shared_version }}
+            RELEASE_VERSION: ${{ inputs.recover-version || needs.release.outputs.shared_version }}
         steps:
             - name: 🕶️ Checkout repository
               uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+              with:
+                  ref: ${{ github.event_name == 'workflow_dispatch' && format('@jsprismarine/server@{0}', inputs.recover-version) || github.sha }}
+
+            # A recovery builds the release's own source with the build scripts of the ref it was
+            # started from, since the scripts of the tag are the ones that failed.
+            - name: 🩹 Use the recovery ref's build scripts
+              if: ${{ github.event_name == 'workflow_dispatch' }}
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+              with:
+                  ref: ${{ github.sha }}
+                  path: recovery-tooling
+                  sparse-checkout: .github/scripts
+
+            - name: 🩹 Copy the build scripts over the tag's
+              if: ${{ github.event_name == 'workflow_dispatch' }}
+              shell: bash
+              run: cp -R recovery-tooling/.github/scripts/. .github/scripts/
 
             - name: 📦 Install
               uses: ./.github/common/install
@@ -247,13 +276,13 @@ jobs:
     aot-release:
         name: 📦 Publish standalone executables
         needs: [release, aot-build]
-        if: ${{ always() && needs.release.result == 'success' && needs.release.outputs.published == 'true' && needs.aot-build.result == 'success' }}
+        if: ${{ always() && needs.aot-build.result == 'success' }}
         runs-on: ubuntu-latest
         permissions:
             contents: write
         env:
             GH_TOKEN: ${{ secrets.MACHINE_USER }}
-            RELEASE_VERSION: ${{ needs.release.outputs.shared_version }}
+            RELEASE_VERSION: ${{ inputs.recover-version || needs.release.outputs.shared_version }}
         steps:
             - name: 🕶️ Checkout repository
               uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -273,6 +302,11 @@ jobs:
               run: |
                   tag="jsprismarine@${RELEASE_VERSION}"
                   title="JSPrismarine ${RELEASE_VERSION}"
+                  # A recovery tags the commit the version was published from, not the branch it ran on.
+                  target="$GITHUB_SHA"
+                  if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+                      target="$(git rev-list -n 1 "@jsprismarine/server@${RELEASE_VERSION}")"
+                  fi
                   if gh release view "$tag" >/dev/null 2>&1; then
                       gh release edit "$tag" --title "$title" --notes-file dist/highlights.md --latest
                       gh release upload "$tag" dist/prismarine-* dist/JSPrismarine-*.app.zip dist/highlights.md --clobber
@@ -281,7 +315,7 @@ jobs:
                           dist/prismarine-* \
                           dist/JSPrismarine-*.app.zip \
                           dist/highlights.md \
-                          --target "$GITHUB_SHA" \
+                          --target "$target" \
                           --title "$title" \
                           --latest \
                           --notes-file dist/highlights.md
