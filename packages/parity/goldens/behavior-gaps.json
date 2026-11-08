@@ -4875,5 +4875,217 @@
             "reference": "Java 26.3 data/minecraft datapack registries; issue #2912"
         }
     },
+    "gameplay.mechanics": {
+        "game-rule:minecraft:allow_entering_nether_using_portals": {
+            "kind": "intentional",
+            "reason": "Bedrock has no counterpart for this Java rule, so the client has no setting to show for it.",
+            "reference": "Java 26.3 minecraft:game_rule registry and packages/commands/src/gamerules.ts"
+        },
+        "game-rule:minecraft:block_explosion_drop_decay": {
+            "kind": "intentional",
+            "reason": "Bedrock has no counterpart for this Java rule, so the client has no setting to show for it.",
+            "reference": "Java 26.3 minecraft:game_rule registry and packages/commands/src/gamerules.ts"
+        },
+        "game-rule:minecraft:command_blocks_work": {
+            "kind": "defect",
+            "reason": "Every game rule in Java's registry is a rule the server runs, where Bedrock has one. Observed: Bedrock's commandblocksenabled rule is not one the server registers.",
+            "reference": "Java 26.3 minecraft:game_rule registry and packages/commands/src/gamerules.ts"
+        },
+        "game-rule:minecraft:elytra_movement_check": {
+            "kind": "intentional",
+            "reason": "Bedrock has no counterpart for this Java rule, so the client has no setting to show for it.",
+            "reference": "Java 26.3 minecraft:game_rule registry and packages/commands/src/gamerules.ts"
+        },
+        "game-rule:minecraft:ender_pearls_vanish_on_death": {
+            "kind": "intentional",
+            "reason": "Bedrock has no counterpart for this Java rule, so the client has no setting to show for it.",
+            "reference": "Java 26.3 minecraft:game_rule registry and packages/commands/src/gamerules.ts"
+        },
+        "game-rule:minecraft:forgive_dead_players": {
+            "kind": "intentional",
+            "reason": "Bedrock has no counterpart for this Java rule, so the client has no setting to show for it.",
+            "reference": "Java 26.3 minecraft:game_rule registry and packages/commands/src/gamerules.ts"
+        },
+        "game-rule:minecraft:freeze_damage": {
+            "kind": "defect",
+            "reason": "Every game rule in Java's registry is a rule the server runs, where Bedrock has one. Observed: Bedrock's freezedamage rule is not one the server registers.",
+            "reference": "Java 26.3 minecraft:game_rule registry and packages/commands/src/gamerules.ts"
+        },
+        "game-rule:minecraft:global_sound_events": {
+            "kind": "intentional",
+            "reason": "Bedrock has no counterpart for this Java rule, so the client has no setting to show for it.",
+            "reference": "Java 26.3 minecraft:game_rule registry and packages/commands/src/gamerules.ts"
+        },
+        "game-rule:minecraft:immediate_respawn": {
+            "kind": "defect",
+            "reason": "Every game rule in Java's registry is a rule the server runs, where Bedrock has one. Observed: Bedrock's doimmediaterespawn rule is not one the server registers.",
+            "reference": "Java 26.3 minecraft:game_rule registry and packages/commands/src/gamerules.ts"
+        },
+        "game-rule:minecraft:lava_source_conversion": {
+            "kind": "intentional",
+            "reason": "Bedrock has no counterpart for this Java rule, so the client has no setting to show for it.",
+            "reference": "Java 26.3 minecraft:game_rule registry and packages/commands/src/gamerules.ts"
+        },
+        "game-rule:minecraft:limited_crafting": {
+            "kind": "defect",
+            "reason": "Every game rule in Java's registry is a rule the server runs, where Bedrock has one. Observed: Bedrock's dolimitedcrafting rule is not one the server registers.",
+            "reference": "Java 26.3 minecraft:game_rule registry and packages/commands/src/gamerules.ts"
+        },
+        "game-rule:minecraft:locator_bar": {
+            "kind": "intentional",
+            "reason": "Bedrock has no counterpart for this Java rule, so the client has no setting to show for it.",
+            "reference": "Java 26.3 minecraft:game_rule registry and packages/commands/src/gamerules.ts"
+        },
+        "game-rule:minecraft:log_admin_commands": {
+            "kind": "intentional",
+            "reason": "Bedrock has no counterpart for this Java rule, so the client has no setting to show for it.",
+            "reference": "Java 26.3 minecraft:game_rule registry and packages/commands/src/gamerules.ts"
+        },
+        "game-rule:minecraft:max_block_modifications": {
+            "kind": "intentional",
+            "reason": "Bedrock has no counterpart for this Java rule, so the client has no setting to show for it.",
+            "reference": "Java 26.3 minecraft:game_rule registry and packages/commands/src/gamerules.ts"
+        },
+        "game-rule:minecraft:max_command_forks": {
+            "kind": "intentional",
+            "reason": "Bedrock has no counterpart for this Java rule, so the client has no setting to show for it.",
+            "reference": "Java 26.3 minecraft:game_rule registry and packages/commands/src/gamerules.ts"
+        },
+        "game-rule:minecraft:max_command_sequence_length": {
+            "kind": "defect",
+            "reason": "Every game rule in Java's registry is a rule the server runs, where Bedrock has one. Observed: Bedrock's maxcommandchainlength rule is not one the server registers.",
+            "reference": "Java 26.3 minecraft:game_rule registry and packages/commands/src/gamerules.ts"
+        },
+        "game-rule:minecraft:max_entity_cramming": {
+            "kind": "intentional",
+            "reason": "Bedrock has no counterpart for this Java rule, so the client has no setting to show for it.",
+            "reference": "Java 26.3 minecraft:game_rule registry and packages/commands/src/gamerules.ts"
+        },
+        "game-rule:minecraft:max_minecart_speed": {
+            "kind": "intentional",
+            "reason": "Bedrock has no counterpart for this Java rule, so the client has no setting to show for it.",
+            "reference": "Java 26.3 minecraft:game_rule registry and packages/commands/src/gamerules.ts"
+        },
+        "game-rule:minecraft:max_snow_accumulation_height": {
+            "kind": "intentional",
+            "reason": "Bedrock has no counterpart for this Java rule, so the client has no setting to show for it.",
+            "reference": "Java 26.3 minecraft:game_rule registry and packages/commands/src/gamerules.ts"
+        },
+        "game-rule:minecraft:mob_explosion_drop_decay": {
+            "kind": "intentional",
+            "reason": "Bedrock has no counterpart for this Java rule, so the client has no setting to show for it.",
+            "reference": "Java 26.3 minecraft:game_rule registry and packages/commands/src/gamerules.ts"
+        },
+        "game-rule:minecraft:player_movement_check": {
+            "kind": "intentional",
+            "reason": "Bedrock has no counterpart for this Java rule, so the client has no setting to show for it.",
+            "reference": "Java 26.3 minecraft:game_rule registry and packages/commands/src/gamerules.ts"
+        },
+        "game-rule:minecraft:players_nether_portal_creative_delay": {
+            "kind": "intentional",
+            "reason": "Bedrock has no counterpart for this Java rule, so the client has no setting to show for it.",
+            "reference": "Java 26.3 minecraft:game_rule registry and packages/commands/src/gamerules.ts"
+        },
+        "game-rule:minecraft:players_nether_portal_default_delay": {
+            "kind": "intentional",
+            "reason": "Bedrock has no counterpart for this Java rule, so the client has no setting to show for it.",
+            "reference": "Java 26.3 minecraft:game_rule registry and packages/commands/src/gamerules.ts"
+        },
+        "game-rule:minecraft:players_sleeping_percentage": {
+            "kind": "defect",
+            "reason": "Every game rule in Java's registry is a rule the server runs, where Bedrock has one. Observed: Bedrock's playerssleepingpercentage rule is not one the server registers.",
+            "reference": "Java 26.3 minecraft:game_rule registry and packages/commands/src/gamerules.ts"
+        },
+        "game-rule:minecraft:projectiles_can_break_blocks": {
+            "kind": "defect",
+            "reason": "Every game rule in Java's registry is a rule the server runs, where Bedrock has one. Observed: Bedrock's projectilescanbreakblocks rule is not one the server registers.",
+            "reference": "Java 26.3 minecraft:game_rule registry and packages/commands/src/gamerules.ts"
+        },
+        "game-rule:minecraft:raids": {
+            "kind": "intentional",
+            "reason": "Bedrock has no counterpart for this Java rule, so the client has no setting to show for it.",
+            "reference": "Java 26.3 minecraft:game_rule registry and packages/commands/src/gamerules.ts"
+        },
+        "game-rule:minecraft:reduced_debug_info": {
+            "kind": "intentional",
+            "reason": "Bedrock has no counterpart for this Java rule, so the client has no setting to show for it.",
+            "reference": "Java 26.3 minecraft:game_rule registry and packages/commands/src/gamerules.ts"
+        },
+        "game-rule:minecraft:respawn_radius": {
+            "kind": "defect",
+            "reason": "Every game rule in Java's registry is a rule the server runs, where Bedrock has one. Observed: Bedrock's spawnradius rule is not one the server registers.",
+            "reference": "Java 26.3 minecraft:game_rule registry and packages/commands/src/gamerules.ts"
+        },
+        "game-rule:minecraft:show_advancement_messages": {
+            "kind": "intentional",
+            "reason": "Bedrock has no counterpart for this Java rule, so the client has no setting to show for it.",
+            "reference": "Java 26.3 minecraft:game_rule registry and packages/commands/src/gamerules.ts"
+        },
+        "game-rule:minecraft:show_death_messages": {
+            "kind": "defect",
+            "reason": "Every game rule in Java's registry is a rule the server runs, where Bedrock has one. Observed: Bedrock's showdeathmessages rule is not one the server registers.",
+            "reference": "Java 26.3 minecraft:game_rule registry and packages/commands/src/gamerules.ts"
+        },
+        "game-rule:minecraft:spawn_monsters": {
+            "kind": "intentional",
+            "reason": "Bedrock has no counterpart for this Java rule, so the client has no setting to show for it.",
+            "reference": "Java 26.3 minecraft:game_rule registry and packages/commands/src/gamerules.ts"
+        },
+        "game-rule:minecraft:spawn_patrols": {
+            "kind": "intentional",
+            "reason": "Bedrock has no counterpart for this Java rule, so the client has no setting to show for it.",
+            "reference": "Java 26.3 minecraft:game_rule registry and packages/commands/src/gamerules.ts"
+        },
+        "game-rule:minecraft:spawn_phantoms": {
+            "kind": "defect",
+            "reason": "Every game rule in Java's registry is a rule the server runs, where Bedrock has one. Observed: Bedrock's doinsomnia rule is not one the server registers.",
+            "reference": "Java 26.3 minecraft:game_rule registry and packages/commands/src/gamerules.ts"
+        },
+        "game-rule:minecraft:spawn_wandering_traders": {
+            "kind": "intentional",
+            "reason": "Bedrock has no counterpart for this Java rule, so the client has no setting to show for it.",
+            "reference": "Java 26.3 minecraft:game_rule registry and packages/commands/src/gamerules.ts"
+        },
+        "game-rule:minecraft:spawn_wardens": {
+            "kind": "intentional",
+            "reason": "Bedrock has no counterpart for this Java rule, so the client has no setting to show for it.",
+            "reference": "Java 26.3 minecraft:game_rule registry and packages/commands/src/gamerules.ts"
+        },
+        "game-rule:minecraft:spawner_blocks_work": {
+            "kind": "intentional",
+            "reason": "Bedrock has no counterpart for this Java rule, so the client has no setting to show for it.",
+            "reference": "Java 26.3 minecraft:game_rule registry and packages/commands/src/gamerules.ts"
+        },
+        "game-rule:minecraft:spectators_generate_chunks": {
+            "kind": "intentional",
+            "reason": "Bedrock has no counterpart for this Java rule, so the client has no setting to show for it.",
+            "reference": "Java 26.3 minecraft:game_rule registry and packages/commands/src/gamerules.ts"
+        },
+        "game-rule:minecraft:spread_vines": {
+            "kind": "intentional",
+            "reason": "Bedrock has no counterpart for this Java rule, so the client has no setting to show for it.",
+            "reference": "Java 26.3 minecraft:game_rule registry and packages/commands/src/gamerules.ts"
+        },
+        "game-rule:minecraft:tnt_explosion_drop_decay": {
+            "kind": "defect",
+            "reason": "Every game rule in Java's registry is a rule the server runs, where Bedrock has one. Observed: Bedrock's tntexplosiondropdecay rule is not one the server registers.",
+            "reference": "Java 26.3 minecraft:game_rule registry and packages/commands/src/gamerules.ts"
+        },
+        "game-rule:minecraft:universal_anger": {
+            "kind": "intentional",
+            "reason": "Bedrock has no counterpart for this Java rule, so the client has no setting to show for it.",
+            "reference": "Java 26.3 minecraft:game_rule registry and packages/commands/src/gamerules.ts"
+        },
+        "game-rule:minecraft:water_source_conversion": {
+            "kind": "intentional",
+            "reason": "Bedrock has no counterpart for this Java rule, so the client has no setting to show for it.",
+            "reference": "Java 26.3 minecraft:game_rule registry and packages/commands/src/gamerules.ts"
+        },
+        "villager-profession-trades:minecraft:mason": {
+            "kind": "defect",
+            "reason": "Every Java villager profession that trades has a trade table on the server. Observed: no trade table is named for the minecraft:mason profession.",
+            "reference": "Java 26.3 minecraft:villager_profession registry; Bedrock trading/*_trades.json"
+        }
+    },
     "items.behavior": {}
 }

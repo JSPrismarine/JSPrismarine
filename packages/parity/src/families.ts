@@ -105,6 +105,8 @@ export const FAMILIES = {
     gameplayRaids: 'gameplay.raids',
     /** Every entry of Java's vanilla datapack registries, by whether the server loads it. */
     gameplayDatapack: 'gameplay.datapack',
+    /** Java's game rules and villager professions, by whether the server runs them. */
+    gameplayMechanics: 'gameplay.mechanics',
 
     /** Every registered protocol version negotiates its own codec from a real first packet. */
     protocolNegotiation: 'protocol.negotiation',
