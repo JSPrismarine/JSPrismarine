@@ -528,6 +528,19 @@ describe('EntityRuntime', () => {
 
             expect(removed).toEqual([{ entity: cow, reason: 'despawn' }]);
         });
+
+        it('keeps a followed entity alive while its chunk is unloaded, and ends it on a death', () => {
+            const { runtime } = runtimeOf();
+            const cow = runtime.spawn('minecraft:cow', GROUND)!;
+            const loose = runtime.spawn('minecraft:cow', GROUND)!;
+            runtime.trackIdentity(cow.persistentIdentity);
+
+            runtime.remove(cow.id, 'chunk unload');
+            runtime.remove(loose.id, 'chunk unload');
+
+            expect(runtime.isAliveByIdentity(cow.persistentIdentity)).toBe(true);
+            expect(runtime.isAliveByIdentity(loose.persistentIdentity)).toBe(false);
+        });
     });
 
     describe('item interactions', () => {

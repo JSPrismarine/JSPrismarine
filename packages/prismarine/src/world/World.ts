@@ -2362,7 +2362,15 @@ export class World implements Service {
     public getRaidManager(): RaidManager | undefined {
         if (this.dimension.id !== Dimensions.Overworld.id) return undefined;
         // `?.` because a world built by hand has a level that saved nothing.
-        return (this.raidManager ??= new RaidManager(this.raidHost(), this.level.storedRaids?.() ?? []));
+        if (this.raidManager === undefined) {
+            const saved = this.level.storedRaids?.() ?? [];
+            // A raider saved in a chunk that is not loaded yet is still a raider.
+            for (const raid of saved) {
+                for (const identity of raid.raiders) this.dataEntities().runtime.trackIdentity(identity);
+            }
+            this.raidManager = new RaidManager(this.raidHost(), saved);
+        }
+        return this.raidManager;
     }
 
     /** The raids to save, or undefined when this world never ran one. */
@@ -2404,7 +2412,11 @@ export class World implements Service {
                 const chunk = this.getLoadedChunk(x >> 4, z >> 4);
                 return chunk === null ? undefined : chunk.getTopStoredY() + 1;
             },
-            spawnRaider: (type, at) => this.dataEntities().runtime.spawn(type, at)?.persistentIdentity,
+            spawnRaider: (type, at) => {
+                const identity = this.dataEntities().runtime.spawn(type, at)?.persistentIdentity;
+                if (identity !== undefined) this.dataEntities().runtime.trackIdentity(identity);
+                return identity;
+            },
             raiderAlive: (identity) => this.dataEntities().runtime.isAliveByIdentity(identity)
         };
     }

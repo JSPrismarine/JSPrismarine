@@ -76,7 +76,7 @@ export interface RaidHost {
 }
 
 /** The raiders a wave holds, in Java's order, and how many of each by wave number. */
-const RAIDER_TABLE: readonly (readonly [string, readonly number[]])[] = [
+export const RAIDER_TABLE: readonly (readonly [string, readonly number[]])[] = [
     ['minecraft:vindicator', [0, 0, 2, 0, 1, 4, 2, 5]],
     ['minecraft:evoker', [0, 0, 0, 0, 0, 1, 1, 2]],
     ['minecraft:pillager', [0, 4, 3, 3, 4, 4, 4, 2]],

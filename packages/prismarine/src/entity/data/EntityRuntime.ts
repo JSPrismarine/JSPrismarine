@@ -975,6 +975,14 @@ export class EntityRuntime implements EntityScene {
         entity.removed = reason;
         this.entities.delete(id);
         this.byPersistentIdentity.delete(entity.persistentIdentity);
+        if (this.trackedIdentities.has(entity.persistentIdentity)) {
+            // A chunk unload saves the entity, it does not end it; only another removal does.
+            if (reason === 'chunk unload') this.unloadedIdentities.add(entity.persistentIdentity);
+            else {
+                this.trackedIdentities.delete(entity.persistentIdentity);
+                this.unloadedIdentities.delete(entity.persistentIdentity);
+            }
+        }
         this.pendingDeaths.delete(id);
         this.byInstance.delete(entity.instance);
         entity.body.onEquipmentChanged = undefined;
@@ -3431,12 +3439,29 @@ export class EntityRuntime implements EntityScene {
         return count === 0 ? undefined : { x: x / count, y: y / count, z: z / count };
     }
 
+    /** Identities somebody waits on, see {@link trackIdentity}. */
+    private readonly trackedIdentities = new Set<string>();
+
+    /** Tracked identities whose entity is saved in an unloaded chunk. */
+    private readonly unloadedIdentities = new Set<string>();
+
     /** Whether a raider spawned earlier is still alive here. */
     public isAliveByIdentity(identity: string): boolean {
         for (const entity of this.entities.values()) {
             if (entity.persistentIdentity === identity) return entity.removed === undefined;
         }
-        return false;
+        return this.unloadedIdentities.has(identity);
+    }
+
+    /**
+     * Asks to be told apart a chunk unload from a death for this entity.
+     *
+     * Only tracked identities are remembered when their chunk unloads, so the set stays as small
+     * as the number of things somebody is waiting on.
+     * @param {string} identity - The persistent identity to follow.
+     */
+    public trackIdentity(identity: string): void {
+        this.trackedIdentities.add(identity);
     }
 
     /** The raid facts at this villager's position, supplied by its host's raid owner. */
