@@ -131,6 +131,21 @@ describe('TerrainProtoCache', () => {
         await expect(cache.read(key(3), identity(3, 0))).resolves.toMatchObject({ chunkX: 3 });
     });
 
+    it('stays within its budget across many writes between directory scans', async () => {
+        const root = directory();
+        const calibration = new TerrainProtoCache({ directory: root, maxBytes: 1024 * 1024 });
+        await calibration.write(key(0), payload(0, 0));
+        const recordSize = statSync(join(root, readdirSync(root)[0]!)).size;
+        const cache = new TerrainProtoCache({ directory: root, maxBytes: recordSize * 3 });
+
+        for (let chunkX = 1; chunkX <= 8; chunkX++) await cache.write(key(chunkX), payload(chunkX, 0));
+
+        const files = readdirSync(root);
+        const heldBytes = files.reduce((total, file) => total + statSync(join(root, file)).size, 0);
+        expect(heldBytes).toBeLessThanOrEqual(recordSize * 3);
+        await expect(cache.read(key(8), identity(8, 0))).resolves.toMatchObject({ chunkX: 8 });
+    });
+
     it('hashes a pre-serialized input exactly like the value it came from', () => {
         const dimension = { id: 'minecraft:overworld', minY: -64, height: 384 };
         const settings = new Map<string, unknown>([

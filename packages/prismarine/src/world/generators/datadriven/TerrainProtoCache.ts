@@ -18,6 +18,9 @@ const RECORD_SCHEMA_VERSION = 1;
 const GENERATOR_VERSION = 1;
 const STATUS = 'terrain';
 const CACHE_FILE = /^terrain-[a-f0-9]{64}\.bin$/;
+// Writes between full directory scans. Between them the budget is tracked in memory, since
+// listing and statting every record on each write grows with the cache.
+const WRITES_PER_SCAN = 256;
 
 /** The chunk geometry a cached terrain tile must match before the generator can adopt it. */
 export interface TerrainProtoIdentity {
@@ -78,6 +81,9 @@ export class TerrainProtoCache {
     private writeQueue: Promise<void> = Promise.resolve();
     private readonly accessOrder = new Map<string, number>();
     private nextAccessOrder = 1;
+    /** What the directory held at the last scan plus every write since, or undefined before the first scan. */
+    private trackedBytes: number | undefined;
+    private writesSinceScan = 0;
 
     public constructor(private readonly options: TerrainProtoCacheOptions) {
         if (!Number.isSafeInteger(options.maxBytes) || options.maxBytes < 1) {
@@ -235,6 +241,17 @@ export class TerrainProtoCache {
     }
 
     private async makeRoom(target: string, incomingBytes: number): Promise<boolean> {
+        // An overwrite counts its old record twice here, which only makes this lean toward a scan.
+        if (
+            this.trackedBytes !== undefined &&
+            this.writesSinceScan < WRITES_PER_SCAN &&
+            this.trackedBytes + incomingBytes <= this.options.maxBytes
+        ) {
+            this.trackedBytes += incomingBytes;
+            this.writesSinceScan += 1;
+            return true;
+        }
+
         let files: CacheFile[];
         try {
             files = await this.files();
@@ -259,7 +276,11 @@ export class TerrainProtoCache {
             this.emit('evict', file.size);
         }
 
-        return bytesHeld + incomingBytes <= this.options.maxBytes;
+        if (bytesHeld + incomingBytes > this.options.maxBytes) return false;
+
+        this.trackedBytes = bytesHeld + incomingBytes;
+        this.writesSinceScan = 0;
+        return true;
     }
 
     private async files(): Promise<CacheFile[]> {
