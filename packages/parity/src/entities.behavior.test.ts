@@ -200,7 +200,9 @@ const entityScenarios: readonly BehaviorScenario<EntitySubject>[] = [
             );
         },
         idOf: (subject) => subject.javaId,
-        covers: (subject) => subject.javaId,
+        // The other mobs are checked for a wrong burn, but only the tagged ones count as covered for sunlight behavior.
+        guard: true,
+        covers: (subject) => (subject.tag === 'burns' ? subject.javaId : undefined),
         run: (subject) => {
             const burns = componentValues(subject.bedrock, 'minecraft:burns_in_daylight').length > 0;
             if (subject.tag === 'burns' && !burns) return 'Java burns it in daylight; the server does not';

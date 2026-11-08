@@ -62,6 +62,8 @@ export interface BehaviorScenario<Subject> {
      * mob's behavior, and returns undefined.
      */
     readonly covers?: (subject: Subject) => string | undefined;
+    /** Reports a row only when it differs, for a guard that should catch a wrong answer without scoring every right one. */
+    readonly guard?: boolean;
     /** Runs the scenario for one subject and returns what differed from Java, if anything. */
     readonly run: (subject: Subject) => ScenarioOutcome;
     /**
@@ -84,6 +86,8 @@ export interface ScenarioRow {
     readonly gap: BehaviorGap | undefined;
     /** The Java identifier this row evidences the behavior of, if any. */
     readonly covers: string | undefined;
+    /** Whether the row is a guard, which the tracker lists only when it differs. */
+    readonly guard: boolean;
 }
 
 const crash = (error: unknown): string =>
@@ -106,6 +110,7 @@ export const runScenarios = <Subject>(scenarios: readonly BehaviorScenario<Subje
                 context: `${scenario.name}: ${scenario.java}`,
                 difference,
                 covers: scenario.covers === undefined ? scenario.idOf(subject) : scenario.covers(subject),
+                guard: scenario.guard === true,
                 gap:
                     difference === undefined
                         ? undefined
@@ -165,7 +170,7 @@ export const measureScenarios = (
         family,
         sourceFile,
         rows
-            .filter((row) => row.covers === undefined)
+            .filter((row) => row.covers === undefined && !(row.guard && row.difference === undefined))
             .map((row) => ({
                 id: row.id,
                 title: row.title,
