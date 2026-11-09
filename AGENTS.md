@@ -146,6 +146,13 @@ starts. When the plan has none, say so and propose one instead of benchmarking a
   contract.
 - When package exports or published behavior change, check the built package from a consumer context.
   Workspace resolution alone does not verify the published package contract.
+- After an edit, run `pnpm exec vitest run --since-last-run` to test only what the edit affects.
+  It reruns a test file when a file that test loaded on its last run has changed since, and it
+  reruns failed files until they pass. The first run in a fresh checkout or worktree is a full run
+  that builds the records. It cannot see a file no test loaded, such as a new `.env` or
+  `__mocks__` file, or a file whose modification time a checkout set in the past, so run the
+  relevant suites in full once before you finish. CI uses `--changed` against the pull request
+  base instead, because that baseline is the same on every machine.
 - Run the relevant checks for the change. The root scripts include `pnpm run build`,
   `pnpm run typecheck`, `pnpm run test`, and `pnpm run lint`; use package-scoped scripts when they
   cover the affected work.
