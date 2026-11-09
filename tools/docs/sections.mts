@@ -9,6 +9,7 @@ export interface DocSection {
 /** Contributor-only directories under `docs/` (such as `design`) are left out on purpose. */
 export const sections = [
     { dir: 'guide', title: 'Guides', first: ['running'] },
+    { dir: 'brand', title: 'Brand' },
     { dir: 'data-driven', title: 'Data-driven engine' },
     { dir: 'adr', title: 'Decisions' },
     { dir: 'plans', title: 'Plans' },
