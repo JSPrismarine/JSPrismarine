@@ -102,4 +102,5 @@ Use American English spelling in prose and documentation. Do not use British spe
 - After changing repository files, run `pnpm run lint:custom` after your final edit. It runs the
   American filename, packet codec, JSDoc, and Unicode escape checks. `pnpm run lint` includes this
   aggregate.
+- `scripts/agent-lint-gate.mts` runs as a Claude Code and Codex hook (`.claude/settings.json`, `.codex/hooks.json`). It runs `pnpm run lint` before `git commit` and `git push` and blocks them on failure. It also runs when you finish with uncommitted changes. Fix the reported problems instead of working around the hook. Codex asks to trust the project hooks on first use; review them with `/hooks`.
 - Review the diff and `git status --short` before finishing. Report the checks actually run and any failures or checks that could not be completed.

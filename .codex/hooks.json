@@ -1,0 +1,29 @@
+{
+    "hooks": {
+        "PreToolUse": [
+            {
+                "matcher": "Bash",
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": "node \"$(git rev-parse --show-toplevel)/scripts/agent-lint-gate.mts\"",
+                        "timeout": 300,
+                        "statusMessage": "Linting before git commit or push"
+                    }
+                ]
+            }
+        ],
+        "Stop": [
+            {
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": "node \"$(git rev-parse --show-toplevel)/scripts/agent-lint-gate.mts\"",
+                        "timeout": 300,
+                        "statusMessage": "Linting before finishing"
+                    }
+                ]
+            }
+        ]
+    }
+}

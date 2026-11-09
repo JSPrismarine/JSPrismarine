@@ -3,5 +3,30 @@
     "attribution": {
         "commit": "",
         "pr": ""
+    },
+    "hooks": {
+        "PreToolUse": [
+            {
+                "matcher": "Bash",
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": "node \"$(git rev-parse --show-toplevel)/scripts/agent-lint-gate.mts\"",
+                        "timeout": 300
+                    }
+                ]
+            }
+        ],
+        "Stop": [
+            {
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": "node \"$(git rev-parse --show-toplevel)/scripts/agent-lint-gate.mts\"",
+                        "timeout": 300
+                    }
+                ]
+            }
+        ]
     }
 }
