@@ -1,5 +1,23 @@
 # @jsprismarine/server
 
+## 0.19.0
+
+### Patch Changes
+
+- [`a8cc6ff`](https://github.com/JSPrismarine/JSPrismarine/commit/a8cc6ff8eb12c9cdfd71507a88ded2197ea12b0f) Thanks [@filiphsps](https://github.com/filiphsps)! - The Bun-compiled executables no longer exit on start. The generation pool, the RakNet socket and LevelDB's table builder each start a worker the compile did not embed: the pool handed its worker to piscina, whose own `dist/worker.js` was a path on the build machine, and the other two looked for their worker beside a bundled module that is not there. The executable now embeds all three, the generation pool runs a compiled binary's worker through its own runner as the Node single executable does, and the release and nightly builds start each executable and stop it again before publishing it.
+
+- [`e785c39`](https://github.com/JSPrismarine/JSPrismarine/commit/e785c393143af8f1812350c7de218f809d6e5c8e) Thanks [@filiphsps](https://github.com/filiphsps)! - Point the Discord link in each package README at the project's current invite.
+
+- [#2923](https://github.com/JSPrismarine/JSPrismarine/pull/2923) [`4dad7e0`](https://github.com/JSPrismarine/JSPrismarine/commit/4dad7e06fa69e6e96b47587936766e8f76f9595b) Thanks [@enricoangelon](https://github.com/enricoangelon)! - The server process no longer exits with code 0 while it prepares the start region of a saved world. The timer that keeps the process alive is now taken before the bootstrap instead of after it, so loading saved chunks, which can leave nothing else referenced, no longer ends the process. A container restart policy then restarted the server into the same exit.
+- Updated dependencies [[`84bb6e0`](https://github.com/JSPrismarine/JSPrismarine/commit/84bb6e054a342b3a392a8713d383153551318110), [`8e09026`](https://github.com/JSPrismarine/JSPrismarine/commit/8e09026412a486aeb48fb38e1a20f6eb19ac1f8a), [`11e6795`](https://github.com/JSPrismarine/JSPrismarine/commit/11e6795442bf09a19521f476282e157177f815fa), [`5d9abed`](https://github.com/JSPrismarine/JSPrismarine/commit/5d9abede303d3d1d4c1740882b4e70e03ddc4802), [`a8cc6ff`](https://github.com/JSPrismarine/JSPrismarine/commit/a8cc6ff8eb12c9cdfd71507a88ded2197ea12b0f), [`6b28547`](https://github.com/JSPrismarine/JSPrismarine/commit/6b2854752969cb691ce0b9d5d1131fd73af53a6c), [`e79d383`](https://github.com/JSPrismarine/JSPrismarine/commit/e79d383eb4419e76323347be1a671c048634bbc4), [`e785c39`](https://github.com/JSPrismarine/JSPrismarine/commit/e785c393143af8f1812350c7de218f809d6e5c8e), [`db02927`](https://github.com/JSPrismarine/JSPrismarine/commit/db02927ddf5340f6a736847c456911c9ec6b6331), [`d7dbd12`](https://github.com/JSPrismarine/JSPrismarine/commit/d7dbd12776b9fe6d486284668566619e95dfded1), [`6eeb2c7`](https://github.com/JSPrismarine/JSPrismarine/commit/6eeb2c7f76fd1b8968366b0a0a97639fbe98ec56), [`88a5e79`](https://github.com/JSPrismarine/JSPrismarine/commit/88a5e79b9dfeaeffa1ec623d3ff59aa8d0981eec), [`fb2dffc`](https://github.com/JSPrismarine/JSPrismarine/commit/fb2dffc2b89969efa240b3f03683ce3a66181461), [`18a36d8`](https://github.com/JSPrismarine/JSPrismarine/commit/18a36d836a9930ef59e268c07c6ccad839ad9658), [`31456fa`](https://github.com/JSPrismarine/JSPrismarine/commit/31456fab9fa2f0f0fbb5a12e84b1571ae5f2d0e9), [`b04c071`](https://github.com/JSPrismarine/JSPrismarine/commit/b04c07168a179f20fc0858d4c11e9f1c02b5728c), [`d5b7b6e`](https://github.com/JSPrismarine/JSPrismarine/commit/d5b7b6ec9a9705080e99cb8ebd4ff4d8bc7bbfa6), [`6f02c5d`](https://github.com/JSPrismarine/JSPrismarine/commit/6f02c5d4b909b134b15c9d3444a952dabcd60e56)]:
+  - @jsprismarine/prismarine@0.19.0
+  - @jsprismarine/raknet@0.19.0
+  - @jsprismarine/color-parser@0.19.0
+  - @jsprismarine/console-protocol@0.19.0
+  - @jsprismarine/logger@0.19.0
+  - @jsprismarine/minecraft@0.19.0
+  - @jsprismarine/packs@0.19.0
+
 ## 0.18.0
 
 ### Patch Changes

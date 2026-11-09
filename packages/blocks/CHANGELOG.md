@@ -1,5 +1,19 @@
 # @jsprismarine/blocks
 
+## 0.19.0
+
+### Patch Changes
+
+- [`9a914c5`](https://github.com/JSPrismarine/JSPrismarine/commit/9a914c5e493a7aac47bdf7d1e21fa9f53f3d0622) Thanks [@filiphsps](https://github.com/filiphsps)! - Cactus and sugar cane now grow, and torch flowers and lily of the valley behave as plants. The family table sent `minecraft:cactus` and `minecraft:reeds` to families with no growth rule, matched `torchflower` and `torchflower_crop` to the torch family because their names contain "torch", and left `minecraft:lily_of_the_valley` in the plain-block family with no ground support check.
+
+- [`47d5d19`](https://github.com/JSPrismarine/JSPrismarine/commit/47d5d19bdc211dda8ca06b979dc5645791b63801) Thanks [@filiphsps](https://github.com/filiphsps)! - Concrete powder now sets into concrete of its color when water touches it, as in Java. It never did: the powder fell like sand through the engine's gravity rule but ran the plain-block family, so a powder placed next to water, or falling into it, stayed powder. The new `jsprismarine:concrete_powder` family hardens it when water touches any side but below and when it falls into water.
+- Updated dependencies [[`e785c39`](https://github.com/JSPrismarine/JSPrismarine/commit/e785c393143af8f1812350c7de218f809d6e5c8e)]:
+  - @jsprismarine/molang@0.19.0
+  - @jsprismarine/minecraft@0.19.0
+  - @jsprismarine/mapping@0.19.0
+  - @jsprismarine/content@0.19.0
+  - @jsprismarine/packs@0.19.0
+
 ## 0.18.0
 
 ### Patch Changes

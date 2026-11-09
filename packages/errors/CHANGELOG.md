@@ -1,5 +1,15 @@
 # @jsprismarine/color-parser
 
+## 0.19.0
+
+### Patch Changes
+
+- [`a8a11d2`](https://github.com/JSPrismarine/JSPrismarine/commit/a8a11d297758b9fa392ca655e53c9c237c30030c) Thanks [@filiphsps](https://github.com/filiphsps)! - The error classes no longer call `Object.setPrototypeOf` in their constructors. That fixed `instanceof` for code compiled to ES5, and the package targets ESNext, where a subclass of `Error` already gets its own prototype.
+
+- [`e785c39`](https://github.com/JSPrismarine/JSPrismarine/commit/e785c393143af8f1812350c7de218f809d6e5c8e) Thanks [@filiphsps](https://github.com/filiphsps)! - Point the Discord link in each package README at the project's current invite.
+
+- [`7b50ec7`](https://github.com/JSPrismarine/JSPrismarine/commit/7b50ec758c8c621e34c8b823584a79fe02be1ede) Thanks [@filiphsps](https://github.com/filiphsps)! - `GametypeInvalidError` now reports `ErrorKind.GAMETYPE_INVALID`. It reported `PLAYER_NOT_FOUND`, so code that switched on `code` read an invalid game type as a missing player.
+
 ## 0.18.0
 
 ### Patch Changes

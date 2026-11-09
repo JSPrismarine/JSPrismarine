@@ -1,5 +1,19 @@
 # @jsprismarine/raknet
 
+## 0.19.0
+
+### Minor Changes
+
+- [`31456fa`](https://github.com/JSPrismarine/JSPrismarine/commit/31456fab9fa2f0f0fbb5a12e84b1571ae5f2d0e9) Thanks [@filiphsps](https://github.com/filiphsps)! - The `Logger` type now declares each method as `(...message: string[]) => void` instead of `Function`. Socket bind, send, buffer and worker failures now log a message with the error text and keep the context tag as the second argument. Before, they passed the `Error` itself, which the string-joining logger printed without a stack and with the tag run into the message.
+
+### Patch Changes
+
+- [`a8cc6ff`](https://github.com/JSPrismarine/JSPrismarine/commit/a8cc6ff8eb12c9cdfd71507a88ded2197ea12b0f) Thanks [@filiphsps](https://github.com/filiphsps)! - The Bun-compiled executables no longer exit on start. The generation pool, the RakNet socket and LevelDB's table builder each start a worker the compile did not embed: the pool handed its worker to piscina, whose own `dist/worker.js` was a path on the build machine, and the other two looked for their worker beside a bundled module that is not there. The executable now embeds all three, the generation pool runs a compiled binary's worker through its own runner as the Node single executable does, and the release and nightly builds start each executable and stop it again before publishing it.
+
+- [`e785c39`](https://github.com/JSPrismarine/JSPrismarine/commit/e785c393143af8f1812350c7de218f809d6e5c8e) Thanks [@filiphsps](https://github.com/filiphsps)! - Point the Discord link in each package README at the project's current invite.
+- Updated dependencies []:
+  - @jsprismarine/binaryutils@0.19.0
+
 ## 0.18.0
 
 ### Patch Changes

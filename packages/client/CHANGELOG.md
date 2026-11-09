@@ -1,5 +1,17 @@
 # @jsprismarine/client
 
+## 0.19.0
+
+### Patch Changes
+
+- [`e785c39`](https://github.com/JSPrismarine/JSPrismarine/commit/e785c393143af8f1812350c7de218f809d6e5c8e) Thanks [@filiphsps](https://github.com/filiphsps)! - Point the Discord link in each package README at the project's current invite.
+- Updated dependencies [[`a8cc6ff`](https://github.com/JSPrismarine/JSPrismarine/commit/a8cc6ff8eb12c9cdfd71507a88ded2197ea12b0f), [`e785c39`](https://github.com/JSPrismarine/JSPrismarine/commit/e785c393143af8f1812350c7de218f809d6e5c8e), [`31456fa`](https://github.com/JSPrismarine/JSPrismarine/commit/31456fab9fa2f0f0fbb5a12e84b1571ae5f2d0e9)]:
+  - @jsprismarine/raknet@0.19.0
+  - @jsprismarine/logger@0.19.0
+  - @jsprismarine/protocol@0.19.0
+  - @jsprismarine/minecraft@0.19.0
+  - @jsprismarine/auth@0.19.0
+
 ## 0.18.0
 
 ### Patch Changes

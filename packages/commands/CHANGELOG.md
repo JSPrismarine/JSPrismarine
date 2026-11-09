@@ -1,5 +1,17 @@
 # @jsprismarine/commands
 
+## 0.19.0
+
+### Patch Changes
+
+- [`e785c39`](https://github.com/JSPrismarine/JSPrismarine/commit/e785c393143af8f1812350c7de218f809d6e5c8e) Thanks [@filiphsps](https://github.com/filiphsps)! - Point the Discord link in each package README at the project's current invite.
+
+- [`eb04946`](https://github.com/JSPrismarine/JSPrismarine/commit/eb04946cd703e5ff3734091a4998b8beee0fc75a) Thanks [@filiphsps](https://github.com/filiphsps)! - `/gamerule` now takes a rule's pre-1.21.11 camelCase name and Bedrock's lowercase name as well as its 1.21.11 id, so `gamerule doMobSpawning false` and `gamerule domobspawning false` set `minecraft:spawn_mobs`. Before, only the 1.21.11 id parsed, although the module header said the old names did.
+- Updated dependencies [[`e785c39`](https://github.com/JSPrismarine/JSPrismarine/commit/e785c393143af8f1812350c7de218f809d6e5c8e)]:
+  - @jsprismarine/brigadier@0.19.0
+  - @jsprismarine/minecraft@0.19.0
+  - @jsprismarine/mapping@0.19.0
+
 ## 0.18.0
 
 ### Patch Changes

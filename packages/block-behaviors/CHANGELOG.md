@@ -1,5 +1,21 @@
 # @jsprismarine/block-behaviors
 
+## 0.19.0
+
+### Patch Changes
+
+- [`47d5d19`](https://github.com/JSPrismarine/JSPrismarine/commit/47d5d19bdc211dda8ca06b979dc5645791b63801) Thanks [@filiphsps](https://github.com/filiphsps)! - Concrete powder now sets into concrete of its color when water touches it, as in Java. It never did: the powder fell like sand through the engine's gravity rule but ran the plain-block family, so a powder placed next to water, or falling into it, stayed powder. The new `jsprismarine:concrete_powder` family hardens it when water touches any side but below and when it falls into water.
+
+- [`9f40318`](https://github.com/JSPrismarine/JSPrismarine/commit/9f40318455cc4a0fb90afc2600b307910cdf92bb) Thanks [@filiphsps](https://github.com/filiphsps)! - A redstone lamp now stays lit for four ticks after it loses power, as in Java. It went dark the moment power was removed, so a short pulse or a fast clock flickered it differently from vanilla.
+
+- [`cfabd9c`](https://github.com/JSPrismarine/JSPrismarine/commit/cfabd9c98cb9a66896151e4d4b1040115a03dcc8) Thanks [@filiphsps](https://github.com/filiphsps)! - A polished blackstone button now releases 20 ticks after a press, as it does in Java. It released after 30 ticks, the wooden button's time, because only buttons named `stone_*` took the stone schedule.
+
+- [`216bfda`](https://github.com/JSPrismarine/JSPrismarine/commit/216bfdaf418117b1b28054c58472d1369d9b0c76) Thanks [@filiphsps](https://github.com/filiphsps)! - Sponges now soak up water and composters follow Java's rules. A sponge placed or updated next to water removes water within six steps, up to 65 blocks, and becomes a wet sponge; it did nothing. A composter took any item and always added a layer; it now accepts only compostable items and adds a layer with the item's chance, with the first item into an empty composter always landing.
+- Updated dependencies [[`9a914c5`](https://github.com/JSPrismarine/JSPrismarine/commit/9a914c5e493a7aac47bdf7d1e21fa9f53f3d0622), [`47d5d19`](https://github.com/JSPrismarine/JSPrismarine/commit/47d5d19bdc211dda8ca06b979dc5645791b63801)]:
+  - @jsprismarine/blocks@0.19.0
+  - @jsprismarine/mapping@0.19.0
+  - @jsprismarine/content@0.19.0
+
 ## 0.18.0
 
 ### Patch Changes

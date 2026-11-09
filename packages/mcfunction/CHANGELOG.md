@@ -1,5 +1,11 @@
 # @jsprismarine/mcfunction
 
+## 0.19.0
+
+### Patch Changes
+
+- [`e785c39`](https://github.com/JSPrismarine/JSPrismarine/commit/e785c393143af8f1812350c7de218f809d6e5c8e) Thanks [@filiphsps](https://github.com/filiphsps)! - Point the Discord link in each package README at the project's current invite.
+
 ## 0.18.0
 
 ### Patch Changes

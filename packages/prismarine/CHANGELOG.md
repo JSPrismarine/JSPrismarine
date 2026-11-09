@@ -1,5 +1,83 @@
 # @jsprismarine/prismarine
 
+## 0.19.0
+
+### Minor Changes
+
+- [`6b28547`](https://github.com/JSPrismarine/JSPrismarine/commit/6b2854752969cb691ce0b9d5d1131fd73af53a6c) Thanks [@filiphsps](https://github.com/filiphsps)! - `DataEntity.equipmentInventorySlots` is now a `Map<MobEquipmentSlot, number>` instead of a partial record. Read a slot with `get`, set one with `set` and clear one with `delete`. Saved entities keep the same on-disk shape. The new `withoutEquipmentSlot` helper in `entity/equipment` copies an equipment set with one slot emptied.
+
+- [`fb2dffc`](https://github.com/JSPrismarine/JSPrismarine/commit/fb2dffc2b89969efa240b3f03683ce3a66181461) Thanks [@filiphsps](https://github.com/filiphsps)! - `Player.setPosition` now takes the same options as `Entity.setPosition`, the new exported `EntityPositionOptions`. The movement mode and the broadcast flag moved to `Player.setPlayerPosition(options, broadcast)`, so replace `player.setPosition({ position, type }, false)` with `player.setPlayerPosition({ position, type }, false)`.
+
+### Patch Changes
+
+- [`84bb6e0`](https://github.com/JSPrismarine/JSPrismarine/commit/84bb6e054a342b3a392a8713d383153551318110) Thanks [@filiphsps](https://github.com/filiphsps)! - `BaseProvider` now declares the optional members of `Provider`, such as `supportsChunkUnload`, `readPlayerData` and the replay snapshot methods. `Level`, `World` and the test level helpers type their provider as `BaseProvider` instead of `BaseProvider & Provider`.
+
+- [`8e09026`](https://github.com/JSPrismarine/JSPrismarine/commit/8e09026412a486aeb48fb38e1a20f6eb19ac1f8a) Thanks [@filiphsps](https://github.com/filiphsps)! - The block pass of a generated chunk's Bedrock translation now runs in a generation worker. The server thread translates each palette entry, a few dozen per chunk, and the worker walks the chunk's blocks into section indices and palettes, which was the largest part of a completed chunk's server-thread work. Chunks are byte-identical to the ones built on the server thread.
+
+- [`11e6795`](https://github.com/JSPrismarine/JSPrismarine/commit/11e6795442bf09a19521f476282e157177f815fa) Thanks [@filiphsps](https://github.com/filiphsps)! - A dimension change now holds its first chunks back until the client reports that the change's loading screen opened, or for two seconds at most. A client that decoded those chunks before switching dimension filed them under the dimension it was leaving and then waited on its loading screen forever.
+
+- [`5d9abed`](https://github.com/JSPrismarine/JSPrismarine/commit/5d9abede303d3d1d4c1740882b4e70e03ddc4802) Thanks [@filiphsps](https://github.com/filiphsps)! - A dimension change for a dead player, such as a `/teleport` into another dimension under the death screen, now waits until the player respawns and then carries the player there. It used to go out to a client that never opened its loading screen, and every later change of world waited behind it for a minute.
+
+- [`e79d383`](https://github.com/JSPrismarine/JSPrismarine/commit/e79d383eb4419e76323347be1a671c048634bbc4) Thanks [@filiphsps](https://github.com/filiphsps)! - A command run in a dimension nobody has entered yet, such as `execute in minecraft:the_nether run fill`, no longer acts on the Overworld instead. The dimension's world is started and the command sees it with no chunks loaded, so a block write there places nothing, as Java's "That position is not loaded" does.
+
+- [`e785c39`](https://github.com/JSPrismarine/JSPrismarine/commit/e785c393143af8f1812350c7de218f809d6e5c8e) Thanks [@filiphsps](https://github.com/filiphsps)! - Point the Discord link in each package README at the project's current invite.
+
+- [`db02927`](https://github.com/JSPrismarine/JSPrismarine/commit/db02927ddf5340f6a736847c456911c9ec6b6331) Thanks [@filiphsps](https://github.com/filiphsps)! - When the generation process cannot start and generation falls back to worker threads, the startup line now says it generates in worker threads, not in a generation process.
+
+- [`d7dbd12`](https://github.com/JSPrismarine/JSPrismarine/commit/d7dbd12776b9fe6d486284668566619e95dfded1) Thanks [@filiphsps](https://github.com/filiphsps)! - Chunk generation can run in a separate process. `chunkgen` gains `GenerationTransport`, the surface both pools share, `HostedGenerationPool`, which forks a generation host at a lowered operating system priority and replaces it if it dies, and `createGenerationTransport`, which falls back to threads in the server process when no host can start. The new `chunk-host` option in `config.json` takes `process` or `in-process`. It defaults to `in-process`, so nothing changes until it is set. Generated chunks are byte-identical either way.
+
+- [`6eeb2c7`](https://github.com/JSPrismarine/JSPrismarine/commit/6eeb2c7f76fd1b8968366b0a0a97639fbe98ec56) Thanks [@filiphsps](https://github.com/filiphsps)! - A chunk a player is waiting on no longer queues behind background generation. The generator's admission queue serves requests by urgency, admits `immediate` ones past its depth, and moves a waiting request up when it becomes more urgent. A chunk's neighbor terrain and feature tasks now take the band of the most urgent chunk that reads them, where they used to default to `soon`. The generation governor leaves one worker free of background work. The unused pool `pause` and `resume` are removed: holding tasks that hold admission slots stalled the tick.
+
+- [`88a5e79`](https://github.com/JSPrismarine/JSPrismarine/commit/88a5e79b9dfeaeffa1ec623d3ff59aa8d0981eec) Thanks [@filiphsps](https://github.com/filiphsps)! - Tools now mine cobwebs and note blocks at Java's speed. A tool rule that names a block by id, such as the sword's cobweb rule, and a Java tag that lists a block the server knows under another name, such as `note_block`, never matched the Bedrock identity the server asks about, so a sword cut cobwebs at the bare-hand speed and an axe mined note blocks at the bare-hand speed.
+
+- [`18a36d8`](https://github.com/JSPrismarine/JSPrismarine/commit/18a36d836a9930ef59e268c07c6ccad839ad9658) Thanks [@filiphsps](https://github.com/filiphsps)! - Other players now see a teleported or respawned player snap to the new position. The move reached them as ordinary movement, so their clients slid the player across the distance. `Player.setPosition` also honors the `teleport` option it inherits from `Entity`, which it ignored before.
+
+- [`b04c071`](https://github.com/JSPrismarine/JSPrismarine/commit/b04c07168a179f20fc0858d4c11e9f1c02b5728c) Thanks [@filiphsps](https://github.com/filiphsps)! - Log a sub chunk request for a column the server never queued at debug instead of as one warning per sub chunk. A client that moved or changed dimension asks for columns of its old view, and the answer is unchanged.
+
+- [`d5b7b6e`](https://github.com/JSPrismarine/JSPrismarine/commit/d5b7b6ec9a9705080e99cb8ebd4ff4d8bc7bbfa6) Thanks [@filiphsps](https://github.com/filiphsps)! - The scan for fluid bordering air in a freshly loaded chunk now waits its turn in the chunk completion queue when the chunk is a background request, so a preload no longer runs it as part of every load. A chunk a player is waiting on still runs it at once.
+
+- [`6f02c5d`](https://github.com/JSPrismarine/JSPrismarine/commit/6f02c5d4b909b134b15c9d3444a952dabcd60e56) Thanks [@filiphsps](https://github.com/filiphsps)! - The generation pool now records, for each status and priority band, how long tasks wait in its backlog, how long they take to come back, and the wall and thread CPU time each worker spent on them. It can also hold its backlog back and release it. The server's tick loop records each tick's lateness, duration and phase times, and the chunk completion queue books the main-thread time of chunk registration, lighting, fluids and entity setup under their own labels. Nothing about generated output changes.
+- Updated dependencies [[`9a914c5`](https://github.com/JSPrismarine/JSPrismarine/commit/9a914c5e493a7aac47bdf7d1e21fa9f53f3d0622), [`47d5d19`](https://github.com/JSPrismarine/JSPrismarine/commit/47d5d19bdc211dda8ca06b979dc5645791b63801), [`a8cc6ff`](https://github.com/JSPrismarine/JSPrismarine/commit/a8cc6ff8eb12c9cdfd71507a88ded2197ea12b0f), [`a8a11d2`](https://github.com/JSPrismarine/JSPrismarine/commit/a8a11d297758b9fa392ca655e53c9c237c30030c), [`e785c39`](https://github.com/JSPrismarine/JSPrismarine/commit/e785c393143af8f1812350c7de218f809d6e5c8e), [`eb04946`](https://github.com/JSPrismarine/JSPrismarine/commit/eb04946cd703e5ff3734091a4998b8beee0fc75a), [`7b50ec7`](https://github.com/JSPrismarine/JSPrismarine/commit/7b50ec758c8c621e34c8b823584a79fe02be1ede), [`d7dbd12`](https://github.com/JSPrismarine/JSPrismarine/commit/d7dbd12776b9fe6d486284668566619e95dfded1), [`6eeb2c7`](https://github.com/JSPrismarine/JSPrismarine/commit/6eeb2c7f76fd1b8968366b0a0a97639fbe98ec56), [`9f40318`](https://github.com/JSPrismarine/JSPrismarine/commit/9f40318455cc4a0fb90afc2600b307910cdf92bb), [`6cd28a8`](https://github.com/JSPrismarine/JSPrismarine/commit/6cd28a83eae9c18f59132935992639f3afd98a04), [`cfabd9c`](https://github.com/JSPrismarine/JSPrismarine/commit/cfabd9c98cb9a66896151e4d4b1040115a03dcc8), [`31456fa`](https://github.com/JSPrismarine/JSPrismarine/commit/31456fab9fa2f0f0fbb5a12e84b1571ae5f2d0e9), [`216bfda`](https://github.com/JSPrismarine/JSPrismarine/commit/216bfdaf418117b1b28054c58472d1369d9b0c76), [`6f02c5d`](https://github.com/JSPrismarine/JSPrismarine/commit/6f02c5d4b909b134b15c9d3444a952dabcd60e56)]:
+  - @jsprismarine/blocks@0.19.0
+  - @jsprismarine/block-behaviors@0.19.0
+  - @jsprismarine/chunkgen@0.19.0
+  - @jsprismarine/raknet@0.19.0
+  - @jsprismarine/leveldb@0.19.0
+  - @jsprismarine/errors@0.19.0
+  - @jsprismarine/bedrock-data@0.19.0
+  - @jsprismarine/brigadier@0.19.0
+  - @jsprismarine/color-parser@0.19.0
+  - @jsprismarine/commands@0.19.0
+  - @jsprismarine/console-protocol@0.19.0
+  - @jsprismarine/entities@0.19.0
+  - @jsprismarine/entity-brains@0.19.0
+  - @jsprismarine/entity-goals@0.19.0
+  - @jsprismarine/features@0.19.0
+  - @jsprismarine/lighting@0.19.0
+  - @jsprismarine/logger@0.19.0
+  - @jsprismarine/math@0.19.0
+  - @jsprismarine/mcfunction@0.19.0
+  - @jsprismarine/nbt@0.19.0
+  - @jsprismarine/spawning@0.19.0
+  - @jsprismarine/trading@0.19.0
+  - @jsprismarine/worldgen@0.19.0
+  - @jsprismarine/engine-systems@0.19.0
+  - @jsprismarine/protocol@0.19.0
+  - @jsprismarine/minecraft@0.19.0
+  - @jsprismarine/items@0.19.0
+  - @jsprismarine/mapping@0.19.0
+  - @jsprismarine/structures@0.19.0
+  - @jsprismarine/loot@0.19.0
+  - @jsprismarine/recipes@0.19.0
+  - @jsprismarine/advancements@0.19.0
+  - @jsprismarine/binaryutils@0.19.0
+  - @jsprismarine/content@0.19.0
+  - @jsprismarine/enchantments@0.19.0
+  - @jsprismarine/item-behaviors@0.19.0
+  - @jsprismarine/kernel@0.19.0
+  - @jsprismarine/packs@0.19.0
+  - @jsprismarine/predicates@0.19.0
+
 ## 0.18.0
 
 ### Minor Changes

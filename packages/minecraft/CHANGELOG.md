@@ -1,5 +1,13 @@
 # @jsprismarine/minecraft
 
+## 0.19.0
+
+### Patch Changes
+
+- Updated dependencies [[`a8a11d2`](https://github.com/JSPrismarine/JSPrismarine/commit/a8a11d297758b9fa392ca655e53c9c237c30030c), [`e785c39`](https://github.com/JSPrismarine/JSPrismarine/commit/e785c393143af8f1812350c7de218f809d6e5c8e), [`7b50ec7`](https://github.com/JSPrismarine/JSPrismarine/commit/7b50ec758c8c621e34c8b823584a79fe02be1ede)]:
+  - @jsprismarine/errors@0.19.0
+  - @jsprismarine/nbt@0.19.0
+
 ## 0.18.0
 
 ### Patch Changes
