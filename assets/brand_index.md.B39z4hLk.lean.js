@@ -1,1 +1,0 @@
-import{at as e,it as t,n,vt as r}from"./chunks/framework.UwwvkjGo.js";var i=JSON.parse(`{"title":"Brand","description":"","frontmatter":{},"headers":[],"relativePath":"brand/index.md","filePath":"brand/index.md"}`),a={name:`brand/index.md`};function o(n,i,a,o,s,c){return r(),t(`div`,null,[...i[0]||=[e("",1)]])}var s=n(a,[[`render`,o]]);export{i as __pageData,s as default};
