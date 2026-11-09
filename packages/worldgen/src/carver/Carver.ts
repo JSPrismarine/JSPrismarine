@@ -16,6 +16,7 @@ import {
     sampleInt
 } from './providers';
 import { mthCos, mthSin, randomBetween } from './trig';
+import { asObject, number } from '../json';
 
 /** How many chunks away from the target chunk a carver can start, in each direction. */
 export const CARVER_RANGE = 4;
@@ -83,21 +84,6 @@ export interface CanyonCarverConfig {
 
 /** Either carver type 26.3 registers. */
 export type CarverConfig = CaveCarverConfig | CanyonCarverConfig;
-
-const asObject = (value: unknown, path: string): Record<string, unknown> => {
-    if (typeof value !== 'object' || value === null || Array.isArray(value)) {
-        throw new TypeError(`${path}: expected an object, got ${JSON.stringify(value)}`);
-    }
-    // A parsed JSON document is `unknown`; every field read below is checked.
-    return value as Record<string, unknown>;
-};
-
-const number = (value: unknown, path: string): number => {
-    if (typeof value !== 'number' || !Number.isFinite(value)) {
-        throw new TypeError(`${path}: expected a finite number, got ${JSON.stringify(value)}`);
-    }
-    return value;
-};
 
 const optionalFloatProvider = (value: unknown, path: string, fallback: number): FloatProvider =>
     value === undefined ? { type: 'constant', value: f32(fallback) } : parseFloatProvider(value, path);

@@ -1,6 +1,6 @@
 import type { IntProvider } from '../carver/providers';
 import { parseIntProvider } from '../carver/providers';
-import { asObject, boolean, inRange, integer, number, oneOf, optional, string, stringOrList } from './json';
+import { asObject, boolean, inRange, integer, number, oneOf, optional, string, stringOrList } from '../json';
 
 /** The sky a dimension renders. Replaced the `effects` field in 25w45a. */
 export type DimensionSkybox = 'overworld' | 'none' | 'end';

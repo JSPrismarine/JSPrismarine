@@ -3,6 +3,7 @@ import type { RandomSource } from '../random/RandomSource';
 import type { VerticalAnchor, WorldGenerationContext } from '../surface/VerticalAnchor';
 import { parseVerticalAnchor, resolveAnchorY } from '../surface/VerticalAnchor';
 import { randomBetween } from './trig';
+import { asObject, integer, number } from '../json';
 
 /** A single-precision value provider: a constant, a uniform draw or a trapezoid draw. */
 export type FloatProvider =
@@ -21,28 +22,6 @@ export type IntProvider =
 export type HeightProvider =
     | { readonly type: 'constant'; readonly value: VerticalAnchor }
     | { readonly type: 'uniform'; readonly minInclusive: VerticalAnchor; readonly maxInclusive: VerticalAnchor };
-
-const asObject = (value: unknown, path: string): Record<string, unknown> => {
-    if (typeof value !== 'object' || value === null || Array.isArray(value)) {
-        throw new TypeError(`${path}: expected an object, got ${JSON.stringify(value)}`);
-    }
-    // A parsed JSON document is `unknown`; every field read below is checked.
-    return value as Record<string, unknown>;
-};
-
-const number = (value: unknown, path: string): number => {
-    if (typeof value !== 'number' || !Number.isFinite(value)) {
-        throw new TypeError(`${path}: expected a finite number, got ${JSON.stringify(value)}`);
-    }
-    return value;
-};
-
-const integer = (value: unknown, path: string): number => {
-    if (typeof value !== 'number' || !Number.isInteger(value)) {
-        throw new TypeError(`${path}: expected an integer, got ${JSON.stringify(value)}`);
-    }
-    return value;
-};
 
 const providerType = (raw: Record<string, unknown>, path: string): string => {
     const type = raw['type'];

@@ -1,5 +1,5 @@
 import { normalizeIdentifier } from '../identifier';
-import { asArray, asObject, boolean, inRange, integer, optional, stringOrList } from './json';
+import { asArray, asObject, boolean, inRange, integer, optional, stringOrList } from '../json';
 
 /** One layer of a superflat world, read bottom up from the dimension's `min_y`. */
 export interface FlatLayer {

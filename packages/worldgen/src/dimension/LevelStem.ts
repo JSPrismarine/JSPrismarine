@@ -1,7 +1,7 @@
 import { normalizeIdentifier } from '../identifier';
 import type { FlatGeneratorSettings } from './FlatGeneratorSettings';
 import { parseFlatGeneratorSettings } from './FlatGeneratorSettings';
-import { asObject } from './json';
+import { asObject } from '../json';
 import type { BiomeSourceDefinition } from './parseBiomeSource';
 import { parseBiomeSourceDefinition } from './parseBiomeSource';
 

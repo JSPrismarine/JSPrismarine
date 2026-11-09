@@ -3,6 +3,7 @@ import type { DensityFunctionNode } from '../density/DensityFunction';
 import type { SampleContext } from '../density/SampleContext';
 import { normalizeIdentifier } from '../identifier';
 import type { PositionalRandomFactory } from '../random/RandomSource';
+import { asObject } from '../json';
 
 /** The registry name the ore vein random factory is keyed by. */
 export const ORE_VEIN_SEED = 'minecraft:ore';
@@ -24,14 +25,6 @@ export interface OreVeinRule {
     /** Negative values punch holes of plain stone through a vein. */
     readonly fillerGap: DensityFunctionNode;
 }
-
-const asObject = (value: unknown, path: string): Record<string, unknown> => {
-    if (typeof value !== 'object' || value === null || Array.isArray(value)) {
-        throw new TypeError(`${path}: expected an object, got ${JSON.stringify(value)}`);
-    }
-    // A parsed JSON document is `unknown`; every field read below is checked.
-    return value as Record<string, unknown>;
-};
 
 /**
  * Reads one `minecraft:ore_vein` material rule.

@@ -1,5 +1,5 @@
 /**
- * Field readers shared by the dimension parsers.
+ * Field readers shared by the datapack JSON parsers.
  *
  * Every reader takes the JSON-path of the value it checks and names it in the error, so a bad
  * datapack file fails as `<world_preset>.dimensions["minecraft:overworld"].generator.type: ...`

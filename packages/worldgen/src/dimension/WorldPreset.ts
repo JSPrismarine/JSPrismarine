@@ -1,5 +1,5 @@
 import { normalizeIdentifier } from '../identifier';
-import { asObject } from './json';
+import { asObject } from '../json';
 import type { LevelStem } from './LevelStem';
 import { parseLevelStem } from './LevelStem';
 

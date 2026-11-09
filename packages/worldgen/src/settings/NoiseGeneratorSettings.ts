@@ -4,6 +4,7 @@ import { climateSpan } from '../biome/Climate';
 import type { DensityFunctionNode } from '../density/DensityFunction';
 import type { DensityFunctionResolver } from '../density/parse';
 import { parseDensityFunction } from '../density/parse';
+import { asObject, boolean, integer } from '../json';
 
 /**
  * The eight named slots of a 26.3 noise router.
@@ -89,26 +90,6 @@ export interface SpawnTargetFunction {
 
 /** The target point with the lowest climate fitness wins at each spawn candidate. */
 export type SpawnTargetPoint = readonly SpawnTargetFunction[];
-
-const asObject = (value: unknown, path: string): Record<string, unknown> => {
-    if (typeof value !== 'object' || value === null || Array.isArray(value)) {
-        throw new TypeError(`${path}: expected an object, got ${JSON.stringify(value)}`);
-    }
-    // A parsed JSON document is `unknown`; every field read below is checked.
-    return value as Record<string, unknown>;
-};
-
-const integer = (value: unknown, path: string): number => {
-    if (typeof value !== 'number' || !Number.isInteger(value)) {
-        throw new TypeError(`${path}: expected an integer, got ${JSON.stringify(value)}`);
-    }
-    return value;
-};
-
-const boolean = (value: unknown, path: string): boolean => {
-    if (typeof value !== 'boolean') throw new TypeError(`${path}: expected a boolean, got ${JSON.stringify(value)}`);
-    return value;
-};
 
 const blockState = (value: unknown, path: string): string => {
     if (typeof value === 'string') return normalizeIdentifier(value);

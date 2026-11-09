@@ -8,7 +8,7 @@ import {
 import type { ClimateEntry, ClimateParameterPoint } from '../biome/Climate';
 import { ClimateParameterList, SharedClimateParameterList, parseClimateParameterPoint } from '../biome/Climate';
 import { normalizeIdentifier } from '../identifier';
-import { asArray, asObject, inRange, integer, optional } from './json';
+import { asArray, asObject, inRange, integer, optional } from '../json';
 
 /** One inline entry of a `multi_noise` biome source's `biomes` list. */
 export interface MultiNoiseBiomeEntry {

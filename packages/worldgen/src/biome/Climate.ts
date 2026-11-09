@@ -1,4 +1,5 @@
 import { f32 } from '../math';
+import { asObject, number } from '../json';
 
 /**
  * The factor Java multiplies a climate coordinate by before truncating it to an integer.
@@ -841,21 +842,6 @@ const climateFitnessFromFlat = (bounds: Float64Array, offset: number, target: Cl
     distance = parameterDistance(bounds[offset + 12] ?? 0, bounds[offset + 13] ?? 0, 0);
     total += distance * distance;
     return total;
-};
-
-const asObject = (value: unknown, path: string): Record<string, unknown> => {
-    if (typeof value !== 'object' || value === null || Array.isArray(value)) {
-        throw new TypeError(`${path}: expected an object, got ${JSON.stringify(value)}`);
-    }
-    // A parsed JSON document is `unknown`; every field read below is checked.
-    return value as Record<string, unknown>;
-};
-
-const number = (value: unknown, path: string): number => {
-    if (typeof value !== 'number' || !Number.isFinite(value)) {
-        throw new TypeError(`${path}: expected a finite number, got ${JSON.stringify(value)}`);
-    }
-    return value;
 };
 
 /**

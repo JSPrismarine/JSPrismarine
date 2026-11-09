@@ -4,6 +4,7 @@ import type { DensityFunctionNode } from '../density/DensityFunction';
 import { normalizeIdentifier, typeName } from '../identifier';
 import type { VerticalAnchor } from './VerticalAnchor';
 import { parseVerticalAnchor } from './VerticalAnchor';
+import { asObject, integer, number } from '../json';
 
 /** Which side of a solid run a `stone_depth` condition counts from. */
 export type CaveSurface = 'floor' | 'ceiling';
@@ -84,28 +85,6 @@ export const MATERIAL_CONDITION_TYPES = [
     'above_preliminary_surface',
     'stone_depth'
 ] as const;
-
-const asObject = (value: unknown, path: string): Record<string, unknown> => {
-    if (typeof value !== 'object' || value === null || Array.isArray(value)) {
-        throw new TypeError(`${path}: expected an object, got ${JSON.stringify(value)}`);
-    }
-    // A parsed JSON document is `unknown`; every field read below is checked.
-    return value as Record<string, unknown>;
-};
-
-const number = (value: unknown, path: string): number => {
-    if (typeof value !== 'number' || !Number.isFinite(value)) {
-        throw new TypeError(`${path}: expected a finite number, got ${JSON.stringify(value)}`);
-    }
-    return value;
-};
-
-const integer = (value: unknown, path: string): number => {
-    if (typeof value !== 'number' || !Number.isInteger(value)) {
-        throw new TypeError(`${path}: expected an integer, got ${JSON.stringify(value)}`);
-    }
-    return value;
-};
 
 const boolean = (value: unknown, path: string, fallback?: boolean): boolean => {
     if (value === undefined && fallback !== undefined) return fallback;
