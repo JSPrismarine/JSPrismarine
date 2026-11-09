@@ -8,7 +8,6 @@ import type { Config } from '../config/Config';
 import type { Generator } from './Generator';
 import type { Logger } from '@jsprismarine/logger';
 import type BaseProvider from './providers/BaseProvider';
-import type Provider from './providers/Provider';
 import type Server from '../Server';
 import { inertEntityRuntime, testContent } from '../testing/entityServer';
 import { TEST_OVERWORLD_STEM, fakeLevel } from '../testing/level';
@@ -39,7 +38,7 @@ const testWorld = () => {
         server,
         level: fakeLevel({
             server,
-            provider: stub<BaseProvider & Provider>({
+            provider: stub<BaseProvider>({
                 readChunk: async (_dimension, x, z) => new Chunk(x, z, new Map(), Dimensions.Overworld)
             })
         }),

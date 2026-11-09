@@ -11,7 +11,6 @@ import Chunk from './chunk/Chunk';
 import { World } from './World';
 import { fakeLevel } from '../testing/level';
 import type BaseProvider from './providers/BaseProvider';
-import type Provider from './providers/Provider';
 
 /**
  * The seam between world generation and the world.
@@ -72,7 +71,7 @@ const worldLoading = (
         // `loadChunk` joins a load already in flight through this, and a world built on the
         // prototype never ran the constructor that would have made it.
         loading: new Map(),
-        level: fakeLevel({ seed: 1n, provider: stub<BaseProvider & Provider>({ readChunk: async () => chunk }) }),
+        level: fakeLevel({ seed: 1n, provider: stub<BaseProvider>({ readChunk: async () => chunk }) }),
         generator: {},
         config: {},
         systems: { onChunkLoaded: () => {} },

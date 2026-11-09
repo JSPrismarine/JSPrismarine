@@ -8,7 +8,6 @@ import Chunk from './chunk/Chunk';
 import { Dimensions } from './Dimension';
 import { Position } from './Position';
 import type BaseProvider from './providers/BaseProvider';
-import type Provider from './providers/Provider';
 import { World } from './World';
 
 /**
@@ -22,7 +21,7 @@ const worldWith = (chunks: readonly Chunk[]): World => {
         players,
         loading: new Map(),
         level: fakeLevel({
-            provider: stub<BaseProvider & Provider>({
+            provider: stub<BaseProvider>({
                 supportsChunkUnload: true,
                 writeChunk: async (chunk) => chunk.markSaved()
             })

@@ -81,7 +81,6 @@ import type { SpawnerSurroundings } from './spawners';
 import type { GameEventListener } from './GameEventListenerRegistry';
 import { GameEventListenerRegistry } from './GameEventListenerRegistry';
 import type BaseProvider from './providers/BaseProvider';
-import type Provider from './providers/Provider';
 import type { ChunkSaveContext } from './providers/ChunkSaveContext';
 import { createChunkSaveContext } from './providers/ChunkSaveContext';
 import type { Level } from './Level';
@@ -3735,7 +3734,7 @@ export class World implements Service {
     }
 
     /** The level's provider, which serves every dimension of the save. */
-    public getProvider(): BaseProvider & Provider {
+    public getProvider(): BaseProvider {
         return this.level.getProvider();
     }
 

@@ -1,4 +1,4 @@
-import type { WorldConfig } from '../World';
+import type { WorldConfig, WorldPlayerData } from '../World';
 import type { Generator, World } from '../';
 import type { ChunkRequestOptions } from '../Generator';
 import type { Server } from '../../';
@@ -40,6 +40,24 @@ export default abstract class BaseProvider implements Provider {
     protected world!: World;
     private level: SaveIdentity | undefined;
     private entitySource: EntitySource | null = null;
+
+    /** True only when `writeChunk` persists terrain, block entities, and actors for later reload. */
+    declare public readonly supportsChunkUnload?: boolean;
+
+    /** Captures the provider's persisted state for replay, when the format supports replay. */
+    public captureReplaySnapshot?(): Uint8Array;
+
+    /** Restores a snapshot from {@link BaseProvider.captureReplaySnapshot} before the provider is enabled. */
+    public restoreReplaySnapshot?(snapshot: Uint8Array): Promise<void>;
+
+    /** Every chunk coordinate the save holds for one dimension, when the format can list them. */
+    public listChunks?(dimension: DimensionType): IterableIterator<{ x: number; z: number }>;
+
+    /** Reads player data from provider-specific storage, when the format supports it. */
+    public readPlayerData?(key: string): Promise<Partial<WorldPlayerData> | null>;
+
+    /** Writes player data to provider-specific storage, when the format supports it. */
+    public writePlayerData?(key: string, data: WorldPlayerData): Promise<void>;
 
     public constructor(path: string, server: Server) {
         this.server = server;

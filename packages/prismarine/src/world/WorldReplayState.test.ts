@@ -10,7 +10,6 @@ import Chunk from './chunk/Chunk';
 import { Dimensions } from './Dimension';
 import type { Generator } from './Generator';
 import type BaseProvider from './providers/BaseProvider';
-import type Provider from './providers/Provider';
 import { World } from './World';
 
 const createWorld = () => {
@@ -27,7 +26,7 @@ const createWorld = () => {
         getContent: () => testContent(),
         getEntityRuntime: () => inertEntityRuntime()
     });
-    const provider = stub<BaseProvider & Provider>({
+    const provider = stub<BaseProvider>({
         readChunk: async (_dimension, x, z) => new Chunk(x, z, new Map(), Dimensions.Overworld)
     });
 

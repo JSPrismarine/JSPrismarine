@@ -38,7 +38,6 @@ import type { GeneratorFactories, TerrainCacheSettings } from './GeneratorFactor
 import type { JavaWorldgenRegistries } from './generators/datadriven/javaWorldgenData';
 import { requireJavaWorldgenRegistries } from './generators/datadriven/javaWorldgenData';
 import type BaseProvider from './providers/BaseProvider';
-import type Provider from './providers/Provider';
 import { WorldWeather } from './Weather';
 import { World } from './World';
 import { PLAYER_DATA_FOLDER } from './WorldPaths';
@@ -82,7 +81,7 @@ export interface LevelOptions {
     /** The server the level belongs to. The level reads its content and logger and hands it to each world it builds. */
     readonly server: Server;
     /** The one provider for every dimension of this save. The level opens and closes it. */
-    readonly provider: BaseProvider & Provider;
+    readonly provider: BaseProvider;
     /** The world seed, as a 64-bit value. See {@link import('../utils/Seed').worldSeedOf}. */
     readonly seed: bigint;
     /**
@@ -146,7 +145,7 @@ export class Level {
 
     private readonly path: string;
     private readonly server: Server;
-    private readonly provider: BaseProvider & Provider;
+    private readonly provider: BaseProvider;
     private readonly stems: ReadonlyMap<string, LevelStem>;
     private readonly dimensionTypes: ReadonlyMap<string, DimensionType>;
     private readonly load: ReadonlyMap<string, DimensionLoad>;
@@ -307,7 +306,7 @@ export class Level {
     }
 
     /** The one provider every dimension of this save reads and writes through. */
-    public getProvider(): BaseProvider & Provider {
+    public getProvider(): BaseProvider {
         return this.provider;
     }
 

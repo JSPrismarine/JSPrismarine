@@ -10,7 +10,6 @@ import Chunk from './chunk/Chunk';
 import { Dimensions } from './Dimension';
 import type { Generator, SurfaceProbe } from './Generator';
 import type BaseProvider from './providers/BaseProvider';
-import type Provider from './providers/Provider';
 import { World } from './World';
 import { TEST_OVERWORLD_STEM, fakeLevel } from '../testing/level';
 
@@ -90,7 +89,7 @@ const testWorld = (generator: Generator) => {
         level: fakeLevel({
             server,
             seed: 1234n,
-            provider: stub<BaseProvider & Provider>({
+            provider: stub<BaseProvider>({
                 readChunk: async (_dimension, x, z, _seed, chunkGenerator) => chunkGenerator.generateChunk(x, z)
             })
         }),

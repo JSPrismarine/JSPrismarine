@@ -21,7 +21,6 @@ import type { Generator } from './Generator';
 import { ChunkCompletionQueue } from './ChunkCompletionQueue';
 import type { ChunkCompletionScheduler } from './ChunkCompletionQueue';
 import type BaseProvider from './providers/BaseProvider';
-import type Provider from './providers/Provider';
 import { World } from './World';
 import { WorldSystems } from './WorldSystems';
 import { encodeSubChunk } from './providers/leveldb/SubChunkCodec';
@@ -52,7 +51,7 @@ const testWorld = (
         name: 'chunk-request-test',
         path: 'chunk-request-test',
         server,
-        level: fakeLevel({ server, provider: stub<BaseProvider & Provider>({ readChunk }) }),
+        level: fakeLevel({ server, provider: stub<BaseProvider>({ readChunk }) }),
         stem: TEST_OVERWORLD_STEM,
         generator,
         ...(completionQueue === undefined ? {} : { completionQueue })

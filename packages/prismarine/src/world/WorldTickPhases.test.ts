@@ -23,7 +23,6 @@ import { fakeLevel } from '../testing/level';
 import { attachProfiler, ServerProfiler } from '../profiling/ServerProfiler';
 import type GameRuleManager from './GameRuleManager';
 import type BaseProvider from './providers/BaseProvider';
-import type Provider from './providers/Provider';
 
 /**
  * The order a tick reports what happened in it.
@@ -108,7 +107,7 @@ const worldTicking = ({
         level: fakeLevel({
             ticks: currentTick,
             gameRules: stub<GameRuleManager>({ getGameRule: () => [true, true] as const }),
-            provider: stub<BaseProvider & Provider>({ supportsChunkUnload: false })
+            provider: stub<BaseProvider>({ supportsChunkUnload: false })
         }),
         dimension: Dimensions.Overworld,
         getEntities: () => entities,

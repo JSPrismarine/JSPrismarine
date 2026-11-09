@@ -27,7 +27,6 @@ import { GeneratorFactories } from '../world/GeneratorFactories';
 import { Level } from '../world/Level';
 import type { DimensionLoad } from '../world/Level';
 import type BaseProvider from '../world/providers/BaseProvider';
-import type Provider from '../world/providers/Provider';
 import { WorldWeather } from '../world/Weather';
 import type { World } from '../world/World';
 import type { LegacyWorldEntity } from '../world/WorldPersistence';
@@ -50,7 +49,7 @@ export interface FakeLevelOptions {
     /** The server the level and its worlds reach. Defaults to {@link testEntityServer}. */
     readonly server?: Server;
     /** The provider a world reads chunks through. Left out, the double has none. */
-    readonly provider?: BaseProvider & Provider;
+    readonly provider?: BaseProvider;
     /** Where the clock starts. */
     readonly ticks?: number;
     /** The rules the level answers. Defaults to a real manager with the defaults. */
@@ -146,7 +145,7 @@ export interface TestLevelOptions {
     /** The level folder, where the legacy `level.json` and the fallback player records live. */
     readonly path: string;
     readonly server: Server;
-    readonly provider: BaseProvider & Provider;
+    readonly provider: BaseProvider;
     readonly seed?: bigint;
     /** What the Overworld stem builds to. */
     readonly generator: Generator;

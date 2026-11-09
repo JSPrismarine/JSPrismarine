@@ -14,7 +14,6 @@ import { inertEntityRuntime, testContent } from '../testing/entityServer';
 import Chunk from './chunk/Chunk';
 import type { Generator } from './Generator';
 import type BaseProvider from './providers/BaseProvider';
-import type Provider from './providers/Provider';
 import { World } from './World';
 import type { WorldChange } from './WorldChange';
 import { NULL_WORLD_CHANGE_SINK } from './WorldChangeSink';
@@ -61,7 +60,7 @@ const flatWorld = async () => {
         server,
         level: fakeLevel({
             server,
-            provider: stub<BaseProvider & Provider>({ readChunk: async (_dimension, x, z) => flatChunk(x, z) })
+            provider: stub<BaseProvider>({ readChunk: async (_dimension, x, z) => flatChunk(x, z) })
         }),
         stem: TEST_OVERWORLD_STEM,
         generator: stub<Generator>({})
