@@ -8,7 +8,8 @@ import {
     blockEntityCompound,
     blockEntityIdFor,
     blockEntityRecord,
-    CONTENT_DATA_TAG
+    CONTENT_DATA_TAG,
+    DYE_INDEX_FIELD
 } from './contentRecord';
 
 /** The disk codec the LevelDB provider uses for a chunk's block entities, both ways. */
@@ -119,6 +120,45 @@ describe('block entity records', () => {
         expect(restoredNbt.getByte('isMovable', -1)).toBe(0);
         expect(restoredNbt.has(CONTENT_DATA_TAG)).toBe(false);
         expect(blockEntityRecord(restoredNbt).pistonArm).toEqual(pistonArm);
+    });
+
+    it('reads the color a vanilla bed and banner keep in their own tags', () => {
+        const bed = new NBTTagCompound('');
+        bed.addValue('id', new Types.StringVal('Bed'));
+        bed.addValue('color', new Types.ByteVal(11));
+        const banner = new NBTTagCompound('');
+        banner.addValue('id', new Types.StringVal('Banner'));
+        banner.addValue('Base', new Types.NumberVal(4));
+
+        expect(blockEntityRecord(throughDisk(bed))[DYE_INDEX_FIELD]).toBe(11);
+        expect(blockEntityRecord(throughDisk(banner))[DYE_INDEX_FIELD]).toBe(4);
+    });
+
+    it('writes the color back under the native tag rather than the JSON one', () => {
+        const nbt = blockEntityCompound(null, { x: 0, y: 64, z: 0 }, 'minecraft:bed');
+        applyBlockEntityRecord(nbt, { [DYE_INDEX_FIELD]: 11 });
+
+        const restored = throughDisk(nbt);
+        expect(restored.children.get('color')).toBeInstanceOf(Types.ByteVal);
+        expect(restored.getByte('color', -1)).toBe(11);
+        expect(restored.has(CONTENT_DATA_TAG)).toBe(false);
+        expect(blockEntityRecord(restored)[DYE_INDEX_FIELD]).toBe(11);
+    });
+
+    it('keeps a bed its color when a record written without one replaces it', () => {
+        const nbt = blockEntityCompound(null, { x: 0, y: 64, z: 0 }, 'minecraft:bed');
+        nbt.addValue('color', new Types.ByteVal(14));
+        applyBlockEntityRecord(nbt, { sealed: true });
+
+        expect(blockEntityRecord(throughDisk(nbt))[DYE_INDEX_FIELD]).toBe(14);
+    });
+
+    it('reads no color out of a compound that is neither a bed nor a banner', () => {
+        const nbt = new NBTTagCompound('');
+        nbt.addValue('id', new Types.StringVal('Chest'));
+        nbt.addValue('color', new Types.ByteVal(3));
+
+        expect(DYE_INDEX_FIELD in blockEntityRecord(nbt)).toBe(false);
     });
 
     it('reads a container a vanilla world wrote, which lists only its filled slots', () => {

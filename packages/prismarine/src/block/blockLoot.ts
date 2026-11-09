@@ -33,9 +33,14 @@
  * tables that branch on it need: the double slab's own table is the one that
  * says a `type=double` slab yields two, and a `shelf_mushroom` at `age=1`
  * yields two mushrooms.
+ *
+ * The state is not always enough. Bedrock merges the sixteen beds and the
+ * sixteen banners into one block each and keeps the color in the block entity,
+ * so the block state alone maps every one of them to black. The color index
+ * the block entity record carries picks the Java block before the state does.
  */
 import { loot as blockLoot } from '@jsprismarine/blocks';
-import { bedrockBlockStateToJava, bedrockBlockToJava } from '@jsprismarine/mapping';
+import { bedrockBlockStateToJava, bedrockBlockToJava, javaBlockOfBedrockDyeIndex } from '@jsprismarine/mapping';
 import type {
     BlockEntityView,
     BlockState,
@@ -44,6 +49,7 @@ import type {
     RandomSource
 } from '@jsprismarine/predicates';
 
+import { DYE_INDEX_FIELD } from '../blockentity/contentRecord';
 import type { BlockEntityData, ContentBlock, ContentItemDrop } from '../content/world/adapter';
 import { bedrockItemDrops } from '../item/bedrockDrops';
 import { containerComponentOf, dropOfRolledStack } from '../item/lootStack';
@@ -87,17 +93,41 @@ interface BedrockBlockLootSource {
 
 type BlockLootSource = JavaBlockLootSource | BedrockBlockLootSource;
 
+/**
+ * The Java block a bed's or banner's block entity names by its color, or undefined for a block
+ * whose record carries no color.
+ */
+const coloredJavaBlockOf = (identifier: string, blockEntity: BlockEntityData | undefined): string | undefined => {
+    const index = blockEntity?.[DYE_INDEX_FIELD];
+    return typeof index === 'number' ? javaBlockOfBedrockDyeIndex(identifier, index) : undefined;
+};
+
 /** Resolves the active Bedrock loot component or the Java table mapped to a block state. */
 const sourceOf = (
     content: ServerContent,
     identifier: string,
-    states: Readonly<Record<string, string | number | boolean>> | undefined
+    states: Readonly<Record<string, string | number | boolean>> | undefined,
+    blockEntity: BlockEntityData | undefined
 ): BlockLootSource | undefined => {
     const type = content.blocks.types.get(identifier);
     const bedrockTable = type?.state(states).content.params(blockLoot);
     if (bedrockTable !== undefined) return { dialect: 'bedrock', table: bedrockTable };
 
     const exact = bedrockBlockStateToJava(identifier, states);
+
+    // The colored block shares its properties with the black one the state maps to: a blue bed's
+    // `part` and `facing` are the black bed's, and the table reads `part` to drop from one half.
+    const colored = coloredJavaBlockOf(identifier, blockEntity);
+    const coloredTable = colored === undefined ? undefined : tableOf(content, colored);
+    if (colored !== undefined && coloredTable !== undefined) {
+        const properties = exact.kind === 'mapped' ? exact.java.properties : undefined;
+        return {
+            dialect: 'java',
+            table: coloredTable,
+            state: properties === undefined ? { name: colored } : { name: colored, properties }
+        };
+    }
+
     if (exact.kind === 'mapped') {
         const table = tableOf(content, exact.java.name);
         if (table !== undefined) {
@@ -125,14 +155,17 @@ const sourceOf = (
  * @param identifier - The namespaced Bedrock block identifier.
  * @param states - The active block state, which selects a permutation's loot component and
  *   resolves Java blocks split across Bedrock identifiers. Omitted states use the block default.
+ * @param blockEntity - The block's entity record, whose color picks the Java block for the beds
+ *   and banners Bedrock merges. Omitted, a bed or banner resolves as the state alone maps it.
  * @returns The component's pack-relative path or the mapped Java table id,
  *   or undefined when neither source has a table for this block.
  */
 export const blockLootTableOf = (
     content: ServerContent,
     identifier: string,
-    states?: Readonly<Record<string, string | number | boolean>>
-): string | undefined => sourceOf(content, identifier, states)?.table;
+    states?: Readonly<Record<string, string | number | boolean>>,
+    blockEntity?: BlockEntityData
+): string | undefined => sourceOf(content, identifier, states, blockEntity)?.table;
 
 /** What a break knows about itself, beyond the block that broke. */
 export interface BlockDropContext {
@@ -159,6 +192,7 @@ export interface BlockDropContext {
      *
      * Java's `LootContextParams.BLOCK_ENTITY`, which the shulker box table's
      * `copy_components` reads: its `minecraft:container` is what the dropped box carries away.
+     * A bed's or banner's color is read from it too, to pick the table of the right color.
      * Left out for a block that holds nothing, which is every block whose table never looks.
      */
     readonly blockEntity?: BlockEntityData;
@@ -195,7 +229,7 @@ export const rollBlockDrops = (
     block: ContentBlock,
     context: BlockDropContext = {}
 ): readonly ContentItemDrop[] => {
-    const source = sourceOf(content, block.identifier, block.states);
+    const source = sourceOf(content, block.identifier, block.states, context.blockEntity);
     if (source === undefined) return [];
 
     const registry = source.dialect === 'java' ? content.loot : content.equipmentLoot;

@@ -3,8 +3,10 @@ import { describe, expect, it } from 'vitest';
 import { definitionOf } from '../content/ContentOptions';
 import { buildServerContent } from '../content/ServerContent';
 import { fixtureContentOptions, fixtureDefinitions } from '../content/testing';
+import { bedrockItemDrops } from '../item/bedrockDrops';
 import { Item } from '../item/Item';
 import { lootLevelOf } from '../world/lootLevel';
+import { DYE_INDEX_FIELD } from '../blockentity/contentRecord';
 import { Block } from './Block';
 import { blockLootTableOf, rollBlockDrops } from './blockLoot';
 
@@ -386,6 +388,102 @@ describe('block', () => {
                     expect(drops).toEqual([{ identifier: 'minecraft:cobblestone', count: 1 }]);
                 }
             );
+        });
+
+        /**
+         * Bedrock has one `bed` and one `standing_banner` and keeps the color in the block
+         * entity, issue #2914. The stack holds two colors of each, shaped like Java 26.3's
+         * tables: a bed drops from its head half only, a banner drops itself.
+         */
+        describe('a block Bedrock keeps the color of in its block entity', () => {
+            /** A table shaped like Java 26.3's own for a bed or a banner, which drop themselves. */
+            const dropsItself = (block: string, state?: Record<string, string>) =>
+                definitionOf('lootTablesJava', `minecraft:blocks/${block}`, {
+                    type: 'minecraft:block',
+                    pools: [
+                        {
+                            condition: { type: 'minecraft:survives_explosion' },
+                            entries: [
+                                {
+                                    type: 'minecraft:item',
+                                    ...(state === undefined
+                                        ? {}
+                                        : {
+                                              condition: {
+                                                  type: 'minecraft:match_block',
+                                                  blocks: `minecraft:${block}`,
+                                                  state
+                                              }
+                                          }),
+                                    name: `minecraft:${block}`
+                                }
+                            ],
+                            rolls: 1
+                        }
+                    ],
+                    random_sequence: `minecraft:blocks/${block}`
+                });
+
+            const coloredTables = () =>
+                buildServerContent(
+                    fixtureContentOptions({
+                        load: () => ({
+                            definitions: {
+                                ...fixtureDefinitions(),
+                                lootTablesJava: new Map(
+                                    [
+                                        dropsItself('black_bed', { part: 'head' }),
+                                        dropsItself('blue_bed', { part: 'head' }),
+                                        dropsItself('black_banner'),
+                                        dropsItself('blue_banner')
+                                    ].map((definition) => [definition.identifier, definition])
+                                )
+                            },
+                            diagnostics: []
+                        })
+                    })
+                );
+
+            const head = { head_piece_bit: true, direction: 0, occupied_bit: false };
+
+            it('rolls the table of the color the block entity holds', () => {
+                const content = coloredTables();
+
+                expect(blockLootTableOf(content, 'minecraft:bed', head, { [DYE_INDEX_FIELD]: 11 })).toBe(
+                    'minecraft:blocks/blue_bed'
+                );
+                expect(blockLootTableOf(content, 'minecraft:standing_banner', {}, { [DYE_INDEX_FIELD]: 4 })).toBe(
+                    'minecraft:blocks/blue_banner'
+                );
+            });
+
+            it('drops a blue bed from a blue bed, and only from its head half', () => {
+                const content = coloredTables();
+                const blockEntity = { [DYE_INDEX_FIELD]: 11 };
+
+                const blue = rollBlockDrops(content, { identifier: 'minecraft:bed', states: head }, { blockEntity });
+                const black = rollBlockDrops(content, { identifier: 'minecraft:bed', states: head });
+
+                expect(blue).toEqual(bedrockItemDrops([{ identifier: 'minecraft:blue_bed', count: 1 }]));
+                expect(black).toEqual(bedrockItemDrops([{ identifier: 'minecraft:black_bed', count: 1 }]));
+                expect(blue).not.toEqual(black);
+                expect(
+                    rollBlockDrops(
+                        content,
+                        { identifier: 'minecraft:bed', states: { ...head, head_piece_bit: false } },
+                        { blockEntity }
+                    )
+                ).toEqual([]);
+            });
+
+            it('falls back to what the state maps to for a record with no color', () => {
+                const content = coloredTables();
+
+                expect(blockLootTableOf(content, 'minecraft:bed', head)).toBe('minecraft:blocks/black_bed');
+                expect(blockLootTableOf(content, 'minecraft:bed', head, { sealed: true })).toBe(
+                    'minecraft:blocks/black_bed'
+                );
+            });
         });
     });
 });

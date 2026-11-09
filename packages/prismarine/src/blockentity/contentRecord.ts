@@ -39,6 +39,21 @@ const PAIR_X_TAG = 'pairx';
 const PAIR_Z_TAG = 'pairz';
 const PAIR_LEAD_TAG = 'pairlead';
 
+/**
+ * The record field a bed's or banner's color index is read into, and the Bedrock tag that holds
+ * it for each block entity id.
+ *
+ * Bedrock has one `bed` and one pair of banner blocks where Java has sixteen of each, and keeps
+ * the color in the block entity: the bed's `color` byte and the banner's `Base` int. The record
+ * carries the number as Bedrock stores it; `@jsprismarine/mapping` turns it back into the Java
+ * block, which is what picks the loot table a broken bed or banner rolls.
+ */
+export const DYE_INDEX_FIELD = 'dyeIndex';
+const DYE_INDEX_TAGS: Readonly<Record<string, { readonly tag: string; readonly width: 'byte' | 'int' }>> = {
+    Bed: { tag: 'color', width: 'byte' },
+    Banner: { tag: 'Base', width: 'int' }
+};
+
 /** One stack of a container, as the record carries one. */
 type RecordItem = NonNullable<NonNullable<BlockEntityData['items']>[number]>;
 
@@ -110,6 +125,14 @@ const pistonArmFromNbt = (nbt: NBTTagCompound): NonNullable<BlockEntityData['pis
     };
 };
 
+/** The color index a bed or banner compound holds, or undefined for any other compound. */
+const dyeIndexFromNbt = (nbt: NBTTagCompound): number | undefined => {
+    const native = DYE_INDEX_TAGS[nbt.getString('id', '')];
+    if (native === undefined || !nbt.has(native.tag)) return undefined;
+
+    return native.width === 'byte' ? nbt.getByte(native.tag, 0) : nbt.getNumber(native.tag, 0);
+};
+
 /**
  * The record a behavior reads, out of the compound a chunk holds.
  *
@@ -127,8 +150,10 @@ export const blockEntityRecord = (nbt: NBTTagCompound): BlockEntityData => {
     const withPair = paired === undefined ? fields : { ...fields, [PAIRED_WITH_FIELD]: paired };
     const pistonArm = pistonArmFromNbt(nbt);
     const withPistonArm = pistonArm === undefined ? withPair : { ...withPair, pistonArm };
+    const dyeIndex = dyeIndexFromNbt(nbt);
+    const withDye = dyeIndex === undefined ? withPistonArm : { ...withPistonArm, [DYE_INDEX_FIELD]: dyeIndex };
 
-    return items === undefined ? withPistonArm : { ...withPistonArm, items };
+    return items === undefined ? withDye : { ...withDye, items };
 };
 
 /**
@@ -138,7 +163,7 @@ export const blockEntityRecord = (nbt: NBTTagCompound): BlockEntityData => {
  * @param data - The whole record, not a patch: a field the record dropped is removed here too.
  */
 export const applyBlockEntityRecord = (nbt: NBTTagCompound, data: BlockEntityData): void => {
-    const { items, pistonArm, ...fields } = data;
+    const { items, pistonArm, [DYE_INDEX_FIELD]: dyeIndex, ...fields } = data;
 
     if (items === undefined) {
         nbt.remove(ITEMS_TAG);
@@ -147,6 +172,7 @@ export const applyBlockEntityRecord = (nbt: NBTTagCompound, data: BlockEntityDat
     }
 
     applyPairToNbt(nbt, fields[PAIRED_WITH_FIELD]);
+    applyDyeIndexToNbt(nbt, dyeIndex);
 
     const isPistonArm = nbt.getString('id', '') === 'PistonArm';
     const recordFields = isPistonArm ? fields : { ...fields, ...(pistonArm === undefined ? {} : { pistonArm }) };
@@ -158,6 +184,20 @@ export const applyBlockEntityRecord = (nbt: NBTTagCompound, data: BlockEntityDat
     } else {
         nbt.addValue(CONTENT_DATA_TAG, new Types.StringVal(encoded));
     }
+};
+
+/**
+ * Writes a bed's or banner's color index back under Bedrock's own tag.
+ *
+ * A record without the field leaves the tag alone rather than removing it: the color is what
+ * the client draws the block in, and a behavior that writes a record it built itself has no
+ * reason to know the block has one.
+ */
+const applyDyeIndexToNbt = (nbt: NBTTagCompound, dyeIndex: unknown): void => {
+    const native = DYE_INDEX_TAGS[nbt.getString('id', '')];
+    if (native === undefined || typeof dyeIndex !== 'number') return;
+
+    nbt.addValue(native.tag, native.width === 'byte' ? new Types.ByteVal(dyeIndex) : new Types.NumberVal(dyeIndex));
 };
 
 /** Writes the fields the Bedrock client reads from a static piston arm. */

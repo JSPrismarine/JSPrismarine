@@ -283,8 +283,10 @@ export const breakBlockWithContent = (breaking: BlockBreak): Array<Block | Item>
             (blockFromContent(standing.name, content, standing.states)?.isCompatibleWithTool(held) ?? true);
         const blocks = content.world.blockWorld.at(dimension);
 
-        // Read before the hook runs, because what spills a container is the hook itself.
-        const contents = blocks.getBlockData(position)?.items ?? [];
+        // Read before the hook runs, because what spills a container is the hook itself. The
+        // record also carries a bed's or banner's color, which picks the table that rolls.
+        const record = blocks.getBlockData(position);
+        const contents = record?.items ?? [];
 
         const captured = whileCollecting(world, position, () => {
             type.state(standing.states).content.hooks.dispatch('onBreak', {
@@ -308,7 +310,7 @@ export const breakBlockWithContent = (breaking: BlockBreak): Array<Block | Item>
 
         // A block the stack has no table for is one the families are the only drop rule for,
         // which is every Bedrock-only block and the whole of a stack with no Java half.
-        if (blockLootTableOf(content, standing.name, standing.states) === undefined) {
+        if (blockLootTableOf(content, standing.name, standing.states, record) === undefined) {
             return [...captured];
         }
 
@@ -322,7 +324,7 @@ export const breakBlockWithContent = (breaking: BlockBreak): Array<Block | Item>
                 explosionRadius: breaking.explosionRadius,
                 // What the block was holding before the hook ran, for the tables that copy
                 // it onto what falls: a shulker box leaves with its contents this way.
-                blockEntity: { items: contents }
+                blockEntity: { ...record, items: contents }
             }
         );
 

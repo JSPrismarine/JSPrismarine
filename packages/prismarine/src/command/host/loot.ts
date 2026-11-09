@@ -35,6 +35,7 @@ import ContainerEntry from '../../inventory/ContainerEntry';
 import { itemOfDrop } from '../../inventory/persistence';
 import type { Item } from '../../item/Item';
 import { itemFromContent } from '../../item/itemFromContent';
+import { worldBlockEntities } from '../../world/contentAdapter';
 import { lootLevelOf } from '../../world/lootLevel';
 import { blockContainerAt, insertIntoContainer } from './containers';
 import { BLOCK_CONTAINER_SLOT, setItemSlot } from './inventory';
@@ -131,12 +132,17 @@ const rollLoot = (
         if (block === undefined) refuse('There is no loaded block there');
 
         const tool = toolOf(server, content, source, loot.tool);
+        const position = { x: at.getX(), y: at.getY(), z: at.getZ() };
+        // The record carries what a table copies onto the drop and the color a bed or banner
+        // keeps there, which picks the table of the right color.
+        const blockEntity = worldBlockEntities(() => world).at(position);
         return rollBlockDrops(
             content,
             { identifier: block.name, states: block.states },
             {
-                position: { x: at.getX(), y: at.getY(), z: at.getZ() },
+                position,
                 ...(tool === undefined ? {} : { tool }),
+                ...(blockEntity === undefined ? {} : { blockEntity }),
                 level: lootLevelOf(world)
             }
         );
