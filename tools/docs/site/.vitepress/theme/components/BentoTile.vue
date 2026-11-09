@@ -18,8 +18,9 @@ withDefaults(defineProps<{ tone?: 'accent' | 'signal' | 'deep' | 'forest'; span?
     justify-content: space-between;
     min-height: 190px;
     padding: 22px;
+    container-type: inline-size;
     color: var(--jsp-cream);
-    border-radius: 14px;
+    border-radius: var(--jsp-radius-panel);
 }
 
 .is-accent {
@@ -57,7 +58,8 @@ withDefaults(defineProps<{ tone?: 'accent' | 'signal' | 'deep' | 'forest'; span?
 }
 
 .bento-tile :deep(.bento-figure) {
-    font-size: clamp(52px, 9vw, 104px);
+    /* Sized to the tile, so a five-digit figure still fits a narrow one. */
+    font-size: min(104px, 26cqi);
     font-weight: 800;
     line-height: 0.85;
     letter-spacing: -0.06em;

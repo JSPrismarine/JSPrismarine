@@ -1,12 +1,16 @@
-/* Brand tokens. The docs/brand page documents them; change a value here, not in a component. */
+/*
+ * The --jsp-* palette comes from tokens.ts, which the site config writes into the page head. This file
+ * maps it onto VitePress's variables and derives the supporting shades with color-mix.
+ */
 :root {
-    --jsp-accent: #5ca48a;
-    --jsp-forest: #003829;
-    --jsp-deep: #00281d;
-    --jsp-mint: #a9d9c6;
-    --jsp-cream: #efe9da;
-    --jsp-ink: #0b1713;
-    --jsp-signal: #ff6b3d;
+    --jsp-radius-panel: 14px;
+    --jsp-radius-control: 10px;
+    --jsp-gap: 10px;
+    --jsp-shadow-offset: 4px;
+    --jsp-term-text: color-mix(in srgb, var(--jsp-cream) 85%, var(--jsp-mint));
+    --jsp-term-bar: color-mix(in srgb, var(--jsp-ink) 85%, var(--jsp-accent));
+    --jsp-term-muted: color-mix(in srgb, var(--jsp-ink) 45%, var(--jsp-mint));
+    --jsp-track: color-mix(in srgb, var(--jsp-forest) 70%, var(--jsp-accent));
 
     --vp-font-family-base: 'Bricolage Grotesque', 'Helvetica Neue', Arial, sans-serif;
     --vp-font-family-mono: 'JetBrains Mono', ui-monospace, Menlo, monospace;
@@ -20,8 +24,8 @@
     --vp-button-brand-text: var(--jsp-forest);
     --vp-button-brand-hover-bg: var(--jsp-mint);
     --vp-button-brand-hover-text: var(--jsp-forest);
+    --vp-c-bg: color-mix(in srgb, var(--jsp-cream) 25%, #fff);
     --vp-c-bg-alt: color-mix(in srgb, var(--jsp-cream) 55%, #fff);
-    --vp-c-bg: #fbf9f3;
 }
 
 .dark {
@@ -29,9 +33,9 @@
     --vp-c-brand-2: color-mix(in srgb, var(--jsp-accent) 86%, #fff);
     --vp-c-brand-3: color-mix(in srgb, var(--jsp-forest) 55%, var(--jsp-accent));
     --vp-c-brand-soft: color-mix(in srgb, var(--jsp-accent) 16%, transparent);
-    --vp-c-bg: #08130f;
+    --vp-c-bg: color-mix(in srgb, var(--jsp-ink) 70%, #000);
     --vp-c-bg-alt: var(--jsp-ink);
-    --vp-c-bg-soft: #10201a;
+    --vp-c-bg-soft: color-mix(in srgb, var(--jsp-ink) 80%, var(--jsp-forest));
 }
 
 /* Heavy, tight headlines; body copy keeps the default tracking. */
@@ -53,4 +57,14 @@
 .VPNavBarTitle .title {
     font-weight: 800;
     letter-spacing: -0.03em;
+}
+
+.VPNavBarTitle .title {
+    gap: 8px;
+}
+
+/* A visible focus ring on every brand control, in both themes. */
+:is(.brand-button, .audience-tabs button, .audience-tabs a, .copy-button):focus-visible {
+    outline: 3px solid var(--jsp-signal);
+    outline-offset: 2px;
 }

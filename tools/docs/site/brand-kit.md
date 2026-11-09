@@ -1,0 +1,219 @@
+---
+title: Brand kit
+description: The JSPrismarine palette, mark, type and components, rendered live.
+outline: deep
+---
+
+<script setup>
+import { palette } from './.vitepress/theme/tokens.ts';
+import { data as project } from './project.data.mts';
+</script>
+
+# Brand kit
+
+The rules live in the [brand guide](./brand/). This page renders the pieces they describe from the
+same source the site uses, so what you see here is what ships.
+
+## Palette
+
+<div class="kit-swatches">
+    <div v-for="(color, name) in palette" :key="name" class="kit-swatch">
+        <span class="kit-swatch__chip" :style="{ background: `var(--jsp-${name})` }"></span>
+        <b>{{ name }}</b>
+        <code>--jsp-{{ name }}</code>
+        <code>{{ color.hex }}</code>
+        <span>{{ color.use }}</span>
+    </div>
+</div>
+
+## Mark
+
+<div class="kit-row">
+    <div class="kit-tile is-light"><PrismMark :size="96" /></div>
+    <div class="kit-tile is-forest"><PrismMark :size="96" /></div>
+    <div class="kit-tile is-ink"><PrismMark :size="48" /><PrismMark :size="24" /><PrismMark :size="16" /></div>
+</div>
+
+```vue
+<PrismMark :size="48" />
+```
+
+## Type
+
+<div class="kit-type">
+    <p class="kit-type__display">The Bedrock server you own.</p>
+    <p class="kit-type__label">Bricolage Grotesque 800 · tracking −0.05em</p>
+    <p class="kit-type__mono">pnpm run dev</p>
+    <p class="kit-type__label">JetBrains Mono 400</p>
+</div>
+
+## Components
+
+Every component below is registered globally, so a site page can use it without an import.
+
+### BrandButton
+
+<div class="kit-tile is-forest kit-tile--wide">
+    <BrandButton href="/guide/running">Run a server</BrandButton>
+    <BrandButton href="/data-driven/" variant="outline">Read the docs</BrandButton>
+</div>
+
+```vue
+<BrandButton href="/guide/running">Run a server</BrandButton>
+<BrandButton href="/data-driven/" variant="outline">Read the docs</BrandButton>
+```
+
+### TerminalWindow
+
+<TerminalWindow>
+    <span class="t-line"><span class="t-prompt">$</span> pnpm run dev</span>
+    <span class="t-line"><span class="t-ok">[info]</span> JSPrismarine is now listening on port <span class="t-warn">{{ project.defaultPort }}</span></span>
+    <span class="t-line"><span class="t-prompt">&gt;</span> <span class="t-cursor"></span></span>
+</TerminalWindow>
+
+```vue
+<TerminalWindow>
+    <span class="t-line"><span class="t-prompt">$</span> pnpm run dev</span>
+    <span class="t-line"><span class="t-ok">[info]</span> JSPrismarine is now listening</span>
+</TerminalWindow>
+```
+
+### BentoGrid and BentoTile
+
+<BentoGrid>
+    <BentoTile tone="accent" :span="2"><div class="bento-figure">{{ project.packages.length }}</div><p class="bento-caption"><b>accent</b>Published packages.</p></BentoTile>
+    <BentoTile tone="signal" :span="2"><div class="bento-figure">{{ project.protocols.length }}</div><p class="bento-caption"><b>signal</b>Protocol versions.</p></BentoTile>
+    <BentoTile tone="deep" :span="2"><div class="bento-figure">{{ project.defaultPort }}</div><p class="bento-caption"><b>deep</b>Default port.</p></BentoTile>
+</BentoGrid>
+
+```vue
+<BentoGrid>
+    <BentoTile tone="accent" :span="2">
+        <div class="bento-figure">45</div>
+        <p class="bento-caption"><b>Packages</b>Published on npm.</p>
+    </BentoTile>
+</BentoGrid>
+```
+
+### ParityBars
+
+<div class="kit-tile is-forest kit-tile--wide"><ParityBars style="width: 100%" /></div>
+
+```vue
+<ParityBars :limit="3" />
+```
+
+### CopyButton
+
+<CopyButton text="pnpm run dev" />
+
+```vue
+<CopyButton text="pnpm run dev" />
+```
+
+### Ticker
+
+<Ticker :items="['Play it', 'Host it', 'Build on it', 'Fix it']" />
+
+```vue
+<Ticker :items="['Play it', 'Host it']" />
+```
+
+<style>
+.kit-swatches {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: var(--jsp-gap);
+    margin: 16px 0;
+}
+
+.kit-swatch {
+    display: grid;
+    gap: 2px;
+    font-size: 13px;
+    line-height: 1.4;
+}
+
+.kit-swatch__chip {
+    display: block;
+    height: 72px;
+    margin-bottom: 6px;
+    border: 1px solid var(--vp-c-divider);
+    border-radius: var(--jsp-radius-control);
+}
+
+.kit-swatch code {
+    justify-self: start;
+}
+
+.kit-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: var(--jsp-gap);
+    margin: 16px 0;
+}
+
+.kit-tile {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    align-items: center;
+    justify-content: center;
+    min-height: 150px;
+    padding: 24px;
+    border-radius: var(--jsp-radius-panel);
+}
+
+.kit-tile--wide {
+    justify-content: flex-start;
+    min-height: 0;
+    margin: 16px 0;
+}
+
+.kit-tile.is-light {
+    background: var(--jsp-cream);
+}
+
+.kit-tile.is-forest {
+    color: var(--jsp-cream);
+    background: var(--jsp-forest);
+}
+
+.kit-tile.is-ink {
+    background: var(--jsp-ink);
+}
+
+.kit-type {
+    padding: 24px;
+    margin: 16px 0;
+    color: var(--jsp-cream);
+    background: var(--jsp-forest);
+    border-radius: var(--jsp-radius-panel);
+}
+
+.kit-type p {
+    line-height: 1.3;
+    margin: 0;
+}
+
+.kit-type .kit-type__display {
+    font-size: clamp(36px, 7vw, 64px);
+    font-weight: 800;
+    line-height: 0.95;
+    letter-spacing: -0.05em;
+}
+
+.kit-type .kit-type__mono {
+    margin-top: 20px;
+    font: 20px var(--vp-font-family-mono);
+    color: var(--jsp-mint);
+}
+
+.kit-type .kit-type__label {
+    margin-top: 6px;
+    font: 700 11px var(--vp-font-family-mono);
+    color: var(--jsp-accent);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+}
+</style>

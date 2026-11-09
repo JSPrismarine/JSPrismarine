@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { withBase } from 'vitepress';
-import { ref } from 'vue';
+import { ref, useId, useTemplateRef } from 'vue';
+
+import CopyButton from './CopyButton.vue';
 
 export interface Audience {
     id: string;
@@ -10,48 +12,69 @@ export interface Audience {
     pitch: string;
     /** A command or snippet shown beside the pitch. */
     code: string;
+    /** Whether `code` is a command a reader would paste, which adds a copy button. */
+    copyable?: boolean;
     links: { text: string; hint: string; href: string }[];
 }
 
-defineProps<{ audiences: Audience[] }>();
+const props = defineProps<{ audiences: Audience[] }>();
 const active = ref(0);
+/** Prefixes element ids so two tab sets on one page do not collide. */
+const uid = useId();
+const tabs = useTemplateRef<HTMLButtonElement[]>('tabs');
+
+/** Arrow keys, Home and End move between tabs and select them, as the WAI-ARIA tabs pattern describes. */
+function onKeydown(event: KeyboardEvent) {
+    const last = props.audiences.length - 1;
+    const next = { ArrowRight: active.value + 1, ArrowLeft: active.value - 1, Home: 0, End: last }[event.key];
+    if (next === undefined) return;
+    event.preventDefault();
+    active.value = (next + last + 1) % (last + 1);
+    tabs.value?.[active.value]?.focus();
+}
 </script>
 
 <template>
     <div class="audience-tabs">
-        <div class="audience-tabs__list" role="tablist">
+        <div class="audience-tabs__list" role="tablist" @keydown="onKeydown">
             <button
                 v-for="(audience, index) in audiences"
-                :id="`tab-${audience.id}`"
+                :id="`${uid}-tab-${audience.id}`"
+                ref="tabs"
                 :key="audience.id"
+                type="button"
                 role="tab"
+                :tabindex="index === active ? 0 : -1"
                 :aria-selected="index === active"
-                :aria-controls="`panel-${audience.id}`"
+                :aria-controls="`${uid}-panel-${audience.id}`"
                 @click="active = index"
             >
                 {{ audience.tab }}
             </button>
         </div>
-        <template v-for="(audience, index) in audiences" :key="audience.id">
-            <div
-                v-show="index === active"
-                :id="`panel-${audience.id}`"
-                class="audience-tabs__panel"
-                role="tabpanel"
-                :aria-labelledby="`tab-${audience.id}`"
-            >
-                <div class="audience-tabs__pitch">
-                    <h3>{{ audience.title }}</h3>
-                    <p>{{ audience.pitch }}</p>
-                </div>
-                <pre class="audience-tabs__code">{{ audience.code }}</pre>
-                <div class="audience-tabs__links">
-                    <a v-for="link in audience.links" :key="link.href" :href="withBase(link.href)">
-                        {{ link.text }}<span>{{ link.hint }}</span>
-                    </a>
-                </div>
+        <div
+            v-for="(audience, index) in audiences"
+            v-show="index === active"
+            :id="`${uid}-panel-${audience.id}`"
+            :key="audience.id"
+            class="audience-tabs__panel"
+            role="tabpanel"
+            :aria-labelledby="`${uid}-tab-${audience.id}`"
+        >
+            <div class="audience-tabs__pitch">
+                <h3>{{ audience.title }}</h3>
+                <p>{{ audience.pitch }}</p>
             </div>
-        </template>
+            <div class="audience-tabs__code">
+                <pre>{{ audience.code }}</pre>
+                <CopyButton v-if="audience.copyable" class="audience-tabs__copy" :text="audience.code" />
+            </div>
+            <div class="audience-tabs__links">
+                <a v-for="link in audience.links" :key="link.href" :href="withBase(link.href)">
+                    {{ link.text }}<span>{{ link.hint }}</span>
+                </a>
+            </div>
+        </div>
     </div>
 </template>
 
@@ -91,7 +114,7 @@ const active = ref(0);
     padding: 22px;
     color: var(--jsp-cream);
     background: var(--jsp-forest);
-    border-radius: 12px;
+    border-radius: var(--jsp-radius-control);
 }
 
 .audience-tabs__pitch h3 {
@@ -111,13 +134,23 @@ const active = ref(0);
 }
 
 .audience-tabs__code {
+    position: relative;
     padding: 18px;
+    background: var(--jsp-ink);
+    border-radius: var(--jsp-radius-control);
+}
+
+.audience-tabs__code pre {
     margin: 0;
     font: 13px/1.7 var(--vp-font-family-mono);
     color: var(--jsp-cream);
     white-space: pre-wrap;
-    background: var(--jsp-ink);
-    border-radius: 12px;
+}
+
+.audience-tabs__copy {
+    position: absolute;
+    right: 12px;
+    bottom: 12px;
 }
 
 .audience-tabs__links {
@@ -133,7 +166,7 @@ const active = ref(0);
     color: inherit;
     text-decoration: none;
     border: 2px solid currentColor;
-    border-radius: 12px;
+    border-radius: var(--jsp-radius-control);
 }
 
 .audience-tabs__links a:hover {

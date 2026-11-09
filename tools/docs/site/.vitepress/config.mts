@@ -1,16 +1,22 @@
 import { defineConfig } from 'vitepress';
+import manifest from '../../../../package.json' with { type: 'json' };
 import mcfunction from './mcfunction.tmLanguage.json';
 import molang from './molang.tmLanguage.json';
 import typedocSidebar from '../api/typedoc-sidebar.json';
 import { megaMenus, nav } from './menus.mts';
 import { sections } from '../../sections.mts';
 import { sidebar } from './sidebar.mts';
+import { prismSvg } from './theme/prism.ts';
+import { palette, paletteCss } from './theme/tokens.ts';
 
 export default defineConfig({
     title: 'JSPrismarine',
     description: 'Dedicated Minecraft Bedrock Edition server written in TypeScript',
     base: '/JSPrismarine/',
     head: [
+        ['style', {}, paletteCss],
+        ['link', { rel: 'icon', type: 'image/svg+xml', href: `data:image/svg+xml,${encodeURIComponent(prismSvg())}` }],
+        ['meta', { name: 'theme-color', content: palette.forest.hex }],
         ['link', { rel: 'preconnect', href: 'https://fonts.googleapis.com' }],
         ['link', { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' }],
         [
@@ -50,6 +56,7 @@ export default defineConfig({
         megaMenus,
         sidebar: { ...sidebar, '/api/': typedocSidebar },
         socialLinks: [{ icon: 'github', link: 'https://github.com/JSPrismarine/JSPrismarine' }],
-        search: { provider: 'local' }
+        search: { provider: 'local' },
+        footer: { message: `Released under the ${manifest.license} license.` }
     }
 });

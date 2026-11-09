@@ -6,6 +6,7 @@ import AudienceTabs from './components/AudienceTabs.vue';
 import BentoGrid from './components/BentoGrid.vue';
 import BentoTile from './components/BentoTile.vue';
 import BrandButton from './components/BrandButton.vue';
+import CopyButton from './components/CopyButton.vue';
 import ParityBars from './components/ParityBars.vue';
 import PrismMark from './components/PrismMark.vue';
 import TerminalWindow from './components/TerminalWindow.vue';
@@ -20,6 +21,7 @@ const brandComponents = {
     BentoGrid,
     BentoTile,
     BrandButton,
+    CopyButton,
     ParityBars,
     PrismMark,
     TerminalWindow,

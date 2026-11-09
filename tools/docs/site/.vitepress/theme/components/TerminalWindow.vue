@@ -20,9 +20,9 @@ withDefaults(defineProps<{ title?: string }>(), { title: 'jsprismarine' });
 .terminal {
     overflow: hidden;
     font: 13px/1.65 var(--vp-font-family-mono);
-    color: #cfd8d3;
+    color: var(--jsp-term-text);
     background: var(--jsp-ink);
-    border-radius: 12px;
+    border-radius: var(--jsp-radius-control);
 }
 
 .terminal__bar {
@@ -30,20 +30,20 @@ withDefaults(defineProps<{ title?: string }>(), { title: 'jsprismarine' });
     gap: 6px;
     align-items: center;
     padding: 10px 14px;
-    background: #16241f;
+    background: var(--jsp-term-bar);
 }
 
 .terminal__bar b {
     width: 10px;
     height: 10px;
-    background: #2f4a41;
+    background: var(--jsp-term-muted);
     border-radius: 50%;
 }
 
 .terminal__bar span {
     margin-left: auto;
     font-size: 11px;
-    color: #7a948a;
+    color: var(--jsp-term-muted);
 }
 
 .terminal__body {
@@ -62,15 +62,15 @@ withDefaults(defineProps<{ title?: string }>(), { title: 'jsprismarine' });
 }
 
 .terminal__body :deep(.t-ok) {
-    color: #70bdb3;
+    color: var(--jsp-accent);
 }
 
 .terminal__body :deep(.t-dim) {
-    color: #6f8a80;
+    color: var(--jsp-term-muted);
 }
 
 .terminal__body :deep(.t-warn) {
-    color: #e0b570;
+    color: var(--jsp-mint);
 }
 
 .terminal__body :deep(.t-cursor) {

@@ -1,105 +1,134 @@
 # Brand
 
-How JSPrismarine looks and sounds. The docs site implements this page; the tokens below live in
-`tools/docs/site/.vitepress/theme/brand.css` and the reusable pieces in `theme/components/`.
+How JSPrismarine looks and sounds. The docs site implements this guide, and the
+[brand kit](https://jsprismarine.github.io/JSPrismarine/brand-kit) renders every color, the mark and
+each component live from the same source.
+
+| What                     | Where                                         |
+| ------------------------ | --------------------------------------------- |
+| Palette                  | `tools/docs/site/.vitepress/theme/tokens.ts`  |
+| Mark geometry            | `tools/docs/site/.vitepress/theme/prism.ts`   |
+| Derived shades and sizes | `tools/docs/site/.vitepress/theme/brand.css`  |
+| Components               | `tools/docs/site/.vitepress/theme/components/` |
+| Project facts            | `tools/docs/site/project.data.mts`            |
 
 ## Position
 
 JSPrismarine is the Bedrock server you run, own and build on. It is a product people choose, not a
 library index. The brand is flat, bold and direct: big type, solid color blocks, hard edges, and real
-commands and numbers in place of decoration.
+commands and numbers instead of decoration.
 
-Four audiences use the site, and every page should make clear which one it serves:
+Four audiences use the site. Each page should make clear which one it serves:
 
-| Audience     | Wants                               | Entry point |
-| ------------ | ----------------------------------- | ----------- |
-| Players      | Join a server and know what works   | Play        |
-| Hosts        | Install, configure and operate it   | Host        |
-| Add-on devs  | Data packs, plugins and the API     | Build       |
-| Contributors | Clone, change, test and ship        | Contribute  |
+| Audience     | Wants                             | Landing tab     |
+| ------------ | --------------------------------- | --------------- |
+| Players      | Join a server and know what works | I play          |
+| Hosts        | Install, configure and operate it | I host          |
+| Add-on devs  | Packs, Molang and the package API | I build add-ons |
+| Contributors | Clone, change, test and ship      | I contribute    |
 
 ## Color
 
 The accent is `#5ca48a`, shared with the JSPrismarine website. Every other color supports it.
 
-| Token             | Hex       | Use                                                   |
-| ----------------- | --------- | ----------------------------------------------------- |
-| `--jsp-accent`    | `#5ca48a` | Primary accent: buttons, highlights, active states.   |
-| `--jsp-forest`    | `#003829` | Dark brand surface and light-mode link color.         |
-| `--jsp-deep`      | `#00281d` | Darkest surface, shadows and ground lines.            |
-| `--jsp-mint`      | `#a9d9c6` | Body text on forest, light facets.                    |
-| `--jsp-cream`     | `#efe9da` | Light surface and text on dark.                       |
-| `--jsp-ink`       | `#0b1713` | Text on light, terminal surface.                      |
-| `--jsp-signal`    | `#ff6b3d` | Signal orange. Rare: one small spot per view.         |
+| Token          | Hex       | Use                                                      |
+| -------------- | --------- | -------------------------------------------------------- |
+| `--jsp-accent` | `#5ca48a` | Primary accent: buttons, highlights, active states.      |
+| `--jsp-forest` | `#003829` | Dark brand surface and light-mode link color.            |
+| `--jsp-deep`   | `#00281d` | Darkest surface: tile backgrounds and shadows.           |
+| `--jsp-mint`   | `#a9d9c6` | Body text on forest and the light facet of the mark.     |
+| `--jsp-cream`  | `#efe9da` | Light surface and text on dark.                          |
+| `--jsp-ink`    | `#0b1713` | Text on light and the terminal surface.                  |
+| `--jsp-signal` | `#ff6b3d` | Spot color for prompts, cursors and the core of the mark. |
+
+`tokens.ts` is the authority for these values. The site config writes them into the page head as the
+`--jsp-*` custom properties and builds the favicon from them, and `brand.css` mixes the supporting
+shades (terminal chrome, progress tracks, page backgrounds) from them with `color-mix`. If this table
+and `tokens.ts` disagree, `tokens.ts` wins and this table is out of date.
 
 Rules:
 
 - Surfaces are flat. No gradients, glows, blurs or translucent glass.
-- Signal orange marks a single thing, such as a prompt, a cursor or the prism's core. Never use it for
-  large fills of body UI, and never for links.
+- Signal orange marks small things: a prompt, a cursor, the core of the mark, a focus ring. A page
+  may also use it for one solid block. It is never a link color and never a body text color.
 - Text on `--jsp-accent` is `--jsp-forest`. Text on `--jsp-signal` is `--jsp-ink`.
 - Keep body text at WCAG AA contrast or better against its surface.
 
 ## Type
 
-| Role    | Family                | Weights  | Notes                                  |
-| ------- | --------------------- | -------- | -------------------------------------- |
-| Display | Bricolage Grotesque   | 500, 800 | Tight tracking (`-0.04em` and below).  |
-| Mono    | JetBrains Mono        | 400, 700 | Commands, labels, logs and code.       |
+| Role    | Family              | Weights  | Notes                                 |
+| ------- | ------------------- | -------- | ------------------------------------- |
+| Display | Bricolage Grotesque | 500, 800 | Tight tracking (`-0.04em` and below). |
+| Mono    | JetBrains Mono      | 400, 700 | Commands, labels, logs and code.      |
 
 Headlines are set heavy and tight, in sentence case, and are allowed to be very large. Small labels
 are mono, uppercase and letter-spaced. System fonts are the fallback when the web fonts do not load.
 
 ## Mark
 
-The mark is a prism: an isosceles triangle cut into three flat facets (`--jsp-accent` left,
-`--jsp-mint` right, `--jsp-forest` base) with a small `--jsp-signal` triangle at its core.
+The mark is a prism: a triangle split down the middle into an `--jsp-accent` face and a
+`--jsp-mint` face, with a small `--jsp-signal` triangle at its core whose right half is shaded with
+ink.
 
-- Use `PrismMark` from the theme rather than redrawing it.
+- Use `PrismMark` rather than redrawing it. The favicon and the nav logo come from the same geometry
+  in `prism.ts`.
 - Keep clear space of half the mark's width on every side.
-- Do not rotate, outline, add shadows or recolor the facets. On a forest surface, swap the forest
-  base facet for `--jsp-deep`.
-- The wordmark is `JSPrismarine`, one word, camel case, in Bricolage Grotesque 800.
+- Do not rotate, outline, add shadows or recolor the faces. The mark works unchanged on cream,
+  forest and ink, so it has no inverted version.
+- The wordmark is `JSPrismarine`: one word, camel case, set in Bricolage Grotesque 800.
 
 ## Shape and motion
 
-- Corners are rounded to `14px` on panels and `10px` on controls. Pills are fully round.
-- Primary actions carry a hard offset shadow (`4px 4px 0`, no blur) that collapses on press.
-- Grids are tight: `10px` gaps between solid blocks.
+- Corners are `14px` on panels (`--jsp-radius-panel`) and `10px` on controls
+  (`--jsp-radius-control`). Pills are fully round.
+- Primary actions carry a hard offset shadow (`4px 4px 0`, no blur). It shrinks on hover and
+  disappears on press, so the button reads as pushed in.
+- Grids are tight: `10px` gaps (`--jsp-gap`) between solid blocks.
+- Every control shows a signal-orange focus ring when reached by keyboard.
 - Motion is short and mechanical. Honor `prefers-reduced-motion` by stopping tickers and cursors.
 
 ## Voice
 
 - State what the thing does. "One binary to host it." beats "A powerful solution for hosting."
-- Prefer real commands, file names and numbers over adjectives. If a number is a sample, label it.
+- Prefer real commands, file names and numbers to adjectives. Never show a number the repository
+  cannot back.
 - Address the reader directly and keep sentences short.
 - American English, sentence case headings, no exclamation marks, no emoji.
 
 ## Components
 
-The docs theme exposes the brand as Vue components registered globally, so any page that allows HTML
-can use them. Pages staged from `docs/` render as plain Markdown, so use them from site-owned pages
-such as `tools/docs/site/index.md`.
+The docs theme registers these Vue components globally, so any site page can use them without an
+import. Pages staged from `docs/` render as plain Markdown, so use the components from site-owned
+pages such as `tools/docs/site/index.md` and `tools/docs/site/brand-kit.md`.
 
-| Component       | Purpose                                                       |
-| --------------- | ------------------------------------------------------------- |
-| `PrismMark`     | The prism logo as inline SVG, any size.                       |
-| `BrandButton`   | Primary and outline buttons with the hard shadow.             |
-| `TerminalWindow`| A server-console frame. Lines are passed through the slot.    |
-| `AudienceTabs`  | Tabs that swap a pitch, a snippet and links per audience.     |
-| `BentoGrid`, `BentoTile` | Solid color tiles for short claims or data.         |
-| `ParityBars`    | Horizontal bars from the parity tracker data.                 |
-| `Ticker`        | A looping banner of short phrases.                            |
+| Component                | Purpose                                                           |
+| ------------------------ | ----------------------------------------------------------------- |
+| `PrismMark`              | The mark as inline SVG, at any size.                              |
+| `BrandButton`            | Primary and outline buttons with the hard shadow.                 |
+| `TerminalWindow`         | A server console frame. Each `t-line` span in the slot is a line. |
+| `AudienceTabs`           | Keyboard-navigable tabs with a pitch, a snippet and links each.   |
+| `BentoGrid`, `BentoTile` | Solid color tiles for short claims or figures.                    |
+| `ParityBars`             | The behavior parity score and bars, counted as the tracker counts. |
+| `CopyButton`             | Copies a command to the clipboard.                                |
+| `Ticker`                 | A looping banner of short phrases.                                |
 
 ## Content comes from the repository
 
-The landing page states no fact that the repository already records. `tools/docs/site/project.data.mts`
-reads the version, package list, Node and pnpm requirements, supported protocols and default port at
-build time, and fails the docs build when a command or package the page shows disappears. The startup
-preview uses the server's real log lines, and the parity bars read the tracker snapshot. Add a new
-claim to the page by adding it to that loader, not by typing the value into a component.
+The landing page states no fact that the repository already records. `project.data.mts` reads these
+at build time:
+
+- the server version;
+- the published packages;
+- the Node and pnpm requirements;
+- the supported protocols and Minecraft releases;
+- the default port and online mode.
+
+The build fails when a command, package or source pattern the page relies on disappears. The terminal
+preview uses the server's real startup log lines. `ParityBars` reads the tracker snapshot and shows
+the gameplay behavior score that the parity tracker page leads with, not the data-table pass rate.
+To add a claim to the page, add it to the loader rather than typing the value into a component.
 
 ## Changing the brand
 
-Change a token in `brand.css`, not a hex value in a component. Update this page in the same commit
-when a token, font or rule changes.
+Change a color in `tokens.ts`, a shape in `prism.ts`, and a derived value in `brand.css`, never a hex
+value in a component. Update this guide in the same commit when a token, font or rule changes.

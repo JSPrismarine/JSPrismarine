@@ -3,6 +3,7 @@ import DefaultTheme from 'vitepress/theme';
 import { useData } from 'vitepress';
 import HomeLanding from './HomeLanding.vue';
 import MegaNav from './MegaNav.vue';
+import PrismMark from './components/PrismMark.vue';
 
 const { Layout } = DefaultTheme;
 const { frontmatter } = useData();
@@ -10,6 +11,9 @@ const { frontmatter } = useData();
 
 <template>
     <Layout>
+        <template #nav-bar-title-before>
+            <PrismMark :size="26" />
+        </template>
         <template #nav-bar-content-before>
             <MegaNav />
         </template>

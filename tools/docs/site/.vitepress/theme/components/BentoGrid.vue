@@ -6,6 +6,6 @@
 .bento-grid {
     display: grid;
     grid-template-columns: repeat(6, 1fr);
-    gap: 10px;
+    gap: var(--jsp-gap);
 }
 </style>

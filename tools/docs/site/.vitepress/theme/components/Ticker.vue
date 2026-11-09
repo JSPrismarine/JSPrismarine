@@ -22,7 +22,7 @@ const line = computed(() => `${props.items.join(' · ')} · `.repeat(4));
     white-space: nowrap;
     color: var(--jsp-forest);
     background: var(--jsp-accent);
-    border-radius: 14px;
+    border-radius: var(--jsp-radius-panel);
 }
 
 .ticker__track {

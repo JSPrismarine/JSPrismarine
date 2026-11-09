@@ -63,9 +63,14 @@ export const megaMenus = [
                         link: '/guide/versioning'
                     },
                     {
-                        text: 'Brand',
+                        text: 'Brand guide',
                         description: 'Colors, type, the prism mark and voice.',
                         link: '/brand/'
+                    },
+                    {
+                        text: 'Brand kit',
+                        description: 'The palette and components, rendered live.',
+                        link: '/brand-kit'
                     }
                 ]
             },
