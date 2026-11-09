@@ -11,7 +11,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { applyFacts, loadFacts } from './facts.mts';
-import { pageTitle, rootPages, sections } from './sections.mts';
+import { isUnpublished, pageTitle, rootPages, sections } from './sections.mts';
 import type { TrackerData } from '../../packages/parity/src/dashboard/tracker.ts';
 
 const packageDir = path.dirname(fileURLToPath(import.meta.url));
@@ -56,7 +56,11 @@ function rewriteLinks(markdown: string, sourceFile: string) {
             const rootPage = rootSources.get(resolved);
             // VitePress adds the base to site-absolute links.
             if (rootPage) return `](/${rootPage.replace(/\.md$/, '')}${anchor})`;
-            const published = sectionDirs.some((dir) => resolved === dir || resolved.startsWith(`${dir}${path.sep}`));
+            const section = sections.find(({ dir }) => resolved.startsWith(path.join(docsRoot, dir) + path.sep));
+            const published =
+                sectionDirs.some((dir) => resolved === dir) ||
+                (section !== undefined &&
+                    !isUnpublished(section, path.relative(path.join(docsRoot, section.dir), resolved)));
             if (!published) {
                 const repoPath = path.relative(repoRoot, resolved).split(path.sep).join('/');
                 return `](${blobUrl}/${repoPath}${anchor})`;
@@ -123,7 +127,7 @@ for (const section of sections) {
     const targetDir = path.join(siteDir, section.dir);
     rmSync(targetDir, { recursive: true, force: true });
     for (const entry of readdirSync(sourceDir, { recursive: true, encoding: 'utf8' })) {
-        if (!entry.endsWith('.md')) continue;
+        if (!entry.endsWith('.md') || isUnpublished(section, entry)) continue;
         const target = path.join(targetDir, toSitePage(entry));
         mkdirSync(path.dirname(target), { recursive: true });
         const sourceFile = path.join(sourceDir, entry);

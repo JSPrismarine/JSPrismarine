@@ -18,7 +18,8 @@
  * Markdown's values for those facts; the docs build fetches them first, so the site always counts.
  */
 
-import { existsSync, readdirSync, readFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync } from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 
 import { palette } from './site/.vitepress/theme/tokens.ts';
@@ -87,6 +88,60 @@ async function commandFacts() {
             unwired.map(([name, reason]) => [`\`/${name}\``, reason])
         )}\n`,
         'commands.registered.list': wrap(registered)
+    };
+}
+
+/**
+ * Every `config.json` setting with the comment the server writes above it, read from the file the
+ * server's own code writes into an empty folder. The table therefore lists what a fresh server writes.
+ */
+async function configFacts() {
+    const { Config } = await import('../../packages/prismarine/src/config/Config.ts');
+    const { readContentSettings } = await import('../../packages/prismarine/src/content/settings.ts');
+    const folder = mkdtempSync(path.join(os.tmpdir(), 'jsp-docs-config-'));
+    const cwd = process.cwd();
+    let written: string;
+    try {
+        // The config code writes to the working directory, so point it at the empty folder.
+        process.chdir(folder);
+        readContentSettings();
+        await new Config().enable();
+        written = readFileSync(path.join(folder, 'config.json'), 'utf8');
+    } finally {
+        process.chdir(cwd);
+        rmSync(folder, { recursive: true, force: true });
+    }
+    // A comment line, then the top-level key it explains, as the config writer lays them out.
+    const rows = [...written.matchAll(/^ {4}\/\/ (.+)\n {4}"([^"]+)":/gm)].map(([, comment, key]) => [
+        `\`${key}\``,
+        comment
+    ]);
+    return {
+        'config.count': String(rows.length),
+        'config.table': `\n${table(['Setting', 'What it does'], rows)}\n`,
+        // The settings that add packs to the stack, for the page about extending the server.
+        'config.contentTable': `\n${table(
+            ['Setting', 'What it does'],
+            rows.filter(([key]) => key.startsWith('`content-'))
+        )}\n`
+    };
+}
+
+/** The events `Server.on` accepts, read from the `EventTypes` union that types it. */
+function eventFacts() {
+    const source = readFileSync(
+        path.join(repoRoot, 'packages', 'prismarine', 'src', 'events', 'EventEmitter.ts'),
+        'utf8'
+    );
+    const union = /export type EventTypes =([\s\S]*?);/.exec(source)?.[1] ?? '';
+    const events = [...union.matchAll(/\['(\w+)', (\w+)\]/g)].map(([, name, type]) => [
+        `\`${name}\``,
+        `\`${type.replace(/^\w/, (letter) => letter.toUpperCase())}\``
+    ]);
+    if (!events.length) throw new Error('The docs facts no longer find the EventTypes union in EventEmitter.ts.');
+    return {
+        'events.count': String(events.length),
+        'events.table': `\n${table(['Event', 'Listener receives'], events)}\n`
     };
 }
 
@@ -301,6 +356,7 @@ export async function loadFacts(): Promise<Facts> {
         Object.entries({
             'server.version': project.version,
             'server.port': String(project.defaultPort),
+            'server.onlineMode': project.onlineMode ? 'on' : 'off',
             'node.minimum': project.engines.node.replace(/^>=\s*/, ''),
             'pnpm.minimum': project.engines.pnpm.replace(/^>=\s*/, ''),
             'packages.count': String(project.packages.length),
@@ -317,7 +373,9 @@ export async function loadFacts(): Promise<Facts> {
             'java.version': sources.javaServer.version,
             'java.size': megabytes(sources.javaServer.sizeInBytes),
             ...Object.fromEntries(Object.entries(palette).map(([name, { hex }]) => [`palette.${name}`, hex])),
-            ...(await commandFacts())
+            ...(await commandFacts()),
+            ...(await configFacts()),
+            ...eventFacts()
         })
     );
     const missing: string[] = [];

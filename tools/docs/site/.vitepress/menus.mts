@@ -21,9 +21,14 @@ export const megaMenus = [
                         link: '/guide/running#run-the-prebuilt-server'
                     },
                     {
-                        text: 'Run from source',
-                        description: 'pnpm run dev, for add-ons, plugins and the server.',
-                        link: '/guide/running#run-from-source'
+                        text: 'Every setting',
+                        description: 'What each key in config.json does.',
+                        link: '/guide/running#every-setting'
+                    },
+                    {
+                        text: 'Joining a server',
+                        description: 'For players: add a server, versions, fixes.',
+                        link: '/guide/joining'
                     },
                     {
                         text: 'Log levels',
@@ -60,6 +65,21 @@ export const megaMenus = [
         },
         sections: [
             {
+                text: 'Start',
+                items: [
+                    {
+                        text: 'Extending JSPrismarine',
+                        description: 'Packs for content, embedding for code.',
+                        link: '/guide/extending'
+                    },
+                    {
+                        text: 'Run from source',
+                        description: 'pnpm run dev restarts on every change.',
+                        link: '/guide/running#run-from-source'
+                    }
+                ]
+            },
+            {
                 text: 'Reference',
                 items: [
                     { text: 'API reference', description: 'Generated from the published packages.', link: '/api/' },
@@ -69,6 +89,11 @@ export const megaMenus = [
             {
                 text: 'Content',
                 items: [
+                    {
+                        text: 'Using packs',
+                        description: 'Formats, load order and conflicts.',
+                        link: '/data-driven/using-packs'
+                    },
                     { text: 'Molang', description: 'Expressions in behavior packs.', link: '/data-driven/molang' },
                     {
                         text: 'Commands',

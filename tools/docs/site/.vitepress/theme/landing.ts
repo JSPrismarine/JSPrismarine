@@ -52,9 +52,9 @@ export function buildAudiences(project: ProjectData): Audience[] {
             pitch: `Add the server's address and port in Minecraft ${minecraftRange(project)}. ${signIn}`,
             code: `Servers → Add Server\n  Server Name     My world\n  Server Address  play.example.com\n  Port            ${project.defaultPort}`,
             links: [
+                { text: 'Joining', hint: 'versions and fixes', href: '/guide/joining' },
                 { text: 'Parity', hint: 'what matches vanilla', href: '/parity' },
-                { text: 'Commands', hint: 'commands and functions', href: '/data-driven/commands' },
-                { text: 'The End fight', hint: 'dragon and portals', href: '/data-driven/end-fight' }
+                { text: 'Commands', hint: 'what you can type', href: '/data-driven/commands' }
             ]
         },
         {
@@ -67,7 +67,7 @@ export function buildAudiences(project: ProjectData): Audience[] {
             links: [
                 { text: 'Download', hint: `${project.executables.length} builds on GitHub`, href: project.releasesUrl },
                 { text: 'Running', hint: 'first start and updates', href: '/guide/running#run-the-prebuilt-server' },
-                { text: 'Log levels', hint: 'what each level prints', href: '/guide/log-levels' }
+                { text: 'Settings', hint: 'every config.json key', href: '/guide/running#every-setting' }
             ]
         },
         {
@@ -78,7 +78,7 @@ export function buildAudiences(project: ProjectData): Audience[] {
             code: `# in a JSPrismarine checkout\npnpm install\npnpm run dev\n\n# or take the pieces into your own project\npnpm add ${molang.name} ${packs.name}`,
             copyable: true,
             links: [
-                { text: 'Using packs', hint: 'formats and load order', href: '/data-driven/using-packs' },
+                { text: 'Extending', hint: 'packs and embedding', href: '/guide/extending' },
                 { text: 'Packages', hint: `${project.packages.length} on npm`, href: '/packages' },
                 { text: 'API reference', hint: 'generated from source', href: '/api/' }
             ]

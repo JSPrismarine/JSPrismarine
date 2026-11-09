@@ -8,18 +8,40 @@ export interface DocSection {
     dir: string;
     /** Page file names, without extension, that sort ahead of the alphabetical rest. */
     first?: string[];
+    /**
+     * Paths inside the section, relative to it, that stay in the repository but off the site: a file
+     * such as `notes/ballot.md`, or a folder such as `notes/votes/`. Links to them go to GitHub.
+     */
+    unpublished?: string[];
     title: string;
 }
 
 /** Contributor-only directories under `docs/` (such as `design`) are left out on purpose. */
 export const sections = [
-    { dir: 'guide', title: 'Guides', first: ['running'] },
+    { dir: 'guide', title: 'Guides', first: ['joining', 'running', 'extending', 'log-levels'] },
     { dir: 'brand', title: 'Brand' },
     { dir: 'data-driven', title: 'Data-driven engine' },
     { dir: 'adr', title: 'Decisions' },
     { dir: 'plans', title: 'Plans' },
-    { dir: 'research', title: 'Research' }
+    {
+        dir: 'research',
+        title: 'Research',
+        // The console TUI decision's working papers: the ballot, the judges' votes and the review
+        // rounds. Their outcome is in plan.md; they are a record, not reading for the site.
+        unpublished: [
+            'console-tui/ballot.md',
+            'console-tui/review-wave1.md',
+            'console-tui/review-wave2.md',
+            'console-tui/votes/'
+        ]
+    }
 ] satisfies DocSection[];
+
+/** Whether a file under a section, given relative to that section, is left off the site. */
+export function isUnpublished(section: DocSection, relativeFile: string) {
+    const file = relativeFile.split('\\').join('/');
+    return (section.unpublished ?? []).some((entry) => (entry.endsWith('/') ? file.startsWith(entry) : file === entry));
+}
 
 /** A repository-root document the site publishes as a single page. */
 export interface RootPage {
