@@ -63,7 +63,7 @@ const makeWorld = () => {
     let standing: BlockEntity | null = null;
     let writes = 0;
     const chunk = {
-        getBlockEntity: () => standing,
+        getBlockEntity: (_x: number, _y: number, _z: number) => standing,
         setBlockEntity: (entity: BlockEntity) => {
             standing = entity;
             writes++;
@@ -75,7 +75,7 @@ const makeWorld = () => {
             return writes;
         },
         world: {
-            getLoadedChunk: () => chunk,
+            getLoadedChunk: (_cx: number, _cz: number) => chunk,
             blockEntityChanged: () => {}
         }
     };

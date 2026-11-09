@@ -20,6 +20,8 @@ const ITERATIONS = Number.parseInt(argumentsAfterScript[0] ?? '50000', 10);
 if (!Number.isSafeInteger(ITERATIONS) || ITERATIONS < 1) throw new RangeError('iterations must be a positive integer');
 
 const packets: string[] = [];
+/** Reads the packets again after a check, which TypeScript would otherwise keep narrowed across awaits. */
+const observerPackets = (): readonly string[] => packets;
 const frames: Buffer[] = [];
 const players: Player[] = [];
 let replicator!: NetworkWorldReplicator;
@@ -44,11 +46,11 @@ const mover = stub<Player>({
     yaw: pose.yaw,
     headYaw: pose.headYaw,
     isOnGround: () => pose.onGround,
-    setPosition: async ({ position, pitch, yaw, headYaw }) => {
+    setPlayerPosition: async ({ position, pitch, yaw, headYaw }) => {
         pose.position = new Position(position.getX(), position.getY(), position.getZ(), world);
-        pose.pitch = pitch;
-        pose.yaw = yaw;
-        pose.headYaw = headYaw;
+        pose.pitch = pitch ?? pose.pitch;
+        pose.yaw = yaw ?? pose.yaw;
+        pose.headYaw = headYaw ?? pose.headYaw;
         await world.broadcastMove(mover);
     },
     setOnGround: async (onGround) => void (pose.onGround = onGround)
@@ -122,8 +124,9 @@ if (packets.length !== 0 || frames.length !== 0) {
 
 await applyClientMovement(server, session, { ...movement, position: new Vector3(125.25, 68, -91.75) });
 await replicator.flushMovement();
-if (packets.length !== 1 || packets[0] !== 'MoveActorAbsolutePacket') {
-    throw new Error(`Changed pose sent ${packets.length} unexpected observer packets: ${packets.join(', ')}`);
+const changedPose = observerPackets();
+if (changedPose.length !== 1 || changedPose[0] !== 'MoveActorAbsolutePacket') {
+    throw new Error(`Changed pose sent ${changedPose.length} unexpected observer packets: ${changedPose.join(', ')}`);
 }
 
 console.log(

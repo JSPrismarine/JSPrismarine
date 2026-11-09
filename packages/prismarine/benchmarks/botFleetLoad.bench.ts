@@ -76,7 +76,7 @@ interface PhaseRecord {
 class BenchmarkConfig extends Config {
     public constructor(
         private readonly terrain: BotFleetTerrain,
-        private readonly maxPlayers: number
+        private readonly playerLimit: number
     ) {
         super();
     }
@@ -102,7 +102,7 @@ class BenchmarkConfig extends Config {
     }
 
     public override getMaxPlayers(): number {
-        return this.maxPlayers;
+        return this.playerLimit;
     }
 
     public override getViewDistance(): number {
@@ -171,7 +171,7 @@ const availableUdpPort = async (): Promise<number> => {
         socket.bind(0, '127.0.0.1', resolve);
     });
     const address = socket.address();
-    await new Promise<void>((resolve, reject) => socket.close((error) => (error ? reject(error) : resolve())));
+    await new Promise<void>((resolve) => socket.close(() => resolve()));
     return address.port;
 };
 

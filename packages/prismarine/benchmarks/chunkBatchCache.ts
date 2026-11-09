@@ -73,7 +73,7 @@ const run = async (viewers: number): Promise<void> => {
     });
     const baselineBefore = performance.eventLoopUtilization();
     let baselineWireBytes = 0;
-    let lastBaselineFrame = Buffer.alloc(0);
+    let lastBaselineFrame: Buffer = Buffer.alloc(0);
     for (let viewer = 0; viewer < viewers; viewer++) {
         const batch = await encodePacketBatchAsync(chunks.map(packetFor), Codec2193, {
             compressionLevel: COMPRESSION_LEVEL

@@ -127,7 +127,7 @@ export const compareBotFleetBaseline = (report: BotFleetLoadReport, baseline: Bo
 
     const phases = report.phases.map(({ name, cpuUsPerTick }) => {
         const baselineUsPerTick = baseline.cpuUsPerTick[name];
-        if (!Number.isFinite(baselineUsPerTick) || baselineUsPerTick <= 0) {
+        if (baselineUsPerTick === undefined || !Number.isFinite(baselineUsPerTick) || baselineUsPerTick <= 0) {
             return {
                 name,
                 baselineUsPerTick: 0,

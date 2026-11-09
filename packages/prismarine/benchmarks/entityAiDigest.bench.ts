@@ -323,11 +323,15 @@ const digestOf = (
     const random = seededRandom(scenario.seed);
     let currentTick = 0;
     const world = digestWorld(random, sounds, scenario.terrain === true, () => currentTick);
-    const players: ContentEntity[] = Array.from({ length: scenario.players }, (_unused, index) => ({
-        id: 100_000 + index,
-        identifier: 'minecraft:player',
-        position: { x: 0, y: FLOOR_Y + 1, z: 0 }
-    }));
+    // The players walk, so their positions are written each tick.
+    const players: (Omit<ContentEntity, 'position'> & { position: ContentPosition })[] = Array.from(
+        { length: scenario.players },
+        (_unused, index) => ({
+            id: 100_000 + index,
+            identifier: 'minecraft:player',
+            position: { x: 0, y: FLOOR_Y + 1, z: 0 }
+        })
+    );
     const host = digestHost(players, drops);
 
     let built: ServerContent | undefined = content;
@@ -362,11 +366,13 @@ const digestOf = (
         if (scenario.terrain === true) {
             world.blocks.set(
                 { x: 6 + (tick % 10), y: FLOOR_Y + 1, z: 6 },
-                { identifier: 'minecraft:stone', states: {} }
+                { identifier: 'minecraft:stone', states: {} },
+                false
             );
             world.blocks.set(
                 { x: 6 + ((tick + 9) % 10), y: FLOOR_Y + 1, z: 6 },
-                { identifier: 'minecraft:air', states: {} }
+                { identifier: 'minecraft:air', states: {} },
+                false
             );
         }
         for (const [index, player] of players.entries()) {

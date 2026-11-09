@@ -240,8 +240,8 @@ const redstoneResults = [false, true].map((indexed) => ({
     runs: Array.from({ length: SAMPLES }, () => measureRedstoneCache(indexed))
 }));
 
-const row = (runs: readonly { readonly [key: string]: number }[], field: string) =>
-    median(runs.map((run) => run[field] ?? 0));
+const row = <T, K extends keyof T>(runs: readonly (T & { readonly [P in K]: number })[], field: K) =>
+    median(runs.map((run) => run[field]));
 for (const scenario of ['allFuture', 'mixed'] as const) {
     const baseline = schedulerResults.find(({ indexed }) => !indexed)![scenario];
     const numeric = schedulerResults.find(({ indexed }) => indexed)![scenario];

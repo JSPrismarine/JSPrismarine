@@ -112,7 +112,7 @@
         "bench:storage-packing": "node benchmarks/run.mjs benchmarks/blockStoragePacking.bench.ts",
         "bench:section-interning": "node benchmarks/run.mjs benchmarks/blockSectionInterning.bench.ts",
         "bench:feature-worker": "node --expose-gc benchmarks/run.mjs benchmarks/featureWorker.bench.ts",
-        "typecheck": "tsc-ts --noEmit && tsc-ts --noEmit -p tsconfig.test.json",
+        "typecheck": "tsc-ts --noEmit && tsc-ts --noEmit -p tsconfig.test.json && tsc-ts --noEmit -p tsconfig.bench.json",
         "prepack": "pnpm run generate"
     },
     "keywords": [

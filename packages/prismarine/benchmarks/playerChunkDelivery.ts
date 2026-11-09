@@ -355,7 +355,7 @@ const runCachedDelivery = async (count: number, depth: number): Promise<void> =>
         .slice(0, count);
     const stone = BlockRuntimeIds.getByName('minecraft:stone');
     const dirt = BlockRuntimeIds.getByName('minecraft:dirt');
-    const cached = new Map<number, { chunk: Chunk; bytes: number }>();
+    const cached = new Map<number, { chunk: Chunk }>();
 
     for (const [x, z] of coordinates) {
         const chunk = new Chunk(x, z, new Map(), Dimensions.Overworld);

@@ -7,6 +7,8 @@ import os from 'node:os';
 
 import type Player from '../src/Player';
 import type Server from '../src/Server';
+import type ClientConnection from '../src/network/ClientConnection';
+import type PlayerSession from '../src/network/PlayerSession';
 import { BlockRuntimeIds } from '../src/block/state/BlockRuntimeIds';
 import { MobSpawner } from '../src/blockentity/BlockEntities';
 import { BlockEntityRegistry } from '../src/blockentity/BlockEntityRegistry';
@@ -79,7 +81,7 @@ const makeWorld = (legacyChunkScan: boolean, output: Output): World => {
         closing: false,
         level: { getTicks: () => 1 },
         server: stub<Server>({ getContent: () => content }),
-        players: new Map<bigint, Player>(),
+        players: new Map<number, Player>(),
         chunks,
         loading: new Map(),
         systems,
@@ -89,6 +91,7 @@ const makeWorld = (legacyChunkScan: boolean, output: Output): World => {
         runBlockUpdates: async () => {},
         touchPortals: async () => {},
         getDragonFight: () => undefined,
+        getRaidManager: () => undefined,
         dataEntities: () => ({ tick: async () => {}, persist: () => {}, unload: () => false }),
         flushEntityAttributes: async () => {},
         updateTracking: async () => {},
@@ -98,8 +101,16 @@ const makeWorld = (legacyChunkScan: boolean, output: Output): World => {
     });
     world = target;
     world['players'].set(
-        1n,
-        stub<Player>({ viewDistance: CHUNK_RADIUS, getPosition: () => new Position(0, 64, 0, world) })
+        1,
+        stub<Player>({
+            viewDistance: CHUNK_RADIUS,
+            isOnline: () => true,
+            getPosition: () => new Position(0, 64, 0, world),
+            getNetworkSession: () =>
+                stub<PlayerSession>({
+                    getConnection: () => stub<ClientConnection>({ flushOutboundPackets: async () => {} })
+                })
+        })
     );
 
     if (legacyChunkScan) {

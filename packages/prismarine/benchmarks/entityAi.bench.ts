@@ -340,11 +340,15 @@ const scenario = (count: number, seed: number) => {
         () => (SENSING_PROFILE || TERRAIN_PROFILE ? currentTick : 0),
         dimension
     );
-    const players: ContentEntity[] = Array.from({ length: PLAYERS }, (_unused, index) => ({
-        id: 100_000 + index,
-        identifier: 'minecraft:player',
-        position: { x: 0, y: FLOOR_Y + 1, z: 0 }
-    }));
+    // The players walk, so their positions are written each tick.
+    const players: (Omit<ContentEntity, 'position'> & { position: ContentPosition })[] = Array.from(
+        { length: PLAYERS },
+        (_unused, index) => ({
+            id: 100_000 + index,
+            identifier: 'minecraft:player',
+            position: { x: 0, y: FLOOR_Y + 1, z: 0 }
+        })
+    );
     /**
      * Walks the players in circles.
      *
@@ -359,11 +363,13 @@ const scenario = (count: number, seed: number) => {
             // One block placed and the last one broken a tick later, so block revisions keep moving.
             world.blocks.set(
                 { x: 6 + (tick % 10), y: FLOOR_Y + 1, z: 6 },
-                { identifier: 'minecraft:stone', states: {} }
+                { identifier: 'minecraft:stone', states: {} },
+                false
             );
             world.blocks.set(
                 { x: 6 + ((tick + 9) % 10), y: FLOOR_Y + 1, z: 6 },
-                { identifier: 'minecraft:air', states: {} }
+                { identifier: 'minecraft:air', states: {} },
+                false
             );
         }
         for (const [index, player] of players.entries()) {
@@ -474,7 +480,8 @@ const scenario = (count: number, seed: number) => {
                     y: Math.floor(entity.position.y),
                     z: Math.floor(entity.position.z)
                 },
-                { identifier: 'minecraft:soul_fire', states: {} }
+                { identifier: 'minecraft:soul_fire', states: {} },
+                false
             );
         }
     }

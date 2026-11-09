@@ -9,6 +9,7 @@ import type { AddressInfo } from 'node:net';
 
 import { ServerTicker } from '../src/modules/ticker';
 import type { TickerServer } from '../src/modules/ticker';
+import { ChunkCompletionQueue } from '../src/world/ChunkCompletionQueue';
 
 const TICK_MS = 50;
 const DEBT_CASES_MS = [250, 1_000] as const;
@@ -62,7 +63,9 @@ const recoverDebt = async (debtMs: number) => {
             }
             completedTick = activeTick;
         },
+        pollNetwork: () => 0,
         getWorlds: () => [],
+        getChunkCompletionQueue: () => new ChunkCompletionQueue(),
         tickFunctions: async () => {
             if (activeTick < recoveryTick) {
                 for (let index = 0; index < 32; index += 1) {

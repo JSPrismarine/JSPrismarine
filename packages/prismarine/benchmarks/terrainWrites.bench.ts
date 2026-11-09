@@ -106,10 +106,10 @@ const runSurface = (useFastSurfacePath: boolean): WriteMeasurement => {
     };
 };
 
-const measureBest = (run: () => Measurement): Measurement => {
+const measureBest = <M extends Measurement>(run: () => M): M => {
     for (let warmup = 0; warmup < 2; warmup++) run();
 
-    let best: Measurement | undefined;
+    let best: M | undefined;
     for (let repetition = 0; repetition < 3; repetition++) {
         const measurement = run();
         if (best === undefined || measurement.milliseconds < best.milliseconds) best = measurement;

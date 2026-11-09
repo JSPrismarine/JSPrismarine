@@ -16,7 +16,6 @@ import CreativeContentPacket from '@jsprismarine/protocol/packet/CreativeContent
 import FeatureRegistryPacket from '@jsprismarine/protocol/packet/FeatureRegistryPacket';
 import ItemRegistryPacket from '@jsprismarine/protocol/packet/ItemRegistryPacket';
 import JigsawStructureDataPacket from '@jsprismarine/protocol/packet/JigsawStructureDataPacket';
-import { createHash } from 'node:crypto';
 
 import { buildServerContent } from '../src/content/ServerContent';
 import type { ServerContent } from '../src/content/ServerContent';
@@ -155,6 +154,7 @@ const measureCandidate = async (
         contentBuild,
         codec,
         variation,
+        PacketCompressionAlgorithm.ZLIB,
         COMPRESSION_LEVEL,
         COMPRESSION_THRESHOLD,
         [packet]
@@ -162,9 +162,15 @@ const measureCandidate = async (
     const cachedBuildMs = performance.now() - cachedStarted;
 
     const hitStarted = performance.now();
-    const hit = await cachedJoinPacketBatch(contentBuild, codec, variation, COMPRESSION_LEVEL, COMPRESSION_THRESHOLD, [
-        candidate.create()
-    ]);
+    const hit = await cachedJoinPacketBatch(
+        contentBuild,
+        codec,
+        variation,
+        PacketCompressionAlgorithm.ZLIB,
+        COMPRESSION_LEVEL,
+        COMPRESSION_THRESHOLD,
+        [candidate.create()]
+    );
     const cacheHitUs = (performance.now() - hitStarted) * 1000;
 
     const fresh = encodePacketBatch([candidate.create()], codec, {
@@ -174,7 +180,7 @@ const measureCandidate = async (
     if (!cached.content.equals(fresh.content) || !hit.content.equals(fresh.content)) {
         throw new Error(`${codec.protocolVersion} ${candidate.name} cached bytes differ from a fresh encode`);
     }
-    if (cached.packets[0]?.getBuffer().byteLength !== rawBytes) {
+    if (cached.packetBuffers[0]?.byteLength !== rawBytes) {
         throw new Error(`${codec.protocolVersion} ${candidate.name} cached raw size changed`);
     }
 

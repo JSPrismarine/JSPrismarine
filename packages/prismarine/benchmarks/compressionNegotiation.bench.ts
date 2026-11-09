@@ -81,7 +81,7 @@ for (const [name, algorithm] of algorithms) {
         roundTripLatencyMs.push(performance.now() - encodeStart);
         encodedBytes += frame.byteLength;
         for (const packet of decoded) digest.update(packet);
-        if (decoded.length !== packets.length || decoded.some((packet, index) => !packet.equals(packets[index]))) {
+        if (decoded.length !== packets.length || decoded.some((packet, index) => !packet.equals(packets[index]!))) {
             throw new Error(`${name} round-trip changed packet bytes or order`);
         }
     }

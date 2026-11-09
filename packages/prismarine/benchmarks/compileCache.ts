@@ -254,7 +254,7 @@ const runServer = async (
     const cwd = runtime === 'tsx' ? serverRoot : builtServerRoot;
     const serverData = join(runDataRoot, `${runtime}-${cache}-${runIndex++}`);
     cpSync(serverTemplate, serverData, { recursive: true });
-    const env = { ...process.env, JSP_DIR: serverData, JSP_NO_TUI: '1', CI: '1' };
+    const env: NodeJS.ProcessEnv = { ...process.env, JSP_DIR: serverData, JSP_NO_TUI: '1', CI: '1' };
     if (compileCache === undefined) delete env.NODE_COMPILE_CACHE;
     else env.NODE_COMPILE_CACHE = compileCache;
 

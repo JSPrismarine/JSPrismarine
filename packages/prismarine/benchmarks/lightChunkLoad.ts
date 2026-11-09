@@ -3,7 +3,7 @@ import { performance } from 'node:perf_hooks';
 
 import { createTestWorld } from '@jsprismarine/engine-systems';
 import { BlockRuntimeIds } from '../src/block/state/BlockRuntimeIds';
-import type { WorldSystemsView } from '../src/world/WorldSystems';
+import type { SystemBlock, WorldSystemsView } from '../src/world/WorldSystems';
 import { WorldSystems } from '../src/world/WorldSystems';
 import { Dimensions } from '../src/world/Dimension';
 
@@ -17,8 +17,8 @@ const coordinates = Array.from({ length: (VIEW_DISTANCE * 2 + 1) ** 2 }, (_unuse
     return { x: (index % width) - VIEW_DISTANCE, z: Math.floor(index / width) - VIEW_DISTANCE };
 });
 const loaded = new Set(coordinates.map(({ x, z }) => `${x},${z}`));
-const AIR = { lightEmission: 0, lightDampening: 0 } as const;
-const STONE = { lightEmission: 0, lightDampening: 15 } as const;
+const AIR: SystemBlock = { name: 'minecraft:air', states: {} };
+const STONE: SystemBlock = { name: 'minecraft:stone', states: {} };
 const STONE_RUNTIME_ID = BlockRuntimeIds.getByName('minecraft:stone');
 
 const measure = (deferred: boolean, paletteHints: boolean) => {

@@ -100,7 +100,7 @@ const measureWorld = (name: string, chunks: readonly Chunk[]) => {
 
     for (const chunk of chunks) chunk.packBlockStorage();
 
-    const indexBuffers = new Set<ArrayBuffer>();
+    const indexBuffers = new Set<ArrayBufferLike>();
     const palettes = new Set<readonly number[]>();
     const paletteMaps = new Set<object>();
     for (const storage of storages) {

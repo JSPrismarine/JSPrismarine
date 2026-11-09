@@ -157,6 +157,7 @@ const createReplayHarness = async (recorder?: InboundPacketRecorder) => {
                 codec: Codec2193,
                 hasCompression: false,
                 phase: 'handshake',
+                decryptFrame: (frame: Buffer) => frame,
                 getPlayerSession: () => null
             }),
         query: { enabled: () => false, onRaw: async () => undefined }
@@ -214,7 +215,7 @@ const recordingSamples: { readonly wallMs: number; readonly cpuMs: number }[] = 
 const replaySamples: { readonly wallMs: number; readonly cpuMs: number }[] = [];
 const dispatcherReplaySamples: { readonly wallMs: number; readonly cpuMs: number }[] = [];
 let trace: InboundPacketTrace | undefined;
-let encodedTrace = Buffer.alloc(0);
+let encodedTrace: Buffer = Buffer.alloc(0);
 let checksums = { decoded: 0, baseline: 0, recording: 0, replay: 0 };
 let recorderLogLines: readonly string[] = [];
 

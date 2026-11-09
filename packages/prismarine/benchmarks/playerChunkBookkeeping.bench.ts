@@ -32,7 +32,7 @@ interface Coverage {
 type CoverageCounts = [simulation: number, retention: number, light: number];
 
 interface PlayerState extends Coverage {
-    id: bigint;
+    id: number;
 }
 
 const percentile50 = (measurements: readonly number[]): number => {
@@ -69,9 +69,9 @@ const sameCoverage = (left: Coverage | undefined, right: Coverage): boolean =>
     left !== undefined && left.x === right.x && left.z === right.z && left.viewDistance === right.viewDistance;
 
 const synchronizeLegacy = (
-    previous: Map<bigint, Coverage>,
+    previous: Map<number, Coverage>,
     counts: Map<number, CoverageCounts>,
-    next: ReadonlyMap<bigint, Coverage>
+    next: ReadonlyMap<number, Coverage>
 ): void => {
     for (const [id, coverage] of next) {
         const old = previous.get(id);
@@ -88,13 +88,13 @@ const synchronizeLegacy = (
     }
 };
 
-const states = new Map<bigint, PlayerState>();
-const players = new Map<bigint, Player>();
+const states = new Map<number, PlayerState>();
+const players = new Map<number, Player>();
 const world = Object.assign(Object.create(World.prototype), { players, chunks: new Map() }) as World;
 
 for (let index = 0; index < PLAYER_COUNT; index++) {
     const state = {
-        id: BigInt(index),
+        id: index,
         x: (index % 5) * 48,
         z: Math.floor(index / 5) * 48,
         viewDistance: VIEW_DISTANCE
@@ -109,13 +109,13 @@ for (let index = 0; index < PLAYER_COUNT; index++) {
     );
 }
 
-const currentCoverage = (): Map<bigint, Coverage> =>
+const currentCoverage = (): Map<number, Coverage> =>
     new Map(Array.from(states, ([id, { x, z, viewDistance }]) => [id, { x, z, viewDistance }]));
 
 const references = world['getPlayerChunkRefCounts']();
 references.synchronize(players);
 const legacyCounts = new Map<number, CoverageCounts>();
-const legacyPlayers = new Map<bigint, Coverage>();
+const legacyPlayers = new Map<number, Coverage>();
 synchronizeLegacy(legacyPlayers, legacyCounts, currentCoverage());
 
 const coverageLegacySamples: number[] = [];
@@ -123,7 +123,7 @@ const coverageIndexedSamples: number[] = [];
 const movePlayers = (tick: number): void => {
     for (const state of states.values()) {
         state.x++;
-        state.z += state.id % 2n === 0n ? 1 : -1;
+        state.z += state.id % 2 === 0 ? 1 : -1;
     }
 
     // Read the tick parameter so benchmark setup and measurement use the same movement pattern.
@@ -179,7 +179,7 @@ let queueDigest = 2166136261;
 const updateQueues = async (tick: number, record: boolean): Promise<void> => {
     for (const state of states.values()) {
         state.x++;
-        state.z += state.id % 2n === 0n ? 1 : -1;
+        state.z += state.id % 2 === 0 ? 1 : -1;
     }
 
     const started = performance.now();

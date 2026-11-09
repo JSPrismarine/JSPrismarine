@@ -87,7 +87,7 @@ const sample = (kind: 'block-writes' | 'random-tick-actions') => {
         if (kind === 'block-writes') actions.setBlock(POSITION, 'minecraft:stone', {}, false);
         else {
             actions.getBlock(POSITION);
-            actions.randomFloat();
+            actions.randomFloat?.();
         }
     }
 
