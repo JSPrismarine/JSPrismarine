@@ -68,14 +68,20 @@ const startServer = async () => {
 };
 
 describe('the generation host outside the server', () => {
-    it('survives a SIGINT meant for the server, which decides when generation stops', async () => {
-        const { hostPid } = await startServer();
+    // Windows has no signal to ignore: Node terminates the target of any `process.kill` there,
+    // and a console Ctrl+C reaches the host through the console, not through this call.
+    it.skipIf(process.platform === 'win32')(
+        'survives a SIGINT meant for the server, which decides when generation stops',
+        async () => {
+            const { hostPid } = await startServer();
 
-        process.kill(hostPid, 'SIGINT');
-        await new Promise((resolve) => setTimeout(resolve, 500));
+            process.kill(hostPid, 'SIGINT');
+            await new Promise((resolve) => setTimeout(resolve, 500));
 
-        expect(alive(hostPid)).toBe(true);
-    }, 60_000);
+            expect(alive(hostPid)).toBe(true);
+        },
+        60_000
+    );
 
     it('exits when the server exits at once, as a second Ctrl+C does', async () => {
         const { parent, hostPid } = await startServer();

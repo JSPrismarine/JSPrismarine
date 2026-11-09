@@ -55,6 +55,24 @@ jobs:
                   token: ${{ secrets.CODECOV_TOKEN }}
                   slug: JSPrismarine/JSPrismarine
 
+    # The generation host is a forked process with a lowered operating system priority, and
+    # forking, priorities and signals differ by platform. Linux runs these in the job above.
+    generation-host:
+        name: 🧵 Generation host (${{ matrix.os }})
+        strategy:
+            fail-fast: false
+            matrix:
+                os: [windows-latest, macos-latest]
+        runs-on: ${{ matrix.os }}
+        steps:
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+            - name: 📦 Install
+              uses: ./.github/common/install
+
+            - name: 🧪 Test
+              run: pnpm --filter @jsprismarine/chunkgen exec vitest run src/HostedGenerationPool.test.ts src/hostLifetime.test.ts src/ConcurrencyGovernor.test.ts
+
     typecheck:
         name: 📃 Typecheck (ubuntu-latest)
         runs-on: ubuntu-latest
