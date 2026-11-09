@@ -22,7 +22,8 @@ jobs:
         concurrency:
             group: nightly-version-${{ github.event.pull_request.number || github.ref }}
             cancel-in-progress: false
-        runs-on: blacksmith-2vcpu-ubuntu-2404
+        # runs-on: blacksmith-2vcpu-ubuntu-2404
+        runs-on: ubuntu-latest
         permissions:
             actions: read
             contents: read
@@ -31,7 +32,8 @@ jobs:
         outputs:
             version: ${{ steps.metadata.outputs.BUILD_VERSION }}
         steps:
-            - uses: useblacksmith/checkout@v1
+            # - uses: useblacksmith/checkout@v1
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
             - name: 🕒 Read workflow start time
               id: start_time
@@ -51,11 +53,13 @@ jobs:
         concurrency:
             group: nightly-data-${{ github.event.pull_request.number || github.ref }}
             cancel-in-progress: false
-        runs-on: blacksmith-2vcpu-ubuntu-2404
+        # runs-on: blacksmith-2vcpu-ubuntu-2404
+        runs-on: ubuntu-latest
         permissions:
             contents: read
         steps:
-            - uses: useblacksmith/checkout@v1
+            # - uses: useblacksmith/checkout@v1
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
             - name: 📦 Install
               uses: ./.github/common/install
@@ -88,17 +92,20 @@ jobs:
         strategy:
             matrix:
                 include:
-                    - runner: blacksmith-2vcpu-ubuntu-2404
+                    # - runner: blacksmith-2vcpu-ubuntu-2404
+                    - runner: ubuntu-latest
                       platform: linux-x64
                       target: bun-linux-x64
                       output: dist/prismarine-linux-x64
                       architecture: ''
-                    - runner: blacksmith-6vcpu-macos-latest
+                    # - runner: blacksmith-6vcpu-macos-latest
+                    - runner: macos-latest
                       platform: macos-arm64
                       target: bun-darwin-arm64
                       output: dist/prismarine-darwin-arm64
                       architecture: arm64
-                    - runner: blacksmith-2vcpu-windows-2025
+                    # - runner: blacksmith-2vcpu-windows-2025
+                    - runner: windows-latest
                       platform: windows-x64
                       target: bun-windows-x64
                       output: dist/prismarine-windows-x64

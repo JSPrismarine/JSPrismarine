@@ -24,7 +24,8 @@ jobs:
     # so master runs them all.
     changes:
         name: Detect code changes
-        runs-on: blacksmith-2vcpu-ubuntu-2404
+        # runs-on: blacksmith-2vcpu-ubuntu-2404
+        runs-on: ubuntu-latest
         permissions:
             actions: read
             contents: read
@@ -34,7 +35,8 @@ jobs:
             passed: ${{ steps.reuse.outputs.passed || '[]' }}
         steps:
             # Pull requests list their files through the API; a push diffs against the previous commit.
-            - uses: useblacksmith/checkout@v1
+            # - uses: useblacksmith/checkout@v1
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
             # A failed lookup reuses nothing, so every job runs.
             - name: Find the jobs the merged pull request passed
@@ -80,7 +82,8 @@ jobs:
         name: 🧪 Tests (shard ${{ matrix.shard }}/4)
         needs: changes
         if: ${{ needs.changes.outputs.code == 'true' }}
-        runs-on: blacksmith-2vcpu-ubuntu-2404
+        # runs-on: blacksmith-2vcpu-ubuntu-2404
+        runs-on: ubuntu-latest
         timeout-minutes: 15
         # GitHub draws a progress bar on a job that names an environment, so each shard shows how
         # far along it is. `unit-tests` is that and nothing more: it holds no secrets, and a
@@ -92,7 +95,8 @@ jobs:
                 shard: [1, 2, 3, 4]
         steps:
             # `--changed` diffs against the merge base, so the history has to reach it.
-            - uses: useblacksmith/checkout@v1
+            # - uses: useblacksmith/checkout@v1
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
               with:
                   fetch-depth: 0
 
@@ -146,7 +150,8 @@ jobs:
         name: 🧪 Tests (ubuntu-latest)
         needs: [changes, tests-shard]
         if: ${{ !cancelled() && needs.changes.outputs.code == 'true' }}
-        runs-on: blacksmith-2vcpu-ubuntu-2404
+        # runs-on: blacksmith-2vcpu-ubuntu-2404
+        runs-on: ubuntu-latest
         timeout-minutes: 15
         permissions:
             contents: read
@@ -155,7 +160,8 @@ jobs:
             # Removing the deployments the shards' progress bars leave behind.
             deployments: write
         steps:
-            - uses: useblacksmith/checkout@v1
+            # - uses: useblacksmith/checkout@v1
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
             - name: 📦 Install
               uses: ./.github/common/install
@@ -231,7 +237,8 @@ jobs:
         strategy:
             fail-fast: false
             matrix:
-                os: [blacksmith-2vcpu-windows-2025, blacksmith-6vcpu-macos-latest]
+                # os: [blacksmith-2vcpu-windows-2025, blacksmith-6vcpu-macos-latest]
+                os: [windows-latest, macos-latest]
         runs-on: ${{ matrix.os }}
         steps:
             - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -251,9 +258,11 @@ jobs:
         name: 📃 Typecheck (ubuntu-latest)
         needs: changes
         if: ${{ needs.changes.outputs.code == 'true' && !contains(fromJSON(needs.changes.outputs.passed), '📃 Typecheck (ubuntu-latest)') }}
-        runs-on: blacksmith-2vcpu-ubuntu-2404
+        # runs-on: blacksmith-2vcpu-ubuntu-2404
+        runs-on: ubuntu-latest
         steps:
-            - uses: useblacksmith/checkout@v1
+            # - uses: useblacksmith/checkout@v1
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
             - name: 📦 Install
               uses: ./.github/common/install
@@ -274,12 +283,14 @@ jobs:
         name: 🗃️ Prepare the real data
         needs: changes
         if: ${{ needs.changes.outputs.code == 'true' }}
-        runs-on: blacksmith-2vcpu-ubuntu-2404
+        # runs-on: blacksmith-2vcpu-ubuntu-2404
+        runs-on: ubuntu-latest
         timeout-minutes: 30
         outputs:
             key: ${{ steps.key.outputs.key }}
         steps:
-            - uses: useblacksmith/checkout@v1
+            # - uses: useblacksmith/checkout@v1
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
             # The Java goldens are in the key: `dump:java` checks them against the jar, so a change
             # to them has to run it again.
@@ -388,7 +399,8 @@ jobs:
     real-data-shard:
         name: 🗃️ Real data (shard ${{ matrix.shard }}/4)
         needs: [changes, real-data-setup]
-        runs-on: blacksmith-2vcpu-ubuntu-2404
+        # runs-on: blacksmith-2vcpu-ubuntu-2404
+        runs-on: ubuntu-latest
         timeout-minutes: 30
         # A progress bar per shard, as `unit-tests` draws for the unit shards. It holds no secrets.
         environment: real-data-tests
@@ -398,7 +410,8 @@ jobs:
                 shard: [1, 2, 3, 4]
         steps:
             # `--changed` diffs against the merge base, so the history has to reach it.
-            - uses: useblacksmith/checkout@v1
+            # - uses: useblacksmith/checkout@v1
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
               with:
                   fetch-depth: 0
 
@@ -451,14 +464,16 @@ jobs:
         name: 🗃️ Real data suites
         needs: [changes, real-data-setup, real-data-shard]
         if: ${{ !cancelled() && needs.changes.outputs.code == 'true' }}
-        runs-on: blacksmith-2vcpu-ubuntu-2404
+        # runs-on: blacksmith-2vcpu-ubuntu-2404
+        runs-on: ubuntu-latest
         timeout-minutes: 15
         permissions:
             contents: read
             # Removing the deployments the shards' progress bars leave behind.
             deployments: write
         steps:
-            - uses: useblacksmith/checkout@v1
+            # - uses: useblacksmith/checkout@v1
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
             - name: 📦 Install
               uses: ./.github/common/install
@@ -517,13 +532,15 @@ jobs:
     parity-dashboard:
         name: 📊 Parity dashboard
         needs: [changes, real-data-setup]
-        runs-on: blacksmith-2vcpu-ubuntu-2404
+        # runs-on: blacksmith-2vcpu-ubuntu-2404
+        runs-on: ubuntu-latest
         timeout-minutes: 45
         permissions:
             contents: read
             pull-requests: write
         steps:
-            - uses: useblacksmith/checkout@v1
+            # - uses: useblacksmith/checkout@v1
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
             - name: 📦 Install
               uses: ./.github/common/install
@@ -551,7 +568,8 @@ jobs:
             - name: Check out the pull request base
               id: parity_base_checkout
               if: ${{ !cancelled() && steps.parity_dashboard.outcome == 'success' && steps.real_data_env.outcome == 'success' && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository }}
-              uses: useblacksmith/checkout@v1
+              # uses: useblacksmith/checkout@v1
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
               with:
                   ref: ${{ github.event.pull_request.base.sha }}
                   path: parity-baseline

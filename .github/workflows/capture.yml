@@ -49,7 +49,8 @@ jobs:
         # The pinned zip is the Linux x86-64 build, so this runner starts it directly. Off that
         # platform the capture falls back to a Linux x86-64 container, which is slower and buys
         # nothing here; `utils/bedrock-dump/runner.ts` prefers native and so never engages it.
-        runs-on: blacksmith-2vcpu-ubuntu-2404
+        # runs-on: blacksmith-2vcpu-ubuntu-2404
+        runs-on: ubuntu-latest
         timeout-minutes: 180
         env:
             # `sources.json` pins a server per protocol version. An empty input means the
@@ -60,7 +61,8 @@ jobs:
             # now produces under `packages/minecraft`.
             CAPTURED_PATHS: 'packages/bedrock-data/src/jsp packages/bedrock-data/pack-hashes.json packages/minecraft/datagen/snapshot'
         steps:
-            - uses: useblacksmith/checkout@v1
+            # - uses: useblacksmith/checkout@v1
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
             - name: 📦 Install
               uses: ./.github/common/install

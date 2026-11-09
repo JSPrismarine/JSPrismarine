@@ -42,7 +42,8 @@ jobs:
     # the same tree, and `reused-coverage` uploads that run's coverage for the push instead.
     changes:
         name: Detect code changes
-        runs-on: blacksmith-2vcpu-ubuntu-2404
+        # runs-on: blacksmith-2vcpu-ubuntu-2404
+        runs-on: ubuntu-latest
         permissions:
             actions: read
             contents: read
@@ -53,7 +54,8 @@ jobs:
             run-id: ${{ steps.reuse.outputs.run-id }}
         steps:
             # Pull requests list their files through the API; a push diffs against the previous commit.
-            - uses: useblacksmith/checkout@v1
+            # - uses: useblacksmith/checkout@v1
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
             # A failed lookup reuses nothing, so every job runs.
             - name: Find the jobs the merged pull request passed
@@ -93,7 +95,8 @@ jobs:
         # Skipping this skips every job after it.
         needs: changes
         if: ${{ needs.changes.outputs.code == 'true' }}
-        runs-on: blacksmith-2vcpu-ubuntu-2404
+        # runs-on: blacksmith-2vcpu-ubuntu-2404
+        runs-on: ubuntu-latest
         permissions:
             # Lists the cache entries to find the client builds that already exist.
             actions: read
@@ -104,7 +107,8 @@ jobs:
             latest: ${{ steps.matrix.outputs.latest }}
             scenarios: ${{ steps.matrix.outputs.scenarios }}
         steps:
-            - uses: useblacksmith/checkout@v1
+            # - uses: useblacksmith/checkout@v1
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
             - name: Set matrix from BDS pins
               id: matrix
@@ -166,7 +170,8 @@ jobs:
             fail-fast: false
             matrix:
                 protocol: ${{ fromJSON(needs.protocol-matrix.outputs.build) }}
-        runs-on: blacksmith-6vcpu-macos-latest
+        # runs-on: blacksmith-6vcpu-macos-latest
+        runs-on: macos-latest
         timeout-minutes: 120
         permissions:
             contents: read
@@ -277,7 +282,8 @@ jobs:
             fail-fast: false
             matrix:
                 protocol: ${{ fromJSON(needs.protocol-matrix.outputs.protocols) }}
-        runs-on: blacksmith-6vcpu-macos-latest
+        # runs-on: blacksmith-6vcpu-macos-latest
+        runs-on: macos-latest
         timeout-minutes: 60
         steps:
             - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -393,7 +399,8 @@ jobs:
         name: ✅ Client E2E
         needs: [changes, protocol-matrix, cinnabar-build, client-e2e]
         if: ${{ always() }}
-        runs-on: blacksmith-2vcpu-ubuntu-2404
+        # runs-on: blacksmith-2vcpu-ubuntu-2404
+        runs-on: ubuntu-latest
         steps:
             - name: Check the client e2e results
               env:
@@ -424,12 +431,14 @@ jobs:
         name: 🦺 Reuse pull request coverage
         needs: changes
         if: ${{ needs.changes.outputs.reused == 'true' }}
-        runs-on: blacksmith-2vcpu-ubuntu-2404
+        # runs-on: blacksmith-2vcpu-ubuntu-2404
+        runs-on: ubuntu-latest
         permissions:
             actions: read
             contents: read
         steps:
-            - uses: useblacksmith/checkout@v1
+            # - uses: useblacksmith/checkout@v1
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
             # An expired artifact leaves Codecov carrying the flag forward, which is no worse than
             # before this job existed.
