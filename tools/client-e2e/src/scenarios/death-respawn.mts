@@ -2,24 +2,7 @@
 import assert from 'node:assert/strict';
 
 import type { Scenario } from '../scenario.mts';
-import { sleep, waitTicks } from '../scenario.mts';
-
-/** Polls for a screen whose name contains `fragment`; returns its full name. */
-const screenContaining = async (
-    client: Parameters<Scenario['run']>[0]['client'],
-    fragment: string
-): Promise<string> => {
-    const deadline = Date.now() + 15_000;
-    for (;;) {
-        const screens = (await client.state()).screens;
-        const found = Array.isArray(screens)
-            ? screens.find((screen): screen is string => typeof screen === 'string' && screen.includes(fragment))
-            : undefined;
-        if (found !== undefined) return found;
-        assert.ok(Date.now() < deadline, `no ${fragment} screen appeared; stack: ${JSON.stringify(screens)}`);
-        await sleep(250);
-    }
-};
+import { screenContaining, sleep, waitTicks } from '../scenario.mts';
 
 export const deathRespawn: Scenario = {
     name: 'death-respawn',

@@ -37,6 +37,7 @@ import { fallDamage } from './scenarios/fall-damage.mts';
 import { title } from './scenarios/title.mts';
 import { blockPlacement } from './scenarios/block-placement.mts';
 import { deathRespawn } from './scenarios/death-respawn.mts';
+import { teleportWhileDead } from './scenarios/teleport-while-dead.mts';
 import { summonEntity } from './scenarios/summon-entity.mts';
 import { leverLamp } from './scenarios/lever-lamp.mts';
 import { attackEntity } from './scenarios/attack-entity.mts';
@@ -76,6 +77,7 @@ const suites: ScenarioSuite[] = [
             leverLamp,
             summonEntity,
             deathRespawn,
+            teleportWhileDead,
             blockPlacement,
             title,
             fallDamage,
