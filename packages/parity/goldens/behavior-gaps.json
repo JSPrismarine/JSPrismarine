@@ -214,11 +214,6 @@
             "kind": "intentional",
             "reason": "Bedrock merges a vine or kelp body into its head block, and both tables drop the same item.",
             "reference": "Java block loot tables, data/minecraft/loot_table/blocks; issue #2914"
-        },
-        "sapling-grows-tree:minecraft:mangrove_propagule": {
-            "kind": "defect",
-            "reason": "A sapling turns into a tree on random ticks once it reaches its second stage. Observed: it never grew into a tree.",
-            "reference": "Java SaplingBlock randomTick and advanceTree; issue #2909"
         }
     },
     "entities.behavior": {

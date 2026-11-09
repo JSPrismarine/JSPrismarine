@@ -242,6 +242,49 @@ describe('saplingFamily', () => {
     });
 });
 
+describe('a mangrove propagule', () => {
+    const planted = (states: Record<string, boolean | number>) => {
+        const harness = bindFamily(saplingFamily, 'minecraft:mangrove_propagule', {
+            world: vegetationSupportWorld()
+        });
+        harness.dimension.set(ground, 'minecraft:muddy_mangrove_roots');
+        harness.dimension.set(plant, 'minecraft:mangrove_propagule', states);
+        return harness;
+    };
+
+    it('grows a mangrove tree on the random tick that draws one in seven, issue #2909', () => {
+        const harness = planted({ hanging: false, propagule_stage: 0 });
+
+        harness.dimension.queueRandom(0.5);
+        harness.randomTick(plant);
+        expect(harness.dimension.identifierAt(plant)).toBe('minecraft:mangrove_propagule');
+
+        harness.dimension.queueRandom(0.1);
+        harness.randomTick(plant);
+        expect(harness.dimension.identifierAt(plant)).toBe('minecraft:mangrove_log');
+        expect(harness.dimension.identifierAt({ x: 1, y: TREE_TRUNK_HEIGHT, z: 1 })).toBe('minecraft:mangrove_leaves');
+    });
+
+    it('grows in the dark, because Java reads no light for it', () => {
+        const harness = planted({ hanging: false, propagule_stage: 0 });
+        harness.dimension.setLight({ x: 0, y: 2, z: 0 }, 0);
+
+        harness.dimension.queueRandom(0);
+        harness.randomTick(plant);
+
+        expect(harness.dimension.identifierAt(plant)).toBe('minecraft:mangrove_log');
+    });
+
+    it('ages one stage on every tick while it hangs, and stops at the last', () => {
+        const harness = planted({ hanging: true, propagule_stage: 0 });
+
+        for (let tick = 0; tick < 6; tick += 1) harness.randomTick(plant);
+
+        expect(harness.dimension.identifierAt(plant)).toBe('minecraft:mangrove_propagule');
+        expect(harness.dimension.stateAt(plant, 'propagule_stage')).toBe(4);
+    });
+});
+
 describe('leavesFamily', () => {
     it('keeps leaves within six blocks of a log and decays the seventh', () => {
         const harness = bindFamily(leavesFamily, 'minecraft:oak_leaves');

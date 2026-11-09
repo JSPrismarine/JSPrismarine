@@ -246,17 +246,37 @@ export const growTree = (world: WorldActions, block: HookBlock, species: string)
     world.notifyNeighbors(block.position);
 };
 
+/** The last `propagule_stage`, Java's `MangrovePropaguleBlock.AGE` at 4, where a hanging propagule stops. */
+const PROPAGULE_FULLY_GROWN = 4;
+
+/**
+ * Java's `MangrovePropaguleBlock.randomTick`, which replaces the sapling's own and reads no light.
+ *
+ * A hanging propagule ages one `propagule_stage` on every random tick until it is fully grown. A
+ * planted one grows a mangrove tree one random tick in seven. Java takes two of those: the first
+ * sets the sapling `stage` to 1 and the second grows the tree. Bedrock has no state to keep that
+ * step in, so the tree grows on the first, which halves the expected time.
+ */
+const tickPropagule = (world: WorldActions, block: HookBlock): void => {
+    if (stateBoolean(block, 'hanging')) {
+        advanceCounter(world, block, 'propagule_stage', PROPAGULE_FULLY_GROWN, 1);
+        return;
+    }
+    if (world.random() >= 1 / 7) return;
+    growTree(world, block, 'mangrove');
+};
+
 /** Saplings and the mangrove propagule. */
 export const saplingFamily = defineFamily(
     'jsprismarine:sapling',
-    'Advances age_bit on a random tick and grows a tree on the next one. The tree shape is provisional until the feature runtime owns it.',
+    'Advances age_bit on a random tick and grows a tree on the next one. A mangrove propagule ages while it hangs and grows a mangrove tree once planted. The tree shape is provisional until the feature runtime owns it.',
     {
         onRandomTick: (event, world) => {
-            if (world.lightLevel(offset(event.block.position, 'up')) < 9) return;
             if (hasState(event.block, 'propagule_stage')) {
-                advanceCounter(world, event.block, 'propagule_stage', 4, 1 / 7);
+                tickPropagule(world, event.block);
                 return;
             }
+            if (world.lightLevel(offset(event.block.position, 'up')) < 9) return;
             if (!stateBoolean(event.block, 'age_bit')) {
                 setStates(world, event.block, { age_bit: true });
                 return;
