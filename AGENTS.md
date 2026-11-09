@@ -18,9 +18,14 @@ When a message asks for an explanation, feasibility assessment, or recommendatio
 
 Use American English spelling in prose and documentation. Do not use British spellings.
 
+Apply the [unslop skill](.agents/skills/unslop/SKILL.md) to all prose you write, including docs,
+commit messages and comments.
+
 ## Before work
 
 - Read [Contributing](CONTRIBUTING.md) for the project's contribution and pull request guidance.
+- Project skills live in `.agents/skills/`. Use a skill when its description matches the task:
+  read its `SKILL.md` and follow its workflow.
 - Run `git status --short` before editing. Preserve staged, unstaged, and untracked work. Do not
   stash, revert, stage, or reformat unrelated changes.
 - Use pnpm and the scripts declared in the root or affected package manifests. Inspect a package's
