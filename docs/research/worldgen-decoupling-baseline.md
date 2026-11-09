@@ -85,3 +85,60 @@ Per-chunk `worker-result` cost read 0.46 ms in the preload and 3.15 ms in the jo
 **What changed.** The fluid scan of a background chunk (`soon` or `idle`) now waits in the completion queue's lanes, behind lighting, instead of running as part of the load. A chunk a player is waiting on still runs it in place. A test covers both. Output is unchanged: `bench:chunks` with six workers on the `stages` arm produced the identical output digest before and after (`37b61888…bf1a`).
 
 **What did not change, and the acceptance result.** The plan asks for each moved piece to drop off the server thread and the main-thread cost per completed chunk to fall. In the measured scenario it did not: every chunk was `immediate`, so the fluid scan still ran in place at 0.61 ms, and the 165-chunk totals before and after agree within noise (fluids 0.62 and 0.61 ms; `worker-result` 3.23 and 3.15 ms). The deferral bounds the burst a background preload adds, which I did not measure. The two largest pieces, translation and lighting, stay on the thread because moving them is a redesign of what a worker returns and what runs where, and I did not get to it. No client-e2e run was made for this change. Slice 1's target is therefore **not met**.
+
+## Slice 2: the generation host process
+
+`chunk-host: process` runs the stage workers in a forked generation host at a lowered priority. The default stays `in-process`, for the reasons under "Deviations" below.
+
+**Identical output across transports.** `bench:chunks` with six workers, 64 chunks, seed 1234, the real pipeline and registries: the `stages` arm (threads in the server process) and the `stages-host` arm (workers in the host) both produced output digest `37b61888638f…`. The same digest as before slice 1's change. The unit tests also compare bytes through both transports over a grid of chunks in two different orders.
+
+**Throughput and server CPU.** Same command, three samples each, load average at start 2.5 for threads and 5.3 for the host, so the comparison is confounded by load.
+
+| Arm | Chunks per second (p50 run) | Chunks per worker CPU-second | Server process CPU per 64-chunk run |
+| --- | --- | --- | --- |
+| `stages`, threads | 25.5 | 5.64, 5.78, 5.66 | 17.5 to 18.1 s, workers included |
+| `stages-host` | 23.7 | 6.10, 5.64, 5.64 | 0.83 to 0.93 s |
+
+The server process's CPU falls from about 18 s to under 1 s because the workers moved out of it. The 0.9 s that remains is receiving results, translating them and the harness, about 14 ms per chunk. The 7% lower throughput with the host is inside what the load difference could explain.
+
+**Cost of the pipe hop.** A one-worker pool returning a buffer of the given size, 300 tasks after 20 warmup tasks, load average 6.1:
+
+| Payload | In process, wall per task | Host, wall per task | Host, server CPU per task |
+| --- | --- | --- | --- |
+| 1 KiB | 0.047 ms | 0.095 ms | 0.027 ms |
+| 192 KiB | 0.101 ms | 0.287 ms | 0.215 ms |
+| 1 MiB | 0.235 ms | 0.792 ms | 0.702 ms |
+
+At the size of a column the hop adds about 0.19 ms of wall time and about 0.2 ms of server CPU per task. The in-process CPU column is not comparable because it includes the worker thread's work.
+
+**Tick cost of generation with the host**, same preload as above, two runs on separate builds (the second with the governor driver running):
+
+| Run | Load average at arm start | Tick p99 difference | Lateness p99 held back | Lateness p99 full speed |
+| --- | --- | --- | --- | --- |
+| Host | 3.99 | -1.64 ms | 92 ms | 253 ms |
+| Host, governor wired | 4.53 | -2.37 ms | 67 ms | 256 ms |
+| Threads | 3.41 | -1.57 ms | 75 ms | 299 ms |
+
+These do not separate the host from threads. Lateness rose by about 160 to 225 ms in each. A lowered priority on a machine with six performance cores for six workers, a main thread and some other sessions does not change what delays the event loop here, which is work on the main thread and not competition for a core.
+
+**Checked.**
+
+- The host's priority reads as lowered on macOS: `os.getPriority(pid)` is above zero in the test and the server's own stays at zero.
+- A host killed with SIGKILL in the middle of a 400 ms task is replaced and the task returns the same bytes.
+- A host entry that exits at startup falls back to the in-process pool and reports why.
+- `destroy` leaves no process behind (`process.kill(pid, 0)` throws).
+- `cancel` drops a waiting task with the `GenerationCanceledError` class intact, and a held task is dropped without asking the host.
+
+**Not checked.** The host's priority on Linux and Windows. A second Ctrl+C during a preload exiting: the host ignores SIGINT and exits when its channel closes, but I did not run it. A client joining through the client-e2e skill with `chunk-host: process`. A compiled single-file executable, which cannot start the host role yet and keeps the in-process pool.
+
+**Deviations from the plan.** `chunk-host` defaults to `in-process` where the plan has the server pick the host when it can, because nothing here ran an end-to-end client against it. The host runs the stage pool, which is the path the server uses, and not the sharded whole-chunk pool. The `workerHeapStats` and `workerStartupStats` benchmark buffers are shared memory and do not reach the host.
+
+## Slice 3: the concurrency governor
+
+`ConcurrencyGovernor` starts at half the workers, rises by one after each calm second, and halves when a tick starts more than 25 ms late or the control group was throttled since the last reading, with a two second hold-off before it rises again. `immediate` tasks never count against it. `GenerationGovernorDriver` feeds it every tick from the tick recorder and reads the throttle counter once a second. The server runs it when `chunk-host` is `process`.
+
+**Checked.** Unit tests drive the controller and the driver with a fake clock through a calm period, a burst of late ticks and a recovery, assert the active count, and assert that the pool never limits `immediate` tasks or holds them. The parsers have tests for both layouts.
+
+**The control group layout, read from the kernel documentation on 2026-11-09.** In the [cgroup v2 document](https://docs.kernel.org/admin-guide/cgroup-v2.html), `cpu.stat` is a flat keyed file of `KEY VALUE` lines whose durations are in microseconds. It always has `usage_usec`, `user_usec` and `system_usec`, and with the controller enabled also `nr_periods`, `nr_throttled`, `throttled_usec`, `nr_bursts` and `burst_usec`. Those five are non-hierarchical: they count throttling from the group's own limit and not from an ancestor's, and `cpu.stat.local` has the throttling a group's runqueues actually saw. `cpu.max` is `$MAX $PERIOD`, `max` for no limit, default `max 100000`. A process's version 2 group is the `0::$PATH` line of `/proc/$PID/cgroup`. The [bandwidth control document](https://docs.kernel.org/scheduler/sched-bwc.html) gives the version 1 `cpu.stat` fields `nr_periods`, `nr_throttled` and `throttled_time`, in nanoseconds. The sampler reads `nr_throttled` for both.
+
+**Could not verify.** Anything on Linux: this machine runs macOS, so the sampler returned nothing and the throttle path ran only against fake files. The documented ancestor caveat means a process inside a nested group whose ancestor holds the quota would not see its counter rise, and the code does not read `cpu.stat.local` or walk up to the ancestor. The tick-isolation run in a container with a quota at half the machine was not made: the Docker daemon was not running. With the governor wired I could not see it act in the preload run, because the benchmark does not report the limit; the preload ran all 289 chunks in every arm.
