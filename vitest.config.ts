@@ -1,7 +1,7 @@
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { defineConfig } from 'vitest/config';
+import { configDefaults, defineConfig } from 'vitest/config';
 
 const reporters = ['verbose'];
 const extraReporters = !process.env.GITHUB_ACTIONS ? [] : ['github-actions', 'junit'];
@@ -64,6 +64,24 @@ export default defineConfig({
         maxConcurrency: 8,
         maxWorkers: 4,
         passWithNoTests: true,
+        // `--changed` runs only the suites whose import graph reaches a changed file, and a match
+        // on any of these runs every suite instead. They are inputs the suites read from disk or
+        // that change how everything runs, so no import graph leads to them. The docs pages are
+        // the ones the parity conformance suites check against the code.
+        forceRerunTriggers: [
+            ...configDefaults.forceRerunTriggers,
+            '**/pnpm-lock.yaml',
+            '**/pnpm-workspace.yaml',
+            '**/tsconfig*.json',
+            '**/.test/**',
+            '**/packages/bedrock-data/sources.json',
+            '**/packages/bedrock-data/pack-hashes.json',
+            '**/packages/bedrock-data/src/generated/**',
+            '**/packages/bedrock-data/src/jsp/**',
+            '**/docs/data-driven/parity.md',
+            '**/docs/plans/data-driven-vanilla.md',
+            '**/docs/research/edition-behavior-differences.md'
+        ],
         silent: false,
         globals: true,
         // Each file gets a fresh process. Sharing a worker across files let one file's leftovers
