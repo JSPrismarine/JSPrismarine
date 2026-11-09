@@ -51,7 +51,8 @@ export class JavaHashSet implements Iterable<BlockPos> {
 
     /** Iterates in Java's bucket order: table slot ascending, insertion order inside a slot. */
     public *[Symbol.iterator](): Generator<BlockPos> {
-        const buckets: BlockPos[][] = Array.from({ length: this.capacity }, () => []);
+        const buckets: BlockPos[][] = [];
+        for (let slot = 0; slot < this.capacity; slot += 1) buckets.push([]);
         for (const entry of this.inserted) buckets[entry.hash & (this.capacity - 1)]?.push(entry.value);
         for (const slot of buckets) yield* slot;
     }

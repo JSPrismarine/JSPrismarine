@@ -29,6 +29,7 @@ import { Behavior, conditions } from '../behavior/control.js';
 import { GateBehavior } from '../behavior/gate.js';
 import { MemoryModuleTypes } from '../memory.js';
 import type { BrainMobDefinition } from '../registry.js';
+import type { Sensor } from '../sensing/sensor.js';
 import {
     AdultSensor,
     HurtBySensor,
@@ -249,7 +250,7 @@ export function nautilusActivities(): readonly ActivityData[] {
     ];
 }
 
-const nautilusSensors = () => [
+const nautilusSensors = (): Sensor[] => [
     new NearestLivingEntitySensor(),
     new AdultSensor(),
     new PlayerSensor(),

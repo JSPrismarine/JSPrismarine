@@ -74,10 +74,12 @@ export class RandomState {
 
         const parameters = this.data.noise(id);
         const legacyOffset = LEGACY_NETHER_NOISES.get(id);
-        const created =
-            legacyOffset === undefined
-                ? parameters.create(this.random.fromHashOf(id))
-                : parameters.createForLegacyNetherBiome(new LegacyRandomSource(this.seed + legacyOffset));
+        if (legacyOffset === undefined) {
+            const hashed = parameters.create(this.random.fromHashOf(id));
+            this.noiseInstances.set(id, hashed);
+            return hashed;
+        }
+        const created = parameters.createForLegacyNetherBiome(new LegacyRandomSource(this.seed + legacyOffset));
         this.noiseInstances.set(id, created);
         return created;
     }

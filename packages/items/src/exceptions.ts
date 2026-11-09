@@ -166,4 +166,6 @@ export const ITEM_TABLE_EXCEPTIONS = [
 ] as const satisfies readonly ItemTableException[];
 
 /** Every Java item id the exception list covers, flattened. */
-export const EXCEPTED_JAVA_ITEMS: readonly string[] = ITEM_TABLE_EXCEPTIONS.flatMap((exception) => exception.javaIds);
+export const EXCEPTED_JAVA_ITEMS: readonly string[] = ITEM_TABLE_EXCEPTIONS.flatMap(
+    (exception): readonly string[] => exception.javaIds
+);

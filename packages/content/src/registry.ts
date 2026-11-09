@@ -71,8 +71,8 @@ class RegistryHolder<T> implements Holder<T> {
  * {@link Registry.rebuild}, which replaces the contents whole.
  */
 export class Registry<T> implements Iterable<readonly [string, T]> {
-    private keyList: readonly string[] = Object.freeze([]);
-    private valueList: readonly T[] = Object.freeze([]);
+    private keyList: readonly string[] = Object.freeze<string[]>([]);
+    private valueList: readonly T[] = Object.freeze<T[]>([]);
     private ids = new Map<string, number>();
     private readonly holders = new Map<string, RegistryHolder<T>>();
     private builds = 0;
