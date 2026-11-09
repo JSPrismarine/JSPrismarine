@@ -745,7 +745,9 @@ const liveWorld = (
         getWorldManager: () =>
             stub<WorldManager>({
                 getDefaultWorld: () => world,
-                getWorldByDimension: (dimension) => (dimension === Dimensions.Overworld.id ? world : undefined)
+                getWorldByDimension: (dimension) => (dimension === Dimensions.Overworld.id ? world : undefined),
+                // What `/summon` resolves its dimension through; the one world is already running.
+                startWorld: (dimension) => (dimension === Dimensions.Overworld.id ? world : undefined)
             }),
         getContent: () => content
     });
