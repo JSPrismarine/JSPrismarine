@@ -511,6 +511,7 @@ const runSuite = async (suite: ScenarioSuite, index: number): Promise<ScenarioRe
                 results.push({ name: scenario.name, ok: false, note });
         }
     } finally {
+        client?.keepLog(path.join(artifacts, `${suite.name}.client.log`));
         await client?.close().catch((error: unknown) => {
             console.warn(`${suite.name}: client cleanup failed: ${String(error)}`);
         });

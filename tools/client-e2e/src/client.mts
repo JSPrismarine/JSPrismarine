@@ -110,13 +110,18 @@ export class CinnabarClient {
             fs.mkdirSync(path.dirname(settings), { recursive: true });
             fs.writeFileSync(settings, `${JSON.stringify({ schema: 2, values: lightweightSettings }, null, 4)}\n`);
         }
-        await this.call('launch_client', {
+        const launched = await this.call('launch_client', {
             binary: options.clientBinary,
             headless: true,
             size: options.size ?? [1280, 720],
             args: ['--display-name', options.displayName ?? 'jsp-e2e'],
             env: { CINNABAR_USER_ROOT: path.resolve(options.userRoot) }
         });
+        // `JSP_E2E_CLIENT_LOG=world=debug` makes the client log what a dimension change waits for;
+        // the runner keeps the client's logs with the suite's artifacts.
+        if (typeof launched.log === 'string') this.logFile = launched.log;
+        const logFilter = process.env.JSP_E2E_CLIENT_LOG;
+        if (logFilter !== undefined && logFilter !== '') await this.call('log_filter_set', { spec: logFilter });
     }
 
     /** Joins a loopback server. The controller refuses non-loopback addresses by design. */
@@ -233,6 +238,16 @@ export class CinnabarClient {
     /** Stops the recording and waits for the encode; returns the controller's summary. */
     recordStop(): Promise<Record<string, unknown>> {
         return this.call('record_stop');
+    }
+
+    /** Where the controller writes the launched client's output, once a client has launched. */
+    private logFile: string | undefined;
+
+    /** Copies the client's log to `destination`, so it outlives the controller's directory. */
+    keepLog(destination: string): void {
+        if (this.logFile === undefined || !fs.existsSync(this.logFile)) return;
+        fs.mkdirSync(path.dirname(destination), { recursive: true });
+        fs.copyFileSync(this.logFile, destination);
     }
 
     /** Asks the client to exit and releases the controller session. */
