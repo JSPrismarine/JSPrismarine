@@ -12,7 +12,14 @@ import ParityBars from './components/ParityBars.vue';
 import PrismMark from './components/PrismMark.vue';
 import TerminalWindow from './components/TerminalWindow.vue';
 import Ticker from './components/Ticker.vue';
-import { buildAudiences, featuredPackageNames, minecraftRange, requirePackages, tickerItems } from './landing';
+import {
+    buildAudiences,
+    exampleExecutable,
+    featuredPackageNames,
+    minecraftRange,
+    requirePackages,
+    tickerItems
+} from './landing';
 
 const audiences = buildAudiences(project);
 const latest = project.protocols[0];
@@ -31,12 +38,12 @@ const featured = requirePackages(project, featuredPackageNames);
                 when Bedrock moves.
             </p>
             <div class="landing__cta">
-                <BrandButton href="/guide/running">Run a server</BrandButton>
+                <BrandButton href="/guide/running#run-the-prebuilt-server">Run a server</BrandButton>
                 <BrandButton href="/guide/" variant="outline">Read the docs</BrandButton>
             </div>
             <div class="landing__stage">
                 <TerminalWindow>
-                    <span class="t-line"><span class="t-prompt">$</span> pnpm run start</span>
+                    <span class="t-line"><span class="t-prompt">$</span> ./{{ exampleExecutable(project) }}</span>
                     <span class="t-line"
                         ><span class="t-ok">[info]</span> Starting JSPrismarine server version v{{
                             project.version
@@ -69,8 +76,9 @@ const featured = requirePackages(project, featuredPackageNames);
             <BentoTile tone="accent">
                 <div class="bento-figure">1</div>
                 <p class="bento-caption">
-                    <b>Executable</b><code>pnpm run package</code> builds <code>dist/prismarine</code>, a Node single
-                    executable.
+                    <b>Executable</b>One file for Linux, macOS or Windows, with its runtime and data inside. Each
+                    release ships {{ project.executables.length }} builds.
+                    <a :href="project.releasesUrl">Download</a>
                 </p>
             </BentoTile>
             <BentoTile tone="signal">
@@ -251,7 +259,11 @@ const featured = requirePackages(project, featuredPackageNames);
 }
 
 .landing :deep(.bento-caption a) {
-    color: var(--jsp-accent);
+    font-weight: 800;
+    color: inherit;
+    text-decoration: underline;
+    text-decoration-thickness: 2px;
+    text-underline-offset: 3px;
 }
 
 @media (max-width: 760px) {

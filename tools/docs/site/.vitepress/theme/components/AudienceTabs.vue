@@ -70,7 +70,11 @@ function onKeydown(event: KeyboardEvent) {
                 <CopyButton v-if="audience.copyable" class="audience-tabs__copy" :text="audience.code" />
             </div>
             <div class="audience-tabs__links">
-                <a v-for="link in audience.links" :key="link.href" :href="withBase(link.href)">
+                <a
+                    v-for="link in audience.links"
+                    :key="link.href"
+                    :href="/^[a-z]+:/i.test(link.href) ? link.href : withBase(link.href)"
+                >
                     {{ link.text }}<span>{{ link.hint }}</span>
                 </a>
             </div>

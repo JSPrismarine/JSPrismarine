@@ -30,6 +30,14 @@ export function minecraftRange(project: ProjectData) {
     return oldest === newest ? oldest : `${oldest} to ${newest}`;
 }
 
+/** The executable the landing page shows in commands: the first Linux build the release ships. */
+export function exampleExecutable(project: ProjectData) {
+    const executable = project.executables.find(({ os }) => os === 'linux');
+    if (!executable)
+        throw new Error('The release build no longer ships a Linux executable for the landing page to show.');
+    return executable.file;
+}
+
 /** One entry per audience the site serves; the brand page lists the same four. */
 export function buildAudiences(project: ProjectData): Audience[] {
     const [molang, packs] = requirePackages(project, ['@jsprismarine/molang', '@jsprismarine/packs']);
@@ -53,21 +61,21 @@ export function buildAudiences(project: ProjectData): Audience[] {
             id: 'host',
             tab: 'I host',
             title: 'One file. Any box.',
-            pitch: `Package the server as a single executable, or run it from source with Node ${project.engines.node} and pnpm ${project.engines.pnpm}.`,
-            code: 'pnpm install\npnpm run package\n./dist/prismarine',
+            pitch: `Download the prebuilt server for Linux, macOS or Windows and run it. Its runtime and data are inside, so there is no Node.js, pnpm or Java to install.`,
+            code: `chmod +x ${exampleExecutable(project)}\n./${exampleExecutable(project)}`,
             copyable: true,
             links: [
-                { text: 'Running', hint: 'prerequisites and console', href: '/guide/running' },
-                { text: 'Log levels', hint: 'what each level prints', href: '/guide/log-levels' },
-                { text: 'Versioning', hint: 'how releases work', href: '/guide/versioning' }
+                { text: 'Download', hint: `${project.executables.length} builds on GitHub`, href: project.releasesUrl },
+                { text: 'Running', hint: 'first start and updates', href: '/guide/running#run-the-prebuilt-server' },
+                { text: 'Log levels', hint: 'what each level prints', href: '/guide/log-levels' }
             ]
         },
         {
             id: 'build',
             tab: 'I build add-ons',
             title: 'Data first. Code second.',
-            pitch: 'Entities, blocks and commands come from packs. Write code only for what data cannot say.',
-            code: `pnpm add ${molang.name} ${packs.name}`,
+            pitch: 'Entities, blocks and commands come from packs. Write code only for what data cannot say. Run your work with pnpm run dev, which restarts the server when your code or pack data changes.',
+            code: `# in a JSPrismarine checkout\npnpm install\npnpm run dev\n\n# or take the pieces into your own project\npnpm add ${molang.name} ${packs.name}`,
             copyable: true,
             links: [
                 { text: 'Using packs', hint: 'formats and load order', href: '/data-driven/using-packs' },

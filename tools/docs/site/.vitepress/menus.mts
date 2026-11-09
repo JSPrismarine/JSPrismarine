@@ -8,18 +8,22 @@ export const megaMenus = [
         description: 'Run, configure and operate a server.',
         featured: {
             text: 'Run a server',
-            description: 'Start from source and restart on every change.',
-            command: 'pnpm run dev',
-            link: '/guide/running'
+            description: 'Download the prebuilt server and start it. Nothing else to install.',
+            link: '/guide/running#run-the-prebuilt-server'
         },
         sections: [
             {
                 text: 'Operate',
                 items: [
                     {
-                        text: 'Running JSPrismarine',
-                        description: 'Prerequisites, configuration and console.',
-                        link: '/guide/running'
+                        text: 'Run the prebuilt server',
+                        description: 'Download, first start and updates.',
+                        link: '/guide/running#run-the-prebuilt-server'
+                    },
+                    {
+                        text: 'Run from source',
+                        description: 'pnpm run dev, for add-ons, plugins and the server.',
+                        link: '/guide/running#run-from-source'
                     },
                     {
                         text: 'Log levels',
