@@ -83,37 +83,53 @@ export const respawnPoint = (spawn: Vector3, eyeHeight: number) => {
 };
 
 /**
+ * How far in from a body's edge a block still counts as overlapped, so a body resting exactly on a
+ * block boundary does not take the block beyond it, as Java's `Entity.checkInsideBlocks` shrinks.
+ */
+const BODY_SHRINK = 1e-6;
+
+/** The size of a body: centered on its position and extending up from the feet. */
+export interface BodyBox {
+    readonly width: number;
+    readonly height: number;
+}
+
+/**
  * The feet height a respawn can stand at: the spawn's own, raised until the body fits.
  *
- * The respawn exchange puts the player over a block's corner, so the body covers the four
- * columns around it, not one. The stored height is where a Bedrock Dedicated Server's spawn
- * stood, and it can be the ground itself on a world whose spawn was written as the top block, so
- * a column that is solid at the feet or the head moves the player up to the first height where
- * all four are free, as {@link placePlayerSpawn} does for a join. A spot already free is kept.
+ * The body is the one the player has, not a fixed size: its width says which columns it covers
+ * around the block corner the respawn exchange stands it over, and its height says how many
+ * blocks it fills above the feet. A stored height can be the ground itself on a world whose
+ * spawn was written as the top block, so a block in the way moves the player up to the first
+ * height where nothing is. A spot already free is kept.
  * @param spawn - the spawn, in block coordinates.
  * @param terrain - what to ask about the blocks around it.
+ * @param box - the body that has to fit, from the player's own entity.
  */
 export const clearRespawnFeet = async (
     spawn: Vector3,
-    terrain: Pick<SpawnTerrain, 'maxY' | 'isObstructed'>
+    terrain: Pick<SpawnTerrain, 'maxY' | 'isObstructed'>,
+    box: BodyBox
 ): Promise<number> => {
     const x = Math.floor(spawn.getX());
     const z = Math.floor(spawn.getZ());
-    let feet = Math.floor(spawn.getY());
+    const half = Math.max(box.width / 2 - BODY_SHRINK, 0);
+    const [minX, maxX] = [Math.floor(x - half), Math.floor(x + half)];
+    const [minZ, maxZ] = [Math.floor(z - half), Math.floor(z + half)];
 
-    const blocked = async (y: number): Promise<boolean> => {
-        for (const [dx, dz] of [
-            [-1, -1],
-            [-1, 0],
-            [0, -1],
-            [0, 0]
-        ] as const) {
-            if ((await terrain.isObstructed(x + dx, y, z + dz)) || (await terrain.isObstructed(x + dx, y + 1, z + dz)))
-                return true;
+    const blocked = async (feet: number): Promise<boolean> => {
+        const top = Math.floor(feet + Math.max(box.height - BODY_SHRINK, BODY_SHRINK));
+        for (let y = feet; y <= top; y++) {
+            for (let cx = minX; cx <= maxX; cx++) {
+                for (let cz = minZ; cz <= maxZ; cz++) {
+                    if (await terrain.isObstructed(cx, y, cz)) return true;
+                }
+            }
         }
         return false;
     };
 
+    let feet = Math.floor(spawn.getY());
     while (feet < terrain.maxY && (await blocked(feet))) feet++;
     return feet;
 };

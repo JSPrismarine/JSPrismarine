@@ -22,7 +22,7 @@ import {
     VOID_DEPTH,
     VOID_INTERVAL
 } from './entity/Environment';
-import Human, { EYE_HEIGHT, eyePositionAt } from './entity/Human';
+import Human, { eyePositionAt } from './entity/Human';
 import { FlagType, MAX_AIR_TICKS, MetadataFlag } from '@jsprismarine/protocol/wire/structures/Metadata';
 import ChatEvent from './events/chat/ChatEvent';
 import PlayerSetGamemodeEvent from './events/player/PlayerSetGamemodeEvent';
@@ -1060,22 +1060,30 @@ export default class Player extends Human {
      * @see {@link respawnPoint} for the three positions the exchange needs.
      */
     public async getRespawnPoint(): Promise<RespawnDestination> {
+        // A point a bed, an anchor or `/spawnpoint` set is already resolved to where a body
+        // stands: free of blocks, or forced where it was put.
         const own = await this.resolveOwnSpawn();
-        if (own !== undefined) return { world: own.world, ...respawnPoint(own.position, EYE_HEIGHT) };
+        if (own !== undefined) return { world: own.world, ...respawnPoint(own.position, this.getEyeHeight()) };
 
-        // The world spawn is raised out of any block it overlaps: it is the ground on a world whose
-        // spawn was stored as the top block, and the respawn stands the body over a corner.
-        const overworld = this.server.getWorldManager().getDefaultWorld();
-        const spawn = await overworld.getSpawnPosition();
-        const { minY, height } = overworld.getDimension();
-        const feet = await clearRespawnFeet(spawn, {
-            maxY: minY + height,
-            // Air is the common answer, and settles it without building the block.
-            isObstructed: async (x, y, z) =>
-                (await overworld.getBlockState(x, y, z)).name !== 'minecraft:air' &&
-                (await overworld.getBlock(x, y, z)).isSolid()
-        });
-        return { world: overworld, ...respawnPoint(new Vector3(spawn.getX(), feet, spawn.getZ()), EYE_HEIGHT) };
+        // The world spawn is only a block, and the ground on a world that stored it as the top
+        // block, so it is raised out of whatever this player's body overlaps there: the body is
+        // theirs, and so is how far the eyes sit above the feet.
+        const world = this.server.getWorldManager().getDefaultWorld();
+        const spawn = await world.getSpawnPosition();
+        const { minY, height } = world.getDimension();
+        const feet = await clearRespawnFeet(
+            spawn,
+            {
+                maxY: minY + height,
+                // Air is the common answer, and settles it without building the block.
+                isObstructed: async (x, y, z) =>
+                    (await world.getBlockState(x, y, z)).name !== 'minecraft:air' &&
+                    (await world.getBlock(x, y, z)).isSolid()
+            },
+            this.getBox()
+        );
+
+        return { world, ...respawnPoint(new Vector3(spawn.getX(), feet, spawn.getZ()), this.getEyeHeight()) };
     }
 
     /**

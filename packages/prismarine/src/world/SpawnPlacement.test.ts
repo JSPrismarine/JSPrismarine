@@ -134,6 +134,7 @@ describe('placing a player at the world spawn', () => {
 });
 
 describe('clearing a respawn out of the blocks around it', () => {
+    const PLAYER = { width: 0.6, height: 1.8 };
     const solidAt = (blocks: ReadonlyArray<readonly [number, number, number]>) => ({
         maxY: 320,
         isObstructed: async (x: number, y: number, z: number) =>
@@ -141,20 +142,34 @@ describe('clearing a respawn out of the blocks around it', () => {
     });
 
     it('keeps a spawn whose body already fits', async () => {
-        expect(await clearRespawnFeet(new Vector3(5, 63, -6), solidAt([]))).toBe(63);
+        expect(await clearRespawnFeet(new Vector3(5, 63, -6), solidAt([]), PLAYER)).toBe(63);
     });
 
     it('raises a spawn stored as the ground block to the first free height', async () => {
         const ground = [[5, 63, -6]] as const;
-        expect(await clearRespawnFeet(new Vector3(5, 63, -6), solidAt(ground))).toBe(64);
+        expect(await clearRespawnFeet(new Vector3(5, 63, -6), solidAt(ground), PLAYER)).toBe(64);
     });
 
-    it('counts the four columns a body over a block corner covers', async () => {
+    it('counts the columns the body covers around a block corner', async () => {
         // The corner at (5, -6) overlaps columns 4..5 by -7..-6; the hill is in (4, -7).
         const hill = [
             [4, 64, -7],
             [4, 65, -7]
         ] as const;
-        expect(await clearRespawnFeet(new Vector3(5, 64, -6), solidAt(hill))).toBe(66);
+        expect(await clearRespawnFeet(new Vector3(5, 64, -6), solidAt(hill), PLAYER)).toBe(66);
+    });
+
+    it('fits a taller body under a ceiling a player clears', async () => {
+        const ceiling = [[5, 66, -6]] as const;
+        expect(await clearRespawnFeet(new Vector3(5, 64, -6), solidAt(ceiling), PLAYER)).toBe(64);
+        // A body 2.5 blocks tall fills y 64, 65 and 66, so it needs the height above the ceiling's reach.
+        expect(await clearRespawnFeet(new Vector3(5, 64, -6), solidAt(ceiling), { width: 0.6, height: 2.5 })).toBe(67);
+    });
+
+    it('leaves a narrow body out of a neighboring column a wide one overlaps', async () => {
+        const next = [[4, 64, -6]] as const;
+        // A 0.6 wide body over the corner touches column 4; a hair-thin one does not.
+        expect(await clearRespawnFeet(new Vector3(5, 64, -6), solidAt(next), PLAYER)).toBe(65);
+        expect(await clearRespawnFeet(new Vector3(5, 64, -6), solidAt(next), { width: 0, height: 1.8 })).toBe(64);
     });
 });

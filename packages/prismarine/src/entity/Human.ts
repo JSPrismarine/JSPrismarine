@@ -56,7 +56,15 @@ export default class Human extends Entity {
      * them at all. Every cow, sheep, chicken and spider was, geometrically, underfoot.
      */
     public override getFeetY(): number {
-        return this.position.getY() - EYE_HEIGHT;
+        return this.position.getY() - this.getEyeHeight();
+    }
+
+    /**
+     * How far above the feet the position this human reports is.
+     * @returns The eye height, in blocks; one place to change when a human is not the default size.
+     */
+    public getEyeHeight(): number {
+        return EYE_HEIGHT;
     }
 
     /**
