@@ -146,4 +146,53 @@ describe('GenerationQueue', () => {
         await Promise.all([first, second]);
         expect(secondStarted).toBe(true);
     });
+
+    it('admits the most urgent waiting request first, and the oldest inside a band', async () => {
+        const queue = new GenerationQueue(1);
+        const gate = deferred();
+        const order: string[] = [];
+        const ask = async (name: string, x: number, priority: 'immediate' | 'soon' | 'idle') =>
+            queue.run(
+                x,
+                0,
+                async () => {
+                    order.push(name);
+                },
+                priority
+            );
+
+        const running = queue.run(0, 0, async () => gate.promise);
+        const requests = [
+            ask('idle-1', 1, 'idle'),
+            ask('soon-1', 2, 'soon'),
+            ask('idle-2', 3, 'idle'),
+            ask('immediate-1', 4, 'immediate'),
+            ask('soon-2', 5, 'soon')
+        ];
+        await Promise.resolve();
+        gate.settle();
+        await Promise.all([running, ...requests]);
+
+        expect(order).toEqual(['immediate-1', 'soon-1', 'soon-2', 'idle-1', 'idle-2']);
+    });
+
+    it('moves a waiting request up when it is promoted, and never down', async () => {
+        const queue = new GenerationQueue(1);
+        const gate = deferred();
+        const order: string[] = [];
+        const ask = async (name: string, x: number, priority: 'immediate' | 'soon' | 'idle') =>
+            queue.run(x, 0, async () => void order.push(name), priority);
+
+        const running = queue.run(0, 0, async () => gate.promise);
+        const requests = [ask('a', 1, 'idle'), ask('b', 2, 'idle'), ask('c', 3, 'soon')];
+        await Promise.resolve();
+
+        expect(queue.promote(2, 0, 'immediate')).toBe(true);
+        expect(queue.promote(3, 0, 'idle')).toBe(false);
+        expect(queue.promote(99, 0, 'immediate')).toBe(false);
+        gate.settle();
+        await Promise.all([running, ...requests]);
+
+        expect(order).toEqual(['b', 'c', 'a']);
+    });
 });

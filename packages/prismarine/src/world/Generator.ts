@@ -123,8 +123,12 @@ export interface GenerationControl {
      * never limited. Undefined removes the limit.
      */
     setBackgroundLimit(limit: number | undefined): void;
-    /** Drops every task still waiting for a worker, and reports how many went. */
-    cancelQueued(): number;
+    /**
+     * Drops the tasks still waiting for a worker that a rule picks out, or all of them without one,
+     * and reports how many went. Dropping a task a player's chunk depends on leaves that chunk
+     * waiting, so a benchmark names its own region.
+     */
+    cancelQueued(matching?: (task: { chunkX: number; chunkZ: number }) => boolean): number;
     /** How many tasks are with a worker or waiting for one, across every pool. */
     outstanding(): number;
     /** Every pool's recorded task stats, merged. */

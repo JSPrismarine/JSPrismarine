@@ -1416,25 +1416,30 @@ export class DataDrivenGenerator implements Generator {
         const pooled = await this.pooledChunk(cx, cz, pipeline);
         if (pooled !== undefined) return pooled;
 
-        return pipeline.queue.run(cx, cz, async () => {
-            this.retain(pipeline, cx, cz);
+        return pipeline.queue.run(
+            cx,
+            cz,
+            async () => {
+                this.retain(pipeline, cx, cz);
 
-            // Decoration is the only thing that makes a chunk need its neighborhood. With it off
-            // the ladder stops at `terrain`, which is one noise fill rather than the twenty-five
-            // a `full` target drives, and there is no Bedrock chunk yet to hand back.
-            const target = this.options.decorate === false ? 'terrain' : 'full';
-            const staged = await pipeline.scheduler.generate(cx, cz, target);
-            const promoted = staged.bedrockChunk;
-            if (promoted !== undefined) return promoted;
+                // Decoration is the only thing that makes a chunk need its neighborhood. With it off
+                // the ladder stops at `terrain`, which is one noise fill rather than the twenty-five
+                // a `full` target drives, and there is no Bedrock chunk yet to hand back.
+                const target = this.options.decorate === false ? 'terrain' : 'full';
+                const staged = await pipeline.scheduler.generate(cx, cz, target);
+                const promoted = staged.bedrockChunk;
+                if (promoted !== undefined) return promoted;
 
-            // `full` leaves the merged region and `terrain` leaves only its own tile, which is
-            // what a generator with decoration off stops at.
-            const chunk = await this.deferChunkCompletion(cx, cz, pipeline, () =>
-                this.toChunk(cx, cz, staged.finalRegion ?? staged.terrain, pipeline, staged.terrain)
-            );
-            staged.recordChunk(chunk);
-            return chunk;
-        });
+                // `full` leaves the merged region and `terrain` leaves only its own tile, which is
+                // what a generator with decoration off stops at.
+                const chunk = await this.deferChunkCompletion(cx, cz, pipeline, () =>
+                    this.toChunk(cx, cz, staged.finalRegion ?? staged.terrain, pipeline, staged.terrain)
+                );
+                staged.recordChunk(chunk);
+                return chunk;
+            },
+            this.urgencyOf(pipeline, cx, cz)
+        );
     }
 
     /** Runs a finished chunk's main-thread promotion on the tick queue while it remains background work. */
@@ -2386,7 +2391,8 @@ export class DataDrivenGenerator implements Generator {
             setBackgroundLimit: (limit) => {
                 for (const pool of pools) if ('setBackgroundLimit' in pool) pool.setBackgroundLimit(limit);
             },
-            cancelQueued: () => pools.reduce((total, pool) => total + pool.cancel(() => false), 0),
+            cancelQueued: (matching) =>
+                pools.reduce((total, pool) => total + pool.cancel((task) => !(matching?.(task) ?? true)), 0),
             outstanding: () => pools.reduce((total, pool) => total + pool.inFlight + pool.queued, 0),
             stats: () => mergeGenerationStats(pools.map((pool) => pool.statsSnapshot())),
             resetStats: () => pools.forEach((pool) => pool.resetStats())
@@ -2413,6 +2419,10 @@ export class DataDrivenGenerator implements Generator {
         this.pool?.promote(here, urgency);
         this.stagePool?.promote(here, urgency);
         this.chunkPool?.promote(here, urgency);
+        // A request still waiting for admission to the generator moves up as well.
+        for (const pipeline of this.pipelines.values()) {
+            if (pipeline.dimension.bedrockId === key.dimension.bedrockId) pipeline.queue.promote(cx, cz, urgency);
+        }
         this.options.completionQueue?.promote(urgencyKey, urgency);
     }
 

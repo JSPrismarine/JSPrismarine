@@ -438,15 +438,15 @@ const runPreload = async (
     ] as const;
 
     const runArm = async (name: PreloadArm['name'], center: { x: number; z: number }): Promise<PreloadArm> => {
+        const reach = options.radius + 12;
+        const inRegion = (task: { chunkX: number; chunkZ: number }): boolean =>
+            Math.abs(task.chunkX - center.x) <= reach && Math.abs(task.chunkZ - center.z) <= reach;
         process.stderr.write(`[preload] ${name} arm starting\n`);
         control.resetStats();
         if (name === 'idle') {
             // Only this arm's own region, with room for the neighbors its chunks depend on. Holding
             // a band instead would also hold the tasks the bots' chunks wait on, and stop the tick.
-            const reach = options.radius + 12;
-            control.pause(
-                (task) => Math.abs(task.chunkX - center.x) <= reach && Math.abs(task.chunkZ - center.z) <= reach
-            );
+            control.pause(inRegion);
         } else control.resume();
         const labelsBefore = server.getChunkCompletionQueue().snapshot().byLabel;
 
@@ -484,7 +484,9 @@ const runPreload = async (
 
         // Leave nothing behind for the next arm: drop the backlog, then let the running tasks and
         // their completions finish.
-        control.cancelQueued();
+        // Only this arm's own region: dropping anything else would strand the chunks other callers
+        // are waiting on.
+        control.cancelQueued(inRegion);
         control.resume();
         const deadline = performance.now() + 120_000;
         while (control.outstanding() > 0 && performance.now() < deadline) {
