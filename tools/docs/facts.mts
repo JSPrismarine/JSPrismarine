@@ -12,9 +12,13 @@
  *
  * The marked text keeps its wrapping: inline code stays inline code, and a fenced block keeps its fence
  * and language, so only the value itself changes.
+ *
+ * Counts of game data come from the downloads the data scripts cache (the Java datapack and reports,
+ * bedrock-samples, the BDS behavior pack). A checkout without them, such as the lint job, keeps the
+ * Markdown's values for those facts; the docs build fetches them first, so the site always counts.
  */
 
-import { readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 
 import { palette } from './site/.vitepress/theme/tokens.ts';
@@ -86,8 +90,203 @@ async function commandFacts() {
     };
 }
 
+/** The download cache the data scripts fill, where the generated game data lives. */
+const cacheRoot = path.join(repoRoot, 'node_modules', '.cache', 'jsprismarine');
+
+/** Every file under a directory, as paths relative to it. */
+function filesUnder(dir: string) {
+    return readdirSync(dir, { recursive: true, withFileTypes: true })
+        .filter((entry) => entry.isFile())
+        .map((entry) => path.relative(dir, path.join(entry.parentPath, entry.name)));
+}
+
+/** The JSON files under a directory, parsed. Each is an untyped boundary; callers read named fields. */
+function jsonUnder(dir: string): unknown[] {
+    return filesUnder(dir)
+        .filter((file) => file.endsWith('.json'))
+        .map((file) => JSON.parse(readFileSync(path.join(dir, file), 'utf8')));
+}
+
+/** Reads a field off parsed JSON without trusting its shape. */
+function field(value: unknown, key: string): unknown {
+    return typeof value === 'object' && value !== null ? Reflect.get(value, key) : undefined;
+}
+
+/**
+ * A group of facts read from one source that may be missing, such as a download the data scripts put
+ * in the cache. `read` runs only when `dir` exists.
+ */
+interface FactSource {
+    label: string;
+    dir: string;
+    names: readonly string[];
+    read: (dir: string) => Record<string, number> | Promise<Record<string, number>>;
+}
+
+/** Counts read from the generated game data: the Java datapack and reports, bedrock-samples and BDS. */
+function dataSources(sources: Sources): FactSource[] {
+    const java = sources.javaServer.version;
+    return [
+        {
+            label: `the Java ${java} vanilla datapack`,
+            dir: path.join(cacheRoot, 'vanilla-datapack', java, 'data'),
+            names: [
+                'java.datapack.files',
+                'java.datapack.tags',
+                'java.datapack.recipes',
+                'java.datapack.lootTables',
+                'java.datapack.lootTables.furnaceSmelt',
+                'java.datapack.advancements',
+                'java.datapack.advancements.recipeRewards',
+                'java.datapack.advancements.criteria',
+                'java.datapack.advancements.triggers',
+                'java.datapack.structures',
+                'java.datapack.structures.types',
+                'java.datapack.structures.terrainAdaptation',
+                'java.datapack.structureSets',
+                'java.datapack.templatePools'
+            ],
+            read: (dir) => {
+                const vanilla = path.join(dir, 'minecraft');
+                const lootDir = path.join(vanilla, 'loot_table');
+                const advancements = jsonUnder(path.join(vanilla, 'advancement'));
+                const criteria = advancements.flatMap((advancement) => {
+                    const entries = field(advancement, 'criteria');
+                    return typeof entries === 'object' && entries !== null ? Object.values(entries) : [];
+                });
+                const structures = jsonUnder(path.join(vanilla, 'worldgen', 'structure'));
+                return {
+                    'java.datapack.files': filesUnder(dir).length,
+                    'java.datapack.tags': filesUnder(path.join(vanilla, 'tags')).length,
+                    'java.datapack.recipes': jsonUnder(path.join(vanilla, 'recipe')).length,
+                    'java.datapack.lootTables': jsonUnder(lootDir).length,
+                    'java.datapack.lootTables.furnaceSmelt': filesUnder(lootDir).filter((file) =>
+                        /"(minecraft:)?furnace_smelt"/.test(readFileSync(path.join(lootDir, file), 'utf8'))
+                    ).length,
+                    'java.datapack.advancements': advancements.length,
+                    'java.datapack.advancements.recipeRewards': advancements.filter((advancement) => {
+                        const recipes = field(field(advancement, 'rewards'), 'recipes');
+                        return Array.isArray(recipes) && recipes.length > 0;
+                    }).length,
+                    'java.datapack.advancements.criteria': criteria.length,
+                    'java.datapack.advancements.triggers': new Set(criteria.map((entry) => field(entry, 'trigger')))
+                        .size,
+                    'java.datapack.structures': structures.length,
+                    'java.datapack.structures.types': new Set(structures.map((structure) => field(structure, 'type')))
+                        .size,
+                    'java.datapack.structures.terrainAdaptation': structures.filter(
+                        (structure) => field(structure, 'terrain_adaptation') !== undefined
+                    ).length,
+                    'java.datapack.structureSets': jsonUnder(path.join(vanilla, 'worldgen', 'structure_set')).length,
+                    'java.datapack.templatePools': jsonUnder(path.join(vanilla, 'worldgen', 'template_pool')).length
+                };
+            }
+        },
+        {
+            label: `the Java ${java} data reports`,
+            dir: path.join(cacheRoot, 'java-reports', java, 'generated', 'reports'),
+            names: [
+                'java.reports.files',
+                'java.reports.blocks',
+                'java.reports.blockStates',
+                'java.reports.climateBoxes'
+            ],
+            read: (dir) => {
+                const blocks: unknown = JSON.parse(readFileSync(path.join(dir, 'blocks.json'), 'utf8'));
+                const blockReports = typeof blocks === 'object' && blocks !== null ? Object.values(blocks) : [];
+                const overworld: unknown = JSON.parse(
+                    readFileSync(path.join(dir, 'biome_parameters', 'minecraft', 'overworld.json'), 'utf8')
+                );
+                const boxes = field(overworld, 'biomes');
+                return {
+                    'java.reports.files': filesUnder(dir).length,
+                    'java.reports.blocks': blockReports.length,
+                    'java.reports.blockStates': blockReports.reduce<number>((sum, block) => {
+                        const states = field(block, 'states');
+                        return sum + (Array.isArray(states) ? states.length : 0);
+                    }, 0),
+                    'java.reports.climateBoxes': Array.isArray(boxes) ? boxes.length : 0
+                };
+            }
+        },
+        {
+            label: `the Java ${java} structure templates`,
+            dir: path.join(cacheRoot, 'java-structures', java),
+            names: ['java.templates'],
+            read: (dir) => ({ 'java.templates': filesUnder(dir).filter((file) => file.endsWith('.nbt')).length })
+        },
+        {
+            label: `Mojang/bedrock-samples at ${sources.bedrockSamples.tag}`,
+            dir: path.join(cacheRoot, 'bedrock-samples', sources.bedrockSamples.tag, 'unpacked'),
+            names: ['samples.files'],
+            read: (dir) => ({ 'samples.files': filesUnder(dir).length })
+        },
+        {
+            label: 'the composed vanilla Bedrock behavior pack',
+            dir: path.join(cacheRoot, 'bds', `v${sources.bds.defaultProtocolVersion}`),
+            names: [
+                'bedrock.entities',
+                'bedrock.tradeTables',
+                'bedrock.biomes',
+                'bedrock.lootTables.entities',
+                'bedrock.lootTables.chests',
+                'bedrock.lootTables.blocks'
+            ],
+            // Composed the way the server composes it, so the counts are what the server loads.
+            read: async () => {
+                const { load } = await import('../../packages/packs/src/index.ts');
+                const { resolvePackStack } = await import('../../packages/prismarine/src/content/packStack.ts');
+                const { stack } = resolvePackStack({ overlay: false, javaVanilla: false });
+                const { definitions } = load(stack);
+                const loot = [...definitions.lootTables.keys()];
+                const lootIn = (folder: string) =>
+                    loot.filter((key) => key.startsWith(`loot_tables/${folder}/`)).length;
+                return {
+                    'bedrock.entities': definitions.entities.size,
+                    'bedrock.tradeTables': definitions.tradeTables.size,
+                    'bedrock.biomes': definitions.biomes.size,
+                    'bedrock.lootTables.entities': lootIn('entities'),
+                    'bedrock.lootTables.chests': lootIn('chests'),
+                    'bedrock.lootTables.blocks': lootIn('blocks')
+                };
+            }
+        },
+        {
+            label: 'the Java entity attribute capture',
+            dir: path.join(repoRoot, 'packages', 'bedrock-data', 'src', 'jsp', 'java'),
+            names: ['java.entityAttributes'],
+            read: (dir) => {
+                const attributes: unknown = JSON.parse(readFileSync(path.join(dir, 'entity_attributes.json'), 'utf8'));
+                return {
+                    'java.entityAttributes':
+                        typeof attributes === 'object' && attributes !== null ? Object.keys(attributes).length : 0
+                };
+            }
+        },
+        {
+            label: 'the mapping loss list',
+            dir: path.join(repoRoot, 'packages', 'mapping', 'src'),
+            names: ['mapping.bedrockBiomeLosses'],
+            read: async () => {
+                const { BEDROCK_BIOME_LOSSES } = await import('../../packages/mapping/src/lossList.ts');
+                return { 'mapping.bedrockBiomeLosses': BEDROCK_BIOME_LOSSES.length };
+            }
+        }
+    ];
+}
+
+/**
+ * Every known fact, by name. A fact whose source is not on disk, such as a download the data scripts
+ * have not fetched in this checkout, is present with a `null` value: markers for it keep their text.
+ */
+export interface Facts {
+    values: ReadonlyMap<string, string | null>;
+    /** The sources that were not on disk, by label. */
+    missing: readonly string[];
+}
+
 /** Every fact, by name. A marker naming any other fact fails the docs build. */
-export async function loadFacts(): Promise<Map<string, string>> {
+export async function loadFacts(): Promise<Facts> {
     const project = loadProject();
     // Parsed JSON is an untyped boundary; only the fields `Sources` names are read.
     const sources: Sources = JSON.parse(
@@ -98,7 +297,7 @@ export async function loadFacts(): Promise<Map<string, string>> {
     const oldest = project.protocols.at(-1) ?? newest;
     const minecraft = project.protocols.toReversed().flatMap(({ minecraft }) => minecraft);
 
-    return new Map(
+    const values = new Map<string, string | null>(
         Object.entries({
             'server.version': project.version,
             'server.port': String(project.defaultPort),
@@ -121,6 +320,16 @@ export async function loadFacts(): Promise<Map<string, string>> {
             ...(await commandFacts())
         })
     );
+    const missing: string[] = [];
+    for (const source of dataSources(sources)) {
+        if (!existsSync(source.dir)) {
+            missing.push(source.label);
+            for (const name of source.names) values.set(name, null);
+            continue;
+        }
+        for (const [name, count] of Object.entries(await source.read(source.dir))) values.set(name, String(count));
+    }
+    return { values, missing };
 }
 
 /**
@@ -145,24 +354,32 @@ export interface FactsResult {
     unknown: string[];
     /** Facts whose marked text in the source differs from the current value. */
     stale: { name: string; was: string; now: string }[];
+    /** Facts whose source is not on disk, so their marked text was kept as written. */
+    unavailable: string[];
 }
 
 /**
  * Fills every marked value in `markdown` with its current fact. `keepMarkers` leaves the comments in,
  * for writing back to the source; without it the markers go, for the published page.
  */
-export function applyFacts(markdown: string, facts: Map<string, string>, { keepMarkers = false } = {}): FactsResult {
+export function applyFacts(
+    markdown: string,
+    facts: ReadonlyMap<string, string | null>,
+    { keepMarkers = false } = {}
+): FactsResult {
     const unknown: string[] = [];
     const stale: FactsResult['stale'] = [];
+    const unavailable: string[] = [];
     const text = markdown.replace(MARKER, (whole, name: string, marked: string) => {
         const value = facts.get(name);
         if (value === undefined) {
             unknown.push(name);
             return whole;
         }
-        const filled = replaceValue(marked, value);
+        if (value === null) unavailable.push(name);
+        const filled = value === null ? marked : replaceValue(marked, value);
         if (filled !== marked) stale.push({ name, was: marked.trim(), now: filled.trim() });
         return keepMarkers ? `<!-- fact:${name} -->${filled}<!-- /fact -->` : filled;
     });
-    return { text, unknown, stale };
+    return { text, unknown, stale, unavailable };
 }

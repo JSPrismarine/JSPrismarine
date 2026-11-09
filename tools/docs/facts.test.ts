@@ -2,8 +2,9 @@ import { describe, expect, it } from 'vitest';
 
 import { applyFacts } from './facts.mts';
 
-const facts = new Map([
+const facts = new Map<string, string | null>([
     ['node.minimum', '26.4.0'],
+    ['java.templates', null],
     ['commands.list', 'say tell\nkick'],
     ['protocol.newest', '2225']
 ]);
@@ -35,6 +36,15 @@ describe('applyFacts', () => {
     it('leaves a marker written as an example in inline code alone', () => {
         const source = 'Write `<!-- fact:protocol.newest -->2193<!-- /fact -->` around the value.';
         expect(applyFacts(source, facts).text).toBe(source);
+    });
+
+    it('keeps the written value of a fact whose source is not on disk, and says so', () => {
+        const source = 'It extracts <!-- fact:java.templates -->1511<!-- /fact --> templates.';
+        const result = applyFacts(source, facts);
+        expect(result.text).toBe('It extracts 1511 templates.');
+        expect(result.unavailable).toEqual(['java.templates']);
+        expect(result.stale).toEqual([]);
+        expect(result.unknown).toEqual([]);
     });
 
     it('reports a marker that names no fact and leaves it untouched', () => {

@@ -26,7 +26,11 @@ function markdownFiles() {
     return ['README.md', ...rootPages.map(({ source }) => source), ...docs];
 }
 
-const facts = await loadFacts();
+const { values: facts, missing } = await loadFacts();
+if (missing.length) {
+    console.log(`Not on disk, so their facts keep the Markdown's values: ${missing.join('; ')}.`);
+    console.log('`pnpm --filter @jsprismarine/docs run docs:sources` fetches them.');
+}
 let unknown = 0;
 let stale = 0;
 for (const file of markdownFiles()) {

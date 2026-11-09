@@ -100,7 +100,12 @@ function indexPage(section: (typeof sections)[number], dir: string) {
     return `# ${section.title}\n\n${links.join('\n')}\n`;
 }
 
-const facts = await loadFacts();
+const { values: facts, missing: missingFacts } = await loadFacts();
+if (missingFacts.length) {
+    // The pages keep the Markdown's values for these, which may be stale; `docs:sources` fetches them.
+    const message = `Docs facts unavailable, keeping the Markdown's values: ${missingFacts.join('; ')}`;
+    console.warn(process.env.GITHUB_ACTIONS ? `::warning::${message}` : message);
+}
 const staleFacts: string[] = [];
 
 /** A page as published: its links rewritten and its marked values filled with the current facts. */
