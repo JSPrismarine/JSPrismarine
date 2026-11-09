@@ -1209,7 +1209,10 @@ class PortalRoom extends StrongholdPiece {
         const frame = (facing: Facing, index: number): BlockState =>
             blockState('minecraft:end_portal_frame', { facing, eye: String(eyes[index] === true) });
 
-        const positions = [
+        // Annotated rather than `as const satisfies`: scriptc 0.4.10 aborts its analysis on a
+        // literal tuple list destructured in a callback ("a narrowed value does not have the type
+        // its narrowing proved"), and the annotation carries the same element type.
+        const positions: readonly (readonly [number, number, Facing])[] = [
             [4, 8, 'north'],
             [5, 8, 'north'],
             [6, 8, 'north'],
@@ -1222,7 +1225,7 @@ class PortalRoom extends StrongholdPiece {
             [7, 9, 'west'],
             [7, 10, 'west'],
             [7, 11, 'west']
-        ] as const satisfies readonly (readonly [number, number, Facing])[];
+        ];
 
         positions.forEach(([x, z, facing], index) => this.placeBlock(writer, frame(facing, index), x, 3, z));
 
