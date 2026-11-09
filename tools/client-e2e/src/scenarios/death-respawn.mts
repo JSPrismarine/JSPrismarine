@@ -32,9 +32,10 @@ export const deathRespawn: Scenario = {
         await waitTicks(server, 5);
 
         // Die in the Nether, so the respawn is a change of world: that is the one a later command
-        // into another dimension used to be held behind.
-        server.command('execute in minecraft:the_nether run fill -4 99 -4 4 99 4 minecraft:netherrack');
-        server.command(`execute in minecraft:the_nether run teleport ${playerName} 0 100 0`);
+        // into another dimension used to be held behind. The flat Nether's floor tops out at y 3,
+        // so the player stands on it. A pad filled there before anyone arrives would find no
+        // loaded chunk, and it used to land in the Overworld instead.
+        server.command(`execute in minecraft:the_nether run teleport ${playerName} 0 4 0`);
         const there = Date.now() + 30_000;
         while ((await client.state()).dimension !== 1 && Date.now() < there) await sleep(250);
         assert.equal((await client.state()).dimension, 1, 'the client never reached the Nether');
@@ -73,7 +74,7 @@ export const deathRespawn: Scenario = {
         // them back: `@s` names them, and the change of world must not still be pending.
         server.command(`op ${playerName}`);
         await waitTicks(server, 10);
-        await client.chat('/execute in minecraft:the_nether run tp @s 0 100 0');
+        await client.chat('/execute in minecraft:the_nether run tp @s 0 4 0');
         const arrivalBy = Date.now() + 30_000;
         for (;;) {
             const dimension = (await client.state()).dimension;

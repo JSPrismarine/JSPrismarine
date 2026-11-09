@@ -333,9 +333,11 @@ export const startServer = async (
                         type: 'minecraft:the_end',
                         generator: flatGenerator('minecraft:end_stone')
                     },
+                    // Flat rather than void, so an arrival has a floor that exists the moment its
+                    // chunk loads: a command cannot fill a dimension nobody is in.
                     'client_e2e:custom': {
                         type: 'client_e2e:custom',
-                        generator: { type: 'jsprismarine:void' }
+                        generator: flatGenerator('minecraft:stone')
                     }
                 }
             }
