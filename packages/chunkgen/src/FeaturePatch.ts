@@ -128,5 +128,12 @@ export class InboundFeaturePatches<TPatch> {
 
 const keyOf = (dx: number, dz: number): string => `${dx},${dz}`;
 
-/** The eight legal offsets as keys, so `receive` can reject anything else by lookup. */
-const OFFSET_KEYS = new Set(FEATURE_PATCH_ORDER.map(([dx, dz]) => keyOf(dx, dz)));
+/**
+ * The eight legal offsets as keys, so `receive` can reject anything else by lookup.
+ *
+ * Filled by a loop rather than a `map` callback: scriptc 0.4.10 aborts its analysis on a literal
+ * tuple list destructured in a callback ("a narrowed value does not have the type its narrowing
+ * proved"), and the list keeps `as const` because `FeaturePatchOffset` is read off it.
+ */
+const OFFSET_KEYS = new Set<string>();
+for (const [dx, dz] of FEATURE_PATCH_ORDER) OFFSET_KEYS.add(keyOf(dx, dz));
