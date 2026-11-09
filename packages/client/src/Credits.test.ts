@@ -1,6 +1,6 @@
 import { OfflineAuthProvider } from '@jsprismarine/auth';
 import { Logger } from '@jsprismarine/logger';
-import { CreditsState, PacketIdentifier, PositionMode } from '@jsprismarine/protocol';
+import { CreditsState, PacketIdentifier } from '@jsprismarine/protocol';
 import { Config, Position, Server } from '@jsprismarine/prismarine';
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -174,33 +174,28 @@ describe('leaving the End through the exit portal on a real server', () => {
         // This client has no screen to roll them on, so it answers at once: the skip.
         await vi.waitFor(() => expect(answered).toHaveLength(1), { timeout: 20_000, interval: 50 });
 
-        // The answer releases the held change: back to the Overworld, sent as a respawn, with
-        // the teleport that ends the change after the client closes its screen.
+        // The answer releases the held change: back to the Overworld, sent as a respawn. The client
+        // closes no loading screen for one, so the respawn exchange is what settles it, once the
+        // terrain is on the wire. This client has no codec for `Respawn`, so it shows as an
+        // unknown id rather than a decoded packet.
         await vi.waitFor(() => expect(changes).toHaveLength(2), { timeout: 20_000, interval: 50 });
+        await vi.waitFor(() => expect(client.getRegistry().getUnknownIds()).toContain(PacketIdentifier.RESPAWN), {
+            timeout: 20_000,
+            interval: 50
+        });
         const creditsIndex = received.findIndex((p) => p.id === PacketIdentifier.SHOW_CREDITS);
-        await vi.waitFor(
-            () => expect(received.slice(creditsIndex).some((p) => p.id === PacketIdentifier.MOVE_PLAYER)).toBe(true),
-            { timeout: 20_000, interval: 50 }
-        );
         const trip = received.slice(creditsIndex);
         const change = trip.find((p) => isPacket(p, PacketIdentifier.CHANGE_DIMENSION));
         if (change === undefined || !isPacket(change, PacketIdentifier.CHANGE_DIMENSION)) throw new Error('no change');
         expect(change.data.dimension).toBe(OVERWORLD);
         expect(change.data.respawn).toBe(true);
 
-        // The teleport carries the arrival `ChangeDimension` announced.
-        const move = trip.find((p) => isPacket(p, PacketIdentifier.MOVE_PLAYER));
-        if (move === undefined || !isPacket(move, PacketIdentifier.MOVE_PLAYER)) throw new Error('no move');
-        expect(move.data.mode).toBe(PositionMode.Teleport);
-        expect(move.data.position.x).toBeCloseTo(change.data.position.getX());
-        expect(move.data.position.y).toBeCloseTo(change.data.position.getY());
-        expect(move.data.position.z).toBeCloseTo(change.data.position.getZ());
-
         // Back in the Overworld, standing on the respawn point: the spawn block, since this
         // player has no bed, exactly as a death would place them.
         expect(player.getWorld()).toBe(overworld);
         expect(Math.floor(player.getPosition().getX())).toBe(Math.floor(spawn.getX()));
-        expect(player.getFeetY()).toBeCloseTo(Math.floor(spawn.getY()));
+        // The spawn is the ground block here, so the respawn stands the player on top of it.
+        expect(player.getFeetY()).toBeCloseTo(Math.floor(spawn.getY()) + 1);
         expect(Math.floor(player.getPosition().getZ())).toBe(Math.floor(spawn.getZ()));
 
         // One ShowCredits for the whole trip, and nothing arrived without a codec.

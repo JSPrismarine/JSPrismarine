@@ -271,6 +271,10 @@ describe('contentRandomTickHandlers', () => {
 
         blocks.setBlock(source, 'minecraft:air');
 
+        // Java keeps a lamp lit for four ticks after its power goes.
+        expect(world.loadedBlockAt(lamp.x, lamp.y, lamp.z)?.name).toBe('minecraft:lit_redstone_lamp');
+        for (let tick = 1; tick <= 5; tick++) world.getSystems().tick(tick);
+
         expect(world.loadedBlockAt(lamp.x, lamp.y, lamp.z)?.name).toBe('minecraft:redstone_lamp');
     });
 

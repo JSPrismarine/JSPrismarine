@@ -233,7 +233,7 @@ describe('WorldManager', () => {
         expect(manager.getDefaultWorld()).toBe(manager.getDefaultLevel().loadedWorld(OVERWORLD_STEM_ID));
         expect(manager.getWorldByName('other')).toBe(manager.getLevel('other')?.loadedWorld(OVERWORLD_STEM_ID));
         expect(manager.getLevels().flatMap((level) => [...level.worlds()])).toHaveLength(2);
-        expect(logged).toContain("Loading §b'main'/jsprismarine:test§r as default world!");
+        expect(logged).toContain("Loading §b'main'/minecraft:overworld§r as default world!");
 
         await manager.disable();
         expect(manager.getLevels()).toEqual([]);

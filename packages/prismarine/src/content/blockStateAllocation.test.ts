@@ -17,7 +17,8 @@ describe('resolved block state allocation', () => {
         );
         const digest = createHash('sha256').update(JSON.stringify(states)).digest('hex');
 
-        // Captured from the complete pinned stack at the direct parent of the #2728 change.
-        expect(digest).toBe('6694d4cfa8d680caba19e4ca8cc7cc26aa2900b30ab6dbb680b4aad56a900dac');
+        // Captured from the complete pinned stack. Re-captured when the block families took over
+        // the lamp, sponge, concrete powder, cactus and button rules, which changed their flags.
+        expect(digest).toBe('84675b6a2cdfe41cd461b734908ec3babcd3529d064ec89e0174f40da4b12ca6');
     });
 });

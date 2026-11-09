@@ -692,7 +692,8 @@ describe('DimensionTravel.transfer out of the End', () => {
         expect(player.getWorld()).toBe(scene.overworld);
         expect(player.getFeetY()).toBeCloseTo(WORLD_SPAWN.getY());
         expect(player.getNetworkSession().pendingCreditsArrival()).toBeUndefined();
-        expect(player.getNetworkSession().pendingDimensionChange()?.arrival.world).toBe(scene.overworld);
+        // Settled by the respawn exchange, not by a loading screen the client closes.
+        expect(player.getNetworkSession().pendingDimensionChange()).toBeUndefined();
 
         await scene.level.disable();
     }, 60_000);
