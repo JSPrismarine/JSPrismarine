@@ -320,7 +320,11 @@ jobs:
               run: |
                   sudo apt-get update
                   sudo apt-get install --yes libwayland-dev libxkbcommon-dev libxkbcommon-x11-0 libasound2-dev libudev-dev \
-                      libx11-xcb1 libxcursor1 libxi6 libxrandr2 libvulkan1 mesa-vulkan-drivers xvfb
+                      libx11-xcb1 libxcursor1 libxi6 libxrandr2 libvulkan1 mesa-vulkan-drivers vulkan-tools xvfb
+
+            # The adapters the client can choose from; lavapipe should be the one listed.
+            - name: List the Vulkan adapters
+              run: vulkaninfo --summary
 
             - name: 📦 Install
               uses: ./.github/common/install
@@ -402,6 +406,9 @@ jobs:
                   PROTOCOL: ${{ matrix.protocol }}
                   SUITES: ${{ steps.size.outputs.suites }}
                   NODE_OPTIONS: --max-old-space-size=4096
+                  # A client that panics before its control endpoint is up names only its log, so
+                  # the panic carries its backtrace there.
+                  RUST_BACKTRACE: '1'
               run: |
                   # The clients open their hidden windows on the virtual display xvfb-run starts.
                   # shellcheck disable=SC2086
@@ -434,12 +441,28 @@ jobs:
                   path: coverage/client-e2e/lcov.info
                   retention-days: 30
 
+            # A client that exits before its control endpoint is up reports only a log path, inside
+            # the cinnabar checkout. This prints each log's end here, where the failure is read.
+            - name: 🔎 Show the client logs
+              if: ${{ failure() }}
+              run: |
+                  for log in "$RUNNER_TEMP"/jsprismarine/cinnabar/v"$PROTOCOL"/*/repo/.local/developer-control/logs/*.log; do
+                      [ -f "$log" ] || continue
+                      echo "::group::$(basename "$log")"
+                      tail -n 80 "$log"
+                      echo "::endgroup::"
+                  done
+              env:
+                  PROTOCOL: ${{ matrix.protocol }}
+
             - name: 📤 Upload evidence
               if: ${{ !cancelled() }}
               uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
               with:
                   name: client-e2e-evidence-protocol-${{ matrix.protocol }}
-                  path: ${{ runner.temp }}/client-e2e
+                  path: |
+                      ${{ runner.temp }}/client-e2e
+                      ${{ runner.temp }}/jsprismarine/cinnabar/v${{ matrix.protocol }}/*/repo/.local/developer-control/logs
                   if-no-files-found: warn
 
     # The check branch rules require. A matrix job's name depends on its protocols, and a skipped
