@@ -160,6 +160,11 @@ function toggle(key: string) {
     margin: 0;
 }
 
+.release__text {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
 .release__text :deep(p) {
     margin: 0 0 8px;
 }

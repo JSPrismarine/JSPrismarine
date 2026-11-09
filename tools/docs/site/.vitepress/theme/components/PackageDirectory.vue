@@ -77,7 +77,7 @@ const shown = computed(() => {
 
 .package-directory__grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(min(240px, 100%), 1fr));
     gap: var(--jsp-gap);
     padding: 0;
     margin: 0;
@@ -85,6 +85,7 @@ const shown = computed(() => {
 }
 
 .package-card {
+    min-width: 0;
     display: flex;
     flex-direction: column;
     gap: 6px;
@@ -102,6 +103,8 @@ const shown = computed(() => {
 }
 
 .package-card code {
+    max-width: 100%;
+    overflow-wrap: anywhere;
     justify-self: start;
     align-self: flex-start;
     font-size: 11px;

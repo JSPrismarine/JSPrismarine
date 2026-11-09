@@ -106,7 +106,8 @@ function onKeydown(event: KeyboardEvent) {
 
 .audience-tabs__panel {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    /* minmax(0, 1fr) lets a long command scroll inside its box instead of widening the page. */
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 10px;
 }
 
@@ -141,10 +142,13 @@ function onKeydown(event: KeyboardEvent) {
 }
 
 .audience-tabs__code pre {
+    /* Commands keep their lines, so a copied command reads the way it runs; wide ones scroll. */
+    padding-bottom: 32px;
     margin: 0;
+    overflow-x: auto;
     font: 13px/1.7 var(--vp-font-family-mono);
     color: var(--jsp-cream);
-    white-space: pre-wrap;
+    white-space: pre;
 }
 
 .audience-tabs__copy {
@@ -156,7 +160,7 @@ function onKeydown(event: KeyboardEvent) {
 .audience-tabs__links {
     display: grid;
     grid-column: 1 / -1;
-    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(min(170px, 100%), 1fr));
     gap: 10px;
 }
 
@@ -184,7 +188,7 @@ function onKeydown(event: KeyboardEvent) {
 
 @media (max-width: 640px) {
     .audience-tabs__panel {
-        grid-template-columns: 1fr;
+        grid-template-columns: minmax(0, 1fr);
     }
 }
 </style>

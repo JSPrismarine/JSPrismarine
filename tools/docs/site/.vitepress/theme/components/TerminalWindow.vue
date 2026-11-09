@@ -51,6 +51,8 @@ withDefaults(defineProps<{ title?: string }>(), { title: 'jsprismarine' });
     margin: 0;
     font: inherit;
     white-space: normal;
+    /* A log line can carry a long path or URL; break it rather than push the frame wider. */
+    overflow-wrap: anywhere;
 }
 
 .terminal__body :deep(.t-line) {

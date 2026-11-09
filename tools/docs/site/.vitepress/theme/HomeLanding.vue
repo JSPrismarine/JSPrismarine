@@ -128,6 +128,7 @@ const featured = requirePackages(project, featuredPackageNames);
 
 .landing__eyebrow {
     display: flex;
+    flex-wrap: wrap;
     gap: 10px;
     align-items: center;
     margin: 0;
@@ -228,6 +229,7 @@ const featured = requirePackages(project, featuredPackageNames);
 
 .landing__packages a {
     display: block;
+    overflow-wrap: anywhere;
     padding: 4px 8px;
     font: 12px var(--vp-font-family-mono);
     color: var(--jsp-mint);

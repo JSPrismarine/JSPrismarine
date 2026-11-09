@@ -59,6 +59,7 @@ withDefaults(defineProps<{ release: Release; limit?: number }>(), { limit: 3 });
 }
 
 .latest-release ul {
+    overflow-wrap: anywhere;
     display: grid;
     gap: 6px;
     padding-left: 18px;
