@@ -20,10 +20,6 @@ import path from 'node:path';
 import { PacketLogFilter } from './PacketLogFilter';
 import type { OutboundPacketRecorder } from './OutboundPacketTrace';
 
-const isPacketList = (
-    value: readonly NetworkPacket<unknown>[] | NetworkPacket<unknown>
-): value is readonly NetworkPacket<unknown>[] => Array.isArray(value);
-
 /**
  * The packet class names a debugging variable lists, comma-separated.
  *

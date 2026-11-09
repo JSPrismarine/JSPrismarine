@@ -19,10 +19,6 @@ import type { OutboundPacketRecorder } from './OutboundPacketTrace';
 import { Pipeline } from './pipeline/ConnectionPipeline';
 import type { Transport, TransportConnection } from './transport/Transport';
 
-// Batch codecs are stateless after construction, so share them across every inbound frame.
-const UNCOMPRESSED_BATCH_CODEC = BatchCodec.uncompressed();
-const COMPRESSED_BATCH_CODEC = BatchCodec.compressed({ algorithm: PacketCompressionAlgorithm.ZLIB });
-
 /** A decoded packet the phase gate has paired with the handler it will run. */
 interface GatedPacket {
     readonly packet: NetworkPacket<unknown>;
@@ -446,9 +442,9 @@ export default class NetworkDispatcher<C extends TransportConnection> {
             // Traces store packet bytes, not transport batches; rebuild one frame so playback exercises
             // the same compression and batch-decoding path as live traffic.
             const payload = Buffer.from(record.payload);
-            const frame = connection.hasCompression
-                ? BatchCodec.compressed({ algorithm: PacketCompressionAlgorithm.ZLIB }).encode([payload])
-                : BatchCodec.uncompressed().encode([payload]);
+            const frame = (connection.hasCompression ? this.compressedBatchCodec : this.uncompressedBatchCodec).encode([
+                payload
+            ]);
             const packetPayloads = await this.splitBatch(frame, connection, false);
             if (packetPayloads.length !== 1) {
                 throw new Error(`Replay frame for ${record.packetName} contained ${packetPayloads.length} packets`);
