@@ -1,5 +1,16 @@
 # @jsprismarine/client
 
+## 0.19.2
+
+### Patch Changes
+
+- Updated dependencies [[`6940e89`](https://github.com/JSPrismarine/JSPrismarine/commit/6940e89cc065ec5076aebb2dbc373cf0bd1cb50e)]:
+  - @jsprismarine/protocol@0.19.2
+  - @jsprismarine/auth@0.19.2
+  - @jsprismarine/logger@0.19.2
+  - @jsprismarine/minecraft@0.19.2
+  - @jsprismarine/raknet@0.19.2
+
 ## 0.19.1
 
 ### Patch Changes

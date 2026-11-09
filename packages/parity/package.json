@@ -1,6 +1,6 @@
 {
     "name": "@jsprismarine/parity",
-    "version": "0.19.1",
+    "version": "0.19.2",
     "description": "The parity test suite: registry comparisons against the captured goldens, with a dashboard",
     "private": true,
     "sideEffects": false,

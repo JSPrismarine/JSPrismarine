@@ -1,5 +1,16 @@
 # @jsprismarine/blocks
 
+## 0.19.2
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @jsprismarine/content@0.19.2
+  - @jsprismarine/mapping@0.19.2
+  - @jsprismarine/minecraft@0.19.2
+  - @jsprismarine/molang@0.19.2
+  - @jsprismarine/packs@0.19.2
+
 ## 0.19.1
 
 ### Patch Changes

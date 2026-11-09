@@ -1,6 +1,6 @@
 {
     "name": "@jsprismarine/console",
-    "version": "0.19.1",
+    "version": "0.19.2",
     "description": "Terminal user interface for the JSPrismarine server console",
     "sideEffects": false,
     "publishConfig": {

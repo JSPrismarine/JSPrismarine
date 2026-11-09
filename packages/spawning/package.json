@@ -1,6 +1,6 @@
 {
     "name": "@jsprismarine/spawning",
-    "version": "0.19.1",
+    "version": "0.19.2",
     "description": "Bedrock spawn rules: the 24-component grammar, the condition evaluator, population pools and the spawn loop.",
     "sideEffects": false,
     "publishConfig": {
