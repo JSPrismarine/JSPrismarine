@@ -62,7 +62,9 @@ export default defineConfig({
         fsModuleCache: true,
         fsModuleCachePath: resolve(__dirname, 'node_modules/.cache/vitest'),
         maxConcurrency: 8,
-        maxWorkers: 4,
+        // CI scales to one fork per core the runner reports, so a larger runner runs more files at
+        // once without editing this file. Local runs stay at 4 to leave a workstation responsive.
+        maxWorkers: process.env.GITHUB_ACTIONS ? '100%' : 4,
         passWithNoTests: true,
         // `--changed` runs only the suites whose import graph reaches a changed file, and a match
         // on any of these runs every suite instead. They are inputs the suites read from disk or
