@@ -3,6 +3,7 @@ import { accepted, rejected } from '@jsprismarine/content';
 
 import type { EntityInstance } from './entityInstance';
 import type { EntityHooks } from './hooks';
+import { isRecord } from './components/schemas';
 
 /**
  * The goal seam.
@@ -73,9 +74,6 @@ export interface GoalFactory<P> {
      */
     create(params: P, entity: EntityInstance): Goal;
 }
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-    typeof value === 'object' && value !== null && !Array.isArray(value);
 
 /**
  * Wraps a goal as a component factory.

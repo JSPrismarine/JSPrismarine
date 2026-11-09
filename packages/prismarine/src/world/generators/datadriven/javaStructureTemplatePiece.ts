@@ -40,6 +40,7 @@ import type { StructurePiece, StructurePieceTransferContext, StructureWriter } f
 import { registerStructurePieceTransferCodec } from './javaStructureWorld';
 import { boxFromSize } from './javaStructureWorld';
 import type { TemplateSource } from './javaTemplatePlacement';
+import { isRecord } from '../../../utils/isRecord';
 
 const AIR = 'minecraft:air';
 const STRUCTURE_VOID = 'minecraft:structure_void';
@@ -557,9 +558,6 @@ export class TemplatePiece implements StructurePiece {
         }
     }
 }
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-    typeof value === 'object' && value !== null && !Array.isArray(value);
 
 registerStructurePieceTransferCodec<TemplatePiece>({
     type: 'template',

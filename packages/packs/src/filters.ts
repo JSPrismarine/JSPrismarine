@@ -1,3 +1,5 @@
+import { isRecord } from './isRecord';
+
 /**
  * The Bedrock filter grammar, shared by entity definitions, spawn rules and
  * trade tables. A filter is one test, an array of filters (an implicit
@@ -94,9 +96,6 @@ export type Filter = FilterTest | FilterGroup;
 export class FilterParseError extends Error {
     public override name = 'FilterParseError';
 }
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-    typeof value === 'object' && value !== null && !Array.isArray(value);
 
 /**
  * The legacy shorthand where the key names the test and carries its subject,

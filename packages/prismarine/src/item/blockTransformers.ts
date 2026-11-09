@@ -25,6 +25,7 @@ import type { Definition } from '@jsprismarine/packs';
 
 import type { BlockStateValue } from '../block/state/BlockState';
 import type { ContentTags } from '../content/tags';
+import { isRecord } from '../utils/isRecord';
 
 /** The block a transformer is asked about: what stands there, and where. */
 export interface TransformTarget {
@@ -60,9 +61,6 @@ interface TransformerRule {
     readonly ifTrue: unknown;
     readonly then: unknown;
 }
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-    typeof value === 'object' && value !== null && !Array.isArray(value);
 
 /** Reads one transformer file's entries, dropping whatever is not shaped like an entry. */
 const entriesIn = (data: unknown): TransformerEntry[] => {

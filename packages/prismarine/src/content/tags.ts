@@ -17,6 +17,7 @@ import type { Diagnostic } from '@jsprismarine/content';
 import { Registry, Tags } from '@jsprismarine/content';
 import type { TagMember, TagSource } from '@jsprismarine/content';
 import type { Definition } from '@jsprismarine/packs';
+import { isRecord } from '../utils/isRecord';
 
 /**
  * The merged tags of a pack stack, read by the registry they tag.
@@ -42,9 +43,6 @@ export interface ContentTags {
     /** Whether an identifier is in a tag. */
     includes(registry: string, tag: string, identifier: string): boolean;
 }
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-    typeof value === 'object' && value !== null && !Array.isArray(value);
 
 /** Resolves the default `minecraft` namespace on tag members and references. */
 const normalizeTagId = (identifier: string): string => {

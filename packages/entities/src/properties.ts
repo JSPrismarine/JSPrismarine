@@ -1,4 +1,5 @@
 import type { DiagnosticCollector } from './diagnostics';
+import { isRecord } from './components/schemas';
 
 /**
  * Entity properties, the `description.properties` system. A property is a
@@ -41,9 +42,6 @@ export const MAX_PROPERTIES_PER_ENTITY = 32;
 
 /** At most 16 members per enum property, per the entity properties documentation. */
 export const MAX_ENUM_VALUES = 16;
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-    typeof value === 'object' && value !== null && !Array.isArray(value);
 
 const isEnumMemberName = (value: string): boolean => /^[A-Za-z][\w]{0,31}$/.test(value);
 

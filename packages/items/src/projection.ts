@@ -38,6 +38,7 @@ import type { ItemType } from './hooks';
 import type { ProviderContext } from './numberProvider';
 import { DEFAULT_PROVIDER_CONTEXT, NumberProviderError, evaluateNumberProvider } from './numberProvider';
 import type { HolderSet } from './schema';
+import { isRecord } from './isRecord';
 
 /**
  * The flat `item_properties` compound, with the nineteen keys a Bedrock
@@ -187,9 +188,6 @@ export const BEDROCK_ONLY_ITEM_PROPERTIES = [
 export const UNPROJECTED_BEDROCK_COMPONENTS = {} as const;
 
 /** Whether an untyped Bedrock JSON value is an object with named fields. */
-const isRecord = (value: unknown): value is Readonly<Record<string, unknown>> =>
-    typeof value === 'object' && value !== null && !Array.isArray(value);
-
 /** Reads a Bedrock component's scalar form or its `{ value }` form. */
 const bedrockScalarOf = (type: ItemType, component: string): unknown => {
     const source = type.bedrockComponents.get(component);

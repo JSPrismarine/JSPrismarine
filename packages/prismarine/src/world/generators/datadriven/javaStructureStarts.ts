@@ -40,6 +40,7 @@ import {
     unionOf
 } from './javaStructureWorld';
 import type { JavaWorldgenRegistries } from './javaWorldgenData';
+import { isRecord } from '../../../utils/isRecord';
 
 /** How far Java looks for a start that reaches into the chunk being generated. */
 const REFERENCE_RADIUS = 8;
@@ -179,9 +180,6 @@ export interface StructureStartOptions {
 /** The step a structure document names, defaulting to the one 44 of the 52 carry. */
 const stepOf = (value: unknown): DecorationStep =>
     DECORATION_STEPS.find((candidate) => candidate === value) ?? 'surface_structures';
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-    typeof value === 'object' && value !== null && !Array.isArray(value);
 
 /**
  * The structure starts a world has, for one seed.

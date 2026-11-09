@@ -12,6 +12,7 @@ import { parseLevelStem, unquantizeClimateCoord } from '@jsprismarine/worldgen';
 import type { RaidRecord } from './raid/RaidManager';
 import type { SavedWeather } from './Weather';
 import { savedWeatherOf } from './Weather';
+import { isRecord } from '../utils/isRecord';
 
 /** A non-player entity snapshot used by providers without actor storage. */
 export interface LegacyWorldEntity {
@@ -415,6 +416,3 @@ const entitiesOf = (value: unknown): LegacyWorldEntity[] | undefined => {
 const optionalNumber = (value: unknown): number | undefined => (isFiniteNumber(value) ? value : undefined);
 
 const isFiniteNumber = (value: unknown): value is number => typeof value === 'number' && Number.isFinite(value);
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-    typeof value === 'object' && value !== null && !Array.isArray(value);

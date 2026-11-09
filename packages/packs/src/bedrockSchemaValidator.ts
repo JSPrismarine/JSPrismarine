@@ -7,6 +7,7 @@ import type { DiagnosticSeverity } from './diagnostics';
 import { parseVersion } from './formatVersion';
 import type { RegistryId } from './registries';
 import type { DefinitionValidator, ValidationFinding } from './validation';
+import { isRecord } from './isRecord';
 
 /**
  * Schema validation for the Bedrock half of the pack stack, against Mojang's
@@ -95,9 +96,6 @@ export interface BedrockSchemaValidatorOptions {
      */
     limit?: number;
 }
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-    typeof value === 'object' && value !== null && !Array.isArray(value);
 
 /**
  * Renders one Ajv error as a field and a reason. The field is the JSON

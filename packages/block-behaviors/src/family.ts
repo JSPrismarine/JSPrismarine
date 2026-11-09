@@ -28,6 +28,7 @@ import type { Behavior, BindContext, Definition } from '@jsprismarine/content';
 
 import type { BlockProperties, BlockWorld, WorldActions } from './world';
 import { DEFAULT_BLOCK_PROPERTIES } from './world';
+import { isRecord } from './isRecord';
 
 /** What a family handler knows about the block type it was built for. */
 export interface FamilyContext {
@@ -85,9 +86,6 @@ export const familyHooks = (family: BlockFamily): readonly BlockHookName[] =>
     BLOCK_HOOK_NAMES.filter((hook) => family.handlers[hook] !== undefined);
 
 /** Whether a value is a plain JSON object rather than an array or null. */
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-    typeof value === 'object' && value !== null && !Array.isArray(value);
-
 /**
  * The `components` map of a block definition.
  *

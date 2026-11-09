@@ -27,6 +27,7 @@ import type { Rotation } from './tableShape';
 import { transformPosition, transformedSize } from './transform';
 import type { BedrockBlockState, BedrockStructureTemplate, TemplatePosition } from './types';
 import { StructureFormatError } from './types';
+import { isRecord } from './isRecord';
 
 /** A facing, in Java's own vocabulary, which both jigsaw fields use. */
 export type Direction = 'down' | 'up' | 'north' | 'south' | 'east' | 'west';
@@ -307,9 +308,6 @@ export const jigsawOrientationOf = (state: BedrockBlockState): { front: Directio
 /** The Bedrock jigsaw block state for a front and top facing pair. */
 export const jigsawStateFor = (front: Direction, top: Direction): BedrockBlockState | undefined =>
     stateByOrientation.get(`${front}|${top}`);
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-    typeof value === 'object' && value !== null && !Array.isArray(value);
 
 const parsePoolElement = (definition: unknown): PoolElement => {
     if (!isRecord(definition)) throw new StructureFormatError('pool element: expected an object');

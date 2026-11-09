@@ -1,4 +1,5 @@
 import type { EntityInstance } from '@jsprismarine/entities';
+import { isRecord } from '../params';
 
 /**
  * The `minecraft:navigation.*` component, read as the rules the path finder
@@ -88,9 +89,6 @@ export const defaultNavigationProfile: NavigationProfile = {
     isAmphibious: false,
     blocksToAvoid: []
 };
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-    typeof value === 'object' && value !== null && !Array.isArray(value);
 
 const flag = (body: Record<string, unknown>, key: string, fallback: boolean): boolean =>
     typeof body[key] === 'boolean' ? body[key] : fallback;

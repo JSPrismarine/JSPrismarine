@@ -1,5 +1,6 @@
 import type { RecipeItemStack } from './itemStack';
 import { normalizeIdentifier } from './itemStack';
+import { isRecord } from './isRecord';
 
 /**
  * Resolves a Java tag to the identifiers it holds, without the leading `#`.
@@ -54,9 +55,6 @@ export interface IngredientParseResult {
     readonly ingredient?: Ingredient;
     readonly diagnostics: readonly IngredientDiagnostic[];
 }
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-    typeof value === 'object' && value !== null && !Array.isArray(value);
 
 /** Resolves a holder set written as an id, a `#tag`, or a list of either. */
 const resolveHolderSet = (

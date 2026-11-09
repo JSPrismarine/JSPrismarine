@@ -5,6 +5,7 @@ import { parseVersion, selectSchemaVersion } from '@jsprismarine/packs';
 import type { BlockStateValue } from './hooks';
 import type { BlockStateDefinition } from './state';
 import { BlockStateModel } from './state';
+import { isRecord } from './schema';
 
 /**
  * The schema versions this package knows, oldest first. `format_version`
@@ -203,9 +204,6 @@ export interface BlockParseSource {
     /** The pack-relative path of the file. */
     readonly path?: string;
 }
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-    typeof value === 'object' && value !== null && !Array.isArray(value);
 
 const isStateValue = (value: unknown): value is BlockStateValue =>
     typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean';

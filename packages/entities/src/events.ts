@@ -1,5 +1,6 @@
 import type { Filter } from '@jsprismarine/packs';
 import { FilterParseError, parseFilter } from '@jsprismarine/packs';
+import { isRecord } from './components/schemas';
 
 /**
  * The event grammar. An event is a node, and a node nests indefinitely through
@@ -118,9 +119,6 @@ export const EVENT_ACTION_VERSIONS: ReadonlyMap<string, readonly [number, number
     ['emit_particle', [1, 21, 50]],
     ['play_sound', [1, 21, 50]]
 ]);
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-    typeof value === 'object' && value !== null && !Array.isArray(value);
 
 const asArray = (value: unknown): readonly unknown[] => (Array.isArray(value) ? value : [value]);
 

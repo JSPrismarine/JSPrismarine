@@ -18,6 +18,7 @@ import { PlayerAdvancements } from '@jsprismarine/advancements';
 import type { PlayerProgressJson } from '@jsprismarine/advancements';
 
 import type Player from '../Player';
+import { isRecord } from '../utils/isRecord';
 
 const stores = new WeakMap<Player, PlayerAdvancements>();
 
@@ -36,9 +37,6 @@ export const advancementsOf = (player: Player): PlayerAdvancements => {
     stores.set(player, created);
     return created;
 };
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-    typeof value === 'object' && value !== null && !Array.isArray(value);
 
 /**
  * Whether a stored value is shaped like the progress record.

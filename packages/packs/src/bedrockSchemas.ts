@@ -3,6 +3,7 @@ import { join, sep } from 'node:path';
 
 import { compareVersions, parseVersion } from './formatVersion';
 import type { FormatVersion } from './formatVersion';
+import { isRecord } from './isRecord';
 
 /**
  * Reads Mojang's `metadata/json_schemas` tree out of a bedrock-samples
@@ -41,9 +42,6 @@ export interface BedrockSchemaSet {
      */
     readonly versionsByDocument: ReadonlyMap<string, readonly DocumentVersion[]>;
 }
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-    typeof value === 'object' && value !== null && !Array.isArray(value);
 
 /** Every `.json` file under a directory, as paths relative to it, `/`-separated. */
 const schemaFilesUnder = (root: string): string[] =>

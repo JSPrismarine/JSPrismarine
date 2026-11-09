@@ -4,6 +4,7 @@ import type { IntRange, ItemStackTemplate } from './itemStack';
 import { normalizeIdentifier } from './itemStack';
 import type { Recipe, RecipeType, ShapedPattern } from './types';
 import { RECIPE_TYPES, STATION_BY_TYPE } from './types';
+import { isRecord } from './isRecord';
 
 /** One problem found while reading a recipe file. */
 export interface RecipeDiagnostic {
@@ -27,9 +28,6 @@ export interface RecipeParseResult {
 const RECIPE_TYPE_SET: ReadonlySet<string> = new Set(RECIPE_TYPES);
 
 const isRecipeType = (value: string): value is RecipeType => RECIPE_TYPE_SET.has(value);
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-    typeof value === 'object' && value !== null && !Array.isArray(value);
 
 const isStringArray = (value: unknown): value is readonly string[] =>
     Array.isArray(value) && value.every((entry) => typeof entry === 'string');

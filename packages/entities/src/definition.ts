@@ -7,6 +7,7 @@ import type { EventNode } from './events';
 import { EVENT_ACTION_VERSIONS, eventActionNames, parseEventNode } from './events';
 import type { PropertyDefinition } from './properties';
 import { parseProperties } from './properties';
+import { isRecord } from './components/schemas';
 
 /**
  * The entity definition model. An entity file is
@@ -103,9 +104,6 @@ const ROOT_EVENT_FILTERS_SINCE: FormatVersion = [1, 19, 20];
 
 /** The `format_version` at which `entity_version` and `upgrades` are read. */
 const UPGRADES_SINCE: FormatVersion = [1, 26, 20];
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-    typeof value === 'object' && value !== null && !Array.isArray(value);
 
 /**
  * Parses one entity file into an {@link EntityDefinition}.

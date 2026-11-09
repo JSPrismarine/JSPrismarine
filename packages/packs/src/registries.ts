@@ -1,3 +1,5 @@
+import { isRecord } from './isRecord';
+
 /**
  * The registries a behavior pack fills and how a file routes into them. A
  * file's top-level folder picks the registry; the identifier is either the
@@ -59,9 +61,6 @@ const ROUTES: Record<string, RegistryRoute> = {
     feature_rules: { registry: 'featureRules', wrapperKeys: ['minecraft:feature_rules'] },
     item_catalog: { registry: 'itemCatalog', identifierFrom: 'path' }
 };
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-    typeof value === 'object' && value !== null && !Array.isArray(value);
 
 /**
  * Routes a pack-relative path to its registry by top-level folder.

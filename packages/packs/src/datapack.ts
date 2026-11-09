@@ -10,6 +10,7 @@ import { DATA_PACK_FORMAT, coversFormat, formatToString, parseMcmeta } from './m
 import type { PackMcmeta } from './mcmeta';
 import type { DefinitionValidator } from './validation';
 import { isZip, readZip } from './zip';
+import { isRecord } from './isRecord';
 
 /**
  * The Java half of the pack stack: reads one datapack from a directory or a
@@ -29,9 +30,6 @@ export interface TagData {
     /** The merged entries in pack order: plain ids or `{ id, required }` objects. */
     values: unknown[];
 }
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-    typeof value === 'object' && value !== null && !Array.isArray(value);
 
 /** Whether a pack-relative path is safe to use: relative, `/`-separated, no traversal. */
 const isSafePath = (path: string): boolean =>

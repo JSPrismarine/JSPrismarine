@@ -18,6 +18,7 @@ import type { Placement } from './transform';
 import { stateDomainsOf, transformBedrockState } from './transform';
 import type { BedrockBlockState, BedrockStructureTemplate, TemplatePosition } from './types';
 import { NO_BLOCK, StructureFormatError } from './types';
+import { isRecord } from './isRecord';
 
 /** The eleven `worldgen/structure_processor` types Java 26.3 registers. */
 export const PROCESSOR_TYPES = [
@@ -122,9 +123,6 @@ export interface StructureProcessor {
         context: ProcessorContext
     ): (ProcessorBlock | undefined)[];
 }
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-    typeof value === 'object' && value !== null && !Array.isArray(value);
 
 const stringAt = (source: Record<string, unknown>, key: string): string | undefined =>
     typeof source[key] === 'string' ? source[key] : undefined;

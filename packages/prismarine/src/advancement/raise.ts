@@ -19,6 +19,7 @@ import type { TriggerEvents, TriggerName } from '@jsprismarine/advancements';
 import type Player from '../Player';
 import { TextPacketType } from '@jsprismarine/protocol';
 import { advancementsOf } from './progress';
+import { isRecord } from '../utils/isRecord';
 
 /** Raises one trigger for one player and announces whatever it completed. */
 export const raiseAdvancement = <K extends TriggerName>(player: Player, trigger: K, event: TriggerEvents[K]): void => {
@@ -55,9 +56,6 @@ const announce = async (player: Player, id: string): Promise<void> => {
             )
     );
 };
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-    typeof value === 'object' && value !== null && !Array.isArray(value);
 
 /**
  * A readable name out of a chat component, which the engine keeps as the JSON

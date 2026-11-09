@@ -1,6 +1,7 @@
 import type { Diagnostic } from './diagnostics';
 import type { FormatVersion } from './formatVersion';
 import { parseVersion } from './formatVersion';
+import { isRecord } from './isRecord';
 
 /** The identity block of a pack manifest. */
 export interface ManifestHeader {
@@ -32,9 +33,6 @@ export interface Manifest {
 }
 
 const UUID_PATTERN = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-    typeof value === 'object' && value !== null && !Array.isArray(value);
 
 /**
  * Parses a decoded `manifest.json` against the documented schema: `header`

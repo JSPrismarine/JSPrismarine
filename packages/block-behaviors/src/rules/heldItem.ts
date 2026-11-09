@@ -13,6 +13,7 @@
 import type { HookItem } from '@jsprismarine/blocks';
 
 import { bareName } from '../state';
+import { isRecord } from '../isRecord';
 
 /** The bare name of a held item, empty for a bare hand. */
 export const heldName = (item: HookItem | undefined): string => (item === undefined ? '' : bareName(item.identifier));
@@ -24,9 +25,6 @@ export const ENCHANTMENTS_COMPONENT = 'minecraft:enchantments';
 export const POTION_CONTENTS_COMPONENT = 'minecraft:potion_contents';
 
 /** Whether a component value is a plain JSON object rather than an array or null. */
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-    typeof value === 'object' && value !== null && !Array.isArray(value);
-
 /**
  * The level of one enchantment on a held item.
  *

@@ -13,6 +13,7 @@ import type { BedrockItemTagSource, BedrockItemTags } from './bedrockTags';
 import { createItemComponentRegistry } from './components/catalog';
 import type { ItemFlag, ItemHooks, ItemType } from './hooks';
 import { itemTypesTable } from './tables';
+import { isRecord } from './isRecord';
 
 /** The name the registry of item types is built under; it appears in holders and diagnostics. */
 export const ITEM_REGISTRY_NAME = 'items';
@@ -21,9 +22,6 @@ export const ITEM_REGISTRY_NAME = 'items';
 export type ItemRegistry = Registry<ItemType>;
 
 /** Whether a parsed JSON value is an object with named properties. */
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-    typeof value === 'object' && value !== null && !Array.isArray(value);
-
 /**
  * Reads the component list out of an item definition.
  *

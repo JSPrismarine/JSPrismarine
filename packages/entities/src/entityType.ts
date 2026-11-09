@@ -13,6 +13,7 @@ import type { EntityDefinition } from './definition';
 import type { Diagnostic } from './diagnostics';
 import { DiagnosticCollector } from './diagnostics';
 import type { EntityHooks } from './hooks';
+import { isRecord } from './components/schemas';
 
 /**
  * The second content layer for entities: a definition resolved once at load.
@@ -239,5 +240,3 @@ const normalizeLegacyOffspring = (components: ReadonlyMap<string, unknown>): Rea
 };
 
 /** Whether a JSON component body is a plain object. */
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-    typeof value === 'object' && value !== null && !Array.isArray(value);

@@ -15,6 +15,7 @@ import { bedrockMobEffectIdentifier, bedrockMobEffectId } from './StatusEffect';
 import { dataEntityRecordIn } from './data/persistence';
 import { Position } from '../world/Position';
 import type { World } from '../world/World';
+import { isRecord } from '../utils/isRecord';
 
 const TNT_IDENTIFIER = 'minecraft:tnt';
 
@@ -213,9 +214,6 @@ const isStoredItemStack = (value: unknown): value is StoredItemStack => {
 };
 
 /** Whether a JSON value has named fields. */
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-    typeof value === 'object' && value !== null && !Array.isArray(value);
-
 /** Everything except the tags {@link EntitySerializer} writes back itself. */
 const remainder = (nbt: NBTTagCompound): NBTTagCompound => {
     const kept = copy(nbt);

@@ -7,6 +7,7 @@ import {
 } from './javaRegistries';
 import type { JavaRegistryId } from './javaRegistries';
 import type { Definition, Definitions } from './load';
+import { isRecord } from './isRecord';
 
 /**
  * The unmapped-identifier report. Java datapack definitions reference Java
@@ -152,9 +153,6 @@ const registryForField = (key: string, siblings: Record<string, unknown>): strin
 
 const IDENTIFIER_PATTERN = /^#?[a-z0-9_.-]+:[a-z0-9_./-]+$/;
 const BARE_PATTERN = /^#?[a-z0-9_./-]+$/;
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-    typeof value === 'object' && value !== null && !Array.isArray(value);
 
 /** Normalizes an identifier-shaped string, defaulting a missing namespace to `minecraft`. */
 const normalizeId = (value: string): string | undefined => {

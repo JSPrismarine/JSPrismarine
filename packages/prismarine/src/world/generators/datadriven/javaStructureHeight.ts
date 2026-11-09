@@ -14,9 +14,7 @@
 import type { VerticalAnchor, VerticalContext } from '@jsprismarine/features';
 import { parseVerticalAnchor, resolveAnchor } from '@jsprismarine/features';
 import type { RandomSource } from '@jsprismarine/structures';
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-    typeof value === 'object' && value !== null && !Array.isArray(value);
+import { isRecord } from '../../../utils/isRecord';
 
 /**
  * Draws the y a structure starts at.

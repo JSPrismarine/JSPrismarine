@@ -2,6 +2,7 @@ import type { DiagnosticSeverity } from './diagnostics';
 import { parseFilter, FilterParseError } from './filters';
 import type { JavaRegistryId } from './javaRegistries';
 import type { RegistryId } from './registries';
+import { isRecord } from './isRecord';
 
 /** One finding a validator reports about a single definition file. */
 export interface ValidationFinding {
@@ -36,9 +37,6 @@ export const composeValidators =
     (...validators: readonly DefinitionValidator[]): DefinitionValidator =>
     (file) =>
         validators.flatMap((validate) => validate(file));
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-    typeof value === 'object' && value !== null && !Array.isArray(value);
 
 /**
  * Walks a definition for `filters` keys and parses each with the filter

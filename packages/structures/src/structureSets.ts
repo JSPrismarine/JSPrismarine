@@ -10,6 +10,7 @@
  */
 import { createLegacyRandom, largeFeatureSeed, largeFeatureWithSaltSeed } from './random';
 import { StructureFormatError } from './types';
+import { isRecord } from './isRecord';
 
 /** A chunk position, in chunk coordinates. */
 export interface ChunkPosition {
@@ -79,9 +80,6 @@ export interface StructureSet {
     readonly placement: StructurePlacement;
     readonly structures: readonly { readonly structure: string; readonly weight: number }[];
 }
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-    typeof value === 'object' && value !== null && !Array.isArray(value);
 
 const numberAt = (source: Record<string, unknown>, key: string, fallback: number): number =>
     typeof source[key] === 'number' ? source[key] : fallback;

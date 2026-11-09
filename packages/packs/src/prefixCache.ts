@@ -9,6 +9,7 @@ import { JAVA_REGISTRY_IDS } from './javaRegistries';
 import type { Definition, Definitions, LoadResult } from './load';
 import type { PackStack } from './sources';
 import { REGISTRY_IDS } from './registries';
+import { isRecord } from './isRecord';
 
 /** Identifies the vanilla source prefix to cache while the rest of the stack stays live. */
 export interface PrefixCacheOptions {
@@ -36,9 +37,6 @@ interface PrefixCacheFile {
 
 const FORMAT_VERSION = 1;
 const packageManifest: unknown = packsManifest;
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-    typeof value === 'object' && value !== null && !Array.isArray(value);
 
 const packageVersion = (): string => {
     if (isRecord(packageManifest) && typeof packageManifest.version === 'string') return packageManifest.version;

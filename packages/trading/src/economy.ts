@@ -6,6 +6,7 @@ import type { TradeEnchanting, TradeFunctionApplier, TradeStack } from './functi
 import type { OfferGenerationOptions, TradeContext, TradeOffer } from './offers';
 import { generateOffers, unlockedTierCount } from './offers';
 import type { TradeTable } from './tables';
+import { isRecord } from './isRecord';
 
 /**
  * The trading economy: uses, demand, experience, levels, restock and the
@@ -132,9 +133,6 @@ const stackOf = (saved: StackSnapshot): TradeStack => ({
     count: saved.count,
     components: new Map(saved.components)
 });
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-    typeof value === 'object' && value !== null && !Array.isArray(value);
 
 const finite = (value: unknown): value is number => typeof value === 'number' && Number.isFinite(value);
 

@@ -1,6 +1,7 @@
 import type { Diagnostic } from '@jsprismarine/entities';
 import type { Filter } from '@jsprismarine/packs';
 import { FilterParseError, parseFilter } from '@jsprismarine/packs';
+import { isRecord } from './isRecord';
 
 /**
  * The trade table grammar.
@@ -101,9 +102,6 @@ const TIER_KEYS = new Set(['total_exp_required', 'groups', 'trades']);
 const GROUP_KEYS = new Set(['num_to_select', 'trades']);
 const TRADE_KEYS = new Set(['wants', 'gives', 'trader_exp', 'max_uses', 'reward_exp', 'weight']);
 const ITEM_KEYS = new Set(['item', 'quantity', 'functions', 'filters', 'price_multiplier', 'choice']);
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-    typeof value === 'object' && value !== null && !Array.isArray(value);
 
 const numberAt = (source: Record<string, unknown>, key: string, fallback: number): number => {
     const value = source[key];

@@ -19,6 +19,7 @@ import type {
     ShieldDecorationRecipe,
     TransmuteRecipe
 } from './types';
+import { isRecord } from './isRecord';
 
 /** The explosion shape a firework star records when no shape modifier is present. */
 const DEFAULT_FIREWORK_SHAPE = 'small_ball';
@@ -28,9 +29,6 @@ const DEFAULT_DYE_COLOR = 'white';
 const REPAIR_BONUS_PERCENT = 5;
 /** Decorated pot sherd slots inside the cropped 3x3 grid, in the order the result records them. */
 const POT_SLOTS = { back: 1, left: 3, right: 5, front: 7 } as const;
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-    typeof value === 'object' && value !== null && !Array.isArray(value);
 
 const stackAt = (grid: CroppedGrid, slot: number): RecipeItemStack | null => grid.slots[slot] ?? null;
 

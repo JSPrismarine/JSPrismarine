@@ -135,6 +135,7 @@ import type { ChunkPipelineSetup, ChunkTaskInput, FeatureTaskInput } from './chu
 import type { TerrainPipelineSetup } from './terrainPipeline';
 import { bedrockBiomeIdOf, JavaStateTranslator } from './javaTranslation';
 import type { ChunkCompletionScheduler } from '../../ChunkCompletionQueue';
+import { isRecord } from '../../../utils/isRecord';
 
 /** Re-runs each proven skip through scalar density and aquifer sampling when debugging. */
 const VERIFY_SKIPPED_WORLDGEN_CELLS = process.env['JSP_VERIFY_WORLDGEN_CELL_SKIPS'] === '1';
@@ -574,9 +575,6 @@ interface StructureSpawnOverride {
     readonly structure: string;
     readonly boundingBox: StructureSpawnBox;
 }
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-    typeof value === 'object' && value !== null && !Array.isArray(value);
 
 /** Every Java entity type listed by a biome's natural spawn table. */
 const naturalSpawnTypesOf = (biomes: JavaWorldgenRegistries['biomes']): ReadonlySet<string> => {

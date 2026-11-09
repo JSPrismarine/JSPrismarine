@@ -1,4 +1,5 @@
 import type { Diagnostic } from './diagnostics';
+import { isRecord } from './isRecord';
 
 /**
  * `pack.mcmeta` for a Java datapack. 26.3 declares a `min_format` and
@@ -37,9 +38,6 @@ export interface PackMcmeta {
     /** Overlay entries in declaration order; a later entry wins over an earlier one. */
     overlays: PackOverlay[];
 }
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-    typeof value === 'object' && value !== null && !Array.isArray(value);
 
 /**
  * Parses one format value: a bare major integer or a `[major, minor]` array.

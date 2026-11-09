@@ -1,3 +1,5 @@
+import { isRecord } from './isRecord';
+
 /**
  * The two components that point an entity at a trade table.
  *
@@ -43,9 +45,6 @@ export interface TradeTableSettings {
     readonly displayName?: string;
     readonly convertTradesEconomy: boolean;
 }
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-    typeof value === 'object' && value !== null && !Array.isArray(value);
 
 const stringAt = (source: Record<string, unknown>, key: string): string | undefined => {
     const value = source[key];

@@ -13,12 +13,10 @@
  * cannot read is a file the stack reported on, not a fact to invent a default for.
  */
 import type { Definition } from '@jsprismarine/packs';
+import { isRecord } from '../utils/isRecord';
 
 /** The tags of each biome in a pack stack, keyed by the biome's namespaced identifier. */
 export type BiomeTagIndex = ReadonlyMap<string, readonly string[]>;
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-    typeof value === 'object' && value !== null && !Array.isArray(value);
 
 /** The `minecraft:tags` names of one biome definition's parsed data. */
 const tagsOf = (data: unknown): readonly string[] => {
