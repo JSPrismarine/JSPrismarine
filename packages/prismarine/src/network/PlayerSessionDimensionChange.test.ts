@@ -521,6 +521,48 @@ describe('PlayerSession.changeWorld', () => {
         expect(session.pendingDimensionChange()?.arrival.world).toBe(player.getWorld());
     });
 
+    it('holds a change made while the player is dead, sending the client nothing', async () => {
+        const { player, sent, roster, level, logged } = fakePlayer();
+        const session = player.getNetworkSession();
+        const home = player.getWorld();
+        await player.setHealth(0);
+        sent.length = 0;
+
+        await session.changeWorld(arrivalIn(worldOf(Dimensions.Nether, roster, level)));
+
+        expect(player.getWorld()).toBe(home);
+        expect(session.pendingDimensionChange()).toBeUndefined();
+        expect(sent.some((packet) => packet instanceof ChangeDimensionPacket)).toBe(false);
+        expect(logged.some((line) => line.includes('they are dead'))).toBe(true);
+    });
+
+    it('carries out the change held over a death once the player respawns', async () => {
+        const { player, sent, roster, level } = fakePlayer();
+        const session = player.getNetworkSession();
+        const nether = worldOf(Dimensions.Nether, roster, level);
+        await player.setHealth(0);
+        await session.changeWorld(arrivalIn(nether));
+
+        await player.respawn();
+
+        expect(player.isAlive()).toBe(true);
+        expect(player.getWorld()).toBe(nether);
+        expect(session.pendingDimensionChange()?.arrival.world).toBe(nether);
+        expect(sent.filter((packet) => packet instanceof ChangeDimensionPacket)).toHaveLength(1);
+    });
+
+    it('still sends the respawn change of a dead player', async () => {
+        const { player, sent } = fakePlayer();
+        const session = player.getNetworkSession();
+        const nether = worldOf(Dimensions.Nether);
+        await player.setHealth(0);
+
+        await session.changeWorld({ ...arrivalIn(nether), respawn: true, closesLoadingScreen: false });
+
+        expect(player.getWorld()).toBe(nether);
+        expect(sent.some((packet) => packet instanceof ChangeDimensionPacket)).toBe(true);
+    });
+
     it('does not record a batch that was on the wire during the change as loaded', async () => {
         const { player, connection, sent } = fakePlayer();
         const session = player.getNetworkSession();

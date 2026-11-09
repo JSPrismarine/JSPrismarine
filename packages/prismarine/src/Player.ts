@@ -1174,6 +1174,7 @@ export default class Player extends Human {
         }
 
         await this.getNetworkSession().sendRespawned();
+        await this.getNetworkSession().releaseChangeHeldOverDeath();
     }
 
     /**

@@ -2046,6 +2046,21 @@ export default class PlayerSession {
                 );
             return;
         }
+        // A dead client can leave the screen of a change sent under its death screen unopened, so
+        // the change stayed pending for the whole timeout and held every later move behind it.
+        // It waits for the respawn instead: see {@link PlayerSession.releaseChangeHeldOverDeath}.
+        // The respawn's own change runs while the player is still dead, and is not held.
+        if (!player.isAlive() && arrival.closesLoadingScreen !== false) {
+            const queue = (options.whenPending ?? 'queue') === 'queue';
+            if (queue) this.queuedChange = arrival;
+            this.server
+                .getLogger()
+                .debug(
+                    `${queue ? 'Holding' : 'Dropped'} the move of ${player.getName()} to ${world.getName()}: they are dead`,
+                    'PlayerSession/changeWorld'
+                );
+            return;
+        }
         const from = player.getWorld();
         const left = from.getDimension();
 
@@ -2145,6 +2160,18 @@ export default class PlayerSession {
             );
             await this.sendPlayStatus(PlayStatus.PlayerSpawn);
         }
+    }
+
+    /**
+     * Carries out the change {@link PlayerSession.changeWorld} held while the player was dead.
+     * Called by `Player.respawn` once the client is told its player is alive. A change still
+     * pending, the respawn's own included, carries the held one out when it closes instead.
+     */
+    public async releaseChangeHeldOverDeath(): Promise<void> {
+        if (this.pendingChange !== undefined) return;
+        const queued = this.queuedChange;
+        this.queuedChange = undefined;
+        if (queued !== undefined) await this.changeWorld(queued);
     }
 
     /**
