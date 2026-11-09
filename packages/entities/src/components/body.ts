@@ -278,7 +278,7 @@ export const rideable: ComponentFactory<EntityHooks, RideableParams> = {
     })
 };
 
-/** The three integer state components filters and the wire both read. */
+/** The integer state components filters and the wire both read. */
 export const integerStateComponents: readonly ComponentFactory<EntityHooks, number>[] = [
     numberComponent('minecraft:variant', 'value', 0),
     numberComponent('minecraft:mark_variant', 'value', 0),
