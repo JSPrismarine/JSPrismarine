@@ -61,6 +61,11 @@ export const megaMenus = [
                         text: 'Versioning policy',
                         description: 'How packages are versioned and released.',
                         link: '/guide/versioning'
+                    },
+                    {
+                        text: 'Brand',
+                        description: 'Colors, type, the prism mark and voice.',
+                        link: '/brand/'
                     }
                 ]
             },

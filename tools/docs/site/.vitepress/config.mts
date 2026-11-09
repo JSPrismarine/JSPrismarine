@@ -10,6 +10,17 @@ export default defineConfig({
     title: 'JSPrismarine',
     description: 'Dedicated Minecraft Bedrock Edition server written in TypeScript',
     base: '/JSPrismarine/',
+    head: [
+        ['link', { rel: 'preconnect', href: 'https://fonts.googleapis.com' }],
+        ['link', { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' }],
+        [
+            'link',
+            {
+                rel: 'stylesheet',
+                href: 'https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,800&family=JetBrains+Mono:wght@400;700&display=swap'
+            }
+        ]
+    ],
     ignoreDeadLinks: [
         (link, source) => {
             console.warn(`Found dead link ${link} in ${source}`);

@@ -1,17 +1,56 @@
-/* The primary and secondary accents match the JSPrismarine website. */
+/* Brand tokens. The docs/brand page documents them; change a value here, not in a component. */
 :root {
-    --prismarine-accent: #5ca48a;
-    --prismarine-forest: #003829;
+    --jsp-accent: #5ca48a;
+    --jsp-forest: #003829;
+    --jsp-deep: #00281d;
+    --jsp-mint: #a9d9c6;
+    --jsp-cream: #efe9da;
+    --jsp-ink: #0b1713;
+    --jsp-signal: #ff6b3d;
 
-    --vp-c-brand-1: var(--prismarine-forest);
-    --vp-c-brand-2: color-mix(in srgb, var(--prismarine-forest) 80%, var(--prismarine-accent));
-    --vp-c-brand-3: color-mix(in srgb, var(--prismarine-forest) 55%, var(--prismarine-accent));
-    --vp-c-brand-soft: color-mix(in srgb, var(--prismarine-accent) 14%, transparent);
+    --vp-font-family-base: 'Bricolage Grotesque', 'Helvetica Neue', Arial, sans-serif;
+    --vp-font-family-mono: 'JetBrains Mono', ui-monospace, Menlo, monospace;
+
+    --vp-c-brand-1: var(--jsp-forest);
+    --vp-c-brand-2: color-mix(in srgb, var(--jsp-forest) 80%, var(--jsp-accent));
+    --vp-c-brand-3: color-mix(in srgb, var(--jsp-forest) 55%, var(--jsp-accent));
+    --vp-c-brand-soft: color-mix(in srgb, var(--jsp-accent) 14%, transparent);
+
+    --vp-button-brand-bg: var(--jsp-accent);
+    --vp-button-brand-text: var(--jsp-forest);
+    --vp-button-brand-hover-bg: var(--jsp-mint);
+    --vp-button-brand-hover-text: var(--jsp-forest);
+    --vp-c-bg-alt: color-mix(in srgb, var(--jsp-cream) 55%, #fff);
+    --vp-c-bg: #fbf9f3;
 }
 
 .dark {
-    --vp-c-brand-1: var(--prismarine-accent);
-    --vp-c-brand-2: color-mix(in srgb, var(--prismarine-accent) 86%, var(--vp-c-white));
-    --vp-c-brand-3: color-mix(in srgb, var(--prismarine-forest) 55%, var(--prismarine-accent));
-    --vp-c-brand-soft: color-mix(in srgb, var(--prismarine-accent) 16%, transparent);
+    --vp-c-brand-1: var(--jsp-accent);
+    --vp-c-brand-2: color-mix(in srgb, var(--jsp-accent) 86%, #fff);
+    --vp-c-brand-3: color-mix(in srgb, var(--jsp-forest) 55%, var(--jsp-accent));
+    --vp-c-brand-soft: color-mix(in srgb, var(--jsp-accent) 16%, transparent);
+    --vp-c-bg: #08130f;
+    --vp-c-bg-alt: var(--jsp-ink);
+    --vp-c-bg-soft: #10201a;
+}
+
+/* Heavy, tight headlines; body copy keeps the default tracking. */
+.vp-doc h1,
+.vp-doc h2,
+.vp-doc h3 {
+    font-weight: 800;
+    letter-spacing: -0.035em;
+}
+
+.vp-doc h1 {
+    letter-spacing: -0.05em;
+}
+
+.vp-doc h2 {
+    border-top: 0;
+}
+
+.VPNavBarTitle .title {
+    font-weight: 800;
+    letter-spacing: -0.03em;
 }
