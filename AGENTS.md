@@ -58,6 +58,11 @@ Use American English spelling in prose and documentation. Do not use British spe
 - Let pnpm update `pnpm-lock.yaml` when dependencies change. Keep dependency versions consistent
   with the repository's package configuration.
 - Follow the configured Biome and Prettier rules. Derive values from their source of truth instead of maintaining duplicate constants or lists.
+- Give each helper one home. Before writing a guard, parser, reader or math helper, `git grep` the
+  package for its name and its body, and import the match. When a second file needs a private helper,
+  move it into a shared module in the owning package (such as `src/isRecord.ts` or `src/json.ts`)
+  and import it from both; keep that module out of the package's public barrel. Share across
+  packages only through a package that already owns the concept and is already a dependency.
 - Let TypeScript infer types. Carry type information through declaration annotations, generics,
   `satisfies`, and narrowing (`instanceof`, `in`, type guards) rather than `as` assertions.
   `as const` is fine. Reserve other `as` casts for boundaries the compiler cannot see, such as
