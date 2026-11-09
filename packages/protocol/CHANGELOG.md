@@ -1,5 +1,19 @@
 # @jsprismarine/protocol
 
+## 0.19.0
+
+### Patch Changes
+
+- Updated dependencies [[`9a914c5`](https://github.com/JSPrismarine/JSPrismarine/commit/9a914c5e493a7aac47bdf7d1e21fa9f53f3d0622), [`47d5d19`](https://github.com/JSPrismarine/JSPrismarine/commit/47d5d19bdc211dda8ca06b979dc5645791b63801), [`e785c39`](https://github.com/JSPrismarine/JSPrismarine/commit/e785c393143af8f1812350c7de218f809d6e5c8e)]:
+  - @jsprismarine/blocks@0.19.0
+  - @jsprismarine/math@0.19.0
+  - @jsprismarine/nbt@0.19.0
+  - @jsprismarine/minecraft@0.19.0
+  - @jsprismarine/items@0.19.0
+  - @jsprismarine/recipes@0.19.0
+  - @jsprismarine/binaryutils@0.19.0
+  - @jsprismarine/content@0.19.0
+
 ## 0.18.0
 
 ### Patch Changes

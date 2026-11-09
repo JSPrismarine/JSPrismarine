@@ -1,5 +1,17 @@
 # @jsprismarine/chunkgen
 
+## 0.19.0
+
+### Patch Changes
+
+- [`a8cc6ff`](https://github.com/JSPrismarine/JSPrismarine/commit/a8cc6ff8eb12c9cdfd71507a88ded2197ea12b0f) Thanks [@filiphsps](https://github.com/filiphsps)! - The Bun-compiled executables no longer exit on start. The generation pool, the RakNet socket and LevelDB's table builder each start a worker the compile did not embed: the pool handed its worker to piscina, whose own `dist/worker.js` was a path on the build machine, and the other two looked for their worker beside a bundled module that is not there. The executable now embeds all three, the generation pool runs a compiled binary's worker through its own runner as the Node single executable does, and the release and nightly builds start each executable and stop it again before publishing it.
+
+- [`d7dbd12`](https://github.com/JSPrismarine/JSPrismarine/commit/d7dbd12776b9fe6d486284668566619e95dfded1) Thanks [@filiphsps](https://github.com/filiphsps)! - Chunk generation can run in a separate process. `chunkgen` gains `GenerationTransport`, the surface both pools share, `HostedGenerationPool`, which forks a generation host at a lowered operating system priority and replaces it if it dies, and `createGenerationTransport`, which falls back to threads in the server process when no host can start. The new `chunk-host` option in `config.json` takes `process` or `in-process`. It defaults to `in-process`, so nothing changes until it is set. Generated chunks are byte-identical either way.
+
+- [`6eeb2c7`](https://github.com/JSPrismarine/JSPrismarine/commit/6eeb2c7f76fd1b8968366b0a0a97639fbe98ec56) Thanks [@filiphsps](https://github.com/filiphsps)! - A chunk a player is waiting on no longer queues behind background generation. The generator's admission queue serves requests by urgency, admits `immediate` ones past its depth, and moves a waiting request up when it becomes more urgent. A chunk's neighbor terrain and feature tasks now take the band of the most urgent chunk that reads them, where they used to default to `soon`. The generation governor leaves one worker free of background work. The unused pool `pause` and `resume` are removed: holding tasks that hold admission slots stalled the tick.
+
+- [`6f02c5d`](https://github.com/JSPrismarine/JSPrismarine/commit/6f02c5d4b909b134b15c9d3444a952dabcd60e56) Thanks [@filiphsps](https://github.com/filiphsps)! - The generation pool now records, for each status and priority band, how long tasks wait in its backlog, how long they take to come back, and the wall and thread CPU time each worker spent on them. It can also hold its backlog back and release it. The server's tick loop records each tick's lateness, duration and phase times, and the chunk completion queue books the main-thread time of chunk registration, lighting, fluids and entity setup under their own labels. Nothing about generated output changes.
+
 ## 0.18.0
 
 ### Patch Changes
