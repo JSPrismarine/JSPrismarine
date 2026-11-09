@@ -1,0 +1,1 @@
+import{at as e,it as t,n,vt as r}from"./chunks/framework.UwwvkjGo.js";var i=JSON.parse(`{"title":"Decisions","description":"","frontmatter":{},"headers":[],"relativePath":"adr/index.md","filePath":"adr/index.md"}`),a={name:`adr/index.md`};function o(n,i,a,o,s,c){return r(),t(`div`,null,[...i[0]||=[e("",1)]])}var s=n(a,[[`render`,o]]);export{i as __pageData,s as default};
