@@ -4,6 +4,28 @@ import assert from 'node:assert/strict';
 import type { Scenario } from '../scenario.mts';
 import { sleep, vec3 } from '../scenario.mts';
 
+/** The square radius the scenario waits for when the client's render distance allows it. */
+const NEARBY_RADIUS = 4;
+
+/**
+ * The widest `chunks_loaded` square the server will fill around the client.
+ *
+ * The server sends a circle of chunks, the client's render distance across, while the condition
+ * counts a square, whose corners stand √2 times its radius out. A square wider than the circle
+ * leaves its corners unsent, and the wait times out however long it runs.
+ */
+const nearbyRadius = (state: Record<string, unknown>): number => {
+    const { chunks } = state;
+    assert.ok(
+        typeof chunks === 'object' &&
+            chunks !== null &&
+            'render_distance_blocks' in chunks &&
+            typeof chunks.render_distance_blocks === 'number',
+        'client reports its render distance'
+    );
+    return Math.min(NEARBY_RADIUS, Math.floor(chunks.render_distance_blocks / 16 / Math.SQRT2));
+};
+
 export const chunkCompletionReadiness: Scenario = {
     name: 'chunk-completion-readiness',
     description: 'nearby chunks become visible after repeated teleports through background completion work',
@@ -34,7 +56,7 @@ export const chunkCompletionReadiness: Scenario = {
                 await sleep(250);
             }
 
-            await client.waitFor({ chunks_loaded: { radius: 4 } }, 60_000);
+            await client.waitFor({ chunks_loaded: { radius: nearbyRadius(await client.state()) } }, 60_000);
             const state = await client.state();
             const chunks = state.chunks;
             assert.ok(typeof chunks === 'object' && chunks !== null, 'client reports chunk readiness state');

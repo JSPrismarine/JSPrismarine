@@ -21,14 +21,13 @@ export type WaitCondition =
 
 /**
  * Saved settings for a client nobody watches, keyed by cinnabar's `settings.json` names. Toggles
- * and dropdowns save their choice's index. The frame cap stays above the 20 Hz game tick. The
- * server sends a circle of chunks, so the render distance has to reach the corners of the widest
- * `chunks_loaded` square a scenario waits for: radius 4, whose corners are 5.7 chunks out.
+ * and dropdowns save their choice's index. The frame cap stays above the 20 Hz game tick, and
+ * the render distance is cinnabar's lowest, still past the radius-2 chunks scenarios wait for.
  */
 const lightweightSettings = {
     main_volume: 0,
     max_framerate: 30,
-    render_distance: 6,
+    render_distance: 5,
     render_resolution: 50,
     render_scale_sharpen: 0,
     msaa: 1,
