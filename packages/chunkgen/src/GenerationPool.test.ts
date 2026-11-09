@@ -335,7 +335,7 @@ describe('GenerationPool timing over real workers', () => {
 
     it(
         'measures the wait behind a blocking task where it happens',
-        { tags: ['performance'] },
+        { tags: ['performance'], timeout: 60_000 },
         async () => {
             const injectedMs = 300;
             pool = new GenerationPool({
@@ -355,7 +355,6 @@ describe('GenerationPool timing over real workers', () => {
             const immediate = pool.statsSnapshot().byTask.find((entry) => entry.priority === 'immediate')!;
             expect(immediate.backlogWait.totalMs).toBeGreaterThan(injectedMs * 0.8);
             expect(immediate.backlogWait.totalMs).toBeLessThan(injectedMs * 1.6);
-        },
-        60_000
+        }
     );
 });

@@ -72,3 +72,27 @@ export {
     mergeGenerationStats,
     shareLongerThan
 } from './GenerationStats';
+export type { GenerationTransport } from './GenerationTransport';
+export type {
+    BuiltGenerationTransport,
+    GenerationHostMode,
+    GenerationTransportOptions
+} from './createGenerationTransport';
+export { createGenerationTransport } from './createGenerationTransport';
+export type { HostedGenerationPoolOptions } from './HostedGenerationPool';
+export { defaultGenerationHost, HostedGenerationPool } from './HostedGenerationPool';
+export { decodeShared, encodeShared } from './hostProtocol';
+export type {
+    CgroupFiles,
+    ConcurrencyGovernorOptions,
+    CpuMax,
+    CpuThrottleStat,
+    GovernorSignal
+} from './ConcurrencyGovernor';
+export {
+    cgroupV2PathOf,
+    CgroupThrottleSampler,
+    ConcurrencyGovernor,
+    parseCpuMax,
+    parseCpuStat
+} from './ConcurrencyGovernor';

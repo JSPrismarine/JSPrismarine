@@ -377,3 +377,47 @@ describe('GenerationPool stats and pause', () => {
         await behind;
     });
 });
+
+describe('GenerationPool background limit', () => {
+    it('lets only the limit of soon and idle tasks run, and never holds immediate ones', async () => {
+        const { pool, runner } = open(4, 4);
+
+        pool.setBackgroundLimit(1);
+        const idle1 = ask(pool, 1, 'idle');
+        const idle2 = ask(pool, 2, 'idle');
+        const soon3 = ask(pool, 3, 'soon');
+        const immediate4 = ask(pool, 4, 'immediate');
+        await settle();
+        // The first background task took the one place; the immediate one is not counted.
+        expect(startedXs(runner)).toEqual([1, 4]);
+
+        runner.finishOne();
+        await idle1;
+        await settle();
+        // `soon` outranks the waiting `idle` task for the freed place.
+        expect(startedXs(runner)).toEqual([1, 4, 3]);
+
+        pool.setBackgroundLimit(undefined);
+        await settle();
+        expect(startedXs(runner)).toEqual([1, 4, 3, 2]);
+        for (let index = 0; index < 3; index++) runner.finishOne();
+        await Promise.all([idle2, soon3, immediate4]);
+    });
+
+    it('starts waiting tasks when the limit is raised', async () => {
+        const { pool, runner } = open(4, 4);
+
+        pool.setBackgroundLimit(1);
+        const first = ask(pool, 1, 'idle');
+        const second = ask(pool, 2, 'idle');
+        const third = ask(pool, 3, 'idle');
+        await settle();
+        expect(startedXs(runner)).toEqual([1]);
+
+        pool.setBackgroundLimit(3);
+        await settle();
+        expect(startedXs(runner)).toEqual([1, 2, 3]);
+        for (let index = 0; index < 3; index++) runner.finishOne();
+        await Promise.all([first, second, third]);
+    });
+});

@@ -75,7 +75,7 @@ const insideCompiledBundle = (specifier: string): boolean =>
  * before anything runs. This package depends on nothing but `piscina`, so the predicate lives
  * here rather than in a package it would have to take a dependency on to reach.
  */
-const inCompiledBinary = (): boolean => {
+export const inCompiledBinary = (): boolean => {
     const main = (globalThis as { Bun?: { main?: string } }).Bun?.main;
     // `/$bunfs/` on POSIX, `B:\~BUN\` on Windows.
     if (main !== undefined) return main.includes('/$bunfs/') || main.includes('~BUN');
@@ -591,6 +591,10 @@ export class GenerationPool {
 
     private readonly now: () => number;
     private readonly stats = new GenerationStatsRecorder();
+    /** How many `soon` and `idle` tasks may be with workers at once; undefined means no limit. */
+    private backgroundLimit: number | undefined;
+    private runningBackground = 0;
+
     /** What a pause holds back, or undefined when not paused. */
     private holds: PauseRule | undefined;
 
@@ -681,6 +685,29 @@ export class GenerationPool {
     }
 
     /**
+     * Limits how many `soon` and `idle` tasks may be with workers at once. `immediate` tasks never
+     * count against it and are never held by it, so a chunk a player stands on is not slowed.
+     *
+     * Raising the limit starts waiting tasks at once. Lowering it does not interrupt a task a
+     * worker has: the running count falls as they finish.
+     *
+     * @param limit - The most background tasks at once, or undefined for no limit.
+     */
+    public setBackgroundLimit(limit: number | undefined): void {
+        this.backgroundLimit = limit === undefined ? undefined : Math.max(1, Math.trunc(limit));
+        while (!this.closed && this.running < this.capacity && this.startNext()) {
+            // Each started task takes a slot; the loop ends when the slots or the backlog do.
+        }
+    }
+
+    /** Whether the background limit leaves room for one more `soon` or `idle` task. */
+    private backgroundRoom(band: GenerationPriority): boolean {
+        return (
+            band === 'immediate' || this.backgroundLimit === undefined || this.runningBackground < this.backgroundLimit
+        );
+    }
+
+    /**
      * Stops handing the tasks a rule picks out to the workers. Tasks already with a worker
      * finish; the held ones wait in the backlog, including tasks asked for while paused.
      *
@@ -744,7 +771,7 @@ export class GenerationPool {
      */
     public async run(task: GenerationTask, priority: GenerationPriority = 'immediate'): Promise<GenerationResult> {
         if (this.closed) throw new GenerationPoolClosedError(task.chunkX, task.chunkZ);
-        if (this.running < this.capacity && !this.isHeld(task, priority)) {
+        if (this.running < this.capacity && !this.isHeld(task, priority) && this.backgroundRoom(priority)) {
             return this.dispatch(task, priority, 0);
         }
 
@@ -844,6 +871,7 @@ export class GenerationPool {
         backlogWaitMs: number
     ): Promise<GenerationResult> {
         this.running++;
+        if (priority !== 'immediate') this.runningBackground++;
         const dispatchedAt = this.now();
         const result = this.runner.run(task);
         this.observeWorkerExits();
@@ -862,6 +890,7 @@ export class GenerationPool {
                       })
             });
             this.observeWorkerExits();
+            if (priority !== 'immediate') this.runningBackground--;
             this.release();
         };
         // `finally` on its own would make the caller wait for the release, and a rejection here
@@ -902,6 +931,7 @@ export class GenerationPool {
     private startNext(): boolean {
         for (const band of GENERATION_PRIORITIES) {
             const tasks = this.waiting.get(band)!;
+            if (!this.backgroundRoom(band)) continue;
             const index = tasks.findIndex((entry) => !this.isHeld(entry.task, band));
             if (index < 0) continue;
 
