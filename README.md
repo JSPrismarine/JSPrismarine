@@ -9,19 +9,19 @@
 
 **A Minecraft: Bedrock Edition server built to play like vanilla, by running on Mojang's own data.**
 
-JSPrismarine builds its blocks, items, mobs, loot, recipes and world generation at startup from the Bedrock behavior pack and Java Edition's datapack, instead of re-implementing them by hand. When the game changes, the server follows. Players join with the normal Bedrock client, Minecraft <!-- fact:minecraft.oldest -->1.26.50<!-- /fact --> to <!-- fact:minecraft.newest -->1.26.60<!-- /fact -->.
+JSPrismarine builds its blocks, items, mobs, loot, recipes and world generation at startup from the Bedrock behavior pack and Java Edition's datapack, instead of re-implementing them by hand. When the game changes, the server follows. Players join with the normal Bedrock client.
 
 - **Real vanilla worlds.** The Overworld, Nether and End, generated from Java's world generation data, with portals and the dragon fight.
 - **Living mobs.** Bedrock spawn rules, AI goals and Java brains. Villagers trade, and raids come for your village.
 - **Survival systems.** Combat, effects, enchanting, crafting, furnaces, redstone, flowing water and fire.
-- **<!-- fact:commands.registered -->56<!-- /fact --> vanilla commands** and Java datapack functions, plus your own Bedrock packs and datapacks on top.
+- **Vanilla commands** and Java datapack functions, plus your own Bedrock packs and datapacks on top.
 - **Parity you can check.** A test suite compares the server with vanilla, and the [parity tracker](https://jsprismarine.github.io/JSPrismarine/parity) shows what matches and what doesn't yet.
 
-JSPrismarine is at <!-- fact:server.version -->0.18.0<!-- /fact --> and has no stable release yet. Expect missing behavior, and tell us what you find.
+JSPrismarine is in active development, so some vanilla behavior is still missing. Try it, and tell us what you find.
 
 ## Try it
 
-You need [Node.js](https://nodejs.org) <!-- fact:node.minimum -->26.4.0<!-- /fact -->+, [pnpm](https://pnpm.io/installation) <!-- fact:pnpm.minimum -->12<!-- /fact -->+ and a JDK 25+.
+You need [Node.js](https://nodejs.org), [pnpm](https://pnpm.io/installation) and a JDK; [Running JSPrismarine](https://jsprismarine.github.io/JSPrismarine/guide/running#run-from-source) lists the versions.
 
 ```bash
 git clone https://github.com/JSPrismarine/JSPrismarine.git
@@ -30,16 +30,14 @@ pnpm install
 pnpm run dev
 ```
 
-The first run downloads Mojang's game data once. Then add the server in Minecraft under **Servers → Add Server**, port <!-- fact:server.port -->19132<!-- /fact -->.
-
-A single-file download for Linux, macOS and Windows is on its way: the current builds stop on first start ([#2919](https://github.com/JSPrismarine/JSPrismarine/issues/2919)).
+The first run downloads Mojang's game data once. Then add the server in Minecraft under **Servers → Add Server**.
 
 ## Learn more
 
 - [Documentation](https://jsprismarine.github.io/JSPrismarine/): running, configuring and hosting a server
 - [Joining a server](docs/guide/joining.md): for players, including the Windows loopback fix
 - [Extending JSPrismarine](docs/guide/extending.md): packs, and embedding the server in your own code
-- [Packages](https://jsprismarine.github.io/JSPrismarine/packages): the protocol, RakNet, NBT, LevelDB, Molang and <!-- fact:packages.count -->45<!-- /fact --> packages in all, on npm
+- [Packages](https://jsprismarine.github.io/JSPrismarine/packages): the protocol, RakNet, NBT, LevelDB, Molang and the rest, each on npm
 
 ## Get involved
 
