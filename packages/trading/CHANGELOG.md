@@ -1,5 +1,14 @@
 # @jsprismarine/trading
 
+## 0.19.1
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @jsprismarine/entities@0.19.1
+  - @jsprismarine/packs@0.19.1
+  - @jsprismarine/predicates@0.19.1
+
 ## 0.19.0
 
 ### Patch Changes

@@ -1,5 +1,13 @@
 # @jsprismarine/console
 
+## 0.19.1
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @jsprismarine/console-protocol@0.19.1
+  - @jsprismarine/logger@0.19.1
+
 ## 0.19.0
 
 ### Patch Changes

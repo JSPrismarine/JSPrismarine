@@ -1,5 +1,18 @@
 # @jsprismarine/server
 
+## 0.19.1
+
+### Patch Changes
+
+- Updated dependencies [[`5129bc5`](https://github.com/JSPrismarine/JSPrismarine/commit/5129bc5166f8a781bd3f928e24b687744cdbd8c9), [`52d1d18`](https://github.com/JSPrismarine/JSPrismarine/commit/52d1d181df403b93c78b4c5aef08d2f47fcc7f88), [`e3adf62`](https://github.com/JSPrismarine/JSPrismarine/commit/e3adf62d2e2869ad554cc2bcc0445e064f3d3066)]:
+  - @jsprismarine/prismarine@0.19.1
+  - @jsprismarine/color-parser@0.19.1
+  - @jsprismarine/console-protocol@0.19.1
+  - @jsprismarine/logger@0.19.1
+  - @jsprismarine/minecraft@0.19.1
+  - @jsprismarine/packs@0.19.1
+  - @jsprismarine/raknet@0.19.1
+
 ## 0.19.0
 
 ### Patch Changes

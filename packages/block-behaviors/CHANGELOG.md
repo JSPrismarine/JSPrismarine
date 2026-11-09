@@ -1,5 +1,14 @@
 # @jsprismarine/block-behaviors
 
+## 0.19.1
+
+### Patch Changes
+
+- Updated dependencies [[`5129bc5`](https://github.com/JSPrismarine/JSPrismarine/commit/5129bc5166f8a781bd3f928e24b687744cdbd8c9)]:
+  - @jsprismarine/mapping@0.19.1
+  - @jsprismarine/blocks@0.19.1
+  - @jsprismarine/content@0.19.1
+
 ## 0.19.0
 
 ### Patch Changes

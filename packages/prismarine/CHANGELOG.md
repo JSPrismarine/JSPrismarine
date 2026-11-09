@@ -1,5 +1,55 @@
 # @jsprismarine/prismarine
 
+## 0.19.1
+
+### Patch Changes
+
+- [#2935](https://github.com/JSPrismarine/JSPrismarine/pull/2935) [`5129bc5`](https://github.com/JSPrismarine/JSPrismarine/commit/5129bc5166f8a781bd3f928e24b687744cdbd8c9) Thanks [@filiphsps](https://github.com/filiphsps)! - A broken bed or banner now drops the item of its own color instead of the black one. Bedrock keeps their color in the block entity, so the loot lookup reads it from there: `blockEntityRecord` exposes a bed's `color` and a banner's `Base` as `dyeIndex`, `blockLootTableOf` and `rollBlockDrops` use it to pick the Java table, and `/loot mine` passes it too. `@jsprismarine/mapping` adds `bedrockBlockEntityDyeIndexOf` and `javaBlockOfBedrockDyeIndex` to convert between a Java colored block and that index.
+
+- [`52d1d18`](https://github.com/JSPrismarine/JSPrismarine/commit/52d1d181df403b93c78b4c5aef08d2f47fcc7f88) Thanks [@claude](https://github.com/claude)! - `ChunkScheduler.tick` no longer spins when every player's next chunk has to wait for generation depth. A deferred chunk reset the count of players with nothing to send, so two or more players behind a full depth kept the pass going until the 5 ms budget ran out, every tick. With an injected clock that never advanced, it never ended at all. This happened on two-core hosts, where the default depth is two. A full round of deferrals now ends the pass, and a chunk held for a sender without `enqueue` returns to the front of its queue.
+
+- [#2938](https://github.com/JSPrismarine/JSPrismarine/pull/2938) [`e3adf62`](https://github.com/JSPrismarine/JSPrismarine/commit/e3adf62d2e2869ad554cc2bcc0445e064f3d3066) Thanks [@filiphsps](https://github.com/filiphsps)! - `SharedTerrainTileStore` no longer blocks a worker thread while it waits for another owner to finish building a terrain tile. It waited with `Atomics.wait` everywhere but the main thread, which held the whole thread, so an owner running on that thread could not finish until the 100 ms timeout passed. Both waits now use `Atomics.waitAsync`, and releasing a slot also wakes a waiter on its initialization word.
+- Updated dependencies [[`5129bc5`](https://github.com/JSPrismarine/JSPrismarine/commit/5129bc5166f8a781bd3f928e24b687744cdbd8c9)]:
+  - @jsprismarine/mapping@0.19.1
+  - @jsprismarine/block-behaviors@0.19.1
+  - @jsprismarine/blocks@0.19.1
+  - @jsprismarine/commands@0.19.1
+  - @jsprismarine/engine-systems@0.19.1
+  - @jsprismarine/entities@0.19.1
+  - @jsprismarine/items@0.19.1
+  - @jsprismarine/loot@0.19.1
+  - @jsprismarine/recipes@0.19.1
+  - @jsprismarine/structures@0.19.1
+  - @jsprismarine/protocol@0.19.1
+  - @jsprismarine/entity-goals@0.19.1
+  - @jsprismarine/spawning@0.19.1
+  - @jsprismarine/trading@0.19.1
+  - @jsprismarine/advancements@0.19.1
+  - @jsprismarine/bedrock-data@0.19.1
+  - @jsprismarine/binaryutils@0.19.1
+  - @jsprismarine/brigadier@0.19.1
+  - @jsprismarine/chunkgen@0.19.1
+  - @jsprismarine/color-parser@0.19.1
+  - @jsprismarine/console-protocol@0.19.1
+  - @jsprismarine/content@0.19.1
+  - @jsprismarine/enchantments@0.19.1
+  - @jsprismarine/entity-brains@0.19.1
+  - @jsprismarine/errors@0.19.1
+  - @jsprismarine/features@0.19.1
+  - @jsprismarine/item-behaviors@0.19.1
+  - @jsprismarine/kernel@0.19.1
+  - @jsprismarine/leveldb@0.19.1
+  - @jsprismarine/lighting@0.19.1
+  - @jsprismarine/logger@0.19.1
+  - @jsprismarine/math@0.19.1
+  - @jsprismarine/mcfunction@0.19.1
+  - @jsprismarine/minecraft@0.19.1
+  - @jsprismarine/nbt@0.19.1
+  - @jsprismarine/packs@0.19.1
+  - @jsprismarine/predicates@0.19.1
+  - @jsprismarine/raknet@0.19.1
+  - @jsprismarine/worldgen@0.19.1
+
 ## 0.19.0
 
 ### Minor Changes
