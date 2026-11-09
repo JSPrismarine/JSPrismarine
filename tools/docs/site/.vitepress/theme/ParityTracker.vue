@@ -1,14 +1,13 @@
 <script setup lang="ts">
-import { withBase } from 'vitepress';
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, ref, watch } from 'vue';
 
-import type { TrackerData } from '../../../../../packages/parity/src/dashboard/tracker.ts';
 import {
     behaviorProgress,
     trackerPrimaryProgressPercent,
     trackerProgressPercent,
     trackerProgressTotal
 } from '../../../../../packages/parity/src/dashboard/trackerProgress.ts';
+import { groupProgress, useTrackerSnapshot } from './parity';
 
 const statuses = [
     { id: 'all', label: 'Any status' },
@@ -26,8 +25,7 @@ const query = ref('');
 const search = ref('');
 const expanded = ref(false);
 const familyCaseLimits = ref<Record<string, number>>({});
-const tracker = ref<TrackerData | null>(null);
-const loadError = ref(false);
+const { tracker, loadError } = useTrackerSnapshot();
 let searchTimer: ReturnType<typeof setTimeout> | undefined;
 
 watch(query, (value) => {
@@ -53,16 +51,6 @@ const behavior = computed(() =>
 const groups = computed(() => {
     const snapshot = tracker.value;
     if (snapshot === null) return [{ id: 'all', label: 'All', passed: 0, tracked: 0 }];
-    const totals = new Map<string, { passed: number; checks: number; deferred: number; defects: number }>();
-    for (const family of snapshot.families) {
-        const total = totals.get(family.group) ?? { passed: 0, checks: 0, deferred: 0, defects: 0 };
-        total.passed += family.passed;
-        total.checks += family.checks;
-        total.deferred += family.deferred;
-        total.defects += family.defects;
-        totals.set(family.group, total);
-    }
-
     const allChecks = {
         checks: snapshot.checks,
         deferred: snapshot.deferred,
@@ -70,26 +58,8 @@ const groups = computed(() => {
     };
     return [
         { id: 'all', label: 'All', passed: snapshot.passed, tracked: trackerProgressTotal(allChecks) },
-        ...[...totals.entries()]
-            .sort(([left], [right]) => left.localeCompare(right, 'en'))
-            .map(([id, total]) => ({
-                id,
-                label: id === 'other' ? 'Other checks' : id,
-                passed: total.passed,
-                tracked: trackerProgressTotal(total)
-            }))
+        ...groupProgress(snapshot.families)
     ];
-});
-
-onMounted(async () => {
-    try {
-        const response = await fetch(withBase('/parity-tracker.json'));
-        if (!response.ok) throw new Error(`Could not load tracker data (${response.status}).`);
-        // The site build stages this file from the typed parity tracker generator.
-        tracker.value = (await response.json()) as TrackerData;
-    } catch {
-        loadError.value = true;
-    }
 });
 
 const sourceRevision = computed(() =>
