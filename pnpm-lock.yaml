@@ -1534,8 +1534,8 @@ importers:
         specifier: workspace:*
         version: link:../packs
       '@mtcute/wasm':
-        specifier: 0.32.6
-        version: 0.32.6
+        specifier: 0.32.8
+        version: 0.32.8
       '@types/node':
         specifier: 26.6.6
         version: 26.6.6
@@ -2486,8 +2486,8 @@ packages:
       '@cfworker/json-schema':
         optional: true
 
-  '@mtcute/wasm@0.32.6':
-    resolution: {integrity: sha512-vDq8YdLoaZQfDKmc/ANa3cBg0i+vkWn+LRFUPzv4dt24BNC695b1c0M8coI8+z4JcwaVFnzjBusXTe8bL0W2Qg==}
+  '@mtcute/wasm@0.32.8':
+    resolution: {integrity: sha512-nT988eIWH0qQLNDXTTpLQkqx6TRc70dS1QR51zyocr6b4uPOpJ0c1SbZPrWhAoKvxT+wZjZP39oHDaoldiKlIg==}
 
   '@napi-rs/nice-android-arm-eabi@1.1.1':
     resolution: {integrity: sha512-kjirL3N6TnRPv5iuHw36wnucNqXAO46dzK9oPb0wj076R5Xm8PfUVA9nAFB5ZNMmfJQJVKACAPd/Z2KYMppthw==}
@@ -5830,7 +5830,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@mtcute/wasm@0.32.6': {}
+  '@mtcute/wasm@0.32.8': {}
 
   '@napi-rs/nice-android-arm-eabi@1.1.1':
     optional: true

@@ -72,7 +72,7 @@
     "devDependencies": {
         "@jsprismarine/bedrock-data": "workspace:*",
         "@jsprismarine/packs": "workspace:*",
-        "@mtcute/wasm": "0.32.6",
+        "@mtcute/wasm": "0.32.8",
         "@types/node": "26.6.6",
         "glob": "14.0.4",
         "tsx": "4.23.15",
