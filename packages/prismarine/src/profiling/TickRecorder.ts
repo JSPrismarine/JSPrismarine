@@ -95,10 +95,26 @@ export class TickRecorder {
 
     public constructor(private readonly capacity = 8192) {}
 
+    private readonly listeners = new Set<(sample: TickSample) => void>();
+
     /** Remembers one tick, forgetting the oldest once the ring is full. */
     public record(sample: TickSample): void {
         this.samples[this.next] = sample;
         this.next = (this.next + 1) % this.capacity;
+        for (const listener of this.listeners) listener(sample);
+    }
+
+    /**
+     * Calls a function with every tick as it is recorded, which is what the generation governor
+     * steers from.
+     *
+     * @returns A function that stops the calls.
+     */
+    public subscribe(listener: (sample: TickSample) => void): () => void {
+        this.listeners.add(listener);
+        return () => {
+            this.listeners.delete(listener);
+        };
     }
 
     /** The remembered ticks from `firstTick` up to but not including `endTick`, oldest first. */

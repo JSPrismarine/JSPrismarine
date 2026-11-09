@@ -108,6 +108,23 @@ describe('config', () => {
             }
         });
 
+        it('keeps generation workers in the server process unless a host process is asked for', async () => {
+            expect(config.getChunkHost()).toBe('in-process');
+
+            for (const [configured, expected] of [
+                ['"process"', 'process'],
+                ['"in-process"', 'in-process'],
+                ['"elsewhere"', 'in-process']
+            ] as const) {
+                writeFileSync(path.join(configDirectory, 'config.json'), `{"chunk-host":${configured}}`);
+
+                const reconfigured = new Config();
+                await reconfigured.enable();
+
+                expect(reconfigured.getChunkHost(), configured).toBe(expected);
+            }
+        });
+
         it('should have online mode enabled by default', () => {
             expect(config.getOnlineMode()).toBe(true);
         });

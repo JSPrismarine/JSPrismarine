@@ -47,6 +47,11 @@ export interface GeneratorBuildContext {
      */
     readonly workers?: number;
     /**
+     * Where the workers run: `process` asks for a separate low-priority generation process and
+     * falls back to threads when it cannot start one. Absent means threads in this process.
+     */
+    readonly host?: 'process' | 'in-process';
+    /**
      * Where generated terrain tiles are kept between runs, and how much room they may take.
      *
      * Absent keeps every tile in memory only. Like `workers`, the noise factory reads it once,

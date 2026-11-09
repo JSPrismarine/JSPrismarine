@@ -48,6 +48,7 @@ describe('the config file a boot generates', () => {
         'view-distance',
         'preload-radius',
         'chunk-workers',
+        'chunk-host',
         'terrain-cache-size-mb',
         'chunk-send-budget-ms',
         'proximity-broadcast',

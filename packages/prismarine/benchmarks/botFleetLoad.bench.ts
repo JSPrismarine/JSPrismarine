@@ -93,7 +93,8 @@ class BenchmarkConfig extends Config {
     public constructor(
         private readonly terrain: BotFleetTerrain,
         private readonly playerLimit: number,
-        private readonly workers: number | undefined
+        private readonly workers: number | undefined,
+        private readonly host: 'process' | 'in-process'
     ) {
         super();
     }
@@ -120,6 +121,10 @@ class BenchmarkConfig extends Config {
 
     public override getMaxPlayers(): number {
         return this.playerLimit;
+    }
+
+    public override getChunkHost(): 'process' | 'in-process' {
+        return this.host;
     }
 
     public override getChunkWorkers(): number {
@@ -179,13 +184,14 @@ const parseArguments = (arguments_: readonly string[]) => {
         withFleet: false
     };
     let workers: number | undefined;
+    let host: 'process' | 'in-process' = 'in-process';
     for (let index = 0; index < arguments_.length; index++) {
         const argument = arguments_[index];
         if (argument === '--help') {
             process.stdout.write(
                 'Usage: bench:bot-fleet [--terrain flat|real] [--baseline file | --update-baseline file]\n' +
                     '  [--workers N] [--no-preload] [--preload-radius N] [--preload-ticks N]\n' +
-                    '  [--preload-urgency idle|soon|immediate] [--preload-control] [--preload-with-fleet]\n'
+                    '  [--preload-urgency idle|soon|immediate] [--preload-control] [--preload-with-fleet] [--host process|in-process]\n'
             );
             process.exit(0);
         }
@@ -205,11 +211,16 @@ const parseArguments = (arguments_: readonly string[]) => {
             argument === '--workers' ||
             argument === '--preload-radius' ||
             argument === '--preload-ticks' ||
-            argument === '--preload-urgency'
+            argument === '--preload-urgency' ||
+            argument === '--host'
         ) {
             const value = arguments_[++index];
             if (value === undefined || value.startsWith('--')) throw new Error(`${argument} requires a value`);
-            if (argument === '--preload-urgency') {
+            if (argument === '--host') {
+                if (value !== 'process' && value !== 'in-process')
+                    throw new Error('--host must be process or in-process');
+                host = value;
+            } else if (argument === '--preload-urgency') {
                 if (value !== 'idle' && value !== 'soon' && value !== 'immediate') {
                     throw new Error('--preload-urgency must be idle, soon or immediate');
                 }
@@ -240,7 +251,7 @@ const parseArguments = (arguments_: readonly string[]) => {
     if (baselinePath !== undefined && updateBaselinePath !== undefined) {
         throw new Error('Choose either --baseline or --update-baseline');
     }
-    return { terrain, baselinePath, updateBaselinePath, preload, workers };
+    return { terrain, baselinePath, updateBaselinePath, preload, workers, host };
 };
 
 const availableUdpPort = async (): Promise<number> => {
@@ -350,6 +361,7 @@ interface PreloadReport {
     readonly radius: number;
     readonly urgency: PreloadOptions['urgency'];
     readonly workers: number | 'default';
+    readonly host: 'process' | 'in-process';
     readonly control: boolean;
     readonly loadAverage: readonly number[];
     readonly arms: readonly PreloadArm[];
@@ -368,7 +380,8 @@ interface PreloadReport {
 const runPreload = async (
     server: Server,
     options: PreloadOptions,
-    workers: number | undefined
+    workers: number | undefined,
+    host: 'process' | 'in-process'
 ): Promise<PreloadReport> => {
     const world = server.getWorldManager().getDefaultWorld();
     const generator = world.getGenerator();
@@ -377,6 +390,7 @@ const runPreload = async (
         radius: options.radius,
         urgency: options.urgency,
         workers: workers ?? ('default' as const),
+        host,
         control: options.control,
         loadAverage: os.loadavg()
     };
@@ -504,7 +518,7 @@ const writePreloadSummary = (report: PreloadReport): void => {
         return;
     }
     line(
-        `region ${2 * report.radius + 1}x${2 * report.radius + 1} at ${report.urgency}, workers ${report.workers}, ` +
+        `region ${2 * report.radius + 1}x${2 * report.radius + 1} at ${report.urgency}, workers ${report.workers}, host ${report.host}, ` +
             `load average ${report.loadAverage.map((value) => value.toFixed(2)).join(' ')}` +
             (report.control ? ', control run (both arms held back)' : '')
     );
@@ -530,7 +544,7 @@ const writePreloadSummary = (report: PreloadReport): void => {
 };
 
 const run = async (): Promise<void> => {
-    const { terrain, baselinePath, updateBaselinePath, preload, workers } = parseArguments(
+    const { terrain, baselinePath, updateBaselinePath, preload, workers, host } = parseArguments(
         process.argv.slice(2).filter((arg) => arg !== '--')
     );
     const previousJspDir = process.env.JSP_DIR;
@@ -553,7 +567,7 @@ const run = async (): Promise<void> => {
         const port = await availableUdpPort();
         server = new Server({
             logger: new Logger('error'),
-            config: new BenchmarkConfig(terrain, 48, workers),
+            config: new BenchmarkConfig(terrain, 48, workers, host),
             headless: true
         });
         attachProfiler(server, profiler);
@@ -719,7 +733,7 @@ const run = async (): Promise<void> => {
                 await Promise.all([firstFleet.stopped, secondFleet.stopped]);
                 await new Promise((resolve) => setTimeout(resolve, 2000));
             }
-            preloadReport = await runPreload(server, preload, workers);
+            preloadReport = await runPreload(server, preload, workers, host);
             writePreloadSummary(preloadReport);
         }
 

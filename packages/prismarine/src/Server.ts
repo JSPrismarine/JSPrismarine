@@ -52,6 +52,7 @@ import { attachProfiler, ServerProfiler } from './profiling/ServerProfiler';
 import { finishStartupPhase, startStartupPhase } from './profiling/startupPhase';
 import ChunkScheduler from './world/ChunkScheduler';
 import { ChunkCompletionQueue } from './world/ChunkCompletionQueue';
+import { GenerationGovernorDriver } from './world/GenerationGovernorDriver';
 import { DimensionTravel } from './world/portal/DimensionTravel';
 import WorldManager from './world/WorldManager';
 import type { RandomSequencesState } from './command/host/randomSequences';
@@ -203,6 +204,8 @@ export default class Server extends EventEmitter {
      * @internal
      */
     private readonly ticker: ServerTicker;
+    /** Limits background generation when ticks run late; only present when generation runs in its own process. */
+    private generationGovernor: GenerationGovernorDriver | undefined;
 
     /**
      * If the server is headless.
@@ -280,6 +283,21 @@ export default class Server extends EventEmitter {
             getProfileOwner: () => this,
             getLogger: () => this.logger
         });
+        if (config.getChunkHost() === 'process' && config.getChunkWorkers() > 0) {
+            this.generationGovernor = new GenerationGovernorDriver({
+                recorder: this.ticker.recorder,
+                workers: config.getChunkWorkers(),
+                // Pools start on first use, and the default world may not exist yet.
+                control: () => {
+                    try {
+                        return this.worldManager.getDefaultWorld()?.getGenerator().generationControl?.();
+                    } catch {
+                        return undefined;
+                    }
+                }
+            });
+            this.generationGovernor.start();
+        }
         this.kernel = this.buildKernel();
     }
 
@@ -528,6 +546,7 @@ export default class Server extends EventEmitter {
         // into a server mid-teardown. The kernel stops the ticker module again
         // inside `disable()`, which is a no-op by then.
         this.ticker.stop();
+        this.generationGovernor?.close();
 
         try {
             // Kick all online players. `kickAllPlayers` would send the `KICKED` code, and a

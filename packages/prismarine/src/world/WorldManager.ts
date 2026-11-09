@@ -295,6 +295,7 @@ export default class WorldManager implements Service {
             factories: this.generatorFactories,
             worldgen: registries,
             chunkWorkers: this.server.getConfig().getChunkWorkers(),
+            chunkHost: this.server.getConfig().getChunkHost(),
             ...this.terrainCacheOption(),
             config: { ...worldData },
             handlers: (world) => ({

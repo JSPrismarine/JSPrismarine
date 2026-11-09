@@ -118,6 +118,11 @@ export interface GenerationControl {
     pause(rule?: PauseRule): void;
     /** Releases the held tasks in band order. */
     resume(): void;
+    /**
+     * Limits how many `soon` and `idle` tasks may be with workers at once. `immediate` tasks are
+     * never limited. Undefined removes the limit.
+     */
+    setBackgroundLimit(limit: number | undefined): void;
     /** Drops every task still waiting for a worker, and reports how many went. */
     cancelQueued(): number;
     /** How many tasks are with a worker or waiting for one, across every pool. */

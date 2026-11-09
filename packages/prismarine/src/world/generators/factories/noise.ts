@@ -72,7 +72,7 @@ export const createNoiseGeneratorFactory = (): GeneratorFactory => {
 /** The server's one generator, over the first stem's registries and worker count. */
 const openShared = (registries: JavaWorldgenRegistries, context: GeneratorBuildContext): DataDrivenGenerator => {
     const workers = context.workers ?? chunkWorkerCount();
-    const stages = stagePool(workers, context.logger);
+    const stages = stagePool(workers, context.logger, context.host);
     const built = new DataDrivenGenerator({
         registries,
         templates: findJavaTemplateSource(cacheRoot(), registries.processorLists),
@@ -128,13 +128,21 @@ const resolveSettings = (
  * nothing built first. A single executable keeps its modules in the binary, where no worker
  * thread can import them, so there the generator says so once and builds chunks here.
  */
-const stagePool = (workers: number, logger: GeneratorLogger): StagePoolOptions | undefined => {
+const stagePool = (
+    workers: number,
+    logger: GeneratorLogger,
+    host: 'process' | 'in-process' | undefined
+): StagePoolOptions | undefined => {
     if (workers < 1) return undefined;
 
     return {
         pipeline: defaultChunkPipeline(),
         workers,
         javaTemplates: true,
+        ...(host === undefined ? {} : { host }),
+        onHostFallback: (reason) => {
+            logger.warn(`Generating in this process instead of a generation process, because ${reason}`);
+        },
         onUnavailable: (reason) => {
             logger.warn(`Generating terrain and features on the server thread, because ${reason}`);
         }

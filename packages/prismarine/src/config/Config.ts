@@ -62,6 +62,8 @@ const COMMENTS = {
     'view-distance': 'How far players see, in chunks.',
     'preload-radius': 'How many chunks around spawn to generate before accepting players. 0 skips it.',
     'chunk-workers': 'How many worker threads to use for chunk generation. 0 keeps it on the server thread.',
+    'chunk-host':
+        'Where chunk generation workers run: process starts a separate low-priority generation process, in-process keeps them in the server process.',
     'terrain-cache-size-mb':
         'How many megabytes of generated terrain to keep on disk so it is not rebuilt after a restart. 0 turns the cache off.',
     'chunk-send-budget-ms': 'How long each tick may spend sending chunks, out of its 50 ms.',
@@ -114,6 +116,7 @@ const DEFAULTS = {
     'view-distance': 10,
     'preload-radius': 10,
     'chunk-workers': Math.max(0, chunkWorkerCount()),
+    'chunk-host': 'in-process',
     'terrain-cache-size-mb': 1024,
     'chunk-send-budget-ms': 5,
     'proximity-broadcast': true,
@@ -202,6 +205,7 @@ export class Config {
     private viewDistance: number = DEFAULTS['view-distance'];
     private preloadRadius: number = DEFAULTS['preload-radius'];
     private chunkWorkers: number = DEFAULTS['chunk-workers'];
+    private chunkHost: string = DEFAULTS['chunk-host'];
     private terrainCacheSizeMb: number = DEFAULTS['terrain-cache-size-mb'];
     private chunkSendBudgetMs: number = DEFAULTS['chunk-send-budget-ms'];
     private proximityBroadcast: boolean = DEFAULTS['proximity-broadcast'];
@@ -293,6 +297,7 @@ export class Config {
         this.viewDistance = read('view-distance', DEFAULTS['view-distance']);
         this.preloadRadius = read('preload-radius', DEFAULTS['preload-radius']);
         this.chunkWorkers = read('chunk-workers', DEFAULTS['chunk-workers']);
+        this.chunkHost = read('chunk-host', DEFAULTS['chunk-host']);
         this.terrainCacheSizeMb = read('terrain-cache-size-mb', DEFAULTS['terrain-cache-size-mb']);
         this.chunkSendBudgetMs = read('chunk-send-budget-ms', DEFAULTS['chunk-send-budget-ms']);
         this.proximityBroadcast = read('proximity-broadcast', DEFAULTS['proximity-broadcast']);
@@ -482,6 +487,19 @@ export class Config {
     public getChunkWorkers(): number {
         const workers = Number(this.chunkWorkers);
         return Number.isFinite(workers) ? Math.max(0, Math.trunc(workers)) : DEFAULTS['chunk-workers'];
+    }
+
+    /**
+     * Where chunk generation workers run.
+     *
+     * `process` starts a separate generation process at a lowered operating system priority and
+     * falls back to threads in the server process when it cannot. Anything else keeps the threads
+     * in the server process, which is the default.
+     *
+     * @returns `process` or `in-process`
+     */
+    public getChunkHost(): 'process' | 'in-process' {
+        return this.chunkHost === 'process' ? 'process' : 'in-process';
     }
 
     /**

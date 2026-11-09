@@ -43,7 +43,9 @@ const chunks = Number.parseInt(args[1] ?? '16', 10);
  *
  * `terrain` is the noise fill alone, `structures` adds the layout pass that pushes terrain
  * around, and the default runs the decoration pass and the Bedrock translation as well. `stages`
- * runs the server's shared terrain and feature workers and reports their heap usage.
+
+ * runs the server's shared terrain and feature workers and reports their heap usage, and
+ * `stages-host` runs the same workers in a generation host process, with a lowered priority.
  */
 const arm = args[2] ?? 'full';
 /** Region size and steal threshold, for sweeping the sharded pool's two knobs. */
@@ -134,12 +136,13 @@ const createGenerator = (
                   }
               }
             : {}),
-        ...(workers > 0 && arm === 'stages'
+        ...(workers > 0 && (arm === 'stages' || arm === 'stages-host')
             ? {
                   stages: {
                       pipeline: defaultChunkPipeline(),
                       workers,
                       javaTemplates: true,
+                      ...(arm === 'stages-host' ? { host: 'process' as const, onHostFallback: poolUnavailable } : {}),
                       ...(workerHeapStats === undefined ? {} : { workerHeapStats }),
                       ...(workerStartupStats === undefined ? {} : { workerStartupStats }),
                       ...(includeHeapSnapshots && workerHeapSnapshotDirectory !== undefined
@@ -149,7 +152,7 @@ const createGenerator = (
                   }
               }
             : {}),
-        ...(workers > 0 && arm !== 'chunks' && arm !== 'stages'
+        ...(workers > 0 && arm !== 'chunks' && arm !== 'stages' && arm !== 'stages-host'
             ? {
                   terrain: {
                       pipeline: defaultTerrainPipeline(),

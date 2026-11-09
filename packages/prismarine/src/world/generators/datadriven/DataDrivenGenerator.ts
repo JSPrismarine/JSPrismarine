@@ -16,7 +16,7 @@ import { setImmediate as yieldEventLoop } from 'node:timers/promises';
 import { fileURLToPath } from 'node:url';
 import { threadId } from 'node:worker_threads';
 
-import type { GenerationPriority, StepRegion } from '@jsprismarine/chunkgen';
+import type { GenerationPriority, GenerationTransport, StepRegion } from '@jsprismarine/chunkgen';
 import {
     ChunkHolderMap,
     FEATURE_PATCH_ORDER,
@@ -24,6 +24,7 @@ import {
     GenerationPool,
     GenerationScheduler,
     InboundFeaturePatches,
+    createGenerationTransport,
     mergeGenerationStats,
     ShardedGenerationPool
 } from '@jsprismarine/chunkgen';
@@ -310,6 +311,14 @@ export interface StagePoolOptions {
     readonly workerStartupStats?: SharedArrayBuffer;
     /** Optional directory where each generation worker writes a heap snapshot after its first task. */
     readonly workerHeapSnapshotDirectory?: string;
+    /**
+     * Where the stage workers run. `process` starts a generation host process and falls back to
+     * threads in this process when it cannot; absent or `in-process` keeps threads here. The
+     * benchmark buffers above are shared memory and do not reach a host process.
+     */
+    readonly host?: 'process' | 'in-process';
+    /** Told when a requested host process could not be used and stages run in threads here. */
+    readonly onHostFallback?: (reason: string) => void;
     /** Told once when the worker module cannot be loaded and stages fall back to this thread. */
     readonly onUnavailable?: (reason: string) => void;
 }
@@ -878,7 +887,7 @@ export class DataDrivenGenerator implements Generator {
     private pool: GenerationPool | undefined;
 
     /** Workers for independent statuses, all fed by this generator's shared holder map. */
-    private stagePool: GenerationPool | undefined;
+    private stagePool: GenerationTransport | undefined;
 
     /**
      * The workers that build whole chunks, or undefined when they are built on this thread.
@@ -1033,7 +1042,7 @@ export class DataDrivenGenerator implements Generator {
      * lets overlapping requests share terrain and feature work while independent status bodies
      * run on separate threads.
      */
-    private openStagePool(registries: JavaWorldgenRegistries): GenerationPool | undefined {
+    private openStagePool(registries: JavaWorldgenRegistries): GenerationTransport | undefined {
         const stages = this.options.stages;
         if (stages === undefined) return undefined;
 
@@ -1054,16 +1063,28 @@ export class DataDrivenGenerator implements Generator {
         }
 
         const sharedClimateParameters = this.prepareSharedClimateParameters(registries);
-        return new GenerationPool({
-            ...where,
-            setup: {
-                registryBundle: shareRegistryBundle(registries),
-                ...(sharedClimateParameters === undefined ? {} : { sharedClimateParameters }),
-                carve: this.options.carve !== false,
-                structures: this.options.structures !== false,
-                javaTemplates: stages.javaTemplates === true
-            } satisfies ChunkPipelineSetup
-        });
+        const setup = {
+            registryBundle: shareRegistryBundle(registries),
+            ...(sharedClimateParameters === undefined ? {} : { sharedClimateParameters }),
+            carve: this.options.carve !== false,
+            structures: this.options.structures !== false,
+            javaTemplates: stages.javaTemplates === true
+        } satisfies ChunkPipelineSetup;
+        if (stages.host !== 'process') return new GenerationPool({ ...where, setup });
+
+        // Shared memory does not reach another process, so the benchmark buffers stay behind.
+        const {
+            workerHeapStats: _heap,
+            workerStartupStats: _startup,
+            workerHeapSnapshotDirectory: _dir,
+            ...hosted
+        } = where;
+        return createGenerationTransport({
+            ...hosted,
+            setup,
+            host: 'process',
+            ...(stages.onHostFallback === undefined ? {} : { onFallback: stages.onHostFallback })
+        }).transport;
     }
 
     /**
@@ -2362,6 +2383,9 @@ export class DataDrivenGenerator implements Generator {
         return {
             pause: (rule) => pools.forEach((pool) => pool.pause(rule)),
             resume: () => pools.forEach((pool) => pool.resume()),
+            setBackgroundLimit: (limit) => {
+                for (const pool of pools) if ('setBackgroundLimit' in pool) pool.setBackgroundLimit(limit);
+            },
             cancelQueued: () => pools.reduce((total, pool) => total + pool.cancel(() => false), 0),
             outstanding: () => pools.reduce((total, pool) => total + pool.inFlight + pool.queued, 0),
             stats: () => mergeGenerationStats(pools.map((pool) => pool.statsSnapshot())),
@@ -2934,7 +2958,7 @@ export class DataDrivenGenerator implements Generator {
             chunkBiomes: new Map(),
             queue: new GenerationQueue(
                 this.options.concurrency ??
-                    this.stagePool?.options.workers ??
+                    (this.stagePool === undefined ? undefined : this.options.stages?.workers) ??
                     this.pool?.options.workers ??
                     DEFAULT_CONCURRENCY
             )

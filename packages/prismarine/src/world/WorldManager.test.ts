@@ -153,6 +153,7 @@ const buildManager = (
                 // Nothing preloads: the start region is covered by the world tests.
                 getPreloadRadius: () => 0,
                 getChunkWorkers: () => chunkWorkers,
+                getChunkHost: () => 'in-process',
                 getTerrainCacheSizeMb: () => terrainCacheSizeMb,
                 getEntityTrackingInterval: () => 20
             }),

@@ -106,6 +106,8 @@ export interface LevelOptions {
     readonly worldgen?: () => JavaWorldgenRegistries;
     /** The chunk worker limit from server configuration, forwarded to generator factories. */
     readonly chunkWorkers?: number;
+    /** Where chunk generation workers run, forwarded to generator factories. */
+    readonly chunkHost?: 'process' | 'in-process';
     /** The terrain tile cache from server configuration, forwarded to generator factories. */
     readonly terrainCache?: TerrainCacheSettings;
     /** The `worlds.<name>` entry as configured, which a provider may read when generating. */
@@ -152,6 +154,7 @@ export class Level {
     private readonly factories: GeneratorFactories;
     private readonly worldgen: () => JavaWorldgenRegistries;
     private readonly chunkWorkers: number | undefined;
+    private readonly chunkHost: 'process' | 'in-process' | undefined;
     private readonly terrainCache: TerrainCacheSettings | undefined;
     private readonly config: WorldConfig;
     private readonly handlers: WorldHandlersFactory | undefined;
@@ -206,6 +209,7 @@ export class Level {
         this.factories = options.factories;
         this.worldgen = options.worldgen ?? requireJavaWorldgenRegistries;
         this.chunkWorkers = options.chunkWorkers;
+        this.chunkHost = options.chunkHost;
         this.terrainCache = options.terrainCache;
         this.config = options.config ?? {};
         this.handlers = options.handlers;
@@ -473,6 +477,7 @@ export class Level {
             content: () => this.server.getContent(),
             worldgen: this.worldgen,
             ...(this.chunkWorkers === undefined ? {} : { workers: this.chunkWorkers }),
+            ...(this.chunkHost === undefined ? {} : { host: this.chunkHost }),
             ...(this.terrainCache === undefined ? {} : { terrainCache: this.terrainCache }),
             logger: this.server.getLogger(),
             completionQueue: this.server.getChunkCompletionQueue()
