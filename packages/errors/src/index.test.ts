@@ -21,6 +21,13 @@ describe('errors', () => {
                 const error = new ErrorClass();
                 expect(error.code).not.toBe('');
             });
+
+            it('is an instance of its class, the package Error and the built-in Error', () => {
+                const error = new ErrorClass();
+                expect(error).toBeInstanceOf(ErrorClass);
+                expect(error).toBeInstanceOf(AllFromErrors.Error);
+                expect(error).toBeInstanceOf(globalThis.Error);
+            });
         });
     }
 });
