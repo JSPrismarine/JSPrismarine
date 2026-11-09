@@ -19,17 +19,20 @@ Branch `t3/596e4adc`, 2026-11-09. Measurements and their load averages are in [w
 
 ### Open items
 
-Each is a known gap, not a surprise. The first block is being worked in the order listed.
+Closed since the first progress note:
 
-1. Fixed: the tick freeze with fleets connected was a priority-blind admission queue whose slots were held by background builds, plus dependency tasks defaulting to `soon`. Counted by `schedulingOrder.test.ts`. The multi-second stalls seen afterwards came from a benchmark bug: the preload requested at `immediate` because urgency was passed as the wrong argument. With it fixed the worst fleet-connected tick was 472 ms in one noisy run. Earlier preload figures in the baseline note are history, not a background preload.
+- The tick freeze with fleets connected: a priority-blind admission queue, slots held by background builds, and dependency tasks defaulting to `soon`. Fixed, and counted by `schedulingOrder.test.ts`. The later multi-second stalls came from a benchmark bug (urgency passed as the wrong argument).
+- The governor limit is re-applied to a replacement pool every second and reported by the benchmark. The pool's `pause` is gone, so held tasks can no longer bypass it.
+- An invalid `chunk-host` is logged, and the log says when generation runs in a process.
+- `chunk-host` defaults to `process`. The real-terrain join passes through the host, and the full client e2e suite passes with it except `fall-damage`, which also fails on a clean `origin/master`.
+- Verified on Linux (container, cgroup v2): the host's priority is lowered, a killed host is replaced and its task retried, the host ignores SIGINT and exits when the server does, and the sampler reads the real `cpu.max` and `cpu.stat`. `packages/chunkgen/test/quota.mts` reproduces the quota run.
 
-    Method note: judge fixes by counts (tasks started ahead of a player's chunk, calls, queue positions), not wall-clock timings, which a shared machine cannot separate from load.
+Still open:
 
-2. Slice 1: move Bedrock translation and lighting off the server thread, or show why not.
-3. The governor limit is not re-applied to a replacement pool, and the benchmark does not report it.
-4. Tasks held by a pause bypass it when the host falls back. An invalid `chunk-host` value is silent.
-5. `chunk-host` default flips to `process` only after a client-e2e run passes with it.
-6. Not verified: host priority on Linux and Windows, the container quota run, a second Ctrl+C during a preload.
+1. Slice 1's target is unverified. Bedrock translation, lighting and the fluid scan are still on the server thread. The warm per-chunk cost looked small, but that is a wall-clock reading and counts for nothing under AGENTS.md. It needs a counted stand-in (operations per chunk on the server thread) and a test, then a decision on moving translation.
+2. Windows: the host's priority class and the fork path are untested there. The fallback to threads covers a failed start.
+3. The governor's effect in the server benchmark was not seen in a deterministic way. The container run showed fewer throttled periods with it on, and that count is the only figure from it worth keeping.
+4. Many baseline timings are diagnostics. The plan's targets stay unverified until each has a counted stand-in (see above).
 
 ### Resuming
 
