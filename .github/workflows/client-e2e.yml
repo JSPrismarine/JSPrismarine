@@ -245,14 +245,21 @@ jobs:
               with:
                   version: v0.18.0
 
+            # Cargo draws its progress bar into the pipe too, and cargo-progress.mjs turns it into a
+            # `[cinnabar] 35% · 196/560 units` line at every 5% of the build.
             - name: 🔨 Build the pinned cinnabar client
               if: ${{ steps.cinnabar-cache.outputs.cache-hit != 'true' }}
-              run: pnpm --filter @jsprismarine/client-e2e run ensure -- --protocol "$PROTOCOL"
+              run: |
+                  set -o pipefail
+                  pnpm --filter @jsprismarine/client-e2e run ensure -- --protocol "$PROTOCOL" 2>&1 |
+                      node .github/scripts/cargo-progress.mjs cinnabar
               env:
                   JSP_CINNABAR_CACHE_DIR: ${{ runner.temp }}/jsprismarine/cinnabar
                   PROTOCOL: ${{ matrix.protocol }}
                   RUSTC_WRAPPER: sccache
                   SCCACHE_GHA_ENABLED: 'true'
+                  CARGO_TERM_PROGRESS_WHEN: always
+                  CARGO_TERM_PROGRESS_WIDTH: '120'
 
             # Cargo's intermediate directory is about 14 GB (2.6 GB compressed) and only a compile
             # reads it: the e2e jobs need the checkout, the stamp and the three binaries under
