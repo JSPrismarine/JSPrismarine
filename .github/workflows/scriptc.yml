@@ -22,10 +22,10 @@ concurrency:
 jobs:
     scriptc:
         name: 🧪 Attempt scriptc build
-        runs-on: ubuntu-latest
+        runs-on: blacksmith-2vcpu-ubuntu-2404
         continue-on-error: true
         steps:
-            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+            - uses: useblacksmith/checkout@v1
 
             - name: 📦 Install
               uses: ./.github/common/install

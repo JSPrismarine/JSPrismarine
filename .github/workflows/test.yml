@@ -21,7 +21,7 @@ jobs:
         name: 🧪 Tests (ubuntu-latest)
         runs-on: blacksmith-2vcpu-ubuntu-2404
         steps:
-            - uses: useblacksmith/checkout@v1 # v7
+            - uses: useblacksmith/checkout@v1
 
             - name: 📦 Install
               uses: ./.github/common/install
@@ -84,9 +84,9 @@ jobs:
 
     typecheck:
         name: 📃 Typecheck (ubuntu-latest)
-        runs-on: ubuntu-latest
+        runs-on: blacksmith-2vcpu-ubuntu-2404
         steps:
-            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+            - uses: useblacksmith/checkout@v1
 
             - name: 📦 Install
               uses: ./.github/common/install
@@ -106,7 +106,7 @@ jobs:
             contents: read
             pull-requests: write
         steps:
-            - uses: useblacksmith/checkout@v1 # v7
+            - uses: useblacksmith/checkout@v1
 
             - name: 📦 Install
               uses: ./.github/common/install
@@ -203,7 +203,7 @@ jobs:
             - name: Check out the pull request base
               id: parity_base_checkout
               if: ${{ !cancelled() && steps.parity_dashboard.outcome == 'success' && steps.real_data_env.outcome == 'success' && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository }}
-              uses: useblacksmith/checkout@v1 # v7
+              uses: useblacksmith/checkout@v1
               with:
                   ref: ${{ github.event.pull_request.base.sha }}
                   path: parity-baseline

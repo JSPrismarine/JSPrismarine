@@ -61,13 +61,13 @@ permissions:
 jobs:
     protocol-matrix:
         name: Read supported protocols
-        runs-on: ubuntu-latest
+        runs-on: blacksmith-2vcpu-ubuntu-2404
         outputs:
             protocols: ${{ steps.matrix.outputs.protocols }}
             latest: ${{ steps.matrix.outputs.latest }}
             scenarios: ${{ steps.matrix.outputs.scenarios }}
         steps:
-            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+            - uses: useblacksmith/checkout@v1
 
             - name: Set matrix from BDS pins
               id: matrix
