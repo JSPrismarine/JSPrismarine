@@ -4,39 +4,18 @@ name: Client E2E
 #
 # macOS runners are the one hosted platform where the client's renderer is proven in CI
 # (cinnabar's own GPU tests run on macos-latest via Metal). The client build is slow, so it runs
-# once per protocol pin in cinnabar-build, only when the cache has no entry for that exact commit.
-# Every client-e2e job then restores that entry, so a run only boots the server, joins, and plays.
+# once per protocol pin in cinnabar-build, only for the pins protocol-matrix found no cache entry
+# for. When every pin is cached, no build job starts and client-e2e goes straight to the scenarios,
+# restoring that entry, so a run only boots the server, joins, and plays.
+#
+# The workflow runs on every push and pull request so the `✅ Client E2E` job always reports: it is
+# the one branch rules require. A change that touches no package code or dependencies (docs, the
+# docs site, other workflows) skips the e2e jobs and passes it, so it can still auto-merge.
 on:
     push:
         branches:
             - master
-        paths:
-            - .github/workflows/client-e2e.yml
-            - tools/client-e2e/**
-            - packages/auth/**
-            - packages/binaryutils/**
-            - packages/minecraft/**
-            - packages/nbt/**
-            - packages/prismarine/**
-            - packages/protocol/**
-            - packages/raknet/**
-            - packages/server/**
-            - packages/wire/**
-            - packages/bedrock-data/sources.json
     pull_request:
-        paths:
-            - .github/workflows/client-e2e.yml
-            - tools/client-e2e/**
-            - packages/auth/**
-            - packages/binaryutils/**
-            - packages/minecraft/**
-            - packages/nbt/**
-            - packages/prismarine/**
-            - packages/protocol/**
-            - packages/raknet/**
-            - packages/server/**
-            - packages/wire/**
-            - packages/bedrock-data/sources.json
     workflow_dispatch:
         inputs:
             scenarios:
@@ -59,11 +38,69 @@ permissions:
     pull-requests: read
 
 jobs:
+    # A push to master also skips the e2e jobs when the merged pull request already passed them on
+    # the same tree, and `reused-coverage` uploads that run's coverage for the push instead.
+    changes:
+        name: Detect code changes
+        runs-on: blacksmith-2vcpu-ubuntu-2404
+        permissions:
+            actions: read
+            contents: read
+            pull-requests: read
+        outputs:
+            code: ${{ github.event_name == 'workflow_dispatch' || steps.filter.outputs.code == 'true' }}
+            reused: ${{ contains(fromJSON(steps.reuse.outputs.passed || '[]'), '🎮 Client E2E') }}
+            run-id: ${{ steps.reuse.outputs.run-id }}
+        steps:
+            # Pull requests list their files through the API; a push diffs against the previous commit.
+            - uses: useblacksmith/checkout@v1
+
+            # A failed lookup reuses nothing, so every job runs.
+            - name: Find the jobs the merged pull request passed
+              id: reuse
+              if: ${{ github.event_name == 'push' }}
+              continue-on-error: true
+              env:
+                  GITHUB_TOKEN: ${{ github.token }}
+              run: node .github/scripts/pr-job-results.mjs
+
+            - name: Filter changed paths
+              id: filter
+              if: ${{ github.event_name != 'workflow_dispatch' }}
+              uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
+              with:
+                  predicate-quantifier: some-with-excludes
+                  filters: |
+                      code:
+                          - '.github/workflows/client-e2e.yml'
+                          - '.github/common/**'
+                          - '.github/scripts/pr-job-results.mjs'
+                          - 'tools/client-e2e/**'
+                          - 'packages/**'
+                          - 'scripts/check-client-e2e-coverage.mts'
+                          - 'package.json'
+                          - 'pnpm-lock.yaml'
+                          - 'pnpm-workspace.yaml'
+                          - '.npmrc'
+                          - '.nvmrc'
+                          - '.c8rc.json'
+                          - 'tsconfig*.json'
+                          - 'turbo.json'
+                          - '!**/*.md'
+
     protocol-matrix:
         name: Read supported protocols
+        # Skipping this skips every job after it.
+        needs: changes
+        if: ${{ needs.changes.outputs.code == 'true' }}
         runs-on: blacksmith-2vcpu-ubuntu-2404
+        permissions:
+            # Lists the cache entries to find the client builds that already exist.
+            actions: read
+            contents: read
         outputs:
             protocols: ${{ steps.matrix.outputs.protocols }}
+            build: ${{ steps.builds.outputs.build }}
             latest: ${{ steps.matrix.outputs.latest }}
             scenarios: ${{ steps.matrix.outputs.scenarios }}
         steps:
@@ -96,13 +133,39 @@ jobs:
                   LATEST_ONLY: ${{ inputs.latest_only }}
                   SCENARIOS: ${{ inputs.scenarios || '' }}
 
+            # A run can restore entries saved on its own ref or on master. The key matches the one
+            # cinnabar-build writes, whose `runner.os` is `macOS`.
+            - name: Find the protocols without a cached client build
+              id: builds
+              env:
+                  GH_TOKEN: ${{ github.token }}
+                  PROTOCOLS: ${{ steps.matrix.outputs.protocols }}
+              run: |
+                  missing=()
+                  for protocol in $(jq -r '.[]' <<< "$PROTOCOLS"); do
+                      commit="$(jq -r --arg protocol "$protocol" '.versions[$protocol].commit' tools/client-e2e/cinnabar.json)"
+                      key="macOS-cinnabar-v${protocol}-${commit}"
+                      found=false
+                      for ref in "$GITHUB_REF" refs/heads/master; do
+                          if gh api "repos/$GITHUB_REPOSITORY/actions/caches?ref=$ref&key=$key" |
+                              jq -e --arg key "$key" 'any(.actions_caches[]; .key == $key)' > /dev/null; then
+                              found=true
+                              break
+                          fi
+                      done
+                      echo "protocol $protocol ($key): cached=$found"
+                      if [ "$found" = false ]; then missing+=("$protocol"); fi
+                  done
+                  echo "build=$(jq -cn '$ARGS.positional | map(tonumber)' --args "${missing[@]}")" >> "$GITHUB_OUTPUT"
+
     cinnabar-build:
         name: 🔨 Build cinnabar client (protocol ${{ matrix.protocol }})
         needs: protocol-matrix
+        if: ${{ needs.protocol-matrix.outputs.build != '[]' }}
         strategy:
             fail-fast: false
             matrix:
-                protocol: ${{ fromJSON(needs.protocol-matrix.outputs.protocols) }}
+                protocol: ${{ fromJSON(needs.protocol-matrix.outputs.build) }}
         runs-on: blacksmith-6vcpu-macos-latest
         timeout-minutes: 120
         permissions:
@@ -122,6 +185,7 @@ jobs:
                   echo "key=${RUNNER_OS}-cinnabar-v${PROTOCOL}-${commit}" >> "$GITHUB_OUTPUT"
 
             # Only look the entry up: a hit means the build is done, and the e2e job downloads it.
+            # protocol-matrix already found none, so this guards against a build saved since.
             - name: Look for an existing build
               id: cinnabar-cache
               uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
@@ -199,9 +263,16 @@ jobs:
                       --jq ".[] | select(.key != \"$KEY\") | .id" |
                       while read -r id; do gh cache delete "$id" --repo "$GITHUB_REPOSITORY"; done
 
+    # cinnabar-build still runs on a push that reuses the pull request's results: a pull request's
+    # cache entries are invisible to master, so this is where a new pin's build reaches master.
     client-e2e:
         name: 🎮 Client E2E (protocol ${{ matrix.protocol }})
-        needs: [protocol-matrix, cinnabar-build]
+        needs: [changes, protocol-matrix, cinnabar-build]
+        # A skipped cinnabar-build means every pin was already cached.
+        if: >-
+            ${{ !cancelled() && needs.protocol-matrix.result == 'success'
+            && (needs.cinnabar-build.result == 'success' || needs.cinnabar-build.result == 'skipped')
+            && needs.changes.outputs.reused != 'true' }}
         strategy:
             fail-fast: false
             matrix:
@@ -260,7 +331,8 @@ jobs:
                   commit="$(node -p 'JSON.parse(require("node:fs").readFileSync("tools/client-e2e/cinnabar.json", "utf8")).versions[process.env.PROTOCOL].commit')"
                   echo "key=${RUNNER_OS}-cinnabar-v${PROTOCOL}-${commit}" >> "$GITHUB_OUTPUT"
 
-            # cinnabar-build guarantees this entry exists, so a miss is a workflow bug, not a reason to compile.
+            # protocol-matrix found this entry or cinnabar-build saved it, so a miss is a workflow
+            # bug, not a reason to compile.
             - name: Restore the cinnabar build
               uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
               with:
@@ -277,8 +349,9 @@ jobs:
                   PROTOCOL: ${{ matrix.protocol }}
                   NODE_OPTIONS: --max-old-space-size=4096
               run: |
+                  # Three suites, so three is every suite at once; a higher value changes nothing.
                   # shellcheck disable=SC2086
-                  pnpm run e2e:client -- --artifacts "$RUNNER_TEMP/client-e2e" --protocol "$PROTOCOL" --concurrency 2 $SCENARIOS
+                  pnpm run e2e:client -- --artifacts "$RUNNER_TEMP/client-e2e" --protocol "$PROTOCOL" --concurrency 3 $SCENARIOS
 
             - name: 🔎 Verify client e2e coverage
               id: client-e2e-coverage
@@ -297,6 +370,15 @@ jobs:
                   flags: client-e2e
                   name: client-e2e-${{ matrix.protocol }}
 
+            # The push to master that merges this pull request skips this job and uploads it.
+            - name: 📤 Keep the coverage for the merge
+              if: ${{ !cancelled() && steps.client-e2e-coverage.outcome == 'success' && github.event_name == 'pull_request' }}
+              uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+              with:
+                  name: codecov-client-e2e-${{ matrix.protocol }}
+                  path: coverage/client-e2e/lcov.info
+                  retention-days: 30
+
             - name: 📤 Upload evidence
               if: ${{ !cancelled() }}
               uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -304,3 +386,75 @@ jobs:
                   name: client-e2e-evidence-protocol-${{ matrix.protocol }}
                   path: ${{ runner.temp }}/client-e2e
                   if-no-files-found: warn
+
+    # The check branch rules require. A matrix job's name depends on its protocols, and a skipped
+    # one reports under its unexpanded name, so neither can be required directly.
+    client-e2e-passed:
+        name: ✅ Client E2E
+        needs: [changes, protocol-matrix, cinnabar-build, client-e2e]
+        if: ${{ always() }}
+        runs-on: blacksmith-2vcpu-ubuntu-2404
+        steps:
+            - name: Check the client e2e results
+              env:
+                  NEEDS: ${{ toJSON(needs) }}
+              run: |
+                  if [ "$(jq -r '.changes.result' <<< "$NEEDS")" != 'success' ]; then
+                      echo 'Could not detect whether code changed.' >&2
+                      exit 1
+                  fi
+                  if [ "$(jq -r '.changes.outputs.code' <<< "$NEEDS")" != 'true' ]; then
+                      echo 'No package code or dependency changes; the client e2e scenarios were skipped.'
+                      exit 0
+                  fi
+                  jq -r 'to_entries[] | "\(.key): \(.value.result)"' <<< "$NEEDS"
+                  # cinnabar-build skips when every pin is cached, and client-e2e skips on a push that
+                  # reuses the merged pull request's passing runs.
+                  jq -e '(.changes.outputs.reused == "true") as $reused
+                      | (.["protocol-matrix"].outputs.build == "[]") as $cached
+                      | to_entries
+                      | all(.value.result == "success"
+                          or ($cached and .key == "cinnabar-build" and .value.result == "skipped")
+                          or ($reused and .key == "client-e2e" and .value.result == "skipped"))' \
+                      <<< "$NEEDS" > /dev/null
+
+    # Codecov has no e2e report for a push that skipped the scenarios as already passed, and
+    # carryforward would keep the previous master commit's. Upload the pull request run's here.
+    reused-coverage:
+        name: 🦺 Reuse pull request coverage
+        needs: changes
+        if: ${{ needs.changes.outputs.reused == 'true' }}
+        runs-on: blacksmith-2vcpu-ubuntu-2404
+        permissions:
+            actions: read
+            contents: read
+        steps:
+            - uses: useblacksmith/checkout@v1
+
+            # An expired artifact leaves Codecov carrying the flag forward, which is no worse than
+            # before this job existed.
+            - name: ⬇️ Download the pull request coverage
+              continue-on-error: true
+              uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+              with:
+                  pattern: codecov-client-e2e-*
+                  path: ${{ runner.temp }}/reused
+                  run-id: ${{ needs.changes.outputs.run-id }}
+                  github-token: ${{ github.token }}
+
+            - name: List the reports
+              id: reports
+              run: |
+                  files="$(find "$RUNNER_TEMP/reused" -name lcov.info 2> /dev/null | sort | paste -sd, -)"
+                  echo "files=$files" >> "$GITHUB_OUTPUT"
+
+            - name: 🦺 Upload client e2e coverage to Codecov
+              if: ${{ steps.reports.outputs.files != '' }}
+              uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
+              with:
+                  token: ${{ secrets.CODECOV_TOKEN }}
+                  slug: JSPrismarine/JSPrismarine
+                  files: ${{ steps.reports.outputs.files }}
+                  disable_search: true
+                  flags: client-e2e
+                  name: client-e2e-reused
