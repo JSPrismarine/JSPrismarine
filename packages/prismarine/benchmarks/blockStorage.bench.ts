@@ -16,6 +16,7 @@ import {
     decodePersistentStorage,
     encodePersistentStorage
 } from '../src/world/providers/leveldb/PersistentBlockStorage';
+import { percentile } from './percentile';
 
 const argumentsAfterScript = process.argv.slice(2).filter((argument) => argument !== '--');
 const ITERATIONS = Number.parseInt(argumentsAfterScript[0] ?? '50', 10);
@@ -61,9 +62,6 @@ const editedUniformStorageOf = (): BlockStorage => {
     }
     return storage;
 };
-
-const percentile = (sorted: readonly number[], fraction: number): number =>
-    sorted[Math.min(sorted.length - 1, Math.ceil(fraction * sorted.length) - 1)] ?? 0;
 
 const sample = (storage: BlockStorage): { readonly ms: number; readonly digest: string } => {
     const started = performance.now();

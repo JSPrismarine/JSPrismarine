@@ -11,6 +11,7 @@ import os from 'node:os';
 import type { EntityActuator, EntityPosition } from '@jsprismarine/entities';
 import { Navigator, defaultNavigationProfile } from '@jsprismarine/entity-goals';
 import type { NavigationView } from '@jsprismarine/entity-goals';
+import { percentile } from './percentile';
 
 const argumentsAfterScript = process.argv.slice(2).filter((argument) => argument !== '--');
 const PAIRS = Number.parseInt(argumentsAfterScript[0] ?? '100', 10);
@@ -89,9 +90,6 @@ const run = (): Run => {
     const outputDigest = createHash('sha256').update(commands.join('\n')).digest('hex');
     return { ms, pathBlockQueries: pathBlockQueries.value, outputDigest };
 };
-
-const percentile = (sorted: readonly number[], fraction: number): number =>
-    sorted[Math.min(sorted.length - 1, Math.ceil(fraction * sorted.length) - 1)] ?? 0;
 
 for (let warmup = 0; warmup < WARMUPS; warmup++) run();
 const runs = Array.from({ length: SAMPLES }, run);

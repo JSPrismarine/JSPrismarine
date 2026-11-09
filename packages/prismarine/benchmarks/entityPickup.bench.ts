@@ -15,6 +15,7 @@ import { stub } from '../src/testing/stub.test.helper';
 import type { World } from '../src/world/World';
 import { Position } from '../src/world/Position';
 import EntityGrid from '../src/world/EntityGrid';
+import { percentile } from './percentile';
 
 const argumentsAfterScript = process.argv.slice(2).filter((argument) => argument !== '--');
 const ITEM_COUNT = Number.parseInt(argumentsAfterScript[0] ?? '10000', 10);
@@ -112,9 +113,6 @@ const run = (indexed: boolean): Sample => {
         outputDigest: hash.digest('hex')
     };
 };
-
-const percentile = (sorted: readonly number[], fraction: number): number =>
-    sorted[Math.min(sorted.length - 1, Math.ceil(fraction * sorted.length) - 1)] ?? 0;
 
 const summarize = (runs: readonly Sample[]) => {
     const sorted = runs.map(({ ms }) => ms).sort((left, right) => left - right);

@@ -16,6 +16,7 @@ import { buildServerContent } from '../src/content/ServerContent';
 import type { ServerContent } from '../src/content/ServerContent';
 import { EntityRuntime } from '../src/entity/data/EntityRuntime';
 import { TestEntityWorld } from '../src/entity/data/testing';
+import { percentile } from './percentile';
 
 const OPERATIONS = 2_000;
 const CRAFT_OPERATIONS = 500;
@@ -119,9 +120,6 @@ const countCandidates = (input: RecipeInput, all: boolean): number => {
     }
     return reads;
 };
-
-const percentile = (sorted: readonly number[], fraction: number): number =>
-    sorted[Math.min(sorted.length - 1, Math.ceil(fraction * sorted.length) - 1)] ?? 0;
 
 const measure = <T>(operation: () => T, operations: number) => {
     const runs = Array.from({ length: SAMPLES }, () => {

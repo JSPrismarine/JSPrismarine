@@ -17,6 +17,7 @@ import {
     findJavaWorldgenSources,
     loadJavaWorldgenRegistries
 } from '../src/world/generators/datadriven/javaWorldgenData';
+import { percentile } from './percentile';
 
 const workers = Number.parseInt(process.argv[2] ?? '4', 10);
 const sampleCount = Number.parseInt(process.argv[3] ?? '3', 10);
@@ -124,9 +125,6 @@ const sample = async (count: number, baseX: number, batches: number): Promise<Sa
         digest: hash.digest('hex')
     };
 };
-
-const percentile = (sorted: readonly number[], fraction: number): number =>
-    sorted[Math.min(sorted.length - 1, Math.ceil(fraction * sorted.length) - 1)] ?? 0;
 
 /** Summarizes one workload's wall time, main-thread CPU, and promotion throughput. */
 const summary = (name: string, samples: readonly Sample[]) => {

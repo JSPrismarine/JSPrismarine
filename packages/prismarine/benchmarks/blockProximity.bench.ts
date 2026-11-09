@@ -31,6 +31,7 @@ import { encodePacketsForCodec } from '../src/network/encodePacketBatch';
 import type ClientConnection from '../src/network/ClientConnection';
 import type PlayerSession from '../src/network/PlayerSession';
 import Codec2193 from '../src/network/codec/Codec2193';
+import { percentile } from './percentile';
 
 const { positionals, values } = parseArgs({
     args: process.argv.slice(2).filter((argument) => argument !== '--'),
@@ -227,9 +228,6 @@ const run = async (): Promise<Sample> => {
     }
     return { ms, outputDigest: digestBatches(), deliveredUpdates };
 };
-
-const percentile = (sorted: readonly number[], fraction: number): number =>
-    sorted[Math.min(sorted.length - 1, Math.ceil(fraction * sorted.length) - 1)] ?? 0;
 
 const main = async (): Promise<void> => {
     const reference = expectedDigest(Codec2193);

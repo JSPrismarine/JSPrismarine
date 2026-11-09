@@ -76,6 +76,7 @@ import { entityContentGroups } from '@jsprismarine/prismarine/entity/contentAdap
 import { EntityRuntime } from '@jsprismarine/prismarine/entity/data/EntityRuntime';
 import type { ContentItemEntity, EntityHostFacts, EntityWorldFacts } from '@jsprismarine/prismarine/entity/data/host';
 import Chunk from '@jsprismarine/prismarine/world/chunk/Chunk';
+import { percentile } from './percentile';
 
 /** The y the flat floor's top sits at; everything above it is air. */
 const FLOOR_Y = 63;
@@ -654,10 +655,6 @@ const run = (
         measuredCollisionCandidates: collisionCounts.candidates - collisionCandidatesBeforeMeasure
     };
 };
-
-/** The value at a percentile of a sample, nearest-rank. */
-const percentile = (sorted: readonly number[], fraction: number): number =>
-    sorted[Math.min(sorted.length - 1, Math.max(0, Math.ceil(fraction * sorted.length) - 1))] ?? 0;
 
 const requestedPairs = Number.parseInt(process.env.ENTITY_AI_BREEDING_PAIRS ?? '0', 10);
 const BREEDING_PAIRS = Number.isSafeInteger(requestedPairs) && requestedPairs > 0 ? requestedPairs : 0;

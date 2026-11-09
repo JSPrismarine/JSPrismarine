@@ -13,6 +13,7 @@ import type { HeightmapType } from '@jsprismarine/features';
 import { GenerationRegion } from '../src/world/generators/datadriven/GenerationRegion';
 import type { GenerationRegionOptions } from '../src/world/generators/datadriven/GenerationRegion';
 import { createJavaBlockOracle } from '../src/world/generators/datadriven/javaBlockOracle';
+import { percentile } from './percentile';
 
 const argumentsAfterScript = process.argv.slice(2).filter((argument) => argument !== '--');
 const SAMPLES = Number.parseInt(argumentsAfterScript[0] ?? '7', 10);
@@ -189,9 +190,6 @@ const sample = (readThrough: boolean): Sample => {
         featureReadLookupMs: featureReadMeasurements.lookupMs
     };
 };
-
-const percentile = (sorted: readonly number[], fraction: number): number =>
-    sorted[Math.min(sorted.length - 1, Math.ceil(fraction * sorted.length) - 1)] ?? 0;
 
 const summarize = (runs: readonly Sample[]) => {
     const sorted = runs.map(({ ms }) => ms).sort((left, right) => left - right);

@@ -30,6 +30,7 @@ import {
 } from '@jsprismarine/prismarine/world/generators/datadriven/javaWorldgenData';
 import { shareClimateTables } from '../src/world/generators/datadriven/sharedClimateTables';
 import { SharedTerrainTileStore } from '../src/world/generators/datadriven/SharedTerrainTileStore';
+import { percentile } from './percentile';
 
 // pnpm may keep the `--` script-argument separator in argv; remove it before parsing options.
 const args = process.argv[2] === '--' ? process.argv.slice(3) : process.argv.slice(2);
@@ -295,9 +296,6 @@ const run = async (includeHeapSnapshots = false): Promise<Run> => {
         generator.stopGenerating();
     }
 };
-
-const percentile = (sorted: readonly number[], fraction: number): number =>
-    sorted[Math.min(sorted.length - 1, Math.ceil(fraction * sorted.length) - 1)] ?? 0;
 
 if (workerHeapSnapshotDirectory !== undefined) await run(true);
 for (let warmup = 0; warmup < warmups; warmup++) await run();
