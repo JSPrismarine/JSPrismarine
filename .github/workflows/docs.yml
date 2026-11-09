@@ -41,7 +41,7 @@ jobs:
     # build instead of adding to it.
     build-docs:
         name: 📖 Build Docs
-        runs-on: blacksmith-4vcpu-ubuntu-2404
+        runs-on: ${{ vars.CI_RUNNERS == 'github' && 'ubuntu-24.04' || 'blacksmith-4vcpu-ubuntu-2404' }}
         env:
             TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
             TURBO_TEAM: ${{ secrets.TURBO_TEAM }}

@@ -1,15 +1,14 @@
 import type { Logger } from '@jsprismarine/logger';
 import { Vector3 } from '@jsprismarine/math';
 import { ContainerUiId, Gametype } from '@jsprismarine/minecraft';
-import { describe, expect, it, vi } from 'vitest';
-
-// A reused Vitest worker may already have the handler's real dependencies in its module cache.
-vi.hoisted(() => vi.resetModules());
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import type Player from '../../Player';
 import type Server from '../../Server';
 import type { Config } from '../../config/Config';
+import * as archery from '../../entity/Archery';
 import { loose } from '../../entity/Archery';
+import * as combat from '../../entity/Combat';
 import { meleeAttack } from '../../entity/Combat';
 import type { Entity } from '../../entity/Entity';
 import type { Metadata } from '@jsprismarine/protocol/wire/structures/Metadata';
@@ -40,6 +39,7 @@ import {
 } from '@jsprismarine/protocol';
 import Codec2193 from '../codec/Codec2193';
 import InventoryTransactionHandler, { rejectionReason } from './InventoryTransactionHandler';
+import * as interaction from '../../item/interaction';
 import { useItemInAir, useItemOnBlock } from '../../item/interaction';
 import type { InteractionResult } from '../../item/interaction';
 import type { ServerWorldHandle } from '../../content/world/serverSource';
@@ -47,21 +47,19 @@ import type { ServerItemActorPort } from '../../item/actorPort';
 import { testContent } from '../../testing/entityServer';
 
 // The blow and the shot have modules and tests of their own. Here they are recorded, so a
-// test can say what the handler asked for without a world to fight in.
-vi.mock('../../entity/Combat', async (importActual) => ({
-    ...(await importActual<typeof import('../../entity/Combat')>()),
-    meleeAttack: vi.fn(async () => true)
-}));
-vi.mock('../../entity/Archery', async (importActual) => ({
-    ...(await importActual<typeof import('../../entity/Archery')>()),
-    loose: vi.fn(async () => true)
-}));
-// So is the click on a block, which `item/interaction.test.ts` places against a real world.
-vi.mock('../../item/interaction', async (importActual) => ({
-    ...(await importActual<typeof import('../../item/interaction')>()),
-    useItemOnBlock: vi.fn((): InteractionResult => 'handled'),
-    useItemInAir: vi.fn((): InteractionResult => 'handled')
-}));
+// test can say what the handler asked for without a world to fight in. So is the click on a
+// block, which `item/interaction.test.ts` places against a real world. Spies rather than
+// `vi.mock`, because test files share their worker and a module mock would outlive this file.
+beforeAll(() => {
+    vi.spyOn(combat, 'meleeAttack').mockImplementation(async () => true);
+    vi.spyOn(archery, 'loose').mockImplementation(async () => true);
+    vi.spyOn(interaction, 'useItemOnBlock').mockImplementation((): InteractionResult => 'handled');
+    vi.spyOn(interaction, 'useItemInAir').mockImplementation((): InteractionResult => 'handled');
+});
+
+afterAll(() => {
+    vi.restoreAllMocks();
+});
 
 const TICK = 400;
 

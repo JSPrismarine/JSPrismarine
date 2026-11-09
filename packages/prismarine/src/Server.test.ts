@@ -3,24 +3,12 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
-// A reused worker may have loaded the real server dependencies before this file's mocks.
-vi.hoisted(() => vi.resetModules());
-
 import { Logger } from '@jsprismarine/logger';
 import Server from './Server';
 import { Config } from './config/Config';
+import { stubRakNetListener } from './testing/rakNetListener.test.helper';
 
-vi.mock('@jsprismarine/raknet', async (importActual) => {
-    const MockRakNetListener = vi.fn(function (this: any) {
-        this.start = vi.fn();
-        this.on = vi.fn();
-        this.kill = vi.fn();
-    });
-    return {
-        ...(await importActual<typeof import('@jsprismarine/raknet')>()),
-        RakNetListener: MockRakNetListener
-    };
-});
+stubRakNetListener();
 
 describe('Server', () => {
     let worldRoot: string;

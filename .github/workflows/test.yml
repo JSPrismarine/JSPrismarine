@@ -24,7 +24,7 @@ jobs:
     # so master runs them all.
     changes:
         name: Detect code changes
-        runs-on: blacksmith-2vcpu-ubuntu-2404
+        runs-on: ${{ vars.CI_RUNNERS == 'github' && 'ubuntu-24.04' || 'blacksmith-2vcpu-ubuntu-2404' }}
         permissions:
             actions: read
             contents: read
@@ -72,11 +72,24 @@ jobs:
                           - 'docs/plans/data-driven-vanilla.md'
                           - 'docs/research/edition-behavior-differences.md'
 
-    tests:
-        name: 🧪 Tests (ubuntu-latest)
+    # The unit suite runs in four shards, each on its own runner with a quarter of the test files.
+    # Each shard writes a blob report holding its results and its coverage, and `tests` merges
+    # them. Every file used to report in about seven minutes on one runner, and a Vitest that
+    # stopped there held the runner for two hours, so a shard now fails after 15 minutes.
+    tests-shard:
+        name: 🧪 Tests (shard ${{ matrix.shard }}/4)
         needs: changes
         if: ${{ needs.changes.outputs.code == 'true' }}
-        runs-on: blacksmith-2vcpu-ubuntu-2404
+        runs-on: ${{ vars.CI_RUNNERS == 'github' && 'ubuntu-24.04' || 'blacksmith-2vcpu-ubuntu-2404' }}
+        timeout-minutes: 15
+        # GitHub draws a progress bar on a job that names an environment, so each shard shows how
+        # far along it is. `unit-tests` is that and nothing more: it holds no secrets, and a
+        # protection rule added to it would hold up every shard.
+        environment: unit-tests
+        strategy:
+            fail-fast: false
+            matrix:
+                shard: [1, 2, 3, 4]
         steps:
             # `--changed` diffs against the merge base, so the history has to reach it.
             - uses: useblacksmith/checkout@v1
@@ -86,19 +99,99 @@ jobs:
             - name: 📦 Install
               uses: ./.github/common/install
 
+            # The pinned Java server jar both Vitest jobs read, keyed on the file that pins it, so the
+            # unit shards and the real-data job share one download instead of each fetching their own.
+            - name: Cache the Java server jar
+              uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+              with:
+                  path: node_modules/.cache/jsprismarine/java-server
+                  key: ${{ runner.os }}-jsp-java-server-${{ hashFiles('packages/bedrock-data/sources.json') }}
+
+            # Vitest's transformed modules, one cache per shard: a shard restores and saves only what
+            # its own quarter of the files loads, instead of every module any test ever loaded. An
+            # entry is keyed on the file's content, so a restored one is only used while it matches.
             - name: Cache Vitest module transforms
               uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
               with:
                   path: node_modules/.cache/vitest
-                  key: ${{ runner.os }}-vitest-${{ hashFiles('pnpm-lock.yaml', 'vitest.config.ts', 'packages/**/vitest.config.ts') }}-${{ hashFiles('packages/**/*.ts', 'packages/**/*.json') }}
+                  key: ${{ runner.os }}-vitest-shard-${{ matrix.shard }}-${{ hashFiles('pnpm-lock.yaml', 'vitest.config.ts', 'packages/**/vitest.config.ts') }}-${{ hashFiles('packages/**/*.ts', 'packages/**/*.json') }}
                   restore-keys: |
-                      ${{ runner.os }}-vitest-${{ hashFiles('pnpm-lock.yaml', 'vitest.config.ts', 'packages/**/vitest.config.ts') }}-
+                      ${{ runner.os }}-vitest-shard-${{ matrix.shard }}-${{ hashFiles('pnpm-lock.yaml', 'vitest.config.ts', 'packages/**/vitest.config.ts') }}-
 
             # A pull request runs the suites its diff reaches; master runs every suite.
             - name: 🧪 Test
               env:
                   CHANGED: ${{ github.event_name == 'pull_request' && format('--changed={0}', github.event.pull_request.base.sha) || '' }}
-              run: pnpm run test --tagsFilter='!real-data && !performance' $CHANGED
+                  # Prints failures here and writes the blob report; see `reporters` in `vitest.config.ts`.
+                  VITEST_SHARD: ${{ matrix.shard }}/4
+              # The jar check is folded away, so the step opens on what Vitest reports.
+              run: |
+                  echo "::group::Java server jar"
+                  pnpm --filter @jsprismarine/bedrock-data run ensure:java-server
+                  echo "::endgroup::"
+                  pnpm exec vitest run --coverage --tagsFilter='!real-data && !performance' $CHANGED --shard=${{ matrix.shard }}/4
+
+            - name: 📤 Keep the shard report
+              if: ${{ !cancelled() }}
+              uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+              with:
+                  name: vitest-blob-${{ matrix.shard }}
+                  path: .vitest
+                  include-hidden-files: true
+                  retention-days: 1
+
+    # The one unit result branch rules require: the shards merged into one set of results, one
+    # JUnit file and one coverage report, which go to GitHub and Codecov as before.
+    tests:
+        name: 🧪 Tests (ubuntu-latest)
+        needs: [changes, tests-shard]
+        if: ${{ !cancelled() && needs.changes.outputs.code == 'true' }}
+        runs-on: ${{ vars.CI_RUNNERS == 'github' && 'ubuntu-24.04' || 'blacksmith-2vcpu-ubuntu-2404' }}
+        timeout-minutes: 15
+        permissions:
+            contents: read
+            # The coverage comment.
+            pull-requests: write
+            # Removing the deployments the shards' progress bars leave behind.
+            deployments: write
+        steps:
+            - uses: useblacksmith/checkout@v1
+
+            - name: 📦 Install
+              uses: ./.github/common/install
+
+            - name: ⬇️ Collect the shard reports
+              uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+              with:
+                  pattern: vitest-blob-*
+                  path: .vitest
+                  merge-multiple: true
+
+            # Fails when a test failed in any shard, and the next step fails when a shard did not
+            # finish at all, which leaves no report to merge.
+            - name: 🧪 Merge the shard reports
+              run: pnpm exec vitest run --merge-reports --coverage
+
+            - name: 🔎 Check every shard finished
+              if: ${{ !cancelled() && needs.tests-shard.result != 'success' }}
+              run: |
+                  echo "A unit test shard ended with ${{ needs.tests-shard.result }}."
+                  exit 1
+
+            # Each shard names the `unit-tests` environment for its progress bar, which records a
+            # deployment. Nothing is deployed, so this run's deployments go once the shards are
+            # done; GitHub deletes one only after it is marked inactive. A fork's token cannot
+            # write deployments, which leaves them in place rather than failing the job.
+            - name: 🧹 Remove the progress bar deployments
+              if: ${{ always() }}
+              continue-on-error: true
+              env:
+                  GH_TOKEN: ${{ github.token }}
+              run: |
+                  for id in $(gh api "repos/${{ github.repository }}/deployments?environment=unit-tests&sha=${{ github.sha }}&per_page=100" --jq '.[].id'); do
+                      gh api --method POST "repos/${{ github.repository }}/deployments/$id/statuses" -f state=inactive > /dev/null
+                      gh api --method DELETE "repos/${{ github.repository }}/deployments/$id"
+                  done
 
             - name: 🦺 Report Coverage to GitHub
               if: ${{ !cancelled() }}
@@ -138,7 +231,7 @@ jobs:
         strategy:
             fail-fast: false
             matrix:
-                os: [blacksmith-2vcpu-windows-2025, blacksmith-6vcpu-macos-latest]
+                os: ["${{ vars.CI_RUNNERS == 'github' && 'windows-2025' || 'blacksmith-2vcpu-windows-2025' }}", "${{ vars.CI_RUNNERS == 'github' && 'macos-latest' || 'blacksmith-6vcpu-macos-latest' }}"]
         runs-on: ${{ matrix.os }}
         steps:
             - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -158,7 +251,7 @@ jobs:
         name: 📃 Typecheck (ubuntu-latest)
         needs: changes
         if: ${{ needs.changes.outputs.code == 'true' && !contains(fromJSON(needs.changes.outputs.passed), '📃 Typecheck (ubuntu-latest)') }}
-        runs-on: blacksmith-2vcpu-ubuntu-2404
+        runs-on: ${{ vars.CI_RUNNERS == 'github' && 'ubuntu-24.04' || 'blacksmith-2vcpu-ubuntu-2404' }}
         steps:
             - uses: useblacksmith/checkout@v1
 
@@ -176,7 +269,7 @@ jobs:
         name: 🗃️ Real data suites
         needs: changes
         if: ${{ needs.changes.outputs.code == 'true' }}
-        runs-on: blacksmith-2vcpu-ubuntu-2404
+        runs-on: ${{ vars.CI_RUNNERS == 'github' && 'ubuntu-24.04' || 'blacksmith-2vcpu-ubuntu-2404' }}
         timeout-minutes: 90
         permissions:
             contents: read
@@ -196,6 +289,14 @@ jobs:
               with:
                   distribution: temurin
                   java-version: '25'
+
+            # The pinned Java server jar both Vitest jobs read, keyed on the file that pins it, so the
+            # unit job and the real-data job share one download instead of each fetching their own.
+            - name: Cache the Java server jar
+              uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+              with:
+                  path: node_modules/.cache/jsprismarine/java-server
+                  key: ${{ runner.os }}-jsp-java-server-${{ hashFiles('packages/bedrock-data/sources.json') }}
 
             - name: Cache the fetched sources
               uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6

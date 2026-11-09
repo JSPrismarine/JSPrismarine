@@ -1,11 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
-
-// The full test run reuses workers without isolating modules. Another server suite can leave a
-// RakNet mock active, so this listener lifecycle test must reload the real package export.
-vi.hoisted(() => {
-    vi.doUnmock('@jsprismarine/raknet');
-    vi.resetModules();
-});
+import { describe, expect, it } from 'vitest';
 
 import type { Logger } from '@jsprismarine/logger';
 import { startTestModule } from '@jsprismarine/kernel/testing';

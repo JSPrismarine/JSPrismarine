@@ -27,13 +27,6 @@ import {
     serializeReplayInitialStateManifest
 } from '@jsprismarine/prismarine/network/ReplayManifest';
 
-// Some other server suites replace RakNet in a reused worker. This test needs the real socket
-// path, so clear that mock before the server module is loaded.
-vi.hoisted(() => {
-    vi.doUnmock('@jsprismarine/raknet');
-    vi.resetModules();
-});
-
 import Client from './Client';
 
 interface Position {

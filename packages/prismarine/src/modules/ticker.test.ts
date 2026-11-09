@@ -58,6 +58,25 @@ const buildHarness = (overrides: Partial<TickerServer> = {}) => {
     };
 };
 
+/**
+ * Records the calls to a faked timer function while the test runs, and puts it back.
+ *
+ * Not `vi.spyOn`: restoring a spy on a fake-timers function that had been called left the fake in
+ * place after `vi.useRealTimers()`, so every later file in the worker had a `setTimeout` that
+ * never fired. A plain wrapper, put back by plain assignment before the real timers return,
+ * leaves nothing behind.
+ */
+const recordCalls = <Name extends 'setTimeout' | 'setImmediate'>(name: Name) => {
+    const original = globalThis[name];
+    const calls = vi.fn(original);
+    Object.assign(globalThis, { [name]: calls });
+    return Object.assign(calls, {
+        restore: () => {
+            Object.assign(globalThis, { [name]: original });
+        }
+    });
+};
+
 describe('modules/ticker', () => {
     beforeEach(() => {
         vi.useFakeTimers({
@@ -111,8 +130,8 @@ describe('modules/ticker', () => {
 
     it('uses a timeout for a tick that finishes before its fixed deadline', async () => {
         const harness = buildHarness();
-        const timeout = vi.spyOn(globalThis, 'setTimeout');
-        const immediate = vi.spyOn(globalThis, 'setImmediate');
+        const timeout = recordCalls('setTimeout');
+        const immediate = recordCalls('setImmediate');
         const handle = await startTestModule(tickerModule(harness.ticker));
         try {
             await vi.advanceTimersByTimeAsync(0);
@@ -123,8 +142,8 @@ describe('modules/ticker', () => {
             expect(harness.warnings).toEqual([]);
         } finally {
             await handle.stop();
-            timeout.mockRestore();
-            immediate.mockRestore();
+            timeout.restore();
+            immediate.restore();
         }
     });
 
@@ -243,8 +262,8 @@ describe('modules/ticker', () => {
                 setImmediate(() => eventLoopOrder.push('io'));
             }
         };
-        const timeout = vi.spyOn(globalThis, 'setTimeout');
-        const immediate = vi.spyOn(globalThis, 'setImmediate');
+        const timeout = recordCalls('setTimeout');
+        const immediate = recordCalls('setImmediate');
         const handle = await startTestModule(tickerModule(harness.ticker));
         try {
             await vi.advanceTimersByTimeAsync(0);
@@ -257,8 +276,8 @@ describe('modules/ticker', () => {
             expect(harness.warnings).toEqual([]);
         } finally {
             await handle.stop();
-            timeout.mockRestore();
-            immediate.mockRestore();
+            timeout.restore();
+            immediate.restore();
         }
     });
 
@@ -271,7 +290,7 @@ describe('modules/ticker', () => {
                 vi.advanceTimersByTime(75);
             }
         };
-        const immediate = vi.spyOn(globalThis, 'setImmediate');
+        const immediate = recordCalls('setImmediate');
         const handle = await startTestModule(tickerModule(harness.ticker));
         try {
             await vi.advanceTimersByTimeAsync(0);
@@ -283,7 +302,7 @@ describe('modules/ticker', () => {
             expect(scheduled.every((handle) => handle.hasRef())).toBe(true);
         } finally {
             await handle.stop();
-            immediate.mockRestore();
+            immediate.restore();
         }
     });
 

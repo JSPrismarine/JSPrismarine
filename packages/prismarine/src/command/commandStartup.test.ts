@@ -26,17 +26,9 @@ import { Position } from '../world/Position';
 import type { CommandExecutor } from './CommandExecutor';
 import { UNWIRED_COMMANDS } from './vanillaCommands';
 import { stubOf } from '../testing/stub.test.helper';
+import { stubRakNetListener } from '../testing/rakNetListener.test.helper';
 
-vi.mock('@jsprismarine/raknet', async (importActual) => {
-    const MockRakNetListener = vi.fn(function (this: Record<string, unknown>) {
-        this.start = vi.fn();
-        this.on = vi.fn();
-    });
-    return {
-        ...(await importActual<typeof import('@jsprismarine/raknet')>()),
-        RakNetListener: MockRakNetListener
-    };
-});
+stubRakNetListener();
 
 /** A config that answers every startup question without reading a file, as `startup.test.ts` does. */
 const debugConfig = (levelName: string) =>

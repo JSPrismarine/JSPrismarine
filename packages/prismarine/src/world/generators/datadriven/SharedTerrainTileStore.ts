@@ -7,7 +7,6 @@
  * mistaken for an abandoned one.
  */
 import { deserialize, serialize } from 'node:v8';
-import { isMainThread } from 'node:worker_threads';
 
 import type { GenerationRegionPayload } from './GenerationRegion';
 
@@ -375,26 +374,32 @@ export class SharedTerrainTileStore {
         Atomics.store(this.words, stateIndex + 2, 0);
         Atomics.store(this.words, stateIndex, TOMBSTONE);
         Atomics.notify(this.words, stateIndex);
+        Atomics.notify(this.words, stateIndex + 2);
         return true;
     }
 
+    /**
+     * Waits until another owner changes a slot's state, or 100 ms pass.
+     *
+     * `Atomics.waitAsync` rather than `Atomics.wait`: a blocking wait holds the whole thread, so
+     * an owner on the same thread, or any other task the thread runs, could not finish the build
+     * being waited for until the timeout. Every write to a watched word notifies, so the wait
+     * ends as soon as the slot changes, on the main thread and in a worker alike.
+     */
     private async waitForChange(slot: number): Promise<void> {
         const stateIndex = this.slotIndex(slot);
-        const expected = Atomics.load(this.words, stateIndex);
-        if (isMainThread) {
-            await new Promise<void>((resolve) => setTimeout(resolve, 2));
-            return;
-        }
-        Atomics.wait(this.words, stateIndex, expected, 100);
+        await this.waitWhile(stateIndex, Atomics.load(this.words, stateIndex));
     }
 
+    /** Waits until a claimed slot records its owner's digest, or 100 ms pass. */
     private async waitForInitialization(slot: number): Promise<void> {
-        const index = this.slotIndex(slot) + 2;
-        if (isMainThread) {
-            await new Promise<void>((resolve) => setTimeout(resolve, 1));
-            return;
-        }
-        Atomics.wait(this.words, index, 0, 100);
+        await this.waitWhile(this.slotIndex(slot) + 2, 0);
+    }
+
+    /** Resolves once `words[index]` stops holding `expected`, or after 100 ms. */
+    private async waitWhile(index: number, expected: number): Promise<void> {
+        const wait = Atomics.waitAsync(this.words, index, expected, 100);
+        if (wait.async) await wait.value;
     }
 
     private matches(slot: number, digest: Int32Array): boolean {

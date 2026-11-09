@@ -15,25 +15,16 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { Logger } from '@jsprismarine/logger';
-import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import Server from '../Server';
 import { Config } from '../config/Config';
 import Chunk from '../world/chunk/Chunk';
 import { Dimensions } from '../world/Dimension';
 import type { CommandExecutor } from './CommandExecutor';
+import { stubRakNetListener } from '../testing/rakNetListener.test.helper';
 
-vi.mock('@jsprismarine/raknet', async (importActual) => {
-    const MockRakNetListener = vi.fn(function (this: Record<string, unknown>) {
-        this.start = vi.fn();
-        this.on = vi.fn();
-        this.kill = vi.fn();
-    });
-    return {
-        ...(await importActual<typeof import('@jsprismarine/raknet')>()),
-        RakNetListener: MockRakNetListener
-    };
-});
+stubRakNetListener();
 
 /** The port this test's server binds, which the mocked listener never actually opens. */
 const PORT = 12351;

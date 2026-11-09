@@ -12,13 +12,6 @@ import type { Player } from '@jsprismarine/prismarine';
 import type { DecodedPacket } from './net/ClientPacketRegistry';
 import type { PendingDimensionChange } from './DimensionChange';
 
-// The full test run reuses workers without isolating modules. Another server test can leave
-// its mocked RakNet listener in the worker, so this integration suite must reload the real one.
-vi.hoisted(() => {
-    vi.doUnmock('@jsprismarine/raknet');
-    vi.resetModules();
-});
-
 import Client from './Client';
 import { isPacket } from './net/ClientPacketRegistry';
 

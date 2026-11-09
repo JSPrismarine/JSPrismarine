@@ -140,8 +140,8 @@ starts. When the plan has none, say so and propose one instead of benchmarking a
   [Measuring performance](#measuring-performance) describes.
   Keep implementation totals (for example, registered functions, commands, components, behaviors,
   or entity types) as non-gating progress reported through `reportProgress` from
-  `.test/reportProgress.ts`; it emits a GitHub Actions warning in CI and calls `console.warn`
-  locally. Assert data-derived relationships and runtime outcomes instead of exact inventory counts;
+  `.test/reportProgress.ts`; it raises a GitHub Actions notice on the reporting test file in CI
+  and calls `console.warn` locally. Assert data-derived relationships and runtime outcomes instead of exact inventory counts;
   use exact counts only when the count itself is an externally specified behavior or protocol
   contract.
 - When package exports or published behavior change, check the built package from a consumer context.

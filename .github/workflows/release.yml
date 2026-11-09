@@ -123,7 +123,7 @@ jobs:
         name: 🗃️ Prepare executable data
         needs: release
         if: ${{ always() && (github.event_name == 'workflow_dispatch' || (needs.release.result == 'success' && needs.release.outputs.published == 'true')) }}
-        runs-on: blacksmith-2vcpu-ubuntu-2404
+        runs-on: ${{ vars.CI_RUNNERS == 'github' && 'ubuntu-24.04' || 'blacksmith-2vcpu-ubuntu-2404' }}
         permissions:
             contents: read
         steps:
@@ -164,19 +164,19 @@ jobs:
         strategy:
             matrix:
                 include:
-                    - runner: blacksmith-2vcpu-ubuntu-2404
+                    - runner: ${{ vars.CI_RUNNERS == 'github' && 'ubuntu-24.04' || 'blacksmith-2vcpu-ubuntu-2404' }}
                       group: linux
                       targets: >-
                           bun-linux-x64
                           bun-linux-arm64
                           bun-linux-x64-musl
                           bun-linux-arm64-musl
-                    - runner: blacksmith-6vcpu-macos-latest
+                    - runner: ${{ vars.CI_RUNNERS == 'github' && 'macos-latest' || 'blacksmith-6vcpu-macos-latest' }}
                       group: macos
                       targets: >-
                           bun-darwin-x64
                           bun-darwin-arm64
-                    - runner: blacksmith-2vcpu-windows-2025
+                    - runner: ${{ vars.CI_RUNNERS == 'github' && 'windows-2025' || 'blacksmith-2vcpu-windows-2025' }}
                       group: windows-x64
                       targets: bun-windows-x64
         runs-on: ${{ matrix.runner }}

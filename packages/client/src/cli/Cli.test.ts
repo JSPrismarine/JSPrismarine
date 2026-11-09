@@ -6,12 +6,6 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
-// This suite needs a real listener even when a reused worker ran server tests with a mock first.
-vi.hoisted(() => {
-    vi.doUnmock('@jsprismarine/raknet');
-    vi.resetModules();
-});
-
 import { PROTOCOL_VERSION } from '../Client';
 import { parseDuration, parseRate, run } from './Cli';
 

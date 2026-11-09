@@ -21,18 +21,25 @@ const SCHEMA_PROPERTY = {
     description: 'The schema URL for the JSPrismarine build that last wrote this file.'
 };
 
-/** Generate the package's Draft 7 schemas from its JSON file types. */
+/**
+ * Generate the package's Draft 7 schemas from its JSON file types.
+ *
+ * One generator serves every schema. Building it compiles the TypeScript program behind
+ * `JsonConfigTypes`, which reaches most of this package, and a generator per schema compiled it
+ * once for each of the five.
+ */
 function generateSchemas() {
     mkdirSync(schemaDirectory, { recursive: true });
 
+    const generator = createGenerator({
+        path: sourcePath,
+        tsconfig: tsconfigPath,
+        jsDoc: 'extended',
+        topRef: false
+    });
+
     for (const [type, file] of schemaFiles) {
-        const generated = createGenerator({
-            path: sourcePath,
-            tsconfig: tsconfigPath,
-            type,
-            jsDoc: 'extended',
-            topRef: false
-        }).createSchema(type);
+        const generated = generator.createSchema(type);
 
         const schema = {
             ...generated,

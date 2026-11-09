@@ -12,17 +12,9 @@ import { Config } from '../config/Config';
 import { PACK_STACK_ENV } from './packStack';
 import { buildServerContent } from './ServerContent';
 import { fixtureContentOptions } from './testing';
+import { stubRakNetListener } from '../testing/rakNetListener.test.helper';
 
-vi.mock('@jsprismarine/raknet', async (importActual) => {
-    const MockRakNetListener = vi.fn(function (this: Record<string, unknown>) {
-        this.start = vi.fn();
-        this.on = vi.fn();
-    });
-    return {
-        ...(await importActual<typeof import('@jsprismarine/raknet')>()),
-        RakNetListener: MockRakNetListener
-    };
-});
+stubRakNetListener();
 
 /**
  * A config that answers every startup question without reading a file, the
