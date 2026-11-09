@@ -227,7 +227,7 @@ const worldWithSpawner = ({ playerAt, delay = 0 }: { playerAt: Vector3; delay?: 
     return { world, chunk, spawned, written, tick };
 };
 
-describe('world', () => {
+describe('World', () => {
     describe('spawners in a ticking world', () => {
         it('spawns the mob through the data runtime on open ground around the block', () => {
             const { spawned, chunk, written, tick } = worldWithSpawner({ playerAt: new Vector3(8, 64, 8) });

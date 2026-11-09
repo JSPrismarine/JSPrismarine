@@ -160,7 +160,10 @@ describe('MojangKeys', () => {
     it('fetches once and serves the key from memory', async () => {
         let fetches = 0;
         const source = new MojangKeys(
-            async () => ({ keys: [(fetches++, jwk)] }),
+            async () => {
+                fetches++;
+                return { keys: [jwk] };
+            },
             () => NOW
         );
 
@@ -173,7 +176,10 @@ describe('MojangKeys', () => {
         let fetches = 0;
         let clock = NOW;
         const source = new MojangKeys(
-            async () => ({ keys: [(fetches++, jwk)] }),
+            async () => {
+                fetches++;
+                return { keys: [jwk] };
+            },
             () => clock
         );
         await source.keyFor(KID);
