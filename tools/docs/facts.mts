@@ -18,11 +18,11 @@
  * Markdown's values for those facts; the docs build fetches them first, so the site always counts.
  */
 
-import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync } from 'node:fs';
-import os from 'node:os';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 
 import { palette } from './site/.vitepress/theme/tokens.ts';
+import { loadCommands, loadSettings } from './code-data.mts';
 import { loadProject, repoRoot } from './project.mts';
 
 /** Pinned downloads in `packages/bedrock-data/sources.json`, as far as the docs quote them. */
@@ -66,19 +66,11 @@ function table(header: readonly string[], rows: readonly (readonly string[])[]) 
     return [line(header), `| ${widths.map((width) => '-'.repeat(width)).join(' | ')} |`, ...rows.map(line)].join('\n');
 }
 
-/**
- * The commands `@jsprismarine/commands` implements and the ones this server registers. Read by running
- * the same registration the server runs, so it needs a TypeScript loader (`node --import tsx`).
- */
+/** Command facts, from the registration the server runs. */
 async function commandFacts() {
-    const commands = await import('../../packages/commands/src/index.ts');
-    const server = await import('../../packages/prismarine/src/command/vanillaCommands.ts');
-    const all = new commands.CommandRegistry();
-    commands.registerVanillaCommands(all);
-    const registered = server.buildVanillaCommands().getNames();
-    const unwired = Object.entries(server.UNWIRED_COMMANDS);
+    const { implemented, registered, unwired } = await loadCommands();
     return {
-        'commands.implemented': String(all.getNames().length),
+        'commands.implemented': String(implemented),
         'commands.registered': String(registered.length),
         'commands.unwired': String(unwired.length),
         'commands.unwired.example': `/${unwired[0]?.[0] ?? ''}`,
@@ -87,35 +79,13 @@ async function commandFacts() {
             ['Command', 'What it would need'],
             unwired.map(([name, reason]) => [`\`/${name}\``, reason])
         )}\n`,
-        'commands.registered.list': wrap(registered)
+        'commands.registered.list': wrap(registered.map(({ name }) => name))
     };
 }
 
-/**
- * Every `config.json` setting with the comment the server writes above it, read from the file the
- * server's own code writes into an empty folder. The table therefore lists what a fresh server writes.
- */
+/** Settings facts, from the file a fresh server writes. */
 async function configFacts() {
-    const { Config } = await import('../../packages/prismarine/src/config/Config.ts');
-    const { readContentSettings } = await import('../../packages/prismarine/src/content/settings.ts');
-    const folder = mkdtempSync(path.join(os.tmpdir(), 'jsp-docs-config-'));
-    const cwd = process.cwd();
-    let written: string;
-    try {
-        // The config code writes to the working directory, so point it at the empty folder.
-        process.chdir(folder);
-        readContentSettings();
-        await new Config().enable();
-        written = readFileSync(path.join(folder, 'config.json'), 'utf8');
-    } finally {
-        process.chdir(cwd);
-        rmSync(folder, { recursive: true, force: true });
-    }
-    // A comment line, then the top-level key it explains, as the config writer lays them out.
-    const rows = [...written.matchAll(/^ {4}\/\/ (.+)\n {4}"([^"]+)":/gm)].map(([, comment, key]) => [
-        `\`${key}\``,
-        comment
-    ]);
+    const rows = (await loadSettings()).map(({ key, comment }) => [`\`${key}\``, comment]);
     return {
         'config.count': String(rows.length),
         'config.table': `\n${table(['Setting', 'What it does'], rows)}\n`,
