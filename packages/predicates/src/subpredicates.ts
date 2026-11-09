@@ -15,6 +15,7 @@ import type {
     EntityView,
     EquipmentSlot,
     FluidState,
+    MovementView,
     Vec3
 } from './world';
 
@@ -521,17 +522,21 @@ const BUILT_IN_ENTITY_SUB_PREDICATES: Readonly<Record<string, SubPredicateParser
         };
     },
     'minecraft:movement': (value, context) => {
-        const fields = (
-            [
-                ['x', 'x'],
-                ['y', 'y'],
-                ['z', 'z'],
-                ['speed', 'speed'],
-                ['horizontal_speed', 'horizontalSpeed'],
-                ['vertical_speed', 'verticalSpeed'],
-                ['fall_distance', 'fallDistance']
-            ] as const
-        ).map(([json, field]) => [field, floatRange(member(value, json), context.at(json))] as const);
+        // Annotated rather than `as const`: scriptc 0.4.10 aborts its analysis on a literal tuple
+        // list destructured in a callback ("a narrowed value does not have the type its narrowing
+        // proved").
+        const members: readonly (readonly [string, keyof MovementView])[] = [
+            ['x', 'x'],
+            ['y', 'y'],
+            ['z', 'z'],
+            ['speed', 'speed'],
+            ['horizontal_speed', 'horizontalSpeed'],
+            ['vertical_speed', 'verticalSpeed'],
+            ['fall_distance', 'fallDistance']
+        ];
+        const fields = members.map(
+            ([json, field]) => [field, floatRange(member(value, json), context.at(json))] as const
+        );
         return (entity, evaluation) => fields.every(([field, test]) => test(entity.movement?.[field] ?? 0, evaluation));
     },
     'minecraft:effects': (value, context) => {

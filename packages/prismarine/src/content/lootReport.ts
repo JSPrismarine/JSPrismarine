@@ -55,11 +55,13 @@ export const lootSummary = (report: LootBuildReport): string =>
  * reviewed clause and nothing else.
  */
 export const lootWarning = (report: LootBuildReport): string | undefined => {
-    const clauses = [
+    // Annotated rather than `as const`, as in `contentPayloadWarning`: scriptc 0.4.10 aborts its
+    // analysis on a literal tuple list destructured in a callback.
+    const clauses: readonly (readonly [number, string])[] = [
         [report.unreviewed, 'carry §c%§r members nobody has reviewed'],
         [report.cycles, 'hold §c%§r reference cycles'],
         [report.reviewed, 'leave §e%§r reviewed gaps unapplied']
-    ] as const;
+    ];
 
     const said = clauses.filter(([count]) => count > 0).map(([count, text]) => text.replace('%', String(count)));
 

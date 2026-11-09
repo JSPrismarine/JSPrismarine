@@ -442,7 +442,9 @@ export const contentPayloadSummary = (payloads: NetworkContentPayloads): string 
  * nothing and anything printed is worth reading.
  */
 export const contentPayloadWarning = (report: ContentPayloadReport): string | undefined => {
-    const clauses = [
+    // Annotated rather than `as const`: scriptc 0.4.10 aborts its analysis on a literal tuple list
+    // destructured in a callback ("a narrowed value does not have the type its narrowing proved").
+    const clauses: readonly (readonly [number, string])[] = [
         [report.inventedBlocks, 'invented §e%§r blocks the client has to be told about'],
         [report.allocatedItemIds.length, 'gave §e%§r items an id of its own'],
         [report.untranslatedComponents.length, 'could not translate §e%§r block components'],
@@ -451,7 +453,7 @@ export const contentPayloadWarning = (report: ContentPayloadReport): string | un
         [report.widenedIngredients, 'narrowed §e%§r recipe ingredients to one item'],
         [report.smithingTrimRecipes, 'held back §e%§r smithing trim recipes'],
         [report.furnaceRecipes, 'held back §e%§r cooking recipes']
-    ] as const;
+    ];
 
     const said = clauses.filter(([count]) => count > 0).map(([count, text]) => text.replaceAll('%', String(count)));
 

@@ -1307,23 +1307,29 @@ interface PieceWeight {
     placed: number;
 }
 
+/**
+ * Each piece type's weight, limit and first depth, in Java's order.
+ *
+ * Annotated rather than `as const satisfies`, like the portal frame list: scriptc 0.4.10 aborts
+ * its analysis on a literal tuple list destructured in a callback.
+ */
+const PIECE_WEIGHTS: readonly (readonly [PieceKind, number, number, number])[] = [
+    ['straight', 40, 0, 0],
+    ['prison_hall', 5, 5, 0],
+    ['left_turn', 20, 0, 0],
+    ['right_turn', 20, 0, 0],
+    ['room_crossing', 10, 6, 0],
+    ['straight_stairs_down', 5, 5, 0],
+    ['stairs_down', 5, 5, 0],
+    ['five_crossing', 5, 4, 0],
+    ['chest_corridor', 5, 4, 0],
+    ['library', 10, 2, 4],
+    ['portal_room', 20, 1, 5]
+];
+
 /** A fresh weight table, which Java's `resetPieces` rebuilds for every attempt. */
 const freshWeights = (): PieceWeight[] =>
-    (
-        [
-            ['straight', 40, 0, 0],
-            ['prison_hall', 5, 5, 0],
-            ['left_turn', 20, 0, 0],
-            ['right_turn', 20, 0, 0],
-            ['room_crossing', 10, 6, 0],
-            ['straight_stairs_down', 5, 5, 0],
-            ['stairs_down', 5, 5, 0],
-            ['five_crossing', 5, 4, 0],
-            ['chest_corridor', 5, 4, 0],
-            ['library', 10, 2, 4],
-            ['portal_room', 20, 1, 5]
-        ] as const satisfies readonly (readonly [PieceKind, number, number, number])[]
-    ).map(([kind, weight, limit, minDepth]) => ({ kind, weight, limit, minDepth, placed: 0 }));
+    PIECE_WEIGHTS.map(([kind, weight, limit, minDepth]) => ({ kind, weight, limit, minDepth, placed: 0 }));
 
 const hasRoom = (entry: PieceWeight): boolean => entry.limit === 0 || entry.placed < entry.limit;
 
