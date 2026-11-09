@@ -75,11 +75,17 @@ Use American English spelling in prose and documentation. Do not use British spe
   adding a packet or changing its wire layout.
 - Choose the smallest design that meets the request. Trace affected callers, package dependents, and
   failure paths before changing shared behavior.
-- When documentation quotes a value the code owns (a version, a requirement, a default, a count, a
-  list of names), mark it as a docs fact instead of typing it in: `<!-- fact:name -->value<!-- /fact -->`.
-  `tools/docs/facts.mts` defines the facts; add one there when a page needs a value it lacks. The docs
-  build fills in current values, and `pnpm run docs:facts` refreshes the Markdown. Dated research,
-  plans and decisions quote values as they were and stay unmarked.
+- Code is the source of truth for every value it owns: versions, requirements, defaults, counts,
+  lists of names, settings, tables. Never type such a value into Markdown by hand. Generate it with a
+  script that reads the code, the way the docs build fills docs facts, and check the generated value
+  into the Markdown so the page still reads right on GitHub.
+  - Mark the value as a docs fact: `<!-- fact:name -->value<!-- /fact -->`. `tools/docs/facts.mts`
+    defines the facts; when a page needs a value no fact provides, add the fact (or a generator for a
+    table or list) there rather than writing the value in.
+  - Run `pnpm run docs:facts` to write current values into the Markdown, and commit the result. The
+    docs build refills every fact from the code, so the site stays right even when the checked-in
+    value lags behind.
+  - Dated research, plans and decisions record values as they were when written, and stay unmarked.
 - Whenever a change adds or changes data-driven compatibility behavior or a parity comparison
   surface, extend `packages/parity` with a test under a declared family. Exercise the public
   behavior through the parity suite's real data fixtures, and keep the family represented by a
