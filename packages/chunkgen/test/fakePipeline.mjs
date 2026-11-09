@@ -18,6 +18,12 @@ export const createGenerationPipeline = (setup) => {
         run(task) {
             if (setup?.fail === 'task') throw new Error(`no terrain at ${task.chunkX}, ${task.chunkZ}`);
 
+            // Holds the thread busy, so a test can block a worker for a known time.
+            if (setup?.spinMs !== undefined) {
+                const until = performance.now() + setup.spinMs;
+                while (performance.now() < until);
+            }
+
             const blocks = new Int32Array(4);
             blocks[0] = task.chunkX;
             blocks[1] = task.chunkZ;

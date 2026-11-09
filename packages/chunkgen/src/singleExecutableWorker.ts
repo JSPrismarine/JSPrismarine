@@ -89,7 +89,17 @@ port.on('message', (message: TaskMessage) => {
             const firstTaskStarted = firstTask && startupStats !== undefined ? performance.now() : 0;
             const firstTaskCpu = firstTask && startupStats !== undefined ? process.threadCpuUsage() : undefined;
             pipeline ??= loadPipeline();
-            const result = await (await pipeline).run(message.task);
+            const startedWall = performance.now();
+            const startedCpu = process.threadCpuUsage();
+            const ran = await (await pipeline).run(message.task);
+            const taskCpu = process.threadCpuUsage(startedCpu);
+            const result: GenerationResult = {
+                ...ran,
+                workerStats: {
+                    wallUs: Math.round((performance.now() - startedWall) * 1000),
+                    cpuUs: taskCpu.user + taskCpu.system
+                }
+            };
             if (firstTask && startupStats !== undefined && startupSlot !== undefined && firstTaskCpu !== undefined) {
                 const slot = 1 + Number(startupSlot - 1n) * 3;
                 const cpu = process.threadCpuUsage(firstTaskCpu);

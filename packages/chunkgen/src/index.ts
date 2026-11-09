@@ -44,6 +44,7 @@ export type {
     GenerationTask,
     GenerationWorkerData,
     HostFlags,
+    PauseRule,
     TaskRunnerFactory,
     WorkerPipeline,
     WorkerPipelineFactory
@@ -58,3 +59,16 @@ export {
 } from './GenerationPool';
 export type { ShardedGenerationPoolOptions } from './ShardedGenerationPool';
 export { DEFAULT_REGION_CHUNKS, DEFAULT_STEAL_AFTER, ShardedGenerationPool } from './ShardedGenerationPool';
+export type {
+    DurationSummary,
+    GenerationStatsSnapshot,
+    GenerationTaskSample,
+    GenerationTaskStats,
+    WorkerTaskStats
+} from './GenerationStats';
+export {
+    DURATION_BUCKET_BOUNDS_MS,
+    GenerationStatsRecorder,
+    mergeGenerationStats,
+    shareLongerThan
+} from './GenerationStats';

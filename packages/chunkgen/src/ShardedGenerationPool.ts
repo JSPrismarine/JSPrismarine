@@ -24,10 +24,13 @@ import type {
     GenerationPoolOptions,
     GenerationPriority,
     GenerationResult,
+    PauseRule,
     GenerationTask,
     TaskRunnerFactory
 } from './GenerationPool';
 import { GenerationPool } from './GenerationPool';
+import type { GenerationStatsSnapshot } from './GenerationStats';
+import { mergeGenerationStats } from './GenerationStats';
 
 /**
  * How wide one region is, in chunks.
@@ -184,6 +187,26 @@ export class ShardedGenerationPool {
     /** Moves waiting tasks up into a band, in every shard. @returns How many moved. */
     public promote(wanted: (task: GenerationTask) => boolean, to: GenerationPriority): number {
         return this.shards.reduce((total, shard) => total + shard.promote(wanted, to), 0);
+    }
+
+    /** Holds every shard's backlog back; see {@link GenerationPool.pause}. */
+    public pause(rule?: PauseRule): void {
+        for (const shard of this.shards) shard.pause(rule);
+    }
+
+    /** Lets every shard's backlog flow again. */
+    public resume(): void {
+        for (const shard of this.shards) shard.resume();
+    }
+
+    /** What every shard recorded, merged into one snapshot. */
+    public statsSnapshot(): GenerationStatsSnapshot {
+        return mergeGenerationStats(this.shards.map((shard) => shard.statsSnapshot()));
+    }
+
+    /** Forgets the recorded task stats of every shard. */
+    public resetStats(): void {
+        for (const shard of this.shards) shard.resetStats();
     }
 
     /** Stops every worker of every shard. */

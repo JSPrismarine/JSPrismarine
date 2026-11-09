@@ -109,7 +109,16 @@ export default async function runGenerationTask(task: GenerationTask): Promise<G
     const firstTaskStarted = firstTask && workerStartupStats !== undefined ? performance.now() : 0;
     const firstTaskCpu = firstTask && workerStartupStats !== undefined ? process.threadCpuUsage() : undefined;
     pipeline ??= load();
+    // Per task and not only the first: chunks per CPU-second needs the thread's own CPU time,
+    // which the main thread cannot see, and `threadCpuUsage` is one cheap call.
+    const startedWall = performance.now();
+    const startedCpu = process.threadCpuUsage();
     const result = await (await pipeline).run(task);
+    const taskCpu = process.threadCpuUsage(startedCpu);
+    const workerStats = {
+        wallUs: Math.round((performance.now() - startedWall) * 1000),
+        cpuUs: taskCpu.user + taskCpu.system
+    };
 
     if (
         firstTask &&
@@ -141,8 +150,9 @@ export default async function runGenerationTask(task: GenerationTask): Promise<G
     const moved: GenerationResult & Record<symbol, unknown> = {
         payload: result.payload,
         transferList: result.transferList,
+        workerStats,
         [Piscina.transferableSymbol]: result.transferList,
-        [Piscina.valueSymbol]: { payload: result.payload, transferList: result.transferList }
+        [Piscina.valueSymbol]: { payload: result.payload, transferList: result.transferList, workerStats }
     };
 
     return moved;

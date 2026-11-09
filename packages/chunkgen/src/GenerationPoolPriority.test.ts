@@ -252,3 +252,128 @@ describe('the generation pool queue', () => {
         });
     });
 });
+
+describe('GenerationPool stats and pause', () => {
+    /** A pool whose clock a test advances by hand. */
+    const openTimed = (workers: number, inFlight: number) => {
+        const runner = new ManualRunner();
+        const clock = { ms: 0 };
+        const pool = new GenerationPool({ pipeline: 'unused', workers, inFlight, now: () => clock.ms }, () => runner);
+
+        return { pool, runner, clock };
+    };
+
+    it('records the backlog wait and turnaround of each task by band', async () => {
+        const { pool, runner, clock } = openTimed(1, 1);
+
+        const first = ask(pool, 1, 'idle');
+        const second = ask(pool, 2, 'immediate');
+        clock.ms = 40;
+        runner.finishOne();
+        await first;
+        await settle();
+        clock.ms = 100;
+        runner.finishOne();
+        await second;
+
+        const stats = pool.statsSnapshot().byTask;
+        const idle = stats.find((entry) => entry.priority === 'idle')!;
+        const immediate = stats.find((entry) => entry.priority === 'immediate')!;
+        expect(idle.backlogWait.totalMs).toBe(0);
+        expect(idle.turnaround.totalMs).toBe(40);
+        expect(immediate.backlogWait.totalMs).toBe(40);
+        expect(immediate.turnaround.totalMs).toBe(60);
+    });
+
+    it('counts a rejected task as failed', async () => {
+        const runner = {
+            threads: [] as readonly unknown[],
+            run: () => Promise.reject(new Error('nope')),
+            destroy: async () => {}
+        };
+        const pool = new GenerationPool({ pipeline: 'unused', workers: 1 }, () => runner);
+
+        await expect(ask(pool, 1, 'soon')).rejects.toThrow('nope');
+        await settle();
+        expect(pool.statsSnapshot().byTask[0]!.failed).toBe(1);
+    });
+
+    it('holds the backlog while paused and releases it in band order on resume', async () => {
+        const { pool, runner } = openTimed(2, 2);
+
+        pool.pause();
+        const idle = ask(pool, 1, 'idle');
+        const soon = ask(pool, 2, 'idle');
+        await settle();
+        expect(pool.paused).toBe(true);
+        expect(startedXs(runner)).toEqual([]);
+        expect(pool.queued).toBe(2);
+
+        pool.resume();
+        await settle();
+        expect(startedXs(runner)).toEqual([1, 2]);
+        runner.finishOne();
+        runner.finishOne();
+        await Promise.all([idle, soon]);
+    });
+
+    it('holds only idle by default and serves the bands above it, so the tick is not held behind the pause', async () => {
+        const { pool, runner } = openTimed(2, 2);
+
+        pool.pause();
+        const idle = ask(pool, 1, 'idle');
+        const immediate = ask(pool, 2, 'immediate');
+        const soon = ask(pool, 3, 'soon');
+        await settle();
+        expect(startedXs(runner)).toEqual([2, 3]);
+        runner.finishOne();
+        runner.finishOne();
+        await Promise.all([immediate, soon]);
+        await settle();
+        expect(startedXs(runner)).toEqual([2, 3]);
+
+        pool.resume();
+        await settle();
+        expect(startedXs(runner)).toEqual([2, 3, 1]);
+        runner.finishOne();
+        await idle;
+    });
+
+    it('holds what a rule names, whatever the band, and lets the rest by', async () => {
+        const { pool, runner } = openTimed(2, 2);
+
+        pool.pause((task) => task.chunkX < 3);
+        const soon = ask(pool, 1, 'soon');
+        const idle = ask(pool, 2, 'idle');
+        const immediate = ask(pool, 3, 'immediate');
+        await settle();
+        expect(startedXs(runner)).toEqual([3]);
+
+        runner.finishOne();
+        await immediate;
+        pool.resume();
+        await settle();
+        expect(startedXs(runner)).toEqual([3, 1, 2]);
+        runner.finishOne();
+        runner.finishOne();
+        await Promise.all([soon, idle]);
+    });
+
+    it('lets a task already with a worker finish while paused, and starts nothing behind it', async () => {
+        const { pool, runner } = openTimed(1, 1);
+
+        const running = ask(pool, 1, 'idle');
+        pool.pause();
+        const behind = ask(pool, 2, 'idle');
+        runner.finishOne();
+        await running;
+        await settle();
+        expect(startedXs(runner)).toEqual([1]);
+
+        pool.resume();
+        await settle();
+        expect(startedXs(runner)).toEqual([1, 2]);
+        runner.finishOne();
+        await behind;
+    });
+});
