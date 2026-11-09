@@ -762,7 +762,13 @@ const run = async (): Promise<void> => {
             environment,
             phases: phaseRecords.map(({ startedAtMs: _startedAtMs, endedAtMs: _endedAtMs, ...phase }) => phase)
         };
-        const reportWithPreload = { ...report, ...(preloadReport === undefined ? {} : { preload: preloadReport }) };
+        // Cumulative over the whole run, so the join phase's real chunk completions are in it.
+        const completionQueue = server.getChunkCompletionQueue().snapshot();
+        const reportWithPreload = {
+            ...report,
+            completionQueue: { ...completionQueue, loadedChunks: world.getLoadedChunkCount() },
+            ...(preloadReport === undefined ? {} : { preload: preloadReport })
+        };
 
         if (updateBaselinePath !== undefined) {
             const baseline: BotFleetBaseline = {

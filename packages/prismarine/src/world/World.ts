@@ -1367,6 +1367,7 @@ export class World implements Service {
                 running.urgency.value = urgency;
                 this.generator.raiseUrgency?.(x, z, urgency);
                 this.completionQueue?.promote(this.lightingCompletionKey(index), urgency);
+                this.completionQueue?.promote(this.fluidsCompletionKey(index), urgency);
             }
             return running.chunk;
         }
@@ -1449,7 +1450,21 @@ export class World implements Service {
             });
         }
 
-        this.measured('chunk-fluids', () => this.scheduleExposedFluids(chunk));
+        // The scan for fluid that borders air is per-chunk work like lighting, so a background
+        // chunk takes its turn in the completion queue's slice instead of adding to a burst. The
+        // chunk may have been unloaded while it waited, in which case there is nothing to schedule.
+        const scheduleFluids = () => {
+            if (this.chunks.get(index) === chunk) this.scheduleExposedFluids(chunk);
+        };
+        if (urgency.value === 'immediate' || this.completionQueue === undefined) {
+            this.measured('chunk-fluids', scheduleFluids);
+        } else {
+            await this.completionQueue.defer(scheduleFluids, {
+                priority: urgency.value,
+                label: 'chunk-fluids',
+                key: this.fluidsCompletionKey(index)
+            });
+        }
 
         const discardedStacklessItems = await this.measuredAsync('chunk-entities/wall', async () => {
             const discarded = await this.createStoredEntities(chunk);
@@ -1498,6 +1513,11 @@ export class World implements Service {
         } finally {
             queue.record(label, performance.now() - startedAt);
         }
+    }
+
+    /** Unique queue key for this world's one-time fluid scan of a loaded chunk. */
+    private fluidsCompletionKey(index: number): string {
+        return `${this.uuid}:fluids:${index}`;
     }
 
     /** Unique queue key for this world's one-time light initialization of a loaded chunk. */

@@ -235,6 +235,39 @@ describe('world chunk requests', () => {
         light.mockRestore();
     });
 
+    it('defers the exposed-fluid scan of a background chunk to the queue, and runs it at once for a visible one', async () => {
+        const queue = new ChunkCompletionQueue();
+        queue.activate();
+        const light = vi.spyOn(WorldSystems.prototype, 'onChunkLoaded').mockImplementation(() => {});
+        const world = testWorld(
+            async (_dimension, x, z) => new Chunk(x, z, new Map(), Dimensions.Overworld),
+            stub<Generator>({}),
+            queue
+        );
+
+        const background = world.getChunk(1, 1, { urgency: 'idle' });
+        const turns = async () => {
+            for (let turn = 0; turn < 10; turn++) await Promise.resolve();
+        };
+        await turns();
+        // Lighting waits first. Draining one task runs it, and the fluid scan queues behind it.
+        expect(queue.drain(0)).toBe(1);
+        await turns();
+        expect(queue.pending).toBe(1);
+        expect(queue.snapshot().byLabel['chunk-fluids']).toBeUndefined();
+        expect(queue.drain(0)).toBe(1);
+        await background;
+        expect(queue.snapshot().byLabel['chunk-fluids']?.completed).toBe(1);
+
+        const visible = world.getChunk(2, 2, { urgency: 'immediate' });
+        await visible;
+        // Booked under the same label, but run in place rather than queued.
+        expect(queue.pending).toBe(0);
+        expect(queue.snapshot().byLabel['chunk-fluids']?.completed).toBe(2);
+        expect(queue.snapshot().byLabel['chunk-register']?.completed).toBe(2);
+        light.mockRestore();
+    });
+
     it('lets a later caller try again after a request failed', async () => {
         let attempt = 0;
         const readChunk = vi.fn(async (_dimension: DimensionType, x: number, z: number) => {

@@ -65,3 +65,23 @@ pnpm --filter @jsprismarine/prismarine run bench:bot-fleet -- --terrain real
 pnpm --filter @jsprismarine/prismarine run bench:bot-fleet -- --terrain real --preload-control
 node --conditions=jsprismarine:dist benchmarks/runExternal.mjs benchmarks/chunkGeneration.ts <workers> 64 stages 8 2 3 shared - local 32 1
 ```
+
+## Slice 1: what the server thread does for each completed chunk
+
+Read from `DataDrivenGenerator.pooledChunk`, `deferChunkCompletion`, `World.readChunkInto` and `ChunkCompletionQueue`. For a chunk a worker has finished, the server thread runs these in order. Costs are from the join phase of `bench:bot-fleet -- --terrain real --no-preload`: 165 chunks, all `immediate` because players were waiting on them, load average 4.9 to 6.4 (second run; the first, with 164 chunks, read within 3% of it).
+
+| Label | What runs | Per chunk | Moves off the thread? |
+| --- | --- | --- | --- |
+| `worker-result` | Adopt the worker's region, then translate Java block states to Bedrock runtime ids and build the `Chunk` (`toChunk`) | 3.15 ms | The largest piece. The mapping tables live on this thread, so it needs the wire-ready worker payload the plan describes. Not done. |
+| `chunk-lighting` | `systems.onChunkLoaded`, light initialization | 0.89 ms | Candidate for a worker; `packages/lighting` is separate. Not done. |
+| `chunk-register` | `packBlockStorage`, the chunk map, player reference counts, portal index, entity-cache invalidation | 0.70 ms | Must stay: it publishes the chunk. |
+| `chunk-fluids` | Scan for fluid that borders air and schedule its ticks | 0.61 ms | Needs no worker; it can wait. See below. |
+| `chunk-entities/wall` | Register stored and generated entities, wall time | 0.04 ms | Cheap. |
+
+The five add up to about 5.4 ms of server thread per chunk. Also on the thread and not in the table: receiving each worker result, which is deserialization plus a promise reaction on the event loop, and the network encode and send. Slice 0 saw lateness rise by about 250 ms at the 99th percentile during a 289-chunk preload while the tick's own work did not grow, which points at that receive path, but the labels do not cover it.
+
+Per-chunk `worker-result` cost read 0.46 ms in the preload and 3.15 ms in the join phase. The join phase starts cold, so the mean carries first-use costs for tables and JIT. The preload number is closer to warm cost, and the table above likely overstates steady state. This is not resolved.
+
+**What changed.** The fluid scan of a background chunk (`soon` or `idle`) now waits in the completion queue's lanes, behind lighting, instead of running as part of the load. A chunk a player is waiting on still runs it in place. A test covers both. Output is unchanged: `bench:chunks` with six workers on the `stages` arm produced the identical output digest before and after (`37b61888…bf1a`).
+
+**What did not change, and the acceptance result.** The plan asks for each moved piece to drop off the server thread and the main-thread cost per completed chunk to fall. In the measured scenario it did not: every chunk was `immediate`, so the fluid scan still ran in place at 0.61 ms, and the 165-chunk totals before and after agree within noise (fluids 0.62 and 0.61 ms; `worker-result` 3.23 and 3.15 ms). The deferral bounds the burst a background preload adds, which I did not measure. The two largest pieces, translation and lighting, stay on the thread because moving them is a redesign of what a worker returns and what runs where, and I did not get to it. No client-e2e run was made for this change. Slice 1's target is therefore **not met**.
