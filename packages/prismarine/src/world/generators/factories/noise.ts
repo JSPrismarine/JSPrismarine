@@ -72,7 +72,12 @@ export const createNoiseGeneratorFactory = (): GeneratorFactory => {
 /** The server's one generator, over the first stem's registries and worker count. */
 const openShared = (registries: JavaWorldgenRegistries, context: GeneratorBuildContext): DataDrivenGenerator => {
     const workers = context.workers ?? chunkWorkerCount();
-    const stages = stagePool(workers, context.logger, context.host);
+    // Building the generator starts its transport, which is where a host that cannot start
+    // falls back to threads, so by the line below this says which one runs.
+    let hostFellBack = false;
+    const stages = stagePool(workers, context.logger, context.host, () => {
+        hostFellBack = true;
+    });
     const built = new DataDrivenGenerator({
         registries,
         templates: findJavaTemplateSource(cacheRoot(), registries.processorLists),
@@ -91,7 +96,7 @@ const openShared = (registries: JavaWorldgenRegistries, context: GeneratorBuildC
     context.logger.info(
         stages === undefined
             ? 'Generating terrain and features on the server thread (chunk-workers: 0)'
-            : stages.host === 'process'
+            : stages.host === 'process' && !hostFellBack
               ? `Generating terrain and features in a generation process with up to §b${workers}§r worker(s), started on demand`
               : `Generating terrain and features in up to §b${workers}§r worker thread(s), started on demand`
     );
@@ -133,7 +138,8 @@ const resolveSettings = (
 const stagePool = (
     workers: number,
     logger: GeneratorLogger,
-    host: 'process' | 'in-process' | undefined
+    host: 'process' | 'in-process' | undefined,
+    onHostFallback: () => void
 ): StagePoolOptions | undefined => {
     if (workers < 1) return undefined;
 
@@ -143,6 +149,7 @@ const stagePool = (
         javaTemplates: true,
         ...(host === undefined ? {} : { host }),
         onHostFallback: (reason) => {
+            onHostFallback();
             logger.warn(`Generating in this process instead of a generation process, because ${reason}`);
         },
         onUnavailable: (reason) => {

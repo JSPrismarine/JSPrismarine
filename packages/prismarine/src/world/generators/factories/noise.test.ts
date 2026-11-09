@@ -10,6 +10,7 @@ import { join } from 'node:path';
 
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
+import { HostedGenerationPool } from '@jsprismarine/chunkgen';
 import { parseWorldPreset } from '@jsprismarine/worldgen';
 import type { LevelStem, WorldPreset } from '@jsprismarine/worldgen';
 
@@ -143,6 +144,24 @@ describe.skipIf(!enabled)('the minecraft:noise factory', { tags: ['real-data'] }
         },
         CHUNK_TIMEOUT
     );
+
+    it('says it generates in worker threads when the generation process falls back to them', () => {
+        vi.spyOn(HostedGenerationPool, 'unavailable').mockReturnValue('this host cannot fork');
+        const info: string[] = [];
+        const warn: string[] = [];
+        const own = new GeneratorFactories();
+        own.build({
+            ...contextFor(stemOf(Dimensions.Overworld), Dimensions.Overworld),
+            logger: { info: (message) => info.push(message), warn: (message) => warn.push(message) },
+            workers: 2,
+            host: 'process'
+        });
+        own.stopGenerating();
+
+        expect(warn).toContainEqual(expect.stringContaining('because this host cannot fork'));
+        expect(info).toContainEqual(expect.stringContaining('worker thread(s)'));
+        expect(info).not.toContainEqual(expect.stringContaining('generation process'));
+    });
 
     it('reports the sea level of each stem from its noise_settings', () => {
         const own = new GeneratorFactories();
