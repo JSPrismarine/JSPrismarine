@@ -1,6 +1,6 @@
 {
     "name": "@jsprismarine/predicates",
-    "version": "0.19.1",
+    "version": "0.19.2",
     "description": "Java Edition predicate, item modifier and value provider evaluator for loot, advancements and enchantments.",
     "sideEffects": false,
     "publishConfig": {

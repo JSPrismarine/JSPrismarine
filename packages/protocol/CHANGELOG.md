@@ -1,5 +1,20 @@
 # @jsprismarine/protocol
 
+## 0.19.2
+
+### Patch Changes
+
+- [#2941](https://github.com/JSPrismarine/JSPrismarine/pull/2941) [`6940e89`](https://github.com/JSPrismarine/JSPrismarine/commit/6940e89cc065ec5076aebb2dbc373cf0bd1cb50e) Thanks [@renovate](https://github.com/apps/renovate)! - chore(deps): update dependency @mtcute/wasm to v0.32.8
+- Updated dependencies []:
+  - @jsprismarine/binaryutils@0.19.2
+  - @jsprismarine/blocks@0.19.2
+  - @jsprismarine/content@0.19.2
+  - @jsprismarine/items@0.19.2
+  - @jsprismarine/math@0.19.2
+  - @jsprismarine/minecraft@0.19.2
+  - @jsprismarine/nbt@0.19.2
+  - @jsprismarine/recipes@0.19.2
+
 ## 0.19.1
 
 ### Patch Changes

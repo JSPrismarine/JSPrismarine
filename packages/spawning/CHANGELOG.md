@@ -1,5 +1,14 @@
 # @jsprismarine/spawning
 
+## 0.19.2
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @jsprismarine/entities@0.19.2
+  - @jsprismarine/packs@0.19.2
+  - @jsprismarine/predicates@0.19.2
+
 ## 0.19.1
 
 ### Patch Changes

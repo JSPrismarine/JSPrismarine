@@ -1,5 +1,50 @@
 # @jsprismarine/prismarine
 
+## 0.19.2
+
+### Patch Changes
+
+- Updated dependencies [[`6940e89`](https://github.com/JSPrismarine/JSPrismarine/commit/6940e89cc065ec5076aebb2dbc373cf0bd1cb50e)]:
+  - @jsprismarine/protocol@0.19.2
+  - @jsprismarine/advancements@0.19.2
+  - @jsprismarine/bedrock-data@0.19.2
+  - @jsprismarine/binaryutils@0.19.2
+  - @jsprismarine/block-behaviors@0.19.2
+  - @jsprismarine/blocks@0.19.2
+  - @jsprismarine/brigadier@0.19.2
+  - @jsprismarine/chunkgen@0.19.2
+  - @jsprismarine/color-parser@0.19.2
+  - @jsprismarine/commands@0.19.2
+  - @jsprismarine/console-protocol@0.19.2
+  - @jsprismarine/content@0.19.2
+  - @jsprismarine/enchantments@0.19.2
+  - @jsprismarine/engine-systems@0.19.2
+  - @jsprismarine/entities@0.19.2
+  - @jsprismarine/entity-brains@0.19.2
+  - @jsprismarine/entity-goals@0.19.2
+  - @jsprismarine/errors@0.19.2
+  - @jsprismarine/features@0.19.2
+  - @jsprismarine/item-behaviors@0.19.2
+  - @jsprismarine/items@0.19.2
+  - @jsprismarine/kernel@0.19.2
+  - @jsprismarine/leveldb@0.19.2
+  - @jsprismarine/lighting@0.19.2
+  - @jsprismarine/logger@0.19.2
+  - @jsprismarine/loot@0.19.2
+  - @jsprismarine/mapping@0.19.2
+  - @jsprismarine/math@0.19.2
+  - @jsprismarine/mcfunction@0.19.2
+  - @jsprismarine/minecraft@0.19.2
+  - @jsprismarine/nbt@0.19.2
+  - @jsprismarine/packs@0.19.2
+  - @jsprismarine/predicates@0.19.2
+  - @jsprismarine/raknet@0.19.2
+  - @jsprismarine/recipes@0.19.2
+  - @jsprismarine/spawning@0.19.2
+  - @jsprismarine/structures@0.19.2
+  - @jsprismarine/trading@0.19.2
+  - @jsprismarine/worldgen@0.19.2
+
 ## 0.19.1
 
 ### Patch Changes
