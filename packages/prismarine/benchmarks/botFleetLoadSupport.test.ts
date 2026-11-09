@@ -88,12 +88,10 @@ const poolEntry = (cpuMs: number): GenerationTaskStats => ({
 });
 
 describe('preload arms', () => {
-    it('reads generation tick cost as the full arm minus the idle arm', () => {
+    it('reads the generation tick difference as the full arm minus the idle arm', () => {
         const cost = preloadTickCost(arm('idle', 30, 2), arm('full', 30.4, 5));
         expect(cost.p99ElapsedMs).toBeCloseTo(0.4);
         expect(cost.p99LatenessMs).toBeCloseTo(3);
-        expect(cost.underTarget).toBe(true);
-        expect(preloadTickCost(arm('idle', 30), arm('full', 35)).underTarget).toBe(false);
     });
 
     it('divides chunks by summed worker CPU seconds, and says nothing without any', () => {

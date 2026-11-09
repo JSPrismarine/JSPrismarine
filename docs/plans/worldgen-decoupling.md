@@ -54,6 +54,18 @@ Three numbers define success. The first two have fixed definitions and the third
 
 The 3 comes from the stated goal of several chunks per core. ADR 0002's last measurements, taken before the later terrain work and on a loaded host, were 2.3 chunks per second on one thread and 8 per second across six workers, which is about 1.3 per core. Those figures are the reason slice 0 exists.
 
+### Measuring these without a clock
+
+The three targets above are written in milliseconds and chunks per second. [AGENTS.md](../../AGENTS.md#measuring-performance) rules wall-clock figures out as evidence, so each target needs a counted stand-in. Until a slice adopts one, its target is unverified, whatever a timing run says.
+
+| Target | Counted stand-in | Where it lives |
+| --- | --- | --- |
+| Tick cost of generation | Background tasks that start ahead of a player's chunk, bounded by what the workers already held. Completions run per drain, bounded by the queue's slice. | `schedulingOrder.test.ts`, `ChunkCompletionQueue.test.ts` |
+| Main-thread cost per completed chunk | Operations per chunk on the server thread: palette entries translated, sections built, completions queued. | To write for slice 1 |
+| Chunks per CPU-second | Worker tasks per chunk by status (about 2.25 `terrain` and 1.56 `features` in the baseline), and tasks that run more than once. | `GenerationStats`, task counts |
+
+The timing figures in [the baseline note](../research/worldgen-decoupling-baseline.md) are diagnostics taken at load averages of 3 to 12 and prove nothing.
+
 ## Before any slice
 
 Read the research note above, then ADR 0002 sections "What it measured once it was built" and "What guarantees byte-identical output". The second one defines the parity contract every slice must keep.

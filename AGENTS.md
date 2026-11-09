@@ -96,6 +96,39 @@ Use American English spelling in prose and documentation. Do not use British spe
   behavior through the parity suite's real data fixtures, and keep the family represented by a
   tested dashboard row. CI fails when a declared family has no test.
 
+## Measuring performance
+
+Do not use elapsed time, throughput or latency measured on a real clock as evidence that a change
+is faster, slower, fixed or regressed. A shared machine, a laptop, a CI runner and a user's host
+give different figures for the same code, and the same machine gives different ones a minute
+apart. Repeated runs at load average 10 produced differences larger than every effect this project
+has tried to measure, and a "p99 improved" claim on that data is noise.
+
+Measure what the code decides, which is the same on every machine:
+
+- Count calls, tasks started, messages sent, allocations, bytes encoded or copied, queue positions
+  and retries. A scheduling change is measured by how many background tasks start ahead of a
+  player's chunk, not by how long the chunk took.
+- Drive the real code with a fake clock, a manual task runner or an injected clock, and assert on
+  the order and the counts. `schedulingOrder.test.ts` and `GenerationPoolPriority.test.ts` are
+  examples.
+- Assert bounds and relationships in unit tests, so a regression fails in CI: "at most the tasks the
+  workers already held", "the same count whatever the backlog size". Never assert a duration.
+- Use logical cost when work really differs by amount: blocks visited, nodes evaluated, packets
+  produced, bytes in the payload.
+
+If a wall-clock figure is the only way to see something, such as whether an operating system
+priority is lowered or a control group is throttled, treat it as a diagnostic:
+
+- Record the load average beside it and the command that produced it.
+- Report it as indicative, never as proof, and never state an improvement or a target as met from
+  it.
+- Keep it out of acceptance criteria, CI selectors and plan targets. Tag any test that needs it
+  as `performance`.
+
+A target written in milliseconds or chunks per second needs a deterministic proxy before work
+starts. When the plan has none, say so and propose one instead of benchmarking around it.
+
 ## Tests and verification
 
 - Follow existing Vitest patterns and place unit tests beside the code they cover. Test observable
@@ -103,7 +136,8 @@ Use American English spelling in prose and documentation. Do not use British spe
 - For bug fixes, add a focused unit regression test. When a fix changes client-visible behavior,
   add and run a client-e2e scenario for the same behavior with `pnpm run e2e:client <scenario>`.
   Tag tests that assert wall-clock timing or host-dependent load as `performance`, and exclude them
-  from CI test selectors. Keep CI assertions on deterministic, observable behavior.
+  from CI test selectors. Keep CI assertions on deterministic, observable behavior, as
+  [Measuring performance](#measuring-performance) describes.
   Keep implementation totals (for example, registered functions, commands, components, behaviors,
   or entity types) as non-gating progress reported through `reportProgress` from
   `.test/reportProgress.ts`; it emits a GitHub Actions warning in CI and calls `console.warn`

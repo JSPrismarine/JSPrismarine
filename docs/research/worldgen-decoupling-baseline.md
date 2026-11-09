@@ -1,5 +1,7 @@
 # World generation baseline, measured for the decoupling plan
 
+> **Read this first.** Every millisecond and chunks-per-second figure in this note is a wall-clock diagnostic taken on a shared machine. Per [AGENTS.md](../../AGENTS.md#measuring-performance) none of them is evidence that a change is faster, that a target is met, or that it is not. Statements below that a target was "met" or "not met" rest on such figures and should be disregarded. The counted results (task counts per chunk, tasks started ahead of a player's chunk, digests, test outcomes) stand.
+
 Measured 2026-11-09 on an Apple M1 Pro (8 cores: 6 performance, 2 efficiency) with Node v26.12.1, for slice 0 of [worldgen-decoupling.md](../plans/worldgen-decoupling.md). Every figure carries the load average from `uptime` taken at the start of its run. The machine is shared with other sessions, and every run here had a load average between 3 and 5 while it ran, so treat the figures as indicative. Nothing here was estimated.
 
 ## Chunks per CPU-second

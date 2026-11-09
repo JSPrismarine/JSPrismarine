@@ -362,6 +362,8 @@ interface PreloadReport {
     readonly urgency: PreloadOptions['urgency'];
     readonly workers: number | 'default';
     readonly host: 'process' | 'in-process';
+    /** The governor's background limit as the preload ended and the lowest it reached; absent without a governor. */
+    readonly governorLimit?: { readonly final: number; readonly lowest: number };
     readonly control: boolean;
     readonly loadAverage: readonly number[];
     readonly arms: readonly PreloadArm[];
@@ -500,10 +502,21 @@ const runPreload = async (
         return arm;
     };
 
+    // The governor steers background generation from tick lateness, so say what it did.
+    let lowestLimit: number | undefined;
+    const stopWatching = server.getTickRecorder().subscribe(() => {
+        const limit = server.getGenerationLimit();
+        if (limit !== undefined) lowestLimit = Math.min(lowestLimit ?? limit, limit);
+    });
     const idle = await runArm('idle', centers[0]);
     const full = await runArm(options.control ? 'idle' : 'full', centers[1]);
+    stopWatching();
+    const finalLimit = server.getGenerationLimit();
     return {
         ...base,
+        ...(finalLimit === undefined || lowestLimit === undefined
+            ? {}
+            : { governorLimit: { final: finalLimit, lowest: lowestLimit } }),
         arms: [idle, full],
         tickCost: preloadTickCost(idle, full),
         chunksPerCpuSecond: chunksPerCpuSecond(full.chunksLoaded, full.pool),
@@ -531,13 +544,16 @@ const writePreloadSummary = (report: PreloadReport): void => {
     }
     const cost = report.tickCost;
     line(
-        `generation tick cost: p99 ${cost.p99ElapsedMs.toFixed(2)} ms (target under ${cost.targetMs} ms: ` +
-            `${cost.underTarget ? 'met' : 'not met'}), mean ${cost.meanElapsedMs.toFixed(2)} ms, late p99 ${cost.p99LatenessMs.toFixed(2)} ms`
+        `wall-clock difference, indicative only (load average above): p99 ${cost.p99ElapsedMs.toFixed(2)} ms, ` +
+            `mean ${cost.meanElapsedMs.toFixed(2)} ms, late p99 ${cost.p99LatenessMs.toFixed(2)} ms`
     );
     if (report.chunksPerCpuSecond !== undefined) {
         line(
             `chunks per worker CPU-second ${report.chunksPerCpuSecond.toFixed(2)} (${report.workerCpuMs.toFixed(0)} ms)`
         );
+    }
+    if (report.governorLimit !== undefined) {
+        line(`governor background limit: lowest ${report.governorLimit.lowest}, final ${report.governorLimit.final}`);
     }
     for (const [label, ms] of Object.entries(report.labelMsPerChunk)) {
         line(`main thread per chunk, ${label}: ${ms.toFixed(3)} ms`);

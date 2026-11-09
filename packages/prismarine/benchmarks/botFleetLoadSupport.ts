@@ -155,9 +155,6 @@ export const compareBotFleetBaseline = (report: BotFleetLoadReport, baseline: Bo
     return { ok: phases.every((phase) => phase.ok), phases };
 };
 
-/** The tick cost of generation that slice 0 of the worldgen decoupling plan aims under, in ms. */
-export const PRELOAD_TICK_COST_TARGET_MS = 1;
-
 /** Main-thread time booked under one completion label during a preload arm. */
 export interface PreloadLabelCost {
     readonly completed: number;
@@ -191,15 +188,14 @@ export const chunksPerCpuSecond = (chunksLoaded: number, pool: readonly Generati
 };
 
 /**
- * What generation costs the tick: the full-speed arm's tick figures minus the idle arm's, from
- * one run on one machine. Positive means generation made ticks slower.
+ * The difference in tick figures between the arm that asked for chunks and the idle one, from one
+ * run on one machine. A diagnostic only: these are wall-clock figures, which AGENTS.md says not to
+ * treat as evidence of an improvement or a met target.
  */
 export const preloadTickCost = (idle: PreloadArm, full: PreloadArm) => ({
     p99ElapsedMs: full.tick.elapsedMs.p99 - idle.tick.elapsedMs.p99,
     meanElapsedMs: full.tick.elapsedMs.mean - idle.tick.elapsedMs.mean,
-    p99LatenessMs: full.tick.latenessMs.p99 - idle.tick.latenessMs.p99,
-    targetMs: PRELOAD_TICK_COST_TARGET_MS,
-    underTarget: full.tick.elapsedMs.p99 - idle.tick.elapsedMs.p99 < PRELOAD_TICK_COST_TARGET_MS
+    p99LatenessMs: full.tick.latenessMs.p99 - idle.tick.latenessMs.p99
 });
 
 /** Mean main-thread milliseconds per completed chunk under each completion label. */
