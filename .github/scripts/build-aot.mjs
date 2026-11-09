@@ -92,9 +92,14 @@ const embeddedNameOf = (entry) => `/$bunfs/root/${relativeEmbeddedNameOf(entry)}
 /** Windows targets store embedded files on Bun's virtual `B:` drive. */
 const embeddedFileNameOf = (entry) =>
     target.startsWith('bun-windows-') ? `B:/~BUN/root/${relativeEmbeddedNameOf(entry)}` : embeddedNameOf(entry);
+/**
+ * The file URL a worker is started from. On Windows it has to carry the `B:` drive: a URL
+ * without one is not an absolute path there, and `new Worker` throws `ERR_INVALID_FILE_URL_PATH`.
+ */
+const embeddedUrlOf = (entry) => `file:///${embeddedFileNameOf(entry).replace(/^\//, '')}`;
 
 for (const [name, entry] of Object.entries(workerEntrypoints)) {
-    args.push('--define', `${name}=${JSON.stringify(`file://${embeddedNameOf(entry)}`)}`);
+    args.push('--define', `${name}=${JSON.stringify(embeddedUrlOf(entry))}`);
 }
 
 if (target.startsWith('bun-windows-')) {
