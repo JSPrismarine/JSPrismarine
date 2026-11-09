@@ -38,7 +38,10 @@ export default defineConfig({
             md.render = (source, env) => {
                 const staged = sections.some(({ dir }) => env?.relativePath?.startsWith(`${dir}/`));
                 md.set({ html: !staged });
-                return render(staged ? `::: v-pre\n${source}\n:::` : source, env);
+                if (!staged) return render(source, env);
+                // Front matter has to stay first, or it renders as a heading inside the container.
+                const [frontMatter = ''] = /^---\r?\n[\s\S]*?\r?\n---\r?\n/.exec(source) ?? [];
+                return render(`${frontMatter}::: v-pre\n${source.slice(frontMatter.length)}\n:::`, env);
             };
         }
     },
