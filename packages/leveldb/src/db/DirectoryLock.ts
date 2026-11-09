@@ -157,9 +157,15 @@ export class DirectoryLock {
      *
      * A lock taken on a different machine, on shared storage, cannot be judged this way, so it is
      * treated as live: refusing to start is recoverable, and two servers writing one world is not.
+     *
+     * A lock naming this process is stale. Locks this process holds are caught by `held` before
+     * the owner is read, so this one belongs to an earlier process that had the same pid. In a
+     * container that is every restart: the server always runs as pid 1, and signal 0 to our own
+     * pid always succeeds.
      */
     private static isRunning({ pid, hostname }: LockOwner): boolean {
         if (hostname.length > 0 && hostname !== os.hostname()) return true;
+        if (pid === process.pid) return false;
 
         try {
             process.kill(pid, 0);

@@ -106,6 +106,19 @@ describe('leveldb', () => {
                 expect(() => DirectoryLock.acquire(directory)).toThrow(DatabaseLockedError);
             });
 
+            it('takes over one naming this process that this process does not hold', () => {
+                // A container's server always runs as pid 1 under the same hostname. A server
+                // killed before it released the lock leaves `1 <hostname>` behind, and the next
+                // one, also pid 1, found itself "still running" and refused on every restart.
+                const directory = scratch();
+                fs.writeFileSync(lockFile(directory), `${process.pid} ${os.hostname()}\n`);
+
+                const lock = DirectoryLock.acquire(directory);
+
+                expect(fs.readFileSync(lockFile(directory), 'utf8')).toContain(String(process.pid));
+                lock.release();
+            });
+
             it('refuses one taken on another machine', () => {
                 // Shared storage: the pid says nothing about a process on a different host, and
                 // guessing wrong costs the world rather than a restart.
