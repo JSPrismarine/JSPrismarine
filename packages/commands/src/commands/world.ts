@@ -4,8 +4,9 @@
  * `/locate`, `/place`, `/particle`, `/playsound`, `/stopsound` and
  * `/spreadplayers`.
  *
- * `/gamerule` reads its rule names from {@link JAVA_GAME_RULES}, so the two
- * spellings 1.21.11 left behind both parse.
+ * `/gamerule` reads its rule names from {@link JAVA_GAME_RULES}, so a rule's
+ * 1.21.11 id, its pre-1.21.11 camelCase name and Bedrock's lowercase name all
+ * parse.
  */
 import type { ArgumentType } from '@jsprismarine/brigadier';
 import { javaIdentifiersTable } from '@jsprismarine/mapping/tables';
@@ -23,6 +24,7 @@ import {
     stringArgument,
     timeArgument
 } from '../argumentTypes';
+import type { GameRule } from '../gamerules';
 import { JAVA_GAME_RULES } from '../gamerules';
 import type { BlockRef, CommandSource } from '../host';
 import { suggestFromData } from '../suggestions';
@@ -176,6 +178,41 @@ const blockAt = (context: Context, nameKey: string, statesKey?: string): BlockRe
 /** `/fill`'s handling of what already stands in the region, which both its overloads end in. */
 const fillModeArgument = () => enumArgument('FillMode', ['destroy', 'hollow', 'keep', 'outline', 'replace'] as const);
 
+/**
+ * One `/gamerule` branch: the bare name reads the rule, and a value after it writes it.
+ *
+ * @param spelling - The literal the player types, one of the rule's names.
+ * @param rule - The rule it reads and writes, reported by its 1.21.11 id.
+ */
+const gameRuleNode = (spelling: string, rule: GameRule) => {
+    const valueType: ArgumentType<string | number> =
+        rule.type === 'boolean'
+            ? enumArgument('BoolGameRuleValue', ['true', 'false'] as const)
+            : integerArgument(rule.min === undefined ? {} : { min: rule.min });
+    return lit(spelling)
+        .executes(
+            command((context) => {
+                const current = source(context);
+                const found = current.host.world.getGameRule(rule.name);
+                current.sendFeedback(`${rule.name} = ${String(found)}`);
+                return typeof found === 'number' ? found : found === true ? 1 : 0;
+            })
+        )
+        .then(
+            arg('value', valueType).executes(
+                command((context) => {
+                    const current = source(context);
+                    const raw = value<string | number>(context, 'value');
+                    const set = current.host.world.setGameRule(
+                        rule.name,
+                        rule.type === 'boolean' ? raw === 'true' : raw
+                    );
+                    return report(current, set ? 1 : 0, `${rule.name} = ${String(raw)}`);
+                })
+            )
+        );
+};
+
 /** Registers the 15 world commands. */
 export const registerWorldCommands = (registry: CommandRegistry<CommandSource>): void => {
     const content = registry.getContent();
@@ -319,35 +356,17 @@ export const registerWorldCommands = (registry: CommandRegistry<CommandSource>):
         { description: 'Changes the weather.', ...CHEATS }
     );
 
+    // Each rule answers to its 1.21.11 id, the camelCase name it had before, and Bedrock's
+    // lowercase name: an older datapack or script, a Java operator's habit and a Bedrock player
+    // all spell `spawn_mobs` differently.
     const gamerule = lit('gamerule');
     for (const rule of JAVA_GAME_RULES) {
-        const spelling = rule.name.slice('minecraft:'.length);
-        const node = lit(spelling).executes(
-            command((context) => {
-                const current = source(context);
-                const found = current.host.world.getGameRule(rule.name);
-                current.sendFeedback(`${rule.name} = ${String(found)}`);
-                return typeof found === 'number' ? found : found === true ? 1 : 0;
-            })
-        );
-        const valueType: ArgumentType<string | number> =
-            rule.type === 'boolean'
-                ? enumArgument('BoolGameRuleValue', ['true', 'false'] as const)
-                : integerArgument(rule.min === undefined ? {} : { min: rule.min });
-        node.then(
-            arg('value', valueType).executes(
-                command((context) => {
-                    const current = source(context);
-                    const raw = value<string | number>(context, 'value');
-                    const set = current.host.world.setGameRule(
-                        rule.name,
-                        rule.type === 'boolean' ? raw === 'true' : raw
-                    );
-                    return report(current, set ? 1 : 0, `${rule.name} = ${String(raw)}`);
-                })
-            )
-        );
-        gamerule.then(node);
+        const spellings = new Set([
+            rule.name.slice('minecraft:'.length),
+            ...rule.legacyNames,
+            ...(rule.bedrockName === undefined ? [] : [rule.bedrockName])
+        ]);
+        for (const spelling of spellings) gamerule.then(gameRuleNode(spelling, rule));
     }
     registry.register(gamerule, { description: 'Reads and writes gamerules.', ...CHEATS });
 

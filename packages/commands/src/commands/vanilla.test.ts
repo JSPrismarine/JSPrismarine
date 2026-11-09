@@ -85,7 +85,8 @@ describe('the command set', () => {
         // flattening notes, and the complete usage walk against Java's pinned command data.
         // The old value did not match either this branch or master; both produce this digest.
         // Master's `/tick` command added a Java-only node, so the digest was repinned to include it.
-        expect(digest).toBe('73e78bc8f56c32b1172d2e0254e3fc6e17c47e42');
+        // `/gamerule` then took each rule's legacy and Bedrock names, which the packet lists too.
+        expect(digest).toBe('b572fcd85272aeca7bb02cbf5091b9f3f7d24a74');
     });
 });
 
@@ -581,6 +582,30 @@ describe('the world commands', () => {
         });
 
         expect(set).toEqual([{ name: 'minecraft:send_command_feedback', value: false }]);
+    });
+
+    it('/gamerule takes the pre-1.21.11 and Bedrock names of a rule', () => {
+        const set: unknown[] = [];
+        const world = {
+            setGameRule: (name: string, value: boolean | number) => {
+                set.push({ name, value });
+                return true;
+            }
+        };
+        run('gamerule doMobSpawning false', { world });
+        run('gamerule domobspawning true', { world });
+
+        expect(set).toEqual([
+            { name: 'minecraft:spawn_mobs', value: false },
+            { name: 'minecraft:spawn_mobs', value: true }
+        ]);
+    });
+
+    it('/gamerule reads a rule under its legacy name and reports its 1.21.11 id', () => {
+        const feedback: string[] = [];
+        run('gamerule doMobSpawning', { world: { getGameRule: () => false } }, { feedback });
+
+        expect(feedback).toEqual(['minecraft:spawn_mobs = false']);
     });
 
     it('/weather sets the weather and the duration', () => {
