@@ -1,9 +1,10 @@
 import { VANILLA_BLOCK_FAMILIES, bindFamily, heldItem, isFallingBlock } from '@jsprismarine/block-behaviors';
 import type { FamilyHarness } from '@jsprismarine/block-behaviors';
 import { behaviorFor } from '@jsprismarine/blocks';
-import { javaBlockStateToBedrock } from '@jsprismarine/mapping';
+import { bedrockBlockEntityDyeIndexOf, javaBlockStateToBedrock } from '@jsprismarine/mapping';
 import { blocksTable } from '@jsprismarine/mapping/tables';
 import { blockLootTableOf } from '@jsprismarine/prismarine/block/blockLoot';
+import { DYE_INDEX_FIELD } from '@jsprismarine/prismarine/blockentity/contentRecord';
 import { expect, it } from 'vitest';
 
 import type { BehaviorScenario } from './behaviorScenarios.ts';
@@ -629,7 +630,11 @@ const scenarios: readonly BehaviorScenario<BlockSubject>[] = [
             const wanted = `minecraft:blocks/${subject.javaId.replace('minecraft:', '')}`;
             // Java ties some blocks to another block's table (wall signs to the standing sign), so only a block with its own table is compared.
             if (!tables.has(wanted)) return undefined;
-            const table = blockLootTableOf(content, subject.bedrock, subject.states);
+            // A bed or banner keeps its color in the block entity rather than the state, so the
+            // block is broken with the record Bedrock would hold for it.
+            const dyeIndex = bedrockBlockEntityDyeIndexOf(subject.javaId, subject.bedrock);
+            const blockEntity = dyeIndex === undefined ? undefined : { [DYE_INDEX_FIELD]: dyeIndex };
+            const table = blockLootTableOf(content, subject.bedrock, subject.states, blockEntity);
             if (table === wanted) return undefined;
             const same =
                 table !== undefined &&

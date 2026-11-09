@@ -11,6 +11,7 @@
  * is a word in Java and a packed ARGB integer in Bedrock. The layouts those values sit in are
  * stated in `blockentity/javaBlockEntityContent.ts`.
  */
+import { bedrockBlockToJava } from './blockMapping';
 import { itemsTable } from './tables';
 
 /** One layer of a banner, as either edition names one. */
@@ -161,6 +162,76 @@ export const bedrockDyeIndexOf = (javaColor: string): number | undefined => {
     if (!JAVA_DYE_COLORS.includes(javaColor)) return undefined;
 
     return itemsTable.items[`minecraft:${javaColor}_banner`]?.bedrockData ?? 0;
+};
+
+/** The dye words longest first, so `light_blue_bed` reads as light blue rather than blue. */
+const DYE_PREFIXES = [...JAVA_DYE_COLORS].sort((a, b) => b.length - a.length).map((color) => `${color}_`);
+
+/** Each Bedrock identifier's Java blocks keyed to their color index, built once per identifier. */
+const colorIndexes = new Map<string, ReadonlyMap<string, number>>();
+
+/**
+ * The Java blocks one Bedrock identifier stands for, each with the color index that picks it.
+ *
+ * Bedrock has one `bed`, one `standing_banner` and one `wall_banner` where Java has sixteen of
+ * each, and the block entity holds the color as the data value of the matching item: a bed's
+ * `color` and a banner's `Base`. The values are read out of the generated item table, as
+ * {@link bedrockDyeIndexOf} reads them, and a wall banner is held as the banner item.
+ *
+ * The map is empty unless every Java block behind the identifier starts with a dye word, has an
+ * item, and has an index none of the others share, so a merge of another kind, such as the
+ * floor and wall variants of a sign, never reads as a color.
+ */
+const colorIndexesOf = (bedrockBlock: string): ReadonlyMap<string, number> => {
+    const cached = colorIndexes.get(bedrockBlock);
+    if (cached !== undefined) return cached;
+
+    const candidates = bedrockBlockToJava(bedrockBlock);
+    const indexes = new Map<string, number>();
+    for (const javaBlock of candidates) {
+        const name = javaBlock.replace(/^minecraft:/, '');
+        const item = itemsTable.items[`minecraft:${name.replace('_wall_banner', '_banner')}`];
+        if (item === undefined || !DYE_PREFIXES.some((prefix) => name.startsWith(prefix))) break;
+        indexes.set(javaBlock, item.bedrockData ?? 0);
+    }
+
+    const distinct = new Set(indexes.values()).size === candidates.length;
+    const result: ReadonlyMap<string, number> = candidates.length > 1 && distinct ? indexes : new Map();
+    colorIndexes.set(bedrockBlock, result);
+    return result;
+};
+
+/**
+ * The index a Bedrock block entity holds for a Java block's color.
+ *
+ * @param javaBlock - The namespaced Java block, for example `minecraft:blue_bed`.
+ * @param bedrockBlock - The Bedrock identifier it maps to, for example `minecraft:bed`.
+ * @returns The bed's `color` or the banner's `Base`, or undefined for a block whose color, if it
+ *   has one, is in its Bedrock identifier.
+ * @example
+ * ```typescript
+ * bedrockBlockEntityDyeIndexOf('minecraft:blue_bed', 'minecraft:bed'); // 11
+ * ```
+ */
+export const bedrockBlockEntityDyeIndexOf = (javaBlock: string, bedrockBlock: string): number | undefined =>
+    colorIndexesOf(bedrockBlock).get(javaBlock);
+
+/**
+ * The Java block a Bedrock block and its block entity's color index stand for.
+ *
+ * The inverse of {@link bedrockBlockEntityDyeIndexOf}: Bedrock's `bed` with a `color` of 11 is
+ * Java's `blue_bed`, and its `standing_banner` with a `Base` of 4 is Java's `blue_banner`.
+ *
+ * @param bedrockBlock - The namespaced Bedrock block identifier.
+ * @param index - The color index its block entity holds.
+ * @returns The Java block, or undefined when the identifier does not keep its color in the
+ *   block entity or no Java block has that index.
+ */
+export const javaBlockOfBedrockDyeIndex = (bedrockBlock: string, index: number): string | undefined => {
+    for (const [javaBlock, candidate] of colorIndexesOf(bedrockBlock)) {
+        if (candidate === index) return javaBlock;
+    }
+    return undefined;
 };
 
 /**

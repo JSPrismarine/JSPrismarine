@@ -12,12 +12,14 @@ export {
 export { javaBlockFluidKindOf, type JavaBlockFluidKind } from './blockFluid';
 export {
     bedrockBannerType,
+    bedrockBlockEntityDyeIndexOf,
     bedrockDyeIndexOf,
     bedrockSignTextColorOf,
     isOminousBannerPattern,
     javaDyeColorIndexOf,
     javaBannerPatternToBedrock,
     javaBannerPatternsWithBedrockCodes,
+    javaBlockOfBedrockDyeIndex,
     type BannerLayer
 } from './blockEntityContent';
 export { bedrockBlockStates, javaBlockStates, type BlockStateValue } from './blockStates';

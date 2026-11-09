@@ -2,12 +2,15 @@ import { describe, expect, it } from 'vitest';
 
 import {
     bedrockBannerType,
+    bedrockBlockEntityDyeIndexOf,
     bedrockDyeIndexOf,
     bedrockSignTextColorOf,
     isOminousBannerPattern,
     javaBannerPatternToBedrock,
-    javaBannerPatternsWithBedrockCodes
+    javaBannerPatternsWithBedrockCodes,
+    javaBlockOfBedrockDyeIndex
 } from './blockEntityContent';
+import { bedrockBlockToJava } from './blockMapping';
 import { javaIdentifiersTable } from './tables';
 
 /** Java 26.3's own dye color order, which is what the Bedrock index counts backwards from. */
@@ -143,5 +146,43 @@ describe('bedrockSignTextColorOf', () => {
 describe('bedrockBannerType', () => {
     it('names the two values Bedrock has', () => {
         expect(bedrockBannerType).toEqual({ ominous: 1, normal: 0 });
+    });
+});
+
+describe('the dye index a Bedrock block entity holds', () => {
+    const merged = ['minecraft:bed', 'minecraft:standing_banner', 'minecraft:wall_banner'];
+
+    it('gives the bed its bed item data value and the banner its banner item data value', () => {
+        expect(bedrockBlockEntityDyeIndexOf('minecraft:white_bed', 'minecraft:bed')).toBe(0);
+        expect(bedrockBlockEntityDyeIndexOf('minecraft:blue_bed', 'minecraft:bed')).toBe(11);
+        expect(bedrockBlockEntityDyeIndexOf('minecraft:blue_banner', 'minecraft:standing_banner')).toBe(
+            bedrockDyeIndexOf('blue')
+        );
+        expect(bedrockBlockEntityDyeIndexOf('minecraft:blue_wall_banner', 'minecraft:wall_banner')).toBe(
+            bedrockDyeIndexOf('blue')
+        );
+    });
+
+    it.each(merged)('tells every Java block behind %s apart and maps each index back to it', (bedrockBlock) => {
+        const javaBlocks = bedrockBlockToJava(bedrockBlock);
+        const indexes = javaBlocks.map((javaBlock) => bedrockBlockEntityDyeIndexOf(javaBlock, bedrockBlock));
+
+        expect(javaBlocks.length).toBeGreaterThan(1);
+        expect(new Set(indexes).size).toBe(javaBlocks.length);
+        expect(
+            javaBlocks.filter(
+                (javaBlock, at) => javaBlockOfBedrockDyeIndex(bedrockBlock, indexes[at] ?? -1) !== javaBlock
+            )
+        ).toEqual([]);
+    });
+
+    it('reads no color into a merge of another kind', () => {
+        expect(bedrockBlockToJava('minecraft:air').length).toBeGreaterThan(1);
+        expect(javaBlockOfBedrockDyeIndex('minecraft:air', 0)).toBeUndefined();
+        expect(bedrockBlockEntityDyeIndexOf('minecraft:cave_air', 'minecraft:air')).toBeUndefined();
+    });
+
+    it('has no Java block for an index outside the sixteen', () => {
+        expect(javaBlockOfBedrockDyeIndex('minecraft:bed', 16)).toBeUndefined();
     });
 });
