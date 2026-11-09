@@ -184,20 +184,24 @@ export class ChunkScheduler {
                 continue;
             }
 
-            emptyInARow = 0;
-
             const cached = recipient.tryDeliverLoaded?.(next.x, next.z);
             if (cached?.kind === 'queued') {
                 this.readyToFlush.add(recipient);
                 deliveriesStarted++;
+                emptyInARow = 0;
                 continue;
             }
 
+            // A deferral counts toward the lap like an empty queue: the chunk goes back, and a
+            // lap of nothing but deferrals ends the pass. Resetting the count here kept two or
+            // more deferring players alternating forever once the depth was reached, and under
+            // a clock that does not move the loop never left.
             if (cached?.kind === 'backpressure' || this.inFlight.size >= this.depth) {
                 if (recipient.sender.enqueue) recipient.sender.enqueue(next.x, next.z);
                 else {
+                    // Back to the front, so the nearest chunk is still the next one tried.
                     const queued = this.deferred.get(recipient) ?? [];
-                    queued.push(next);
+                    queued.unshift(next);
                     this.deferred.set(recipient, queued);
                 }
                 emptyInARow++;
@@ -206,6 +210,7 @@ export class ChunkScheduler {
 
             begin(recipient, next);
             deliveriesStarted++;
+            emptyInARow = 0;
         }
 
         // Cached deliveries are queued synchronously, so flush them in this same pass rather

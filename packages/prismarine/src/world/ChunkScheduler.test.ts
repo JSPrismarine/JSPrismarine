@@ -132,6 +132,70 @@ describe('world', () => {
             ]);
         });
 
+        it('ends the pass when every player is held back by the depth, under a clock that never moves', async () => {
+            // Two players and a depth of one, the shape of a two-core host: once the first
+            // delivery is in flight every other chunk is deferred. A lap of deferrals must end
+            // the pass even though the budget is never spent.
+            const scheduler = new ChunkScheduler(1000, () => {}, 1);
+            const started: Array<[number, number]> = [];
+            const player = (chunks: Array<[number, number]>): ChunkRecipient => {
+                const sender = new ChunkSender();
+                for (const [x, z] of chunks) sender.enqueue(x, z);
+                return {
+                    sender,
+                    deliver: (x, z) => {
+                        started.push([x, z]);
+                        return new Promise<void>(() => {});
+                    },
+                    flush: async () => {},
+                    isConnected: () => true
+                };
+            };
+            const a = player([
+                [0, 0],
+                [1, 0]
+            ]);
+            const b = player([[0, 1]]);
+            scheduler.add(a);
+            scheduler.add(b);
+
+            expect(await scheduler.tick(() => 0)).toBe(1);
+            expect(started).toEqual([[0, 0]]);
+            expect(a.sender.isEmpty()).toBe(false);
+            expect(b.sender.isEmpty()).toBe(false);
+        });
+
+        it('keeps a sender without `enqueue` in order across deferrals', async () => {
+            const scheduler = new ChunkScheduler(1000, () => {}, 1);
+            const queue = [
+                { x: 0, z: 0 },
+                { x: 1, z: 0 },
+                { x: 2, z: 0 },
+                { x: 3, z: 0 }
+            ];
+            const started: number[] = [];
+            const pending: Array<() => void> = [];
+            const recipient: ChunkRecipient = {
+                sender: { isEmpty: () => queue.length === 0, next: () => queue.shift() ?? null },
+                deliver: (x) => {
+                    started.push(x);
+                    return new Promise<void>((resolve) => pending.push(resolve));
+                },
+                flush: async () => {},
+                isConnected: () => true
+            };
+            scheduler.add(recipient);
+
+            for (let tick = 0; tick < 4; tick++) {
+                await scheduler.tick(() => 0);
+                pending.shift()?.();
+                await Promise.resolve();
+                await Promise.resolve();
+            }
+
+            expect(started).toEqual([0, 1, 2, 3]);
+        });
+
         it('starts more resident chunks in one tick than the generation depth', async () => {
             const scheduler = new ChunkScheduler(1000, () => {}, 2);
             const sender = new ChunkSender();
