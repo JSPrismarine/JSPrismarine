@@ -492,6 +492,23 @@ describe('neighbor chunk data', () => {
         expect(destination.stateAt(position.x, 65, position.z).name).toBe('minecraft:air');
     });
 
+    it('does not let a patch drop leaf litter into another chunk tree leaves, as Java never places it there', () => {
+        // Java's `PlaceOnGroundDecorator` places only where the block is air or a vine, and a tree
+        // that grows later replaces litter through `#replaceable_by_trees`, so leaves win either way.
+        const position = { x: 16, y: 117, z: 8 };
+        const built = terrainTile(1, 0);
+        built.beginWriteTracking();
+        built.featureWorld().setBlock(position, { name: 'minecraft:leaf_litter', properties: {} });
+        const [patch] = built.takeTrackedPatches();
+        if (patch === undefined) throw new Error('The write did not produce a patch');
+
+        const destination = terrainTile(1, 0);
+        destination.featureWorld().setBlock(position, { name: 'minecraft:oak_leaves', properties: {} });
+        destination.applyPatch(patch);
+
+        expect(destination.stateAt(position.x, position.y, position.z).name).toBe('minecraft:oak_leaves');
+    });
+
     it('returns block entity removals in patches', () => {
         const position = { x: 16, y: 64, z: 8 };
         const built = terrainTile(1, 0);
