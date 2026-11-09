@@ -31,3 +31,9 @@ describe('errors', () => {
         });
     }
 });
+
+describe('GametypeInvalidError', () => {
+    it('reports the GAMETYPE_INVALID code', () => {
+        expect(new AllFromErrors.GametypeInvalidError('hardcore').code).toBe(AllFromErrors.ErrorKind.GAMETYPE_INVALID);
+    });
+});

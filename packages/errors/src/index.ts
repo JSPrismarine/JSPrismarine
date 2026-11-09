@@ -59,7 +59,7 @@ export class PlayerNotFoundError extends Error {
 export class GametypeInvalidError extends Error {
     name: string = 'GametypeInvalidError';
     message: string = `Unknown or invalid game type.`;
-    code: ErrorKind = ErrorKind.PLAYER_NOT_FOUND;
+    code: ErrorKind = ErrorKind.GAMETYPE_INVALID;
 
     public constructor(gametype?: string) {
         super();
