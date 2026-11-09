@@ -163,6 +163,14 @@ jobs:
               shell: bash
               run: node .github/scripts/build-aot.mjs "$BUILD_TARGET" "$BUILD_OUTPUT"
 
+            # A worker the compile did not embed fails only when the binary first starts it.
+            - name: 🔥 Start and stop the executable
+              env:
+                  BUILD_TARGET: ${{ matrix.target }}
+                  BUILD_OUTPUT: ${{ matrix.output }}
+              shell: bash
+              run: node .github/scripts/smoke-executable.mjs "$BUILD_TARGET" "$BUILD_OUTPUT"
+
             - name: 🍎 Package macOS app
               if: ${{ matrix.architecture != '' }}
               env:

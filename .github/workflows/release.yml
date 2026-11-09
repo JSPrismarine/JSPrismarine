@@ -258,6 +258,8 @@ jobs:
                   for target in $BUILD_TARGETS; do
                       output="dist/prismarine-${target#bun-}"
                       node .github/scripts/build-aot.mjs "$target" "$output"
+                      # Runs the target this runner can execute; a missing worker fails only at start.
+                      node .github/scripts/smoke-executable.mjs "$target" "$output"
                       if [[ "$target" == bun-darwin-* ]]; then
                           architecture="${target##*-}"
                           node .github/scripts/package-macos-app.mjs "$output" "$architecture"
