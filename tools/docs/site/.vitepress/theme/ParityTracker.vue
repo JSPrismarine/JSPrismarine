@@ -65,6 +65,7 @@ const groups = computed(() => {
 const sourceRevision = computed(() =>
     tracker.value !== null && /^[0-9a-f]{40}$/i.test(tracker.value.sourceCommit) ? tracker.value.sourceCommit : 'master'
 );
+const commitUrl = computed(() => `https://github.com/JSPrismarine/JSPrismarine/commit/${sourceRevision.value}`);
 const sourceUrl = (file: string, line?: number): string =>
     `https://github.com/JSPrismarine/JSPrismarine/blob/${sourceRevision.value}/${file}${line === undefined ? '' : `#L${line}`}`;
 
@@ -126,35 +127,28 @@ const percentage = trackerProgressPercent;
 
 <template>
     <main v-if="tracker" class="tracker">
-        <p class="tracker-intro">
-            Cases include Java or Bedrock comparisons and explicit not-measured behavior inventories. A passing data row
-            does not claim runtime behavior parity. Reviewed differences include clickable references; search by game
-            identifier, behavior, family, or source file.
-        </p>
-
-        <section class="tracker-overview" aria-label="Tracked parity case status">
-            <div class="overview-heading">
-                <div class="overview-score">
-                    <strong class="score-percent"
-                        >{{ trackerPrimaryProgressPercent(behavior.passed, behavior.tracked) }}<span>%</span></strong
+        <header class="tracker-hero">
+            <p class="tracker-eyebrow">
+                <i></i>Parity tracker · generated
+                <time :datetime="tracker.generatedAt">{{ tracker.generatedAt.slice(0, 10) }}</time> · commit
+                <a :href="commitUrl">{{ sourceRevision.slice(0, 7) }}</a>
+            </p>
+            <h1>How close to vanilla.</h1>
+            <div class="overview-score">
+                <strong class="score-percent"
+                    >{{ trackerPrimaryProgressPercent(behavior.passed, behavior.tracked) }}<span>%</span></strong
+                >
+                <div class="score-copy">
+                    <h2>gameplay behavior parity</h2>
+                    <span
+                        >{{ behavior.passed.toLocaleString() }} of {{ behavior.tracked.toLocaleString() }} tracked
+                        behavior comparisons passing. All comparisons, including data tables:
+                        {{ trackerPrimaryProgressPercent(tracker.passed, trackerProgressTotal(tracker)) }}% ({{
+                            tracker.passed.toLocaleString()
+                        }}
+                        of {{ trackerProgressTotal(tracker).toLocaleString() }}).</span
                     >
-                    <div class="score-copy">
-                        <h2>gameplay behavior parity</h2>
-                        <span
-                            >{{ behavior.passed.toLocaleString() }} of {{ behavior.tracked.toLocaleString() }} tracked
-                            behavior comparisons passing. All comparisons, including data tables:
-                            {{ trackerPrimaryProgressPercent(tracker.passed, trackerProgressTotal(tracker)) }}% ({{
-                                tracker.passed.toLocaleString()
-                            }}
-                            of {{ trackerProgressTotal(tracker).toLocaleString() }}).</span
-                        >
-                    </div>
                 </div>
-                <p class="snapshot-date">
-                    Generated <time :datetime="tracker.generatedAt">{{ tracker.generatedAt.slice(0, 10) }}</time>
-                    <br />
-                    Commit <code>{{ sourceRevision.slice(0, 7) }}</code>
-                </p>
             </div>
             <progress
                 class="overall-progress"
@@ -162,37 +156,45 @@ const percentage = trackerProgressPercent;
                 :max="Math.max(trackerProgressTotal(tracker), 1)"
                 :aria-label="`${tracker.passed} of ${trackerProgressTotal(tracker)} tracked comparisons passing`"
             />
-            <div class="overview-counts">
-                <span class="status-count passed"
-                    ><b>{{ tracker.passed }}</b> passing</span
-                >
-                <span class="status-count failed"
-                    ><b>{{ tracker.failed }}</b> failing</span
-                >
-                <span class="status-count not-measured"
-                    ><b>{{ tracker.notMeasured }}</b> not measured</span
-                >
-                <span class="status-count intentional"
-                    ><b>{{ tracker.intentional }}</b> intentional differences</span
-                >
-                <span class="status-count deferred"
-                    ><b>{{ tracker.deferred }}</b> deferred</span
-                >
-                <span class="status-count defect"
-                    ><b>{{ tracker.defects }}</b> known defects</span
-                >
-            </div>
-            <p class="coverage-note">
+            <ul class="overview-counts" aria-label="Comparisons by status">
+                <li class="status-count passed">
+                    <b>{{ tracker.passed.toLocaleString() }}</b> passing
+                </li>
+                <li class="status-count failed">
+                    <b>{{ tracker.failed.toLocaleString() }}</b> failing
+                </li>
+                <li class="status-count not-measured">
+                    <b>{{ tracker.notMeasured.toLocaleString() }}</b> not measured
+                </li>
+                <li class="status-count intentional">
+                    <b>{{ tracker.intentional.toLocaleString() }}</b> intentional differences
+                </li>
+                <li class="status-count deferred">
+                    <b>{{ tracker.deferred.toLocaleString() }}</b> deferred
+                </li>
+                <li class="status-count defect">
+                    <b>{{ tracker.defects.toLocaleString() }}</b> known defects
+                </li>
+            </ul>
+        </header>
+
+        <div class="tracker-notes">
+            <p>
+                Cases include Java or Bedrock comparisons and explicit not-measured behavior inventories. A passing data
+                row does not claim runtime behavior parity. Reviewed differences include clickable references; search by
+                game identifier, behavior, family, or source file.
+            </p>
+            <p>
                 The headline counts the families that run the server against Java rules: block, item and entity
                 behavior, gameplay, integration and world generation. Data tables are counted in the second figure, so
                 twelve thousand registry rows cannot hide a block that does nothing. Each percentage uses listed
                 comparisons, including not-measured, deferred, and known-defect rows; intentional differences are
                 excluded. A block, item or entity no scenario reached is not measured, not passing.
             </p>
-        </section>
+        </div>
 
+        <h2 class="tracker-section-title">Behavior groups</h2>
         <section class="group-picker" aria-label="Filter by family group">
-            <h2>Behavior groups</h2>
             <button
                 v-for="group in groups"
                 :key="group.id"
@@ -217,6 +219,7 @@ const percentage = trackerProgressPercent;
             </button>
         </section>
 
+        <h2 class="tracker-section-title">Cases</h2>
         <section class="case-list" aria-label="Parity cases">
             <div class="controls">
                 <div class="status-filters" role="group" aria-label="Filter by status">
@@ -323,466 +326,608 @@ const percentage = trackerProgressPercent;
             </details>
         </section>
     </main>
-    <p v-else-if="loadError" class="tracker-message">Could not load the parity tracker data. Refresh to try again.</p>
-    <p v-else class="tracker-message">Loading parity tracker…</p>
+    <p v-else-if="loadError" class="tracker tracker-message">
+        Could not load the parity tracker data. Refresh to try again.
+    </p>
+    <p v-else class="tracker tracker-message">Loading parity tracker…</p>
 </template>
 
 <style scoped>
 .tracker {
-    --tracker-good: var(--vp-c-brand-1);
-    --tracker-bad: var(--vp-c-red-1);
+    --tracker-good: var(--jsp-accent);
+    --tracker-bad: var(--jsp-signal);
     --tracker-intentional: var(--vp-c-yellow-1);
-    --tracker-deferred: var(--vp-c-orange-1);
+    --tracker-deferred: color-mix(in srgb, var(--jsp-signal) 55%, var(--vp-c-yellow-1));
     --tracker-muted: var(--vp-c-text-3);
     --tracker-border: var(--vp-c-divider);
     --tracker-surface: var(--vp-c-bg-soft);
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--jsp-gap);
+    max-width: 1200px;
+    padding: 10px 16px 64px;
+    margin: 0 auto;
     color: var(--vp-c-text-1);
 }
 
-.tracker-intro {
-    max-width: 760px;
-    margin: 0 0 1.5rem;
-    color: var(--vp-c-text-2);
-    font-size: 1rem;
-    line-height: 1.65;
-}
-
 .tracker-message {
-    padding: 2.5rem 0;
+    padding: 4rem 16px;
     color: var(--vp-c-text-2);
     text-align: center;
 }
 
-.tracker-overview {
-    padding: 1.15rem 0 1.25rem;
-    border-top: 1px solid var(--tracker-border);
-    border-bottom: 1px solid var(--tracker-border);
+/* Hero: the score on a forest panel, as on the landing page. */
+.tracker-hero {
+    padding: clamp(16px, 3vw, 32px);
+    color: var(--jsp-cream);
+    background: var(--jsp-forest);
+    border-radius: var(--jsp-radius-panel);
 }
 
-.overview-heading,
-.overview-score,
-.overview-counts,
-.family-title,
-.family-progress,
-.results-heading {
+.tracker-eyebrow {
     display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
     align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
+    margin: 0;
+    font: 700 12px var(--vp-font-family-mono);
+    color: var(--jsp-accent);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+}
+
+.tracker-eyebrow i {
+    width: 10px;
+    height: 10px;
+    margin-right: 4px;
+    background: var(--jsp-signal);
+}
+
+.tracker-eyebrow a {
+    color: inherit;
+}
+
+.tracker-hero h1 {
+    margin: 16px 0 20px;
+    font-size: clamp(40px, 8vw, 88px);
+    font-weight: 800;
+    line-height: 0.9;
+    letter-spacing: -0.055em;
+    color: var(--jsp-cream);
 }
 
 .overview-score {
-    justify-content: flex-start;
-    gap: 0.85rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 20px;
+    align-items: center;
 }
 
 .score-percent {
-    color: var(--vp-c-brand-1);
-    font-size: 3.3rem;
+    font-size: clamp(56px, 10vw, 104px);
     font-variant-numeric: tabular-nums;
-    font-weight: 700;
-    letter-spacing: -0.07em;
-    line-height: 1;
+    font-weight: 800;
+    line-height: 0.85;
+    letter-spacing: -0.06em;
+    color: var(--jsp-accent);
 }
+
 .score-percent span {
-    margin-left: 0.08em;
-    font-size: 1.35rem;
-    letter-spacing: -0.03em;
+    margin-left: 0.04em;
+    font-size: 0.45em;
 }
+
 .score-copy {
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
+    display: grid;
+    gap: 4px;
+    max-width: 46ch;
 }
-.overview-heading h2 {
+
+.score-copy h2 {
+    padding: 0;
     margin: 0;
+    font-size: 20px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    color: var(--jsp-cream);
     border: 0;
-    font-size: 1rem;
 }
+
 .score-copy > span {
-    color: var(--vp-c-text-2);
-    font-size: 0.78rem;
+    font-size: 14px;
     font-variant-numeric: tabular-nums;
-}
-.snapshot-date {
-    margin: 0;
-    color: var(--tracker-muted);
-    font-size: 0.72rem;
-    line-height: 1.8;
-    text-align: right;
-}
-.snapshot-date code {
-    color: var(--vp-c-text-2);
-    font-size: 0.68rem;
+    color: var(--jsp-mint);
 }
 
 progress {
     width: 100%;
-    height: 0.42rem;
-    overflow: hidden;
+    height: 10px;
+    appearance: none;
+    background: var(--tracker-surface);
     border: 0;
-    border-radius: 2px;
-    background: var(--vp-c-bg-alt);
-    accent-color: var(--tracker-good);
 }
 
 progress::-webkit-progress-bar {
-    border-radius: 2px;
-    background: var(--vp-c-bg-alt);
+    background: var(--tracker-surface);
 }
 
 progress::-webkit-progress-value {
-    border-radius: 2px;
     background: var(--tracker-good);
 }
 
+progress::-moz-progress-bar {
+    background: var(--tracker-good);
+}
+
+.tracker-hero progress,
+.tracker-hero progress::-webkit-progress-bar {
+    background: var(--jsp-track);
+}
+
 .overall-progress {
-    margin: 1rem 0 0.65rem;
-    height: 0.55rem;
+    height: 16px;
+    margin: 24px 0 16px;
 }
 
 .overview-counts {
-    justify-content: flex-start;
+    display: flex;
     flex-wrap: wrap;
-    gap: 0.4rem 1rem;
-    color: var(--vp-c-text-2);
-    font-size: 0.72rem;
+    gap: 8px;
+    padding: 0;
+    margin: 0;
+    list-style: none;
+}
+
+.status-count {
+    display: inline-flex;
+    gap: 6px;
+    align-items: center;
+    padding: 4px 12px 4px 10px;
+    margin: 0;
+    font: 12px var(--vp-font-family-mono);
+    color: var(--jsp-cream);
+    border: 1.5px solid var(--jsp-track);
+    border-radius: 99px;
+}
+
+.status-count::before {
+    width: 8px;
+    height: 8px;
+    content: '';
+    background: currentColor;
+    border-radius: 50%;
 }
 
 .status-count b {
-    margin-right: 0.2rem;
     font-variant-numeric: tabular-nums;
-}
-.coverage-note {
-    max-width: 780px;
-    margin: 0.65rem 0 0;
-    color: var(--tracker-muted);
-    font-size: 0.7rem;
-    line-height: 1.5;
+    color: var(--jsp-cream);
 }
 
-.passed {
-    color: var(--tracker-good);
-}
-.failed,
-.defect {
-    color: var(--tracker-bad);
-}
-.not-measured {
-    color: var(--tracker-muted);
-}
-.intentional {
-    color: var(--tracker-intentional);
-}
-.deferred {
-    color: var(--tracker-deferred);
+.status-count.passed::before {
+    background: var(--tracker-good);
 }
 
-.group-picker {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: flex-end;
-    gap: 0.4rem 1rem;
-    margin: 1.4rem 0 1.15rem;
+.status-count.failed::before,
+.status-count.defect::before {
+    background: var(--tracker-bad);
 }
-.group-picker h2 {
-    flex-basis: 100%;
-    margin: 0 0 0.25rem;
+
+.status-count.not-measured::before {
+    background: var(--jsp-term-muted);
+}
+
+.status-count.intentional::before {
+    background: var(--tracker-intentional);
+}
+
+.status-count.deferred::before {
+    background: var(--tracker-deferred);
+}
+
+.tracker-notes {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(320px, 100%), 1fr));
+    gap: 8px 32px;
+    padding: 16px 4px 8px;
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--vp-c-text-2);
+}
+
+.tracker-notes p {
+    margin: 0;
+}
+
+.tracker-section-title {
+    padding: 0;
+    margin: 24px 4px 4px;
+    font: 700 12px var(--vp-font-family-mono);
+    color: var(--vp-c-text-2);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
     border: 0;
-    font-size: 0.82rem;
-    font-weight: 600;
+}
+
+/* Groups: solid tiles that filter the case list. */
+.group-picker {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(150px, 100%), 1fr));
+    gap: var(--jsp-gap);
 }
 
 .group-option {
-    display: flex;
-    flex-direction: column;
-    gap: 0.3rem;
-    min-width: 95px;
-    padding: 0.4rem 0.1rem 0.5rem;
-    border: 0;
-    border-bottom: 2px solid transparent;
-    background: transparent;
-    color: var(--vp-c-text-2);
-    cursor: pointer;
-    text-align: left;
-}
-.group-option:hover {
-    color: var(--vp-c-brand-1);
-}
-.group-option.active {
-    border-color: var(--vp-c-brand-1);
+    display: grid;
+    gap: 6px;
+    align-content: start;
+    min-width: 0;
+    padding: 14px;
     color: var(--vp-c-text-1);
+    text-align: left;
+    cursor: pointer;
+    background: var(--tracker-surface);
+    border: 2px solid transparent;
+    border-radius: var(--jsp-radius-control);
 }
+
+.group-option:hover {
+    border-color: var(--jsp-accent);
+}
+
+.group-option.active {
+    color: var(--jsp-forest);
+    background: var(--jsp-accent);
+}
+
 .group-option-name {
-    font-size: 0.76rem;
-    font-weight: 600;
+    font-size: 16px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
 }
+
 .group-option-count {
-    color: var(--tracker-muted);
-    font-size: 0.66rem;
+    font: 11px var(--vp-font-family-mono);
     font-variant-numeric: tabular-nums;
+    opacity: 0.75;
 }
+
 .group-option progress {
-    height: 0.22rem;
+    height: 6px;
 }
 
-.case-list {
-    border-top: 1px solid var(--tracker-border);
+.group-option.active progress,
+.group-option.active progress::-webkit-progress-bar {
+    background: color-mix(in srgb, var(--jsp-forest) 25%, transparent);
 }
 
+.group-option.active progress::-webkit-progress-value {
+    background: var(--jsp-forest);
+}
+
+.group-option.active progress::-moz-progress-bar {
+    background: var(--jsp-forest);
+}
+
+/* Filters and search. */
 .controls {
     display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
     align-items: center;
     justify-content: space-between;
-    gap: 0.75rem;
-    padding: 0.85rem 0;
+    padding: 0 0 8px;
 }
 
 .status-filters {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.35rem;
+    gap: 6px;
 }
+
 .status-filters button,
-.expand-toggle {
-    padding: 0.4rem 0.68rem;
-    border: 1px solid transparent;
-    border-radius: 7px;
-    background: transparent;
-    color: var(--vp-c-text-2);
+.expand-toggle,
+.case-more button {
+    padding: 6px 14px;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--vp-c-text-1);
     cursor: pointer;
-    font-size: 0.72rem;
+    background: transparent;
+    border: 2px solid var(--tracker-border);
+    border-radius: 99px;
 }
 
 .status-filters button:hover,
-.expand-toggle:hover {
-    color: var(--vp-c-brand-1);
+.expand-toggle:hover,
+.case-more button:hover {
+    border-color: var(--jsp-accent);
 }
+
 .status-filters button.active {
-    border-color: var(--tracker-border);
-    background: var(--tracker-surface);
-    color: var(--vp-c-brand-1);
+    color: var(--jsp-forest);
+    background: var(--jsp-accent);
+    border-color: var(--jsp-accent);
 }
 
 .search-field {
-    flex: 0 1 290px;
+    flex: 1 1 260px;
+    max-width: 360px;
 }
+
 .search-field input {
     width: 100%;
-    padding: 0.56rem 0.75rem;
-    border: 1px solid var(--tracker-border);
-    border-radius: 6px;
-    background: var(--vp-c-bg);
+    padding: 10px 14px;
+    font: 15px var(--vp-font-family-base);
     color: var(--vp-c-text-1);
-    font: inherit;
-    font-size: 0.8rem;
+    background: var(--tracker-surface);
+    border: 2px solid var(--tracker-border);
+    border-radius: var(--jsp-radius-control);
+}
+
+.search-field input:focus-visible {
+    border-color: var(--jsp-accent);
+    outline: none;
 }
 
 .results-heading {
-    padding: 0.15rem 0 0.7rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 16px;
+    align-items: center;
+    justify-content: space-between;
+    padding: 4px 4px 10px;
+    font: 12px var(--vp-font-family-mono);
     color: var(--tracker-muted);
-    font-size: 0.72rem;
 }
 
-.expand-toggle {
-    color: var(--vp-c-brand-1);
-}
 .empty-state {
     padding: 2rem 0;
     color: var(--tracker-muted);
     text-align: center;
 }
 
+/* Families: flat cards, one per family. */
+.case-list {
+    display: grid;
+    gap: 6px;
+}
+
 .family {
-    border-top: 1px solid var(--tracker-border);
+    background: var(--tracker-surface);
+    border-radius: var(--jsp-radius-control);
 }
-.family:last-child {
-    border-bottom: 1px solid var(--tracker-border);
-}
+
 .family > summary {
-    display: flex;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 6px 16px;
     align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
-    padding: 0.8rem 0.25rem;
+    padding: 14px 16px;
     cursor: pointer;
-    list-style-position: inside;
+    list-style: none;
 }
-.family > summary::marker {
-    color: var(--vp-c-brand-1);
+
+.family > summary::-webkit-details-marker {
+    display: none;
+}
+
+.family-title {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px 12px;
+    align-items: baseline;
+    min-width: 0;
+}
+
+.family-title::before {
+    width: 0;
+    height: 0;
+    margin-right: 2px;
+    content: '';
+    border-top: 5px solid transparent;
+    border-bottom: 5px solid transparent;
+    border-left: 7px solid var(--jsp-accent);
+    transition: transform 0.15s;
+}
+
+.family[open] > summary .family-title::before {
+    transform: rotate(90deg);
 }
 
 .family-name {
-    font-weight: 700;
+    font-size: 17px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    overflow-wrap: anywhere;
 }
+
 .family-count {
+    font: 12px var(--vp-font-family-mono);
     color: var(--tracker-muted);
-    font-size: 0.75rem;
 }
+
 .family-progress {
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 0.3rem;
-    min-width: 155px;
+    display: grid;
+    gap: 6px;
+    justify-items: end;
+    font: 12px var(--vp-font-family-mono);
+    font-variant-numeric: tabular-nums;
     color: var(--tracker-muted);
-    font-size: 0.7rem;
 }
+
 .family-progress progress {
-    width: 125px;
-    height: 0.38rem;
+    width: 140px;
+    height: 6px;
+    background: var(--vp-c-bg);
+}
+
+.family-progress progress::-webkit-progress-bar {
+    background: var(--vp-c-bg);
 }
 
 .cases {
+    padding: 0 16px 8px;
     margin: 0;
-    padding: 0 0 0.3rem 1.2rem;
     list-style: none;
 }
+
 .case {
     display: grid;
     grid-template-columns: 0.5rem minmax(0, 1fr) auto auto;
+    gap: 12px;
     align-items: center;
-    gap: 0.75rem;
-    padding: 0.6rem 0.2rem;
-    border-top: 1px solid color-mix(in srgb, var(--tracker-border) 65%, transparent);
+    padding: 10px 0;
+    margin: 0;
+    border-top: 1px solid var(--tracker-border);
 }
+
 .case-more {
-    grid-column: 2 / -1;
-    padding: 0.3rem 0 0.65rem;
+    padding: 10px 0 6px;
+    margin: 0;
     list-style: none;
-}
-.case-more button {
-    padding: 0.4rem 0.6rem;
-    border: 1px solid var(--tracker-border);
-    border-radius: 6px;
-    background: var(--tracker-surface);
-    color: var(--vp-c-brand-1);
-    cursor: pointer;
-    font-size: 0.68rem;
-}
-.case-more button:hover {
-    border-color: var(--vp-c-brand-1);
 }
 
 .status-mark {
     width: 0.5rem;
     height: 0.5rem;
-    border-radius: 50%;
     background: var(--tracker-muted);
+    border-radius: 50%;
 }
-.status-passed {
+
+.status-mark.status-passed {
     background: var(--tracker-good);
 }
-.status-failed,
-.status-defect {
+
+.status-mark.status-failed,
+.status-mark.status-defect {
     background: var(--tracker-bad);
 }
-.status-intentional {
+
+.status-mark.status-intentional {
     background: var(--tracker-intentional);
 }
-.status-deferred {
+
+.status-mark.status-deferred {
     background: var(--tracker-deferred);
 }
-.status-not-measured {
-    background: var(--tracker-muted);
-}
+
 .case-copy {
     display: flex;
     flex-direction: column;
-    gap: 0.16rem;
+    gap: 2px;
     min-width: 0;
 }
+
 .case-title {
+    font-size: 14px;
+    font-weight: 700;
     overflow-wrap: anywhere;
-    font-size: 0.82rem;
-    font-weight: 600;
 }
+
 .case-context,
 .case-details {
-    color: var(--tracker-muted);
-    font-size: 0.72rem;
-    line-height: 1.45;
+    max-width: 70ch;
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--vp-c-text-2);
+    overflow-wrap: anywhere;
 }
+
 .runtime-support {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.25rem 0.45rem;
-    color: var(--tracker-muted);
-    font-size: 0.7rem;
-    line-height: 1.45;
-}
-.runtime-support strong {
+    gap: 2px 8px;
+    font-size: 13px;
+    line-height: 1.5;
     color: var(--vp-c-text-2);
-    font-weight: 600;
 }
+
+.runtime-support strong {
+    font-weight: 700;
+    color: var(--vp-c-text-1);
+}
+
 .runtime-support-spawnable strong {
     color: var(--tracker-good);
 }
+
 .runtime-support-partial strong {
     color: var(--tracker-deferred);
 }
+
 .runtime-support-missing strong,
 .runtime-support-unrepresentable strong {
     color: var(--tracker-bad);
 }
+
 .runtime-support-substitute strong,
 .runtime-support-block-backed strong {
     color: var(--tracker-intentional);
 }
-.case-details {
-    max-width: 65ch;
-}
+
 .status-badge {
-    padding: 0.22rem 0.45rem;
-    border-radius: 5px;
-    background: var(--tracker-surface);
+    padding: 3px 10px;
+    font: 700 10px var(--vp-font-family-mono);
     color: var(--vp-c-text-2);
-    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
     white-space: nowrap;
+    border: 1.5px solid var(--tracker-border);
+    border-radius: 99px;
 }
+
 .status-badge.status-passed {
-    background: color-mix(in srgb, var(--tracker-good) 12%, transparent);
-    color: var(--tracker-good);
+    color: var(--jsp-forest);
+    background: var(--tracker-good);
+    border-color: var(--tracker-good);
 }
+
 .status-badge.status-failed,
 .status-badge.status-defect {
-    background: color-mix(in srgb, var(--tracker-bad) 12%, transparent);
-    color: var(--tracker-bad);
+    color: var(--jsp-ink);
+    background: var(--tracker-bad);
+    border-color: var(--tracker-bad);
 }
+
 .status-badge.status-intentional {
-    background: color-mix(in srgb, var(--tracker-intentional) 12%, transparent);
     color: var(--tracker-intentional);
+    border-color: var(--tracker-intentional);
 }
+
 .status-badge.status-deferred {
-    background: color-mix(in srgb, var(--tracker-deferred) 12%, transparent);
     color: var(--tracker-deferred);
+    border-color: var(--tracker-deferred);
 }
+
 .reference-link {
     color: var(--vp-c-brand-1);
     text-decoration: underline;
     text-underline-offset: 2px;
 }
-.file-link {
-    color: var(--vp-c-brand-1);
-    font-size: 0.7rem;
-    text-decoration: none;
-}
+
 .file-link {
     max-width: 170px;
     overflow: hidden;
+    font: 12px var(--vp-font-family-mono);
+    color: var(--vp-c-brand-1);
+    text-decoration: none;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
+
 .file-link:hover {
     text-decoration: underline;
 }
+
 button:focus-visible,
 input:focus-visible,
 .family > summary:focus-visible,
 .file-link:focus-visible,
-.reference-link:focus-visible {
-    outline: 2px solid var(--vp-c-brand-1);
-    outline-offset: 3px;
+.reference-link:focus-visible,
+.tracker-eyebrow a:focus-visible {
+    outline: 3px solid var(--jsp-signal);
+    outline-offset: 2px;
 }
+
 .visually-hidden {
     position: absolute;
     width: 1px;
@@ -792,57 +937,32 @@ input:focus-visible,
     white-space: nowrap;
 }
 
-@media (max-width: 760px) {
-    .overview-heading,
-    .controls {
-        align-items: stretch;
-        flex-direction: column;
-    }
-    .snapshot-date {
-        text-align: left;
-    }
-    .overview-heading {
-        align-items: flex-start;
-        flex-direction: column;
-        gap: 0.7rem;
-    }
-    .search-field {
-        flex-basis: auto;
-    }
+@media (max-width: 640px) {
     .family > summary {
-        align-items: flex-start;
+        grid-template-columns: minmax(0, 1fr);
     }
+
     .family-progress {
-        min-width: 90px;
+        justify-items: start;
     }
+
     .family-progress progress {
-        width: 80px;
+        width: 100%;
     }
+
     .case {
         grid-template-columns: 0.5rem minmax(0, 1fr) auto;
     }
+
     .file-link {
         grid-column: 2 / -1;
+        max-width: 100%;
     }
 }
 
-@media (max-width: 460px) {
-    .overview-score {
-        gap: 0.65rem;
-    }
-    .score-percent {
-        font-size: 2.8rem;
-    }
-    .group-option {
-        min-width: 75px;
-    }
-    .family > summary {
-        gap: 0.5rem;
-    }
-    .family-title {
-        align-items: flex-start;
-        flex-direction: column;
-        gap: 0.2rem;
+@media (prefers-reduced-motion: reduce) {
+    .family-title::before {
+        transition: none;
     }
 }
 </style>

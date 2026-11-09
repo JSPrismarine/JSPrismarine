@@ -26,24 +26,36 @@
         display: inline-flex;
         gap: 6px;
         align-items: center;
+        position: relative;
         height: var(--vp-nav-height);
         padding: 0 12px;
         font: inherit;
         font-size: 14px;
-        font-weight: 500;
+        font-weight: 700;
         color: var(--vp-c-text-1);
         transition: color 0.2s;
     }
 
-    .mega-nav__trigger:is(:hover, [aria-expanded='true'], .is-current) {
+    .mega-nav__trigger:is(:hover, [aria-expanded='true']) {
         color: var(--vp-c-brand-1);
+    }
+
+    /* The section you are in carries a solid bar under its trigger. */
+    .mega-nav__trigger.is-current::after {
+        position: absolute;
+        right: 12px;
+        bottom: 0;
+        left: 12px;
+        height: 3px;
+        content: '';
+        background: var(--jsp-accent);
     }
 
     .mega-nav__trigger:focus-visible,
     .mega-nav__link:focus-visible,
     .mega-nav__featured:focus-visible {
-        outline: 2px solid var(--vp-c-brand-1);
-        outline-offset: -2px;
+        outline: 3px solid var(--jsp-signal);
+        outline-offset: -3px;
     }
 
     .mega-nav__chevron {
@@ -68,16 +80,18 @@
         grid-template-columns: minmax(0, 1fr);
         gap: 16px;
         width: max-content;
-        max-width: min(640px, calc(100vw - 48px));
-        padding: 16px;
-        background: var(--vp-c-bg-elv);
-        border: 1px solid var(--vp-c-divider);
-        border-radius: 8px;
-        box-shadow: var(--vp-shadow-3);
+        max-width: min(720px, calc(100vw - 48px));
+        padding: 12px;
+        /* The nav bar sets nowrap for its own row; the panel's copy has to wrap. */
+        white-space: normal;
+        background: var(--vp-c-bg);
+        border: 2px solid var(--vp-c-text-1);
+        border-radius: var(--jsp-radius-panel);
+        box-shadow: var(--jsp-shadow-offset) var(--jsp-shadow-offset) 0 var(--vp-c-text-1);
     }
 
     .mega-nav__panel.has-featured {
-        grid-template-columns: 200px minmax(0, 1fr);
+        grid-template-columns: 220px minmax(0, 1fr);
     }
 
     .mega-nav__sections {
@@ -89,13 +103,11 @@
 
     .mega-nav__heading {
         padding: 0 10px;
-        margin: 0 0 4px;
-        font-size: 12px;
-        font-weight: 600;
-        line-height: 20px;
-        color: var(--vp-c-text-3);
+        margin: 4px 0;
+        font: 700 11px/20px var(--vp-font-family-mono);
+        color: var(--vp-c-text-2);
         text-transform: uppercase;
-        letter-spacing: 0.04em;
+        letter-spacing: 0.12em;
         border: 0;
     }
 
@@ -103,19 +115,20 @@
         display: grid;
         padding: 8px 10px;
         text-decoration: none;
-        border-radius: 6px;
+        border-radius: var(--jsp-radius-control);
         transition: background-color 0.2s;
     }
 
     .mega-nav__link:is(:hover, :focus-visible) {
-        background: var(--vp-c-default-soft);
+        background: var(--vp-c-brand-soft);
     }
 
     .mega-nav__link-title,
     .mega-nav__featured-title {
-        font-size: 14px;
-        font-weight: 600;
+        font-size: 15px;
+        font-weight: 800;
         line-height: 20px;
+        letter-spacing: -0.01em;
         color: var(--vp-c-text-1);
     }
 
@@ -128,28 +141,46 @@
     .mega-nav__featured {
         display: grid;
         grid-template-columns: minmax(0, 1fr);
-        gap: 4px;
+        gap: 6px;
         align-content: start;
-        padding: 12px;
+        padding: 16px;
         text-decoration: none;
-        background: var(--vp-c-brand-soft);
-        border-radius: 6px;
+        background: var(--jsp-forest);
+        border-radius: var(--jsp-radius-control);
         transition: background-color 0.2s;
     }
 
-    .mega-nav__featured:is(:hover, :focus-visible) .mega-nav__featured-title {
-        color: var(--vp-c-brand-1);
+    .mega-nav__featured .mega-nav__featured-title {
+        font-size: 22px;
+        line-height: 1.05;
+        letter-spacing: -0.03em;
+        color: var(--jsp-cream);
+    }
+
+    .mega-nav__featured .mega-nav__description {
+        color: var(--jsp-mint);
+    }
+
+    .mega-nav__featured:is(:hover, :focus-visible) {
+        background: color-mix(in srgb, var(--jsp-forest) 85%, var(--jsp-accent));
     }
 
     .mega-nav__command {
+        max-width: 100%;
+        overflow-wrap: anywhere;
         justify-self: start;
-        padding: 2px 8px;
-        margin-top: 8px;
-        font-size: 12px;
-        color: var(--vp-c-text-1);
-        background: var(--vp-c-bg);
-        border: 1px solid var(--vp-c-divider);
-        border-radius: 4px;
+        padding: 3px 10px;
+        margin-top: 10px;
+        font: 12px var(--vp-font-family-mono);
+        color: var(--jsp-cream);
+        background: var(--jsp-ink);
+        border-radius: 99px;
+    }
+
+    .mega-nav__command::before {
+        margin-right: 6px;
+        color: var(--jsp-signal);
+        content: '$';
     }
 
     .mega-panel-enter-active,

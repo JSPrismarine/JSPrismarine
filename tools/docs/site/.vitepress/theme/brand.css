@@ -127,3 +127,39 @@
 .VPDocFooter .pager-link:hover {
     border-color: var(--jsp-accent);
 }
+
+/* Long identifiers and URLs in prose wrap instead of widening the page on phones. */
+.vp-doc {
+    overflow-wrap: break-word;
+}
+
+.vp-doc :not(pre) > code {
+    overflow-wrap: anywhere;
+}
+
+/* The nav bar: a solid rule under it, bold entries, and the mark beside the wordmark. */
+.VPNavBar:not(.home) .divider-line,
+.VPNavBar.has-sidebar .divider-line {
+    height: 2px;
+}
+
+.VPNavBarMenuLink,
+.VPNavBarMenuGroup .button,
+.VPNavScreenMenuLink,
+.VPNavScreenMenuGroup .button-text {
+    font-weight: 700 !important;
+}
+
+.VPNavBarSearchButton {
+    border: 2px solid transparent;
+    border-radius: 99px;
+}
+
+.VPNavBarSearchButton:hover {
+    border-color: var(--jsp-accent);
+}
+
+.VPNavScreen .VPNavScreenMenuGroupLink .link,
+.VPNavScreen .VPNavScreenMenuLink {
+    font-size: 15px;
+}
