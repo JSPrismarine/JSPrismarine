@@ -45,6 +45,12 @@ import type {
 
 /** The worker asset name defined by `scripts/package-sea.mts` for Node SEA builds. */
 declare const JSP_SEA_TABLE_BUILDER_WORKER: string | undefined;
+/**
+ * Where a compiled Bun executable embedded the table builder, defined by
+ * `.github/scripts/build-aot.mjs`. The bundled module's own URL is the binary's root, not
+ * this file's directory, so the worker beside it is not there.
+ */
+declare const JSP_EMBEDDED_TABLE_BUILDER_WORKER: string | undefined;
 
 export interface DatabaseStats {
     /** Number of unmerged level 0 files. */
@@ -379,9 +385,11 @@ export class Database {
         // A SEA executable has no adjacent dist tree. Read the self-contained worker from its
         // embedded asset instead of resolving a path beside the bundled Database module.
         const workerPath =
-            typeof JSP_SEA_TABLE_BUILDER_WORKER === 'undefined'
-                ? new URL(isTypeScript ? './db/TableBuilderWorker.ts' : './db/TableBuilderWorker.js', import.meta.url)
-                : this.singleExecutableTableWorkerUrl(JSP_SEA_TABLE_BUILDER_WORKER);
+            typeof JSP_EMBEDDED_TABLE_BUILDER_WORKER !== 'undefined'
+                ? new URL(JSP_EMBEDDED_TABLE_BUILDER_WORKER)
+                : typeof JSP_SEA_TABLE_BUILDER_WORKER === 'undefined'
+                  ? new URL(isTypeScript ? './db/TableBuilderWorker.ts' : './db/TableBuilderWorker.js', import.meta.url)
+                  : this.singleExecutableTableWorkerUrl(JSP_SEA_TABLE_BUILDER_WORKER);
         const worker = new Worker(workerPath, {
             execArgv: isTypeScript ? this.tableWorkerExecArgv() : process.execArgv
         });

@@ -32,7 +32,8 @@ import { GenerationStatsRecorder } from './GenerationStats';
 /**
  * Where a compiled Bun executable embedded this package's worker entry, defined at build time
  * by `.github/scripts/build-aot.mjs`, which passes the worker as an extra compile entrypoint.
- * Undefined everywhere else.
+ * It is `singleExecutableWorker`, the pool's own message protocol, because piscina starts its
+ * threads from a module of its own that the binary does not carry. Undefined everywhere else.
  */
 declare const JSP_EMBEDDED_GENERATION_WORKER: string | undefined;
 /** The SEA asset name is defined by `scripts/package-sea.mts`. */
@@ -543,7 +544,10 @@ export const workerExecArgv = (
  */
 const piscinaRunner: TaskRunnerFactory = (options) => {
     const worker = options.worker ?? defaultGenerationWorker();
-    if (worker.startsWith('data:')) return new EmbeddedTaskRunner(options, new URL(worker));
+    // An executable's worker speaks the pool's own protocol: piscina would start each thread from
+    // its `dist/worker.js`, which is a path on the machine that built the executable.
+    if (worker.startsWith('data:') || insideCompiledBundle(worker))
+        return new EmbeddedTaskRunner(options, new URL(worker));
 
     const execArgv = workerExecArgv(options);
 

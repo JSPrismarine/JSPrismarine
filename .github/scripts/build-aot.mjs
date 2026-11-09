@@ -43,15 +43,22 @@ if (
 
 const buildMetadata = ['BUILD_TIME', 'BUILD_GIT_HASH', 'BUILD_VERSION', 'BUILD_FLAVOR', 'BUILD_TYPE'];
 /**
- * Worker-thread entrypoints the executable embeds beside the server, so the chunk generation
- * pool runs in a compiled binary: the pool's worker entry and the pipeline modules it imports
- * dynamically. Bun embeds each extra entrypoint under its repository-relative path in the
- * binary's virtual filesystem, and the matching `JSP_EMBEDDED_*` defines tell the pool where.
+ * Worker-thread entrypoints the executable embeds beside the server, one for every worker the
+ * server starts: the generation pool's worker and the pipeline modules it imports dynamically,
+ * the RakNet socket worker, and LevelDB's table builder. Bun embeds each extra entrypoint under
+ * its repository-relative path in the binary's virtual filesystem, and the matching
+ * `JSP_EMBEDDED_*` defines tell each package where. A worker missing from this list fails only
+ * when the binary first starts it, with the build itself green.
+ *
+ * The generation pool embeds the worker the Node single executable uses rather than piscina's
+ * task module: piscina starts every thread from its own `dist/worker.js`, which nothing embeds.
  */
 const workerEntrypoints = {
-    JSP_EMBEDDED_GENERATION_WORKER: './packages/chunkgen/src/generationWorker.ts',
+    JSP_EMBEDDED_GENERATION_WORKER: './packages/chunkgen/src/singleExecutableWorker.ts',
     JSP_EMBEDDED_CHUNK_PIPELINE: './packages/prismarine/src/world/generators/datadriven/chunkPipeline.ts',
-    JSP_EMBEDDED_TERRAIN_PIPELINE: './packages/prismarine/src/world/generators/datadriven/terrainPipeline.ts'
+    JSP_EMBEDDED_TERRAIN_PIPELINE: './packages/prismarine/src/world/generators/datadriven/terrainPipeline.ts',
+    JSP_EMBEDDED_RAKNET_WORKER: './packages/raknet/src/WorkerServerSocket.worker.ts',
+    JSP_EMBEDDED_TABLE_BUILDER_WORKER: './packages/leveldb/src/db/TableBuilderWorker.ts'
 };
 
 const args = [
@@ -152,7 +159,7 @@ for (const entry of Object.values(workerEntrypoints)) {
     if (!binary.includes(Buffer.from(embeddedFileNameOf(entry)))) {
         throw new Error(
             `${binaryPath} does not carry ${embeddedFileNameOf(entry)}; Bun changed how it names ` +
-                'embedded entrypoints, and the generation pool would silently lose its workers'
+                'embedded entrypoints, and the server would lose that worker on its first start'
         );
     }
 }

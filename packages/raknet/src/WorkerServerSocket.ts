@@ -13,6 +13,17 @@ import { validateSocketBufferOptions } from './SocketBuffers';
 import type { SocketBufferOptions } from './SocketBuffers';
 import { UDP_HEADER_SIZE } from './Constants';
 
+/**
+ * Where a compiled Bun executable embedded the socket worker, defined by
+ * `.github/scripts/build-aot.mjs`. The bundled module's own URL is the binary's root, not this
+ * file's directory, so the worker beside it is not there. Undefined everywhere else.
+ */
+declare const JSP_EMBEDDED_RAKNET_WORKER: string | undefined;
+
+/** The embedded socket worker of a compiled Bun executable, or undefined outside one. */
+const embeddedWorker = (): string | undefined =>
+    typeof JSP_EMBEDDED_RAKNET_WORKER === 'undefined' ? undefined : JSP_EMBEDDED_RAKNET_WORKER;
+
 const DEFAULT_RING_CAPACITY = 8 * 1024 * 1024;
 const MAX_RECORDS_PER_TICK = 4096;
 const METRIC_COUNT = 3;
@@ -117,10 +128,13 @@ export default class WorkerServerSocket extends EventEmitter implements RakNetLi
             this.rejectReady = reject;
         });
 
-        const sourceWorker = import.meta.url.endsWith('.ts');
+        const sourceWorker = import.meta.url.endsWith('.ts') && embeddedWorker() === undefined;
         const workerUrl = new URL(
-            sourceWorker ? './WorkerServerSocket.worker.ts' : './WorkerServerSocket.worker.js',
-            import.meta.url
+            embeddedWorker() ??
+                new URL(
+                    sourceWorker ? './WorkerServerSocket.worker.ts' : './WorkerServerSocket.worker.js',
+                    import.meta.url
+                )
         );
         // `--input-type` is valid for the parent when it runs `-e` or stdin, but Node
         // rejects it for a worker that loads a file. Keep the other runtime flags intact.
