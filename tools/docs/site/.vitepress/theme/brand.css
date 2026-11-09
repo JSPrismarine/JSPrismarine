@@ -134,7 +134,7 @@
 }
 
 .vp-doc :not(pre) > code {
-    overflow-wrap: anywhere;
+    overflow-wrap: break-word;
 }
 
 /* The nav bar: a solid rule under it, bold entries, and the mark beside the wordmark. */
@@ -162,4 +162,25 @@
 .VPNavScreen .VPNavScreenMenuGroupLink .link,
 .VPNavScreen .VPNavScreenMenuLink {
     font-size: 15px;
+}
+
+/* A hex color in code gets a chip of that color in front of it. */
+.color-swatch {
+    display: inline-block;
+    width: 0.85em;
+    height: 0.85em;
+    margin-right: 0.4em;
+    vertical-align: -0.08em;
+    background: var(--swatch);
+    border: 1.5px solid color-mix(in srgb, currentColor 35%, transparent);
+    border-radius: 3px;
+}
+
+.vp-doc :not(pre) > code:has(> .color-swatch) {
+    white-space: nowrap;
+}
+
+/* Tables scroll on narrow screens, so their code can stay on one line instead of breaking at hyphens. */
+.vp-doc td > code {
+    white-space: nowrap;
 }

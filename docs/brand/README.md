@@ -116,6 +116,10 @@ pages such as `tools/docs/site/index.md` and `tools/docs/site/brand-kit.md`.
 | `PackageDirectory`       | A filterable grid of the published packages.                      |
 | `Ticker`                 | A looping banner of short phrases.                                |
 
+On doc pages, a hex color written as code, such as `#5ca48a`, renders with a chip of that color in
+front of it, in inline code and in highlighted code blocks alike. `.vitepress/colorSwatches.ts`
+adds the chip; a three- or four-digit value needs a letter, so issue numbers like `#123` stay plain.
+
 ## Content comes from the repository
 
 The landing page states no fact that the repository already records. `project.data.mts` reads these

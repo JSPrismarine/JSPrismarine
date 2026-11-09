@@ -6,6 +6,7 @@ import molang from './molang.tmLanguage.json';
 import typedocSidebar from '../api/typedoc-sidebar.json';
 import { megaMenus, nav } from './menus.mts';
 import { isStagedPage, pageSource } from '../../sections.mts';
+import { colorSwatchPlugin, colorSwatchTransformer } from './colorSwatches.ts';
 import { sidebar } from './sidebar.mts';
 import { prismSvg } from './theme/prism.ts';
 import { palette, paletteCss } from './theme/tokens.ts';
@@ -70,7 +71,9 @@ export default defineConfig({
         // Shiki ships no grammar for mcfunction or Molang, so their fences fall
         // back to plain text; register the local ones.
         languages: [mcfunction, molang],
+        codeTransformers: [colorSwatchTransformer],
         config(md) {
+            md.use(colorSwatchPlugin);
             // The staged docs are written for GitHub. Vue would compile their `{{` and bare `<tag>` text as
             // template syntax, so these pages render as literal markdown.
             const render = md.render.bind(md);
