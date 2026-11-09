@@ -1,7 +1,7 @@
 import DefaultTheme from 'vitepress/theme';
 
 import './brand.css';
-import './mega-nav.css';
+import './site-menu/site-menu.css';
 import AudienceTabs from './components/AudienceTabs.vue';
 import BentoGrid from './components/BentoGrid.vue';
 import BentoTile from './components/BentoTile.vue';

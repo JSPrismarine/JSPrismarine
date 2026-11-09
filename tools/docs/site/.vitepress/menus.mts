@@ -1,6 +1,6 @@
 import type { MegaMenu } from './theme/types.ts';
 
-/** The site's menu: MegaNav renders it on the nav bar and in the small-screen menu alike. */
+/** The site's menu: SiteNav renders it on the bar, SitePhoneMenu below 768px, and the search indexes its sections. */
 export const megaMenus = [
     {
         text: 'Guides',

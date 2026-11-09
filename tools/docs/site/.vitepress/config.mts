@@ -98,7 +98,9 @@ export default defineConfig({
             { icon: 'github', link: repositoryUrl },
             ...(discordInvite ? [{ icon: 'discord', link: discordInvite }] : [])
         ],
-        search: { provider: 'local' },
+        // The site menu's own search replaces VitePress's; its sidebar button is renamed so phones show
+        // one Menu button.
+        sidebarMenuLabel: 'Pages',
         lastUpdated: { text: 'Updated', formatOptions: { dateStyle: 'medium' } },
         footer: { message: `Released under the ${manifest.license} license.` }
     }

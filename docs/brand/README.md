@@ -89,6 +89,22 @@ ink.
 - Every control shows a signal-orange focus ring when reached by keyboard.
 - Motion is short and mechanical. Honor `prefers-reduced-motion` by stopping tickers and cursors.
 
+## The menu
+
+The site has one menu, in `tools/docs/site/.vitepress/theme/site-menu/`, drawn from `megaMenus` in
+`menus.mts`. It follows these rules at every width:
+
+- **It reads as a menu.** Sections are labeled buttons with a chevron, Search is its own labeled
+  button, and phones get a button that says Menu.
+- **It grows out of the header.** The header's bottom edge is the panel's top edge. The open section's
+  button becomes an ink tab that runs into the panel, and search opens in the header itself.
+- **Ink means open.** The tab, the panel, the search field and, on phones, the header turn ink while
+  the menu is open, and the panel ends on an accent rule.
+- **You leave where you entered.** Close sits exactly where Menu was, and Esc returns focus to the
+  button or field that opened the menu.
+- **It knows where you are.** The current section carries the accent bar, the current page is
+  highlighted, and a breadcrumb above the page names both.
+
 ## Voice
 
 - State what the thing does. "One binary to host it." beats "A powerful solution for hosting."

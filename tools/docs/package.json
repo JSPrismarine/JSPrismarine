@@ -17,6 +17,9 @@
         "docs:dev": "pnpm run docs:sources && pnpm run docs:generate && pnpm run docs:content && vitepress dev site"
     },
     "devDependencies": {
+        "focus-trap": "8.2.4",
+        "minisearch": "7.2.0",
+        "tinykeys": "4.0.1",
         "tsx": "4.23.15",
         "typedoc": "0.28.20",
         "typedoc-plugin-markdown": "4.14.1",
