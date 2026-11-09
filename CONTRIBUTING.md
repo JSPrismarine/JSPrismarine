@@ -30,11 +30,11 @@ vanilla behavior is easier to accept. Check first whether a pack could do it; se
 
 ### Set up
 
-You need Node.js and pnpm in the versions `package.json` names under `engines`, and a JDK for the
-default overworld; [Running JSPrismarine](docs/guide/running.md#run-from-source) lists them.
+You need Node.js and [pnpm](https://pnpm.io/installation) in the versions `package.json` names under
+`engines`, and a JDK for the default overworld; [Running JSPrismarine](docs/guide/running.md#run-from-source)
+lists them.
 
 ```bash
-corepack enable
 git clone https://github.com/JSPrismarine/JSPrismarine.git
 cd JSPrismarine
 pnpm install
