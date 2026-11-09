@@ -6,8 +6,8 @@ category: Guides
 
 # Structures in the data-driven overworld
 
-Java Edition 26.3 ships 52 structures over 16 types, placed by 21 structure sets and grown out of
-245 template pools. This page says which of them the server generates, how the generation is
+Java Edition <!-- fact:java.version -->26.3<!-- /fact --> ships <!-- fact:java.datapack.structures -->52<!-- /fact --> structures over <!-- fact:java.datapack.structures.types -->16<!-- /fact --> types, placed by <!-- fact:java.datapack.structureSets -->21<!-- /fact --> structure sets and grown out
+of <!-- fact:java.datapack.templatePools -->245<!-- /fact --> template pools. This page says which of them the server generates, how the generation is
 split, and where it differs from Java.
 
 The code is under `packages/prismarine/src/world/generators/datadriven/`, in the files whose names
@@ -88,7 +88,7 @@ item frame entity, so the elytra hangs in a `frame` block whose block entity hol
 
 ## Terrain adaptation
 
-29 structures carry a `terrain_adaptation` field, and Java reads it while the terrain is sampled
+<!-- fact:java.datapack.structures.terrainAdaptation -->29<!-- /fact --> structures carry a `terrain_adaptation` field, and Java reads it while the terrain is sampled
 rather than after. Each piece near the chunk adds a density contribution, so a village flattens
 the hillside under it and an ancient city hollows the rock around it. `javaStructureBeard.ts` is
 that function, and the generator fills it from the structure starts before the chunk's noise is
@@ -171,7 +171,7 @@ pnpm --filter @jsprismarine/bedrock-data run datagen:java
 pnpm --filter @jsprismarine/prismarine exec vitest run src/world/generators
 ```
 
-`datagen:java` also extracts the 1511 structure templates out of the pinned server jar;
+`datagen:java` also extracts the <!-- fact:java.templates -->1511<!-- /fact --> structure templates out of the pinned server jar;
 `pnpm --filter @jsprismarine/bedrock-data run extract:structures` does that step alone, for a
 checkout with no JDK. Without it the generator reads the templates from the jar, which means
 inflating all 17655 of its entries inside the first chunk that places one.

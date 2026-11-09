@@ -277,8 +277,8 @@ runner here is the vanilla dispatcher, joined to it in
 
 Know one thing before you invest in it. Vanilla ships zero functions in either edition, so running
 them buys no parity with either Minecraft. The Java 26.3 server jar has 9884 files under `data/minecraft/` and
-none of them is an `.mcfunction`; it has 883 tag files and none tags the function registry.
-`Mojang/bedrock-samples` at 1.26.50.4 has 22258 files, no `.mcfunction` and no `tick.json`. Both
+none of them is an `.mcfunction`; it has <!-- fact:java.datapack.tags -->883<!-- /fact --> tag files and none tags the function registry.
+`Mojang/bedrock-samples` at <!-- fact:samples.tag -->v1.26.50.4<!-- /fact --> has <!-- fact:samples.files -->22258<!-- /fact --> files, no `.mcfunction` and no `tick.json`. Both
 editions have a function runtime and neither uses it for vanilla gameplay. This one exists because
 datapack authors expect it, and because it is a place to write server behavior as data rather than
 as TypeScript.

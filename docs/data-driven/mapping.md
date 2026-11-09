@@ -71,8 +71,8 @@ It takes the numeric id or the Bedrock identifier, and returns `mapped`, a revie
 identifier the pinned data does not have is `unknown` whichever namespace it is in. The
 correspondence is not one to one in either direction. Five Java biomes share a Bedrock one, and
 the inverse names the Java biome that is not on the loss list, so `minecraft:the_end` comes back
-as `minecraft:the_end` rather than as `minecraft:end_barrens`. Going the other way, 27 of
-Bedrock's 89 biomes have no Java source at all; see `BEDROCK_BIOME_LOSSES` below.
+as `minecraft:the_end` rather than as `minecraft:end_barrens`. Going the other way, <!-- fact:mapping.bedrockBiomeLosses -->27<!-- /fact --> of
+Bedrock's <!-- fact:bedrock.biomes -->89<!-- /fact --> biomes have no Java source at all; see `BEDROCK_BIOME_LOSSES` below.
 
 One more lookup is a Bedrock overlay rather than a translation. Java describes a dimension in its
 `dimension_type` JSON, and the Bedrock client has three built-in dimensions with fixed integer ids,
@@ -176,9 +176,9 @@ biome stands in for a biome Java no longer has.
 `packages/mapping/src/mappingProperties.test.ts` adopts Chunker's five property tests, which run
 against the full generated tables on every test run:
 
-1. Every Java palette entry maps: all 1286 blocks and 35723 states (plus every item, entity type,
+1. Every Java palette entry maps: all <!-- fact:java.reports.blocks -->1286<!-- /fact --> blocks and <!-- fact:java.reports.blockStates -->35723<!-- /fact --> states (plus every item, entity type,
    biome, and enchantment) return `mapped` or a reviewed `loss`, never `unknown`. The biome
-   inverse runs the same way, over all 89 Bedrock biomes, by id and by identifier.
+   inverse runs the same way, over all <!-- fact:bedrock.biomes -->89<!-- /fact --> Bedrock biomes, by id and by identifier.
 2. Every output carries exactly the declared Bedrock state set for its target block.
 3. The mapping composed with the reverse index is identity, except for the reviewed loss list.
    Biomes round-trip through the generated inverse both ways rather than through an index the

@@ -58,13 +58,13 @@ This runs Mojang's data generator (`net.minecraft.data.Main --server --reports -
 fetched Java server jar, whose sha1 it re-checks against `sources.json` before executing it. One
 run writes both halves of the Java data, into the same cache the fetch stage uses:
 
-- `node_modules/.cache/jsprismarine/vanilla-datapack/<version>/`, the vanilla datapack, 8372 files.
+- `node_modules/.cache/jsprismarine/vanilla-datapack/<version>/`, the vanilla datapack, <!-- fact:java.datapack.files -->8372<!-- /fact --> files.
   `@jsprismarine/packs` loads it as the Java member of the pack stack, the overworld generator
   reads its `worldgen/*` registries and block tags, and the loot, advancement, predicate,
   enchantment and feature corpus suites read it.
 - `node_modules/.cache/jsprismarine/java-reports/<version>/generated/reports/`, the data reports,
-  1666 files. The mapping and item table generators read them, and the overworld generator reads
-  `biome_parameters` from them, the 7594 climate boxes that exist nowhere else.
+  <!-- fact:java.reports.files -->1666<!-- /fact --> files. The mapping and item table generators read them, and the overworld generator reads
+  `biome_parameters` from them, the <!-- fact:java.reports.climateBoxes -->7594<!-- /fact --> climate boxes that exist nowhere else.
 
 The generator writes no `pack.mcmeta`, so the step writes one from the `pack_version` the jar
 declares in its `version.json` (121.0 for 26.3). That file is what marks the directory as a
@@ -101,7 +101,7 @@ rewrites the goldens under `packages/bedrock-data/src/jsp/java/`:
   resistance, friction, light, map color, sound type, push reaction and the rest) for all 1286
   blocks, with state-invariant values once per block and per-state differences under
   `stateOverrides`.
-- `entity_attributes.json`: the default attribute values, dimensions and category for the 93 entity
+- `entity_attributes.json`: the default attribute values, dimensions and category for the <!-- fact:java.entityAttributes -->93<!-- /fact --> entity
   types with an attribute supplier.
 
 The dumper needs a JDK matching the jar's class file version (Java 25 for 26.3). It shares the

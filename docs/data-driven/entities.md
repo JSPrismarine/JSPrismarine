@@ -50,8 +50,8 @@ gated on `format_version`, and using one below its version loads anyway with a r
 event `filters` need 1.19.20, `queue_command` needs 1.20.60, `emit_particle` and `play_sound` need
 1.21.50, and `entity_version` with `upgrades` needs 1.26.20.
 
-The composed vanilla behavior pack of Bedrock Dedicated Server 1.26.51.1 holds 129 entity
-definitions, and all 129 parse without an error.
+The composed vanilla behavior pack of Bedrock Dedicated Server <!-- fact:bds.version -->1.26.51.1<!-- /fact --> holds <!-- fact:bedrock.entities -->129<!-- /fact --> entity
+definitions, and all <!-- fact:bedrock.entities -->129<!-- /fact --> parse without an error.
 
 ## A chicken, traced
 
@@ -416,7 +416,7 @@ The goals reach the world through `GoalWorld`, a 46-member interface covering si
 blocks, relationships and reporting. Every member is optional, and a goal whose world cannot answer
 what it needs refuses to start rather than throwing. The server answers all 46 today, which takes
 the inventory from 118 goals able to run to all 170; before the seam was finished, `hurt_by_target`
-(42 of the 129 vanilla entities carry it), `panic` (37), `breed` (26) and `mount_pathing` (26) could
+(42 of the <!-- fact:bedrock.entities -->129<!-- /fact --> vanilla entities carry it), `panic` (37), `breed` (26) and `mount_pathing` (26) could
 never start.
 
 ## Brain mobs, and why they are different

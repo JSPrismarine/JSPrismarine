@@ -19,9 +19,9 @@ pack formats at once, read [architecture.md](architecture.md) first;
 ## Why the gameplay rules come from Java
 
 Mojang publishes Java Edition's gameplay rules as data a server reads at load time. Bedrock keeps
-much of the same material in the engine. The behavior packs that Bedrock Dedicated Server
-1.26.51.1 ships carry 159 entity loot tables and 145 chest tables, but only 99 block tables, and
-96 of those are the colored concrete and wool slabs and stairs. Every other block's drops are
+much of the same material in the engine. The vanilla behavior pack that Bedrock Dedicated Server
+<!-- fact:bds.version -->1.26.51.1<!-- /fact --> ships, composed the way the server loads it, carries <!-- fact:bedrock.lootTables.entities -->122<!-- /fact --> entity loot tables and
+<!-- fact:bedrock.lootTables.chests -->61<!-- /fact --> chest tables, but only <!-- fact:bedrock.lootTables.blocks -->99<!-- /fact --> block tables, and 96 of those are the colored concrete and wool slabs and stairs. Every other block's drops are
 compiled in, and nothing in those packs is an advancement or an enchantment definition. Java
 publishes all of it as data.
 
@@ -85,7 +85,7 @@ overlay, its entity overlay, the Java vanilla datapack, then your `content-world
 
 ## Loot
 
-`@jsprismarine/loot` parses the 1447 vanilla tables once into closures and rolls them against a
+`@jsprismarine/loot` parses the <!-- fact:java.datapack.lootTables -->1447<!-- /fact --> vanilla tables once into closures and rolls them against a
 context. It owns the table grammar only: pools, entries, rolls and the order the three levels of
 modifier apply in. Every condition and item modifier inside a table is compiled by
 `@jsprismarine/predicates`, so the two packages share one grammar with advancements and
@@ -173,7 +173,7 @@ arrive under a name the Bedrock item registry does not have.
 
 ## Recipes
 
-`@jsprismarine/recipes` reads Java's 2042 recipe files and implements all 22 serializers that
+`@jsprismarine/recipes` reads Java's <!-- fact:java.datapack.recipes -->2042<!-- /fact --> recipe files and implements all 22 serializers that
 `RecipeSerializers` registers in the 26.3 jar. Vanilla uses every one of them. Eight of the 22 are
 the `crafting_special_*` serializers whose logic is Java code rather than fields in the file, and
 four more (`crafting_transmute`, `crafting_dye`, `crafting_imbue`, `crafting_decorated_pot`) are
@@ -206,8 +206,8 @@ sends everything.
 
 ## Advancements
 
-`@jsprismarine/advancements` parses the 1866 vanilla files into a tree with their rewards and
-requirements, and implements all 58 registered trigger types. Vanilla uses 54 of them across 4045
+`@jsprismarine/advancements` parses the <!-- fact:java.datapack.advancements -->1866<!-- /fact --> vanilla files into a tree with their rewards and
+requirements, and implements all 58 registered trigger types. Vanilla uses <!-- fact:java.datapack.advancements.triggers -->54<!-- /fact --> of them across <!-- fact:java.datapack.advancements.criteria -->4045<!-- /fact -->
 criteria. `requirements` is read as conjunctive normal form, so every group must hold at least one
 completed criterion, and a file with no `requirements` completes when every criterion does.
 
@@ -223,8 +223,8 @@ world, and a function is there only when something calls it. The seventeen it ra
 `enchanted_item`, `location`, `tick`, `changed_dimension`, `consume_item`,
 `item_durability_changed`, `default_block_use`, `any_block_use` and `item_used_on_block`.
 
-Those seventeen cover 2176 of vanilla's 4045 criteria, and because a recipe advancement completes
-on either of its two criteria, 1797 of the 1866 files have at least one path to completion that a
+Those seventeen cover 2176 of vanilla's <!-- fact:java.datapack.advancements.criteria -->4045<!-- /fact --> criteria, and because a recipe advancement completes
+on either of its two criteria, 1797 of the <!-- fact:java.datapack.advancements -->1866<!-- /fact --> files have at least one path to completion that a
 wired trigger can take. The remaining 69 have a requirement group with no wired criterion in it,
 so nothing can finish them. `adventure/sleep_in_bed`, `adventure/hero_of_the_village`,
 `adventure/bullseye`, `husbandry/breed_an_animal`, `husbandry/tame_an_animal`,
@@ -545,14 +545,14 @@ block entity; nothing rolls them.
 
 **Loot rolls get no content view and no enchantment registry.** `LootRegistry` is built without the
 optional content options, and the two drop paths pass no `enchantments` view, so the modifiers that
-need either fall back. `furnace_smelt` is the one you will notice: 16 vanilla tables use it, which
+need either fall back. `furnace_smelt` is the one you will notice: <!-- fact:java.datapack.lootTables.furnaceSmelt -->16<!-- /fact --> vanilla tables use it, which
 is why a cow that dies burning drops raw beef rather than steak. The five tables with an
 `exploration_map` and the 25 with `enchant_randomly` or `enchant_with_levels` are in the same
 position. Each reports a diagnostic and leaves the stack alone rather than failing the roll. Reading
 a Fortune or Looting level is unaffected, because the default view reads the
 `minecraft:enchantments` component straight off the stack.
 
-**41 of the 58 advancement triggers never fire.** The `recipes` reward on 1739 files is never paid
+**41 of the 58 advancement triggers never fire.** The `recipes` reward on <!-- fact:java.datapack.advancements.recipeRewards -->1739<!-- /fact --> files is never paid
 either. See the advancements section for which triggers are wired and why the rest are not.
 
 **Smithing trim and cooking recipes are held back from the wire.** Protocol 2193's

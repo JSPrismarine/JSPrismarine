@@ -58,7 +58,7 @@ categories; [parity.md](parity.md) explains how the claim is tested.
   manage.
 - [block-properties.md](block-properties.md): the per-state block property table dumped from the
   Java 26.3 jar and how the server reads it.
-- [structures.md](structures.md): which of Java's 52 structures the overworld generates, how
+- [structures.md](structures.md): which of Java's <!-- fact:java.datapack.structures -->52<!-- /fact --> structures the overworld generates, how
   placement and piece writing are split, and where the generation differs from Java.
 - [dimensions.md](dimensions.md): dimension types, level stems and world presets, the
   `worlds.<name>` config shape and its migration, the generator kinds, custom dimensions, portals
