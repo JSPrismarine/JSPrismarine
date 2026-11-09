@@ -30,6 +30,7 @@ export class GenerationGovernorDriver {
     private readonly now: () => number;
     private stop: (() => void) | undefined;
     private applied: number | undefined;
+    private appliedAt = Number.NEGATIVE_INFINITY;
     private lastSampleAt = Number.NEGATIVE_INFINITY;
     private throttledSince = 0;
 
@@ -59,11 +60,15 @@ export class GenerationGovernorDriver {
             this.throttledSince = 0;
             const limit = this.governor.observe({ latenessMs: sample.latenessMs, throttledDelta }, now);
 
-            // Applied when it changes, and again when a pool appears that has not seen it.
+            // Applied when it changes, and again every sample interval, because a pool the
+            // generator replaces after a failure starts without the limit and nothing else would
+            // tell it.
             const control = this.options.control();
-            if (control === undefined || this.applied === limit) return;
+            if (control === undefined) return;
+            if (this.applied === limit && now - this.appliedAt < THROTTLE_SAMPLE_INTERVAL_MS) return;
             control.setBackgroundLimit(limit);
             this.applied = limit;
+            this.appliedAt = now;
         });
     }
 
@@ -73,5 +78,6 @@ export class GenerationGovernorDriver {
         this.stop = undefined;
         this.options.control()?.setBackgroundLimit(undefined);
         this.applied = undefined;
+        this.appliedAt = Number.NEGATIVE_INFINITY;
     }
 }

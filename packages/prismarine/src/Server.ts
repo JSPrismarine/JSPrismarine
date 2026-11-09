@@ -989,6 +989,11 @@ export default class Server extends EventEmitter {
         return this.ticker.getTickMs();
     }
 
+    /** The background generation limit the governor currently asks for, when it is running. */
+    public getGenerationLimit(): number | undefined {
+        return this.generationGovernor?.active;
+    }
+
     /** The recent ticks' duration, lateness and phases. */
     public getTickRecorder(): TickRecorder {
         return this.ticker.recorder;

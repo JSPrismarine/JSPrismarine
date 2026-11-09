@@ -127,4 +127,33 @@ describe('GenerationGovernorDriver', () => {
         recorder.record(sample(0, 500));
         expect(limits).toHaveLength(1);
     });
+
+    it('gives a replacement pool the current limit within a sample interval', () => {
+        const recorder = new TickRecorder();
+        const first = recordingControl();
+        const second = recordingControl();
+        let current = first.control;
+        let now = 0;
+        const driver = new GenerationGovernorDriver({
+            recorder,
+            workers: 6,
+            control: () => current,
+            sampler: { sample: () => 0 },
+            now: () => now
+        });
+        driver.start();
+
+        now += 50;
+        recorder.record(sample(0, 1));
+        expect(first.limits).toEqual([2]);
+
+        // The generator abandoned its pool and opened another.
+        current = second.control;
+        now += 50;
+        recorder.record(sample(1, 1));
+        expect(second.limits).toEqual([]);
+        now += 1000;
+        recorder.record(sample(2, 1));
+        expect(second.limits).toHaveLength(1);
+    });
 });

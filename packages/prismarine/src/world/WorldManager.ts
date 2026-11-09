@@ -103,6 +103,12 @@ export default class WorldManager implements Service {
         this.addProvider('LevelDB', LevelDB);
 
         const config = this.server.getConfig();
+        const invalidHost = config.getInvalidChunkHost();
+        if (invalidHost !== undefined) {
+            this.server
+                .getLogger()
+                .warn(`chunk-host "${invalidHost}" is not process or in-process, so process is used`, 'WorldManager');
+        }
         const defaultName = config.getLevelName();
         // Throwing rather than warning-and-returning: `getDefaultWorld()` promises a world to
         // everyone downstream, and returning here would leave that promise unkept while the

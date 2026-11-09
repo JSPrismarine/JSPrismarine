@@ -154,6 +154,7 @@ const buildManager = (
                 getPreloadRadius: () => 0,
                 getChunkWorkers: () => chunkWorkers,
                 getChunkHost: () => 'in-process',
+                getInvalidChunkHost: () => undefined,
                 getTerrainCacheSizeMb: () => terrainCacheSizeMb,
                 getEntityTrackingInterval: () => 20
             }),

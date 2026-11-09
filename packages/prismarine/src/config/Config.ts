@@ -63,7 +63,7 @@ const COMMENTS = {
     'preload-radius': 'How many chunks around spawn to generate before accepting players. 0 skips it.',
     'chunk-workers': 'How many worker threads to use for chunk generation. 0 keeps it on the server thread.',
     'chunk-host':
-        'Where chunk generation workers run: process starts a separate low-priority generation process, in-process keeps them in the server process.',
+        'Where chunk generation workers run: process (the default) starts a separate low-priority generation process and falls back to threads when it cannot, in-process keeps them in the server process.',
     'terrain-cache-size-mb':
         'How many megabytes of generated terrain to keep on disk so it is not rebuilt after a restart. 0 turns the cache off.',
     'chunk-send-budget-ms': 'How long each tick may spend sending chunks, out of its 50 ms.',
@@ -116,7 +116,7 @@ const DEFAULTS = {
     'view-distance': 10,
     'preload-radius': 10,
     'chunk-workers': Math.max(0, chunkWorkerCount()),
-    'chunk-host': 'in-process',
+    'chunk-host': 'process',
     'terrain-cache-size-mb': 1024,
     'chunk-send-budget-ms': 5,
     'proximity-broadcast': true,
@@ -492,14 +492,24 @@ export class Config {
     /**
      * Where chunk generation workers run.
      *
-     * `process` starts a separate generation process at a lowered operating system priority and
-     * falls back to threads in the server process when it cannot. Anything else keeps the threads
-     * in the server process, which is the default.
+     * `process`, the default, starts a separate generation process at a lowered operating system
+     * priority and falls back to threads in the server process when it cannot. `in-process` keeps
+     * the threads in the server process. Any other value is treated as the default.
      *
      * @returns `process` or `in-process`
      */
     public getChunkHost(): 'process' | 'in-process' {
-        return this.chunkHost === 'process' ? 'process' : 'in-process';
+        return this.chunkHost === 'in-process' ? 'in-process' : 'process';
+    }
+
+    /**
+     * The configured `chunk-host` when it is neither `process` nor `in-process`, so the server can
+     * say so instead of quietly using the default.
+     *
+     * @returns The rejected value, or undefined when the setting is valid.
+     */
+    public getInvalidChunkHost(): string | undefined {
+        return this.chunkHost === 'process' || this.chunkHost === 'in-process' ? undefined : String(this.chunkHost);
     }
 
     /**

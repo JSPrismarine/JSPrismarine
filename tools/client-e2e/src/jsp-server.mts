@@ -342,6 +342,8 @@ export const startServer = async (
         },
         'content-world-packs': [behaviorPack],
         'content-datapacks': [datapack],
+        // `JSP_E2E_CHUNK_HOST=process` runs chunk generation in the generation host process.
+        'chunk-host': process.env.JSP_E2E_CHUNK_HOST === 'process' ? 'process' : 'in-process',
         'preload-radius': options.preloadRadius ?? 0,
         // The default reserves two cores for gameplay and networking, which leaves a three-core
         // CI runner one worker for the noise Overworld, and the client then waits on its loading

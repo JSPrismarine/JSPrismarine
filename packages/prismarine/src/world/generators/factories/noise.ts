@@ -91,7 +91,9 @@ const openShared = (registries: JavaWorldgenRegistries, context: GeneratorBuildC
     context.logger.info(
         stages === undefined
             ? 'Generating terrain and features on the server thread (chunk-workers: 0)'
-            : `Generating terrain and features in up to §b${workers}§r worker thread(s), started on demand`
+            : stages.host === 'process'
+              ? `Generating terrain and features in a generation process with up to §b${workers}§r worker(s), started on demand`
+              : `Generating terrain and features in up to §b${workers}§r worker thread(s), started on demand`
     );
     return built;
 };
