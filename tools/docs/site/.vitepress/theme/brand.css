@@ -184,3 +184,13 @@
 .vp-doc td > code {
     white-space: nowrap;
 }
+
+/* The source's last commit date, set in mono beside the edit link. */
+.VPLastUpdated {
+    font: 12px var(--vp-font-family-mono) !important;
+    color: var(--vp-c-text-2) !important;
+}
+
+.VPLastUpdated time {
+    margin-left: 0.5em;
+}

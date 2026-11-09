@@ -47,6 +47,11 @@ jobs:
             TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
         steps:
             - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+              with:
+                  # Full history and tags: each page's "Updated" date is its source's last commit, and
+                  # the releases page dates each version by its tag. A shallow clone dates every page
+                  # by the newest commit.
+                  fetch-depth: 0
 
             - name: 📦 Install
               uses: ./.github/common/install

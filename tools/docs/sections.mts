@@ -1,3 +1,4 @@
+import { execFileSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -67,4 +68,30 @@ export function pageSource(relativePath: string): { path: string; kind: 'file' |
     if (api) return { path: `packages/${api[1]}/src`, kind: 'folder' };
 
     return { path: `tools/docs/site/${relativePath}`, kind: 'file' };
+}
+
+const commitTimes = new Map<string, number | undefined>();
+
+/**
+ * When a page's repository source last changed, in milliseconds, from its newest commit. Staged pages
+ * are copies, so their own files carry no history; this reads the file or folder they come from. A
+ * path outside git history, or a checkout without git, yields undefined.
+ */
+export function sourceUpdatedAt(relativePath: string) {
+    const { path: source } = pageSource(relativePath);
+    if (!commitTimes.has(source)) {
+        let time: number | undefined;
+        try {
+            const seconds = execFileSync('git', ['log', '-1', '--format=%ct', '--', source], {
+                cwd: repoRoot,
+                encoding: 'utf8',
+                stdio: ['ignore', 'pipe', 'ignore']
+            }).trim();
+            time = seconds ? Number(seconds) * 1000 : undefined;
+        } catch {
+            time = undefined;
+        }
+        commitTimes.set(source, time);
+    }
+    return commitTimes.get(source);
 }

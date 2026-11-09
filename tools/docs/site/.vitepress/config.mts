@@ -5,7 +5,7 @@ import mcfunction from './mcfunction.tmLanguage.json';
 import molang from './molang.tmLanguage.json';
 import typedocSidebar from '../api/typedoc-sidebar.json';
 import { megaMenus, nav } from './menus.mts';
-import { isStagedPage, pageSource } from '../../sections.mts';
+import { isStagedPage, pageSource, sourceUpdatedAt } from '../../sections.mts';
 import { colorSwatchPlugin, colorSwatchTransformer } from './colorSwatches.ts';
 import { sidebar } from './sidebar.mts';
 import { prismSvg } from './theme/prism.ts';
@@ -40,6 +40,7 @@ export default defineConfig({
             }
         ]
     ],
+    lastUpdated: true,
     sitemap: { hostname: siteUrl },
     /** Per-page Open Graph title, description and URL, so shared links preview the page itself. */
     transformPageData(pageData, { siteConfig }) {
@@ -55,6 +56,9 @@ export default defineConfig({
         );
         // VitePress serializes theme config functions into the client bundle, so the edit link is resolved
         // here at build time and read by the theme's EditSource component.
+        // The copy's own git date is meaningless, so date the page by the source it was built from.
+        const updatedAt = sourceUpdatedAt(pageData.relativePath);
+        if (updatedAt) pageData.lastUpdated = updatedAt;
         const source = pageSource(pageData.relativePath);
         pageData.frontmatter.editSource = {
             kind: source.kind,
@@ -96,6 +100,7 @@ export default defineConfig({
             ...(discordInvite ? [{ icon: 'discord', link: discordInvite }] : [])
         ],
         search: { provider: 'local' },
+        lastUpdated: { text: 'Updated', formatOptions: { dateStyle: 'medium' } },
         footer: { message: `Released under the ${manifest.license} license.` }
     }
 });
