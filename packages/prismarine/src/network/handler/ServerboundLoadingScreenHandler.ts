@@ -43,10 +43,15 @@ export default class ServerboundLoadingScreenHandler implements PacketHandler<Se
                   ? `, not screen ${pending.loadingScreenId} of the pending dimension change`
                   : '';
 
+        const released =
+            data.loadingScreenType === ServerboundLoadingScreenPacketType.StartLoadingScreen &&
+            data.loadingScreenId !== null &&
+            (await session.releaseArrivalChunks(data.loadingScreenId));
+
         server
             .getLogger()
             .debug(
-                `${session.getPlayer().getName()} ${edge} ${screen}${known}`,
+                `${session.getPlayer().getName()} ${edge} ${screen}${known}${released ? '; sending its arrival columns' : ''}`,
                 'ServerboundLoadingScreenHandler/handle'
             );
 

@@ -209,6 +209,13 @@ export interface PendingDimensionChange {
  */
 const LOADING_SCREEN_TIMEOUT_TICKS = 1200;
 
+/**
+ * The longest a dimension change holds its first columns back waiting for the client to open the
+ * change's loading screen: two seconds. A client that never reports it, such as one whose player
+ * is dead and so shows no screen, gets its columns after this instead of not at all.
+ */
+const ARRIVAL_HOLD_TICKS = 40;
+
 /** The block position a `PlayerActionPacket` carries when the action has no block. */
 const NO_BLOCK = { x: 0, y: 0, z: 0 };
 
@@ -404,7 +411,14 @@ export default class PlayerSession {
      * The world change the client is still loading into, with the dimension name it left for
      * the advancement hook. See {@link PlayerSession.changeWorld}.
      */
-    private pendingChange: (PendingDimensionChange & { left: string; sinceTick: number }) | undefined;
+    private pendingChange:
+        | (PendingDimensionChange & {
+              left: string;
+              sinceTick: number;
+              /** Whether the arrival columns may go out; see {@link PlayerSession.releaseArrivalChunks}. */
+              arrivalReleased?: boolean;
+          })
+        | undefined;
     /** The move a caller asked for while {@link pendingChange} was open, run once it closes. */
     private queuedChange: Arrival | undefined;
 
@@ -647,6 +661,19 @@ export default class PlayerSession {
                 );
             this.endLoadingScreen(pending.loadingScreenId);
             await this.completeDimensionChange(pending.loadingScreenId);
+        } else if (
+            pending !== undefined &&
+            pending.arrivalReleased !== true &&
+            tick - pending.sinceTick >= ARRIVAL_HOLD_TICKS
+        ) {
+            this.server
+                .getLogger()
+                .debug(
+                    `${this.player.getName()} has not opened loading screen ${pending.loadingScreenId}; sending its arrival columns anyway`,
+                    'PlayerSession/update'
+                );
+            pending.arrivalReleased = true;
+            await this.flush();
         }
 
         if (!this.player.viewDistance) return;
@@ -784,6 +811,8 @@ export default class PlayerSession {
 
     /** Sends one queued batch after any earlier batch has finished. */
     private async flushQueuedChunks(): Promise<void> {
+        // Kept queued, not sent, until the client has opened the change's loading screen.
+        if (this.holdsArrivalChunks()) return;
         const chunksToSend = this.chunkSendQueue.splice(0, this.chunkSendQueue.length);
         if (chunksToSend.length === 0) return;
         const epoch = this.chunkEpoch;
@@ -2192,6 +2221,37 @@ export default class PlayerSession {
      */
     public pendingCreditsArrival(): Arrival | undefined {
         return this.pendingCredits;
+    }
+
+    /**
+     * Lets the columns of a pending dimension change go out, once the client says it has opened
+     * that change's loading screen, and sends the ones already waiting.
+     *
+     * Until then they are held. A client that decodes a column before it has switched dimension
+     * files it under the dimension it is leaving and drops it at the switch, then waits on its
+     * loading screen for a column the server believes it has: cinnabar did this on about one full
+     * e2e run in two. The client reports the screen open only after its switch has begun, so a
+     * column sent from then on lands in the new dimension. Sending the lost ones again is not a
+     * remedy: in sub chunk request mode a second `LevelChunk` resets the column the client holds,
+     * and a player standing on it falls through. {@link ARRIVAL_HOLD_TICKS} bounds the wait for a
+     * client that never reports the screen.
+     * @param loadingScreenId - The id the client's `StartLoadingScreen` carried.
+     * @returns Whether this released the pending change's columns. Any other id changes nothing.
+     */
+    public async releaseArrivalChunks(loadingScreenId: number): Promise<boolean> {
+        const pending = this.pendingChange;
+        if (pending === undefined || pending.loadingScreenId !== loadingScreenId || pending.arrivalReleased === true) {
+            return false;
+        }
+        pending.arrivalReleased = true;
+        await this.flush();
+        return true;
+    }
+
+    /** Whether a pending dimension change is holding its columns back. */
+    private holdsArrivalChunks(): boolean {
+        const pending = this.pendingChange;
+        return pending !== undefined && pending.arrivalReleased !== true;
     }
 
     /**

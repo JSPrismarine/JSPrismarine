@@ -101,6 +101,12 @@ const inputAt = (position: Vector3): PlayerAuthInputPacket =>
         )
     );
 
+const screenOpened = (id: number) =>
+    new ServerboundLoadingScreenPacket({
+        loadingScreenType: ServerboundLoadingScreenPacketType.StartLoadingScreen,
+        loadingScreenId: id
+    });
+
 const screenClosed = (id: number) =>
     new ServerboundLoadingScreenPacket({
         loadingScreenType: ServerboundLoadingScreenPacketType.EndLoadingScreen,
@@ -318,11 +324,60 @@ describe('PlayerSession.changeWorld', () => {
 
         await session.changeWorld(arrivalIn(worldOf(Dimensions.Nether)));
         await session.deliver(6, -2);
-        await session.flush();
+        await session.releaseArrivalChunks(session.pendingDimensionChange()!.loadingScreenId);
 
         const chunks = sent.filter((p) => p instanceof LevelChunkPacket);
         expect(chunks.length).toBeGreaterThan(0);
         expect(chunks.every((p) => p.getPacketData()?.dimension === Dimensions.Nether.bedrockId)).toBe(true);
+    });
+
+    /** Delivers everything queued, the way the scheduler would, and reports how many columns went. */
+    const drain = async (session: ReturnType<ReturnType<typeof fakePlayer>['player']['getNetworkSession']>) => {
+        let delivered = 0;
+        for (let next = session.sender.next(); next !== null; next = session.sender.next()) {
+            await session.deliver(next.x, next.z);
+            delivered++;
+        }
+        await session.flush();
+        return delivered;
+    };
+
+    it('holds the arrival columns until the client opens the change screen, then sends each once', async () => {
+        const { player, server, sent } = fakePlayer();
+        const session = player.getNetworkSession();
+        const screens = new ServerboundLoadingScreenHandler();
+        const levelChunks = () => sent.filter((p) => p instanceof LevelChunkPacket);
+
+        await session.changeWorld(arrivalIn(worldOf(Dimensions.Nether)));
+        const id = session.pendingDimensionChange()!.loadingScreenId;
+        const queued = await drain(session);
+        expect(queued).toBeGreaterThan(0);
+        // A client still switching would file these under the dimension it is leaving.
+        expect(levelChunks()).toHaveLength(0);
+
+        await screens.handle(screenOpened(id), server, session);
+        const columns = levelChunks().map((p) => `${p.getPacketData()?.chunkX},${p.getPacketData()?.chunkZ}`);
+        expect(columns).toHaveLength(queued);
+        expect(new Set(columns).size).toBe(columns.length);
+
+        // Another id, or the same screen reported again, changes nothing.
+        expect(await session.releaseArrivalChunks(id + 1)).toBe(false);
+        expect(await session.releaseArrivalChunks(id)).toBe(false);
+    });
+
+    it('sends the held columns after forty ticks to a client that never opens the screen', async () => {
+        const { player, sent } = fakePlayer();
+        const session = player.getNetworkSession();
+        const levelChunks = () => sent.filter((p) => p instanceof LevelChunkPacket).length;
+
+        await session.changeWorld(arrivalIn(worldOf(Dimensions.Nether)));
+        const queued = await drain(session);
+
+        // Counted in ticks, not time.
+        await session.update(39);
+        expect(levelChunks()).toBe(0);
+        await session.update(40);
+        expect(levelChunks()).toBe(queued);
     });
 
     it('drops the client input until the screen it was given closes, and ignores another id', async () => {

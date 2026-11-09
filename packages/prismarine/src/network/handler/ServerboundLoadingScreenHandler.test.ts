@@ -19,6 +19,7 @@ const fakeSession = ({ open = [], pending }: { open?: number[]; pending?: number
     const server = stub<Server>({
         getLogger: () => stub<Logger>({ debug: (...message) => void logged.push(message[0] ?? '') })
     });
+    const released: number[] = [];
     const session = stub<PlayerSession>({
         getPlayer: () => stub<Player>({ getName: () => 'Steve' }),
         endLoadingScreen: (id) => {
@@ -30,10 +31,14 @@ const fakeSession = ({ open = [], pending }: { open?: number[]; pending?: number
         completeDimensionChange: async (id) => {
             completed.push(id);
             return id === pending;
+        },
+        releaseArrivalChunks: async (id) => {
+            released.push(id);
+            return id === pending;
         }
     });
 
-    return { logged, ended, completed, server, session };
+    return { logged, ended, completed, released, server, session };
 };
 
 describe('ServerboundLoadingScreenHandler', () => {
@@ -101,16 +106,30 @@ describe('ServerboundLoadingScreenHandler', () => {
         expect(logged).toEqual(['Steve closed loading screen 9, which this session never opened']);
     });
 
-    it('only logs an opening, since the session already knows the id', () => {
-        const { logged, ended, server, session } = fakeSession({ open: [3] });
+    it('logs an opening and closes nothing, since the session already knows the id', async () => {
+        const { logged, ended, released, server, session } = fakeSession({ open: [3] });
         const packet = new ServerboundLoadingScreenPacket({
             loadingScreenType: ServerboundLoadingScreenPacketType.StartLoadingScreen,
             loadingScreenId: 3
         });
 
-        new ServerboundLoadingScreenHandler().handle(packet, server, session);
+        await new ServerboundLoadingScreenHandler().handle(packet, server, session);
 
         expect(ended).toEqual([]);
+        expect(released).toEqual([3]);
         expect(logged).toEqual(['Steve opened loading screen 3']);
+    });
+
+    it("releases the pending change's arrival columns when its screen opens", async () => {
+        const { logged, released, server, session } = fakeSession({ open: [3], pending: 3 });
+        const packet = new ServerboundLoadingScreenPacket({
+            loadingScreenType: ServerboundLoadingScreenPacketType.StartLoadingScreen,
+            loadingScreenId: 3
+        });
+
+        await new ServerboundLoadingScreenHandler().handle(packet, server, session);
+
+        expect(released).toEqual([3]);
+        expect(logged).toEqual(['Steve opened loading screen 3; sending its arrival columns']);
     });
 });
