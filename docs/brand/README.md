@@ -10,7 +10,8 @@ each component live from the same source.
 | Mark geometry            | `tools/docs/site/.vitepress/theme/prism.ts`   |
 | Derived shades and sizes | `tools/docs/site/.vitepress/theme/brand.css`  |
 | Components               | `tools/docs/site/.vitepress/theme/components/` |
-| Project facts            | `tools/docs/site/project.data.mts`            |
+| Project facts            | `tools/docs/project.mts`                      |
+| Docs facts               | `tools/docs/facts.mts`                        |
 | Release notes            | `tools/docs/site/releases.data.mts`           |
 
 ## Position
@@ -30,17 +31,17 @@ Four audiences use the site. Each page should make clear which one it serves:
 
 ## Color
 
-The accent is `#5ca48a`, shared with the JSPrismarine website. Every other color supports it.
+The accent is <!-- fact:palette.accent -->`#5ca48a`<!-- /fact -->, shared with the JSPrismarine website. Every other color supports it.
 
 | Token          | Hex       | Use                                                      |
 | -------------- | --------- | -------------------------------------------------------- |
-| `--jsp-accent` | `#5ca48a` | Primary accent: buttons, highlights, active states.      |
-| `--jsp-forest` | `#003829` | Dark brand surface and light-mode link color.            |
-| `--jsp-deep`   | `#00281d` | Darkest surface: tile backgrounds and shadows.           |
-| `--jsp-mint`   | `#a9d9c6` | Body text on forest and the light facet of the mark.     |
-| `--jsp-cream`  | `#efe9da` | Light surface and text on dark.                          |
-| `--jsp-ink`    | `#0b1713` | Text on light and the terminal surface.                  |
-| `--jsp-signal` | `#ff6b3d` | Spot color for prompts, cursors and the core of the mark. |
+| `--jsp-accent` | <!-- fact:palette.accent -->`#5ca48a`<!-- /fact --> | Primary accent: buttons, highlights, active states.      |
+| `--jsp-forest` | <!-- fact:palette.forest -->`#003829`<!-- /fact --> | Dark brand surface and light-mode link color.            |
+| `--jsp-deep`   | <!-- fact:palette.deep -->`#00281d`<!-- /fact --> | Darkest surface: tile backgrounds and shadows.           |
+| `--jsp-mint`   | <!-- fact:palette.mint -->`#a9d9c6`<!-- /fact --> | Body text on forest and the light facet of the mark.     |
+| `--jsp-cream`  | <!-- fact:palette.cream -->`#efe9da`<!-- /fact --> | Light surface and text on dark.                          |
+| `--jsp-ink`    | <!-- fact:palette.ink -->`#0b1713`<!-- /fact --> | Text on light and the terminal surface.                  |
+| `--jsp-signal` | <!-- fact:palette.signal -->`#ff6b3d`<!-- /fact --> | Spot color for prompts, cursors and the core of the mark. |
 
 `tokens.ts` is the authority for these values. The site config writes them into the page head as the
 `--jsp-*` custom properties and builds the favicon from them, and `brand.css` mixes the supporting
@@ -136,6 +137,11 @@ The build fails when a command, package or source pattern the page relies on dis
 preview uses the server's real startup log lines. `ParityBars` reads the tracker snapshot and shows
 the gameplay behavior score that the parity tracker page leads with, not the data-table pass rate.
 To add a claim to the page, add it to the loader rather than typing the value into a component.
+
+Markdown pages follow the same rule through docs facts. A value the code owns is wrapped in a
+marker, such as `<!-- fact:protocol.newest -->2225<!-- /fact -->`, which GitHub hides. The docs build
+fills in the current value from `tools/docs/facts.mts`, so the site stays right when the code
+changes; `pnpm run docs:facts` refreshes the values in the Markdown.
 
 ## Changing the brand
 

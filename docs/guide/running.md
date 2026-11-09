@@ -57,14 +57,14 @@ about an unrecognized app; choose **More info**, then **Run anyway**.
 
 The first start in a folder needs a network connection and takes a minute. The server unpacks the
 data it carries (Mojang's Java Edition world generation data and this project's packs), then
-downloads the vanilla behavior pack from Mojang's Bedrock Dedicated Server (about 95 MB), checking
+downloads the vanilla behavior pack from Mojang's Bedrock Dedicated Server (about <!-- fact:bds.size -->95 MB<!-- /fact -->), checking
 its digest. Mojang's license does not allow shipping that pack inside the executable. Both land in
 `node_modules/.cache/jsprismarine/` in that folder, so later starts need no network. On a machine
 that cannot reach Mojang's servers, set `JSP_VANILLA_BEHAVIOR_PACK` to a copy of a Bedrock
 Dedicated Server `behavior_packs` folder.
 
 The server then creates `config.json`, its player lists and `worlds/` in the same folder and starts
-listening on UDP port 19132. Players add it in Minecraft under **Servers → Add Server** with your
+listening on UDP port <!-- fact:server.port -->19132<!-- /fact -->. Players add it in Minecraft under **Servers → Add Server** with your
 machine's address. In a terminal, it opens the [terminal UI](#4-console); under a service manager,
 in Docker or with `--no-tui`, it uses the plain line console.
 
@@ -80,7 +80,7 @@ a checkout.
 
 ## 1. Prerequisites
 
-*   1.1 Node.js `>=26.4.0` and pnpm `>=12`. The terminal UI loads `node:ffi` by default on
+*   1.1 Node.js <!-- fact:node.minimum -->`26.4.0`<!-- /fact --> or newer and pnpm <!-- fact:pnpm.minimum -->`12`<!-- /fact --> or newer. The terminal UI loads `node:ffi` by default on
     Node 26.9 or newer. Node versions 26.4 through 26.8 require `--experimental-ffi`. If Node cannot
     load `node:ffi`, the server uses the plain line console (see [Console](#4-console)).
 
@@ -104,7 +104,7 @@ Edition world generation data. That data is not shipped with this server; it com
 pinned Java Edition server jar that `pnpm run dev` fetches and runs Mojang's data generator
 against, caching the result under `node_modules/.cache/jsprismarine/`.
 
-This happens automatically the first time you run `pnpm run dev`, and takes a 62 MB download and
+This happens automatically the first time you run `pnpm run dev`, and takes a <!-- fact:java.size -->62 MB<!-- /fact --> download and
 a couple of minutes. Afterwards the step compares a few file names and exits, so later runs are
 instant and need no network.
 

@@ -18,11 +18,11 @@ generators in `packages/mapping/`. This page documents the stages as they exist 
 `packages/bedrock-data/sources.json` is the manifest. Every entry is a version, a URL and a hash,
 so a build is reproducible and an edition bump is an edit to this one file. The pins:
 
-- `bds`: the Linux Bedrock Dedicated Server 1.26.51.1 zip, the only publication with features,
+- `bds`: the Linux Bedrock Dedicated Server <!-- fact:bds.version -->1.26.51.1<!-- /fact --> zip, the only publication with features,
   feature rules, structures and worldgen data, with its measured sha256.
-- `bedrockSamples`: Mojang/bedrock-samples at tag v1.26.50.4, the plain-JSON publication of the
+- `bedrockSamples`: Mojang/bedrock-samples at tag <!-- fact:samples.tag -->v1.26.50.4<!-- /fact -->, the plain-JSON publication of the
   vanilla packs, read for data the BDS zip stores as undocumented binary.
-- `javaServer`: the Java Edition 26.3 server jar, with Mojang's own sha1 from piston-meta plus a
+- `javaServer`: the Java Edition <!-- fact:java.version -->26.3<!-- /fact --> server jar, with Mojang's own sha1 from piston-meta plus a
   measured sha256. Its data generator emits the vanilla datapack and the reports.
 - `vanillaMcdoc`: the SpyglassMC/vanilla-mcdoc commit the Java half of the pack loader validates
   datapack JSON against, through `@spyglassmc/mcdoc`.

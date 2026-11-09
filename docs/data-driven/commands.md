@@ -28,7 +28,7 @@ them once per matched entity.
 
 Bedrock 1.26.50 publishes its whole command set as data rather than as code. The file is
 `metadata/command_modules/mojang-commands.json` in `Mojang/bedrock-samples`, pinned by
-`packages/bedrock-data/sources.json` to tag `v1.26.50.4`, and
+`packages/bedrock-data/sources.json` to tag <!-- fact:samples.tag -->`v1.26.50.4`<!-- /fact -->, and
 `packages/commands/src/tables/bedrockCommands.json` is generated from it. Nothing in that table is
 hand-written, and `packages/commands/src/bedrockTable.test.ts` asserts every count below:
 
@@ -80,15 +80,17 @@ all six shapes is in [the commands package README](../../packages/commands/READM
 
 ## What you can actually type
 
-`@jsprismarine/commands` implements 60 commands, and this server registers 53 of them:
+`@jsprismarine/commands` implements <!-- fact:commands.implemented -->61<!-- /fact --> commands, and this server registers <!-- fact:commands.registered -->56<!-- /fact --> of them:
 
+<!-- fact:commands.registered.list -->
 ```
-clear clone damage deop difficulty enchant execute fill function gamemode gamerule give help kick
-kill list loot me op particle playsound recipe reload say schedule scoreboard setblock
-setworldspawn spawnpoint spreadplayers stop stopsound summon tag teleport tell tellraw time title
-transfer weather xp random return camerashake daylock fog playanimation replaceitem testfor
-testforblock testforblocks titleraw
+execute summon kill teleport damage effect enchant gamemode give clear xp tag setblock fill clone
+time weather gamerule difficulty setworldspawn spawnpoint locate particle playsound stopsound
+spreadplayers loot function return schedule scoreboard random say me tell tellraw title op deop kick
+list stop reload transfer tick help recipe testfor testforblock testforblocks daylock titleraw
+replaceitem camerashake fog playanimation
 ```
+<!-- /fact -->
 
 The set does not vary. `/loot` and `/recipe` used to come and go with the pack stack, because both
 read Java data the content build loads; every server builds that content now, so both are always
@@ -121,7 +123,7 @@ The first is this server's named permissions, in `permissions.json`. A vanilla c
 `permissions.json` grants every player `minecraft.command.help`, `minecraft.command.list` and
 `minecraft.command.me`, and grants every operator `*`. The command list each player receives is
 filtered by these nodes, so a player who was granted nothing sees three Minecraft commands in their
-client rather than all 53.
+client rather than all <!-- fact:commands.registered -->56<!-- /fact -->.
 
 The second is the command's own permission level, which is Java's. The console runs at level 5, an
 operator at 4 and everyone else at 0. Most of the set is declared at level 1, which is Java's
@@ -130,10 +132,10 @@ and `/deop` sit higher still.
 
 ## What the server leaves out, and why
 
-Six commands are deliberately not wired. The rule the project follows is worth stating plainly,
+The server deliberately leaves <!-- fact:commands.unwired -->5<!-- /fact --> commands unwired. The rule the project follows is worth stating plainly,
 because it decides what you see when you type one: an unwired command is **not registered at all**.
 Nothing parses it, no alias is registered for it, and it never reaches your client's command list.
-Type `/effect give @s minecraft:speed` and you get `Unknown command. Type "/help" for help.` A
+Type <!-- fact:commands.unwired.example -->`/attribute`<!-- /fact --> and you get `Unknown command. Type "/help" for help.` A
 command that accepted your line and then quietly did nothing would be worse, because you would
 retype it.
 
@@ -141,14 +143,15 @@ The list lives in `UNWIRED_COMMANDS` in
 `packages/prismarine/src/command/vanillaCommands.ts`, keyed by command name with the reason beside
 it, so the gap closes by deleting a row:
 
-| Command      | What it would need                                                              |
-| ------------ | ------------------------------------------------------------------------------- |
-| `/attribute` | attribute modifiers; this server's `Attribute` holds one value and no stack     |
-| `/data`      | reading and writing NBT by path                                                 |
-| `/effect`    | a status effect system; `MobEffectPacket` is a wire type with nothing behind it |
-| `/item`      | item modifiers and Java-addressable inventory slots                             |
-| `/place`     | feature, jigsaw and structure placement outside the generator                   |
-| `/ride`      | entity riding outside the data-driven entity runtime                            |
+<!-- fact:commands.unwired.table -->
+| Command      | What it would need                                                                                    |
+| ------------ | ----------------------------------------------------------------------------------------------------- |
+| `/attribute` | attribute modifiers; this server's `Attribute` holds one value and no modifier stack                  |
+| `/data`      | reading and writing NBT by path                                                                       |
+| `/item`      | item modifiers and Java-addressable inventory slots                                                   |
+| `/place`     | feature, jigsaw and structure placement outside the generator, which places them as it writes a chunk |
+| `/ride`      | entity riding outside the data-driven entity runtime                                                  |
+<!-- /fact -->
 
 `vanillaCommands.test.ts` asserts that the registered set plus this table equals everything the
 package implements, so a command cannot fall out of both.
