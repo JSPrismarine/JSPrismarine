@@ -4,6 +4,41 @@ The goal is to generate several chunks per second per core while the server hold
 
 The reasoning and the sources are in [worldgen-pool-and-pipeline-architecture.md](../research/worldgen-pool-and-pipeline-architecture.md). The decision this plan builds on is [ADR 0002](../adr/0002-chunk-generation-architecture.md), and the slices there are in [chunk-generation-rewrite.md](chunk-generation-rewrite.md). This file is a draft. Slices 0 and 1 are specified in full because everything after them depends on what they measure, and the later slices are specified to the level that the evidence so far supports.
 
+## Progress
+
+Branch `t3/596e4adc`, 2026-11-09. Measurements and their load averages are in [worldgen-decoupling-baseline.md](../research/worldgen-decoupling-baseline.md). The host decision is [ADR 0005](../adr/0005-generation-host-process.md).
+
+| Slice | State | Where |
+| --- | --- | --- |
+| 0 measure | Done. Pool task stats, tick recorder, completion labels, preload phase in `bench:bot-fleet`. Tick cost of generation is inconclusive: the noise floor on a shared machine is several milliseconds. | `GenerationStats.ts`, `TickRecorder.ts`, `botFleetLoad.bench.ts` |
+| 1 completion path | Partly done. Fluid scan of background chunks is queued. The target (lower main-thread cost per chunk) is not met: translation 3.15 ms and lighting 0.89 ms per chunk stay on the thread. | `World.ts`, baseline note |
+| 2 host process | Done, opt-in (`chunk-host: process`). Digests identical across transports. | `HostedGenerationPool.ts`, `generationHost.ts`, `createGenerationTransport.ts` |
+| 3 governor | Done and unit tested, runs when `chunk-host` is `process`. Not observed acting in a benchmark, and the quota run in a container was not made. | `ConcurrencyGovernor.ts`, `GenerationGovernorDriver.ts` |
+| 4 work board | Not built, on purpose. | [slice 4 decision](worldgen-decoupling-slice4-decision.md) |
+| 5 throughput | Pick written: the terrain density graph first, after a profile inside a terrain task. | [first candidate](worldgen-throughput-first-candidate.md) |
+
+### Open items
+
+Each is a known gap, not a surprise. The first block is being worked in the order listed.
+
+1. A tick freeze with bot fleets connected during the preload: `World.entityUpdates` stuck on a `Player` with nothing outstanding in the pool. Cause unknown.
+2. Slice 1: move Bedrock translation and lighting off the server thread, or show why not.
+3. The governor limit is not re-applied to a replacement pool, and the benchmark does not report it.
+4. Tasks held by a pause bypass it when the host falls back. An invalid `chunk-host` value is silent.
+5. `chunk-host` default flips to `process` only after a client-e2e run passes with it.
+6. Not verified: host priority on Linux and Windows, the container quota run, a second Ctrl+C during a preload.
+
+### Resuming
+
+```sh
+pnpm install
+pnpm --filter @jsprismarine/bedrock-data run ensure:worldgen
+pnpm --filter @jsprismarine/prismarine run bench:bot-fleet -- --terrain real [--host process] [--preload-control]
+node --conditions=jsprismarine:dist benchmarks/runExternal.mjs benchmarks/chunkGeneration.ts <workers> 64 stages|stages-host 8 2 3 shared - local 32 1
+```
+
+Run benchmarks on an idle machine and keep the load average beside every figure. The two tests `WorldManager > loads every worlds entry` and `DimensionTravel ... respawn once the credits finish` fail on master as well.
+
 ## What "done" means
 
 Three numbers define success. The first two have fixed definitions and the third gets its value from slice 0.
