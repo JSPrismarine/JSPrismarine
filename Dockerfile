@@ -20,11 +20,17 @@ RUN npm install --global "$(node -p "require('./package.json').packageManager")"
 
 COPY . .
 
+# `supportedArchitectures` in `pnpm-workspace.yaml` installs the native binaries of every
+# platform, which is 3 GB of `node_modules` that this image never runs. The image installs only
+# its own platform's. pnpm checks the install before each `pnpm run` and would reinstall every
+# platform to match the workspace setting, so that check is off for the build.
+ENV pnpm_config_verify_deps_before_run=false
+
 # The overworld generator reads Java's worldgen data from `node_modules/.cache/jsprismarine`, and
 # without it the server cannot build the default world. `ensure:worldgen` fails the build rather
 # than ship an image that cannot start. The server jar it generates the data from is not needed
 # at run time, so it is removed.
-RUN pnpm install --frozen-lockfile \
+RUN pnpm install --frozen-lockfile --os linux --cpu "$(node -p process.arch)" --libc glibc \
     && pnpm --filter @jsprismarine/bedrock-data run generate \
     && pnpm --filter @jsprismarine/bedrock-data run ensure:worldgen \
     && rm -rf node_modules/.cache/jsprismarine/java-server \
