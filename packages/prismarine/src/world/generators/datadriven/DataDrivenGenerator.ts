@@ -2485,7 +2485,9 @@ export class DataDrivenGenerator implements Generator {
             pipeline.dimension.minY + pipeline.dimension.height - 1
         );
         const writer = starts.length === 0 ? undefined : createRegionStructureWriter(region, pipeline.level, clip);
-        DECORATION_STEPS.forEach((step, stepIndex) => {
+        // A loop rather than `forEach`: scriptc 0.4.10 aborts its analysis on this callback over the
+        // `as const` step list ("a narrowed value does not have the type its narrowing proved").
+        for (const [stepIndex, step] of DECORATION_STEPS.entries()) {
             if (writer !== undefined && pipeline.structures !== undefined) {
                 pipeline.structures.structuresInStep(step).forEach((structure, index) => {
                     const placing = starts.filter((start) => start.structure === structure);
@@ -2509,7 +2511,7 @@ export class DataDrivenGenerator implements Generator {
             }
 
             const stepFeatures = pipeline.featuresByStep[stepIndex];
-            if (stepFeatures === undefined) return;
+            if (stepFeatures === undefined) continue;
 
             const candidates = new Set<number>();
             for (const biome of palette) {
@@ -2531,7 +2533,7 @@ export class DataDrivenGenerator implements Generator {
                     origin
                 );
             }
-        });
+        }
     }
 
     /**
