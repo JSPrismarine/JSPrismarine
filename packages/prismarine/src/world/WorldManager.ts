@@ -478,22 +478,53 @@ export default class WorldManager implements Service {
      */
     public async worldFor(dimension: string): Promise<World> {
         const level = this.getDefaultLevel();
-        const wanted = dimensionByName(dimension)?.id ?? dimension;
-        const stems = level.getStems();
-
-        // By stem id first, which is how the vanilla three are named, then by the type a stem
-        // binds, which is how a pack's dimension is reached by the type it declares.
-        let stemId = stems.has(wanted) ? wanted : undefined;
-        for (const [id, stem] of stems) {
-            if (stemId !== undefined) break;
-            if (stem.type === wanted) stemId = id;
-        }
+        const stemId = this.stemIdOf(level, dimension);
         if (stemId === undefined) {
             throw new Error(
-                `Level ${level.name} has no ${dimension} dimension. It has: ${[...stems.keys()].join(', ')}`
+                `Level ${level.name} has no ${dimension} dimension. It has: ${[...level.getStems().keys()].join(', ')}`
             );
         }
         return level.world(stemId);
+    }
+
+    /**
+     * The default level's world of a dimension, starting its build when nobody has entered it.
+     *
+     * For a caller that cannot wait, such as a command writing blocks. The world answered may
+     * still be enabling, in which case it has no chunks loaded and a block read finds nothing,
+     * the way Java answers "That position is not loaded" for a dimension nobody is in. A caller
+     * that used to fall back to the default world here wrote the Nether's blocks into the
+     * Overworld instead.
+     *
+     * @param dimension - A Java `dimension_type` id, or the Bedrock spelling of a vanilla one.
+     * @returns The world, or undefined when no stem of the default level has that dimension.
+     */
+    public startWorld(dimension: string): World | undefined {
+        const ready = this.getWorldByDimension(dimension);
+        if (ready !== undefined) return ready;
+
+        const level = this.defaultLevel;
+        if (level === undefined) return undefined;
+        const stemId = this.stemIdOf(level, dimension);
+        if (stemId === undefined) return undefined;
+
+        // `Level.world` records the world before its first await, so it can be answered now.
+        level.world(stemId).catch((error: unknown) => {
+            this.server.getLogger().error(`Failed to build the ${dimension} dimension`);
+            this.server.getLogger().error(error);
+        });
+        return level.loadedWorld(stemId);
+    }
+
+    /** A stem by its id first, which is how the vanilla three are named, then by the type it binds. */
+    private stemIdOf(level: Level, dimension: string): string | undefined {
+        const wanted = dimensionByName(dimension)?.id ?? dimension;
+        const stems = level.getStems();
+        if (stems.has(wanted)) return wanted;
+        for (const [id, stem] of stems) {
+            if (stem.type === wanted) return id;
+        }
+        return undefined;
     }
 
     /**

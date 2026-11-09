@@ -29,11 +29,12 @@ describe('command entity references', () => {
         expect(entityRefOf(player).position).toEqual({ x: 2.5, y: 64, z: -1.5 });
     });
 
-    it('resolves `/execute in nether` against the default level, and falls back to the default world', () => {
+    it('resolves `/execute in nether` against the default level, and falls back only for an unknown dimension', () => {
         const overworld = stub<World>({ getDimension: () => Dimensions.Overworld });
         const nether = stub<World>({ getDimension: () => Dimensions.Nether });
         const worldManager = stub<WorldManager>({
-            getWorldByDimension: (dimension) => (dimension === 'minecraft:the_nether' ? nether : undefined),
+            // The Nether is a stem nobody has entered: started, and answered while it enables.
+            startWorld: (dimension) => (dimension === 'minecraft:the_nether' ? nether : undefined),
             getDefaultWorld: () => overworld
         });
         const server = stub<Server>({ getWorldManager: () => worldManager });

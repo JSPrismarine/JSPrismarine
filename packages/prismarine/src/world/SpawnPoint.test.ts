@@ -137,6 +137,7 @@ const buildScene = async (name: string) => {
             stub<WorldManager>({
                 getLevels: () => (level === undefined ? [] : [level]),
                 getWorldByDimension: (dimension) => (dimension === Dimensions.Overworld.id ? world : undefined),
+                startWorld: (dimension) => (dimension === Dimensions.Overworld.id ? world : undefined),
                 getDefaultWorld: () => world!
             }),
         broadcastPacket: async () => {},

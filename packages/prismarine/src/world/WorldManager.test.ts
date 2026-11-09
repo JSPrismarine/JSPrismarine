@@ -261,6 +261,28 @@ describe('WorldManager', () => {
         await manager.disable();
     });
 
+    it('starts a lazy dimension for a caller that cannot wait, and never answers another world for it', async () => {
+        const { manager, builds } = buildManager('main', {
+            main: entryOf({ [Dimensions.Nether.id]: { type: Dimensions.Nether.id, generator: { type: TEST_KIND } } })
+        });
+        await manager.enable();
+
+        // Answered at once, while it is still enabling: the Nether, not the Overworld it used to fall
+        // back to, which is how `execute in minecraft:nether run fill` wrote into the Overworld.
+        const started = manager.startWorld('minecraft:nether');
+        expect(started?.getDimension().id).toBe(Dimensions.Nether.id);
+        expect(started).not.toBe(manager.getDefaultWorld());
+
+        const nether = await manager.worldFor(Dimensions.Nether.id);
+        expect(nether).toBe(started);
+        expect(manager.startWorld(Dimensions.Nether.id)).toBe(nether);
+        expect(builds.get(`${TEST_KIND} ${Dimensions.Nether.id}`)).toBe(1);
+
+        // A dimension no stem names is not invented.
+        expect(manager.startWorld('mypack:sky')).toBeUndefined();
+        await manager.disable();
+    });
+
     it.skipIf(!JAVA_DATA)(
         'boots the default entry with three stems, the Overworld eager and the rest lazy',
         async () => {

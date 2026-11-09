@@ -82,14 +82,17 @@ export const dimensionIdOf = (world: World): string => world.getDimension().id;
 export const javaDimensionIdOf = (dimension: string): string => dimensionByName(dimension)?.id ?? dimension;
 
 /**
- * The world a dimension id names, among the default level's loaded worlds.
+ * The world a dimension id names, started if the default level has the stem but nobody has
+ * entered it yet.
  *
  * @param dimension - A Java `dimension_type` id, or the Bedrock spelling of a vanilla one.
- * @returns The default level's loaded world of that dimension, or the default world when
- *   there is none: a dimension nobody has entered yet, or one no stem names.
+ * @returns The default level's world of that dimension, which may still be enabling and then
+ *   has no chunks loaded, or the default world when no stem names the dimension.
  */
 export const worldOf = (server: Server, dimension: string): World =>
-    server.getWorldManager().getWorldByDimension(dimension) ?? server.getWorldManager().getDefaultWorld();
+    // A dimension the level has but nobody has entered is started, not swapped for the default
+    // world: `execute in minecraft:the_nether run fill` used to write into the Overworld.
+    server.getWorldManager().startWorld(dimension) ?? server.getWorldManager().getDefaultWorld();
 
 /**
  * The world a dimension id names, built if the default level has its stem but nobody has

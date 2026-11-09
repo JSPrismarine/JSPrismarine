@@ -153,7 +153,8 @@ const buildFixture = (): Fixture => {
             stub<WorldManager>({
                 getDefaultWorld: () => worlds.get(Dimensions.Overworld.id)!,
                 getDefaultLevel: () => level,
-                getWorldByDimension: (dimension) => worlds.get(dimension)
+                getWorldByDimension: (dimension) => worlds.get(dimension),
+                startWorld: (dimension) => worlds.get(dimension)
             })
     });
 

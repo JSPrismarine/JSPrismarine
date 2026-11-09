@@ -183,6 +183,7 @@ const buildFixture = (): Fixture => {
                 getDefaultLevel: () => level,
                 getLevels: () => [level],
                 getWorldByDimension: (dimension) => (dimension === Dimensions.Overworld.id ? world : undefined),
+                startWorld: (dimension) => (dimension === Dimensions.Overworld.id ? world : undefined),
                 worldFor: async (dimension) => {
                     if (dimension !== Dimensions.Nether.id) throw new Error(`no ${dimension} here`);
                     return nether;
