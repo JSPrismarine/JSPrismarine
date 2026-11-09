@@ -27,6 +27,9 @@ const BARE_CODE_PATTERNS: Array<{ pattern: RegExp; what: string }> = [
     }
 ];
 
+/** Trailers that credit Claude, which commits in this repository leave out. */
+const CLAUDE_ATTRIBUTION = /^(?:Claude-Session:|Co-authored-by:.*(?:claude|anthropic\.com))/im;
+
 const config: UserConfig = {
     extends: ['@commitlint/config-conventional'],
     plugins: [
@@ -37,6 +40,10 @@ const config: UserConfig = {
                     const valid = lines?.every((line) => /\bhttps?:\/\/\S+/.test(line) || line.length <= value) ?? true;
                     return [valid, `footer's lines must not be longer than ${value} characters`];
                 },
+                'no-claude-attribution': ({ raw }) => [
+                    !CLAUDE_ATTRIBUTION.test(raw ?? ''),
+                    'remove the Claude-Session and Claude Co-authored-by trailers'
+                ],
                 'subject-code-in-backticks': ({ header }) => {
                     const bare = stripCode(header ?? '');
                     const hits = BARE_CODE_PATTERNS.filter(({ pattern }) => pattern.test(bare)).map(({ what }) => what);
@@ -57,7 +64,8 @@ const config: UserConfig = {
         'scope-case': [2, 'always', 'kebab-case'],
         'body-max-line-length': [2, 'always', 100],
         'footer-max-line-length': [2, 'always', 100],
-        'subject-code-in-backticks': [2, 'always']
+        'subject-code-in-backticks': [2, 'always'],
+        'no-claude-attribution': [2, 'always']
     }
 };
 
