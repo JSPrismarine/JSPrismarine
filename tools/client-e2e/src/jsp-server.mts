@@ -10,6 +10,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { chunkWorkerCount } from '../../../packages/prismarine/src/world/generators/chunkConcurrency.ts';
 import { repoRoot } from './cinnabar.mts';
 
 /** A running scratch server: its address, console, log stream, and shutdown. */
@@ -342,6 +343,11 @@ export const startServer = async (
         'content-world-packs': [behaviorPack],
         'content-datapacks': [datapack],
         'preload-radius': options.preloadRadius ?? 0,
+        // The default reserves two cores for gameplay and networking, which leaves a three-core
+        // CI runner one worker for the noise Overworld, and the client then waits on its loading
+        // screen while that worker generates the spawn area alone. One idle player needs no such
+        // reserve.
+        ...(options.worldgenSpawn === true ? { 'chunk-workers': Math.max(2, chunkWorkerCount()) } : {}),
         'max-players': 4,
         motd: 'JSPrismarine e2e',
         'packet-full-flush-fragments': process.env.JSP_E2E_FULL_FLUSH_FRAGMENTS === '1'
