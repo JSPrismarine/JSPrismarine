@@ -19,8 +19,9 @@ concurrency:
 jobs:
     # A change that touches no package code or dependencies (docs, the docs site, other workflows)
     # skips every job below, and a skipped job passes branch rules. A push to master also skips
-    # each job the merged pull request already passed on the same tree, and `reused-coverage`
-    # uploads that run's coverage for the push instead.
+    # typecheck when the merged pull request already passed it on the same tree. The Vitest jobs
+    # never reuse a pull request's result: a pull request runs only the suites its diff reaches,
+    # so master runs them all.
     changes:
         name: Detect code changes
         runs-on: blacksmith-2vcpu-ubuntu-2404
@@ -31,7 +32,6 @@ jobs:
         outputs:
             code: ${{ steps.filter.outputs.code }}
             passed: ${{ steps.reuse.outputs.passed || '[]' }}
-            run-id: ${{ steps.reuse.outputs.run-id }}
         steps:
             # Pull requests list their files through the API; a push diffs against the previous commit.
             - uses: useblacksmith/checkout@v1
@@ -75,10 +75,13 @@ jobs:
     tests:
         name: 🧪 Tests (ubuntu-latest)
         needs: changes
-        if: ${{ needs.changes.outputs.code == 'true' && !contains(fromJSON(needs.changes.outputs.passed), '🧪 Tests (ubuntu-latest)') }}
+        if: ${{ needs.changes.outputs.code == 'true' }}
         runs-on: blacksmith-2vcpu-ubuntu-2404
         steps:
+            # `--changed` diffs against the merge base, so the history has to reach it.
             - uses: useblacksmith/checkout@v1
+              with:
+                  fetch-depth: 0
 
             - name: 📦 Install
               uses: ./.github/common/install
@@ -91,15 +94,20 @@ jobs:
                   restore-keys: |
                       ${{ runner.os }}-vitest-${{ hashFiles('pnpm-lock.yaml', 'vitest.config.ts', 'packages/**/vitest.config.ts') }}-
 
+            # A pull request runs the suites its diff reaches; master runs every suite.
             - name: 🧪 Test
-              run: pnpm run test --tagsFilter='!real-data && !performance'
+              env:
+                  CHANGED: ${{ github.event_name == 'pull_request' && format('--changed={0}', github.event.pull_request.base.sha) || '' }}
+              run: pnpm run test --tagsFilter='!real-data && !performance' $CHANGED
 
             - name: 🦺 Report Coverage to GitHub
               if: ${{ !cancelled() }}
               uses: davelosert/vitest-coverage-report-action@74c2d9210b4fc44c84d8213f61d7ec99837b7aa0 # v2.13.2
 
             # Named files only: a search also picked up the JSON summaries. Codecov merges this
-            # with the real-data and client e2e uploads of the same commit by flag.
+            # with the real-data and client e2e uploads of the same commit by flag. A pull request
+            # covers only the suites it ran, so it uploads under `unit-changed` and Codecov carries
+            # the base's full `unit` report forward beside it; see `codecov.yml`.
             - name: 🦺 Codecov Coverage Reports
               if: ${{ !cancelled() }}
               uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
@@ -108,7 +116,7 @@ jobs:
                   slug: JSPrismarine/JSPrismarine
                   files: coverage/lcov.info
                   disable_search: true
-                  flags: unit
+                  flags: ${{ github.event_name == 'pull_request' && 'unit-changed' || 'unit' }}
 
             - name: 🦺 Upload test results to Codecov
               if: ${{ !cancelled() }}
@@ -119,25 +127,14 @@ jobs:
                   report_type: test_results
                   files: junit.xml
                   disable_search: true
-                  flags: unit
-
-            # The push to master that merges this pull request skips this job and uploads these.
-            - name: 📤 Keep the reports for the merge
-              if: ${{ !cancelled() && github.event_name == 'pull_request' }}
-              uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-              with:
-                  name: codecov-unit
-                  path: |
-                      coverage/lcov.info
-                      junit.xml
-                  retention-days: 30
+                  flags: ${{ github.event_name == 'pull_request' && 'unit-changed' || 'unit' }}
 
     # The generation host is a forked process with a lowered operating system priority, and
     # forking, priorities and signals differ by platform. Linux runs these in the job above.
     generation-host:
         name: 🧵 Generation host (${{ matrix.os }})
         needs: changes
-        if: ${{ needs.changes.outputs.code == 'true' && !contains(fromJSON(needs.changes.outputs.passed), '🧵 Generation host') }}
+        if: ${{ needs.changes.outputs.code == 'true' }}
         strategy:
             fail-fast: false
             matrix:
@@ -145,12 +142,17 @@ jobs:
         runs-on: ${{ matrix.os }}
         steps:
             - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+              with:
+                  fetch-depth: 0
 
             - name: 📦 Install
               uses: ./.github/common/install
 
             - name: 🧪 Test
-              run: pnpm --filter @jsprismarine/chunkgen exec vitest run src/HostedGenerationPool.test.ts src/hostLifetime.test.ts src/ConcurrencyGovernor.test.ts
+              shell: bash
+              env:
+                  CHANGED: ${{ github.event_name == 'pull_request' && format('--changed={0}', github.event.pull_request.base.sha) || '' }}
+              run: pnpm --filter @jsprismarine/chunkgen exec vitest run src/HostedGenerationPool.test.ts src/hostLifetime.test.ts src/ConcurrencyGovernor.test.ts $CHANGED
 
     typecheck:
         name: 📃 Typecheck (ubuntu-latest)
@@ -173,7 +175,7 @@ jobs:
     real-data:
         name: 🗃️ Real data suites
         needs: changes
-        if: ${{ needs.changes.outputs.code == 'true' && !contains(fromJSON(needs.changes.outputs.passed), '🗃️ Real data suites') }}
+        if: ${{ needs.changes.outputs.code == 'true' }}
         runs-on: blacksmith-2vcpu-ubuntu-2404
         timeout-minutes: 90
         permissions:
@@ -181,6 +183,8 @@ jobs:
             pull-requests: write
         steps:
             - uses: useblacksmith/checkout@v1
+              with:
+                  fetch-depth: 0
 
             - name: 📦 Install
               uses: ./.github/common/install
@@ -246,7 +250,9 @@ jobs:
               run: node scripts/real-data-env.mts --github-env
 
             - name: 🧪 Test
-              run: pnpm exec vitest run --coverage --tagsFilter='real-data && !performance'
+              env:
+                  CHANGED: ${{ github.event_name == 'pull_request' && format('--changed={0}', github.event.pull_request.base.sha) || '' }}
+              run: pnpm exec vitest run --coverage --tagsFilter='real-data && !performance' $CHANGED
 
             - name: 🦺 Codecov Coverage Reports
               if: ${{ !cancelled() }}
@@ -256,7 +262,7 @@ jobs:
                   slug: JSPrismarine/JSPrismarine
                   files: coverage/lcov.info
                   disable_search: true
-                  flags: real-data
+                  flags: ${{ github.event_name == 'pull_request' && 'real-data-changed' || 'real-data' }}
 
             - name: 🦺 Upload test results to Codecov
               if: ${{ !cancelled() }}
@@ -267,18 +273,7 @@ jobs:
                   report_type: test_results
                   files: junit.xml
                   disable_search: true
-                  flags: real-data
-
-            # The push to master that merges this pull request skips this job and uploads these.
-            - name: 📤 Keep the reports for the merge
-              if: ${{ !cancelled() && github.event_name == 'pull_request' }}
-              uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-              with:
-                  name: codecov-real-data
-                  path: |
-                      coverage/lcov.info
-                      junit.xml
-                  retention-days: 30
+                  flags: ${{ github.event_name == 'pull_request' && 'real-data-changed' || 'real-data' }}
 
             - name: 📊 Publish the parity dashboard
               id: parity_dashboard
@@ -356,69 +351,3 @@ jobs:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
                   PARITY_BASELINE_REPORT_PATH: ${{ runner.temp }}/parity-base-report
               run: pnpm --filter @jsprismarine/parity run comment:pr
-
-    # Codecov has no reports for a push whose jobs were skipped as already passed, and carryforward
-    # would keep the previous master commit's instead. Upload the pull request run's reports here.
-    reused-coverage:
-        name: 🦺 Reuse pull request coverage
-        needs: changes
-        if: ${{ needs.changes.outputs.run-id != '' }}
-        runs-on: blacksmith-2vcpu-ubuntu-2404
-        permissions:
-            actions: read
-            contents: read
-        steps:
-            - uses: useblacksmith/checkout@v1
-
-            # An expired artifact leaves Codecov carrying the flag forward, which is no worse than
-            # before this job existed.
-            - name: ⬇️ Download the pull request reports
-              continue-on-error: true
-              uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
-              with:
-                  pattern: codecov-*
-                  path: ${{ runner.temp }}/reused
-                  run-id: ${{ needs.changes.outputs.run-id }}
-                  github-token: ${{ github.token }}
-
-            - name: 🦺 Codecov unit coverage
-              if: ${{ contains(fromJSON(needs.changes.outputs.passed), '🧪 Tests (ubuntu-latest)') }}
-              uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
-              with:
-                  token: ${{ secrets.CODECOV_TOKEN }}
-                  slug: JSPrismarine/JSPrismarine
-                  files: ${{ runner.temp }}/reused/codecov-unit/coverage/lcov.info
-                  disable_search: true
-                  flags: unit
-
-            - name: 🦺 Codecov unit test results
-              if: ${{ contains(fromJSON(needs.changes.outputs.passed), '🧪 Tests (ubuntu-latest)') }}
-              uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
-              with:
-                  token: ${{ secrets.CODECOV_TOKEN }}
-                  slug: JSPrismarine/JSPrismarine
-                  report_type: test_results
-                  files: ${{ runner.temp }}/reused/codecov-unit/junit.xml
-                  disable_search: true
-                  flags: unit
-
-            - name: 🦺 Codecov real-data coverage
-              if: ${{ contains(fromJSON(needs.changes.outputs.passed), '🗃️ Real data suites') }}
-              uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
-              with:
-                  token: ${{ secrets.CODECOV_TOKEN }}
-                  slug: JSPrismarine/JSPrismarine
-                  files: ${{ runner.temp }}/reused/codecov-real-data/coverage/lcov.info
-                  disable_search: true
-                  flags: real-data
-
-            - name: 🦺 Codecov real-data test results
-              if: ${{ contains(fromJSON(needs.changes.outputs.passed), '🗃️ Real data suites') }}
-              uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
-              with:
-                  token: ${{ secrets.CODECOV_TOKEN }}
-                  slug: JSPrismarine/JSPrismarine
-                  report_type: test_results
-                  files: ${{ runner.temp }}/reused/codecov-real-data/junit.xml
-                  disable_search: true
-                  flags: real-data

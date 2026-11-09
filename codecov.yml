@@ -14,6 +14,13 @@ flag_management:
         - name: unit
         - name: real-data
         - name: client-e2e
+        # A pull request runs only the suites its diff reaches and uploads them under these flags,
+        # so `unit` and `real-data` carry the base's full run forward and Codecov adds these hits
+        # on top. They are never carried forward: each commit counts only the suites it ran.
+        - name: unit-changed
+          carryforward: false
+        - name: real-data-changed
+          carryforward: false
 
 # Generated tables and benchmarks are not code the tests are meant to cover.
 ignore:
