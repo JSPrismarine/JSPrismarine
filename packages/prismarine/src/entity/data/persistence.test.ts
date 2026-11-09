@@ -77,7 +77,7 @@ describe('the data entity record', () => {
         };
         mount.body.containerSlots[1] = armor;
         mount.body.setEquipment({ body: armor });
-        mount.body.equipmentInventorySlots.body = 1;
+        mount.body.equipmentInventorySlots.set('body', 1);
 
         const record = dataEntityRecordIn(written(dataEntityRecordOf(mount, undefined)));
         if (record === undefined) throw new Error('the inventory mount record could not be read');
@@ -85,7 +85,7 @@ describe('the data entity record', () => {
 
         expect(restored?.body.containerSlots).toEqual([undefined, armor]);
         expect(restored?.body.equipment.body).toEqual(armor);
-        expect(restored?.body.equipmentInventorySlots.body).toBe(1);
+        expect(restored?.body.equipmentInventorySlots.get('body')).toBe(1);
         expect(restored?.body.containerCapacity).toBe(2);
     });
 

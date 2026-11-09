@@ -101,7 +101,14 @@ import { canBreed, offspringIdentifierOf, offspringOf, spendLove } from './breed
 import { DataEntity, MobBody, distance } from './DataEntity';
 import { EntityGrid } from './entityGrid';
 import { detonate } from './explosion';
-import { MOB_EQUIPMENT_SLOTS, mobEquipmentSlotOf, rollMobEquipment, sameEquipment, slotForItem } from '../equipment';
+import {
+    MOB_EQUIPMENT_SLOTS,
+    mobEquipmentSlotOf,
+    rollMobEquipment,
+    sameEquipment,
+    slotForItem,
+    withoutEquipmentSlot
+} from '../equipment';
 import type { MobEquipmentSlot } from '../equipment';
 import { EntityFactsLookup, javaLootIdOf, PLAYER_BOX } from './facts';
 import type { EntityFacts } from './facts';
@@ -842,13 +849,11 @@ export class EntityRuntime implements EntityScene {
                         const item = body.equipment[equipmentSlot];
                         if (item === undefined) return;
 
-                        const inventorySlot = body.equipmentInventorySlots[equipmentSlot];
-                        const equipment = { ...body.equipment };
-                        delete equipment[equipmentSlot];
-                        body.setEquipment(equipment);
+                        const inventorySlot = body.equipmentInventorySlots.get(equipmentSlot);
+                        body.setEquipment(withoutEquipmentSlot(body.equipment, equipmentSlot));
                         if (inventorySlot !== undefined) {
                             body.containerSlots[inventorySlot] = undefined;
-                            delete body.equipmentInventorySlots[equipmentSlot];
+                            body.equipmentInventorySlots.delete(equipmentSlot);
                         }
                         this.host.drop(blockPositionOf(body.position), item);
                     }
@@ -2775,14 +2780,12 @@ export class EntityRuntime implements EntityScene {
         const item = entity.body.equipment[slot];
         if (item === undefined) return undefined;
 
-        const projectedIndex = entity.body.equipmentInventorySlots[slot];
+        const projectedIndex = entity.body.equipmentInventorySlots.get(slot);
         if (projectedIndex !== undefined) {
             entity.body.containerSlots[projectedIndex] = undefined;
-            delete entity.body.equipmentInventorySlots[slot];
+            entity.body.equipmentInventorySlots.delete(slot);
         }
-        const equipment = { ...entity.body.equipment };
-        delete equipment[slot];
-        entity.body.setEquipment(equipment);
+        entity.body.setEquipment(withoutEquipmentSlot(entity.body.equipment, slot));
         return item;
     }
 
@@ -2798,7 +2801,7 @@ export class EntityRuntime implements EntityScene {
 
             const repaired = { ...item, damage: Math.max(0, item.damage - request.amount) };
             const equipment = { ...entity.body.equipment, [equipmentSlot]: repaired };
-            const projectedIndex = entity.body.equipmentInventorySlots[equipmentSlot];
+            const projectedIndex = entity.body.equipmentInventorySlots.get(equipmentSlot);
             if (projectedIndex !== undefined) entity.body.containerSlots[projectedIndex] = repaired;
             entity.body.setEquipment(equipment);
             return;
@@ -2823,7 +2826,7 @@ export class EntityRuntime implements EntityScene {
         let equipment = entity.body.equipment;
         let changed = false;
         for (const slot of MOB_EQUIPMENT_SLOTS) {
-            if (entity.body.equipmentInventorySlots[slot] !== index) continue;
+            if (entity.body.equipmentInventorySlots.get(slot) !== index) continue;
             equipment = { ...equipment, [slot]: repaired };
             changed = true;
         }
@@ -2859,21 +2862,19 @@ export class EntityRuntime implements EntityScene {
         const projectedSlot = this.equipmentSlotOfDrop(item);
         if (projectedSlot !== undefined) {
             this.equipInteractionEquipment(entity, projectedSlot, item);
-            entity.body.equipmentInventorySlots[projectedSlot] = index;
+            entity.body.equipmentInventorySlots.set(projectedSlot, index);
         }
         return true;
     }
 
     /** Replaces one equipment slot, dropping its previous stack if it held one. */
     private equipInteractionEquipment(entity: DataEntity, slot: MobEquipmentSlot, item: ContentItemDrop): void {
-        const projectedIndex = entity.body.equipmentInventorySlots[slot];
+        const projectedIndex = entity.body.equipmentInventorySlots.get(slot);
         if (projectedIndex !== undefined) {
             const projectedItem = entity.body.containerSlots[projectedIndex];
             entity.body.containerSlots[projectedIndex] = undefined;
-            delete entity.body.equipmentInventorySlots[slot];
-            const equipment = { ...entity.body.equipment };
-            delete equipment[slot];
-            entity.body.setEquipment(equipment);
+            entity.body.equipmentInventorySlots.delete(slot);
+            entity.body.setEquipment(withoutEquipmentSlot(entity.body.equipment, slot));
             if (projectedItem !== undefined) this.host.drop(entity.position, projectedItem);
         }
 
@@ -2914,10 +2915,9 @@ export class EntityRuntime implements EntityScene {
         let equipment = entity.body.equipment;
         let changed = false;
         for (const slot of MOB_EQUIPMENT_SLOTS) {
-            if (entity.body.equipmentInventorySlots[slot] !== index) continue;
-            if (!changed) equipment = { ...equipment };
-            delete equipment[slot];
-            delete entity.body.equipmentInventorySlots[slot];
+            if (entity.body.equipmentInventorySlots.get(slot) !== index) continue;
+            equipment = withoutEquipmentSlot(equipment, slot);
+            entity.body.equipmentInventorySlots.delete(slot);
             changed = true;
         }
         if (changed) entity.body.setEquipment(equipment);

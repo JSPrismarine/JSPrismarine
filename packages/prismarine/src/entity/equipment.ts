@@ -79,6 +79,21 @@ export type MobEquipmentSet = Readonly<Partial<Record<MobEquipmentSlot, ContentI
 /** Nothing in any slot, which is what a mob with no `minecraft:equipment` has. */
 export const NO_EQUIPMENT: MobEquipmentSet = {};
 
+/**
+ * A copy of a set with one slot emptied.
+ * @param equipment - The set to copy.
+ * @param slot - The slot to leave out.
+ * @returns A new set holding every other slot `equipment` fills.
+ */
+export const withoutEquipmentSlot = (equipment: MobEquipmentSet, slot: MobEquipmentSlot): MobEquipmentSet => {
+    const kept: Partial<Record<MobEquipmentSlot, ContentItemDrop>> = {};
+    for (const other of MOB_EQUIPMENT_SLOTS) {
+        const item = equipment[other];
+        if (other !== slot && item !== undefined) kept[other] = item;
+    }
+    return kept;
+};
+
 /** The item component spellings and Bedrock's fully qualified slot names. */
 const SLOTS = new Map<string, MobEquipmentSlot>();
 for (const slot of MOB_EQUIPMENT_SLOTS) {

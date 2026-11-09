@@ -899,7 +899,7 @@ describe('EntityRuntime', () => {
             };
             entity.body.containerSlots[0] = item;
             entity.body.setEquipment({ mainhand: item });
-            entity.body.equipmentInventorySlots.mainhand = 0;
+            entity.body.equipmentInventorySlots.set('mainhand', 0);
             const emptyHand: FilterEntityView = { equipment: () => undefined };
 
             expect(
@@ -1190,7 +1190,7 @@ describe('EntityRuntime', () => {
             });
             expect(horse.body.containerSlots[1]).toEqual(heldItem);
             expect(horse.body.equipment.body).toEqual(heldItem);
-            expect(horse.body.equipmentInventorySlots.body).toBe(1);
+            expect(horse.body.equipmentInventorySlots.get('body')).toBe(1);
             expect(horse.instance.filterContext().self.equipment?.('inventory', 1)?.identifier()).toBe(
                 'minecraft:iron_horse_armor'
             );

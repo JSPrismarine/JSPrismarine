@@ -22,7 +22,7 @@ import { randomUUID } from 'node:crypto';
 import type { ContentItemDrop } from '../../content/world/adapter';
 import { DamageLog } from './damageLog';
 import type { StatusEffect } from '../StatusEffect';
-import type { MobEquipmentSet } from '../equipment';
+import type { MobEquipmentSet, MobEquipmentSlot } from '../equipment';
 import { MOB_EQUIPMENT_SLOTS, NO_EQUIPMENT, sameEquipment } from '../equipment';
 import type { EntityFacts } from './facts';
 import { liveFactsOf } from './facts';
@@ -197,7 +197,7 @@ export class MobBody {
 
         for (const slot of MOB_EQUIPMENT_SLOTS) {
             if (!sameEquipment({ [slot]: this.equipment[slot] }, { [slot]: equipment[slot] }))
-                delete this.equipmentInventorySlots[slot];
+                this.equipmentInventorySlots.delete(slot);
         }
 
         this.equipment = equipment;
@@ -217,7 +217,7 @@ export class MobBody {
     public containerCapacity = 0;
 
     /** Inventory indices projected into wearable equipment slots by an interaction. */
-    public readonly equipmentInventorySlots: Partial<Record<keyof MobEquipmentSet, number>> = {};
+    public readonly equipmentInventorySlots = new Map<MobEquipmentSlot, number>();
 
     /** Who has hurt the entity, with the running total each has dealt. */
     public readonly damage = new DamageLog();

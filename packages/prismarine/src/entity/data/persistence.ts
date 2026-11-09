@@ -148,9 +148,9 @@ export const dataEntityRecordOf = (
         ...(body.carried === undefined ? {} : { carried: body.carried }),
         inventory: [...body.inventory],
         equipment: body.equipment,
-        ...(Object.keys(body.equipmentInventorySlots).length === 0
+        ...(body.equipmentInventorySlots.size === 0
             ? {}
-            : { equipmentInventorySlots: { ...body.equipmentInventorySlots } }),
+            : { equipmentInventorySlots: Object.fromEntries(body.equipmentInventorySlots) }),
         containerSlots: body.containerSlots.map((item) => item ?? null),
         sitting: body.sitting,
         sleeping: body.sleeping,
@@ -425,8 +425,11 @@ export const applyDataEntityRecord = (entity: DataEntity, record: DataEntityReco
         body.setEquipment(record.equipment);
         if (record.equipment.mainhand === undefined) body.carried = record.carried;
     }
-    for (const slot of MOB_EQUIPMENT_SLOTS) delete body.equipmentInventorySlots[slot];
-    Object.assign(body.equipmentInventorySlots, record.equipmentInventorySlots);
+    body.equipmentInventorySlots.clear();
+    for (const slot of MOB_EQUIPMENT_SLOTS) {
+        const index = record.equipmentInventorySlots?.[slot];
+        if (index !== undefined) body.equipmentInventorySlots.set(slot, index);
+    }
     body.inventory.splice(0, body.inventory.length, ...record.inventory);
     body.containerSlots.splice(
         0,

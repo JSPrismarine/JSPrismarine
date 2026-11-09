@@ -12,7 +12,8 @@ import {
     rollMobEquipment,
     sameEquipment,
     sameEquipmentItems,
-    slotForItem
+    slotForItem,
+    withoutEquipmentSlot
 } from './equipment';
 
 /** An item that declares the slot it is worn in, which is all {@link slotForItem} reads. */
@@ -111,6 +112,20 @@ describe('entity equipment', () => {
             const sword = { identifier: 'minecraft:iron_sword', count: 1 };
 
             expect(sameEquipment({ mainhand: sword }, { mainhand: { ...sword, damage: 0, meta: 0 } })).toBe(true);
+        });
+    });
+
+    describe('withoutEquipmentSlot', () => {
+        it('copies every other filled slot and leaves the original alone', () => {
+            const helmet = { identifier: 'minecraft:iron_helmet', count: 1 };
+            const sword = { identifier: 'minecraft:iron_sword', count: 1 };
+            const equipment = { head: helmet, mainhand: sword };
+
+            const without = withoutEquipmentSlot(equipment, 'head');
+
+            expect(without).toStrictEqual({ mainhand: sword });
+            expect(Object.keys(without)).toStrictEqual(['mainhand']);
+            expect(equipment).toStrictEqual({ head: helmet, mainhand: sword });
         });
     });
 
