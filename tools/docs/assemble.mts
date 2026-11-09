@@ -9,7 +9,7 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { pageTitle, sections } from './sections.mts';
+import { pageTitle, rootPages, sections } from './sections.mts';
 import type { TrackerData } from '../../packages/parity/src/dashboard/tracker.ts';
 
 const packageDir = path.dirname(fileURLToPath(import.meta.url));
@@ -40,9 +40,10 @@ const manifest: { repository: { url: string } } = JSON.parse(readFileSync(path.j
 const blobUrl = `${manifest.repository.url.replace(/^git\+/, '').replace(/\.git$/, '')}/blob/master`;
 const docsRoot = path.join(repoRoot, 'docs');
 const sectionDirs = sections.map(({ dir }) => path.join(docsRoot, dir));
+const rootSources = new Map(rootPages.map(({ source, page }) => [path.join(repoRoot, source), page]));
 
 /**
- * Points relative links at the renamed index pages. A link to a file the site does not publish, such as
+ * Points relative links at their published, site-absolute pages. A link to a file the site does not publish, such as
  * package source, goes to that file on GitHub instead of a dead page. Absolute URLs stay as written.
  */
 function rewriteLinks(markdown: string, sourceFile: string) {
@@ -50,23 +51,49 @@ function rewriteLinks(markdown: string, sourceFile: string) {
         /\]\(((?!https?:|mailto:|#)[^)\s#]+)(#[^)\s]*)?\)/g,
         (_match, target: string, anchor = '') => {
             const resolved = path.resolve(path.dirname(sourceFile), target);
+            const rootPage = rootSources.get(resolved);
+            // VitePress adds the base to site-absolute links.
+            if (rootPage) return `](/${rootPage.replace(/\.md$/, '')}${anchor})`;
             const published = sectionDirs.some((dir) => resolved === dir || resolved.startsWith(`${dir}${path.sep}`));
             if (!published) {
                 const repoPath = path.relative(repoRoot, resolved).split(path.sep).join('/');
                 return `](${blobUrl}/${repoPath}${anchor})`;
             }
-            return `](${target.replace(/README\.md$/, 'index.md')}${anchor})`;
+            // Site-absolute, so a root page links into a section as reliably as a page inside it.
+            const sitePath = toSitePage(path.relative(docsRoot, resolved)).split(path.sep).join('/');
+            return `](/${sitePath}${anchor})`;
         }
     );
 }
 
-/** Lists a section's top-level pages for sections whose source has no README. */
+/**
+ * A page's summary for index listings: its front matter `description`, or else the first sentence of the
+ * prose between its title and its first section heading. Metadata lines such as `Status: accepted` are
+ * skipped, and a page that opens straight into a section gets none.
+ */
+function pageSummary(markdown: string) {
+    const description = /^---\r?\n[\s\S]*?^description:\s*(.+)$[\s\S]*?^---$/m.exec(markdown)?.[1];
+    if (description) return description.trim().replace(/^['"]|['"]$/g, '');
+    const body = markdown.replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n/, '');
+    const intro = body.split(/^# .+$/m)[1]?.split(/^#{2,} /m)[0] ?? '';
+    const paragraph = intro
+        .split(/\r?\n\s*\r?\n/)
+        .map((block) => block.trim())
+        .find((block) => block && !/^(#|[-*|>]|```|<|\d+\.|!\[|[A-Z][\w ]*: )/.test(block));
+    if (!paragraph) return '';
+    const text = paragraph.replace(/\s+/g, ' ');
+    return /^.+?[.!?](?=\s|$)/.exec(text)?.[0] ?? text;
+}
+
+/** Lists a section's top-level pages, each with its opening sentence, for sections whose source has no README. */
 function indexPage(section: (typeof sections)[number], dir: string) {
     const links = readdirSync(dir)
         .filter((entry) => entry.endsWith('.md'))
         .map((entry) => {
             const name = entry.replace(/\.md$/, '');
-            return `- [${pageTitle(readFileSync(path.join(dir, entry), 'utf8'), name)}](./${name})`;
+            const markdown = readFileSync(path.join(dir, entry), 'utf8');
+            const summary = pageSummary(markdown);
+            return `- **[${pageTitle(markdown, name)}](./${name})**${summary ? `\n\n  ${summary}` : ''}`;
         });
     return `# ${section.title}\n\n${links.join('\n')}\n`;
 }
@@ -87,4 +114,9 @@ for (const section of sections) {
     const index = path.join(targetDir, 'index.md');
     if (!existsSync(index)) writeFileSync(index, indexPage(section, targetDir));
 }
-console.log(`Staged ${pages} pages from ${sections.length} doc sections.`);
+for (const { source, page } of rootPages) {
+    const sourceFile = path.join(repoRoot, source);
+    writeFileSync(path.join(siteDir, page), rewriteLinks(readFileSync(sourceFile, 'utf8'), sourceFile));
+    pages++;
+}
+console.log(`Staged ${pages} pages from ${sections.length} doc sections and ${rootPages.length} root documents.`);

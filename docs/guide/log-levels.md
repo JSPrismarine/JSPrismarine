@@ -1,5 +1,6 @@
 ---
 title: Log Levels
+description: What each log level prints and how to choose one.
 group: Documents
 category: Types
 ---

@@ -50,6 +50,8 @@ assets/
 tools/docs/site/api/
 tools/docs/site/guide/
 tools/docs/site/brand/
+tools/docs/site/contributing.md
+tools/docs/site/code-of-conduct.md
 tools/docs/site/data-driven/
 tools/docs/site/adr/
 tools/docs/site/plans/

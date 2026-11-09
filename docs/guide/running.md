@@ -1,5 +1,6 @@
 ---
 title: Running JSPrismarine
+description: Install, configure and run a JSPrismarine server, from source or as a single executable.
 group: Documents
 category: Guides
 ---
