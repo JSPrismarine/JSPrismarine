@@ -278,7 +278,7 @@ jobs:
                   NODE_OPTIONS: --max-old-space-size=4096
               run: |
                   # shellcheck disable=SC2086
-                  pnpm run e2e:client -- --artifacts "$RUNNER_TEMP/client-e2e" --protocol "$PROTOCOL" --concurrency 1 $SCENARIOS
+                  pnpm run e2e:client -- --artifacts "$RUNNER_TEMP/client-e2e" --protocol "$PROTOCOL" --concurrency 2 $SCENARIOS
 
             - name: 🔎 Verify client e2e coverage
               id: client-e2e-coverage
