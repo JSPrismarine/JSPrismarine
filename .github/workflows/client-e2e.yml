@@ -103,7 +103,7 @@ jobs:
             fail-fast: false
             matrix:
                 protocol: ${{ fromJSON(needs.protocol-matrix.outputs.protocols) }}
-        runs-on: macos-latest
+        runs-on: blacksmith-6vcpu-macos-latest
         timeout-minutes: 120
         permissions:
             contents: read
@@ -206,7 +206,7 @@ jobs:
             fail-fast: false
             matrix:
                 protocol: ${{ fromJSON(needs.protocol-matrix.outputs.protocols) }}
-        runs-on: macos-latest
+        runs-on: blacksmith-6vcpu-macos-latest
         timeout-minutes: 60
         steps:
             - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
