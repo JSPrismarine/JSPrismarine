@@ -1,6 +1,6 @@
 # @jsprismarine/leveldb
 
-[![Join the Discord Server](https://img.shields.io/discord/704967868885762108?color=%237289DA&label=Discord)](https://discord.gg/6w8JWhy)
+[![Join the Discord Server](https://img.shields.io/discord/704967868885762108?color=%237289DA&label=Discord)](https://discord.gg/kZZCDyCBbW)
 [![npm](https://img.shields.io/npm/dt/@jsprismarine/leveldb)](https://www.npmjs.com/package/@jsprismarine/leveldb)
 
 A LevelDB implementation in pure TypeScript, able to read and write the databases that

@@ -1,7 +1,7 @@
 # ![JSPrismarine](https://github.com/JSPrismarine/JSPrismarine/assets/108444335/3169ac83-0427-402d-a76d-6c1bc215c583)
 
 [![License](https://img.shields.io/github/license/JSPrismarine/JSPrismarine)](https://github.com/JSPrismarine/JSPrismarine/blob/master/LICENSE)
-[![Join the Discord Server](https://img.shields.io/discord/704967868885762108?color=%237289DA&label=Discord)](https://discord.gg/6w8JWhy)
+[![Join the Discord Server](https://img.shields.io/discord/704967868885762108?color=%237289DA&label=Discord)](https://discord.gg/kZZCDyCBbW)
 [![Contributors](https://img.shields.io/github/contributors/JSPrismarine/JSPrismarine?color=%23E30B5D)](https://github.com/JSPrismarine/JSPrismarine/graphs/contributors)
 [![npm](https://img.shields.io/npm/dt/@jsprismarine/prismarine)](https://www.npmjs.com/package/@jsprismarine/prismarine)
 [![Code Coverage](https://img.shields.io/codecov/c/github/JSPrismarine/JSPrismarine?token=WLXLSJOGN3&color=63A375)](https://codecov.io/gh/JSPrismarine/JSPrismarine)
@@ -67,7 +67,7 @@ In an interactive terminal on Node 26.9 or newer, the console UI opens by defaul
 - Which OSes can run JSPrismarine?
   - Any platform supporting a somewhat recent version of Node.js.
 - If my question isn't listed here, where should I ask?
-  - You can join the [Discord server](https://discord.gg/fGkHZhu), or open a [GitHub issue](https://github.com/JSPrismarine/JSPrismarine/issues/new) for development-related questions.
+  - You can join the [Discord server](https://discord.gg/kZZCDyCBbW), or open a [GitHub issue](https://github.com/JSPrismarine/JSPrismarine/issues/new) for development-related questions.
 - Why can't I join a JSPrismarine instance hosted on my Windows PC?
   - To join an instance of JSPrismarine hosted on the same Windows machine, you need to enable Loopback. Here are the steps:
     - Open Windows PowerShell as administrator.

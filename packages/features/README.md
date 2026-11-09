@@ -1,6 +1,6 @@
 # @jsprismarine/features
 
-[![Join the Discord Server](https://img.shields.io/discord/704967868885762108?color=%237289DA&label=Discord)](https://discord.gg/6w8JWhy)
+[![Join the Discord Server](https://img.shields.io/discord/704967868885762108?color=%237289DA&label=Discord)](https://discord.gg/kZZCDyCBbW)
 [![npm](https://img.shields.io/npm/dt/@jsprismarine/features)](https://www.npmjs.com/package/@jsprismarine/features)
 
 Java Edition's decoration pass in TypeScript: all 58 feature types, the ten block state providers

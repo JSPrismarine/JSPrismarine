@@ -1,6 +1,6 @@
 # @jsprismarine/server
 
-[![Join the Discord Server](https://img.shields.io/discord/704967868885762108?color=%237289DA&label=Discord)](https://discord.gg/6w8JWhy)
+[![Join the Discord Server](https://img.shields.io/discord/704967868885762108?color=%237289DA&label=Discord)](https://discord.gg/kZZCDyCBbW)
 [![npm](https://img.shields.io/npm/dt/@jsprismarine/server)](https://www.npmjs.com/package/@jsprismarine/server)
 
 The `prismarine` command line: argument parsing, the host process that runs the server as a child, the `--watch` file watcher, and the choice between the terminal UI and the plain line console.

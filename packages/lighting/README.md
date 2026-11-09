@@ -1,6 +1,6 @@
 # @jsprismarine/lighting
 
-[![Join the Discord Server](https://img.shields.io/discord/704967868885762108?color=%237289DA&label=Discord)](https://discord.gg/6w8JWhy)
+[![Join the Discord Server](https://img.shields.io/discord/704967868885762108?color=%237289DA&label=Discord)](https://discord.gg/kZZCDyCBbW)
 [![npm](https://img.shields.io/npm/dt/@jsprismarine/lighting)](https://www.npmjs.com/package/@jsprismarine/lighting)
 
 A block light and sky light engine for a Bedrock server. Both layers hold 0 to 15 per block, both

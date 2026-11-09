@@ -1,6 +1,6 @@
 # @jsprismarine/mcfunction
 
-[![Join the Discord Server](https://img.shields.io/discord/704967868885762108?color=%237289DA&label=Discord)](https://discord.gg/6w8JWhy)
+[![Join the Discord Server](https://img.shields.io/discord/704967868885762108?color=%237289DA&label=Discord)](https://discord.gg/kZZCDyCBbW)
 [![npm](https://img.shields.io/npm/dt/@jsprismarine/mcfunction)](https://www.npmjs.com/package/@jsprismarine/mcfunction)
 
 The Java Edition mcfunction runtime: it loads `.mcfunction` files and function tags from a pack

@@ -1,6 +1,6 @@
 # @jsprismarine/spawning
 
-[![Join the Discord Server](https://img.shields.io/discord/704967868885762108?color=%237289DA&label=Discord)](https://discord.gg/6w8JWhy)
+[![Join the Discord Server](https://img.shields.io/discord/704967868885762108?color=%237289DA&label=Discord)](https://discord.gg/kZZCDyCBbW)
 [![npm](https://img.shields.io/npm/dt/@jsprismarine/spawning)](https://www.npmjs.com/package/@jsprismarine/spawning)
 
 Bedrock natural spawning: the `spawn_rules/*.json` grammar, the condition evaluator, the population

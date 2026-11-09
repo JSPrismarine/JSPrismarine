@@ -1,6 +1,6 @@
 # @jsprismarine/entity-brains
 
-[![Join the Discord Server](https://img.shields.io/discord/704967868885762108?color=%237289DA&label=Discord)](https://discord.gg/6w8JWhy)
+[![Join the Discord Server](https://img.shields.io/discord/704967868885762108?color=%237289DA&label=Discord)](https://discord.gg/kZZCDyCBbW)
 [![npm](https://img.shields.io/npm/dt/@jsprismarine/entity-brains)](https://www.npmjs.com/package/@jsprismarine/entity-brains)
 
 Java Edition's brain AI: memories, sensors, activities, the behavior combinators, and the twenty
