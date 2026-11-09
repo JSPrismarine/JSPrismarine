@@ -115,9 +115,7 @@ const runInProcess = async (args: ServerArgs, { remote }: { remote: boolean }): 
 
     const logger = new Logger(config.getLogLevel(), transports);
     let keepAlive: NodeJS.Timeout | undefined;
-    let stopCommandCompleted = false;
     const onStopCommandComplete = (): void => {
-        stopCommandCompleted = true;
         if (keepAlive !== undefined) {
             clearInterval(keepAlive);
             keepAlive = undefined;
@@ -194,17 +192,20 @@ const runInProcess = async (args: ServerArgs, { remote }: { remote: boolean }): 
     // In a function rather than top-level await so the entry also works where top-level
     // await cannot: a single-executable application runs its main script as CommonJS.
     const bootstrap = async (): Promise<void> => {
+        // Something referenced keeps the process alive: the socket and the tick timer are
+        // `unref`ed, and without a TTY the console never holds stdin open. Taken before the
+        // bootstrap, not after it: loading a saved start region can leave nothing referenced
+        // between two reads, and Node then exits with code 0 halfway through "Preparing start
+        // region". `/stop` exits after command feedback is flushed; signal shutdown uses the
+        // server's normal exit path.
+        keepAlive = setInterval(() => {}, 1 << 30);
+
         try {
             await server.bootstrap();
         } catch (error: unknown) {
             logger.warn(`Cannot start the server, is it already running on the same port?`);
             throw error; // Re-throw it so `process.on` can handle it.
         }
-
-        // Something referenced keeps the process alive: the socket and the tick timer are
-        // `unref`ed, and without a TTY the console never holds stdin open. `/stop` exits after
-        // command feedback is flushed; signal shutdown uses the server's normal exit path.
-        if (!stopCommandCompleted) keepAlive = setInterval(() => {}, 1 << 30);
     };
 
     void bootstrap();
