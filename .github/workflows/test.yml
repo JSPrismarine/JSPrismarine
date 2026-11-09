@@ -262,43 +262,64 @@ jobs:
               run: pnpm run typecheck
 
     # Suites that read Mojang's published data carry the `real-data` tag. The unit test job
-    # filters them out because it does not fetch sources; this job prepares and runs them.
+    # filters them out because it does not fetch sources; the jobs below prepare and run them.
     # Machine-sensitive load and timing tests carry `performance` and are excluded from CI.
-    # It is Linux only because the sources are 1.1 GB unpacked and one download is enough.
-    real-data:
-        name: 🗃️ Real data suites
+    # They are Linux only because the sources are 1.1 GB unpacked and one download is enough.
+    #
+    # `real-data-setup` fetches the sources and runs the Java generators once, and saves the whole
+    # data cache under a key made of everything that produces it. The shards and the parity
+    # dashboard restore that one entry rather than each preparing it again, and a later run with
+    # the same inputs finds it and prepares nothing.
+    real-data-setup:
+        name: 🗃️ Prepare the real data
         needs: changes
         if: ${{ needs.changes.outputs.code == 'true' }}
         runs-on: blacksmith-2vcpu-ubuntu-2404
-        timeout-minutes: 90
-        permissions:
-            contents: read
-            pull-requests: write
+        timeout-minutes: 30
+        outputs:
+            key: ${{ steps.key.outputs.key }}
         steps:
             - uses: useblacksmith/checkout@v1
+
+            # The Java goldens are in the key: `dump:java` checks them against the jar, so a change
+            # to them has to run it again.
+            - name: Resolve the cache key
+              id: key
+              run: echo "key=${RUNNER_OS}-jsp-real-data-${{ hashFiles('packages/bedrock-data/sources.json', 'packages/bedrock-data/pack-hashes.json', 'packages/bedrock-data/utils/fetch/**', 'packages/bedrock-data/utils/java/**', 'packages/bedrock-data/utils/java-dump/**', 'packages/bedrock-data/src/jsp/java/**') }}" >> "$GITHUB_OUTPUT"
+
+            - name: Look for the prepared data
+              id: prepared
+              uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
               with:
-                  fetch-depth: 0
+                  path: node_modules/.cache/jsprismarine
+                  key: ${{ steps.key.outputs.key }}
+                  lookup-only: true
 
             - name: 📦 Install
+              if: ${{ steps.prepared.outputs.cache-hit != 'true' }}
               uses: ./.github/common/install
 
             # The Java data generator and the property dumper need a JDK of the jar's class file
             # version. `sources.json` pins Java 26.3, whose `version.json` asks for 25.
             - name: ☕ Setup JDK
+              if: ${{ steps.prepared.outputs.cache-hit != 'true' }}
               uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6
               with:
                   distribution: temurin
                   java-version: '25'
 
-            # The pinned Java server jar both Vitest jobs read, keyed on the file that pins it, so the
-            # unit job and the real-data job share one download instead of each fetching their own.
+            # The pinned Java server jar the unit shards also read, keyed on the file that pins it.
             - name: Cache the Java server jar
+              if: ${{ steps.prepared.outputs.cache-hit != 'true' }}
               uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
               with:
                   path: node_modules/.cache/jsprismarine/java-server
                   key: ${{ runner.os }}-jsp-java-server-${{ hashFiles('packages/bedrock-data/sources.json') }}
 
+            # A pin change misses the prepared entry; these restore what still matches, so only the
+            # changed source downloads again.
             - name: Cache the fetched sources
+              if: ${{ steps.prepared.outputs.cache-hit != 'true' }}
               uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
               with:
                   path: node_modules/.cache/jsprismarine
@@ -310,6 +331,7 @@ jobs:
             # generator. Restore them before extraction and datagen:java on repeat runs.
             - name: Cache generated Java data
               id: java_data_cache
+              if: ${{ steps.prepared.outputs.cache-hit != 'true' }}
               uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
               with:
                   path: |
@@ -322,7 +344,7 @@ jobs:
             # The fetched-source cache predates the separate generated-data key. On a miss,
             # discard its old generated outputs so datagen cannot mistake them for this key.
             - name: Discard uncached Java data
-              if: ${{ steps.java_data_cache.outputs.cache-hit != 'true' }}
+              if: ${{ steps.prepared.outputs.cache-hit != 'true' && steps.java_data_cache.outputs.cache-hit != 'true' }}
               run: |
                   rm -rf node_modules/.cache/jsprismarine/java-reports
                   rm -rf node_modules/.cache/jsprismarine/java-structures
@@ -331,29 +353,142 @@ jobs:
                   rm -rf node_modules/.cache/jsprismarine/java/*/dump-out
 
             - name: ⬇️ Fetch the pinned sources
+              if: ${{ steps.prepared.outputs.cache-hit != 'true' }}
               run: pnpm --filter @jsprismarine/bedrock-data run fetch:sources
 
             - name: 🏭 Run the Java data generator
+              if: ${{ steps.prepared.outputs.cache-hit != 'true' }}
               run: pnpm --filter @jsprismarine/bedrock-data run datagen:java
 
             # Unpacks the bundler's inner jar, which the worldgen vectors read their registries
             # out of, and rewrites the two Java goldens from the jar.
             - name: 🏭 Run the Java property dumper
+              if: ${{ steps.prepared.outputs.cache-hit != 'true' }}
               run: pnpm --filter @jsprismarine/bedrock-data run dump:java
 
             - name: 🔎 Check the Java goldens still match the jar
+              if: ${{ steps.prepared.outputs.cache-hit != 'true' }}
               run: git diff --exit-code -- packages/bedrock-data/src/jsp/java
+
+            # Fails when a path is missing rather than saving a cache a suite would skip itself on.
+            - name: 🔑 Check the real-data environment
+              if: ${{ steps.prepared.outputs.cache-hit != 'true' }}
+              run: node scripts/real-data-env.mts
+
+            - name: Save the prepared data
+              if: ${{ steps.prepared.outputs.cache-hit != 'true' }}
+              uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+              with:
+                  path: node_modules/.cache/jsprismarine
+                  key: ${{ steps.key.outputs.key }}
+
+    # Four shards, each with a quarter of the files that declare a `real-data` test, laid out like
+    # the unit shards: the same progress lines, failures printed in place, a blob report that
+    # `real-data` merges.
+    real-data-shard:
+        name: 🗃️ Real data (shard ${{ matrix.shard }}/4)
+        needs: [changes, real-data-setup]
+        runs-on: blacksmith-2vcpu-ubuntu-2404
+        timeout-minutes: 30
+        # A progress bar per shard, as `unit-tests` draws for the unit shards. It holds no secrets.
+        environment: real-data-tests
+        strategy:
+            fail-fast: false
+            matrix:
+                shard: [1, 2, 3, 4]
+        steps:
+            # `--changed` diffs against the merge base, so the history has to reach it.
+            - uses: useblacksmith/checkout@v1
+              with:
+                  fetch-depth: 0
+
+            - name: 📦 Install
+              uses: ./.github/common/install
+
+            - name: ☕ Setup JDK
+              uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6
+              with:
+                  distribution: temurin
+                  java-version: '25'
+
+            - name: Restore the prepared data
+              uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+              with:
+                  path: node_modules/.cache/jsprismarine
+                  key: ${{ needs.real-data-setup.outputs.key }}
+                  fail-on-cache-miss: true
 
             # Fails when a path is missing rather than letting a suite skip itself silently,
             # which is how these suites went unrun for as long as they did.
             - name: 🔑 Resolve the real-data environment
-              id: real_data_env
               run: node scripts/real-data-env.mts --github-env
 
+            # Only the files that declare a `real-data` test are handed to Vitest, rather than every
+            # test file for it to import and then skip. A tag is set in the test file's own options,
+            # so the files that name it are every file that can have one.
             - name: 🧪 Test
               env:
                   CHANGED: ${{ github.event_name == 'pull_request' && format('--changed={0}', github.event.pull_request.base.sha) || '' }}
-              run: pnpm exec vitest run --coverage --tagsFilter='real-data && !performance' $CHANGED
+                  # Prints failures here and writes the blob report; see `reporters` in `vitest.config.ts`.
+                  VITEST_SHARD: ${{ matrix.shard }}/4
+              run: |
+                  mapfile -t files < <(git grep -l "'real-data'" -- ':(glob)**/*.test.*' ':(glob)**/*.spec.*')
+                  echo "${#files[@]} files declare a real-data test"
+                  pnpm exec vitest run --coverage --tagsFilter='real-data && !performance' $CHANGED --shard=${{ matrix.shard }}/4 "${files[@]}"
+
+            - name: 📤 Keep the shard report
+              if: ${{ !cancelled() }}
+              uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+              with:
+                  name: vitest-real-data-blob-${{ matrix.shard }}
+                  path: .vitest
+                  include-hidden-files: true
+                  retention-days: 1
+
+    # The one real-data result branch rules see: the shards merged into one set of results, one
+    # JUnit file and one coverage report, uploaded to Codecov as the unit ones are.
+    real-data:
+        name: 🗃️ Real data suites
+        needs: [changes, real-data-setup, real-data-shard]
+        if: ${{ !cancelled() && needs.changes.outputs.code == 'true' }}
+        runs-on: blacksmith-2vcpu-ubuntu-2404
+        timeout-minutes: 15
+        permissions:
+            contents: read
+            # Removing the deployments the shards' progress bars leave behind.
+            deployments: write
+        steps:
+            - uses: useblacksmith/checkout@v1
+
+            - name: 📦 Install
+              uses: ./.github/common/install
+
+            - name: ⬇️ Collect the shard reports
+              uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+              with:
+                  pattern: vitest-real-data-blob-*
+                  path: .vitest
+                  merge-multiple: true
+
+            - name: 🧪 Merge the shard reports
+              run: pnpm exec vitest run --merge-reports --coverage
+
+            - name: 🔎 Check every shard finished
+              if: ${{ !cancelled() && (needs.real-data-setup.result != 'success' || needs.real-data-shard.result != 'success') }}
+              run: |
+                  echo "The real data was ${{ needs.real-data-setup.result }} and the shards ended with ${{ needs.real-data-shard.result }}."
+                  exit 1
+
+            - name: 🧹 Remove the progress bar deployments
+              if: ${{ always() }}
+              continue-on-error: true
+              env:
+                  GH_TOKEN: ${{ github.token }}
+              run: |
+                  for id in $(gh api "repos/${{ github.repository }}/deployments?environment=real-data-tests&sha=${{ github.sha }}&per_page=100" --jq '.[].id'); do
+                      gh api --method POST "repos/${{ github.repository }}/deployments/$id/statuses" -f state=inactive > /dev/null
+                      gh api --method DELETE "repos/${{ github.repository }}/deployments/$id"
+                  done
 
             - name: 🦺 Codecov Coverage Reports
               if: ${{ !cancelled() }}
@@ -376,11 +511,43 @@ jobs:
                   disable_search: true
                   flags: ${{ github.event_name == 'pull_request' && 'real-data-changed' || 'real-data' }}
 
+    # The dashboard runs the whole parity package, the untagged suites as well as the real-data
+    # ones, because its report has to name every family's tests. It runs beside the shards rather
+    # than after them, on the same prepared data.
+    parity-dashboard:
+        name: 📊 Parity dashboard
+        needs: [changes, real-data-setup]
+        runs-on: blacksmith-2vcpu-ubuntu-2404
+        timeout-minutes: 45
+        permissions:
+            contents: read
+            pull-requests: write
+        steps:
+            - uses: useblacksmith/checkout@v1
+
+            - name: 📦 Install
+              uses: ./.github/common/install
+
+            - name: ☕ Setup JDK
+              uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6
+              with:
+                  distribution: temurin
+                  java-version: '25'
+
+            - name: Restore the prepared data
+              uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+              with:
+                  path: node_modules/.cache/jsprismarine
+                  key: ${{ needs.real-data-setup.outputs.key }}
+                  fail-on-cache-miss: true
+
+            - name: 🔑 Resolve the real-data environment
+              id: real_data_env
+              run: node scripts/real-data-env.mts --github-env
+
             - name: 📊 Publish the parity dashboard
               id: parity_dashboard
-              if: ${{ !cancelled() }}
               run: pnpm --filter @jsprismarine/parity run dashboard
-
             - name: Check out the pull request base
               id: parity_base_checkout
               if: ${{ !cancelled() && steps.parity_dashboard.outcome == 'success' && steps.real_data_env.outcome == 'success' && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository }}
