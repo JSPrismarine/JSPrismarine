@@ -66,13 +66,16 @@ describe('HostedGenerationPool', () => {
     }, 60_000);
 
     it('runs the host at a lowered operating system priority', async () => {
+        // The runner's own priority is whatever its host gave it: -10 on GitHub's macOS runners and
+        // below normal on Windows. What matters is that starting the host leaves it alone.
+        const serverPriority = os.getPriority(process.pid);
         const hosted = track(new HostedGenerationPool({ pipeline: FAKE_PIPELINE, workers: 1 }));
         await hosted.run({ status: 'terrain', chunkX: 0, chunkZ: 0, dimension: 0 });
 
         expect(hosted.priorityLowered).toBe(true);
-        // Windows has no nice value to read back; elsewhere it is the priority class mapped to one.
-        if (process.platform !== 'win32') expect(os.getPriority(hosted.hostPid!)).toBeGreaterThan(0);
-        expect(os.getPriority(process.pid)).toBe(0);
+        // Windows reports its priority class mapped back onto the same scale.
+        expect(os.getPriority(hosted.hostPid!)).toBe(os.constants.priority.PRIORITY_LOW);
+        expect(os.getPriority(process.pid)).toBe(serverPriority);
     }, 60_000);
 
     it('replaces a host killed mid-task and retries the task to the same bytes', async () => {
