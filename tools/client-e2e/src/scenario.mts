@@ -104,6 +104,39 @@ export const waitTicks = async (server: JspServer, ticks: number, timeoutMs = 12
 };
 
 /**
+ * Polls `check` until it holds or the world has run `ticks` more ticks.
+ *
+ * The budget is the server's to spend, like {@link waitTicks}: a server at one tick a second gets
+ * as many ticks to react as one at twenty, where a deadline in milliseconds would fail it after a
+ * twentieth of them.
+ *
+ * @param server - The server whose clock counts.
+ * @param ticks - How many ticks `check` may take to hold.
+ * @param check - What to wait for; asked again until it returns true.
+ * @param timeoutMs - Wall-clock budget; a server that never gets through the ticks fails.
+ * @returns Whether `check` held before the ticks ran out.
+ */
+export const untilTicks = async (
+    server: JspServer,
+    ticks: number,
+    check: () => Promise<boolean>,
+    timeoutMs = 120_000
+): Promise<boolean> => {
+    const start = await gameTime(server);
+    if (!Number.isFinite(start)) throw new Error('the server did not answer `time query gametime`');
+
+    const deadline = Date.now() + timeoutMs;
+    for (;;) {
+        if (await check()) return true;
+        const now = await gameTime(server);
+        if (now - start >= ticks) return false;
+        if (Date.now() >= deadline)
+            throw new Error(`the world ran ${now - start} of ${ticks} ticks in ${timeoutMs} ms`);
+        await sleep(100);
+    }
+};
+
+/**
  * Teleports the player and waits until the client stands at the spot for a full second.
  *
  * Reaching it is not enough: a client that has not applied the blocks it should stand on yet
