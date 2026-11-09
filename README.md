@@ -13,9 +13,11 @@ JSPrismarine is a dedicated Minecraft Bedrock Edition server written in TypeScri
 
 ## Why use JSPrismarine?
 
-- Written in TypeScript.
-- Open source with the permissive [MPL2](https://github.com/JSPrismarine/JSPrismarine/blob/master/LICENSE) license.
-- Under active development.
+- **Vanilla behavior from data.** Blocks, items, entities, loot, recipes and worldgen come from Mojang's own Bedrock and Java data rather than from hand-written tables, so the server follows the game.
+- **Parity you can check.** A parity suite compares the server with vanilla, and the [parity tracker](https://jsprismarine.github.io/JSPrismarine/parity) shows what matches and what does not.
+- **One file to host.** The prebuilt server runs on Linux, macOS and Windows with nothing else to install.
+- **Packages you can reuse.** The protocol, RakNet, NBT, LevelDB, Molang and the rest are published to npm on their own.
+- **Open source** under the [MPL-2.0](https://github.com/JSPrismarine/JSPrismarine/blob/master/LICENSE) license.
 
 ## Getting started
 
@@ -59,17 +61,15 @@ In an interactive terminal on Node 26.9 or newer, the console UI opens by defaul
 - Is JSPrismarine for `Minecraft: Bedrock Edition` or `Minecraft: Java Edition`?
   - JSPrismarine is made for `Minecraft: Bedrock Edition`.
 - What devices can a player join JSPrismarine with?
-  - By default, PC/Windows, Android, and iOS. With some tricks, you can also join with Xbox, Switch, and even PlayStation consoles.
+  - Any Minecraft: Bedrock Edition client on Windows, Android or iOS that the server's protocols cover. Consoles need third-party tools. See [Joining a server](docs/guide/joining.md).
 - Which OSes can run JSPrismarine?
   - The prebuilt server runs on Linux (x64 and ARM64, glibc or musl), macOS (Apple silicon and Intel) and Windows (x64 and ARM64). From source, any platform with Node.js <!-- fact:node.minimum -->26.4.0<!-- /fact --> or newer.
+- Can I write plugins?
+  - There is no plugin loader yet. Packs change content, and code can embed the server; see [Extending JSPrismarine](docs/guide/extending.md).
+- Why can't I join a JSPrismarine instance hosted on my Windows PC?
+  - Windows keeps the Minecraft app from reaching its own machine. [Joining a server](docs/guide/joining.md#when-you-cannot-connect) has the one-line fix.
 - If my question isn't listed here, where should I ask?
   - You can join the [Discord server](https://discord.gg/kZZCDyCBbW), or open a [GitHub issue](https://github.com/JSPrismarine/JSPrismarine/issues/new) for development-related questions.
-- Why can't I join a JSPrismarine instance hosted on my Windows PC?
-  - To join an instance of JSPrismarine hosted on the same Windows machine, you need to enable Loopback. Here are the steps:
-    - Open Windows PowerShell as administrator.
-    - Run this command: `CheckNetIsolation LoopbackExempt -a -n="Microsoft.MinecraftUWP_8wekyb3d8bbwe"`.
-    - Open Minecraft and add a server with the IP `127.0.0.1`.
-    - > NOTE: This may not work reliably on WSL2 while using the experimental bridge.
 
 ## Documentation
 
