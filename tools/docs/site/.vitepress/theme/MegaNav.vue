@@ -1,7 +1,16 @@
 <script setup lang="ts">
 import { useData, useRoute, withBase } from 'vitepress';
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
-import type { ThemeConfigWithMegaMenus } from './types.ts';
+
+import MegaNavPanel from './MegaNavPanel.vue';
+import type { MegaMenu, ThemeConfigWithMegaMenus } from './types.ts';
+
+/**
+ * The site's one menu. On the nav bar (`screen` off) each menu opens as a dropdown panel; on the
+ * small-screen menu (`screen` on) the same menus are sections that expand in place. Both render the
+ * same `megaMenus` through {@link MegaNavPanel}, so a menu is written once.
+ */
+const props = withDefaults(defineProps<{ screen?: boolean }>(), { screen: false });
 
 const root = ref<HTMLElement | null>(null);
 const openMenu = ref<string | null>(null);
@@ -70,10 +79,30 @@ function onTriggerKeydown(event: KeyboardEvent) {
 }
 
 function isCurrent(link: string) {
-    return route.path.startsWith(withBase(link));
+    return route.path.startsWith(withBase(link.replace(/#.*$/, '')));
+}
+
+/** Whether a menu holds the page being read, so the small-screen menu opens on it. */
+function holdsCurrent(menu: MegaMenu) {
+    const links = [menu.featured?.link, ...menu.sections.flatMap((section) => section.items.map(({ link }) => link))];
+    return links.some((link) => link !== undefined && link !== '/' && isCurrent(link));
+}
+
+/** The menu that holds the page being read. A page listed in two menus belongs to the first. */
+const currentMenu = computed(() => menus.value.find((menu) => !menu.link && holdsCurrent(menu))?.text);
+
+/** The small-screen menu's expanded sections, by menu name. It opens on the current one. */
+const expanded = ref(new Set(currentMenu.value ? [currentMenu.value] : []));
+
+function toggleSection(menu: string) {
+    const next = new Set(expanded.value);
+    if (!next.delete(menu)) next.add(menu);
+    expanded.value = next;
 }
 
 onMounted(() => {
+    // Outside clicks and Escape close a dropdown; the small-screen menu has no dropdowns to close.
+    if (props.screen) return;
     document.addEventListener('pointerdown', onPointerDown);
     document.addEventListener('keydown', onDocumentKeydown);
 });
@@ -90,10 +119,43 @@ watch(
 </script>
 
 <template>
+    <nav v-if="menus.length && screen" class="mega-nav mega-nav--screen" aria-label="Main navigation">
+        <template v-for="(menu, index) in menus" :key="menu.text">
+            <a
+                v-if="menu.link"
+                class="mega-nav__trigger"
+                :class="{ 'is-current': isCurrent(menu.link) }"
+                :href="withBase(menu.link)"
+            >
+                {{ menu.text }}
+            </a>
+            <section v-else class="mega-nav__screen-section">
+                <button
+                    class="mega-nav__trigger"
+                    type="button"
+                    :aria-expanded="expanded.has(menu.text)"
+                    :aria-controls="`mega-screen-${index}`"
+                    @click="toggleSection(menu.text)"
+                >
+                    {{ menu.text }}
+                    <span class="mega-nav__chevron" aria-hidden="true"></span>
+                </button>
+                <div
+                    v-show="expanded.has(menu.text)"
+                    :id="`mega-screen-${index}`"
+                    class="mega-nav__panel"
+                    :aria-label="`${menu.text} links`"
+                >
+                    <MegaNavPanel :menu="menu" />
+                </div>
+            </section>
+        </template>
+    </nav>
+
     <nav
-        v-if="menus.length"
+        v-else-if="menus.length"
         ref="root"
-        class="mega-nav"
+        class="mega-nav mega-nav--bar"
         aria-label="Main navigation"
         @pointerleave="onNavPointerleave"
         @focusout="onNavFocusout"
@@ -112,6 +174,7 @@ watch(
                 <button
                     v-else
                     class="mega-nav__trigger"
+                    :class="{ 'is-current': currentMenu === menu.text }"
                     type="button"
                     :data-menu-trigger="menu.text"
                     :aria-expanded="openMenu === menu.text"
@@ -134,28 +197,7 @@ watch(
                 :class="{ 'has-featured': activeMenu.featured }"
                 :aria-label="`${activeMenu.text} links`"
             >
-                <a v-if="activeMenu.featured" class="mega-nav__featured" :href="withBase(activeMenu.featured.link)">
-                    <span class="mega-nav__featured-title">{{ activeMenu.featured.text }}</span>
-                    <span class="mega-nav__description">{{ activeMenu.featured.description }}</span>
-                    <code v-if="activeMenu.featured.command" class="mega-nav__command">{{
-                        activeMenu.featured.command
-                    }}</code>
-                </a>
-
-                <div class="mega-nav__sections">
-                    <section v-for="section in activeMenu.sections" :key="section.text" class="mega-nav__section">
-                        <h2 class="mega-nav__heading">{{ section.text }}</h2>
-                        <a
-                            v-for="item in section.items"
-                            :key="item.link"
-                            class="mega-nav__link"
-                            :href="withBase(item.link)"
-                        >
-                            <span class="mega-nav__link-title">{{ item.text }}</span>
-                            <span v-if="item.description" class="mega-nav__description">{{ item.description }}</span>
-                        </a>
-                    </section>
-                </div>
+                <MegaNavPanel :menu="activeMenu" />
             </section>
         </Transition>
     </nav>

@@ -4,7 +4,7 @@ import manifest from '../../../../package.json' with { type: 'json' };
 import mcfunction from './mcfunction.tmLanguage.json';
 import molang from './molang.tmLanguage.json';
 import typedocSidebar from '../api/typedoc-sidebar.json';
-import { megaMenus, nav } from './menus.mts';
+import { megaMenus } from './menus.mts';
 import { isStagedPage, pageSource, sourceUpdatedAt } from '../../sections.mts';
 import { colorSwatchPlugin, colorSwatchTransformer } from './colorSwatches.ts';
 import { sidebar } from './sidebar.mts';
@@ -92,7 +92,6 @@ export default defineConfig({
         }
     },
     themeConfig: {
-        nav,
         megaMenus,
         sidebar: { ...sidebar, '/api/': typedocSidebar },
         socialLinks: [

@@ -143,13 +143,6 @@
     height: 2px;
 }
 
-.VPNavBarMenuLink,
-.VPNavBarMenuGroup .button,
-.VPNavScreenMenuLink,
-.VPNavScreenMenuGroup .button-text {
-    font-weight: 700 !important;
-}
-
 .VPNavBarSearchButton {
     border: 2px solid transparent;
     border-radius: 99px;
@@ -157,11 +150,6 @@
 
 .VPNavBarSearchButton:hover {
     border-color: var(--jsp-accent);
-}
-
-.VPNavScreen .VPNavScreenMenuGroupLink .link,
-.VPNavScreen .VPNavScreenMenuLink {
-    font-size: 15px;
 }
 
 /* A hex color in code gets a chip of that color in front of it. */

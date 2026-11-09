@@ -1,7 +1,6 @@
-import type { DefaultTheme } from 'vitepress';
 import type { MegaMenu } from './theme/types.ts';
 
-/** The single source for the desktop mega menu and the narrow-screen navigation. */
+/** The site's menu: MegaNav renders it on the nav bar and in the small-screen menu alike. */
 export const megaMenus = [
     {
         text: 'Guides',
@@ -170,12 +169,3 @@ export const megaMenus = [
         ]
     }
 ] satisfies MegaMenu[];
-
-/** Flat navigation for screens too narrow for the mega menu, derived from the same data. */
-export const nav = megaMenus.map((menu): DefaultTheme.NavItem => {
-    if (menu.link) return { text: menu.text, link: menu.link };
-    return {
-        text: menu.text,
-        items: menu.sections.flatMap((section) => section.items.map(({ text, link }) => ({ text, link })))
-    };
-});

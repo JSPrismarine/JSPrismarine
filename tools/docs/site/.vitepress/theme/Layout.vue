@@ -19,6 +19,9 @@ const { frontmatter } = useData();
         <template #nav-bar-content-before>
             <MegaNav />
         </template>
+        <template #nav-screen-content-before>
+            <MegaNav screen />
+        </template>
         <template #doc-footer-before>
             <EditSource />
         </template>

@@ -1,14 +1,141 @@
-/* The mega menu replaces VitePress's flat nav at desktop widths; narrower screens keep the native nav. */
-.mega-nav {
+/*
+ * The site's one menu, from MegaNav.vue: dropdown panels on the nav bar from 768px, and the same
+ * menus as expanding sections in the small-screen menu below that. VitePress's own nav is unused.
+ */
+
+/* Shared by both layouts: the panel body MegaNavPanel renders. */
+.mega-nav__sections {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    align-content: start;
+}
+
+.mega-nav__heading {
+    padding: 0 10px;
+    margin: 4px 0;
+    font: 700 11px/20px var(--vp-font-family-mono);
+    color: var(--vp-c-text-2);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    border: 0;
+}
+
+.mega-nav__link {
+    display: grid;
+    padding: 8px 10px;
+    text-decoration: none;
+    border-radius: var(--jsp-radius-control);
+    transition: background-color 0.2s;
+}
+
+.mega-nav__link:is(:hover, :focus-visible) {
+    background: var(--vp-c-brand-soft);
+}
+
+.mega-nav__link-title,
+.mega-nav__featured-title {
+    font-size: 15px;
+    font-weight: 800;
+    line-height: 20px;
+    letter-spacing: -0.01em;
+    color: var(--vp-c-text-1);
+}
+
+.mega-nav__description {
+    font-size: 13px;
+    line-height: 18px;
+    color: var(--vp-c-text-2);
+}
+
+.mega-nav__featured {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 6px;
+    align-content: start;
+    padding: 16px;
+    text-decoration: none;
+    background: var(--jsp-forest);
+    border-radius: var(--jsp-radius-control);
+    transition: background-color 0.2s;
+}
+
+.mega-nav__featured .mega-nav__featured-title {
+    font-size: 22px;
+    line-height: 1.05;
+    letter-spacing: -0.03em;
+    color: var(--jsp-cream);
+}
+
+.mega-nav__featured .mega-nav__description {
+    color: var(--jsp-mint);
+}
+
+.mega-nav__featured:is(:hover, :focus-visible) {
+    background: color-mix(in srgb, var(--jsp-forest) 85%, var(--jsp-accent));
+}
+
+.mega-nav__command {
+    justify-self: start;
+    max-width: 100%;
+    padding: 3px 10px;
+    margin-top: 10px;
+    font: 12px var(--vp-font-family-mono);
+    color: var(--jsp-cream);
+    overflow-wrap: anywhere;
+    background: var(--jsp-ink);
+    border-radius: 99px;
+}
+
+.mega-nav__command::before {
+    margin-right: 6px;
+    color: var(--jsp-signal);
+    content: '$';
+}
+
+.mega-nav__trigger {
+    display: inline-flex;
+    gap: 6px;
+    align-items: center;
+    font: inherit;
+    font-weight: 700;
+    color: var(--vp-c-text-1);
+    text-decoration: none;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.mega-nav__trigger:is(:hover, [aria-expanded='true']) {
+    color: var(--vp-c-brand-1);
+}
+
+.mega-nav__trigger:focus-visible,
+.mega-nav__link:focus-visible,
+.mega-nav__featured:focus-visible {
+    outline: 3px solid var(--jsp-signal);
+    outline-offset: -3px;
+}
+
+.mega-nav__chevron {
+    width: 6px;
+    height: 6px;
+    border-right: 2px solid currentColor;
+    border-bottom: 2px solid currentColor;
+    transform: translateY(-2px) rotate(45deg);
+    transition: transform 0.2s;
+}
+
+.mega-nav__trigger[aria-expanded='true'] .mega-nav__chevron {
+    transform: translateY(1px) rotate(225deg);
+}
+
+/* The bar layout: hidden until there is room for it, where the small-screen menu takes over. */
+.mega-nav--bar {
     display: none;
 }
 
-@media (min-width: 960px) {
-    .VPNavBar .VPNavBarMenu.menu {
-        display: none;
-    }
-
-    .VPNavBar .mega-nav {
+@media (min-width: 768px) {
+    .VPNavBar .mega-nav--bar {
         position: relative;
         z-index: 1;
         display: block;
@@ -22,26 +149,15 @@
         height: 100%;
     }
 
-    .mega-nav__trigger {
-        display: inline-flex;
-        gap: 6px;
-        align-items: center;
+    .mega-nav--bar .mega-nav__trigger {
         position: relative;
         height: var(--vp-nav-height);
         padding: 0 12px;
-        font: inherit;
         font-size: 14px;
-        font-weight: 700;
-        color: var(--vp-c-text-1);
-        transition: color 0.2s;
-    }
-
-    .mega-nav__trigger:is(:hover, [aria-expanded='true']) {
-        color: var(--vp-c-brand-1);
     }
 
     /* The section you are in carries a solid bar under its trigger. */
-    .mega-nav__trigger.is-current::after {
+    .mega-nav--bar .mega-nav__trigger.is-current::after {
         position: absolute;
         right: 12px;
         bottom: 0;
@@ -51,28 +167,8 @@
         background: var(--jsp-accent);
     }
 
-    .mega-nav__trigger:focus-visible,
-    .mega-nav__link:focus-visible,
-    .mega-nav__featured:focus-visible {
-        outline: 3px solid var(--jsp-signal);
-        outline-offset: -3px;
-    }
-
-    .mega-nav__chevron {
-        width: 5px;
-        height: 5px;
-        border-right: 1.5px solid currentColor;
-        border-bottom: 1.5px solid currentColor;
-        transform: translateY(-2px) rotate(45deg);
-        transition: transform 0.2s;
-    }
-
-    .mega-nav__trigger[aria-expanded='true'] .mega-nav__chevron {
-        transform: translateY(1px) rotate(225deg);
-    }
-
-    /* Anchored to the triggers and capped near the doc content's width (--vp-layout-max-width is the page, not the text). */
-    .mega-nav__panel {
+    /* Anchored to the triggers and capped near the doc content's width. */
+    .mega-nav--bar .mega-nav__panel {
         position: absolute;
         top: calc(100% - 1px);
         left: 0;
@@ -90,97 +186,8 @@
         box-shadow: var(--jsp-shadow-offset) var(--jsp-shadow-offset) 0 var(--vp-c-text-1);
     }
 
-    .mega-nav__panel.has-featured {
+    .mega-nav--bar .mega-nav__panel.has-featured {
         grid-template-columns: 220px minmax(0, 1fr);
-    }
-
-    .mega-nav__sections {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 16px;
-        align-content: start;
-    }
-
-    .mega-nav__heading {
-        padding: 0 10px;
-        margin: 4px 0;
-        font: 700 11px/20px var(--vp-font-family-mono);
-        color: var(--vp-c-text-2);
-        text-transform: uppercase;
-        letter-spacing: 0.12em;
-        border: 0;
-    }
-
-    .mega-nav__link {
-        display: grid;
-        padding: 8px 10px;
-        text-decoration: none;
-        border-radius: var(--jsp-radius-control);
-        transition: background-color 0.2s;
-    }
-
-    .mega-nav__link:is(:hover, :focus-visible) {
-        background: var(--vp-c-brand-soft);
-    }
-
-    .mega-nav__link-title,
-    .mega-nav__featured-title {
-        font-size: 15px;
-        font-weight: 800;
-        line-height: 20px;
-        letter-spacing: -0.01em;
-        color: var(--vp-c-text-1);
-    }
-
-    .mega-nav__description {
-        font-size: 13px;
-        line-height: 18px;
-        color: var(--vp-c-text-2);
-    }
-
-    .mega-nav__featured {
-        display: grid;
-        grid-template-columns: minmax(0, 1fr);
-        gap: 6px;
-        align-content: start;
-        padding: 16px;
-        text-decoration: none;
-        background: var(--jsp-forest);
-        border-radius: var(--jsp-radius-control);
-        transition: background-color 0.2s;
-    }
-
-    .mega-nav__featured .mega-nav__featured-title {
-        font-size: 22px;
-        line-height: 1.05;
-        letter-spacing: -0.03em;
-        color: var(--jsp-cream);
-    }
-
-    .mega-nav__featured .mega-nav__description {
-        color: var(--jsp-mint);
-    }
-
-    .mega-nav__featured:is(:hover, :focus-visible) {
-        background: color-mix(in srgb, var(--jsp-forest) 85%, var(--jsp-accent));
-    }
-
-    .mega-nav__command {
-        max-width: 100%;
-        overflow-wrap: anywhere;
-        justify-self: start;
-        padding: 3px 10px;
-        margin-top: 10px;
-        font: 12px var(--vp-font-family-mono);
-        color: var(--jsp-cream);
-        background: var(--jsp-ink);
-        border-radius: 99px;
-    }
-
-    .mega-nav__command::before {
-        margin-right: 6px;
-        color: var(--jsp-signal);
-        content: '$';
     }
 
     .mega-panel-enter-active,
@@ -195,6 +202,51 @@
         opacity: 0;
         transform: translateY(-4px);
     }
+}
+
+/* Between 768px and the width where the bar has room for every trigger, tighten it. */
+@media (min-width: 768px) and (max-width: 1023px) {
+    .mega-nav--bar .mega-nav__trigger {
+        padding: 0 8px;
+    }
+}
+
+/* The small-screen layout: one column of menus, each expanding into its panel. */
+.mega-nav--screen {
+    display: grid;
+    gap: 2px;
+    padding: 12px 0 24px;
+    border-bottom: 2px solid var(--vp-c-divider);
+}
+
+.mega-nav--screen > .mega-nav__trigger,
+.mega-nav__screen-section > .mega-nav__trigger {
+    justify-content: space-between;
+    width: 100%;
+    padding: 14px 4px;
+    font-size: 20px;
+    letter-spacing: -0.02em;
+}
+
+.mega-nav--screen > .mega-nav__trigger.is-current {
+    color: var(--vp-c-brand-1);
+}
+
+.mega-nav__screen-section + .mega-nav__screen-section,
+.mega-nav__screen-section + .mega-nav__trigger,
+.mega-nav__trigger + .mega-nav__screen-section {
+    border-top: 1px solid var(--vp-c-divider);
+}
+
+.mega-nav--screen .mega-nav__panel {
+    display: grid;
+    gap: 12px;
+    padding: 0 0 16px;
+}
+
+.mega-nav--screen .mega-nav__sections {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
 }
 
 @media (prefers-reduced-motion: reduce) {
