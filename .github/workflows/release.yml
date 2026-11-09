@@ -179,9 +179,6 @@ jobs:
                     - runner: blacksmith-2vcpu-windows-2025
                       group: windows-x64
                       targets: bun-windows-x64
-                    - runner: windows-11-arm
-                      group: windows-arm64
-                      targets: bun-windows-arm64
         runs-on: ${{ matrix.runner }}
         permissions:
             contents: read
