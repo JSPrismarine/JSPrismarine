@@ -1,11 +1,82 @@
 ---
 title: Running JSPrismarine
-description: Install, configure and run a JSPrismarine server, from source or as a single executable.
+description: Download the prebuilt server and run it, or run it from source with pnpm run dev to work on it.
 group: Documents
 category: Guides
 ---
 
 # Running JSPrismarine
+
+There are two ways to run JSPrismarine:
+
+- **To host or play on a server, download the prebuilt server.** It is one file with everything
+  inside, so you need no Node.js, pnpm, Java or checkout of this repository.
+  See [Run the prebuilt server](#run-the-prebuilt-server).
+- **To write add-ons or plugins, or to work on JSPrismarine itself, run it from source with
+  `pnpm run dev`.** It rebuilds and restarts the server whenever you change a file.
+  See [Run from source](#run-from-source).
+
+The [console](#4-console) and [configuration](#5-configuration) work the same either way.
+
+## Run the prebuilt server
+
+Each release on GitHub ships the server as a standalone executable. Download it from the
+[JSPrismarine releases](https://github.com/JSPrismarine/JSPrismarine/releases?q=jsprismarine%40&expanded=true):
+releases tagged `jsprismarine@<version>` carry the executables. The ones marked _Pre-release_ are
+nightly builds of `master`.
+
+| Platform | File |
+| --- | --- |
+| Linux, x64 | `prismarine-linux-x64` |
+| Linux, ARM64 | `prismarine-linux-arm64` |
+| Linux with musl (Alpine), x64 or ARM64 | `prismarine-linux-x64-musl`, `prismarine-linux-arm64-musl` |
+| macOS, Apple silicon or Intel | `prismarine-darwin-arm64`, `prismarine-darwin-x64`, or the app in `JSPrismarine-<arch>.app.zip` |
+| Windows, x64 or ARM64 | `prismarine-windows-x64.exe`, `prismarine-windows-arm64.exe` |
+
+Nightly pre-releases are built for fewer platforms: Linux x64, macOS on Apple silicon and Windows
+x64. The `.map` files next to each executable are source maps for reading stack traces; you don't
+need them to run the server.
+
+Put the file in the folder you want the server to live in, then run it from there:
+
+```bash
+# Linux and macOS: mark the download as executable once
+chmod +x prismarine-linux-x64
+./prismarine-linux-x64
+```
+
+```powershell
+# Windows
+.\prismarine-windows-x64.exe
+```
+
+The macOS builds are signed ad hoc, not notarized by Apple, so macOS refuses to open one a browser
+downloaded. Clear the download flag once with `xattr -d com.apple.quarantine prismarine-darwin-arm64`
+(or the app's name), or Control-click the app and choose **Open**. On Windows, SmartScreen may warn
+about an unrecognized app; choose **More info**, then **Run anyway**.
+
+The first start in a folder needs a network connection and takes a minute. The server unpacks the
+data it carries (Mojang's Java Edition world generation data and this project's packs), then
+downloads the vanilla behavior pack from Mojang's Bedrock Dedicated Server (about 95 MB), checking
+its digest. Mojang's license does not allow shipping that pack inside the executable. Both land in
+`node_modules/.cache/jsprismarine/` in that folder, so later starts need no network. On a machine
+that cannot reach Mojang's servers, set `JSP_VANILLA_BEHAVIOR_PACK` to a copy of a Bedrock
+Dedicated Server `behavior_packs` folder.
+
+The server then creates `config.json`, its player lists and `worlds/` in the same folder and starts
+listening on UDP port 19132. Players add it in Minecraft under **Servers → Add Server** with your
+machine's address. In a terminal, it opens the [terminal UI](#4-console); under a service manager,
+in Docker or with `--no-tui`, it uses the plain line console.
+
+To update, replace the executable with the newer one and start it again. Your `config.json`,
+worlds and player lists stay as they are, and the server unpacks the new version's data on its
+first start.
+
+## Run from source
+
+Run from source when you are building add-ons or plugins, or changing JSPrismarine: `pnpm run dev`
+rebuilds the packages you edit and restarts the server with your changes. The steps below set up
+a checkout.
 
 ## 1. Prerequisites
 
@@ -38,8 +109,9 @@ a couple of minutes. Afterwards the step compares a few file names and exits, so
 instant and need no network.
 
 `pnpm install` does not do this, so installing stays quick for anyone who only builds or tests
-the repository. `pnpm run start` does not do it either; a production host arranges the cache
-once, or points `JSP_VANILLA_DATAPACK` and `JSP_JAVA_REPORTS` at a copy produced elsewhere.
+the repository. `pnpm run start` does not do it either; a checkout run that way arranges the cache
+once, or points `JSP_VANILLA_DATAPACK` and `JSP_JAVA_REPORTS` at a copy produced elsewhere. The
+[prebuilt server](#run-the-prebuilt-server) needs none of this: it carries the data inside.
 
 Running the data generator needs a JDK 25 or newer. JSPrismarine looks at `JSP_JAVA_HOME`,
 `JAVA_HOME`, the `java` on your `PATH` and, on macOS, `/usr/libexec/java_home`; set
@@ -71,46 +143,46 @@ with no mobs, no `/summon` and no dragon. Run it by hand with
 ## 3. Running
 
 ```bash
-    # Development: runs the built output, rebuilds and restarts on source changes, opens the terminal UI
+    # Runs the server, rebuilds and restarts it on source changes, and opens the terminal UI
     $ pnpm run dev
-
-    # Production: builds the workspace packages and starts the compiled server
-    $ pnpm run start
 ```
 
-`pnpm run dev` is `prismarine --watch`: it builds the server and its workspace packages once, then runs
+`pnpm run dev` is the way to run a checkout, for add-on and plugin work as much as for work on the
+server. It is `prismarine --watch`: it builds the server and its workspace packages once, then runs
 the compiled entry next to `vite build --watch` for each package, so there is no TypeScript loader in
 the server process or its workers. Editing a source file rebuilds that package, and the server restarts
 when its `dist` output or content pack data changes. The first restart a few seconds after start-up is
 the watch builds writing their initial output. The watch builds log to
-`node_modules/.cache/jsprismarine-dev-build.log` so they stay out of the terminal UI.
+`node_modules/.cache/jsprismarine-dev-build.log` so they stay out of the terminal UI. It opens the
+terminal UI described in the [Console](#4-console) section when it can, and falls back to the plain
+line console otherwise.
+
+### Building the server yourself
+
+You rarely need these: to host a server, [download the prebuilt one](#run-the-prebuilt-server).
+They exist for checking a production build, for platforms the releases do not cover, and for
+working on the packaging itself.
+
 `pnpm run start` builds the server and its workspace dependencies, then runs the compiled entry
-without the watcher. Both open the terminal UI described in the next section when they can, and
-fall back to the plain line console otherwise.
+once, without the watcher.
 
-### The packaged executable
+The released executables are compiled with Bun by `.github/scripts/build-aot.mjs`, which the
+release and nightly workflows run for each platform. That script needs the build metadata the
+workflows set, so the workflows are the supported way to produce release builds.
 
-`pnpm run package` builds `dist/prismarine`, a Node single executable application, with
-`scripts/package-sea.mts`. It needs Node 25.5 or newer, and a checkout whose world generation
-cache is warm: run `pnpm --filter @jsprismarine/bedrock-data run ensure:worldgen` and
+`pnpm run package` builds a different executable locally: `dist/prismarine`, a Node single
+executable application, with `scripts/package-sea.mts`. It needs Node 25.5 or newer, and a
+checkout whose world generation cache is warm: run
+`pnpm --filter @jsprismarine/bedrock-data run ensure:worldgen` and
 `pnpm --filter @jsprismarine/bedrock-data run extract:structures` first, because the executable
-carries that data inside it — the Java vanilla datapack, the biome parameter reports, the
-structure templates, and this project's overlay packs. The build enables Node's SEA code cache
-for the main entry. To build a comparison without it, save the first executable before running
-`pnpm run package -- --no-code-cache`; the remaining packaging inputs stay the same.
-
-The first time the executable runs in a directory, it unpacks that embedded data and downloads
-the pinned Bedrock Dedicated Server zip (~95 MB) from Mojang, verifying its digest and keeping
-only the vanilla behavior pack; Mojang's license does not allow shipping the zip inside the
-binary. Everything lands under `node_modules/.cache/jsprismarine/` beside the server's data
-files, so later runs start without a network. On a machine that cannot reach Mojang's CDN, set
-`JSP_VANILLA_BEHAVIOR_PACK` to a local copy of a Bedrock Dedicated Server `behavior_packs`
-folder.
-
-The executable uses the plain line console. It embeds the default chunk worker and generation
-pipelines as SEA assets, so terrain workers can run without importing modules from disk. If an
-asset is missing or a custom pipeline is not embedded, the server logs the reason and generates
-terrain on the server thread instead.
+carries that data inside it: the Java vanilla datapack, the biome parameter reports, the structure
+templates, and this project's overlay packs. The build enables Node's SEA code cache for the main
+entry. To build a comparison without it, save the first executable before running
+`pnpm run package -- --no-code-cache`; the remaining packaging inputs stay the same. On first run it
+provisions its data the way the prebuilt server does. It uses the plain line console, and embeds
+the default chunk worker and generation pipelines as SEA assets, so terrain workers can run without
+importing modules from disk. If an asset is missing or a custom pipeline is not embedded, the
+server logs the reason and generates terrain on the server thread instead.
 
 `pnpm run package:scriptc` is an experimental ahead-of-time build. It embeds no data and does
 not provision any on first run yet, so its output needs a directory whose

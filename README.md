@@ -21,31 +21,27 @@ JSPrismarine is a dedicated Minecraft Bedrock Edition server written in TypeScri
 
 **[You can find the documentation over at jsprismarine.github.io/JSPrismarine](https://jsprismarine.github.io/JSPrismarine/).**
 
-Prebuilt binaries will be provided once a stable release is available. For now, you can follow the steps below or download the [latest nightly](https://github.com/JSPrismarine/JSPrismarine/actions/workflows/nightly.yml?query=branch%3Amaster) (which may or may not work before reaching `v1.0.0`).
+### Run a server
 
-JSPrismarine runs on Linux, macOS, other Unix-based systems, and modern Windows (WSL2 recommended). It requires [Node.js](https://nodejs.org) 26.4.0 or newer and [pnpm](https://pnpm.io) 12 or newer.
+Download the prebuilt server for your platform from the [releases](https://github.com/JSPrismarine/JSPrismarine/releases?q=jsprismarine%40&expanded=true) and run it. It is one file with everything inside: you need no Node.js, pnpm, Java or checkout of this repository. Releases tagged `jsprismarine@<version>` carry the executables for Linux, macOS and Windows; the ones marked _Pre-release_ are nightly builds of `master`, which may or may not work before reaching `v1.0.0`.
 
+```bash
+chmod +x prismarine-linux-x64
+./prismarine-linux-x64
+```
 
-### Enable (or install) corepack.
+The first start downloads the vanilla behavior pack from Mojang (about 95 MB) and unpacks the server's data next to it; later starts need no network. See [Run the prebuilt server](https://jsprismarine.github.io/JSPrismarine/guide/running#run-the-prebuilt-server) for every platform's file, the macOS and Windows download prompts, and updating.
+
+### Develop add-ons, plugins or JSPrismarine itself
+
+Run a checkout with `pnpm run dev`, which rebuilds and restarts the server when you change a file. It needs [Node.js](https://nodejs.org) 26.4.0 or newer, [pnpm](https://pnpm.io) 12 or newer and, for the default overworld, a JDK 25 or newer. It runs on Linux, macOS, other Unix-based systems, and modern Windows (WSL2 recommended).
+
 ```bash
 corepack enable
-```
-
-### Clone the repository.
-```bash
 git clone https://github.com/JSPrismarine/JSPrismarine.git
 cd JSPrismarine
-```
-
-### Install dependencies and build the project.
-```bash
 pnpm install
-pnpm run build
-```
-
-### Run the server (use `pnpm run dev` for development).
-```bash
-pnpm run start
+pnpm run dev
 ```
 
 In an interactive terminal on Node 26.9 or newer, the console UI opens by default; Node versions 26.4 through 26.8 also support it with `--experimental-ffi`. In other environments, the server reads commands from stdin and writes log lines to stdout. Pass `--no-tui` or set `JSP_NO_TUI=1` to force the plain console. See [Running JSPrismarine](docs/guide/running.md#4-console).
@@ -54,7 +50,7 @@ In an interactive terminal on Node 26.9 or newer, the console UI opens by defaul
 > The build needs the Bedrock resources, a pinned download `pnpm install` fetches for you. Building for the first time needs a network connection; after that the download is cached. To work offline from a cold start, point `JSP_CLOUDBURST_DATA_PATH` at a local [CloudburstMC/Data](https://github.com/CloudburstMC/Data) checkout.
 
 > [!NOTE]
-> `pnpm install && pnpm run dev` is enough to get a development server running. The first `pnpm run dev` also fetches Mojang's Java Edition world generation data, which the default overworld is built from; that takes a 62 MB download, a couple of minutes and a JDK 25 or newer. Later runs reuse the cache and need no network. See [World generation data](docs/guide/running.md#13-world-generation-data) for how to point it at your own copy, or how to run a flat world with no Java at all.
+> The first `pnpm run dev` also fetches Mojang's Java Edition world generation data, which the default overworld is built from; that takes a 62 MB download, a couple of minutes and a JDK 25 or newer. Later runs reuse the cache and need no network. See [World generation data](docs/guide/running.md#13-world-generation-data) for how to point it at your own copy, or how to run a flat world with no Java at all.
 
 ## FAQ
 
@@ -65,7 +61,7 @@ In an interactive terminal on Node 26.9 or newer, the console UI opens by defaul
 - What devices can a player join JSPrismarine with?
   - By default, PC/Windows, Android, and iOS. With some tricks, you can also join with Xbox, Switch, and even PlayStation consoles.
 - Which OSes can run JSPrismarine?
-  - Any platform supporting a somewhat recent version of Node.js.
+  - The prebuilt server runs on Linux (x64 and ARM64, glibc or musl), macOS (Apple silicon and Intel) and Windows (x64 and ARM64). From source, any platform with Node.js 26.4 or newer.
 - If my question isn't listed here, where should I ask?
   - You can join the [Discord server](https://discord.gg/kZZCDyCBbW), or open a [GitHub issue](https://github.com/JSPrismarine/JSPrismarine/issues/new) for development-related questions.
 - Why can't I join a JSPrismarine instance hosted on my Windows PC?
@@ -78,7 +74,7 @@ In an interactive terminal on Node 26.9 or newer, the console UI opens by defaul
 ## Documentation
 
 - [Docs](https://jsprismarine.github.io/JSPrismarine/).
-- [Running JSPrismarine](https://jsprismarine.github.io/JSPrismarine/documents/Running_JSPrismarine.html).
+- [Running JSPrismarine](https://jsprismarine.github.io/JSPrismarine/guide/running).
 
 ## Remarks
 
