@@ -61,9 +61,10 @@ command also collects V8 coverage from the server processes and writes an LCOV r
 
 In CI, `.github/workflows/client-e2e.yml` builds a matrix from every BDS protocol in
 `packages/bedrock-data/sources.json` and runs the full suite with the compatibility default (`zlib`)
-on macOS for each one. A second matrix runs the full suite with `snappy` and `none` across every
+on `ubuntu-latest` for each one, with the client rendering through Mesa's software Vulkan driver on
+a virtual X display. The job runs as many suites at once as the runner's cores and memory allow. A second matrix runs the full suite with `snappy` and `none` across every
 supported protocol, covering retail-client negotiation without duplicating the `zlib` jobs. Each
-protocol job uploads evidence and an LCOV report to Codecov. A preceding macOS job builds the
+protocol job uploads evidence and an LCOV report to Codecov. A preceding job builds the
 latest pinned client with sccache, so the matrix can reuse compiler outputs for dependencies shared
 between protocol pins. A protocol job without its own build cache restores that latest build too;
 `ensure` copies its `build/` and `target/` directories into the new protocol cache so only
