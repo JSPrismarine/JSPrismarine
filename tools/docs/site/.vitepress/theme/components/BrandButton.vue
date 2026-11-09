@@ -2,7 +2,13 @@
 import { withBase } from 'vitepress';
 import { computed } from 'vue';
 
-const props = withDefaults(defineProps<{ href: string; variant?: 'primary' | 'outline' }>(), { variant: 'primary' });
+const props = withDefaults(
+    defineProps<{
+        href: string; /** `outline` sits on forest or ink; `secondary` sits on the page background. */
+        variant?: 'primary' | 'outline' | 'secondary';
+    }>(),
+    { variant: 'primary' }
+);
 /** Site paths get the deploy base; full URLs are left alone. */
 const target = computed(() => (/^[a-z]+:/i.test(props.href) ? props.href : withBase(props.href)));
 </script>
@@ -51,6 +57,17 @@ const target = computed(() => (/^[a-z]+:/i.test(props.href) ? props.href : withB
 .is-outline {
     color: var(--jsp-cream);
     background: transparent;
+}
+
+.is-secondary {
+    color: var(--vp-c-text-1);
+    background: transparent;
+    border-color: var(--vp-c-text-1);
+    box-shadow: var(--jsp-shadow-offset) var(--jsp-shadow-offset) 0 var(--vp-c-text-1);
+}
+
+.is-secondary:hover {
+    box-shadow: 1px 1px 0 var(--vp-c-text-1);
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -18,6 +18,8 @@ interface Manifest {
 /** One published package, as it appears on npm. */
 export interface PublishedPackage {
     description: string;
+    /** The package's folder under `packages/`. */
+    directory: string;
     name: string;
     version: string;
 }
@@ -66,13 +68,23 @@ function load(): ProjectData {
         .filter((entry) => entry.isDirectory())
         .flatMap((entry) => {
             try {
-                return [readManifest(path.join(packagesDir, entry.name, 'package.json'))];
+                return [
+                    {
+                        directory: entry.name,
+                        manifest: readManifest(path.join(packagesDir, entry.name, 'package.json'))
+                    }
+                ];
             } catch {
                 return [];
             }
         })
-        .filter((manifest) => !manifest.private)
-        .map(({ name, description = '', version }) => ({ name, description, version }))
+        .filter(({ manifest }) => !manifest.private)
+        .map(({ directory, manifest: { name, description = '', version } }) => ({
+            name,
+            description,
+            directory,
+            version
+        }))
         .sort((a, b) => a.name.localeCompare(b.name));
 
     const versionsDir = path.join(packagesDir, 'protocol', 'src', 'wire', 'versions');

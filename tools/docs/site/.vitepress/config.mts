@@ -1,15 +1,24 @@
+import { readFileSync } from 'node:fs';
 import { defineConfig } from 'vitepress';
 import manifest from '../../../../package.json' with { type: 'json' };
 import mcfunction from './mcfunction.tmLanguage.json';
 import molang from './molang.tmLanguage.json';
 import typedocSidebar from '../api/typedoc-sidebar.json';
 import { megaMenus, nav } from './menus.mts';
-import { sections } from '../../sections.mts';
+import { isStagedPage, pageSource } from '../../sections.mts';
 import { sidebar } from './sidebar.mts';
 import { prismSvg } from './theme/prism.ts';
 import { palette, paletteCss } from './theme/tokens.ts';
 
+const repositoryUrl = manifest.repository.url.replace(/^git\+/, '').replace(/\.git$/, '');
+const siteUrl = 'https://jsprismarine.github.io/JSPrismarine/';
+// The README's Discord badge is the one place the invite is written.
+const discordInvite = /\]\((https:\/\/discord\.gg\/[\w-]+)\)/.exec(
+    readFileSync(new URL('../../../../README.md', import.meta.url), 'utf8')
+)?.[1];
+
 export default defineConfig({
+    lang: 'en-US',
     title: 'JSPrismarine',
     description: 'Dedicated Minecraft Bedrock Edition server written in TypeScript',
     base: '/JSPrismarine/',
@@ -17,6 +26,9 @@ export default defineConfig({
         ['style', {}, paletteCss],
         ['link', { rel: 'icon', type: 'image/svg+xml', href: `data:image/svg+xml,${encodeURIComponent(prismSvg())}` }],
         ['meta', { name: 'theme-color', content: palette.forest.hex }],
+        ['meta', { property: 'og:type', content: 'website' }],
+        ['meta', { property: 'og:site_name', content: 'JSPrismarine' }],
+        ['meta', { name: 'twitter:card', content: 'summary' }],
         ['link', { rel: 'preconnect', href: 'https://fonts.googleapis.com' }],
         ['link', { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' }],
         [
@@ -27,6 +39,27 @@ export default defineConfig({
             }
         ]
     ],
+    sitemap: { hostname: siteUrl },
+    /** Per-page Open Graph title, description and URL, so shared links preview the page itself. */
+    transformPageData(pageData, { siteConfig }) {
+        const title = pageData.frontmatter.title ?? pageData.title ?? siteConfig.site.title;
+        const description = pageData.frontmatter.description ?? pageData.description ?? siteConfig.site.description;
+        const url = new URL(pageData.relativePath.replace(/(^|\/)index\.md$/, '$1').replace(/\.md$/, ''), siteUrl).href;
+        pageData.frontmatter.head ??= [];
+        pageData.frontmatter.head.push(
+            ['meta', { property: 'og:title', content: title }],
+            ['meta', { property: 'og:description', content: description }],
+            ['meta', { property: 'og:url', content: url }],
+            ['link', { rel: 'canonical', href: url }]
+        );
+        // VitePress serializes theme config functions into the client bundle, so the edit link is resolved
+        // here at build time and read by the theme's EditSource component.
+        const source = pageSource(pageData.relativePath);
+        pageData.frontmatter.editSource = {
+            kind: source.kind,
+            url: `${repositoryUrl}/${source.kind === 'file' ? 'edit' : 'tree'}/master/${source.path}`
+        };
+    },
     ignoreDeadLinks: [
         (link, source) => {
             console.warn(`Found dead link ${link} in ${source}`);
@@ -42,7 +75,7 @@ export default defineConfig({
             // template syntax, so these pages render as literal markdown.
             const render = md.render.bind(md);
             md.render = (source, env) => {
-                const staged = sections.some(({ dir }) => env?.relativePath?.startsWith(`${dir}/`));
+                const staged = isStagedPage(env?.relativePath ?? '');
                 md.set({ html: !staged });
                 if (!staged) return render(source, env);
                 // Front matter has to stay first, or it renders as a heading inside the container.
@@ -55,7 +88,10 @@ export default defineConfig({
         nav,
         megaMenus,
         sidebar: { ...sidebar, '/api/': typedocSidebar },
-        socialLinks: [{ icon: 'github', link: 'https://github.com/JSPrismarine/JSPrismarine' }],
+        socialLinks: [
+            { icon: 'github', link: repositoryUrl },
+            ...(discordInvite ? [{ icon: 'discord', link: discordInvite }] : [])
+        ],
         search: { provider: 'local' },
         footer: { message: `Released under the ${manifest.license} license.` }
     }

@@ -46,8 +46,43 @@ export const megaMenus = [
         ]
     },
     {
+        text: 'Build',
+        description: 'Packages, packs and the API for add-ons and tools.',
+        featured: {
+            text: 'Packages',
+            description: 'Every package on npm, with its API, README and npm page.',
+            command: 'pnpm add @jsprismarine/nbt',
+            link: '/packages'
+        },
+        sections: [
+            {
+                text: 'Reference',
+                items: [
+                    { text: 'API reference', description: 'Generated from the published packages.', link: '/api/' },
+                    { text: 'Packages', description: 'Find a package and its docs.', link: '/packages' }
+                ]
+            },
+            {
+                text: 'Content',
+                items: [
+                    { text: 'Molang', description: 'Expressions in behavior packs.', link: '/data-driven/molang' },
+                    {
+                        text: 'Commands',
+                        description: 'Commands, functions and datapacks.',
+                        link: '/data-driven/commands'
+                    }
+                ]
+            }
+        ]
+    },
+    {
         text: 'Project',
         description: 'Where the server stands and where it is going.',
+        featured: {
+            text: 'Releases',
+            description: 'What changed in each version, from the changelog.',
+            link: '/releases'
+        },
         sections: [
             {
                 text: 'Status',
@@ -57,20 +92,11 @@ export const megaMenus = [
                         description: 'Behavior checked against the vanilla server.',
                         link: '/parity'
                     },
+                    { text: 'Releases', description: 'Release notes for every version.', link: '/releases' },
                     {
                         text: 'Versioning policy',
                         description: 'How packages are versioned and released.',
                         link: '/guide/versioning'
-                    },
-                    {
-                        text: 'Brand guide',
-                        description: 'Colors, type, the prism mark and voice.',
-                        link: '/brand/'
-                    },
-                    {
-                        text: 'Brand kit',
-                        description: 'The palette and components, rendered live.',
-                        link: '/brand-kit'
                     }
                 ]
             },
@@ -81,11 +107,39 @@ export const megaMenus = [
                     { text: 'Decisions', description: 'Architecture decision records.', link: '/adr/' },
                     { text: 'Research', description: 'Notes from primary sources.', link: '/research/' }
                 ]
+            },
+            {
+                text: 'Brand',
+                items: [
+                    { text: 'Brand guide', description: 'Colors, type, the mark and voice.', link: '/brand/' },
+                    { text: 'Brand kit', description: 'The palette and components, live.', link: '/brand-kit' }
+                ]
             }
         ]
     },
-    { text: 'API', description: 'Generated reference for the published packages.', link: '/api/', sections: [] },
-    { text: 'Contributors', description: 'The people who write the code.', link: '/contributors', sections: [] }
+    {
+        text: 'Community',
+        description: 'Join in, report a bug or send a change.',
+        featured: {
+            text: 'Contributing',
+            description: 'How to report bugs, suggest features and open a pull request.',
+            command: 'pnpm run dev',
+            link: '/contributing'
+        },
+        sections: [
+            {
+                text: 'People',
+                items: [
+                    { text: 'Contributors', description: 'The people who write the code.', link: '/contributors' },
+                    {
+                        text: 'Code of Conduct',
+                        description: 'How we expect everyone to behave.',
+                        link: '/code-of-conduct'
+                    }
+                ]
+            }
+        ]
+    }
 ] satisfies MegaMenu[];
 
 /** Flat navigation for screens too narrow for the mega menu, derived from the same data. */

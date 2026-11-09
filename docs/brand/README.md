@@ -11,6 +11,7 @@ each component live from the same source.
 | Derived shades and sizes | `tools/docs/site/.vitepress/theme/brand.css`  |
 | Components               | `tools/docs/site/.vitepress/theme/components/` |
 | Project facts            | `tools/docs/site/project.data.mts`            |
+| Release notes            | `tools/docs/site/releases.data.mts`           |
 
 ## Position
 
@@ -104,12 +105,15 @@ pages such as `tools/docs/site/index.md` and `tools/docs/site/brand-kit.md`.
 | Component                | Purpose                                                           |
 | ------------------------ | ----------------------------------------------------------------- |
 | `PrismMark`              | The mark as inline SVG, at any size.                              |
-| `BrandButton`            | Primary and outline buttons with the hard shadow.                 |
+| `BrandButton`            | Primary, outline (on dark) and secondary (on the page) buttons.   |
 | `TerminalWindow`         | A server console frame. Each `t-line` span in the slot is a line. |
 | `AudienceTabs`           | Keyboard-navigable tabs with a pitch, a snippet and links each.   |
 | `BentoGrid`, `BentoTile` | Solid color tiles for short claims or figures.                    |
 | `ParityBars`             | The behavior parity score and bars, counted as the tracker counts. |
 | `CopyButton`             | Copies a command to the clipboard.                                |
+| `LatestRelease`          | The newest release's version, date and first changes.             |
+| `ReleaseNotes`           | Release notes from the changelog, with long groups collapsed.     |
+| `PackageDirectory`       | A filterable grid of the published packages.                      |
 | `Ticker`                 | A looping banner of short phrases.                                |
 
 ## Content comes from the repository
@@ -121,7 +125,8 @@ at build time:
 - the published packages;
 - the Node and pnpm requirements;
 - the supported protocols and Minecraft releases;
-- the default port and online mode.
+- the default port and online mode;
+- the release notes, from the server package's changelog.
 
 The build fails when a command, package or source pattern the page relies on disappears. The terminal
 preview uses the server's real startup log lines. `ParityBars` reads the tracker snapshot and shows

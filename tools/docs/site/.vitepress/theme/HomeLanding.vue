@@ -2,10 +2,12 @@
 import { withBase } from 'vitepress';
 
 import { data as project } from '../../project.data.mts';
+import { data as releases } from '../../releases.data.mts';
 import AudienceTabs from './components/AudienceTabs.vue';
 import BentoGrid from './components/BentoGrid.vue';
 import BentoTile from './components/BentoTile.vue';
 import BrandButton from './components/BrandButton.vue';
+import LatestRelease from './components/LatestRelease.vue';
 import ParityBars from './components/ParityBars.vue';
 import PrismMark from './components/PrismMark.vue';
 import TerminalWindow from './components/TerminalWindow.vue';
@@ -30,7 +32,7 @@ const featured = requirePackages(project, featuredPackageNames);
             </p>
             <div class="landing__cta">
                 <BrandButton href="/guide/running">Run a server</BrandButton>
-                <BrandButton href="/data-driven/" variant="outline">Read the docs</BrandButton>
+                <BrandButton href="/guide/" variant="outline">Read the docs</BrandButton>
             </div>
             <div class="landing__stage">
                 <TerminalWindow>
@@ -95,6 +97,9 @@ const featured = requirePackages(project, featuredPackageNames);
                     <a :href="withBase('/parity')">tracker</a>.
                 </p>
                 <ParityBars />
+            </BentoTile>
+            <BentoTile v-if="releases.releases[0]" tone="accent" :span="6">
+                <LatestRelease :release="releases.releases[0]" />
             </BentoTile>
         </BentoGrid>
 

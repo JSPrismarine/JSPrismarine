@@ -68,3 +68,62 @@
     outline: 3px solid var(--jsp-signal);
     outline-offset: 2px;
 }
+
+/* Doc pages: flat blocks with hard edges, matching the landing page. */
+.vp-doc .custom-block {
+    border: 0;
+    border-left: 4px solid var(--jsp-accent);
+    border-radius: 0 var(--jsp-radius-control) var(--jsp-radius-control) 0;
+}
+
+.vp-doc .custom-block.warning,
+.vp-doc .custom-block.danger,
+.vp-doc .custom-block.caution {
+    border-left-color: var(--jsp-signal);
+}
+
+.vp-doc div[class*='language-'] {
+    border-radius: var(--jsp-radius-control);
+}
+
+.vp-doc table {
+    border-collapse: collapse;
+}
+
+.vp-doc th {
+    font: 700 12px var(--vp-font-family-mono);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+.vp-doc a {
+    text-decoration-thickness: 1.5px;
+    text-underline-offset: 3px;
+}
+
+.vp-doc kbd,
+.not-found kbd {
+    padding: 1px 6px;
+    font: 12px var(--vp-font-family-mono);
+    border: 1.5px solid var(--vp-c-divider);
+    border-bottom-width: 3px;
+    border-radius: 6px;
+}
+
+/* The current sidebar entry gets a solid bar, not just a color change. */
+.VPSidebarItem.is-active > .item {
+    box-shadow: inset 3px 0 0 var(--jsp-accent);
+}
+
+.VPSidebarItem.is-active > .item .link {
+    padding-left: 10px;
+}
+
+.VPDocFooter .pager-link {
+    border-width: 2px;
+    border-radius: var(--jsp-radius-control);
+}
+
+.VPDocFooter .pager-link:hover {
+    border-color: var(--jsp-accent);
+}

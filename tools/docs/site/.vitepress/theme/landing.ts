@@ -71,8 +71,8 @@ export function buildAudiences(project: ProjectData): Audience[] {
             copyable: true,
             links: [
                 { text: 'Using packs', hint: 'formats and load order', href: '/data-driven/using-packs' },
-                { text: 'Molang', hint: 'expressions', href: '/data-driven/molang' },
-                { text: 'API reference', hint: `${project.packages.length} packages`, href: '/api/' }
+                { text: 'Packages', hint: `${project.packages.length} on npm`, href: '/packages' },
+                { text: 'API reference', hint: 'generated from source', href: '/api/' }
             ]
         },
         {
@@ -83,9 +83,9 @@ export function buildAudiences(project: ProjectData): Audience[] {
             code: `git clone ${project.repositoryUrl}.git\ncd JSPrismarine\npnpm install\npnpm run dev`,
             copyable: true,
             links: [
+                { text: 'Contributing', hint: 'issues and pull requests', href: '/contributing' },
                 { text: 'Architecture', hint: 'how it fits', href: '/data-driven/architecture' },
-                { text: 'Decisions', hint: 'ADRs', href: '/adr/' },
-                { text: 'Contributors', hint: 'who writes the code', href: '/contributors' }
+                { text: 'Decisions', hint: 'ADRs', href: '/adr/' }
             ]
         }
     ];

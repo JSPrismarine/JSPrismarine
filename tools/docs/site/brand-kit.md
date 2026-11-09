@@ -7,6 +7,7 @@ outline: deep
 <script setup>
 import { palette } from './.vitepress/theme/tokens.ts';
 import { data as project } from './project.data.mts';
+import { data as releases } from './releases.data.mts';
 </script>
 
 # Brand kit
@@ -55,12 +56,18 @@ Every component below is registered globally, so a site page can use it without 
 
 <div class="kit-tile is-forest kit-tile--wide">
     <BrandButton href="/guide/running">Run a server</BrandButton>
-    <BrandButton href="/data-driven/" variant="outline">Read the docs</BrandButton>
+    <BrandButton href="/guide/" variant="outline">Read the docs</BrandButton>
+</div>
+
+<div class="kit-row--buttons">
+    <BrandButton href="/packages" variant="secondary">Packages</BrandButton>
 </div>
 
 ```vue
 <BrandButton href="/guide/running">Run a server</BrandButton>
-<BrandButton href="/data-driven/" variant="outline">Read the docs</BrandButton>
+<!-- outline sits on forest or ink, secondary on the page background -->
+<BrandButton href="/guide/" variant="outline">Read the docs</BrandButton>
+<BrandButton href="/packages" variant="secondary">Packages</BrandButton>
 ```
 
 ### TerminalWindow
@@ -101,6 +108,31 @@ Every component below is registered globally, so a site page can use it without 
 
 ```vue
 <ParityBars :limit="3" />
+```
+
+### LatestRelease
+
+<div class="kit-tile is-forest kit-tile--wide"><LatestRelease :release="releases.releases[0]" /></div>
+
+```vue
+<LatestRelease :release="releases.releases[0]" :limit="3" />
+```
+
+### ReleaseNotes
+
+Release notes from the changelog, as on the [releases page](./releases). Long groups collapse behind a
+button.
+
+```vue
+<ReleaseNotes :releases="releases.releases" />
+```
+
+### PackageDirectory
+
+The filterable package grid on the [packages page](./packages).
+
+```vue
+<PackageDirectory :packages="project.packages" :repository-url="project.repositoryUrl" />
 ```
 
 ### CopyButton
@@ -150,6 +182,10 @@ Every component below is registered globally, so a site page can use it without 
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
     gap: var(--jsp-gap);
+    margin: 16px 0;
+}
+
+.kit-row--buttons {
     margin: 16px 0;
 }
 
