@@ -11,6 +11,12 @@
             "matchManagers": ["dockerfile"],
             "matchUpdateTypes": ["digest"],
             "commitMessageTopic": "{{{depName}}} digest"
+        },
+        {
+            "description": "Keep Blacksmith actions on their major tag instead of pinning a commit digest",
+            "matchManagers": ["github-actions"],
+            "matchPackageNames": ["useblacksmith/**"],
+            "pinDigests": false
         }
     ]
 }

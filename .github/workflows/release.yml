@@ -123,12 +123,12 @@ jobs:
         name: 🗃️ Prepare executable data
         needs: release
         if: ${{ always() && (github.event_name == 'workflow_dispatch' || (needs.release.result == 'success' && needs.release.outputs.published == 'true')) }}
-        runs-on: ubuntu-latest
+        runs-on: blacksmith-2vcpu-ubuntu-2404
         permissions:
             contents: read
         steps:
             - name: 🕶️ Checkout repository
-              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+              uses: useblacksmith/checkout@v1
               with:
                   ref: ${{ github.event_name == 'workflow_dispatch' && format('@jsprismarine/server@{0}', inputs.recover-version) || github.sha }}
 
@@ -164,19 +164,19 @@ jobs:
         strategy:
             matrix:
                 include:
-                    - runner: ubuntu-latest
+                    - runner: blacksmith-2vcpu-ubuntu-2404
                       group: linux
                       targets: >-
                           bun-linux-x64
                           bun-linux-arm64
                           bun-linux-x64-musl
                           bun-linux-arm64-musl
-                    - runner: macos-latest
+                    - runner: blacksmith-6vcpu-macos-latest
                       group: macos
                       targets: >-
                           bun-darwin-x64
                           bun-darwin-arm64
-                    - runner: windows-latest
+                    - runner: blacksmith-2vcpu-windows-2025
                       group: windows-x64
                       targets: bun-windows-x64
                     - runner: windows-11-arm
