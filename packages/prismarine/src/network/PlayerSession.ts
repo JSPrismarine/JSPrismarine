@@ -2043,7 +2043,7 @@ export default class PlayerSession {
 
         // Not broadcast: nobody in the new world sees the player yet, and the client's own
         // teleport waits for the screen to close.
-        await player.setPosition(
+        await player.setPlayerPosition(
             {
                 position: Position.fromVector3(eyes, world),
                 type: PositionMode.Teleport,

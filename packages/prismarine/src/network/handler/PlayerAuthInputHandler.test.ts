@@ -62,7 +62,7 @@ const fake = ({ serverAuthoritativeBreaking = false, changingDimension = false }
         gamemode: Gametype.SURVIVAL,
         getName: () => 'tester',
         getPosition: () => new Position(0, 64, 0, world),
-        setPosition: vi.fn(
+        setPlayerPosition: vi.fn(
             async ({ position }: { position: Vector3 }) =>
                 void calls.push(`move ${position.getX()},${position.getY()},${position.getZ()}`)
         ),
@@ -166,7 +166,7 @@ describe('PlayerAuthInputHandler', () => {
         await new PlayerAuthInputHandler().handle(input(), server, session);
 
         expect(calls[0]).toBe('move 3,70,-4');
-        expect(player.setPosition).toHaveBeenCalledWith(
+        expect(player.setPlayerPosition).toHaveBeenCalledWith(
             { position: new Vector3(3, 70, -4), pitch: 5, yaw: 90, headYaw: 85 },
             false
         );
@@ -187,7 +187,7 @@ describe('PlayerAuthInputHandler', () => {
                 session
             );
 
-            expect(player.setPosition).toHaveBeenCalledWith(
+            expect(player.setPlayerPosition).toHaveBeenCalledWith(
                 { position: new Vector3(3, 70, -4), pitch: 5, yaw: 90, headYaw: 85 },
                 false
             );
@@ -331,7 +331,7 @@ describe('PlayerAuthInputHandler', () => {
         );
 
         expect(session.recordInputTick).toHaveBeenCalledWith(12n);
-        expect(player.setPosition).not.toHaveBeenCalled();
+        expect(player.setPlayerPosition).not.toHaveBeenCalled();
         expect(calls).toEqual([]);
     });
 

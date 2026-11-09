@@ -438,7 +438,7 @@ export const worldCommandHost = (server: Server): WorldCommandHost => {
                 const surface = chunk?.getHighestBlockAt(Math.floor(spot.x), Math.floor(spot.z));
                 const y = (surface ?? world.getDimension().minY) + 1;
                 carryOut(
-                    player.setPosition({ position: new Vector3(spot.x, y, spot.z), type: PositionMode.Teleport }),
+                    player.setPlayerPosition({ position: new Vector3(spot.x, y, spot.z), type: PositionMode.Teleport }),
                     undefined
                 );
                 moved += 1;

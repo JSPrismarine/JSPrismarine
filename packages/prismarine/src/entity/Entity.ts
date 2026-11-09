@@ -43,6 +43,20 @@ import {
  */
 export { DamageCause };
 
+/** Where {@link Entity.setPosition} moves an entity, and how clients should get there. */
+export interface EntityPositionOptions {
+    /** The new position; a bare `Vector3` keeps the entity's current world. */
+    readonly position: Vector3;
+    /** The new pitch, or the current one when left out. */
+    readonly pitch?: number;
+    /** The new yaw, or the current one when left out. */
+    readonly yaw?: number;
+    /** The new head yaw, or the current one when left out. */
+    readonly headYaw?: number;
+    /** Whether clients should snap to the new position instead of interpolating to it. */
+    readonly teleport?: boolean;
+}
+
 /** What an entity's health tops out at when it has no health attribute to ask. */
 const DEFAULT_MAX_HEALTH = 20;
 
@@ -1282,13 +1296,7 @@ export class Entity {
         yaw = this.yaw,
         headYaw = this.headYaw,
         teleport = false
-    }: {
-        position: Vector3;
-        pitch?: number;
-        yaw?: number;
-        headYaw?: number;
-        teleport?: boolean;
-    }): Promise<void> {
+    }: EntityPositionOptions): Promise<void> {
         const coordinates = [position.getX(), position.getY(), position.getZ()];
         if (!coordinates.every(Number.isFinite))
             throw new RangeError(`Cannot move ${this.getName()} to a non-finite position (${coordinates.join(', ')})`);

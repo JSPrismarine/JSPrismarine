@@ -320,7 +320,7 @@ const playerAt = (fixture: Fixture, id: bigint, name: string, position: Vector3)
         isAlive: () => true,
         gamemode: Gametype.SURVIVAL,
         setGamemode: vi.fn().mockResolvedValue(undefined),
-        setPosition: vi.fn().mockResolvedValue(undefined),
+        setPlayerPosition: vi.fn().mockResolvedValue(undefined),
         kick: vi.fn().mockResolvedValue(undefined),
         sendMessage: vi.fn().mockResolvedValue(undefined),
         getInventory: () => inventory,
@@ -436,7 +436,7 @@ describe('the server command host', () => {
             // Java reads `/tp` coordinates as feet; a player's stored position is their eyes,
             // 1.62 up, like the world change below. Written in raw, the player would stand
             // 1.62 blocks down in the floor.
-            expect(player.setPosition).toHaveBeenCalledWith(
+            expect(player.setPlayerPosition).toHaveBeenCalledWith(
                 expect.objectContaining({ position: expect.objectContaining({ x: 10, y: 71.62, z: 10 }) })
             );
         });
@@ -474,14 +474,14 @@ describe('the server command host', () => {
             await expect(fixture.run('execute in the_nether run tp @a 10 70 10')).resolves.toBe(1);
 
             // The world change carries the position, so the player does not land at the
-            // Nether's spawn first, and `setPosition` is not run in the world being left.
+            // Nether's spawn first, and `setPlayerPosition` is not run in the world being left.
             expect(player.getNetworkSession().changeWorld).toHaveBeenCalledWith({
                 world: fixture.nether,
                 position: new Vector3(10, 70, 10),
                 yaw: 0,
                 pitch: 0
             });
-            expect(player.setPosition).not.toHaveBeenCalled();
+            expect(player.setPlayerPosition).not.toHaveBeenCalled();
         });
 
         it('takes the dimension of a cross-dimension `/tp` as a namespaced Java id', async () => {

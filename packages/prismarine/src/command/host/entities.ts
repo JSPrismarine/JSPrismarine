@@ -304,7 +304,7 @@ export const entityCommandHost = (server: Server, scoreboard: Scoreboard): Entit
             // other entity's position is already its feet.
             const move = async () => {
                 if (entity instanceof Player) {
-                    return entity.setPosition({
+                    return entity.setPlayerPosition({
                         position: eyePositionAt(vectorOf(position)),
                         type: PositionMode.Teleport,
                         yaw: rotation.yaw,

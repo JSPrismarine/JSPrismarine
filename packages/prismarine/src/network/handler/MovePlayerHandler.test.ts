@@ -29,7 +29,7 @@ const fake = () => {
         getPosition: () => new Position(0, 64, 0, world),
         getWorld: () => world,
         isOnGround: () => false,
-        setPosition: vi.fn(async () => {}),
+        setPlayerPosition: vi.fn(async () => {}),
         setOnGround: vi.fn(async () => {})
     });
     const session = stub<PlayerSession>({
@@ -80,7 +80,7 @@ describe('MovePlayerHandler', () => {
             headYaw: pose.headYaw,
             isOnGround: () => pose.onGround,
             getWorld: () => world,
-            setPosition: vi.fn(async ({ position, pitch, yaw, headYaw }) => {
+            setPlayerPosition: vi.fn(async ({ position, pitch, yaw, headYaw }) => {
                 pose.position = new Position(position.getX(), position.getY(), position.getZ(), world);
                 pose.pitch = pitch;
                 pose.yaw = yaw;
@@ -111,7 +111,7 @@ describe('MovePlayerHandler', () => {
         await applyClientMovement(server, session, { ...movement, yaw: 91, onGround: false });
 
         expect(events).toBe(4);
-        expect(player.setPosition).toHaveBeenCalledTimes(2);
+        expect(player.setPlayerPosition).toHaveBeenCalledTimes(2);
         expect(player.setOnGround).toHaveBeenCalledTimes(2);
         // Position plus landing queues twice; the tick replicator coalesces both into the final pose.
         expect(world.broadcastMove).toHaveBeenCalledTimes(4);
@@ -122,7 +122,7 @@ describe('MovePlayerHandler', () => {
 
         await new MovePlayerHandler().handle(move(), server, session);
 
-        expect(player.setPosition).toHaveBeenCalledWith(
+        expect(player.setPlayerPosition).toHaveBeenCalledWith(
             { position: new Vector3(3, 70, -4), pitch: 5, yaw: 90, headYaw: 85 },
             false
         );
@@ -158,7 +158,7 @@ describe('MovePlayerHandler', () => {
             session
         );
 
-        expect(player.setPosition).toHaveBeenCalled();
+        expect(player.setPlayerPosition).toHaveBeenCalled();
     });
 
     it('records the packet tick as the input tick before the move is applied', async () => {
@@ -166,7 +166,7 @@ describe('MovePlayerHandler', () => {
         const order: string[] = [];
         const { player, session, server } = fake();
         session.recordInputTick = vi.fn(() => void order.push('tick'));
-        player.setPosition = vi.fn(async () => void order.push('move'));
+        player.setPlayerPosition = vi.fn(async () => void order.push('move'));
 
         await new MovePlayerHandler().handle(move(), server, session);
 
@@ -186,7 +186,7 @@ describe('MovePlayerHandler', () => {
             session
         );
 
-        expect(player.setPosition).not.toHaveBeenCalled();
+        expect(player.setPlayerPosition).not.toHaveBeenCalled();
         expect(session.recordInputTick).not.toHaveBeenCalled();
         expect(dropped).toHaveLength(1);
     });
@@ -206,7 +206,7 @@ describe('MovePlayerHandler', () => {
             session
         );
 
-        expect(player.setPosition).not.toHaveBeenCalled();
+        expect(player.setPlayerPosition).not.toHaveBeenCalled();
         expect(dropped).toHaveLength(1);
     });
 });

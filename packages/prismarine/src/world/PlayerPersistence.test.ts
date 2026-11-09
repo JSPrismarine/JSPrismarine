@@ -204,7 +204,7 @@ const logOutAndIn = async () => {
     leaving.attributes.setValue(AttributeIds.PlayerLevel, 27);
     leaving.attributes.setValue(AttributeIds.PlayerExperience, 0.5);
     leaving.setSeenCredits(true);
-    await leaving.setPosition({ position: new Vector3(12.5, 70, -8.5) }, false);
+    await leaving.setPlayerPosition({ position: new Vector3(12.5, 70, -8.5) }, false);
 
     await world.savePlayerData(leaving);
 

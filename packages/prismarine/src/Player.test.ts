@@ -35,7 +35,7 @@ const tick = async (player: Player, n: number, from = 1) => {
 const move = async (player: Player, blocks: number, type = PositionMode.Normal) => {
     for (let i = 0; i < blocks; i++) {
         const position = player.getPosition();
-        await player.setPosition({ position: new Vector3(position.getX() + 1, 64, 0), type }, false);
+        await player.setPlayerPosition({ position: new Vector3(position.getX() + 1, 64, 0), type }, false);
     }
 };
 
@@ -48,7 +48,10 @@ describe('Player', () => {
                 rotations.push([entity.pitch, entity.yaw, entity.headYaw]);
             });
 
-            await player.setPosition({ position: new Vector3(1, 64, 0), pitch: 17, yaw: 123, headYaw: 120 }, false);
+            await player.setPlayerPosition(
+                { position: new Vector3(1, 64, 0), pitch: 17, yaw: 123, headYaw: 120 },
+                false
+            );
 
             expect(rotations).toStrictEqual([[17, 123, 120]]);
         });
@@ -60,9 +63,9 @@ describe('Player', () => {
                 snaps.push(teleport ?? false);
             });
 
-            await player.setPosition({ position: new Vector3(1, 64, 0) }, false);
-            await player.setPosition({ position: new Vector3(90, 64, 0), type: PositionMode.Teleport }, false);
-            await player.setPosition({ position: new Vector3(0, 64, 0), type: PositionMode.Respawn }, false);
+            await player.setPlayerPosition({ position: new Vector3(1, 64, 0) }, false);
+            await player.setPlayerPosition({ position: new Vector3(90, 64, 0), type: PositionMode.Teleport }, false);
+            await player.setPlayerPosition({ position: new Vector3(0, 64, 0), type: PositionMode.Respawn }, false);
 
             expect(snaps).toStrictEqual([false, true, true]);
         });
@@ -236,7 +239,7 @@ describe('Player', () => {
             player.metadata.setSprinting(true);
 
             const position = player.getPosition();
-            await player.setPosition({ position: new Vector3(position.getX(), 64, 0) }, false);
+            await player.setPlayerPosition({ position: new Vector3(position.getX(), 64, 0) }, false);
 
             expect(player.attributes.getValue(AttributeIds.PlayerExhaustion)).toBe(0);
         });
@@ -245,7 +248,7 @@ describe('Player', () => {
             const { player } = fakePlayer();
             player.metadata.setSprinting(true);
 
-            await player.setPosition({ position: new Vector3(0, 60, 0) }, false);
+            await player.setPlayerPosition({ position: new Vector3(0, 60, 0) }, false);
 
             expect(player.attributes.getValue(AttributeIds.PlayerExhaustion)).toBe(0);
         });
@@ -840,7 +843,7 @@ describe('Player', () => {
     describe('the void', () => {
         /** Puts the player's eyes at `y`; their feet are `EYE_HEIGHT` lower. */
         const fallTo = async (player: Player, y: number) =>
-            player.setPosition({ position: new Vector3(0, y, 0), type: PositionMode.Normal }, false);
+            player.setPlayerPosition({ position: new Vector3(0, y, 0), type: PositionMode.Normal }, false);
 
         it('hurts a player four half-hearts every half second once 64 blocks under the floor', async () => {
             const { player } = fakePlayer();

@@ -9,6 +9,7 @@ import { Attribute, AttributeIds } from '@jsprismarine/protocol/wire/structures/
 import { DamageSource } from './entity/DamageSource';
 import { deathMessage } from './entity/DeathMessages';
 import { DamageCause } from './entity/Entity';
+import type { EntityPositionOptions } from './entity/Entity';
 import { PORTAL_COOLDOWN_TICKS, PORTAL_TRANSITION_TICKS } from './entity/PortalContact';
 import type { PortalRule } from './world/portal/rules';
 import {
@@ -359,7 +360,7 @@ export default class Player extends Human {
         // Not broadcast: `StartGame` carries the position, so the client has no use for a
         // `MovePlayer` here. Awaited, where it was not, because the move this used to send went
         // out after `PlayStatus(LoginSuccess)` had already been written.
-        await this.setPosition(
+        await this.setPlayerPosition(
             {
                 position,
                 pitch: playerData.position?.pitch || 0,
@@ -1166,7 +1167,7 @@ export default class Player extends Human {
 
             // Where the `ReadyToSpawn` put the client, and without a `MovePlayer`: a Bedrock
             // Dedicated Server sends none here, and the client is already there.
-            await this.setPosition(
+            await this.setPlayerPosition(
                 { position: (await this.getRespawnPoint()).eyes, type: PositionMode.Respawn },
                 false
             );
@@ -1603,37 +1604,43 @@ export default class Player extends Human {
     }
 
     /**
-     * Set the position.
+     * Moves the player as an {@link Entity} move: a step, or a teleport when `teleport` is set.
+     * @param {EntityPositionOptions} options - The position, rotation and whether to snap.
+     * @returns {Promise<void>} A promise that resolves when the player's client has been told.
+     * @remarks {@link Player.setPlayerPosition} takes the movement mode and the broadcast choice.
+     */
+    public override async setPosition({ teleport = false, ...options }: EntityPositionOptions): Promise<void> {
+        await this.setPlayerPosition({ ...options, type: teleport ? PositionMode.Teleport : PositionMode.Normal });
+    }
+
+    /**
+     * Set the position with a movement mode.
      * @param {object} options - The options to set the position.
      * @param {Vector3} options.position - The new position.
      * @param {PositionMode} [options.type=PositionMode.Normal] - The position mode.
      * @param {number} [options.pitch=this.pitch] - The new pitch.
      * @param {number} [options.yaw=this.yaw] - The new yaw.
      * @param {number} [options.headYaw=this.headYaw] - The new head yaw.
-     * @param {boolean} [options.teleport=false] - The {@link Entity} form of a snap; it selects
-     * `PositionMode.Teleport` when `type` is not given.
-     * @param {boolean} [broadcast=true] - Whether to broadcast the position change.
-     * @remarks This will notify the player's client about the position change. Observers snap to
-     * a respawn or a teleport instead of interpolating to it.
+     * @param {boolean} [broadcast=true] - Whether to tell the player's own client.
+     * @returns {Promise<void>} A promise that resolves when the position is set.
+     * @remarks Observers snap to a respawn or a teleport instead of interpolating to it.
      */
-    public async setPosition(
+    public async setPlayerPosition(
         {
             position,
-            teleport = false,
-            type = teleport ? PositionMode.Teleport : PositionMode.Normal,
+            type = PositionMode.Normal,
             pitch = this.pitch,
             yaw = this.yaw,
             headYaw = this.headYaw
         }: {
             position: Vector3;
-            teleport?: boolean;
             type?: PositionMode;
             pitch?: number;
             yaw?: number;
             headYaw?: number;
         },
         broadcast = true
-    ) {
+    ): Promise<void> {
         const previous = this.getPosition();
 
         // Entity broadcasts synchronously from this call. Store the reported rotation before

@@ -65,7 +65,7 @@ export const applyClientMovement = async (
     if (!positionChanged && !rotationChanged && !groundChanged) return;
 
     if (positionChanged || rotationChanged) {
-        await player.setPosition(
+        await player.setPlayerPosition(
             {
                 position: movement.position,
                 pitch: movement.pitch,
