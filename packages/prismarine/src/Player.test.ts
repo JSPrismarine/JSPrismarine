@@ -52,6 +52,35 @@ describe('Player', () => {
 
             expect(rotations).toStrictEqual([[17, 123, 120]]);
         });
+
+        it('tells observers to snap to a teleport or a respawn but not to a step', async () => {
+            const { player, world } = fakePlayer();
+            const snaps: boolean[] = [];
+            vi.spyOn(world, 'broadcastMove').mockImplementation(async (_entity, teleport) => {
+                snaps.push(teleport ?? false);
+            });
+
+            await player.setPosition({ position: new Vector3(1, 64, 0) }, false);
+            await player.setPosition({ position: new Vector3(90, 64, 0), type: PositionMode.Teleport }, false);
+            await player.setPosition({ position: new Vector3(0, 64, 0), type: PositionMode.Respawn }, false);
+
+            expect(snaps).toStrictEqual([false, true, true]);
+        });
+
+        it('treats the entity teleport option as a teleport', async () => {
+            const { player, world } = fakePlayer();
+            const snaps: boolean[] = [];
+            vi.spyOn(world, 'broadcastMove').mockImplementation(async (_entity, teleport) => {
+                snaps.push(teleport ?? false);
+            });
+            const sendMove = vi.spyOn(player.getNetworkSession(), 'sendMove').mockResolvedValue();
+
+            const entity: Entity = player;
+            await entity.setPosition({ position: new Vector3(90, 64, 0), teleport: true });
+
+            expect(snaps).toStrictEqual([true]);
+            expect(sendMove).toHaveBeenCalledWith(player, PositionMode.Teleport);
+        });
     });
 
     describe('isOp', () => {

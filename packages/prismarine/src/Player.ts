@@ -1610,18 +1610,23 @@ export default class Player extends Human {
      * @param {number} [options.pitch=this.pitch] - The new pitch.
      * @param {number} [options.yaw=this.yaw] - The new yaw.
      * @param {number} [options.headYaw=this.headYaw] - The new head yaw.
+     * @param {boolean} [options.teleport=false] - The {@link Entity} form of a snap; it selects
+     * `PositionMode.Teleport` when `type` is not given.
      * @param {boolean} [broadcast=true] - Whether to broadcast the position change.
-     * @remarks This will notify the player's client about the position change.
+     * @remarks This will notify the player's client about the position change. Observers snap to
+     * a respawn or a teleport instead of interpolating to it.
      */
     public async setPosition(
         {
             position,
-            type = PositionMode.Normal,
+            teleport = false,
+            type = teleport ? PositionMode.Teleport : PositionMode.Normal,
             pitch = this.pitch,
             yaw = this.yaw,
             headYaw = this.headYaw
         }: {
             position: Vector3;
+            teleport?: boolean;
             type?: PositionMode;
             pitch?: number;
             yaw?: number;
@@ -1633,7 +1638,13 @@ export default class Player extends Human {
 
         // Entity broadcasts synchronously from this call. Store the reported rotation before
         // that broadcast builds the queued MoveActorAbsolute packet for observers.
-        await super.setPosition({ position, pitch, yaw, headYaw });
+        await super.setPosition({
+            position,
+            pitch,
+            yaw,
+            headYaw,
+            teleport: type === PositionMode.Teleport || type === PositionMode.Respawn
+        });
 
         // A reset or a teleport is not the player walking, so it costs nothing - and it must not
         // count as a fall either, or arriving anywhere below where you left would hurt.
