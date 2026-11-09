@@ -105,9 +105,6 @@ export const GENERATION_PRIORITIES = ['immediate', 'soon', 'idle'] as const;
 /** One of {@link GENERATION_PRIORITIES}. */
 export type GenerationPriority = (typeof GENERATION_PRIORITIES)[number];
 
-/** Answers true for a task a pause should hold back, given the band it waits in. */
-export type PauseRule = (task: GenerationTask, band: GenerationPriority) => boolean;
-
 /** What a worker is asked to do: advance one chunk to one status. */
 export interface GenerationTask {
     /** The status the body being run produces. */
@@ -595,9 +592,6 @@ export class GenerationPool {
     private backgroundLimit: number | undefined;
     private runningBackground = 0;
 
-    /** What a pause holds back, or undefined when not paused. */
-    private holds: PauseRule | undefined;
-
     /**
      * Why this process cannot run workers, or undefined when it can.
      *
@@ -660,16 +654,6 @@ export class GenerationPool {
         this.now = options.now ?? (() => performance.now());
     }
 
-    /** Whether the pool is holding the backlog back; see {@link GenerationPool.pause}. */
-    public get paused(): boolean {
-        return this.holds !== undefined;
-    }
-
-    /** Whether a pause is holding this task back. */
-    private isHeld(task: GenerationTask, band: GenerationPriority): boolean {
-        return this.holds?.(task, band) ?? false;
-    }
-
     /**
      * What the pool has recorded about the tasks it ran, by status and priority band.
      *
@@ -686,7 +670,7 @@ export class GenerationPool {
 
     /**
      * Limits how many `soon` and `idle` tasks may be with workers at once. `immediate` tasks never
-     * count against it and are never held by it, so a chunk a player stands on is not slowed.
+     * count against it and are never held back by it, so a chunk a player stands on is not slowed.
      *
      * Raising the limit starts waiting tasks at once. Lowering it does not interrupt a task a
      * worker has: the running count falls as they finish.
@@ -705,33 +689,6 @@ export class GenerationPool {
         return (
             band === 'immediate' || this.backgroundLimit === undefined || this.runningBackground < this.backgroundLimit
         );
-    }
-
-    /**
-     * Stops handing the tasks a rule picks out to the workers. Tasks already with a worker
-     * finish; the held ones wait in the backlog, including tasks asked for while paused.
-     *
-     * The default rule holds the `idle` band. A rule that holds a band the server's tick waits
-     * on stops the tick, and a rule that holds a task an `immediate` chunk depends on does the
-     * same, because a chunk's neighbors are asked for at the band of their own requester: a
-     * benchmark that wants to hold one region back names the region.
-     *
-     * For measurement: it lets a benchmark ask for a region and see what the asking alone costs,
-     * so the cost of the generation itself is a difference rather than two figures to compare.
-     *
-     * @param rule - Answers true for a task that should be held.
-     */
-    public pause(rule: PauseRule = (_task, band) => band === 'idle'): void {
-        this.holds = rule;
-    }
-
-    /** Lets the backlog flow again, filling every free slot in band order. */
-    public resume(): void {
-        if (this.holds === undefined) return;
-        this.holds = undefined;
-        while (!this.closed && this.running < this.capacity && this.startNext()) {
-            // Each started task takes a slot; the loop ends when the slots or the backlog do.
-        }
     }
 
     /** How many workers are up. Zero once the pool has been shut down. */
@@ -771,7 +728,7 @@ export class GenerationPool {
      */
     public async run(task: GenerationTask, priority: GenerationPriority = 'immediate'): Promise<GenerationResult> {
         if (this.closed) throw new GenerationPoolClosedError(task.chunkX, task.chunkZ);
-        if (this.running < this.capacity && !this.isHeld(task, priority) && this.backgroundRoom(priority)) {
+        if (this.running < this.capacity && this.backgroundRoom(priority)) {
             return this.dispatch(task, priority, 0);
         }
 
@@ -924,7 +881,7 @@ export class GenerationPool {
     }
 
     /**
-     * Dispatches the highest-priority waiting task that is not held.
+     * Dispatches the highest-priority waiting task the background limit allows.
      *
      * @returns False when nothing that may run is waiting.
      */
@@ -932,11 +889,10 @@ export class GenerationPool {
         for (const band of GENERATION_PRIORITIES) {
             const tasks = this.waiting.get(band)!;
             if (!this.backgroundRoom(band)) continue;
-            const index = tasks.findIndex((entry) => !this.isHeld(entry.task, band));
-            if (index < 0) continue;
+            const next = tasks.shift();
+            if (next === undefined) continue;
 
-            const [next] = tasks.splice(index, 1);
-            next!.settle(this.dispatch(next!.task, band, this.now() - next!.enqueuedAt));
+            next.settle(this.dispatch(next.task, band, this.now() - next.enqueuedAt));
             return true;
         }
 

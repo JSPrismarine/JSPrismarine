@@ -44,7 +44,6 @@ export type {
     GenerationTask,
     GenerationWorkerData,
     HostFlags,
-    PauseRule,
     TaskRunnerFactory,
     WorkerPipeline,
     WorkerPipelineFactory

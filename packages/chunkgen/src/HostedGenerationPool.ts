@@ -16,13 +16,7 @@ import { fork } from 'node:child_process';
 import os from 'node:os';
 import { fileURLToPath } from 'node:url';
 
-import type {
-    GenerationPoolOptions,
-    GenerationPriority,
-    GenerationResult,
-    GenerationTask,
-    PauseRule
-} from './GenerationPool';
+import type { GenerationPoolOptions, GenerationPriority, GenerationResult, GenerationTask } from './GenerationPool';
 import {
     GenerationCanceledError,
     GenerationPool,
@@ -57,8 +51,6 @@ interface Outstanding {
     readonly id: number;
     readonly task: GenerationTask;
     priority: GenerationPriority;
-    /** True while a pause is holding the task here, so the host has not been sent it. */
-    held: boolean;
     /** The host process this task was last sent to, so a replacement is sent it once and not twice. */
     sentTo?: ChildProcess;
     readonly startedAt: number;
@@ -83,7 +75,6 @@ export class HostedGenerationPool implements GenerationTransport {
     private closed = false;
     private fallback: GenerationPool | undefined;
     private lowered = false;
-    private holds: PauseRule | undefined;
     /** The last background limit, sent again to a replacement host. */
     private limit: number | undefined;
 
@@ -138,13 +129,11 @@ export class HostedGenerationPool implements GenerationTransport {
                 id: this.nextId++,
                 task,
                 priority,
-                held: this.holds?.(task, priority) ?? false,
                 startedAt: performance.now(),
                 resolve,
                 reject
             };
             this.outstanding.set(entry.id, entry);
-            if (entry.held) return;
             this.start().then(
                 () => this.send(entry),
                 () => {
@@ -154,28 +143,21 @@ export class HostedGenerationPool implements GenerationTransport {
         });
     }
 
-    /** Asks the host to drop the waiting tasks a predicate rejects, and drops held ones here. */
+    /** Asks the host to drop the waiting tasks a predicate rejects. */
     public cancel(wanted: (task: GenerationTask) => boolean): number {
         if (this.fallback !== undefined) return this.fallback.cancel(wanted);
 
         const ids: number[] = [];
-        let dropped = 0;
         for (const entry of [...this.outstanding.values()]) {
-            if (wanted(entry.task)) continue;
-            if (entry.held) {
-                // Never sent, so there is nothing at the host to cancel.
-                this.outstanding.delete(entry.id);
-                entry.reject(new GenerationCanceledError(entry.task.chunkX, entry.task.chunkZ));
-                dropped++;
-            } else ids.push(entry.id);
+            if (!wanted(entry.task)) ids.push(entry.id);
         }
-        if (ids.length === 0) return dropped;
+        if (ids.length === 0) return 0;
 
         // The host drops only what it has not started, so the count is what was asked for and a
         // task a worker already has still answers.
         this.post({ type: 'cancel', ids });
 
-        return dropped + ids.length;
+        return ids.length;
     }
 
     /** Moves waiting tasks up into a band, here and at the host. */
@@ -205,41 +187,11 @@ export class HostedGenerationPool implements GenerationTransport {
         this.fallback?.resetStats();
     }
 
-    /** Holds back the tasks a rule picks out; see {@link GenerationPool.pause}. */
-    public pause(rule: PauseRule = (_task, band) => band === 'idle'): void {
-        if (this.fallback !== undefined) {
-            this.fallback.pause(rule);
-            return;
-        }
-
-        // Tasks already with the host finish. Tasks asked for from now on, and the ones this
-        // rule picks out of what has not been sent, wait here.
-        this.holds = rule;
-    }
-
     /** Limits how many background tasks the host's workers run at once. */
     public setBackgroundLimit(limit: number | undefined): void {
         this.limit = limit;
         if (this.fallback !== undefined) this.fallback.setBackgroundLimit(limit);
         else this.post({ type: 'limit', limit });
-    }
-
-    /** Releases held tasks to the host. */
-    public resume(): void {
-        this.holds = undefined;
-        if (this.fallback !== undefined) {
-            this.fallback.resume();
-            return;
-        }
-
-        for (const entry of this.outstanding.values()) {
-            if (!entry.held) continue;
-            entry.held = false;
-            this.start().then(
-                () => this.send(entry),
-                () => {}
-            );
-        }
     }
 
     /** Stops the host, refusing everything outstanding, and waits for it to exit. */
@@ -274,10 +226,10 @@ export class HostedGenerationPool implements GenerationTransport {
         return Math.max(1, Math.trunc(this.options.inFlight ?? this.options.workers + 1));
     }
 
-    /** Sends a task to the current host unless it already has it, or a pause is holding it. */
+    /** Sends a task to the current host unless it already has it. */
     private send(entry: Outstanding): void {
         const child = this.child;
-        if (entry.held || child === undefined || entry.sentTo === child || !this.outstanding.has(entry.id)) return;
+        if (child === undefined || entry.sentTo === child || !this.outstanding.has(entry.id)) return;
 
         entry.sentTo = child;
         this.post({ type: 'run', id: entry.id, task: entry.task, priority: entry.priority });

@@ -24,7 +24,6 @@ import type {
     GenerationPoolOptions,
     GenerationPriority,
     GenerationResult,
-    PauseRule,
     GenerationTask,
     TaskRunnerFactory
 } from './GenerationPool';
@@ -187,16 +186,6 @@ export class ShardedGenerationPool {
     /** Moves waiting tasks up into a band, in every shard. @returns How many moved. */
     public promote(wanted: (task: GenerationTask) => boolean, to: GenerationPriority): number {
         return this.shards.reduce((total, shard) => total + shard.promote(wanted, to), 0);
-    }
-
-    /** Holds every shard's backlog back; see {@link GenerationPool.pause}. */
-    public pause(rule?: PauseRule): void {
-        for (const shard of this.shards) shard.pause(rule);
-    }
-
-    /** Lets every shard's backlog flow again. */
-    public resume(): void {
-        for (const shard of this.shards) shard.resume();
     }
 
     /** What every shard recorded, merged into one snapshot. */

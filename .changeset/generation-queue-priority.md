@@ -1,5 +1,6 @@
 ---
 '@jsprismarine/prismarine': patch
+'@jsprismarine/chunkgen': patch
 ---
 
-The generator's admission queue now serves chunk requests by urgency, `immediate` first, instead of strictly in arrival order, and a request that becomes more urgent while it waits moves up. A chunk a player was waiting on no longer queues behind every earlier `idle` or `soon` request, and a held-back or slow background backlog can no longer stall a tick that awaits that chunk.
+A chunk a player is waiting on no longer queues behind background generation. The generator's admission queue serves requests by urgency, admits `immediate` ones past its depth, and moves a waiting request up when it becomes more urgent. A chunk's neighbor terrain and feature tasks now take the band of the most urgent chunk that reads them, where they used to default to `soon`. The generation governor leaves one worker free of background work. The unused pool `pause` and `resume` are removed: holding tasks that hold admission slots stalled the tick.

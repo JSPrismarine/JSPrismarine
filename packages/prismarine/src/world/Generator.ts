@@ -1,4 +1,4 @@
-import type { GenerationPriority, GenerationStatsSnapshot, PauseRule } from '@jsprismarine/chunkgen';
+import type { GenerationPriority, GenerationStatsSnapshot } from '@jsprismarine/chunkgen';
 
 import type { WorldConfig } from './World';
 import type Chunk from './chunk/Chunk';
@@ -108,16 +108,8 @@ export interface BiomeSearchResult {
 /** The tag registries a `/locate` name may draw on; see {@link Generator.membersOfTag}. */
 export type LocateTagRegistry = 'worldgen/structure' | 'worldgen/biome';
 
-/** What a benchmark may do to a generator's worker pools. */
+/** What a benchmark and the generation governor may do to a generator's worker pools. */
 export interface GenerationControl {
-    /**
-     * Holds back the queued tasks a rule picks out; tasks already running finish. The default
-     * rule holds the `idle` band. Holding anything the tick, or a chunk a player waits on,
-     * depends on stops the tick, so a benchmark names the region it asked for.
-     */
-    pause(rule?: PauseRule): void;
-    /** Releases the held tasks in band order. */
-    resume(): void;
     /**
      * Limits how many `soon` and `idle` tasks may be with workers at once. `immediate` tasks are
      * never limited. Undefined removes the limit.

@@ -7,13 +7,13 @@
  *   pnpm --filter @jsprismarine/prismarine run bench:bot-fleet -- --terrain real
  *   pnpm --filter @jsprismarine/prismarine run bench:bot-fleet:baseline
  *
- * With real terrain the run ends with a preload phase, run twice: once with the generation queue
- * held back and once at full speed, both on the same server with the fleet still connected. The
- * difference between the two arms is the tick cost of generation. The report carries it under
- * `preload`, apart from `phases`, so the baseline comparison never sees it. Flags: `--workers N`,
+ * With real terrain the run ends with a preload phase, run twice on the same server: once with the
+ * generator asked for nothing and once with a large region requested all at once. The difference
+ * between the two arms is the tick cost of generation. The report carries it under `preload`,
+ * apart from `phases`, so the baseline comparison never sees it. Flags: `--workers N`,
  * `--preload-radius N`, `--preload-ticks N`, `--preload-urgency idle|soon|immediate`,
- * `--preload-control` (hold generation back in both arms, which should read zero),
- * `--preload-with-fleet` (keep the bots connected; the tick has stalled under it, see below) and
+ * `--host process|in-process`, `--preload-control` (neither arm asks for chunks, so the
+ * difference should read zero), `--preload-with-fleet` (keep the bots connected) and
  * `--no-preload`.
  *
  * The real-terrain variant needs the Java worldgen cache: `pnpm --filter
@@ -374,7 +374,7 @@ interface PreloadReport {
 
 /**
  * Asks the generator for a square of chunks all at once, as a preload does, and measures
- * the server's ticks while the request is outstanding. Generation is held back in the idle arm,
+ * the server's ticks while the request is outstanding. The idle arm asks for nothing,
  * so the arms differ in the work done and in nothing else the benchmark controls.
  */
 const runPreload = async (
@@ -443,21 +443,21 @@ const runPreload = async (
             Math.abs(task.chunkX - center.x) <= reach && Math.abs(task.chunkZ - center.z) <= reach;
         process.stderr.write(`[preload] ${name} arm starting\n`);
         control.resetStats();
-        if (name === 'idle') {
-            // Only this arm's own region, with room for the neighbors its chunks depend on. Holding
-            // a band instead would also hold the tasks the bots' chunks wait on, and stop the tick.
-            control.pause(inRegion);
-        } else control.resume();
         const labelsBefore = server.getChunkCompletionQueue().snapshot().byLabel;
 
         let chunksLoaded = 0;
         const requests: Promise<void>[] = [];
         const startTick = await nextTick();
-        for (let dz = -options.radius; dz <= options.radius; dz++) {
+        // The idle arm asks for nothing: generation idle is the baseline the plan defines the cost
+        // against. Holding the requests in the pool instead would pin the generator's admission
+        // slots with builds that never run, and the bots' chunks would never get a turn.
+        for (let dz = -options.radius; name === 'full' && dz <= options.radius; dz++) {
             for (let dx = -options.radius; dx <= options.radius; dx++) {
                 requests.push(
                     generator
-                        .generateChunk(center.x + dx, center.z + dz, world.getSeed(), { urgency: options.urgency })
+                        .generateChunk(center.x + dx, center.z + dz, world.getSeed(), undefined, {
+                            urgency: options.urgency
+                        })
                         .then(
                             () => {
                                 chunksLoaded++;
@@ -487,7 +487,6 @@ const runPreload = async (
         // Only this arm's own region: dropping anything else would strand the chunks other callers
         // are waiting on.
         control.cancelQueued(inRegion);
-        control.resume();
         const deadline = performance.now() + 120_000;
         while (control.outstanding() > 0 && performance.now() < deadline) {
             await new Promise((resolve) => setTimeout(resolve, 100));
@@ -522,7 +521,7 @@ const writePreloadSummary = (report: PreloadReport): void => {
     line(
         `region ${2 * report.radius + 1}x${2 * report.radius + 1} at ${report.urgency}, workers ${report.workers}, host ${report.host}, ` +
             `load average ${report.loadAverage.map((value) => value.toFixed(2)).join(' ')}` +
-            (report.control ? ', control run (both arms held back)' : '')
+            (report.control ? ', control run (neither arm asks for chunks)' : '')
     );
     for (const arm of report.arms) {
         line(

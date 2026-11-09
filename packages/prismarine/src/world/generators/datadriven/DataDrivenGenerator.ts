@@ -93,6 +93,7 @@ import type {
 import { findClosestBiome } from './biomeSearch';
 import { GenerationChunk } from './GenerationChunk';
 import { GenerationQueue } from './GenerationQueue';
+import { urgencyAround } from './urgencyAround';
 import { GenerationRegion } from './GenerationRegion';
 import type {
     GenerationRegionOptions,
@@ -680,6 +681,12 @@ const DIRT = 'minecraft:dirt';
 
 /** How many chunk holders the generator keeps alive past the run that built them. */
 const GENERATION_CACHE_SIZE = 128;
+
+/** How far from a chunk a requested chunk can be and still read that chunk's terrain tile. */
+const TERRAIN_READ_RADIUS = 2;
+
+/** How far from a chunk a requested chunk can be and still read that chunk's feature pass. */
+const FEATURE_READ_RADIUS = 1;
 
 /** How many blocks one sub chunk holds. */
 const BLOCKS_PER_SUBCHUNK = 4096;
@@ -2013,7 +2020,7 @@ export class DataDrivenGenerator implements Generator {
                         junctions: beard.junctions
                     } satisfies TerrainTaskInput
                 },
-                this.urgencyOf(pipeline, cx, cz)
+                this.dependentUrgency(pipeline, cx, cz, TERRAIN_READ_RADIUS)
             );
             if (stagePool === undefined) this.poolAnswered = true;
             else this.stagePoolAnswered = true;
@@ -2065,7 +2072,7 @@ export class DataDrivenGenerator implements Generator {
                         dimension: pipeline.dimension.bedrockId,
                         input
                     },
-                    this.urgencyOf(pipeline, chunk.chunkX, chunk.chunkZ)
+                    this.dependentUrgency(pipeline, chunk.chunkX, chunk.chunkZ, FEATURE_READ_RADIUS)
                 );
                 this.stagePoolAnswered = true;
                 patches = featurePatchesFromWorker(result.payload);
@@ -2375,6 +2382,19 @@ export class DataDrivenGenerator implements Generator {
         return this.urgencies.get(this.urgencyKey(pipeline, chunkX, chunkZ)) ?? 'soon';
     }
 
+    /**
+     * Which band a status task waits in: the most urgent band among the requested chunks that read
+     * its output. See {@link urgencyAround}.
+     */
+    private dependentUrgency(
+        pipeline: SeededPipeline,
+        chunkX: number,
+        chunkZ: number,
+        radius: number
+    ): GenerationPriority {
+        return urgencyAround(this.urgencies, (x, z) => this.urgencyKey(pipeline, x, z), chunkX, chunkZ, radius);
+    }
+
     /** Where a chunk's band is kept: by the dimension's Bedrock id and the position. */
     private urgencyKey(pipeline: { readonly dimension: PipelineDimension }, chunkX: number, chunkZ: number): string {
         return `${pipeline.dimension.bedrockId}:${chunkX},${chunkZ}`;
@@ -2386,8 +2406,6 @@ export class DataDrivenGenerator implements Generator {
         if (pools.length === 0) return undefined;
 
         return {
-            pause: (rule) => pools.forEach((pool) => pool.pause(rule)),
-            resume: () => pools.forEach((pool) => pool.resume()),
             setBackgroundLimit: (limit) => {
                 for (const pool of pools) if ('setBackgroundLimit' in pool) pool.setBackgroundLimit(limit);
             },

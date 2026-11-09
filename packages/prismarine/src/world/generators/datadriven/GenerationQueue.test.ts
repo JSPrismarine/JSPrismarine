@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { GenerationStopped } from '../../Generator';
-import { GenerationQueue } from './GenerationQueue';
+import { GenerationQueue, IMMEDIATE_RESERVE } from './GenerationQueue';
 
 /** A promise with its resolver, so a test decides when a request finishes. */
 const deferred = (): { promise: Promise<void>; settle: () => void } => {
@@ -194,5 +194,41 @@ describe('GenerationQueue', () => {
         await Promise.all([running, ...requests]);
 
         expect(order).toEqual(['b', 'c', 'a']);
+    });
+
+    it('admits immediate requests into the reserve past the depth, and no further', async () => {
+        const queue = new GenerationQueue(1);
+        const gate = deferred();
+        const started: string[] = [];
+        const ask = async (name: string, x: number, priority: 'immediate' | 'idle') =>
+            queue.run(
+                x,
+                0,
+                async () => {
+                    started.push(name);
+                    await gate.promise;
+                },
+                priority
+            );
+
+        const requests = [
+            ask('idle-1', 1, 'idle'),
+            ask('idle-2', 2, 'idle'),
+            ask('immediate-1', 3, 'immediate'),
+            ask('immediate-2', 4, 'immediate'),
+            ask('immediate-3', 5, 'immediate'),
+            ask('immediate-4', 6, 'immediate')
+        ];
+        await Promise.resolve();
+
+        // One background build holds the only slot. Two immediate requests used the reserve and
+        // did not wait for it; the rest queue like anything else, ahead of the idle one.
+        expect(started).toEqual(['idle-1', 'immediate-1', 'immediate-2']);
+        expect(queue.inFlight).toBe(1 + IMMEDIATE_RESERVE);
+        expect(queue.queued).toBe(3);
+
+        gate.settle();
+        await Promise.all(requests);
+        expect(started.slice(3)).toEqual(['immediate-3', 'immediate-4', 'idle-2']);
     });
 });

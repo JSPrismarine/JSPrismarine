@@ -155,35 +155,6 @@ describe('HostedGenerationPool', () => {
         await expect(running).resolves.toBeDefined();
     }, 60_000);
 
-    it('holds back the tasks a pause names, sends the rest, and releases them on resume', async () => {
-        const hosted = track(new HostedGenerationPool({ pipeline: FAKE_PIPELINE, workers: 1 }));
-        await hosted.run({ status: 'terrain', chunkX: 0, chunkZ: 0, dimension: 0 });
-
-        hosted.pause((task) => task.chunkX >= 10);
-        const held = hosted.run({ status: 'terrain', chunkX: 10, chunkZ: 0, dimension: 0 }, 'idle');
-        const free = await hosted.run({ status: 'terrain', chunkX: 1, chunkZ: 0, dimension: 0 }, 'idle');
-        expect(bytesOf(free)[0]).toBe(1);
-        let settled = false;
-        void held.then(() => {
-            settled = true;
-        });
-        await new Promise((resolve) => setTimeout(resolve, 200));
-        expect(settled).toBe(false);
-
-        hosted.resume();
-        expect(bytesOf(await held)[0]).toBe(10);
-    }, 60_000);
-
-    it('drops a held task on cancel without asking the host', async () => {
-        const hosted = track(new HostedGenerationPool({ pipeline: FAKE_PIPELINE, workers: 1 }));
-        hosted.pause(() => true);
-        const held = hosted.run({ status: 'terrain', chunkX: 5, chunkZ: 5, dimension: 0 }, 'idle');
-        const rejected = expect(held).rejects.toBeInstanceOf(GenerationCanceledError);
-
-        expect(hosted.cancel(() => false)).toBe(1);
-        await rejected;
-    }, 60_000);
-
     it('leaves no host process behind after destroy', async () => {
         const hosted = new HostedGenerationPool({ pipeline: FAKE_PIPELINE, workers: 1 });
         await hosted.run({ status: 'terrain', chunkX: 0, chunkZ: 0, dimension: 0 });

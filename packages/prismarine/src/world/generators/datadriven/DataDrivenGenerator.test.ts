@@ -383,11 +383,15 @@ describe.skipIf(!enabled)('the data-driven overworld', { tags: ['real-data'] }, 
                 concurrency: 1
             });
 
-            // Asked for in one turn, the way the start region asks for a batch.
-            const inFlight = stopping.generateChunk(0, 0, SEED);
+            // Asked for in one turn, the way the start region asks for a batch: at `idle`, because
+            // `immediate` requests may use a reserve past the depth.
+            const inFlight = stopping.generateChunk(0, 0, SEED, undefined, { urgency: 'idle' });
             // Settled up front, because a shutdown refuses the queue the moment it is called
             // and a rejection nobody is waiting on yet is an unhandled one.
-            const queued = Promise.allSettled([stopping.generateChunk(1, 0, SEED), stopping.generateChunk(2, 0, SEED)]);
+            const queued = Promise.allSettled([
+                stopping.generateChunk(1, 0, SEED, undefined, { urgency: 'idle' }),
+                stopping.generateChunk(2, 0, SEED, undefined, { urgency: 'idle' })
+            ]);
 
             // One turn of the event loop, so the first request is past the front of the queue
             // and generating. That is the state a shutdown finds, and the one a half-built
@@ -417,7 +421,9 @@ describe.skipIf(!enabled)('the data-driven overworld', { tags: ['real-data'] }, 
 
             // Thirty-two in one turn, which is what the start region asks for.
             const batch = Promise.allSettled(
-                Array.from({ length: 32 }, (_entry, index) => stopping.generateChunk(index, 7, SEED))
+                Array.from({ length: 32 }, (_entry, index) =>
+                    stopping.generateChunk(index, 7, SEED, undefined, { urgency: 'idle' })
+                )
             );
             await new Promise((resolve) => setImmediate(resolve));
             stopping.stopGenerating();
@@ -449,7 +455,7 @@ describe.skipIf(!enabled)('the data-driven overworld', { tags: ['real-data'] }, 
 
             const preloadChunk = async (x: number, z: number): Promise<boolean> => {
                 try {
-                    await stopping.generateChunk(x, z, SEED);
+                    await stopping.generateChunk(x, z, SEED, undefined, { urgency: 'idle' });
                     return true;
                 } catch (error: unknown) {
                     if (error instanceof GenerationStopped) return false;

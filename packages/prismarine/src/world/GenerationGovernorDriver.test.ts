@@ -19,8 +19,6 @@ const sample = (tick: number, latenessMs: number): TickSample => ({
 const recordingControl = () => {
     const limits: (number | undefined)[] = [];
     const control: GenerationControl = {
-        pause: () => {},
-        resume: () => {},
         setBackgroundLimit: (limit) => limits.push(limit),
         cancelQueued: () => 0,
         outstanding: () => 0,
@@ -50,10 +48,10 @@ describe('GenerationGovernorDriver', () => {
             recorder.record(sample(tick++, latenessMs));
         };
 
-        // Calm: starts at half of eight and climbs one step per second.
+        // Calm: starts at half of the seven background slots and climbs one step per second.
         for (let index = 0; index < 30; index++) step(1);
-        expect(limits[0]).toBe(4);
-        expect(driver.active).toBe(5);
+        expect(limits[0]).toBe(3);
+        expect(driver.active).toBe(4);
 
         // A burst of late ticks cuts it sharply.
         for (let index = 0; index < 3; index++) step(120);
@@ -63,7 +61,7 @@ describe('GenerationGovernorDriver', () => {
         // Recovery is slow: the hold-off passes, then one step per calm second.
         for (let index = 0; index < 120; index++) step(1);
         expect(driver.active).toBeGreaterThan(1);
-        expect(driver.active).toBeLessThanOrEqual(8);
+        expect(driver.active).toBeLessThanOrEqual(7);
     });
 
     it('treats growth of the control group throttle counter as pressure', () => {
@@ -110,7 +108,7 @@ describe('GenerationGovernorDriver', () => {
         present = true;
         now += 50;
         recorder.record(sample(1, 1));
-        expect(limits).toEqual([3]);
+        expect(limits).toEqual([2]);
     });
 
     it('lifts the limit when closed', () => {

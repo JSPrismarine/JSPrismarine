@@ -9,7 +9,7 @@ export interface GenerationGovernorDriverOptions {
     readonly recorder: TickRecorder;
     /** The generator's pool handle, asked for on every tick because pools start on first use. */
     readonly control: () => GenerationControl | undefined;
-    /** How many workers the pool has, which is the most background tasks ever allowed. */
+    /** How many workers the pool has. The most background tasks ever allowed is one fewer. */
     readonly workers: number;
     /** The control group throttle sampler. Defaults to the process's own. */
     readonly sampler?: Pick<CgroupThrottleSampler, 'sample'>;
@@ -34,7 +34,9 @@ export class GenerationGovernorDriver {
     private throttledSince = 0;
 
     public constructor(private readonly options: GenerationGovernorDriverOptions) {
-        this.governor = new ConcurrencyGovernor({ max: options.workers });
+        // One worker stays free of background work, so an `immediate` task starts at once instead
+        // of waiting for a running background task to finish.
+        this.governor = new ConcurrencyGovernor({ max: Math.max(1, options.workers - 1) });
         this.sampler = options.sampler ?? new CgroupThrottleSampler();
         this.now = options.now ?? (() => performance.now());
     }

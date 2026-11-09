@@ -16,6 +16,15 @@ import type { GenerationPriority } from '@jsprismarine/chunkgen';
 
 import { GenerationStopped } from '../../Generator';
 
+/**
+ * How many `immediate` requests may be in flight past the depth.
+ *
+ * A player's chunk must not wait for a slot that background builds hold, so `immediate` requests
+ * are admitted past the depth. Bounded, because callers that never named an urgency also get
+ * `immediate`, and a bulk request such as the start region must still be held to the depth.
+ */
+export const IMMEDIATE_RESERVE = 2;
+
 /** One request that has not been admitted yet. */
 interface Waiting {
     readonly chunkX: number;
@@ -33,8 +42,9 @@ interface Waiting {
  *
  * Waiting requests are served by band, `immediate` first, and in arrival order inside a band. A
  * strictly first-come queue let a hundred `idle` rim chunks stand in front of the chunk a player
- * was waiting on, and, with the pool behind it held back, in front of it indefinitely: the tick
- * awaits that chunk, so the server stopped.
+ * was waiting on, and the slots themselves could all be held by background builds: the tick
+ * awaits that chunk, so a ticking server stalled for as long as they took. `immediate` requests
+ * may use a small reserve past the depth.
  *
  * The depth is the number of chunks that may be in flight at once. It is the pool size when the
  * terrain bodies run in workers, because a pool held shallower than its worker count leaves
@@ -84,7 +94,8 @@ export class GenerationQueue {
      * @param chunkZ - Chunk z, for a refusal to name.
      * @param build - What to run once the request is admitted.
      * @returns Whatever `build` produced.
-     * @param priority - The band the request waits in. Defaults to `immediate`.
+     * @param priority - The band the request waits in. Defaults to `soon`, which waits for a slot
+     * like any background request; only an explicit `immediate` is admitted past the depth.
      * @throws {GenerationStopped} When {@link GenerationQueue.stop} was called before this
      * request's turn came, or when the build failed after it was called, which is what a
      * terminated worker looks like.
@@ -93,12 +104,15 @@ export class GenerationQueue {
         chunkX: number,
         chunkZ: number,
         build: () => Promise<T>,
-        priority: GenerationPriority = 'immediate'
+        priority: GenerationPriority = 'soon'
     ): Promise<T> {
         if (this.stopped) throw new GenerationStopped(chunkX, chunkZ);
         // A waiter is counted in by whoever admits it, not here: the two are a microtask apart,
         // and counting here would let a request that arrived in between slip past the depth.
-        if (this.running >= this.depth) await this.waitForTurn(chunkX, chunkZ, priority);
+        // An `immediate` request is somebody waiting, often the tick. It may use the reserve past
+        // the depth, because the slots can all be held by background builds that a busy pool has
+        // not reached yet, and it would otherwise wait for one of them to finish.
+        if (this.running >= this.limitFor(priority)) await this.waitForTurn(chunkX, chunkZ, priority);
         else this.running++;
 
         try {
@@ -135,6 +149,10 @@ export class GenerationQueue {
         return true;
     }
 
+    private limitFor(priority: GenerationPriority): number {
+        return priority === 'immediate' ? this.depth + IMMEDIATE_RESERVE : this.depth;
+    }
+
     private waitForTurn(chunkX: number, chunkZ: number, priority: GenerationPriority): Promise<void> {
         return new Promise<void>((resolve, reject) => {
             this.waiting.push({ chunkX, chunkZ, priority, admit: resolve, refuse: reject });
@@ -142,7 +160,7 @@ export class GenerationQueue {
     }
 
     private admitNext(): void {
-        if (this.stopped || this.running >= this.depth || this.waiting.length === 0) return;
+        if (this.stopped || this.waiting.length === 0) return;
 
         // The most urgent band first, then the longest waiting inside it.
         let index = 0;
@@ -154,6 +172,7 @@ export class GenerationQueue {
                 index = candidate;
             }
         }
+        if (this.running >= this.limitFor(this.waiting[index]!.priority)) return;
 
         this.running++;
         this.waiting.splice(index, 1)[0]!.admit();

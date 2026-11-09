@@ -8,20 +8,23 @@ The reasoning and the sources are in [worldgen-pool-and-pipeline-architecture.md
 
 Branch `t3/596e4adc`, 2026-11-09. Measurements and their load averages are in [worldgen-decoupling-baseline.md](../research/worldgen-decoupling-baseline.md). The host decision is [ADR 0005](../adr/0005-generation-host-process.md).
 
-| Slice | State | Where |
-| --- | --- | --- |
-| 0 measure | Done. Pool task stats, tick recorder, completion labels, preload phase in `bench:bot-fleet`. Tick cost of generation is inconclusive: the noise floor on a shared machine is several milliseconds. | `GenerationStats.ts`, `TickRecorder.ts`, `botFleetLoad.bench.ts` |
-| 1 completion path | Partly done. Fluid scan of background chunks is queued. The target (lower main-thread cost per chunk) is not met: translation 3.15 ms and lighting 0.89 ms per chunk stay on the thread. | `World.ts`, baseline note |
-| 2 host process | Done, opt-in (`chunk-host: process`). Digests identical across transports. | `HostedGenerationPool.ts`, `generationHost.ts`, `createGenerationTransport.ts` |
-| 3 governor | Done and unit tested, runs when `chunk-host` is `process`. Not observed acting in a benchmark, and the quota run in a container was not made. | `ConcurrencyGovernor.ts`, `GenerationGovernorDriver.ts` |
-| 4 work board | Not built, on purpose. | [slice 4 decision](worldgen-decoupling-slice4-decision.md) |
-| 5 throughput | Pick written: the terrain density graph first, after a profile inside a terrain task. | [first candidate](worldgen-throughput-first-candidate.md) |
+| Slice             | State                                                                                                                                                                                              | Where                                                                          |
+| ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| 0 measure         | Done. Pool task stats, tick recorder, completion labels, preload phase in `bench:bot-fleet`. Tick cost of generation is inconclusive: the noise floor on a shared machine is several milliseconds. | `GenerationStats.ts`, `TickRecorder.ts`, `botFleetLoad.bench.ts`               |
+| 1 completion path | Partly done. Fluid scan of background chunks is queued. The target (lower main-thread cost per chunk) is not met: translation 3.15 ms and lighting 0.89 ms per chunk stay on the thread.           | `World.ts`, baseline note                                                      |
+| 2 host process    | Done, opt-in (`chunk-host: process`). Digests identical across transports.                                                                                                                         | `HostedGenerationPool.ts`, `generationHost.ts`, `createGenerationTransport.ts` |
+| 3 governor        | Done and unit tested, runs when `chunk-host` is `process`. Not observed acting in a benchmark, and the quota run in a container was not made.                                                      | `ConcurrencyGovernor.ts`, `GenerationGovernorDriver.ts`                        |
+| 4 work board      | Not built, on purpose.                                                                                                                                                                             | [slice 4 decision](worldgen-decoupling-slice4-decision.md)                     |
+| 5 throughput      | Pick written: the terrain density graph first, after a profile inside a terrain task.                                                                                                              | [first candidate](worldgen-throughput-first-candidate.md)                      |
 
 ### Open items
 
 Each is a known gap, not a surprise. The first block is being worked in the order listed.
 
-1. A tick freeze with bot fleets connected during the preload: `World.entityUpdates` stuck on a `Player` with nothing outstanding in the pool. Cause unknown.
+1. Fixed: the tick freeze with fleets connected was a priority-blind admission queue whose slots were held by background builds, plus dependency tasks defaulting to `soon`. Counted by `schedulingOrder.test.ts`. The multi-second stalls seen afterwards came from a benchmark bug: the preload requested at `immediate` because urgency was passed as the wrong argument. With it fixed the worst fleet-connected tick was 472 ms in one noisy run. Earlier preload figures in the baseline note are history, not a background preload.
+
+    Method note: judge fixes by counts (tasks started ahead of a player's chunk, calls, queue positions), not wall-clock timings, which a shared machine cannot separate from load.
+
 2. Slice 1: move Bedrock translation and lighting off the server thread, or show why not.
 3. The governor limit is not re-applied to a replacement pool, and the benchmark does not report it.
 4. Tasks held by a pause bypass it when the host falls back. An invalid `chunk-host` value is silent.
@@ -43,11 +46,11 @@ Run benchmarks on an idle machine and keep the load average beside every figure.
 
 Three numbers define success. The first two have fixed definitions and the third gets its value from slice 0.
 
-| Measure | Definition | Target |
-| --- | --- | --- |
-| Tick cost of generation | 99th percentile tick duration during a full-speed preload, minus the same figure with generation idle, on one machine in one run | Under 1 ms |
-| Main-thread cost per completed chunk | Mean CPU time the server thread spends between a worker returning a chunk and the last player being sent it | Set by slice 1, and low enough that the completion slice of a tick fits the chunks that finish in it |
-| Chunks per CPU-second | Chunks completed divided by the summed thread CPU time of all generation workers, at `immediate` and `idle` priority | At least 3, provisional until slice 0 reports the current figure |
+| Measure                              | Definition                                                                                                                       | Target                                                                                               |
+| ------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| Tick cost of generation              | 99th percentile tick duration during a full-speed preload, minus the same figure with generation idle, on one machine in one run | Under 1 ms                                                                                           |
+| Main-thread cost per completed chunk | Mean CPU time the server thread spends between a worker returning a chunk and the last player being sent it                      | Set by slice 1, and low enough that the completion slice of a tick fits the chunks that finish in it |
+| Chunks per CPU-second                | Chunks completed divided by the summed thread CPU time of all generation workers, at `immediate` and `idle` priority             | At least 3, provisional until slice 0 reports the current figure                                     |
 
 The 3 comes from the stated goal of several chunks per core. ADR 0002's last measurements, taken before the later terrain work and on a loaded host, were 2.3 chunks per second on one thread and 8 per second across six workers, which is about 1.3 per core. Those figures are the reason slice 0 exists.
 
@@ -63,8 +66,8 @@ Run the benchmarks on an idle machine and record the load average next to every 
 
 The four checks from [chunk-generation-rewrite.md](chunk-generation-rewrite.md#the-four-checks-every-slice-runs) (**corpus**, **generator**, **sampler** and **types**) apply unchanged, and none of these slices may change generated blocks. Every digest stays byte-identical. A slice that moves work between threads or processes also proves identical digests across the topologies it adds. This plan adds one more check.
 
-| Label | Command | What it holds |
-| --- | --- | --- |
+| Label              | Command                                                                                                            | What it holds                                      |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------- |
 | **tick-isolation** | `pnpm --filter @jsprismarine/prismarine run bench:bot-fleet -- --terrain real` with the preload phase from slice 0 | The tick cost of generation stays under its target |
 
 Run `pnpm run lint` and add a Changeset for every package a slice changes, choosing the bump from [the versioning policy](../guide/versioning.md).

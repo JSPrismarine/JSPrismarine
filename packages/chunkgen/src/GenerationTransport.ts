@@ -6,7 +6,7 @@
  * server can lower. A caller that holds the interface does not know which it has, and the
  * output cannot depend on it, because every task is a pure function of its inputs.
  */
-import type { GenerationPriority, GenerationResult, GenerationTask, PauseRule } from './GenerationPool';
+import type { GenerationPriority, GenerationResult, GenerationTask } from './GenerationPool';
 import type { GenerationStatsSnapshot } from './GenerationStats';
 
 /** The surface a generation pool offers its callers. */
@@ -38,12 +38,6 @@ export interface GenerationTransport {
 
     /** Forgets the recorded stats. */
     resetStats(): void;
-
-    /** Holds the tasks a rule picks out back from the workers; see {@link GenerationPool.pause}. */
-    pause(rule?: PauseRule): void;
-
-    /** Lets held tasks flow again. */
-    resume(): void;
 
     /**
      * Limits how many `soon` and `idle` tasks may be with workers at once, which is what the
