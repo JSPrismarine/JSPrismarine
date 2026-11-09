@@ -146,6 +146,13 @@ abstract class MonumentPiece implements StructurePiece {
     /** Writes the piece's blocks, in Java's own order. */
     public abstract place(writer: StructureWriter): void;
 
+    /**
+     * Makes the draws Java's `postProcess` makes, once the layout is done. A piece with nothing
+     * random to decorate keeps this no-op.
+     * @param _random - The layout's random source.
+     */
+    public settleDecoration(_random: RandomSource): void {}
+
     protected worldX(x: number, z: number): number {
         return worldX(this.boundingBox, this.orientation, x, z);
     }
@@ -1682,12 +1689,6 @@ class MonumentBuilding extends MonumentPiece {
 // ---------------------------------------------------------------------------
 
 /** A room with a decoration pattern that is drawn once rather than once per chunk. */
-interface DecoratedRoom {
-    settleDecoration(random: RandomSource): void;
-}
-
-const isDecorated = (piece: MonumentPiece): piece is MonumentPiece & DecoratedRoom => 'settleDecoration' in piece;
-
 /** The open doorway a room has in a direction, or undefined when there is none. */
 const openTo = (room: RoomDefinition, direction: Direction): RoomDefinition | undefined =>
     room.hasOpening[direction] ? room.connections[direction] : undefined;
@@ -1808,9 +1809,7 @@ const layOutMonument = (
     // Java draws these inside `postProcess`, once per chunk the room covers. Drawing them here,
     // after every draw Java makes during layout, leaves Java's floor plan alone and gives a room
     // on a chunk border one pattern rather than two.
-    for (const room of rooms) {
-        if (isDecorated(room)) room.settleDecoration(random);
-    }
+    for (const room of rooms) room.settleDecoration(random);
 
     return [new MonumentBuilding(orientation, box), ...rooms];
 };

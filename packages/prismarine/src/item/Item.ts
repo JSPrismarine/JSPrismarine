@@ -1,4 +1,4 @@
-import type BinaryStream from '@jsprismarine/binaryutils';
+import BinaryStream from '@jsprismarine/binaryutils';
 import { attributeModifiers, enchantable, equippable, maxDamage, maxStackSize, tool } from '@jsprismarine/items';
 import type { ItemType } from '@jsprismarine/items';
 import type { ItemStack as PredicateItemStack } from '@jsprismarine/predicates';
@@ -123,10 +123,8 @@ const toolRuleNamesOf = (block: string): readonly string[] => {
  */
 const wireItemData = (source: BinaryStream | ProtocolContext): ProtocolItemData => {
     if (source instanceof NetworkPacket) return itemDataForProtocol(source.codecProtocol);
-    if ('protocolVersion' in source) {
-        return source.itemData ?? itemDataForProtocol(source.protocolVersion);
-    }
-    return itemData2193;
+    if (source instanceof BinaryStream) return itemData2193;
+    return source.itemData ?? itemDataForProtocol(source.protocolVersion);
 };
 
 /**

@@ -3872,7 +3872,8 @@ export class EntityRuntime implements EntityScene {
             const target = this.projectileTargetAt(entity, at, state);
             if (target !== undefined) {
                 const evaded =
-                    'instance' in target && target.instance.notifyProjectileHit(entity.instance.filterContext().self);
+                    target instanceof DataEntity &&
+                    target.instance.notifyProjectileHit(entity.instance.filterContext().self);
                 if (evaded) {
                     state.hitEntities.add(target.id);
                     continue;
@@ -3993,7 +3994,7 @@ export class EntityRuntime implements EntityScene {
             }
 
             if (damage > 0) {
-                if ('instance' in target) this.hurt(target, projectile.body.owner, 'projectile', damage);
+                if (target instanceof DataEntity) this.hurt(target, projectile.body.owner, 'projectile', damage);
                 else if (this.host.hurtByProjectile !== undefined)
                     this.host.hurtByProjectile(target.id, damage, projectile.id, projectile.body.owner);
                 else this.host.hurt?.(target.id, damage, 'projectile', projectile.body.owner);
@@ -4005,7 +4006,7 @@ export class EntityRuntime implements EntityScene {
         const sound = typeof params.hit_sound === 'string' ? params.hit_sound : undefined;
         if (sound !== undefined) this.world.effects.playSound(blockPositionOf(at), sound);
 
-        if (impact?.knockback === true && 'instance' in target) {
+        if (impact?.knockback === true && target instanceof DataEntity) {
             const resistance = Math.min(1, Math.max(0, target.facts.knockbackResistance));
             const punch = typeof projectile.spawnData?.['punch'] === 'number' ? projectile.spawnData['punch'] : 0;
             const strength = (PROJECTILE_KNOCKBACK + Math.max(0, punch) * 0.5) * (1 - resistance);
@@ -4062,7 +4063,7 @@ export class EntityRuntime implements EntityScene {
     /** Applies a component's family filter to the entity the projectile hit. */
     private projectileFilterAllows(filter: unknown, target: DataEntity | ContentEntity): boolean {
         if (typeof filter !== 'string' || filter.length === 0) return true;
-        if ('instance' in target) return target.instance.families().includes(filter);
+        if (target instanceof DataEntity) return target.instance.families().includes(filter);
         return target.identifier === filter || target.identifier === `minecraft:${filter}`;
     }
 
