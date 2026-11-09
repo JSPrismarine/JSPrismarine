@@ -65,7 +65,7 @@ export default class LiteralCommandNode<S> extends CommandNode<S> {
         return -1;
     }
 
-    public listSuggestions(context: CommandContext<S>, builder: SuggestionsBuilder): Promise<Suggestions> {
+    public listSuggestions(_context: CommandContext<S>, builder: SuggestionsBuilder): Promise<Suggestions> {
         if (this.literal.toLowerCase().startsWith(builder.getRemaining().toLowerCase())) {
             return builder.suggest(this.literal).buildPromise();
         } else {

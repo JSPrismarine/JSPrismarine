@@ -21,7 +21,7 @@ export default class BoolArgumentType implements ArgumentType<boolean> {
         return reader.readBoolean();
     }
 
-    public listSuggestions<S>(context: CommandContext<S>, builder: SuggestionsBuilder): Promise<Suggestions> {
+    public listSuggestions<S>(_context: CommandContext<S>, builder: SuggestionsBuilder): Promise<Suggestions> {
         if ('true'.startsWith(builder.getRemaining().toLowerCase())) {
             builder.suggest('true');
         }
