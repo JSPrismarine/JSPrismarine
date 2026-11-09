@@ -3,6 +3,7 @@ node_modules/
 yarn.lock
 coverage/
 junit.xml
+.vitest/
 
 # JSPrismarine things
 dist/
