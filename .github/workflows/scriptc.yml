@@ -40,7 +40,10 @@ jobs:
                       \( -path '*/bin/scriptc' -o -path '*/lib/tsc-ts/lib/tsc-ts' -o -path '*/lib/typescript/lib/tsc' -o -name scriptc-comptime \) \
                       -type f -exec chmod +x {} +
 
+            # Off: the build prints the same analysis and stops at the same place, so running both
+            # spent the job's time twice. Remove `if: false` to get the coverage report back.
             - name: 🧪 Coverage report
+              if: false
               continue-on-error: true
               run: pnpm run package:scriptc:coverage
 
