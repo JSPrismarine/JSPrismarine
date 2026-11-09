@@ -11,6 +11,8 @@ import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js'
 import fs from 'node:fs';
 import path from 'node:path';
 
+import { controllerEnvironment } from './controllerEnvironment.mts';
+
 /** One `wait_for` condition, as the controller's `condition` schema spells them. */
 export type WaitCondition =
     | 'in_world'
@@ -60,7 +62,8 @@ export class CinnabarClient {
         const transport = new StdioClientTransport({
             command: mcpBinary,
             args: ['--repo', checkout],
-            cwd: checkout
+            cwd: checkout,
+            env: controllerEnvironment()
         });
         const session = new Client({ name: 'jsprismarine-client-e2e', version: '0.0.0' });
         await session.connect(transport);
