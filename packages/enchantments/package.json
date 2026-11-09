@@ -1,6 +1,6 @@
 {
     "name": "@jsprismarine/enchantments",
-    "version": "0.19.0",
+    "version": "0.19.1",
     "description": "Java Edition enchantment definitions, effect components, the enchanting table and the anvil.",
     "sideEffects": false,
     "publishConfig": {

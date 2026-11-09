@@ -1,6 +1,6 @@
 {
     "name": "@jsprismarine/entity-brains",
-    "version": "0.19.0",
+    "version": "0.19.1",
     "description": "Java Edition's brain AI: memories, sensors, activities, behavior combinators and the twenty mobs that build a brain",
     "sideEffects": false,
     "publishConfig": {

@@ -1,6 +1,6 @@
 {
     "name": "@jsprismarine/engine-systems",
-    "version": "0.19.0",
+    "version": "0.19.1",
     "description": "Shared world-system primitives for scheduling, redstone signals, random ticks, explosions, and weather.",
     "sideEffects": false,
     "publishConfig": {

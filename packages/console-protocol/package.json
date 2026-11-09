@@ -1,6 +1,6 @@
 {
     "name": "@jsprismarine/console-protocol",
-    "version": "0.19.0",
+    "version": "0.19.1",
     "description": "Message types and links between the JSPrismarine server and its console",
     "sideEffects": false,
     "publishConfig": {
