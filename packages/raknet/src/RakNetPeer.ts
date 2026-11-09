@@ -13,12 +13,12 @@ import type InetAddress from './utils/InetAddress';
  * real logger, a test double, a console - can drive it.
  */
 export type Logger = {
-    info: Function;
-    warn: Function;
-    error: Function;
-    verbose: Function;
-    debug: Function;
-    silly: Function;
+    info: (...message: string[]) => void;
+    warn: (...message: string[]) => void;
+    error: (...message: string[]) => void;
+    verbose: (...message: string[]) => void;
+    debug: (...message: string[]) => void;
+    silly: (...message: string[]) => void;
 };
 
 /**

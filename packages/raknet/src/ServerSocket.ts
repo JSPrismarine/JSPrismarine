@@ -85,10 +85,10 @@ export default class ServerSocket extends EventEmitter implements RakNetListener
                 this.emit('listening', this.socket.address().port);
             });
         } catch (error: unknown) {
-            if (error instanceof Error) {
-                this.logger.error('Failed to bind socket, error message=%s', 'RakNet/ServerSocket/Start');
-                this.logger.error(error, 'RakNet/ServerSocket/Start');
-            }
+            this.logger.error(
+                `Failed to bind socket, error=${error instanceof Error ? error.message : String(error)}`,
+                'RakNet/ServerSocket/Start'
+            );
         }
 
         // Each tick schedules the next one, so the handle has to be re-captured every
@@ -314,7 +314,7 @@ export default class ServerSocket extends EventEmitter implements RakNetListener
             // The frame contents are borrowed buffers, so retain the vector until libuv has
             // finished reading it. Report asynchronous send failures just as the socket does.
             void buffers;
-            if (error) this.logger.error(error, 'RakNet/ServerSocket/sendBuffers');
+            if (error) this.logger.error(`Send failed, error=${error.message}`, 'RakNet/ServerSocket/sendBuffers');
         });
     }
 

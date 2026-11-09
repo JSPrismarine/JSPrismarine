@@ -53,6 +53,11 @@ describe('configureSocketBuffers', () => {
             sendBufferSize: 2048
         });
         expect(logger.error).toHaveBeenCalledTimes(2);
+        // The logger joins strings, so the failure has to arrive as text rather than an Error.
+        expect(logger.error).toHaveBeenCalledWith(
+            'Could not set the receive buffer, error=unsupported',
+            'RakNet/SocketBuffers/setRecvBufferSize requested=4096'
+        );
         expect(logger.info).toHaveBeenCalledWith(
             expect.stringContaining('effective recv=1024 send=2048'),
             'RakNet/SocketBuffers'

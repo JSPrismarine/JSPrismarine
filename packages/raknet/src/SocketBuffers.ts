@@ -45,12 +45,18 @@ export const configureSocketBuffers = (
     try {
         socket.setRecvBufferSize(requestedRecv);
     } catch (error: unknown) {
-        logger.error(error, `${context}/setRecvBufferSize requested=${requestedRecv}`);
+        logger.error(
+            `Could not set the receive buffer, error=${error instanceof Error ? error.message : String(error)}`,
+            `${context}/setRecvBufferSize requested=${requestedRecv}`
+        );
     }
     try {
         socket.setSendBufferSize(requestedSend);
     } catch (error: unknown) {
-        logger.error(error, `${context}/setSendBufferSize requested=${requestedSend}`);
+        logger.error(
+            `Could not set the send buffer, error=${error instanceof Error ? error.message : String(error)}`,
+            `${context}/setSendBufferSize requested=${requestedSend}`
+        );
     }
 
     const effective = {

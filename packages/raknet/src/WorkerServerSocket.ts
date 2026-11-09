@@ -99,7 +99,10 @@ export default class WorkerServerSocket extends EventEmitter implements RakNetLi
             try {
                 this.worker?.postMessage({ type: 'server-name', snapshot });
             } catch (error: unknown) {
-                this.logger.error(error, 'RakNet/WorkerServerSocket/serverName');
+                this.logger.error(
+                    `Could not send the server name, error=${error instanceof Error ? error.message : String(error)}`,
+                    'RakNet/WorkerServerSocket/serverName'
+                );
             }
         });
     }
@@ -374,7 +377,7 @@ export default class WorkerServerSocket extends EventEmitter implements RakNetLi
         this.rejectReady?.(error);
         this.resolveReady = undefined;
         this.rejectReady = undefined;
-        this.logger.error(error, 'RakNet/WorkerServerSocket');
+        this.logger.error(`Worker failed, error=${error.message}`, 'RakNet/WorkerServerSocket');
         for (const session of this.sessionsById.values()) {
             session.markClosed();
             this.emit('closeConnection', session.getAddress(), 'network worker failed');
