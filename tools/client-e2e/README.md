@@ -64,11 +64,10 @@ In CI, `.github/workflows/client-e2e.yml` builds a matrix from every BDS protoco
 on `ubuntu-latest` for each one, with the client rendering through Mesa's software Vulkan driver on
 a virtual X display. The job runs as many suites at once as the runner's cores and memory allow. A second matrix runs the full suite with `snappy` and `none` across every
 supported protocol, covering retail-client negotiation without duplicating the `zlib` jobs. Each
-protocol job uploads evidence and an LCOV report to Codecov. A preceding job builds the
-latest pinned client with sccache, so the matrix can reuse compiler outputs for dependencies shared
-between protocol pins. A protocol job without its own build cache restores that latest build too;
-`ensure` copies its `build/` and `target/` directories into the new protocol cache so only
-protocol-specific dependencies need compiling. Locally, source checkouts live
+protocol job uploads evidence and an LCOV report to Codecov. A preceding job builds each
+pinned client that has no cached build. It restores cargo's compiled dependencies from the closest
+earlier build, its own protocol's first and then any other, so a pin bump compiles only the crates
+that changed, and it links with `mold`. Locally, source checkouts live
 outside the repository at `$XDG_CACHE_HOME/jsprismarine/cinnabar/v<protocol>/<commit>/repo`, falling
 back to `~/.cache/jsprismarine/cinnabar/v<protocol>/<commit>/repo`. Cargo and Go build outputs live in
 one shared `$XDG_CACHE_HOME/jsprismarine/cinnabar/v<protocol>` directory per protocol, outside all
@@ -80,8 +79,9 @@ installed, Rust outputs are also reused across protocol caches and worktrees; on
 with `brew install sccache`. Its local cache is shared at `<cache-root>/sccache` and is capped at
 sccache's 10 GB default. Set
 `JSP_CINNABAR_CACHE_DIR` to change the cache root, or set `JSP_CINNABAR_PATH` to use an existing
-checkout directly. GitHub Actions restores and saves one protocol-specific build cache outside its
-workspace and a shared sccache cache for later runs. The runner also writes a pass/fail table to the
+checkout directly. GitHub Actions saves two entries per protocol and pin outside its workspace: the
+finished build the e2e jobs restore, and cargo's intermediate directory, which only the next build
+reads. The runner also writes a pass/fail table to the
 job summary.
 
 ## Version pin

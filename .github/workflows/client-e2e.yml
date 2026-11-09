@@ -183,6 +183,7 @@ jobs:
             - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
             # One entry per protocol and pinned commit, so bumping one pin leaves the other cached.
+            # The compiled dependencies are keyed the same way in an entry of their own.
             - name: Resolve the cache key
               id: pin
               env:
@@ -190,6 +191,7 @@ jobs:
               run: |
                   commit="$(node -p 'JSON.parse(require("node:fs").readFileSync("tools/client-e2e/cinnabar.json", "utf8")).versions[process.env.PROTOCOL].commit')"
                   echo "key=${RUNNER_OS}-cinnabar-v${PROTOCOL}-${commit}" >> "$GITHUB_OUTPUT"
+                  echo "deps-key=${RUNNER_OS}-cinnabar-deps-v${PROTOCOL}-${commit}" >> "$GITHUB_OUTPUT"
 
             # Only look the entry up: a hit means the build is done, and the e2e job downloads it.
             # protocol-matrix already found none, so this guards against a build saved since.
@@ -212,6 +214,37 @@ jobs:
                   restore-keys: |
                       ${{ runner.os }}-cinnabar-v${{ matrix.protocol }}-
 
+            # Cargo's intermediate directory from the closest earlier build: every third-party crate
+            # compiled, which is most of a cold build. Cargo checks registry and git crates by hash,
+            # so a pin that keeps a crate's version reuses it and compiles only what changed.
+            # Another protocol's entry still holds most of the same crates.
+            - name: Restore the compiled dependencies
+              id: deps
+              if: ${{ steps.cinnabar-cache.outputs.cache-hit != 'true' }}
+              uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+              with:
+                  path: ${{ runner.temp }}/jsprismarine/cinnabar-deps
+                  key: ${{ steps.pin.outputs.deps-key }}
+                  restore-keys: |
+                      ${{ runner.os }}-cinnabar-deps-v${{ matrix.protocol }}-
+                      ${{ runner.os }}-cinnabar-deps-
+
+            # A cache restores only to the path it was saved from, and the build directory's path
+            # names the protocol, so the entry lives at one path and moves into place for the build.
+            - name: Put the compiled dependencies in place
+              if: ${{ steps.cinnabar-cache.outputs.cache-hit != 'true' }}
+              env:
+                  DEPS: ${{ runner.temp }}/jsprismarine/cinnabar-deps
+                  BUILD: ${{ runner.temp }}/jsprismarine/cinnabar/v${{ matrix.protocol }}/build
+              run: |
+                  if [ -d "$DEPS" ] && [ ! -e "$BUILD" ]; then
+                      mkdir -p "$(dirname "$BUILD")"
+                      mv "$DEPS" "$BUILD"
+                      du -sh "$BUILD"
+                  else
+                      echo 'No compiled dependencies to reuse; this build compiles every crate.'
+                  fi
+
             # Cargo's intermediates reach about 14 GB, more than the runner has free. Its preinstalled
             # Android SDK, .NET, Haskell and CodeQL toolchains are nothing this job uses.
             - name: Free disk space for the build
@@ -227,7 +260,7 @@ jobs:
               if: ${{ steps.cinnabar-cache.outputs.cache-hit != 'true' }}
               run: |
                   sudo apt-get update
-                  sudo apt-get install --yes libwayland-dev libxkbcommon-dev libasound2-dev libudev-dev
+                  sudo apt-get install --yes libwayland-dev libxkbcommon-dev libasound2-dev libudev-dev mold
 
             - name: 📦 Install
               if: ${{ steps.cinnabar-cache.outputs.cache-hit != 'true' }}
@@ -238,12 +271,6 @@ jobs:
               with:
                   go-version: 'stable'
                   cache: false
-
-            - name: Prepare the shared Rust compiler cache
-              if: ${{ steps.cinnabar-cache.outputs.cache-hit != 'true' }}
-              uses: Mozilla-Actions/sccache-action@fc920bf0ec8de6ee65d409111f7ec508035751ba # v0.0.11
-              with:
-                  version: v0.18.0
 
             # Cargo draws its progress bar into the pipe too, and cargo-progress.mjs turns it into a
             # `[cinnabar] 35% · 196/560 units` line at every 5% of the build.
@@ -256,19 +283,35 @@ jobs:
               env:
                   JSP_CINNABAR_CACHE_DIR: ${{ runner.temp }}/jsprismarine/cinnabar
                   PROTOCOL: ${{ matrix.protocol }}
-                  RUSTC_WRAPPER: sccache
-                  SCCACHE_GHA_ENABLED: 'true'
+                  # Incremental state only helps the next compile on the same machine, and it
+                  # would grow the compiled dependencies' cache entry for nothing.
+                  CARGO_INCREMENTAL: '0'
+                  # mold links the client's large Bevy binary in a fraction of the default linker's
+                  # time. cinnabar's own cargo config sets no rustflags for this one to replace.
+                  CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_RUSTFLAGS: -C link-arg=-fuse-ld=mold
                   CARGO_TERM_PROGRESS_WHEN: always
                   CARGO_TERM_PROGRESS_WIDTH: '120'
 
-            # Cargo's intermediate directory is about 14 GB (2.6 GB compressed) and only a compile
-            # reads it: the e2e jobs need the checkout, the stamp and the three binaries under
-            # `target/`, which `ensureBuilt` accepts without it. Two such entries pushed the
-            # repository over its 10 GB cache limit and were evicted before any PR could restore
-            # them. sccache keeps recompiles cheap after a pin change.
-            - name: Drop cargo's intermediate build directory
+            # Only a compile reads cargo's intermediate directory: the e2e jobs need the checkout, the
+            # stamp and the three binaries under `target/`, which `ensureBuilt` accepts without it.
+            # It moves out of the build's own entry and is saved as the compiled dependencies.
+            - name: Move the compiled dependencies out of the build
               if: ${{ steps.cinnabar-cache.outputs.cache-hit != 'true' }}
-              run: rm -rf "${{ runner.temp }}/jsprismarine/cinnabar/v${{ matrix.protocol }}/build"
+              env:
+                  DEPS: ${{ runner.temp }}/jsprismarine/cinnabar-deps
+                  BUILD: ${{ runner.temp }}/jsprismarine/cinnabar/v${{ matrix.protocol }}/build
+              run: |
+                  rm -rf "$DEPS"
+                  mv "$BUILD" "$DEPS"
+                  du -sh "$DEPS"
+
+            # Saved only when this pin had no entry of its own, so an exact hit is not uploaded again.
+            - name: Save the compiled dependencies
+              if: ${{ steps.cinnabar-cache.outputs.cache-hit != 'true' && steps.deps.outputs.cache-hit != 'true' }}
+              uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+              with:
+                  path: ${{ runner.temp }}/jsprismarine/cinnabar-deps
+                  key: ${{ steps.pin.outputs.deps-key }}
 
             # Save on every ref. A PR's entry is only visible to that PR, which is enough for the
             # e2e jobs below; master's entries are what other PRs fall back to.
@@ -279,20 +322,25 @@ jobs:
                   path: ${{ runner.temp }}/jsprismarine/cinnabar/v${{ matrix.protocol }}
                   key: ${{ steps.pin.outputs.key }}
 
-            # A bumped pin leaves its predecessor's 680 MB entry behind, and enough of those push the
-            # repository over its cache limit, which evicts whichever entry was used least recently.
-            # Only master prunes: a pull request that dropped them would take away what other
-            # pull requests fall back to.
+            # A bumped pin leaves its predecessor's build and compiled dependencies behind, and enough
+            # of those push the repository over its cache limit, which evicts whichever entry was
+            # used least recently. Only master prunes: a pull request that dropped them would take
+            # away what other pull requests fall back to.
             - name: Delete the builds of replaced pins
               if: ${{ github.ref == 'refs/heads/master' && github.event_name != 'pull_request' }}
               env:
                   GH_TOKEN: ${{ github.token }}
+                  PROTOCOL: ${{ matrix.protocol }}
                   KEY: ${{ steps.pin.outputs.key }}
-                  PREFIX: ${{ runner.os }}-cinnabar-v${{ matrix.protocol }}-
+                  DEPS_KEY: ${{ steps.pin.outputs.deps-key }}
               run: |
-                  gh cache list --repo "$GITHUB_REPOSITORY" --key "$PREFIX" --limit 100 --json id,key \
-                      --jq ".[] | select(.key != \"$KEY\") | .id" |
-                      while read -r id; do gh cache delete "$id" --repo "$GITHUB_REPOSITORY"; done
+                  prune() {
+                      gh cache list --repo "$GITHUB_REPOSITORY" --key "$1" --limit 100 --json id,key \
+                          --jq ".[] | select(.key != \"$2\") | .id" |
+                          while read -r id; do gh cache delete "$id" --repo "$GITHUB_REPOSITORY"; done
+                  }
+                  prune "${RUNNER_OS}-cinnabar-v${PROTOCOL}-" "$KEY"
+                  prune "${RUNNER_OS}-cinnabar-deps-v${PROTOCOL}-" "$DEPS_KEY"
 
     # cinnabar-build still runs on a push that reuses the pull request's results: a pull request's
     # cache entries are invisible to master, so this is where a new pin's build reaches master.
