@@ -82,7 +82,11 @@ const captureSequence = async (dimension: DimensionType = Dimensions.Nether): Pr
 
     await session.changeWorld(arrival);
     await session.deliver(6, -2);
-    await session.flush();
+    // The session holds the arrival columns until the client reports the change's loading
+    // screen opened, so the capture reports it the way the client would.
+    const pending = session.pendingDimensionChange();
+    if (pending === undefined) throw new Error('changeWorld left no pending dimension change');
+    await session.releaseArrivalChunks(pending.loadingScreenId);
 
     // `sent` collects whatever the connection stub was handed; the session only hands it packets.
     const packets: NetworkPacket<unknown>[] = sent;
