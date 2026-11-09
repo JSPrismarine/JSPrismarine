@@ -42,6 +42,7 @@ import { permissionsModule } from './modules/permissions';
 import { recipesModule, stationsModule } from './modules/recipes';
 import { socialModule } from './modules/social';
 import { ServerTicker, tickerModule } from './modules/ticker';
+import type { TickRecorder } from './profiling/TickRecorder';
 import type { TickControl } from './modules/ticker';
 import { bansToken, chatToken, permissionsToken, queryToken, recipesToken, stationsToken } from './modules/tokens';
 import type { QueryManager } from './query/QueryManager';
@@ -967,6 +968,11 @@ export default class Server extends EventEmitter {
      */
     public getTickMs(): number {
         return this.ticker.getTickMs();
+    }
+
+    /** The recent ticks' duration, lateness and phases. */
+    public getTickRecorder(): TickRecorder {
+        return this.ticker.recorder;
     }
 
     /** The handle `/tick` uses to change the tick rate, freeze the world, step it and sprint. */

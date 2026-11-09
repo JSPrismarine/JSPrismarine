@@ -1423,22 +1423,24 @@ export class World implements Service {
         );
         // The provider has completed generation or disk decoding; keep its mutable write fast path
         // out of the final retained form and pack each section before it enters the loaded world.
-        chunk.packBlockStorage();
-        this.chunks.set(index, chunk);
-        this.loadedChunksRevision++;
-        this.getPlayerChunkRefCounts().chunkLoaded(chunk);
-        this.getPortalIndex().chunkLoaded(chunk);
-        this.server.invalidateEntityBlockCaches?.(this.dimension.name, x, z);
-        // The only thing that changes what `getLoadedChunk` should answer.
-        this.lastChunkIndex = -1;
-        this.markEntitiesInChunkChanged(chunk);
+        this.measured('chunk-register', () => {
+            chunk.packBlockStorage();
+            this.chunks.set(index, chunk);
+            this.loadedChunksRevision++;
+            this.getPlayerChunkRefCounts().chunkLoaded(chunk);
+            this.getPortalIndex().chunkLoaded(chunk);
+            this.server.invalidateEntityBlockCaches?.(this.dimension.name, x, z);
+            // The only thing that changes what `getLoadedChunk` should answer.
+            this.lastChunkIndex = -1;
+            this.markEntitiesInChunkChanged(chunk);
+        });
 
         // After the chunk is in the map: the engine reads the blocks back through the world.
         // Background chunks can wait for the ticker's separate completion slice; a chunk the
         // player is waiting on keeps lighting on the current path for readiness and gameplay.
         const lightChunk = () => this.systems.onChunkLoaded(x, z);
         if (urgency.value === 'immediate' || this.completionQueue === undefined) {
-            lightChunk();
+            this.measured('chunk-lighting', lightChunk);
         } else {
             await this.completionQueue.defer(lightChunk, {
                 priority: urgency.value,
@@ -1447,10 +1449,13 @@ export class World implements Service {
             });
         }
 
-        this.scheduleExposedFluids(chunk);
+        this.measured('chunk-fluids', () => this.scheduleExposedFluids(chunk));
 
-        const discardedStacklessItems = await this.createStoredEntities(chunk);
-        await this.createGeneratedEntities(chunk);
+        const discardedStacklessItems = await this.measuredAsync('chunk-entities/wall', async () => {
+            const discarded = await this.createStoredEntities(chunk);
+            await this.createGeneratedEntities(chunk);
+            return discarded;
+        });
 
         if (discardedStacklessItems && this.getProvider().supportsChunkUnload === true) {
             try {
@@ -1468,6 +1473,31 @@ export class World implements Service {
 
         // TODO: event here, eg onChunkLoad
         return chunk;
+    }
+
+    /** Books a synchronous piece of chunk completion under a label, when the scheduler does accounting. */
+    private measured<T>(label: string, work: () => T): T {
+        const queue = this.completionQueue;
+        return queue?.measure === undefined ? work() : queue.measure(label, work);
+    }
+
+    /**
+     * Books the wall time of an asynchronous piece, from its start to its settling.
+     *
+     * Includes any time spent suspended, so it reads as main-thread time only for a piece whose
+     * awaits resolve without waiting on I/O, which is the case for the entity registration this
+     * is used on. The label says `wall` so a reader does not take it for a CPU figure.
+     */
+    private async measuredAsync<T>(label: string, work: () => Promise<T>): Promise<T> {
+        const queue = this.completionQueue;
+        if (queue?.record === undefined) return work();
+
+        const startedAt = performance.now();
+        try {
+            return await work();
+        } finally {
+            queue.record(label, performance.now() - startedAt);
+        }
     }
 
     /** Unique queue key for this world's one-time light initialization of a loaded chunk. */

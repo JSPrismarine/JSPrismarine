@@ -161,6 +161,34 @@ describe('modules/ticker', () => {
         expect(order.at(-1)).toBe('deactivate');
     });
 
+    it('records how late each tick started against its due time and how long its work took', async () => {
+        let blockMs = 0;
+        const harness = buildHarness({
+            emitTick: async () => {
+                // Fake `performance` only moves with the timers, so the stall is advanced by hand.
+                if (blockMs > 0) await vi.advanceTimersByTimeAsync(blockMs);
+                blockMs = 0;
+            }
+        });
+        const handle = await startTestModule(tickerModule(harness.ticker));
+        try {
+            await vi.advanceTimersByTimeAsync(0);
+            blockMs = 120;
+            await vi.advanceTimersByTimeAsync(TICK_MS * 6);
+
+            const samples = harness.ticker.recorder.between(0);
+            expect(samples.length).toBeGreaterThanOrEqual(3);
+            expect(samples[0]!.latenessMs).toBe(0);
+            // The first tick after the stalled one is due 50 ms after the stalled tick started.
+            const stalled = samples.find((sample) => sample.elapsedMs >= 100)!;
+            expect(stalled.tickHandlersMs).toBeGreaterThanOrEqual(100);
+            const next = samples.find((sample) => sample.tick === stalled.tick + 1)!;
+            expect(next.latenessMs).toBeGreaterThanOrEqual(60);
+        } finally {
+            await handle.stop();
+        }
+    });
+
     it('closes every tick profiling span when profiling is enabled', async () => {
         const directory = mkdtempSync(path.join(tmpdir(), 'jsprismarine-ticker-profile-'));
         vi.stubEnv('JSP_DIR', directory);

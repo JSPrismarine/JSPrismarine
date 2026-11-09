@@ -17,6 +17,8 @@
 import { createHash } from 'node:crypto';
 import os, { availableParallelism } from 'node:os';
 
+import type { GenerationStatsSnapshot } from '@jsprismarine/chunkgen';
+
 import {
     DataDrivenGenerator,
     defaultChunkPipeline,
@@ -195,6 +197,7 @@ interface Run {
     readonly uniqueTerrainTileCount: number;
     readonly duplicateTerrainTileBuilds: number;
     readonly blockIndexBytes: number;
+    readonly taskStats: GenerationStatsSnapshot | undefined;
 }
 
 const run = async (includeHeapSnapshots = false): Promise<Run> => {
@@ -233,6 +236,8 @@ const run = async (includeHeapSnapshots = false): Promise<Run> => {
         );
         const elapsed = performance.now() - started;
         const cpu = process.cpuUsage(cpuStarted);
+        // Read before the pool is stopped. Only a pooled arm has any.
+        const taskStats = generator.generationControl()?.stats();
         const memory = process.memoryUsage();
         const output = createHash('sha256');
         let blockIndexBytes = 0;
@@ -290,7 +295,8 @@ const run = async (includeHeapSnapshots = false): Promise<Run> => {
                 : { terrainTileStoreStats: sharedTerrainTileStore.getStats() }),
             uniqueTerrainTileCount: uniqueTerrainTiles.size,
             duplicateTerrainTileBuilds: terrainTileBuildCount - uniqueTerrainTiles.size,
-            blockIndexBytes
+            blockIndexBytes,
+            taskStats
         };
     } finally {
         generator.stopGenerating();
@@ -309,6 +315,17 @@ const digests = new Set(runs.map(({ outputDigest }) => outputDigest));
 if (digests.size !== 1) throw new Error('Chunk-generation output digest changed between samples');
 
 const p50 = percentile(times, 0.5);
+
+/**
+ * Chunks per CPU-second: chunks completed over the summed thread CPU time of every worker task,
+ * the first of each worker included, because that is where the pipeline is built and a server
+ * pays it too. Undefined for the arm that runs on this thread, which has no worker to ask.
+ */
+const chunksPerCpuSecond = (taskStats: GenerationStatsSnapshot | undefined): number | undefined => {
+    if (taskStats === undefined) return undefined;
+    const cpuMs = taskStats.byTask.reduce((total, entry) => total + entry.workerCpu.totalMs, 0);
+    return cpuMs === 0 ? undefined : chunks / (cpuMs / 1000);
+};
 process.stdout.write(
     `${JSON.stringify({
         benchmark: 'chunk-generation',
@@ -358,6 +375,8 @@ process.stdout.write(
         duplicateTerrainTileBuildsByRun: runs.map(({ duplicateTerrainTileBuilds }) => duplicateTerrainTileBuilds),
         blockIndexBytes: runs[0]?.blockIndexBytes,
         blockIndexBytesPerChunk: (runs[0]?.blockIndexBytes ?? 0) / chunks,
-        outputDigest: runs[0]?.outputDigest
+        outputDigest: runs[0]?.outputDigest,
+        chunksPerCpuSecondByRun: runs.map(({ taskStats }) => chunksPerCpuSecond(taskStats)),
+        taskStatsByRun: runs.map(({ taskStats }) => taskStats)
     })}\n`
 );

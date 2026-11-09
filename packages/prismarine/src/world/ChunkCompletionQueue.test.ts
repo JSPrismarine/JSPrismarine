@@ -134,4 +134,35 @@ describe('ChunkCompletionQueue', () => {
         expect(queue.isActive).toBe(false);
         expect(queue.pending).toBe(0);
     });
+
+    it('books measured work under its label without counting it as queued work', () => {
+        let now = 0;
+        const queue = new ChunkCompletionQueue(() => now);
+
+        const value = queue.measure('chunk-register', () => {
+            now += 3;
+            return 'done';
+        });
+        queue.record('chunk-entities/wall', 7);
+
+        expect(value).toBe('done');
+        const snapshot = queue.snapshot();
+        expect(snapshot.byLabel['chunk-register']).toMatchObject({ completed: 1, cpuMs: 3 });
+        expect(snapshot.byLabel['chunk-entities/wall']).toMatchObject({ completed: 1, cpuMs: 7 });
+        expect(snapshot.completed).toBe(0);
+        expect(snapshot.cpuMs).toBe(0);
+    });
+
+    it('books the time of work that throws, and lets the error through', () => {
+        let now = 0;
+        const queue = new ChunkCompletionQueue(() => now);
+
+        expect(() =>
+            queue.measure('chunk-lighting', () => {
+                now += 2;
+                throw new Error('no light');
+            })
+        ).toThrow('no light');
+        expect(queue.snapshot().byLabel['chunk-lighting']!.cpuMs).toBe(2);
+    });
 });

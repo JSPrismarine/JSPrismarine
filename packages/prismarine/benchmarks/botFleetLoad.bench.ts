@@ -7,6 +7,15 @@
  *   pnpm --filter @jsprismarine/prismarine run bench:bot-fleet -- --terrain real
  *   pnpm --filter @jsprismarine/prismarine run bench:bot-fleet:baseline
  *
+ * With real terrain the run ends with a preload phase, run twice: once with the generation queue
+ * held back and once at full speed, both on the same server with the fleet still connected. The
+ * difference between the two arms is the tick cost of generation. The report carries it under
+ * `preload`, apart from `phases`, so the baseline comparison never sees it. Flags: `--workers N`,
+ * `--preload-radius N`, `--preload-ticks N`, `--preload-urgency idle|soon|immediate`,
+ * `--preload-control` (hold generation back in both arms, which should read zero),
+ * `--preload-with-fleet` (keep the bots connected; the tick has stalled under it, see below) and
+ * `--no-preload`.
+ *
  * The real-terrain variant needs the Java worldgen cache: `pnpm --filter
  * @jsprismarine/bedrock-data run ensure:worldgen` (JDK 25 or newer).
  *
@@ -26,8 +35,15 @@ import { PerformanceObserver, performance } from 'node:perf_hooks';
 import Server from '@jsprismarine/prismarine/Server';
 import { Config } from '@jsprismarine/prismarine/config/Config';
 import { ServerProfiler, attachProfiler } from '@jsprismarine/prismarine/profiling/ServerProfiler';
+import { summarizeTicks } from '@jsprismarine/prismarine/profiling/TickRecorder';
 import {
     BOT_FLEET_MAX_REGRESSION_PERCENT,
+    chunksPerCpuSecond,
+    labelCostPerChunk,
+    preloadTickCost,
+    subtractLabelStats,
+    workerCpuMs,
+    type PreloadArm,
     botFleetLoginTimeoutMs,
     botFleetPhases,
     botFleetWorkloadDigest,
@@ -76,7 +92,8 @@ interface PhaseRecord {
 class BenchmarkConfig extends Config {
     public constructor(
         private readonly terrain: BotFleetTerrain,
-        private readonly playerLimit: number
+        private readonly playerLimit: number,
+        private readonly workers: number | undefined
     ) {
         super();
     }
@@ -103,6 +120,10 @@ class BenchmarkConfig extends Config {
 
     public override getMaxPlayers(): number {
         return this.playerLimit;
+    }
+
+    public override getChunkWorkers(): number {
+        return this.workers ?? super.getChunkWorkers();
     }
 
     public override getViewDistance(): number {
@@ -134,17 +155,75 @@ class BenchmarkConfig extends Config {
     }
 }
 
+interface PreloadOptions {
+    /** Undefined means on for real terrain and off for flat, which has no pool to hold back. */
+    enabled: boolean | undefined;
+    radius: number;
+    ticks: number;
+    urgency: 'idle' | 'soon' | 'immediate';
+    control: boolean;
+    /** Keep the bot fleets connected during the preload. See the header: this can freeze the tick. */
+    withFleet: boolean;
+}
+
 const parseArguments = (arguments_: readonly string[]) => {
     let terrain: BotFleetTerrain = 'flat';
     let baselinePath: string | undefined;
     let updateBaselinePath: string | undefined;
+    const preload: PreloadOptions = {
+        enabled: undefined,
+        radius: 8,
+        ticks: 200,
+        urgency: 'idle',
+        control: false,
+        withFleet: false
+    };
+    let workers: number | undefined;
     for (let index = 0; index < arguments_.length; index++) {
         const argument = arguments_[index];
         if (argument === '--help') {
             process.stdout.write(
-                'Usage: bench:bot-fleet [--terrain flat|real] [--baseline file | --update-baseline file]\n'
+                'Usage: bench:bot-fleet [--terrain flat|real] [--baseline file | --update-baseline file]\n' +
+                    '  [--workers N] [--no-preload] [--preload-radius N] [--preload-ticks N]\n' +
+                    '  [--preload-urgency idle|soon|immediate] [--preload-control] [--preload-with-fleet]\n'
             );
             process.exit(0);
+        }
+        if (argument === '--no-preload') {
+            preload.enabled = false;
+            continue;
+        }
+        if (argument === '--preload-with-fleet') {
+            preload.withFleet = true;
+            continue;
+        }
+        if (argument === '--preload-control') {
+            preload.control = true;
+            continue;
+        }
+        if (
+            argument === '--workers' ||
+            argument === '--preload-radius' ||
+            argument === '--preload-ticks' ||
+            argument === '--preload-urgency'
+        ) {
+            const value = arguments_[++index];
+            if (value === undefined || value.startsWith('--')) throw new Error(`${argument} requires a value`);
+            if (argument === '--preload-urgency') {
+                if (value !== 'idle' && value !== 'soon' && value !== 'immediate') {
+                    throw new Error('--preload-urgency must be idle, soon or immediate');
+                }
+                preload.urgency = value;
+            } else {
+                const count = Number.parseInt(value, 10);
+                if (!Number.isSafeInteger(count) || count < (argument === '--workers' ? 0 : 1)) {
+                    throw new Error(`${argument} must be a whole number in range`);
+                }
+                if (argument === '--workers') workers = count;
+                else if (argument === '--preload-radius') preload.radius = count;
+                else preload.ticks = count;
+            }
+            continue;
         }
         if (argument === '--terrain' || argument === '--baseline' || argument === '--update-baseline') {
             const value = arguments_[++index];
@@ -161,7 +240,7 @@ const parseArguments = (arguments_: readonly string[]) => {
     if (baselinePath !== undefined && updateBaselinePath !== undefined) {
         throw new Error('Choose either --baseline or --update-baseline');
     }
-    return { terrain, baselinePath, updateBaselinePath };
+    return { terrain, baselinePath, updateBaselinePath, preload, workers };
 };
 
 const availableUdpPort = async (): Promise<number> => {
@@ -267,8 +346,191 @@ const profileSharesFor = (
     );
 };
 
+interface PreloadReport {
+    readonly radius: number;
+    readonly urgency: PreloadOptions['urgency'];
+    readonly workers: number | 'default';
+    readonly control: boolean;
+    readonly loadAverage: readonly number[];
+    readonly arms: readonly PreloadArm[];
+    readonly tickCost: ReturnType<typeof preloadTickCost>;
+    readonly chunksPerCpuSecond: number | undefined;
+    readonly workerCpuMs: number;
+    readonly labelMsPerChunk: Readonly<Record<string, number>>;
+    readonly skipped?: string;
+}
+
+/**
+ * Asks the generator for a square of chunks all at once, as a preload does, and measures
+ * the server's ticks while the request is outstanding. Generation is held back in the idle arm,
+ * so the arms differ in the work done and in nothing else the benchmark controls.
+ */
+const runPreload = async (
+    server: Server,
+    options: PreloadOptions,
+    workers: number | undefined
+): Promise<PreloadReport> => {
+    const world = server.getWorldManager().getDefaultWorld();
+    const generator = world.getGenerator();
+    const control = generator.generationControl?.();
+    const base = {
+        radius: options.radius,
+        urgency: options.urgency,
+        workers: workers ?? ('default' as const),
+        control: options.control,
+        loadAverage: os.loadavg()
+    };
+    const emptyArm = (name: PreloadArm['name']): PreloadArm => ({
+        name,
+        ticks: 0,
+        tick: summarizeTicks([]),
+        chunksLoaded: 0,
+        pool: [],
+        completionLabels: {}
+    });
+    if (control === undefined) {
+        const idle = emptyArm('idle');
+        const full = emptyArm('full');
+        return {
+            ...base,
+            arms: [idle, full],
+            tickCost: preloadTickCost(idle, full),
+            chunksPerCpuSecond: undefined,
+            workerCpuMs: 0,
+            labelMsPerChunk: {},
+            skipped: 'the default world has no generation workers to hold back'
+        };
+    }
+
+    const nextTick = () =>
+        new Promise<number>((resolve) =>
+            server.once('tick', (event: { getTick(): number }) => resolve(event.getTick()))
+        );
+    const untilTick = (target: number) =>
+        new Promise<void>((resolve) => {
+            const onTick = (event: { getTick(): number }): void => {
+                if (event.getTick() < target) return;
+                server.removeListener('tick', onTick);
+                resolve();
+            };
+            server.on('tick', onTick);
+        });
+
+    // Different regions per arm, far from spawn and from anywhere the bots walk, so the second arm
+    // does not find the first one's chunks already built.
+    const centers = [
+        { x: 600, z: 600 },
+        { x: -600, z: 600 }
+    ] as const;
+
+    const runArm = async (name: PreloadArm['name'], center: { x: number; z: number }): Promise<PreloadArm> => {
+        process.stderr.write(`[preload] ${name} arm starting\n`);
+        control.resetStats();
+        if (name === 'idle') {
+            // Only this arm's own region, with room for the neighbors its chunks depend on. Holding
+            // a band instead would also hold the tasks the bots' chunks wait on, and stop the tick.
+            const reach = options.radius + 12;
+            control.pause(
+                (task) => Math.abs(task.chunkX - center.x) <= reach && Math.abs(task.chunkZ - center.z) <= reach
+            );
+        } else control.resume();
+        const labelsBefore = server.getChunkCompletionQueue().snapshot().byLabel;
+
+        let chunksLoaded = 0;
+        const requests: Promise<void>[] = [];
+        const startTick = await nextTick();
+        for (let dz = -options.radius; dz <= options.radius; dz++) {
+            for (let dx = -options.radius; dx <= options.radius; dx++) {
+                requests.push(
+                    generator
+                        .generateChunk(center.x + dx, center.z + dz, world.getSeed(), { urgency: options.urgency })
+                        .then(
+                            () => {
+                                chunksLoaded++;
+                            },
+                            () => {}
+                        )
+                );
+            }
+        }
+        await untilTick(startTick + options.ticks);
+        process.stderr.write(`[preload] ${name} arm measured, draining\n`);
+
+        const samples = server.getTickRecorder().between(startTick + 1, startTick + options.ticks + 1);
+        const pool = control.stats().byTask;
+        const completionLabels = subtractLabelStats(server.getChunkCompletionQueue().snapshot().byLabel, labelsBefore);
+        const arm: PreloadArm = {
+            name,
+            ticks: options.ticks,
+            tick: summarizeTicks(samples),
+            chunksLoaded,
+            pool,
+            completionLabels
+        };
+
+        // Leave nothing behind for the next arm: drop the backlog, then let the running tasks and
+        // their completions finish.
+        control.cancelQueued();
+        control.resume();
+        const deadline = performance.now() + 120_000;
+        while (control.outstanding() > 0 && performance.now() < deadline) {
+            await new Promise((resolve) => setTimeout(resolve, 100));
+        }
+        process.stderr.write(
+            `[preload] ${name} arm pool drained, waiting for ${requests.length - chunksLoaded} requests\n`
+        );
+        await Promise.allSettled(requests);
+        process.stderr.write(`[preload] ${name} arm requests settled\n`);
+        await untilTick((await nextTick()) + 40);
+        return arm;
+    };
+
+    const idle = await runArm('idle', centers[0]);
+    const full = await runArm(options.control ? 'idle' : 'full', centers[1]);
+    return {
+        ...base,
+        arms: [idle, full],
+        tickCost: preloadTickCost(idle, full),
+        chunksPerCpuSecond: chunksPerCpuSecond(full.chunksLoaded, full.pool),
+        workerCpuMs: workerCpuMs(full.pool),
+        labelMsPerChunk: labelCostPerChunk(full)
+    };
+};
+
+const writePreloadSummary = (report: PreloadReport): void => {
+    const line = (text: string): boolean => process.stderr.write(`[preload] ${text}\n`);
+    if (report.skipped !== undefined) {
+        line(`skipped: ${report.skipped}`);
+        return;
+    }
+    line(
+        `region ${2 * report.radius + 1}x${2 * report.radius + 1} at ${report.urgency}, workers ${report.workers}, ` +
+            `load average ${report.loadAverage.map((value) => value.toFixed(2)).join(' ')}` +
+            (report.control ? ', control run (both arms held back)' : '')
+    );
+    for (const arm of report.arms) {
+        line(
+            `${arm.name.padEnd(4)} tick p99 ${arm.tick.elapsedMs.p99.toFixed(2)} ms, mean ${arm.tick.elapsedMs.mean.toFixed(2)} ms, ` +
+                `late p99 ${arm.tick.latenessMs.p99.toFixed(2)} ms, chunks loaded ${arm.chunksLoaded}`
+        );
+    }
+    const cost = report.tickCost;
+    line(
+        `generation tick cost: p99 ${cost.p99ElapsedMs.toFixed(2)} ms (target under ${cost.targetMs} ms: ` +
+            `${cost.underTarget ? 'met' : 'not met'}), mean ${cost.meanElapsedMs.toFixed(2)} ms, late p99 ${cost.p99LatenessMs.toFixed(2)} ms`
+    );
+    if (report.chunksPerCpuSecond !== undefined) {
+        line(
+            `chunks per worker CPU-second ${report.chunksPerCpuSecond.toFixed(2)} (${report.workerCpuMs.toFixed(0)} ms)`
+        );
+    }
+    for (const [label, ms] of Object.entries(report.labelMsPerChunk)) {
+        line(`main thread per chunk, ${label}: ${ms.toFixed(3)} ms`);
+    }
+};
+
 const run = async (): Promise<void> => {
-    const { terrain, baselinePath, updateBaselinePath } = parseArguments(
+    const { terrain, baselinePath, updateBaselinePath, preload, workers } = parseArguments(
         process.argv.slice(2).filter((arg) => arg !== '--')
     );
     const previousJspDir = process.env.JSP_DIR;
@@ -289,7 +551,11 @@ const run = async (): Promise<void> => {
     const phaseRecords: PhaseRecord[] = [];
     try {
         const port = await availableUdpPort();
-        server = new Server({ logger: new Logger('error'), config: new BenchmarkConfig(terrain, 48), headless: true });
+        server = new Server({
+            logger: new Logger('error'),
+            config: new BenchmarkConfig(terrain, 48, workers),
+            headless: true
+        });
         attachProfiler(server, profiler);
         await server.bootstrap('127.0.0.1', port);
         await new Promise((resolve) => setTimeout(resolve, 100));
@@ -440,6 +706,23 @@ const run = async (): Promise<void> => {
             }
         });
 
+        const preloadRequested = preload.enabled ?? terrain === 'real';
+        let preloadReport: PreloadReport | undefined;
+        if (preloadRequested) {
+            // With the fleets still connected the tick carries ordinary play, which is what the
+            // plan asks for. In practice a Player's update then stalled forever inside a tick
+            // within a minute of the preload starting, so by default the fleets leave first and
+            // the preload runs against an empty server. The stall is not diagnosed; see the report.
+            if (!preload.withFleet) {
+                firstFleet.stop();
+                secondFleet.stop();
+                await Promise.all([firstFleet.stopped, secondFleet.stopped]);
+                await new Promise((resolve) => setTimeout(resolve, 2000));
+            }
+            preloadReport = await runPreload(server, preload, workers);
+            writePreloadSummary(preloadReport);
+        }
+
         firstFleet.stop();
         secondFleet.stop();
         await Promise.all([firstFleet.stopped, secondFleet.stopped]);
@@ -479,6 +762,7 @@ const run = async (): Promise<void> => {
             environment,
             phases: phaseRecords.map(({ startedAtMs: _startedAtMs, endedAtMs: _endedAtMs, ...phase }) => phase)
         };
+        const reportWithPreload = { ...report, ...(preloadReport === undefined ? {} : { preload: preloadReport }) };
 
         if (updateBaselinePath !== undefined) {
             const baseline: BotFleetBaseline = {
@@ -498,7 +782,7 @@ const run = async (): Promise<void> => {
             writeFileSync(updateBaselinePath, `${JSON.stringify(baseline, null, 4)}\n`);
         }
 
-        process.stdout.write(`${JSON.stringify(report)}\n`);
+        process.stdout.write(`${JSON.stringify(reportWithPreload)}\n`);
         if (baselinePath !== undefined) {
             const baseline = JSON.parse(readFileSync(baselinePath, 'utf8')) as BotFleetBaseline;
             const comparison = compareBotFleetBaseline(report, baseline);

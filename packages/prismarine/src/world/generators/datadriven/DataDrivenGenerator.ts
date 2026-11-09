@@ -24,6 +24,7 @@ import {
     GenerationPool,
     GenerationScheduler,
     InboundFeaturePatches,
+    mergeGenerationStats,
     ShardedGenerationPool
 } from '@jsprismarine/chunkgen';
 import type { BlockOracle, BlockPos, FeatureWorld, PlacedFeature } from '@jsprismarine/features';
@@ -80,6 +81,7 @@ import type {
     BiomeSearchRequest,
     BiomeSearchResult,
     ChunkRequestOptions,
+    GenerationControl,
     Generator,
     LocateTagRegistry,
     StructureSearchRequest,
@@ -1228,10 +1230,17 @@ export class DataDrivenGenerator implements Generator {
         // The worker's own payload, arriving across a thread boundary the compiler cannot
         // follow. Adoption and Bedrock translation both stay behind the same bounded completion
         // seam, so a burst of results does not turn into a burst of main-thread work.
+        const measure = this.options.completionQueue?.measure?.bind(this.options.completionQueue);
         return this.deferChunkCompletion(cx, cz, pipeline, () => {
             const payload = result.payload as GenerationRegionPayload;
-            const region = this.adoptRegion(payload, pipeline);
-            return this.toChunk(cx, cz, region, pipeline);
+            // The two children break `worker-result` down; they are inside it, not beside it.
+            const region =
+                measure === undefined
+                    ? this.adoptRegion(payload, pipeline)
+                    : measure('worker-result/adopt', () => this.adoptRegion(payload, pipeline));
+            return measure === undefined
+                ? this.toChunk(cx, cz, region, pipeline)
+                : measure('worker-result/translate', () => this.toChunk(cx, cz, region, pipeline));
         });
     }
 
@@ -1353,7 +1362,8 @@ export class DataDrivenGenerator implements Generator {
             locatableNames: (kind) => this.locatableNames(kind),
             structureSpawnOverrideAt: (identifier, at, seed = 0n) =>
                 this.structureSpawnOverrideUnder(key, identifier, at, seed),
-            stopGenerating: () => this.stopGenerating()
+            stopGenerating: () => this.stopGenerating(),
+            generationControl: () => this.generationControl()
         };
     }
 
@@ -1413,7 +1423,13 @@ export class DataDrivenGenerator implements Generator {
 
         // A player waiting on this chunk keeps the existing completion path; bounded work is
         // for background promotion, where delaying the chunk cannot hold gameplay updates.
-        if (completionQueue === undefined || priority === 'immediate') return Promise.resolve(complete());
+        if (completionQueue === undefined) return Promise.resolve(complete());
+        if (priority === 'immediate') {
+            // Not queued, but still accounted for under the same label as the deferred path.
+            return Promise.resolve(
+                completionQueue.measure === undefined ? complete() : completionQueue.measure('worker-result', complete)
+            );
+        }
 
         const key = this.urgencyKey(pipeline, cx, cz);
         return completionQueue.defer(complete, { priority, label: 'worker-result', key });
@@ -2336,6 +2352,21 @@ export class DataDrivenGenerator implements Generator {
     /** Where a chunk's band is kept: by the dimension's Bedrock id and the position. */
     private urgencyKey(pipeline: { readonly dimension: PipelineDimension }, chunkX: number, chunkZ: number): string {
         return `${pipeline.dimension.bedrockId}:${chunkX},${chunkZ}`;
+    }
+
+    /** @inheritDoc */
+    public generationControl(): GenerationControl | undefined {
+        const pools = [this.pool, this.stagePool, this.chunkPool].filter((pool) => pool !== undefined);
+        if (pools.length === 0) return undefined;
+
+        return {
+            pause: (rule) => pools.forEach((pool) => pool.pause(rule)),
+            resume: () => pools.forEach((pool) => pool.resume()),
+            cancelQueued: () => pools.reduce((total, pool) => total + pool.cancel(() => false), 0),
+            outstanding: () => pools.reduce((total, pool) => total + pool.inFlight + pool.queued, 0),
+            stats: () => mergeGenerationStats(pools.map((pool) => pool.statsSnapshot())),
+            resetStats: () => pools.forEach((pool) => pool.resetStats())
+        };
     }
 
     /** @inheritDoc */

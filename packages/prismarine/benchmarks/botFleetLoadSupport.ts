@@ -1,5 +1,8 @@
 import { createHash } from 'node:crypto';
 
+import type { GenerationTaskStats } from '@jsprismarine/chunkgen';
+import type { TickSummary } from '@jsprismarine/prismarine/profiling/TickRecorder';
+
 export type BotFleetTerrain = 'flat' | 'real';
 
 /** Fixed phase lengths and cohort sizes used by both the benchmark and its workload digest. */
@@ -151,3 +154,76 @@ export const compareBotFleetBaseline = (report: BotFleetLoadReport, baseline: Bo
 
     return { ok: phases.every((phase) => phase.ok), phases };
 };
+
+/** The tick cost of generation that slice 0 of the worldgen decoupling plan aims under, in ms. */
+export const PRELOAD_TICK_COST_TARGET_MS = 1;
+
+/** Main-thread time booked under one completion label during a preload arm. */
+export interface PreloadLabelCost {
+    readonly completed: number;
+    readonly cpuMs: number;
+}
+
+/** One preload measurement: generation held back, or running at full speed. */
+export interface PreloadArm {
+    readonly name: 'idle' | 'full';
+    readonly ticks: number;
+    readonly tick: TickSummary;
+    /** Chunk loads that finished while the arm ran. */
+    readonly chunksLoaded: number;
+    readonly pool: readonly GenerationTaskStats[];
+    readonly completionLabels: Readonly<Record<string, PreloadLabelCost>>;
+}
+
+/**
+ * Summed worker thread CPU in milliseconds, over every status and band.
+ *
+ * The first task of each worker is in here, and it carries the pipeline build, which a server
+ * pays too.
+ */
+export const workerCpuMs = (pool: readonly GenerationTaskStats[]): number =>
+    pool.reduce((total, entry) => total + entry.workerCpu.totalMs, 0);
+
+/** Chunks completed per summed worker CPU-second, or undefined when no worker reported CPU. */
+export const chunksPerCpuSecond = (chunksLoaded: number, pool: readonly GenerationTaskStats[]): number | undefined => {
+    const cpuMs = workerCpuMs(pool);
+    return cpuMs === 0 ? undefined : chunksLoaded / (cpuMs / 1000);
+};
+
+/**
+ * What generation costs the tick: the full-speed arm's tick figures minus the idle arm's, from
+ * one run on one machine. Positive means generation made ticks slower.
+ */
+export const preloadTickCost = (idle: PreloadArm, full: PreloadArm) => ({
+    p99ElapsedMs: full.tick.elapsedMs.p99 - idle.tick.elapsedMs.p99,
+    meanElapsedMs: full.tick.elapsedMs.mean - idle.tick.elapsedMs.mean,
+    p99LatenessMs: full.tick.latenessMs.p99 - idle.tick.latenessMs.p99,
+    targetMs: PRELOAD_TICK_COST_TARGET_MS,
+    underTarget: full.tick.elapsedMs.p99 - idle.tick.elapsedMs.p99 < PRELOAD_TICK_COST_TARGET_MS
+});
+
+/** Mean main-thread milliseconds per completed chunk under each completion label. */
+export const labelCostPerChunk = (arm: PreloadArm): Readonly<Record<string, number>> =>
+    Object.fromEntries(
+        Object.entries(arm.completionLabels).map(([label, cost]) => [
+            label,
+            arm.chunksLoaded === 0 ? 0 : cost.cpuMs / arm.chunksLoaded
+        ])
+    );
+
+/** Subtracts an earlier snapshot of the completion queue's per-label stats from a later one. */
+export const subtractLabelStats = (
+    after: Readonly<Record<string, { completed: number; cpuMs: number }>>,
+    before: Readonly<Record<string, { completed: number; cpuMs: number }>>
+): Record<string, PreloadLabelCost> =>
+    Object.fromEntries(
+        Object.entries(after)
+            .map(([label, stats]): [string, PreloadLabelCost] => [
+                label,
+                {
+                    completed: stats.completed - (before[label]?.completed ?? 0),
+                    cpuMs: stats.cpuMs - (before[label]?.cpuMs ?? 0)
+                }
+            ])
+            .filter(([, cost]) => cost.completed > 0)
+    );

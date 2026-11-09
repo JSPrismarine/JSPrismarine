@@ -2,6 +2,7 @@ import type { Module } from '@jsprismarine/kernel';
 
 import { TickEvent } from '../events/Events';
 import { profileSpanStarter } from '../profiling/ServerProfiler';
+import { TickRecorder } from '../profiling/TickRecorder';
 import type { ChunkCompletionQueue } from '../world/ChunkCompletionQueue';
 import { DEFAULT_CHUNK_COMPLETION_BUDGET_MS } from '../world/ChunkCompletionQueue';
 import { tickerToken } from './tokens';
@@ -197,6 +198,9 @@ export class ServerTicker implements Ticker, TickControl {
     /** Set when the period changes, so the next deadline counts from the moment it did. */
     private rebaseSchedule = false;
 
+    /** The most recent ticks' duration, lateness and phases, for profiles and benchmarks. */
+    public readonly recorder = new TickRecorder();
+
     public constructor(server: TickerServer) {
         this.server = server;
     }
@@ -304,6 +308,7 @@ export class ServerTicker implements Ticker, TickControl {
         const tick = async () => {
             if (server.isStopping() || !this.running) return;
             const tickStartedAt = now();
+            const dueAt = epoch + (Number(this.currentTick - epochTick) * 1000) / this.tickRate;
             const timerDelayMs = Math.max(0, tickStartedAt - nextTickExpectedStartAt);
             let tickHandlersMs = 0;
             let worldUpdatesMs = 0;
@@ -409,9 +414,18 @@ export class ServerTicker implements Ticker, TickControl {
                 logger.error(error);
             } finally {
                 endTickProfile?.();
-                this.currentTick++;
                 const endTime = now();
                 const elapsedMs = endTime - tickStartedAt;
+                this.recorder.record({
+                    tick: Number(this.currentTick),
+                    latenessMs: Math.max(0, tickStartedAt - dueAt),
+                    elapsedMs,
+                    tickHandlersMs,
+                    worldUpdatesMs,
+                    chunkCompletionsMs,
+                    chunkSchedulerMs
+                });
+                this.currentTick++;
 
                 // TPS over a sliding window of the last second. The window used to be
                 // rebased whenever it crossed a second, which left the next reading

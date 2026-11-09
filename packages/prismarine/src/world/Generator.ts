@@ -1,4 +1,4 @@
-import type { GenerationPriority } from '@jsprismarine/chunkgen';
+import type { GenerationPriority, GenerationStatsSnapshot, PauseRule } from '@jsprismarine/chunkgen';
 
 import type { WorldConfig } from './World';
 import type Chunk from './chunk/Chunk';
@@ -108,6 +108,26 @@ export interface BiomeSearchResult {
 /** The tag registries a `/locate` name may draw on; see {@link Generator.membersOfTag}. */
 export type LocateTagRegistry = 'worldgen/structure' | 'worldgen/biome';
 
+/** What a benchmark may do to a generator's worker pools. */
+export interface GenerationControl {
+    /**
+     * Holds back the queued tasks a rule picks out; tasks already running finish. The default
+     * rule holds the `idle` band. Holding anything the tick, or a chunk a player waits on,
+     * depends on stops the tick, so a benchmark names the region it asked for.
+     */
+    pause(rule?: PauseRule): void;
+    /** Releases the held tasks in band order. */
+    resume(): void;
+    /** Drops every task still waiting for a worker, and reports how many went. */
+    cancelQueued(): number;
+    /** How many tasks are with a worker or waiting for one, across every pool. */
+    outstanding(): number;
+    /** Every pool's recorded task stats, merged. */
+    stats(): GenerationStatsSnapshot;
+    /** Forgets the recorded task stats. */
+    resetStats(): void;
+}
+
 /** A block position in a generator's world. */
 export interface GeneratorPosition {
     readonly x: number;
@@ -187,6 +207,16 @@ export interface Generator {
      * @param urgency - The band to move it into. Never lowers one.
      */
     raiseUrgency?(cx: number, cz: number, urgency: GenerationPriority): void;
+
+    /**
+     * A handle on the generator's worker pools, for measurement.
+     *
+     * Optional, because a generator with no pool has nothing to hold back or count. The handle
+     * does not change what is generated: pausing only delays when a queued task reaches a worker.
+     *
+     * @returns The handle, or undefined when no pool is running.
+     */
+    generationControl?(): GenerationControl | undefined;
 
     /**
      * The nearest structure a search accepts, without generating anything.

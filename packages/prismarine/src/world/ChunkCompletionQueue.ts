@@ -38,6 +38,15 @@ export interface ChunkCompletionScheduler {
 
     /** Raises queued work when a background chunk becomes a player-visible request. */
     promote(key: string, priority: GenerationPriority): boolean;
+
+    /**
+     * Runs work now and books its main-thread time under a label, for the pieces of a chunk's
+     * completion that are not deferred. Absent on a scheduler that does no accounting.
+     */
+    measure?<T>(label: string, work: () => T): T;
+
+    /** Books an already measured duration under a label; see {@link ChunkCompletionScheduler.measure}. */
+    record?(label: string, ms: number): void;
 }
 
 /** The completion slice is independent from the time reserved for sending chunk packets. */
@@ -109,7 +118,7 @@ export class ChunkCompletionQueue implements ChunkCompletionScheduler {
     ): Promise<T> {
         if (!this.active) {
             try {
-                return Promise.resolve(work());
+                return Promise.resolve(this.measure(label, work));
             } catch (error: unknown) {
                 return Promise.reject(error);
             }
@@ -138,6 +147,31 @@ export class ChunkCompletionQueue implements ChunkCompletionScheduler {
             this.enqueued++;
             this.peakPending = Math.max(this.peakPending, this.pendingCount);
         });
+    }
+
+    /**
+     * Runs work now and books its time under `label`, without touching the queue's own counters.
+     *
+     * Chunks a player is waiting on skip the queue, so without this their completion cost would
+     * be missing from the per-label report exactly when it matters most. The time is wall time
+     * of a synchronous call, which on a single thread is the thread's time unless the process
+     * was descheduled.
+     */
+    public measure<T>(label: string, work: () => T): T {
+        const startedAt = this.now();
+        try {
+            return work();
+        } finally {
+            this.record(label, this.now() - startedAt);
+        }
+    }
+
+    /** Books a duration under `label`, without touching the queue's own counters. */
+    public record(label: string, ms: number): void {
+        const stats = this.byLabel.get(label) ?? { completed: 0, cpuMs: 0, maxQueueAgeMs: 0 };
+        stats.completed++;
+        stats.cpuMs += ms;
+        this.byLabel.set(label, stats);
     }
 
     /** Starts tick-bounded completion processing. */
