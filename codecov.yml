@@ -2,3 +2,34 @@ coverage:
     status:
         project: off
         patch: off
+
+# Each upload carries one flag, and Codecov merges every flag uploaded for a commit into one
+# report. The client e2e workflow runs only when the packages it plays touch change, and the
+# real-data suites can be skipped, so a flag missing from a commit keeps its last coverage
+# instead of dropping out of the total.
+flag_management:
+    default_rules:
+        carryforward: true
+    individual_flags:
+        - name: unit
+        - name: real-data
+        - name: client-e2e
+
+# Generated tables and benchmarks are not code the tests are meant to cover.
+ignore:
+    - packages/bedrock-data/src/generated
+    - packages/*/benchmarks/**
+
+comment:
+    layout: 'condensed_header, diff, flags, condensed_files, condensed_footer'
+    behavior: default
+    require_changes: true
+    require_bundle_changes: bundle_increase
+    bundle_change_threshold: 1Kb
+
+bundle_analysis:
+    warning_threshold: 5%
+    status: informational
+
+test_analytics:
+    flake_detection: true
