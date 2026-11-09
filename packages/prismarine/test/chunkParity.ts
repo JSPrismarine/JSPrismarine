@@ -1,6 +1,8 @@
 /**
- * Builds the same chunks three ways: on this thread, through the legacy whole-chunk pool, and
- * through the shared status pool. Reports whether each worker path matches inline output.
+ * Builds the same chunks four ways: on this thread, through the legacy whole-chunk pool, through
+ * the shared status pool, and through that pool in a generation host process. Reports whether each
+ * worker path matches inline output, and that every stage-pool chunk had its block pass run in a
+ * worker.
  *
  * Two dimensions go through each pool at once, the Overworld as the generator's own key and the
  * End through `forStem`, because one pool serves every dimension of a server and a worker that
@@ -61,7 +63,11 @@ if (sources === undefined) {
     process.exit(2);
 }
 
-const open = (mode: 'inline' | 'chunks' | 'stages', workers = 3, shareClimateTables = true): DataDrivenGenerator => {
+const open = (
+    mode: 'inline' | 'chunks' | 'stages' | 'stages-host',
+    workers = 3,
+    shareClimateTables = true
+): DataDrivenGenerator => {
     const registries = loadJavaWorldgenRegistries(sources);
 
     return new DataDrivenGenerator({
@@ -82,12 +88,21 @@ const open = (mode: 'inline' | 'chunks' | 'stages', workers = 3, shareClimateTab
                       }
                   }
               }
-            : mode === 'stages'
+            : mode === 'stages' || mode === 'stages-host'
               ? {
                     stages: {
                         pipeline: defaultChunkPipeline(),
                         workers,
                         javaTemplates: true,
+                        ...(mode === 'stages-host'
+                            ? {
+                                  host: 'process' as const,
+                                  onHostFallback: (reason: string) => {
+                                      process.stderr.write(`the generation host refused to start: ${reason}\n`);
+                                      process.exit(3);
+                                  }
+                              }
+                            : {}),
                         onUnavailable: (reason: string) => {
                             process.stderr.write(`the stage pool refused to start: ${reason}\n`);
                             process.exit(3);
@@ -105,6 +120,7 @@ const inline = open('inline');
 const chunkPool = open('chunks');
 const localStagePool = open('stages', 1, false);
 const stagePool = open('stages', 3, true);
+const hostStagePool = open('stages-host', 3, true);
 
 /** Every chunk of both dimensions, keyed by dimension and position. */
 const buildAll = async (generator: DataDrivenGenerator): Promise<Map<string, string>> => {
@@ -124,6 +140,8 @@ const buildAll = async (generator: DataDrivenGenerator): Promise<Map<string, str
 let chunkDifferences: string[] = [];
 let localStageDifferences: string[] = [];
 let stageDifferences: string[] = [];
+let hostDifferences: string[] = [];
+const blockPassProblems: string[] = [];
 try {
     const expected = await buildAll(inline);
     const compare = async (generator: DataDrivenGenerator): Promise<string[]> => {
@@ -136,20 +154,47 @@ try {
     chunkDifferences = await compare(chunkPool);
     localStageDifferences = await compare(localStagePool);
     stageDifferences = await compare(stagePool);
+    hostDifferences = await compare(hostStagePool);
+
+    // Counted, not timed: every chunk a stage pool built had its block pass run in a worker, so
+    // the server thread walked none of its blocks.
+    const chunksPerBuild = CHUNKS.length + END_CHUNKS.length;
+    for (const [name, generator] of [
+        ['one-worker local-table pool', localStagePool],
+        ['three-worker shared-table pool', stagePool],
+        ['generation host pool', hostStagePool]
+    ] as const) {
+        const blockPasses = (generator.generationControl()?.stats().byTask ?? [])
+            .filter((entry) => entry.status === 'full')
+            .reduce((total, entry) => total + entry.tasks - entry.failed, 0);
+        if (blockPasses !== chunksPerBuild) {
+            blockPassProblems.push(`${name} ran ${blockPasses} block passes in workers for ${chunksPerBuild} chunks`);
+        }
+    }
 } finally {
     inline.stopGenerating();
     chunkPool.stopGenerating();
     localStagePool.stopGenerating();
     stagePool.stopGenerating();
+    hostStagePool.stopGenerating();
 }
 
-if (chunkDifferences.length > 0 || localStageDifferences.length > 0 || stageDifferences.length > 0) {
+if (
+    chunkDifferences.length > 0 ||
+    localStageDifferences.length > 0 ||
+    stageDifferences.length > 0 ||
+    hostDifferences.length > 0 ||
+    blockPassProblems.length > 0
+) {
     if (chunkDifferences.length > 0) process.stderr.write(`whole-chunk pool differs: ${chunkDifferences.join(' ')}\n`);
     if (localStageDifferences.length > 0) {
         process.stderr.write(`one-worker local-table pool differs: ${localStageDifferences.join(' ')}\n`);
     }
     if (stageDifferences.length > 0)
         process.stderr.write(`three-worker shared-table pool differs: ${stageDifferences.join(' ')}\n`);
+    if (hostDifferences.length > 0)
+        process.stderr.write(`generation host pool differs: ${hostDifferences.join(' ')}\n`);
+    for (const problem of blockPassProblems) process.stderr.write(`${problem}\n`);
     process.exit(1);
 }
 

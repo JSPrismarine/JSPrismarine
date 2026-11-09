@@ -23,6 +23,7 @@
  * The registries arrive as one `SharedArrayBuffer` of UTF-8 JSON, which gets eight workers to
  * parsed registries in 75 ms against 540 reading the 1514 files each.
  */
+import { buildBedrockSections, isBedrockSectionsInput, sectionBuffers } from './bedrockSections';
 import type { GenerationResult, GenerationTask, WorkerPipeline } from '@jsprismarine/chunkgen';
 
 import type { PipelineKey, TerrainTaskInput } from './DataDrivenGenerator';
@@ -317,6 +318,12 @@ export const createGenerationPipeline = (setup: unknown): WorkerPipeline => {
                     ),
                     transferList: []
                 };
+            }
+
+            // The block pass of a chunk's translation, which reads no generator state at all.
+            if (task.status === 'full' && isBedrockSectionsInput(task.input)) {
+                const sections = buildBedrockSections(task.input);
+                return { payload: sections, transferList: sectionBuffers(sections) };
             }
 
             if (task.status === 'full') {

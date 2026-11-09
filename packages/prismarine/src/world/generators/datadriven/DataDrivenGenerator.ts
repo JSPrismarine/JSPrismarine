@@ -94,6 +94,8 @@ import { findClosestBiome } from './biomeSearch';
 import { GenerationChunk } from './GenerationChunk';
 import { GenerationQueue } from './GenerationQueue';
 import { urgencyAround } from './urgencyAround';
+import type { BedrockSection, BedrockSectionsInput } from './bedrockSections';
+import { buildBedrockSections, isBedrockSections } from './bedrockSections';
 import { GenerationRegion } from './GenerationRegion';
 import type {
     GenerationRegionOptions,
@@ -1439,8 +1441,12 @@ export class DataDrivenGenerator implements Generator {
 
                 // `full` leaves the merged region and `terrain` leaves only its own tile, which is
                 // what a generator with decoration off stops at.
+                const region = staged.finalRegion ?? staged.terrain;
+                // The block pass runs in a worker when there is one, and only the wrapping waits
+                // for this thread's completion slice.
+                const sections = await this.sectionsInWorker(cx, cz, region, pipeline);
                 const chunk = await this.deferChunkCompletion(cx, cz, pipeline, () =>
-                    this.toChunk(cx, cz, staged.finalRegion ?? staged.terrain, pipeline, staged.terrain)
+                    this.toChunk(cx, cz, region, pipeline, staged.terrain, sections)
                 );
                 staged.recordChunk(chunk);
                 return chunk;
@@ -2602,9 +2608,15 @@ export class DataDrivenGenerator implements Generator {
         cz: number,
         region: GenerationRegion,
         pipeline: SeededPipeline,
-        biomeRegion: GenerationRegion = region
+        biomeRegion: GenerationRegion = region,
+        sections?: readonly BedrockSection[]
     ): Chunk {
-        const chunk = new Chunk(cx, cz, this.buildSubChunks(region, pipeline), this.chunkDimensionOf(pipeline));
+        const chunk = new Chunk(
+            cx,
+            cz,
+            this.buildSubChunks(region, pipeline, sections),
+            this.chunkDimensionOf(pipeline)
+        );
         // The constructor is a load rather than a write, so nothing has told the chunk it is
         // unsaved. A generated chunk is exactly the thing that has never been written to disk.
         chunk.markChanged();
@@ -2622,16 +2634,44 @@ export class DataDrivenGenerator implements Generator {
      * created a sub chunk nothing was written into. An unmapped Java state becomes air for the
      * same reason: the per-block fill skipped the write, and skipping a write leaves air.
      */
-    private buildSubChunks(region: GenerationRegion, pipeline: SeededPipeline): Map<number, SubChunk> {
-        const { palette, slots, columnTops } = region.centerBlockSlots();
+    private buildSubChunks(
+        region: GenerationRegion,
+        pipeline: SeededPipeline,
+        precomputed?: readonly BedrockSection[]
+    ): Map<number, SubChunk> {
         const air = BlockRuntimeIds.getByName('minecraft:air');
         const water = BlockRuntimeIds.getByName('minecraft:water');
+        const sections = precomputed ?? buildBedrockSections(this.sectionsInput(region, pipeline));
+
+        const subChunks = new Map<number, SubChunk>();
+        for (const { section, blocks, palette, water: waterBlocks } of sections) {
+            const storages = new Map([[0, new BlockStorage({ blocks, palette: Array.from(palette) })]]);
+            if (waterBlocks !== undefined)
+                storages.set(1, new BlockStorage({ blocks: waterBlocks, palette: [air, water] }));
+            subChunks.set(section, new SubChunk(storages));
+        }
+
+        return subChunks;
+    }
+
+    /**
+     * What the block pass reads: the center chunk's palette slots, and each slot's runtime id.
+     *
+     * The translation of a slot is a table lookup on this thread, a few dozen per chunk. A template
+     * block arrives as a Bedrock state already, so it skips the mapping. An unmapped Java state
+     * becomes air, the same way the per-block fill skipped the write and left air.
+     *
+     * @param copy - Whether the slots must be this call's own, because they are about to be moved
+     * to a worker and the region may still be using them.
+     */
+    private sectionsInput(region: GenerationRegion, pipeline: SeededPipeline, copy = false): BedrockSectionsInput {
+        const { palette, slots, columnTops } = region.centerBlockSlots();
+        const air = BlockRuntimeIds.getByName('minecraft:air');
         const runtimeIds = new Int32Array(palette.length);
         // Bedrock keeps water from waterlogged Java states in storage layer 1.
         const waterSlots = new Uint8Array(palette.length);
         for (let slot = 0; slot < palette.length; slot++) {
             const block = palette[slot]!;
-            // A template block arrives as a Bedrock state already, so it skips the mapping.
             const runtimeId =
                 block.bedrock === undefined
                     ? pipeline.translator.runtimeIdOf(block.java.name, block.java.properties)
@@ -2641,61 +2681,55 @@ export class DataDrivenGenerator implements Generator {
                 block.java.name !== 'minecraft:water' && pipeline.oracle.fluid(block.java) === 'water' ? 1 : 0;
         }
 
-        const minY = pipeline.dimension.minY;
-        const height = pipeline.dimension.height;
-        let top = minY - 1;
-        for (let column = 0; column < 256; column++) {
-            if (columnTops[column]! > top) top = columnTops[column]!;
+        return {
+            kind: 'bedrock-sections',
+            slots: copy ? slots.slice() : slots,
+            columnTops: copy ? columnTops.slice() : columnTops,
+            runtimeIds,
+            waterSlots,
+            air,
+            minY: pipeline.dimension.minY,
+            height: pipeline.dimension.height
+        };
+    }
+
+    /**
+     * Runs the block pass of a chunk's translation in a generation worker.
+     *
+     * The pass walks every block of every section, which is the largest piece of a completed
+     * chunk's server-thread work. The worker gets the slots and their runtime ids and hands back
+     * finished sections, so this thread only wraps them.
+     *
+     * @returns The sections, or undefined when there is no pool to ask, and the caller builds them
+     * here with the same function.
+     */
+    private async sectionsInWorker(
+        cx: number,
+        cz: number,
+        region: GenerationRegion,
+        pipeline: SeededPipeline
+    ): Promise<readonly BedrockSection[] | undefined> {
+        const pool = this.stagePool;
+        if (pool === undefined) return undefined;
+
+        const input = this.sectionsInput(region, pipeline, true);
+        let result;
+        try {
+            result = await pool.run(
+                { status: 'full', chunkX: cx, chunkZ: cz, dimension: pipeline.dimension.bedrockId, input },
+                this.urgencyOf(pipeline, cx, cz)
+            );
+        } catch (error: unknown) {
+            if (this.stopped) throw new GenerationStopped(cx, cz);
+            // A pool that cannot do the block pass is not a reason to lose the chunk.
+            if (this.abandonStagePool(error)) return undefined;
+            throw error;
         }
 
-        const subChunks = new Map<number, SubChunk>();
-        const localSlots = new Int32Array(palette.length);
-        for (let section = minY >> 4; section <= top >> 4; section++) {
-            const sectionMinY = section * 16;
-            const blocks = new Uint16Array(BLOCKS_PER_SUBCHUNK);
-            let waterBlocks: Uint16Array | undefined;
-            const sectionPalette = [air];
-            // Two lookups rather than one. The array answers for a slot already seen in this
-            // section, which is almost every block; the map is what keeps two region slots that
-            // translate to the same runtime id from taking two palette entries, the way
-            // `BlockStorage.setBlock` does.
-            const byRuntimeId = new Map<number, number>([[air, 0]]);
-            localSlots.fill(-1);
-
-            for (let localX = 0; localX < 16; localX++) {
-                for (let localZ = 0; localZ < 16; localZ++) {
-                    const column = localX * 16 + localZ;
-                    const columnBase = column * height - minY;
-                    const target = (localX << 8) | (localZ << 4);
-                    const columnTop = Math.min(columnTops[column]!, sectionMinY + 15);
-
-                    for (let y = sectionMinY; y <= columnTop; y++) {
-                        const slot = slots[columnBase + y]!;
-                        let local = localSlots[slot]!;
-                        if (local < 0) {
-                            const runtimeId = runtimeIds[slot]!;
-                            local = byRuntimeId.get(runtimeId) ?? sectionPalette.push(runtimeId) - 1;
-                            byRuntimeId.set(runtimeId, local);
-                            localSlots[slot] = local;
-                        }
-
-                        blocks[target | (y & 0xf)] = local;
-                        if (waterSlots[slot] === 1) {
-                            waterBlocks ??= new Uint16Array(BLOCKS_PER_SUBCHUNK);
-                            waterBlocks[target | (y & 0xf)] = 1;
-                        }
-                    }
-                }
-            }
-
-            if (sectionPalette.length === 1) continue;
-            const storages = new Map([[0, new BlockStorage({ blocks, palette: sectionPalette })]]);
-            if (waterBlocks !== undefined)
-                storages.set(1, new BlockStorage({ blocks: waterBlocks, palette: [air, water] }));
-            subChunks.set(section, new SubChunk(storages));
+        if (!isBedrockSections(result.payload)) {
+            throw new TypeError(`The block pass for the chunk at ${cx}, ${cz} came back in an unexpected shape.`);
         }
-
-        return subChunks;
+        return result.payload;
     }
 
     /**

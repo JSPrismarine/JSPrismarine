@@ -130,6 +130,30 @@ describe('world', () => {
             expect(systems.getRandomTickState()).toBe(1013904223);
         });
 
+        it('does no light work for a loaded chunk no player is near, and some for one a player is', () => {
+            // Counted, not timed: how many blocks the light engine reads while a chunk loads.
+            let reads = 0;
+            const systemsFor = (near: boolean) =>
+                new WorldSystems({
+                    view: {
+                        dimension: Dimensions.Overworld,
+                        blockAt: () => {
+                            reads++;
+                            return AIR;
+                        },
+                        loadedChunks: () => [],
+                        shouldInitializeLight: () => near
+                    },
+                    world: createTestWorld()
+                });
+
+            systemsFor(false).onChunkLoaded(4, 4);
+            expect(reads).toBe(0);
+
+            systemsFor(true).onChunkLoaded(4, 4);
+            expect(reads).toBeGreaterThan(0);
+        });
+
         it('restores the shared random tick state at a replay boundary', () => {
             const systems = new WorldSystems({
                 view: { dimension: Dimensions.Overworld, blockAt: () => undefined, loadedChunks: () => [] },

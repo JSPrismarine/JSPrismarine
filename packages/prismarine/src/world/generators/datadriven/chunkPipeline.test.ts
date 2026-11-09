@@ -178,7 +178,7 @@ describe('the pipeline module in a worker thread', () => {
 
 describe.runIf(enabled)('a chunk built by workers', { tags: ['real-data'] }, () => {
     it(
-        'matches inline generation through both worker paths',
+        'matches inline generation through every worker path, in process and in a host',
         () => {
             const output = execFileSync(process.execPath, ['--import', 'tsx', CHECKER], {
                 encoding: 'utf8',
