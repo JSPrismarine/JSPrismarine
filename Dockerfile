@@ -20,8 +20,14 @@ RUN npm install --global "$(node -p "require('./package.json').packageManager")"
 
 COPY . .
 
+# The overworld generator reads Java's worldgen data from `node_modules/.cache/jsprismarine`, and
+# without it the server cannot build the default world. `ensure:worldgen` fails the build rather
+# than ship an image that cannot start. The server jar it generates the data from is not needed
+# at run time, so it is removed.
 RUN pnpm install --frozen-lockfile \
     && pnpm --filter @jsprismarine/bedrock-data run generate \
+    && pnpm --filter @jsprismarine/bedrock-data run ensure:worldgen \
+    && rm -rf node_modules/.cache/jsprismarine/java-server \
     && pnpm run server:build
 
 FROM node:26-slim@sha256:5adad64f9a1fca2d51972caa65983634c8a774eb300d72b20f7f2a0f60368072 AS runtime
