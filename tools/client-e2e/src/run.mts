@@ -348,7 +348,7 @@ const runSuite = async (suite: ScenarioSuite, index: number): Promise<ScenarioRe
                 userRoot: path.join(suiteServer.dir, 'client-user-root'),
                 clientBinary: cinnabar.clientBinary,
                 displayName: playerName,
-                muteAudio: !values.record
+                recorded: values.record
             });
             return launched;
         };
@@ -425,7 +425,7 @@ const runSuite = async (suite: ScenarioSuite, index: number): Promise<ScenarioRe
                             userRoot: path.join(suiteServer.dir, `client-user-root-${displayName}`),
                             clientBinary: cinnabar.clientBinary,
                             displayName,
-                            muteAudio: true
+                            recorded: false
                         });
                         const additionalJoined = suiteServer.waitForLine(
                             new RegExp(`${displayName} joined the game`),

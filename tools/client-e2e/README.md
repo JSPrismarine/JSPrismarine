@@ -45,7 +45,11 @@ server because it needs a cow spawn fixture that could affect gameplay checks. T
 the player, inventory, drops, and controls between scenarios, then stops each server and removes
 its temporary data. The two suites run concurrently by default; use `--concurrency 1` when
 debugging or when passing `--port`. `--record` writes a separate `run.mp4` under each scenario's
-artifact directory and leaves audio enabled. Headless client audio is muted otherwise.
+artifact directory and leaves the recorded client at full quality. Every other headless client
+saves cheap video settings before it launches (muted, frame-capped, short render distance,
+reduced render resolution, expensive effects off), so it takes as little of the machine as it can
+from the server. Scenarios assert on client state, not pixels, so failure screenshots are blurrier
+but the verdicts are the same.
 
 `pnpm run e2e:client:dist` selects the built `Server.js` entry and the workspace's
 `jsprismarine:dist` exports. Build it first with `pnpm run server:build` or `pnpm run start`.

@@ -19,6 +19,32 @@ export type WaitCondition =
     | { screen: { name: string } }
     | { entity: { matches: string; radius: number } };
 
+/**
+ * Saved settings for a client nobody watches, keyed by cinnabar's `settings.json` names. Toggles
+ * and dropdowns save their choice's index. The frame cap stays above the 20 Hz game tick. The
+ * server sends a circle of chunks, so the render distance has to reach the corners of the widest
+ * `chunks_loaded` square a scenario waits for: radius 4, whose corners are 5.7 chunks out.
+ */
+const lightweightSettings = {
+    main_volume: 0,
+    max_framerate: 30,
+    render_distance: 6,
+    render_resolution: 50,
+    render_scale_sharpen: 0,
+    msaa: 1,
+    smaa: 0,
+    graphics_mode: 0,
+    smooth_lighting: 0,
+    fancy_skies: 0,
+    render_clouds: 0,
+    transparent_leaves: 0,
+    screen_animations: 0,
+    auto_update_enabled: 0,
+    mod_update_checks: 0,
+    mod_auto_update: 0,
+    discord_presence: 0
+};
+
 /** A connected MCP session controlling one cinnabar client process. */
 export class CinnabarClient {
     private readonly session: Client;
@@ -61,22 +87,29 @@ export class CinnabarClient {
     /**
      * Launches a hidden client with an isolated user root and an offline display name.
      *
+     * A client that is not recorded saves cheap video settings before launch, so it competes as
+     * little as it can with the server for the machine: muted, capped at 30 frames a second, at
+     * a short render distance, with the expensive effects off and the world drawn at half
+     * resolution. Scenarios assert on the client's state, not on its pixels. A recorded client
+     * keeps full quality, audio and an uncapped frame rate, because the recorder steps game time
+     * by one frame of the video per rendered frame.
+     *
      * @param options.userRoot - Absolute directory for `CINNABAR_USER_ROOT`; created when missing.
      * @param options.clientBinary - Protocol-specific client executable from the external Cargo cache.
-     * @param options.muteAudio - Mute the client through its saved master volume before launch.
+     * @param options.recorded - Whether a recording of this client will be made.
      */
     async launch(options: {
         userRoot: string;
         clientBinary: string;
-        muteAudio: boolean;
+        recorded: boolean;
         displayName?: string;
         size?: [number, number];
     }): Promise<void> {
         fs.mkdirSync(options.userRoot, { recursive: true });
-        if (options.muteAudio) {
+        if (!options.recorded) {
             const settings = path.join(options.userRoot, 'config', 'settings.json');
             fs.mkdirSync(path.dirname(settings), { recursive: true });
-            fs.writeFileSync(settings, `${JSON.stringify({ schema: 2, values: { main_volume: 0 } }, null, 4)}\n`);
+            fs.writeFileSync(settings, `${JSON.stringify({ schema: 2, values: lightweightSettings }, null, 4)}\n`);
         }
         await this.call('launch_client', {
             binary: options.clientBinary,
