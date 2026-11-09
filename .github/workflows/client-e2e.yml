@@ -291,7 +291,11 @@ jobs:
                   token: ${{ secrets.CODECOV_TOKEN }}
                   slug: JSPrismarine/JSPrismarine
                   files: coverage/client-e2e/lcov.info
-                  flags: client-e2e-${{ matrix.protocol }}
+                  disable_search: true
+                  # One flag for every protocol, so carryforward keeps one set of e2e coverage on
+                  # commits this path-filtered workflow skips; the upload name tells them apart.
+                  flags: client-e2e
+                  name: client-e2e-${{ matrix.protocol }}
 
             - name: 📤 Upload evidence
               if: ${{ !cancelled() }}

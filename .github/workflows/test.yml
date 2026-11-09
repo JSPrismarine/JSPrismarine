@@ -41,19 +41,28 @@ jobs:
               if: ${{ !cancelled() }}
               uses: davelosert/vitest-coverage-report-action@74c2d9210b4fc44c84d8213f61d7ec99837b7aa0 # v2.13.2
 
+            # Named files only: a search also picked up the JSON summaries. Codecov merges this
+            # with the real-data and client e2e uploads of the same commit by flag.
             - name: 🦺 Codecov Coverage Reports
               if: ${{ !cancelled() }}
               uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
               with:
                   token: ${{ secrets.CODECOV_TOKEN }}
                   slug: JSPrismarine/JSPrismarine
+                  files: coverage/lcov.info
+                  disable_search: true
+                  flags: unit
 
             - name: 🦺 Upload test results to Codecov
               if: ${{ !cancelled() }}
-              uses: codecov/test-results-action@0fa95f0e1eeaafde2c782583b36b28ad0d8c77d3 # v1
+              uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
               with:
                   token: ${{ secrets.CODECOV_TOKEN }}
                   slug: JSPrismarine/JSPrismarine
+                  report_type: test_results
+                  files: junit.xml
+                  disable_search: true
+                  flags: unit
 
     # The generation host is a forked process with a lowered operating system priority, and
     # forking, priorities and signals differ by platform. Linux runs these in the job above.
@@ -163,7 +172,28 @@ jobs:
               run: node scripts/real-data-env.mts --github-env
 
             - name: 🧪 Test
-              run: pnpm exec vitest run --tagsFilter='real-data && !performance'
+              run: pnpm exec vitest run --coverage --tagsFilter='real-data && !performance'
+
+            - name: 🦺 Codecov Coverage Reports
+              if: ${{ !cancelled() }}
+              uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
+              with:
+                  token: ${{ secrets.CODECOV_TOKEN }}
+                  slug: JSPrismarine/JSPrismarine
+                  files: coverage/lcov.info
+                  disable_search: true
+                  flags: real-data
+
+            - name: 🦺 Upload test results to Codecov
+              if: ${{ !cancelled() }}
+              uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
+              with:
+                  token: ${{ secrets.CODECOV_TOKEN }}
+                  slug: JSPrismarine/JSPrismarine
+                  report_type: test_results
+                  files: junit.xml
+                  disable_search: true
+                  flags: real-data
 
             - name: 📊 Publish the parity dashboard
               id: parity_dashboard

@@ -90,7 +90,9 @@ export default defineConfig({
             all: true,
             exclude,
             provider: 'v8',
-            reporter: ['json', 'json-summary', 'text-summary'],
+            // LCOV for Codecov, with paths relative to the repository like the client e2e report's,
+            // so the two merge file by file; JSON for the GitHub coverage comment.
+            reporter: ['json', 'json-summary', 'lcov', 'text-summary'],
             reportOnFailure: true
         },
 
