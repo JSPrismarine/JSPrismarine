@@ -5,38 +5,34 @@
 [![Contributors](https://img.shields.io/github/contributors/JSPrismarine/JSPrismarine?color=%23E30B5D)](https://github.com/JSPrismarine/JSPrismarine/graphs/contributors)
 [![npm](https://img.shields.io/npm/dt/@jsprismarine/prismarine)](https://www.npmjs.com/package/@jsprismarine/prismarine)
 [![Code Coverage](https://img.shields.io/codecov/c/github/JSPrismarine/JSPrismarine?token=WLXLSJOGN3&color=63A375)](https://codecov.io/gh/JSPrismarine/JSPrismarine)
-[![TODOs Counter](https://img.shields.io/github/search/JSPrismarine/JSPrismarine/todo?label=todos)](https://github.com/JSPrismarine/JSPrismarine/search?q=todo)
-[![FIXMEs Counter](https://img.shields.io/github/search/JSPrismarine/JSPrismarine/fixme?label=fixmes)](https://github.com/JSPrismarine/JSPrismarine/search?q=fixme)
 [![GitHub Commit Activity](https://img.shields.io/github/commit-activity/m/JSPrismarine/JSPrismarine?color=%2387F4BC)](https://github.com/JSPrismarine/JSPrismarine/commits/master)
 
-JSPrismarine is a dedicated Minecraft Bedrock Edition server written in TypeScript. It focuses on performance, extensibility, and ease-of-use. It is not affiliated with the official server software from Mojang AB.
+JSPrismarine is a dedicated server for Minecraft: Bedrock Edition, written in TypeScript. Players join it with the ordinary Bedrock client, from Minecraft <!-- fact:minecraft.oldest -->1.26.50<!-- /fact --> through <!-- fact:minecraft.newest -->1.26.60<!-- /fact --> (protocols <!-- fact:protocol.list -->2225 and 2193<!-- /fact -->). It is not affiliated with Mojang.
 
-## Why use JSPrismarine?
+What sets it apart is where the game comes from. Instead of hand-written classes for every block and mob, the server builds its content at startup from Mojang's own data: the Bedrock behavior pack for blocks, items and entities, and the Java Edition datapack and reports for loot, recipes, advancements, enchantments and world generation. When Mojang changes the data, the server follows. A [parity suite](https://jsprismarine.github.io/JSPrismarine/parity) checks the result against vanilla, behavior by behavior.
 
-- **Vanilla behavior from data.** Blocks, items, entities, loot, recipes and worldgen come from Mojang's own Bedrock and Java data rather than from hand-written tables, so the server follows the game.
-- **Parity you can check.** A parity suite compares the server with vanilla, and the [parity tracker](https://jsprismarine.github.io/JSPrismarine/parity) shows what matches and what does not.
-- **One file to host.** The prebuilt server runs on Linux, macOS and Windows with nothing else to install.
-- **Packages you can reuse.** The protocol, RakNet, NBT, LevelDB, Molang and the rest are published to npm on their own.
-- **Open source** under the [MPL-2.0](https://github.com/JSPrismarine/JSPrismarine/blob/master/LICENSE) license.
+**[Read the documentation at jsprismarine.github.io/JSPrismarine](https://jsprismarine.github.io/JSPrismarine/)**
 
-## Getting started
+## What works today
 
-**[You can find the documentation over at jsprismarine.github.io/JSPrismarine](https://jsprismarine.github.io/JSPrismarine/).**
+JSPrismarine is at version <!-- fact:server.version -->0.18.0<!-- /fact --> and in active development, so expect gaps; the [parity tracker](https://jsprismarine.github.io/JSPrismarine/parity) lists what matches vanilla and what does not yet. Today a server:
 
-### Run a server
+- **Generates vanilla worlds.** The Overworld, the Nether and the End are built from Java Edition's world generation data, with biomes, caves, ores and many of Java's structures, in worker threads. Portals take players between them, and the End has its dragon fight.
+- **Runs mobs from data.** Entities spawn by Bedrock's spawn rules and act through Bedrock's AI goals and Java's brains. Villagers trade and restock, and a player with Bad Omen can start a village raid.
+- **Plays like survival.** Combat, damage and status effects, enchanting, eating, loot tables, crafting, furnaces and containers, redstone, flowing water and lava, and fire all run on the live world.
+- **Speaks the commands.** <!-- fact:commands.registered -->56<!-- /fact --> vanilla commands are registered, from `/give` and `/teleport` to `/execute` and `/scoreboard`, and Java datapack functions run with tags, macros and `/schedule`.
+- **Loads your packs.** Bedrock behavior packs and Java datapacks stack on top of the vanilla ones; see [Extending JSPrismarine](docs/guide/extending.md).
+- **Has a real console.** A terminal UI shows the log, TPS, players and memory with command completion, and falls back to a plain console under Docker, systemd or a hosting panel.
 
-Download the prebuilt server for your platform from the [releases](https://github.com/JSPrismarine/JSPrismarine/releases?q=jsprismarine%40&expanded=true) and run it. It is one file with everything inside: you need no Node.js, pnpm, Java or checkout of this repository. Releases tagged `jsprismarine@<version>` carry the executables for Linux, macOS and Windows; the ones marked _Pre-release_ are nightly builds of `master`, which may or may not work before reaching `v1.0.0`.
+The server is also <!-- fact:packages.count -->45<!-- /fact --> [npm packages](https://jsprismarine.github.io/JSPrismarine/packages) you can use on their own, among them the Bedrock protocol, RakNet, NBT, LevelDB worlds and a Molang evaluator.
 
-```bash
-chmod +x prismarine-linux-x64
-./prismarine-linux-x64
-```
+## Run a server
 
-The first start downloads the vanilla behavior pack from Mojang (about <!-- fact:bds.size -->95 MB<!-- /fact -->) and unpacks the server's data next to it; later starts need no network. See [Run the prebuilt server](https://jsprismarine.github.io/JSPrismarine/guide/running#run-the-prebuilt-server) for every platform's file, the macOS and Windows download prompts, and updating.
+Each release on GitHub is meant to ship the server as a single executable for Linux, macOS and Windows, with nothing else to install. **Right now those builds stop on first start** ([#2919](https://github.com/JSPrismarine/JSPrismarine/issues/2919)), and no stable release carries them yet, so run the server from source until that is fixed. [Run the prebuilt server](https://jsprismarine.github.io/JSPrismarine/guide/running#run-the-prebuilt-server) has the download and first-start details for when it is.
 
-### Develop add-ons, plugins or JSPrismarine itself
+## Run from source
 
-Run a checkout with `pnpm run dev`, which rebuilds and restarts the server when you change a file. It needs [Node.js](https://nodejs.org) <!-- fact:node.minimum -->26.4.0<!-- /fact --> or newer, [pnpm](https://pnpm.io) <!-- fact:pnpm.minimum -->12<!-- /fact --> or newer and, for the default overworld, a JDK 25 or newer. It runs on Linux, macOS, other Unix-based systems, and modern Windows (WSL2 recommended).
+A checkout runs with `pnpm run dev`, which also rebuilds and restarts the server whenever you change a file, so it is the way to work on add-ons, plugins or the server itself. It needs [Node.js](https://nodejs.org) <!-- fact:node.minimum -->26.4.0<!-- /fact --> or newer, [pnpm](https://pnpm.io) <!-- fact:pnpm.minimum -->12<!-- /fact --> or newer and, for the default Overworld, a JDK 25 or newer. It runs on Linux, macOS and modern Windows (WSL2 recommended).
 
 ```bash
 corepack enable
@@ -46,36 +42,25 @@ pnpm install
 pnpm run dev
 ```
 
-In an interactive terminal on Node 26.9 or newer, the console UI opens by default; Node versions 26.4 through 26.8 also support it with `--experimental-ffi`. In other environments, the server reads commands from stdin and writes log lines to stdout. Pass `--no-tui` or set `JSP_NO_TUI=1` to force the plain console. See [Running JSPrismarine](docs/guide/running.md#4-console).
+The first `pnpm run dev` downloads Mojang's Java Edition server jar (<!-- fact:java.size -->62 MB<!-- /fact -->) to generate the world generation data, and the Bedrock Dedicated Server archive (about <!-- fact:bds.size -->95 MB<!-- /fact -->) for the vanilla behavior pack. Later runs reuse the cache and need no network. To run without Java, use a flat world; [Running JSPrismarine](docs/guide/running.md#run-from-source) explains both, and the console flags.
 
-> [!NOTE]
-> The build needs the Bedrock resources, a pinned download `pnpm install` fetches for you. Building for the first time needs a network connection; after that the download is cached. To work offline from a cold start, point `JSP_CLOUDBURST_DATA_PATH` at a local [CloudburstMC/Data](https://github.com/CloudburstMC/Data) checkout.
-
-> [!NOTE]
-> The first `pnpm run dev` also fetches Mojang's Java Edition world generation data, which the default overworld is built from; that takes a <!-- fact:java.size -->62 MB<!-- /fact --> download, a couple of minutes and a JDK 25 or newer. Later runs reuse the cache and need no network. See [World generation data](docs/guide/running.md#13-world-generation-data) for how to point it at your own copy, or how to run a flat world with no Java at all.
+Players then add the server in Minecraft under **Servers → Add Server** with your machine's address and port <!-- fact:server.port -->19132<!-- /fact -->. [Joining a server](docs/guide/joining.md) covers versions, sign-in and what to try when a player cannot connect.
 
 ## FAQ
 
-- Can I contribute?
-  - Sure, make sure to read the [CONTRIBUTING.md](https://github.com/JSPrismarine/JSPrismarine/blob/master/CONTRIBUTING.md) file first.
-- Is JSPrismarine for `Minecraft: Bedrock Edition` or `Minecraft: Java Edition`?
-  - JSPrismarine is made for `Minecraft: Bedrock Edition`.
-- What devices can a player join JSPrismarine with?
-  - Any Minecraft: Bedrock Edition client on Windows, Android or iOS that the server's protocols cover. Consoles need third-party tools. See [Joining a server](docs/guide/joining.md).
-- Which OSes can run JSPrismarine?
-  - The prebuilt server runs on Linux (x64 and ARM64, glibc or musl), macOS (Apple silicon and Intel) and Windows (x64 and ARM64). From source, any platform with Node.js <!-- fact:node.minimum -->26.4.0<!-- /fact --> or newer.
-- Can I write plugins?
-  - There is no plugin loader yet. Packs change content, and code can embed the server; see [Extending JSPrismarine](docs/guide/extending.md).
-- Why can't I join a JSPrismarine instance hosted on my Windows PC?
-  - Windows keeps the Minecraft app from reaching its own machine. [Joining a server](docs/guide/joining.md#when-you-cannot-connect) has the one-line fix.
-- If my question isn't listed here, where should I ask?
-  - You can join the [Discord server](https://discord.gg/kZZCDyCBbW), or open a [GitHub issue](https://github.com/JSPrismarine/JSPrismarine/issues/new) for development-related questions.
+- **Is JSPrismarine for Bedrock Edition or Java Edition?**
+  Bedrock Edition. It reads Java Edition's data for gameplay rules, but only Bedrock clients can join.
+- **Which devices can players join from?**
+  Any Bedrock client the server's protocols cover on Windows, Android or iOS. Consoles need third-party tools; see [Joining a server](docs/guide/joining.md).
+- **Can I write plugins?**
+  There is no plugin loader yet. Packs change content, and a program can embed the server through `@jsprismarine/prismarine` and listen to its events; see [Extending JSPrismarine](docs/guide/extending.md).
+- **Why can't I join a server running on my own Windows PC?**
+  Windows keeps the Minecraft app from reaching its own machine. [Joining a server](docs/guide/joining.md#when-you-cannot-connect) has the one-line fix.
+- **Is it ready for a public server?**
+  Not yet: there is no stable release, and some vanilla behavior is still missing. It is ready to try, to build on and to help with.
 
-## Documentation
+## Contributing
 
-- [Docs](https://jsprismarine.github.io/JSPrismarine/).
-- [Running JSPrismarine](https://jsprismarine.github.io/JSPrismarine/guide/running).
+Bug reports, ideas and code are all welcome. [CONTRIBUTING.md](CONTRIBUTING.md) explains how to report a bug, set up a checkout, test a change and send it. Questions go to [Discord](https://discord.gg/kZZCDyCBbW) or a [GitHub issue](https://github.com/JSPrismarine/JSPrismarine/issues/new).
 
-## Remarks
-
-- JSPrismarine is still in early/active development, and no stable versions have been released yet.
+JSPrismarine is open source under the [MPL-2.0](LICENSE) license.
