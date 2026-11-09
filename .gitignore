@@ -57,6 +57,7 @@ tools/docs/site/adr/
 tools/docs/site/plans/
 tools/docs/site/research/
 tools/docs/site/public/parity-tracker.json
+tools/docs/site/public/search-index.json
 tools/docs/site/.vitepress/dist/
 tools/docs/site/.vitepress/cache/
 tools/docs/site/.vitepress/.temp/

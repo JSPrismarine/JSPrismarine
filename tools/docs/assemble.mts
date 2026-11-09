@@ -11,6 +11,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { applyFacts, loadFacts } from './facts.mts';
+import { writeSearchIndex } from './search-index.mts';
 import { isUnpublished, pageTitle, rootPages, sections } from './sections.mts';
 import type { TrackerData } from '../../packages/parity/src/dashboard/tracker.ts';
 
@@ -148,3 +149,6 @@ if (staleFacts.length) {
     console.warn(process.env.GITHUB_ACTIONS ? `::warning::${message}` : message);
 }
 console.log(`Staged ${pages} pages from ${sections.length} doc sections and ${rootPages.length} root documents.`);
+
+const search = await writeSearchIndex(siteDir);
+console.log(`Indexed ${search.pages} pages and ${search.headings} headings for the site menu's search.`);
