@@ -54,7 +54,8 @@ const reserveFreeUdpPort = async (): Promise<number> => {
  * @param options.port - Requested UDP port; defaults to an available local port.
  * @param options.dir - Scratch server directory; defaults to a temporary directory.
  * @param options.seconds - Startup budget before the boot is declared failed. Default 120.
- * @param options.naturalCowSpawning - Adds the cow spawn fixture for natural-spawn scenarios.
+ * @param options.naturalCowSpawning - Adds the cow spawn fixture for natural-spawn scenarios, and is
+ *   the only option that leaves natural spawning on.
  * @param options.compressionAlgorithm - Batch algorithm advertised to the client. Defaults to Snappy.
  * @param options.raknetWorker - Runs RakNet socket and reliability work in a worker thread.
  * @param options.profile - Enables Node DevTools and preserves the shutdown trace for inspection.
@@ -449,6 +450,16 @@ export const startServer = async (
         }
         fs.rmSync(dir, { recursive: true, force: true });
         throw error;
+    }
+
+    // Natural spawning picks where and what at random. The flat Nether and End are dark at
+    // y 1 to 3 and the plains biome lets slimes and monsters spawn there, so a player waiting on a
+    // dimension change or standing in the exit portal was attacked on some runs and not others.
+    // Scenarios that need a mob summon it.
+    if (options.naturalCowSpawning !== true) {
+        const ruleSet = waitForLine(/spawn_mobs = false/, 30_000);
+        child.stdin?.write('gamerule doMobSpawning false\n');
+        await ruleSet;
     }
 
     if (options.profile) {

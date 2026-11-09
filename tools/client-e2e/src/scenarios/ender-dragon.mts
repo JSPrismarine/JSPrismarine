@@ -5,7 +5,16 @@ import path from 'node:path';
 import type { CinnabarClient } from '../client.mts';
 import type { JspServer } from '../jsp-server.mts';
 import type { Scenario } from '../scenario.mts';
-import { sleep, vec3 } from '../scenario.mts';
+import { gameTime, sleep, vec3, waitTicks } from '../scenario.mts';
+
+/**
+ * The flat End's floor is end stone up to y 3, so the fight stands its podium there, on top of
+ * the (0, 0) column, and fills the ring at that height.
+ */
+const FOUNTAIN = { x: 1, y: 3, z: 0 } as const;
+
+/** Where the player waits: on the floor, clear of the podium's seven-block footprint. */
+const ARRIVAL = { x: 0.5, y: 4, z: 8.5 } as const;
 
 const waitForDimension = async (client: CinnabarClient, expected: readonly (number | string)[]): Promise<void> => {
     const deadline = Date.now() + 30_000;
@@ -20,31 +29,48 @@ const waitForDimension = async (client: CinnabarClient, expected: readonly (numb
     }
 };
 
-const waitForFountain = async (server: JspServer, timeoutMs: number): Promise<void> => {
-    const deadline = Date.now() + timeoutMs;
-    let probe = 0;
-    while (Date.now() < deadline) {
-        const marker = `CLIENT_E2E_FOUNTAIN_${probe++}`;
-        const found = server.waitForLine(new RegExp(marker), 1_000);
-        server.command(`execute in minecraft:the_end if block 1 3 0 minecraft:end_portal run say ${marker}`);
-        try {
-            await found;
-            return;
-        } catch {
-            await sleep(250);
+/** Whether the exit portal's ring holds an end portal block, as the server sees it. */
+const fountainOpen = async (server: JspServer, probe: number): Promise<boolean> => {
+    const marker = `CLIENT_E2E_FOUNTAIN_${probe}`;
+    const found = server.waitForLine(new RegExp(marker), 5_000);
+    server.command(
+        `execute in minecraft:the_end if block ${FOUNTAIN.x} ${FOUNTAIN.y} ${FOUNTAIN.z} minecraft:end_portal run say ${marker}`
+    );
+    return found.then(
+        () => true,
+        () => false
+    );
+};
+
+/**
+ * Waits for the fountain, counting the world's ticks rather than seconds.
+ *
+ * The fight fills it when the dragon's death animation ends, a fixed number of ticks after the
+ * kill. A host that falls behind runs fewer ticks a second, and a wall-clock budget ran out
+ * there before the animation did.
+ */
+const waitForFountain = async (server: JspServer, withinTicks: number): Promise<void> => {
+    const start = await gameTime(server);
+    for (let probe = 0; ; probe += 1) {
+        if (await fountainOpen(server, probe)) return;
+        const ran = (await gameTime(server)) - start;
+        if (ran >= withinTicks) {
+            throw new Error(`the dragon fight did not fill the exit fountain within ${ran} ticks of the kill`);
         }
+        await waitTicks(server, 10);
     }
-    throw new Error(`the dragon fight did not fill the exit fountain with end portal blocks within ${timeoutMs} ms`);
 };
 
 export const enderDragon: Scenario = {
     name: 'ender-dragon',
     description: 'the End fight opens its exit fountain and the first portal exit shows credits',
     run: async ({ client, server, playerName, artifacts, log }) => {
-        // The scratch End has no terrain under the arena. Keep the player above the void while
-        // the dragon fight and portal checks run; otherwise the next scenario inherits a death.
-        server.command('execute in minecraft:the_end run fill -4 9 -4 4 9 4 minecraft:stone');
-        server.command(`execute in minecraft:the_end run teleport ${playerName} 0 10 0`);
+        // Nothing changes the End's floor before the fight first looks at it, so the podium goes
+        // on the same block every run. The player waits beside it rather than on the spot it will
+        // take.
+        server.command(
+            `execute in minecraft:the_end run teleport ${playerName} ${ARRIVAL.x} ${ARRIVAL.y} ${ARRIVAL.z}`
+        );
         await waitForDimension(client, [2, 'minecraft:the_end', 'The End']);
         await client.waitFor({ chunks_loaded: { radius: 2 } }, 60_000);
         await client.waitFor({ entity: { matches: 'ender_dragon', radius: 200 } }, 60_000);
@@ -56,11 +82,14 @@ export const enderDragon: Scenario = {
         const killedDragon = server.waitForLine(/Killed 1 entities/, 10_000);
         server.command('execute in minecraft:the_end run kill @e[type=minecraft:ender_dragon]');
         await killedDragon;
-        await waitForFountain(server, 60_000);
+        // Twice Java's 200-tick death animation, which the fight waits out before it fills the ring.
+        await waitForFountain(server, 400);
         await client.screenshot(path.join(artifacts, 'fountain.png'));
         log('server confirms the fountain ring contains an end portal block');
 
-        server.command(`execute in minecraft:the_end run teleport ${playerName} 1 3 0`);
+        server.command(
+            `execute in minecraft:the_end run teleport ${playerName} ${FOUNTAIN.x} ${FOUNTAIN.y} ${FOUNTAIN.z}`
+        );
         const deadline = Date.now() + 30_000;
         for (;;) {
             const state = await client.state();
