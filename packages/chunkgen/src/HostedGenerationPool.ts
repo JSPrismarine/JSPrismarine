@@ -59,6 +59,8 @@ interface Outstanding {
     priority: GenerationPriority;
     /** True while a pause is holding the task here, so the host has not been sent it. */
     held: boolean;
+    /** The host process this task was last sent to, so a replacement is sent it once and not twice. */
+    sentTo?: ChildProcess;
     readonly startedAt: number;
     readonly resolve: (result: GenerationResult) => void;
     readonly reject: (error: Error) => void;
@@ -144,7 +146,7 @@ export class HostedGenerationPool implements GenerationTransport {
             this.outstanding.set(entry.id, entry);
             if (entry.held) return;
             this.start().then(
-                () => this.post({ type: 'run', id: entry.id, task, priority }),
+                () => this.send(entry),
                 () => {
                     // `start` has already fallen back and re-sent what was outstanding.
                 }
@@ -234,7 +236,7 @@ export class HostedGenerationPool implements GenerationTransport {
             if (!entry.held) continue;
             entry.held = false;
             this.start().then(
-                () => this.post({ type: 'run', id: entry.id, task: entry.task, priority: entry.priority }),
+                () => this.send(entry),
                 () => {}
             );
         }
@@ -270,6 +272,15 @@ export class HostedGenerationPool implements GenerationTransport {
 
     private capacity(): number {
         return Math.max(1, Math.trunc(this.options.inFlight ?? this.options.workers + 1));
+    }
+
+    /** Sends a task to the current host unless it already has it, or a pause is holding it. */
+    private send(entry: Outstanding): void {
+        const child = this.child;
+        if (entry.held || child === undefined || entry.sentTo === child || !this.outstanding.has(entry.id)) return;
+
+        entry.sentTo = child;
+        this.post({ type: 'run', id: entry.id, task: entry.task, priority: entry.priority });
     }
 
     private post(command: HostCommand): void {
@@ -361,6 +372,8 @@ export class HostedGenerationPool implements GenerationTransport {
         const entry = this.outstanding.get(event.id);
         if (entry === undefined) return;
         this.outstanding.delete(event.id);
+        // A host that answers is a healthy one; the restart budget is for hosts that keep dying.
+        this.restarts = 0;
         const turnaroundMs = performance.now() - entry.startedAt;
 
         if (event.ok) {
@@ -412,10 +425,7 @@ export class HostedGenerationPool implements GenerationTransport {
         // Resent in arrival order, so the retried backlog keeps the order it had.
         void this.start().then(
             () => {
-                for (const entry of this.outstanding.values()) {
-                    if (entry.held) continue;
-                    this.post({ type: 'run', id: entry.id, task: entry.task, priority: entry.priority });
-                }
+                for (const entry of this.outstanding.values()) this.send(entry);
             },
             () => {}
         );

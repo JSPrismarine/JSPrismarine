@@ -6,6 +6,7 @@
  * It stands in for the server's real one: built once per worker, handed a setup value, and
  * answering with a flat buffer the pool transfers.
  */
+import { appendFileSync } from 'node:fs';
 import { threadId } from 'node:worker_threads';
 
 export const createGenerationPipeline = (setup) => {
@@ -17,6 +18,9 @@ export const createGenerationPipeline = (setup) => {
     return {
         run(task) {
             if (setup?.fail === 'task') throw new Error(`no terrain at ${task.chunkX}, ${task.chunkZ}`);
+
+            // One line per task started, so a test can count how often a task ran.
+            if (setup?.logFile !== undefined) appendFileSync(setup.logFile, `${task.chunkX}\n`);
 
             // Holds the thread busy, so a test can block a worker for a known time.
             if (setup?.spinMs !== undefined) {

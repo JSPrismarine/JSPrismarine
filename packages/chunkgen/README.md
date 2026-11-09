@@ -253,6 +253,19 @@ It cannot promise the import succeeds, because that depends on the loader, so th
 still the real test. A caller that wants a server rather than a fast one catches that rejection,
 says so once, and runs the body on its own thread.
 
+### Running the pool in a host process
+
+`GenerationPool` and `HostedGenerationPool` both implement `GenerationTransport`. The hosted one
+forks a generation host, lowers its operating system priority, and sends it tasks over IPC, which
+is the portable way to give generation a lower priority than the server: Node cannot lower one
+worker thread. `createGenerationTransport({ ...options, host: 'process' })` builds it and falls back
+to the in-process pool, calling `onFallback` with the reason, when no host can start. A host that
+dies is replaced and the tasks it held are sent again, which returns the same bytes. Shared
+buffers in the setup are copied to the host once and shared again among its workers. Compiled
+single-file executables cannot start the host yet and keep the in-process pool.
+`setBackgroundLimit` caps how many `soon` and `idle` tasks run at once, which is what
+`ConcurrencyGovernor` steers; `immediate` tasks are never limited.
+
 ## Installation
 
 To install `@jsprismarine/chunkgen`, use the following command:

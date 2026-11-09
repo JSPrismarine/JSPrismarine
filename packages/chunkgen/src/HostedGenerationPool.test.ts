@@ -7,7 +7,9 @@
  * priority really is lowered, that a host that cannot start hands its work to the in-process
  * pool, and that nothing is left running afterwards.
  */
-import os from 'node:os';
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import os, { tmpdir } from 'node:os';
+import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { afterEach, describe, expect, it } from 'vitest';
@@ -94,6 +96,29 @@ describe('HostedGenerationPool', () => {
         expect(bytesOf(await pending)).toEqual(expected);
         expect(hosted.hostPid).not.toBe(firstPid);
         expect(hosted.usingFallback).toBe(false);
+    }, 60_000);
+
+    it('runs a task submitted during a restart once on the replacement', async () => {
+        const logFile = join(mkdtempSync(join(tmpdir(), 'jsp-host-')), 'runs.log');
+        const hosted = track(
+            new HostedGenerationPool({ pipeline: FAKE_PIPELINE, workers: 1, setup: { spinMs: 300, logFile } })
+        );
+        await hosted.run({ status: 'terrain', chunkX: 0, chunkZ: 0, dimension: 0 });
+
+        const first = hosted.run({ status: 'terrain', chunkX: 1, chunkZ: 0, dimension: 0 });
+        await new Promise((resolve) => setTimeout(resolve, 100));
+        process.kill(hosted.hostPid!, 'SIGKILL');
+        // Asked for while the replacement is still starting.
+        await new Promise((resolve) => setTimeout(resolve, 20));
+        const second = hosted.run({ status: 'terrain', chunkX: 2, chunkZ: 0, dimension: 0 });
+        await Promise.all([first, second]);
+
+        const started = readFileSync(logFile, 'utf8').trim().split('\n').map(Number);
+        const count = (x: number) => started.filter((value) => value === x).length;
+        // The first task started on the old host and again on the new one; the second only on the new one.
+        expect(count(1)).toBe(2);
+        expect(count(2)).toBe(1);
+        rmSync(dirname(logFile), { recursive: true, force: true });
     }, 60_000);
 
     it('runs in process and says why when the host cannot start', async () => {
