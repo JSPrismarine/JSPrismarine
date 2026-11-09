@@ -33,6 +33,8 @@ export interface ProjectData {
     /** The port a fresh server listens on. */
     defaultPort: number;
     engines: { node: string; pnpm: string };
+    /** Whether a fresh server requires players to sign in to Xbox Live. */
+    onlineMode: boolean;
     packages: PublishedPackage[];
     /** Newest protocol first, matching the order of the server's startup banner. */
     protocols: SupportedProtocol[];
@@ -95,7 +97,14 @@ function load(): ProjectData {
         'the default port'
     );
 
+    const [, onlineMode] = fromSource(
+        path.join(packagesDir, 'prismarine', 'src', 'config', 'Config.ts'),
+        /^\s+'online-mode': (true|false),$/m,
+        'the default online mode'
+    );
+
     return {
+        onlineMode: onlineMode === 'true',
         defaultPort: Number(port),
         engines: { node: root.engines?.node ?? '', pnpm: root.engines?.pnpm ?? '' },
         packages,
@@ -113,7 +122,8 @@ export default {
     watch: [
         '../../../package.json',
         '../../../packages/*/package.json',
-        '../../../packages/protocol/src/wire/versions/*.ts'
+        '../../../packages/protocol/src/wire/versions/*.ts',
+        '../../../packages/prismarine/src/config/Config.ts'
     ],
     load
 };

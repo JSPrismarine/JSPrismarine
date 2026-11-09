@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { withBase } from 'vitepress';
-import { computed } from 'vue';
 
 import { data as project } from '../../project.data.mts';
 import AudienceTabs from './components/AudienceTabs.vue';
@@ -11,18 +10,18 @@ import ParityBars from './components/ParityBars.vue';
 import PrismMark from './components/PrismMark.vue';
 import TerminalWindow from './components/TerminalWindow.vue';
 import Ticker from './components/Ticker.vue';
-import { buildAudiences, featuredPackages, tickerItems } from './landing';
+import { buildAudiences, featuredPackageNames, minecraftRange, requirePackages, tickerItems } from './landing';
 
 const audiences = buildAudiences(project);
 const latest = project.protocols[0];
-const featured = computed(() => project.packages.filter(({ name }) => featuredPackages.includes(name)));
+const featured = requirePackages(project, featuredPackageNames);
 </script>
 
 <template>
     <div class="landing">
         <header class="landing__hero">
             <p class="landing__eyebrow">
-                <i></i>v{{ project.version }} · Minecraft {{ latest.minecraft.at(-1) }} · Protocol {{ latest.protocol }}
+                <i></i>v{{ project.version }} · Minecraft {{ minecraftRange(project) }} · Protocol {{ latest.protocol }}
             </p>
             <h1>The Bedrock<br />server you <em>own.</em></h1>
             <p class="landing__lede">
@@ -80,7 +79,11 @@ const featured = computed(() => project.packages.filter(({ name }) => featuredPa
             </BentoTile>
             <BentoTile tone="deep" :span="2">
                 <ul class="landing__packages">
-                    <li v-for="pkg in featured" :key="pkg.name" :title="pkg.description">{{ pkg.name }}</li>
+                    <li v-for="pkg in featured" :key="pkg.name">
+                        <a :href="`https://www.npmjs.com/package/${pkg.name}`" :title="pkg.description">{{
+                            pkg.name
+                        }}</a>
+                    </li>
                 </ul>
                 <p class="bento-caption">
                     <b>Take the pieces you need</b>Every package carries its own README and API reference.
@@ -102,7 +105,9 @@ const featured = computed(() => project.packages.filter(({ name }) => featuredPa
 <style scoped>
 .landing {
     display: grid;
-    gap: 10px;
+    /* minmax(0, 1fr) stops the ticker's unbroken line from widening the page on phones. */
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--jsp-gap);
     max-width: 1200px;
     padding: 10px 16px 64px;
     margin: 0 auto;
@@ -113,7 +118,7 @@ const featured = computed(() => project.packages.filter(({ name }) => featuredPa
     padding: clamp(16px, 3vw, 32px) clamp(16px, 3vw, 32px) 0;
     overflow: hidden;
     background: var(--jsp-forest);
-    border-radius: 14px;
+    border-radius: var(--jsp-radius-panel);
 }
 
 .landing__eyebrow {
@@ -168,13 +173,14 @@ const featured = computed(() => project.packages.filter(({ name }) => featuredPa
 
 .landing__stage {
     display: grid;
+    min-width: 0;
     grid-template-columns: 1.1fr 0.9fr;
     gap: 20px;
     align-items: end;
 }
 
 .landing__stage :deep(.terminal) {
-    border-radius: 12px 12px 0 0;
+    border-radius: var(--jsp-radius-control) var(--jsp-radius-control) 0 0;
 }
 
 .landing__prism {
@@ -188,7 +194,7 @@ const featured = computed(() => project.packages.filter(({ name }) => featuredPa
     padding: clamp(16px, 3vw, 32px);
     color: var(--jsp-ink);
     background: var(--jsp-cream);
-    border-radius: 14px;
+    border-radius: var(--jsp-radius-panel);
 }
 
 .landing__paths h2 {
@@ -212,12 +218,29 @@ const featured = computed(() => project.packages.filter(({ name }) => featuredPa
 }
 
 .landing__packages li {
-    padding: 4px 8px;
     margin: 0;
+}
+
+.landing__packages a {
+    display: block;
+    padding: 4px 8px;
     font: 12px var(--vp-font-family-mono);
     color: var(--jsp-mint);
+    text-decoration: none;
     border: 1.5px solid var(--jsp-accent);
     border-radius: 6px;
+}
+
+.landing__packages a:hover {
+    color: var(--jsp-forest);
+    background: var(--jsp-accent);
+}
+
+.landing :deep(.bento-caption code) {
+    padding: 0;
+    font-size: 0.9em;
+    color: inherit;
+    background: none;
 }
 
 .landing :deep(.bento-caption a) {
@@ -226,7 +249,11 @@ const featured = computed(() => project.packages.filter(({ name }) => featuredPa
 
 @media (max-width: 760px) {
     .landing__stage {
-        grid-template-columns: 1fr;
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .landing__prism {
+        display: none;
     }
 }
 </style>
