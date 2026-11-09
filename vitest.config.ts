@@ -77,8 +77,6 @@ export default defineConfig({
             { name: 'performance', description: 'Tests whose timing or workload depends on the host machine.' }
         ],
         environment: 'node',
-        // Every test file lives under these, so the search for them skips the rest of the tree.
-        include: ['{packages,tools,scripts}/**/*.{test,spec}.?(c|m)[jt]s?(x)'],
         exclude,
         fsModuleCache: true,
         fsModuleCachePath: resolve(__dirname, 'node_modules/.cache/vitest'),
