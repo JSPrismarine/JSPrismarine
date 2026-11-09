@@ -341,6 +341,15 @@ const runSuite = async (suite: ScenarioSuite, index: number): Promise<ScenarioRe
         });
         const suiteServer = server;
         console.log(`${suite.name}: server listening on 127.0.0.1:${suiteServer.port}`);
+        // Scenarios that count or kill one kind of mob expect only the ones they summoned. With
+        // the vanilla behavior pack on disk the spawn cycle fills the flat world with animals,
+        // and a pig that wandered in outlives every swing at the summoned one. Only the suite
+        // that tests natural spawning keeps the cycle.
+        if (!suite.scenarios.some((scenario) => scenario.serverOptions?.naturalCowSpawning === true)) {
+            const spawningOff = suiteServer.waitForLine(/spawn_mobs = false/, 15_000);
+            suiteServer.command('gamerule spawn_mobs false');
+            await spawningOff;
+        }
         /** Starts a client and launches it; joining is left to the caller. */
         const launchClient = async (): Promise<CinnabarClient> => {
             const launched = await CinnabarClient.start(cinnabar.checkout, cinnabar.binaries.mcp);
