@@ -1,6 +1,7 @@
 /**
  * Stages VitePress inputs that live outside this package: handwritten guides and a parity
- * tracker snapshot from the full suite. The suite reads the generated bedrock-data, which
+ * tracker snapshot from the full suite. Each staged page gets the current docs facts in place of its
+ * marked values (see `facts.mts`), so the site never quotes a value the code has moved past. The suite reads the generated bedrock-data, which
  * `pnpm run docs:generate` writes first.
  */
 
@@ -9,6 +10,7 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { applyFacts, loadFacts } from './facts.mts';
 import { pageTitle, rootPages, sections } from './sections.mts';
 import type { TrackerData } from '../../packages/parity/src/dashboard/tracker.ts';
 
@@ -98,6 +100,18 @@ function indexPage(section: (typeof sections)[number], dir: string) {
     return `# ${section.title}\n\n${links.join('\n')}\n`;
 }
 
+const facts = await loadFacts();
+const staleFacts: string[] = [];
+
+/** A page as published: its links rewritten and its marked values filled with the current facts. */
+function stagePage(sourceFile: string) {
+    const label = path.relative(repoRoot, sourceFile);
+    const { text, unknown, stale } = applyFacts(rewriteLinks(readFileSync(sourceFile, 'utf8'), sourceFile), facts);
+    if (unknown.length) throw new Error(`${label} marks unknown docs facts: ${unknown.join(', ')}`);
+    for (const { name } of stale) staleFacts.push(`${label}: ${name}`);
+    return text;
+}
+
 let pages = 0;
 for (const section of sections) {
     const sourceDir = path.join(repoRoot, 'docs', section.dir);
@@ -108,7 +122,7 @@ for (const section of sections) {
         const target = path.join(targetDir, toSitePage(entry));
         mkdirSync(path.dirname(target), { recursive: true });
         const sourceFile = path.join(sourceDir, entry);
-        writeFileSync(target, rewriteLinks(readFileSync(sourceFile, 'utf8'), sourceFile));
+        writeFileSync(target, stagePage(sourceFile));
         pages++;
     }
     const index = path.join(targetDir, 'index.md');
@@ -116,7 +130,12 @@ for (const section of sections) {
 }
 for (const { source, page } of rootPages) {
     const sourceFile = path.join(repoRoot, source);
-    writeFileSync(path.join(siteDir, page), rewriteLinks(readFileSync(sourceFile, 'utf8'), sourceFile));
+    writeFileSync(path.join(siteDir, page), stagePage(sourceFile));
     pages++;
+}
+if (staleFacts.length) {
+    // The site is right either way; this only says the Markdown in the repository lags behind.
+    const message = `${staleFacts.length} docs fact(s) are newer than the Markdown; \`pnpm run docs:facts\` refreshes them: ${staleFacts.join('; ')}`;
+    console.warn(process.env.GITHUB_ACTIONS ? `::warning::${message}` : message);
 }
 console.log(`Staged ${pages} pages from ${sections.length} doc sections and ${rootPages.length} root documents.`);

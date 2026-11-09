@@ -75,6 +75,11 @@ Use American English spelling in prose and documentation. Do not use British spe
   adding a packet or changing its wire layout.
 - Choose the smallest design that meets the request. Trace affected callers, package dependents, and
   failure paths before changing shared behavior.
+- When documentation quotes a value the code owns (a version, a requirement, a default, a count, a
+  list of names), mark it as a docs fact instead of typing it in: `<!-- fact:name -->value<!-- /fact -->`.
+  `tools/docs/facts.mts` defines the facts; add one there when a page needs a value it lacks. The docs
+  build fills in current values, and `pnpm run docs:facts` refreshes the Markdown. Dated research,
+  plans and decisions quote values as they were and stay unmarked.
 - Whenever a change adds or changes data-driven compatibility behavior or a parity comparison
   surface, extend `packages/parity` with a test under a declared family. Exercise the public
   behavior through the parity suite's real data fixtures, and keep the family represented by a
@@ -100,7 +105,7 @@ Use American English spelling in prose and documentation. Do not use British spe
   `pnpm run typecheck`, `pnpm run test`, and `pnpm run lint`; use package-scoped scripts when they
   cover the affected work.
 - After changing repository files, run `pnpm run lint:custom` after your final edit. It runs the
-  American filename, packet codec, JSDoc, and Unicode escape checks. `pnpm run lint` includes this
+  American filename, packet codec, JSDoc, Unicode escape and docs facts checks. `pnpm run lint` includes this
   aggregate.
 - `scripts/agent-lint-gate.mts` runs as a Claude Code and Codex hook (`.claude/settings.json`, `.codex/hooks.json`). It runs `pnpm run lint` before `git commit` and `git push` and blocks them on failure. It also runs when you finish with uncommitted changes. Fix the reported problems instead of working around the hook. Codex asks to trust the project hooks on first use; review them with `/hooks`.
 - Review the diff and `git status --short` before finishing. Report the checks actually run and any failures or checks that could not be completed.

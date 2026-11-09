@@ -24,6 +24,7 @@
         "build": "turbo run build --env-mode=loose",
         "build:docs": "pnpm --filter @jsprismarine/docs run docs",
         "check:docs": "pnpm --filter @jsprismarine/docs run docs:check",
+        "docs:facts": "pnpm --filter @jsprismarine/docs run docs:facts",
         "dev:docs": "pnpm --filter @jsprismarine/docs run docs:dev",
         "build:watch": "turbo run build:watch --concurrency 32",
         "server:build": "turbo run build --filter=@jsprismarine/server --env-mode=loose",
@@ -45,14 +46,15 @@
         "release:unstable": "changeset publish --no-git-tag --tag unstable",
         "changeset": "changeset",
         "lint:american-filenames": "node scripts/check-american-filenames.mts",
-        "lint:custom": "concurrently --prefix '{name}' pnpm:lint:american-filenames pnpm:lint:packets pnpm:lint:jsdoc pnpm:lint:encoding",
+        "lint:custom": "concurrently --prefix '{name}' pnpm:lint:american-filenames pnpm:lint:packets pnpm:lint:jsdoc pnpm:lint:encoding pnpm:lint:docs-facts",
         "lint:packets": "node scripts/check-packet-codecs.mts",
         "lint:biome": "biome check --reporter=concise . || biome check . ",
         "format:biome": "biome lint --write .",
         "package:scriptc": "scriptc build ./packages/server/src/Server.ts --npm-static auto --out ./dist/prismarine-scriptc",
         "package:scriptc:coverage": "scriptc coverage ./packages/server/src/Server.ts",
         "lint:jsdoc": "node scripts/check-jsdoc.mts",
-        "lint:encoding": "node scripts/check-unicode-escapes.mts"
+        "lint:encoding": "node scripts/check-unicode-escapes.mts",
+        "lint:docs-facts": "pnpm --filter @jsprismarine/docs run check:facts"
     },
     "repository": {
         "type": "git",

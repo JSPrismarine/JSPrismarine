@@ -7,7 +7,9 @@
     "scripts": {
         "docs:sources": "pnpm --filter @jsprismarine/bedrock-data run fetch:sources && pnpm --filter @jsprismarine/bedrock-data run datagen:java",
         "docs:generate": "pnpm --filter @jsprismarine/bedrock-data run generate",
-        "docs:stage": "node assemble.mts",
+        "docs:stage": "node --import tsx assemble.mts",
+        "docs:facts": "node --import tsx facts-cli.mts --write",
+        "check:facts": "vitest run --root . --dir . facts.test.ts && node --import tsx facts-cli.mts --check",
         "docs:api": "typedoc && node fix-typedoc-media-links.mts",
         "docs:content": "concurrently --prefix '{name}' --kill-others-on-fail pnpm:docs:stage pnpm:docs:api",
         "docs": "pnpm run docs:sources && pnpm run docs:generate && pnpm run docs:content && vitepress build site",
@@ -15,12 +17,14 @@
         "docs:dev": "pnpm run docs:sources && pnpm run docs:generate && pnpm run docs:content && vitepress dev site"
     },
     "devDependencies": {
+        "tsx": "4.23.15",
         "typedoc": "0.28.20",
         "typedoc-plugin-markdown": "4.14.1",
         "typedoc-plugin-merge-modules": "7.0.0",
         "typedoc-plugin-rename-defaults": "0.7.3",
         "typedoc-vitepress-theme": "1.1.4",
         "typescript": "6.0.3",
-        "vitepress": "2.0.0-alpha.21"
+        "vitepress": "2.0.0-alpha.21",
+        "vitest": "5.1.0"
     }
 }

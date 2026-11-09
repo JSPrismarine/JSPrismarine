@@ -36,7 +36,8 @@ Each surface has its own source of truth. Read the files for the surface you are
 - Take every color from a token or theme role and every size from a `brand.css` variable. A hex value
   inside a component is a defect.
 - Take every fact from the repository: versions, package names, commands, ports, protocols, parity
-  numbers. Add a missing fact to `project.data.mts` and read it from there, so the page cannot drift.
+  numbers. On a site page, read it from `project.data.mts`; in Markdown under `docs/`, mark it as a
+  docs fact from `tools/docs/facts.mts`. Add a missing fact there, so the page cannot drift.
 - Check each command, log line and file name you show against the source that produces it.
 - Write interface copy in the brand voice, and apply the `unslop` skill to it.
 - Build with keyboard users in mind: visible focus rings, WAI-ARIA patterns for composite widgets,
