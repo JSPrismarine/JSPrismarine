@@ -2,8 +2,9 @@ name: Client E2E
 # Joins a server built from this checkout with the pinned cinnabar Bedrock client (a real
 # rendering client, driven headlessly over MCP) and runs the tools/client-e2e scenarios.
 #
-# macOS runners are the one hosted platform where the client's renderer is proven in CI
-# (cinnabar's own GPU tests run on macos-latest via Metal). The client build is slow, so it runs
+# Every job runs on GitHub's `ubuntu-latest`. The runner has no GPU, so the client draws through
+# Mesa's software Vulkan driver (lavapipe) into a hidden window on a virtual X display (Xvfb);
+# cinnabar accepts a CPU adapter when it is the only one. The client build is slow, so it runs
 # once per protocol pin in cinnabar-build, only for the pins protocol-matrix found no cache entry
 # for. When every pin is cached, no build job starts and client-e2e goes straight to the scenarios,
 # restoring that entry, so a run only boots the server, joins, and plays.
@@ -138,7 +139,7 @@ jobs:
                   SCENARIOS: ${{ inputs.scenarios || '' }}
 
             # A run can restore entries saved on its own ref or on master. The key matches the one
-            # cinnabar-build writes, whose `runner.os` is `macOS`.
+            # cinnabar-build writes, whose `runner.os` is `Linux`.
             - name: Find the protocols without a cached client build
               id: builds
               env:
@@ -148,7 +149,7 @@ jobs:
                   missing=()
                   for protocol in $(jq -r '.[]' <<< "$PROTOCOLS"); do
                       commit="$(jq -r --arg protocol "$protocol" '.versions[$protocol].commit' tools/client-e2e/cinnabar.json)"
-                      key="macOS-cinnabar-v${protocol}-${commit}"
+                      key="Linux-cinnabar-v${protocol}-${commit}"
                       found=false
                       for ref in "$GITHUB_REF" refs/heads/master; do
                           if gh api "repos/$GITHUB_REPOSITORY/actions/caches?ref=$ref&key=$key" |
@@ -171,8 +172,9 @@ jobs:
             matrix:
                 protocol: ${{ fromJSON(needs.protocol-matrix.outputs.build) }}
         # runs-on: blacksmith-6vcpu-macos-latest
-        runs-on: macos-latest
-        timeout-minutes: 120
+        runs-on: ubuntu-latest
+        # A cold build on the four cores `ubuntu-latest` has takes longer than it did on six.
+        timeout-minutes: 180
         permissions:
             contents: read
             # Lets the last step delete the builds of pins this one replaced.
@@ -209,6 +211,23 @@ jobs:
                   key: ${{ steps.pin.outputs.key }}
                   restore-keys: |
                       ${{ runner.os }}-cinnabar-v${{ matrix.protocol }}-
+
+            # Cargo's intermediates reach about 14 GB, more than the runner has free. Its preinstalled
+            # Android SDK, .NET, Haskell and CodeQL toolchains are nothing this job uses.
+            - name: Free disk space for the build
+              if: ${{ steps.cinnabar-cache.outputs.cache-hit != 'true' }}
+              run: |
+                  df -h /
+                  sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc /usr/local/.ghcup /opt/hostedtoolcache/CodeQL
+                  df -h /
+
+            # The headers cinnabar's own Linux CI builds against: Wayland and X11 windows, keyboard
+            # layouts, ALSA audio and udev gamepads.
+            - name: Install the client's build dependencies
+              if: ${{ steps.cinnabar-cache.outputs.cache-hit != 'true' }}
+              run: |
+                  sudo apt-get update
+                  sudo apt-get install --yes libwayland-dev libxkbcommon-dev libasound2-dev libudev-dev
 
             - name: 📦 Install
               if: ${{ steps.cinnabar-cache.outputs.cache-hit != 'true' }}
@@ -283,10 +302,18 @@ jobs:
             matrix:
                 protocol: ${{ fromJSON(needs.protocol-matrix.outputs.protocols) }}
         # runs-on: blacksmith-6vcpu-macos-latest
-        runs-on: macos-latest
+        runs-on: ubuntu-latest
         timeout-minutes: 60
         steps:
             - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+            # The client's shared libraries, plus what lets it draw without a GPU or a screen:
+            # lavapipe, Mesa's software Vulkan driver, and Xvfb, a virtual X display.
+            - name: Install the client's runtime dependencies
+              run: |
+                  sudo apt-get update
+                  sudo apt-get install --yes libwayland-dev libxkbcommon-dev libxkbcommon-x11-0 libasound2-dev libudev-dev \
+                      libx11-xcb1 libxcursor1 libxi6 libxrandr2 libvulkan1 mesa-vulkan-drivers xvfb
 
             - name: 📦 Install
               uses: ./.github/common/install
@@ -346,6 +373,19 @@ jobs:
                   key: ${{ steps.pin.outputs.key }}
                   fail-on-cache-miss: true
 
+            # A suite is one server and one client, and with no GPU the client renders on the CPU, so
+            # each takes about two cores and up to 4 GB (the heap cap below). The runner's own cores
+            # and memory decide how many suites start at once; run.mts never runs more than it has.
+            - name: Size the suites to the runner
+              id: size
+              run: |
+                  cores="$(nproc)"
+                  memory_gb="$(awk '/MemTotal/ { print int($2 / 1048576) }' /proc/meminfo)"
+                  suites=$(( cores / 2 < memory_gb / 4 ? cores / 2 : memory_gb / 4 ))
+                  suites=$(( suites < 1 ? 1 : suites ))
+                  echo "suites=$suites" >> "$GITHUB_OUTPUT"
+                  echo "::notice title=Client E2E::$suites suites at once on $cores cores and $memory_gb GB"
+
             - name: 🎮 Run the client e2e scenarios
               env:
                   # Expands unquoted below: empty vanishes, and scenarios word-split by design.
@@ -353,11 +393,13 @@ jobs:
                   JSP_CINNABAR_CACHE_DIR: ${{ runner.temp }}/jsprismarine/cinnabar
                   SCENARIOS: ${{ inputs.scenarios || needs.protocol-matrix.outputs.scenarios }}
                   PROTOCOL: ${{ matrix.protocol }}
+                  SUITES: ${{ steps.size.outputs.suites }}
                   NODE_OPTIONS: --max-old-space-size=4096
               run: |
-                  # Three suites, so three is every suite at once; a higher value changes nothing.
+                  # The clients open their hidden windows on the virtual display xvfb-run starts.
                   # shellcheck disable=SC2086
-                  pnpm run e2e:client -- --artifacts "$RUNNER_TEMP/client-e2e" --protocol "$PROTOCOL" --concurrency 3 $SCENARIOS
+                  xvfb-run --auto-servernum --server-args='-screen 0 1280x720x24' \
+                      pnpm run e2e:client -- --artifacts "$RUNNER_TEMP/client-e2e" --protocol "$PROTOCOL" --concurrency "$SUITES" $SCENARIOS
 
             - name: 🔎 Verify client e2e coverage
               id: client-e2e-coverage
