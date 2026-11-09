@@ -112,7 +112,9 @@ instant and need no network.
 `pnpm install` does not do this, so installing stays quick for anyone who only builds or tests
 the repository. `pnpm run start` does not do it either; a checkout run that way arranges the cache
 once, or points `JSP_VANILLA_DATAPACK` and `JSP_JAVA_REPORTS` at a copy produced elsewhere. The
-[prebuilt server](#run-the-prebuilt-server) needs none of this: it carries the data inside.
+[prebuilt server](#run-the-prebuilt-server) needs none of this: it carries the data inside. The
+repository `Dockerfile` generates the data while it builds the image, using the JDK in its build
+stage, and the build fails if the data cannot be produced.
 
 Running the data generator needs a JDK 25 or newer. JSPrismarine looks at `JSP_JAVA_HOME`,
 `JAVA_HOME`, the `java` on your `PATH` and, on macOS, `/usr/libexec/java_home`; set
