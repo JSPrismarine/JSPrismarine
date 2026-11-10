@@ -101,6 +101,11 @@ export const FAMILIES = {
     gameplayEndFight: 'gameplay.end-fight',
     /** Sniffer digging, warden sonic-boom damage, and villager raid host effects. */
     gameplayBrainEffects: 'gameplay.brain-effects',
+    /**
+     * When a store entity's damage commit is heard, which is when Java's `player_hurt_entity` and
+     * `player_killed_entity` advancement triggers fire: inside the blow, before a death removes it.
+     */
+    gameplayCombatAdvancements: 'gameplay.combat-advancements',
     /** The raider table and wave counts the village raid manager spawns from. */
     gameplayRaids: 'gameplay.raids',
     /** Every entry of Java's vanilla datapack registries, by whether the server loads it. */
