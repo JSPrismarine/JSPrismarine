@@ -46,9 +46,6 @@ const KEY_BITS = 26;
 const KEY_MASK = (1 << KEY_BITS) - 1;
 const KEY_SPAN = 2 ** KEY_BITS;
 
-/** Small results sort faster by shifting their arrival keys than by decorating every entity. */
-const SMALL_RESULT_SORT_LIMIT = 8;
-
 /** Boxes beyond common mob dimensions are filed in every horizontal cell they overlap. */
 const LARGE_BOX_WIDTH = 2;
 const LARGE_BOX_HEIGHT = 3;
@@ -101,24 +98,8 @@ export class EntityGrid {
     /** The widest ordinary box, maintained as entities enter, leave, or change components. */
     private widestRegularBox = 0;
 
-    /**
-     * When each entity entered the index.
-     *
-     * A cell's list is in the order entities were filed into it, and a move
-     * refiles, so neither is the order the index itself holds. `goalWorld.mobs`
-     * breaks a tie in distance by that order, which decides who a zombie picks
-     * out of a crowd standing together, so {@link EntityGrid.within} puts it
-     * back. Counted here rather than read off the runtime id, because the id
-     * comes from whatever counter the host supplies.
-     */
-    private readonly arrived = new Map<number, number>();
-
-    private arrivals = 0;
-
     /** Puts one entity in the index, at the position it stands at now. */
     public add(entity: DataEntity): void {
-        this.arrived.set(entity.id, this.arrivals);
-        this.arrivals += 1;
         this.file(entity, cellKeyOf(entity.position));
         this.refreshBox(entity);
         this.refreshFamilies(entity);
@@ -129,7 +110,6 @@ export class EntityGrid {
         const key = this.filed.get(entity.id);
         if (key === undefined) return;
         this.filed.delete(entity.id);
-        this.arrived.delete(entity.id);
         this.unfileLargeBox(entity.id);
         this.removeIndexedBox(entity.id);
         this.unfile(entity, key);
@@ -183,12 +163,11 @@ export class EntityGrid {
     }
 
     /**
-     * Every entity within a radius of a position, in the order they entered
-     * the index.
+     * Every entity within a radius of a position, in ascending runtime id order.
      *
-     * The same answer {@link Map.values} filtered by distance gives, which is
-     * what this replaced, so a caller that reads the first one still reads the
-     * same one.
+     * The order is the contract, not the cells: `goalWorld.mobs` breaks a tie
+     * in distance by it, which decides who a zombie picks out of a crowd
+     * standing together, and a cell's list is in whatever order moves left it.
      */
     public within(center: EntityPosition, radius: number, families?: readonly string[]): DataEntity[] {
         if (families !== undefined && families.length === 0) return [];
@@ -259,56 +238,10 @@ export class EntityGrid {
                 }
             }
 
-        if (found.length < 2) return found;
-
-        const first = found[0];
-        if (first === undefined) return found;
-
-        let previousArrival = this.arrived.get(first.id) ?? 0;
-        let inArrivalOrder = true;
-        for (let index = 1; index < found.length; index += 1) {
-            const entity = found[index];
-            if (entity === undefined) continue;
-            const arrival = this.arrived.get(entity.id) ?? 0;
-            if (arrival < previousArrival) {
-                inArrivalOrder = false;
-                break;
-            }
-            previousArrival = arrival;
-        }
-        if (inArrivalOrder) return found;
-
-        if (found.length <= SMALL_RESULT_SORT_LIMIT) {
-            const arrivals = found.map((entity) => this.arrived.get(entity.id) ?? 0);
-            for (let index = 1; index < found.length; index += 1) {
-                const entity = found[index];
-                const arrival = arrivals[index];
-                if (entity === undefined || arrival === undefined) continue;
-
-                let previous = index - 1;
-                while (previous >= 0) {
-                    const previousArrival = arrivals[previous];
-                    const previousEntity = found[previous];
-                    if (previousArrival === undefined || previousEntity === undefined || previousArrival <= arrival)
-                        break;
-                    found[previous + 1] = previousEntity;
-                    arrivals[previous + 1] = previousArrival;
-                    previous -= 1;
-                }
-
-                found[previous + 1] = entity;
-                arrivals[previous + 1] = arrival;
-            }
-            return found;
-        }
-
-        // Read each arrival order once rather than once per sort comparison.
-        const ordered = found.map((entity) => ({ entity, arrival: this.arrived.get(entity.id) ?? 0 }));
-        ordered.sort((a, b) => a.arrival - b.arrival);
-        return ordered.map(({ entity }) => entity);
+        return inIdOrder(found);
     }
 
-    /** Entities whose Java collision boxes strictly intersect an axis-aligned box. */
+    /** Entities whose Java collision boxes strictly intersect an axis-aligned box, in ascending runtime id order. */
     public withinBox(min: EntityPosition, max: EntityPosition): DataEntity[] {
         const found: DataEntity[] = [];
         // Normal boxes stay in one center cell, so only their maintained maximum expands this scan.
@@ -339,8 +272,7 @@ export class EntityGrid {
                     }
         }
 
-        found.sort((a, b) => (this.arrived.get(a.id) ?? 0) - (this.arrived.get(b.id) ?? 0));
-        return found;
+        return inIdOrder(found);
     }
 
     /** Refreshes the size index after a live component set changes. */
@@ -479,3 +411,16 @@ export class EntityGrid {
 
 /** The key of the cell one position falls in. */
 const cellKeyOf = (position: EntityPosition): number => keyOf(cellOf(position.x), cellOf(position.z));
+
+/**
+ * Puts a query's result in ascending runtime id order.
+ *
+ * Most results arrive in order already, since ids are drawn in spawn order and
+ * entities that stand still keep their place in a cell, so the check comes
+ * first and the sort runs only for a result a move has shuffled.
+ */
+const inIdOrder = (found: DataEntity[]): DataEntity[] => {
+    for (let index = 1; index < found.length; index += 1)
+        if (found[index - 1]!.id > found[index]!.id) return found.sort((a, b) => a.id - b.id);
+    return found;
+};
