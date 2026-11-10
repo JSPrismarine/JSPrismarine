@@ -48,7 +48,7 @@ import type { Position } from './world/Position';
 import { requestedSpawnPosition } from './world/SpawnPlacement';
 import type { respawnPoint } from './world/SpawnPlacement';
 import type { StoredSpawnPoint } from './world/RespawnPoint';
-import type { RespawnRequest, RespawnSearch } from './world/RespawnSearch';
+import type { RespawnAnswer, RespawnRequest, RespawnSearch } from './world/RespawnSearch';
 import { lastPlayerRecord } from './world/PlayerRecords';
 import { keyOfPlayer } from './playerIdentity';
 import type { PlayerSpawn } from './world/SpawnPlacement';
@@ -1005,24 +1005,30 @@ export default class Player extends Human {
         await this.getNetworkSession().sendAttributes();
         await this.getWorld().sendActorEvent(this, ActorEvent.DEATH_ANIMATION);
 
-        // Where they will come back, told now rather than later. The client will not offer
-        // the respawn button until it knows, which is why a death screen that never became a
-        // respawn screen was stuck on "Respawning" - it was still waiting for this.
-        await this.getNetworkSession().sendRespawn(
-            (await this.getRespawnPoint()).announced,
-            PlayerRespawnState.SEARCHING_FOR_SPAWN
-        );
-
         // The bare translation key, as with the join and leave messages: the client renders
         // it in its own language. Which key it is depends on whether anybody is to blame - see
         // `DeathMessages`.
         const { key, parameters } = deathMessage(this, source);
 
-        // The death screen's own copy of the cause, sent after the Respawn as PocketMine's
-        // `DeathPacketHandler` does. `DeathInfo` takes the key without the `%` the chat packet
-        // wants; see `DeathInfoPacket`.
+        // Where they will come back. The client will not offer the respawn button until it
+        // knows, which is why a death screen that never became a respawn screen was stuck on
+        // "Respawning". The search may load chunks or build a dimension, so the death files it
+        // and the next input step sends the answer (`world/RespawnRequests.ts`), unless the
+        // player came back or left before then. The death screen's own copy of the cause
+        // follows it, as PocketMine's `DeathPacketHandler` sends it after the `Respawn`;
+        // `DeathInfo` takes the key without the `%` the chat packet wants.
         const deathInfo = new DeathInfoPacket({ cause: key.replace(/^%/, ''), messages: parameters });
-        await this.getNetworkSession().getConnection().sendDataPacket(deathInfo);
+        this.server
+            .getRespawnRequests()
+            .request(this.getWorld().getLevel().getRespawnSearch().find(this.respawnRequest()), async (answer) => {
+                if (this.isAlive() || !this.isOnline()) return;
+                await this.forgetLostSpawnPoint(answer);
+                await this.getNetworkSession().sendRespawn(
+                    Vector3.fromObject(answer.announced),
+                    PlayerRespawnState.SEARCHING_FOR_SPAWN
+                );
+                await this.getNetworkSession().getConnection().sendDataPacket(deathInfo);
+            });
 
         await this.server.getChatManager().send(
             new Chat({
@@ -1104,18 +1110,7 @@ export default class Player extends Human {
     public async getRespawnPoint(): Promise<RespawnDestination> {
         const level = this.getWorld().getLevel();
         const answer = await level.getRespawnSearch().find(this.respawnRequest());
-
-        if (answer.spawnPointLost) {
-            // Java's "Your home bed was missing or obstructed", which is a message this server has
-            // no translation path for yet. Cleared so the next death goes straight to the world
-            // spawn rather than walking the bed's neighbors again.
-            this.spawnPoint = undefined;
-            await this.getNetworkSession().sendMessage({
-                message: 'tile.bed.notValid',
-                type: TextPacketType.Translate,
-                needsTranslation: true
-            });
-        }
+        await this.forgetLostSpawnPoint(answer);
 
         return {
             world:
@@ -1126,6 +1121,24 @@ export default class Player extends Human {
             block: Vector3.fromObject(answer.block),
             eyes: Vector3.fromObject(answer.eyes)
         };
+    }
+
+    /**
+     * Clears a spawn point the search found no longer holds, and tells the player once.
+     *
+     * Java's "Your home bed was missing or obstructed", which is a message this server has no
+     * translation path for yet. Cleared so the next death goes straight to the world spawn rather
+     * than walking the bed's neighbors again.
+     */
+    private async forgetLostSpawnPoint(answer: RespawnAnswer): Promise<void> {
+        if (!answer.spawnPointLost) return;
+
+        this.spawnPoint = undefined;
+        await this.getNetworkSession().sendMessage({
+            message: 'tile.bed.notValid',
+            type: TextPacketType.Translate,
+            needsTranslation: true
+        });
     }
 
     /** What the level's respawn search is asked for this player; see {@link RespawnSearch}. */
