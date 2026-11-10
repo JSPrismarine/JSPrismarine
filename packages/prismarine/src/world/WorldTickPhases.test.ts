@@ -14,7 +14,6 @@ import type { DimensionTravel, PortalBlockRef } from './portal/DimensionTravel';
 import type { SystemBlock } from './WorldSystems';
 import BlockUpdateScheduler from './BlockUpdateScheduler';
 import { Dimensions } from './Dimension';
-import EntityGrid from './EntityGrid';
 import { Position } from './Position';
 import type { WorldChangeSink } from './WorldChangeSink';
 import { World } from './World';
@@ -94,13 +93,11 @@ const worldTicking = ({
     // stand-in. Only what would reach the disk, a chunk or the network is replaced.
     const runtimeIds = new Map<string, number>();
     const world: World = Object.assign(Object.create(World.prototype), {
-        entities: new Map(),
+        // The map the tick walks, filled the way `addEntity` keys it.
+        entities: new Map(entities.map((entity) => [Number(entity.getRuntimeId()), entity])),
         players: new Map(),
         chunks: new Map(),
         name: 'tick-test-world',
-        // The real one: it is ordinary in-memory bookkeeping, and a tick rebuilds it. Only what
-        // would reach the disk, a chunk or the network is stood in for.
-        entityGrid: new EntityGrid(),
         // The level's clock stands on the second the time is put on the wire, so that the
         // phase runs at all: it is sent once a second rather than every tick. Chunk unloading
         // is outside the phase ordering this fixture exercises.
@@ -228,6 +225,32 @@ describe('world', () => {
             expect(started).toEqual(['first', 'second']);
         });
 
+        it('ticks its entities without copying the whole entity list for an index', async () => {
+            const updated: bigint[] = [];
+            const player = stubOf(Player, {
+                getPosition: () => new Position(0, 64, 0, world),
+                getType: () => 'minecraft:player',
+                getRuntimeId: () => 1n,
+                claimUpdate: () => true,
+                update: async () => void updated.push(1n)
+            });
+            const { world } = worldTicking({ entities: [player] });
+            // The passes that still read every entity stood in for, so what is left is the entity
+            // loop, and nothing has to rebuild an index for it.
+            Object.assign(world, {
+                touchPortals: async () => {},
+                flushEntityAttributes: async () => {},
+                updateTracking: async () => {}
+            });
+            const copies = vi.spyOn(world, 'getEntities');
+
+            await world.update(1);
+
+            expect(updated).toEqual([1n]);
+            // Once, for the list the attribute pass is handed. Slice 5 removes that one too.
+            expect(copies).toHaveBeenCalledTimes(1);
+        });
+
         it('uses the roster insertion order that Java 26.3 entity ticks preserve', async () => {
             const started: bigint[] = [];
             const firstInserted = stubOf(Player, {
@@ -289,7 +312,6 @@ describe('world', () => {
                         'World.autosave:tick-test-world',
                         'World.blockUpdates:tick-test-world',
                         'World.systems:tick-test-world',
-                        'World.entityGrid:tick-test-world',
                         'World.portalContacts:tick-test-world',
                         'World.dragonFight:tick-test-world',
                         'World.entityUpdates:tick-test-world',
