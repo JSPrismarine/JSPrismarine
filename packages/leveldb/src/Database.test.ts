@@ -199,6 +199,33 @@ describe('leveldb', () => {
                 await crashed.close();
             });
 
+            it('drops a batch whose log record lost its tail, and keeps the batch before it', async () => {
+                // A crash in the middle of appending one large batch. The record spans several
+                // 32 KiB log blocks, and the copy keeps only its first part. Recovery must apply
+                // none of it, which is what makes one batch an atomic commit.
+                const directory = scratch();
+                const crashed = await Database.open(directory);
+                crashed.put(key('before'), key('kept'));
+                const batch = new WriteBatch();
+                const keys = chunkKeys(8);
+                for (const k of keys) batch.put(k, Buffer.alloc(16 * 1024, 7));
+                crashed.write(batch);
+
+                const copy = scratch();
+                for (const name of fs.readdirSync(directory)) {
+                    if (name !== 'LOCK') fs.copyFileSync(path.join(directory, name), path.join(copy, name));
+                }
+                const log = fs.readdirSync(copy).find((name) => name.endsWith('.log'))!;
+                const bytes = fs.readFileSync(path.join(copy, log));
+                fs.writeFileSync(path.join(copy, log), bytes.subarray(0, bytes.byteLength - 40 * 1024));
+
+                const reopened = await Database.open(copy, { readOnly: true });
+                expect(reopened.get(key('before'))).toEqual(key('kept'));
+                for (const k of keys) expect(reopened.get(k)).toBeNull();
+                await reopened.close();
+                await crashed.close();
+            });
+
             it('keeps deletions across a reopen', async () => {
                 const directory = scratch();
                 const first = await Database.open(directory);
