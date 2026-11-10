@@ -9,7 +9,7 @@ export default class ClientCacheBlobStatusHandler implements PacketHandler<Clien
     public readonly phases = ['resourcePacks', 'play'] as const;
     public readonly lane = 'connection';
 
-    /** Applies acknowledgements and sends bytes for blob ids the client reports missing. */
+    /** Applies acknowledgments and sends bytes for blob ids the client reports missing. */
     public async handle(packet: ClientCacheBlobStatusPacket, server: Server, session: PlayerSession): Promise<void> {
         const responded = await session.handleClientCacheBlobStatus(packet);
         server

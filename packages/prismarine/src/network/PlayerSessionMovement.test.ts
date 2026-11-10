@@ -108,5 +108,41 @@ describe('network', () => {
             expect(packet.tick).toBe(7n);
             expect(packet.motion).toEqual(new Vector3(0.5, 0.4, 0));
         });
+
+        it('takes any reported position while no teleport is waiting', () => {
+            const { session } = movementSession();
+
+            expect(session.acceptsClientPosition(new Vector3(500, 64, 500), false)).toBe(true);
+        });
+
+        it('drops positions from before a teleport until the client reports from its target', async () => {
+            const { session, player } = movementSession();
+
+            await session.sendMove(player, PositionMode.Teleport);
+
+            expect(session.acceptsClientPosition(new Vector3(40, 64, 40), false)).toBe(false);
+            expect(session.acceptsClientPosition(new Vector3(40, 64, 40), false)).toBe(false);
+            // Within a block of the target, which is where the player was sent.
+            expect(session.acceptsClientPosition(new Vector3(1.5, 64, 1), false)).toBe(true);
+            expect(session.acceptsClientPosition(new Vector3(40, 64, 40), false)).toBe(true);
+        });
+
+        it('takes the HandledTeleport flag as the acknowledgment wherever the client is', async () => {
+            const { session, player } = movementSession();
+
+            await session.sendMove(player, PositionMode.Teleport);
+
+            expect(session.acceptsClientPosition(new Vector3(9, 60, 9), true)).toBe(true);
+            expect(session.acceptsClientPosition(new Vector3(40, 64, 40), false)).toBe(true);
+        });
+
+        it('waits for no acknowledgment after a move that is not a teleport', async () => {
+            const { session, player } = movementSession();
+
+            await session.sendMove(player, PositionMode.Normal);
+            await session.sendMove(playerAt(2n), PositionMode.Teleport);
+
+            expect(session.acceptsClientPosition(new Vector3(40, 64, 40), false)).toBe(true);
+        });
     });
 });

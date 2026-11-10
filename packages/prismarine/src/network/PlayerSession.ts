@@ -262,6 +262,14 @@ export interface OpenTrade {
  */
 const SUB_CHUNK_REQUESTS_SINCE = 2225;
 
+/**
+ * How far, squared, a reported position may be from an unacknowledged teleport's target and
+ * still count as the client having taken it: one block, PocketMine-MP's tolerance for a client
+ * that has started falling or been pushed out of a block. See
+ * {@link PlayerSession.acceptsClientPosition}.
+ */
+const TELEPORT_ACK_DISTANCE_SQUARED = 1;
+
 export default class PlayerSession {
     private connection: ClientConnection;
     private readonly server: Server;
@@ -367,6 +375,15 @@ export default class PlayerSession {
      * any input has arrived.
      */
     private lastInputTick = 0n;
+
+    /**
+     * Where the last teleport this client has not acknowledged put its player, or undefined.
+     *
+     * The client goes on reporting its old position until it has read the teleport, and since
+     * inputs wait for the next input step, a report sent before the teleport can be applied after
+     * it and undo it. See {@link PlayerSession.acceptsClientPosition}.
+     */
+    private unacknowledgedTeleport: Vector3 | undefined;
 
     /**
      * The `Loading Screen Id` the next `ChangeDimensionPacket` gets. The docs ask for an
@@ -495,7 +512,7 @@ export default class PlayerSession {
         return this.clientCacheEnabled;
     }
 
-    /** Responds to requested blob misses and applies the client's acknowledgements. */
+    /** Responds to requested blob misses and applies the client's acknowledgments. */
     public async handleClientCacheBlobStatus(packet: ClientCacheBlobStatusPacket): Promise<number> {
         if (!this.clientCacheEnabled) return 0;
 
@@ -1824,6 +1841,27 @@ export default class PlayerSession {
     }
 
     /**
+     * Whether a position the client reported may move its player.
+     *
+     * After a server teleport, Bedrock ignores the client's positions until the client has
+     * handled the teleport: it says so with the `HandledTeleport` input flag on the first input
+     * after it. A client that does not send the flag, such as one moving with `MovePlayerPacket`,
+     * acknowledges the teleport by reporting a position within a block of the target, as
+     * PocketMine-MP accepts. Until then each report is from before the teleport and is dropped.
+     * @param {Vector3} position - The position the client reported.
+     * @param {boolean} handledTeleport - Whether the input carries the `HandledTeleport` flag.
+     * @returns {boolean} False for a report from before an unacknowledged teleport.
+     */
+    public acceptsClientPosition(position: Vector3, handledTeleport: boolean): boolean {
+        const target = this.unacknowledgedTeleport;
+        if (target === undefined) return true;
+        if (!handledTeleport && target.distanceSquaredTo(position) > TELEPORT_ACK_DISTANCE_SQUARED) return false;
+
+        this.unacknowledgedTeleport = undefined;
+        return true;
+    }
+
+    /**
      * Hands out the `Loading Screen Id` for a `ChangeDimensionPacket` about to be sent, and
      * remembers it until {@link PlayerSession.endLoadingScreen} hears the client close that
      * screen.
@@ -1969,7 +2007,7 @@ export default class PlayerSession {
 
         await this.sendNetworkChunkPublisher(effectiveViewDistance(player.viewDistance), []);
 
-        // Since 1.19.50 the server sends the acknowledgement that used to be the client's, and
+        // Since 1.19.50 the server sends the acknowledgment that used to be the client's, and
         // sends it before any chunk; the client still answers with its own copy afterwards.
         await this.send(
             new PlayerActionPacket({
@@ -2311,6 +2349,9 @@ export default class PlayerSession {
      */
     public async sendMove(player: Player, mode = PositionMode.Normal): Promise<void> {
         const position = player.getPosition();
+        if (player === this.player && mode === PositionMode.Teleport) {
+            this.unacknowledgedTeleport = new Vector3(position.getX(), position.getY(), position.getZ());
+        }
         const packet = new MovePlayerPacket({
             runtimeEntityId: player.getRuntimeId(),
             position: { x: position.getX(), y: position.getY(), z: position.getZ() },
