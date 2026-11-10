@@ -13,8 +13,8 @@ import { ActorDataID } from '@jsprismarine/minecraft/ActorDataID';
 import { ActorFlags } from '@jsprismarine/minecraft/ActorFlags';
 
 import { BlockRuntimeIds } from '../../block/state/BlockRuntimeIds';
-import type { Entity } from '../Entity';
 import { FlagType, MetadataFlag } from '@jsprismarine/protocol/wire/structures/Metadata';
+import type { Metadata } from '@jsprismarine/protocol/wire/structures/Metadata';
 import type { DataEntity } from './DataEntity';
 
 /** One actor flag and the value the component state projects onto it. */
@@ -339,7 +339,10 @@ export const actorMetadataProjection = (entity: DataEntity, leashHolderId?: numb
 };
 
 /** Applies one translated metadata view to the network-facing entity body. */
-export const applyActorMetadataProjection = (body: Entity, projection: ActorMetadataProjection): void => {
+export const applyActorMetadataProjection = (
+    body: { readonly metadata: Metadata },
+    projection: ActorMetadataProjection
+): void => {
     for (const { flag, value } of projection.flags) body.metadata.setGenericFlag(flag, value);
     for (const property of projection.properties) {
         if (property.kind === 'byte') body.metadata.setPropertyValue(property.id, FlagType.BYTE, property.value);

@@ -49,6 +49,7 @@ import { inertEntityRuntime, testContent } from '../../testing/entityServer';
 import type { DataEntity, MobBody } from '../../entity/data/DataEntity';
 import type { EntityRuntime } from '../../entity/data/EntityRuntime';
 import type { LiveBodies } from '../../entity/data/liveBodies';
+import type { StoreActors } from '../../entity/data/storeActors';
 import type { LiveEntityRuntime } from '../../entity/data/live';
 import { collectAsyncCommands } from '../deferred';
 import { buildVanillaCommands } from '../vanillaCommands';
@@ -461,6 +462,7 @@ describe('the server command host', () => {
             vi.spyOn(fixture.world, 'dataEntities').mockReturnValue(
                 stub<LiveEntityRuntime>({
                     bodies: stub<LiveBodies>({ entityIdOf: () => 7 }),
+                    actors: stub<StoreActors>({ all: () => [][Symbol.iterator]() }),
                     runtime: stub<EntityRuntime>({ byId: () => stub<DataEntity>({ body: stub<MobBody>(body) }) })
                 })
             );

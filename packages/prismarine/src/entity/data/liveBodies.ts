@@ -26,11 +26,11 @@ import { NBTTagCompound } from '@jsprismarine/nbt';
 
 import { Position } from '../../world/Position';
 import type { World } from '../../world/World';
-import { sameSyncedProperties, syncedPropertiesOf } from '../../network/actorProperties';
+import { syncedPropertiesOf } from '../../network/actorProperties';
 import { Attribute, AttributeIds } from '@jsprismarine/protocol/wire/structures/Attribute';
 import { DamageCause } from '../DamageCause';
 import { DamageSource } from '../DamageSource';
-import { sameEquipmentItems, viewableEquipmentOf } from '../equipment';
+import { viewableEquipmentOf } from '../equipment';
 import type { Entity } from '../Entity';
 import type { StatusEffect } from '../StatusEffect';
 import { normalizeStatusEffectId } from '../StatusEffect';
@@ -40,19 +40,10 @@ import { GenericEntity } from '../GenericEntity';
 import { KNOCKBACK_LIFT } from '../knockback';
 import type { DataEntity } from './DataEntity';
 import type { EntityRuntime } from './EntityRuntime';
-import {
-    actorMetadataInputs,
-    actorMetadataProjection,
-    applyActorMetadataProjection,
-    sameActorMetadataInputs,
-    sameActorMetadataProjection
-} from './actorMetadata';
-import type { ActorMetadataInputs } from './actorMetadata';
+import { applyActorMetadataProjection } from './actorMetadata';
+import type { ActorMetadataProjection } from './actorMetadata';
 import type { DataEntityRecord } from './persistence';
 import { dataEntityRecordOf, writeDataEntityRecord } from './persistence';
-
-/** How far an entity has to move before the movement is worth putting on the wire, in blocks. */
-const MOVEMENT_EPSILON = 1e-4;
 
 /**
  * The body of one data-driven entity.
@@ -228,29 +219,21 @@ export interface LiveBodiesOptions {
     heal(entity: DataEntity, amount: number): boolean;
 }
 
-/** One live body per data-driven entity, kept in step with it. */
+/**
+ * One legacy body per data-driven entity, for the legacy entity code that still reaches a store
+ * entity through the world's entity map: commands, legacy blasts and swings, saves and portals.
+ *
+ * Clients are not shown these. `storeActors.ts` shows them each store entity from store state,
+ * and {@link World.addEntity} announces no body. A body reads its health and damage from the
+ * store, and {@link LiveBodies.sync} writes its position silently so the world's chunk
+ * membership and the legacy queries follow the store. Slice 5 of the entity and tick
+ * re-architecture deletes the bodies with the legacy classes.
+ */
 export class LiveBodies {
     /** Each body by its runtime id, which is its data entity's id as well. */
     private readonly bodies = new Map<number, Entity>();
-    /** The health last written onto each body, so an unchanged health is not written again. */
-    private readonly written = new Map<number, number>();
-    /** The property values last sent for each body. */
-    private readonly synced = new Map<number, ReturnType<Entity['getSyncedProperties']>>();
-    /**
-     * The value of `MobBody.equipmentRevision` last mirrored onto each body.
-     *
-     * The cheap half of the guard. Comparing a counter is what keeps a tick in which nothing
-     * was equipped from building five items per mob only to find they match; the byte-level
-     * comparison in {@link LiveBodies.writeEquipment} is what then keeps a write that set the
-     * same thing back from reaching the wire.
-     */
+    /** The value of `MobBody.equipmentRevision` last written onto each body. */
     private readonly equipped = new Map<number, number>();
-    /** The data-derived actor metadata last mirrored to each body. */
-    private readonly actorMetadata = new Map<number, ReturnType<typeof actorMetadataProjection>>();
-    /** What each entity's last projection was built from, so an unchanged read skips building one. */
-    private readonly actorMetadataInputs = new Map<number, ActorMetadataInputs>();
-    /** The owner last reflected in actor metadata, so owner rebinding can update idle bodies. */
-    private readonly owners = new Map<number, number | undefined>();
     private readonly options: LiveBodiesOptions;
 
     public constructor(options: LiveBodiesOptions) {
@@ -263,7 +246,7 @@ export class LiveBodies {
     }
 
     /**
-     * The data entity id for a client-facing body, or undefined when it is not data-driven.
+     * The data entity id for a legacy body, or undefined when it is not data-driven.
      *
      * A body carries its entity's id as its runtime id, so this is the runtime id of a body
      * this runtime holds.
@@ -278,14 +261,8 @@ export class LiveBodies {
         return this.bodies.size;
     }
 
-    /**
-     * Puts a body in the world for an entity the runtime just made.
-     *
-     * The maximum health is the type's rather than `Attributes.getDefaults`'
-     * twenty, so a client draws a ten-health cow with five hearts instead of
-     * with two and a half.
-     */
-    public add(entity: DataEntity, leashHolderId?: number): void {
+    /** Puts a body in the world's entity map for an entity the runtime just made. */
+    public add(entity: DataEntity): void {
         const world = this.options.world();
         if (world === undefined) return;
 
@@ -310,8 +287,7 @@ export class LiveBodies {
                 heal: (amount) => this.options.heal(entity, amount)
             }
         );
-
-        if (health !== undefined) {
+        if (health !== undefined)
             body.attributes.setAttribute(
                 new Attribute({
                     name: AttributeIds.Health,
@@ -321,33 +297,26 @@ export class LiveBodies {
                     value: health.current
                 })
             );
-            this.written.set(entity.id, health.current);
-        }
-        this.owners.set(entity.id, entity.body.owner);
-
-        // Before the world hears about it, so the `AddActorPacket` a client is sent is followed
-        // by the equipment rather than by nothing. `sendAddActor` reads the body's equipment
-        // straight after the spawn, and a bow written a tick later would be a visible flicker of
-        // an empty-handed skeleton.
         this.writeEquipment(entity, body);
-        const actorMetadata = actorMetadataProjection(entity, leashHolderId);
-        applyActorMetadataProjection(body, actorMetadata);
-        this.actorMetadata.set(entity.id, actorMetadata);
 
         this.bodies.set(entity.id, body);
-        this.synced.set(entity.id, body.getSyncedProperties());
         void world.addEntity(body).catch((error: unknown) => this.failed('add', error));
+    }
+
+    /**
+     * Writes an actor metadata projection onto a body, which a save reads a primed fuse from.
+     * The store actor announces it; the body only carries it.
+     */
+    public project(entity: DataEntity, projection: ActorMetadataProjection): void {
+        const body = this.bodies.get(entity.id);
+        if (body !== undefined) applyActorMetadataProjection(body, projection);
     }
 
     /** Takes the body of an entity the runtime removed back out of the world. */
     public drop(entity: DataEntity): void {
         const body = this.bodies.get(entity.id);
         this.bodies.delete(entity.id);
-        this.written.delete(entity.id);
-        this.synced.delete(entity.id);
         this.equipped.delete(entity.id);
-        this.actorMetadata.delete(entity.id);
-        this.owners.delete(entity.id);
         if (body === undefined) return;
 
         const world = this.options.world();
@@ -361,67 +330,35 @@ export class LiveBodies {
         if (id === undefined) return undefined;
 
         this.bodies.delete(id);
-        this.written.delete(id);
-        this.synced.delete(id);
         this.equipped.delete(id);
-        this.actorMetadata.delete(id);
-        this.actorMetadataInputs.delete(id);
-        this.owners.delete(id);
         return id;
     }
 
     /**
-     * Brings every body back in step with its entity, after a tick of the
-     * runtime.
+     * Writes each entity's position, rotation, ground state, health and equipment onto its body,
+     * after a tick of the runtime. Nothing is announced: clients hear about a store entity from
+     * its store actor.
      *
-     * The runtime's health, equipment, metadata and position, in that order.
-     *
-     * @param runtime - The entity runtime whose state is mirrored.
-     * @param shouldSync - Optional chunk eligibility rule for derived metadata.
-     * @returns The movement broadcasts, which the caller awaits with the rest
-     *   of its tick.
+     * @param runtime - The entity runtime whose entities the bodies stand in for.
      */
-    public sync(runtime: EntityRuntime, shouldSync?: (position: EntityPosition) => boolean): readonly Promise<void>[] {
-        const moves: Promise<void>[] = [];
-
+    public sync(runtime: EntityRuntime): void {
         for (const entity of runtime.all()) {
             const body = this.bodies.get(entity.id);
             if (body === undefined) continue;
-            const isTicking = shouldSync === undefined || shouldSync(entity.position);
 
             const health = entity.instance.attributes.get('health');
-            if (health !== undefined && this.written.get(entity.id) !== health.current) {
-                this.showHealth(entity, body);
-            }
+            if (health !== undefined) body.attributes.setValue(AttributeIds.Health, health.current);
             this.writeEquipment(entity, body);
-            const ownerChanged = this.owners.get(entity.id) !== entity.body.owner;
-            if (ownerChanged) this.owners.set(entity.id, entity.body.owner);
-            let actorMetadataChanged = false;
-            if (isTicking || ownerChanged || !this.actorMetadata.has(entity.id)) {
-                const leashHolderId = runtime.leashHolderIdOf(entity.id);
-                // Most ticks nothing a projection reads has changed, so it is not built at all.
-                const inputs = actorMetadataInputs(entity, leashHolderId);
-                if (!sameActorMetadataInputs(this.actorMetadataInputs.get(entity.id), inputs)) {
-                    this.actorMetadataInputs.set(entity.id, inputs);
-                    const metadata = actorMetadataProjection(entity, leashHolderId);
-                    actorMetadataChanged = !sameActorMetadataProjection(this.actorMetadata.get(entity.id), metadata);
-                    if (actorMetadataChanged) {
-                        applyActorMetadataProjection(body, metadata);
-                        this.actorMetadata.set(entity.id, metadata);
-                    }
-                }
-            }
-            const properties = isTicking ? this.showSyncedProperties(entity, body) : undefined;
-            if (properties !== undefined) moves.push(properties);
-            else if (actorMetadataChanged) {
-                const metadata = this.options.world()?.sendActorMetadata(body);
-                if (metadata !== undefined) moves.push(metadata);
-            }
-            const move = this.showPosition(entity, body, isTicking);
-            if (move !== undefined) moves.push(move);
-        }
+            body.setGrounded(entity.body.conditions.has('on_ground'));
+            body.pitch = entity.body.pitch;
+            body.yaw = entity.body.yaw;
+            body.headYaw = entity.body.yaw;
 
-        return moves;
+            const at = entity.position;
+            const here = body.getPosition();
+            if (here.getX() !== at.x || here.getY() !== at.y || here.getZ() !== at.z)
+                body.restorePosition(new Position(at.x, at.y, at.z, body.getWorld()));
+        }
     }
 
     /**
@@ -465,100 +402,16 @@ export class LiveBodies {
     /** Forgets every body, for a world that is closing. */
     public clear(): void {
         this.bodies.clear();
-        this.written.clear();
-        this.synced.clear();
         this.equipped.clear();
-        this.actorMetadata.clear();
-        this.owners.clear();
     }
 
-    /** Writes the runtime's health onto the body, where the attribute flush will find it. */
-    private showHealth(entity: DataEntity, body: Entity): void {
-        const health = entity.instance.attributes.get('health');
-        if (health === undefined) return;
-
-        body.attributes.setValue(AttributeIds.Health, health.current);
-        this.written.set(entity.id, health.current);
-    }
-
-    /** Sends a property delta when the runtime changed a client-synced value. */
-    private showSyncedProperties(entity: DataEntity, body: Entity): Promise<void> | undefined {
-        const current = body.getSyncedProperties();
-        const previous = this.synced.get(entity.id);
-        if (previous !== undefined && sameSyncedProperties(previous, current)) return undefined;
-
-        this.synced.set(entity.id, current);
-        const world = this.options.world();
-        return world?.sendActorMetadata(body);
-    }
-
-    /**
-     * The one way a data entity's equipment is written onto the body a client sees.
-     *
-     * The same shape as `blockentity/blockEntityWrite.ts`, and for the same reason: every write
-     * site funnels through here, and a write whose bytes match what is already on the body is
-     * dropped before anything is told about it. Three sites reach it - the spawn roll, a goal
-     * putting something in a mob's hand, and a restore replaying a saved one - and the third is
-     * the one the guard pays for, because a save holds exactly what the roll already produced.
-     *
-     * Two guards, cheapest first. The revision counter answers "has anything been written at
-     * all", which on a steady tick is false for every entity in the world, so nothing is built.
-     * When it has moved, the items are built and compared as the bytes they would be sent as,
-     * which is the form that decides whether a client would see any difference.
-     *
-     * Reported rather than sent: `World.entityEquipmentChanged` decides who is holding this
-     * entity and puts it on their connections. Nothing is reported for a body that is not in
-     * the world yet, because `sendAddActor` carries the equipment itself.
-     */
+    /** Writes a data entity's equipment onto its body as items, when its revision moved. */
     private writeEquipment(entity: DataEntity, body: Entity): void {
         if (this.equipped.get(entity.id) === entity.body.equipmentRevision) return;
         this.equipped.set(entity.id, entity.body.equipmentRevision);
 
-        const world = this.options.world();
-        const content = world?.getServer().getContent();
-        if (world === undefined || content === undefined) return;
-
-        const worn = viewableEquipmentOf(entity.equipment, content);
-
-        if (sameEquipmentItems(body.getEquipment(), worn)) return;
-
-        body.setEquipment(worn);
-        // Only for a body already in the world. The spawn path writes before `addEntity`, so
-        // `this.bodies` not holding it yet is exactly "the clients have not been told it
-        // exists", and `sendAddActor` is what tells them, equipment included.
-        if (this.bodies.has(entity.id)) world.entityEquipmentChanged(body);
-    }
-
-    /** Moves the body to where the runtime put the entity, when that is anywhere new. */
-    private showPosition(entity: DataEntity, body: Entity, syncGrounded = true): Promise<void> | undefined {
-        // Before the early return, because a mob that landed this tick without moving far
-        // enough to be worth a packet is still a mob that is now on the ground, and the next
-        // move packet is the one that has to say so.
-        if (syncGrounded) body.setGrounded(entity.body.conditions.has('on_ground'));
-
-        const at = entity.position;
-        const here = body.getPosition();
-        const still =
-            Math.abs(here.getX() - at.x) < MOVEMENT_EPSILON &&
-            Math.abs(here.getY() - at.y) < MOVEMENT_EPSILON &&
-            Math.abs(here.getZ() - at.z) < MOVEMENT_EPSILON &&
-            body.yaw === entity.body.yaw &&
-            body.pitch === entity.body.pitch;
-        if (still) {
-            entity.body.teleportPending = false;
-            return undefined;
-        }
-
-        const teleport = entity.body.teleportPending;
-        const move = body.setPosition({
-            position: new Vector3(at.x, at.y, at.z),
-            yaw: entity.body.yaw,
-            headYaw: entity.body.yaw,
-            pitch: entity.body.pitch,
-            teleport
-        });
-        entity.body.teleportPending = false;
-        return move;
+        const content = this.options.world()?.getServer().getContent();
+        if (content !== undefined) body.setEquipment(viewableEquipmentOf(entity.equipment, content));
     }
 
     private failed(what: string, error: unknown): void {
