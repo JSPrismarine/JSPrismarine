@@ -7,6 +7,7 @@ import { writtenEntities } from './Entities';
 import type { Entity } from './Entity';
 import { GenericEntity } from './GenericEntity';
 import { ItemActorBody } from './data/itemBodies';
+import { StoreActor } from './data/storeActors';
 import type { ItemStart } from './data/droppedItems';
 import { DEFAULT_FUSE_TICKS } from './fuse';
 import { MetadataFlag } from '@jsprismarine/protocol/wire/structures/Metadata';
@@ -16,6 +17,7 @@ import type { DataEntityRecord } from './data/persistence';
 import { dataEntityRecordIn, writeDataEntityRecord } from './data/persistence';
 import { Position } from '../world/Position';
 import type { World } from '../world/World';
+import type { WorldActor } from '../world/WorldActor';
 
 const TNT_IDENTIFIER = 'minecraft:tnt';
 
@@ -83,11 +85,11 @@ export class EntitySerializer {
 
     /**
      * Writes an entity's actor NBT.
-     * @param entity - The entity.
+     * @param entity - The entity, a store entity through its actor.
      * @param record - A data-driven entity's record, written into the copy rather than onto the
      *   entity, as a save that called `LiveEntityRuntime.persist` first would hold it.
      */
-    public static toNBT(entity: Entity, record?: DataEntityRecord): NBTTagCompound {
+    public static toNBT(entity: WorldActor, record?: DataEntityRecord): NBTTagCompound {
         const nbt = entity.persistentNbt ? copy(entity.persistentNbt) : new NBTTagCompound('');
         if (record !== undefined) writeDataEntityRecord(nbt, record);
         const position = entity.getPosition();
@@ -131,7 +133,7 @@ export class EntitySerializer {
             }
         }
 
-        if (entity instanceof GenericEntity) {
+        if (entity instanceof GenericEntity || entity instanceof StoreActor) {
             const projectile = dataEntityRecordIn(nbt)?.projectile;
             if (projectile !== undefined) {
                 const { velocity } = projectile;

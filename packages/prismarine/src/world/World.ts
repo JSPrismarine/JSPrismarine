@@ -33,6 +33,7 @@ import { dataEntityRecordIn } from '../entity/data/persistence';
 import EntitySerializer from '../entity/EntitySerializer';
 import { ITEM_ENTITY } from '../entity/data/droppedItems';
 import { ItemActorBody } from '../entity/data/itemBodies';
+import { StoreActor } from '../entity/data/storeActors';
 import { storedItemActorOf } from '../entity/EntitySerializer';
 import type { Entity } from '../entity/Entity';
 import type { StatusEffect, StatusEffectChange } from '../entity/StatusEffect';
@@ -3327,9 +3328,13 @@ export class World implements Service {
         )
             return false;
 
+        const live = this.dataEntities();
+        for (const entity of this.getEntityIndex().storeInChunk(chunk.getX(), chunk.getZ()))
+            live.runtime.remove(entity.id, 'chunk unload');
         const removals: Promise<void>[] = [];
         for (const entity of this.entitiesInChunk(chunk)) {
-            if (this.dataEntities().unload(entity)) continue;
+            if (live.bodies.entityIdOf(entity) !== undefined) continue;
+            if (live.unload(entity)) continue;
             removals.push(this.removeEntity(entity));
         }
 
@@ -3468,9 +3473,9 @@ export class World implements Service {
 
     /** Builds the entity and actor indexes once for every chunk in a save or unload pass. */
     private chunkSaveContext(): ChunkSaveContext {
-        const entities = this.entities?.values() ?? this.getEntities();
-        return createChunkSaveContext(this.dimension.bedrockId, entities, (entity) => {
-            const chunkIndex = this.entityChunkIndices.get(Number(entity.getRuntimeId()));
+        return createChunkSaveContext(this.dimension.bedrockId, this.getActors(), (entity) => {
+            const chunkIndex =
+                entity instanceof StoreActor ? undefined : this.entityChunkIndices.get(Number(entity.getRuntimeId()));
             if (chunkIndex !== undefined) return chunkIndex;
 
             const position = entity.getPosition();
@@ -3576,6 +3581,11 @@ export class World implements Service {
     }
 
     private markEntitiesInChunkChanged(chunk: Chunk): void {
+        if (
+            this.server.getEntityRuntime?.(this.dimension.name) !== undefined &&
+            this.getEntityIndex().storeInChunk(chunk.getX(), chunk.getZ()).length > 0
+        )
+            chunk.markEntitiesChanged();
         for (const entity of this.entities.values()) {
             if (entity instanceof Player) continue;
 
@@ -3768,10 +3778,10 @@ export class World implements Service {
 
         // Entity map insertion order follows spawn timing; runtime ids sort that order, while
         // leaving the ids out of the hash lets a fresh process compare the same actor state.
-        const entities = this.getEntities().sort(byRuntimeId);
-        // Data-driven actors keep component state in their runtime until save time. The digest
-        // hashes the record a save would write into a copy of each body's compound and writes
-        // nothing onto the body, so taking a digest has no side effect.
+        const entities = this.getActors();
+        // A store entity keeps its component state in the store until save time. The digest
+        // hashes the record a save would write into a copy of each actor's compound and writes
+        // nothing onto the actor, so taking a digest has no side effect.
         this.hashEntities(hash, entities, this.dataEntities().savedRecords());
 
         return hash.digest('hex');
@@ -3780,8 +3790,8 @@ export class World implements Service {
     /** Feeds each entity's saved form, attributes and, for a player, inventory into a digest. */
     private hashEntities(
         hash: Hash,
-        entities: readonly Entity[],
-        records: ReadonlyMap<Entity, DataEntityRecord>
+        entities: readonly WorldActor[],
+        records: ReadonlyMap<WorldActor, DataEntityRecord>
     ): void {
         for (const entity of entities) {
             const stream = new BinaryStream();
@@ -3864,6 +3874,15 @@ export class World implements Service {
     }
 
     /**
+     * Marks the chunk a store entity entered, left or moved within, which the entity index
+     * reports, so the next save writes it and it does not leave the world unsaved.
+     * @internal
+     */
+    public storeEntityChunkChanged(chunkX: number, chunkZ: number): void {
+        this.chunks.get(Chunk.packXZ(chunkX, chunkZ))?.markEntitiesChanged();
+    }
+
+    /**
      * Refiles an entity after its position was written, which {@link Entity.relocate} calls.
      *
      * The one writer of both structures that say where a legacy entity is: the entity index,
@@ -3916,14 +3935,14 @@ export class World implements Service {
         const timer = new Timer();
         this.server.getLogger().info(`Saving chunks for level ${this.getFormattedName()}`);
 
-        // A data-driven mob's state lives in the runtime, and the chunk serializer only ever
-        // sees the body. This is where the two meet, once per save rather than once per tick.
+        // A store entity's record is written into its actor's tags once per save rather than once
+        // per tick, and the chunk serializer reads it there.
         this.dataEntities().persist();
         const saveContext = this.chunkSaveContext();
 
-        const entityChunks = new Set(this.entityChunkIndices.values());
         const changed = Array.from(this.chunks.values()).filter(
-            (chunk) => chunk.getHasChanged() || entityChunks.has(Chunk.packXZ(chunk.getX(), chunk.getZ()))
+            (chunk) =>
+                chunk.getHasChanged() || saveContext.entitiesByChunk.has(Chunk.packXZ(chunk.getX(), chunk.getZ()))
         );
         for (let i = 0; i < changed.length; i += SAVE_BATCH_SIZE) {
             for (const chunk of changed.slice(i, i + SAVE_BATCH_SIZE)) {
