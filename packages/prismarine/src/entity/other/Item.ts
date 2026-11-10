@@ -216,7 +216,11 @@ export class Item extends Entity {
 
         const position = this.getPosition();
 
-        for (const other of this.getWorld().getEntityGrid().nearItems(position.getX(), position.getZ(), MERGE_RANGE)) {
+        // From the live index, in runtime id order: a stack another merge took this tick has
+        // already left it, and one that slid over this tick is found where it slid to.
+        for (const other of this.getWorld()
+            .getEntityIndex()
+            .itemsWithin(position.getX(), position.getZ(), MERGE_RANGE)) {
             if (this.taken) return;
             if (!(other instanceof Item) || other === this) continue;
             if (other.taken || other.getRuntimeId() < this.getRuntimeId()) continue;
