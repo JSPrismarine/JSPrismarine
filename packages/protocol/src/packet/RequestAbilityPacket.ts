@@ -1,5 +1,8 @@
 import { AbilityLayerFlag } from '@jsprismarine/minecraft';
 
+import { requestAbilityPacket } from '../wire/definitions/requestAbility';
+import { layoutAt } from '../wire/WireLayout';
+
 import FieldNetworkPacket from '../FieldNetworkPacket';
 
 /** Which of the two value slots in a `RequestAbilityPacket` carries the request. */
@@ -33,17 +36,11 @@ export default class RequestAbilityPacket extends FieldNetworkPacket {
 
     /** Reads the ability, the value type, and both value slots. */
     public decodePayload(): void {
-        this.ability = this.readVarInt();
-        this.valueType = this.readByte();
-        this.boolValue = this.readBoolean();
-        this.floatValue = this.readFloatLE();
+        Object.assign(this, layoutAt(requestAbilityPacket, this.codecProtocol).decode(this));
     }
 
     /** Writes the ability, the value type, and both value slots. */
     public encodePayload(): void {
-        this.writeVarInt(this.ability);
-        this.writeByte(this.valueType);
-        this.writeBoolean(this.boolValue);
-        this.writeFloatLE(this.floatValue);
+        layoutAt(requestAbilityPacket, this.codecProtocol).encode(this, this);
     }
 }

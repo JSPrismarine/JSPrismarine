@@ -1,5 +1,8 @@
 import { InventoryLayout, InventoryLeftTab, InventoryRightTab } from '@jsprismarine/minecraft';
 
+import { setPlayerInventoryOptionsPacket } from '../wire/definitions/setPlayerInventoryOptions';
+import { layoutAt } from '../wire/WireLayout';
+
 import FieldNetworkPacket from '../FieldNetworkPacket';
 
 // All three are generated from Mojang's documentation, where they are `InventoryLeftTabIndex`,
@@ -44,19 +47,11 @@ export default class SetPlayerInventoryOptionsPacket extends FieldNetworkPacket 
 
     /** Reads the five options. */
     public decodePayload(): void {
-        this.leftTab = this.readVarInt();
-        this.rightTab = this.readVarInt();
-        this.filtering = this.readBoolean();
-        this.inventoryLayout = this.readVarInt();
-        this.craftingLayout = this.readVarInt();
+        Object.assign(this, layoutAt(setPlayerInventoryOptionsPacket, this.codecProtocol).decode(this));
     }
 
     /** Writes the five options. */
     public encodePayload(): void {
-        this.writeVarInt(this.leftTab);
-        this.writeVarInt(this.rightTab);
-        this.writeBoolean(this.filtering);
-        this.writeVarInt(this.inventoryLayout);
-        this.writeVarInt(this.craftingLayout);
+        layoutAt(setPlayerInventoryOptionsPacket, this.codecProtocol).encode(this, this);
     }
 }

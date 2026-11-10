@@ -1,5 +1,7 @@
+import { serverSettingsResponsePacket } from '../wire/definitions/serverSettingsResponse';
+import { layoutAt } from '../wire/WireLayout';
+
 import FieldNetworkPacket from '../FieldNetworkPacket';
-import { NetworkUtil } from '../wire/networkUtil';
 
 /**
  * The server's settings form, sent in reply to `ServerSettingsRequestPacket`.
@@ -22,13 +24,11 @@ export default class ServerSettingsResponsePacket extends FieldNetworkPacket {
 
     /** Reads the form id and its JSON. */
     public decodePayload(): void {
-        this.formId = this.readUnsignedVarInt();
-        this.formUiJson = NetworkUtil.readString(this);
+        Object.assign(this, layoutAt(serverSettingsResponsePacket, this.codecProtocol).decode(this));
     }
 
     /** Writes the form id and its JSON. */
     public encodePayload(): void {
-        this.writeUnsignedVarInt(this.formId);
-        NetworkUtil.writeString(this, this.formUiJson);
+        layoutAt(serverSettingsResponsePacket, this.codecProtocol).encode(this, this);
     }
 }

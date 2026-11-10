@@ -1,3 +1,6 @@
+import { simpleEventPacket } from '../wire/definitions/simpleEvent';
+import { layoutAt } from '../wire/WireLayout';
+
 import FieldNetworkPacket from '../FieldNetworkPacket';
 
 /**
@@ -33,11 +36,11 @@ export default class SimpleEventPacket extends FieldNetworkPacket {
 
     /** Reads the subtype. */
     public decodePayload(): void {
-        this.type = this.readUnsignedShortLE();
+        Object.assign(this, layoutAt(simpleEventPacket, this.codecProtocol).decode(this));
     }
 
     /** Writes the subtype. */
     public encodePayload(): void {
-        this.writeUnsignedShortLE(this.type);
+        layoutAt(simpleEventPacket, this.codecProtocol).encode(this, this);
     }
 }

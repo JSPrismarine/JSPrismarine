@@ -141,6 +141,21 @@ import { playerStartItemCooldownPacket } from './playerStartItemCooldown';
 import { playerToggleCrafterSlotRequestPacket } from './playerToggleCrafterSlotRequest';
 import { positionTrackingDBClientRequestPacket } from './positionTrackingDBClientRequest';
 import { removeVolumeEntityPacket } from './removeVolumeEntity';
+import { requestAbilityPacket } from './requestAbility';
+import { requestPermissionsPacket } from './requestPermissions';
+import { scriptMessagePacket } from './scriptMessage';
+import { serverSettingsResponsePacket } from './serverSettingsResponse';
+import { serverStatsPacket } from './serverStats';
+import { setDefaultGameTypePacket } from './setDefaultGameType';
+import { setLastHurtByPacket } from './setLastHurtBy';
+import { setPlayerInventoryOptionsPacket } from './setPlayerInventoryOptions';
+import { settingsCommandPacket } from './settingsCommand';
+import { showProfilePacket } from './showProfile';
+import { simpleEventPacket } from './simpleEvent';
+import { simulationTypePacket } from './simulationType';
+import { tickingAreasLoadStatusPacket } from './tickingAreasLoadStatus';
+import { toastRequestPacket } from './toastRequest';
+import { updateClientInputLocksPacket } from './updateClientInputLocks';
 import type { PacketDefinition } from '../define';
 
 /** The declaratively defined packets, keyed by packet name. */
@@ -275,6 +290,21 @@ export const wireDefinitions: ReadonlyMap<string, PacketDefinition> = new Map(
         playerStartItemCooldownPacket,
         playerToggleCrafterSlotRequestPacket,
         positionTrackingDBClientRequestPacket,
-        removeVolumeEntityPacket
+        removeVolumeEntityPacket,
+        requestAbilityPacket,
+        requestPermissionsPacket,
+        scriptMessagePacket,
+        serverSettingsResponsePacket,
+        serverStatsPacket,
+        setDefaultGameTypePacket,
+        setLastHurtByPacket,
+        setPlayerInventoryOptionsPacket,
+        settingsCommandPacket,
+        showProfilePacket,
+        simpleEventPacket,
+        simulationTypePacket,
+        tickingAreasLoadStatusPacket,
+        toastRequestPacket,
+        updateClientInputLocksPacket
     ].map((definition) => [definition.name, definition])
 );

@@ -1,3 +1,6 @@
+import { setLastHurtByPacket } from '../wire/definitions/setLastHurtBy';
+import { layoutAt } from '../wire/WireLayout';
+
 import FieldNetworkPacket from '../FieldNetworkPacket';
 
 /**
@@ -21,11 +24,11 @@ export default class SetLastHurtByPacket extends FieldNetworkPacket {
 
     /** Reads the actor type. */
     public decodePayload(): void {
-        this.lastHurtBy = this.readVarInt();
+        Object.assign(this, layoutAt(setLastHurtByPacket, this.codecProtocol).decode(this));
     }
 
     /** Writes the actor type. */
     public encodePayload(): void {
-        this.writeVarInt(this.lastHurtBy);
+        layoutAt(setLastHurtByPacket, this.codecProtocol).encode(this, this);
     }
 }
