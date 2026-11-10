@@ -134,7 +134,7 @@ export default class Server extends EventEmitter {
         this.logger.error(error);
     });
     /** Budgets background chunk promotion and lighting independently from network sends. */
-    private readonly chunkCompletionQueue = new ChunkCompletionQueue(undefined, { tick: () => this.getTick() });
+    private readonly chunkCompletionQueue: ChunkCompletionQueue;
     /**
      * The network's view of each world: who is watching it, and what they are told.
      *
@@ -226,6 +226,9 @@ export default class Server extends EventEmitter {
      * @param [options.transport] - A transport to listen on instead of the ones the config
      *   enables, such as an in-process loopback a replay harness drives. `bootstrap` then binds no
      *   socket. Its connections draw their IDs from a `ConnectionIds` of its own.
+     * @param [options.chunkAdmissionBudget] - The most chunk completions one input step admits,
+     *   `CHUNK_ADMISSION_BUDGET_PER_TICK` by default. A replay harness changes it to show that a
+     *   recorded trace, not the budget, decides what a replay admits.
      * @param options.onStopCommandComplete - Called after a successful `/stop` dispatch sends
      *   its feedback.
      * @returns {Server} The server instance.
@@ -238,6 +241,7 @@ export default class Server extends EventEmitter {
         inboundPacketRecorder,
         outboundPacketRecorder,
         transport,
+        chunkAdmissionBudget,
         onStopCommandComplete
     }: {
         logger: Logger;
@@ -247,9 +251,15 @@ export default class Server extends EventEmitter {
         inboundPacketRecorder?: InboundPacketRecorder;
         outboundPacketRecorder?: OutboundPacketRecorder;
         transport?: Transport;
+        chunkAdmissionBudget?: number;
         onStopCommandComplete?: () => void;
     }) {
         super();
+
+        this.chunkCompletionQueue = new ChunkCompletionQueue(undefined, {
+            tick: () => this.getTick(),
+            ...(chunkAdmissionBudget === undefined ? {} : { budget: chunkAdmissionBudget })
+        });
 
         this.headless = headless;
         this.networking = new ServerNetworking(this, inboundPacketRecorder, outboundPacketRecorder, transport);
