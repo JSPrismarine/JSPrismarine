@@ -27,8 +27,7 @@ import { Item as PrismarineItem } from '@jsprismarine/prismarine/item/Item';
 import { resolveTransform } from '@jsprismarine/prismarine/item/blockTransformers';
 import type { ServerContent } from '@jsprismarine/prismarine/content/ServerContent';
 import { brainMobOf } from '@jsprismarine/prismarine/entity/data/brainWorld';
-import { ITEM_COMPONENT } from '@jsprismarine/prismarine/entity/data/droppedItems';
-import { EYE_OF_ENDER_SIGNAL_COMPONENT } from '@jsprismarine/prismarine/entity/data/eyeOfEnderSignals';
+import { spawnDeclared } from '@jsprismarine/prismarine/entity/data/testing';
 import { buildNetworkContentPayloads } from '@jsprismarine/prismarine/network/index';
 import { worldContentGroups } from '@jsprismarine/prismarine/world/contentAdapter';
 import { Dimensions } from '@jsprismarine/prismarine/world/Dimension';
@@ -1608,24 +1607,11 @@ const compareEntityRuntimeCoverage = (
                 registeredNoHookComponents.length;
         }
 
-        const data = type.declaredComponents.includes('jsprismarine:falling_block')
-            ? { block: 'minecraft:stone' }
-            : undefined;
         let entity: ReturnType<EntityRuntime['spawn']>;
         reportContext.identifier = identifier;
         const at = { x: spawnedTypes * 4 + 0.5, y: 64.5, z: 0.5 };
         try {
-            // A dropped stack and an eye of ender hold host state a bare spawn has none of, so
-            // they come in through the systems that run them, as the server spawns them.
-            entity = type.declaredComponents.includes(ITEM_COMPONENT)
-                ? runtime.droppedItems.spawn(at, { stack: { name: 'minecraft:stone', count: 1 } })
-                : type.declaredComponents.includes(EYE_OF_ENDER_SIGNAL_COMPONENT)
-                  ? runtime.eyesOfEnder.launch(
-                        at,
-                        { x: at.x + 100, y: 0, z: at.z },
-                        { name: 'minecraft:ender_eye', count: 1 }
-                    )
-                  : runtime.spawn(identifier, at, data === undefined ? {} : { data });
+            entity = spawnDeclared(runtime, identifier, at);
         } catch (error) {
             const reason = error instanceof Error ? error.message : String(error);
             gaps.push(`spawn-failed:${identifier}:${reason}`);

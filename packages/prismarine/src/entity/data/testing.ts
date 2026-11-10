@@ -11,6 +11,7 @@
  * the real goal and brain packages. Nothing here is a mock of the runtime.
  */
 import { BlockPalette, BlockStateModel } from '@jsprismarine/blocks';
+import type { EntityPosition } from '@jsprismarine/entities';
 import type { VillagerRaidEffect, VillagerRaidState } from '@jsprismarine/entity-brains';
 import type { Definitions } from '@jsprismarine/packs';
 
@@ -32,7 +33,9 @@ import { buildServerContent } from '../../content/ServerContent';
 import type { ServerContent } from '../../content/ServerContent';
 import { entityContentGroups } from '../contentAdapter';
 import type { DataEntity } from './DataEntity';
+import { ITEM_COMPONENT } from './droppedItems';
 import { EntityRuntime } from './EntityRuntime';
+import { EYE_OF_ENDER_SIGNAL_COMPONENT } from './eyeOfEnderSignals';
 import type { ContentItemEntity, EntityHostFacts, EntityWorldFacts } from './host';
 
 /**
@@ -656,4 +659,34 @@ export const entityFixture = (
 
     content = buildServerContent(entityContentOptions({ world: singleDimension(adapter), ...overrides }, extra));
     return { content, runtime, world, adapter, reports, spawned, removed };
+};
+
+/**
+ * Spawns one entity of any type the content declares, with the host state the types that need
+ * one are given where the server spawns them: a falling block its block, a dropped stack a stack
+ * and an eye of ender a flight. A bare spawn of either of the last two is refused, because
+ * neither means anything without its state.
+ *
+ * @param runtime - The runtime to spawn into.
+ * @param identifier - The entity type.
+ * @param at - Where it starts.
+ * @returns The entity, or undefined when the runtime refused it.
+ */
+export const spawnDeclared = (
+    runtime: EntityRuntime,
+    identifier: string,
+    at: EntityPosition
+): DataEntity | undefined => {
+    const declared = runtime.content().entities.registry.get(identifier)?.declaredComponents ?? [];
+    if (declared.includes(ITEM_COMPONENT))
+        return runtime.droppedItems.spawn(at, { stack: { name: 'minecraft:stone', count: 1 } });
+    if (declared.includes(EYE_OF_ENDER_SIGNAL_COMPONENT))
+        return runtime.eyesOfEnder.launch(
+            at,
+            { x: at.x + 100, y: 0, z: at.z },
+            { name: 'minecraft:ender_eye', count: 1 }
+        );
+    if (declared.includes('jsprismarine:falling_block'))
+        return runtime.spawn(identifier, at, { data: { block: 'minecraft:stone' } });
+    return runtime.spawn(identifier, at);
 };

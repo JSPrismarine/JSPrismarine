@@ -6,7 +6,7 @@ import { singleDimension } from '../../content/world/adapter';
 import { entityContentGroups } from '../contentAdapter';
 import { EntityRuntime } from './EntityRuntime';
 import { dataEntityRecordOf } from './persistence';
-import { TestEntityWorld } from './testing';
+import { spawnDeclared, TestEntityWorld } from './testing';
 
 describe.skipIf(!process.env.JSP_CONTENT_VANILLA)(
     'the runtime over every vanilla entity definition',
@@ -101,8 +101,7 @@ describe.skipIf(!process.env.JSP_CONTENT_VANILLA)(
                     y: 64,
                     z: 0.5 + Math.floor(index / 12) * 3
                 };
-                const spawnData = identifier === 'minecraft:falling_block' ? { block: 'minecraft:stone' } : undefined;
-                const entity = runtime.spawn(identifier, position, spawnData === undefined ? {} : { data: spawnData });
+                const entity = spawnDeclared(runtime, identifier, position);
                 if (entity === undefined) throw new Error(`${identifier} did not produce a runtime entity`);
 
                 const record = dataEntityRecordOf(entity, undefined);
