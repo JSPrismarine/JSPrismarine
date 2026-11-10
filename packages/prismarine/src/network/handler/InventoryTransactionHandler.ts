@@ -29,6 +29,7 @@ import {
     ItemUseOnActorActionType
 } from '@jsprismarine/protocol';
 import { MAX_BLOCK_TARGET_DISTANCE } from './BlockTarget';
+import { EyeOfEnderEcho } from './eyeOfEnderEcho';
 import type PacketHandler from './PacketHandler';
 
 /**
@@ -57,8 +58,8 @@ const ENDER_EYE = 'minecraft:ender_eye';
  */
 const EYE_ECHO_TICKS = 2;
 
-/** The tick each player last used an eye of ender on a block. */
-const eyeUsedOnBlockAt = new WeakMap<Player, number>();
+/** The eye of ender block uses whose air-use echo is still due. */
+const eyeEcho = new EyeOfEnderEcho(EYE_ECHO_TICKS);
 
 /**
  * One right click on a block, offered to the content hooks.
@@ -529,7 +530,7 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
                     // in hand goes down when neither takes it. What a click they all decline
                     // gets is nothing: the item places no block, so the client predicted none.
                     if (player.getInventory().getItemInHand().getName() === ENDER_EYE) {
-                        eyeUsedOnBlockAt.set(player, server.getTick());
+                        eyeEcho.usedOnBlock(player.getRuntimeId(), server.getTick());
                     }
                     contentUse(server, player, data, interactionRotation);
                     return;
@@ -560,8 +561,7 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
                 // a click that was just used on a block. In particular, after the frame hook fills
                 // a frame, neither a simulation tick nor the click's own echo may throw the eye.
                 if (player.getInventory().getItemInHand().getName() === ENDER_EYE) {
-                    const onBlockAt = eyeUsedOnBlockAt.get(player);
-                    const echo = onBlockAt !== undefined && Math.abs(server.getTick() - onBlockAt) <= EYE_ECHO_TICKS;
+                    const echo = eyeEcho.isEcho(player.getRuntimeId(), server.getTick());
                     if (data.triggerType === SIMULATION_TICK_TRIGGER || echo) return;
                 }
 
