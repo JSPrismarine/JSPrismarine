@@ -19,8 +19,8 @@ import type { Attributes } from '@jsprismarine/protocol/wire/structures/Attribut
 
 import type { ExperienceHolder } from './Experience';
 import type { StoredSpawnPoint } from '../world/RespawnPoint';
-import type { PlainData } from '../world/changelog/PlainData';
-import { isPlainRecord } from '../world/changelog/PlainData';
+import type { PlainData, PlainRecord } from '../world/changelog/PlainData';
+import { isPlainRecord, plainOf } from '../world/changelog/PlainData';
 import { booleanField, numberField, optionalNumberField } from './data/entityFields';
 
 /** Every logged component field of a player, by the name its entries carry, with its value. */
@@ -138,6 +138,8 @@ const FIELDS: { readonly [F in PlayerComponentField]: FieldDescriptor<PlayerComp
 
 const isComponentField = (field: string): field is PlayerComponentField => Object.hasOwn(FIELDS, field);
 
+const COMPONENT_FIELDS: readonly PlayerComponentField[] = Object.keys(FIELDS).filter(isComponentField);
+
 /** Hears one write to a component field, with its value before and after. */
 export type PlayerComponentWritten = <F extends PlayerComponentField>(
     field: F,
@@ -176,6 +178,11 @@ export class PlayerComponents {
         descriptor.write(this.home, value);
         const after = descriptor.read(this.home);
         if (before !== after) this.written(field, before, after);
+    }
+
+    /** Every field's value as plain data, by field name, which the replay digest hashes. */
+    public snapshot(): PlainRecord {
+        return Object.fromEntries(COMPONENT_FIELDS.map((field) => [field, plainOf(this.get(field)) ?? null]));
     }
 
     /** The experience fields as the holder the experience curve spends and grants through. */

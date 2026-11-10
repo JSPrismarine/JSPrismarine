@@ -372,10 +372,11 @@ describe('a world tick and its change log', () => {
         };
 
         it.each(PLAYER_COMPONENT_WRITES)(
-            'logs a write to $field once, and undoes it',
+            'logs a write to $field once, and undoes it to the same digest',
             async ({ field, write, read }) => {
                 const { world, player } = await survivalPlayer();
                 const before = read(player);
+                const digest = world.replayStateDigest();
                 world.beginChangeTick();
 
                 const outcome = await world.getEntityStore().unitAsync(async () => {
@@ -387,6 +388,7 @@ describe('a world tick and its change log', () => {
                 expect(outcome.failed).toBe(true);
                 expect(world.lastChangeTick()?.entries).toEqual([]);
                 expect(read(player)).toEqual(before);
+                expect(world.replayStateDigest()).toBe(digest);
 
                 world.beginChangeTick();
                 await write(player);
