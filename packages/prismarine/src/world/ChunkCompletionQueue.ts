@@ -1,5 +1,7 @@
 import type { GenerationPriority } from '@jsprismarine/chunkgen';
 import { profileCounterRecorder } from '../profiling/ServerProfiler';
+import type { ChunkAdmissionScheduler } from './ChunkAdmissions';
+import { ChunkAdmissions } from './ChunkAdmissions';
 
 /** A deferred chunk completion, with the work class used for fair service. */
 interface Completion {
@@ -33,6 +35,12 @@ export interface ChunkCompletionQueueSnapshot {
 
 /** The worker result and loaded-chunk work the ticker may defer. */
 export interface ChunkCompletionScheduler {
+    /**
+     * Where a world holds a chunk that is ready to enter or leave it until the input step admits
+     * it. Absent on a scheduler without one, and a world then applies the change at once.
+     */
+    readonly admissions?: ChunkAdmissionScheduler;
+
     /** Runs now while the ticker is inactive, or settles when the ticker drains the queued work. */
     defer<T>(work: () => T, options?: { priority?: GenerationPriority; label?: string; key?: string }): Promise<T>;
 
@@ -49,11 +57,16 @@ export interface ChunkCompletionScheduler {
     record?(label: string, ms: number): void;
 }
 
-/** The completion slice is independent from the time reserved for sending chunk packets. */
+/**
+ * The completion slice is independent from the time reserved for sending chunk packets. It bounds
+ * the work that prepares a chunk, such as translating a worker's result, and never what a tick
+ * sees: a prepared chunk still waits for an input step to admit it ({@link ChunkAdmissions}).
+ */
 export const DEFAULT_CHUNK_COMPLETION_BUDGET_MS = 2;
 
 /**
- * Fair, time-bounded work behind chunk completion.
+ * Fair, time-bounded work behind chunk completion, and the {@link ChunkAdmissions} that make a
+ * completed chunk visible to the simulation.
  *
  * Promise reactions from worker pools can finish in a large burst. This queue keeps expensive
  * promotion and lighting work out of that burst, then spends a separate slice on it each tick.
@@ -91,7 +104,19 @@ export class ChunkCompletionQueue implements ChunkCompletionScheduler {
     private peakPending = 0;
     private readonly byLabel = new Map<string, { completed: number; cpuMs: number; maxQueueAgeMs: number }>();
 
-    public constructor(private readonly now: () => number = () => performance.now()) {}
+    /** Chunks ready to enter or leave a world, held for the input step. */
+    public readonly admissions: ChunkAdmissions;
+
+    /**
+     * @param now - The clock the drain budget and the queue statistics read.
+     * @param admissions - The tick source and count budget of {@link admissions}.
+     */
+    public constructor(
+        private readonly now: () => number = () => performance.now(),
+        admissions: { readonly tick?: () => number; readonly budget?: number } = {}
+    ) {
+        this.admissions = new ChunkAdmissions(admissions.tick, admissions.budget);
+    }
 
     /** Whether completions currently wait for the ticker. */
     public get isActive(): boolean {
@@ -174,15 +199,20 @@ export class ChunkCompletionQueue implements ChunkCompletionScheduler {
         this.byLabel.set(label, stats);
     }
 
-    /** Starts tick-bounded completion processing. */
+    /** Starts tick-bounded completion processing, and holds completed chunks for the input step. */
     public activate(): void {
         this.active = true;
+        this.admissions.activate();
     }
 
-    /** Stops deferring work and settles the queue before world teardown or a disabled tick loop. */
+    /**
+     * Stops deferring work and settles the queue before world teardown or a disabled tick loop.
+     * Held chunk admissions are applied too, one after another, after this returns.
+     */
     public deactivate(): void {
         this.active = false;
         while (this.pendingCount > 0) this.runNext();
+        void this.admissions.deactivate();
     }
 
     /**

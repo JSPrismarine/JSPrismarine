@@ -11,6 +11,7 @@ import { ServerTicker, tickerModule } from './ticker';
 import type { TickerServer } from './ticker';
 import { tickerToken } from './tokens';
 import { ChunkCompletionQueue } from '../world/ChunkCompletionQueue';
+import { insideTick } from '../world/TickContext';
 
 /** One tick period of the loop under test, in milliseconds. */
 const TICK_MS = 50;
@@ -142,6 +143,52 @@ describe('modules/ticker', () => {
         // Worker records polled at the end of one tick reach the input step of the next, as a
         // frame the socket transport delivers during the tick does.
         expect(order).toEqual(['inputs', 'tick', 'world', 'functions', 'network']);
+    });
+
+    it('runs the simulation phases inside the tick, and chunk delivery and the poll outside it', async () => {
+        const inside: Record<string, boolean> = {};
+        const harness = buildHarness({
+            isTickingEnabled: () => false,
+            admitInputs: async () => {
+                inside.inputs = insideTick();
+                return 0;
+            },
+            emitTick: async () => {
+                inside.tick = insideTick();
+            },
+            getWorlds: () => [
+                {
+                    getName: () => 'world',
+                    update: async () => {
+                        inside.world = insideTick();
+                    }
+                }
+            ],
+            tickFunctions: async () => {
+                inside.functions = insideTick();
+            },
+            getChunkScheduler: () => ({
+                setBudget: () => {},
+                tick: async () => {
+                    inside.chunkScheduler = insideTick();
+                }
+            }),
+            pollNetwork: () => {
+                inside.network = insideTick();
+                return 0;
+            }
+        });
+
+        await harness.ticker.advance();
+
+        expect(inside).toEqual({
+            inputs: true,
+            tick: true,
+            world: true,
+            functions: true,
+            chunkScheduler: false,
+            network: false
+        });
     });
 
     it('polls the network even when the work of the tick throws', async () => {
