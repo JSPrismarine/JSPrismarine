@@ -27,7 +27,8 @@ import type { World } from '../world/World';
 import { DEFAULT_FUSE_TICKS, randomShortFuse } from './fuse';
 import { DamageCause } from './DamageCause';
 import { DamageSource } from './DamageSource';
-import type { Entity } from './Entity';
+import type { WorldActor } from '../world/WorldActor';
+import { byRuntimeId } from '../world/WorldActor';
 
 /**
  * Where an entity's eyes are, as a fraction of its height.
@@ -46,14 +47,14 @@ export interface ExplosionOptions {
     /** Java's radius: TNT is 4, a creeper 3, a charged creeper 6. */
     power: number;
     /** Whoever set it off, so a death can be reported as their doing. */
-    source?: Entity | null;
+    source?: WorldActor | null;
     /** Whether it takes blocks out as well as hurting things. */
     breaksBlocks?: boolean;
 }
 
 /** An entity paired with the geometry the ray math reads off it. */
 interface CaughtEntity extends ExplosionEntity {
-    readonly entity: Entity;
+    readonly entity: WorldActor;
 }
 
 /**
@@ -106,7 +107,7 @@ export const explode = async (world: World, at: Vector3, options: ExplosionOptio
             if (!entity.isAlive()) return;
 
             const blow = new DamageSource({ cause: DamageCause.Explosion, attacker: source });
-            // A data-driven entity takes the blow through the entity store's damage pipeline.
+            // A store entity takes the blow through the store's damage pipeline.
             if (world.dataEntities().damageEntity(entity, hit.damage, blow, 'explosion') === undefined)
                 await entity.damage(hit.damage, blow);
             shove(entity, hit.knockback);
@@ -137,7 +138,7 @@ const explosionWorldOf = (world: World): ExplosionWorld => createEngineWorld(wor
  * The blast has already written air over the block by the time this runs, so there is nothing
  * to clear first.
  */
-const primeTnt = async (world: World, at: BlockPosition, source: Entity | null): Promise<void> => {
+const primeTnt = async (world: World, at: BlockPosition, source: WorldActor | null): Promise<void> => {
     const [allowed] = world.getGameRuleManager().getGameRule(GameRules.TNTExplodes) ?? [true];
     if (!allowed) return;
 
@@ -166,46 +167,45 @@ const griefingAllowed = (world: World): boolean => {
 };
 
 /**
- * How much wider than the blast's reach the candidate search looks, in blocks.
- *
- * The index finds a data-driven mob where the runtime put it, and the blast measures the body a
- * client is shown, which catches up at the end of the runtime's tick. Four blocks covers a mob
- * that a knockback threw this tick.
- */
-const BODY_LAG_SLACK = 4;
-
-/**
  * Everything that might be caught, with its box, its feet and its eyes.
  *
  * From the world's entity index rather than every entity in the world, so an entity that moved
  * earlier in the tick is caught where it now stands and one taken out of the world is not caught
- * at all. The engine accepts anything within its reach plus a block and runs the range test
- * itself; the search looks a little further for the reason {@link BODY_LAG_SLACK} gives. In
+ * at all. The legacy entities and the store's come from one index, a store entity as its actor.
+ * The engine accepts anything within its reach plus a block and runs the range test itself. In
  * ascending runtime id order, which is the order the hits come back in.
  */
-const entitiesNear = (world: World, at: Vector3, power: number): readonly CaughtEntity[] =>
-    world
-        .getEntityIndex()
-        .legacyWithin(at.getX(), at.getZ(), power * EXPLOSION_ENTITY_REACH + 1 + BODY_LAG_SLACK)
-        .map((entity) => {
-            const position = entity.getPosition();
-            const { width, height } = entity.getBox();
-            const feet = { x: position.getX(), y: entity.getFeetY(), z: position.getZ() };
+const entitiesNear = (world: World, at: Vector3, power: number): readonly CaughtEntity[] => {
+    const index = world.getEntityIndex();
+    const live = world.dataEntities();
+    const radius = power * EXPLOSION_ENTITY_REACH + 1;
+    const near: WorldActor[] = index.legacyWithin(at.getX(), at.getZ(), radius);
+    for (const entity of index.storeWithin(at.getX(), at.getZ(), radius)) {
+        const actor = live.actors.actorOf(entity.id);
+        if (actor !== undefined) near.push(actor);
+    }
+    near.sort(byRuntimeId);
 
-            return {
-                entity,
-                position: feet,
-                eye: { x: feet.x, y: feet.y + height * EYE_HEIGHT_FRACTION, z: feet.z },
-                box: {
-                    minX: feet.x - width / 2,
-                    minY: feet.y,
-                    minZ: feet.z - width / 2,
-                    maxX: feet.x + width / 2,
-                    maxY: feet.y + height,
-                    maxZ: feet.z + width / 2
-                }
-            };
-        });
+    return near.map((entity) => {
+        const position = entity.getPosition();
+        const { width, height } = entity.getBox();
+        const feet = { x: position.getX(), y: entity.getFeetY(), z: position.getZ() };
+
+        return {
+            entity,
+            position: feet,
+            eye: { x: feet.x, y: feet.y + height * EYE_HEIGHT_FRACTION, z: feet.z },
+            box: {
+                minX: feet.x - width / 2,
+                minY: feet.y,
+                minZ: feet.z - width / 2,
+                maxX: feet.x + width / 2,
+                maxY: feet.y + height,
+                maxZ: feet.z + width / 2
+            }
+        };
+    });
+};
 
 /**
  * Takes one block out through the content hooks and keeps what it yielded.
@@ -239,7 +239,7 @@ const collectDrops = (
  * horizontal direction and a strength and works out its own lift, so the horizontal part
  * carries over exactly and the vertical part is the server's rather than Java's.
  */
-const shove = (entity: Entity, knockback: { x: number; y: number; z: number }): void => {
+const shove = (entity: WorldActor, knockback: { x: number; y: number; z: number }): void => {
     const flat = Math.hypot(knockback.x, knockback.z);
     if (flat < Number.EPSILON) return;
 

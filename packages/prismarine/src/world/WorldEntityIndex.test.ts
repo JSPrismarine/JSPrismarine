@@ -31,7 +31,7 @@ const indexedWorld = () => {
         runtime: fixture.runtime,
         bodies: stub<LiveBodies>({ entityIdOf: (entity) => bodies.get(entity) }),
         itemBodies: stub<ItemBodies>({ entityIdOf: (entity) => bodies.get(entity) }),
-        actors: stub<StoreActors>({ all: () => [][Symbol.iterator]() }),
+        actors: stub<StoreActors>({ all: () => [][Symbol.iterator](), actorOf: () => undefined }),
         removeBody: () => false,
         restoreExisting: () => undefined
     });
@@ -131,7 +131,7 @@ describe('the entity index over a world', () => {
         expect(finds(world, player, 0.5, 0.5)).toBe(false);
     });
 
-    it('answers a legacy query with data entities and legacy entities in ascending runtime id order', async () => {
+    it('answers a legacy query with the legacy entities only, in ascending runtime id order', async () => {
         const { world, bodies, runtime } = indexedWorld();
         const cow = runtime.spawn('minecraft:cow', { x: 0.5, y: Y, z: 0.5 });
         if (cow === undefined) throw new Error('the fixture declares no cow');
@@ -150,10 +150,9 @@ describe('the entity index over a world', () => {
         await world.addEntity(item);
         await world.addEntity(body);
 
-        const found = world.getEntityIndex().legacyWithin(1, 0.5, 4);
-        expect(found).toEqual([body, item, player]);
-        // The body is the data entity's, so it is one entry, not two.
-        expect(found.filter((entity) => entity === body)).toHaveLength(1);
+        // A store entity other than a dropped stack is found through `storeWithin`, as its actor.
+        expect(world.getEntityIndex().legacyWithin(1, 0.5, 4)).toEqual([item, player]);
+        expect(world.getEntityIndex().storeWithin(1, 0.5, 4)).toEqual([cow]);
     });
 
     it('leaves nothing behind once everything it filed is removed', async () => {

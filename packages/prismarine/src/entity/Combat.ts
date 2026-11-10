@@ -2,6 +2,7 @@ import type { Vector3 } from '@jsprismarine/math';
 import { LevelEvent, LevelSoundEvent } from '@jsprismarine/minecraft';
 import { meleeEnchantmentBonus } from '../enchantment/melee';
 import { GameRules } from '../world/GameRuleManager';
+import type { WorldActor } from '../world/WorldActor';
 import { AttributeIds } from '@jsprismarine/protocol/wire/structures/Attribute';
 import { DamageCause } from './DamageCause';
 import { DamageSource } from './DamageSource';
@@ -75,7 +76,7 @@ export interface MeleeOptions {
  * @param {Entity} target - Who is being reached for.
  * @returns {number} Blocks to the nearest point of the target's body; zero if inside it.
  */
-export const distanceToBody = (from: Vector3, target: Entity): number => {
+export const distanceToBody = (from: Vector3, target: WorldActor): number => {
     const at = target.getPosition();
     const { width, height } = target.getBox();
     const half = width / 2;
@@ -101,7 +102,7 @@ export const distanceToBody = (from: Vector3, target: Entity): number => {
  * @param {Entity} target - Who at.
  * @returns {boolean} `true` if the blow is permitted.
  */
-export const canHarm = (attacker: Entity, target: Entity): boolean => {
+export const canHarm = (attacker: Entity, target: WorldActor): boolean => {
     if (attacker === target || !target.isAlive()) return false;
 
     // A fight cannot cross worlds, and the runtime id a client names is only unique within one.
@@ -130,7 +131,11 @@ export const canHarm = (attacker: Entity, target: Entity): boolean => {
  * await meleeAttack(player, zombie, { reach: SURVIVAL_REACH, damage: sword.getAttackDamage() });
  * ```
  */
-export const meleeAttack = async (attacker: Entity, target: Entity, options: MeleeOptions = {}): Promise<boolean> => {
+export const meleeAttack = async (
+    attacker: Entity,
+    target: WorldActor,
+    options: MeleeOptions = {}
+): Promise<boolean> => {
     const { reach = DEFAULT_REACH, critical = false, knockbackLevels = 0 } = options;
 
     if (!canHarm(attacker, target)) return false;
@@ -163,7 +168,7 @@ export const meleeAttack = async (attacker: Entity, target: Entity, options: Mel
 
     // Something that does no damage still makes a noise, because the alternative is a swing that
     // produces nothing at all and reads as the server having missed the packet.
-    // A data-driven target takes the blow through the entity store's damage pipeline.
+    // A store entity takes the blow through the store's damage pipeline.
     const source = DamageSource.entity(attacker, shove);
     const landed =
         damage > NO_DAMAGE &&

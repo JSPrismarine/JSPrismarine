@@ -37,6 +37,7 @@ import type { Entity } from '../Entity';
 import type { DataEntity } from './DataEntity';
 import { squaredDistance } from './DataEntity';
 import { ITEM_ENTITY } from './droppedItems';
+import { byRuntimeId } from '../../world/WorldActor';
 
 /**
  * How wide one cell is, as the shift that divides a coordinate by it.
@@ -307,12 +308,9 @@ export class EntityIndex {
     }
 
     /**
-     * Every entity the world holds within a horizontal radius of a point, as
-     * the legacy classes see them, in ascending runtime id order.
-     *
-     * A data entity answers with its body and is found by where the runtime
-     * put it, which the body catches up with at the end of the runtime's tick.
-     * A data entity whose body the world does not hold yet is left out.
+     * The legacy entities the world holds within a horizontal radius of a point, in ascending
+     * runtime id order: players, and the body of each dropped stack, found where its stack lies.
+     * The store's other entities are found through {@link EntityIndex.storeWithin}.
      */
     public legacyWithin(x: number, z: number, radius: number): Entity[] {
         if (radius < 0) return [];
@@ -331,31 +329,46 @@ export class EntityIndex {
         const highZ = cellOf(z + radius);
         for (let cellX = lowX; cellX <= highX; cellX += 1)
             for (let cellZ = lowZ; cellZ <= highZ; cellZ += 1) {
-                const key = keyOf(cellX, cellZ);
-                const legacy = this.legacyCells.get(key);
-                if (legacy !== undefined) {
-                    this.examined += legacy.length;
-                    for (const entity of legacy) {
-                        const position = entity.getPosition();
-                        const dx = position.getX() - x;
-                        const dz = position.getZ() - z;
-                        if (dx * dx + dz * dz <= reach) found.push(entity);
-                    }
-                }
-
-                const data = this.cells.get(key);
-                if (data === undefined) continue;
-                this.examined += data.length;
-                for (const entity of data) {
-                    const body = this.bodies.get(entity.id);
-                    if (body === undefined) continue;
-                    const dx = entity.position.x - x;
-                    const dz = entity.position.z - z;
-                    if (dx * dx + dz * dz <= reach) found.push(body);
+                const legacy = this.legacyCells.get(keyOf(cellX, cellZ));
+                if (legacy === undefined) continue;
+                this.examined += legacy.length;
+                for (const entity of legacy) {
+                    const position = entity.getPosition();
+                    const dx = position.getX() - x;
+                    const dz = position.getZ() - z;
+                    if (dx * dx + dz * dz <= reach) found.push(entity);
                 }
             }
 
         return inRuntimeIdOrder(found);
+    }
+
+    /**
+     * The store's entities other than dropped stacks within a horizontal radius of a point, in
+     * ascending runtime id order. Horizontal, as a blast asks: it applies its own exact reach.
+     */
+    public storeWithin(x: number, z: number, radius: number): DataEntity[] {
+        if (radius < 0) return [];
+
+        const found: DataEntity[] = [];
+        const reach = radius * radius;
+        const lowX = cellOf(x - radius);
+        const highX = cellOf(x + radius);
+        const lowZ = cellOf(z - radius);
+        const highZ = cellOf(z + radius);
+        for (let cellX = lowX; cellX <= highX; cellX += 1)
+            for (let cellZ = lowZ; cellZ <= highZ; cellZ += 1) {
+                const data = this.cells.get(keyOf(cellX, cellZ));
+                if (data === undefined) continue;
+                this.examined += data.length;
+                for (const entity of data) {
+                    const dx = entity.position.x - x;
+                    const dz = entity.position.z - z;
+                    if (dx * dx + dz * dz <= reach) found.push(entity);
+                }
+            }
+
+        return inIdOrder(found);
     }
 
     /** Moves one entity to the cell it stands in now, which a position write calls. */
@@ -743,11 +756,6 @@ const inIdOrder = (found: DataEntity[]): DataEntity[] => {
 /** Puts legacy entities in ascending runtime id order, checking first as {@link inIdOrder} does. */
 const inRuntimeIdOrder = (found: Entity[]): Entity[] => {
     for (let index = 1; index < found.length; index += 1)
-        if (found[index - 1]!.getRuntimeId() > found[index]!.getRuntimeId())
-            return found.sort((a, b) => {
-                const left = a.getRuntimeId();
-                const right = b.getRuntimeId();
-                return left < right ? -1 : left > right ? 1 : 0;
-            });
+        if (found[index - 1]!.getRuntimeId() > found[index]!.getRuntimeId()) return found.sort(byRuntimeId);
     return found;
 };
