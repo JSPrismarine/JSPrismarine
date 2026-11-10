@@ -119,8 +119,8 @@ export const intentOfHealthWrite = (
 
 /** The legacy `DamageSource` a committed intent is reported to plugins and advancements as. */
 export const legacySourceOfIntent = (world: World, intent: DamageIntent): DamageSource => {
-    const attacker = intent.attacker === undefined ? null : world.getEntity(BigInt(intent.attacker));
-    const projectile = intent.projectile === undefined ? null : world.getEntity(BigInt(intent.projectile));
+    const attacker = intent.attacker === undefined ? null : world.getActor(BigInt(intent.attacker));
+    const projectile = intent.projectile === undefined ? null : world.getActor(BigInt(intent.projectile));
     const cause = damageCauseOf(intent.cause);
     const facts = intent.source;
     if (

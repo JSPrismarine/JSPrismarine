@@ -32,7 +32,7 @@ const worldWithStore = () => {
     const live = stub<LiveEntityRuntime>({
         runtime: fixture.runtime,
         bodies: stub<LiveBodies>({ entityIdOf: () => undefined }),
-        actors: stub<StoreActors>({ all: () => [][Symbol.iterator]() }),
+        actors: stub<StoreActors>({ all: () => [][Symbol.iterator](), actorOf: () => undefined }),
         tick: async (tick) => fixture.runtime.tick(tick),
         persist: () => {},
         savedRecords: () => new Map(),

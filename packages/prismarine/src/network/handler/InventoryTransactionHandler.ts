@@ -112,7 +112,7 @@ const contentUseOnEntity = (server: Server, player: Player, data: UseItemOnEntit
     const content = server.getContent();
     const actors = server.getContentWorld().actorsAt(player.getWorld().getDimension().name);
 
-    const target = player.getWorld().getEntity(data.entityRuntimeId);
+    const target = player.getWorld().getActor(data.entityRuntimeId);
     if (target === null) return 'declined';
     const position = target.getPosition();
 
@@ -423,7 +423,7 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
 
         if (data.actionType !== ItemUseOnActorActionType.ATTACK) return;
 
-        const target = player.getWorld().getEntity(data.entityRuntimeId);
+        const target = player.getWorld().getActor(data.entityRuntimeId);
         if (!target) {
             server
                 .getLogger()

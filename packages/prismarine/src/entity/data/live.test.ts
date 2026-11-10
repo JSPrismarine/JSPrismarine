@@ -1696,6 +1696,18 @@ describe('the data-driven entity runtime over a live world', () => {
                 expect(cow.instance.attributes.get('health')?.current ?? 0).toBeLessThan(10);
             });
 
+            it('lets a legacy blast hurt and throw a store mob through its actor', async () => {
+                const cow = live.runtime.spawn('minecraft:cow', { x: 2.5, y: GROUND_Y, z: 0.5 });
+                if (cow === undefined) throw new Error('the fixture declares no cow');
+                const before = cow.instance.attributes.get('health')?.current ?? 0;
+
+                await explode(world, new Vector3(0.5, GROUND_Y, 0.5), { power: 3, breaksBlocks: false });
+
+                expect(cow.instance.attributes.get('health')?.current ?? 0).toBeLessThan(before);
+                // Thrown away from the blast, which is to its west.
+                expect(cow.body.velocity.x).toBeGreaterThan(0);
+            });
+
             it('takes /damage and /kill as commands', async () => {
                 const { cow, body } = await cowAt(1.5);
                 const host = entityCommandHost(world.getServer(), new Scoreboard());
