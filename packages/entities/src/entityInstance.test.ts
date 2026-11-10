@@ -431,6 +431,43 @@ describe('damage', () => {
 
         expect(entity.hasComponent('minecraft:is_shaking')).toBe(true);
     });
+
+    it('senses a blow without queuing its event or touching the health', () => {
+        const { types } = load(creeper);
+        const entity = types.spawn('test:creeper');
+
+        expect(entity.senseDamage({ cause: 'lightning', amount: 5 })).toEqual({
+            amount: 0,
+            multiplier: 0,
+            blocked: true,
+            events: ['test:charged']
+        });
+        expect(entity.queued()).toEqual([]);
+        expect(entity.attributes.get('health')?.current).toBe(20);
+
+        const result = entity.applyDamage({ cause: 'lightning', amount: 5 }, 0, ['test:charged']);
+        expect(result).toEqual({ amount: 0, health: 20, died: false, events: ['test:charged'] });
+        entity.tick();
+        expect(entity.hasComponent('minecraft:is_shaking')).toBe(true);
+    });
+
+    it('hands component damage to the environment when it routes damage', () => {
+        const routed: string[] = [];
+        const { types } = load(creeper);
+        const entity = types.spawn('test:creeper', {
+            environment: {
+                damage: (_entity, event) => {
+                    routed.push(`${event.cause}:${event.amount}`);
+                    return { amount: 0, died: false, events: [] };
+                }
+            }
+        });
+
+        entity.damage({ cause: 'drowning', amount: 2 });
+
+        expect(routed).toEqual(['drowning:2']);
+        expect(entity.attributes.get('health')?.current).toBe(20);
+    });
 });
 
 describe('environment sensors', () => {
