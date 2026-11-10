@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
-import type { ServerNameSnapshot } from '@jsprismarine/raknet';
 import { decodeLanAdvertisement, encodeLanAdvertisement, lanAdvertisementOf } from './LanAdvertisement';
 import type { LanAdvertisement } from './LanAdvertisement';
+import type { NetherNetStatus } from './NetherNetStatus';
 
 /**
  * What Bedrock Dedicated Server 1.26.51.1 answered a discovery request on UDP 7551 with, captured
@@ -39,27 +39,19 @@ describe('network/nethernet/LanAdvertisement', () => {
         expect(encodeLanAdvertisement(BDS_FIELDS).toString('hex')).toBe(BDS_ADVERTISEMENT.toString('hex'));
     });
 
-    it('builds the advertisement from the status every transport advertises', () => {
-        const status: ServerNameSnapshot = {
-            motd: 'A server',
-            name: 'JSRakNet',
-            protocol: 2193,
-            version: '1.26.51',
-            onlinePlayers: 3,
-            maxPlayers: 20,
-            gamemode: 'creative',
-            serverId: '1',
-            port: 19132
-        };
-
-        expect(lanAdvertisementOf(status, 'world', true, 'abc')).toStrictEqual({
+    it('adds what only the LAN advertisement says to the shared status', () => {
+        const status: NetherNetStatus = {
             motd: 'A server',
             levelName: 'world',
             protocol: 2193,
             version: '1.26.51',
             playerCount: 3,
             maxPlayers: 20,
-            gameType: 1,
+            gameType: 1
+        };
+
+        expect(lanAdvertisementOf(status, true, 'abc')).toStrictEqual({
+            ...status,
             editorWorld: false,
             hardcore: false,
             // Bedrock Dedicated Server stops accepting self-signed logins in online mode.
@@ -68,7 +60,7 @@ describe('network/nethernet/LanAdvertisement', () => {
             nonce: 'abc',
             connectionType: 4
         });
-        expect(lanAdvertisementOf(status, 'world', false, 'abc').acceptsSelfSignedAuth).toBe(true);
+        expect(lanAdvertisementOf(status, false, 'abc').acceptsSelfSignedAuth).toBe(true);
     });
 
     it('refuses a layout it does not know', () => {

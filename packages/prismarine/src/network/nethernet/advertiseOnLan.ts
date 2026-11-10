@@ -2,6 +2,7 @@ import { randomBytes } from 'node:crypto';
 
 import type { ServerName } from '@jsprismarine/raknet';
 import { encodeLanAdvertisement, lanAdvertisementOf } from './LanAdvertisement';
+import { netherNetStatusOf } from './NetherNetStatus';
 
 /** Where the advertisement goes: `nethernet`'s `Server`, which answers discovery requests with it. */
 export interface LanAdvertisementTarget {
@@ -30,7 +31,9 @@ export const advertiseOnLan = (
 ): (() => void) => {
     const advertise = () =>
         target.setAdvertisement(
-            encodeLanAdvertisement(lanAdvertisementOf(serverName.getSnapshot(), levelName, onlineMode, nonce))
+            encodeLanAdvertisement(
+                lanAdvertisementOf(netherNetStatusOf(serverName.getSnapshot(), levelName), onlineMode, nonce)
+            )
         );
     advertise();
     return serverName.onChange(advertise);
