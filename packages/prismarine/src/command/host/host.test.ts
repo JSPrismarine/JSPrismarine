@@ -529,6 +529,8 @@ describe('the server command host', () => {
 
             await expect(fixture.run('clear @a minecraft:stone 3')).resolves.toBe(3);
             expect(player.getInventory().getEntry(0)?.getCount()).toBe(2);
+            // The stack's own count is what the client is sent, so it has to go down as well.
+            expect(player.getInventory().getItem(0).getAmount()).toBe(2);
         });
 
         it('adds, lists and removes a tag', async () => {

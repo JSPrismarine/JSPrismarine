@@ -407,8 +407,12 @@ export const entityCommandHost = (server: Server, scoreboard: Scoreboard): Entit
 
                 const take = Math.min(entry.getCount(), maxCount - removed);
                 removed += take;
-                if (take === entry.getCount()) inventory.removeItem(slot);
-                else entry.setCount(entry.getCount() - take);
+                const left = entry.getCount() - take;
+                // A smaller copy written into the slot. Lowering the entry's count in place left
+                // the stack's own count, which the client is sent, as it was.
+                if (left === 0) inventory.removeItem(slot);
+                else
+                    inventory.setItem(slot, new ContainerEntry({ item: entry.getItem().withCount(left), count: left }));
             }
 
             if (removed === 0) return 0;
