@@ -236,7 +236,7 @@ describe('entity', () => {
                     { name: 'minecraft:cobblestone', count: 1, x: 14.4 }
                 ]);
 
-                const candidates = world.index.itemsWithin(16, 0.5, 1.5);
+                const candidates = world.index.legacyItemsWithin(16, 0.5, 1.5);
                 expect(candidates).toEqual([nextChunk, firstCurrentChunk, secondCurrentChunk]);
                 expect(candidates).not.toContain(outsideRadius);
             });
@@ -248,7 +248,7 @@ describe('entity', () => {
                     { name: 'minecraft:cobblestone', count: 1, x: -0.5 }
                 ]);
 
-                expect(world.index.itemsWithin(0, 0.5, 1.5)).toEqual([positive, negative]);
+                expect(world.index.legacyItemsWithin(0, 0.5, 1.5)).toEqual([positive, negative]);
             });
 
             it('draws a neighboring stack of the same thing into one', async () => {
@@ -297,7 +297,7 @@ describe('entity', () => {
 
                 expect(first!.getItem()!.getItem().getAmount()).toBe(3);
                 expect(world.removed).toEqual([second, third]);
-                expect(world.index.itemsWithin(0.5, 0.5, 1)).toEqual([first]);
+                expect(world.index.legacyItemsWithin(0.5, 0.5, 1)).toEqual([first]);
             });
 
             it('leaves a different item alone', async () => {

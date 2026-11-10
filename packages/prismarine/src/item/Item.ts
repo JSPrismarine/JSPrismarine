@@ -1,5 +1,13 @@
 import BinaryStream from '@jsprismarine/binaryutils';
-import { attributeModifiers, enchantable, equippable, maxDamage, maxStackSize, tool } from '@jsprismarine/items';
+import {
+    attributeModifiers,
+    damageResistant,
+    enchantable,
+    equippable,
+    maxDamage,
+    maxStackSize,
+    tool
+} from '@jsprismarine/items';
 import type { ItemType } from '@jsprismarine/items';
 import type { ItemStack as PredicateItemStack } from '@jsprismarine/predicates';
 import type { NBTTagCompound } from '@jsprismarine/nbt';
@@ -96,6 +104,31 @@ const enchantmentMap = (
 
 /** The default stack size for an item no table names. */
 const DEFAULT_MAX_STACK_SIZE = 64;
+
+/**
+ * The most of one item a stack holds, from `minecraft:max_stack_size`.
+ * @param name - The item identifier.
+ * @param content - The content build; Java's committed table when absent.
+ * @returns The stack size.
+ */
+export const maxStackSizeOf = (name: string, content?: ServerContent): number =>
+    (content?.items.types ?? vanillaItemTypes()).get(name)?.params(maxStackSize) ?? DEFAULT_MAX_STACK_SIZE;
+
+/**
+ * Whether a dropped stack of an item survives a kind of damage, from Java's
+ * `minecraft:damage_resistant`: netherite names `#minecraft:is_fire` and a nether star
+ * `#minecraft:is_explosion`.
+ * @param name - The item identifier.
+ * @param damage - The damage type tag, such as `minecraft:is_fire`, or a damage type.
+ * @param content - The content build; Java's committed table when absent.
+ * @returns Whether the stack survives it.
+ */
+export const resistsDamageOf = (name: string, damage: string, content?: ServerContent): boolean => {
+    const resistant = (content?.items.types ?? vanillaItemTypes()).get(name)?.params(damageResistant);
+    if (resistant === undefined) return false;
+    const { types } = resistant;
+    return types.kind === 'tag' ? types.tag === damage : types.entries.includes(damage);
+};
 
 /**
  * The names a `minecraft:tool` rule may know one block by.
@@ -524,7 +557,7 @@ export class Item {
     }
 
     public getMaxAmount(): number {
-        return this.type()?.params(maxStackSize) ?? DEFAULT_MAX_STACK_SIZE;
+        return maxStackSizeOf(this.name, this.content);
     }
 
     public getAmount(): number {
