@@ -1,3 +1,5 @@
+import type { TickWaitTracker } from './TickContext';
+import { trackTickWaits } from './TickContext';
 import { chunkWorkerCount } from './generators/chunkConcurrency';
 
 /** A queue the scheduler can drain: one player's outstanding chunks. */
@@ -88,6 +90,11 @@ export class ChunkScheduler {
      */
     private readonly flushTasks = new Set<Promise<void>>();
 
+    /** Deliveries whose chunk waits for the next input step, and how many waits each has. */
+    private readonly parkedTasks = new Map<Promise<void>, number>();
+    private parkedDeliveries = 0;
+    private parkListeners: (() => void)[] = [];
+
     public constructor(
         private budgetMs: number = DEFAULT_BUDGET_MS,
         private readonly onFailure: ChunkFailureHandler = () => {},
@@ -115,11 +122,12 @@ export class ChunkScheduler {
 
     /**
      * Whether no delivery is generating and no flush is dispatching. Work that waits for the
-     * next {@link tick} does not count: chunks still queued, which {@link pending} counts, and
-     * finished deliveries the next tick flushes.
+     * next tick does not count: chunks still queued, which {@link pending} counts, finished
+     * deliveries the next tick flushes, and deliveries whose chunk waits for the next input step
+     * to admit it.
      */
     public isIdle(): boolean {
-        return this.inFlight.size === 0 && this.flushTasks.size === 0;
+        return this.inFlight.size === this.parkedDeliveries && this.flushTasks.size === 0;
     }
 
     /**
@@ -127,7 +135,17 @@ export class ChunkScheduler {
      * tick starts the deliveries its budget allows from the same point, whatever the host's speed.
      */
     public async settled(): Promise<void> {
-        while (!this.isIdle()) await Promise.allSettled([...this.inFlight, ...this.flushTasks]);
+        while (!this.isIdle()) {
+            const moving = [...this.inFlight].filter((task) => !this.parkedTasks.has(task));
+            await Promise.race([Promise.allSettled([...moving, ...this.flushTasks]), this.nextPark()]);
+        }
+    }
+
+    /** Settles when a delivery next parks on a tick, which can make the scheduler idle. */
+    private nextPark(): Promise<void> {
+        return new Promise((resolve) => {
+            this.parkListeners.push(resolve);
+        });
     }
 
     public get pending(): number {
@@ -166,15 +184,27 @@ export class ChunkScheduler {
         }
 
         const begin = (recipient: ChunkRecipient, coord: { x: number; z: number }): void => {
+            // The delivery can park before its task exists, so count those waits until it does.
+            let started: Promise<void> | undefined;
+            let earlyParks = 0;
+            const tracker: TickWaitTracker = {
+                park: () => {
+                    if (started === undefined) earlyParks++;
+                    else this.parkTask(started, 1);
+                },
+                unpark: () => {
+                    if (started === undefined) earlyParks--;
+                    else this.parkTask(started, -1);
+                }
+            };
             let delivery: Promise<void>;
             try {
-                delivery = recipient.deliver(coord.x, coord.z);
+                delivery = trackTickWaits(tracker, () => recipient.deliver(coord.x, coord.z));
             } catch (error: unknown) {
                 delivery = Promise.reject(error);
             }
 
-            let task: Promise<void>;
-            task = delivery
+            const task: Promise<void> = delivery
                 .then(
                     () => {
                         if (this.recipients.has(recipient)) this.readyToFlush.add(recipient);
@@ -183,9 +213,14 @@ export class ChunkScheduler {
                         this.onFailure(error, coord);
                     }
                 )
-                .finally(() => this.inFlight.delete(task));
+                .finally(() => {
+                    this.inFlight.delete(task);
+                    this.parkTask(task, -(this.parkedTasks.get(task) ?? 0));
+                });
 
+            started = task;
             this.inFlight.add(task);
+            if (earlyParks > 0) this.parkTask(task, earlyParks);
         };
 
         // One chunk per player per turn - that is the fairness - until either the budget
@@ -238,6 +273,22 @@ export class ChunkScheduler {
         }
 
         return Promise.resolve(deliveriesStarted);
+    }
+
+    /** Counts waits on a tick for one delivery, keeping {@link parkedDeliveries} in step. */
+    private parkTask(task: Promise<void>, change: number): void {
+        const before = this.parkedTasks.get(task) ?? 0;
+        const after = before + change;
+        if (after > 0) this.parkedTasks.set(task, after);
+        else this.parkedTasks.delete(task);
+        if (before === 0 && after > 0) {
+            this.parkedDeliveries++;
+            const listeners = this.parkListeners;
+            this.parkListeners = [];
+            for (const listener of listeners) listener();
+        } else if (before > 0 && after <= 0) {
+            this.parkedDeliveries--;
+        }
     }
 
     /** Flushes ready chunks in order without making a server tick wait for the network. */

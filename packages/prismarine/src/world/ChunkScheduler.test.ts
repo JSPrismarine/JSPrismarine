@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import ChunkSender from '../network/ChunkSender';
 import ChunkScheduler from './ChunkScheduler';
 import type { ChunkRecipient } from './ChunkScheduler';
+import { currentTickWaitTracker } from './TickContext';
 
 /** A player stand-in: a real queue, and a record of what was delivered. */
 const fakeRecipient = (chunks: Array<[number, number]>, costMs = 0, clock?: { now: number }) => {
@@ -38,6 +39,40 @@ describe('world', () => {
 
             expect(sent).toBe(3);
             expect(delivered.length).toBe(3);
+        });
+
+        it('counts a delivery whose chunk waits for the next input step as idle', async () => {
+            const scheduler = new ChunkScheduler(1000, () => {}, 2);
+            const admitted: Array<() => void> = [];
+            const sender = new ChunkSender();
+            sender.enqueue(0, 0);
+            scheduler.add({
+                sender,
+                // A chunk that is ready but held for the input step: the delivery reports the
+                // wait as a world load does, through the tracker it runs under.
+                deliver: async () => {
+                    const tracker = currentTickWaitTracker();
+                    await Promise.resolve();
+                    tracker?.park();
+                    await new Promise<void>((resolve) => void admitted.push(resolve));
+                    tracker?.unpark();
+                },
+                flush: async () => {},
+                isConnected: () => true
+            });
+
+            // Settles although the delivery has not finished: only a tick moves it on.
+            await scheduler.tick();
+            await scheduler.settled();
+            expect(scheduler.isIdle()).toBe(true);
+            expect(admitted).toHaveLength(1);
+
+            // The input step admits the chunk; the delivery moves on from the next microtask.
+            admitted[0]!();
+            await Promise.resolve();
+            expect(scheduler.isIdle()).toBe(false);
+            await scheduler.settled();
+            expect(scheduler.isIdle()).toBe(true);
         });
 
         it('settles once the deliveries a tick started have finished, leaving queued chunks for the next', async () => {
