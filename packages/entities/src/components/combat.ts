@@ -3,6 +3,7 @@
 import type { ComponentFactory } from '@jsprismarine/content';
 import { accepted, rejected } from '@jsprismarine/content';
 import type { Filter } from '@jsprismarine/packs';
+import { defineComponentState, stateField } from '../componentState';
 import type { EntityInstance } from '../entityInstance';
 import type { FilterEntityView } from '../filterContext';
 import { evaluateFilter } from '../filters';
@@ -10,7 +11,7 @@ import type { EntityHooks } from '../hooks';
 import { TICKS_PER_SECOND } from '../hooks';
 import { booleanAt, isRecord, numberAt, parseFilterValue, stringAt } from './schemas';
 
-import type { IntervalState, SensorTrigger } from './shared';
+import type { SensorTrigger } from './shared';
 import { parseComponentTrigger, parseTimeRange } from './shared';
 
 /** A damage amount, which vanilla writes as a number or a `{range_min, range_max}` object. */
@@ -234,8 +235,16 @@ export interface IgnoreCannotBeAttackedParams {
     readonly filters: Filter | undefined;
 }
 
+/**
+ * The active `minecraft:ignore_cannot_be_attacked` filter of each attacker.
+ *
+ * A cache of the active component's parameters, not state: `onInitialize` sets it and `onRemove`
+ * drops it, so it follows the active component set, which a load rebuilds and component state
+ * does not change.
+ */
 const attackExceptions = new WeakMap<EntityInstance, Filter | undefined>();
 
+/** The active `minecraft:angry` filter of each attacker, a parameter cache like {@link attackExceptions}. */
 const angryAttackFilters = new WeakMap<EntityInstance, Filter | undefined>();
 
 /** `minecraft:ignore_cannot_be_attacked`, with its exception filter scoped to the active component. */
@@ -300,6 +309,16 @@ export interface AngryParams {
 }
 
 /**
+ * One angry entity: ticks of anger left (`null` once calm), ticks until the angry sound repeats
+ * (`null` when it does not), and whether an anger broadcast waits for the next tick.
+ */
+const ANGRY_STATE = defineComponentState('minecraft:angry', {
+    remaining: stateField.nullable(stateField.number),
+    sound: stateField.nullable(stateField.number),
+    pendingBroadcast: stateField.boolean
+});
+
+/**
  * `minecraft:angry`, carried by 20 vanilla entities.
  *
  * The component counts the anger down and fires `calm_event` when it runs out,
@@ -357,9 +376,6 @@ export const angry: ComponentFactory<EntityHooks, AngryParams> = {
         });
     },
     create: (params) => {
-        const states = new WeakMap<EntityInstance, IntervalState>();
-        const soundStates = new WeakMap<EntityInstance, IntervalState>();
-        const pendingBroadcasts = new WeakSet<EntityInstance>();
         const soundInterval = (entity: EntityInstance): number => {
             const [first, second] = params.soundInterval;
             const min = Math.max(0, Math.ceil(Math.min(first, second)));
@@ -381,15 +397,23 @@ export const angry: ComponentFactory<EntityHooks, AngryParams> = {
         };
         const restart = (entity: EntityInstance): void => {
             const delta = params.durationDelta * (entity.random.next() * 2 - 1);
-            states.set(entity, { remaining: Math.round((params.duration + delta) * TICKS_PER_SECOND) });
+            const remaining = Math.round((params.duration + delta) * TICKS_PER_SECOND);
+            const pendingBroadcast = entity.componentState.get(ANGRY_STATE)?.pendingBroadcast === true;
+            entity.componentState.set(ANGRY_STATE, { remaining, sound: null, pendingBroadcast });
             angryAttackFilters.set(entity, params.filters);
-            soundStates.delete(entity);
             if (params.angrySound !== undefined) {
                 playSound(entity);
                 const interval = soundInterval(entity);
-                if (interval > 0) soundStates.set(entity, { remaining: interval * TICKS_PER_SECOND });
+                if (interval > 0) {
+                    const state = entity.componentState.get(ANGRY_STATE);
+                    if (state !== undefined)
+                        entity.componentState.set(ANGRY_STATE, { ...state, sound: interval * TICKS_PER_SECOND });
+                }
             }
-            if (params.broadcastAnger) pendingBroadcasts.add(entity);
+            if (params.broadcastAnger) {
+                const state = entity.componentState.get(ANGRY_STATE);
+                if (state !== undefined) entity.componentState.set(ANGRY_STATE, { ...state, pendingBroadcast: true });
+            }
         };
         return {
             onInitialize: restart,
@@ -399,7 +423,9 @@ export const angry: ComponentFactory<EntityHooks, AngryParams> = {
             },
             onDamageProcessed: (entity, damage, result) => {
                 if (result.died) {
-                    pendingBroadcasts.delete(entity);
+                    const state = entity.componentState.get(ANGRY_STATE);
+                    if (state !== undefined)
+                        entity.componentState.set(ANGRY_STATE, { ...state, pendingBroadcast: false });
                     if (params.broadcastAngerWhenDying) broadcast(entity, damage.damager);
                     return;
                 }
@@ -407,28 +433,36 @@ export const angry: ComponentFactory<EntityHooks, AngryParams> = {
                     broadcast(entity, damage.damager);
             },
             onRemove: (entity) => {
-                states.delete(entity);
-                soundStates.delete(entity);
-                pendingBroadcasts.delete(entity);
                 angryAttackFilters.delete(entity);
             },
             onTick: (entity) => {
-                if (pendingBroadcasts.delete(entity)) broadcast(entity);
-                const sound = soundStates.get(entity);
-                if (sound !== undefined) {
-                    sound.remaining -= 1;
-                    if (sound.remaining <= 0) {
+                // Each step reads the state again, because a broadcast or a sound reaches the
+                // world, and the world may anger this entity again before the step after it.
+                let state = entity.componentState.get(ANGRY_STATE);
+                if (state?.pendingBroadcast === true) {
+                    entity.componentState.set(ANGRY_STATE, { ...state, pendingBroadcast: false });
+                    broadcast(entity);
+                    state = entity.componentState.get(ANGRY_STATE);
+                }
+                if (state !== undefined && state.sound !== null) {
+                    const sound = state.sound - 1;
+                    if (sound > 0) entity.componentState.set(ANGRY_STATE, { ...state, sound });
+                    else {
                         playSound(entity);
                         const interval = soundInterval(entity);
-                        if (interval > 0) sound.remaining = interval * TICKS_PER_SECOND;
-                        else soundStates.delete(entity);
+                        const current = entity.componentState.get(ANGRY_STATE);
+                        if (current !== undefined)
+                            entity.componentState.set(ANGRY_STATE, {
+                                ...current,
+                                sound: interval > 0 ? interval * TICKS_PER_SECOND : null
+                            });
                     }
+                    state = entity.componentState.get(ANGRY_STATE);
                 }
-                const state = states.get(entity);
-                if (state === undefined) return;
-                state.remaining -= 1;
-                if (state.remaining > 0) return;
-                states.delete(entity);
+                if (state === undefined || state.remaining === null) return;
+                const remaining = state.remaining - 1;
+                entity.componentState.set(ANGRY_STATE, { ...state, remaining: remaining > 0 ? remaining : null });
+                if (remaining > 0) return;
                 if (params.calm?.event !== undefined)
                     entity.raise(params.calm.event, params.calm.target, 'minecraft:angry');
             }
