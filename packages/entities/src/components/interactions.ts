@@ -3,6 +3,7 @@
 import type { ComponentFactory } from '@jsprismarine/content';
 import { accepted, rejected } from '@jsprismarine/content';
 import type { Filter } from '@jsprismarine/packs';
+import { defineComponentState, stateField } from '../componentState';
 import type { EntityInstance } from '../entityInstance';
 import { parseEventTarget } from '../events';
 import { evaluateFilter } from '../filters';
@@ -102,10 +103,14 @@ interface InteractEntry {
     readonly unsupportedFields: readonly string[];
 }
 
-interface InteractCooldownState {
-    readonly interactions: number[];
-    readonly attacked: number[];
-}
+/**
+ * The ticks left on each `minecraft:interact` entry's cooldown, by entry index: `interactions`
+ * after the entry was used, `attacked` after the entity was hurt.
+ */
+const INTERACT_STATE = defineComponentState('minecraft:interact', {
+    interactions: stateField.list(stateField.number),
+    attacked: stateField.list(stateField.number)
+});
 
 /** Converts an interaction delay from seconds into whole server ticks. */
 const interactionCooldownTicks = (seconds: number): number => Math.ceil(seconds * TICKS_PER_SECOND);
@@ -191,7 +196,7 @@ export const barter: ComponentFactory<EntityHooks, BarterParams> = {
  */
 export const interact: ComponentFactory<EntityHooks, InteractParams> = {
     name: 'minecraft:interact',
-    hooks: ['onInitialize', 'onRemove', 'onTick', 'onDamageProcessed', 'onInteractWithItem'],
+    hooks: ['onInitialize', 'onTick', 'onDamageProcessed', 'onInteractWithItem'],
     schema: (value) => {
         if (!isRecord(value)) return rejected('expected an object');
         const supportedFields = new Set([
@@ -450,53 +455,42 @@ export const interact: ComponentFactory<EntityHooks, InteractParams> = {
     },
     create: (params) => {
         const reported = new WeakSet<EntityInstance>();
-        const cooldowns = new WeakMap<EntityInstance, InteractCooldownState>();
-        const cooldownsFor = (entity: EntityInstance): InteractCooldownState => {
-            let state = cooldowns.get(entity);
-            if (state === undefined) {
-                state = {
-                    interactions: params.interactions.map(() => 0),
-                    attacked: params.interactions.map(() => 0)
-                };
-                cooldowns.set(entity, state);
-            }
-            return state;
-        };
+        const idle = { interactions: params.interactions.map(() => 0), attacked: params.interactions.map(() => 0) };
         return {
             onInitialize: (entity) => {
-                cooldowns.set(entity, {
-                    interactions: params.interactions.map(() => 0),
-                    attacked: params.interactions.map(() => 0)
-                });
+                entity.componentState.set(INTERACT_STATE, idle);
                 if (reported.has(entity)) return;
                 reported.add(entity);
                 const unsupported = [...new Set(params.interactions.flatMap((entry) => entry.unsupportedFields))];
                 if (unsupported.length > 0)
                     entity.report(`minecraft:interact fields ${unsupported.join(', ')} are not carried out`);
             },
-            onRemove: (entity) => {
-                cooldowns.delete(entity);
-            },
             onTick: (entity) => {
-                const state = cooldownsFor(entity);
-                for (let index = 0; index < params.interactions.length; index += 1) {
-                    state.interactions[index] = Math.max(0, (state.interactions[index] ?? 0) - 1);
-                    state.attacked[index] = Math.max(0, (state.attacked[index] ?? 0) - 1);
-                }
+                const state = entity.componentState.get(INTERACT_STATE) ?? idle;
+                entity.componentState.set(INTERACT_STATE, {
+                    interactions: params.interactions.map((_, index) =>
+                        Math.max(0, (state.interactions[index] ?? 0) - 1)
+                    ),
+                    attacked: params.interactions.map((_, index) => Math.max(0, (state.attacked[index] ?? 0) - 1))
+                });
             },
             onDamageProcessed: (entity) => {
-                const state = cooldownsFor(entity);
-                for (let index = 0; index < params.interactions.length; index += 1) {
-                    const delay = params.interactions[index]?.cooldownAfterBeingAttacked ?? 0;
-                    if (delay > 0) state.attacked[index] = interactionCooldownTicks(delay);
-                }
+                const state = entity.componentState.get(INTERACT_STATE) ?? idle;
+                entity.componentState.set(INTERACT_STATE, {
+                    ...state,
+                    attacked: params.interactions.map((entry, index) =>
+                        entry.cooldownAfterBeingAttacked > 0
+                            ? interactionCooldownTicks(entry.cooldownAfterBeingAttacked)
+                            : (state.attacked[index] ?? 0)
+                    )
+                });
             },
             onInteractWithItem: (entity, itemIdentifier, other): boolean | EntityItemInteractionEffect | undefined => {
                 const normalizedItem = normalizedItemIdentifier(itemIdentifier);
                 const heldItem = other?.equipment?.('hand', 0) ?? { identifier: () => normalizedItem };
                 const subjects = other === undefined ? {} : { other, player: other };
                 const context = { ...entity.filterContext(), ...subjects, item: heldItem };
-                const state = cooldownsFor(entity);
+                const state = entity.componentState.get(INTERACT_STATE) ?? idle;
                 for (const [index, entry] of params.interactions.entries()) {
                     if (entry.onInteract?.filters !== undefined && !evaluateFilter(entry.onInteract.filters, context))
                         continue;
@@ -522,7 +516,12 @@ export const interact: ComponentFactory<EntityHooks, InteractParams> = {
                     )
                         continue;
                     if ((state.interactions[index] ?? 0) > 0 || (state.attacked[index] ?? 0) > 0) return false;
-                    state.interactions[index] = interactionCooldownTicks(entry.cooldown);
+                    entity.componentState.set(INTERACT_STATE, {
+                        ...state,
+                        interactions: params.interactions.map((_, slot) =>
+                            slot === index ? interactionCooldownTicks(entry.cooldown) : (state.interactions[slot] ?? 0)
+                        )
+                    });
                     if (entry.onInteract?.event !== undefined)
                         entity.raise(entry.onInteract.event, entry.onInteract.target, 'minecraft:interact');
                     for (const identifier of entry.spawnEntities)
