@@ -27,6 +27,7 @@ import type { Scenario } from './scenario.mts';
 import { chat } from './scenarios/chat.mts';
 import { spectatorPickup } from './scenarios/spectator-pickup.mts';
 import { miningDrops } from './scenarios/mining-drops.mts';
+import { itemDropPickup } from './scenarios/item-drop-pickup.mts';
 import { farmland } from './scenarios/farmland.mts';
 import { furnace } from './scenarios/furnace.mts';
 import { villagerTrade } from './scenarios/villager-trade.mts';
@@ -100,6 +101,7 @@ const suites: ScenarioSuite[] = [
             chat,
             miningDrops,
             spectatorPickup,
+            itemDropPickup,
             edgeChunkBlockChange,
             subChunkBlockChanges,
             teleport,
