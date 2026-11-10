@@ -599,6 +599,16 @@ fire and lava, is pricked by a cactus and dies in a blast against its definition
 `minecraft:damage_resistant` names that damage, and it is removed once it falls past the void. Its
 actor record is the one Bedrock writes, with `Age`, `PickupDelay`, `Motion` and `Item`.
 
+A player follows three rules no mob does ([ADR 0008](../adr/0008-one-entity-model.md)). Bedrock's
+shipped `entities/player.json` declares no `minecraft:health`, because the engine gives a player its
+health in code, so the server adds `minecraft:health` <!-- fact:player.overlayHealth -->20<!-- /fact --> to the resolved `minecraft:player` type when
+the winning pack's file declares none, and a pack that sets its own keeps it. The client owns a
+player's movement: the tick applies no gravity, navigation or pushes to a player's body, and a shove
+such as a blow's knockback is asked of the client and logged as an `impulse` occurrence. Every move
+the server makes, such as `/teleport` or chorus fruit, goes out as a teleport, and the server drops
+the client's positions until the client acknowledges it. A player that dies keeps its runtime id
+and stays in the world until it respawns.
+
 The eye of ender is the one thrown item with a store entity of its own, because its flight is not
 a `minecraft:projectile`. Using an eye in the air runs `vanilla:eye_of_ender` in
 `@jsprismarine/item-behaviors`, which asks the world's `locate` query for the nearest structure in
