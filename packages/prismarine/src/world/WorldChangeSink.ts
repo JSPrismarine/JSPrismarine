@@ -2,8 +2,8 @@ import type { Vector3 } from '@jsprismarine/math';
 import type { ActorEvent, LevelEvent, LevelSoundEvent } from '@jsprismarine/minecraft';
 import type Player from '../Player';
 import type { Attribute } from '@jsprismarine/protocol/wire/structures/Attribute';
-import type { Entity } from '../entity/Entity';
 import type { StatusEffect, StatusEffectChange } from '../entity/StatusEffect';
+import type { ShownActor } from './ShownActor';
 import type { WorldChange } from './WorldChange';
 
 /**
@@ -101,12 +101,12 @@ export interface WorldChangeSink {
 
     /**
      * Something happened to one entity: it was hurt, it died, it swung an arm.
-     * @param {Entity} entity - Who it happened to.
+     * @param {ShownActor} entity - Who it happened to.
      * @param {ActorEvent} effect - What happened.
      * @param {number} data - Extra detail, for the effects that carry any.
      * @returns {Promise<void>} Resolves once it is on its way.
      */
-    actorEffect(entity: Entity, effect: ActorEvent, data: number): Promise<void>;
+    actorEffect(entity: ShownActor, effect: ActorEvent, data: number): Promise<void>;
 
     /**
      * An entity made a noise: it was hit, it died, it swung at something.
@@ -116,10 +116,10 @@ export interface WorldChangeSink {
      * the skeleton's rattle, where a block's carries the block's runtime id instead. Sent to
      * whoever is near enough rather than to whoever is tracking, because a sound is audible from
      * further than a mob is worth drawing.
-     * @param {Entity} entity - Who made it.
+     * @param {ShownActor} entity - Who made it.
      * @param {LevelSoundEvent} sound - Which noise.
      */
-    actorSound(entity: Entity, sound: LevelSoundEvent): void;
+    actorSound(entity: ShownActor, sound: LevelSoundEvent): void;
 
     /**
      * An entity's attributes are not what they were - which in practice means it lost health.
@@ -128,30 +128,30 @@ export interface WorldChangeSink {
      * because the only code that sent them had the local player's runtime id written into it. So
      * a mob's health could fall all the way to zero on the server with nothing said about it, and
      * the bar over a hurt zombie never moved until it abruptly died.
-     * @param {Entity} entity - Whose attributes changed.
+     * @param {ShownActor} entity - Whose attributes changed.
      * @param {Attribute[]} attributes - Only the ones that changed.
      * @returns {Promise<void>} Resolves once they are on their way.
      */
-    entityAttributesChanged(entity: Entity, attributes: Attribute[]): Promise<void>;
+    entityAttributesChanged(entity: ShownActor, attributes: Attribute[]): Promise<void>;
 
     /**
      * An entity's active effect was added, refreshed, or removed.
-     * @param {Entity} entity - The affected actor.
+     * @param {ShownActor} entity - The affected actor.
      * @param {StatusEffect} effect - The effect state that changed.
      * @param {StatusEffectChange} change - What happened to the effect.
      * @returns {Promise<void>} Resolves once the change is on its way.
      */
-    statusEffectChanged?(entity: Entity, effect: StatusEffect, change: StatusEffectChange): Promise<void>;
+    statusEffectChanged?(entity: ShownActor, effect: StatusEffect, change: StatusEffectChange): Promise<void>;
 
     /**
      * An entity now looks different: alight, swelling, sneaking.
      *
      * The other half of {@link entityAttributesChanged}, and missing for the same reason. Sent
      * whole rather than as a diff, because the packet carries the entity's whole metadata anyway.
-     * @param {Entity} entity - Who changed.
+     * @param {ShownActor} entity - Who changed.
      * @returns {Promise<void>} Resolves once it is on its way.
      */
-    entityMetadataChanged(entity: Entity): Promise<void>;
+    entityMetadataChanged(entity: ShownActor): Promise<void>;
 
     /**
      * An entity is holding or wearing something other than what it was.
@@ -166,34 +166,34 @@ export interface WorldChangeSink {
      * and equipment changes a handful of times in a mob's life: the guard that matters is the
      * one in `entity/data/liveBodies.ts`, which drops a write whose bytes match what the body
      * already carries, so an unchanged mob produces nothing to batch in the first place.
-     * @param {Entity} entity - Whose equipment changed.
+     * @param {ShownActor} entity - Whose equipment changed.
      * @returns {Promise<void>} Resolves once it is on its way.
      */
-    entityEquipmentChanged(entity: Entity): Promise<void>;
+    entityEquipmentChanged(entity: ShownActor): Promise<void>;
 
     /**
      * An entity is now in this world.
-     * @param {Entity} entity - The arrival. Already in the world's maps when this is called.
+     * @param {ShownActor} entity - The arrival. Already in the world's maps when this is called.
      * @returns {Promise<void>} Resolves once everyone who should see it has been told.
      */
-    entityAdded(entity: Entity): Promise<void>;
+    entityAdded(entity: ShownActor): Promise<void>;
 
     /**
      * An entity is no longer in this world.
-     * @param {Entity} entity - The departure. Already out of the world's maps when this is
+     * @param {ShownActor} entity - The departure. Already out of the world's maps when this is
      * called, so that a leaving player is not among the clients told about its own departure.
      * @returns {Promise<void>} Resolves once everyone has been told.
      */
-    entityRemoved(entity: Entity): Promise<void>;
+    entityRemoved(entity: ShownActor): Promise<void>;
 
     /**
      * An entity has moved.
      *
      * The hottest path in the server: every entity, every tick it moves. Recorded rather than
      * sent, and put on the wire once by {@link WorldChangeSink.flushMovement}.
-     * @param {Entity} entity - The entity that moved.
+     * @param {ShownActor} entity - The entity that moved.
      */
-    entityMoved(entity: Entity, teleport?: boolean): void;
+    entityMoved(entity: ShownActor, teleport?: boolean): void;
 
     /**
      * The world's clock has been read for broadcasting.
@@ -217,10 +217,10 @@ export interface WorldChangeSink {
      *
      * Runs after everything has moved and before the movement goes out, so that an entity that
      * came into range this tick is spawned before the first packet that says it moved.
-     * @param {Entity[]} entities - Everything currently in the world.
+     * @param {ShownActor[]} entities - Everything currently in the world.
      * @returns {Promise<void>} Resolves once the pass is done.
      */
-    reconcile(entities: Entity[]): Promise<void>;
+    reconcile(entities: readonly ShownActor[]): Promise<void>;
 
     /**
      * Tick phase: send the block changes this tick produced, as one batch each.
