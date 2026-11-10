@@ -47,7 +47,7 @@
         "typecheck": "tsc-ts --noEmit",
         "bench:startup": "node benchmarks/startup.mjs",
         "bench:host-startup": "node benchmarks/hostStartup.mjs",
-        "start": "pnpm --filter @jsprismarine/server... run build && cross-env NODE_ENV=production node --conditions=jsprismarine:dist --unhandled-rejections=strict ./dist/Server.js",
+        "start": "cross-env NODE_ENV=production node --conditions=jsprismarine:dist --unhandled-rejections=strict ./dist/Server.js",
         "dev": "pnpm --filter @jsprismarine/bedrock-data run ensure:worldgen && pnpm --filter @jsprismarine/bedrock-data run ensure:bedrock-pack && pnpm -w run server:build && node scripts/dev.mjs",
         "dev:native-prototype": "cross-env NODE_ENV=development node --import ./scripts/native-typescript-loader.mjs ./src/Server.ts --watch",
         "bench:native-typescript": "node ./scripts/native-typescript-benchmark.mjs"

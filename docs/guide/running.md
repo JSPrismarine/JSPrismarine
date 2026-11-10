@@ -166,8 +166,8 @@ You rarely need these: to host a server, [download the prebuilt one](#run-the-pr
 They exist for checking a production build, for platforms the releases do not cover, and for
 working on the packaging itself.
 
-`pnpm run start` builds the server and its workspace dependencies, then runs the compiled entry
-once, without the watcher.
+`pnpm run start` runs the compiled entry once, without the watcher, and does not build. Run
+`pnpm run build` first, and again after each change.
 
 The released executables are compiled with Bun by `.github/scripts/build-aot.mjs`, which the
 release and nightly workflows run for each platform. That script needs the build metadata the

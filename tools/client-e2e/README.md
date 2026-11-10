@@ -52,7 +52,7 @@ from the server. Scenarios assert on client state, not pixels, so failure screen
 but the verdicts are the same.
 
 `pnpm run e2e:client:dist` selects the built `Server.js` entry and the workspace's
-`jsprismarine:dist` exports. Build it first with `pnpm run server:build` or `pnpm run start`.
+`jsprismarine:dist` exports. Build it first with `pnpm run server:build`.
 
 The runner prints the artifacts directory (screenshots, recordings, a combined server log, and a
 server log per suite) and exits non-zero when any scenario fails. The root `pnpm run e2e:client`
