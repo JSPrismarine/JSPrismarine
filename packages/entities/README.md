@@ -296,6 +296,36 @@ and exposes it through `EntityInstance.componentParams`. Some of the 34 keys use
 still have no runtime behavior. Their factories preserve their bodies, and the corpus test counts
 them as parsed rather than behaviorally implemented.
 
+### Component state
+
+A component keeps nothing of its own between ticks. Its timers, cooldowns and counters live on the
+instance in `EntityInstance.componentState`, one record per component name, so a host can save,
+restore and undo them. A component declares its state once:
+
+```typescript
+import { defineComponentState, stateField } from '@jsprismarine/entities/componentState';
+
+const AIR = defineComponentState('minecraft:breathable', {
+    remaining: stateField.number,
+    untilHurt: stateField.number
+});
+
+const air = entity.componentState.get(AIR); // { remaining: number; untilHurt: number } | undefined
+entity.componentState.set(AIR, { remaining: 300, untilHurt: 10 });
+```
+
+The field guards give the key its type and check every value that arrives untyped, from a save or a
+host's undo. Values are plain data: numbers, strings, booleans, `null`, arrays and plain objects,
+with another entity named by its id. A value is frozen when it is written, so a component writes a
+new record instead of editing the one it read.
+
+Every write goes through `ComponentStates.write`, which calls the environment's
+`componentStateWritten(entity, { component, before, after })` hook. `null` means no state, so
+writing `before` back undoes a write exactly, and a write equal to the held value reports nothing.
+A component that leaves the active set loses its state through the same path. `snapshot()` gives
+the saved form, with `null` for an active component that holds no state, and `restore(saved)`
+writes it back over what `onInitialize` set, skipping any entry that fails the component's shape.
+
 ## Measured coverage
 
 Against the composed vanilla behavior pack of Bedrock Dedicated Server 1.26.51.1, through the corpus

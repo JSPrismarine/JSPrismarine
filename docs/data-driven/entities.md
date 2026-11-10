@@ -40,7 +40,10 @@ The runtime keeps three stages of the same content apart.
 A definition is the parsed JSON of one entity file, exactly as the winning pack wrote it. A type is
 that definition resolved once at load time, with every component bound to an implementation and
 every group pre-resolved. An instance is one live mob, with its own component state, its own
-attributes and its own goal scheduler.
+attributes and its own goal scheduler. Component state is what a component carries between ticks,
+such as a timer, an air supply or a cooldown. It lives on the instance, one plain-data record per
+component, and every write reaches the host with its value before and after, so the server can save
+it and undo it.
 
 Resolution is deliberately lenient. `parseEntityDefinition` validates the shape of the five keys
 Mojang's own schema types (`description`, `components`, `component_groups`, `events`, `upgrades`)
@@ -622,8 +625,10 @@ down from 623, but there is no tick budget for individual goals.
 session, so saving it could point the mob at an unrelated entity after restart. A tamed mob's
 owner is saved by the player's stable UUID and rebound to that player's current runtime id when
 they rejoin. The other component state survives too: a save writes each entity's component groups,
-property values, attributes, body state and population pool into its actor compound as JSON, and
-the runtime restores it without rerunning the spawn event. The goal seam still models a carried
+property values, attributes, component state, body state and population pool into its actor
+compound as JSON, and the runtime restores it without rerunning the spawn event. A mob saved
+mid-timer or half out of air resumes where it was. An entity saved before component state was
+written starts its timers and air afresh, as every entity did before. The goal seam still models a carried
 item as an identifier. Equipment and `minecraft:inventory` slots save complete item stacks,
 including their names, enchantments, durability, and nested contents.
 
