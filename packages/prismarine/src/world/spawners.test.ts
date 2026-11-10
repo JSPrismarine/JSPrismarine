@@ -5,12 +5,14 @@ import { assert, describe, expect, it } from 'vitest';
 import { MobSpawner } from '../blockentity/BlockEntities';
 import { BlockEntityRegistry } from '../blockentity/BlockEntityRegistry';
 import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
-import type { Entity } from '../entity/Entity';
 import type { EntityRuntime } from '../entity/data/EntityRuntime';
 import type { LiveEntityRuntime } from '../entity/data/live';
+import type { LiveBodies } from '../entity/data/liveBodies';
+import { StoreActor } from '../entity/data/storeActors';
+import type { StoreActors } from '../entity/data/storeActors';
 import type Player from '../Player';
 import type Server from '../Server';
-import { stub } from '../testing/stub.test.helper';
+import { stub, stubOf } from '../testing/stub.test.helper';
 import Chunk from './chunk/Chunk';
 import { Dimensions } from './Dimension';
 import { Position } from './Position';
@@ -180,6 +182,8 @@ const worldWithSpawner = ({ playerAt, delay = 0 }: { playerAt: Vector3; delay?: 
     chunk.setBlockEntity(BlockEntityRegistry.fromNBT(root));
 
     const spawned: { identifier: string; x: number; y: number; z: number }[] = [];
+    /** The store entities already standing in the world, through their actors. */
+    const crowd: StoreActor[] = [];
     const runtime = stub<EntityRuntime>({
         content: () => ({ entities: { registry: { has: () => true } } }) as never,
         spawn: (identifier, at) => {
@@ -195,7 +199,12 @@ const worldWithSpawner = ({ playerAt, delay = 0 }: { playerAt: Vector3; delay?: 
     let draws = 0;
     const server = stub<Server>({
         getRandom: () => () => rolls[draws++ % rolls.length] ?? 0.5,
-        getEntityRuntime: () => stub<LiveEntityRuntime>({ runtime }),
+        getEntityRuntime: () =>
+            stub<LiveEntityRuntime>({
+                runtime,
+                bodies: stub<LiveBodies>({ entityIdOf: () => undefined }),
+                actors: stub<StoreActors>({ all: () => crowd[Symbol.iterator]() })
+            }),
         getLogger: () => ({ debug: () => {} }) as never
     });
 
@@ -224,7 +233,7 @@ const worldWithSpawner = ({ playerAt, delay = 0 }: { playerAt: Vector3; delay?: 
     const references = { getRevision: () => 0, simulates: () => true };
     const tick = () => world['tickSpawners'](references as never);
 
-    return { world, chunk, spawned, written, tick };
+    return { world, chunk, spawned, written, tick, crowd };
 };
 
 describe('World', () => {
@@ -267,13 +276,13 @@ describe('World', () => {
         });
 
         it('holds back when six of the mob already crowd the spawner', () => {
-            const { world, spawned, chunk, tick } = worldWithSpawner({ playerAt: new Vector3(8, 64, 8) });
+            const { spawned, chunk, tick, crowd } = worldWithSpawner({ playerAt: new Vector3(8, 64, 8) });
             // Stand-ins for the zombies already there, inside the box the block inflates to.
             for (let index = 0; index < 6; index++) {
-                const position = new Position(6 + index * 0.1, 64, 6, world);
-                world['entities'].set(
-                    10 + index,
-                    stub<Entity>({
+                const position = new Vector3(6 + index * 0.1, 64, 6);
+                crowd.push(
+                    stubOf(StoreActor, {
+                        getRuntimeId: () => BigInt(10 + index),
                         getType: () => 'minecraft:zombie',
                         getPosition: () => position,
                         getFeetY: () => 64
