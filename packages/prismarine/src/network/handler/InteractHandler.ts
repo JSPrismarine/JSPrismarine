@@ -5,7 +5,9 @@ import type Server from '../../Server';
 import { CREATIVE_REACH, SURVIVAL_REACH } from '../../entity/Combat';
 import type InteractPacket from '@jsprismarine/protocol/packet/InteractPacket';
 import { InteractAction } from '@jsprismarine/protocol/packet/InteractPacket';
+import type { ShownPlayer } from '../../world/ShownPlayer';
 import type PacketHandler from './PacketHandler';
+import type { PlacedPlayer } from './playerPorts';
 
 /**
  * The slack added to a player's reach when checking the actor they say they interacted with.
@@ -34,7 +36,7 @@ export default class InteractHandler implements PacketHandler<InteractPacket> {
     public readonly lane = 'input';
 
     public async handle(packet: InteractPacket, server: Server, session: PlayerSession): Promise<void> {
-        const player = session.getPlayer();
+        const player: PlacedPlayer & Pick<ShownPlayer, 'gamemode'> = session.getPlayer();
 
         switch (packet.action) {
             case InteractAction.StopRiding:
@@ -42,11 +44,11 @@ export default class InteractHandler implements PacketHandler<InteractPacket> {
                 return;
 
             case InteractAction.OpenInventory: {
-                if (packet.target !== player.getRuntimeId()) {
+                if (packet.target !== session.runtimeId) {
                     server
                         .getLogger()
                         .debug(
-                            `Dropped an inventory open from ${player.getName()}: it names actor ${packet.target}, not themselves`,
+                            `Dropped an inventory open from ${session.identity.name}: it names actor ${packet.target}, not themselves`,
                             'InteractHandler/handle'
                         );
                     return;
@@ -62,7 +64,7 @@ export default class InteractHandler implements PacketHandler<InteractPacket> {
                     server
                         .getLogger()
                         .debug(
-                            `Dropped an NPC open from ${player.getName()}: actor ${packet.target} is not one they have been shown`,
+                            `Dropped an NPC open from ${session.identity.name}: actor ${packet.target} is not one they have been shown`,
                             'InteractHandler/handle'
                         );
                     return;
@@ -75,7 +77,7 @@ export default class InteractHandler implements PacketHandler<InteractPacket> {
                     server
                         .getLogger()
                         .debug(
-                            `Dropped an NPC open from ${player.getName()}: actor ${packet.target} is ${distance.toFixed(1)} away`,
+                            `Dropped an NPC open from ${session.identity.name}: actor ${packet.target} is ${distance.toFixed(1)} away`,
                             'InteractHandler/handle'
                         );
                     return;
@@ -84,7 +86,7 @@ export default class InteractHandler implements PacketHandler<InteractPacket> {
                 server
                     .getLogger()
                     .debug(
-                        `${player.getName()} opened NPC ${packet.target}. NPC dialogue is not implemented`,
+                        `${session.identity.name} opened NPC ${packet.target}. NPC dialogue is not implemented`,
                         'InteractHandler/handle'
                     );
                 return;
@@ -94,7 +96,7 @@ export default class InteractHandler implements PacketHandler<InteractPacket> {
                 server
                     .getLogger()
                     .verbose(
-                        `Dropped interact action ${packet.action} from ${player.getName()}: not one a client sends`,
+                        `Dropped interact action ${packet.action} from ${session.identity.name}: not one a client sends`,
                         'InteractHandler/handle'
                     );
         }

@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import type Player from '../../Player';
 import type Server from '../../Server';
+import { identityNamed } from '../../testing/sessionIdentity.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import type { World } from '../../world/World';
 import type PlayerSession from '../PlayerSession';
@@ -18,7 +19,7 @@ const setup = () => {
         getWorld: () => stub<World>({ sendActorEvent })
     });
     const server = stub<Server>({ getLogger: () => stub<Logger>({ verbose }) });
-    const session = stub<PlayerSession>({ getPlayer: () => player });
+    const session = stub<PlayerSession>({ runtimeId: 7n, identity: identityNamed('runner'), getPlayer: () => player });
 
     return { sendActorEvent, verbose, player, server, session };
 };

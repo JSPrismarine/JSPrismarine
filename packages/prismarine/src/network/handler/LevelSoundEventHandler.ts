@@ -5,7 +5,9 @@ import type Server from '../../Server';
 import { CREATIVE_REACH } from '../../entity/Combat';
 import { SOUND_RADIUS } from '../../world/Proximity';
 import type LevelSoundEventPacket from '@jsprismarine/protocol/packet/LevelSoundEventPacket';
+import type { ShownActor } from '../../world/ShownActor';
 import type PacketHandler from './PacketHandler';
+import type { PlacedPlayer } from './playerPorts';
 
 /**
  * How far from the sender a client-sent sound may claim to have happened.
@@ -42,19 +44,22 @@ export default class LevelSoundEventHandler implements PacketHandler<LevelSoundE
      * and any sound name outside the enum included.
      */
     public async handle(packet: LevelSoundEventPacket, server: Server, session: PlayerSession): Promise<void> {
-        const player = session.getPlayer();
+        const player: PlacedPlayer & Pick<ShownActor, 'getType'> = session.getPlayer();
         const position = new Vector3(packet.positionX, packet.positionY, packet.positionZ);
 
         const drop = (reason: string) => {
             const sound = LevelSoundEventName[packet.sound] ?? packet.sound;
             server
                 .getLogger()
-                .verbose(`Dropped sound ${sound} from ${player.getName()}: ${reason}`, 'LevelSoundEventHandler/handle');
+                .verbose(
+                    `Dropped sound ${sound} from ${session.identity.name}: ${reason}`,
+                    'LevelSoundEventHandler/handle'
+                );
         };
 
         // A client only knows about the sounds it started, so the actor is itself or nobody.
         // This server hands out the runtime id as the unique id, so the sender's own is that.
-        if (packet.entityUniqueId !== -1n && packet.entityUniqueId !== player.getRuntimeId()) {
+        if (packet.entityUniqueId !== -1n && packet.entityUniqueId !== session.runtimeId) {
             drop(`attributed to actor ${packet.entityUniqueId}`);
             return;
         }
@@ -81,7 +86,7 @@ export default class LevelSoundEventHandler implements PacketHandler<LevelSoundE
         // echoing it back played everything twice for whoever made the noise.
         server.getWorldReplicators().for(player.getWorld()).sendAround(position, packet, {
             radius: SOUND_RADIUS,
-            exclude: player
+            exclude: session.getPlayer()
         });
     }
 }

@@ -5,6 +5,7 @@ import type { Logger } from '@jsprismarine/logger';
 import type Player from '../../Player';
 import type Server from '../../Server';
 import type { Entity } from '../../entity/Entity';
+import { identityNamed } from '../../testing/sessionIdentity.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import { Position } from '../../world/Position';
 import type { World } from '../../world/World';
@@ -41,6 +42,8 @@ const fakeSession = (options: { npcDistance?: number; tracked?: boolean } = {}) 
         getWorld: () => world
     });
     const session = stub<PlayerSession>({
+        runtimeId: SELF,
+        identity: identityNamed('tester'),
         getPlayer: () => player,
         tracks: (runtimeId) => runtimeId === SELF || (runtimeId === NPC && options.tracked === true),
         openMainInventory: async () => {
