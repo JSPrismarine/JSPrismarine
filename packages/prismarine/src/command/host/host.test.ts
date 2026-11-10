@@ -49,7 +49,7 @@ import type { DataEntity, MobBody } from '../../entity/data/DataEntity';
 import type { EntityRuntime } from '../../entity/data/EntityRuntime';
 import type { LiveBodies } from '../../entity/data/liveBodies';
 import type { LiveEntityRuntime } from '../../entity/data/live';
-import { collectAsyncCommands } from '../Command';
+import { collectAsyncCommands } from '../deferred';
 import { buildVanillaCommands } from '../vanillaCommands';
 import { serverCommandHost } from './serverCommandHost';
 

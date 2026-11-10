@@ -40,7 +40,7 @@ import {
 import type { Level } from '../../world/Level';
 import { World } from '../../world/World';
 import type WorldManager from '../../world/WorldManager';
-import { collectAsyncCommands } from '../Command';
+import { collectAsyncCommands } from '../deferred';
 import { buildVanillaCommands } from '../vanillaCommands';
 import { serverCommandHost } from './serverCommandHost';
 

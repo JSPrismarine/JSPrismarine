@@ -157,9 +157,10 @@ export class RemoteConsole implements Service {
                 void this.runCommand(message.id, message.line);
                 return;
             case 'complete': {
-                const names = Array.from(this.server.getCommandManager().getCommands().values()).map(
-                    (command) => command.name
-                );
+                const registry = this.server.getCommandManager().getVanillaCommands();
+                const names = registry
+                    .getNames()
+                    .flatMap((name) => [name, ...(registry.getMetadata(name)?.aliases ?? [])]);
                 const [completions, replace] = completeCommand(names, message.line.slice(0, message.cursor));
                 this.send({ type: 'complete.result', v: PROTOCOL_VERSION, id: message.id, completions, replace });
                 return;

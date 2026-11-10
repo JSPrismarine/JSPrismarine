@@ -1,5 +1,4 @@
 import type ChatEvent from './chat/ChatEvent';
-import type CommandRegisterEvent from './command/CommandRegisterEvent';
 import type EntityDamageEvent from './entity/EntityDamageEvent';
 import type EntityDeathEvent from './entity/EntityDeathEvent';
 import type EntityPortalEnterEvent from './entity/EntityPortalEnterEvent';
@@ -20,7 +19,6 @@ import type playerToggleOperatorEvent from './player/PlayerToggleOperatorEvent';
 
 export type EventTypes =
     | ['chat', ChatEvent]
-    | ['commandRegister', CommandRegisterEvent]
     | ['tick', TickEvent]
     | ['entityDamage', EntityDamageEvent]
     | ['entityDeath', EntityDeathEvent]

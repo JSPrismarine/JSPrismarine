@@ -84,7 +84,7 @@ The server reads its game data the way the prebuilt server does: from
 
 ### Events
 
-`server.on(name, listener)` takes one of these <!-- fact:events.count -->19<!-- /fact --> events.
+`server.on(name, listener)` takes one of these <!-- fact:events.count -->18<!-- /fact --> events.
 Calling `event.preventDefault()` cancels an event where the server checks for it, such as a player's
 move or a trip through a portal.
 
@@ -92,7 +92,6 @@ move or a trip through a portal.
 | Event                      | Listener receives               |
 | -------------------------- | ------------------------------- |
 | `chat`                     | `ChatEvent`                     |
-| `commandRegister`          | `CommandRegisterEvent`          |
 | `tick`                     | `TickEvent`                     |
 | `entityDamage`             | `EntityDamageEvent`             |
 | `entityDeath`              | `EntityDeathEvent`              |

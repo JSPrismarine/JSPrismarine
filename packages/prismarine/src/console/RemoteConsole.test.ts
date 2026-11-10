@@ -4,7 +4,7 @@ import type { Logger } from '@jsprismarine/logger';
 import { setImmediate } from 'node:timers/promises';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type Server from '../Server';
-import type { Command } from '../command/Command';
+import type { CommandRegistry, CommandSource } from '@jsprismarine/commands';
 import type { CommandManager } from '../command/CommandManager';
 import type { ConsoleSender } from '../command/ConsoleSender';
 import type { Chat } from '../chat/Chat';
@@ -28,11 +28,10 @@ const fakeServer = (overrides: { dispatchCommand?: () => Promise<boolean>; playe
     const shutdown = vi.fn(async () => {});
     const info = vi.fn();
     const sender = stub<ConsoleSender>({ getName: () => 'CONSOLE' });
-    const commands = new Map<string, Command>([
-        ['jsprismarine:help', stub<Command>({ name: 'help' })],
-        ['jsprismarine:stop', stub<Command>({ name: 'stop' })],
-        ['jsprismarine:say', stub<Command>({ name: 'say' })]
-    ]);
+    const commands = stub<CommandRegistry<CommandSource>>({
+        getNames: () => ['help', 'stop', 'say'],
+        getMetadata: () => undefined
+    });
     let players = overrides.players ?? 0;
     let tps = 20;
     let tickRate = 20;
@@ -44,7 +43,7 @@ const fakeServer = (overrides: { dispatchCommand?: () => Promise<boolean>; playe
         getTickControl: () => stub<TickControl>({ getTickRate: () => tickRate }),
         getConsole: () => undefined,
         getConsoleSender: () => sender,
-        getCommandManager: () => stub<CommandManager>({ dispatchCommand, getCommands: () => commands }),
+        getCommandManager: () => stub<CommandManager>({ dispatchCommand, getVanillaCommands: () => commands }),
         getSessionManager: () =>
             stub<SessionManager>({
                 getAllPlayers: () =>
