@@ -127,6 +127,7 @@ import { brainMobOf, brainWorldOf, tickBrainNavigation } from './brainWorld';
 import { entityFilterContextOf } from './filterView';
 import type { ContentItemEntity, EntityHostFacts, EntityWorldFacts } from './host';
 import { DroppedItems, isDroppedItem } from './droppedItems';
+import { EyeOfEnderSignals, isEyeOfEnderSignal } from './eyeOfEnderSignals';
 import { itemDropOf } from '../../inventory/persistence';
 import { maxStackSizeOf, resistsDamageOf } from '../../item/Item';
 import { navigationViewOf } from './navigationView';
@@ -427,6 +428,9 @@ export class EntityRuntime implements EntityScene {
 
     /** The dropped stacks among this runtime's entities, and the system that runs them. */
     public readonly droppedItems: DroppedItems;
+
+    /** The eyes of ender in flight among this runtime's entities, and the system that flies them. */
+    public readonly eyesOfEnder: EyeOfEnderSignals;
     /** The entity each `EntityInstance` belongs to, which is how the AI seams resolve a body. */
     private readonly byInstance = new Map<EntityInstance, DataEntity>();
     /** Invalid interaction slots reported once per entity and request. */
@@ -609,6 +613,14 @@ export class EntityRuntime implements EntityScene {
                 this.host.givePlayerItem?.(playerId, itemId, itemDropOf(stack)) ?? stack.count,
             stackChanged: (itemId, count) => this.host.itemStackChanged?.(itemId, count)
         });
+        this.eyesOfEnder = new EyeOfEnderSignals({
+            spawn: (identifier, at, options) => this.spawn(identifier, at, options),
+            remove: (id, reason) => this.remove(id, reason),
+            random: () => this.world.random.nextFloat(),
+            playSoundAt: (at, sound) => this.host.playSoundAt?.(at, sound),
+            levelEvent: (at, event, data) => this.host.levelEvent?.(at, event, data),
+            drop: (at, stack) => void this.droppedItems.spawn(at, { stack })
+        });
         this.rides.onChange = (rider, before, after) => {
             const entity = this.store.get(rider);
             if (entity !== undefined) this.store.written(entity, 'vehicle', before, after);
@@ -748,7 +760,11 @@ export class EntityRuntime implements EntityScene {
         const entity = this.create(identifier, at, options);
         if (entity === undefined) return undefined;
         options.prepare?.(entity);
-        if (!this.hasValidFallingBlockData(entity) || !this.droppedItems.isValid(entity)) {
+        if (
+            !this.hasValidFallingBlockData(entity) ||
+            !this.droppedItems.isValid(entity) ||
+            !this.eyesOfEnder.isValid(entity)
+        ) {
             this.remove(entity.id, 'invalid_spawn_data');
             return undefined;
         }
@@ -1362,6 +1378,10 @@ export class EntityRuntime implements EntityScene {
     private updateEntity(entity: DataEntity, tick: number): void {
         if (isDroppedItem(entity)) {
             this.droppedItems.update(entity);
+            return;
+        }
+        if (isEyeOfEnderSignal(entity)) {
+            this.eyesOfEnder.update(entity);
             return;
         }
         if (this.pendingDeaths.delete(entity.id)) {

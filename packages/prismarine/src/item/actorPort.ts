@@ -29,7 +29,6 @@ import { normalizeStatusEffectId } from '../entity/StatusEffect';
 import { Item } from './Item';
 import { itemFromContent } from './itemFromContent';
 import Player from '../Player';
-import { EyeOfEnderSignal } from '../entity/other/EyeOfEnderSignal';
 import { Position } from '../world/Position';
 import type { ActorItemAction, ItemActorPort } from './contentAdapter';
 import type { ContentEntityAccess, ContentItemDrop, ContentLevelFacts } from '../content/world/adapter';
@@ -440,27 +439,20 @@ export const createItemActorPort = (options: ItemActorPortOptions): ServerItemAc
         const thrower = entityOf(action.source);
         const loaded = world();
         const item = itemOf(action.item);
-        if (thrower === null || loaded === undefined || item === null) return;
+        const stack = item === null ? null : storedItem(item);
+        if (thrower === null || loaded === undefined || stack === null) return;
 
         const at = thrower.getPosition();
-        const eye = new EyeOfEnderSignal({
-            item,
-            random: loaded.getServer().getRandom(),
-            position: new Position(at.getX(), thrower.getFeetY() + thrower.getBox().height / 2, at.getZ(), loaded)
-        });
-        eye.signalTo(new Vector3(action.target.x, action.target.y, action.target.z));
+        const from = { x: at.getX(), y: thrower.getFeetY() + thrower.getBox().height / 2, z: at.getZ() };
+        const eye = loaded.dataEntities().runtime.eyesOfEnder.launch(from, action.target, stack);
+        if (eye === undefined) return;
 
-        void loaded
-            .addEntity(eye)
-            .then(() =>
-                loaded.playNamedSoundAt(eye.getPosition(), 'random.bow', {
-                    volume: EYE_LAUNCH_VOLUME,
-                    pitch:
-                        EYE_LAUNCH_PITCH_BASE /
-                        (loaded.getServer().getRandom()() * EYE_LAUNCH_PITCH_SPREAD + EYE_LAUNCH_PITCH_FLOOR)
-                })
-            )
-            .catch((error: unknown) => loaded.getServer().getLogger().error(error));
+        loaded.playNamedSoundAt(new Vector3(from.x, from.y, from.z), 'random.bow', {
+            volume: EYE_LAUNCH_VOLUME,
+            pitch:
+                EYE_LAUNCH_PITCH_BASE /
+                (loaded.getServer().getRandom()() * EYE_LAUNCH_PITCH_SPREAD + EYE_LAUNCH_PITCH_FLOOR)
+        });
     };
 
     const teleportRandomly = (source: ItemSource, radius: number): void => {

@@ -4,7 +4,6 @@ import { describe, expect, it } from 'vitest';
 
 import HumanInventory from '../inventory/HumanInventory';
 import Player from '../Player';
-import { EyeOfEnderSignal } from '../entity/other/EyeOfEnderSignal';
 import { Item } from './Item';
 import { contentStackOf } from './contentStack';
 import { testContent } from '../testing/entityServer';
@@ -13,6 +12,8 @@ import { createItemActorPort } from './actorPort';
 import type { ContentEntityAccess, ContentItemDrop, ContentLevelFacts } from '../content/world/adapter';
 import { unwiredWorld } from '../content/world/unwired';
 import type { Entity } from '../entity/Entity';
+import type { EntityPosition } from '@jsprismarine/entities';
+import type { StoredItemStack } from '../inventory/persistence';
 import type { World } from '../world/World';
 
 /** Whoever is holding the item, as the item runtime names one. */
@@ -29,9 +30,19 @@ interface Recorded {
     readonly namedSounds: { sound: string; volume?: number; pitch?: number }[];
     /** Every structure search the world was asked for. */
     readonly searches: { name: string; origin: { x: number; z: number }; radius: number | undefined }[];
+    /** Every eye of ender the store was asked to throw. */
+    readonly eyes: { from: EntityPosition; target: EntityPosition; stack: StoredItemStack }[];
 }
 
-const recording = (): Recorded => ({ fed: [], logged: [], added: [], actorSounds: [], namedSounds: [], searches: [] });
+const recording = (): Recorded => ({
+    fed: [],
+    logged: [],
+    added: [],
+    actorSounds: [],
+    namedSounds: [],
+    searches: [],
+    eyes: []
+});
 
 /** A player reduced to what the port reads and writes, still a `Player` to `instanceof`. */
 const playerDouble = (recorded: Recorded): Player =>
@@ -64,6 +75,16 @@ const worldDouble = (player: Player, recorded: Recorded, target?: Entity): World
             getRandom: () => () => 0.5
         }),
         addEntity: async (entity: Entity) => void recorded.added.push(entity),
+        dataEntities: () => ({
+            runtime: {
+                eyesOfEnder: {
+                    launch: (from: EntityPosition, target: EntityPosition, stack: StoredItemStack) => {
+                        recorded.eyes.push({ from, target, stack });
+                        return { id: recorded.eyes.length };
+                    }
+                }
+            }
+        }),
         entityRelocated: () => {},
         broadcastMove: async () => {},
         sendActorSound: async (entity: Entity, sound: number) =>
@@ -200,30 +221,28 @@ describe('the item actor port', () => {
         expect(port.locate?.('#minecraft:on_trial_chambers_maps', { x: 10, y: 64, z: 20 })).toBeUndefined();
     });
 
-    it('throws an eye of ender signal from the middle of the thrower and plays the launch', async () => {
+    it('throws an eye of ender signal from the middle of the thrower and plays the launch', () => {
         const { port, recorded } = portUnderTest();
         // The fixture content carries no eye of ender; the port does not care what flies, only
         // that the content has an item for it to drop.
         const item = contentStackOf(testContent(), new Item({ name: 'minecraft:diamond_pickaxe', runtimeId: 1 }))!;
 
         port.perform({ kind: 'signal', source: SOURCE, item, target: { x: 100, y: 0, z: 1.5 } });
-        await Promise.resolve();
 
-        const [eye] = recorded.added;
-        expect(eye).toBeInstanceOf(EyeOfEnderSignal);
-        // Java spawns at `player.getY(0.5)`: half the body height above the feet.
-        expect(eye?.getPosition().getX()).toBe(1.5);
-        expect(eye?.getPosition().getY()).toBeCloseTo(65 - 1.62 + 0.9);
-        expect(eye?.getPosition().getZ()).toBe(1.5);
+        // Java spawns at `player.getY(0.5)`: half the body height above the feet. The store flies
+        // it; `eyeOfEnderSignals.test.ts` covers the flight.
+        expect(recorded.eyes).toHaveLength(1);
+        const [eye] = recorded.eyes;
+        expect(eye?.from.x).toBe(1.5);
+        expect(eye?.from.y).toBeCloseTo(65 - 1.62 + 0.9);
+        expect(eye?.from.z).toBe(1.5);
+        expect(eye?.target).toEqual({ x: 100, y: 0, z: 1.5 });
+        expect(eye?.stack.name).toBe('minecraft:diamond_pickaxe');
+        expect(recorded.added).toEqual([]);
         // Named, not the actor's `LAUNCH`, which the client resolved to a firework: vanilla
         // Bedrock plays the bow at half volume, and the fixed 0.5 roll pitches it at 0.4.
         expect(recorded.actorSounds).toEqual([]);
         expect(recorded.namedSounds).toEqual([{ sound: 'random.bow', volume: 0.5, pitch: 0.4 }]);
-
-        // Signaled: the first tick after a signal sets the eye off toward its target.
-        await eye?.update(1);
-        await eye?.update(2);
-        expect(eye?.getVelocity().getX()).toBeGreaterThan(0);
     });
 
     it('says which actions this server performs, so a behavior can keep its item', () => {
