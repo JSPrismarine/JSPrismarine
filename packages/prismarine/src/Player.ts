@@ -53,6 +53,7 @@ import { applyPlayerRecord, recordedPosition } from './world/playerRecord';
 import { keyOfPlayer } from './playerIdentity';
 import type { PlayerSpawn } from './world/SpawnPlacement';
 import type { BlockMining } from './world/BlockMining';
+import { blockMiningOf, playerMiningOf } from './world/BlockMining';
 import CoordinateUtils from './world/CoordinateUtils';
 import { DEFAULT_VIEW_DISTANCE_CHUNKS } from './world/Proximity';
 import { logLegacyImpulse, logLegacyWrite } from './entity/legacyAdapter';
@@ -192,8 +193,10 @@ export default class Player extends Human {
      * Vitals, experience, abilities, movement flags, the spawn point and an item use in progress,
      * each written through a setter the change log hears. The fields below read and write it.
      */
-    private readonly components = new PlayerComponents(this.attributes, (field, before, after) =>
-        logLegacyWrite(this, field, before, after)
+    private readonly components = new PlayerComponents(
+        this.attributes,
+        (field, before, after) => logLegacyWrite(this, field, before, after),
+        this.metadata
     );
 
     private get onGround(): boolean {
@@ -249,7 +252,13 @@ export default class Player extends Human {
     }
 
     /** The block this player is mining, whose cracks are animated every tick; null when none. */
-    private mining: BlockMining | null = null;
+    private get mining(): BlockMining | null {
+        const mining = this.components.get('mining.block');
+        return mining === null ? null : blockMiningOf(mining);
+    }
+    private set mining(mining: BlockMining | null) {
+        this.components.set('mining.block', mining === null ? null : playerMiningOf(mining));
+    }
 
     /** The block this player is mining, or null. */
     public getMining(): BlockMining | null {
@@ -569,8 +578,12 @@ export default class Player extends Human {
         // With server-authoritative block breaking the server animates the cracks itself, every
         // tick, where a client left to it would report each swing instead. The world answers
         // false once the block is no longer the one being mined.
-        const mining = this.mining;
-        if (mining !== null && !(await this.getWorld().updateBlockCracking(mining)) && this.mining === mining) {
+        const mining = this.components.get('mining.block');
+        if (
+            mining !== null &&
+            !(await this.getWorld().updateBlockCracking(blockMiningOf(mining))) &&
+            this.components.get('mining.block') === mining
+        ) {
             this.mining = null;
         }
 
@@ -841,13 +854,13 @@ export default class Player extends Human {
      * Fills or empties the player's lungs, and drowns them once they are empty.
      */
     private async updateBreath(): Promise<void> {
-        const air = this.metadata.air;
+        const air = this.components.get('vitals.air');
 
         if (await this.isHeadInWater()) {
-            this.metadata.setBreathing(false);
-            this.metadata.setAir(air - 1);
+            this.components.set('vitals.breathing', false);
+            this.components.set('vitals.air', air - 1);
 
-            if (this.metadata.air > 0) this.drowningTicks = 0;
+            if (this.components.get('vitals.air') > 0) this.drowningTicks = 0;
             else if (++this.drowningTicks >= DROWNING_INTERVAL) {
                 this.drowningTicks = 0;
 
@@ -860,10 +873,10 @@ export default class Player extends Human {
             }
         } else {
             this.drowningTicks = 0;
-            this.metadata.setBreathing(true);
+            this.components.set('vitals.breathing', true);
             // Vanilla refills the bar far faster than it empties: a lungful is a few seconds
             // of surfacing, not another fifteen.
-            if (air < this.metadata.maxAir) this.metadata.setAir(air + AIR_REGAIN_PER_TICK);
+            if (air < this.metadata.maxAir) this.components.set('vitals.air', air + AIR_REGAIN_PER_TICK);
         }
 
         await this.syncBreath();
@@ -1026,6 +1039,13 @@ export default class Player extends Human {
         return this.components.snapshot();
     }
 
+    /** Sets an attribute, through the component field it is kept in when it has one, so the write is logged. */
+    public override setAttributeValue(name: string, value: number): boolean {
+        const before = this.attributes.getValue(name);
+        if (!this.components.setAttribute(name, value)) return super.setAttributeValue(name, value);
+        return this.attributes.getValue(name) !== before;
+    }
+
     /** Writes a logged component field back; any other field is a human's. */
     public override restoreLoggedField(field: string, value: PlainData): boolean {
         return this.components.restore(field, value) || super.restoreLoggedField(field, value);
@@ -1141,8 +1161,8 @@ export default class Player extends Human {
             const health = this.getHealth();
             this.components.reportingChanges(() => this.attributes.reset());
             logLegacyWrite(this, 'health', health, this.getHealth());
-            this.metadata.setAir();
-            this.metadata.setBreathing(true);
+            this.components.set('vitals.air', this.metadata.maxAir);
+            this.components.set('vitals.breathing', true);
             this.sentAir = this.metadata.air;
             this.sentBreathing = true;
             this.drowningTicks = 0;
@@ -1150,7 +1170,7 @@ export default class Player extends Human {
             // A fresh body is not running, crouching, flying or sleeping, and carries no leftover hurt.
             // These survive a death because nothing resets them, and the client draws what it
             // is told: still red, still lying down.
-            this.metadata.setSprinting(false);
+            this.components.set('movement.sprinting', false);
             this.metadata.setPropertyValue(MetadataFlag.HURT_TIME, FlagType.INT, 0);
             this.metadata.setPropertyValue(MetadataFlag.HURT_DIRECTION, FlagType.INT, 0);
             this.sneaking = false;
@@ -1394,7 +1414,7 @@ export default class Player extends Human {
         this.server.post(['playerToggleSprint', event]);
         if (event.isCanceled()) return;
 
-        this.metadata.setSprinting(event.getIsSprinting());
+        this.components.set('movement.sprinting', event.getIsSprinting());
         await this.getNetworkSession().sendMetadata();
     }
 

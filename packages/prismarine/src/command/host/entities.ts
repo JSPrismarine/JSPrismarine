@@ -525,7 +525,10 @@ export const entityCommandHost = (server: Server, scoreboard: Scoreboard): Entit
             const id = attributeIdOf(attribute);
             const entity = resolveEntity(server, ref);
             if (id === undefined || entity === undefined) return false;
-            return entity.attributes.setValue(id, value);
+            // A player logs the write through the component field the attribute is kept in.
+            return entity instanceof Player
+                ? entity.setAttributeValue(id, value)
+                : entity.attributes.setValue(id, value);
         },
         getAttributeValue: (ref, attribute) =>
             applyAttribute(ref, attribute, (id, entity) => entity.attributes.getAttribute(id)?.getValue()),
