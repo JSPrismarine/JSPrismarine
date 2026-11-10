@@ -136,7 +136,7 @@ As of 2026-11-10, at program head `646dd8a4f3`, rebased on `master` `9a2c1d5af5`
 | B4 save pass measurement, B5 re-keyed maps | Landed |
 | C1a component state on the instance, C1b one entity index, C1c the entity store with logged setters, spans and undo | Landed |
 | Replay determinism fixes (settle gaps, wall-clock chunk budget in the harness) | Landed |
-| C2 items and the eye of ender in the store | Work in progress, not landed |
+| C2 items and the eye of ender in the store | Done on `refactor/item-entities-to-store-v2`, not integrated |
 | C3 staged damage and death, the mirror deleted | Work in progress, not landed |
 | C4 and everything in phases D to F | Not started |
 
@@ -209,6 +209,14 @@ B3b left these for C3 and C4.
 - `Player.getRespawnPoint` is the adapter. It builds the request, applies `spawnPointLost` by clearing the point and sending `tile.bed.notValid`, and resolves the answer's world. `onDeath`, `respawn`, `RespawnHandler` and `DimensionTravel.leaveEnd` call it. For C3, `onDeath` sends the request instead of awaiting the adapter, and the input that admits the answer applies `spawnPointLost` and sends the `SearchingForSpawn`. The in-tick chunk load entry for the search names `RespawnSearch.ts` and slice 4.
 - The request does not carry the world spawn. Reading it before the search would run the search for dry land even when the player's own point holds, so the service reads it only when it falls back to it.
 - For C4, the request's spawn point comes from the store entity's component, and the chat recipient's `receive` finds the session through the session registry by identity.
+
+C2 left these for later packages.
+
+- Dropped stacks reach clients through `entity/data/itemBodies.ts`, an `ItemActorBody` per stack that reads the store entity and goes on the wire as an `AddItemActor`. It sits apart from the mirror, so whatever replaces the mirror for the legacy tracker can take it over too. The eye of ender has no display code of its own and shows through the mirror like any store mob.
+- The item bodies still run `Entity.update`, which is how a stack reaches a portal. Portal travel adopts a stack that arrives in another world into that world's store from the body's saved form. Slice 9 turns travel into messages and removes this.
+- A stack's age is component state, so each stack appends one component entry every tick it lies in a ticking chunk, besides its position and speed while it moves. An idle world with stacks on the ground is not an idle log.
+- The eye's shatter roll draws on the dimension's random, where the legacy eye drew on the server's.
+- A drop now goes straight into the store, so it no longer waits on `World.addEntity`. `World.ITEM_ENTITY_LIMIT` counts the item bodies.
 
 ### Phase C: the store
 

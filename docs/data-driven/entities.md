@@ -555,31 +555,54 @@ server at startup rather than falling back to them. Behavior pack directories li
 `content-world-packs` in `config.json` load after the vanilla ones, and later packs replace
 earlier definitions whole; see [using-packs.md](using-packs.md) for the precedence rules.
 
-Three written classes remain: a dropped stack, the eye of ender in flight, and `Human`, which is
-what a player is. TNT and falling blocks restore through their vanilla entity definitions. Older projectile actors load as generic
-bodies and migrate into the data runtime from their saved `Motion` when the type is present;
-subsequent runtime records preserve their velocity, flight age and stuck state. New projectile
-flight and hit behavior comes from each type's `minecraft:projectile` component. Everything else is
-a component set in the runtime with a `GenericEntity` for a body, so a mob's hitbox, stats and death
-loot table come from the pack rather than a table in this repository. `Entity.getBox()` reads the
-type's `minecraft:collision_box` from the content registry. The only boxes still written down here
-are `minecraft:item` and `minecraft:eye_of_ender_signal`, the two types Mojang ships no entity file
-for.
+One written class remains: `Human`, which is what a player is. TNT and falling blocks restore
+through their vanilla entity definitions. Older projectile actors load as generic bodies and
+migrate into the data runtime from their saved `Motion` when the type is present; subsequent
+runtime records preserve their velocity, flight age and stuck state. New projectile flight and hit
+behavior comes from each type's `minecraft:projectile` component. Everything else is a component
+set in the runtime, so a mob's hitbox, stats and death loot table come from the pack rather than a
+table in this repository. `Entity.getBox()` reads the type's `minecraft:collision_box` from the
+content registry.
 
-The eye of ender is the one thrown item with a written actor, because Bedrock has no definition for
-`minecraft:eye_of_ender_signal` and its flight is not a `minecraft:projectile`. Using an eye in the
-air runs `vanilla:eye_of_ender` in `@jsprismarine/item-behaviors`, which asks the world's `locate`
-query for the nearest structure in `#minecraft:eye_of_ender_located` and returns an empty result
-when nothing is in range, as Java's `EnderEyeItem.use` answers `CONSUME`: the click is taken, nothing
-flies, nothing is spent. With a target it performs a `signal` action and spends one eye outside
-creative. The server's actor port passes the tag to `World.locateStructure`, which reads its members
-off the generator as `/locate` does, at Java's hundred chunks, and performs the action by spawning
-`EyeOfEnderSignal` half a body above the thrower's feet with `LevelSoundEvent.LAUNCH`. The entity is
-Java 26.3's `EyeOfEnder`: past twelve horizontal blocks it flies toward a point twelve blocks along
-the way and eight up, within them toward the structure point itself, easing its speed toward the
-distance left each tick; after eighty ticks it plays its death sound and leaves, dropping the eye four
-times in five and bursting into `LevelEvent` 2003 otherwise. It is never saved, since a restored eye
-would have no target.
+A dropped stack and the eye of ender in flight are entities of the store too, with built-in
+definitions, because Mojang ships no entity file for `minecraft:item` or
+`minecraft:eye_of_ender_signal`. Both live in the entity overlay,
+[`item.json`](../../packages/entities/vanilla_overlay/entities/item.json) and
+[`eye_of_ender_signal.json`](../../packages/entities/vanilla_overlay/entities/eye_of_ender_signal.json),
+and a pack later in the stack that ships its own replaces them. Each carries a host component,
+`jsprismarine:item` or `jsprismarine:eye_of_ender_signal`, with the numbers the server runs it by.
+
+A dropped stack's stack, age and pickup delay are the component state of `jsprismarine:item`, and
+its position and speed are the body's, so every change is logged. `DroppedItems` runs it in the
+entity pass as Bedrock Dedicated Server moves one: gravity, the move, then drag, coming to rest on
+the first solid block below. A stack whose move would read a block of a chunk that is not loaded
+waits where it is and loads nothing. It despawns at the definition's age, merges with an equal
+stack within the merge range in ascending runtime id order, and goes to the first player whose body
+is in reach once its pickup delay has run out; what does not fit stays on the ground. It burns in
+fire and lava, is pricked by a cactus and dies in a blast against its definition's
+`minecraft:health`, as Java's item entity does, unless the item's
+`minecraft:damage_resistant` names that damage, and it is removed once it falls past the void. Its
+actor record is the one Bedrock writes, with `Age`, `PickupDelay`, `Motion` and `Item`.
+
+The eye of ender is the one thrown item with a store entity of its own, because its flight is not
+a `minecraft:projectile`. Using an eye in the air runs `vanilla:eye_of_ender` in
+`@jsprismarine/item-behaviors`, which asks the world's `locate` query for the nearest structure in
+`#minecraft:eye_of_ender_located` and returns an empty result when nothing is in range, as Java's
+`EnderEyeItem.use` answers `CONSUME`: the click is taken, nothing flies, nothing is spent. With a
+target it performs a `signal` action and spends one eye outside creative. The server's actor port
+passes the tag to `World.locateStructure`, which reads its members off the generator as `/locate`
+does, and throws the eye through `EntityRuntime.eyesOfEnder` half a body above the thrower's feet,
+with the bow sound vanilla Bedrock plays. `EyeOfEnderSignals` flies it as Java 26.3's `EyeOfEnder`:
+far from the structure toward a point part of the way there and above the throw, near it toward the
+structure point itself, easing its speed toward the distance left each tick. At the end of its
+lifetime it plays its break sound and leaves, dropping the eye as a stack or bursting into
+`LevelEvent` 2003, as the roll made when it was thrown decided. Its definition is
+`minecraft:transient`, so it is never saved, since a restored eye would have no thrower.
+
+Until replication reads the change log, the legacy tracker still shows store entities to clients
+through a body in the world's entity map. A mob and the eye get theirs from the mirror in
+`entity/data/liveBodies.ts`. A dropped stack gets an `ItemActorBody` from `entity/data/itemBodies.ts`,
+which reads everything from the store entity and goes on the wire as an `AddItemActor`.
 
 The server opens one `EntityRuntime` per dimension as that dimension's content adapter is
 assembled, and `World.update` ticks it. Each tick, for each entity in order: the queued events
@@ -591,7 +614,7 @@ moves the mob.
 
 Each runtime also owns its dimension's entity index, the one place the server asks what stands
 near a point ([ADR 0007](../adr/0007-one-entity-index-visible-on-write.md)). It holds the runtime's
-mobs and the world's other entities: players, dropped stacks and the eye of ender. Goals, brains,
+mobs, dropped stacks and the eye of ender, and the world's other entities, such as players. Goals, brains,
 collision, item merging and pickup, and explosions all query it. A position write refiles the
 entity before the write returns, so a query later in the same tick finds a mob that already moved
 where it moved to, and every query answers in ascending runtime id order. That order is what
