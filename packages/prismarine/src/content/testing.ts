@@ -13,8 +13,12 @@ import type { Definition as ContentDefinition } from '@jsprismarine/content';
 import { vanillaItemDefinitions } from '@jsprismarine/items';
 import type { Definitions } from '@jsprismarine/packs';
 
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+
 import { definitionOf, definitionsOf } from './ContentOptions';
 import type { ContentOptions } from './ContentOptions';
+import { entityOverlayPackPath } from './packStack';
 import { buildServerContent } from './ServerContent';
 import type { ServerContent } from './ServerContent';
 
@@ -57,6 +61,27 @@ const blockFile = (identifier: string, hardness: number, lightEmission: number):
     }
 });
 
+/** The entity overlay's files for the entities Mojang's pack has no file for, by identifier. */
+const BUILT_IN_ENTITY_FILES = {
+    'minecraft:item': 'item.json',
+    'minecraft:eye_of_ender_signal': 'eye_of_ender_signal.json'
+} as const;
+
+/**
+ * The built-in definitions of a dropped item and the eye of ender, read from the entity overlay
+ * the server ships, so a fixture runs the definition the server does rather than a copy of it.
+ */
+export const builtInEntityDefinitions = (): [string, ReturnType<typeof definitionOf>][] =>
+    Object.entries(BUILT_IN_ENTITY_FILES).map(([identifier, file]) => [
+        identifier,
+        // Parsed JSON, which the entity loader validates as it would a pack's file.
+        definitionOf(
+            'entities',
+            identifier,
+            JSON.parse(readFileSync(join(entityOverlayPackPath(), 'entities', file), 'utf8'))
+        )
+    ]);
+
 /** The definitions the fixture stack composes to. */
 export const fixtureDefinitions = (): Definitions =>
     definitionsOf({
@@ -68,6 +93,7 @@ export const fixtureDefinitions = (): Definitions =>
             ]
         ]),
         entities: new Map([
+            ...builtInEntityDefinitions(),
             [
                 'minecraft:cow',
                 definitionOf('entities', 'minecraft:cow', {

@@ -61,6 +61,13 @@ const HAZARDS: ReadonlyMap<string, DamageCause> = new Map([
     ['minecraft:sweet_berry_bush', DamageCause.Contact]
 ]);
 
+/**
+ * What standing in a block does, or undefined for a block that does nothing.
+ * @param {string} name - The block's identifier.
+ * @returns {DamageCause | undefined} The harm.
+ */
+export const hazardOf = (name: string): DamageCause | undefined => HAZARDS.get(name);
+
 interface BlockFacts {
     /** How high its top surface sits inside its own cell. `0` means walked straight through. */
     top: number;

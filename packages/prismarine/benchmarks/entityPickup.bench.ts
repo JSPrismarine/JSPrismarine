@@ -9,12 +9,11 @@ import { createHash } from 'node:crypto';
 import os from 'node:os';
 
 import type { ContentPosition } from '../src/content/world/adapter';
+import type { DataEntity } from '../src/entity/data/DataEntity';
+import { ITEM_ENTITY } from '../src/entity/data/droppedItems';
 import { EntityIndex } from '../src/entity/data/entityIndex';
 import type { ContentItemEntity } from '../src/entity/data/host';
-import type { Entity } from '../src/entity/Entity';
 import { stub } from '../src/testing/stub.test.helper';
-import type { World } from '../src/world/World';
-import { Position } from '../src/world/Position';
 import { percentile } from './percentile';
 
 const argumentsAfterScript = process.argv.slice(2).filter((argument) => argument !== '--');
@@ -33,22 +32,16 @@ for (const [name, value] of [
     if (!Number.isSafeInteger(value) || value < 1) throw new RangeError(`${name} must be a positive integer`);
 }
 
-const world = stub<World>({ getName: () => 'pickup benchmark' });
-const itemDetails = new Map<bigint, ContentItemEntity>();
-const itemEntities: Entity[] = [];
+const itemDetails = new Map<number, ContentItemEntity>();
+const itemEntities: DataEntity[] = [];
 for (let id = 0; id < ITEM_COUNT; id++) {
     const x = ((id * 97) % 1024) - 512 + 0.5;
     const z = ((id * 193) % 1024) - 512 + 0.5;
     const y = 64 + ((id % 11) - 5) * 0.25;
-    const position = new Position(x, y, z, world);
-    const runtimeId = BigInt(id + 1);
-    const entity = stub<Entity>({
-        getRuntimeId: () => runtimeId,
-        getType: () => 'minecraft:item',
-        getPosition: () => position
-    });
+    // A dropped stack of the store as the index files one: its id, its type and where it stands.
+    const entity = stub<DataEntity>({ id: id + 1, identifier: ITEM_ENTITY, position: { x, y, z } });
     itemEntities.push(entity);
-    itemDetails.set(runtimeId, {
+    itemDetails.set(id + 1, {
         id: id + 1,
         position: { x, y, z },
         item: { identifier: 'minecraft:wheat', count: 1 }
@@ -56,7 +49,7 @@ for (let id = 0; id < ITEM_COUNT; id++) {
 }
 
 const index = new EntityIndex();
-for (const entity of itemEntities) index.addLegacy(entity);
+for (const entity of itemEntities) index.add(entity);
 const allItems = [...itemDetails.values()];
 const mobs: ContentPosition[] = Array.from({ length: MOB_COUNT }, (_unused, index) => ({
     x: ((index * 229) % 1024) - 512 + 0.5,
@@ -83,7 +76,7 @@ const run = (indexed: boolean): Sample => {
         const candidates: ContentItemEntity[] = [];
         if (indexed) {
             for (const entity of index.itemsWithin(center.x, center.z, RADIUS)) {
-                const item = itemDetails.get(entity.getRuntimeId());
+                const item = itemDetails.get(entity.id);
                 if (item !== undefined) candidates.push(item);
             }
             pickupCandidates += candidates.length;

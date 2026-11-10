@@ -126,6 +126,9 @@ import { brainMobFor } from './brainIdentifiers';
 import { brainMobOf, brainWorldOf, tickBrainNavigation } from './brainWorld';
 import { entityFilterContextOf } from './filterView';
 import type { ContentItemEntity, EntityHostFacts, EntityWorldFacts } from './host';
+import { DroppedItems, isDroppedItem } from './droppedItems';
+import { itemDropOf } from '../../inventory/persistence';
+import { maxStackSizeOf, resistsDamageOf } from '../../item/Item';
 import { navigationViewOf } from './navigationView';
 import type { CachedNavigationView } from './navigationView';
 import type { DataEntityRecord } from './persistence';
@@ -421,6 +424,9 @@ export class EntityRuntime implements EntityScene {
      * which is what makes a neighbor search cheaper than a scan. See ADR 0007.
      */
     public readonly index = new EntityIndex();
+
+    /** The dropped stacks among this runtime's entities, and the system that runs them. */
+    public readonly droppedItems: DroppedItems;
     /** The entity each `EntityInstance` belongs to, which is how the AI seams resolve a body. */
     private readonly byInstance = new Map<EntityInstance, DataEntity>();
     /** Invalid interaction slots reported once per entity and request. */
@@ -582,6 +588,23 @@ export class EntityRuntime implements EntityScene {
             });
         this.store = new EntityStore((message) => this.report(message));
         this.store.addInverseWriter((inverse) => this.writeInverse(inverse));
+        this.droppedItems = new DroppedItems({
+            spawn: (identifier, at, options) => this.spawn(identifier, at, options),
+            byId: (id) => this.store.get(id),
+            itemsWithin: (x, z, radius) => this.index.itemsWithin(x, z, radius),
+            blocksMovement: (position) => !this.navigation().isPassable(position),
+            blockAt: (position) => this.navigation().blockAt(position),
+            players: () => this.host.players(),
+            playerIdentityOf: (id) => this.host.playerIdentityOf?.(id),
+            minY: () => this.world.level.minY,
+            gameTime: () => this.world.level.gameTime(),
+            resists: (name, tag) => resistsDamageOf(name, tag, this.content()),
+            maxCount: (name) => maxStackSizeOf(name, this.content()),
+            remove: (id, reason) => this.remove(id, reason),
+            give: (playerId, itemId, stack) =>
+                this.host.givePlayerItem?.(playerId, itemId, itemDropOf(stack)) ?? stack.count,
+            stackChanged: (itemId, count) => this.host.itemStackChanged?.(itemId, count)
+        });
         this.rides.onChange = (rider, before, after) => {
             const entity = this.store.get(rider);
             if (entity !== undefined) this.store.written(entity, 'vehicle', before, after);
@@ -720,7 +743,8 @@ export class EntityRuntime implements EntityScene {
     public spawn(identifier: string, at: EntityPosition, options: SpawnOptions = {}): DataEntity | undefined {
         const entity = this.create(identifier, at, options);
         if (entity === undefined) return undefined;
-        if (!this.hasValidFallingBlockData(entity)) {
+        options.prepare?.(entity);
+        if (!this.hasValidFallingBlockData(entity) || !this.droppedItems.isValid(entity)) {
             this.remove(entity.id, 'invalid_spawn_data');
             return undefined;
         }
@@ -1332,6 +1356,10 @@ export class EntityRuntime implements EntityScene {
 
     /** One entity's update in the entity pass, which {@link EntityRuntime.tickEntities} runs as a unit. */
     private updateEntity(entity: DataEntity, tick: number): void {
+        if (isDroppedItem(entity)) {
+            this.droppedItems.update(entity);
+            return;
+        }
         if (this.pendingDeaths.delete(entity.id)) {
             entity.instance.applyQueuedEvents();
             if (entity.removed !== undefined) return;

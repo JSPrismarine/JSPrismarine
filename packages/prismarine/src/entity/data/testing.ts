@@ -16,7 +16,7 @@ import type { Definitions } from '@jsprismarine/packs';
 
 import { definitionOf, definitionsOf } from '../../content/ContentOptions';
 import type { ContentOptions } from '../../content/ContentOptions';
-import { fixtureItemDefinitions } from '../../content/testing';
+import { builtInEntityDefinitions, fixtureItemDefinitions } from '../../content/testing';
 import { singleDimension } from '../../content/world/adapter';
 import type {
     ContentBlock,
@@ -235,6 +235,7 @@ export const entityFixtureStack = (extra: ExtraEntities = {}): Definitions =>
             ])
         ),
         entities: new Map([
+            ...builtInEntityDefinitions(),
             ...entityFixtureDefinitions(),
             ...Object.entries(extra).map(
                 ([identifier, body]) =>
@@ -337,6 +338,8 @@ export interface TestWorldOptions {
     readonly gameRules?: Readonly<Record<string, boolean | number>>;
     /** The raid state this world reports to villagers. */
     readonly villagerRaidState?: VillagerRaidState;
+    /** Blocks at or east of this x read as unloaded. */
+    readonly unloadedFromX?: number;
 }
 
 /** A flat stone world with air above it, and a recording host. */
@@ -388,6 +391,14 @@ export class TestEntityWorld {
 
     /** The players the host reports, which a test replaces between ticks. */
     public players: readonly ContentEntity[];
+    /** Every dropped stack given to a player, in order, with the taker and the stack's id. */
+    public readonly given: { playerId: number; itemId: number; item: ContentItemDrop }[] = [];
+    /** How many more items each player's inventory takes, by runtime id; unlimited when absent. */
+    public readonly room = new Map<number, number>();
+    /** Every stack size the host was told about, in order. */
+    public readonly stackChanges: { itemId: number; count: number }[] = [];
+    /** A function a test sets to make giving an item throw, which fails the item's update. */
+    public onGive: (() => void) | undefined;
     /** Number of host player-list reads, used to assert the runtime's tick snapshot. */
     public playerListReads = 0;
     /** A synchronous host-side player mutation a test can perform after damage. */
@@ -497,6 +508,16 @@ export class TestEntityWorld {
                 else this.lying.set(id, { ...found, item: { ...found.item, count: remaining } });
                 return { ...found.item, count: takenCount };
             },
+            givePlayerItem: (playerId, itemId, item) => {
+                this.onGive?.();
+                const room = this.room.get(playerId) ?? Number.POSITIVE_INFINITY;
+                const fits = Math.min(room, item.count);
+                if (fits <= 0) return item.count;
+                this.room.set(playerId, room - fits);
+                this.given.push({ playerId, itemId, item: { ...item, count: fits } });
+                return item.count - fits;
+            },
+            itemStackChanged: (itemId, count) => this.stackChanges.push({ itemId, count }),
             hurt: (id, amount, cause, sourceId, deathMessageOverride) => {
                 this.hits.push({
                     id,
@@ -560,6 +581,7 @@ export class TestEntityWorld {
 
     /** The block at a position: whatever a test placed, else floor below and air above. */
     private blockAt(at: ContentPosition): ContentBlock | undefined {
+        if (this.options.unloadedFromX !== undefined && at.x >= this.options.unloadedFromX) return undefined;
         const placed = this.placed.get(keyOf(at));
         if (placed !== undefined) return placed;
         return { identifier: at.y > FLOOR_Y ? 'minecraft:air' : 'minecraft:stone', states: {} };
