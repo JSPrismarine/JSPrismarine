@@ -1,4 +1,3 @@
-import type Player from '../../Player';
 import type Server from '../../Server';
 import type PlayerSession from '../PlayerSession';
 import type BookEditPacket from '@jsprismarine/protocol/packet/BookEditPacket';
@@ -6,6 +5,7 @@ import { BookEditAction } from '@jsprismarine/protocol/packet/BookEditPacket';
 
 import type { BookEdit } from '@jsprismarine/protocol/packet/BookEditPacket';
 import type PacketHandler from './PacketHandler';
+import type { InventoryHolder } from './playerPorts';
 
 /** The only item a book edit can apply to. Signing turns it into a written book. */
 const WRITABLE_BOOK = 'minecraft:writable_book';
@@ -19,7 +19,7 @@ const pageInRange = (page: number): boolean => Number.isInteger(page) && page >=
  * Why an edit cannot apply to the player's inventory, or null when the slot holds a book and
  * quill and every page number fits in one.
  */
-const bookEditRejection = (player: Player, data: BookEdit): string | null => {
+const bookEditRejection = (player: InventoryHolder, data: BookEdit): string | null => {
     const { bookSlot, operation } = data;
 
     // `getItem` answers air for a slot the inventory does not have, so an out of range slot
@@ -51,14 +51,13 @@ export default class BookEditHandler implements PacketHandler<BookEditPacket> {
 
     /** Checks the slot holds a book and quill, then logs the edit by action. */
     public handle(packet: BookEditPacket, server: Server, session: PlayerSession): void {
-        const player = session.getPlayer();
         const data = packet.getPacketData();
 
-        const rejection = data === null ? 'it carries no operation' : bookEditRejection(player, data);
+        const rejection = data === null ? 'it carries no operation' : bookEditRejection(session.getPlayer(), data);
         if (rejection !== null) {
             server
                 .getLogger()
-                .verbose(`Dropped a book edit from ${player.getName()}: ${rejection}`, 'BookEditHandler/handle');
+                .verbose(`Dropped a book edit from ${session.identity.name}: ${rejection}`, 'BookEditHandler/handle');
             return;
         }
 
@@ -76,7 +75,7 @@ export default class BookEditHandler implements PacketHandler<BookEditPacket> {
         server
             .getLogger()
             .debug(
-                `${player.getName()} ${edit} in slot ${data.bookSlot}. Books are not stored, so nothing changed`,
+                `${session.identity.name} ${edit} in slot ${data.bookSlot}. Books are not stored, so nothing changed`,
                 'BookEditHandler/handle'
             );
     }

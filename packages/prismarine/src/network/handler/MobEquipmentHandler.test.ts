@@ -8,6 +8,7 @@ import type Server from '../../Server';
 import ContainerEntry from '../../inventory/ContainerEntry';
 import HumanInventory from '../../inventory/HumanInventory';
 import { Item } from '../../item/Item';
+import { identityNamed } from '../../testing/sessionIdentity.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import type { BlockMining } from '../../world/BlockMining';
 import type { World } from '../../world/World';
@@ -52,6 +53,8 @@ const fakeWorld = () => {
 
     const connection = stub<ClientConnection>({ codec: protocolCodec });
     const senderSession = stub<PlayerSession>({
+        runtimeId: 7n,
+        identity: identityNamed('runner'),
         tracks: () => true,
         send: async (packet) => void toSender.push(packet),
         getPlayer: () => sender,

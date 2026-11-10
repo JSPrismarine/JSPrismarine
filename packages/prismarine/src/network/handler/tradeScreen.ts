@@ -11,9 +11,10 @@
  */
 import type { TradeResult, TradeStack } from '@jsprismarine/trading';
 
+import type { ServerContent } from '../../content/ServerContent';
+import type { ExperienceHolder } from '../../entity/Experience';
 import { addExperiencePoints } from '../../entity/Experience';
 import { Item } from '../../item/Item';
-import type Player from '../../Player';
 import { tradeIndexOf } from '../tradeOffers';
 import type { OpenBlockContainer } from '../PlayerSession';
 
@@ -27,6 +28,11 @@ export interface TradeSelection {
     readonly commit: () => TradeResult;
 }
 
+/** The player as a trade reads it: the experience an offer pays. */
+export interface Trader {
+    getExperience(): ExperienceHolder;
+}
+
 /** Whether a payment stack is what the offer wants: the same item and the same aux value. */
 const pays = (held: Item, want: TradeStack): boolean =>
     held.getName() === want.item &&
@@ -38,10 +44,16 @@ const pays = (held: Item, want: TradeStack): boolean =>
  * @param player - The trading player, who is paid the offer's experience.
  * @param open - The open trade screen, with the payment in `inputs`.
  * @param netId - The `recipeNetId` of the action, which is the offer's `netId`.
+ * @param content - The server's content, which the offered stack is built from.
  * @returns The selection, or undefined when the offer does not exist, is sold out, or the
  * payment does not cover its price now.
  */
-export const selectTrade = (player: Player, open: OpenBlockContainer, netId: number): TradeSelection | undefined => {
+export const selectTrade = (
+    player: Trader,
+    open: OpenBlockContainer,
+    netId: number,
+    content: ServerContent
+): TradeSelection | undefined => {
     const trade = open.trade;
     if (trade === undefined) return undefined;
 
@@ -70,7 +82,7 @@ export const selectTrade = (player: Player, open: OpenBlockContainer, netId: num
     const stack = new Item({
         name: give.item,
         count: give.count,
-        content: player.getServer().getContent(),
+        content,
         ...(typeof aux === 'number' ? { meta: aux } : {}),
         ...(typeof enchantments === 'object' && enchantments !== null
             ? { enchantments: enchantments as Record<string, number> } // keys are Java enchantment ids by the function's contract

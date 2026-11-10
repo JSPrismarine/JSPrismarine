@@ -2,14 +2,15 @@ import { describe, expect, it } from 'vitest';
 import type HumanInventory from '../../inventory/HumanInventory';
 import { Item } from '../../item/Item';
 import { sessionNearBlocks } from '../../testing/blockTarget.test.helper';
+import { identityNamed } from '../../testing/sessionIdentity.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import BookEditPacket, { BookEditAction } from '@jsprismarine/protocol/packet/BookEditPacket';
 import type { BookEditOperation } from '@jsprismarine/protocol/packet/BookEditPacket';
 import BookEditHandler from './BookEditHandler';
 
 /** Steve holding `item` in slot 2 and nothing anywhere else. */
-const steveHolding = (item: Item) =>
-    sessionNearBlocks(
+const steveHolding = (item: Item) => {
+    const near = sessionNearBlocks(
         {},
         {
             getInventory: () =>
@@ -18,6 +19,10 @@ const steveHolding = (item: Item) =>
                 })
         }
     );
+    // The handler logs the name the session holds, which the shared helper leaves out.
+    Object.assign(near.session, { identity: identityNamed('Steve') });
+    return near;
+};
 
 const bookAndQuill = () => new Item({ runtimeId: 0, name: 'minecraft:writable_book' });
 

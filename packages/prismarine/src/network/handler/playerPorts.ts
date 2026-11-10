@@ -10,6 +10,7 @@
 import type { DisconnectReason } from '@jsprismarine/minecraft';
 import type { Vector3 } from '@jsprismarine/math';
 
+import type CraftingInput from '../../crafting/CraftingInput';
 import type HumanInventory from '../../inventory/HumanInventory';
 import type { World } from '../../world/World';
 
@@ -29,6 +30,11 @@ export interface PlacedPlayer {
 /** A player's own inventory, for a handler that reads or moves its stacks. */
 export interface InventoryHolder {
     getInventory(): HumanInventory;
+}
+
+/** The crafting grid in a player's own inventory screen, which closing the screen empties. */
+export interface CraftingHolder {
+    getCraftingInput(): CraftingInput;
 }
 
 /** A player's flight, which the client asks to toggle. */
