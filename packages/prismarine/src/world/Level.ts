@@ -800,6 +800,9 @@ export class Level {
      * its update is then in exactly one world's roster at any point of the tick; a world
      * ticked later skips an arrival that was already ticked this tick.
      *
+     * A world whose update throws is logged with its name, and the worlds after it still tick.
+     * One broken dimension then costs that dimension its tick and never another's.
+     *
      * @param tick - The server's tick counter, which the worlds pace their own work by.
      */
     public async update(tick: number): Promise<void> {
@@ -807,7 +810,14 @@ export class Level {
 
         this.currentTick++;
         this.weather.tick(this.currentTick);
-        for (const world of this.worldsInStemOrder()) await world.update(tick);
+        for (const world of this.worldsInStemOrder()) {
+            try {
+                await world.update(tick);
+            } catch (error: unknown) {
+                this.server.getLogger().error(`World ${world.getName()} of ${this.name} failed tick ${tick}`);
+                this.server.getLogger().error(error);
+            }
+        }
     }
 
     /** The ready worlds in stem order, which is the order the level ticks them in. */
