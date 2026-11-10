@@ -905,7 +905,7 @@ describe('Player', () => {
             // The client keeps rendering what it was never told to remove. Changing dimension
             // does not clear it, so every mob from the old world has to be despawned by hand.
             const { player, sent } = fakePlayer();
-            player.viewDistance = 10;
+            player.getNetworkSession()['viewDistance'] = 10;
 
             // Runtime ids come from one counter for the whole file, so a fixed id would sooner or
             // later be the player's own.

@@ -40,11 +40,10 @@ describe('network', () => {
          * `position` is a plain field a test walks the player by assigning to; `getPosition`,
          * which is what the session actually calls, reads it on every call.
          */
-        const playerAt = (x: number, z: number, viewDistance = 2) => {
+        const playerAt = (x: number, z: number) => {
             const walkable: { position: { x: number; z: number }; player: Player } = {
                 position: { x, z },
                 player: stub<Player>({
-                    viewDistance,
                     getPosition: () =>
                         stub<Position>({
                             getX: () => walkable.position.x,
@@ -75,6 +74,8 @@ describe('network', () => {
         beforeEach(() => {
             player = playerAt(0, 0);
             session = sessionFor(server, stub<ClientConnection>(), player.player);
+            // The radius the client asked for, which is the session's own.
+            session['viewDistance'] = 2;
         });
 
         it('queues the chunks around the player', async () => {
@@ -157,7 +158,6 @@ describe('network', () => {
                 getLoadedChunk: (x, z) => (x === 1 && z === 2 ? chunk : x === 2 && z === 2 ? secondChunk : null)
             });
             const playerWithWorld = stub<Player>({
-                viewDistance: 2,
                 getPosition: () => stub<Position>({ getX: () => 0, getZ: () => 0 }),
                 getWorld: () => world
             });
@@ -180,7 +180,6 @@ describe('network', () => {
             chunk.setBlockRuntimeId(1, 70, 2, BlockRuntimeIds.getByName('minecraft:stone'));
             const world = stub<World>({ getLoadedChunk: () => chunk });
             const cachePlayer = stub<Player>({
-                viewDistance: 2,
                 getPosition: () => stub<Position>({ getX: () => 0, getZ: () => 0 }),
                 getWorld: () => world
             });
@@ -220,7 +219,6 @@ describe('network', () => {
                 chunk.setBlockRuntimeId(1, 70, 2, BlockRuntimeIds.getByName('minecraft:stone'));
                 const world = stub<World>({ getLoadedChunk: () => chunk });
                 const playerWithWorld = stub<Player>({
-                    viewDistance: 2,
                     getPosition: () => new Position(0, 64, 0, world),
                     getWorld: () => world,
                     isOnline: () => true
@@ -353,7 +351,6 @@ describe('network', () => {
                 }
             });
             const playerWithWorld = stub<Player>({
-                viewDistance: 2,
                 getPosition: () => new Position(0, 64, 0, world),
                 getWorld: () => world,
                 getName: () => 'tester',

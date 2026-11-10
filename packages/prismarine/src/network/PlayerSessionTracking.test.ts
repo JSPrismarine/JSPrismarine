@@ -32,14 +32,14 @@ const trackingSession = ({ viewDistance = 10, spawnFails = false, reconciling = 
     const player: any = {
         getRuntimeId: () => 1n,
         getPosition: () => ({ getX: () => 8, getY: () => 64, getZ: () => 8 }),
-        isOnline: () => true,
-        viewDistance
+        isOnline: () => true
     };
 
     const session: PlayerSession = Object.assign(Object.create(PlayerSession.prototype), {
         connection,
         ...sessionPlayerFields(player, 1n),
         entityTracker: new EntityTracker({ hysteresis: 2, enabled: true }),
+        viewDistance,
         reconciling
     });
 

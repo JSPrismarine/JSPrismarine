@@ -333,6 +333,12 @@ export default class PlayerSession {
      */
     private spawnChunksSent = false;
 
+    /**
+     * The chunk radius the client asked for and was answered with, in chunks, or zero until its
+     * first `RequestChunkRadius`. See {@link PlayerSession.setViewDistance}.
+     */
+    private viewDistance = 0;
+
     /** Set while the spawn chunks are still draining - see {@link PlayerSession.announceSpawnIfReady}. */
     private spawnChunksPending = false;
 
@@ -724,10 +730,9 @@ export default class PlayerSession {
             await this.flush();
         }
 
-        const player = this.getPlayer();
-        if (!player.viewDistance) return;
+        if (!this.viewDistance) return;
 
-        const position = player.getPosition();
+        const position = this.getPlayer().getPosition();
         const chunkX = toChunk(position.getX());
         const chunkZ = toChunk(position.getZ());
 
@@ -773,7 +778,7 @@ export default class PlayerSession {
             const player = this.getPlayer();
             const change = this.entityTracker.plan({
                 viewer: player.getPosition(),
-                viewDistance: player.viewDistance,
+                viewDistance: this.viewDistance,
                 self: this.runtimeId,
                 entities: entities ?? player.getWorld().shownActors()
             });
@@ -802,8 +807,7 @@ export default class PlayerSession {
     public async considerEntity(entity: ShownActor): Promise<void> {
         if (!this.isConnected()) return;
         if (entity.getRuntimeId() === this.runtimeId) return;
-        const player = this.getPlayer();
-        if (!this.entityTracker.shouldSpawn(entity, player.getPosition(), player.viewDistance)) return;
+        if (!this.entityTracker.shouldSpawn(entity, this.getPlayer().getPosition(), this.viewDistance)) return;
 
         await entity.spawnTo(this);
         this.entityTracker.add(entity.getRuntimeId());
@@ -882,7 +886,7 @@ export default class PlayerSession {
         // should be showing, so naming only the current batch un-rendered everything sent
         // before it. What governs visibility is the radius around the position.
         // https://github.com/PrismarineJS/minecraft-data/blob/master/data/bedrock/1.21.42/proto.yml
-        const publisherSend = this.sendNetworkChunkPublisher(effectiveViewDistance(this.getPlayer().viewDistance), []);
+        const publisherSend = this.sendNetworkChunkPublisher(effectiveViewDistance(this.viewDistance), []);
 
         try {
             await publisherSend;
@@ -1048,11 +1052,11 @@ export default class PlayerSession {
     }
 
     public async needNewChunks(forceResend = false, dist?: number): Promise<void> {
-        const player = this.getPlayer();
-        const currentXChunk = CoordinateUtils.fromBlockToChunk(player.getPosition().getX());
-        const currentZChunk = CoordinateUtils.fromBlockToChunk(player.getPosition().getZ());
+        const position = this.getPlayer().getPosition();
+        const currentXChunk = CoordinateUtils.fromBlockToChunk(position.getX());
+        const currentZChunk = CoordinateUtils.fromBlockToChunk(position.getZ());
 
-        const viewDistance = player.viewDistance || dist || 0;
+        const viewDistance = this.viewDistance || dist || 0;
 
         this.chunkSender.setCenter(currentXChunk, currentZChunk);
 
@@ -1193,7 +1197,7 @@ export default class PlayerSession {
         const distance = Math.max(Math.abs(x - this.lastChunkX), Math.abs(z - this.lastChunkZ));
         if (distance <= URGENT_CHUNK_DISTANCE) return 'immediate';
 
-        return distance <= this.getPlayer().viewDistance / 2 ? 'soon' : 'idle';
+        return distance <= this.viewDistance / 2 ? 'soon' : 'idle';
     }
 
     /**
@@ -1799,7 +1803,7 @@ export default class PlayerSession {
      * @returns The radius, or zero until the client's first `RequestChunkRadius`.
      */
     public getViewDistance(): number {
-        return this.getPlayer().viewDistance;
+        return this.viewDistance;
     }
 
     /**
@@ -1808,7 +1812,7 @@ export default class PlayerSession {
      * @param distance - The view distance
      */
     public async setViewDistance(distance: number): Promise<void> {
-        this.getPlayer().viewDistance = distance;
+        this.viewDistance = distance;
         const packet = new ChunkRadiusUpdatedPacket({ radius: distance });
         await this.connection.sendDataPacket(packet);
 
@@ -2077,7 +2081,7 @@ export default class PlayerSession {
         stopSound.stopAllSounds = true;
         await this.send(stopSound);
 
-        await this.sendNetworkChunkPublisher(effectiveViewDistance(player.viewDistance), []);
+        await this.sendNetworkChunkPublisher(effectiveViewDistance(this.viewDistance), []);
 
         // Since 1.19.50 the server sends the acknowledgment that used to be the client's, and
         // sends it before any chunk; the client still answers with its own copy afterwards.

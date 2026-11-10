@@ -334,7 +334,6 @@ describe('Level', () => {
             let position = new Position(0, 64, 0, from);
             const traveler: Entity = stubOf(Player, {
                 attributes: new Attributes(),
-                viewDistance: 4,
                 getRuntimeId: () => 7n,
                 getType: () => 'minecraft:player',
                 getName: () => 'traveler',
@@ -345,7 +344,8 @@ describe('Level', () => {
                 getBox: () => ({ width: 0.6, height: 1.8 }),
                 isOnPortalCooldown: () => false,
                 // A settled client: the portal pass asks whether a change is still pending.
-                getNetworkSession: () => stub<PlayerSession>({ pendingDimensionChange: () => undefined }),
+                getNetworkSession: () =>
+                    stub<PlayerSession>({ pendingDimensionChange: () => undefined, getViewDistance: () => 4 }),
                 update: async (tick) => {
                     updates.push(tick);
                     if (position.getWorld() !== from) return;

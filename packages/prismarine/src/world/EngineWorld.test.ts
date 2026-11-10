@@ -207,10 +207,9 @@ const standInPlayer = (world: World): void => {
         // This fixture checks random ticks, so a world tick has no outbound session queue to drain.
         flushOutboundPackets: async () => {}
     });
-    const session = stub<PlayerSession>({ getConnection: () => connection });
+    const session = stub<PlayerSession>({ getConnection: () => connection, getViewDistance: () => 8 });
     const player = stub<Player>({
         isOnline: () => true,
-        viewDistance: 8,
         getPosition: () => new Position(0, GROUND + 1, 0, world),
         getNetworkSession: () => session
     });

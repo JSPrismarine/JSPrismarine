@@ -92,12 +92,11 @@ const tickWorld = (entity: Furnace, blockIdentifier: string) => {
         systems: { onBlockChanged: () => {} },
         server: { getContent: () => content, getLogger: () => ({ error: vi.fn() }) }
     });
-    const session = stub<PlayerSession>({ getOpenBlockContainer: () => undefined });
+    const session = stub<PlayerSession>({ getOpenBlockContainer: () => undefined, getViewDistance: () => 10 });
     players.set(
         1,
         stub<Player>({
             isOnline: () => true,
-            viewDistance: 10,
             getPosition: () => new Position(8, 64, 8, world),
             getNetworkSession: () => session
         })

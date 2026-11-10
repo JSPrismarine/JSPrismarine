@@ -2,6 +2,7 @@ import { EntityIndex } from '../entity/data/entityIndex';
 import { describe, expect, it, vi } from 'vitest';
 
 import type Player from '../Player';
+import type PlayerSession from '../network/PlayerSession';
 import { stub } from '../testing/stub.test.helper';
 import Chunk from './chunk/Chunk';
 import { Dimensions } from './Dimension';
@@ -44,11 +45,18 @@ const worldWith = (
     return world;
 };
 
-const playerAt = (world: World, chunkX: number, chunkZ: number): Player =>
+/** A player double whose session answers the view distance `radius` reads. */
+const playerViewing = (position: () => Position, radius: () => number): Player =>
     stub<Player>({
-        viewDistance: 10,
-        getPosition: () => new Position(chunkX * 16, 64, chunkZ * 16, world)
+        getPosition: position,
+        getNetworkSession: () => stub<PlayerSession>({ getViewDistance: radius })
     });
+
+const playerAt = (world: World, chunkX: number, chunkZ: number): Player =>
+    playerViewing(
+        () => new Position(chunkX * 16, 64, chunkZ * 16, world),
+        () => 10
+    );
 
 const loadedPositions = (centerX: number, centerZ: number): [number, number][] =>
     Array.from({ length: CHUNK_COUNT }, (_entry, index) => [
@@ -97,10 +105,10 @@ describe('world player chunk counts', () => {
             [20, 0]
         ]);
         let firstX = 0;
-        const first = stub<Player>({
-            viewDistance: 10,
-            getPosition: () => new Position(firstX * 16, 64, 0, world)
-        });
+        const first = playerViewing(
+            () => new Position(firstX * 16, 64, 0, world),
+            () => 10
+        );
         const second = playerAt(world, 0, 0);
         world['players'].set(1, first);
         world['players'].set(2, second);
@@ -132,10 +140,10 @@ describe('world player chunk counts', () => {
         const randomCoordinate = (): number => Math.floor(random() * 37) - 18;
         const randomViewDistance = (): number => Math.floor(random() * 17);
         const makePlayer = (state: { x: number; z: number; viewDistance: number }): Player =>
-            stub<Player>({
-                viewDistance: state.viewDistance,
-                getPosition: () => new Position(state.x * 16, 64, state.z * 16, world)
-            });
+            playerViewing(
+                () => new Position(state.x * 16, 64, state.z * 16, world),
+                () => state.viewDistance
+            );
         const references = world['getPlayerChunkRefCounts']();
         const addExpectedArea = (
             counts: Map<number, [number, number, number]>,
@@ -170,9 +178,6 @@ describe('world player chunk counts', () => {
                 state.x = randomCoordinate();
                 state.z = randomCoordinate();
                 state.viewDistance = randomViewDistance();
-                const player = players.get(runtimeId);
-                if (player === undefined) throw new Error('Active coverage fixture lost its player');
-                player.viewDistance = state.viewDistance;
             }
 
             references.synchronize(players);
@@ -229,10 +234,11 @@ describe('world player chunk counts', () => {
             true
         );
         let playerX = 0;
-        const player = stub<Player>({
-            viewDistance: 12,
-            getPosition: () => new Position(playerX * 16, 64, 0, world)
-        });
+        let radius = 12;
+        const player = playerViewing(
+            () => new Position(playerX * 16, 64, 0, world),
+            () => radius
+        );
         world['players'].set(1, player);
 
         await world['unloadDistantChunks']();
@@ -242,7 +248,7 @@ describe('world player chunk counts', () => {
         expect(world.getLoadedChunk(13, 0)).toBeNull();
 
         playerX = 100;
-        player.viewDistance = 4;
+        radius = 4;
         for (const x of [90, 89]) {
             const chunk = new Chunk(x, 0);
             world['chunks'].set(Chunk.packXZ(x, 0), chunk);
@@ -270,10 +276,10 @@ describe('world player chunk counts', () => {
             chunk.markSaved();
         });
         let playerX = 0;
-        const player = stub<Player>({
-            viewDistance: 10,
-            getPosition: () => new Position(playerX * 16, 64, 0, world)
-        });
+        const player = playerViewing(
+            () => new Position(playerX * 16, 64, 0, world),
+            () => 10
+        );
         world['players'].set(1, player);
         world.getLoadedChunk(20, 0)?.markChanged();
 

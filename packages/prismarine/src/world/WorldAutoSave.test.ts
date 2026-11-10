@@ -14,6 +14,7 @@ import { GenericEntity } from '../entity/GenericEntity';
 import type Player from '../Player';
 import type { Config } from '../config/Config';
 import type Server from '../Server';
+import type PlayerSession from '../network/PlayerSession';
 import { stub } from '../testing/stub.test.helper';
 import Chunk from './chunk/Chunk';
 import { Dimensions } from './Dimension';
@@ -295,7 +296,7 @@ describe('the autosave a tick starts', () => {
         players.set(
             1n,
             stub<Player>({
-                viewDistance: 10,
+                getNetworkSession: () => stub<PlayerSession>({ getViewDistance: () => 10 }),
                 isOnline: () => false,
                 getPosition: () => new Position(0, 64, 0, world)
             })

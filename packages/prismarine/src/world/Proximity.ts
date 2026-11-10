@@ -33,7 +33,7 @@ export const VIEW_MARGIN_CHUNKS = 1;
  * The radius assumed for a client that has not negotiated one yet.
  *
  * A player is spawned and can be sent things before `RequestChunkRadiusPacket` arrives, and
- * `player.viewDistance` is zero until it does. Treating that zero literally would give a
+ * `PlayerSession.getViewDistance` is zero until it does. Treating that zero literally would give a
  * brand new player an audience of nothing and an empty world; this is the same fallback the
  * chunk path already uses, so the audience matches the terrain that was actually sent.
  */
