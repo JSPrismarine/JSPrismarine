@@ -683,6 +683,8 @@ export class EntityRuntime implements EntityScene {
             written: (entity, field, before, after) => this.store.written(entity, field, before, after),
             level: this.world.level,
             blockAt: (at) => this.world.blocks.get(at),
+            runtimeIdAt: (at) => this.world.blocks.runtimeIdAt?.(at),
+            levelEvent: (at, event, data) => this.host.levelEvent?.(at, event, data),
             damage: (intent) => this.damage(intent),
             heal: (id, amount) => this.heal(id, amount),
             dying: (id) => this.dying.has(id),

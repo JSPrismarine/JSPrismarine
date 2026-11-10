@@ -56,6 +56,8 @@ import { placePlayerSpawn, SPAWN_RELOCATION_RANGE } from './SpawnPlacement';
 import BlockPhysics from './physics/BlockPhysics';
 import type { DimensionType } from './Dimension';
 import type { BlockMining } from './BlockMining';
+import { playerMiningOf } from './BlockMining';
+import { CRACK_PARTICLES, mineTick } from '../entity/playerMining';
 import type { WorldConfig, WorldPlayerData } from '../config/JsonConfigTypes';
 import { Position } from './Position';
 import type { PlayerSpawn, RelocationOffset } from './SpawnPlacement';
@@ -456,22 +458,6 @@ const popOut = (block: ContentPosition, random: Random): DropStart => {
 
     return { position, motion: new Vector3(push(), 0.2, push()) };
 };
-
-/**
- * The crack particles, indexed by the face that was struck.
- *
- * Six events rather than one with the face packed into its data, which is how the protocol
- * chose to spell it. Written out rather than computed from the first one, so a renumbering
- * upstream is a compile error here and not a shower of particles off the wrong side.
- */
-const CRACK_PARTICLES: readonly LevelEvent[] = [
-    LevelEvent.PARTICLES_CRACK_BLOCK_DOWN,
-    LevelEvent.PARTICLES_CRACK_BLOCK_UP,
-    LevelEvent.PARTICLES_CRACK_BLOCK_NORTH,
-    LevelEvent.PARTICLES_CRACK_BLOCK_SOUTH,
-    LevelEvent.PARTICLES_CRACK_BLOCK_WEST,
-    LevelEvent.PARTICLES_CRACK_BLOCK_EAST
-];
 
 export interface WorldData {
     name: string;
@@ -1936,37 +1922,22 @@ export class World implements Service {
     }
 
     /**
-     * One tick of mining: the particles off the face being mined, then the crack progress.
-     *
-     * A Bedrock Dedicated Server sends this pair every tick for as long as a block is being
-     * mined. The particles leave from the block's center and carry its runtime id, which the
-     * client textures them with. The progress goes to the block's corner, like the start and
-     * the stop.
-     *
-     * The block can change while it is mined: another player breaks it, or a command or a flood
-     * replaces it. The cracks belonged to the block that was there, so they stop with it.
+     * One tick of mining, as {@link mineTick} decides it: the particles off the face being mined,
+     * then the crack progress, or the stop once the block is no longer the one being mined. A
+     * block whose chunk is not loaded sends nothing, and the mining waits for it.
      * @param {BlockMining} mining - What is being mined.
      * @returns {Promise<boolean>} False when the block is no longer the one being mined, in
      * which case its cracks were stopped and nothing else was sent.
      */
     public async updateBlockCracking(mining: BlockMining): Promise<boolean> {
-        const { position, face, runtimeId, progressPerTick } = mining;
-
-        if (this.loadedBlockRuntimeIdAt(position.getX(), position.getY(), position.getZ()) !== runtimeId) {
-            await this.stopBlockCracking(position);
-            return false;
-        }
-
-        const particles = CRACK_PARTICLES[face];
-        if (particles !== undefined) {
-            await this.sendWorldEvent(
-                new Vector3(position.getX() + 0.5, position.getY() + 0.5, position.getZ() + 0.5),
-                particles,
-                runtimeId
-            );
-        }
-        await this.sendWorldEvent(position, LevelEvent.UPDATE_BLOCK_CRACKING, progressPerTick);
-        return true;
+        const { position } = mining;
+        const step = mineTick(
+            playerMiningOf(mining),
+            this.loadedBlockRuntimeIdAt(position.getX(), position.getY(), position.getZ())
+        );
+        for (const { at, event, data } of step.events)
+            await this.sendWorldEvent(new Vector3(at.x, at.y, at.z), event, data);
+        return step.continues;
     }
 
     /**
