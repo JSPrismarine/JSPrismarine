@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import type Player from '../Player';
 import { fakeLevel } from '../testing/level';
+import type PlayerSession from '../network/PlayerSession';
 import { stub } from '../testing/stub.test.helper';
 import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
 import Chunk from './chunk/Chunk';
@@ -58,7 +59,13 @@ describe('world portal index', () => {
         const near = portalChunk(0, 0);
         const far = portalChunk(100, 0);
         const world = worldWith([near, far]);
-        world['players'].set(1, stub<Player>({ viewDistance: 4, getPosition: () => new Position(8, 64, 8, world) }));
+        world['players'].set(
+            1,
+            stub<Player>({
+                getNetworkSession: () => stub<PlayerSession>({ getViewDistance: () => 4 }),
+                getPosition: () => new Position(8, 64, 8, world)
+            })
+        );
         expect(world.getPortalIndex().size).toBe(4);
 
         await world['unloadDistantChunks']();

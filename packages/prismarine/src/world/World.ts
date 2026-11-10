@@ -282,7 +282,7 @@ class PlayerChunkRefCounts {
             const coverage = {
                 x: CoordinateUtils.fromBlockToChunk(position.getX()),
                 z: CoordinateUtils.fromBlockToChunk(position.getZ()),
-                viewDistance: Math.floor(Math.max(SIMULATION_DISTANCE, player.viewDistance))
+                viewDistance: Math.floor(Math.max(SIMULATION_DISTANCE, player.getNetworkSession().getViewDistance()))
             };
             const previous = this.players.get(runtimeId);
             if (

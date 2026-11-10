@@ -36,7 +36,7 @@ const thrownEye = () => {
     });
     // The fake player joins with no chunks requested, and a client that sees no chunks is
     // shown no entities.
-    player.viewDistance = 8;
+    player.getNetworkSession()['viewDistance'] = 8;
 
     // Ids clear of the fake players', which the server's counter draws from one; a client is
     // never shown an entity with its own player's id.

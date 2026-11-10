@@ -179,7 +179,16 @@ describe('contentRandomTickHandlers', () => {
         place(chunk, 0, SOIL_Y, 0, 'minecraft:farmland', { moisturized_amount: 7 });
         // One player, standing on the chunk, so the ticket half of the rule is satisfied.
         Object.assign(world, {
-            players: new Map([[1n, { isOnline: () => true, getPosition: () => new Vector3(8, 0, 8) }]])
+            players: new Map([
+                [
+                    1n,
+                    {
+                        isOnline: () => true,
+                        getPosition: () => new Vector3(8, 0, 8),
+                        getNetworkSession: () => ({ getViewDistance: () => 0 })
+                    }
+                ]
+            ])
         });
 
         // The Overworld is twenty-four sections tall and this chunk has one block in it.

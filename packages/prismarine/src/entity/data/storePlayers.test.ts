@@ -79,7 +79,7 @@ const fixture = () => {
         nextId = Number(id);
     };
     const viewers = [fakePlayer({ name: 'Alex' }), fakePlayer({ name: 'Sam' })];
-    for (const viewer of viewers) viewer.player.viewDistance = 4;
+    for (const viewer of viewers) viewer.player.getNetworkSession()['viewDistance'] = 4;
 
     const server = stub<Server>({
         getContent: () => store.content,
