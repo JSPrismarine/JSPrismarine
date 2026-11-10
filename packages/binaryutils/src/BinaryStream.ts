@@ -95,6 +95,42 @@ export class BinaryStream {
     }
 
     /**
+     * Reads a varuint32 byte length, then that many bytes.
+     * @returns The bytes, a view into the stream's buffer.
+     */
+    public readLengthPrefixed(): Buffer {
+        return this.read(this.readUnsignedVarInt());
+    }
+
+    /**
+     * Writes a varuint32 byte length, then the bytes.
+     * @param buf - The bytes to append.
+     */
+    public writeLengthPrefixed(buf: Uint8Array): void {
+        this.writeUnsignedVarInt(buf.byteLength);
+        this.write(buf);
+    }
+
+    /**
+     * Reads a string: a varuint32 byte length, then UTF-8 bytes, the form Bedrock writes strings in.
+     * Named apart from `readString` because RakNet's packets read theirs with a u16 length.
+     * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.51/primitives/#string | The docs' string primitive}
+     * @returns The read string.
+     */
+    public readVarString(): string {
+        return this.readLengthPrefixed().toString('utf-8');
+    }
+
+    /**
+     * Writes a string as a varuint32 byte length, then UTF-8 bytes.
+     * @param str - The string to write.
+     */
+    public writeVarString(str: string): void {
+        this.writeUnsignedVarInt(Buffer.byteLength(str, 'utf-8'));
+        this.writeUTF8String(str);
+    }
+
+    /**
      * Reads an unsigned byte (0 to 255).
      * @returns {number}
      */

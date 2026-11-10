@@ -11,7 +11,7 @@ export default class NetworkBinaryStream extends BinaryStream {
      * @returns The read string.
      */
     public readString(): string {
-        return this.readLengthPrefixed().toString('utf-8');
+        return this.readVarString();
     }
 
     /**
@@ -19,8 +19,7 @@ export default class NetworkBinaryStream extends BinaryStream {
      * @param str - The string to write.
      */
     public writeString(str: string): void {
-        this.writeUnsignedVarInt(Buffer.byteLength(str, 'utf-8'));
-        this.writeUTF8String(str);
+        this.writeVarString(str);
     }
 
     /**
@@ -40,23 +39,6 @@ export default class NetworkBinaryStream extends BinaryStream {
     public writeLELengthASCIIString(str: string): void {
         const buf = Buffer.from(str, 'ascii');
         this.writeUnsignedIntLE(buf.byteLength);
-        this.write(buf);
-    }
-
-    /**
-     * Reads a length-prefixed buffer from the stream.
-     * @returns The length-prefixed buffer.
-     */
-    public readLengthPrefixed(): Buffer {
-        return this.read(this.readUnsignedVarInt());
-    }
-
-    /**
-     * Writes a length-prefixed buffer to the stream.
-     * @param buf - The buffer to append.
-     */
-    public writeLengthPrefixed(buf: Buffer): void {
-        this.writeUnsignedVarInt(buf.byteLength);
         this.write(buf);
     }
 
