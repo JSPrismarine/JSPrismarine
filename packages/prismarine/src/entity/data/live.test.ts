@@ -3389,7 +3389,10 @@ describe('the data-driven entity runtime over a live world', () => {
 
                     expect(zombie.instance.goals.names()).toContain('minecraft:behavior.nearest_attackable_target');
                     expect(zombie.target).toBe(Number(player.getRuntimeId()));
-                    expect(zombie.position.x).toBeGreaterThan(6);
+                    // Walking toward the player at Java's stride, about 0.117 blocks a tick for the
+                    // zombie's 0.23. These direct runtime ticks leave the level clock at 0, so its
+                    // daylight burn lands every tick and it dies at tick 20, two blocks on.
+                    expect(zombie.position.x).toBeGreaterThan(4);
                     expect(zombie.position.y).toBe(GROUND_Y);
                     expect(waterZombie.position.y).toBeLessThan(GROUND_Y);
                     expect(Math.abs(pig.position.y - GROUND_Y)).toBeLessThan(0.1);
