@@ -6,8 +6,8 @@
  * timer on the entity. {@link DimensionTravel.resolve} names the world, the feet position and
  * the facing a traveler arrives with, creating the arrival portal or the End platform when the
  * rules say so. {@link DimensionTravel.transfer} moves the entity there, players through the
- * client's dimension change sequence on their session. `Entity.update` calls the last two once
- * the timer runs out.
+ * client's dimension change sequence on their session. `Entity.update`, and a store entity's
+ * `StoreActor.update`, call the last two once the timer runs out.
  *
  * Every rule is data from {@link PORTALS} and {@link DIMENSION_TRAVEL}; the geometry is
  * chunk 5's in `@jsprismarine/block-behaviors`, reached through the content world adapter of
@@ -22,7 +22,6 @@ import { NBTTagCompound } from '@jsprismarine/nbt';
 import { dataEntityRecordOf, writeDataEntityRecord } from '../../entity/data/persistence';
 import type { DataEntityRecord } from '../../entity/data/persistence';
 import { StoreActor } from '../../entity/data/storeActors';
-import type { Entity } from '../../entity/Entity';
 import EntityPortalEnterEvent from '../../events/entity/EntityPortalEnterEvent';
 import PlayerChangeDimensionEvent from '../../events/player/PlayerChangeDimensionEvent';
 import type { Arrival } from '../../network/PlayerSession';
@@ -142,10 +141,9 @@ export class DimensionTravel {
      * is placed at the arrival and enters the destination with `addEntity`, with the 300 tick
      * cooldown Bedrock writes to `PortalCooldown`.
      *
-     * A data-driven mob's state lives in its dimension's runtime, which `removeEntity` drops
-     * it from. Its record is written onto the body first, as a save would, so the destination
-     * runtime restores the same entity, component groups and all, under its own new body;
-     * that body then takes the cooldown.
+     * A store entity's state lives in its dimension's store. It leaves that store with the
+     * record a save would write, and the destination's store restores the same entity from it,
+     * component groups and all, with the cooldown.
      */
     public async transfer(entity: WorldActor, arrival: Arrival): Promise<void> {
         const from = entity.getWorld();
@@ -178,7 +176,6 @@ export class DimensionTravel {
         }
 
         entity.setPortalCooldown();
-        const record = this.writeDataRecord(from, entity, arrival);
         await from.removeEntity(entity);
         await entity.setPosition({
             position: Position.fromVector3(arrival.position, arrival.world),
@@ -188,10 +185,6 @@ export class DimensionTravel {
             teleport: true
         });
         await arrival.world.addEntity(entity);
-
-        if (record !== undefined) {
-            this.restoredBodyOf(arrival.world, record)?.setPortalCooldown(entity.getPortalCooldown());
-        }
     }
 
     /**
@@ -223,34 +216,6 @@ export class DimensionTravel {
             { persistentNbt, tags: actor.getTags(), statusEffects: actor.getStatusEffects() }
         );
         if (restored !== undefined) to.actors.actorOf(restored.id)?.setPortalCooldown();
-    }
-
-    /**
-     * Writes a data-driven mob's runtime record onto its body, facing the way it arrives.
-     *
-     * @returns The record, or undefined when the body is no data-driven mob of its world.
-     */
-    private writeDataRecord(from: World, body: Entity, arrival: Arrival): DataEntityRecord | undefined {
-        const live = this.server.getEntityRuntime(from.getDimension().name);
-        const id = live.bodies.entityIdOf(body);
-        const entity = id === undefined ? undefined : live.runtime.byId(id);
-        if (id === undefined || entity === undefined) return undefined;
-
-        const record: DataEntityRecord = {
-            ...dataEntityRecordOf(entity, live.runtime.poolOf(id), live.runtime.leashHolderIdentityOf(id)),
-            yaw: arrival.yaw,
-            pitch: arrival.pitch
-        };
-        body.persistentNbt ??= new NBTTagCompound('');
-        writeDataEntityRecord(body.persistentNbt, record);
-        return record;
-    }
-
-    /** The body the destination runtime gave a restored record, found by the entity's stable identity. */
-    private restoredBodyOf(to: World, record: DataEntityRecord): Entity | undefined {
-        const live = this.server.getEntityRuntime(to.getDimension().name);
-        const restored = live.runtime.all().find((each) => each.persistentIdentity === record.persistentIdentity);
-        return restored === undefined ? undefined : live.bodies.bodyOf(restored.id);
     }
 
     /** Whether the entity rides or is ridden, as far as the data-driven runtime of its world knows. */

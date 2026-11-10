@@ -105,7 +105,8 @@ const barFractionOf = (level: number, points: number): number => {
  * A store entity answers from its live instance, because a component group added at runtime
  * brings its own `minecraft:type_family` with it and a zombie villager mid-conversion is in
  * different families than the one its file declares. The two kinds of entity no data instance
- * backs, the player and a legacy body, fall back to the families their declaration carries.
+ * backs, the player and a dropped stack's body, fall back to the families their declaration
+ * carries.
  */
 const familiesOf = (server: Server, entity: WorldActor): readonly string[] => {
     if (entity instanceof StoreActor) return entity.entity.instance.families();

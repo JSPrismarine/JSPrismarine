@@ -23,7 +23,7 @@ import type { ContentPosition } from '../../content/world/adapter';
 
 /**
  * The route a blow reached the store by. It names the blow in counts and in a rejection record,
- * and the routes that came through a legacy body keep that body's rules through
+ * and the routes the legacy code describes with a `DamageSource` keep the legacy rules through
  * {@link DamageSourceFacts}.
  */
 export type DamageRoute =

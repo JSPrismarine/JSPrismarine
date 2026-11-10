@@ -34,7 +34,6 @@ const worldWith = (chunks: readonly Chunk[]): World => {
         dataEntities: () => ({
             persist: () => {},
             unload: () => false,
-            bodies: { entityIdOf: () => undefined },
             runtime: { index: new EntityIndex(), remove: () => {} }
         }),
         systems: { onChunkUnloaded: () => {} },

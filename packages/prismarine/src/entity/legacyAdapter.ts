@@ -22,11 +22,8 @@
  *    restores what a save keeps.
  * 6a. One `impulse` occurrence for each shove a player's client is asked to take, through
  *    {@link logLegacyImpulse}, because the client owns a player's movement (ADR 0008).
- * 7. Store entities shown to legacy sessions. The mirror in `entity/data/liveBodies.ts` does this
- *    until slice 4 deletes it.
- *
- * The data-driven mirror bodies are legacy entities too, but their fields are copies the mirror
- * writes from the store each tick, so their writes are not logged.
+ * 7. Store entities shown to legacy sessions, which `entity/data/storeActors.ts` does from store
+ *    state, so the store logs their writes itself.
  */
 import { getGametypeId } from '@jsprismarine/minecraft';
 import { AttributeIds } from '@jsprismarine/protocol/wire/structures/Attribute';
@@ -46,8 +43,7 @@ export type LegacyField = 'position' | 'health' | 'gamemode' | 'inventory.handSl
 /**
  * The store a write to a legacy entity is logged in, or undefined when it is not logged.
  *
- * An entity the world does not hold, such as one still being built, and a data-driven mirror
- * body are not logged.
+ * An entity the world does not hold, such as one still being built, is not logged.
  */
 const legacyStoreOf = (entity: Entity): EntityStore | undefined => {
     const world = entity.getWorld();
@@ -55,7 +51,6 @@ const legacyStoreOf = (entity: Entity): EntityStore | undefined => {
     // for its dimension has none either.
     if (typeof world.getEntityStore !== 'function' || !world.hasEntityStore()) return undefined;
     if (world.getEntity(entity.getRuntimeId()) !== entity) return undefined;
-    if (world.dataEntities().bodies.entityIdOf(entity) !== undefined) return undefined;
     return world.getEntityStore();
 };
 

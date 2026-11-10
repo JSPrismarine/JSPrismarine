@@ -15,7 +15,6 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { DamageCause } from './entity/DamageCause';
 
-import type { LiveBodies } from './entity/data/liveBodies';
 import type { LiveEntityRuntime } from './entity/data/live';
 import { EntityStore } from './entity/data/EntityStore';
 import { legacyInverseWriter } from './entity/legacyAdapter';
@@ -33,7 +32,7 @@ const loggedPlayer = () => {
         hasEntityStore: () => true,
         getEntityStore: () => store,
         getEntity: (id: bigint) => (id === player.getRuntimeId() ? player : null),
-        dataEntities: () => stub<LiveEntityRuntime>({ bodies: stub<LiveBodies>({ entityIdOf: () => undefined }) })
+        dataEntities: () => stub<LiveEntityRuntime>({})
     });
     store.addInverseWriter(legacyInverseWriter(world));
 

@@ -516,8 +516,6 @@ export interface StoreActorsOptions {
     report(message: string): void;
     /** Where each actor sends the blows and heals the legacy world code gives it. */
     readonly blows: StoreActorBlows;
-    /** Hears each new actor metadata projection, for a legacy body that still carries one. */
-    projected?(entity: DataEntity, projection: ActorMetadataProjection): void;
 }
 
 /** The actors of one dimension's store, one per entity. */
@@ -548,7 +546,6 @@ export class StoreActors {
 
         const actor = new StoreActor(entity, world, leashHolderId, this.options.blows);
         this.actors.set(entity.id, actor);
-        this.options.projected?.(entity, actor.shownProjection);
         void world.showActor(actor).catch((error: unknown) => this.failed('show', error));
     }
 
@@ -600,7 +597,6 @@ export class StoreActors {
                     if (metadataChanged) {
                         applyActorMetadataProjection(actor, projection);
                         actor.shownProjection = projection;
-                        this.options.projected?.(entity, projection);
                     }
                 }
             }

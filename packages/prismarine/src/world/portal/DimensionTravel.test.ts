@@ -769,12 +769,12 @@ describe('DimensionTravel.transfer of a data-driven mob', () => {
         spawned.instance.fire('jsprismarine:mark');
         spawned.instance.applyQueuedEvents();
         expect(spawned.instance.activeComponentGroups()).toContain('marked');
-        const body = overworldLive.bodies.bodyOf(spawned.id);
-        if (body === undefined) throw new Error('the runtime gave the traveler no body');
-        const travelersIn = (world: World) => world.getEntities().filter((each) => each.getType() === TRAVELER);
-        expect(travelersIn(scene.overworld)).toEqual([body]);
+        const actor = overworldLive.actors.actorOf(spawned.id);
+        if (actor === undefined) throw new Error('the runtime gave the traveler no actor');
+        const travelersIn = (world: World) => world.getActors().filter((each) => each.getType() === TRAVELER);
+        expect(travelersIn(scene.overworld)).toEqual([actor]);
 
-        await scene.travel.transfer(body, {
+        await scene.travel.transfer(actor, {
             world: scene.nether,
             position: new Vector3(10.5, 70, 0.5),
             yaw: 90,
@@ -785,9 +785,7 @@ describe('DimensionTravel.transfer of a data-driven mob', () => {
         expect(overworldLive.runtime.all()).toEqual([]);
         const arrived = travelersIn(scene.nether);
         expect(arrived).toHaveLength(1);
-        const id = netherLive.bodies.entityIdOf(arrived[0]!);
-        expect(id).toBeDefined();
-        const restored = id === undefined ? undefined : netherLive.runtime.byId(id);
+        const restored = netherLive.runtime.byId(Number(arrived[0]!.getRuntimeId()));
         expect(restored?.persistentIdentity).toBe(spawned.persistentIdentity);
         expect(restored?.instance.activeComponentGroups()).toContain('marked');
         expect(arrived[0]!.getPosition().getX()).toBe(10.5);

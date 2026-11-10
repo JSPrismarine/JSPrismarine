@@ -211,12 +211,12 @@ describe('the command layer on a booted server', () => {
     });
 
     it('summons an entity through /summon', async () => {
-        const before = world.getEntities().length;
+        const before = world.getActors().length;
 
         await expect(run('/summon minecraft:pig 4 70 4')).resolves.toBe(true);
 
-        expect(world.getEntities().length).toBe(before + 1);
-        expect(world.getEntities().at(-1)?.getType()).toBe('minecraft:pig');
+        expect(world.getActors().length).toBe(before + 1);
+        expect(world.getActors().at(-1)?.getType()).toBe('minecraft:pig');
     });
 
     it('uses a player’s feet when /summon has no coordinates', async () => {
@@ -244,7 +244,7 @@ describe('the command layer on a booted server', () => {
 
     it('kills what it summoned through /kill', async () => {
         await run('/summon minecraft:cow 6 70 6');
-        const cow = world.getEntities().find((entity) => entity.getType() === 'minecraft:cow');
+        const cow = world.getActors().find((entity) => entity.getType() === 'minecraft:cow');
 
         const id = cow === undefined ? undefined : Number(cow.getRuntimeId());
 
