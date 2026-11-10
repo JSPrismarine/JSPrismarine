@@ -42,6 +42,7 @@ import { OVERWORLD_STEM_ID } from '@jsprismarine/worldgen';
 import type { Level } from './Level';
 import { testLevel } from '../testing/level';
 import { ChunkCompletionQueue } from './ChunkCompletionQueue';
+import { ChatManager } from '../chat/ChatManager';
 
 const WORLD_NAME = 'persistence';
 
@@ -56,6 +57,7 @@ let previousDirectory: string | undefined;
 
 const testServer = (): Server => {
     const server: Server = stub<Server>({
+        getChatManager: () => chat,
         getWorldManager: () => stub<WorldManager>({}),
         on: () => server,
         post: () => 0,
@@ -78,6 +80,7 @@ const testServer = (): Server => {
                 getEntityTrackingInterval: () => 4
             })
     });
+    const chat = new ChatManager(server);
 
     return server;
 };

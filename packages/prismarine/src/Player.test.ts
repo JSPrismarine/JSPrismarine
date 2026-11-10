@@ -108,6 +108,17 @@ describe('Player', () => {
             expect(sent).toEqual([]);
             expect(player.isOnline()).toBe(true);
         });
+
+        it('joins the chat fan-out under its key, which disable leaves', async () => {
+            const { player, server } = fakePlayer({ name: 'Chatter' });
+            const chat = server.getChatManager();
+
+            await player.enable();
+            expect(chat.hasJoined('Chatter')).toBe(true);
+
+            await player.disable();
+            expect(chat.hasJoined('Chatter')).toBe(false);
+        });
     });
 
     describe('kick', () => {
