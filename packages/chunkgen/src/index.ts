@@ -20,16 +20,8 @@ export type { GenerationSchedulerOptions } from './GenerationScheduler';
 export { GenerationScheduler, MissingGenerationLayerError } from './GenerationScheduler';
 export type { NeighborReader, StepTask, StepTasks } from './StepTasks';
 export { StepRegion } from './StepTasks';
-export type {
-    HeightmapName,
-    ProtoBlockEntity,
-    ProtoChunkPayload,
-    ProtoChunkShape,
-    ProtoChunkTransfer,
-    ProtoEntitySpawn
-} from './ProtoChunk';
-export { ChunkStatusRegressionError, HEIGHTMAPS, ProtoChunk, ProtoChunkDetachedError } from './ProtoChunk';
 export type { StagedChunk } from './StagedChunk';
+export { ChunkStatusRegressionError } from './StagedChunk';
 export type { FeaturePatchOffset } from './FeaturePatch';
 export {
     DuplicateFeaturePatchError,

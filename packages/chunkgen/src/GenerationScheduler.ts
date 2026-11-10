@@ -6,13 +6,12 @@ import { GENERATION_PYRAMID } from './ChunkPyramid';
 import type { ChunkStatus } from './ChunkStatus';
 import { CHUNK_STATUSES, indexOfStatus } from './ChunkStatus';
 import type { ChunkStep } from './ChunkStep';
-import type { ProtoChunk } from './ProtoChunk';
 import type { StagedChunk } from './StagedChunk';
 import type { StepTask, StepTasks } from './StepTasks';
 import { StepRegion } from './StepTasks';
 
 /** What a scheduler is built over. */
-export interface GenerationSchedulerOptions<TChunk extends StagedChunk = ProtoChunk> {
+export interface GenerationSchedulerOptions<TChunk extends StagedChunk> {
     /** Where holders live and how long they live, shared by every run on this scheduler. */
     readonly holders: ChunkHolderMap<TChunk>;
     /** The status bodies. A status with no entry passes its chunk through. */
@@ -61,9 +60,9 @@ export class MissingGenerationLayerError extends Error {
  * Each run acquires its whole neighborhood before it runs a step and releases it at the end,
  * including when a body throws. A caller that needs the chunk to stay resident afterwards acquires
  * its own reference on the holder first; otherwise the holders are dropped and the returned
- * {@link ProtoChunk} is all that survives.
+ * chunk is all that survives.
  */
-export class GenerationScheduler<TChunk extends StagedChunk = ProtoChunk> {
+export class GenerationScheduler<TChunk extends StagedChunk> {
     private readonly holders: ChunkHolderMap<TChunk>;
     private readonly tasks: StepTasks<TChunk>;
     private readonly pyramid: ChunkPyramid;

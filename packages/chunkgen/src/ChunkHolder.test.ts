@@ -3,18 +3,16 @@ import { describe, expect, it, vi } from 'vitest';
 import { ChunkHolder, ChunkNotReadyError, ChunkStepOutOfOrderError } from './ChunkHolder';
 import { GENERATION_PYRAMID } from './ChunkPyramid';
 import type { ChunkStatus } from './ChunkStatus';
-import { ChunkStatusRegressionError, ProtoChunk } from './ProtoChunk';
+import { ChunkStatusRegressionError } from './StagedChunk';
+import type { TestChunk } from '../test/TestChunk';
+import { newTestChunk as newChunk } from '../test/TestChunk';
 
-/** A short column, because these tests read one block and allocating 192 KiB per holder is waste. */
-const newChunk = (chunkX: number, chunkZ: number): ProtoChunk =>
-    ProtoChunk.create({ chunkX, chunkZ, minY: 0, height: 16 });
-
-const holderAt = (chunkX = 0, chunkZ = 0): ChunkHolder => new ChunkHolder(chunkX, chunkZ, newChunk);
+const holderAt = (chunkX = 0, chunkZ = 0): ChunkHolder<TestChunk> => new ChunkHolder(chunkX, chunkZ, newChunk);
 
 const step = (status: ChunkStatus) => GENERATION_PYRAMID.stepTo(status);
 
 /** Climbs a holder to a status with bodies that do nothing, so a test can start part way up. */
-const climbTo = async (holder: ChunkHolder, status: ChunkStatus): Promise<void> => {
+const climbTo = async (holder: ChunkHolder<TestChunk>, status: ChunkStatus): Promise<void> => {
     for (const rung of ['empty', 'structure_starts', 'structure_references', 'biomes'] as const) {
         await holder.applyStep(step(rung), (chunk) => chunk);
         if (rung === status) return;
@@ -24,7 +22,7 @@ const climbTo = async (holder: ChunkHolder, status: ChunkStatus): Promise<void> 
 describe('running a step exactly once', () => {
     it('runs the body once however many callers ask for the status at the same time', async () => {
         const holder = holderAt();
-        const body = vi.fn((chunk: ProtoChunk) => chunk);
+        const body = vi.fn((chunk: TestChunk) => chunk);
 
         const results = await Promise.all(Array.from({ length: 10 }, () => holder.applyStep(step('empty'), body)));
 
@@ -35,7 +33,7 @@ describe('running a step exactly once', () => {
 
     it('hands back the same promise, so a later caller cannot start a second run', async () => {
         const holder = holderAt();
-        const body = vi.fn((chunk: ProtoChunk) => chunk);
+        const body = vi.fn((chunk: TestChunk) => chunk);
 
         const first = holder.applyStep(step('empty'), body);
         await first;

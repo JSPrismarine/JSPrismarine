@@ -1,6 +1,5 @@
 import type { ChunkStatus } from './ChunkStatus';
 import type { ChunkStep } from './ChunkStep';
-import type { ProtoChunk } from './ProtoChunk';
 import type { StagedChunk } from './StagedChunk';
 
 /**
@@ -9,7 +8,7 @@ import type { StagedChunk } from './StagedChunk';
  * The scheduler supplies this over its holder map. It raises `ChunkNotReadyError` when the chunk
  * has not reached the status, which means a layer ran before the layer below it finished.
  */
-export type NeighborReader<TChunk extends StagedChunk = ProtoChunk> = (
+export type NeighborReader<TChunk extends StagedChunk> = (
     chunkX: number,
     chunkZ: number,
     status: ChunkStatus
@@ -24,7 +23,7 @@ export type NeighborReader<TChunk extends StagedChunk = ProtoChunk> = (
  * the step did not declare is therefore a crash on the first chunk instead of a block that differs
  * on the thousandth.
  */
-export class StepRegion<TChunk extends StagedChunk = ProtoChunk> {
+export class StepRegion<TChunk extends StagedChunk> {
     /**
      * @param step - The rung being climbed, which carries the read window and the write radius.
      * @param center - The chunk the body is advancing, at the status below.
@@ -74,9 +73,7 @@ export class StepRegion<TChunk extends StagedChunk = ProtoChunk> {
  * the return value is used rather than ignored. The holder records the new status, so a body
  * should not call `advanceTo` itself.
  */
-export type StepTask<TChunk extends StagedChunk = ProtoChunk> = (
-    region: StepRegion<TChunk>
-) => TChunk | Promise<TChunk>;
+export type StepTask<TChunk extends StagedChunk> = (region: StepRegion<TChunk>) => TChunk | Promise<TChunk>;
 
 /**
  * The bodies, by status. This is the seam the server's generation code plugs into.
@@ -85,6 +82,4 @@ export type StepTask<TChunk extends StagedChunk = ProtoChunk> = (
  * `light` and `spawn` do today and what every status above `terrain` does until slice 7. A
  * pass-through still climbs the rung, so the accumulated radii and the retention stay Java's.
  */
-export type StepTasks<TChunk extends StagedChunk = ProtoChunk> = Partial<
-    Readonly<Record<ChunkStatus, StepTask<TChunk>>>
->;
+export type StepTasks<TChunk extends StagedChunk> = Partial<Readonly<Record<ChunkStatus, StepTask<TChunk>>>>;

@@ -4,12 +4,10 @@
  * `@jsprismarine/chunkgen` drives the ladder and holds one of these per chunk. It is this
  * generator's answer to Java's `ProtoChunk`, and it keeps the region rather than a flat palette
  * because every stage above the chunk storage speaks Java block states with properties: the noise
- * fill, the surface rules, the carvers, the structure pieces and the features. Encoding those into
- * a string palette on the way into each status and decoding them on the way out would cost two
- * translations per status to buy a representation nothing on this thread reads.
+ * fill, the surface rules, the carvers, the structure pieces and the features.
  */
 import type { ChunkStatus, StagedChunk } from '@jsprismarine/chunkgen';
-import { isOrAfter } from '@jsprismarine/chunkgen';
+import { ChunkStatusRegressionError, isOrAfter } from '@jsprismarine/chunkgen';
 
 import type Chunk from '../../chunk/Chunk';
 import type { GenerationRegion, RegionChunkPatch } from './GenerationRegion';
@@ -20,18 +18,6 @@ export class MissingGenerationStateError extends Error {
 
     public constructor(chunkX: number, chunkZ: number, what: string, status: ChunkStatus) {
         super(`The chunk at ${chunkX}, ${chunkZ} has no ${what} at ${status}, so a status body ran out of order.`);
-    }
-}
-
-/** Raised when a chunk is asked to move to a status at or below the one it already holds. */
-export class GenerationChunkRegressionError extends Error {
-    public override name = 'GenerationChunkRegressionError';
-
-    public constructor(
-        public readonly from: ChunkStatus,
-        public readonly to: ChunkStatus
-    ) {
-        super(`A chunk at ${from} cannot advance to ${to}: a status body runs once and never runs backward.`);
     }
 }
 
@@ -73,7 +59,7 @@ export class GenerationChunk implements StagedChunk {
     /** @inheritDoc */
     public advanceTo(status: ChunkStatus): void {
         if (isOrAfter(this.persistedStatus, status)) {
-            throw new GenerationChunkRegressionError(this.persistedStatus, status);
+            throw new ChunkStatusRegressionError(this.persistedStatus, status);
         }
         this.persistedStatus = status;
     }

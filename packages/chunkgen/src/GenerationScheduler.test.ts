@@ -5,18 +5,12 @@ import type { ChunkStatus } from './ChunkStatus';
 import { CHUNK_STATUSES } from './ChunkStatus';
 import { ChunkReadOutOfWindowError } from './ChunkStep';
 import { GenerationScheduler } from './GenerationScheduler';
-import { ProtoChunk } from './ProtoChunk';
+import type { TestChunk } from '../test/TestChunk';
+import { newTestChunk as newChunk } from '../test/TestChunk';
 import type { StepRegion, StepTask, StepTasks } from './StepTasks';
 
-/**
- * A short column. These bodies write one block and one biome per chunk, and a full 192 KiB
- * overworld column times the 625 holders a `full` target drags in would be 120 MiB of nothing.
- */
-const newChunk = (chunkX: number, chunkZ: number): ProtoChunk =>
-    ProtoChunk.create({ chunkX, chunkZ, minY: 0, height: 16 });
-
 /** Where each chunk's one block and one biome live, which is its own corner column. */
-const originOf = (region: StepRegion): readonly [number, number] => [region.chunkX * 16, region.chunkZ * 16];
+const originOf = (region: StepRegion<TestChunk>): readonly [number, number] => [region.chunkX * 16, region.chunkZ * 16];
 
 /** The biome the fake `biomes` body writes, a function of the chunk position and nothing else. */
 const biomeOf = (chunkX: number, chunkZ: number): string => `test:b${chunkX}_${chunkZ}`;
@@ -76,8 +70,8 @@ class RunLog {
 
 /** The world the fake bodies build, and a counter over everything that ran in it. */
 interface Harness {
-    readonly scheduler: GenerationScheduler;
-    readonly holders: ChunkHolderMap;
+    readonly scheduler: GenerationScheduler<TestChunk>;
+    readonly holders: ChunkHolderMap<TestChunk>;
     readonly log: RunLog;
 }
 
@@ -89,8 +83,8 @@ interface Harness {
  * as one block key. A layer loop that failed to drive `biomes` out to radius 1 would raise
  * `ChunkNotReadyError` here rather than quietly writing a different block.
  */
-const fakeTasks = (log: RunLog, overrides: StepTasks = {}): StepTasks => {
-    const tasks: Record<string, StepTask> = {};
+const fakeTasks = (log: RunLog, overrides: StepTasks<TestChunk> = {}): StepTasks<TestChunk> => {
+    const tasks: Record<string, StepTask<TestChunk>> = {};
     for (const status of CHUNK_STATUSES) {
         tasks[status] = (region) => {
             log.record(status, region.chunkX, region.chunkZ);
@@ -119,14 +113,14 @@ const fakeTasks = (log: RunLog, overrides: StepTasks = {}): StepTasks => {
     return { ...tasks, ...overrides };
 };
 
-const harness = (overrides: StepTasks = {}): Harness => {
+const harness = (overrides: StepTasks<TestChunk> = {}): Harness => {
     const log = new RunLog();
     const holders = new ChunkHolderMap(newChunk);
     return { scheduler: new GenerationScheduler({ holders, tasks: fakeTasks(log, overrides) }), holders, log };
 };
 
 /** What a chunk's `terrain` body wrote, which is the value every order has to agree on. */
-const digestOf = (chunk: ProtoChunk): string => chunk.blockAt(chunk.chunkX * 16, 0, chunk.chunkZ * 16);
+const digestOf = (chunk: TestChunk): string => chunk.blockAt(chunk.chunkX * 16, 0, chunk.chunkZ * 16);
 
 const square = (minX: number, minZ: number, width: number): ReadonlyArray<readonly [number, number]> => {
     const positions: Array<readonly [number, number]> = [];
