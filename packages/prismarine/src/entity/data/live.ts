@@ -748,6 +748,14 @@ export class LiveEntityRuntime {
     }
 
     /**
+     * The record a save would write for each body that persists, by body, without writing it.
+     * @returns {ReadonlyMap<Entity, DataEntityRecord>} The records.
+     */
+    public savedRecords(): ReadonlyMap<Entity, DataEntityRecord> {
+        return this.bodies.records(this.runtime);
+    }
+
+    /**
      * Suspends a data-driven entity whose chunk is leaving memory.
      *
      * The caller writes the entity's NBT to its chunk before calling this, so removing the

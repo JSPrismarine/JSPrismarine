@@ -64,6 +64,7 @@ export const inertEntityRuntime = (): LiveEntityRuntime =>
         onEntityRemoved: () => () => false,
         tick: async () => {},
         persist: () => {},
+        savedRecords: () => new Map(),
         restore: () => undefined,
         restoreExisting: () => undefined
     });

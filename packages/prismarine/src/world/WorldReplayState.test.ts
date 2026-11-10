@@ -14,22 +14,39 @@ import { World } from './World';
 import { Position } from './Position';
 import { GenericEntity } from '../entity/GenericEntity';
 import type { LiveEntityRuntime } from '../entity/data/live';
+import type { DataEntityRecord } from '../entity/data/persistence';
 import { DATA_ENTITY_TAG } from '../entity/data/persistence';
 import { NBTTagCompound, Types } from '@jsprismarine/nbt';
 
 /**
- * A runtime that writes each body's component record the way the real one does at save time:
- * onto `persistentNbt`, creating the compound when the body has none.
+ * A runtime that answers the record a save would write for each body, the way the real one does,
+ * and whose `persist` would write it onto the bodies if anything called it.
  */
-const recordingRuntime = (bodies: () => readonly GenericEntity[], health: () => number): LiveEntityRuntime =>
-    stub<LiveEntityRuntime>({
+const recordingRuntime = (bodies: () => readonly GenericEntity[], health: () => number): LiveEntityRuntime => {
+    const recordOf = (body: GenericEntity): DataEntityRecord => ({
+        identifier: body.getType(),
+        persistentIdentity: `body-${body.getRuntimeId()}`,
+        componentGroups: [],
+        properties: {},
+        attributes: { health: health() },
+        yaw: 0,
+        pitch: 0,
+        inventory: [],
+        sitting: false,
+        sleeping: false,
+        loveTicks: 0,
+        breedCooldown: 0
+    });
+    return stub<LiveEntityRuntime>({
+        savedRecords: () => new Map(bodies().map((body) => [body, recordOf(body)])),
         persist: () => {
             for (const body of bodies()) {
                 body.persistentNbt ??= new NBTTagCompound('');
-                body.persistentNbt.addValue(DATA_ENTITY_TAG, new Types.StringVal(JSON.stringify({ health: health() })));
+                body.persistentNbt.addValue(DATA_ENTITY_TAG, new Types.StringVal(JSON.stringify(recordOf(body))));
             }
         }
     });
+};
 
 const createWorld = (entityRuntime: LiveEntityRuntime = inertEntityRuntime()) => {
     const logger = stub<Logger>({
@@ -112,7 +129,7 @@ describe('World.replayStateDigest', () => {
         expect(world.replayStateDigest()).not.toBe(pendingDigest);
     });
 
-    it('leaves every body as it found it, while still hashing the runtime state', () => {
+    it('hashes the record a save would write, and writes nothing onto a body', () => {
         let health = 20;
         const bodies: GenericEntity[] = [];
         const world = createWorld(
@@ -140,5 +157,10 @@ describe('World.replayStateDigest', () => {
         expect(savedNbt.children.get(DATA_ENTITY_TAG)).toBe(savedRecord);
         expect(savedNbt.getString(DATA_ENTITY_TAG, '')).toBe('{"health":7}');
         expect(after).not.toBe(before);
+        // The same bytes a save holds: persisting first and hashing the bodies gives the same digest.
+        const digest = world.replayStateDigest();
+        world.dataEntities().persist();
+        const persisted = world.replayStateDigest();
+        expect(persisted).toBe(digest);
     });
 });
