@@ -12,6 +12,7 @@ import type PacketHandler from './PacketHandler';
 export default class ClientCameraAimAssistHandler implements PacketHandler<ClientCameraAimAssistPacket> {
     public static PacketName = 'ClientCameraAimAssistPacket';
     public readonly phases = ['play'] as const;
+    public readonly lane = 'connection';
 
     /** Accepts the report while camera presets and aim assist remain unsupported. */
     public handle(_packet: ClientCameraAimAssistPacket, _server: Server, _session: PlayerSession): void {

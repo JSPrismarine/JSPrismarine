@@ -15,6 +15,7 @@ import type PacketHandler from './PacketHandler';
 export default class PartyChangedHandler implements PacketHandler<PartyChangedPacket> {
     public static PacketName = 'PartyChangedPacket';
     public readonly phases = ['play'] as const;
+    public readonly lane = 'connection';
 
     /** Checks the id length, then logs whether the player joined, leads or left a party. */
     public handle(packet: PartyChangedPacket, server: Server, session: PlayerSession): void {

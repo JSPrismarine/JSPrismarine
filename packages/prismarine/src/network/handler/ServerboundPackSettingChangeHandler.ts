@@ -12,6 +12,7 @@ import type PacketHandler from './PacketHandler';
 export default class ServerboundPackSettingChangeHandler implements PacketHandler<ServerboundPackSettingChangePacket> {
     public static PacketName = 'ServerboundPackSettingChangePacket';
     public readonly phases = ['play'] as const;
+    public readonly lane = 'connection';
 
     /** Logs the pack, the setting, and the new value. */
     public handle(packet: ServerboundPackSettingChangePacket, server: Server, session: PlayerSession): void {
