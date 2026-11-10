@@ -224,4 +224,77 @@ describe('a store player', () => {
             expect(components.get('vitals.exhaustion')).toBeCloseTo(0.02);
         });
     });
+
+    describe('meals', () => {
+        it('finishes a meal once its time is up with the same item in hand, as plain logged data', () => {
+            const fixture = storePlayerFixture();
+            const { player, components } = standingPlayer(fixture);
+            fixture.world.held.set(player.id, 'minecraft:bread');
+
+            const begun = logged(fixture.runtime, () => {
+                expect(fixture.runtime.playerSystems.beginMeal(player, 32)).toBe(true);
+            });
+            expect(components.get('consumption.meal')).toEqual({ startedAt: 0, ticks: 32, item: 'minecraft:bread' });
+            expect(fieldsOf(begun, 'consumption.meal')).toHaveLength(1);
+
+            fixture.world.advance(31);
+            ticks(fixture, 1);
+            expect(fixture.world.meals).toEqual([]);
+
+            fixture.world.advance(1);
+            const finished = ticks(fixture, 1, 2);
+            expect(fixture.world.meals).toEqual([{ playerId: player.id, item: 'minecraft:bread' }]);
+            expect(components.get('consumption.meal')).toBeNull();
+            expect(fieldsOf(finished, 'consumption.meal')).toHaveLength(1);
+        });
+
+        it('keeps the clock of a meal reported again part way through', () => {
+            const fixture = storePlayerFixture();
+            const { player, components } = standingPlayer(fixture);
+            fixture.world.held.set(player.id, 'minecraft:bread');
+
+            fixture.runtime.playerSystems.beginMeal(player, 32);
+            fixture.world.advance(10);
+            fixture.runtime.playerSystems.beginMeal(player, 32);
+            expect(components.get('consumption.meal')?.startedAt).toBe(0);
+        });
+
+        it('ends a meal without finishing it when another item is in hand by then', () => {
+            const fixture = storePlayerFixture();
+            const { player, components } = standingPlayer(fixture);
+            fixture.world.held.set(player.id, 'minecraft:bread');
+            fixture.runtime.playerSystems.beginMeal(player, 32);
+
+            fixture.world.held.set(player.id, 'minecraft:stone');
+            fixture.world.advance(32);
+            ticks(fixture, 1);
+            expect(fixture.world.meals).toEqual([]);
+            expect(components.get('consumption.meal')).toBeNull();
+        });
+
+        it('forgets a meal that is let go of, and undoes one that began in a unit that threw', () => {
+            const fixture = storePlayerFixture();
+            const { player, components } = standingPlayer(fixture);
+            fixture.world.held.set(player.id, 'minecraft:bread');
+
+            fixture.runtime.playerSystems.beginMeal(player, 32);
+            fixture.runtime.playerSystems.cancelMeal(player);
+            expect(components.get('consumption.meal')).toBeNull();
+
+            logged(fixture.runtime, () => {
+                fixture.runtime.store.unit(() => {
+                    fixture.runtime.playerSystems.beginMeal(player, 32);
+                    throw new Error('planned');
+                });
+            });
+            expect(components.get('consumption.meal')).toBeNull();
+        });
+
+        it('begins no meal with an empty hand', () => {
+            const fixture = storePlayerFixture();
+            const { player, components } = standingPlayer(fixture);
+            expect(fixture.runtime.playerSystems.beginMeal(player, 32)).toBe(false);
+            expect(components.get('consumption.meal')).toBeNull();
+        });
+    });
 });

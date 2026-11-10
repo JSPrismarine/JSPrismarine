@@ -403,6 +403,10 @@ export class TestEntityWorld {
 
     /** The players the host reports, which a test replaces between ticks. */
     public players: readonly ContentEntity[];
+    /** The item each store player holds in its main hand, by runtime id. */
+    public readonly held = new Map<number, string>();
+    /** Every meal a store player finished, in order. */
+    public readonly meals: { playerId: number; item: string }[] = [];
     /** Every dropped stack given to a player, in order, with the taker and the stack's id. */
     public readonly given: { playerId: number; itemId: number; item: ContentItemDrop }[] = [];
     /** How many more items each player's inventory takes, by runtime id; unlimited when absent. */
@@ -520,6 +524,8 @@ export class TestEntityWorld {
                 else this.lying.set(id, { ...found, item: { ...found.item, count: remaining } });
                 return { ...found.item, count: takenCount };
             },
+            heldItemOf: (playerId) => this.held.get(playerId),
+            finishMeal: (playerId, item) => void this.meals.push({ playerId, item }),
             givePlayerItem: (playerId, itemId, item) => {
                 this.onGive?.();
                 const room = this.room.get(playerId) ?? Number.POSITIVE_INFINITY;

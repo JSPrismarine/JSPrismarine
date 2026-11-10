@@ -27,6 +27,7 @@ import { breathe } from '../playerBreath';
 import { PlayerComponents } from '../playerComponents';
 import { addExhaustion, addMovementExhaustion, hungerOutcome } from '../playerHunger';
 import { cushions, land, trackFall } from '../playerFall';
+import { beginMeal, cancelMeal, dueMeal } from '../playerMeal';
 import type { SurvivalPlayer } from '../survivalPlayer';
 import type { DamageIntent, DamageOutcome } from './damagePipeline';
 import type { DataEntity } from './DataEntity';
@@ -46,6 +47,10 @@ export interface PlayerSystemsPorts {
     heal(id: number, amount: number): boolean;
     /** Whether the entity has died and waits to be revived. */
     dying(id: number): boolean;
+    /** The item a player holds in its main hand, or undefined for an empty hand or no inventory. */
+    heldItem(id: number): string | undefined;
+    /** Finishes a player's meal of `item`, which feeds it. */
+    finishMeal(id: number, item: string): void;
 }
 
 /** The block a position is in. */
@@ -89,18 +94,39 @@ export class PlayerSystems {
     }
 
     /**
-     * One tick of a store player's systems, in the order a legacy player runs them: breath, then
-     * hunger.
+     * One tick of a store player's systems, in the order a legacy player runs them: breath and
+     * hunger for a player they reach, then the meal in progress for any player.
      *
      * @param entity - The player.
      * @param tick - The world tick, which the hunger clock reads.
      */
     public tick(entity: DataEntity, tick: number): void {
         const { survival } = this.playerOf(entity);
-        if (!survival.vulnerable() || !survival.alive()) return;
+        if (survival.vulnerable() && survival.alive()) {
+            this.tickBreath(entity, survival);
+            this.tickHunger(entity, survival, tick);
+        }
+        this.tickMeal(entity, survival);
+    }
 
-        this.tickBreath(entity, survival);
-        this.tickHunger(entity, survival, tick);
+    /**
+     * Notes that a store player has started eating or drinking what is in its hand, on the level
+     * clock its meal is counted out on.
+     *
+     * @param entity - The player.
+     * @param ticks - How long the meal takes.
+     * @returns Whether a meal began, which needs an item in hand.
+     */
+    public beginMeal(entity: DataEntity, ticks: number): boolean {
+        const item = this.ports.heldItem(entity.id);
+        if (item === undefined) return false;
+        beginMeal(this.componentsOf(entity), this.ports.level.gameTime(), ticks, item);
+        return true;
+    }
+
+    /** Forgets a store player's unfinished meal, as letting go of the button does. */
+    public cancelMeal(entity: DataEntity): void {
+        cancelMeal(this.componentsOf(entity));
     }
 
     /**
@@ -147,6 +173,12 @@ export class PlayerSystems {
         const head = this.ports.blockAt(blockOf({ x, y: y + EYE_HEIGHT, z }));
         const drowning = breathe(survival, head?.identifier, ruleIsOn(this.ports.level, DROWNING_DAMAGE));
         if (drowning !== undefined) this.hurt(entity, DamageCause.Drowning, drowning);
+    }
+
+    /** The meal in progress, finished once its time is up if the same item is still in hand. */
+    private tickMeal(entity: DataEntity, survival: SurvivalPlayer): void {
+        const item = dueMeal(survival.components, this.ports.level.gameTime(), this.ports.heldItem(entity.id));
+        if (item !== undefined) this.ports.finishMeal(entity.id, item);
     }
 
     private tickHunger(entity: DataEntity, survival: SurvivalPlayer, tick: number): void {

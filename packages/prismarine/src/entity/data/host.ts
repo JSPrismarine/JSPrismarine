@@ -125,6 +125,17 @@ export interface EntityHostFacts {
     /** Tells clients that a dropped stack now holds `count` items, after a merge or a partial take. */
     itemStackChanged?(itemId: number, count: number): void;
     /**
+     * The item a store player holds in its main hand, by identifier, or undefined for an empty
+     * hand. Left out by a host that keeps no inventory for store players, which is every host
+     * until players move into the store (C4h).
+     */
+    heldItemOf?(playerId: number): string | undefined;
+    /**
+     * Finishes a store player's meal: the item in hand runs `onConsume`, which feeds the player
+     * and hands back what the meal leaves. Left out, a finished meal does nothing.
+     */
+    finishMeal?(playerId: number, item: string): void;
+    /**
      * Plays a named sound at an exact point, for an entity rather than a block, which
      * `ContentEffectSink.playSound` centers on.
      */
