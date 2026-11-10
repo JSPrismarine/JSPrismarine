@@ -13,8 +13,19 @@ import ResourcePacksInfoPacket from '@jsprismarine/protocol/packet/ResourcePacks
 import { identityFromXUID, parseLoginIdentity } from '../LoginIdentity';
 import { LoginRefused, verifyLogin } from '@jsprismarine/auth/server';
 import type ConnectionPacketHandler from './ConnectionPacketHandler';
+import type { PlayerIdentity } from '../../playerIdentity';
 
 type LoginIdentity = ReturnType<typeof parseLoginIdentity>;
+
+/** What a login replacing another session of the same account tells the one it replaces. */
+const REPLACED = 'Logged in from another location';
+
+/** The account a login names, in the form `SessionManager` compares. */
+const accountOf = (identity: LoginIdentity): PlayerIdentity => ({
+    name: identity.displayName,
+    xuid: identity.xuid,
+    uuid: UUID.fromString(identity.identity).toString()
+});
 
 export default class LoginHandler implements ConnectionPacketHandler<LoginPacket> {
     public static PacketName = 'LoginPacket';
@@ -133,6 +144,10 @@ export default class LoginHandler implements ConnectionPacketHandler<LoginPacket
             return;
         }
 
+        // Before the handshake, so a later login of the same account finds this one while it
+        // waits for the client's answer. A reservation replaces nobody; `admit` does that.
+        server.getSessionManager().reserveIdentity(connection, accountOf(identity));
+
         // A login that names an identity key is answered with the encryption handshake, and the rest
         // of it waits for the client's reply. One that names none stays in plaintext.
         if (identity.identityPublicKey && (await LoginHandler.beginEncryption(identity, login, server, connection))) {
@@ -179,8 +194,57 @@ export default class LoginHandler implements ConnectionPacketHandler<LoginPacket
         return true;
     }
 
-    /** The part of a login after the client is known and, when it can be, the session encrypted. */
+    /**
+     * The part of a login after the client is known and, when it can be, the session encrypted.
+     *
+     * One live player per account: a login that is let in replaces every other connection
+     * holding the same account, whatever phase that one is in (#2951). It used to look only at
+     * players who had finished joining, so a second login during the first one's join let both
+     * in under one UUID. A connection still joining is replaced once its join settles, through
+     * the same kick a joined player gets, so its record is saved before this login reads it.
+     */
     private static async admit(identity: LoginIdentity, server: Server, connection: ClientConnection): Promise<void> {
+        const sessions = server.getSessionManager();
+        // A later login of the same account replaced this one while it waited for the handshake.
+        if (!sessions.holdsIdentity(connection)) return;
+
+        // Refused before the account is claimed: a login turned away here never touches the
+        // session it named, which is the whole of the impersonation this used to allow.
+        if (!identity.xuid && server.getConfig().getOnlineMode()) {
+            await connection.disconnect('Server is in online-mode!', false, DisconnectReason.NOT_AUTHENTICATED);
+            return;
+        }
+
+        const reason = server.getBanManager().isBanned({ getName: () => identity.displayName });
+        if (reason !== false) {
+            await connection.disconnect(
+                `You have been banned${reason ? ` for reason: ${reason}` : ''}!`,
+                false,
+                DisconnectReason.NOT_ALLOWED
+            );
+            return;
+        }
+
+        let settle!: () => void;
+        const joined = new Promise<void>((resolve) => {
+            settle = resolve;
+        });
+        try {
+            for (const replaced of sessions.claimIdentity(connection, accountOf(identity), joined)) {
+                await replaced.joined;
+                const player = replaced.connection.getPlayerSession()?.getPlayer();
+                if (player) await player.kick(REPLACED, DisconnectReason.LOGGED_IN_OTHER_LOCATION);
+                else await replaced.connection.disconnect(REPLACED, false, DisconnectReason.LOGGED_IN_OTHER_LOCATION);
+            }
+
+            await LoginHandler.join(identity, server, connection);
+        } finally {
+            settle();
+        }
+    }
+
+    /** Builds the player for a login that holds its account and lets it into the resource pack exchange. */
+    private static async join(identity: LoginIdentity, server: Server, connection: ClientConnection): Promise<void> {
         // Resolved here because this is where a world is first available and awaiting is
         // allowed. An entity has to be given somewhere to be, so there is no longer a moment
         // where one exists at the origin waiting to be told where it really is.
@@ -199,31 +263,10 @@ export default class LoginHandler implements ConnectionPacketHandler<LoginPacket
             }
         });
 
-        // Rejected through the connection, not through the player: this one has no session
-        // yet and has joined nothing, so `kick` had nothing to send the reason on and
-        // `disable` would have announced a departure for somebody who never arrived.
-        if (!player.xuid && server.getConfig().getOnlineMode()) {
-            await connection.disconnect('Server is in online-mode!', false, DisconnectReason.NOT_AUTHENTICATED);
-            return;
-        }
-
-        const reason = server.getBanManager().isBanned(player);
-        if (reason !== false) {
-            await connection.disconnect(
-                `You have been banned${reason ? ` for reason: ${reason}` : ''}!`,
-                false,
-                DisconnectReason.NOT_ALLOWED
-            );
-            return;
-        }
-
-        // Player with same name or xuid is already connected, so kick the old player and let the
-        // new player connect. Only now: a login that was refused above never touches the session
-        // it named, which is the whole of the impersonation this used to allow.
-        await server
-            .getSessionManager()
-            .findPlayer({ name: identity.displayName, xuid: identity.xuid })
-            ?.kick('Logged in from another location', DisconnectReason.LOGGED_IN_OTHER_LOCATION);
+        // A login of the same account after this one took it while the spawn was read. That one
+        // waits for this join to settle and then disconnects this connection, which has no
+        // player to save yet.
+        if (!server.getSessionManager().holdsIdentity(connection)) return;
 
         // Joined to its connection only once it is going to be let in, and torn down as a
         // pair if the join itself fails - otherwise the session would keep its place in the
