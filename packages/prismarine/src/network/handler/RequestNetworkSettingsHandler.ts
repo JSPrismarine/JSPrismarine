@@ -9,6 +9,7 @@ import type ClientConnection from '../ClientConnection';
 export default class RequestNetworkSettingsHandler implements ConnectionPacketHandler<RequestNetworkSettingsPacket> {
     public static PacketName = 'RequestNetworkSettingsPacket';
     public readonly phases = ['handshake'] as const;
+    public readonly lane = 'connection';
 
     public async handle(
         packet: RequestNetworkSettingsPacket,

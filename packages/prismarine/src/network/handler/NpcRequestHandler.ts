@@ -13,6 +13,7 @@ import type PacketHandler from './PacketHandler';
 export default class NpcRequestHandler implements PacketHandler<NpcRequestPacket> {
     public static PacketName = 'NpcRequestPacket';
     public readonly phases = ['play'] as const;
+    public readonly lane = 'connection';
 
     /** Logs the request type and the NPC it names. */
     public handle(packet: NpcRequestPacket, server: Server, session: PlayerSession): void {

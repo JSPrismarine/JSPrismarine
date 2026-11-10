@@ -19,6 +19,8 @@ type LoginIdentity = ReturnType<typeof parseLoginIdentity>;
 export default class LoginHandler implements ConnectionPacketHandler<LoginPacket> {
     public static PacketName = 'LoginPacket';
     public readonly phases = ['login'] as const;
+    // Login I/O stays out of the tick (ADR 0014); admission still reads the world and kicks a duplicate.
+    public readonly lane = 'connection';
 
     /**
      * Says what was refused and what the login actually carried.

@@ -14,6 +14,7 @@ import type PacketHandler from './PacketHandler';
 export default class MultiplayerSettingsHandler implements PacketHandler<MultiplayerSettingsPacket> {
     public static PacketName = 'MultiplayerSettingsPacket';
     public readonly phases = ['play'] as const;
+    public readonly lane = 'connection';
 
     /** Logs the requested setting. */
     public handle(packet: MultiplayerSettingsPacket, server: Server, session: PlayerSession): void {

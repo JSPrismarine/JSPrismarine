@@ -23,6 +23,7 @@ import type PacketHandler from './PacketHandler';
 export default class SetPlayerFurnaceOptionsHandler implements PacketHandler<SetPlayerFurnaceOptionsPacket> {
     public static PacketName = 'SetPlayerFurnaceOptionsPacket';
     public readonly phases = ['play'] as const;
+    public readonly lane = 'connection';
 
     /** Checks the three enum fields, then logs the layout. */
     public handle(packet: SetPlayerFurnaceOptionsPacket, server: Server, session: PlayerSession): void {

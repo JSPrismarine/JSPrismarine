@@ -12,6 +12,7 @@ import type PacketHandler from './PacketHandler';
 export default class ClientMovementPredictionSyncHandler implements PacketHandler<ClientMovementPredictionSyncPacket> {
     public static PacketName = 'ClientMovementPredictionSyncPacket';
     public readonly phases = ['play'] as const;
+    public readonly lane = 'connection';
 
     /** Logs the actor, its speeds, and whether it is flying. */
     public handle(packet: ClientMovementPredictionSyncPacket, server: Server, session: PlayerSession): void {

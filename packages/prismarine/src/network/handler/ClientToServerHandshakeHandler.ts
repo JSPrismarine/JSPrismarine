@@ -12,6 +12,8 @@ import type ConnectionPacketHandler from './ConnectionPacketHandler';
 export default class ClientToServerHandshakeHandler implements ConnectionPacketHandler<ClientToServerHandshakePacket> {
     public static PacketName = 'ClientToServerHandshakePacket';
     public readonly phases = ['encryption'] as const;
+    // Login I/O stays out of the tick (ADR 0014); the resumed admission still reaches the world.
+    public readonly lane = 'connection';
 
     /** Runs the rest of the login that `LoginHandler` set aside, now that the session is encrypted. */
     public async handle(
