@@ -31,6 +31,7 @@ import type PacketHandler from './PacketHandler';
 export default class RespawnHandler implements PacketHandler<RespawnPacket> {
     public static PacketName = 'RespawnPacket';
     public readonly phases = ['play'] as const;
+    public readonly lane = 'input';
 
     public async handle(packet: RespawnPacket, server: Server, session: PlayerSession): Promise<void> {
         const player = session.getPlayer();

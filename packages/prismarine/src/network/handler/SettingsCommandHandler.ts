@@ -14,6 +14,7 @@ import type PacketHandler from './PacketHandler';
 export default class SettingsCommandHandler implements PacketHandler<SettingsCommandPacket> {
     public static PacketName = 'SettingsCommandPacket';
     public readonly phases = ['play'] as const;
+    public readonly lane = 'input';
 
     /** Dispatches the command line as the player who sent it. */
     public async handle(packet: SettingsCommandPacket, server: Server, session: PlayerSession): Promise<void> {
