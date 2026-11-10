@@ -47,10 +47,8 @@ import type { World } from '../../world/World';
 import type WorldManager from '../../world/WorldManager';
 import { inertEntityRuntime, testContent } from '../../testing/entityServer';
 import type { DataEntity, MobBody } from '../../entity/data/DataEntity';
-import type { EntityRuntime } from '../../entity/data/EntityRuntime';
-import type { LiveBodies } from '../../entity/data/liveBodies';
-import type { StoreActors } from '../../entity/data/storeActors';
-import type { LiveEntityRuntime } from '../../entity/data/live';
+import { StoreActor } from '../../entity/data/storeActors';
+import type { WorldActor } from '../../world/WorldActor';
 import { collectAsyncCommands } from '../deferred';
 import { buildVanillaCommands } from '../vanillaCommands';
 import { serverCommandHost } from './serverCommandHost';
@@ -67,7 +65,7 @@ interface Fixture {
     readonly nether: World;
     readonly blocks: BlockTable;
     readonly rules: Map<string, GameRuleEntry>;
-    readonly entities: Entity[];
+    readonly entities: WorldActor[];
     readonly players: Player[];
     readonly sent: unknown[];
     readonly feedback: string[];
@@ -90,7 +88,7 @@ const buildFixture = (): Fixture => {
         ['fallDamage', [true, true]],
         ['randomTickSpeed', [3, true]]
     ]);
-    const entities: Entity[] = [];
+    const entities: WorldActor[] = [];
     const players: Player[] = [];
     const dropped: { position: Vector3; contents: unknown[] }[] = [];
     let weather: 'clear' | 'rain' | 'thunder' = 'clear';
@@ -110,14 +108,21 @@ const buildFixture = (): Fixture => {
     });
 
     /** The destination of a cross-dimension `/tp`; nothing happens in it. */
-    const nether: World = stub<World>({ getDimension: () => Dimensions.Nether, getEntities: () => [] });
+    const nether: World = stub<World>({
+        getDimension: () => Dimensions.Nether,
+        getEntities: () => [],
+        getActors: () => [],
+        getActor: () => null
+    });
 
     // Annotated, because `world` and `server` name each other: without a declared type
     // TypeScript would have to infer one from the other and gives up.
     const world: World = stub<World>({
         getDimension: () => Dimensions.Overworld,
         getGameRuleManager: () => gameRules,
-        getEntities: () => entities,
+        getEntities: () => entities.filter((entity) => entity instanceof Entity),
+        getActors: () => entities,
+        getActor: (runtimeId: bigint) => entities.find((entity) => entity.getRuntimeId() === runtimeId) ?? null,
         getPlayers: () => players,
         getTicks: () => ticks,
         setTicks: (value: number) => {
@@ -455,23 +460,22 @@ describe('the server command host', () => {
             );
         });
 
-        it('teleports the runtime entity behind a data-driven mob, which owns where it stands', async () => {
-            const pig = mobAt(fixture, 1n, 'minecraft:pig', new Vector3(0, 64, 0));
+        it('teleports a store entity in the store, which owns where it stands', async () => {
             const teleportTo = vi.fn();
-            const body = { yaw: 0, pitch: 0, teleportTo };
-            vi.spyOn(fixture.world, 'dataEntities').mockReturnValue(
-                stub<LiveEntityRuntime>({
-                    bodies: stub<LiveBodies>({ entityIdOf: () => 7 }),
-                    actors: stub<StoreActors>({ all: () => [][Symbol.iterator]() }),
-                    runtime: stub<EntityRuntime>({ byId: () => stub<DataEntity>({ body: stub<MobBody>(body) }) })
-                })
-            );
+            const actor = stubOf(StoreActor, {
+                entity: stub<DataEntity>({ id: 7, body: stub<MobBody>({ yaw: 0, pitch: 0, teleportTo }) }),
+                getRuntimeId: () => 7n,
+                getType: () => 'minecraft:pig',
+                getName: () => '',
+                getPosition: () => new Vector3(0, 64, 0),
+                getFeetY: () => 64,
+                getWorld: () => fixture.world
+            });
+            fixture.entities.push(actor);
 
             await expect(fixture.run('tp @e 10 70 10')).resolves.toBe(1);
 
             expect(teleportTo).toHaveBeenCalledWith({ x: 10, y: 70, z: 10 });
-            // Written to the body alone, the runtime would put the mob straight back next tick.
-            expect(pig.setPosition).not.toHaveBeenCalled();
         });
 
         it('moves a player into another dimension at the requested position, in one move', async () => {

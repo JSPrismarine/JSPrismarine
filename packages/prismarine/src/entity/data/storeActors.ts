@@ -163,6 +163,11 @@ export class StoreActor implements ShownActor {
         this.writeEquipment(content);
     }
 
+    /** The entity as `/debug` lists it, in the form `Entity.toString` gives a legacy one. */
+    public toString(): string {
+        return `id: §a${this.entity.id}§r, name: §b${this.getName()}§r, type: §b${this.entity.identifier}§r, ${this.getPosition().toString()}, world: §b${this.world.getName()}§r`;
+    }
+
     /** The world the entity stands in. */
     public getWorld(): World {
         return this.world;

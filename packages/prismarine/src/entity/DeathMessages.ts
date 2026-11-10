@@ -1,6 +1,6 @@
 import { DamageCause } from './DamageCause';
 import type { DamageSource } from './DamageSource';
-import type { Entity } from './Entity';
+import type { WorldActor } from '../world/WorldActor';
 
 /**
  * How a death is announced.
@@ -74,10 +74,10 @@ const ATTRIBUTED: Partial<Record<DamageCause, string>> = {
  * the `%entity.zombie.name` key vanilla uses, because a translation key nested inside another
  * key's parameter is not something every client resolves - and a message that renders as the raw
  * key is worse than one that renders in English.
- * @param {Entity} entity - Who to name.
+ * @param {WorldActor} entity - Who to name.
  * @returns {string} A name fit to put in a sentence.
  */
-const displayNameOf = (entity: Entity): string => {
+const displayNameOf = (entity: WorldActor): string => {
     const nametag = entity.getName();
     if (nametag) return nametag;
 
@@ -95,14 +95,14 @@ const displayNameOf = (entity: Entity): string => {
  * By identifier and not by `instanceof`, because `Player` imports this module and importing it
  * back would close a runtime cycle - the very thing the barrel rules in `biome.json.js` are
  * there to prevent.
- * @param {Entity} entity - The entity to test.
+ * @param {WorldActor} entity - The entity to test.
  * @returns {boolean} `true` for a player.
  */
-const isPlayer = (entity: Entity): boolean => entity.getType() === PLAYER_TYPE;
+const isPlayer = (entity: WorldActor): boolean => entity.getType() === PLAYER_TYPE;
 
 /**
  * The line to announce a death with.
- * @param {Entity} victim - Who died.
+ * @param {WorldActor} victim - Who died.
  * @param {DamageSource} source - What killed them, and who is answerable for it.
  * @returns {DeathMessage} The key and its parameters.
  * @example
@@ -111,7 +111,7 @@ const isPlayer = (entity: Entity): boolean => entity.getType() === PLAYER_TYPE;
  * // => { key: '%death.attack.player', parameters: ['Steve', 'Alex'] }
  * ```
  */
-export const deathMessage = (victim: Entity, source: DamageSource): DeathMessage => {
+export const deathMessage = (victim: WorldActor, source: DamageSource): DeathMessage => {
     const killer = source.attacker;
 
     if (source.deathMessageOverride !== undefined) {

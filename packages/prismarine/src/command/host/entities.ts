@@ -21,14 +21,14 @@ import { DamageCause } from '../../entity/DamageCause';
 import { DamageSource } from '../../entity/DamageSource';
 import { damageSourceOfType, hasDamageType } from '../../entity/damageTypes';
 import { normalizeStatusEffectId } from '../../entity/StatusEffect';
-import type { DataEntity } from '../../entity/data/DataEntity';
-import type { Entity } from '../../entity/Entity';
+import { StoreActor } from '../../entity/data/storeActors';
 import type { ExperienceHolder } from '../../entity/Experience';
 import { eyePositionAt } from '../../entity/Human';
 import { addExperiencePoints, pointsForNextLevel } from '../../entity/Experience';
 import ContainerEntry from '../../inventory/ContainerEntry';
 import { itemFromContent } from '../../item/itemFromContent';
 import type { World } from '../../world/World';
+import type { WorldActor } from '../../world/WorldActor';
 import type { Scoreboard } from './scoreboard';
 import { scoreFactOf } from './scoreboard';
 import {
@@ -102,17 +102,13 @@ const barFractionOf = (level: number, points: number): number => {
 /**
  * The type families of one entity, which is what `@e[family=...]` compares.
  *
- * The live instance answers first, because a component group added at runtime brings its own
- * `minecraft:type_family` with it and a zombie villager mid-conversion is in different families
- * than the one its file declares. The two bodies no data instance backs, the player and a
- * dropped stack, fall back to the families their own declaration carries.
+ * A store entity answers from its live instance, because a component group added at runtime
+ * brings its own `minecraft:type_family` with it and a zombie villager mid-conversion is in
+ * different families than the one its file declares. The two kinds of entity no data instance
+ * backs, the player and a legacy body, fall back to the families their declaration carries.
  */
-const familiesOf = (server: Server, entity: Entity): readonly string[] => {
-    const live = entity.getWorld().dataEntities();
-    const id = live?.bodies.entityIdOf(entity);
-    const instance = id === undefined ? undefined : live?.runtime.byId(id)?.instance;
-    if (instance !== undefined) return instance.families();
-
+const familiesOf = (server: Server, entity: WorldActor): readonly string[] => {
+    if (entity instanceof StoreActor) return entity.entity.instance.families();
     return server.getContent()?.entities.registry.get(entity.getType())?.params(typeFamily)?.family ?? [];
 };
 
@@ -160,20 +156,13 @@ const summonDataEntity = (
     );
     if (spawned === undefined) return undefined;
 
-    // The runtime announced the spawn while it was still inside `spawn`, so the
-    // body is already in the world by the time this reads it back.
-    const body = live.bodies.bodyOf(spawned.id);
-    if (body === undefined) return undefined;
+    // The runtime showed the spawn while it was still inside `spawn`, so its actor is already
+    // there by the time this reads it back.
+    const actor = live.actors.actorOf(spawned.id);
+    if (actor === undefined) return undefined;
 
-    if (name !== undefined) body.setName(name);
-    return entityRefOf(body);
-};
-
-/** The runtime entity behind a body, or undefined when the body is not a data-driven mob. */
-const dataEntityOf = (entity: Entity): DataEntity | undefined => {
-    const live = entity.getWorld().dataEntities();
-    const id = live.bodies.entityIdOf(entity);
-    return id === undefined ? undefined : live.runtime.byId(id);
+    if (name !== undefined) actor.setName(name);
+    return entityRefOf(actor);
 };
 
 /**
@@ -206,7 +195,7 @@ const spawnIdentifierOf = (identifier: string): string => {
  * @param scoreboard - The scoreboard a selector's `scores=` reads.
  */
 export const entityCommandHost = (server: Server, scoreboard: Scoreboard): EntityCommandHost => {
-    const refsOf = (entities: readonly Entity[]): EntityRef[] => entities.map(entityRefOf);
+    const refsOf = (entities: readonly WorldActor[]): EntityRef[] => entities.map(entityRefOf);
 
     /**
      * Who a selector may name.
@@ -215,15 +204,15 @@ export const entityCommandHost = (server: Server, scoreboard: Scoreboard): Entit
      * `@a` does; anything else looks at the dimension the command is running
      * in, because that is the only place an `@e` can reach.
      */
-    const candidatesFor = (base: string, dimension: string): Entity[] =>
+    const candidatesFor = (base: string, dimension: string): readonly WorldActor[] =>
         base === '@a' || base === '@p' || base === '@r'
             ? server.getSessionManager().getAllPlayers()
-            : worldOf(server, dimension).getEntities();
+            : worldOf(server, dimension).getActors();
 
     const applyAttribute = (
         ref: EntityRef,
         attribute: string,
-        read: (id: string, entity: Entity) => number | undefined
+        read: (id: string, entity: WorldActor) => number | undefined
     ) => {
         const id = attributeIdOf(attribute);
         const entity = resolveEntity(server, ref);
@@ -258,12 +247,16 @@ export const entityCommandHost = (server: Server, scoreboard: Scoreboard): Entit
             // only way to kill it is to take it out of the world. The cause is
             // the one nothing turns aside: the ender dragon's damage rules
             // refuse a generic attacker-less blow, and `/kill` must not be one.
-            if (entity.isAlive()) {
-                // A data-driven entity dies through the entity store's damage pipeline.
-                const source = DamageSource.of(DamageCause.SelfDestruct);
-                if (entity.getWorld().dataEntities().killEntity(entity, source, 'command') !== undefined) return true;
-                return carryOut(entity.setHealth(0, DamageCause.SelfDestruct), true);
+            if (entity instanceof StoreActor) {
+                // A store entity dies through the store's damage pipeline, and one with no health,
+                // such as a boat, leaves the store.
+                const live = entity.getWorld().dataEntities();
+                if (entity.isAlive()) live.killEntity(entity, DamageSource.of(DamageCause.SelfDestruct), 'command');
+                else live.runtime.remove(entity.entity.id, 'body removed');
+                return true;
             }
+
+            if (entity.isAlive()) return carryOut(entity.setHealth(0, DamageCause.SelfDestruct), true);
 
             // A dead player is on the death screen, not an entity to clear away: taking it out of
             // the world leaves it out when it respawns, and no `@s` finds it again.
@@ -290,8 +283,10 @@ export const entityCommandHost = (server: Server, scoreboard: Scoreboard): Entit
                 ...(from === undefined ? {} : { from }),
                 ...(origin?.at === undefined ? {} : { at: vectorOf(origin.at) })
             });
-            if (entity.getWorld().dataEntities().damageEntity(entity, amount, source, 'command') !== undefined)
+            if (entity instanceof StoreActor) {
+                entity.getWorld().dataEntities().damageEntity(entity, amount, source, 'command');
                 return true;
+            }
             return carryOut(entity.damage(amount, source), true);
         },
 
@@ -316,11 +311,9 @@ export const entityCommandHost = (server: Server, scoreboard: Scoreboard): Entit
                     });
                 }
 
-                // A data-driven mob's runtime owns where it stands and writes that onto the
-                // body every tick, so moving the body alone is undone on the next one. The
-                // runtime entity is what moves, and its body follows as a teleport.
-                const driven = dataEntityOf(entity);
-                if (driven !== undefined) {
+                // A store entity moves in the store, and clients are shown a teleport.
+                if (entity instanceof StoreActor) {
+                    const driven = entity.entity;
                     driven.body.yaw = rotation.yaw;
                     driven.body.pitch = rotation.pitch;
                     driven.body.teleportTo({ x: position.x, y: position.y, z: position.z });

@@ -102,7 +102,7 @@ const debugDump = (server: Server): string[] => {
         const gameRules = Array.from(world.getGameRuleManager()?.getGameRules() ?? []);
         lines.push(`  §dGameRules§r (${gameRules.length}):`);
         for (const [id, rule] of gameRules) lines.push(`  - id: §a${id}§r, value: §b${rule}§r`);
-        const entities = world.getEntities();
+        const entities = world.getActors();
         lines.push(`  §dEntities§r (${entities.length}):`);
         for (const entity of entities) lines.push(`  - ${entity.toString()}`);
     }

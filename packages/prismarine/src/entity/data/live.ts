@@ -33,6 +33,7 @@ import type { ServerContent } from '../../content/ServerContent';
 import { contentWorldViews } from '../../content/world/views';
 import { destroyBlock } from '../../world/blockDestroy';
 import type { World } from '../../world/World';
+import type { WorldActor } from '../../world/WorldActor';
 import { damageCauseOf, DamageCause } from '../DamageCause';
 import { DamageSource } from '../DamageSource';
 import { Entity } from '../Entity';
@@ -49,7 +50,7 @@ import type { EntityItemInteraction } from './itemInteraction';
 import type { ContentItemEntity, EntityHostFacts, EntityWorldFacts } from './host';
 import { EntityRuntime, PROJECTILE_EYE_HEIGHT_FRACTION } from './EntityRuntime';
 import { LiveBodies } from './liveBodies';
-import { StoreActors } from './storeActors';
+import { StoreActor, StoreActors } from './storeActors';
 import type { StoreActorBlows } from './storeActors';
 import { tradeDisplayNameOf } from './trading';
 import type { DataEntityRecord } from './persistence';
@@ -598,6 +599,13 @@ export class LiveEntityRuntime {
         });
     }
 
+    /** The store entity behind an actor of this runtime, or undefined for a legacy entity. */
+    private storeEntityOf(target: WorldActor): DataEntity | undefined {
+        const id = target instanceof StoreActor ? target.entity.id : this.bodies.entityIdOf(target);
+        const entity = id === undefined ? undefined : this.runtime.byId(id);
+        return entity?.removed === undefined ? entity : undefined;
+    }
+
     /** Whether a run of the pipeline took health off its target. */
     private landed(outcome: DamageOutcome): boolean {
         return outcome.committed && outcome.taken > 0;
@@ -607,14 +615,18 @@ export class LiveEntityRuntime {
      * Hurts a data-driven entity through the store's damage pipeline, for a caller that describes
      * the blow with a legacy {@link DamageSource}, such as a player's swing or a legacy blast.
      *
-     * @param target - The entity's client-facing body.
+     * @param target - The entity, a store entity through its actor.
      * @param route - Which path the blow came by.
-     * @returns Whether it took health off the entity, or undefined when the body is not a
-     *   data-driven entity's and the caller still owns the blow.
+     * @returns Whether it took health off the entity, or undefined when it is not a store entity
+     *   and the caller still owns the blow.
      */
-    public damageEntity(target: Entity, amount: number, source: DamageSource, route: DamageRoute): boolean | undefined {
-        const id = this.bodies.entityIdOf(target);
-        const entity = id === undefined ? undefined : this.runtime.byId(id);
+    public damageEntity(
+        target: WorldActor,
+        amount: number,
+        source: DamageSource,
+        route: DamageRoute
+    ): boolean | undefined {
+        const entity = this.storeEntityOf(target);
         if (entity === undefined) return undefined;
         if (amount <= 0) return false;
         return this.landed(this.runtime.damage(intentOfLegacyBlow(entity, amount, source, route)));
@@ -624,11 +636,10 @@ export class LiveEntityRuntime {
      * Kills a data-driven entity through the store's damage pipeline, with a blow of its whole
      * health that ignores armor and the grace period, which is what `/kill` deals.
      *
-     * @returns Whether it died, or undefined when the body is not a data-driven entity's.
+     * @returns Whether it died, or undefined when it is not a store entity.
      */
-    public killEntity(target: Entity, source: DamageSource, route: DamageRoute): boolean | undefined {
-        const id = this.bodies.entityIdOf(target);
-        const entity = id === undefined ? undefined : this.runtime.byId(id);
+    public killEntity(target: WorldActor, source: DamageSource, route: DamageRoute): boolean | undefined {
+        const entity = this.storeEntityOf(target);
         if (entity === undefined) return undefined;
         const health = entity.instance.attributes.get('health')?.current;
         if (health === undefined || health <= 0) return false;
