@@ -2,7 +2,8 @@ import fs from 'node:fs';
 import { createPrivateKey, createPublicKey, generateKeyPairSync } from 'node:crypto';
 import type { KeyObject } from 'node:crypto';
 
-import { BEDROCK_CURVE, compactEs384, detachedEs384, verifiesEs384 } from './es384';
+import { compactVerify, decodeJwt } from 'jose';
+import { BEDROCK_CURVE, compactEs384, detachedEs384, verifiesDetachedEs384 } from './es384';
 import { isRecord } from './isRecord';
 import { sdpFingerprints, withoutIdentity, withSessionAttribute } from './sdp';
 import type { SdpFingerprint } from './sdp';
@@ -105,22 +106,22 @@ export class NetherNetIdentity {
      * @param description - The SDP offer or answer, with its `a=fingerprint` lines.
      * @throws {Error} When the description has no fingerprint to sign.
      */
-    public sign(description: string): string {
+    public async sign(description: string): Promise<string> {
         const fingerprints = sdpFingerprints(description);
         if (fingerprints.length === 0) throw new Error('An SDP description without a fingerprint cannot be signed');
 
         const issuedAt = Math.floor(this.now() / 1000);
         const token =
             this.issuedToken ??
-            compactEs384(
+            (await compactEs384(
                 { x5u: this.x5u },
                 { exp: issuedAt + TOKEN_LIFETIME_SECONDS, iat: issuedAt, cpk: this.cpk },
                 this.privateKey
-            );
+            ));
         const identity = {
             // The assertion is JSON inside a JSON string, as NetherNet nests it.
             assertion: JSON.stringify({
-                fingerprints: detachedEs384(canonicalFingerprints(fingerprints), this.privateKey),
+                fingerprints: await detachedEs384(canonicalFingerprints(fingerprints), this.privateKey),
                 token
             }),
             idp: { domain: this.domain, protocol: 'default' }
@@ -155,9 +156,6 @@ const claimedKey = (cpk: unknown): KeyObject => {
     throw new Error('The identity token has no usable cpk claim');
 };
 
-/** One base64url part of a compact JWS, parsed as JSON. */
-const jwsPart = (part: string | undefined): unknown => JSON.parse(Buffer.from(part ?? '', 'base64url').toString());
-
 /**
  * Checks a self-signed `a=identity` the way a NetherNet client checks a server's: the token is
  * signed by the key in its own `cpk` claim and not expired, and the detached signature covers this
@@ -167,7 +165,7 @@ const jwsPart = (part: string | undefined): unknown => JSON.parse(Buffer.from(pa
  * @param nowMs - The clock, in milliseconds since the epoch.
  * @throws {Error} When the identity is missing, malformed, expired or does not verify.
  */
-export const verifySelfSignedIdentity = (description: string, nowMs = Date.now()): VerifiedIdentity => {
+export const verifySelfSignedIdentity = async (description: string, nowMs = Date.now()): Promise<VerifiedIdentity> => {
     const line = description.split(/\r?\n/).find((candidate) => candidate.startsWith('a=identity:'));
     if (line === undefined) throw new Error('The description carries no a=identity');
 
@@ -180,21 +178,23 @@ export const verifySelfSignedIdentity = (description: string, nowMs = Date.now()
         throw new Error('The identity assertion is malformed');
     }
 
-    const [header, payload, signature] = assertion.token.split('.');
-    const claims = jwsPart(payload);
-    if (!isRecord(claims)) throw new Error('The identity token has no claims');
+    // The key to check the token with is the one the token names, so it is read unchecked first.
+    let claims: Record<string, unknown>;
+    try {
+        claims = decodeJwt(assertion.token);
+    } catch {
+        throw new Error('The identity token has no claims');
+    }
     const publicKey = claimedKey(claims.cpk);
-    if (!verifiesEs384(`${header}.${payload}`, signature ?? '', publicKey)) {
+    try {
+        await compactVerify(assertion.token, publicKey, { algorithms: ['ES384'] });
+    } catch {
         throw new Error('The identity token is not signed by its own key');
     }
     if (typeof claims.exp === 'number' && claims.exp < nowMs / 1000) throw new Error('The identity token has expired');
 
-    const [fingerprintHeader, detached, fingerprintSignature] = assertion.fingerprints.split('.');
-    const payloadBytes = Buffer.from(canonicalFingerprints(sdpFingerprints(description))).toString('base64url');
-    if (
-        detached !== '' ||
-        !verifiesEs384(`${fingerprintHeader}.${payloadBytes}`, fingerprintSignature ?? '', publicKey)
-    ) {
+    const fingerprints = canonicalFingerprints(sdpFingerprints(description));
+    if (!(await verifiesDetachedEs384(assertion.fingerprints, fingerprints, publicKey))) {
         throw new Error("The identity does not sign this description's fingerprints");
     }
 

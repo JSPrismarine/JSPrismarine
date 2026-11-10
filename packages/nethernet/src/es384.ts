@@ -1,35 +1,16 @@
-import { sign, verify } from 'node:crypto';
 import type { KeyObject } from 'node:crypto';
+
+import { CompactSign, FlattenedSign, flattenedVerify } from 'jose';
 
 /** The curve Bedrock signs with: the login chain, the encryption handshake and NetherNet identities. */
 export const BEDROCK_CURVE = 'secp384r1';
 
-/** A JSON value's bytes in base64url, the encoding every JWS part uses. */
-const base64UrlJson = (value: unknown): string => Buffer.from(JSON.stringify(value)).toString('base64url');
+const ES384 = 'ES384';
+const encoder = new TextEncoder();
 
 /**
- * Signs `header.payload` with ES384, the signature as JWS writes it: `r || s`, 48 bytes each,
- * rather than the DER Node produces by default.
- * @param header - The JWS protected header; `alg` is set to `ES384` in front of the rest.
- * @param payload - The payload, already base64url-encoded.
- * @param privateKey - A P-384 private key.
- * @returns The encoded header and the encoded signature.
- */
-const signEs384 = (
-    header: Readonly<Record<string, unknown>>,
-    payload: string,
-    privateKey: KeyObject
-): { header: string; signature: string } => {
-    const encodedHeader = base64UrlJson({ alg: 'ES384', ...header });
-    const signature = sign('sha384', Buffer.from(`${encodedHeader}.${payload}`), {
-        key: privateKey,
-        dsaEncoding: 'ieee-p1363'
-    });
-    return { header: encodedHeader, signature: signature.toString('base64url') };
-};
-
-/**
- * A compact ES384 JWS (a JWT, when the payload is a claim set): `header.payload.signature`.
+ * A compact ES384 JWS (a JWT, when the payload is a claim set): `header.payload.signature`,
+ * signed by `jose`.
  * @param header - Header fields besides `alg`, such as `x5u`.
  * @param payload - The JSON payload.
  * @param privateKey - A P-384 private key.
@@ -38,11 +19,10 @@ export const compactEs384 = (
     header: Readonly<Record<string, unknown>>,
     payload: unknown,
     privateKey: KeyObject
-): string => {
-    const encodedPayload = base64UrlJson(payload);
-    const signed = signEs384(header, encodedPayload, privateKey);
-    return `${signed.header}.${encodedPayload}.${signed.signature}`;
-};
+): Promise<string> =>
+    new CompactSign(encoder.encode(JSON.stringify(payload)))
+        .setProtectedHeader({ alg: ES384, ...header })
+        .sign(privateKey);
 
 /**
  * A detached ES384 JWS over exact payload bytes (RFC 7515 appendix F): `header..signature`. The
@@ -50,21 +30,28 @@ export const compactEs384 = (
  * @param payload - The payload bytes, signed as given.
  * @param privateKey - A P-384 private key.
  */
-export const detachedEs384 = (payload: string, privateKey: KeyObject): string => {
-    const signed = signEs384({}, Buffer.from(payload).toString('base64url'), privateKey);
-    return `${signed.header}..${signed.signature}`;
+export const detachedEs384 = async (payload: string, privateKey: KeyObject): Promise<string> => {
+    const signed = await new FlattenedSign(encoder.encode(payload)).setProtectedHeader({ alg: ES384 }).sign(privateKey);
+    return `${signed.protected ?? ''}..${signed.signature}`;
 };
 
 /**
- * Whether `signature` is an ES384 signature, `r || s` as JWS writes it, over `signingInput`.
- * @param signingInput - `header.payload`, both base64url.
- * @param signature - The base64url signature.
+ * Whether `jws` is a detached ES384 signature over `payload` by `publicKey`.
+ * @param jws - The detached JWS, `header..signature`.
+ * @param payload - The payload bytes the signer should have signed.
  * @param publicKey - The P-384 key it should verify against.
  */
-export const verifiesEs384 = (signingInput: string, signature: string, publicKey: KeyObject): boolean =>
-    verify(
-        'sha384',
-        Buffer.from(signingInput),
-        { key: publicKey, dsaEncoding: 'ieee-p1363' },
-        Buffer.from(signature, 'base64url')
-    );
+export const verifiesDetachedEs384 = async (jws: string, payload: string, publicKey: KeyObject): Promise<boolean> => {
+    const [header, detached, signature, ...extra] = jws.split('.');
+    if (header === undefined || detached !== '' || signature === undefined || extra.length > 0) return false;
+    try {
+        await flattenedVerify(
+            { protected: header, payload: Buffer.from(payload).toString('base64url'), signature },
+            publicKey,
+            { algorithms: [ES384] }
+        );
+        return true;
+    } catch {
+        return false;
+    }
+};

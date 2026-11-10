@@ -1,5 +1,5 @@
-import { createSigner } from 'fast-jwt';
 import { generateKeyPairSync } from 'node:crypto';
+import { UnsecuredJWT } from 'jose';
 import { describe, expect, it } from 'vitest';
 
 import { protocolVersion } from '@jsprismarine/protocol/wire/versions/v2193';
@@ -7,13 +7,10 @@ import { parseLoginIdentity } from './LoginIdentity';
 
 import type { Login } from '@jsprismarine/protocol/packet/LoginPacket';
 
-const { privateKey, publicKey } = generateKeyPairSync('ec', { namedCurve: 'secp384r1' });
+const { publicKey } = generateKeyPairSync('ec', { namedCurve: 'secp384r1' });
 const KEY = publicKey.export({ type: 'spki', format: 'der' }).toString('base64');
-const sign = createSigner({
-    algorithm: 'ES384',
-    key: privateKey.export({ type: 'pkcs8', format: 'pem' }).toString(),
-    noTimestamp: true
-});
+/** A token carrying the claims. The parser reads claims and checks no signature, so none is made. */
+const sign = (claims: Record<string, unknown>): string => new UnsecuredJWT(claims).encode();
 
 /** The client data every login carries, with only the fields this parser reads filled in. */
 const clientData = (overrides: Record<string, unknown> = {}) =>

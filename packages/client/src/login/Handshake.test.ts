@@ -1,4 +1,6 @@
-import { createHash, createSign, diffieHellman, generateKeyPairSync } from 'node:crypto';
+import { createHash, diffieHellman, generateKeyPairSync } from 'node:crypto';
+
+import { compactEs384 } from '@jsprismarine/nethernet';
 import { describe, expect, it } from 'vitest';
 
 import { deriveEncryptionKey, readHandshake } from './Handshake';
@@ -8,28 +10,26 @@ import type { KeyObject } from 'node:crypto';
 /** A P-384 pair, the curve every Bedrock identity and server key is on. */
 const keyPair = () => generateKeyPairSync('ec', { namedCurve: 'secp384r1' });
 
+/** A JWT part, for tokens built malformed on purpose. */
 const segment = (value: unknown): string => Buffer.from(JSON.stringify(value)).toString('base64url');
 
 /**
  * The token a server builds: `x5u` in the header as base64 DER, `salt` in the payload as
  * base64, signed ES384 with the key the header names.
  */
-const handshakeToken = (serverPrivate: KeyObject, serverPublic: KeyObject, salt: Buffer): string => {
-    const x5u = serverPublic.export({ type: 'spki', format: 'der' }).toString('base64');
-    const signed = `${segment({ alg: 'ES384', x5u })}.${segment({ salt: salt.toString('base64') })}`;
-    const signature = createSign('SHA384')
-        .update(signed)
-        .sign({ key: serverPrivate, dsaEncoding: 'ieee-p1363' }, 'base64url');
-
-    return `${signed}.${signature}`;
-};
+const handshakeToken = (serverPrivate: KeyObject, serverPublic: KeyObject, salt: Buffer): Promise<string> =>
+    compactEs384(
+        { x5u: serverPublic.export({ type: 'spki', format: 'der' }).toString('base64') },
+        { salt: salt.toString('base64') },
+        serverPrivate
+    );
 
 describe('client', () => {
     describe('Handshake', () => {
-        it('reads the public key and the salt out of the token', () => {
+        it('reads the public key and the salt out of the token', async () => {
             const server = keyPair();
             const salt = Buffer.alloc(16, 0xab);
-            const jwt = handshakeToken(server.privateKey, server.publicKey, salt);
+            const jwt = await handshakeToken(server.privateKey, server.publicKey, salt);
 
             const read = readHandshake(jwt);
 
@@ -42,11 +42,11 @@ describe('client', () => {
          * server's private key and the client's public key, then SHA-256 over the salt
          * followed by the shared secret. The client must land on the same 32 bytes.
          */
-        it('derives the key the server derives', () => {
+        it('derives the key the server derives', async () => {
             const server = keyPair();
             const client = keyPair();
             const salt = Buffer.alloc(16, 0x3c);
-            const jwt = handshakeToken(server.privateKey, server.publicKey, salt);
+            const jwt = await handshakeToken(server.privateKey, server.publicKey, salt);
 
             const secret = diffieHellman({ privateKey: server.privateKey, publicKey: client.publicKey });
             const serverKey = createHash('sha256').update(salt).update(secret).digest();

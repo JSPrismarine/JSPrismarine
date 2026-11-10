@@ -1,5 +1,7 @@
 import { createHash } from 'node:crypto';
 
+import { decodeJwt } from 'jose';
+
 import type { Login } from '@jsprismarine/protocol/packet/LoginPacket';
 import Device from '../utils/Device';
 import Skin from '@jsprismarine/protocol/wire/structures/skin/Skin';
@@ -56,11 +58,18 @@ interface ConnectionRequest extends Certificate {
 /** `JSON.parse` cannot validate a payload shape, so callers name the expected shape here. */
 const parseJSON = <T>(json: string): T => JSON.parse(json);
 
-/** Reads the JSON segment of a JWT without validating its signature. */
+/**
+ * Reads a JWT's claims without validating its signature; `verifyLogin` checks the ones that matter.
+ * @throws {Error} When the token is not a JWT.
+ */
 const claimsOf = <T>(token: string): T => {
-    const payload = token.split('.')[1];
-    if (!payload) throw new Error('The login token is not a JWT');
-    return parseJSON(Buffer.from(payload, 'base64url').toString('utf8'));
+    let claims: unknown;
+    try {
+        claims = decodeJwt(token);
+    } catch {
+        throw new Error('The login token is not a JWT');
+    }
+    return claims as T; // the caller names the claim shape the login protocol defines; nothing checks it here
 };
 
 /** Derives the protocol's version 3 identity UUID from an Xbox Live id. */
