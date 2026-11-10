@@ -11,19 +11,29 @@ import { writeNetworkNbt } from '@jsprismarine/protocol/payload';
 import { OVERWORLD_STEM_ID } from '@jsprismarine/worldgen';
 
 import type { BlockProperty, GameRule, StartGame } from '@jsprismarine/protocol/packet/StartGamePacket';
-import type Player from '../Player';
 import type Server from '../Server';
 import { BlockStateSchemas } from '../block/state/BlockStateSchema';
 import { eyePositionAt } from '../entity/Human';
+import type { ShownPlayer } from '../world/ShownPlayer';
+import type { PlayerSpawn } from '../world/SpawnPlacement';
 import type { World } from '../world/World';
 import { isFlatGenerator } from '../world/WorldPersistence';
+
+/** What the join state reads of the joining player. A legacy `Player` has every member. */
+export interface JoiningPlayer extends Pick<
+    ShownPlayer,
+    'getRuntimeId' | 'getPosition' | 'gamemode' | 'pitch' | 'yaw'
+> {
+    /** Where the join placed the player, or null before the join has placed them. */
+    getJoinSpawn(): Pick<PlayerSpawn, 'requested'> | null;
+}
 
 /** The server-owned state needed to produce a Protocol `StartGame` payload. */
 export interface StartGameDataOptions {
     /** The server and its selected game settings. */
     readonly server: Server;
     /** The joining player. */
-    readonly player: Player;
+    readonly player: JoiningPlayer;
     /** The world the player is joining. */
     readonly world: World;
     /** Spawn position returned by the world. */
