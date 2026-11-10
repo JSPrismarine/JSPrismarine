@@ -68,6 +68,19 @@ whatever its own budget or clock would choose. A chunk that code inside the tick
 as the dragon fight's arena, is still admitted the moment it is ready, because the tick could not
 finish without it; `IN_TICK_CHUNK_LOADS` lists those paths until later work removes them.
 
+Each world's tick is one tick of its change log ([ADR 0012](../adr/0012-the-change-log-is-the-history.md)).
+The ticker opens it for every world before the input step and the world seals it when its update
+ends, so the inputs, the chunks admitted, the entity updates and the spawn cycle of one tick land in
+one sealed tick. Each input-lane handler runs as a unit of the world its sender is in: when it
+throws, what it wrote to that world's entities is undone before the error is logged. A chunk that
+enters or leaves is named in the log and its content is not carried, because the content arrived as
+an input. A chunk admitted inline, inside a unit, makes that unit impossible to undo, so such a unit
+keeps its writes if it throws and the store reports it. Nothing reads a sealed tick yet except the
+tests and the replay scenario, which reports its entries and bytes per tick. Data-driven entities
+are logged in full; players, dropped stacks and the eye of ender are logged only for position,
+health and a player's game mode until they move into the store, and a player's inventory is covered
+by the replay digest's snapshot alone.
+
 `World.update` runs each system in Java's order, and `WorldSystems.tick` is the part that owns
 them. Scheduled block ticks run first, then scheduled fluid ticks, then the chunk tick that draws
 random positions, then the light the writes above queued. Light goes last because every block
