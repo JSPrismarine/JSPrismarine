@@ -4,6 +4,7 @@
  * Asserted as health, component values and change log entries.
  */
 import { AIR_STATE } from '@jsprismarine/entities';
+import { LevelEvent } from '@jsprismarine/minecraft';
 import { describe, expect, it } from 'vitest';
 
 import { PLAYER_IDENTIFIER } from '../playerOverlay';
@@ -319,6 +320,77 @@ describe('a store player', () => {
             expect(fixture.runtime.playerSystems.componentsOf(entity).get('vitals.food')).toBe(0);
             expect(fieldsOf(entries, 'vitals.food')).toHaveLength(1);
             expect(player.getHealth()).toBe(19);
+        });
+    });
+
+    describe('mining', () => {
+        /** The floor block under a standing player, mined from above. */
+        const mined = (fixture: EntityFixture) => ({
+            x: 0,
+            y: FLOOR_Y,
+            z: 0,
+            face: 1,
+            runtimeId: fixture.world.runtimeIdOf('minecraft:stone'),
+            progressPerTick: 900
+        });
+
+        it('animates the cracks every tick: the particles off the face, then the progress', () => {
+            const fixture = storePlayerFixture(new TestEntityWorld({ runtimeIds: true }));
+            const { player } = standingPlayer(fixture);
+            const mining = mined(fixture);
+            fixture.runtime.playerSystems.setMining(player, mining);
+
+            ticks(fixture, 2);
+
+            const crack = [
+                {
+                    at: { x: 0.5, y: FLOOR_Y + 0.5, z: 0.5 },
+                    event: LevelEvent.PARTICLES_CRACK_BLOCK_UP,
+                    data: mining.runtimeId
+                },
+                { at: { x: 0, y: FLOOR_Y, z: 0 }, event: LevelEvent.UPDATE_BLOCK_CRACKING, data: 900 }
+            ];
+            expect(fixture.world.levelEvents).toEqual([...crack, ...crack]);
+        });
+
+        it('stops the cracks once the block is no longer the one being mined, and forgets it', () => {
+            const fixture = storePlayerFixture(new TestEntityWorld({ runtimeIds: true }));
+            const { player, components } = standingPlayer(fixture);
+            fixture.runtime.playerSystems.setMining(player, mined(fixture));
+            fixture.world.setBlock({ x: 0, y: FLOOR_Y, z: 0 }, 'minecraft:dirt');
+
+            const entries = ticks(fixture, 2);
+
+            expect(fixture.world.levelEvents).toEqual([
+                { at: { x: 0, y: FLOOR_Y, z: 0 }, event: LevelEvent.STOP_BLOCK_CRACKING, data: 0 }
+            ]);
+            expect(components.get('mining.block')).toBeNull();
+            expect(fieldsOf(entries, 'mining.block')).toHaveLength(1);
+        });
+
+        it('waits over a chunk that is not loaded, and sends nothing', () => {
+            const fixture = storePlayerFixture(new TestEntityWorld({ unloadedFromX: 0, runtimeIds: true }));
+            const { player, components } = standingPlayer(fixture);
+            const mining = mined(fixture);
+            fixture.runtime.playerSystems.setMining(player, mining);
+
+            ticks(fixture, 3);
+            expect(fixture.world.levelEvents).toEqual([]);
+            expect(components.get('mining.block')).toEqual(mining);
+        });
+
+        it('stops the cracks when the mining ends without the client saying so', () => {
+            const fixture = storePlayerFixture();
+            const { player, components } = standingPlayer(fixture);
+            fixture.runtime.playerSystems.setMining(player, mined(fixture));
+
+            fixture.runtime.playerSystems.stopMining(player);
+            fixture.runtime.playerSystems.stopMining(player);
+
+            expect(fixture.world.levelEvents).toEqual([
+                { at: { x: 0, y: FLOOR_Y, z: 0 }, event: LevelEvent.STOP_BLOCK_CRACKING, data: 0 }
+            ]);
+            expect(components.get('mining.block')).toBeNull();
         });
     });
 });

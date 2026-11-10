@@ -343,6 +343,12 @@ export interface TestWorldOptions {
     readonly villagerRaidState?: VillagerRaidState;
     /** Blocks at or east of this x read as unloaded. */
     readonly unloadedFromX?: number;
+    /**
+     * Whether the world answers `runtimeIdAt`, numbering each block identifier the first time it
+     * is asked. Off by default, because a block access with runtime ids takes other paths in the
+     * runtime's block caches.
+     */
+    readonly runtimeIds?: boolean;
 }
 
 /** A flat stone world with air above it, and a recording host. */
@@ -403,6 +409,7 @@ export class TestEntityWorld {
 
     /** The players the host reports, which a test replaces between ticks. */
     public players: readonly ContentEntity[];
+    private readonly runtimeIds = new Map<string, number>();
     /** The item each store player holds in its main hand, by runtime id. */
     public readonly held = new Map<number, string>();
     /** Every meal a store player finished, in order. */
@@ -469,6 +476,14 @@ export class TestEntityWorld {
             },
             blocks: {
                 get: (at) => this.blockAt(at),
+                ...(this.options.runtimeIds === true
+                    ? {
+                          runtimeIdAt: (at: ContentPosition) => {
+                              const block = this.blockAt(at);
+                              return block === undefined ? undefined : this.runtimeIdOf(block.identifier);
+                          }
+                      }
+                    : {}),
                 blockRevision: () => this.blockRevision,
                 set: (at, block) => {
                     this.placed.set(keyOf(at), block);
@@ -578,6 +593,18 @@ export class TestEntityWorld {
      */
     public get ticks(): ContentTickScheduler {
         return { schedule: () => undefined, isScheduled: () => false, runsThisTick: () => false };
+    }
+
+    /**
+     * A runtime id for a block identifier, numbered in the order a test first asks, which is all
+     * a test world needs of one: the same block gets the same id.
+     */
+    public runtimeIdOf(identifier: string): number {
+        const known = this.runtimeIds.get(identifier);
+        if (known !== undefined) return known;
+        const id = this.runtimeIds.size + 1;
+        this.runtimeIds.set(identifier, id);
+        return id;
     }
 
     /** Replaces one block, so a test can wall a path finder in. */
