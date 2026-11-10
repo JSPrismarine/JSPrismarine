@@ -68,6 +68,7 @@ import { ItemActorBody as ItemEntity } from './itemBodies';
 import { itemViewOf } from './droppedItems';
 import type { DataEntity } from './DataEntity';
 import { builtInEntityDefinitions } from '../../content/testing';
+import { spawnDeclared } from './testing';
 import { loose } from '../Archery';
 import type { OpenBlockContainer, OpenTrade } from '../../network/PlayerSession';
 import { dataEntityRecordIn } from './persistence';
@@ -2981,16 +2982,14 @@ describe('the data-driven entity runtime over a live world', () => {
                     };
                     index += 1;
 
-                    const entity = live.runtime.spawn(
-                        identifier,
-                        position,
-                        identifier === 'minecraft:falling_block' ? { data: { block: 'minecraft:stone' } } : undefined
-                    );
+                    const entity = spawnDeclared(live.runtime, identifier, position);
                     if (entity === undefined) {
                         failures.push(`${identifier}: runtime did not create an entity`);
                         continue;
                     }
-                    if (live.bodies.bodyOf(entity.id) === undefined) failures.push(`${identifier}: no live actor body`);
+                    // A dropped stack's body is an item actor of its own; every other type's is the mirror's.
+                    const body = live.bodies.bodyOf(entity.id) ?? live.itemBodies.bodyOf(entity.id);
+                    if (body === undefined) failures.push(`${identifier}: no live actor body`);
                 }
 
                 expect(failures).toEqual([]);
