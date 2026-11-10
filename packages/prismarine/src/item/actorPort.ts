@@ -413,16 +413,19 @@ export const createItemActorPort = (options: ItemActorPortOptions): ServerItemAc
         if (!(entity instanceof Player)) return;
 
         const inventory = entity.getInventory();
+        const hand = inventory.getHandSlotIndex();
         const held = inventory.getItemInHand();
-        held.durability = Math.max(0, held.durability - amount);
+        // A worn copy written into the hand, so the change log hears the slot change.
+        const worn = held.withDurability(Math.max(0, held.durability - amount));
 
         // Emptied to air. Setting the entry's count to zero left the item's count at one, and
         // the client is sent the item's, so a tool that broke stayed in the hand.
-        if (broke) inventory.removeItem(inventory.getHandSlotIndex());
+        if (broke) inventory.removeItem(hand);
+        else inventory.setItem(hand, new ContainerEntry({ item: worn, count: inventory.getEntry(hand)?.getCount() }));
 
         // After the write, so what the trigger reports is the stack as it now
         // stands rather than as it stood before the hit.
-        advancementDurabilityChanged(entity, held, held.durability, amount);
+        advancementDurabilityChanged(entity, worn, worn.durability, amount);
     };
 
     /**

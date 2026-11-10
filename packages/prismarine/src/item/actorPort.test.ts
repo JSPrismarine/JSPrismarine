@@ -2,6 +2,7 @@ import { Vector3 } from '@jsprismarine/math';
 import { Gametype } from '@jsprismarine/minecraft';
 import { describe, expect, it } from 'vitest';
 
+import ContainerEntry from '../inventory/ContainerEntry';
 import HumanInventory from '../inventory/HumanInventory';
 import Player from '../Player';
 import { Item } from './Item';
@@ -201,6 +202,31 @@ describe('the item actor port', () => {
         ]);
         expect(inventory.getItemInHand().getName()).toBe('minecraft:diamond_sword');
         expect(inventory.getItemInHand().getCustomName()).toBe('Returned sword');
+    });
+
+    it('wears the held tool by writing a worn copy into the hand slot', () => {
+        const recorded = recording();
+        const inventory = new HumanInventory();
+        const pickaxe = new Item({ name: 'minecraft:iron_pickaxe' });
+        inventory.setItem(0, new ContainerEntry({ item: pickaxe }));
+        const written: number[] = [];
+        inventory.observeCarried({ slot: (_container, slot) => void written.push(slot), handSlot: () => {} });
+        const player = Object.assign(Object.create(Player.prototype), {
+            getInventory: () => inventory,
+            getServer: () => ({ getContent: () => testContent() })
+        });
+        const port = createItemActorPort({
+            world: () => worldDouble(player, recorded),
+            entities: entityAccess(),
+            level: clock()
+        });
+
+        port.perform({ kind: 'consume-durability', source: SOURCE, amount: 2, broke: false });
+
+        expect(written).toEqual([0]);
+        expect(inventory.getItemInHand().getDurability()).toBe(pickaxe.getMaxDurability() - 2);
+        // The stack that was in the hand is not changed in place.
+        expect(pickaxe.getDurability()).toBe(pickaxe.getMaxDurability());
     });
 
     it('asks the world for the eye of ender tag itself, a hundred chunks out', () => {
