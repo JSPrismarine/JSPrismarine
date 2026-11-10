@@ -317,7 +317,7 @@ the server has been checked with retail Bedrock clients on Windows and Android.
 
 ### Every setting
 
-A fresh server writes these <!-- fact:config.count -->33<!-- /fact --> settings, each with the comment below
+A fresh server writes these <!-- fact:config.count -->36<!-- /fact --> settings, each with the comment below
 above it. The list comes from the code that writes the file, so it matches what your version writes.
 
 <!-- fact:config.table -->
@@ -343,7 +343,10 @@ above it. The list comes from the code that writes the file, so it matches what 
 | `entity-tracking-hysteresis`          | Chunks past view distance before an entity leaves a player's screen.                                                                                                                               |
 | `entity-tracking-interval`            | Ticks between entity visibility passes, at least 1.                                                                                                                                                |
 | `online-mode`                         | Whether players must be signed in to Xbox Live.                                                                                                                                                    |
+| `enable-raknet`                       | Whether to accept clients over RakNet, the UDP transport Bedrock used before NetherNet.                                                                                                            |
 | `use-raknet-worker`                   | Whether RakNet networking runs in a worker thread.                                                                                                                                                 |
+| `enable-nethernet`                    | Whether to accept clients over NetherNet, the WebRTC transport Bedrock Dedicated Server defaults to.                                                                                               |
+| `enable-lan-visibility`               | Whether players on the local network see the server among their LAN games.                                                                                                                         |
 | `packet-compression-level`            | The zlib level for outgoing batches, from -1 (zlib's default) to 9.                                                                                                                                |
 | `packet-compression-algorithm`        | The batch algorithm advertised to clients: zlib (default), snappy, or none. Other choices may use more bandwidth or differ in client support.                                                      |
 | `packet-compression-threshold`        | The smallest batch body to compress, in bytes. 0 leaves every batch uncompressed.                                                                                                                  |
