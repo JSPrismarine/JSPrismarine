@@ -61,7 +61,7 @@
     "dependencies": {
         "@jsprismarine/binaryutils": "workspace:*",
         "@jsprismarine/logger": "workspace:*",
-        "jose": "6.2.13",
+        "jose": "6.2.17",
         "nethernet": "1.1.2"
     },
     "devDependencies": {
