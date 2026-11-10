@@ -27,6 +27,7 @@ import { GeneratorFactories } from '../world/GeneratorFactories';
 import { Level } from '../world/Level';
 import type { DimensionLoad } from '../world/Level';
 import type BaseProvider from '../world/providers/BaseProvider';
+import { RespawnSearch } from '../world/RespawnSearch';
 import { WorldWeather } from '../world/Weather';
 import type { World } from '../world/World';
 import type { LegacyWorldEntity } from '../world/WorldPersistence';
@@ -90,6 +91,17 @@ export const fakeLevel = (options: FakeLevelOptions = {}): Level => {
     const worlds = options.worlds ?? (() => []);
     let ticks = options.ticks ?? 0;
     let spawn = options.spawn ?? null;
+    const stems = options.stems ?? new Map([[OVERWORLD_STEM_ID, TEST_OVERWORLD_STEM]]);
+    const world = async (dimensionId: string): Promise<World> => {
+        const found = worlds().find((each) => each.getDimension().id === dimensionId);
+        if (found === undefined) throw new Error(`the fake level has no ${dimensionId} world`);
+        return found;
+    };
+    const respawnSearch = new RespawnSearch({
+        hasStem: (stemId) => stems.has(stemId),
+        world,
+        worldSpawn: () => server.getWorldManager().getDefaultWorld()
+    });
 
     return stub<Level>({
         name: options.name ?? 'test',
@@ -100,7 +112,7 @@ export const fakeLevel = (options: FakeLevelOptions = {}): Level => {
             if (options.provider === undefined) throw new Error('the fake level was built without a provider');
             return options.provider;
         },
-        getStems: () => options.stems ?? new Map([[OVERWORLD_STEM_ID, TEST_OVERWORLD_STEM]]),
+        getStems: () => stems,
         getDimensionTypes: () => options.dimensionTypes ?? new Map(),
         getTicks: () => ticks,
         setTicks: (tick) => {
@@ -119,11 +131,8 @@ export const fakeLevel = (options: FakeLevelOptions = {}): Level => {
         worlds: function* () {
             yield* worlds();
         },
-        world: async (dimensionId) => {
-            const found = worlds().find((world) => world.getDimension().id === dimensionId);
-            if (found === undefined) throw new Error(`the fake level has no ${dimensionId} world`);
-            return found;
-        },
+        world,
+        getRespawnSearch: () => respawnSearch,
         customDimensionDefinitions: () => [...(options.customDimensionDefinitions ?? [])],
         update: async (tick) => {
             ticks++;

@@ -43,9 +43,9 @@ export const IN_TICK_CHUNK_LOADS: readonly InTickChunkLoad[] = [
     },
     {
         path: 'player respawn search from a death inside the tick',
-        file: 'Player.ts',
+        file: 'world/RespawnSearch.ts',
         call: 'isObstructed: async (x, y, z) => (await world.getBlock(x, y, z)).isSolid()',
-        slice: 5
+        slice: 4
     },
     {
         path: 'dragon fight arena, gateway and pillar chunks',
