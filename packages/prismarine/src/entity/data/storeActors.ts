@@ -115,7 +115,8 @@ export class StoreActor implements ShownActor {
     public shownInputs: ActorMetadataInputs | undefined;
     public shownOwner: number | undefined;
     public shownEquipmentRevision = -1;
-    private equipment: ViewableEquipment = {};
+    /** What a client is shown the actor holding and wearing, which {@link StoreActor.writeEquipment} keeps. */
+    protected equipment: ViewableEquipment = {};
 
     /**
      * The actor record tags this server does not model, which the next save writes back, such
@@ -160,7 +161,6 @@ export class StoreActor implements ShownActor {
         this.shownProperties = this.getSyncedProperties();
         this.shownOwner = entity.body.owner;
         this.shownPose = StoreActor.poseOf(entity);
-        this.writeEquipment(content);
     }
 
     /** The entity as `/debug` lists it, in the form `Entity.toString` gives a legacy one. */
@@ -516,6 +516,11 @@ export interface StoreActorsOptions {
     report(message: string): void;
     /** Where each actor sends the blows and heals the legacy world code gives it. */
     readonly blows: StoreActorBlows;
+    /**
+     * The actor of a store player, which `entity/data/storePlayers.ts` builds from the player's
+     * profile, or undefined for any other entity, which gets a plain {@link StoreActor}.
+     */
+    playerActor?(entity: DataEntity, world: World, blows: StoreActorBlows): StoreActor | undefined;
 }
 
 /** The actors of one dimension's store, one per entity. */
@@ -544,7 +549,11 @@ export class StoreActors {
         const world = this.options.world();
         if (world === undefined) return;
 
-        const actor = new StoreActor(entity, world, leashHolderId, this.options.blows);
+        const actor =
+            this.options.playerActor?.(entity, world, this.options.blows) ??
+            new StoreActor(entity, world, leashHolderId, this.options.blows);
+        // After the constructor, so an actor that reads its equipment elsewhere has been built.
+        actor.writeEquipment(world.getServer().getContent());
         this.actors.set(entity.id, actor);
         void world.showActor(actor).catch((error: unknown) => this.failed('show', error));
     }

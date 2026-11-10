@@ -15,6 +15,14 @@ import type Skin from '@jsprismarine/protocol/wire/structures/skin/Skin';
 import type Device from '../utils/Device';
 import type { ShownActor } from './ShownActor';
 
+/**
+ * How far clients follow a player, in chunks.
+ *
+ * Deliberately past any plausible view distance, so the viewer's own radius is always what
+ * decides. Vanilla uses the same trick for the same reason.
+ */
+export const PLAYER_TRACKING_RANGE_CHUNKS = 32;
+
 /** One player as the network layer shows it to other clients. */
 export interface ShownPlayer extends ShownActor {
     /** The identity the client logged in with. */
