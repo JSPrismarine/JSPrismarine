@@ -120,15 +120,16 @@ function eventFacts() {
  * tick is a time, so these counts are the whole of what bounds the work.
  */
 function tickBudgetFacts() {
-    const world = path.join(repoRoot, 'packages', 'prismarine', 'src', 'world');
+    const src = path.join(repoRoot, 'packages', 'prismarine', 'src');
     const budgets = {
-        'tick.blockUpdateBudget': ['BlockUpdateScheduler.ts', 'BLOCK_UPDATE_BUDGET_PER_TICK'],
-        'tick.scheduledTickBudget': ['WorldSystems.ts', 'SCHEDULED_TICK_BUDGET_PER_TICK'],
-        'tick.lightBudget': ['WorldSystems.ts', 'LIGHT_BUDGET_PER_TICK']
+        'tick.inputBudget': ['network/InputQueue.ts', 'INPUT_ADMISSION_BUDGET_PER_TICK'],
+        'tick.blockUpdateBudget': ['world/BlockUpdateScheduler.ts', 'BLOCK_UPDATE_BUDGET_PER_TICK'],
+        'tick.scheduledTickBudget': ['world/WorldSystems.ts', 'SCHEDULED_TICK_BUDGET_PER_TICK'],
+        'tick.lightBudget': ['world/WorldSystems.ts', 'LIGHT_BUDGET_PER_TICK']
     } as const;
     return Object.fromEntries(
         Object.entries(budgets).map(([fact, [file, name]]) => {
-            const source = readFileSync(path.join(world, file), 'utf8');
+            const source = readFileSync(path.join(src, file), 'utf8');
             const value = new RegExp(`export const ${name} = (\\d+);`).exec(source)?.[1];
             if (value === undefined) throw new Error(`The docs facts no longer find ${name} in ${file}.`);
             return [fact, value];

@@ -123,6 +123,11 @@ export interface TickerWorld {
 export interface TickerServer {
     /** Emits the typed server `tick` event and awaits every handler, inside the tick. */
     emitTick(event: TickEvent): Promise<void>;
+    /**
+     * The input step: applies the inputs held since the last tick, in arrival order, up to a
+     * count. The ticker awaits it before anything else in the tick, and before any world updates.
+     */
+    admitInputs(): Promise<number>;
     /** Delivers pending network records at this tick's fixed game-thread boundary. */
     pollNetwork(): number;
     /** The worlds to update this tick, in the order the ticker updates them, one after another. */
@@ -489,8 +494,9 @@ export class ServerTicker implements Ticker, TickControl {
     }
 
     /**
-     * One tick's work: network records, chunk completions, the tick event, the worlds, the
-     * functions and the chunk sends, in that order. Shared by the loop and {@link advance}.
+     * One tick's work: the input step, chunk completions, the tick event, the worlds, the
+     * functions, the chunk sends and the network poll, in that order. Shared by the loop and
+     * {@link advance}.
      *
      * @returns How long each phase took, for the recorder and the lag profile.
      */
@@ -515,9 +521,18 @@ export class ServerTicker implements Ticker, TickControl {
         // stood still. A tick that fails is worth a log line; it is not worth the
         // server.
         try {
-            // Worker networking owns UDP and reliability timers, but gameplay handlers
-            // still run on the game thread in deterministic queue order at tick start.
-            server.pollNetwork();
+            // The input step comes first (ADR 0015): the input-lane packets and player removals
+            // held since the last tick, applied in arrival order before any world updates, so no
+            // input lands between the awaits of a world's tick. Handlers are still asynchronous,
+            // so the step can yield, but nothing else in the tick runs until it has finished.
+            // The levels tick one after another, so this one step is the input step of every
+            // world; when they tick apart, each world drains the inputs of its own players.
+            const endInputsProfile = startProfile?.('Server.inputs');
+            try {
+                await server.admitInputs();
+            } finally {
+                endInputsProfile?.();
+            }
             const endCompletionProfile = startProfile?.('Server.chunkCompletions');
             let phaseStartedAt = now();
             try {
@@ -606,6 +621,15 @@ export class ServerTicker implements Ticker, TickControl {
         } catch (error: unknown) {
             logger.error(error);
         } finally {
+            // Worker networking owns UDP and reliability timers and hands its records to the game
+            // thread here, at the end of the tick, so what the worker received during this tick
+            // reaches the next input step, as a frame the socket transport delivers mid-tick
+            // does. Polled at the start, it would have waited a tick longer than that frame.
+            try {
+                server.pollNetwork();
+            } catch (error: unknown) {
+                logger.error(error);
+            }
             endTickProfile?.();
         }
 

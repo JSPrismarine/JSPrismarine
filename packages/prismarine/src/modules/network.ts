@@ -77,8 +77,22 @@ export interface Networking {
      */
     getServerName(): ServerName | undefined;
 
-    /** Hands worker-delivered network records to the game thread at the start of a tick. */
+    /** Hands worker-delivered network records to the game thread at the end of a tick. */
     pollInbound(): number;
+
+    /**
+     * The input step: applies the input-lane packets and player removals held since the last
+     * one, in arrival order. A no-op before {@link Networking.start}.
+     * @param budget - The most inputs to apply; the rest wait for the next step, in order.
+     * @returns How many inputs were applied.
+     */
+    admitInputs(budget?: number): Promise<number>;
+
+    /**
+     * Whether every frame received so far has been handled, or waits behind an input held for
+     * the next input step. True before {@link Networking.start}.
+     */
+    isInboundSettled(): boolean;
 }
 
 /**
@@ -206,6 +220,16 @@ export class ServerNetworking implements Networking {
     /** The advertised server name, or undefined before {@link ServerNetworking.start}. */
     public getServerName(): ServerName | undefined {
         return this.serverName;
+    }
+
+    /** Applies the held inputs through the dispatcher, which holds them; nothing before it starts. */
+    public async admitInputs(budget?: number): Promise<number> {
+        return (await this.dispatcher?.admitInputs(budget)) ?? 0;
+    }
+
+    /** Whether the dispatcher has handled every frame, but for those that wait for the input step. */
+    public isInboundSettled(): boolean {
+        return this.dispatcher?.isInboundSettled() ?? true;
     }
 
     /** Drains worker events in queue order; socket mode already delivers on the event loop. */
