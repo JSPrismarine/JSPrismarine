@@ -1,12 +1,12 @@
 import { Vector3 } from '@jsprismarine/math';
 import type { StatusEffect } from './entity/StatusEffect';
 import type { EntityPosition } from '@jsprismarine/entities';
-import { ActorEvent, DisconnectReason, Gametype, getGametypeId } from '@jsprismarine/minecraft';
+import { ActorEvent, DisconnectReason, Gametype } from '@jsprismarine/minecraft';
 import type { InetAddress } from '@jsprismarine/raknet';
 import assert from 'node:assert';
 import { Chat, ChatType } from './chat/Chat';
 import type { ChatRecipient } from './chat/ChatManager';
-import { Attribute, AttributeIds } from '@jsprismarine/protocol/wire/structures/Attribute';
+import { AttributeIds } from '@jsprismarine/protocol/wire/structures/Attribute';
 import { DamageSource } from './entity/DamageSource';
 import { deathMessage } from './entity/DeathMessages';
 import { DamageCause } from './entity/Entity';
@@ -37,12 +37,11 @@ import { PositionMode, TextPacketType } from '@jsprismarine/protocol';
 import { loadAdvancements } from './advancement/progress';
 import { advancementPlayerTick } from './advancement/triggers';
 import { enchantmentSeedOf } from './enchantment/enchantingTable';
-import { restoreInventory } from './inventory/persistence';
 import type Device from './utils/Device';
 import Timer from './utils/Timer';
 import type UUID from '@jsprismarine/protocol/wire/structures/UUID';
 import type Skin from '@jsprismarine/protocol/wire/structures/skin/Skin';
-import type { World, WorldPlayerData } from './world/';
+import type { World } from './world/';
 import { GameRules } from './world/GameRuleManager';
 import type { Position } from './world/Position';
 import { requestedSpawnPosition } from './world/SpawnPlacement';
@@ -50,6 +49,7 @@ import type { respawnPoint } from './world/SpawnPlacement';
 import type { StoredSpawnPoint } from './world/RespawnPoint';
 import type { RespawnAnswer, RespawnRequest, RespawnSearch } from './world/RespawnSearch';
 import { lastPlayerRecord } from './world/PlayerRecords';
+import { applyPlayerRecord, recordedPosition } from './world/playerRecord';
 import { keyOfPlayer } from './playerIdentity';
 import type { PlayerSpawn } from './world/SpawnPlacement';
 import type { BlockMining } from './world/BlockMining';
@@ -392,15 +392,15 @@ export default class Player extends Human {
         enchantmentSeedOf(this, playerData.enchantmentSeed);
 
         this.permissions = await this.server.getPermissionManager().getPermissions(this);
-        this.gamemode = getGametypeId(playerData.gamemode || this.server.getConfig().getGamemode());
-        this.restoreCarriedState(playerData);
+        applyPlayerRecord(this, playerData, this.server.getConfig().getGamemode(), this.server.getContent());
 
         // A returning player goes back where they were; a new one is placed the way BDS
         // places them, which may not be the spawn point itself.
+        const recorded = recordedPosition(playerData);
         let position: Vector3;
-        if (playerData.position) {
+        if (recorded) {
             this.joinSpawn = null;
-            position = Vector3.fromObject(playerData.position);
+            position = Vector3.fromObject(recorded);
         } else {
             const placed = await this.getWorld().placePlayerSpawn();
             this.joinSpawn = placed;
@@ -413,9 +413,9 @@ export default class Player extends Human {
         await this.setPlayerPosition(
             {
                 position,
-                pitch: playerData.position?.pitch || 0,
-                yaw: playerData.position?.yaw || 0,
-                headYaw: playerData.position?.headYaw || 0,
+                pitch: recorded?.pitch ?? 0,
+                yaw: recorded?.yaw ?? 0,
+                headYaw: recorded?.headYaw ?? 0,
                 type: PositionMode.Respawn
             },
             false
@@ -433,46 +433,22 @@ export default class Player extends Human {
     }
 
     /**
-     * Puts back what the player was carrying when they left.
-     *
-     * The attributes go in through `setValue` rather than through `setHealth`, which runs the
-     * death path: restoring a player who logged out on half a heart would otherwise announce a
-     * death they already had. Saturation is set after food because it is clamped to it.
-     *
-     * Nothing is sent from here. This runs inside {@link Player.enable}, before the client has
-     * been told its login succeeded, and the join burst sends the inventory and the attributes
-     * once the client is ready for game packets.
+     * Writes health without the death path, which is how a record puts it back: restoring a
+     * player who logged out on half a heart would otherwise announce a death they already had.
+     * Nothing is sent; the join burst sends the attributes once the client is ready for them.
+     * @param health - The health to hold.
      */
-    private restoreCarriedState(data: Partial<WorldPlayerData>): void {
-        restoreInventory(this.getInventory(), data.inventory, this.server.getContent());
+    public restoreHealth(health: number): void {
+        this.attributes.setValue(AttributeIds.Health, health);
+    }
 
-        if (data.attributes !== undefined) {
-            for (const [name, attribute] of Object.entries(data.attributes)) {
-                this.attributes.setAttribute(
-                    new Attribute({
-                        name,
-                        min: attribute.min,
-                        max: attribute.max,
-                        def: attribute.base,
-                        value: attribute.current
-                    })
-                );
-            }
-        } else {
-            if (data.health !== undefined) this.attributes.setValue(AttributeIds.Health, data.health);
-            if (data.food !== undefined) this.setFood(data.food);
-            if (data.saturation !== undefined) this.setSaturation(data.saturation);
-            if (data.experience !== undefined) {
-                this.attributes.setValue(AttributeIds.PlayerLevel, data.experience.level);
-                this.attributes.setValue(AttributeIds.PlayerExperience, data.experience.progress);
-            }
-        }
-
-        this.flying =
-            data.flying === true && (this.gamemode === Gametype.CREATIVE || this.gamemode === Gametype.SPECTATOR);
-        this.spawnPoint = data.spawn;
-        this.seenCredits = data.seenCredits === true;
-        if (data.portalCooldown !== undefined) this.setPortalCooldown(data.portalCooldown);
+    /**
+     * Writes the flying flag without asking the client or raising an event, which is how a
+     * record puts it back before the client has been told its login succeeded.
+     * @param flying - Whether the player is flying.
+     */
+    public restoreFlying(flying: boolean): void {
+        this.flying = flying;
     }
 
     /**
