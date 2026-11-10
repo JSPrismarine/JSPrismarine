@@ -23,12 +23,11 @@ export default class EmoteHandler implements PacketHandler<EmotePacket> {
 
     /** Relays the emote to the players that have the sender on screen and logs it. */
     public async handle(packet: EmotePacket, server: Server, session: PlayerSession): Promise<void> {
-        const player = session.getPlayer();
         const logger = server.getLogger();
 
-        if (packet.actorRuntimeId !== player.getRuntimeId()) {
+        if (packet.actorRuntimeId !== session.runtimeId) {
             logger.debug(
-                `${player.getName()} sent an Emote for runtime id ${packet.actorRuntimeId}, dropped`,
+                `${session.identity.name} sent an Emote for runtime id ${packet.actorRuntimeId}, dropped`,
                 'EmoteHandler/handle'
             );
             return;
@@ -36,20 +35,20 @@ export default class EmoteHandler implements PacketHandler<EmotePacket> {
 
         if (!EMOTE_ID.test(packet.emoteId)) {
             logger.debug(
-                `${player.getName()} sent an Emote whose id ${JSON.stringify(packet.emoteId)} is not a uuid, dropped`,
+                `${session.identity.name} sent an Emote whose id ${JSON.stringify(packet.emoteId)} is not a uuid, dropped`,
                 'EmoteHandler/handle'
             );
             return;
         }
 
         const relay = new EmotePacket();
-        relay.actorRuntimeId = player.getRuntimeId();
+        relay.actorRuntimeId = session.runtimeId;
         relay.emoteId = packet.emoteId;
         relay.emoteLengthTicks = packet.emoteLengthTicks;
         // The server's record of who this is, not the client's. The field names the account
         // the emote belongs to, and it arrived from the one client that has every reason to
         // put somebody else's in it.
-        relay.xuid = player.getXUID() ?? '';
+        relay.xuid = session.identity.xuid;
         relay.platformId = packet.platformId;
         relay.flags = packet.flags | EmoteFlags.ServerSide;
 
@@ -57,15 +56,16 @@ export default class EmoteHandler implements PacketHandler<EmotePacket> {
         // scope `AnimateHandler` relays an arm swing in. Through the session manager an emote
         // reached every player on the server, including ones in another world and ones that
         // were never sent a spawn for the actor the emote names.
-        const others = player
+        const others = session
+            .getPlayer()
             .getWorld()
             .getPlayers()
-            .filter((other) => other !== player)
-            .filter((other) => other.getNetworkSession().tracks(player.getRuntimeId()));
+            .filter((other) => other.getRuntimeId() !== session.runtimeId)
+            .filter((other) => other.getNetworkSession().tracks(session.runtimeId));
         await Promise.all(others.map((other) => other.getNetworkSession().send(relay)));
 
         logger.debug(
-            `${player.getName()} played emote ${packet.emoteId} for ${packet.emoteLengthTicks} ticks, relayed to ${others.length} player(s)`,
+            `${session.identity.name} played emote ${packet.emoteId} for ${packet.emoteLengthTicks} ticks, relayed to ${others.length} player(s)`,
             'EmoteHandler/handle'
         );
     }

@@ -1,9 +1,9 @@
 import type { Logger } from '@jsprismarine/logger';
 import { describe, expect, it, vi } from 'vitest';
 
-import type Player from '../../Player';
 import type Server from '../../Server';
 import { stub } from '../../testing/stub.test.helper';
+import { STEVE } from '../../testing/steveIdentity.test.helper';
 import type PlayerSession from '../PlayerSession';
 import { ActorLinkType } from '@jsprismarine/protocol/wire/definitions/addActor';
 import type { ActorLink } from '@jsprismarine/protocol/wire/definitions/addActor';
@@ -14,9 +14,7 @@ const setup = () => {
     const debug = vi.fn();
     const verbose = vi.fn();
     const server = stub<Server>({ getLogger: () => stub<Logger>({ debug, verbose }) });
-    const session = stub<PlayerSession>({
-        getPlayer: () => stub<Player>({ getName: () => 'Steve', getRuntimeId: () => 34n })
-    });
+    const session = stub<PlayerSession>({ runtimeId: 34n, identity: STEVE });
     return { debug, verbose, server, session };
 };
 

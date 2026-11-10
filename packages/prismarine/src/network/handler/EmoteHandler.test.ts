@@ -6,6 +6,7 @@ import type Server from '../../Server';
 import type { World } from '../../world/World';
 import type { StubMembers } from '../../testing/stub.test.helper';
 import { stub } from '../../testing/stub.test.helper';
+import { STEVE } from '../../testing/steveIdentity.test.helper';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import EmotePacket, { EmoteFlags } from '@jsprismarine/protocol/packet/EmotePacket';
 import type PlayerSession from '../PlayerSession';
@@ -17,6 +18,7 @@ const EMOTE_ID = '4c8ae710-df2e-47cd-814d-cc7bf21a3d67';
 const bystander = (name: string, tracking: boolean, sent: NetworkPacket[]) =>
     stub<Player>({
         getName: () => name,
+        getRuntimeId: () => 99n,
         getNetworkSession: () =>
             stub<PlayerSession>({
                 tracks: () => tracking,
@@ -28,15 +30,17 @@ const bystander = (name: string, tracking: boolean, sent: NetworkPacket[]) =>
 const setup = (xuid: string | null, others: (sender: Player) => Player[]) => {
     const logged: string[] = [];
     const sender: Player = stub<Player>({
-        getName: () => 'Steve',
         getRuntimeId: () => 7n,
-        getXUID: () => xuid,
         getWorld: () => stub<World>({ getPlayers: () => [sender, ...others(sender)] })
     });
     const server = stub<Server>({
         getLogger: () => stub<Logger>({ debug: (...message) => void logged.push(message[0] ?? '') })
     });
-    const session = stub<PlayerSession>({ getPlayer: () => sender });
+    const session = stub<PlayerSession>({
+        runtimeId: 7n,
+        identity: { ...STEVE, xuid: xuid ?? '' },
+        getPlayer: () => sender
+    });
     return { logged, server, session };
 };
 
