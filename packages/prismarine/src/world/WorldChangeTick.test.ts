@@ -2,6 +2,7 @@ import type { Logger } from '@jsprismarine/logger';
 import { InetAddress } from '@jsprismarine/raknet';
 import UUID from '@jsprismarine/protocol/wire/structures/UUID';
 import { Gametype } from '@jsprismarine/minecraft';
+import { Vector3 } from '@jsprismarine/math';
 import { AttributeIds } from '@jsprismarine/protocol/wire/structures/Attribute';
 import { describe, expect, it } from 'vitest';
 
@@ -164,7 +165,45 @@ const PLAYER_COMPONENT_WRITES: readonly {
         field: 'itemUse.startedAt',
         write: (player) => player.beginItemUse(40),
         read: (player) => player['itemUseStartedAt']
-    }
+    },
+    {
+        field: 'vitals.air',
+        write: (player) => player['components'].set('vitals.air', 120),
+        read: (player) => player.metadata.air
+    },
+    {
+        field: 'vitals.breathing',
+        write: (player) => player['components'].set('vitals.breathing', false),
+        read: (player) => player.metadata.breathing
+    },
+    {
+        field: 'movement.sprinting',
+        // `setSprinting` raises a plugin event, which this world's server double has no bus for.
+        write: (player) => player['components'].set('movement.sprinting', true),
+        read: (player) => player.metadata.sprinting
+    },
+    {
+        field: 'mining.block',
+        write: (player) =>
+            player.setMining({ position: new Vector3(1, 64, 2), face: 1, runtimeId: 7, progressPerTick: 900 }),
+        read: (player) => player.getMining()
+    },
+    ...(
+        [
+            ['attributes.absorption', AttributeIds.Absorption, 4],
+            ['attributes.knockbackResistance', AttributeIds.KnockbackResistence, 0.5],
+            ['attributes.movement', AttributeIds.Movement, 0.13],
+            ['attributes.underwaterMovement', AttributeIds.UnderwaterMovement, 0.04],
+            ['attributes.lavaMovement', AttributeIds.LavaMovement, 0.04],
+            ['attributes.followRange', AttributeIds.FollowRange, 32],
+            ['attributes.attackDamage', AttributeIds.AttackDamage, 3],
+            ['attributes.luck', AttributeIds.Luck, 2]
+        ] as const
+    ).map(([field, attribute, value]) => ({
+        field,
+        write: (player: Player) => void player.setAttributeValue(attribute, value),
+        read: (player: Player) => player.attributes.getValue(attribute)
+    }))
 ];
 
 describe('a world tick and its change log', () => {

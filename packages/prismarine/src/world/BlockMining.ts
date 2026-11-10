@@ -1,4 +1,6 @@
-import type { Vector3 } from '@jsprismarine/math';
+import { Vector3 } from '@jsprismarine/math';
+
+import type { PlayerMining } from '../entity/playerComponents';
 
 /**
  * A block a player is mining, and what its crack animation needs each tick.
@@ -21,6 +23,32 @@ export interface BlockMining {
     /** The server tick the player began mining this block on. */
     readonly startedAt: number;
 }
+
+/**
+ * A player's mining as the logged plain data its component keeps.
+ * @param {BlockMining} mining - What the player is mining.
+ * @returns {PlayerMining} The same block as plain data.
+ */
+export const playerMiningOf = ({ position, face, runtimeId, progressPerTick }: BlockMining): PlayerMining => ({
+    x: position.getX(),
+    y: position.getY(),
+    z: position.getZ(),
+    face,
+    runtimeId,
+    progressPerTick
+});
+
+/**
+ * The mining a player's component keeps, as the world animates it.
+ * @param {PlayerMining} mining - The logged plain data.
+ * @returns {BlockMining} The same block, with its position as a vector.
+ */
+export const blockMiningOf = ({ x, y, z, face, runtimeId, progressPerTick }: PlayerMining): BlockMining => ({
+    position: new Vector3(x, y, z),
+    face,
+    runtimeId,
+    progressPerTick
+});
 
 /**
  * How many ticks early a predicted break may arrive. Network jitter can delay the start of
