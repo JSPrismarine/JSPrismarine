@@ -15,6 +15,7 @@ import type { PacketLogFilter } from './PacketLogFilter';
 import type PacketHandlerRegistry from './PacketHandlerRegistry';
 import type { RegisteredHandler } from './PacketHandlerRegistry';
 import type { InboundPacketRecord, InboundPacketRecorder } from './InboundPacketTrace';
+import { InputQueue } from './InputQueue';
 import type { OutboundPacketRecorder } from './OutboundPacketTrace';
 import { Pipeline } from './pipeline/ConnectionPipeline';
 import type { ConnectionId } from './transport/ConnectionId';
@@ -45,6 +46,11 @@ export interface NetworkDispatcherOptions<C extends TransportConnection> {
     inboundPacketRecorder?: InboundPacketRecorder;
     /** Optional sink for clientbound packet bytes. Disabled unless the server opts in. */
     outboundPacketRecorder?: OutboundPacketRecorder;
+    /**
+     * Where input-lane packets and player removals wait for the input step. Defaults to a queue
+     * of the dispatcher's own, which {@link NetworkDispatcher.admitInputs} drains.
+     */
+    inputs?: InputQueue;
     /** Builds the connection object the session registry holds for a transport connection. */
     createConnection: (connection: C) => ClientConnection;
 }
@@ -70,8 +76,8 @@ export default class NetworkDispatcher<C extends TransportConnection> {
     private readonly createConnection: NetworkDispatcherOptions<C>['createConnection'];
     private readonly inboundPacketRecorder: NetworkDispatcherOptions<C>['inboundPacketRecorder'];
     private readonly outboundPacketRecorder: NetworkDispatcherOptions<C>['outboundPacketRecorder'];
-    private readonly packetPayloads: WeakMap<NetworkPacket<unknown>, { payload: Buffer; tick: number }> | undefined;
-    private readonly frameTicks: WeakMap<ClientConnection, number> | undefined;
+    private readonly packetPayloads: WeakMap<NetworkPacket<unknown>, Buffer> | undefined;
+    private readonly inputs: InputQueue;
     /** How many packets each connection has recorded, which is the next record's sequence. */
     private readonly connectionSequences: WeakMap<ClientConnection, { next: number }> | undefined;
     private readonly replaySequences = new Map<ConnectionId, number>();
@@ -82,6 +88,11 @@ export default class NetworkDispatcher<C extends TransportConnection> {
     private readonly uncompressedBatchCodec = BatchCodec.uncompressed();
     /** Keeps each reliable-ordered client stream sequential through async packet handlers. */
     private readonly frameQueues = new WeakMap<ClientConnection, Promise<void>>();
+    /**
+     * For each connection with frames or replayed records not yet handled: how many, and whether
+     * the one it is on waits for the input step. Read by {@link NetworkDispatcher.isInboundSettled}.
+     */
+    private readonly inboundWork = new Map<ClientConnection, { queued: number; parked: boolean }>();
 
     public constructor(options: NetworkDispatcherOptions<C>) {
         this.sessionManager = options.sessionManager;
@@ -94,7 +105,7 @@ export default class NetworkDispatcher<C extends TransportConnection> {
         this.inboundPacketRecorder = options.inboundPacketRecorder;
         this.outboundPacketRecorder = options.outboundPacketRecorder;
         this.packetPayloads = options.inboundPacketRecorder === undefined ? undefined : new WeakMap();
-        this.frameTicks = options.inboundPacketRecorder === undefined ? undefined : new WeakMap();
+        this.inputs = options.inputs ?? new InputQueue();
         this.connectionSequences = options.inboundPacketRecorder === undefined ? undefined : new WeakMap();
 
         options.transport.onConnect((connection) => this.handleConnect(connection));
@@ -134,13 +145,6 @@ export default class NetworkDispatcher<C extends TransportConnection> {
         this.sessionManager.remove(id);
         this.replaySequences.delete(id);
 
-        // Read before the tear-down below, which detaches the session and takes the
-        // player out of its world. A player is only added to a world once the client
-        // reports itself initialized, so a session whose player is not in one belongs
-        // to a client that gave up between login and spawn.
-        const player = session?.getPlayerSession()?.getPlayer() ?? null;
-        const spawned = player !== null && player.getWorld().getEntity(player.getRuntimeId()) === player;
-
         // Fired for every transport's clients, despite the name: it is the one disconnect event a
         // plugin sees before the player is torn down, whatever carried the connection.
         const event = new RaknetDisconnectEvent(inetAddr, reason);
@@ -151,17 +155,34 @@ export default class NetworkDispatcher<C extends TransportConnection> {
             return;
         }
 
-        await session.closePlayerSession();
+        // A player's removal is an input, whatever caused it, so it waits for the input step
+        // like a packet from the same client would, and after every input that client sent
+        // before it. Awaited, so a reconnect from the same address, which the transport orders
+        // behind this close, never finds the old player still in its world.
+        await this.inputs.hold(async () => {
+            // Read here, before the tear-down, which detaches the session and takes the player
+            // out of its world. A player is only added to a world once the client reports itself
+            // initialized, so a session whose player is not in one belongs to a client that gave
+            // up between login and spawn.
+            const player = session.getPlayerSession()?.getPlayer() ?? null;
+            const spawned = player !== null && player.getWorld().getEntity(player.getRuntimeId()) === player;
 
-        // A spawned player announces its own departure in chat. For one that never got
-        // that far this line is the only trace the connection leaves, so it is kept at a
-        // level the default console shows.
-        if (spawned) this.logger.debug(`${inetAddr} disconnected due to ${reason}`);
-        else {
-            const who = player === null ? `${inetAddr}` : `${player.getName()} (${inetAddr})`;
-            this.logger.info(`${who} disconnected during the join due to ${reason}`);
-        }
-        this.logger.debug(`Player destruction took about ${Date.now() - time} ms`);
+            try {
+                await session.closePlayerSession();
+            } catch (error: unknown) {
+                this.logger.error(error);
+            }
+
+            // A spawned player announces its own departure in chat. For one that never got
+            // that far this line is the only trace the connection leaves, so it is kept at a
+            // level the default console shows.
+            if (spawned) this.logger.debug(`${inetAddr} disconnected due to ${reason}`);
+            else {
+                const who = player === null ? `${inetAddr}` : `${player.getName()} (${inetAddr})`;
+                this.logger.info(`${who} disconnected during the join due to ${reason}`);
+            }
+            this.logger.debug(`Player destruction took about ${Date.now() - time} ms`);
+        });
     }
 
     /**
@@ -182,24 +203,21 @@ export default class NetworkDispatcher<C extends TransportConnection> {
         .pipe((gated, connection) => this.dispatch(gated, connection));
 
     private enqueueFrame(payload: Buffer, id: ConnectionId): Promise<void> {
-        // Stamp arrival before the per-connection queue. A previous async handler may hold this
-        // frame until a later tick, but replay must keep the tick the client input arrived on.
-        const tick = this.inboundPacketRecorder === undefined ? undefined : this.server.getTick();
         const connection = this.sessionManager.get(id);
-        if (connection === null) return this.handleFrame(payload, id, undefined, tick);
+        if (connection === null) return this.handleFrame(payload, id);
 
+        // One queue per connection, and an input-lane packet holds it until the input step has
+        // applied that packet, so nothing a client sent later overtakes an input it sent earlier.
         const previous = this.frameQueues.get(connection) ?? Promise.resolve();
-        const current = previous.then(() => this.handleFrame(payload, id, connection, tick));
+        const current = this.track(
+            connection,
+            previous.then(() => this.handleFrame(payload, id, connection))
+        );
         this.frameQueues.set(connection, current);
         return current;
     }
 
-    private async handleFrame(
-        payload: Buffer,
-        id: ConnectionId,
-        expectedConnection?: ClientConnection,
-        tick?: number
-    ): Promise<void> {
+    private async handleFrame(payload: Buffer, id: ConnectionId, expectedConnection?: ClientConnection): Promise<void> {
         try {
             const connection = this.sessionManager.get(id);
             if (connection === null || (expectedConnection !== undefined && connection !== expectedConnection)) {
@@ -207,7 +225,6 @@ export default class NetworkDispatcher<C extends TransportConnection> {
                 return;
             }
 
-            if (tick !== undefined) this.frameTicks?.set(connection, tick);
             await this.inbound.run(payload, connection);
         } catch (error: unknown) {
             this.logger.error(error);
@@ -257,10 +274,7 @@ export default class NetworkDispatcher<C extends TransportConnection> {
 
         // Keep the packet-local wire bytes only while the packet is in this pipeline. The
         // recorder copies them after the phase gate and immediately before handler dispatch.
-        if (this.packetPayloads !== undefined) {
-            const tick = this.frameTicks?.get(connection);
-            if (tick !== undefined) this.packetPayloads.set(packet, { payload: buffer, tick });
-        }
+        this.packetPayloads?.set(packet, buffer);
 
         return [packet];
     }
@@ -312,12 +326,58 @@ export default class NetworkDispatcher<C extends TransportConnection> {
         return [{ packet, handler }];
     }
 
-    /** Runs the handler, with the collaborator its phases entitle it to. */
+    /**
+     * Runs the handler, with the collaborator its phases entitle it to.
+     *
+     * A connection-lane or read-lane handler runs now. An input-lane handler is held for the
+     * next input step ([ADR 0009](../../../../docs/adr/0009-external-inputs-enter-once-per-tick.md)),
+     * and this resolves once that step has run it. The caller is the connection's frame queue,
+     * so a later packet of any lane from the same client waits behind a held input: a client
+     * that sends a move and then asks for something the move changed gets the answer the move
+     * leads to.
+     *
+     * @param recordInbound - Whether to record the packet. A replayed record is already in the trace.
+     * @param expectedTick - For a replayed record, the tick its handler must run in.
+     */
     private async dispatch(
+        gated: GatedPacket,
+        connection: ClientConnection,
+        recordInbound = true,
+        expectedTick?: number
+    ): Promise<readonly never[]> {
+        if (gated.handler.lane === 'input') {
+            const work = this.inboundWork.get(connection);
+            if (work !== undefined) work.parked = true;
+            try {
+                await this.inputs.hold(() => this.runHandler(gated, connection, recordInbound, expectedTick));
+            } finally {
+                if (work !== undefined) work.parked = false;
+            }
+        } else {
+            await this.runHandler(gated, connection, recordInbound, expectedTick);
+        }
+
+        return [];
+    }
+
+    /**
+     * Runs one handler and, unless it is a replay, records its packet with the tick it ran in.
+     *
+     * @throws {Error} Only for a replayed record whose handler runs in another tick than its own.
+     */
+    private async runHandler(
         { packet, handler }: GatedPacket,
         connection: ClientConnection,
-        recordInbound = true
-    ): Promise<readonly never[]> {
+        recordInbound: boolean,
+        expectedTick: number | undefined
+    ): Promise<void> {
+        if (expectedTick !== undefined) {
+            const currentTick = this.server.getTick();
+            if (currentTick !== expectedTick) {
+                throw new Error(`Replay packet tick ${expectedTick} does not match server tick ${currentTick}`);
+            }
+        }
+
         try {
             // A handshake- or login-phase handler takes the bare connection; every other
             // handler needs the player session that login creates. A packet that reaches
@@ -338,15 +398,54 @@ export default class NetworkDispatcher<C extends TransportConnection> {
         } catch (error: unknown) {
             this.handlerError(packet, error);
         }
+    }
 
-        return [];
+    /**
+     * The input step: applies the input-lane packets and player removals held since the last
+     * one, in arrival order, each handler awaited before the next.
+     *
+     * @param budget - The most inputs to apply; the rest wait for the next step, in order.
+     * @returns How many inputs were applied.
+     */
+    public admitInputs(budget?: number): Promise<number> {
+        return this.inputs.admit(budget);
+    }
+
+    /** How many inputs wait for the next input step. */
+    public get pendingInputs(): number {
+        return this.inputs.pending;
+    }
+
+    /**
+     * Whether every frame and replayed record received so far has been handled, or waits
+     * behind an input held for the next input step. A harness that steps the server reads it to
+     * know nothing it sent is still being decoded or handled before it runs the next tick.
+     */
+    public isInboundSettled(): boolean {
+        for (const work of this.inboundWork.values()) {
+            if (work.queued > 0 && !work.parked) return false;
+        }
+        return true;
+    }
+
+    /** Counts one frame or replayed record against its connection until it has been handled. */
+    private track(connection: ClientConnection, work: Promise<void>): Promise<void> {
+        const entry = this.inboundWork.get(connection) ?? { queued: 0, parked: false };
+        entry.queued++;
+        this.inboundWork.set(connection, entry);
+        const settle = () => {
+            entry.queued--;
+            if (entry.queued === 0 && this.inboundWork.get(connection) === entry) this.inboundWork.delete(connection);
+        };
+        void work.then(settle, settle);
+        return work;
     }
 
     /** Records only packets that have a live handler target, without changing handler flow. */
     private recordInboundPacket(packet: NetworkPacket<unknown>, connection: ClientConnection): void {
-        const input = this.packetPayloads?.get(packet);
+        const payload = this.packetPayloads?.get(packet);
         this.packetPayloads?.delete(packet);
-        if (input === undefined || this.inboundPacketRecorder === undefined) return;
+        if (payload === undefined || this.inboundPacketRecorder === undefined) return;
 
         const order = this.connectionSequences?.get(connection);
         if (order === undefined) return;
@@ -355,10 +454,12 @@ export default class NetworkDispatcher<C extends TransportConnection> {
             connectionId: connection.getConnectionId(),
             order: this.nextInboundOrder,
             sequence: order.next,
-            tick: input.tick,
+            // The tick the handler runs in, which for an input-lane packet is the tick whose
+            // input step applied it, and not the tick it arrived in.
+            tick: this.server.getTick(),
             protocolVersion: connection.codec.protocolVersion,
             packetName: packet.getName(),
-            payload: Buffer.from(input.payload)
+            payload: Buffer.from(payload)
         };
         this.nextInboundOrder += 1;
         order.next += 1;
@@ -373,81 +474,86 @@ export default class NetworkDispatcher<C extends TransportConnection> {
     }
 
     /**
-     * Dispatches one captured packet through a connection admitted by this dispatcher.
+     * Dispatches one captured packet through a connection admitted by this dispatcher, on the
+     * path a live packet takes.
      *
-     * The caller advances the server to the record's tick before calling, and awaits records in
-     * their captured global order. Connection-local order, global order, protocol version, and
-     * phase checks fail fast when the restored session differs.
+     * Call it for each record in captured global order, before the server runs the record's tick:
+     * a connection-lane or read-lane record runs now, and an input-lane record is held for that
+     * tick's input step, as a live packet is. The connection, global order, connection-local
+     * sequence and protocol are checked here, so a record that fails them can be corrected and
+     * offered again. The bytes, the phase and the tick are checked when the record's turn comes.
      *
+     * @param record - The captured packet.
+     * @param tickOffset - Added to the record's tick, for a replay that starts at another tick.
+     * @returns Settles once the record's handler has run, which for an input-lane record is in
+     *   the input step of its tick, so do not wait on it before running that tick.
      * @throws {Error} When the connection, global order, sequence, tick, protocol, or packet does not match.
      */
     public async replayInboundRecord(record: InboundPacketRecord, tickOffset = 0): Promise<void> {
         const connection = this.sessionManager.get(record.connectionId);
         if (connection === null) throw new Error(`Replay connection ${record.connectionId} is not connected`);
 
+        const expectedOrder = this.nextReplayOrder;
+        if (record.order !== expectedOrder) {
+            throw new Error(`Replay expected inbound order ${expectedOrder}, got ${record.order}`);
+        }
+
+        const expectedSequence = this.replaySequences.get(record.connectionId) ?? 0;
+        if (record.sequence !== expectedSequence) {
+            throw new Error(
+                `Replay connection ${record.connectionId} expected packet ${expectedSequence}, got ${record.sequence}`
+            );
+        }
+        if (connection.codec.protocolVersion !== record.protocolVersion) {
+            throw new Error(
+                `Replay protocol ${record.protocolVersion} does not match connection protocol ${connection.codec.protocolVersion}`
+            );
+        }
+        // Taken now rather than once the handler runs: the record after this one may come from
+        // another connection, and an input-lane record does not run until its tick's input step.
+        this.replaySequences.set(record.connectionId, expectedSequence + 1);
+        this.nextReplayOrder = expectedOrder + 1;
+
         // Use the same per-connection queue as transport frames so replay cannot overtake an
-        // unfinished handler from that client.
+        // unfinished handler, or a held input, from that client.
         const previous = this.frameQueues.get(connection) ?? Promise.resolve();
-        const current = previous.then(async () => {
-            if (this.sessionManager.get(record.connectionId) !== connection) {
-                throw new Error(`Replay connection ${record.connectionId} is no longer connected`);
-            }
+        const current = this.track(
+            connection,
+            previous.then(async () => {
+                if (this.sessionManager.get(record.connectionId) !== connection) {
+                    throw new Error(`Replay connection ${record.connectionId} is no longer connected`);
+                }
 
-            const expectedOrder = this.nextReplayOrder;
-            if (record.order !== expectedOrder) {
-                throw new Error(`Replay expected inbound order ${expectedOrder}, got ${record.order}`);
-            }
+                // Traces store packet bytes, not transport batches; rebuild one frame so playback exercises
+                // the same compression and batch-decoding path as live traffic.
+                const payload = Buffer.from(record.payload);
+                const frame = (
+                    connection.hasCompression ? this.compressedBatchCodec : this.uncompressedBatchCodec
+                ).encode([payload]);
+                const packetPayloads = await this.splitBatch(frame, connection, false);
+                if (packetPayloads.length !== 1) {
+                    throw new Error(`Replay frame for ${record.packetName} contained ${packetPayloads.length} packets`);
+                }
 
-            const expectedSequence = this.replaySequences.get(record.connectionId) ?? 0;
-            if (record.sequence !== expectedSequence) {
-                throw new Error(
-                    `Replay connection ${record.connectionId} expected packet ${expectedSequence}, got ${record.sequence}`
-                );
-            }
+                const packet = this.buildPacket(packetPayloads[0]!, connection)[0];
+                if (packet === undefined || packet.getName() !== record.packetName) {
+                    throw new Error(`Replay bytes did not decode as ${record.packetName}`);
+                }
 
-            const expectedTick = record.tick + tickOffset;
-            const currentTick = this.server.getTick();
-            if (currentTick !== expectedTick) {
-                throw new Error(`Replay packet tick ${expectedTick} does not match server tick ${currentTick}`);
-            }
-            if (connection.codec.protocolVersion !== record.protocolVersion) {
-                throw new Error(
-                    `Replay protocol ${record.protocolVersion} does not match connection protocol ${connection.codec.protocolVersion}`
-                );
-            }
+                const gated = this.gatePhase(packet, connection)[0];
+                if (gated === undefined) {
+                    throw new Error(`Replay packet ${record.packetName} was rejected in the ${connection.phase} phase`);
+                }
 
-            this.frameTicks?.set(connection, currentTick);
-            // Traces store packet bytes, not transport batches; rebuild one frame so playback exercises
-            // the same compression and batch-decoding path as live traffic.
-            const payload = Buffer.from(record.payload);
-            const frame = (connection.hasCompression ? this.compressedBatchCodec : this.uncompressedBatchCodec).encode([
-                payload
-            ]);
-            const packetPayloads = await this.splitBatch(frame, connection, false);
-            if (packetPayloads.length !== 1) {
-                throw new Error(`Replay frame for ${record.packetName} contained ${packetPayloads.length} packets`);
-            }
+                const decoded = this.decodePacket(gated, connection)[0];
+                if (decoded === undefined) throw new Error(`Replay bytes did not decode as ${record.packetName}`);
 
-            const packet = this.buildPacket(packetPayloads[0]!, connection)[0];
-            if (packet === undefined || packet.getName() !== record.packetName) {
-                throw new Error(`Replay bytes did not decode as ${record.packetName}`);
-            }
-
-            const gated = this.gatePhase(packet, connection)[0];
-            if (gated === undefined) {
-                throw new Error(`Replay packet ${record.packetName} was rejected in the ${connection.phase} phase`);
-            }
-
-            const decoded = this.decodePacket(gated, connection)[0];
-            if (decoded === undefined) throw new Error(`Replay bytes did not decode as ${record.packetName}`);
-
-            this.logInbound(decoded);
-            // This input is already in the source trace; playback must not append it a second time.
-            await this.dispatch(decoded, connection, false);
-            this.replaySequences.set(record.connectionId, expectedSequence + 1);
-            this.nextReplayOrder = expectedOrder + 1;
-        });
-        // A rejected replay record must not prevent the caller from correcting it and retrying.
+                this.logInbound(decoded);
+                // This input is already in the source trace; playback must not append it a second time.
+                await this.dispatch(decoded, connection, false, record.tick + tickOffset);
+            })
+        );
+        // A rejected replay record must not hold up the records behind it on this connection.
         this.frameQueues.set(
             connection,
             current.catch(() => {})

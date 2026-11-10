@@ -40,6 +40,8 @@ interface CapturedSession {
     readonly moverRuntimeId: bigint;
     readonly moverStart: Position;
     readonly movement: readonly InboundPacketRecord[];
+    /** The tick in which the server applied each movement packet. */
+    readonly moveTicks: readonly number[];
     readonly replayRandomTickState: number;
     readonly initialStateManifest: Buffer;
     readonly inboundPayloadBytes: number;
@@ -62,8 +64,11 @@ interface LiveSession {
     readonly initialStateManifest?: Buffer;
     /** Waits until the server and both clients have handled everything already sent. */
     settle(): Promise<void>;
-    /** Settles, then runs ticks by hand until the server's next tick is `tick`. */
-    stepTo(tick: number): Promise<void>;
+    /**
+     * Settles, then runs ticks by hand until the server's next tick is `tick`.
+     * @param beforeTick - Called before each tick runs, with that tick, to offer it its inputs.
+     */
+    stepTo(tick: number, beforeTick?: (tick: number) => void): Promise<void>;
     close(): Promise<void>;
 }
 
@@ -277,7 +282,7 @@ const openSession = async (
 
     const connections = () => network.connectionIds().flatMap((id) => server.getSessionManager().get(id) ?? []);
     const quiet = (): boolean =>
-        network.isIdle() &&
+        server.getKernel().get(networkToken).isInboundSettled() &&
         clients.every((each) => each.getSession().isIdle()) &&
         connections().every((connection) => connection.isOutboundSettled()) &&
         server.getChunkScheduler().isIdle() &&
@@ -287,7 +292,6 @@ const openSession = async (
     // may the next tick run, so a tick sees the same state on a fast host as on a loaded one.
     const settle = async (): Promise<void> => {
         for (;;) {
-            await network.idle();
             await Promise.all(clients.map((each) => each.getSession().settled()));
             await server.getChunkScheduler().settled();
             await Promise.all(connections().map((connection) => connection.settleOutbound()));
@@ -302,9 +306,14 @@ const openSession = async (
             if (quiet()) return;
         }
     };
-    const stepTo = async (tick: number): Promise<void> => {
+    const stepTo = async (tick: number, beforeTick?: (tick: number) => void): Promise<void> => {
         await settle();
         while (server.getTick() < tick) {
+            if (beforeTick !== undefined) {
+                beforeTick(server.getTick());
+                // Decoded and held before the tick runs, so its input step finds them.
+                await settle();
+            }
             await server.advanceTick();
             await settle();
         }
@@ -406,6 +415,8 @@ const captureSession = async (
     const recordRandomTickState = (event: { getTick(): number }): void => {
         randomTickStateByTick.set(event.getTick(), live.world.getSystems().getRandomTickState());
     };
+    const moveTicks: number[] = [];
+    const recordMoveTick = (): void => void moveTicks.push(live.server.getTick());
     try {
         const initialStateManifest = live.initialStateManifest;
         if (initialStateManifest === undefined) throw new Error('Replay initial-state manifest was not captured');
@@ -414,6 +425,7 @@ const captureSession = async (
         const moverStart = positionOf(startGame.position);
         const firstSendTick = live.server.getTick() + 4;
         live.server.on('tick', recordRandomTickState);
+        live.server.on('playerMove', recordMoveTick);
         for (let index = 0; index < MOVEMENT_COUNT; index += 1) {
             await live.stepTo(firstSendTick + index * MOVEMENT_INTERVAL_TICKS);
             await live.mover.getSession().send(
@@ -431,6 +443,8 @@ const captureSession = async (
             );
             await live.settle();
         }
+        // The last packet is held for the next tick's input step, so run that tick too.
+        await live.stepTo(live.server.getTick() + 1);
 
         const movement = live.inbound.records().filter((record) => record.packetName === 'MovePlayerPacket');
         if (movement.length !== MOVEMENT_COUNT) {
@@ -447,6 +461,7 @@ const captureSession = async (
             moverRuntimeId: startGame.runtimeEntityId,
             moverStart,
             movement,
+            moveTicks,
             replayRandomTickState,
             initialStateManifest,
             inboundPayloadBytes: live.inbound.getPayloadBytes(),
@@ -454,6 +469,7 @@ const captureSession = async (
         };
     } finally {
         live.server.removeListener('tick', recordRandomTickState);
+        live.server.removeListener('playerMove', recordMoveTick);
         await live.close();
     }
 };
@@ -508,8 +524,10 @@ const replaySession = async (
         const mover = live.world.getPlayers().find((player) => player.getName() === 'ReplayMover');
         if (mover === undefined) throw new Error('Replay mover is missing from the world');
         let moveEvents = 0;
+        const moveTicks: number[] = [];
         const onMove = (): void => {
             moveEvents += 1;
+            moveTicks.push(live.server.getTick());
         };
         live.server.on('playerMove', onMove);
 
@@ -611,13 +629,6 @@ const replaySession = async (
                 }
             }
 
-            for (const record of recordsByTick.get(tick) ?? []) {
-                try {
-                    await replayInboundRecord(record, tickOffset);
-                } catch (error: unknown) {
-                    replayErrors.push(error instanceof Error ? error.message : String(error));
-                }
-            }
             if (measureCosts && tick === sampleEnd + 1) {
                 if (measurementStart === undefined) throw new Error('Replay cost sample did not start');
                 measurementEnd = {
@@ -631,11 +642,25 @@ const replaySession = async (
         if (live.server.getChunkScheduler().pending > 0) {
             throw new Error('Chunks were still streaming when the sample began; the join needs more ticks');
         }
+        // Each record is offered before its tick runs, as a live packet arrives before the tick
+        // that applies it: a read-lane record runs at once, and an input-lane one in that tick's
+        // input step. Not awaited here, because an input settles only once its tick has run.
+        const replayed: Promise<void>[] = [];
+        const offerInputs = (tick: number): void => {
+            for (const record of recordsByTick.get(tick) ?? []) {
+                replayed.push(
+                    replayInboundRecord(record, tickOffset).catch((error: unknown) => {
+                        replayErrors.push(error instanceof Error ? error.message : String(error));
+                    })
+                );
+            }
+        };
         live.server.on('tick', onTick);
         try {
             // Through the last sampled tick, and for a cost run through the tick after it, whose
             // start ends the measurement.
-            await live.stepTo(measureCosts ? sampleEnd + 2 : sampleEnd + 1);
+            await live.stepTo(measureCosts ? sampleEnd + 2 : sampleEnd + 1, offerInputs);
+            await Promise.all(replayed);
         } finally {
             live.server.removeListener('tick', onTick);
             live.server.removeListener('playerMove', onMove);
@@ -688,6 +713,7 @@ const replaySession = async (
             worldSeries,
             packetSeries,
             moveEvents,
+            moveTickOffsets: moveTicks.map((tick) => tick - REPLAY_START_TICK),
             finalWorldDigest,
             finalMoverPosition: {
                 x: finalPosition.getX(),
@@ -782,6 +808,13 @@ describe('live session replay', () => {
                 expect(first.finalMoverPosition.x).toBeGreaterThan(captured.moverStart.x + 0.8);
                 expect(first.moveEvents).toBe(MOVEMENT_COUNT);
                 expect(second.moveEvents).toBe(MOVEMENT_COUNT);
+                // Capture stamps each input with the tick that applied it, and a replay applies
+                // it in that same tick.
+                const firstStamp = captured.movement[0]!.tick;
+                expect(captured.moveTicks).toEqual(captured.movement.map((record) => record.tick));
+                const stamped = captured.movement.map((record) => record.tick - firstStamp);
+                expect(first.moveTickOffsets).toEqual(stamped);
+                expect(second.moveTickOffsets).toEqual(stamped);
                 expect(second.finalMoverPosition).toEqual(first.finalMoverPosition);
                 // Every sampled tick has a world digest, and the movement made the server send
                 // something, so the comparison below cannot pass by comparing nothing.

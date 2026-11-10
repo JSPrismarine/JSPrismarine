@@ -46,6 +46,17 @@ runs for a class-based entity and for a data-driven one over two different seams
 
 ## The tick
 
+A tick starts with its input step, before any world updates. A packet whose handler declares the
+`input` lane does not run when it arrives: it waits, and the input step applies every input held
+since the last tick in the order they arrived, at most
+<!-- fact:tick.inputBudget -->4096<!-- /fact --> of them, leaving the rest in order for the next
+tick. A player's removal is an input too, whether the client sent `Disconnect` or its connection
+closed. A packet in the `connection` or `read` lane runs when it arrives, unless an input the same
+client sent earlier is still waiting; then it waits behind that input, so a client never sees a
+reply that overtook its own action. The levels tick one after another, so this one step is the
+input step of every world, and no handler runs in the middle of a world's update. A replay
+offers each recorded packet before the tick its capture recorded, and the same step applies it.
+
 `World.update` runs each system in Java's order, and `WorldSystems.tick` is the part that owns
 them. Scheduled block ticks run first, then scheduled fluid ticks, then the chunk tick that draws
 random positions, then the light the writes above queued. Light goes last because every block
