@@ -1,7 +1,8 @@
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { configDefaults, defineConfig } from 'vitest/config';
+import { normalizePath } from 'vite';
+import { defineConfig } from 'vitest/config';
 
 const ci = !!process.env.GITHUB_ACTIONS;
 
@@ -59,6 +60,9 @@ const exclude = [
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
+/** The repository root as a glob that matches only itself, in the forward slashes Vitest compares. */
+const rootPattern = normalizePath(__dirname).replace(/[$()*+?[\\\]^{|}!@]/g, '\\$&');
+
 export default defineConfig({
     root: resolve(__dirname),
     optimizeDeps: {
@@ -88,22 +92,31 @@ export default defineConfig({
         passWithNoTests: true,
         // `--changed` runs only the suites whose import graph reaches a changed file, and a match
         // on any of these runs every suite instead. They are inputs the suites read from disk or
-        // that change how everything runs, so no import graph leads to them. The docs pages are
-        // the ones the parity conformance suites check against the code.
+        // that change how everything runs, so no import graph leads to them. Each is anchored at
+        // the repository root: Vitest's defaults match a `package.json` or a Vite config in any
+        // directory, so one package's manifest used to run every suite. The provider below gives
+        // such a file to its own package. The docs pages are the ones the parity conformance
+        // suites check against the code.
         forceRerunTriggers: [
-            ...configDefaults.forceRerunTriggers,
-            '**/pnpm-lock.yaml',
-            '**/pnpm-workspace.yaml',
-            '**/tsconfig*.json',
-            '**/.test/**',
-            '**/packages/bedrock-data/sources.json',
-            '**/packages/bedrock-data/pack-hashes.json',
-            '**/packages/bedrock-data/src/generated/**',
-            '**/packages/bedrock-data/src/jsp/**',
-            '**/docs/data-driven/parity.md',
-            '**/docs/plans/data-driven-vanilla.md',
-            '**/docs/research/edition-behavior-differences.md'
-        ],
+            'package.json',
+            'pnpm-lock.yaml',
+            'pnpm-workspace.yaml',
+            'tsconfig*.json',
+            '{vitest,vite}.config.*',
+            '.test/**',
+            'scripts/vitest-changed-files.ts',
+            'packages/bedrock-data/sources.json',
+            'packages/bedrock-data/pack-hashes.json',
+            'packages/bedrock-data/src/generated/**',
+            'packages/bedrock-data/src/jsp/**',
+            'docs/data-driven/parity.md',
+            'docs/plans/data-driven-vanilla.md',
+            'docs/research/edition-behavior-differences.md'
+        ].map((pattern) => `${rootPattern}/${pattern}`),
+        experimental: {
+            // `--since-last-run` replaces this with Vitest's own `mtime` provider.
+            vcsProvider: resolve(__dirname, 'scripts/vitest-changed-files.ts')
+        },
         silent: false,
         globals: true,
         reporters,
