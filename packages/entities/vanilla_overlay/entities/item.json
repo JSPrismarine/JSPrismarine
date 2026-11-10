@@ -1,0 +1,38 @@
+{
+    "format_version": "1.26.20",
+    "minecraft:entity": {
+        "description": {
+            "identifier": "minecraft:item",
+            "is_spawnable": false,
+            "is_summonable": true
+        },
+        "components": {
+            "minecraft:collision_box": {
+                "width": 0.25,
+                "height": 0.25
+            },
+            "minecraft:health": {
+                "value": 5,
+                "max": 5
+            },
+            "minecraft:type_family": {
+                "family": ["item"]
+            },
+            "jsprismarine:item": {
+                "gravity": 0.04,
+                "air_drag": 0.98,
+                "ground_drag": 0.588,
+                "slide_stop": 0.0001,
+                "position_offset": 0.125,
+                "ground_probe": 0.01,
+                "pickup_delay": 10,
+                "thrown_pickup_delay": 40,
+                "despawn_age": 6000,
+                "pickup_range": 1.5,
+                "merge_range": 0.5,
+                "lava_damage": 4,
+                "void_depth": 64
+            }
+        }
+    }
+}
