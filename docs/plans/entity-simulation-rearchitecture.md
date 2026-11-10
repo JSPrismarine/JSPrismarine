@@ -166,6 +166,13 @@ B2 left three things for later slices to remove.
 - Eight code paths still load a chunk from inside a tick. Each is admitted inline, recorded as `inline` and listed in `IN_TICK_CHUNK_LOADS`, and a test fails when one is removed without updating the list. Slices 3, 5, 6 and 9 remove them.
 - `World.disable` waits for an unload parked on admission, so calling it from inside a tick would never finish. Nothing does today. Slice 9 has to keep it that way or drain admissions first.
 
+C1a and C1b left these for later packages.
+
+- C1a moved component state the entities package hid in `WeakMap`s onto `EntityInstance.componentState`, with one write path that reports each write's before and after values to `EntityEnvironment.componentStateWritten`. `target_nearby_sensor` keeps a runtime id there, and runtime ids are drawn again each session, so C1c marks that field as not saved until the store has ids that survive a reload.
+- C1b left one index per dimension (`EntityIndex`, `World.getEntityIndex()`), and chunk membership as a second structure written only by `World.entityRelocated`. Membership follows the client body and the index follows the runtime's position, so the two agree again once C3 deletes the mirror. Until then legacy explosions search four blocks beyond their reach.
+- Viewer tracking still passes every entity in the world to `EntityTracker.plan`. D4 replaces that with audiences computed from the index.
+- Inside the tick, `World.getEntities()` is still copied for spawner counts, the attribute flush and tracking, and `EntityRuntime.all()` is copied for the entity pass, the despawn cycle and the mirror's `sync`. Slice 5's target removes the copies.
+
 ### Phase C: the store
 
 | Package | Slice | Depends on | Work                                                                                                                         |
