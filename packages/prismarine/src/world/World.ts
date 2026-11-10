@@ -47,6 +47,7 @@ import { notifyContentNeighbors } from './neighborContent';
 import CoordinateUtils from './CoordinateUtils';
 import type { ShownActor } from './ShownActor';
 import type { WorldActor } from './WorldActor';
+import { byRuntimeId } from './WorldActor';
 import type { NamedSoundOptions, WorldChangeSink } from './WorldChangeSink';
 import { NULL_WORLD_CHANGE_SINK } from './WorldChangeSink';
 import { Dimensions, maxY } from './Dimension';
@@ -3704,11 +3705,7 @@ export class World implements Service {
             if (live?.bodies.entityIdOf(entity) === undefined) actors.push(entity);
         }
         if (live !== undefined) for (const actor of live.actors.all()) actors.push(actor);
-        return actors.sort((left, right) => {
-            const leftId = left.getRuntimeId();
-            const rightId = right.getRuntimeId();
-            return leftId < rightId ? -1 : leftId > rightId ? 1 : 0;
-        });
+        return actors.sort(byRuntimeId);
     }
 
     /**
@@ -3771,11 +3768,7 @@ export class World implements Service {
 
         // Entity map insertion order follows spawn timing; runtime ids sort that order, while
         // leaving the ids out of the hash lets a fresh process compare the same actor state.
-        const entities = this.getEntities().sort((left, right) => {
-            const leftId = left.getRuntimeId();
-            const rightId = right.getRuntimeId();
-            return leftId < rightId ? -1 : leftId > rightId ? 1 : 0;
-        });
+        const entities = this.getEntities().sort(byRuntimeId);
         // Data-driven actors keep component state in their runtime until save time. The digest
         // hashes the record a save would write into a copy of each body's compound and writes
         // nothing onto the body, so taking a digest has no side effect.

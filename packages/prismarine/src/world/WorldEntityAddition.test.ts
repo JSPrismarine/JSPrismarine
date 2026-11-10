@@ -40,7 +40,7 @@ describe('World.addEntity', () => {
         const restored: Entity[] = [];
         const live = stub<LiveEntityRuntime>({
             bodies: stub<LiveBodies>({ entityIdOf: () => undefined }),
-            actors: stub<StoreActors>({ all: () => [][Symbol.iterator]() }),
+            actors: stub<StoreActors>({ all: () => [][Symbol.iterator](), actorOf: () => undefined }),
             restoreExisting: (stored) => {
                 restored.push(stored);
                 return undefined;

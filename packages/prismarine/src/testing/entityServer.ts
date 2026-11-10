@@ -63,7 +63,7 @@ export const inertEntityRuntime = (): LiveEntityRuntime =>
         // A real index, empty, so a world double files its entities somewhere it can ask again.
         runtime: stub<EntityRuntime>({ content: () => testContent(), blockBroken: () => {}, index: new EntityIndex() }),
         bodies: stub<LiveBodies>({ entityIdOf: () => undefined }),
-        actors: stub<StoreActors>({ all: () => [][Symbol.iterator]() }),
+        actors: stub<StoreActors>({ all: () => [][Symbol.iterator](), actorOf: () => undefined }),
         // Nothing it holds rides anything, so nothing is kept out of a portal.
         isInRide: () => false,
         onEntityRemoved: () => () => false,

@@ -293,7 +293,6 @@ const givePlayerItem = (
 /** The host facts over one live world. */
 const liveHost = (
     options: LiveEntityOptions,
-    bodies: LiveBodies,
     itemBodies: ItemBodies,
     actors: StoreActors,
     runtime: () => EntityRuntime
@@ -317,16 +316,16 @@ const liveHost = (
     },
     damageCommitted: (commit) => {
         const world = options.liveWorld();
-        const body = bodies.bodyOf(commit.target.id);
-        if (world === undefined || body === undefined) return;
+        const victim = actors.actorOf(commit.target.id);
+        if (world === undefined || victim === undefined) return;
 
         // The order the legacy pipeline raised them in: the death, then the blow.
         const source = legacySourceOfIntent(world, commit.intent);
         if (commit.died) {
-            world.getServer().post(['entityDeath', new EntityDeathEvent(body, source)]);
-            advancementKill(body, source);
+            world.getServer().post(['entityDeath', new EntityDeathEvent(victim, source)]);
+            advancementKill(victim, source);
         }
-        advancementDamage(body, source, commit.dealt, commit.taken, false);
+        advancementDamage(victim, source, commit.dealt, commit.taken, false);
     },
     players: () => options.entities.players(),
     playerView: (id) => {
@@ -377,12 +376,12 @@ const liveHost = (
     },
     hurt: (id, amount, cause, sourceId, deathMessageOverride) => {
         const world = options.liveWorld();
-        const target = world?.getEntity(BigInt(id));
+        const target = world?.getActor(BigInt(id));
         if (target === null || target === undefined) return;
 
         // The attacker travels with the blow, so a player who was bitten knows what bit them
         // and the death message names it.
-        const attacker = sourceId === undefined ? null : (world?.getEntity(BigInt(sourceId)) ?? null);
+        const attacker = sourceId === undefined ? null : (world?.getActor(BigInt(sourceId)) ?? null);
         const damageCause = damageCauseOf(cause);
         const source =
             attacker === null && deathMessageOverride === undefined
@@ -392,10 +391,10 @@ const liveHost = (
     },
     applySonicBoom: (id, amount, sourceId, impulse) => {
         const world = options.liveWorld();
-        const target = world?.getEntity(BigInt(id));
+        const target = world?.getActor(BigInt(id));
         if (target === null || target === undefined) return;
 
-        const attacker = world?.getEntity(BigInt(sourceId)) ?? null;
+        const attacker = world?.getActor(BigInt(sourceId)) ?? null;
         const source = new DamageSource({ cause: DamageCause.SonicBoom, attacker });
         void target
             .damage(amount, source)
@@ -423,24 +422,24 @@ const liveHost = (
             .catch((error: unknown) => options.report(String(error)));
     },
     applyStatusEffect: (id, effect) => {
-        const target = options.liveWorld()?.getEntity(BigInt(id));
+        const target = options.liveWorld()?.getActor(BigInt(id));
         if (target !== null && target !== undefined) target.addStatusEffect(effect);
     },
     applyStatusEffectIfChanged: (id, effect) => {
-        const target = options.liveWorld()?.getEntity(BigInt(id));
+        const target = options.liveWorld()?.getActor(BigInt(id));
         return target !== null && target !== undefined ? target.addStatusEffect(effect) : false;
     },
     removeStatusEffect: (id, identifier) => {
-        const target = options.liveWorld()?.getEntity(BigInt(id));
+        const target = options.liveWorld()?.getActor(BigInt(id));
         return target !== null && target !== undefined ? target.removeStatusEffect(identifier) : false;
     },
     hurtByProjectile: (id, amount, projectileId, ownerId) => {
         const world = options.liveWorld();
-        const target = world?.getEntity(BigInt(id));
-        const projectile = world?.getEntity(BigInt(projectileId));
+        const target = world?.getActor(BigInt(id));
+        const projectile = world?.getActor(BigInt(projectileId));
         if (target === null || target === undefined) return;
 
-        const owner = ownerId === undefined ? null : (world?.getEntity(BigInt(ownerId)) ?? null);
+        const owner = ownerId === undefined ? null : (world?.getActor(BigInt(ownerId)) ?? null);
         const source =
             projectile === null || projectile === undefined
                 ? DamageSource.of(DamageCause.Projectile)
@@ -469,7 +468,7 @@ const liveHost = (
             .catch((error: unknown) => options.report(String(error)));
     },
     knockback: (id, directionX, directionZ, strength) => {
-        const target = options.liveWorld()?.getEntity(BigInt(id));
+        const target = options.liveWorld()?.getActor(BigInt(id));
         target?.applyKnockback(directionX, directionZ, strength);
     },
     // The village raid is the world's; what a villager's brain reads of it is the same facts
@@ -553,7 +552,7 @@ export class LiveEntityRuntime {
         this.runtime = new EntityRuntime({
             content: options.content,
             world: options.world,
-            host: liveHost(options, this.bodies, this.itemBodies, this.actors, () => this.runtime),
+            host: liveHost(options, this.itemBodies, this.actors, () => this.runtime),
             report: options.report,
             onSpawn: (entity) => {
                 if (isDroppedItem(entity)) {
@@ -589,10 +588,10 @@ export class LiveEntityRuntime {
         this.runtime.damagePipeline.addBeforeHook('entityDamage', (intent) => {
             if (intent.amount <= 0) return PASS;
             const world = options.liveWorld();
-            const body = this.bodies.bodyOf(intent.target);
-            if (world === undefined || body === undefined) return PASS;
+            const victim = this.actors.actorOf(intent.target);
+            if (world === undefined || victim === undefined) return PASS;
 
-            const event = new EntityDamageEvent(body, intent.amount, legacySourceOfIntent(world, intent));
+            const event = new EntityDamageEvent(victim, intent.amount, legacySourceOfIntent(world, intent));
             world.getServer().post(['entityDamage', event]);
             if (event.isCanceled()) return VETO;
             return event.getAmount() === intent.amount ? PASS : replaceAmount(event.getAmount());
