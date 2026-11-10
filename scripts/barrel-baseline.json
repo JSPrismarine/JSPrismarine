@@ -1,0 +1,342 @@
+{
+    "packages/advancements/src/index.ts": {
+        "noBarrelFile": 1,
+        "noReExportAll": 6
+    },
+    "packages/auth/src/client.ts": {
+        "noBarrelFile": 1
+    },
+    "packages/auth/src/index.ts": {
+        "noBarrelFile": 1,
+        "noReExportAll": 3
+    },
+    "packages/auth/src/server.ts": {
+        "noBarrelFile": 1
+    },
+    "packages/binaryutils/src/index.ts": {
+        "noBarrelFile": 1,
+        "noReExportAll": 1
+    },
+    "packages/block-behaviors/src/families/index.ts": {
+        "noBarrelFile": 1,
+        "noReExportAll": 11
+    },
+    "packages/block-behaviors/src/index.ts": {
+        "noBarrelFile": 1,
+        "noReExportAll": 9
+    },
+    "packages/block-behaviors/src/rules/index.ts": {
+        "noBarrelFile": 1,
+        "noReExportAll": 15
+    },
+    "packages/blocks/src/index.ts": {
+        "noBarrelFile": 1,
+        "noReExportAll": 15
+    },
+    "packages/blocks/src/tables/blockGeometry.ts": {
+        "noBarrelFile": 1
+    },
+    "packages/brigadier/src/builder/LiteralArgumentBuilder.ts": {
+        "noBarrelFile": 1
+    },
+    "packages/brigadier/src/builder/RequiredArgumentBuilder.ts": {
+        "noBarrelFile": 1
+    },
+    "packages/brigadier/src/exceptions/BuiltInExceptions.ts": {
+        "noBarrelFile": 1
+    },
+    "packages/brigadier/src/exceptions/DynamicCommandExceptionType.ts": {
+        "noBarrelFile": 1
+    },
+    "packages/brigadier/src/exceptions/SimpleCommandExceptionType.ts": {
+        "noBarrelFile": 1
+    },
+    "packages/chunkgen/src/index.ts": {
+        "noBarrelFile": 1
+    },
+    "packages/color-parser/src/index.ts": {
+        "noBarrelFile": 1,
+        "noReExportAll": 2
+    },
+    "packages/commands/src/index.ts": {
+        "noBarrelFile": 1,
+        "noReExportAll": 20
+    },
+    "packages/console-protocol/src/index.ts": {
+        "noBarrelFile": 1
+    },
+    "packages/console/src/index.ts": {
+        "noBarrelFile": 1,
+        "noReExportAll": 1
+    },
+    "packages/console/src/theme/index.ts": {
+        "noBarrelFile": 1,
+        "noReExportAll": 3
+    },
+    "packages/content/src/index.ts": {
+        "noBarrelFile": 1,
+        "noReExportAll": 11
+    },
+    "packages/enchantments/src/index.ts": {
+        "noBarrelFile": 1,
+        "noReExportAll": 11
+    },
+    "packages/engine-systems/src/index.ts": {
+        "noBarrelFile": 1
+    },
+    "packages/entities/src/components/index.ts": {
+        "noBarrelFile": 1,
+        "noReExportAll": 7
+    },
+    "packages/entities/src/components/vanilla.ts": {
+        "noBarrelFile": 1,
+        "noReExportAll": 8
+    },
+    "packages/entities/src/index.ts": {
+        "noBarrelFile": 1,
+        "noReExportAll": 19
+    },
+    "packages/entity-brains/src/index.ts": {
+        "noBarrelFile": 1,
+        "noReExportAll": 13
+    },
+    "packages/entity-brains/src/mobs/index.ts": {
+        "noBarrelFile": 1,
+        "noReExportAll": 19
+    },
+    "packages/entity-goals/src/index.ts": {
+        "noBarrelFile": 1,
+        "noReExportAll": 21
+    },
+    "packages/features/src/features/tree.ts": {
+        "noBarrelFile": 1
+    },
+    "packages/features/src/index.ts": {
+        "noBarrelFile": 1,
+        "noReExportAll": 25
+    },
+    "packages/item-behaviors/src/index.ts": {
+        "noBarrelFile": 1,
+        "noReExportAll": 19
+    },
+    "packages/items/src/components/index.ts": {
+        "noBarrelFile": 1,
+        "noReExportAll": 6
+    },
+    "packages/items/src/index.ts": {
+        "noBarrelFile": 1,
+        "noReExportAll": 12
+    },
+    "packages/items/src/tables/itemTypes.ts": {
+        "noBarrelFile": 1
+    },
+    "packages/kernel/src/index.ts": {
+        "noBarrelFile": 1
+    },
+    "packages/leveldb/src/index.ts": {
+        "noBarrelFile": 1
+    },
+    "packages/lighting/src/index.ts": {
+        "noBarrelFile": 1
+    },
+    "packages/logger/src/index.ts": {
+        "noBarrelFile": 1,
+        "noReExportAll": 3
+    },
+    "packages/loot/src/index.ts": {
+        "noBarrelFile": 1,
+        "noReExportAll": 8
+    },
+    "packages/mapping/src/index.ts": {
+        "noBarrelFile": 1
+    },
+    "packages/math/src/index.ts": {
+        "noBarrelFile": 1,
+        "noReExportAll": 3
+    },
+    "packages/mcfunction/src/index.ts": {
+        "noBarrelFile": 1,
+        "noReExportAll": 9
+    },
+    "packages/minecraft/src/ActorDataID.ts": {
+        "noBarrelFile": 1
+    },
+    "packages/minecraft/src/ActorFlags.ts": {
+        "noBarrelFile": 1
+    },
+    "packages/minecraft/src/BuildPlatform.ts": {
+        "noBarrelFile": 1
+    },
+    "packages/minecraft/src/CommandPermissionLevel.ts": {
+        "noBarrelFile": 1
+    },
+    "packages/minecraft/src/DataItemType.ts": {
+        "noBarrelFile": 1
+    },
+    "packages/minecraft/src/Difficulty.ts": {
+        "noBarrelFile": 1
+    },
+    "packages/minecraft/src/LevelEvent.ts": {
+        "noBarrelFile": 1
+    },
+    "packages/minecraft/src/LevelSoundEvent.ts": {
+        "noBarrelFile": 1
+    },
+    "packages/minecraft/src/PacketCompressionAlgorithm.ts": {
+        "noBarrelFile": 1
+    },
+    "packages/minecraft/src/PlayerPermissionLevel.ts": {
+        "noBarrelFile": 1
+    },
+    "packages/minecraft/src/ResourcePackResponse.ts": {
+        "noBarrelFile": 1
+    },
+    "packages/minecraft/src/ServerAuthMovementMode.ts": {
+        "noBarrelFile": 1
+    },
+    "packages/minecraft/src/index.ts": {
+        "noBarrelFile": 1,
+        "noReExportAll": 1
+    },
+    "packages/molang/src/index.ts": {
+        "noBarrelFile": 1,
+        "noReExportAll": 11
+    },
+    "packages/nbt/src/index.ts": {
+        "noBarrelFile": 1,
+        "noReExportAll": 1
+    },
+    "packages/nethernet/src/index.ts": {
+        "noBarrelFile": 1
+    },
+    "packages/packs/src/index.ts": {
+        "noBarrelFile": 1,
+        "noReExportAll": 17
+    },
+    "packages/parity/src/dashboard/tracker.ts": {
+        "noBarrelFile": 1
+    },
+    "packages/predicates/src/index.ts": {
+        "noBarrelFile": 1,
+        "noReExportAll": 12
+    },
+    "packages/prismarine/src/Managers.ts": {
+        "noBarrelFile": 1,
+        "noReExportAll": 2
+    },
+    "packages/prismarine/src/block/index.ts": {
+        "noBarrelFile": 1,
+        "noReExportAll": 6
+    },
+    "packages/prismarine/src/blockentity/index.ts": {
+        "noBarrelFile": 1
+    },
+    "packages/prismarine/src/command/function/index.ts": {
+        "noBarrelFile": 1,
+        "noReExportAll": 4
+    },
+    "packages/prismarine/src/command/host/index.ts": {
+        "noBarrelFile": 1,
+        "noReExportAll": 2
+    },
+    "packages/prismarine/src/command/index.ts": {
+        "noBarrelFile": 1,
+        "noReExportAll": 6
+    },
+    "packages/prismarine/src/config/index.ts": {
+        "noBarrelFile": 1,
+        "noReExportAll": 5
+    },
+    "packages/prismarine/src/console/index.ts": {
+        "noBarrelFile": 1,
+        "noReExportAll": 2
+    },
+    "packages/prismarine/src/content/index.ts": {
+        "noBarrelFile": 1,
+        "noReExportAll": 12
+    },
+    "packages/prismarine/src/entity/index.ts": {
+        "noBarrelFile": 1,
+        "noReExportAll": 6
+    },
+    "packages/prismarine/src/index.ts": {
+        "noBarrelFile": 1,
+        "noReExportAll": 13
+    },
+    "packages/prismarine/src/inventory/index.ts": {
+        "noBarrelFile": 1,
+        "noReExportAll": 4
+    },
+    "packages/prismarine/src/item/index.ts": {
+        "noBarrelFile": 1,
+        "noReExportAll": 5
+    },
+    "packages/prismarine/src/network/index.ts": {
+        "noBarrelFile": 1,
+        "noReExportAll": 1
+    },
+    "packages/prismarine/src/utils/index.ts": {
+        "noBarrelFile": 1,
+        "noReExportAll": 3
+    },
+    "packages/prismarine/src/world/Dimension.ts": {
+        "noBarrelFile": 1
+    },
+    "packages/prismarine/src/world/generators/datadriven/index.ts": {
+        "noBarrelFile": 1
+    },
+    "packages/prismarine/src/world/generators/datadriven/javaWorldgenData.ts": {
+        "noBarrelFile": 1
+    },
+    "packages/prismarine/src/world/generators/factories/index.ts": {
+        "noBarrelFile": 1
+    },
+    "packages/prismarine/src/world/index.ts": {
+        "noBarrelFile": 1,
+        "noReExportAll": 8
+    },
+    "packages/protocol/src/index.ts": {
+        "noBarrelFile": 1,
+        "noReExportAll": 112
+    },
+    "packages/protocol/src/packet/PlayerListPacket.ts": {
+        "noBarrelFile": 1
+    },
+    "packages/protocol/src/packet/index.ts": {
+        "noBarrelFile": 1,
+        "noReExportAll": 159
+    },
+    "packages/protocol/src/payload/index.ts": {
+        "noBarrelFile": 1,
+        "noReExportAll": 6
+    },
+    "packages/protocol/src/payload/palette.ts": {
+        "noBarrelFile": 1
+    },
+    "packages/raknet/src/index.ts": {
+        "noBarrelFile": 1,
+        "noReExportAll": 8
+    },
+    "packages/recipes/src/index.ts": {
+        "noBarrelFile": 1
+    },
+    "packages/server/src/index.ts": {
+        "noBarrelFile": 1,
+        "noReExportAll": 1
+    },
+    "packages/spawning/src/index.ts": {
+        "noBarrelFile": 1,
+        "noReExportAll": 7
+    },
+    "packages/structures/src/index.ts": {
+        "noBarrelFile": 1
+    },
+    "packages/trading/src/index.ts": {
+        "noBarrelFile": 1,
+        "noReExportAll": 5
+    },
+    "packages/worldgen/src/index.ts": {
+        "noBarrelFile": 1,
+        "noReExportAll": 47
+    }
+}
