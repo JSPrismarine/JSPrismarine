@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
+import type { ComponentStateWrite } from '../componentState';
+import { observing, tickThenUndo } from '../componentState.test.helper';
 import { canEntityAttack, canEntityAttackView } from './vanilla';
 import type { EntityEnvironment, EntityInstance } from '../entityInstance';
 import { EntityTypes } from '../entityTypes';
@@ -353,6 +355,64 @@ describe('minecraft:angry', () => {
         expect(played).toEqual(['mob.angry']);
         tick(entity, 1);
         expect(played).toEqual(['mob.angry', 'mob.angry']);
+    });
+});
+
+describe('minecraft:angry state', () => {
+    const grumpy = {
+        format_version: '1.26.50',
+        'minecraft:entity': {
+            description: { identifier: 'test:grumpy' },
+            components: {
+                'minecraft:angry': {
+                    duration: 2,
+                    angry_sound: 'mob.angry',
+                    sound_interval: [1, 1],
+                    broadcast_anger: true
+                }
+            }
+        }
+    };
+
+    it('keeps its anger, its sound clock and its pending broadcast in one state', () => {
+        const writes: ComponentStateWrite[] = [];
+        const { effects } = sounds();
+        const entity = spawn(grumpy, 'test:grumpy', observing(writes, { effects, broadcastAnger: () => undefined }));
+
+        expect(entity.componentState.snapshot()).toEqual({
+            'minecraft:angry': { remaining: 40, sound: 20, pendingBroadcast: true }
+        });
+
+        const run = tickThenUndo(entity, writes, 1);
+
+        expect(run.writes).toEqual([
+            {
+                component: 'minecraft:angry',
+                before: { remaining: 40, sound: 20, pendingBroadcast: true },
+                after: { remaining: 40, sound: 20, pendingBroadcast: false }
+            },
+            {
+                component: 'minecraft:angry',
+                before: { remaining: 40, sound: 20, pendingBroadcast: false },
+                after: { remaining: 40, sound: 19, pendingBroadcast: false }
+            },
+            {
+                component: 'minecraft:angry',
+                before: { remaining: 40, sound: 19, pendingBroadcast: false },
+                after: { remaining: 39, sound: 19, pendingBroadcast: false }
+            }
+        ]);
+        expect(run.undone).toEqual(run.before);
+    });
+
+    it('undoes a run that calms the entity down exactly', () => {
+        const writes: ComponentStateWrite[] = [];
+        const { effects } = sounds();
+        const entity = spawn(grumpy, 'test:grumpy', observing(writes, { effects, broadcastAnger: () => undefined }));
+        const run = tickThenUndo(entity, writes, 45);
+
+        expect(run.ticked).toEqual({ 'minecraft:angry': { remaining: null, sound: 15, pendingBroadcast: false } });
+        expect(run.undone).toEqual(run.before);
     });
 });
 
