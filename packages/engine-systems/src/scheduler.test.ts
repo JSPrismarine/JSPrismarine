@@ -292,30 +292,20 @@ describe('TickScheduler', () => {
         expect(count).toBe(2);
     });
 
-    it('leaves the ticks a spent deadline cut off queued and due, first in line next tick', () => {
-        const list = new TickList();
-        for (let x = 0; x < 5; x += 1) list.schedule(at(x), 'minecraft:oak_leaves', 1, TICK_PRIORITIES.NORMAL);
+    it('runs a whole batch without reading the clock', () => {
+        const scheduler = new TickScheduler();
+        for (let x = 0; x < 5; x += 1) {
+            scheduler.list('block').schedule(at(x), 'minecraft:oak_leaves', 1, TICK_PRIORITIES.NORMAL);
+            scheduler.list('fluid').schedule(at(x), 'minecraft:water', 1, TICK_PRIORITIES.NORMAL);
+        }
 
-        const ran: number[] = [];
-        let now = 0;
-        const clock = vi.spyOn(performance, 'now').mockImplementation(() => now);
+        // A clock read would throw here, so a pass that consults one cannot finish.
+        const clock = vi.spyOn(performance, 'now').mockImplementation(() => {
+            throw new Error('the tick list read the clock');
+        });
         try {
-            const count = list.tick(
-                1,
-                (scheduled) => {
-                    ran.push(scheduled.at.x);
-                    now += 10;
-                },
-                undefined,
-                25
-            );
-            // The deadline passes after the third tick, so two are left, not lost.
-            expect(count).toBe(3);
-            expect(ran).toEqual([0, 1, 2]);
-            expect(list.count()).toBe(2);
-            expect(list.hasScheduledTick(at(3), 'minecraft:oak_leaves')).toBe(true);
-
-            expect(drain(list, 2)).toEqual(['minecraft:oak_leaves@3', 'minecraft:oak_leaves@4']);
+            expect(scheduler.tick(1, () => {}, 3)).toBe(6);
+            expect(scheduler.tick(2, () => {}, 3)).toBe(4);
         } finally {
             clock.mockRestore();
         }
