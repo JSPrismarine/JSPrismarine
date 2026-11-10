@@ -22,15 +22,19 @@ Requirements from the request:
 
 As of 2026-11-10. Both transports run side by side, on by default:
 
-- **RakNet** works as before, now behind the transport-neutral seam.
+- **RakNet** works as before, now behind the transport-neutral seam, and also listens on IPv6 at
+  `server-portv6`.
 - **NetherNet** joins work two ways: by address over HTTP signaling on the TCP side of `port`, and
-  on the local network over UDP 7551, where the server also advertises itself.
+  on the local network over UDP 7551, where the server also advertises itself. `server-udp-ports`
+  constrains and advertises its UDP ports.
 - **Our own client** joins our server and Bedrock Dedicated Server 1.26.51.1 over NetherNet, by
-  address, offline mode, and spawns.
-- **Not yet proven:** a real game client. The PR's Client E2E job (cinnabar) is the test for that.
-  Its first NetherNet run, on an older head, did not join; the handshake fix found by the BDS hill
-  climb landed after it.
-- **In progress:** `server-udp-ports` (slice 15), then online mode against BDS (slice 16).
+  address, in offline and online mode, and spawns.
+- **A retail client** (iOS 1.26.62, on mobile data) joins our server by address over NetherNet,
+  logs in online and spawns, then disconnects within seconds with `ClientDisconnection-90`. See
+  slice 17.
+- **Left before the pull request merges:** `XboxAuthProvider` (slice 18, next), the cinnabar run
+  (slice 9) and the rearchitecture plan note (slice 10). The retail post-spawn disconnect (slice 17) can follow in its own pull request
+  if it turns out not to be NetherNet's.
 
 ## What we know
 
@@ -218,21 +222,44 @@ slice when it lands on the branch.
 14. [x] **One owner for the player count.** RakNet's sockets report sessions through
     `ServerName.setSessionCount`, which `ServerName.ownPlayerCount()` turns off. `ServerNetworking`
     and the RakNet worker's mirror of the main thread's name both own the count.
-15. [ ] **`server-udp-ports`.** BDS's setting, in BDS's syntax: a local UDP port range for WebRTC,
+15. [x] **`server-udp-ports`.** BDS's setting, in BDS's syntax: a local UDP port range for WebRTC,
     and optionally the external address and ports clients should be told about, for a server behind
-    NAT or a firewall. Constrain werift's port allocation to the range, and put the advertised
-    mapping into the answer's candidates.
-16. [ ] **Hill climb online mode.** Join an online-mode BDS with the client's GameServerToken
-    identity, then make the server check that identity the way BDS does.
+    NAT or a firewall. `constrainIcePorts` gives werift the range (`nethernet` 1.1.2 has no option
+    for it), and `withMappedCandidates` adds a server-reflexive candidate for each mapped host
+    candidate in the answer. Werift takes a port per player, so a single local port is refused.
+16. [x] **Hill climb online mode.** What it took, on 2026-11-10:
+    - Online BDS still accepts a self-signed offer identity; it refuses the login with
+      `NOT_AUTHENTICATED` until the Login packet carries an Xbox Live chain.
+    - Our client, signed in through prismarine-auth, joins online BDS and our online server with
+      the chain and the multiplayer token, and `NetherNetIdentity` can carry that token in the
+      offer instead of a self-signed one.
+    - Our server answers offers without checking the token, as go-nethernet leaves identity to the
+      Minecraft layer, and checks the Login packet as it does over RakNet.
+17. [ ] **A retail client.** An iOS client on mobile data, against a server on a public address
+    with no firewall. Found so far:
+    - [x] ICE connects with the client's private and IPv6 host candidates alone: the server learns
+      the client's peer-reflexive address from its checks, so no STUN is needed for this case.
+      Signaling logs each join's candidates, the answer and the ICE pair, so the next stall shows
+      where it stopped.
+    - [x] The client sends `RequestNetworkSettings` as soon as its reliable channel opens, before
+      `nethernet` reports the peer open, and the transport dropped it. It now holds a peer's early
+      messages and delivers them once the peer opens.
+    - [ ] After spawning, the client leaves within seconds with `ClientDisconnection-90`, and
+      nothing on the server side reports an error. Next: join the same client over RakNet to tell
+      the transport from the game, then read the last packets at log level `silly`.
+
+18. [ ] **`XboxAuthProvider` in `@jsprismarine/auth`.** The online hill climb signed in with a
+    scratch script. Give the auth package a provider that signs in through prismarine-auth, shares
+    `OfflineAuthProvider`'s signing constants, and hands `Client` the chain and the multiplayer
+    token, so the client's NetherNet offer carries the token, as a retail client's does. Next,
+    right after this plan update.
 
 ## Open questions
 
 - BDS answers `37` (`200 application/sdp`) to an offer without `a=identity`. Our signaling answers
   a refused offer with a non-2xx status, as go-nethernet does; whether game clients treat BDS's
   form differently is untested.
-- Should an online-mode server verify the offer's GameServerToken before answering, or only match
-  its `cpk` to the Login packet's, as go-nethernet's listener leaves to the Minecraft layer? Slice 16
-  answers this against BDS.
+- What `ClientDisconnection-90` means, and whether it is NetherNet's (slice 17).
 
 ## Future work
 
@@ -244,6 +271,9 @@ Not needed for a viable NetherNet transport, but known and worth doing:
 - **Joining from outside the local network.** Beyond `server-udp-ports`: STUN to learn a reflexive
   address without configuring one, and TURN for players behind symmetric NAT. Mojang's guide
   advises against STUN and TURN for HTTP signaling, so start with the static mapping.
+- **Verifying the offer's token.** A server could check the multiplayer token in `a=identity`
+  before answering, and refuse a join before WebRTC starts. Nothing needs it yet: the Login
+  packet is checked either way.
 - **Friends and Realms joins.** BDS signs in to Microsoft's signaling service at startup ("Signed in
   to signaling service successfully"), which is how friends join a server they have not typed the
   address of. That needs an Xbox Live identity for the server.
