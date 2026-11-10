@@ -482,7 +482,7 @@ export default class PlayerSession {
         this.server.getChunkScheduler().remove(this);
         const player = this.players.of(Number(this.runtimeId));
         if (player === undefined) return;
-        BossBar.releasePlayer(player);
+        BossBar.releasePlayer(this.runtimeId);
         forgetAdvancements(player);
         forgetEnchantmentSeed(player);
         this.players.delete(Number(this.runtimeId));

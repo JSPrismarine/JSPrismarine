@@ -4,7 +4,7 @@ import BossEventPacket, {
     BossEventUpdateType
 } from '@jsprismarine/protocol/packet/BossEventPacket';
 
-import type Player from '../Player';
+import type PlayerSession from './PlayerSession';
 
 /**
  * The bars each player currently has on screen, so a serverbound `Query` can find the bar it
@@ -13,6 +13,17 @@ import type Player from '../Player';
  * drops the player, or when {@link BossBar.releasePlayer} runs as the session is torn down.
  */
 const barsByPlayer = new Map<bigint, Set<BossBar>>();
+
+/**
+ * A client a bar is shown to: its session, or a legacy player, which is reached through its
+ * session. Callers that still hold the player pass it until package C4h of the entity and tick
+ * re-architecture, which leaves the session alone.
+ */
+export type BossBarViewer = PlayerSession | { getNetworkSession(): PlayerSession };
+
+/** The session a viewer speaks through. */
+const sessionOf = (viewer: BossBarViewer): PlayerSession =>
+    'getNetworkSession' in viewer ? viewer.getNetworkSession() : viewer;
 
 /** What a new boss bar shows before anything updates it. The bar starts full. */
 export interface BossBarOptions {
@@ -44,8 +55,8 @@ export class BossBar {
     private percent = 1;
     private readonly color: BossBarColor;
     private readonly overlay: BossBarOverlay;
-    /** The subscribed players by entity runtime id. */
-    private readonly subscribers = new Map<bigint, Player>();
+    /** The subscribed players' sessions by entity runtime id. */
+    private readonly subscribers = new Map<bigint, PlayerSession>();
 
     public constructor(options: BossBarOptions) {
         this.actorUniqueId = options.actorUniqueId;
@@ -58,25 +69,27 @@ export class BossBar {
      * Shows the bar to a player with its current state. A player already subscribed is left
      * alone.
      */
-    public async addPlayer(player: Player): Promise<void> {
-        const runtimeId = player.getRuntimeId();
+    public async addPlayer(viewer: BossBarViewer): Promise<void> {
+        const session = sessionOf(viewer);
+        const { runtimeId } = session;
         if (this.subscribers.has(runtimeId)) return;
 
-        this.subscribers.set(runtimeId, player);
+        this.subscribers.set(runtimeId, session);
         let bars = barsByPlayer.get(runtimeId);
         if (!bars) barsByPlayer.set(runtimeId, (bars = new Set()));
         bars.add(this);
 
-        await this.sendTo(player, BossEventUpdateType.Add);
+        await this.sendTo(session, BossEventUpdateType.Add);
     }
 
     /** Hides the bar from a player. A player the bar does not have is left alone. */
-    public async removePlayer(player: Player): Promise<void> {
-        const runtimeId = player.getRuntimeId();
+    public async removePlayer(viewer: BossBarViewer): Promise<void> {
+        const session = sessionOf(viewer);
+        const { runtimeId } = session;
         if (!this.subscribers.delete(runtimeId)) return;
 
         this.unlink(runtimeId);
-        if (player.isOnline()) await this.sendTo(player, BossEventUpdateType.Remove);
+        if (session.isConnected()) await this.sendTo(session, BossEventUpdateType.Remove);
     }
 
     /** Sets how full the bar is, clamped to 0..1, and updates every subscribed player. */
@@ -105,8 +118,8 @@ export class BossBar {
         await this.broadcast(BossEventUpdateType.Add);
     }
 
-    /** The players currently subscribed to the bar, with disconnected ones dropped. */
-    public players(): readonly Player[] {
+    /** The sessions of the players subscribed to the bar, with disconnected ones dropped. */
+    public players(): readonly PlayerSession[] {
         this.prune();
         return [...this.subscribers.values()];
     }
@@ -115,9 +128,10 @@ export class BossBar {
      * Answers a serverbound `Query` by resending the Add for the queried actor's bar to the
      * asking player. A query for an actor no bar of theirs is bound to goes unanswered.
      */
-    public static async answerQuery(player: Player, actorUniqueId: bigint): Promise<void> {
-        for (const bar of barsByPlayer.get(player.getRuntimeId()) ?? []) {
-            if (bar.actorUniqueId === actorUniqueId) await bar.sendTo(player, BossEventUpdateType.Add);
+    public static async answerQuery(viewer: BossBarViewer, actorUniqueId: bigint): Promise<void> {
+        const session = sessionOf(viewer);
+        for (const bar of barsByPlayer.get(session.runtimeId) ?? []) {
+            if (bar.actorUniqueId === actorUniqueId) await bar.sendTo(session, BossEventUpdateType.Add);
         }
     }
 
@@ -126,17 +140,17 @@ export class BossBar {
      *
      * For the session's tear-down: the client is gone, so there is nobody to send a Remove to,
      * and a bar that never updates again would otherwise hold the player until it is dropped.
+     * @param runtimeId - The player's entity id.
      */
-    public static releasePlayer(player: Player): void {
-        const runtimeId = player.getRuntimeId();
+    public static releasePlayer(runtimeId: bigint): void {
         for (const bar of barsByPlayer.get(runtimeId) ?? []) bar.subscribers.delete(runtimeId);
         barsByPlayer.delete(runtimeId);
     }
 
     /** Lets go of every subscriber whose player has disconnected. */
     private prune(): void {
-        for (const [runtimeId, player] of this.subscribers) {
-            if (player.isOnline()) continue;
+        for (const [runtimeId, session] of this.subscribers) {
+            if (session.isConnected()) continue;
             this.subscribers.delete(runtimeId);
             this.unlink(runtimeId);
         }
@@ -152,10 +166,10 @@ export class BossBar {
 
     private async broadcast(eventType: BossEventUpdateType): Promise<void> {
         this.prune();
-        await Promise.all([...this.subscribers.values()].map(async (player) => this.sendTo(player, eventType)));
+        await Promise.all([...this.subscribers.values()].map(async (session) => this.sendTo(session, eventType)));
     }
 
-    private async sendTo(player: Player, eventType: BossEventUpdateType): Promise<void> {
+    private async sendTo(session: PlayerSession, eventType: BossEventUpdateType): Promise<void> {
         const packet = new BossEventPacket();
         packet.targetActorId = this.actorUniqueId;
         packet.eventType = eventType;
@@ -164,6 +178,6 @@ export class BossBar {
         packet.healthPercent = this.percent;
         packet.color = this.color;
         packet.overlay = this.overlay;
-        await player.getNetworkSession().send(packet);
+        await session.send(packet);
     }
 }
