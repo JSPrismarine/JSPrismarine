@@ -1,5 +1,7 @@
 import NetworkPacket from '../NetworkPacket';
 import { PacketIdentifier } from '../PacketIdentifier';
+import { chunkRadiusUpdatedPacket } from '../wire/definitions/chunkRadiusUpdated';
+import { layoutAt } from '../wire/WireLayout';
 
 import type NetworkBinaryStream from '../NetworkBinaryStream';
 
@@ -22,10 +24,10 @@ export default class ChunkRadiusUpdatedPacket extends NetworkPacket<ChunkRadiusU
     }
 
     protected serializePayload(stream: NetworkBinaryStream, data: ChunkRadiusUpdated): void {
-        stream.writeVarInt(data.radius);
+        layoutAt(chunkRadiusUpdatedPacket, this.codecProtocol).encode(stream, data);
     }
 
     protected deserializePayload(stream: NetworkBinaryStream): ChunkRadiusUpdated {
-        return { radius: stream.readVarInt() };
+        return layoutAt(chunkRadiusUpdatedPacket, this.codecProtocol).decode(stream);
     }
 }

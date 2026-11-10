@@ -1,5 +1,7 @@
 import NetworkPacket from '../NetworkPacket';
 import { PacketIdentifier } from '../PacketIdentifier';
+import { requestNetworkSettingsPacket } from '../wire/definitions/networkSettings';
+import { layoutAt } from '../wire/WireLayout';
 
 import type NetworkBinaryStream from '../NetworkBinaryStream';
 
@@ -24,10 +26,10 @@ export default class RequestNetworkSettingsPacket extends NetworkPacket<RequestN
     }
 
     protected serializePayload(stream: NetworkBinaryStream, data: RequestNetworkSettings): void {
-        stream.writeInt(data.protocolVersion);
+        layoutAt(requestNetworkSettingsPacket, this.codecProtocol).encode(stream, data);
     }
 
     protected deserializePayload(stream: NetworkBinaryStream): RequestNetworkSettings {
-        return { protocolVersion: stream.readInt() };
+        return layoutAt(requestNetworkSettingsPacket, this.codecProtocol).decode(stream);
     }
 }

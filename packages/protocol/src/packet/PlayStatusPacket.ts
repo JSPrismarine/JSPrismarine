@@ -1,5 +1,7 @@
 import NetworkPacket from '../NetworkPacket';
 import { PacketIdentifier } from '../PacketIdentifier';
+import { playStatusPacket } from '../wire/definitions/playStatus';
+import { layoutAt } from '../wire/WireLayout';
 
 import type NetworkBinaryStream from '../NetworkBinaryStream';
 
@@ -42,10 +44,10 @@ export default class PlayStatusPacket extends NetworkPacket<PlayStatusData> {
     }
 
     protected serializePayload(stream: NetworkBinaryStream, data: PlayStatusData): void {
-        stream.writeInt(data.status);
+        layoutAt(playStatusPacket, this.codecProtocol).encode(stream, data);
     }
 
     protected deserializePayload(stream: NetworkBinaryStream): PlayStatusData {
-        return { status: stream.readInt() };
+        return layoutAt(playStatusPacket, this.codecProtocol).decode(stream);
     }
 }

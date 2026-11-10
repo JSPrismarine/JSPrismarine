@@ -1,5 +1,7 @@
 import NetworkPacket from '../NetworkPacket';
 import { PacketIdentifier } from '../PacketIdentifier';
+import { networkSettingsPacket } from '../wire/definitions/worldStatus';
+import { layoutAt } from '../wire/WireLayout';
 
 import type { PacketCompressionAlgorithm } from '@jsprismarine/minecraft';
 import type NetworkBinaryStream from '../NetworkBinaryStream';
@@ -50,20 +52,10 @@ export default class NetworkSettingsPacket extends NetworkPacket<NetworkSettings
     }
 
     protected serializePayload(stream: NetworkBinaryStream, data: NetworkSettings): void {
-        stream.writeUnsignedShortLE(data.compressionThreshold);
-        stream.writeUnsignedShortLE(data.compressionAlgorithm);
-        stream.writeBoolean(data.clientThrottlingEnabled);
-        stream.writeByte(data.clientThrottleThreshold);
-        stream.writeFloatLE(data.clientThrottleScalar);
+        layoutAt(networkSettingsPacket, this.codecProtocol).encode(stream, data);
     }
 
     protected deserializePayload(stream: NetworkBinaryStream): NetworkSettings {
-        return {
-            compressionThreshold: stream.readUnsignedShortLE(),
-            compressionAlgorithm: stream.readUnsignedShortLE(),
-            clientThrottlingEnabled: stream.readBoolean(),
-            clientThrottleThreshold: stream.readByte(),
-            clientThrottleScalar: stream.readFloatLE()
-        };
+        return layoutAt(networkSettingsPacket, this.codecProtocol).decode(stream);
     }
 }

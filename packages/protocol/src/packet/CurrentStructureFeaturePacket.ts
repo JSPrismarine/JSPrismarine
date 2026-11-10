@@ -1,5 +1,7 @@
 import NetworkPacket from '../NetworkPacket';
 import { PacketIdentifier } from '../PacketIdentifier';
+import { currentStructureFeaturePacket } from '../wire/definitions/currentStructureFeature';
+import { layoutAt } from '../wire/WireLayout';
 
 import type NetworkBinaryStream from '../NetworkBinaryStream';
 
@@ -25,10 +27,10 @@ export default class CurrentStructureFeaturePacket extends NetworkPacket<Current
     }
 
     protected serializePayload(stream: NetworkBinaryStream, data: CurrentStructureFeature): void {
-        stream.writeString(data.currentStructureFeature);
+        layoutAt(currentStructureFeaturePacket, this.codecProtocol).encode(stream, data);
     }
 
     protected deserializePayload(stream: NetworkBinaryStream): CurrentStructureFeature {
-        return { currentStructureFeature: stream.readString() };
+        return layoutAt(currentStructureFeaturePacket, this.codecProtocol).decode(stream);
     }
 }
