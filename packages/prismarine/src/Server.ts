@@ -974,6 +974,17 @@ export default class Server extends EventEmitter {
         return this.ticker.recorder;
     }
 
+    /**
+     * Runs one tick now, for a harness that drives a server started with ticking disabled.
+     *
+     * Each call is exactly one tick and resolves when its work has settled, so a replay takes
+     * the same steps on any host. See {@link ServerTicker.advance}.
+     * @throws {Error} When the tick loop is running.
+     */
+    public advanceTick(): Promise<void> {
+        return this.ticker.advance();
+    }
+
     /** The handle `/tick` uses to change the tick rate, freeze the world, step it and sprint. */
     public getTickControl(): TickControl {
         return this.ticker;
