@@ -1,3 +1,5 @@
+import dgram from 'node:dgram';
+import { once } from 'node:events';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -100,6 +102,73 @@ describe('modules/network', () => {
             networking.kill();
             vi.unstubAllEnvs();
             fs.rmSync(dataDirectory, { recursive: true, force: true });
+        }
+    });
+
+    /** A server running RakNet alone, in socket mode, on the IPv6 port given. */
+    const rakNetServer = (portV6: number, warn: (message: string) => void = () => {}) =>
+        stub<Server>({
+            getConfig: () =>
+                stub<Config>({
+                    getEnableQuery: () => false,
+                    getGamemode: () => 'survival',
+                    getMaxPlayers: () => 1,
+                    getMotd: () => 'test server',
+                    getOnlineMode: () => false,
+                    getEnableRakNet: () => true,
+                    getEnableNetherNet: () => false,
+                    getUseRakNetWorker: () => false,
+                    getServerPortV6: () => portV6
+                }),
+            getLogger: () =>
+                stub<Logger>({
+                    debug: () => {},
+                    error: () => {},
+                    info: () => {},
+                    silly: () => {},
+                    verbose: () => {},
+                    warn
+                }),
+            getPacketHandlerRegistry: () => stub<ReturnType<Server['getPacketHandlerRegistry']>>({}),
+            getPacketLogFilter: () => new PacketLogFilter(),
+            getSessionManager: () => new SessionManager()
+        });
+
+    it('listens on IPv6 beside a wildcard IPv4 bind and advertises both ports', async () => {
+        const networking = new ServerNetworking(rakNetServer(0));
+
+        try {
+            // Port 0 for both: the advertised ports change from their defaults once each socket binds.
+            networking.start('0.0.0.0', 0);
+            const name = networking.getServerName()!;
+
+            await vi.waitFor(() => {
+                expect(name.getPort()).not.toBe(19132);
+                expect(name.getPortV6()).not.toBe(19133);
+            });
+            expect(name.getPortV6()).not.toBe(name.getPort());
+        } finally {
+            networking.kill();
+        }
+    });
+
+    it('keeps IPv4 running and warns when the IPv6 port is taken', async () => {
+        const holder = dgram.createSocket({ type: 'udp6', ipv6Only: true });
+        holder.bind(0, '::');
+        await once(holder, 'listening');
+        const taken = holder.address().port;
+        const warnings: string[] = [];
+        const networking = new ServerNetworking(rakNetServer(taken, (message) => warnings.push(message)));
+
+        try {
+            networking.start('0.0.0.0', 0);
+
+            await vi.waitFor(() => expect(warnings).toHaveLength(1));
+            expect(warnings[0]).toContain(`IPv6 clients cannot join: UDP port ${taken} is unavailable`);
+            expect(networking.getListener()).toBeDefined();
+        } finally {
+            networking.kill();
+            holder.close();
         }
     });
 
