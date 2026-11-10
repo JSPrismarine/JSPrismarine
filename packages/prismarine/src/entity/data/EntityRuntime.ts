@@ -130,6 +130,7 @@ import { entityFilterContextOf } from './filterView';
 import type { ContentItemEntity, EntityHostFacts, EntityWorldFacts } from './host';
 import { DroppedItems, isDroppedItem } from './droppedItems';
 import { EyeOfEnderSignals, isEyeOfEnderSignal } from './eyeOfEnderSignals';
+import { PlayerSystems } from './playerSystems';
 import { itemDropOf } from '../../inventory/persistence';
 import { maxStackSizeOf, resistsDamageOf } from '../../item/Item';
 import { navigationViewOf } from './navigationView';
@@ -450,6 +451,9 @@ export class EntityRuntime implements EntityScene {
 
     /** The eyes of ender in flight among this runtime's entities, and the system that flies them. */
     public readonly eyesOfEnder: EyeOfEnderSignals;
+
+    /** The systems a store player's survival runs on, and its component state. */
+    public readonly playerSystems: PlayerSystems;
     /** The entity each `EntityInstance` belongs to, which is how the AI seams resolve a body. */
     private readonly byInstance = new Map<EntityInstance, DataEntity>();
     /** Invalid interaction slots reported once per entity and request. */
@@ -674,6 +678,14 @@ export class EntityRuntime implements EntityScene {
             playSoundAt: (at, sound) => this.host.playSoundAt?.(at, sound),
             levelEvent: (at, event, data) => this.host.levelEvent?.(at, event, data),
             drop: (at, stack) => void this.droppedItems.spawn(at, { stack })
+        });
+        this.playerSystems = new PlayerSystems({
+            written: (entity, field, before, after) => this.store.written(entity, field, before, after),
+            level: this.world.level,
+            blockAt: (at) => this.world.blocks.get(at),
+            damage: (intent) => this.damage(intent),
+            heal: (id, amount) => this.heal(id, amount),
+            dying: (id) => this.dying.has(id)
         });
         this.rides.onChange = (rider, before, after) => {
             const entity = this.store.get(rider);
@@ -973,6 +985,7 @@ export class EntityRuntime implements EntityScene {
     /** Writes one logged field of a data entity back, without running its setter's side effects. */
     private writeField(entity: DataEntity, field: string, value: PlainData): void {
         const { body, instance } = entity;
+        if (clientOwnsMovement(entity.identifier) && this.playerSystems.restore(entity, field, value)) return;
         if (isBodyField(field)) {
             body.restore(field, bodyFieldValue(field, value));
             return;
@@ -1455,8 +1468,12 @@ export class EntityRuntime implements EntityScene {
         this.tickDaylightBurn(entity);
         this.tickVoid(entity);
         if (entity.removed !== undefined) return;
-        // The client moves this body and reports where it went as an input (ADR 0008).
-        if (clientOwnsMovement(entity.identifier)) return;
+        // The client moves this body and reports where it went as an input (ADR 0008), and its
+        // survival is the player systems'.
+        if (clientOwnsMovement(entity.identifier)) {
+            this.playerSystems.tick(entity, tick);
+            return;
+        }
         entity.body.containerCapacity = this.containerCapacityOf(entity.instance);
         this.syncGameEventListener(entity);
         this.index.refreshFamilies(entity);

@@ -60,58 +60,26 @@ import { logLegacyImpulse, logLegacyWrite } from './entity/legacyAdapter';
 import type { ExperienceHolder } from './entity/Experience';
 import { PlayerComponents } from './entity/playerComponents';
 import { PLAYER_TRACKING_RANGE_CHUNKS } from './world/ShownPlayer';
+import type { SurvivalPlayer } from './entity/survivalPlayer';
+import {
+    addExhaustion,
+    addFood,
+    addJumpExhaustion,
+    addMovementExhaustion,
+    applyHungerEffect,
+    hungerOutcome,
+    setSaturation
+} from './entity/playerHunger';
 import type { PlainData, PlainRecord } from './world/changelog/PlainData';
-
-/**
- * How much exhaustion buys one point of saturation, and then of food.
- */
-const EXHAUSTION_PER_FOOD_POINT = 4;
 
 /** How often the two per-player triggers are checked, which is Java's one second. */
 const ADVANCEMENT_CHECK_TICKS = 20;
-
-/**
- * What the things a player does cost in exhaustion, from the vanilla hunger table.
- * @see https://minecraft.wiki/w/Hunger#Exhaustion_level_increase
- */
-export const EXHAUSTION = {
-    /** Per meter walked. */
-    walking: 0.01,
-    /** Per meter sprinted - ten times the cost of walking it. */
-    sprinting: 0.1,
-    /** Per jump. */
-    jumping: 0.05,
-    /** Per jump made while sprinting. */
-    sprintJumping: 0.2,
-    /** Per swing that connects. A miss is free, which is why it is charged after the fact. */
-    attacking: 0.1,
-    /** Per half-heart healed by being well fed. */
-    regeneration: 6
-} as const;
-
-/** Hunger's slower effects - starving and healing - run on a four-second clock. */
-const VITALS_INTERVAL = 80;
-
-/** Exhaustion per level, per tick, while the hunger effect is on. */
-const HUNGER_EFFECT_EXHAUSTION = 0.005;
-
-/** Food at or above this heals the player, at the cost of {@link EXHAUSTION.regeneration}. */
-const REGENERATION_FOOD_LEVEL = 18;
-
-/** Half-hearts lost per {@link VITALS_INTERVAL} with an empty food bar. */
-const STARVATION_DAMAGE = 1;
 
 /** Ticks of breath regained per tick out of the water; the bar empties at one. */
 const AIR_REGAIN_PER_TICK = 5;
 
 /** Breath is only reported to the client in steps of this many ticks - see `syncBreath`. */
 const AIR_SYNC_STEP = 10;
-
-/**
- * Movement further than this in a single update is a teleport, not a walk, and buys no
- * exhaustion. Without it a world change or a `/tp` across the map would empty the food bar.
- */
-const MAX_EXHAUSTING_STEP = 10;
 
 /**
  * How far a blow lifts a player off the ground.
@@ -197,6 +165,22 @@ export default class Player extends Human {
         (field, before, after) => logLegacyWrite(this, field, before, after),
         this.metadata
     );
+
+    /**
+     * This player as the survival rules read it, which the store's player systems also run. Built
+     * on first use, so a test double made from the prototype has one once it has components.
+     */
+    private get survival(): SurvivalPlayer {
+        this.survivalView ??= {
+            components: this.components,
+            vulnerable: () => this.isVulnerable(),
+            alive: () => this.isAlive(),
+            health: () => this.getHealth(),
+            maxHealth: () => this.getMaxHealth()
+        };
+        return this.survivalView;
+    }
+    private survivalView: SurvivalPlayer | undefined;
 
     private get onGround(): boolean {
         return this.components.get('movement.onGround');
@@ -830,9 +814,7 @@ export default class Player extends Human {
         if (!this.connected || !this.isVulnerable() || !this.isAlive()) return;
 
         await this.updateBreath();
-
-        // The rest of hunger is a four-second clock, not a per-tick one.
-        if (tick % VITALS_INTERVAL === 0) await this.updateHunger();
+        await this.updateHunger(tick);
     }
 
     /**
@@ -936,39 +918,26 @@ export default class Player extends Human {
     }
 
     /**
-     * The slow half of hunger: starving when the bar is empty, healing when it is nearly
-     * full. Both run on vanilla's four-second clock.
+     * The slow half of hunger: starving when the bar is empty, healing when it is nearly full.
+     * Both run on vanilla's four-second clock - see {@link hungerOutcome}.
+     * @param {number} tick - The current world-tick.
      */
-    private async updateHunger(): Promise<void> {
-        const food = this.getFood();
-
-        if (food <= 0) {
-            await this.damage(STARVATION_DAMAGE, DamageCause.Starvation);
-            return;
-        }
-
-        // Healing is not free: it is the main thing a well-fed player spends food on. A world with
-        // natural regeneration turned off is one where food only stops you starving.
+    private async updateHunger(tick: number): Promise<void> {
         const [regenerates] = this.getWorld().getGameRuleManager()?.getGameRule(GameRules.NaturalRegeneration) ?? [
             true
         ];
-        if (!regenerates) return;
-
-        if (food >= REGENERATION_FOOD_LEVEL && this.getHealth() < this.getMaxHealth()) {
-            await this.heal(1);
-            this.addExhaustion(EXHAUSTION.regeneration);
+        const outcome = hungerOutcome(this.survival, tick, Boolean(regenerates));
+        if (outcome?.kind === 'starve') await this.damage(outcome.amount, DamageCause.Starvation);
+        else if (outcome?.kind === 'regenerate') {
+            await this.heal(outcome.amount);
+            addExhaustion(this.survival, outcome.exhaustion);
         }
     }
 
     /** Hunger drains food faster and saturation fills it; the rest are the entity's. */
     protected override async applyStatusEffectTick(effect: StatusEffect, clock: number): Promise<void> {
         await super.applyStatusEffectTick(effect, clock);
-
-        if (effect.id === 'minecraft:hunger') this.addExhaustion(HUNGER_EFFECT_EXHAUSTION * (effect.amplifier + 1));
-        else if (effect.id === 'minecraft:saturation') {
-            // Java's `FoodData.eat(amplifier + 1, 1.0F)`: that much food, and twice as much saturation.
-            this.addFood(effect.amplifier + 1, (effect.amplifier + 1) * 2);
-        }
+        applyHungerEffect(this.survival, effect.id, effect.amplifier);
     }
 
     /**
@@ -1343,7 +1312,7 @@ export default class Player extends Human {
      * @param {number} saturation - The wanted saturation.
      */
     public setSaturation(saturation: number): void {
-        this.components.set('vitals.saturation', Math.min(saturation, this.getFood()));
+        setSaturation(this.components, saturation);
     }
 
     /**
@@ -1352,8 +1321,7 @@ export default class Player extends Human {
      * @param {number} [saturation=0] - Saturation points to restore.
      */
     public addFood(food: number, saturation = 0): void {
-        this.setFood(this.getFood() + food);
-        this.setSaturation(this.getSaturation() + saturation);
+        addFood(this.components, food, saturation);
     }
 
     /**
@@ -1369,36 +1337,7 @@ export default class Player extends Human {
      * ```
      */
     public addExhaustion(amount: number): void {
-        if (!this.consumesFood() || !this.isAlive() || amount <= 0) return;
-
-        let exhaustion = this.components.get('vitals.exhaustion') + amount;
-
-        while (exhaustion >= EXHAUSTION_PER_FOOD_POINT) {
-            exhaustion -= EXHAUSTION_PER_FOOD_POINT;
-
-            const saturation = this.getSaturation();
-            if (saturation > 0) this.setSaturation(saturation - 1);
-            else this.setFood(this.getFood() - 1);
-        }
-
-        this.components.set('vitals.exhaustion', exhaustion);
-    }
-
-    /**
-     * Charges the player for the ground they just covered.
-     *
-     * Called from {@link Player.setPosition}, which every kind of movement funnels through.
-     * Only horizontal distance counts, as in vanilla - falling is free.
-     * @param {Vector3} from - Where the player was.
-     * @param {Vector3} to - Where the player now is.
-     */
-    private addMovementExhaustion(from: Vector3, to: Vector3): void {
-        if (!this.consumesFood() || this.isFlying()) return;
-
-        const distance = Math.hypot(to.getX() - from.getX(), to.getZ() - from.getZ());
-        if (distance <= 0 || distance > MAX_EXHAUSTING_STEP) return;
-
-        this.addExhaustion(distance * (this.metadata.sprinting ? EXHAUSTION.sprinting : EXHAUSTION.walking));
+        addExhaustion(this.survival, amount);
     }
 
     /**
@@ -1406,7 +1345,7 @@ export default class Player extends Human {
      * vanilla, at four times the cost of a standing jump.
      */
     public addJumpExhaustion(): void {
-        this.addExhaustion(this.metadata.sprinting ? EXHAUSTION.sprintJumping : EXHAUSTION.jumping);
+        addJumpExhaustion(this.survival);
     }
 
     public async setSprinting(sprinting: boolean): Promise<void> {
@@ -1689,7 +1628,7 @@ export default class Player extends Human {
         // A reset or a teleport is not the player walking, so it costs nothing - and it must not
         // count as a fall either, or arriving anywhere below where you left would hurt.
         if (type === PositionMode.Normal) {
-            this.addMovementExhaustion(previous, position);
+            addMovementExhaustion(this.survival, previous, position, this.isFlying());
             this.trackFall(previous, position);
         } else {
             this.fallDistance = 0;
