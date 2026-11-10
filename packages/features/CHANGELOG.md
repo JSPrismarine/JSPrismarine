@@ -1,5 +1,12 @@
 # @jsprismarine/features
 
+## 0.20.0
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @jsprismarine/worldgen@0.20.0
+
 ## 0.19.2
 
 ### Patch Changes

@@ -1,5 +1,14 @@
 # @jsprismarine/commands
 
+## 0.20.0
+
+### Patch Changes
+
+- Updated dependencies [[`4871ae6`](https://github.com/JSPrismarine/JSPrismarine/commit/4871ae64bf290095e3af06a7d7e13206d2989d16)]:
+  - @jsprismarine/minecraft@0.20.0
+  - @jsprismarine/mapping@0.20.0
+  - @jsprismarine/brigadier@0.20.0
+
 ## 0.19.2
 
 ### Patch Changes

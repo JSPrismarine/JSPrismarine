@@ -1,5 +1,12 @@
 # @jsprismarine/items
 
+## 0.20.0
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @jsprismarine/content@0.20.0
+
 ## 0.19.2
 
 ### Patch Changes

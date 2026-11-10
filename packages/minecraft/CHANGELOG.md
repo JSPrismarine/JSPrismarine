@@ -1,5 +1,17 @@
 # @jsprismarine/minecraft
 
+## 0.20.0
+
+### Minor Changes
+
+- [#2945](https://github.com/JSPrismarine/JSPrismarine/pull/2945) [`4871ae6`](https://github.com/JSPrismarine/JSPrismarine/commit/4871ae64bf290095e3af06a7d7e13206d2989d16) Thanks [@filiphsps](https://github.com/filiphsps)! - Remove `vanillaRecipes`, the recipe list generated from a Bedrock Dedicated Server's behavior packs, along with its generator and the `generate:recipes` script. It fed the legacy recipe manager `@jsprismarine/prismarine` no longer has; recipes come from the pack stack's Java recipe definitions through `@jsprismarine/recipes`.
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @jsprismarine/nbt@0.20.0
+  - @jsprismarine/errors@0.20.0
+
 ## 0.19.2
 
 ### Patch Changes

@@ -1,5 +1,19 @@
 # @jsprismarine/server
 
+## 0.20.0
+
+### Patch Changes
+
+- [#2944](https://github.com/JSPrismarine/JSPrismarine/pull/2944) [`12a51cb`](https://github.com/JSPrismarine/JSPrismarine/commit/12a51cbdcfb8f6100646b5ee5c57bbaa0abee804) Thanks [@filiphsps](https://github.com/filiphsps)! - `pnpm start` runs the compiled server without building it first. Run `pnpm run build` or `pnpm run server:build` beforehand; a missing `dist/Server.js` fails with Node's module-not-found error.
+- Updated dependencies [[`8c2054b`](https://github.com/JSPrismarine/JSPrismarine/commit/8c2054b0db2010d5ae60ee1c4165a94d375f6aae), [`bfa224c`](https://github.com/JSPrismarine/JSPrismarine/commit/bfa224c60c9a6079a0551d4e04dda6ce459e8364), [`e498e81`](https://github.com/JSPrismarine/JSPrismarine/commit/e498e81b74d4ca6ee2ea27dedc773c6b2fd37ab0), [`40bef5d`](https://github.com/JSPrismarine/JSPrismarine/commit/40bef5d6ff291f3435c859aaeb1084a34fb5ee00), [`0df23d5`](https://github.com/JSPrismarine/JSPrismarine/commit/0df23d5aaccd9d81dd3b1e467928eb335a8d610a), [`dc2dfdd`](https://github.com/JSPrismarine/JSPrismarine/commit/dc2dfdd656fa922ce984495ed2664e6669b2e5ac), [`ab14f6b`](https://github.com/JSPrismarine/JSPrismarine/commit/ab14f6b7c3d74bf359196aa64f121844f5e243c4), [`5409d2e`](https://github.com/JSPrismarine/JSPrismarine/commit/5409d2e110332d3a721b0e9ee26e86d9bf3f1410), [`4871ae6`](https://github.com/JSPrismarine/JSPrismarine/commit/4871ae64bf290095e3af06a7d7e13206d2989d16), [`4bb200f`](https://github.com/JSPrismarine/JSPrismarine/commit/4bb200ff834a896bcf167a1dd536ce875508a4bf), [`67d6870`](https://github.com/JSPrismarine/JSPrismarine/commit/67d6870a21b09ec1406ee78fe936be39dd0ccb52), [`7cfee35`](https://github.com/JSPrismarine/JSPrismarine/commit/7cfee358456c0bc2e3d6f179d23450bee1203f08), [`7f30eb8`](https://github.com/JSPrismarine/JSPrismarine/commit/7f30eb80291c4a6bf08d57f236dcc1707c7bedfb), [`0ddefe0`](https://github.com/JSPrismarine/JSPrismarine/commit/0ddefe0ab22512f7448a4f7bc14b7a1a77c93025), [`45aabcd`](https://github.com/JSPrismarine/JSPrismarine/commit/45aabcdcafa354ea385d6d58bd9b4ece820f987b), [`c3138ba`](https://github.com/JSPrismarine/JSPrismarine/commit/c3138ba293271ffbacba0553db8fdcf4dbff902b), [`16e3296`](https://github.com/JSPrismarine/JSPrismarine/commit/16e3296fad1e3545c60ac8438d49622963492365), [`2f505cd`](https://github.com/JSPrismarine/JSPrismarine/commit/2f505cdb9140773af493c3f73890473556bed003)]:
+  - @jsprismarine/prismarine@0.20.0
+  - @jsprismarine/raknet@0.20.0
+  - @jsprismarine/minecraft@0.20.0
+  - @jsprismarine/color-parser@0.20.0
+  - @jsprismarine/console-protocol@0.20.0
+  - @jsprismarine/logger@0.20.0
+  - @jsprismarine/packs@0.20.0
+
 ## 0.19.2
 
 ### Patch Changes

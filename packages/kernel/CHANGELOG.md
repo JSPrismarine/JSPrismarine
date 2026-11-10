@@ -1,5 +1,13 @@
 # @jsprismarine/kernel
 
+## 0.20.0
+
+### Patch Changes
+
+- [#2945](https://github.com/JSPrismarine/JSPrismarine/pull/2945) [`e65baae`](https://github.com/JSPrismarine/JSPrismarine/commit/e65baae41fad94186ed958d224c01592d9847eb0) Thanks [@filiphsps](https://github.com/filiphsps)! - `Kernel.start()` no longer leaves modules running when one fails to start. The modules that had started are stopped in reverse order, the kernel returns to registered so `start()` can run again, and the error is rethrown.
+
+- [#2945](https://github.com/JSPrismarine/JSPrismarine/pull/2945) [`bbcb98e`](https://github.com/JSPrismarine/JSPrismarine/commit/bbcb98ec61ebf0a5deb2c48d64b20cfd13b39321) Thanks [@filiphsps](https://github.com/filiphsps)! - `Kernel.stop()` called while `start()` is still running now stops the modules started so far and the one still starting, so a long start such as a world preload can be cancelled. The pending `start()` rejects with a `KernelError` and starts nothing further. It used to be a no-op until the start finished.
+
 ## 0.19.2
 
 No changes in this release.

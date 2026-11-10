@@ -1,5 +1,9 @@
 # @jsprismarine/packs
 
+## 0.20.0
+
+No changes in this release.
+
 ## 0.19.2
 
 No changes in this release.

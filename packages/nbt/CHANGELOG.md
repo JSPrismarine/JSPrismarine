@@ -1,5 +1,12 @@
 # @jsprismarine/nbt
 
+## 0.20.0
+
+### Patch Changes
+
+- Updated dependencies [[`f030c63`](https://github.com/JSPrismarine/JSPrismarine/commit/f030c63e5c6269288d8dc576bddde160eda3cc74)]:
+  - @jsprismarine/binaryutils@0.20.0
+
 ## 0.19.2
 
 ### Patch Changes

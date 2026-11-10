@@ -1,6 +1,6 @@
 {
     "name": "@jsprismarine/mcfunction",
-    "version": "0.19.2",
+    "version": "0.20.0",
     "description": "Java Edition mcfunction runtime: parser, macros, function tags and a queue-based executor",
     "sideEffects": false,
     "publishConfig": {
