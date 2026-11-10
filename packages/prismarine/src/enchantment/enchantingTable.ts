@@ -28,7 +28,9 @@ import { bedrockEnchantType } from './bedrockIds';
 import { bookshelfPowerAround } from './bookshelves';
 import type { BlockPosition } from './bookshelves';
 import { randomOf } from '../utils/Random';
-import { keyOfPlayer } from '../playerIdentity';
+import type { KeyedPlayerSource, PlayerKeySource } from '../keyedPlayer';
+import { keyedPlayerOf, playerKeyFrom } from '../keyedPlayer';
+import type Server from '../Server';
 
 /** An enchanting table always shows three rows, even when some of them are empty. */
 export const ENCHANTING_SLOTS = 3;
@@ -43,7 +45,7 @@ const WORN_GROUPS: ReadonlySet<string> = new Set(['armor', 'head', 'chest', 'leg
 const HELD_GROUPS: ReadonlySet<string> = new Set(['mainhand', 'offhand', 'hand']);
 
 /**
- * Each player's enchantment seed, by the player's key (`keyOfPlayer`). The seed is read from the
+ * Each player's enchantment seed, by the player's key (`playerKeyOf`). The seed is read from the
  * player data at join and saved at leave. Keyed by the account rather than the entity runtime id
  * for the reason `advancement/progress.ts` gives. `PlayerSession.disable` calls
  * {@link forgetEnchantmentSeed} once it is saved.
@@ -51,9 +53,9 @@ const HELD_GROUPS: ReadonlySet<string> = new Set(['mainhand', 'offhand', 'hand']
 const seeds = new Map<string, number>();
 
 /** A fresh seed, in the 32-bit range Java's own reroll produces. */
-const freshSeed = (player: Player): number => {
+const freshSeed = (server: Server): number => {
     // Use the checkpointed server stream so table creation and rerolls replay with the same seed.
-    return Math.floor(randomOf(player.getServer())() * 0x7fffffff);
+    return Math.floor(randomOf(server)() * 0x7fffffff);
 };
 
 /**
@@ -62,20 +64,21 @@ const freshSeed = (player: Player): number => {
  * @param stored - The seed off the player data record, used the first time
  *   this player is asked.
  */
-export const enchantmentSeedOf = (player: Player, stored?: number): number => {
-    const key = keyOfPlayer(player);
+export const enchantmentSeedOf = (player: KeyedPlayerSource, stored?: number): number => {
+    const { key, server } = keyedPlayerOf(player);
     const held = seeds.get(key);
     if (held !== undefined) return held;
 
-    const seed = stored ?? freshSeed(player);
+    const seed = stored ?? freshSeed(server);
     seeds.set(key, seed);
     return seed;
 };
 
 /** Draws a new seed, which is what Java does the moment something is enchanted. */
-export const rerollEnchantmentSeed = (player: Player): number => {
-    const seed = freshSeed(player);
-    seeds.set(keyOfPlayer(player), seed);
+export const rerollEnchantmentSeed = (player: KeyedPlayerSource): number => {
+    const { key, server } = keyedPlayerOf(player);
+    const seed = freshSeed(server);
+    seeds.set(key, seed);
     return seed;
 };
 
@@ -85,8 +88,8 @@ export const rerollEnchantmentSeed = (player: Player): number => {
  * Called after the seed has been saved. A player who comes back has it read from the record
  * again through {@link enchantmentSeedOf}.
  */
-export const forgetEnchantmentSeed = (player: Player): void => {
-    seeds.delete(keyOfPlayer(player));
+export const forgetEnchantmentSeed = (player: PlayerKeySource): void => {
+    seeds.delete(playerKeyFrom(player));
 };
 
 /** Where an offer's enchantments go in the three lists the packet carries. */

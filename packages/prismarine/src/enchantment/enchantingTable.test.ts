@@ -15,6 +15,7 @@ import PlayerEnchantOptionsPacket, { EnchantType } from '@jsprismarine/protocol/
 import { fakePlayer } from '../testing/fakePlayer.test.helper';
 import { stub } from '../testing/stub.test.helper';
 import { experienceIn } from '../testing/playerDouble.test.helper';
+import { keyOfPlayer } from '../playerIdentity';
 import { bookshelfPowerAround } from './bookshelves';
 import {
     enchantingRows,
@@ -173,6 +174,16 @@ describe('the enchanting table', () => {
 
         expect(enchantmentSeedOf(first)).toBe(1234);
         expect(enchantmentSeedOf(second)).toBe(5678);
+    });
+
+    it('keeps the seed under the key the player is saved by', () => {
+        const { player } = scene(content());
+        const keyed = { key: keyOfPlayer(player), server: player.getServer() };
+
+        enchantmentSeedOf(keyed, 4321);
+
+        expect(enchantmentSeedOf(player)).toBe(4321);
+        expect(rerollEnchantmentSeed(keyed)).toBe(enchantmentSeedOf(player));
     });
 
     it("lets go of a player's seed when its session is torn down, so a rejoin reads the record", async () => {

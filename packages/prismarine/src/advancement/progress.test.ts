@@ -18,6 +18,14 @@ describe('advancement progress', () => {
         expect(advancementsOf(first)).not.toBe(advancementsOf(second));
     });
 
+    it('files the progress under the key the player is saved by', () => {
+        const { player } = fakePlayer({ name: 'KeyedProgressTester' });
+        loadAdvancements('KeyedProgressTester', {});
+
+        expect(advancementsOf(player)).toBe(advancementsOf('KeyedProgressTester'));
+        expect(advancementsOf({ key: 'KeyedProgressTester', server: player.getServer() })).toBe(advancementsOf(player));
+    });
+
     it('holds what was loaded for the player until its session is torn down', async () => {
         const { player } = fakePlayer();
         loadAdvancements(player, { 'minecraft:story/root': { criteria: { crafting_table: 'now' }, done: true } });
