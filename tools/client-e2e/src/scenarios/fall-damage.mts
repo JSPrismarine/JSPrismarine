@@ -1,4 +1,4 @@
-/** Verifies a long fall hurts the client's player and a short drop does not. */
+/** Verifies a long fall hurts the client's player, and a short drop or a landing on hay does not. */
 import assert from 'node:assert/strict';
 
 import type { Scenario } from '../scenario.mts';
@@ -46,7 +46,7 @@ const dropFrom = async ({ client, server, playerName }: Context, height: number)
 
 export const fallDamage: Scenario = {
     name: 'fall-damage',
-    description: 'an eleven block fall costs health while a three block drop costs none',
+    description: 'an eleven block fall costs health while a three block drop or one onto hay costs none',
     run: async (context) => {
         const { client, server, log } = context;
         // Its own floor at y 63, rather than whatever an earlier scenario left: run alone, the
@@ -65,5 +65,16 @@ export const fallDamage: Scenario = {
         assert.ok(hurt < start - 4, `an eleven block fall left health at ${hurt} from ${start}`);
 
         log(`fall took health from ${start} to ${hurt}`);
+
+        // A hay bale under the feet breaks the fall. The server used to read the blocks under the
+        // eyes, which the client reports, so the bale was never seen. Natural regeneration may
+        // heal a point meanwhile, so this asserts no loss rather than an equal health.
+        await placeBlockAndWait(server, { x: 0, y: 63, z: 0 }, 'minecraft:hay_block');
+        await dropFrom(context, 75);
+        await waitTicks(server, 10);
+        const onHay = await health(client);
+        assert.ok(onHay >= hurt, `an eleven block fall onto hay took health from ${hurt} to ${onHay}`);
+        await placeBlockAndWait(server, { x: 0, y: 63, z: 0 }, 'minecraft:stone');
+        log(`an eleven block fall onto hay left health at ${onHay}`);
     }
 };
