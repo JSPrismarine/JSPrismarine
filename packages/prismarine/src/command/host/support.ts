@@ -26,7 +26,7 @@ import { Vector3 } from '@jsprismarine/math';
 // `Player`, so a barrel import lands in a half-initialized module.
 import Player from '../../Player';
 import type Server from '../../Server';
-import type { Entity } from '../../entity/Entity';
+import type { WorldActor } from '../../world/WorldActor';
 import { dimensionByName } from '../../world/Dimension';
 import type { World } from '../../world/World';
 import { deferCommandWork } from '../deferred';
@@ -119,7 +119,7 @@ export const loadedDimensions = (server: Server): readonly string[] => [
  * for as long as the entity lives, so {@link resolveEntity} can find the
  * entity back from a reference a command has been carrying across a fork.
  */
-export const entityRefOf = (entity: Entity): EntityRef => ({
+export const entityRefOf = (entity: WorldActor): EntityRef => ({
     id: entity.getRuntimeId().toString(),
     type: entity.getType(),
     name: entity.getName(),
@@ -130,21 +130,22 @@ export const entityRefOf = (entity: Entity): EntityRef => ({
 });
 
 /**
- * Finds the entity a reference stands for.
+ * Finds the entity a reference stands for, a store entity through its actor.
  *
- * A linear scan of the loaded worlds. The alternative, a live index keyed by
- * runtime id, would have to be invalidated on every despawn and world change;
- * a command touches a handful of entities and runs when a player typed it, so
- * the scan is the cheaper thing to be correct about.
+ * Each loaded world answers by runtime id. A command touches a handful of entities and runs
+ * when a player typed it, so asking every world is the cheaper thing to be correct about than a
+ * server-wide index that every despawn and world change would have to keep.
  *
  * @returns The entity, or undefined when it has since despawned.
  */
-export const resolveEntity = (server: Server, ref: EntityRef): Entity | undefined => {
+export const resolveEntity = (server: Server, ref: EntityRef): WorldActor | undefined => {
+    // A reference names a runtime id; one that names anything else names nothing here.
+    if (!/^\d+$/.test(ref.id)) return undefined;
+    const runtimeId = BigInt(ref.id);
     for (const level of server.getWorldManager().getLevels()) {
         for (const world of level.worlds()) {
-            for (const entity of world.getEntities()) {
-                if (entity.getRuntimeId().toString() === ref.id) return entity;
-            }
+            const entity = world.getActor(runtimeId);
+            if (entity !== null) return entity;
         }
     }
     return undefined;

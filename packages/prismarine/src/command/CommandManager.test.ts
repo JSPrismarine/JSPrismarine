@@ -266,7 +266,9 @@ describe('command', () => {
                 const world = stub<World>({
                     getGameRuleManager: () => stub<GameRuleManager>({ getGameRule: () => [true, true] }),
                     getDimension: () => Dimensions.Overworld,
-                    getEntities: () => [target]
+                    getEntities: () => [target],
+                    getActors: () => [target],
+                    getActor: (runtimeId: bigint) => (runtimeId === target.getRuntimeId() ? target : null)
                 });
                 const server: Server = stub<Server>({
                     // Empty registries rather than no content: `enable` builds the vanilla
