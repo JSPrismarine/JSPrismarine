@@ -32,22 +32,25 @@ const wrong = (field: string, value: PlainData): never => {
     );
 };
 
-const number =
+/** Reads a logged number, naming `field` when the value is something else. */
+export const numberField =
     (field: string) =>
     (value: PlainData): number =>
         typeof value === 'number' ? value : wrong(field, value);
-const boolean =
+/** Reads a logged boolean, naming `field` when the value is something else. */
+export const booleanField =
     (field: string) =>
     (value: PlainData): boolean =>
         typeof value === 'boolean' ? value : wrong(field, value);
-const optionalNumber =
+/** Reads a logged number, or `null` for none, naming `field` when the value is something else. */
+export const optionalNumberField =
     (field: string) =>
     (value: PlainData): number | undefined =>
-        value === null ? undefined : number(field)(value);
+        value === null ? undefined : numberField(field)(value);
 const optionalBoolean =
     (field: string) =>
     (value: PlainData): boolean | undefined =>
-        value === null ? undefined : boolean(field)(value);
+        value === null ? undefined : booleanField(field)(value);
 const optionalString =
     (field: string) =>
     (value: PlainData): string | undefined =>
@@ -58,25 +61,25 @@ const optionalPosition = (field: string) => (value: PlainData) => (value === nul
 /** The reader of each logged body field. */
 const BODY_FIELDS: { readonly [K in keyof LoggedBodyState]: (value: PlainData) => LoggedBodyState[K] } = {
     position: position('position'),
-    yaw: number('yaw'),
-    pitch: number('pitch'),
+    yaw: numberField('yaw'),
+    pitch: numberField('pitch'),
     velocity: position('velocity'),
     nameTag: optionalString('nameTag'),
-    color: optionalNumber('color'),
+    color: optionalNumberField('color'),
     home: optionalPosition('home'),
     ownerIdentity: optionalString('ownerIdentity'),
     curedBy: optionalString('curedBy'),
-    sitting: boolean('sitting'),
-    sleeping: boolean('sleeping'),
-    loveTicks: number('loveTicks'),
-    breedCooldown: number('breedCooldown'),
+    sitting: booleanField('sitting'),
+    sleeping: booleanField('sleeping'),
+    loveTicks: numberField('loveTicks'),
+    breedCooldown: numberField('breedCooldown'),
     beamTarget: optionalPosition('beamTarget'),
     showBottom: optionalBoolean('showBottom'),
-    invulnerable: boolean('invulnerable'),
-    fuseTicks: optionalNumber('fuseTicks'),
-    fireTicks: number('fireTicks'),
-    projectileAge: number('projectileAge'),
-    projectileStuck: boolean('projectileStuck'),
+    invulnerable: booleanField('invulnerable'),
+    fuseTicks: optionalNumberField('fuseTicks'),
+    fireTicks: numberField('fireTicks'),
+    projectileAge: numberField('projectileAge'),
+    projectileStuck: booleanField('projectileStuck'),
     equipment: (value) => equipmentOf(value) ?? wrong('equipment', value),
     inventory: (value) => stringsIn('inventory', value),
     containerSlots: (value) =>
@@ -164,7 +167,7 @@ export const componentStateIn = (value: PlainData): ComponentStateRecord | null 
     value === null || isComponentStateRecord(value) ? value : wrong('component state', value);
 
 /** Reads a logged runtime id link, such as the vehicle a rider is on, or `null` for none. */
-export const linkIn = (field: string, value: PlainData): number | undefined => optionalNumber(field)(value);
+export const linkIn = (field: string, value: PlainData): number | undefined => optionalNumberField(field)(value);
 
 /** Reads a logged identity link, such as a leash holder, or `null` for none. */
 export const identityIn = (field: string, value: PlainData): string | undefined => optionalString(field)(value);

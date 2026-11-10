@@ -11,8 +11,6 @@
  */
 import type { TradeResult, TradeStack } from '@jsprismarine/trading';
 
-import { AttributeIds } from '@jsprismarine/protocol/wire/structures/Attribute';
-
 import { addExperiencePoints } from '../../entity/Experience';
 import { Item } from '../../item/Item';
 import type Player from '../../Player';
@@ -85,15 +83,7 @@ export const selectTrade = (player: Player, open: OpenBlockContainer, netId: num
         commit: () => {
             const result = trade.source.trade(index, context);
             if (result.traded && result.playerExperience > 0) {
-                addExperiencePoints(
-                    {
-                        getLevel: () => player.attributes.getValue(AttributeIds.PlayerLevel),
-                        getProgress: () => player.attributes.getValue(AttributeIds.PlayerExperience),
-                        setLevel: (level) => player.attributes.setValue(AttributeIds.PlayerLevel, level),
-                        setProgress: (progress) => player.attributes.setValue(AttributeIds.PlayerExperience, progress)
-                    },
-                    result.playerExperience
-                );
+                addExperiencePoints(player.getExperience(), result.playerExperience);
             }
             trade.traded?.(result);
             return result;

@@ -20,7 +20,6 @@ import type { EnchantmentRegistry } from '@jsprismarine/enchantments';
 
 import { advancementEnchantedItem } from '../advancement/triggers';
 import type Player from '../Player';
-import { AttributeIds } from '@jsprismarine/protocol/wire/structures/Attribute';
 import { spendExperienceLevels } from '../entity/Experience';
 import type { Item } from '../item/Item';
 import PlayerEnchantOptionsPacket from '@jsprismarine/protocol/packet/PlayerEnchantOptionsPacket';
@@ -246,12 +245,7 @@ export const takeEnchantingRow = (
     const chosen = rows[row];
     if (!chosen || chosen.cost <= 0 || chosen.picks.length === 0) return undefined;
 
-    const holder = {
-        getLevel: () => player.attributes.getValue(AttributeIds.PlayerLevel),
-        getProgress: () => player.attributes.getValue(AttributeIds.PlayerExperience),
-        setLevel: (level: number) => player.attributes.setValue(AttributeIds.PlayerLevel, level),
-        setProgress: (progress: number) => player.attributes.setValue(AttributeIds.PlayerExperience, progress)
-    };
+    const holder = player.getExperience();
     if (!spendExperienceLevels(holder, chosen.cost)) return undefined;
 
     const levels = new Map(stack.getEnchantments());
