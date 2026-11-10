@@ -1786,6 +1786,23 @@ export default class PlayerSession {
     }
 
     /**
+     * Where this client sees the world from: its player's eyes, the point chunk streaming,
+     * entity tracking and a world's broadcasts measure from.
+     * @returns The position.
+     */
+    public getViewPosition(): Vector3 {
+        return this.getPlayer().getPosition();
+    }
+
+    /**
+     * The chunk radius this client sees, as it asked for it, in chunks.
+     * @returns The radius, or zero until the client's first `RequestChunkRadius`.
+     */
+    public getViewDistance(): number {
+        return this.getPlayer().viewDistance;
+    }
+
+    /**
      * Set the client's maximum view distance.
      *
      * @param distance - The view distance
@@ -1890,10 +1907,10 @@ export default class PlayerSession {
      * server that no client was ever told about - the health bar over a hurt zombie never moved,
      * and it died in one apparent hit from full. Attributes only reached a client once, inside
      * the `AddActorPacket` that spawned the entity.
-     * @param {Entity} entity - Whose attributes these are.
+     * @param entity - Whose attributes these are.
      * @param {Attribute[]} attributes - The ones that changed; nothing is sent for an empty list.
      */
-    public async sendAttributesFor(entity: Entity, attributes: Attribute[]): Promise<void> {
+    public async sendAttributesFor(entity: Pick<ShownActor, 'getRuntimeId'>, attributes: Attribute[]): Promise<void> {
         if (attributes.length === 0) return;
 
         const packet = new UpdateAttributesPacket();
@@ -2282,10 +2299,10 @@ export default class PlayerSession {
      * above had the local player's runtime id baked in, so metadata reached a client exactly once,
      * inside the packet that spawned the entity. A creeper could light its fuse, a mob could catch
      * fire, and nobody would ever see either.
-     * @param {Entity} entity - Whose metadata this is.
+     * @param entity - Whose metadata this is.
      * @param {Metadata} [metadata] - What to send; the entity's own by default.
      */
-    public async sendMetadataFor(entity: Entity, metadata?: Metadata): Promise<void> {
+    public async sendMetadataFor(entity: ShownActor, metadata?: Metadata): Promise<void> {
         const packet = new SetActorDataPacket();
         packet.runtimeEntityId = entity.getRuntimeId();
         packet.metadata = metadata ?? entity.metadata;
