@@ -8,9 +8,11 @@ import type Player from '../Player';
 
 /**
  * The bars each player currently has on screen, so a serverbound `Query` can find the bar it
- * asks about. Weakly keyed: a player the server has let go takes its entries with it.
+ * asks about. Keyed by the player's entity runtime id, which stays the same for as long as its
+ * client is connected, the time the bars stay on its screen. A key goes when its last bar
+ * drops the player, or when {@link BossBar.releasePlayer} runs as the session is torn down.
  */
-const barsByPlayer = new WeakMap<Player, Set<BossBar>>();
+const barsByPlayer = new Map<bigint, Set<BossBar>>();
 
 /** What a new boss bar shows before anything updates it. The bar starts full. */
 export interface BossBarOptions {
@@ -42,7 +44,8 @@ export class BossBar {
     private percent = 1;
     private readonly color: BossBarColor;
     private readonly overlay: BossBarOverlay;
-    private readonly subscribers = new Set<Player>();
+    /** The subscribed players by entity runtime id. */
+    private readonly subscribers = new Map<bigint, Player>();
 
     public constructor(options: BossBarOptions) {
         this.actorUniqueId = options.actorUniqueId;
@@ -56,11 +59,12 @@ export class BossBar {
      * alone.
      */
     public async addPlayer(player: Player): Promise<void> {
-        if (this.subscribers.has(player)) return;
+        const runtimeId = player.getRuntimeId();
+        if (this.subscribers.has(runtimeId)) return;
 
-        this.subscribers.add(player);
-        let bars = barsByPlayer.get(player);
-        if (!bars) barsByPlayer.set(player, (bars = new Set()));
+        this.subscribers.set(runtimeId, player);
+        let bars = barsByPlayer.get(runtimeId);
+        if (!bars) barsByPlayer.set(runtimeId, (bars = new Set()));
         bars.add(this);
 
         await this.sendTo(player, BossEventUpdateType.Add);
@@ -68,9 +72,10 @@ export class BossBar {
 
     /** Hides the bar from a player. A player the bar does not have is left alone. */
     public async removePlayer(player: Player): Promise<void> {
-        if (!this.subscribers.delete(player)) return;
+        const runtimeId = player.getRuntimeId();
+        if (!this.subscribers.delete(runtimeId)) return;
 
-        barsByPlayer.get(player)?.delete(this);
+        this.unlink(runtimeId);
         if (player.isOnline()) await this.sendTo(player, BossEventUpdateType.Remove);
     }
 
@@ -103,7 +108,7 @@ export class BossBar {
     /** The players currently subscribed to the bar, with disconnected ones dropped. */
     public players(): readonly Player[] {
         this.prune();
-        return [...this.subscribers];
+        return [...this.subscribers.values()];
     }
 
     /**
@@ -111,23 +116,43 @@ export class BossBar {
      * asking player. A query for an actor no bar of theirs is bound to goes unanswered.
      */
     public static async answerQuery(player: Player, actorUniqueId: bigint): Promise<void> {
-        for (const bar of barsByPlayer.get(player) ?? []) {
+        for (const bar of barsByPlayer.get(player.getRuntimeId()) ?? []) {
             if (bar.actorUniqueId === actorUniqueId) await bar.sendTo(player, BossEventUpdateType.Add);
         }
     }
 
+    /**
+     * Drops a player from every bar it is subscribed to, without sending anything.
+     *
+     * For the session's tear-down: the client is gone, so there is nobody to send a Remove to,
+     * and a bar that never updates again would otherwise hold the player until it is dropped.
+     */
+    public static releasePlayer(player: Player): void {
+        const runtimeId = player.getRuntimeId();
+        for (const bar of barsByPlayer.get(runtimeId) ?? []) bar.subscribers.delete(runtimeId);
+        barsByPlayer.delete(runtimeId);
+    }
+
     /** Lets go of every subscriber whose player has disconnected. */
     private prune(): void {
-        for (const player of this.subscribers) {
+        for (const [runtimeId, player] of this.subscribers) {
             if (player.isOnline()) continue;
-            this.subscribers.delete(player);
-            barsByPlayer.get(player)?.delete(this);
+            this.subscribers.delete(runtimeId);
+            this.unlink(runtimeId);
         }
+    }
+
+    /** Takes this bar out of a player's on-screen set, and the set out of the index once empty. */
+    private unlink(runtimeId: bigint): void {
+        const bars = barsByPlayer.get(runtimeId);
+        if (bars === undefined) return;
+        bars.delete(this);
+        if (bars.size === 0) barsByPlayer.delete(runtimeId);
     }
 
     private async broadcast(eventType: BossEventUpdateType): Promise<void> {
         this.prune();
-        await Promise.all([...this.subscribers].map(async (player) => this.sendTo(player, eventType)));
+        await Promise.all([...this.subscribers.values()].map(async (player) => this.sendTo(player, eventType)));
     }
 
     private async sendTo(player: Player, eventType: BossEventUpdateType): Promise<void> {

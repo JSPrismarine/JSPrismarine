@@ -108,6 +108,51 @@ describe('BossBar', () => {
         expect(bar.players()).toEqual([]);
     });
 
+    it("forgets a player's bars when its session is torn down", async () => {
+        // The player is still online here, so only the release can have dropped it: the
+        // disconnect prune would have kept it.
+        const { player, sent } = fakePlayer();
+        const dragon = dragonBar();
+        const wither = new BossBar({ actorUniqueId: 7n, name: 'Wither' });
+        await dragon.addPlayer(player);
+        await wither.addPlayer(player);
+        sent.length = 0;
+
+        player.getNetworkSession().disable();
+        await BossBar.answerQuery(player, 42n);
+        await BossBar.answerQuery(player, 7n);
+
+        expect(dragon.players()).toEqual([]);
+        expect(wither.players()).toEqual([]);
+        expect(bossEvents(sent)).toHaveLength(0);
+    });
+
+    it("answers a query only from the asking player's own bars", async () => {
+        const watching = fakePlayer();
+        const other = fakePlayer();
+        const bar = dragonBar();
+        await bar.addPlayer(watching.player);
+        watching.sent.length = 0;
+
+        await BossBar.answerQuery(other.player, 42n);
+        await BossBar.answerQuery(watching.player, 42n);
+
+        expect(bossEvents(other.sent)).toHaveLength(0);
+        expect(bossEvents(watching.sent).map((event) => event.eventType)).toEqual([BossEventUpdateType.Add]);
+    });
+
+    it('stops answering queries for a bar the player was removed from', async () => {
+        const { player, sent } = fakePlayer();
+        const bar = dragonBar();
+        await bar.addPlayer(player);
+        await bar.removePlayer(player);
+        sent.length = 0;
+
+        await BossBar.answerQuery(player, 42n);
+
+        expect(bossEvents(sent)).toHaveLength(0);
+    });
+
     it('moves the bar to a new actor with a Remove for the old id and an Add for the new', async () => {
         const { player, sent } = fakePlayer();
         const bar = dragonBar();
