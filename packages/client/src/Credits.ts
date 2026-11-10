@@ -57,7 +57,7 @@ export default class Credits extends EventEmitter {
 
     private readonly onPacket = (packet: DecodedPacket): void => {
         if (!isPacket(packet, PacketIdentifier.SHOW_CREDITS)) return;
-        void this.dispatch(packet.data).catch((error: unknown) => {
+        void this.session.track(this.dispatch(packet.data)).catch((error: unknown) => {
             this.logger.warn(
                 `Client/Credits: ${error instanceof Error ? error.message : String(error)}`,
                 'Client/Credits/dispatch'
