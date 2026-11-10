@@ -474,14 +474,24 @@ export interface TargetNearbySensorParams {
     readonly onVisionLostInsideRange?: SensorTrigger;
 }
 
-/** What `minecraft:target_nearby_sensor` remembers about the target it last saw. */
-const TARGET_NEARBY_STATE = defineComponentState('minecraft:target_nearby_sensor', {
-    /** The target's id, or null when there was none. */
-    targetId: stateField.nullable(stateField.id),
-    inRange: stateField.boolean,
-    visibleInsideRange: stateField.boolean,
-    insideEventFired: stateField.boolean
-});
+/**
+ * What `minecraft:target_nearby_sensor` remembers about the target it last saw.
+ *
+ * Not saved. The target is named by runtime id, which the next session draws again and could
+ * hand to another entity, and the other fields describe the sensor's relation to that target.
+ * A reload starts the sensor with no target, which then reports the current one afresh.
+ */
+const TARGET_NEARBY_STATE = defineComponentState(
+    'minecraft:target_nearby_sensor',
+    {
+        /** The target's id, or null when there was none. */
+        targetId: stateField.nullable(stateField.id),
+        inRange: stateField.boolean,
+        visibleInsideRange: stateField.boolean,
+        insideEventFired: stateField.boolean
+    },
+    { saved: false }
+);
 
 /** A working copy of {@link TARGET_NEARBY_STATE} that one tick updates before writing it back. */
 interface TargetNearbySensorState {

@@ -187,4 +187,37 @@ describe('minecraft:target_nearby_sensor state', () => {
         expect(run.writes).toHaveLength(1);
         expect(run.undone).toEqual(run.before);
     });
+
+    it('leaves the target out of the saved form, so a reload starts with no target', () => {
+        const { played, scene, environment } = world();
+        const entity = spawn(hunter, 'test:hunter', environment);
+        scene.target = { id: 7, distance: 1, visible: true };
+        tick(entity, 3);
+        const saved = entity.componentState.snapshot();
+
+        expect(saved).not.toHaveProperty(['minecraft:target_nearby_sensor']);
+
+        // A record written before the state was marked session-only still carries it.
+        const reloaded = spawn(hunter, 'test:hunter', environment);
+        reloaded.componentState.restore({
+            ...saved,
+            'minecraft:target_nearby_sensor': {
+                targetId: 7,
+                inRange: true,
+                visibleInsideRange: true,
+                insideEventFired: true
+            }
+        });
+        expect(Object.fromEntries(reloaded.componentState.entries())['minecraft:target_nearby_sensor']).toEqual({
+            targetId: null,
+            inRange: false,
+            visibleInsideRange: false,
+            insideEventFired: false
+        });
+
+        // The target the new session's runtime id names is met as a new one, so the event fires again.
+        played.length = 0;
+        tick(reloaded, 3);
+        expect(played).toEqual(['close']);
+    });
 });
