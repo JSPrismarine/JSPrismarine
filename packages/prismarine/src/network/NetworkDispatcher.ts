@@ -22,6 +22,7 @@ import type { OutboundPacketRecorder } from './OutboundPacketTrace';
 import { Pipeline } from './pipeline/ConnectionPipeline';
 import type { ConnectionId } from './transport/ConnectionId';
 import type { Transport, TransportConnection } from './transport/Transport';
+import { applyInput } from '../world/inputUnit';
 
 /** A packet paired with the handler it will run, decoded once the phase gate lets it. */
 interface GatedPacket {
@@ -528,7 +529,9 @@ export default class NetworkDispatcher<C extends TransportConnection> {
                 if (recordInbound && this.inboundPacketRecorder !== undefined) {
                     this.recordInboundPacket(packet, connection);
                 }
-                await handler.handle(packet, this.server, session);
+                if (handler.lane === 'input')
+                    await applyInput(session, () => handler.handle(packet, this.server, session));
+                else await handler.handle(packet, this.server, session);
             } else this.logger.debug(`Dropped §b${packet.constructor.name}§r: received before login completed`);
         } catch (error: unknown) {
             this.handlerError(packet, error);

@@ -54,6 +54,8 @@ export interface EntityStoreCounts {
     readonly unlogged: number;
     /** Units that threw and were reverted. */
     readonly reverted: number;
+    /** Units that threw and kept their writes, because a chunk entered inside them. */
+    readonly kept: number;
 }
 
 /** One world's data-driven entities, by runtime id, and the change log of their state. */
@@ -71,6 +73,10 @@ export class EntityStore {
     private reverted = 0;
     private readonly failures = new Map<number, number>();
     private readonly skipped = new Set<number>();
+    /** The open units, innermost last, each pinned once a chunk entered inside it. */
+    private readonly units: { readonly span: Span; pinned: boolean }[] = [];
+    private kept = 0;
+    private readonly sealListeners = new Set<(sealed: SealedTick) => void>();
 
     /**
      * @param report - Receives a line for each inverse that failed.
@@ -185,8 +191,16 @@ export class EntityStore {
         });
     }
 
-    /** Appends a chunk entry, which names a chunk that entered or left the world. */
+    /**
+     * Appends a chunk entry, which names a chunk that entered or left the world.
+     *
+     * A chunk admitted at the input step enters outside every unit. One that code inside a unit
+     * loaded inline (`IN_TICK_CHUNK_LOADS`) enters inside it, and a chunk entry has no inverse,
+     * so every open unit is pinned: if it throws, its writes stay and the failure is reported,
+     * as before the store existed. Slices 3 to 9 remove the inline loads.
+     */
     public chunk(change: 'enter' | 'leave', x: number, z: number): void {
+        for (const unit of this.units) unit.pinned = true;
         this.append({ kind: 'chunk', change, x, z });
     }
 
@@ -231,7 +245,19 @@ export class EntityStore {
     public sealTick(): SealedTick | undefined {
         if (!this.open) return undefined;
         this.open = false;
-        return this.log.seal();
+        const sealed = this.log.seal();
+        for (const listener of this.sealListeners) listener(sealed);
+        return sealed;
+    }
+
+    /**
+     * Hears every tick as it seals. Replication will be the reader; until then the replay
+     * scenarios count entries and bytes per tick through this.
+     * @returns A function that removes the listener.
+     */
+    public onSealed(listener: (sealed: SealedTick) => void): () => void {
+        this.sealListeners.add(listener);
+        return () => this.sealListeners.delete(listener);
     }
 
     /** Whether a tick is open, so writes are logged. */
@@ -246,7 +272,7 @@ export class EntityStore {
 
     /** What the store counted, for reports. */
     public counts(): EntityStoreCounts {
-        return { unlogged: this.unlogged, reverted: this.reverted };
+        return { unlogged: this.unlogged, reverted: this.reverted, kept: this.kept };
     }
 
     /**
@@ -269,14 +295,14 @@ export class EntityStore {
             work();
             return SUCCEEDED;
         }
-        const span = this.log.startSpan();
+        const unit = this.startUnit();
         try {
             work();
         } catch (error: unknown) {
-            this.revert(span);
+            this.endUnit(unit, true);
             return { failed: true, error };
         }
-        this.log.closeSpan(span);
+        this.endUnit(unit, false);
         return SUCCEEDED;
     }
 
@@ -292,14 +318,14 @@ export class EntityStore {
             await work();
             return SUCCEEDED;
         }
-        const span = this.log.startSpan();
+        const unit = this.startUnit();
         try {
             await work();
         } catch (error: unknown) {
-            this.revert(span);
+            this.endUnit(unit, true);
             return { failed: true, error };
         }
-        this.log.closeSpan(span);
+        this.endUnit(unit, false);
         return SUCCEEDED;
     }
 
@@ -322,6 +348,26 @@ export class EntityStore {
     /** Whether an entity failed earlier in this tick and is skipped until the next. */
     public isSkipped(id: number): boolean {
         return this.skipped.has(id);
+    }
+
+    private startUnit(): { readonly span: Span; pinned: boolean } {
+        const unit = { span: this.log.startSpan(), pinned: false };
+        this.units.push(unit);
+        return unit;
+    }
+
+    private endUnit(unit: { readonly span: Span; pinned: boolean }, threw: boolean): void {
+        const depth = this.units.lastIndexOf(unit);
+        if (depth !== -1) this.units.length = depth;
+        if (threw && !unit.pinned) {
+            this.revert(unit.span);
+            return;
+        }
+        if (threw) {
+            this.kept += 1;
+            this.report('A unit that threw keeps its writes: a chunk entered inside it, and that cannot be undone');
+        }
+        this.log.closeSpan(unit.span);
     }
 
     private writtenField(id: bigint | number, field: string, before: unknown, after: unknown): void {
