@@ -76,7 +76,7 @@ describe('the data entity record', () => {
             enchantments: { 'minecraft:protection': 2 },
             contents: [{ identifier: 'minecraft:diamond', count: 1 }]
         };
-        mount.body.containerSlots[1] = armor;
+        mount.body.setContainerSlot(1, armor);
         mount.body.setEquipment({ body: armor });
         mount.body.equipmentInventorySlots.set('body', 1);
 

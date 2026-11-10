@@ -232,7 +232,7 @@ const itemDropOf = (value: unknown): ContentItemDrop | undefined => {
 };
 
 /** Saved equipment, retaining only known slots and complete item stacks. */
-const equipmentOf = (value: unknown): MobEquipmentSet | undefined => {
+export const equipmentOf = (value: unknown): MobEquipmentSet | undefined => {
     if (!isObject(value)) return undefined;
     const equipment: Partial<Record<(typeof MOB_EQUIPMENT_SLOTS)[number], ContentItemDrop>> = {};
     for (const slot of MOB_EQUIPMENT_SLOTS) {
@@ -254,12 +254,13 @@ const equipmentInventorySlotsOf = (value: unknown): Partial<Record<MobEquipmentS
 };
 
 /** All saved container slots, preserving indices and treating invalid or absent stacks as empty. */
-const containerSlotsOf = (value: unknown): readonly (ContentItemDrop | null)[] | undefined =>
+export const containerSlotsOf = (value: unknown): readonly (ContentItemDrop | null)[] | undefined =>
     Array.isArray(value) ? value.map((item) => itemDropOf(item) ?? null) : undefined;
 
 const numberOf = (value: unknown, fallback: number): number => (typeof value === 'number' ? value : fallback);
 
-const positionOf = (value: unknown): EntityPosition | undefined => {
+/** A saved position, when the value holds three numbers under `x`, `y` and `z`. */
+export const positionOf = (value: unknown): EntityPosition | undefined => {
     if (!isObject(value)) return undefined;
     const { x, y, z } = value;
     if (typeof x !== 'number' || typeof y !== 'number' || typeof z !== 'number') return undefined;
@@ -349,6 +350,16 @@ export const dataEntityRecordIn = (nbt: NBTTagCompound): DataEntityRecord | unde
         return undefined;
     }
 
+    return dataEntityRecordFrom(parsed);
+};
+
+/**
+ * The record a parsed value holds, such as the JSON of the actor tag or the copy a change log
+ * membership entry carries, checked field by field as {@link dataEntityRecordIn} checks it.
+ *
+ * @returns The record, or undefined when the value is not an object naming an entity type.
+ */
+export const dataEntityRecordFrom = (parsed: unknown): DataEntityRecord | undefined => {
     if (!isObject(parsed)) return undefined;
     const { identifier, pool, carried, ownerIdentity, curedBy } = parsed;
     if (typeof identifier !== 'string' || identifier === '') return undefined;
@@ -457,12 +468,8 @@ export const applyDataEntityRecord = (entity: DataEntity, record: DataEntityReco
         const index = record.equipmentInventorySlots?.[slot];
         if (index !== undefined) body.equipmentInventorySlots.set(slot, index);
     }
-    body.inventory.splice(0, body.inventory.length, ...record.inventory);
-    body.containerSlots.splice(
-        0,
-        body.containerSlots.length,
-        ...(record.containerSlots ?? []).map((item) => item ?? undefined)
-    );
+    body.setInventory(record.inventory);
+    body.setContainerSlots((record.containerSlots ?? []).map((item) => item ?? undefined));
     body.sitting = record.sitting;
     body.sleeping = record.sleeping;
     body.loveTicks = record.loveTicks;
