@@ -7,7 +7,8 @@ import { appendFileSync } from 'node:fs';
 //
 // Writes `passed`, a JSON array of the names of the jobs that succeeded in that run, and `run-id`,
 // the run to fetch artifacts from. A matrix job also adds its name without the `(...)` suffix when
-// every one of its entries succeeded, so `🎮 Client E2E` stands for all the protocols.
+// every one of its entries succeeded, so `🎮 Client E2E` stands for all the protocols. An entry
+// whose suffix ends in `, allowed to fail` is left out of that, as its run's gate leaves it out.
 
 const apiUrl = (process.env.GITHUB_API_URL ?? 'https://api.github.com').replace(/\/+$/, '');
 const repository = process.env.GITHUB_REPOSITORY;
@@ -65,8 +66,12 @@ const findPassedJobs = async () => {
     const passed = new Set(jobs.filter((job) => job.conclusion === 'success').map((job) => job.name));
 
     // The runner's own Node runs this before any setup step, so no `Map.groupBy`.
+    // An entry allowed to fail, such as the NetherNet client e2e run, does not hold its matrix back.
     const matrixJobs = new Map();
-    for (const job of jobs.filter((candidate) => / \(.+\)$/.test(candidate.name))) {
+    const counted = jobs.filter(
+        (candidate) => / \(.+\)$/.test(candidate.name) && !/, allowed to fail\)$/.test(candidate.name)
+    );
+    for (const job of counted) {
         const name = job.name.replace(/ \(.+\)$/, '');
         matrixJobs.set(name, [...(matrixJobs.get(name) ?? []), job]);
     }
