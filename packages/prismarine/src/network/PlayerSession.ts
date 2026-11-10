@@ -42,6 +42,7 @@ import { effectiveViewDistance, toChunk } from '../world/Proximity';
 import { dimensionByBedrockId, maxSubChunk, minSubChunk } from '../world/Dimension';
 import Chunk from '../world/chunk/Chunk';
 import type ClientConnection from './ClientConnection';
+import { BossBar } from './BossBar';
 import { EntityTracker } from './EntityTracker';
 import { craftingRecipeCount, joinContentPayloads, limitCraftingData } from './contentPayloads';
 import { sendCachedJoinPacket } from './joinPacketCache';
@@ -427,12 +428,13 @@ export default class PlayerSession {
     }
 
     /**
-     * Takes this client back out of the chunk rotation. Paired with {@link PlayerSession.enable}
-     * and safe to call more than once.
+     * Takes this client back out of the chunk rotation and off every boss bar. Paired with
+     * {@link PlayerSession.enable} and safe to call more than once.
      * @group Lifecycle
      */
     public disable(): void {
         this.server.getChunkScheduler().remove(this);
+        BossBar.releasePlayer(this.player);
     }
 
     /** The queue the scheduler drains - see {@link ChunkRecipient}. */
