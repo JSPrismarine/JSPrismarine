@@ -46,7 +46,6 @@ import LevelDB from '../../world/providers/leveldb/LevelDB';
 import { Dimensions } from '../../world/Dimension';
 import { GameRules } from '../../world/GameRuleManager';
 import { createEngineWorld } from '../../world/EngineWorld';
-import EntityGrid from '../../world/EntityGrid';
 import BlockPhysics from '../../world/physics/BlockPhysics';
 import { Position } from '../../world/Position';
 import { World } from '../../world/World';
@@ -765,7 +764,6 @@ const liveWorld = (
         blockUpdates: new BlockUpdateScheduler(),
         entities: new Map(),
         entityChunkIndices: new Map(),
-        entityGrid: new EntityGrid(),
         players: new Map(),
         server
     });

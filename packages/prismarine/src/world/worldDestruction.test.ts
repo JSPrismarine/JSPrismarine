@@ -234,7 +234,6 @@ const liveWorld = (content: () => ServerContent | undefined, getRandom: () => Ra
         entities: new Map(),
         entityChunkIndices: new Map(),
         players: new Map(),
-        entityGrid: { near: () => [] },
         getChunkAt: async () => chunk,
         // Fire reads a player list through `minecraft:fire_spread_radius_around_player`.
         // The content adapter reads the same player fields as it does for a live player.

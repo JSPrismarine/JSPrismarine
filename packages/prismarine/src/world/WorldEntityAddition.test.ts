@@ -6,7 +6,6 @@ import type { LiveBodies } from '../entity/data/liveBodies';
 import type { Entity } from '../entity/Entity';
 import { GenericEntity } from '../entity/GenericEntity';
 import { stub, stubOf } from '../testing/stub.test.helper';
-import EntityGrid from './EntityGrid';
 import { Dimensions } from './Dimension';
 import { inertEntityRuntime } from '../testing/entityServer';
 import { NULL_WORLD_CHANGE_SINK } from './WorldChangeSink';
@@ -24,7 +23,6 @@ const bodyOf = (identifier: string, world: World): Entity =>
 const worldOf = (live: LiveEntityRuntime): World => {
     const world: World = Object.assign(Object.create(World.prototype), {
         chunks: new Map(),
-        entityGrid: new EntityGrid(),
         entities: new Map(),
         entityChunkIndices: new Map(),
         players: new Map(),
@@ -61,8 +59,7 @@ describe('World.broadcastMove', () => {
     it('initializes the reverse chunk index when a prototype world tracks entity movement', async () => {
         const world: World = Object.assign(Object.create(World.prototype), {
             chunks: new Map(),
-            entityChunkIndices: new Map(),
-            entityGrid: new EntityGrid()
+            entityChunkIndices: new Map()
         });
         world.attachChangeSink(NULL_WORLD_CHANGE_SINK);
         const entity = stubOf(GenericEntity, {
