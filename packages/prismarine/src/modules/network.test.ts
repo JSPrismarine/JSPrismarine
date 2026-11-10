@@ -76,6 +76,7 @@ describe('modules/network', () => {
                     getMotd: () => 'test server',
                     getEnableRakNet: () => false,
                     getEnableNetherNet: () => true,
+                    getEnableQuery: () => false,
                     // Off, so the test binds nothing: UDP 7551 is a fixed, shared port.
                     getEnableLanVisibility: () => false,
                     getServerUdpPorts: () => '',
@@ -84,7 +85,6 @@ describe('modules/network', () => {
             getLogger: () => stub<Logger>({ info: () => {}, warn: () => {}, error: () => {} }),
             getPacketHandlerRegistry: () => stub<ReturnType<Server['getPacketHandlerRegistry']>>({}),
             getPacketLogFilter: () => new PacketLogFilter(),
-            getQueryManager: () => stub<ReturnType<Server['getQueryManager']>>({}),
             getSessionManager: () => new SessionManager()
         });
         const networking = new ServerNetworking(server);
@@ -192,6 +192,98 @@ describe('modules/network', () => {
         }
     });
 
+    /** A server running RakNet alone on 127.0.0.1, in socket mode, answering query on the port given. */
+    const queryServer = (serverPort: number, queryPort: number, info: (message: string) => void = () => {}) =>
+        stub<Server>({
+            getConfig: () =>
+                stub<Config>({
+                    getEnableQuery: () => true,
+                    getServerPort: () => serverPort,
+                    getQueryPort: () => queryPort,
+                    getLevelName: () => 'world',
+                    getGamemode: () => 'survival',
+                    getMaxPlayers: () => 5,
+                    getMotd: () => 'query server',
+                    getOnlineMode: () => false,
+                    getEnableRakNet: () => true,
+                    getEnableNetherNet: () => false,
+                    getUseRakNetWorker: () => false
+                }),
+            getLogger: () =>
+                stub<Logger>({
+                    debug: () => {},
+                    error: () => {},
+                    info,
+                    silly: () => {},
+                    verbose: () => {},
+                    warn: () => {}
+                }),
+            getVersion: () => '0.0.0-test',
+            getPacketHandlerRegistry: () => stub<ReturnType<Server['getPacketHandlerRegistry']>>({}),
+            getPacketLogFilter: () => new PacketLogFilter(),
+            getSessionManager: () => new SessionManager()
+        });
+
+    /** Runs a handshake and a basic stat against a query port, returning the stat's strings. */
+    const queryBasicStat = async (port: number): Promise<string[]> => {
+        const client = dgram.createSocket('udp4');
+        const replies: Buffer[] = [];
+        client.on('message', (message) => replies.push(message));
+        const send = async (type: number, payload: Buffer): Promise<Buffer> => {
+            const before = replies.length;
+            const header = Buffer.from([0xfe, 0xfd, type, 0, 0, 0, 1]);
+            client.send(Buffer.concat([header, payload]), port, '127.0.0.1');
+            await vi.waitFor(() => expect(replies.length).toBeGreaterThan(before));
+            return replies[before]!;
+        };
+        try {
+            const handshake = await send(0x09, Buffer.alloc(0));
+            const token = Buffer.alloc(4);
+            token.writeInt32BE(Number(handshake.subarray(5, -1).toString('latin1')));
+            const stat = await send(0x00, token);
+            return stat.subarray(5).toString('latin1').split('\0');
+        } finally {
+            client.close();
+        }
+    };
+
+    it('answers query on the RakNet socket when query-port is the game port', async () => {
+        // The config says 19132 for both; the listener binds an ephemeral port, as bootstrap may.
+        const networking = new ServerNetworking(queryServer(19_132, 19_132));
+
+        try {
+            networking.start('127.0.0.1', 0);
+            const name = networking.getServerName()!;
+            await vi.waitFor(() => expect(name.getPort()).not.toBe(19132));
+
+            const [motd, gameType, map, online, max] = await queryBasicStat(name.getPort());
+            expect([motd, gameType, map, online, max]).toStrictEqual(['query server', 'SMP', 'world', '0', '5']);
+        } finally {
+            networking.kill();
+        }
+    });
+
+    it('answers query on a socket of its own when query-port differs', async () => {
+        const bound: number[] = [];
+        const networking = new ServerNetworking(
+            queryServer(19_132, 0, (message) => {
+                const match = /^Answering query on UDP port (\d+)$/.exec(message);
+                if (match) bound.push(Number(match[1]));
+            })
+        );
+
+        try {
+            networking.start('127.0.0.1', 0);
+            await vi.waitFor(() => expect(bound).toHaveLength(1));
+            expect(bound[0]).not.toBe(networking.getServerName()!.getPort());
+
+            const [motd] = await queryBasicStat(bound[0]!);
+            expect(motd).toBe('query server');
+        } finally {
+            networking.kill();
+        }
+    });
+
     it('rejects replay before the network dispatcher starts', async () => {
         const networking = new ServerNetworking(stub<Server>({}));
 
@@ -232,7 +324,6 @@ describe('modules/network', () => {
                 }),
             getPacketHandlerRegistry: () => stub<ReturnType<Server['getPacketHandlerRegistry']>>({}),
             getPacketLogFilter: () => new PacketLogFilter(),
-            getQueryManager: () => stub<ReturnType<Server['getQueryManager']>>({}),
             getSessionManager: () => new SessionManager()
         });
         const networking = new ServerNetworking(server);

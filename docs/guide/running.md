@@ -317,49 +317,51 @@ the server has been checked with retail Bedrock clients on Windows and Android.
 
 ### Every setting
 
-A fresh server writes these <!-- fact:config.count -->37<!-- /fact --> settings, each with the comment below
+A fresh server writes these <!-- fact:config.count -->39<!-- /fact --> settings, each with the comment below
 above it. The list comes from the code that writes the file, so it matches what your version writes.
 
 <!-- fact:config.table -->
-| Setting                               | What it does                                                                                                                                                                                       |
-| ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `log-level`                           | How much the console and the log file say: error, warn, info, verbose, debug or silly.                                                                                                             |
-| `port`                                | The port the server listens on: UDP for RakNet, TCP for NetherNet signaling. Bedrock clients look for 19132.                                                                                       |
-| `server-portv6`                       | The UDP port RakNet listens on for IPv6 clients when server-ip is 0.0.0.0. Bedrock clients look for 19133.                                                                                         |
-| `server-ip`                           | The address to listen on. 0.0.0.0 accepts connections on every interface.                                                                                                                          |
-| `level-name`                          | Which entry of `worlds` players join.                                                                                                                                                              |
-| `worlds`                              | Every world the server loads, by name, with its preset, provider and seed. Write the seed as a string; a 64-bit seed written as a number is rounded.                                               |
-| `max-players`                         | How many players may be online at once.                                                                                                                                                            |
-| `gamemode`                            | The default game mode for new players: survival, creative, adventure or spectator.                                                                                                                 |
-| `difficulty`                          | How dangerous the monsters are: peaceful, easy, normal or hard.                                                                                                                                    |
-| `motd`                                | The message shown in the server list.                                                                                                                                                              |
-| `view-distance`                       | How far players see, in chunks.                                                                                                                                                                    |
-| `preload-radius`                      | How many chunks around spawn to generate before accepting players. 0 skips it.                                                                                                                     |
-| `chunk-workers`                       | How many worker threads to use for chunk generation. 0 keeps it on the server thread.                                                                                                              |
-| `chunk-host`                          | Where chunk generation workers run: process (the default) starts a separate low-priority generation process and falls back to threads when it cannot, in-process keeps them in the server process. |
-| `terrain-cache-size-mb`               | How many megabytes of generated terrain to keep on disk so it is not rebuilt after a restart. 0 turns the cache off.                                                                               |
-| `chunk-send-budget-ms`                | How long each tick may spend sending chunks, out of its 50 ms.                                                                                                                                     |
-| `proximity-broadcast`                 | Whether positional packets only go to players near them. Turn off only to debug.                                                                                                                   |
-| `server-authoritative-block-breaking` | Whether the server times block breaking, as a Bedrock Dedicated Server does. Off leaves it to the client.                                                                                          |
-| `entity-tracking-hysteresis`          | Chunks past view distance before an entity leaves a player's screen.                                                                                                                               |
-| `entity-tracking-interval`            | Ticks between entity visibility passes, at least 1.                                                                                                                                                |
-| `online-mode`                         | Whether players must be signed in to Xbox Live.                                                                                                                                                    |
-| `enable-raknet`                       | Whether to accept clients over RakNet, the UDP transport Bedrock used before NetherNet.                                                                                                            |
-| `use-raknet-worker`                   | Whether RakNet networking runs in a worker thread.                                                                                                                                                 |
-| `enable-nethernet`                    | Whether to accept clients over NetherNet, the WebRTC transport Bedrock Dedicated Server defaults to.                                                                                               |
-| `enable-lan-visibility`               | Whether players on the local network see the server among their LAN games.                                                                                                                         |
-| `packet-compression-level`            | The zlib level for outgoing batches, from -1 (zlib's default) to 9.                                                                                                                                |
-| `packet-compression-algorithm`        | The batch algorithm advertised to clients: zlib (default), snappy, or none. Other choices may use more bandwidth or differ in client support.                                                      |
-| `packet-compression-threshold`        | The smallest batch body to compress, in bytes. 0 leaves every batch uncompressed.                                                                                                                  |
-| `packet-full-flush-fragments`         | Prototype: reuse independently compressed packet fragments. Requires retail client validation.                                                                                                     |
-| `enable-query`                        | Whether to answer the Minecraft and Source query protocols.                                                                                                                                        |
-| `enable-process-title`                | Whether to show the tick rate in the process title. Some terminals redraw slowly.                                                                                                                  |
-| `enable-ticking`                      | Whether the world ticks. Off is only useful for tests.                                                                                                                                             |
-| `log-excluded-packets`                | Packet class names kept out of the traffic log at the silly level.                                                                                                                                 |
-| `crafting-recipe-limit`               | How many recipes to send: -1 for all, 0 for none, or a cap.                                                                                                                                        |
-| `content-strict`                      | Whether a pack that reports an error stops the server instead of loading short.                                                                                                                    |
-| `content-world-packs`                 | Extra behavior pack directories this world loads, after the vanilla ones.                                                                                                                          |
-| `content-datapacks`                   | Java datapack directories this world loads, after the vanilla one.                                                                                                                                 |
+| Setting                               | What it does                                                                                                                                                                                           |
+| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `log-level`                           | How much the console and the log file say: error, warn, info, verbose, debug or silly.                                                                                                                 |
+| `port`                                | The port the server listens on: UDP for RakNet, TCP for NetherNet signaling. Bedrock clients look for 19132.                                                                                           |
+| `server-portv6`                       | The UDP port RakNet listens on for IPv6 clients when server-ip is 0.0.0.0. Bedrock clients look for 19133.                                                                                             |
+| `server-ip`                           | The address to listen on. 0.0.0.0 accepts connections on every interface.                                                                                                                              |
+| `level-name`                          | Which entry of `worlds` players join.                                                                                                                                                                  |
+| `worlds`                              | Every world the server loads, by name, with its preset, provider and seed. Write the seed as a string; a 64-bit seed written as a number is rounded.                                                   |
+| `max-players`                         | How many players may be online at once.                                                                                                                                                                |
+| `gamemode`                            | The default game mode for new players: survival, creative, adventure or spectator.                                                                                                                     |
+| `difficulty`                          | How dangerous the monsters are: peaceful, easy, normal or hard.                                                                                                                                        |
+| `motd`                                | The message shown in the server list.                                                                                                                                                                  |
+| `view-distance`                       | How far players see, in chunks.                                                                                                                                                                        |
+| `preload-radius`                      | How many chunks around spawn to generate before accepting players. 0 skips it.                                                                                                                         |
+| `chunk-workers`                       | How many worker threads to use for chunk generation. 0 keeps it on the server thread.                                                                                                                  |
+| `chunk-host`                          | Where chunk generation workers run: process (the default) starts a separate low-priority generation process and falls back to threads when it cannot, in-process keeps them in the server process.     |
+| `terrain-cache-size-mb`               | How many megabytes of generated terrain to keep on disk so it is not rebuilt after a restart. 0 turns the cache off.                                                                                   |
+| `chunk-send-budget-ms`                | How long each tick may spend sending chunks, out of its 50 ms.                                                                                                                                         |
+| `proximity-broadcast`                 | Whether positional packets only go to players near them. Turn off only to debug.                                                                                                                       |
+| `server-authoritative-block-breaking` | Whether the server times block breaking, as a Bedrock Dedicated Server does. Off leaves it to the client.                                                                                              |
+| `entity-tracking-hysteresis`          | Chunks past view distance before an entity leaves a player's screen.                                                                                                                                   |
+| `entity-tracking-interval`            | Ticks between entity visibility passes, at least 1.                                                                                                                                                    |
+| `online-mode`                         | Whether players must be signed in to Xbox Live.                                                                                                                                                        |
+| `enable-raknet`                       | Whether to accept clients over RakNet, the UDP transport Bedrock used before NetherNet.                                                                                                                |
+| `use-raknet-worker`                   | Whether RakNet networking runs in a worker thread.                                                                                                                                                     |
+| `enable-nethernet`                    | Whether to accept clients over NetherNet, the WebRTC transport Bedrock Dedicated Server defaults to.                                                                                                   |
+| `server-udp-ports`                    | UDP ports for NetherNet players, as Bedrock Dedicated Server's server-udp-ports: a range such as 49152-49200, and [ip:]external:internal mappings to advertise behind NAT. Empty lets the system pick. |
+| `enable-lan-visibility`               | Whether players on the local network see the server among their LAN games.                                                                                                                             |
+| `packet-compression-level`            | The zlib level for outgoing batches, from -1 (zlib's default) to 9.                                                                                                                                    |
+| `packet-compression-algorithm`        | The batch algorithm advertised to clients: zlib (default), snappy, or none. Other choices may use more bandwidth or differ in client support.                                                          |
+| `packet-compression-threshold`        | The smallest batch body to compress, in bytes. 0 leaves every batch uncompressed.                                                                                                                      |
+| `packet-full-flush-fragments`         | Prototype: reuse independently compressed packet fragments. Requires retail client validation.                                                                                                         |
+| `enable-query`                        | Whether to answer the GameSpy4 query protocol that server lists and status tools use.                                                                                                                  |
+| `query-port`                          | The UDP port the query protocol answers on. Set to the same value as port, query shares the RakNet socket with the game.                                                                               |
+| `enable-process-title`                | Whether to show the tick rate in the process title. Some terminals redraw slowly.                                                                                                                      |
+| `enable-ticking`                      | Whether the world ticks. Off is only useful for tests.                                                                                                                                                 |
+| `log-excluded-packets`                | Packet class names kept out of the traffic log at the silly level.                                                                                                                                     |
+| `crafting-recipe-limit`               | How many recipes to send: -1 for all, 0 for none, or a cap.                                                                                                                                            |
+| `content-strict`                      | Whether a pack that reports an error stops the server instead of loading short.                                                                                                                        |
+| `content-world-packs`                 | Extra behavior pack directories this world loads, after the vanilla ones.                                                                                                                              |
+| `content-datapacks`                   | Java datapack directories this world loads, after the vanilla one.                                                                                                                                     |
 <!-- /fact -->
 
 ### Networking
@@ -389,6 +391,18 @@ The first time NetherNet starts, the server writes its identity key to
 <!-- fact:nethernet.identityFile -->`nethernet-identity.pem`<!-- /fact --> in its data directory.
 Clients remember the key, and one that meets a different key asks the player to trust the server
 again, so keep the file with your worlds when you move or rebuild the server.
+
+### Query
+
+With `enable-query` on, which is the default, the server answers the GameSpy4 query protocol
+that server lists and status tools use to read its MOTD, world, player count and player names. A
+tool asks for a challenge token first and gets a status reply only by sending that token back, so
+a forged source address cannot turn the server into an amplifier.
+
+`query-port` picks the UDP port. A fresh config sets it to `port`, and then query answers on the
+RakNet socket beside the game, so a firewall needs nothing more. Any other port gets a socket of
+its own, bound to `server-ip`; when another program holds that port, the server starts anyway and
+logs that query is unavailable.
 
 ### Worlds
 

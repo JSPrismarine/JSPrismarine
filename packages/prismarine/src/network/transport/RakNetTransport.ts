@@ -1,3 +1,6 @@
+import type { RemoteInfo } from 'node:dgram';
+import { isIPv6 } from 'node:net';
+
 import type { InetAddress, RakNetSession } from '@jsprismarine/raknet';
 import { ConnectionPriority, Protocol } from '@jsprismarine/raknet';
 import type { EventEmitter } from '../../events/EventEmitter';
@@ -29,6 +32,7 @@ export interface RakNetTransportSource {
     on(event: 'closeConnection', listener: (address: InetAddress, reason: string) => void): unknown;
     on(event: 'encapsulated', listener: (frame: Protocol.Frame, address: InetAddress) => void): unknown;
     on(event: 'raw', listener: (buffer: Buffer, address: InetAddress) => void): unknown;
+    sendBuffer(buffer: Buffer, rinfo: RemoteInfo): void;
     kill(): void;
 }
 
@@ -119,6 +123,22 @@ export default class RakNetTransport extends KeyedTransport<RakNetTransportConne
     /** Calls the listener with offline datagrams, which is where the query protocol lives. */
     public onRaw(listener: Listener<[Buffer, InetAddress]>): void {
         this.raw.add(listener);
+    }
+
+    /**
+     * Sends one datagram outside any session, from the listener's socket. For the query
+     * protocol, whose replies leave from the port the request arrived on.
+     * @param buffer - The datagram.
+     * @param to - Who sent the request being answered.
+     */
+    public sendRaw(buffer: Buffer, to: InetAddress): void {
+        const address = to.getAddress();
+        this.source.sendBuffer(buffer, {
+            address,
+            port: to.getPort(),
+            family: isIPv6(address) ? 'IPv6' : 'IPv4',
+            size: buffer.byteLength
+        });
     }
 
     /** Kills the listener underneath, which drops every session with it. */

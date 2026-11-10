@@ -47,13 +47,6 @@ export interface NetworkDispatcherOptions<C extends TransportConnection> {
     outboundPacketRecorder?: OutboundPacketRecorder;
     /** Builds the connection object the session registry holds for a transport connection. */
     createConnection: (connection: C) => ClientConnection;
-    /** The query protocol's view of the transport's raw datagrams. */
-    query: {
-        /** Whether the query protocol is enabled at all; read per datagram. */
-        enabled(): boolean;
-        /** Answers one raw datagram. */
-        onRaw(payload: Buffer, address: InetAddress): Promise<unknown>;
-    };
 }
 
 /**
@@ -75,7 +68,6 @@ export default class NetworkDispatcher<C extends TransportConnection> {
     private readonly logger: Logger;
     private readonly logFilter: PacketLogFilter;
     private readonly createConnection: NetworkDispatcherOptions<C>['createConnection'];
-    private readonly query: NetworkDispatcherOptions<C>['query'];
     private readonly inboundPacketRecorder: NetworkDispatcherOptions<C>['inboundPacketRecorder'];
     private readonly outboundPacketRecorder: NetworkDispatcherOptions<C>['outboundPacketRecorder'];
     private readonly packetPayloads: WeakMap<NetworkPacket<unknown>, { payload: Buffer; tick: number }> | undefined;
@@ -99,7 +91,6 @@ export default class NetworkDispatcher<C extends TransportConnection> {
         this.logger = options.logger;
         this.logFilter = options.logFilter;
         this.createConnection = options.createConnection;
-        this.query = options.query;
         this.inboundPacketRecorder = options.inboundPacketRecorder;
         this.outboundPacketRecorder = options.outboundPacketRecorder;
         this.packetPayloads = options.inboundPacketRecorder === undefined ? undefined : new WeakMap();
@@ -109,7 +100,6 @@ export default class NetworkDispatcher<C extends TransportConnection> {
         options.transport.onConnect((connection) => this.handleConnect(connection));
         options.transport.onDisconnect((id, address, reason) => this.handleDisconnect(id, address, reason));
         options.transport.onFrame((payload, id) => this.enqueueFrame(payload, id));
-        options.transport.onRaw?.((payload, address) => this.handleRaw(payload, address));
     }
 
     private handleConnect(connection: C): void {
@@ -455,16 +445,5 @@ export default class NetworkDispatcher<C extends TransportConnection> {
     private handlerError(packet: NetworkPacket<unknown>, error: unknown): void {
         this.logger.error(`Handler error ${packet.constructor.name}-handler: (${error})`);
         this.logger.error(error);
-    }
-
-    private async handleRaw(payload: Buffer, inetAddr: InetAddress): Promise<void> {
-        if (!this.query.enabled()) return;
-
-        try {
-            await this.query.onRaw(payload, inetAddr);
-        } catch (error: unknown) {
-            this.logger.verbose(`QueryManager encountered an error`);
-            this.logger.error(error);
-        }
     }
 }

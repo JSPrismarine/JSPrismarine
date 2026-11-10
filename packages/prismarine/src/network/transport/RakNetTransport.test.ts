@@ -1,3 +1,4 @@
+import type { RemoteInfo } from 'node:dgram';
 import { EventEmitter as NodeEventEmitter } from 'node:events';
 import { describe, expect, it } from 'vitest';
 
@@ -16,6 +17,11 @@ import RakNetTransport, { RakNetTransportConnection } from './RakNetTransport';
 /** The listener's event surface with a recorded `kill`, standing in for a real socket. */
 class FakeListener extends NodeEventEmitter {
     public killed = false;
+    public readonly datagrams: { buffer: Buffer; rinfo: RemoteInfo }[] = [];
+
+    public sendBuffer(buffer: Buffer, rinfo: RemoteInfo): void {
+        this.datagrams.push({ buffer, rinfo });
+    }
 
     public kill(): void {
         this.killed = true;
@@ -325,6 +331,20 @@ describe('network/transport', () => {
             await delivered.promise;
 
             expect(raw).toStrictEqual([Buffer.from('query')]);
+        });
+
+        it('sends a raw datagram from the listener socket to the address given', () => {
+            const listener = new FakeListener();
+            const transport = new RakNetTransport(listener, fakeBus().bus, new ConnectionIds());
+
+            transport.sendRaw(
+                Buffer.from('reply'),
+                stub<InetAddress>({ getAddress: () => '::1', getPort: () => 54_321 })
+            );
+
+            expect(listener.datagrams).toStrictEqual([
+                { buffer: Buffer.from('reply'), rinfo: { address: '::1', port: 54_321, family: 'IPv6', size: 5 } }
+            ]);
         });
 
         it('kills the listener on close', () => {

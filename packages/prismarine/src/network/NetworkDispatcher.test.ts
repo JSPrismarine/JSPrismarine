@@ -195,8 +195,7 @@ const makeDispatcher = (options?: {
             });
             built.push(connection);
             return connection;
-        },
-        query: { enabled: () => false, onRaw: async () => Buffer.alloc(0) }
+        }
     });
 
     return { transport, sessionManager, lines, server, built, dispatcher, outboundRecorderSetup, logFilter };

@@ -155,8 +155,10 @@ export interface ConfigFile {
     'packet-compression-threshold'?: number;
     /** Whether to use the unvalidated, experimental cached full-flush batch fragments. */
     'packet-full-flush-fragments'?: boolean;
-    /** Whether to answer the Minecraft and Source query protocols. */
+    /** Whether to answer the GameSpy4 query protocol that server lists and status tools use. */
     'enable-query'?: boolean;
+    /** The UDP port the query protocol answers on. Set to the same value as `port`, query shares the RakNet socket with the game. @asType integer @minimum 0 @maximum 65535 */
+    'query-port'?: number;
     /** Whether to show the tick rate in the process title. */
     'enable-process-title'?: boolean;
     /** Whether the world ticks. */
@@ -218,6 +220,7 @@ export const CONFIG_KEY_ORDER = [
     'packet-compression-threshold',
     'packet-full-flush-fragments',
     'enable-query',
+    'query-port',
     'enable-process-title',
     'enable-ticking',
     'log-excluded-packets',

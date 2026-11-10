@@ -254,6 +254,25 @@ describe('config', () => {
             expect(text).toContain('"view-distance": 10');
         });
 
+        it('answers query on the game socket by default, on whatever port the file names', async () => {
+            expect(config.getEnableQuery()).toBe(true);
+            expect(config.getQueryPort()).toBe(config.getServerPort());
+
+            writeFileSync(path.join(configDirectory, 'config.json'), '{ "port": 25565 }\n');
+            const reread = new Config();
+            await reread.enable();
+            expect(reread.getQueryPort()).toBe(25565);
+        });
+
+        it('leaves query on the file port when the server port is overridden', async () => {
+            const overridden = new Config({ serverPort: 19200 });
+            await overridden.enable();
+
+            expect(overridden.getServerPort()).toBe(19200);
+            expect(overridden.getQueryPort()).toBe(19132);
+            expect(readFileSync(path.join(configDirectory, 'config.json'), 'utf8')).toContain('"query-port": 19132');
+        });
+
         it('should rewrite a world read in the old spelling without touching the rest', async () => {
             const file = path.join(configDirectory, 'config.json');
             writeFileSync(

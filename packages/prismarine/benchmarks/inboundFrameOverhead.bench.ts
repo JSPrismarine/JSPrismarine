@@ -9,6 +9,7 @@ import type { RakNetTransportSource } from '../src/network/transport/RakNetTrans
 import { stub } from '../src/testing/stub.test.helper';
 
 class BenchSource extends NodeEventEmitter implements RakNetTransportSource {
+    public sendBuffer(): void {}
     public kill(): void {}
 }
 

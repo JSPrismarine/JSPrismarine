@@ -124,8 +124,7 @@ new NetworkDispatcher({
             codec: Codec2193,
             phase: 'handshake',
             getPlayerSession: () => null
-        }),
-    query: { enabled: () => false, onRaw: async () => Buffer.alloc(0) }
+        })
 });
 
 const transportConnection: TransportConnection = {

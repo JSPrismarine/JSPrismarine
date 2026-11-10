@@ -1,6 +1,5 @@
 export * from './chat/ChatManager';
 export * from './permission/PermissionManager';
-export * from './query/QueryManager';
 
 /** The content composition root, re-exported beside the server managers. */
 export { buildServerContent } from './content/ServerContent';
