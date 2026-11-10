@@ -9,23 +9,25 @@
  * LevelDB provider that is the `player_server_<key>` record, and for the file
  * provider `worlds/<name>/playerdata/<key>.json`.
  *
- * The store is a map keyed by the player's entity runtime id rather than a
- * field on `Player`, so the advancement subsystem can be added and removed
- * without the player class growing a member for every subsystem that wants
- * one. The entry lives from the load at join to the save at leave, the life
- * of one connection, which is exactly how long the runtime id lasts. Not keyed
- * by the player's UUID: until a second login of an account that is still
- * joining is refused, two live players can share one, and the first to leave
- * would take the other's progress with it. `PlayerSession.disable` calls
- * {@link forgetAdvancements} once the progress is saved.
+ * The store is a map keyed by the player's key (`keyOfPlayer`: the XUID, or the
+ * name without one) rather than a field on `Player`, so the advancement
+ * subsystem can be added and removed without the player class growing a member
+ * for every subsystem that wants one. The entry lives from the load at join to
+ * the save at leave. Keyed by the account rather than the entity runtime id
+ * because the account is what the record is filed under and what survives a
+ * move between worlds, and since #2951 one live player holds an account at a
+ * time: a second login waits for the first one's save and release before it
+ * loads. `PlayerSession.disable` calls {@link forgetAdvancements} once the
+ * progress is saved.
  */
 import { PlayerAdvancements } from '@jsprismarine/advancements';
 import type { PlayerProgressJson } from '@jsprismarine/advancements';
 
 import type Player from '../Player';
+import { keyOfPlayer } from '../playerIdentity';
 import { isRecord } from '../utils/isRecord';
 
-const stores = new Map<bigint, PlayerAdvancements>();
+const stores = new Map<string, PlayerAdvancements>();
 
 /**
  * The player's progress, created empty on first ask.
@@ -35,12 +37,12 @@ const stores = new Map<bigint, PlayerAdvancements>();
  * from nothing, which is what a first join looks like anyway.
  */
 export const advancementsOf = (player: Player): PlayerAdvancements => {
-    const runtimeId = player.getRuntimeId();
-    const held = stores.get(runtimeId);
+    const key = keyOfPlayer(player);
+    const held = stores.get(key);
     if (held) return held;
 
     const created = new PlayerAdvancements();
-    stores.set(runtimeId, created);
+    stores.set(key, created);
     return created;
 };
 
@@ -81,7 +83,7 @@ const readProgress = (stored: unknown): PlayerProgressJson => {
  *   who has none.
  */
 export const loadAdvancements = (player: Player, stored: unknown): void => {
-    stores.set(player.getRuntimeId(), PlayerAdvancements.fromJSON(readProgress(stored)));
+    stores.set(keyOfPlayer(player), PlayerAdvancements.fromJSON(readProgress(stored)));
 };
 
 /**
@@ -91,7 +93,7 @@ export const loadAdvancements = (player: Player, stored: unknown): void => {
  * read from the record again by {@link loadAdvancements}.
  */
 export const forgetAdvancements = (player: Player): void => {
-    stores.delete(player.getRuntimeId());
+    stores.delete(keyOfPlayer(player));
 };
 
 /**

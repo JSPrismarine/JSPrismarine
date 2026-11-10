@@ -37,6 +37,11 @@ export interface FakePlayerOptions {
      * `world(id)` with. A world the test wants the player to reach needs `getLevel` of its own.
      */
     readonly worlds?: readonly World[];
+    /**
+     * The player's name, `Tester` by default. Per-player services are keyed by the name of a
+     * player with no XUID, so two fake players that must not share state need two names.
+     */
+    readonly name?: string;
 }
 
 /**
@@ -47,7 +52,7 @@ export interface FakePlayerOptions {
  * chunks are empty Overworld chunks, enough for the session's chunk batching to run. It is the
  * Overworld of a level that also holds `worlds`, and the server's default world.
  */
-export const fakePlayer = ({ underwater = false, worlds: others = [] }: FakePlayerOptions = {}) => {
+export const fakePlayer = ({ underwater = false, worlds: others = [], name = 'Tester' }: FakePlayerOptions = {}) => {
     const sent: any[] = [];
     /** Every tick of crack animation the player asked the world for. */
     const cracked: BlockMining[] = [];
@@ -168,7 +173,7 @@ export const fakePlayer = ({ underwater = false, worlds: others = [] }: FakePlay
         address: new InetAddress('127.0.0.1', 19132),
         identity: {
             uuid: UUID.fromRandom(),
-            name: 'Tester',
+            name,
             xuid: '',
             randomId: 0,
             locale: 'en_US',

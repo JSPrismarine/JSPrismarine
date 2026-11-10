@@ -57,3 +57,11 @@ export const playerKeyOf = ({ name, xuid }: Pick<PlayerIdentity, 'name' | 'xuid'
  */
 export const sameAccount = (a: PlayerIdentity, b: PlayerIdentity): boolean =>
     a.name === b.name || (a.xuid !== '' && a.xuid === b.xuid) || a.uuid === b.uuid;
+
+/**
+ * {@link playerKeyOf} for a player object, whose `getXUID` answers null for no XUID.
+ * @param player - The player.
+ * @returns The player's key.
+ */
+export const keyOfPlayer = (player: { getName(): string; getXUID(): string | null }): string =>
+    playerKeyOf({ name: player.getName(), xuid: player.getXUID() ?? '' });
