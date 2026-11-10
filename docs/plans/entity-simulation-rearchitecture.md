@@ -165,6 +165,7 @@ B2 left three things for later slices to remove.
 - `world/TickContext.ts` uses `AsyncLocalStorage` to tell code inside a tick from code between ticks, because the tick still awaits. Slice 9 makes the tick synchronous, and a plain flag set by the ticker replaces it then.
 - Eight code paths still load a chunk from inside a tick. Each is admitted inline, recorded as `inline` and listed in `IN_TICK_CHUNK_LOADS`, and a test fails when one is removed without updating the list. Slices 3, 5, 6 and 9 remove them.
 - `World.disable` waits for an unload parked on admission, so calling it from inside a tick would never finish. Nothing does today. Slice 9 has to keep it that way or drain admissions first.
+- A tick that awaits work started outside it, such as from an event or a command between ticks, cannot be told apart from one that waits for its own chunks, and a chunk that work loads waits for the next input step. The ticker therefore admits every held completion inline, recorded as `inline`, and logs a `TickStalledError` each `TICK_STALL_MS` a tick runs with completions held. Slice 9's synchronous tick removes the wait and the watch with it.
 
 C1a and C1b left these for later packages.
 
