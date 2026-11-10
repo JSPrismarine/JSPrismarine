@@ -26,6 +26,7 @@ import LoginSequence from './login/LoginSequence';
 import ClientPacketRegistry from './net/ClientPacketRegistry';
 import ClientSession from './net/ClientSession';
 import NetherNetTransport from './net/NetherNetTransport';
+import { netherNetIdentityOf } from './net/netherNetIdentityOf';
 import RakNetTransport from './net/RakNetTransport';
 
 import type { IAuthProvider } from '@jsprismarine/auth';
@@ -163,7 +164,10 @@ export default class Client extends EventEmitter {
         const dial = { host: options.host, port: options.port ?? 19132, timeoutMs: options.loginTimeoutMs };
         this.transport =
             options.transport ??
-            (options.network === 'nethernet' ? new NetherNetTransport(dial) : new RakNetTransport(this.logger, dial));
+            (options.network === 'nethernet'
+                ? // A signed-in provider's offer carries its token; an offline one's signs its own.
+                  new NetherNetTransport({ ...dial, identity: () => netherNetIdentityOf(this.auth) })
+                : new RakNetTransport(this.logger, dial));
 
         this.session = new ClientSession(this.transport, this.registry, this.logger);
 

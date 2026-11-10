@@ -16,8 +16,12 @@ export interface NetherNetTransportOptions {
     readonly port: number;
     /** Overall budget for the connection attempt. */
     readonly timeoutMs?: number;
-    /** The identity the offer is signed with. A fresh self-signed one per connection by default. */
-    readonly identity?: NetherNetIdentity;
+    /**
+     * The identity the offer is signed with, or a function that resolves it when the join starts,
+     * for an identity that needs a sign-in first. A fresh self-signed one per connection by
+     * default, and when the function resolves to undefined.
+     */
+    readonly identity?: NetherNetIdentity | (() => Promise<NetherNetIdentity | undefined>);
 }
 
 /**
@@ -61,7 +65,8 @@ export default class NetherNetTransport extends EventEmitter implements ITranspo
             throw new Error(`${this.options.host}:${this.options.port} does not speak NetherNet`);
         }
 
-        const identity = this.options.identity ?? NetherNetIdentity.client();
+        const chosen = this.options.identity;
+        const identity = (typeof chosen === 'function' ? await chosen() : chosen) ?? NetherNetIdentity.client();
         // The server's network ID is not known when joining by address; signals carry the client's.
         const client = new NetherNetClient(0n, this.options.host);
         this.client = client;

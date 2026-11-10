@@ -27,7 +27,8 @@ import type { EncryptionCodec } from '@jsprismarine/protocol';
 import type ClientToServerHandshakePacket from '@jsprismarine/protocol/packet/ClientToServerHandshakePacket';
 import ClientToServerHandshakeHandler from './ClientToServerHandshakeHandler';
 import LoginHandler from './LoginHandler';
-import { TOKEN_ISSUER, useLoginKeys } from '../LoginVerifier';
+import { TOKEN_ISSUER } from '@jsprismarine/auth/protocol';
+import { useLoginKeys } from '@jsprismarine/auth/server';
 import { testContent } from '../../testing/entityServer';
 import { fakeLevel } from '../../testing/level';
 

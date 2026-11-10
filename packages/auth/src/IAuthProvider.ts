@@ -82,4 +82,13 @@ export interface IAuthProvider {
      * backed by something that is not node's crypto stays possible.
      */
     getIdentityPrivateKey(): Promise<string>;
+
+    /**
+     * The multiplayer token Minecraft services issued for this provider's key, for a transport
+     * that presents the identity before the login does: NetherNet signs its WebRTC offer with it.
+     *
+     * Undefined, or left out, for a provider nobody vouches for; the transport then signs a
+     * token of its own.
+     */
+    getMultiplayerToken?(): Promise<string | undefined>;
 }
