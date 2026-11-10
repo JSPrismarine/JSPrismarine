@@ -665,11 +665,7 @@ export default class Player extends Human {
      * @param {PlayerSession} session - The client to show it to.
      */
     public override async spawnTo(session: PlayerSession): Promise<void> {
-        await this.getNetworkSession().sendSpawn(session.getPlayer());
-    }
-
-    public override async despawnFrom(session: PlayerSession): Promise<void> {
-        await this.getNetworkSession().sendDespawn(session.getPlayer());
+        await session.sendAddPlayer(this);
     }
 
     /**

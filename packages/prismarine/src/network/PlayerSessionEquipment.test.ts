@@ -19,6 +19,7 @@ import { AddPlayerPacket, MobArmorEquipmentPacket, MobEquipmentPacket } from '@j
 import type { AddPlayerPayload } from '@jsprismarine/protocol';
 import type { ProtocolContext } from '@jsprismarine/protocol';
 import UUID from '@jsprismarine/protocol/wire/structures/UUID';
+import { Metadata } from '@jsprismarine/protocol/wire/structures/Metadata';
 import type { Position } from '../world/Position';
 import type ClientConnection from './ClientConnection';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
@@ -77,14 +78,23 @@ const equippedHuman = () => {
     inventory.getArmor().setItem(1, new ContainerEntry({ item: chestplate, count: 1 }));
     inventory.getOffhand().setItem(0, new ContainerEntry({ item: shield, count: 1 }));
 
-    return stub<Human>({ getRuntimeId: () => 7n, getInventory: () => inventory });
+    return stub<Human>({
+        getRuntimeId: () => 7n,
+        getInventory: () => inventory,
+        // What `Human.getEquipment` reads off those slots.
+        getEquipment: () => ({ chest: chestplate, offhand: shield })
+    });
 };
 
 const position = () => stub<Position>({ getX: () => 1, getY: () => 64, getZ: () => 2 });
 
-/** The player being shown, with the pieces `sendSpawn` reads. */
+/** The player being shown, with the pieces `sendAddPlayer` reads. */
 const shownPlayer = ({ op = false, device = null }: { op?: boolean; device?: Device | null } = {}) =>
     stub<Player>({
+        metadata: new Metadata(),
+        isFlying: () => false,
+        getEquipment: () => ({}),
+        getStatusEffects: () => [],
         getUUID: () => UUID.fromRandom(),
         getRuntimeId: () => 7n,
         getName: () => 'Shown',
@@ -99,27 +109,19 @@ const shownPlayer = ({ op = false, device = null }: { op?: boolean; device?: Dev
         isOp: () => op
     });
 
-/** The player being shown to, recording the packets its session was asked to send. */
-const viewer = () => {
-    const sent: NetworkPacket[] = [];
-    const session = stub<PlayerSession>({
-        getConnection: () => stub<ClientConnection>({ codec: protocolCodec }),
-        send: async (packet) => void sent.push(packet),
-        sendAbilities: async () => {},
-        sendArmorFor: async () => {},
-        sendStatusEffects: async () => {}
-    });
-
-    return { player: stub<Player>({ getNetworkSession: () => session }), sent };
-};
-
 describe('network', () => {
     describe('PlayerSession', () => {
         describe('sendInventory', () => {
             /** The player's own session, holding `equippedHuman`'s inventory. */
             const ownSession = () => {
-                const inventory = equippedHuman().getInventory();
-                return sessionFor(stub<Player>({ getRuntimeId: () => 7n, getInventory: () => inventory }));
+                const human = equippedHuman();
+                return sessionFor(
+                    stub<Player>({
+                        getRuntimeId: () => 7n,
+                        getInventory: () => human.getInventory(),
+                        getEquipment: () => human.getEquipment()
+                    })
+                );
             };
 
             it('names the armor container in the armor window, not the hotbar and inventory', async () => {
@@ -223,14 +225,13 @@ describe('network', () => {
             });
         });
 
-        describe('sendSpawn', () => {
+        describe('sendAddPlayer', () => {
             const spawn = async (shown: Player): Promise<AddPlayerPayload> => {
-                const other = viewer();
-                const { session } = sessionFor(shown);
+                const { session, sent } = sessionFor(stub<Player>({ getRuntimeId: () => 1n }));
 
-                await session.sendSpawn(other.player);
+                await session.sendAddPlayer(shown);
 
-                const [packet] = other.sent;
+                const [packet] = sent;
                 expect(packet).toBeInstanceOf(AddPlayerPacket);
                 if (!(packet instanceof AddPlayerPacket)) throw new Error('AddPlayerPacket was not sent first');
                 const data = packet.getPacketData();

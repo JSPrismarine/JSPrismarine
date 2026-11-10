@@ -20,13 +20,13 @@ import { commandDataOf } from '../command/availableCommands';
 import type { Attribute, Attributes } from '@jsprismarine/protocol/wire/structures/Attribute';
 import type { Entity } from '../entity/Entity';
 import type { ShownActor } from '../world/ShownActor';
+import type { ShownPlayer } from '../world/ShownPlayer';
 import type { LiveOffer, TradeContext, TradeResult } from '@jsprismarine/trading';
 import UpdateTradePacket from '@jsprismarine/protocol/packet/UpdateTradePacket';
 import { tradeOffersPayload } from './tradeOffers';
 import type { StatusEffect, StatusEffectChange } from '../entity/StatusEffect';
 import { bedrockMobEffectId } from '../entity/StatusEffect';
 import type { Metadata } from '@jsprismarine/protocol/wire/structures/Metadata';
-import type Human from '../entity/Human';
 import { eyePositionAt } from '../entity/Human';
 import type { ItemActorBody } from '../entity/data/itemBodies';
 import type ContainerEntry from '../inventory/ContainerEntry';
@@ -84,6 +84,7 @@ import { PlayStatus, PlayStatusPacket } from '@jsprismarine/protocol';
 import PlayerActionPacket from '@jsprismarine/protocol/packet/PlayerActionPacket';
 import PlayerListPacket from '@jsprismarine/protocol/packet/PlayerListPacket';
 import { PlayerListAction, PlayerListEntry } from '@jsprismarine/protocol/wire/structures/PlayerListEntry';
+import { playerListEntryOf } from './playerListEntry';
 import RemoveActorPacket from '@jsprismarine/protocol/packet/RemoveActorPacket';
 import { PlayerRespawnState } from '@jsprismarine/minecraft';
 import RespawnPacket from '@jsprismarine/protocol/packet/RespawnPacket';
@@ -938,9 +939,10 @@ export default class PlayerSession {
      * walk speed 0.1, fly speed 0.05 and vertical fly speed 1, the client's own defaults.
      * The target id is the player's runtime id, which the server also uses as its unique id.
      *
-     * @param player - The player described. Defaults to this session's own player.
+     * @param player - The player described, a legacy player or one in the entity store. Defaults
+     *   to this session's own player.
      */
-    public async sendAbilities(player?: Player): Promise<void> {
+    public async sendAbilities(player?: ShownPlayer): Promise<void> {
         const target = player ?? this.player;
 
         // Read off the gamemode rather than each written out by hand, which is how
@@ -1647,13 +1649,13 @@ export default class PlayerSession {
      * flags of every player it knows about. The Tick is this client's last input tick when the
      * player is its own, so the client can reconcile the movement it predicted while the packet
      * was in flight, and zero for anyone else, as the docs allow.
-     * @param {Player} target - The player whose game type changed.
+     * @param {ShownPlayer} target - The player whose game type changed.
      */
-    public async sendGameTypeFor(target: Player): Promise<void> {
+    public async sendGameTypeFor(target: ShownPlayer): Promise<void> {
         const packet = new UpdatePlayerGameTypePacket({
             playerGameType: target.gamemode,
             targetPlayer: target.getRuntimeId(),
-            tick: target === this.player ? this.lastInputTick : 0n
+            tick: target.getRuntimeId() === this.player.getRuntimeId() ? this.lastInputTick : 0n
         });
         await this.connection.sendDataPacket(packet);
     }
@@ -2385,17 +2387,7 @@ export default class PlayerSession {
      * the server and also to the player itself.
      */
     public async addToPlayerList(): Promise<void> {
-        const entry = new PlayerListEntry({
-            uuid: this.player.getUUID(),
-            runtimeId: this.player.getRuntimeId(),
-            name: this.player.getName(),
-            xuid: this.player.xuid,
-            platformChatId: this.player.platformChatId,
-            buildPlatform: this.player.device?.os ?? -1,
-            skin: this.player.skin!,
-            isTeacher: false,
-            isHost: false
-        });
+        const entry = playerListEntryOf(this.player);
 
         this.server.getSessionManager().getPlayerList().set(this.player.getUUID().toString(), entry);
 
@@ -2511,20 +2503,22 @@ export default class PlayerSession {
      *
      * The off hand goes out as a `MobEquipmentPacket` for the offhand container, the way the
      * client reports its own off-hand changes.
-     * @param {Human} wearer - Whose armor it is.
+     *
+     * Read from the wearer's equipment, which for a legacy player is its inventory and for a
+     * player in the entity store is whatever its profile reads the inventory from.
+     * @param {ShownActor} wearer - Whose armor it is.
      */
-    public async sendArmorFor(wearer: Human): Promise<void> {
-        const inventory = wearer.getInventory();
-        const armor = inventory.getArmor();
+    public async sendArmorFor(wearer: ShownActor): Promise<void> {
+        const worn = wearer.getEquipment();
 
         const context = this.connection.codec.context;
         await this.send(
             new MobArmorEquipmentPacket({
                 runtimeEntityId: wearer.getRuntimeId(),
-                head: armor.getItem(0).toStackDescriptor(context),
-                chest: armor.getItem(1).toStackDescriptor(context),
-                legs: armor.getItem(2).toStackDescriptor(context),
-                feet: armor.getItem(3).toStackDescriptor(context),
+                head: (worn.head ?? Item.air()).toStackDescriptor(context),
+                chest: (worn.chest ?? Item.air()).toStackDescriptor(context),
+                legs: (worn.legs ?? Item.air()).toStackDescriptor(context),
+                feet: (worn.feet ?? Item.air()).toStackDescriptor(context),
                 body: Item.air().toStackDescriptor(context)
             })
         );
@@ -2533,7 +2527,7 @@ export default class PlayerSession {
         await this.send(
             new MobEquipmentPacket({
                 runtimeEntityId: wearer.getRuntimeId(),
-                item: inventory.getOffhand().getItem(0).toStackDescriptor(context),
+                item: (worn.offhand ?? Item.air()).toStackDescriptor(context),
                 inventorySlot: 0,
                 hotbarSlot: 0,
                 windowId: WindowIds.OFFHAND
@@ -2544,8 +2538,8 @@ export default class PlayerSession {
     /**
      * Tells this client everything one entity is holding and wearing.
      *
-     * The mob counterpart of {@link PlayerSession.sendArmorFor}, which reads a `Human`'s armor
-     * container and so cannot serve anything that has no inventory. A data-driven mob keeps its
+     * The mob counterpart of {@link PlayerSession.sendArmorFor}, which is what a player is shown
+     * wearing when it comes into view and always sends the off hand. A data-driven mob keeps its
      * equipment on the body itself, rolled from `minecraft:equipment`.
      *
      * Both packets go out whatever the entity is wearing, rather than only the occupied slots.
@@ -2642,8 +2636,7 @@ export default class PlayerSession {
      *
      * By id rather than by entity because the tracker has to be able to hide something that
      * has already left the world - there is no object left to ask. Correct for every kind of
-     * entity: `RemoveActorPacket` is what both `Entity.despawnFrom` and `Player.despawnFrom`
-     * end up sending, players included.
+     * entity: `RemoveActorPacket` is what `Entity.despawnFrom` sends, players included.
      * @param {bigint} runtimeId - The entity's runtime id.
      */
     public async sendRemoveActorById(runtimeId: bigint): Promise<void> {
@@ -2740,45 +2733,46 @@ export default class PlayerSession {
     }
 
     /**
-     * Spawn the player for another player
+     * Shows another player to this client, as Bedrock shows a player: an `AddPlayer`, then the
+     * abilities, the armor and the status effects.
      *
-     * @param player - the player to send the AddPlayerPacket to
+     * A legacy player and a player in the entity store both come through here, so the two are
+     * shown the same way.
+     * @param player - The player to show. Never this client's own: the tracker leaves it out.
      */
-    public async sendSpawn(player: Player): Promise<void> {
-        const targetSession = player.getNetworkSession();
-        const context = targetSession.getConnection().codec.context;
-        const position = this.player.getPosition();
+    public async sendAddPlayer(player: ShownPlayer): Promise<void> {
+        const context = this.connection.codec.context;
         // `Player.platformChatId` is still empty because the login handler does not read the
         // client's platform online id yet. This sends what the player list sends.
         // Mirrors `sendAbilities`. Without these every player showed up to everybody else as
         // a visitor on an unknown platform.
-        const op = this.player.isOp();
-        await targetSession.send(
+        const op = player.isOp();
+        await this.send(
             new AddPlayerPacket({
-                uuid: this.player.getUUID(),
-                name: this.player.getName(),
-                runtimeEntityId: this.player.getRuntimeId(),
-                platformChatId: this.player.platformChatId,
-                position,
+                uuid: player.getUUID(),
+                name: player.getName(),
+                runtimeEntityId: player.getRuntimeId(),
+                platformChatId: player.platformChatId,
+                position: player.getPosition(),
                 // Players report their own movement every tick, so the server has no velocity to send.
                 motion: new Vector3(0, 0, 0),
-                pitch: this.player.pitch,
-                yaw: this.player.yaw,
-                headYaw: this.player.headYaw,
-                carriedItem: this.player.getInventory().getItemInHand().toStackDescriptor(context),
-                gamemode: this.player.gamemode,
-                metadata: this.player.metadata,
+                pitch: player.pitch,
+                yaw: player.yaw,
+                headYaw: player.headYaw,
+                carriedItem: (player.getEquipment().mainhand ?? Item.air()).toStackDescriptor(context),
+                gamemode: player.gamemode,
+                metadata: player.metadata,
                 syncedProperties: new SyncedProperties(),
                 abilities: {
-                    targetPlayerRawId: this.player.getRuntimeId(),
+                    targetPlayerRawId: player.getRuntimeId(),
                     playerPermission: op ? PlayerPermissionLevel.OPERATOR : PlayerPermissionLevel.MEMBER,
                     commandPermission: op ? CommandPermissionLevel.GAME_DIRECTORS : CommandPermissionLevel.ANY,
                     layers: []
                 },
                 links: [],
                 passengerOfBlock: null,
-                deviceId: this.player.device?.id ?? '',
-                buildPlatform: this.player.device?.os ?? BuildPlatform.UNKNOWN
+                deviceId: player.device?.id ?? '',
+                buildPlatform: player.device?.os ?? BuildPlatform.UNKNOWN
             })
         );
 
@@ -2786,22 +2780,13 @@ export default class PlayerSession {
         // the packet from the player passed and sends it to *this* connection - so showing A
         // to B sent B's settings to A. The packet has no target actor and describes only the
         // client receiving it, so it has no place in a spawn at all.
-        await targetSession.sendAbilities(this.player);
+        await this.sendAbilities(player);
 
         // `AddPlayerPacket` carries the held item and nothing else, so armor has to follow the
         // player into view as a packet of its own - otherwise everybody else sees them in their
         // shirtsleeves however well equipped they are.
-        await targetSession.sendArmorFor(this.player);
-        await targetSession.sendStatusEffects(this.player);
-    }
-
-    /**
-     * Despawn the player entity from another player
-     */
-    public async sendDespawn(player: Player): Promise<void> {
-        const pk = new RemoveActorPacket();
-        pk.uniqueEntityId = this.player.getRuntimeId(); // We use runtime as unique
-        await player.getNetworkSession().getConnection().sendDataPacket(pk);
+        await this.sendArmorFor(player);
+        await this.sendStatusEffects(player);
     }
 
     /** Sends a `PlayStatus` to this player's client. */
