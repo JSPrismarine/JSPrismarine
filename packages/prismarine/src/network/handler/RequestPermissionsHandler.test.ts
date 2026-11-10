@@ -6,6 +6,7 @@ import type Player from '../../Player';
 import type Server from '../../Server';
 import type SessionManager from '../../SessionManager';
 import type { PermissionManager } from '../../permission/PermissionManager';
+import { identityNamed } from '../../testing/sessionIdentity.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import type PlayerSession from '../PlayerSession';
 import type { ShownPlayer } from '../../world/ShownPlayer';
@@ -41,6 +42,7 @@ const fakeSession = ({ op = true }: { op?: boolean } = {}) => {
                 })
         }),
         session: stub<PlayerSession>({
+            identity: identityNamed('Steve'),
             getPlayer: () => requester,
             sendAbilities: async (player) => void resent.push(player)
         })

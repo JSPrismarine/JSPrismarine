@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import type Player from '../../Player';
 import type Server from '../../Server';
 import type { CommandManager } from '../../command/CommandManager';
+import { identityNamed } from '../../testing/sessionIdentity.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import UUID from '@jsprismarine/protocol/wire/structures/UUID';
 import type PlayerSession from '../PlayerSession';
@@ -41,6 +42,7 @@ const run = async (packet: CommandRequestPacket, ran: boolean) => {
             })
     });
     const session = stub<PlayerSession>({
+        identity: identityNamed('Steve'),
         getPlayer: () => player,
         send: async (packet) => void sent.push(packet)
     });
