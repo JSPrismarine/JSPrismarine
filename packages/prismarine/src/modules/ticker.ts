@@ -5,6 +5,7 @@ import { profileSpanStarter } from '../profiling/ServerProfiler';
 import { TickRecorder } from '../profiling/TickRecorder';
 import type { ChunkCompletionQueue } from '../world/ChunkCompletionQueue';
 import { DEFAULT_CHUNK_COMPLETION_BUDGET_MS } from '../world/ChunkCompletionQueue';
+import { runInTick } from '../world/TickContext';
 import { tickerToken } from './tokens';
 
 type LateTickProfile = {
@@ -125,7 +126,8 @@ export interface TickerServer {
     emitTick(event: TickEvent): Promise<void>;
     /**
      * The input step: applies the inputs held since the last tick, in arrival order, up to a
-     * count. The ticker awaits it before anything else in the tick, and before any world updates.
+     * count, then the chunk completions it admits. The ticker awaits it before anything else in
+     * the tick, and before any world updates.
      */
     admitInputs(): Promise<number>;
     /** Delivers pending network records at this tick's fixed game-thread boundary. */
@@ -536,6 +538,7 @@ export class ServerTicker implements Ticker, TickControl {
         let chunkSchedulerMs = 0;
         let slowestWorldName: string | null = null;
         let slowestWorldMs = 0;
+        let phaseStartedAt = 0;
         const endTickProfile = startProfile?.('Server.tick');
 
         // The next tick is scheduled from `finally`, and everything that can throw is
@@ -546,82 +549,86 @@ export class ServerTicker implements Ticker, TickControl {
         // stood still. A tick that fails is worth a log line; it is not worth the
         // server.
         try {
-            // The input step comes first (ADR 0015): the input-lane packets and player removals
-            // held since the last tick, applied in arrival order before any world updates, so no
-            // input lands between the awaits of a world's tick. Handlers are still asynchronous,
-            // so the step can yield, but nothing else in the tick runs until it has finished.
-            // The levels tick one after another, so this one step is the input step of every
-            // world; when they tick apart, each world drains the inputs of its own players.
-            const endInputsProfile = startProfile?.('Server.inputs');
-            try {
-                await server.admitInputs();
-            } finally {
-                endInputsProfile?.();
-            }
-            const endCompletionProfile = startProfile?.('Server.chunkCompletions');
-            let phaseStartedAt = now();
-            try {
-                server.getChunkCompletionQueue().drain(DEFAULT_CHUNK_COMPLETION_BUDGET_MS);
-            } finally {
-                chunkCompletionsMs = now() - phaseStartedAt;
-                endCompletionProfile?.();
-            }
-            const event = new TickEvent(this.getTick());
+            // The simulation phases run inside the tick's scope, so a chunk that code inside them
+            // waits for is told apart from one a chunk delivery or a read-lane handler waits for,
+            // which waits for the next input step instead (ADR 0009). Chunk delivery is outside.
+            await runInTick(async () => {
+                // The input step comes first (ADR 0015): the input-lane packets and player removals
+                // held since the last tick, applied in arrival order before any world updates, then
+                // the chunk completions the step admits, so no input lands between the awaits of a
+                // world's tick and no chunk enters or leaves in the middle of one. Handlers are still asynchronous,
+                // so the step can yield, but nothing else in the tick runs until it has finished.
+                // The levels tick one after another, so this one step is the input step of every
+                // world; when they tick apart, each world drains the inputs of its own players.
+                const endInputsProfile = startProfile?.('Server.inputs');
+                try {
+                    await server.admitInputs();
+                } finally {
+                    endInputsProfile?.();
+                }
+                const endCompletionProfile = startProfile?.('Server.chunkCompletions');
+                phaseStartedAt = now();
+                try {
+                    server.getChunkCompletionQueue().drain(DEFAULT_CHUNK_COMPLETION_BUDGET_MS);
+                } finally {
+                    chunkCompletionsMs = now() - phaseStartedAt;
+                    endCompletionProfile?.();
+                }
+                const event = new TickEvent(this.getTick());
 
-            // Awaited, so a plugin's tick handler runs *inside* this tick like every
-            // other piece of tick work. Discarding the promise let its continuation
-            // land in the middle of some later tick, and its rejection could not
-            // reach the catch below - it surfaced as an unhandled rejection instead.
-            phaseStartedAt = now();
-            const endTickHandlersProfile = startProfile?.('Server.tickHandlers');
-            try {
-                await server.emitTick(event);
-            } finally {
-                tickHandlersMs = now() - phaseStartedAt;
-                endTickHandlersProfile?.();
-            }
+                // Awaited, so a plugin's tick handler runs *inside* this tick like every
+                // other piece of tick work. Discarding the promise let its continuation
+                // land in the middle of some later tick, and its rejection could not
+                // reach the catch below - it surfaced as an unhandled rejection instead.
+                phaseStartedAt = now();
+                const endTickHandlersProfile = startProfile?.('Server.tickHandlers');
+                try {
+                    await server.emitTick(event);
+                } finally {
+                    tickHandlersMs = now() - phaseStartedAt;
+                    endTickHandlersProfile?.();
+                }
 
-            const ticksPerSecond = 1000 / MINECRAFT_TICK_TIME_MS;
+                // A frozen world holds still, but a step lets some ticks through.
+                const advancing = !this.frozen || this.stepsLeft > 0;
+                if (this.frozen && this.stepsLeft > 0) this.stepsLeft--;
 
-            // A frozen world holds still, but a step lets some ticks through.
-            const advancing = !this.frozen || this.stepsLeft > 0;
-            if (this.frozen && this.stepsLeft > 0) this.stepsLeft--;
-
-            // One world after another, in the order `getWorlds` gives, never interleaved: a
-            // world's tick must not run between the awaits of another's. A world that throws
-            // is logged and costs only its own tick, and every update of this tick has
-            // settled before the next tick is scheduled.
-            phaseStartedAt = now();
-            try {
-                for (const world of advancing ? server.getWorlds() : []) {
-                    const worldStartedAt = now();
-                    const endWorldProfile = startProfile?.(`World.update:${world.getName()}`);
-                    try {
-                        await world.update(event.getTick());
-                    } catch (error: unknown) {
-                        logger.error(`World ${world.getName()} failed tick ${event.getTick()}`);
-                        logger.error(error);
-                    } finally {
-                        endWorldProfile?.();
-                        const elapsedMs = now() - worldStartedAt;
-                        if (elapsedMs > slowestWorldMs) {
-                            slowestWorldMs = elapsedMs;
-                            slowestWorldName = world.getName();
+                // One world after another, in the order `getWorlds` gives, never interleaved: a
+                // world's tick must not run between the awaits of another's. A world that throws
+                // is logged and costs only its own tick, and every update of this tick has
+                // settled before the next tick is scheduled.
+                phaseStartedAt = now();
+                try {
+                    for (const world of advancing ? server.getWorlds() : []) {
+                        const worldStartedAt = now();
+                        const endWorldProfile = startProfile?.(`World.update:${world.getName()}`);
+                        try {
+                            await world.update(event.getTick());
+                        } catch (error: unknown) {
+                            logger.error(`World ${world.getName()} failed tick ${event.getTick()}`);
+                            logger.error(error);
+                        } finally {
+                            endWorldProfile?.();
+                            const elapsedMs = now() - worldStartedAt;
+                            if (elapsedMs > slowestWorldMs) {
+                                slowestWorldMs = elapsedMs;
+                                slowestWorldName = world.getName();
+                            }
                         }
                     }
+                } finally {
+                    worldUpdatesMs = now() - phaseStartedAt;
                 }
-            } finally {
-                worldUpdatesMs = now() - phaseStartedAt;
-            }
 
-            // `#minecraft:tick` and whatever `/schedule` put on this tick. After the
-            // worlds, as Java runs it, so a function sees the world the tick left.
-            const endFunctionsProfile = startProfile?.('Server.tickFunctions');
-            try {
-                if (advancing) await server.tickFunctions();
-            } finally {
-                endFunctionsProfile?.();
-            }
+                // `#minecraft:tick` and whatever `/schedule` put on this tick. After the
+                // worlds, as Java runs it, so a function sees the world the tick left.
+                const endFunctionsProfile = startProfile?.('Server.tickFunctions');
+                try {
+                    if (advancing) await server.tickFunctions();
+                } finally {
+                    endFunctionsProfile?.();
+                }
+            });
 
             // Whatever fits in this tick's slice; the rest waits for the next one.
             phaseStartedAt = now();
@@ -635,6 +642,7 @@ export class ServerTicker implements Ticker, TickControl {
                 endChunkSchedulerProfile?.();
             }
 
+            const ticksPerSecond = 1000 / MINECRAFT_TICK_TIME_MS;
             if (
                 server.isProcessTitleEnabled() &&
                 this.getTick() % (ticksPerSecond * PROCESS_TITLE_UPDATE_INTERVAL_SECONDS) === 0 &&

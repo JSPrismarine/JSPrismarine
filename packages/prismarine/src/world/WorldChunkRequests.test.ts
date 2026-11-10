@@ -18,8 +18,10 @@ import Chunk from './chunk/Chunk';
 import type { DimensionType } from './Dimension';
 import { Dimensions } from './Dimension';
 import type { Generator } from './Generator';
+import type { ChunkAdmissionRecord } from './ChunkAdmissions';
 import { ChunkCompletionQueue } from './ChunkCompletionQueue';
 import type { ChunkCompletionScheduler } from './ChunkCompletionQueue';
+import { runInTick, trackTickWaits } from './TickContext';
 import type BaseProvider from './providers/BaseProvider';
 import { World } from './World';
 import { WorldSystems } from './WorldSystems';
@@ -51,7 +53,7 @@ const testWorld = (
         name: 'chunk-request-test',
         path: 'chunk-request-test',
         server,
-        level: fakeLevel({ server, provider: stub<BaseProvider>({ readChunk }) }),
+        level: fakeLevel({ server, provider: stub<BaseProvider>({ readChunk, writeChunk: async () => {} }) }),
         stem: TEST_OVERWORLD_STEM,
         generator,
         ...(completionQueue === undefined ? {} : { completionQueue })
@@ -66,6 +68,11 @@ const deferred = <T>(): { promise: Promise<T>; resolve: (value: T) => void } => 
     });
 
     return { promise, resolve };
+};
+
+/** A few turns of the microtask queue, enough for a provider that answers at once. */
+const turns = async (): Promise<void> => {
+    for (let turn = 0; turn < 10; turn++) await Promise.resolve();
 };
 
 describe('world chunk requests', () => {
@@ -185,87 +192,143 @@ describe('world chunk requests', () => {
         expect(raised).toEqual([[5, 6, 'immediate']]);
     });
 
-    it('defers background chunk lighting, then promotes it when a player asks for the same chunk', async () => {
-        let now = 0;
-        const queue = new ChunkCompletionQueue(() => now);
-        const order: string[] = [];
+    it('keeps a ready chunk out of the loaded set until the input step admits it', async () => {
+        const queue = new ChunkCompletionQueue(undefined, { tick: () => 40 });
+        const records: ChunkAdmissionRecord[] = [];
+        queue.admissions.setRecorder({ record: (record) => void records.push(record) });
         queue.activate();
-        queue.defer(
-            () => {
-                order.push('older-idle');
-                now += 1;
-            },
-            { priority: 'idle' }
-        );
-        const light = vi.spyOn(WorldSystems.prototype, 'onChunkLoaded').mockImplementation((x, z) => {
-            order.push(`lighting-${x},${z}`);
-            now += 1;
-        });
+        const lit: string[] = [];
+        vi.spyOn(WorldSystems.prototype, 'onChunkLoaded').mockImplementation((x, z) => void lit.push(`${x},${z}`));
         const world = testWorld(
             async (_dimension, x, z) => new Chunk(x, z, new Map(), Dimensions.Overworld),
             stub<Generator>({}),
             queue
         );
 
-        const background = world.getChunk(5, 6, { urgency: 'idle' });
-        await Promise.resolve();
-        expect(queue.snapshot().byLabel['chunk-lighting']?.completed).toBeUndefined();
-        expect(queue.pending).toBe(2);
-
-        let soonReady = false;
-        const soon = world.getChunk(5, 6, { urgency: 'soon' }).then((chunk) => {
-            soonReady = true;
+        let ready = false;
+        const background = world.getChunk(5, 6, { urgency: 'idle' }).then((chunk) => {
+            ready = true;
             return chunk;
         });
-        await Promise.resolve();
-        expect(soonReady).toBe(false);
+        await turns();
 
-        const visible = world.getChunk(5, 6, { urgency: 'immediate' });
-        now += 5;
-        expect(order).toEqual(['lighting-5,6']);
-        expect(queue.drain(1)).toBe(1);
-        expect(order).toEqual(['lighting-5,6', 'older-idle']);
-        queue.drain(10);
+        // Read, and waiting only for a tick: not in the world, and not counted as loading.
+        expect(world.getLoadedChunk(5, 6)).toBeNull();
+        expect(world.getPendingChunkLoadCount()).toBe(0);
+        expect(queue.admissions.pending).toBe(1);
+        expect(lit).toEqual([]);
+        expect(ready).toBe(false);
 
-        const [backgroundChunk, soonChunk, visibleChunk] = await Promise.all([background, soon, visible]);
-        expect(soonChunk).toBe(backgroundChunk);
-        expect(visibleChunk).toBe(backgroundChunk);
-        expect(order).toEqual(['lighting-5,6', 'older-idle']);
-        expect(queue.snapshot().byLabel['chunk-lighting']?.completed).toBe(1);
-        light.mockRestore();
+        expect(await queue.admissions.admit(41)).toBe(1);
+        const chunk = await background;
+        expect(world.getLoadedChunk(5, 6)).toBe(chunk);
+        // Lighting and the fluid scan are part of the admission, not later work.
+        expect(lit).toEqual(['5,6']);
+        expect(queue.snapshot().byLabel['chunk-fluids']?.completed).toBe(1);
+        expect(records).toEqual([
+            expect.objectContaining({
+                tick: 41,
+                world: 'chunk-request-test/minecraft:overworld',
+                change: 'enter',
+                x: 5,
+                z: 6,
+                step: 'input',
+                digest: expect.stringMatching(/^[0-9a-f]{64}$/)
+            })
+        ]);
     });
 
-    it('defers the exposed-fluid scan of a background chunk to the queue, and runs it at once for a visible one', async () => {
+    it('admits at once a chunk that code inside a tick waits for, and counts it', async () => {
         const queue = new ChunkCompletionQueue();
         queue.activate();
-        const light = vi.spyOn(WorldSystems.prototype, 'onChunkLoaded').mockImplementation(() => {});
+        vi.spyOn(WorldSystems.prototype, 'onChunkLoaded').mockImplementation(() => {});
         const world = testWorld(
             async (_dimension, x, z) => new Chunk(x, z, new Map(), Dimensions.Overworld),
             stub<Generator>({}),
             queue
         );
 
-        const background = world.getChunk(1, 1, { urgency: 'idle' });
-        const turns = async () => {
-            for (let turn = 0; turn < 10; turn++) await Promise.resolve();
-        };
-        await turns();
-        // Lighting waits first. Draining one task runs it, and the fluid scan queues behind it.
-        expect(queue.drain(0)).toBe(1);
-        await turns();
-        expect(queue.pending).toBe(1);
-        expect(queue.snapshot().byLabel['chunk-fluids']).toBeUndefined();
-        expect(queue.drain(0)).toBe(1);
-        await background;
-        expect(queue.snapshot().byLabel['chunk-fluids']?.completed).toBe(1);
+        const chunk = await runInTick(() => world.getChunk(1, 1));
 
-        const visible = world.getChunk(2, 2, { urgency: 'immediate' });
-        await visible;
-        // Booked under the same label, but run in place rather than queued.
-        expect(queue.pending).toBe(0);
-        expect(queue.snapshot().byLabel['chunk-fluids']?.completed).toBe(2);
-        expect(queue.snapshot().byLabel['chunk-register']?.completed).toBe(2);
-        light.mockRestore();
+        expect(world.getLoadedChunk(1, 1)).toBe(chunk);
+        expect(queue.admissions.snapshot()).toMatchObject({ pending: 0, admitted: 0, admittedInTick: 1 });
+    });
+
+    it('admits a held chunk at once when code inside a tick joins its load', async () => {
+        const queue = new ChunkCompletionQueue();
+        queue.activate();
+        vi.spyOn(WorldSystems.prototype, 'onChunkLoaded').mockImplementation(() => {});
+        const world = testWorld(
+            async (_dimension, x, z) => new Chunk(x, z, new Map(), Dimensions.Overworld),
+            stub<Generator>({}),
+            queue
+        );
+
+        const between = world.getChunk(2, 3, { urgency: 'idle' });
+        await turns();
+        expect(queue.admissions.pending).toBe(1);
+
+        const inTick = await runInTick(() => world.getChunk(2, 3));
+
+        expect(await between).toBe(inTick);
+        expect(queue.admissions.snapshot()).toMatchObject({ pending: 0, admittedInTick: 1 });
+    });
+
+    it('tells the waiting work that it is parked on a tick until the chunk is admitted', async () => {
+        const queue = new ChunkCompletionQueue();
+        queue.activate();
+        vi.spyOn(WorldSystems.prototype, 'onChunkLoaded').mockImplementation(() => {});
+        const gate = deferred<void>();
+        const world = testWorld(
+            async (_dimension, x, z) => {
+                await gate.promise;
+                return new Chunk(x, z, new Map(), Dimensions.Overworld);
+            },
+            stub<Generator>({}),
+            queue
+        );
+        let parks = 0;
+        const tracker = { park: () => void parks++, unpark: () => void parks-- };
+
+        const waiting = trackTickWaits(tracker, () => world.getChunk(4, 4));
+        await turns();
+        // Still reading: that waits on the provider, not on a tick.
+        expect(parks).toBe(0);
+        expect(world.getPendingChunkLoadCount()).toBe(1);
+
+        gate.resolve();
+        await turns();
+        expect(parks).toBe(1);
+
+        await queue.admissions.admit(1);
+        await waiting;
+        expect(parks).toBe(0);
+    });
+
+    it('takes an unloaded chunk out of the world at the input step, not when its save finishes', async () => {
+        const queue = new ChunkCompletionQueue(undefined, { tick: () => 9 });
+        const records: ChunkAdmissionRecord[] = [];
+        queue.admissions.setRecorder({ record: (record) => void records.push(record) });
+        vi.spyOn(WorldSystems.prototype, 'onChunkLoaded').mockImplementation(() => {});
+        const world = testWorld(
+            async (_dimension, x, z) => new Chunk(x, z, new Map(), Dimensions.Overworld),
+            stub<Generator>({}),
+            queue
+        );
+        const chunk = await world.getChunk(7, 7);
+        queue.activate();
+
+        const unloading = world['unloadChunks']([chunk]);
+        await turns();
+        expect(world.getLoadedChunk(7, 7)).toBe(chunk);
+
+        await queue.admissions.admit(10);
+        await unloading;
+        expect(world.getLoadedChunk(7, 7)).toBeNull();
+        expect(records.map(({ change, tick, step }) => [change, tick, step])).toEqual([
+            ['enter', 9, 'inline'],
+            ['leave', 10, 'input']
+        ]);
     });
 
     it('lets a later caller try again after a request failed', async () => {

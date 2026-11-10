@@ -134,7 +134,7 @@ export default class Server extends EventEmitter {
         this.logger.error(error);
     });
     /** Budgets background chunk promotion and lighting independently from network sends. */
-    private readonly chunkCompletionQueue = new ChunkCompletionQueue();
+    private readonly chunkCompletionQueue = new ChunkCompletionQueue(undefined, { tick: () => this.getTick() });
     /**
      * The network's view of each world: who is watching it, and what they are told.
      *
@@ -275,7 +275,12 @@ export default class Server extends EventEmitter {
         this.commandManager = new CommandManager(this, onStopCommandComplete);
         this.ticker = new ServerTicker({
             emitTick: (event) => this.emit('tick', event),
-            admitInputs: () => this.networking.admitInputs(),
+            // Packets first, then the chunks that became ready since the last step, so every world
+            // sees them from its first update. A chunk an input-lane handler waits for enters at
+            // once, because the step cannot finish without it.
+            admitInputs: async () =>
+                (await this.networking.admitInputs()) +
+                (await this.chunkCompletionQueue.admissions.admit(this.getTick())),
             pollNetwork: () => this.networking.pollInbound(),
             // The levels, not the worlds: a level advances its clock once and ticks each of its worlds.
             getWorlds: () => this.worldManager.getLevels(),
