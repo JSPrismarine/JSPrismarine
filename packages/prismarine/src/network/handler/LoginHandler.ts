@@ -11,7 +11,7 @@ import { createConnectedPlayer } from '../createConnectedPlayer';
 import type LoginPacket from '@jsprismarine/protocol/packet/LoginPacket';
 import ResourcePacksInfoPacket from '@jsprismarine/protocol/packet/ResourcePacksInfoPacket';
 import { identityFromXUID, parseLoginIdentity } from '../LoginIdentity';
-import { LoginRefused, verifyLogin } from '../LoginVerifier';
+import { LoginRefused, verifyLogin } from '@jsprismarine/auth/server';
 import type ConnectionPacketHandler from './ConnectionPacketHandler';
 
 type LoginIdentity = ReturnType<typeof parseLoginIdentity>;

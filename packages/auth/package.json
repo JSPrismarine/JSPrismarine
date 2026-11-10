@@ -1,7 +1,7 @@
 {
     "name": "@jsprismarine/auth",
     "version": "0.19.2",
-    "description": "Minecraft: Bedrock Edition login identity: JWT chains, client data and Xbox Live",
+    "description": "Minecraft: Bedrock Edition login identity, for both ends: offline and Xbox Live providers for a client, and login verification for a server",
     "sideEffects": false,
     "publishConfig": {
         "access": "public",
@@ -60,6 +60,7 @@
     "devDependencies": {
         "@types/node": "26.6.6",
         "glob": "14.0.4",
+        "prismarine-auth": "3.1.1",
         "rimraf": "6.1.4",
         "typescript": "7.0.2",
         "vite": "8.3.7",
@@ -67,6 +68,14 @@
     },
     "dependencies": {
         "@jsprismarine/minecraft": "workspace:*",
-        "fast-jwt": "6.3.6"
+        "jose": "6.2.13"
+    },
+    "peerDependencies": {
+        "prismarine-auth": "^3.1.1"
+    },
+    "peerDependenciesMeta": {
+        "prismarine-auth": {
+            "optional": true
+        }
     }
 }

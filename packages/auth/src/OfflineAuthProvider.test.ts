@@ -1,11 +1,20 @@
-import { createDecoder } from 'fast-jwt';
+import { decodeJwt, decodeProtectedHeader } from 'jose';
+import { isRecord } from './isRecord';
 import { createPublicKey } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 import { SKIN_HEIGHT, SKIN_WIDTH, createDefaultSkinImage } from './DefaultSkin';
 import OfflineAuthProvider from './OfflineAuthProvider';
 
-const decode = createDecoder();
-const decodeComplete = createDecoder({ complete: true });
+/** A JWT's claims, unchecked; the tests read what the provider signed. */
+const decode = (token: string) => decodeJwt(token);
+/** A chain link's `extraData`, which the tests read field by field. */
+const extraDataOf = (token: string): Record<string, unknown> => {
+    const extraData = decode(token).extraData;
+    if (!isRecord(extraData)) throw new Error('the link carries no extraData');
+    return extraData;
+};
+/** A JWT's header and claims, unchecked. */
+const decodeComplete = (token: string) => ({ header: decodeProtectedHeader(token), payload: decode(token) });
 
 const REQUEST = { serverAddress: '127.0.0.1:19132', protocolVersion: 748 };
 
@@ -29,7 +38,7 @@ describe('OfflineAuthProvider', () => {
         const identity = await auth.getIdentity();
         const { chainData } = await auth.createLoginCredentials(REQUEST);
 
-        const { extraData } = decode(JSON.parse(chainData).chain[0]);
+        const extraData = extraDataOf(JSON.parse(chainData).chain[0]);
 
         expect(extraData.displayName).toBe('Alex');
         expect(extraData.identity).toBe(identity.identity);
@@ -57,9 +66,9 @@ describe('OfflineAuthProvider', () => {
         });
 
         expect((await auth.getIdentity()).identity).toBe('11111111-2222-3333-4444-555555555555');
-        const first = decode(JSON.parse((await auth.createLoginCredentials(REQUEST)).chainData).chain[0]);
-        const second = decode(JSON.parse((await auth.createLoginCredentials(REQUEST)).chainData).chain[0]);
-        expect(first.extraData.identity).toBe(second.extraData.identity);
+        const first = extraDataOf(JSON.parse((await auth.createLoginCredentials(REQUEST)).chainData).chain[0]);
+        const second = extraDataOf(JSON.parse((await auth.createLoginCredentials(REQUEST)).chainData).chain[0]);
+        expect(first.identity).toBe(second.identity);
     });
 
     it('exports a key pair the encryption handshake can actually use', async () => {
@@ -116,8 +125,8 @@ describe('OfflineAuthProvider', () => {
 
         // Not a persona skin, which is what lets PersonaPieces and PieceTintColors be absent.
         expect(data.PersonaSkin).toBe(false);
-        expect(Buffer.from(data.SkinData, 'base64')).toHaveLength(SKIN_WIDTH * SKIN_HEIGHT * 4);
-        expect(JSON.parse(Buffer.from(data.SkinResourcePatch, 'base64').toString())).toHaveProperty('geometry');
+        expect(Buffer.from(String(data.SkinData), 'base64')).toHaveLength(SKIN_WIDTH * SKIN_HEIGHT * 4);
+        expect(JSON.parse(Buffer.from(String(data.SkinResourcePatch), 'base64').toString())).toHaveProperty('geometry');
     });
 });
 

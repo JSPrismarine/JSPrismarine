@@ -2,12 +2,12 @@ import { generateKeyPairSync, sign } from 'node:crypto';
 
 import type { KeyObject } from 'node:crypto';
 
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import type { Login } from '@jsprismarine/protocol/packet/LoginPacket';
-
+import type { LoginCredentials } from './IAuthProvider';
 import type { LoginKeySource } from './LoginVerifier';
-import { LoginRefused, MojangKeys, TOKEN_ISSUER, verifyLogin } from './LoginVerifier';
+import { LoginRefused, MojangKeys, verifyLogin } from './LoginVerifier';
+import { TOKEN_ISSUER } from './protocol';
 
 const NOW = 1_800_000_000_000;
 const KID = 'test-key';
@@ -48,13 +48,12 @@ const clientData = (privateKey: KeyObject = client.privateKey, claims: Record<st
     return `${head}.${body}.${signature.toString('base64url')}`;
 };
 
-const login = (request: Record<string, unknown>, data = clientData()): Login => ({
-    protocolVersion: 2193,
+const login = (request: Record<string, unknown>, data = clientData()): LoginCredentials => ({
     chainData: JSON.stringify(request),
     clientData: data
 });
 
-const full = (tokenText = token()): Login => login({ AuthenticationType: 0, Token: tokenText });
+const full = (tokenText = token()): LoginCredentials => login({ AuthenticationType: 0, Token: tokenText });
 
 const refusal = async (attempt: Promise<unknown>): Promise<string> => {
     try {
@@ -106,7 +105,8 @@ describe('verifyLogin', () => {
     });
 
     it('refuses an expired token, a foreign issuer and one missing its account', async () => {
-        expect(await refusal(verifyLogin(full(token({ exp: NOW / 1000 - 1 })), keys(), NOW))).toContain('expired');
+        // Past the minute of clock drift allowed either side.
+        expect(await refusal(verifyLogin(full(token({ exp: NOW / 1000 - 61 })), keys(), NOW))).toContain('expired');
         expect(await refusal(verifyLogin(full(token({ iss: 'https://example.com/' })), keys(), NOW))).toContain(
             'issuer'
         );
@@ -155,39 +155,35 @@ describe('verifyLogin', () => {
 });
 
 describe('MojangKeys', () => {
-    const jwk = { ...issuer.publicKey.export({ format: 'jwk' }), kid: KID };
+    const jwk = { ...issuer.publicKey.export({ format: 'jwk' }), kid: KID, alg: 'RS256' };
+    const serving = (counter: { fetches: number }) => async () => {
+        counter.fetches++;
+        return Response.json({ keys: [jwk] });
+    };
+
+    afterEach(() => {
+        vi.useRealTimers();
+    });
 
     it('fetches once and serves the key from memory', async () => {
-        let fetches = 0;
-        const source = new MojangKeys(
-            async () => {
-                fetches++;
-                return { keys: [jwk] };
-            },
-            () => NOW
-        );
+        const counter = { fetches: 0 };
+        const source = new MojangKeys(serving(counter));
 
         expect(await source.keyFor(KID)).toBeDefined();
         expect(await source.keyFor(KID)).toBeDefined();
-        expect(fetches).toBe(1);
+        expect(counter.fetches).toBe(1);
     });
 
     it('fetches again for an unknown key at most once a minute', async () => {
-        let fetches = 0;
-        let clock = NOW;
-        const source = new MojangKeys(
-            async () => {
-                fetches++;
-                return { keys: [jwk] };
-            },
-            () => clock
-        );
+        vi.useFakeTimers({ toFake: ['Date'], now: NOW });
+        const counter = { fetches: 0 };
+        const source = new MojangKeys(serving(counter));
         await source.keyFor(KID);
 
         expect(await source.keyFor('rotated')).toBeUndefined();
-        expect(fetches).toBe(1);
-        clock += 61_000;
+        expect(counter.fetches).toBe(1);
+        vi.setSystemTime(NOW + 61_000);
         expect(await source.keyFor('rotated')).toBeUndefined();
-        expect(fetches).toBe(2);
+        expect(counter.fetches).toBe(2);
     });
 });
