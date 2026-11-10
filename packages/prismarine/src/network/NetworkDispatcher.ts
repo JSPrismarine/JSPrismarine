@@ -1,3 +1,5 @@
+import type { TickWaitTracker } from '../world/TickContext';
+import { trackTickWaits } from '../world/TickContext';
 import type { Logger } from '@jsprismarine/logger';
 import type { InetAddress } from '@jsprismarine/raknet';
 import type { EventEmitter } from '../events/EventEmitter';
@@ -92,7 +94,7 @@ export default class NetworkDispatcher<C extends TransportConnection> {
      * For each connection with frames or replayed records not yet handled: how many, and whether
      * the one it is on waits for the input step. Read by {@link NetworkDispatcher.isInboundSettled}.
      */
-    private readonly inboundWork = new Map<ClientConnection, { queued: number; parked: boolean }>();
+    private readonly inboundWork = new Map<ClientConnection, { queued: number; parks: number }>();
 
     public constructor(options: NetworkDispatcherOptions<C>) {
         this.sessionManager = options.sessionManager;
@@ -206,7 +208,9 @@ export default class NetworkDispatcher<C extends TransportConnection> {
         const previous = this.frameQueues.get(connection) ?? Promise.resolve();
         const current = this.track(
             connection,
-            previous.then(() => this.handleFrame(payload, id, connection))
+            previous.then(() =>
+                trackTickWaits(this.waitTracker(connection), () => this.handleFrame(payload, id, connection))
+            )
         );
         this.frameQueues.set(connection, current);
         return current;
@@ -335,11 +339,11 @@ export default class NetworkDispatcher<C extends TransportConnection> {
     ): Promise<readonly never[]> {
         if (gated.handler.lane === 'input') {
             const work = this.inboundWork.get(connection);
-            if (work !== undefined) work.parked = true;
+            if (work !== undefined) work.parks++;
             try {
                 await this.inputs.hold(() => this.runHandler(gated, connection, recordInbound, expectedTick));
             } finally {
-                if (work !== undefined) work.parked = false;
+                if (work !== undefined) work.parks--;
             }
         } else {
             await this.runHandler(gated, connection, recordInbound, expectedTick);
@@ -406,19 +410,36 @@ export default class NetworkDispatcher<C extends TransportConnection> {
 
     /**
      * Whether every frame and replayed record received so far has been handled, or waits
-     * behind an input held for the next input step. A harness that steps the server reads it to
+     * behind an input held for the next input step, or behind a chunk held for it. A harness that steps the server reads it to
      * know nothing it sent is still being decoded or handled before it runs the next tick.
      */
     public isInboundSettled(): boolean {
         for (const work of this.inboundWork.values()) {
-            if (work.queued > 0 && !work.parked) return false;
+            if (work.queued > 0 && work.parks === 0) return false;
         }
         return true;
     }
 
+    /**
+     * Tells a connection's work that its handler waits only for a tick, such as a read-lane
+     * handler waiting for a chunk the next input step admits ({@link isInboundSettled}).
+     */
+    private waitTracker(connection: ClientConnection): TickWaitTracker {
+        return {
+            park: () => {
+                const work = this.inboundWork.get(connection);
+                if (work !== undefined) work.parks++;
+            },
+            unpark: () => {
+                const work = this.inboundWork.get(connection);
+                if (work !== undefined) work.parks--;
+            }
+        };
+    }
+
     /** Counts one frame or replayed record against its connection until it has been handled. */
     private track(connection: ClientConnection, work: Promise<void>): Promise<void> {
-        const entry = this.inboundWork.get(connection) ?? { queued: 0, parked: false };
+        const entry = this.inboundWork.get(connection) ?? { queued: 0, parks: 0 };
         entry.queued++;
         this.inboundWork.set(connection, entry);
         const settle = () => {
@@ -507,37 +528,43 @@ export default class NetworkDispatcher<C extends TransportConnection> {
         const previous = this.frameQueues.get(connection) ?? Promise.resolve();
         const current = this.track(
             connection,
-            previous.then(async () => {
-                if (this.sessionManager.get(record.connectionId) !== connection) {
-                    throw new Error(`Replay connection ${record.connectionId} is no longer connected`);
-                }
+            previous.then(() =>
+                trackTickWaits(this.waitTracker(connection), async () => {
+                    if (this.sessionManager.get(record.connectionId) !== connection) {
+                        throw new Error(`Replay connection ${record.connectionId} is no longer connected`);
+                    }
 
-                // Traces store packet bytes, not transport batches; rebuild one frame so playback exercises
-                // the same compression and batch-decoding path as live traffic.
-                const payload = Buffer.from(record.payload);
-                const frame = (
-                    connection.hasCompression ? this.compressedBatchCodec : this.uncompressedBatchCodec
-                ).encode([payload]);
-                const packetPayloads = await this.splitBatch(frame, connection, false);
-                if (packetPayloads.length !== 1) {
-                    throw new Error(`Replay frame for ${record.packetName} contained ${packetPayloads.length} packets`);
-                }
+                    // Traces store packet bytes, not transport batches; rebuild one frame so playback exercises
+                    // the same compression and batch-decoding path as live traffic.
+                    const payload = Buffer.from(record.payload);
+                    const frame = (
+                        connection.hasCompression ? this.compressedBatchCodec : this.uncompressedBatchCodec
+                    ).encode([payload]);
+                    const packetPayloads = await this.splitBatch(frame, connection, false);
+                    if (packetPayloads.length !== 1) {
+                        throw new Error(
+                            `Replay frame for ${record.packetName} contained ${packetPayloads.length} packets`
+                        );
+                    }
 
-                const packets = this.decodePacket(packetPayloads[0]!, connection);
-                const packet = packets[0];
-                if (packets.length !== 1 || packet === undefined || packet.getName() !== record.packetName) {
-                    throw new Error(`Replay bytes did not decode as ${record.packetName}`);
-                }
+                    const packets = this.decodePacket(packetPayloads[0]!, connection);
+                    const packet = packets[0];
+                    if (packets.length !== 1 || packet === undefined || packet.getName() !== record.packetName) {
+                        throw new Error(`Replay bytes did not decode as ${record.packetName}`);
+                    }
 
-                const gated = this.gatePhase(packet, connection);
-                if (gated.length !== 1) {
-                    throw new Error(`Replay packet ${record.packetName} was rejected in the ${connection.phase} phase`);
-                }
+                    const gated = this.gatePhase(packet, connection);
+                    if (gated.length !== 1) {
+                        throw new Error(
+                            `Replay packet ${record.packetName} was rejected in the ${connection.phase} phase`
+                        );
+                    }
 
-                this.logInbound(packet);
-                // This input is already in the source trace; playback must not append it a second time.
-                await this.dispatch(gated[0]!, connection, false, record.tick + tickOffset);
-            })
+                    this.logInbound(packet);
+                    // This input is already in the source trace; playback must not append it a second time.
+                    await this.dispatch(gated[0]!, connection, false, record.tick + tickOffset);
+                })
+            )
         );
         // A rejected replay record must not hold up the records behind it on this connection.
         this.frameQueues.set(
