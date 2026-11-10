@@ -19,6 +19,7 @@ const LECTERNS: ReadonlySet<string> = new Set(['minecraft:lectern']);
 export default class LecternUpdateHandler implements PacketHandler<LecternUpdatePacket> {
     public static PacketName = 'LecternUpdatePacket';
     public readonly phases = ['play'] as const;
+    public readonly lane = 'read';
 
     /** Checks the position names a lectern in reach, then logs the page and position. */
     public handle(packet: LecternUpdatePacket, server: Server, session: PlayerSession): void {

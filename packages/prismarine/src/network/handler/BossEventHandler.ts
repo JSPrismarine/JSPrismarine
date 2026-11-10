@@ -16,6 +16,7 @@ import type PacketHandler from './PacketHandler';
 export default class BossEventHandler implements PacketHandler<BossEventPacket> {
     public static PacketName = 'BossEventPacket';
     public readonly phases = ['play'] as const;
+    public readonly lane = 'read';
 
     /** Replays the queried bar's Add to the asking player. */
     public async handle(packet: BossEventPacket, _server: Server, session: PlayerSession): Promise<void> {
