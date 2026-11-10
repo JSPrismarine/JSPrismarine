@@ -2,7 +2,19 @@ import type Server from '../../Server';
 import type PlayerSession from '../PlayerSession';
 import type RespawnPacket from '@jsprismarine/protocol/packet/RespawnPacket';
 import { PlayerRespawnState } from '@jsprismarine/minecraft';
+import type { respawnPoint } from '../../world/SpawnPlacement';
+import type { World } from '../../world/World';
 import type PacketHandler from './PacketHandler';
+import type { PlacedPlayer } from './playerPorts';
+
+/** The player as a client's respawn reads it. */
+interface RespawningPlayer extends PlacedPlayer {
+    readonly pitch: number;
+    readonly yaw: number;
+    isAlive(): boolean;
+    /** Where the player comes back: the spawn block and the eyes above it, in the world they are in. */
+    getRespawnPoint(): Promise<Pick<ReturnType<typeof respawnPoint>, 'block' | 'eyes'> & { readonly world: World }>;
+}
 
 /**
  * The client's half of the respawn exchange.
@@ -34,15 +46,15 @@ export default class RespawnHandler implements PacketHandler<RespawnPacket> {
     public readonly lane = 'input';
 
     public async handle(packet: RespawnPacket, server: Server, session: PlayerSession): Promise<void> {
-        const player = session.getPlayer();
+        const player: RespawningPlayer = session.getPlayer();
         const data = packet.getPacketData();
         if (data === null) throw new Error('Cannot handle RespawnPacket without decoded data');
 
         // `Player Runtime Id` names the player respawning, and a client only respawns itself.
-        if (data.runtimeEntityId !== player.getRuntimeId()) {
+        if (data.runtimeEntityId !== session.runtimeId) {
             server
                 .getLogger()
-                .debug(`${player.getName()} sent a Respawn for runtime id ${data.runtimeEntityId}, dropped`);
+                .debug(`${session.identity.name} sent a Respawn for runtime id ${data.runtimeEntityId}, dropped`);
             return;
         }
 

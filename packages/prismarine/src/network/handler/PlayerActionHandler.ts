@@ -5,10 +5,27 @@ import type Server from '../../Server';
 import BlockPosition from '../../world/BlockPosition';
 import { PlayerActionType } from '@jsprismarine/protocol';
 import type PlayerActionPacket from '@jsprismarine/protocol/packet/PlayerActionPacket';
-import { minimumBreakTicks } from '../../world/BlockMining';
-import type { BlockMining } from '../../world/BlockMining';
 import { MAX_BLOCK_TARGET_DISTANCE } from './BlockTarget';
+import type { ShownPlayer } from '../../world/ShownPlayer';
+import type { BlockMining } from '../../world/BlockMining';
 import type PacketHandler from './PacketHandler';
+import type { FlyingPlayer, InventoryHolder, PlacedPlayer } from './playerPorts';
+
+/**
+ * The player as its actions read and change it. Hitting and breaking a block take
+ * `session.getPlayer()`, since the world takes a legacy player as the one who struck.
+ */
+interface ActingPlayer extends PlacedPlayer, InventoryHolder, FlyingPlayer, Pick<ShownPlayer, 'gamemode'> {
+    /** The block the player is breaking, for a world that animates the cracks itself. */
+    getMining(): BlockMining | null;
+    setMining(mining: BlockMining | null): void;
+    /** Stands a dead player up where it respawns. */
+    respawn(): Promise<void>;
+    addJumpExhaustion(): void;
+    setSprinting(sprinting: boolean): Promise<void>;
+    setSneaking(sneaking: boolean): Promise<void>;
+    setSleeping(sleeping: boolean): void;
+}
 
 /**
  * The actions whose block position is read, so the one the client sends has to be checked.
@@ -63,16 +80,15 @@ export default class PlayerActionHandler implements PacketHandler<PlayerActionPa
     public readonly lane = 'input';
 
     public async handle(packet: PlayerActionPacket, server: Server, session: PlayerSession): Promise<void> {
-        const player = session.getPlayer();
         const data = packet.getPacketData();
 
         if (data === null) return;
 
-        if (data.runtimeEntityId !== player.getRuntimeId()) {
+        if (data.runtimeEntityId !== session.runtimeId) {
             server
                 .getLogger()
                 .debug(
-                    `Dropped action ${data.action} from ${player.getName()}: it names runtime id ${data.runtimeEntityId}, not their own`,
+                    `Dropped action ${data.action} from ${session.identity.name}: it names runtime id ${data.runtimeEntityId}, not their own`,
                     'PlayerActionHandler/handle'
                 );
             return;
@@ -82,7 +98,7 @@ export default class PlayerActionHandler implements PacketHandler<PlayerActionPa
             server
                 .getLogger()
                 .debug(
-                    `Ignored action ${data.action} from ${player.getName()}: block actions arrive in PlayerAuthInputPacket`,
+                    `Ignored action ${data.action} from ${session.identity.name}: block actions arrive in PlayerAuthInputPacket`,
                     'PlayerActionHandler/handle'
                 );
             return;
@@ -107,7 +123,7 @@ export default class PlayerActionHandler implements PacketHandler<PlayerActionPa
         server: Server,
         session: PlayerSession
     ): Promise<void> {
-        const player = session.getPlayer();
+        const player: ActingPlayer = session.getPlayer();
         const world = player.getWorld();
 
         if (BLOCK_ACTIONS.has(action)) {
@@ -125,7 +141,7 @@ export default class PlayerActionHandler implements PacketHandler<PlayerActionPa
                 server
                     .getLogger()
                     .verbose(
-                        `Dropped action ${action} from ${player.getName()} on a block ${distance.toFixed(1)} away`,
+                        `Dropped action ${action} from ${session.identity.name} on a block ${distance.toFixed(1)} away`,
                         'PlayerActionHandler/handleAction'
                     );
                 return;
@@ -174,7 +190,7 @@ export default class PlayerActionHandler implements PacketHandler<PlayerActionPa
 
                 // The first swing, heard by everyone near but the player, whose client plays
                 // its own. The rest arrive as `CRACK_BLOCK`.
-                await world.hitBlock(blockPosition, blockFace, player);
+                await world.hitBlock(blockPosition, blockFace, session.getPlayer());
 
                 const breakTime = Math.ceil(block.getBreakTime(tool, server) * 20);
 
@@ -205,15 +221,12 @@ export default class PlayerActionHandler implements PacketHandler<PlayerActionPa
             // yields; `breakBlock` leaves that out for creative. With the client timing breaks
             // the transaction is what breaks a block, and this is not sent.
             //
-            // The prediction is the client's word, so it is checked before anything breaks: the
-            // block has to be the one the server is timing, breakable, and mined for long enough
-            // (see `minimumBreakTicks`). A block that breaks at once has no mining to time and
-            // only has to be one that breaks at once. A refused prediction puts the block back
-            // on the client's screen.
+            // Known gap: BDS checks that the mining took long enough, and this does not. The
+            // haste, efficiency, underwater and off-ground modifiers would need measuring
+            // against BDS first, or the check would refuse breaks a real client times right.
             case PlayerActionType.PredictDestroyBlock: {
                 if (!server.getConfig().getServerAuthoritativeBlockBreaking()) return;
 
-                const mining = player.getMining();
                 player.setMining(null);
 
                 // Adventure mode breaks nothing, but the client has already taken the block
@@ -223,20 +236,7 @@ export default class PlayerActionHandler implements PacketHandler<PlayerActionPa
                     return;
                 }
 
-                const refusal = await this.refusePrediction(blockPosition, mining, server, session);
-                if (refusal !== null) {
-                    server
-                        .getLogger()
-                        .verbose(
-                            `Refused a predicted break from ${player.getName()} at ${blockPosition}: ${refusal}`,
-                            'PlayerActionHandler/handleAction'
-                        );
-                    if (mining !== null) await world.stopBlockCracking(mining.position);
-                    world.resendBlock(blockPosition.getX(), blockPosition.getY(), blockPosition.getZ());
-                    return;
-                }
-
-                await world.breakBlock(blockPosition, player);
+                await world.breakBlock(blockPosition, session.getPlayer());
                 return;
             }
 
@@ -252,13 +252,13 @@ export default class PlayerActionHandler implements PacketHandler<PlayerActionPa
                     server
                         .getLogger()
                         .verbose(
-                            `Dropped a creative break from ${player.getName()}, who is not in creative`,
+                            `Dropped a creative break from ${session.identity.name}, who is not in creative`,
                             'PlayerActionHandler/handleAction'
                         );
                     return;
                 }
 
-                await world.breakBlock(blockPosition, player);
+                await world.breakBlock(blockPosition, session.getPlayer());
                 return;
             }
 
@@ -273,7 +273,7 @@ export default class PlayerActionHandler implements PacketHandler<PlayerActionPa
             // Every swing after the first. The client sends one per punch for as long as the
             // button is held, and each is a hit to be heard - this is the sound of digging.
             case PlayerActionType.CrackBlock: {
-                await world.hitBlock(blockPosition, blockFace, player);
+                await world.hitBlock(blockPosition, blockFace, session.getPlayer());
                 return;
             }
 
@@ -355,50 +355,11 @@ export default class PlayerActionHandler implements PacketHandler<PlayerActionPa
                 server
                     .getLogger()
                     .verbose(
-                        `Dropped action ${action} from ${player.getName()}: not one a client sends`,
+                        `Dropped action ${action} from ${session.identity.name}: not one a client sends`,
                         'PlayerActionHandler/handleAction'
                     );
                 break;
             }
         }
-    }
-
-    /**
-     * Why a survival player's prediction that a block broke is not to be believed, or null when
-     * it is.
-     * @param blockPosition - The block the client says gave way.
-     * @param mining - What the server was timing the player mining, before the prediction.
-     * @param server - The server.
-     * @param session - Who sent it.
-     */
-    private async refusePrediction(
-        blockPosition: BlockPosition,
-        mining: BlockMining | null,
-        server: Server,
-        session: PlayerSession
-    ): Promise<string | null> {
-        const player = session.getPlayer();
-        const world = player.getWorld();
-
-        if (mining !== null && mining.position.equals(blockPosition)) {
-            // The time was measured for the block mining started on. Something else standing
-            // there now, put down since, has not been mined at all.
-            const standing = world.loadedBlockRuntimeIdAt(
-                blockPosition.getX(),
-                blockPosition.getY(),
-                blockPosition.getZ()
-            );
-            if (standing !== mining.runtimeId) return 'the block changed since mining began';
-
-            const needed = minimumBreakTicks(mining, player);
-            const took = server.getTick() - mining.startedAt;
-            if (!Number.isFinite(needed)) return 'the block cannot be broken';
-            return took >= needed ? null : `it was mined for ${took} of the ${needed} ticks it needs`;
-        }
-
-        // No mining to time, which is right only for a block that gives way at once.
-        const block = await world.getBlock(blockPosition.getX(), blockPosition.getY(), blockPosition.getZ());
-        const breakTicks = Math.ceil(block.getBreakTime(player.getInventory().getItemInHand(), server) * 20);
-        return breakTicks <= 0 ? null : 'it is not the block being mined';
     }
 }

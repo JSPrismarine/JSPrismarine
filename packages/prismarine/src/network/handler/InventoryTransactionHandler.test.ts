@@ -15,6 +15,7 @@ import type { Metadata } from '@jsprismarine/protocol/wire/structures/Metadata';
 import ContainerEntry from '../../inventory/ContainerEntry';
 import HumanInventory from '../../inventory/HumanInventory';
 import { Item } from '../../item/Item';
+import { identityNamed } from '../../testing/sessionIdentity.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import BlockPosition from '../../world/BlockPosition';
 import { Dimensions } from '../../world/Dimension';
@@ -162,7 +163,10 @@ const fake = (
             })
     });
     const session = stub<PlayerSession>({
+        runtimeId,
+        identity: identityNamed('tester'),
         getPlayer: () => player,
+        isConnected: () => player.isOnline(),
         getConnection: () => stub<ReturnType<PlayerSession['getConnection']>>({ codec: Codec2193 }),
         sendContainerSlot: async (windowId, containerId, slot, item) =>
             void inventorySyncs.push([windowId, containerId, slot, item])

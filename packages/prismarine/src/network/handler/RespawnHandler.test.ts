@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 
 import type Player from '../../Player';
 import type Server from '../../Server';
+import { identityNamed } from '../../testing/sessionIdentity.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import { Position } from '../../world/Position';
 import type { World } from '../../world/World';
@@ -33,6 +34,8 @@ const fakeSession = ({ alive = true, spawnWorld }: { alive?: boolean; spawnWorld
         standingAt,
         world,
         session: stub<PlayerSession>({
+            runtimeId: 7n,
+            identity: identityNamed('tester'),
             sendRespawn: async (position, state) => void done.push({ state, position }),
             changeWorld: async (arrival) => void done.push({ what: 'changeWorld', arrival }),
             sendAttributes: async () => void done.push({ what: 'attributes' }),

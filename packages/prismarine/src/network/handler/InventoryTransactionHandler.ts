@@ -12,6 +12,7 @@ import { WindowIds } from '../../inventory/WindowIds';
 import type { Item } from '../../item/Item';
 import { consumeTicksOf, useItemInAir, useItemOnBlock, useItemOnEntity } from '../../item/interaction';
 import type { InteractionResult, InteractionRotation } from '../../item/interaction';
+import type { ShownPlayer } from '../../world/ShownPlayer';
 import type InventoryTransactionPacket from '@jsprismarine/protocol/packet/InventoryTransactionPacket';
 import type {
     ReleaseItemData,
@@ -31,6 +32,7 @@ import {
 import { MAX_BLOCK_TARGET_DISTANCE } from './BlockTarget';
 import { EyeOfEnderEcho } from './eyeOfEnderEcho';
 import type PacketHandler from './PacketHandler';
+import type { InventoryHolder, PlacedPlayer } from './playerPorts';
 
 /**
  * What sprinting is worth in knockback levels.
@@ -254,8 +256,8 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
         connection: PlayerSession,
         interactionRotation?: InteractionRotation
     ): Promise<void> {
-        const player = connection.getPlayer();
-        if (!player.isOnline()) return;
+        if (!connection.isConnected()) return;
+        const player: InventoryHolder & Pick<ShownPlayer, 'gamemode'> = connection.getPlayer();
         if (player.gamemode === Gametype.SPECTATOR) return; // Spectators pass through the world without touching it.
 
         const packetData = packet.getPacketData();
@@ -267,7 +269,7 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
             server
                 .getLogger()
                 .debug(
-                    `Dropped an inventory transaction from ${player.getName()}: ${reason}`,
+                    `Dropped an inventory transaction from ${connection.identity.name}: ${reason}`,
                     'InventoryTransactionHandler/handle'
                 );
             return;
@@ -279,9 +281,9 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
             // can be applied, but a client saying so is ordinary traffic, not a fault, and it
             // used to be thrown on.
             if (transaction.transactionType === TransactionType.MISMATCH) {
-                server.getLogger().verbose(`${player.getName()} reported an inventory mismatch`);
+                server.getLogger().verbose(`${connection.identity.name} reported an inventory mismatch`);
             } else {
-                await this.handleNormal(transaction, server, player, connection);
+                await this.handleNormal(transaction, server, connection);
             }
             return;
         }
@@ -291,7 +293,7 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
             server
                 .getLogger()
                 .verbose(
-                    `Dropped an inventory transaction from ${player.getName()}: it names hotbar slot ${data.hotbarSlot} and the server has ${handSlot} selected`,
+                    `Dropped an inventory transaction from ${connection.identity.name}: it names hotbar slot ${data.hotbarSlot} and the server has ${handSlot} selected`,
                     'InventoryTransactionHandler/handle'
                 );
             return;
@@ -299,13 +301,13 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
 
         switch (data.kind) {
             case 'useItem':
-                await this.handleUseItem(data, server, player, interactionRotation);
+                await this.handleUseItem(data, server, connection, interactionRotation);
                 return;
             case 'useItemOnEntity':
-                await this.handleUseItemOnEntity(data, server, player);
+                await this.handleUseItemOnEntity(data, server, connection);
                 return;
             case 'releaseItem':
-                await this.handleReleaseItem(data, server, player);
+                await this.handleReleaseItem(data, server, connection.getPlayer());
                 return;
         }
     }
@@ -318,9 +320,9 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
     private async handleNormal(
         transaction: ServerInventoryTransaction,
         server: Server,
-        player: Player,
         session: PlayerSession
     ): Promise<void> {
+        const player: InventoryHolder & PlacedPlayer = session.getPlayer();
         if (transaction.transactionType === TransactionType.NORMAL && transaction.inventoryActions.length === 2) {
             const container = transaction.inventoryActions.find(
                 (action) => action.sourceType === InventorySourceType.CONTAINER
@@ -377,7 +379,7 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
                         container.targetSlot,
                         inventory.getItem(container.targetSlot)
                     );
-                    await player.getWorld().dropFromPlayer(player, [dropped]);
+                    await player.getWorld().dropFromPlayer(session.getPlayer(), [dropped]);
                     return;
                 }
             }
@@ -387,7 +389,7 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
         server
             .getLogger()
             .debug(
-                `Ignored a Normal inventory transaction from ${player.getName()} with ${transaction.inventoryActions.length} actions (${sources}); item moves go through ItemStackRequest`,
+                `Ignored a Normal inventory transaction from ${session.identity.name} with ${transaction.inventoryActions.length} actions (${sources}); item moves go through ItemStackRequest`,
                 'InventoryTransactionHandler/handleNormal'
             );
     }
@@ -410,7 +412,13 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
      * measured by `meleeAttack` from the server's position for the player, not from the
      * From Position the client sent.
      */
-    private async handleUseItemOnEntity(data: UseItemOnEntityData, server: Server, player: Player): Promise<void> {
+    private async handleUseItemOnEntity(
+        data: UseItemOnEntityData,
+        server: Server,
+        session: PlayerSession
+    ): Promise<void> {
+        // The legacy player, because the content and the melee rules take one.
+        const player = session.getPlayer();
         if (
             data.actionType === ItemUseOnActorActionType.INTERACT ||
             data.actionType === ItemUseOnActorActionType.ITEM_INTERACT
@@ -428,7 +436,7 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
             server
                 .getLogger()
                 .verbose(
-                    `${player.getName()} swung at runtime id ${data.entityRuntimeId}, which is not an entity here`,
+                    `${session.identity.name} swung at runtime id ${data.entityRuntimeId}, which is not an entity here`,
                     'InventoryTransactionHandler/handleUseItemOnEntity'
                 );
             return;
@@ -501,9 +509,11 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
     private async handleUseItem(
         data: UseItemData,
         server: Server,
-        player: Player,
+        session: PlayerSession,
         interactionRotation?: InteractionRotation
     ): Promise<void> {
+        // The legacy player, because the content rules and the block break take one.
+        const player = session.getPlayer();
         switch (data.actionType) {
             case ItemUseActionType.PLACE:
             case ItemUseActionType.DESTROY: {
@@ -512,7 +522,7 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
                     server
                         .getLogger()
                         .verbose(
-                            `Dropped item use ${ItemUseActionType[data.actionType]} from ${player.getName()} on a block ${distance.toFixed(1)} away`,
+                            `Dropped item use ${ItemUseActionType[data.actionType]} from ${session.identity.name} on a block ${distance.toFixed(1)} away`,
                             'InventoryTransactionHandler/handleUseItem'
                         );
                     return;
@@ -523,7 +533,7 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
                     // in hand goes down when neither takes it. What a click they all decline
                     // gets is nothing: the item places no block, so the client predicted none.
                     if (player.getInventory().getItemInHand().getName() === ENDER_EYE) {
-                        eyeEcho.usedOnBlock(player.getRuntimeId(), server.getTick());
+                        eyeEcho.usedOnBlock(session.runtimeId, server.getTick());
                     }
                     contentUse(server, player, data, interactionRotation);
                     return;
@@ -539,7 +549,7 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
                     server
                         .getLogger()
                         .verbose(
-                            `Dropped a block break transaction from ${player.getName()}: block breaking is server-authoritative`,
+                            `Dropped a block break transaction from ${session.identity.name}: block breaking is server-authoritative`,
                             'InventoryTransactionHandler/handleUseItem'
                         );
                     return;
@@ -554,7 +564,7 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
                 // a click that was just used on a block. In particular, after the frame hook fills
                 // a frame, neither a simulation tick nor the click's own echo may throw the eye.
                 if (player.getInventory().getItemInHand().getName() === ENDER_EYE) {
-                    const echo = eyeEcho.isEcho(player.getRuntimeId(), server.getTick());
+                    const echo = eyeEcho.isEcho(session.runtimeId, server.getTick());
                     if (data.triggerType === SIMULATION_TICK_TRIGGER || echo) return;
                 }
 

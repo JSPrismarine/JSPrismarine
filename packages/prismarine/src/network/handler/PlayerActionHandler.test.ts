@@ -16,6 +16,7 @@ import type { BlockMining } from '../../world/BlockMining';
 import BlockPosition from '../../world/BlockPosition';
 import { Position } from '../../world/Position';
 import type { World } from '../../world/World';
+import { identityNamed } from '../../testing/sessionIdentity.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import type PlayerSession from '../PlayerSession';
 import PlayerActionHandler from './PlayerActionHandler';
@@ -128,7 +129,7 @@ const fakeSession = (gamemode: Gametype, { serverAuthoritativeBreaking = false, 
             getTick: () => clock.tick,
             getConfig: () => stub<Config>({ getServerAuthoritativeBlockBreaking: () => serverAuthoritativeBreaking })
         }),
-        session: stub<PlayerSession>({ getPlayer: () => player })
+        session: stub<PlayerSession>({ runtimeId: SELF, identity: identityNamed('tester'), getPlayer: () => player })
     };
 };
 

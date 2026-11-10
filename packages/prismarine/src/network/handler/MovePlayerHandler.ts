@@ -5,6 +5,25 @@ import type Server from '../../Server';
 import PlayerMoveEvent from '../../events/player/PlayerMoveEvent';
 import type MovePlayerPacket from '@jsprismarine/protocol/packet/MovePlayerPacket';
 import type PacketHandler from './PacketHandler';
+import type { PlacedPlayer } from './playerPorts';
+
+/**
+ * The player as a client's move reads and writes it. The move event, the reset of a canceled move
+ * and the broadcast take `session.getPlayer()`, since each takes a legacy player or its actor.
+ */
+interface MovedPlayer extends PlacedPlayer {
+    readonly pitch: number;
+    readonly yaw: number;
+    readonly headYaw: number;
+    isOnGround(): boolean;
+    /** Moves the player where its client says it is, telling nobody when `broadcast` is false. */
+    setPlayerPosition(
+        pose: { position: Vector3; pitch: number; yaw: number; headYaw: number },
+        broadcast: boolean
+    ): Promise<void>;
+    /** Records whether the player stands on the ground, landing it when it comes down. */
+    setOnGround(onGround: boolean): Promise<void>;
+}
 
 /** Where a client says its player is, and which way it is facing. */
 export interface ClientMovement {
@@ -41,25 +60,25 @@ export const applyClientMovement = async (
     session: PlayerSession,
     movement: ClientMovement
 ): Promise<void> => {
-    const player = session.getPlayer();
+    const player: MovedPlayer = session.getPlayer();
 
     // A report from before a teleport the client has not handled yet would undo the teleport.
     if (session.holdsMovementForTeleport(movement.position, movement.handledTeleport ?? false)) {
         server
             .getLogger()
             .debug(
-                `Dropped a position from ${player.getName()} sent before its teleport`,
+                `Dropped a position from ${session.identity.name} sent before its teleport`,
                 'MovePlayerHandler/applyClientMovement'
             );
         return;
     }
 
     // Keep the per-input plugin event cadence stable; unchanged poses only skip state and network work.
-    const event = new PlayerMoveEvent(player, movement.position, movement.mode ?? PositionMode.Normal);
+    const event = new PlayerMoveEvent(session.getPlayer(), movement.position, movement.mode ?? PositionMode.Normal);
     server.post(['playerMove', event]);
     if (event.isCanceled()) {
         // Since we're canceling the event, we should reset the player's position.
-        await session.sendMove(player, PositionMode.Respawn);
+        await session.sendMove(session.getPlayer(), PositionMode.Respawn);
         return;
     }
 
@@ -94,7 +113,7 @@ export const applyClientMovement = async (
     if (groundChanged) {
         // Position queues a snapshot before landing logic updates the on-ground bit. Replacing
         // that entry gives observers the final pose and ground state in the one tick update.
-        await player.getWorld().broadcastMove(player);
+        await player.getWorld().broadcastMove(session.getPlayer());
     }
 };
 
@@ -116,20 +135,18 @@ export default class MovePlayerHandler implements PacketHandler<MovePlayerPacket
     public readonly lane = 'input';
 
     public async handle(packet: MovePlayerPacket, server: Server, session: PlayerSession): Promise<void> {
-        const player = session.getPlayer();
         const data = packet.getPacketData();
 
         if (data === null) return;
 
-        if (data.runtimeEntityId !== player.getRuntimeId()) {
-            server
-                .getLogger()
-                .debug(`${player.getName()} sent a MovePlayer for runtime id ${data.runtimeEntityId}, dropped`);
+        const { name } = session.identity;
+        if (data.runtimeEntityId !== session.runtimeId) {
+            server.getLogger().debug(`${name} sent a MovePlayer for runtime id ${data.runtimeEntityId}, dropped`);
             return;
         }
 
         if (!CLIENT_MODES.has(data.mode)) {
-            server.getLogger().debug(`${player.getName()} sent a MovePlayer in mode ${data.mode}, dropped`);
+            server.getLogger().debug(`${name} sent a MovePlayer in mode ${data.mode}, dropped`);
             return;
         }
 
