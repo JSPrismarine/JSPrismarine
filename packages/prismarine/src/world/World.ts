@@ -8,7 +8,7 @@ import { Vector3 } from '@jsprismarine/math';
 import BinaryStream from '@jsprismarine/binaryutils';
 import { ByteOrder, NBTWriter } from '@jsprismarine/nbt';
 import type { ActorEvent } from '@jsprismarine/minecraft';
-import { Gametype, getGametypeName, LevelEvent, LevelSoundEvent } from '@jsprismarine/minecraft';
+import { Gametype, LevelEvent, LevelSoundEvent } from '@jsprismarine/minecraft';
 import { writeBlockEntity } from '../blockentity/blockEntityWrite';
 import { BlockView } from '../entity/ai/BlockView';
 import type { NBTTagCompound } from '@jsprismarine/nbt';
@@ -22,12 +22,9 @@ import type { Random } from '../utils/Random';
 // `./world/` before `Player`, so reaching for it via '../' lands back in a module that is
 // still initializing and the binding is not a constructor yet when `instanceof` runs.
 import Player from '../Player';
-import { storedAdvancements } from '../advancement/progress';
-import { enchantmentSeedOf } from '../enchantment/enchantingTable';
 import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
 import { BlockStateSchemas } from '../block/state/BlockStateSchema';
 import type { BlockState } from '../block/state/BlockState';
-import { AttributeIds } from '@jsprismarine/protocol/wire/structures/Attribute';
 import { writtenEntities } from '../entity/Entities';
 import type { EntityIndex } from '../entity/data/entityIndex';
 import type { LiveEntityRuntime } from '../entity/data/live';
@@ -40,6 +37,8 @@ import type { StatusEffect, StatusEffectChange } from '../entity/StatusEffect';
 import { GenericEntity } from '../entity/GenericEntity';
 import ContainerEntry from '../inventory/ContainerEntry';
 import { storedInventory, storedItem } from '../inventory/persistence';
+import { keyOfPlayer } from '../playerIdentity';
+import { playerRecordOf } from './playerRecord';
 import { Item } from '../item/Item';
 import BlockUpdateScheduler from './BlockUpdateScheduler';
 import { breakBlockWithContent, collectBreakDrops, wearBreakingTool } from './blockBreak';
@@ -4095,7 +4094,7 @@ export class World implements Service {
      * @returns {Promise<WorldPlayerData>} The player data.
      */
     public async getPlayerData(player: Player): Promise<Partial<WorldPlayerData>> {
-        const key = World.playerDataKey(player);
+        const key = keyOfPlayer(player);
         const data = await this.level.getPlayerData(key);
         if (data) return data;
 
@@ -4111,71 +4110,17 @@ export class World implements Service {
         return { gamemode: this.server.getConfig().getGamemode() };
     }
     /**
-     * What a player's data file is named after.
-     *
-     * The XUID when there is one, and the name when there is not. An offline player has no
-     * XUID by construction, and this server accepts offline players, so the fallback is the
-     * normal path rather than a defensive one - which is why the reader and the writer have
-     * to agree on it in one place rather than each spelling it out.
-     */
-    private static playerDataKey(player: Player): string {
-        return player.getXUID() || player.getName();
-    }
-
-    /**
-     * Writes a player's record into the level, filed under {@link World.playerDataKey} and
-     * stamped with this world's dimension so the next login puts them back here.
+     * Writes a player's record into the level, filed under `keyOfPlayer` and stamped with this
+     * world's dimension so the next login puts them back here.
      *
      * @param requireSuccess - Propagate a persistence error when creating a replay checkpoint.
      */
     public async savePlayerData(player: Player, requireSuccess = false): Promise<void> {
-        const data = {
-            // Serialised explicitly: the uuid is a parsed object now, and letting JSON have
-            // its way with it would write out the four raw parts instead of the identity.
-            uuid: player.getUUID().toString(),
-            username: player.getName(),
-            gamemode: getGametypeName(player.gamemode),
-            flying: player.isFlying(),
-            position: {
-                x: player.getPosition().getX(),
-                y: player.getPosition().getY(),
-                z: player.getPosition().getZ(),
-                pitch: player.pitch,
-                yaw: player.yaw,
-                headYaw: player.headYaw
-            },
-            dimension: this.getDimension().id,
-            advancements: storedAdvancements(player),
-            enchantmentSeed: enchantmentSeedOf(player),
-            inventory: storedInventory(player.getInventory()),
-            health: player.getHealth(),
-            food: player.getFood(),
-            saturation: player.getSaturation(),
-            experience: {
-                level: player.attributes.getValue(AttributeIds.PlayerLevel),
-                progress: player.attributes.getValue(AttributeIds.PlayerExperience)
-            },
-            attributes: Object.fromEntries(
-                player.attributes.getAttributes().map((attribute) => [
-                    attribute.getName(),
-                    {
-                        min: attribute.getMin(),
-                        max: attribute.getMax(),
-                        base: attribute.getDefault(),
-                        current: attribute.getValue()
-                    }
-                ])
-            ),
-            // Written whether or not the player has a spawn point of their own, because a
-            // record is the whole state: leaving the field out of a save after `/kill` would
-            // keep a bed this player no longer has.
-            ...(player.getSpawnPoint() === undefined ? {} : { spawn: player.getSpawnPoint() }),
-            portalCooldown: player.getPortalCooldown(),
-            seenCredits: player.hasSeenCredits(),
-            savedAt: Date.now()
-        } satisfies WorldPlayerData;
-
-        await this.level.savePlayerData(World.playerDataKey(player), data, requireSuccess);
+        await this.level.savePlayerData(
+            keyOfPlayer(player),
+            playerRecordOf(player, this.getDimension()),
+            requireSuccess
+        );
     }
 
     /**

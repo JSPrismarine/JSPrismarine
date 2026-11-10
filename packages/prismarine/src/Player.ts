@@ -445,7 +445,7 @@ export default class Player extends Human {
         await this.stopMining();
 
         // Whether or not they have an XUID. An offline player has none by construction, this
-        // server accepts offline players, and `World.playerDataKey` already falls back to the
+        // server accepts offline players, and `keyOfPlayer` already falls back to the
         // name for them - so the guard that used to be here threw away the inventory of every
         // player on a server with online mode off.
         await this.getWorld().savePlayerData(this);
