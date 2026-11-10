@@ -37,7 +37,7 @@ describe('BossBar', () => {
         expect(events[0]?.healthPercent).toBe(0.5);
         expect(events[0]?.color).toBe(BossBarColor.Red);
         expect(events[0]?.overlay).toBe(BossBarOverlay.Notched10);
-        expect(bar.players()).toEqual([player]);
+        expect(bar.players()).toEqual([player.getNetworkSession()]);
     });
 
     it('sends UpdatePercent, clamped to 0..1, only to added players', async () => {

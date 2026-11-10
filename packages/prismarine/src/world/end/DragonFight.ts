@@ -17,7 +17,6 @@ import type { DataEntity } from '../../entity/data/DataEntity';
 import { explode } from '../../entity/Explosion';
 import { addExperiencePoints } from '../../entity/Experience';
 import { BossBar } from '../../network/BossBar';
-import type Player from '../../Player';
 import type { World } from '../World';
 import type { DragonFightState, DragonRespawnStage } from '../WorldPersistence';
 import { fightFeatureWorld } from './worldFeatureAdapter';
@@ -194,7 +193,7 @@ export class DragonFight {
         this.fight.dragonUniqueId = undefined;
         this.lastBarPercent = 0;
         await this.bar.setPercent(0);
-        for (const player of this.bar.players()) await this.bar.removePlayer(player);
+        for (const session of this.bar.players()) await this.bar.removePlayer(session);
 
         this.placeExitPortal(true);
         await this.spawnNewGateway();
@@ -459,17 +458,19 @@ export class DragonFight {
 
     /** Puts the bar on the players in the arena and takes it off everyone else. */
     private async updatePlayers(): Promise<void> {
-        const near = this.world.getPlayers().filter((player) => this.inArena(player));
+        const near = this.world
+            .getPlayers()
+            .filter((player) => this.inArena(player.getPosition()))
+            .map((player) => player.getNetworkSession());
         this.playerNear = near.length > 0;
 
-        if (!this.fight.dragonKilled) for (const player of near) await this.bar.addPlayer(player);
-        for (const player of this.bar.players()) {
-            if (this.fight.dragonKilled || !near.includes(player)) await this.bar.removePlayer(player);
+        if (!this.fight.dragonKilled) for (const session of near) await this.bar.addPlayer(session);
+        for (const session of this.bar.players()) {
+            if (this.fight.dragonKilled || !near.includes(session)) await this.bar.removePlayer(session);
         }
     }
 
-    private inArena(player: Player): boolean {
-        const position = player.getPosition();
+    private inArena(position: Vector3): boolean {
         const dx = position.getX() - DRAGON_SPAWN.x;
         const dy = position.getY() - DRAGON_SPAWN.y;
         const dz = position.getZ() - DRAGON_SPAWN.z;
