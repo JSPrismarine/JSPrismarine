@@ -333,16 +333,23 @@ jobs:
                   mv "$BUILD" "$DEPS"
                   du -sh "$DEPS"
 
-            # Saved only when this pin had no entry of its own, so an exact hit is not uploaded again.
+            # Saved only when this pin had no entry of its own, so an exact hit is not uploaded again,
+            # and only for the latest protocol on master. An entry is 1.8 GB that only the next
+            # build reads. Another protocol's build restores the latest one's, which holds most of
+            # the same crates, and a pull request's copy would be visible to that pull request
+            # alone while pushing master's entries out of the repository's 10 GB of cache.
             - name: Save the compiled dependencies
-              if: ${{ steps.cinnabar-cache.outputs.cache-hit != 'true' && steps.deps.outputs.cache-hit != 'true' }}
+              if: >-
+                  ${{ steps.cinnabar-cache.outputs.cache-hit != 'true' && steps.deps.outputs.cache-hit != 'true'
+                  && github.event_name != 'pull_request' && matrix.protocol == needs.protocol-matrix.outputs.latest }}
               uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
               with:
                   path: ${{ runner.temp }}/jsprismarine/cinnabar-deps
                   key: ${{ steps.pin.outputs.deps-key }}
 
             # Save on every ref. A PR's entry is only visible to that PR, which is enough for the
-            # e2e jobs below; master's entries are what other PRs fall back to.
+            # e2e jobs below; master's entries are what other PRs fall back to. A pull request builds
+            # only when it changes a pin, or when master's entry is gone.
             - name: Save the build
               if: ${{ steps.cinnabar-cache.outputs.cache-hit != 'true' }}
               uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
@@ -360,7 +367,8 @@ jobs:
                   GH_TOKEN: ${{ github.token }}
                   PROTOCOL: ${{ matrix.protocol }}
                   KEY: ${{ steps.pin.outputs.key }}
-                  DEPS_KEY: ${{ steps.pin.outputs.deps-key }}
+                  # Only the latest protocol keeps compiled dependencies, so another one deletes its own.
+                  DEPS_KEY: ${{ matrix.protocol == needs.protocol-matrix.outputs.latest && steps.pin.outputs.deps-key || 'none' }}
               run: |
                   prune() {
                       gh cache list --repo "$GITHUB_REPOSITORY" --key "$1" --limit 100 --json id,key \

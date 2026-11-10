@@ -79,10 +79,10 @@ installed, Rust outputs are also reused across protocol caches and worktrees; on
 with `brew install sccache`. Its local cache is shared at `<cache-root>/sccache` and is capped at
 sccache's 10 GB default. Set
 `JSP_CINNABAR_CACHE_DIR` to change the cache root, or set `JSP_CINNABAR_PATH` to use an existing
-checkout directly. GitHub Actions saves two entries per protocol and pin outside its workspace: the
-finished build the e2e jobs restore, and cargo's intermediate directory, which only the next build
-reads. The runner also writes a pass/fail table to the
-job summary.
+checkout directly. GitHub Actions saves the finished build the e2e jobs restore, one entry per
+protocol and pin, outside its workspace. A build on `master` of the latest protocol also saves
+cargo's intermediate directory, which only the next build reads. The runner also writes a pass/fail
+table to the job summary.
 
 A pull request runs only the scenarios its changes can affect, which `src/select.mts` decides from
 the changed files. Every scenario boots the whole server, so a change to anything the server can

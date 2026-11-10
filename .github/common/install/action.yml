@@ -27,13 +27,20 @@ runs:
         # pnpm's package store, restored before the install so that only packages the lockfile
         # gained since the cached store was saved are downloaded. An exact key is a lockfile the
         # store already holds; the prefix falls back to the newest store for any lockfile.
+        #
+        # Only Linux caches it. The store holds every platform's binaries (`supportedArchitectures`
+        # in `pnpm-workspace.yaml`), about 1.6 GB compressed, and the macOS and Windows copies took
+        # half of the repository's 10 GB of cache between them for a download that takes as long as
+        # the restore did.
         - name: Find the pnpm store
           id: pnpm-store
           shell: bash
           run: echo "path=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
 
-        - name: Cache the pnpm store
-          uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        - name: Restore the pnpm store
+          id: pnpm-cache
+          if: ${{ runner.os == 'Linux' }}
+          uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
           with:
               path: ${{ steps.pnpm-store.outputs.path }}
               key: ${{ runner.os }}-${{ runner.arch }}-pnpm-store-${{ hashFiles('pnpm-lock.yaml') }}
@@ -43,3 +50,20 @@ runs:
         - name: Install dependencies
           shell: bash
           run: pnpm install --no-frozen-lockfile --prefer-offline
+
+        # A pull request never saves the store. Its entry is visible to that pull request alone,
+        # and a copy per pull request pushed master's entries, the ones every pull request
+        # restores, out of the cache. It downloads the few packages its lockfile adds instead.
+        # The prune drops what the restored store held for an older lockfile, so the entry stays
+        # the size of one install.
+        - name: Drop the packages the lockfile no longer names
+          if: ${{ steps.pnpm-cache.outcome == 'success' && steps.pnpm-cache.outputs.cache-hit != 'true' && github.event_name != 'pull_request' }}
+          shell: bash
+          run: pnpm store prune
+
+        - name: Save the pnpm store
+          if: ${{ steps.pnpm-cache.outcome == 'success' && steps.pnpm-cache.outputs.cache-hit != 'true' && github.event_name != 'pull_request' }}
+          uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+          with:
+              path: ${{ steps.pnpm-store.outputs.path }}
+              key: ${{ runner.os }}-${{ runner.arch }}-pnpm-store-${{ hashFiles('pnpm-lock.yaml') }}
