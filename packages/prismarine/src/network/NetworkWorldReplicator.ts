@@ -27,6 +27,7 @@ import type { WorldChange } from '../world/WorldChange';
 import type { NamedSoundOptions, WorldChangeSink } from '../world/WorldChangeSink';
 import { broadcastSharedBatches } from './MinecraftSession';
 import type ClientConnection from './ClientConnection';
+import type PlayerSession from './PlayerSession';
 import { encodePacketBatchFromBuffersBySize, encodePacketsForCodec, FullFlushFragmentCache } from './encodePacketBatch';
 import type { EncodedPacketBatch } from './encodePacketBatch';
 import type { ActorEvent } from '@jsprismarine/protocol/packet/ActorEventPacket';
@@ -835,8 +836,9 @@ export class NetworkWorldReplicator implements WorldChangeSink {
         for (const [codec, players] of playersByCodec) {
             // Resolve visibility once per viewer, then encode only the union. This keeps the
             // tracker checks linear in viewers × moved actors instead of rescanning viewers
-            // once for every moved actor.
-            const visibleMovesByPlayer = new Map<Player, (typeof pendingMoves)[number][]>();
+            // once for every moved actor. Keyed by the viewer's session, which is all the send
+            // below needs, so the map holds no player object.
+            const visibleMovesBySession = new Map<PlayerSession, (typeof pendingMoves)[number][]>();
             const visibleRuntimeIds = new Set<number>();
             for (const player of players) {
                 const session = player.getNetworkSession();
@@ -845,7 +847,7 @@ export class NetworkWorldReplicator implements WorldChangeSink {
                     ([, packet]) => packet.runtimeEntityId !== viewerRuntimeId && session.tracks(packet.runtimeEntityId)
                 );
                 if (visibleMoves.length === 0) continue;
-                visibleMovesByPlayer.set(player, visibleMoves);
+                visibleMovesBySession.set(session, visibleMoves);
                 for (const [runtimeId] of visibleMoves) visibleRuntimeIds.add(runtimeId);
             }
 
@@ -879,8 +881,7 @@ export class NetworkWorldReplicator implements WorldChangeSink {
                     readonly compressionThreshold: number;
                 }
             >();
-            for (const [player, visibleMoves] of visibleMovesByPlayer) {
-                const session = player.getNetworkSession();
+            for (const [session, visibleMoves] of visibleMovesBySession) {
                 const connection = session.getConnection();
 
                 const signature = `${connection.compressionAlgorithm}:${connection.compressionThreshold}:${visibleMoves
