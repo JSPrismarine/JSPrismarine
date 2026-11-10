@@ -561,8 +561,6 @@
     "packages/prismarine/src/chat/Chat.ts public method `Chat.getSender`",
     "packages/prismarine/src/chat/Chat.ts public method `Chat.getType`",
     "packages/prismarine/src/chat/Chat.ts public method `Chat.isNeedsTranslation`",
-    "packages/prismarine/src/chat/ChatManager.ts exported class `ChatManager`",
-    "packages/prismarine/src/chat/ChatManager.ts public method `ChatManager.send`",
     "packages/prismarine/src/command/CommandManager.ts exported class `CommandManager`",
     "packages/prismarine/src/config/Config.ts exported class `Config`",
     "packages/prismarine/src/config/Config.ts public method `Config.getEnableProcessTitle`",
