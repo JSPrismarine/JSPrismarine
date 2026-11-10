@@ -32,6 +32,7 @@ import type { EntityAction, EventTarget } from './events';
 import type {
     DamageEvent,
     DamageResult,
+    DamageSensing,
     EntityActuator,
     EntityAngerBroadcast,
     EntityBlockState,
@@ -215,6 +216,12 @@ export interface EntityEnvironment {
     spawnEntity?(entity: EntityInstance, request: EntitySpawnRequest): boolean;
     /** Receives everything the runtime met and did not carry out. */
     report?(message: string, entity: EntityInstance): void;
+    /**
+     * Carries damage a component deals to the entity, such as drowning or `minecraft:hurt_on_condition`,
+     * through the host's damage pipeline. Left out, {@link EntityInstance.damage} senses and applies
+     * the blow itself.
+     */
+    damage?(entity: EntityInstance, event: DamageEvent): DamageResult;
     /**
      * Java Edition's entity stats, which decide the four attributes a Bedrock
      * client never simulates. Leaving it out runs the pack's own numbers.
@@ -542,24 +549,60 @@ export class EntityInstance extends Instance<EntityHooks, EntityState, EntityTyp
     /**
      * Applies one damage event.
      *
-     * The first component that answers `onDamage` decides the amount, which is
-     * what `minecraft:damage_sensor` does. An immunity component then turns the
-     * cause aside, after the sensors have seen it, so a sensor still fires its
-     * event on damage the entity ends up ignoring. What is left comes off the
-     * `health` attribute, and `minecraft:on_hurt`,
-     * `minecraft:on_hurt_by_player` and `minecraft:on_death` fire in that
-     * order.
+     * A host that routes damage through its own pipeline ({@link EntityEnvironment.damage})
+     * receives the event, which is how damage a component deals reaches the host's guards.
+     * Otherwise the entity senses the blow with {@link EntityInstance.senseDamage} and applies
+     * what is left with {@link EntityInstance.applyDamage}.
      *
      * @returns What landed, with the events queued for the entity's next tick.
      */
     public damage(event: DamageEvent): DamageResult {
+        if (this.environment.damage !== undefined) return this.environment.damage(this, event);
+
+        const sensing = this.senseDamage(event);
+        return this.applyDamage(event, sensing.amount, sensing.events);
+    }
+
+    /**
+     * What the entity's components make of one damage event, without changing the entity.
+     *
+     * The first component that answers `onDamage` decides the amount, which is what
+     * `minecraft:damage_sensor` does. An immunity component then turns the cause aside, after the
+     * sensors have seen it, so a sensor still names its event for damage the entity ends up
+     * ignoring.
+     */
+    public senseDamage(event: DamageEvent): DamageSensing {
         const outcome = this.dispatchFirst('onDamage', this, event);
-        const events = [...(outcome?.events ?? [])];
-        const amount = this.immuneTo(event.cause) ? 0 : Math.max(0, outcome?.amount ?? event.amount);
+        const events = outcome?.events ?? [];
+        if (this.immuneTo(event.cause)) return { amount: 0, multiplier: 0, blocked: true, events };
+        if (outcome === undefined) return { amount: Math.max(0, event.amount), multiplier: 1, blocked: false, events };
+
+        const amount = Math.max(0, outcome.amount);
+        const multiplier = outcome.multiplier ?? (event.amount > 0 ? amount / event.amount : 1);
+        return { amount, multiplier, blocked: amount <= 0 && event.amount > 0, events };
+    }
+
+    /**
+     * Applies an amount of damage that has already been sensed.
+     *
+     * The sensor's events fire first, whatever the amount. Then the amount comes off the
+     * `health` attribute, and `minecraft:on_hurt`, `minecraft:on_hurt_by_player` and
+     * `minecraft:on_death` fire in that order. `onDamageProcessed` observers run last, for a
+     * blow that did no damage too.
+     *
+     * @param event - The damage event as it was sensed.
+     * @param amount - What reaches the health, after the host's own modifiers.
+     * @param sensorEvents - The events {@link EntityInstance.senseDamage} named.
+     * @returns What landed, with the events queued for the entity's next tick.
+     */
+    public applyDamage(event: DamageEvent, amount: number, sensorEvents: readonly string[] = []): DamageResult {
+        for (const fired of sensorEvents) this.fire(fired);
+        const events = [...sensorEvents];
+        const dealt = Math.max(0, amount);
 
         const health = this.attributes.get('health');
         let remaining = health?.current;
-        if (health !== undefined && amount > 0) remaining = this.attributes.set('health', health.current - amount);
+        if (health !== undefined && dealt > 0) remaining = this.attributes.set('health', health.current - dealt);
 
         const subjects = damagerSubjects(event.damager);
         const fire = (component: TriggerComponentName): void => {
@@ -567,15 +610,15 @@ export class EntityInstance extends Instance<EntityHooks, EntityState, EntityTyp
             if (fired !== undefined) events.push(fired);
         };
 
-        if (amount > 0) {
+        if (dealt > 0) {
             fire('minecraft:on_hurt');
             if (isPlayerView(event.damager)) fire('minecraft:on_hurt_by_player');
         }
 
-        const died = amount > 0 && remaining !== undefined && remaining <= 0;
+        const died = dealt > 0 && remaining !== undefined && remaining <= 0;
         if (died) fire('minecraft:on_death');
 
-        const result = { amount, health: remaining, died, events };
+        const result = { amount: dealt, health: remaining, died, events };
         this.dispatch('onDamageProcessed', this, event, result);
         return result;
     }
