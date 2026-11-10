@@ -5,7 +5,7 @@ name: Client E2E
 # Every job runs on GitHub's `ubuntu-latest`. The runner has no GPU, so the client draws through
 # Mesa's software Vulkan driver (lavapipe) into a hidden window on a virtual X display (Xvfb);
 # cinnabar accepts a CPU adapter when it is the only one. The client build is slow, so it runs
-# once per pin in cinnabar-build, only for the pins protocol-matrix found no cache entry for. When
+# once per pin in cinnabar-build, only for the pins the `changes` job found no cache entry for. When
 # every pin is cached, no build job starts and client-e2e goes straight to the scenarios, restoring
 # that entry, so a run only boots the server, joins, and plays.
 #
@@ -53,13 +53,18 @@ jobs:
         # runs-on: blacksmith-2vcpu-ubuntu-2404
         runs-on: ubuntu-latest
         permissions:
+            # Finding the merged pull request's run, and listing the cached client builds.
             actions: read
             contents: read
             pull-requests: read
         outputs:
             code: ${{ github.event_name == 'workflow_dispatch' || (steps.filter.outputs.code == 'true' && steps.select.outputs.mode != 'none') }}
+            pins: ${{ steps.matrix.outputs.pins }}
+            # The pins whose client has to be built first.
+            build: ${{ steps.builds.outputs.build }}
+            latest: ${{ steps.matrix.outputs.latest }}
             # Empty runs every scenario.
-            scenarios: ${{ steps.select.outputs.scenarios }}
+            scenarios: ${{ steps.matrix.outputs.scenarios }}
             reused: ${{ contains(fromJSON(steps.reuse.outputs.passed || '[]'), '🎮 Client E2E') }}
             run-id: ${{ steps.reuse.outputs.run-id }}
         steps:
@@ -100,9 +105,9 @@ jobs:
                           - 'turbo.json'
                           - '!**/*.md'
 
-            # select.mts imports the scenario files a pull request changed, which are TypeScript.
+            # select.mts and pin-matrix.mts are TypeScript, which the runner's own Node may not strip.
             - name: 🏎️ Setup Node
-              if: ${{ github.event_name == 'pull_request' && steps.filter.outputs.code == 'true' }}
+              if: ${{ github.event_name == 'workflow_dispatch' || steps.filter.outputs.code == 'true' }}
               uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
               with:
                   node-version-file: '.nvmrc'
@@ -125,39 +130,18 @@ jobs:
                       --jq '.[] | .filename, (.previous_filename // empty)' |
                       node tools/client-e2e/src/select.mts
 
-    protocol-matrix:
-        name: Read supported protocols
-        # Skipping this skips every job after it.
-        needs: changes
-        if: ${{ needs.changes.outputs.code == 'true' }}
-        # runs-on: blacksmith-2vcpu-ubuntu-2404
-        runs-on: ubuntu-latest
-        permissions:
-            # Lists the cache entries to find the client builds that already exist.
-            actions: read
-            contents: read
-        outputs:
-            pins: ${{ steps.matrix.outputs.pins }}
-            build: ${{ steps.builds.outputs.build }}
-            latest: ${{ steps.matrix.outputs.latest }}
-            scenarios: ${{ steps.matrix.outputs.scenarios }}
-        steps:
-            # - uses: useblacksmith/checkout@v1
-            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-
-            # pin-matrix.mts is TypeScript, which the runner's own Node may not strip.
-            - name: 🏎️ Setup Node
-              uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
-              with:
-                  node-version-file: '.nvmrc'
-
+            # What the jobs below run: the pins, the ones whose client has no cached build, and the
+            # scenarios. They are read here, not in a job of their own, which would wait for a
+            # second runner before the first build or scenario could start.
+            #
             # One entry per cinnabar pin of a served protocol: { protocol, transport, commit, name },
             # where `name` is what the pin's caches go by (v2225, v2225-nethernet).
             - name: Set matrix from the cinnabar pins
               id: matrix
+              if: ${{ github.event_name == 'workflow_dispatch' || (steps.filter.outputs.code == 'true' && steps.select.outputs.mode != 'none') }}
               env:
                   LATEST_ONLY: ${{ inputs.latest_only }}
-                  SCENARIOS: ${{ inputs.scenarios || needs.changes.outputs.scenarios || '' }}
+                  SCENARIOS: ${{ inputs.scenarios || steps.select.outputs.scenarios || '' }}
               run: |
                   latest=()
                   if [ "$LATEST_ONLY" = true ]; then latest=(--latest-only); fi
@@ -172,6 +156,7 @@ jobs:
             # cinnabar-build writes, whose `runner.os` is `Linux`.
             - name: Find the pins without a cached client build
               id: builds
+              if: ${{ github.event_name == 'workflow_dispatch' || (steps.filter.outputs.code == 'true' && steps.select.outputs.mode != 'none') }}
               env:
                   GH_TOKEN: ${{ github.token }}
                   PINS: ${{ steps.matrix.outputs.pins }}
@@ -194,14 +179,14 @@ jobs:
 
     cinnabar-build:
         name: 🔨 Build cinnabar client (${{ matrix.pin.name }})
-        needs: protocol-matrix
-        if: ${{ needs.protocol-matrix.outputs.build != '[]' }}
+        needs: changes
+        if: ${{ needs.changes.outputs.code == 'true' && needs.changes.outputs.build != '[]' }}
         # The NetherNet pin is a development commit of cinnabar; see the top of this file.
         continue-on-error: ${{ matrix.pin.transport == 'nethernet' }}
         strategy:
             fail-fast: false
             matrix:
-                pin: ${{ fromJSON(needs.protocol-matrix.outputs.build) }}
+                pin: ${{ fromJSON(needs.changes.outputs.build) }}
         # runs-on: blacksmith-6vcpu-macos-latest
         runs-on: ubuntu-latest
         # A cold build on the four cores `ubuntu-latest` has takes longer than it did on six.
@@ -225,7 +210,7 @@ jobs:
                   echo "deps-key=${RUNNER_OS}-cinnabar-deps-${NAME}-${COMMIT}" >> "$GITHUB_OUTPUT"
 
             # Only look the entry up: a hit means the build is done, and the e2e job downloads it.
-            # protocol-matrix already found none, so this guards against a build saved since.
+            # The `changes` job already found none, so this guards against a build saved since.
             - name: Look for an existing build
               id: cinnabar-cache
               uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
@@ -346,7 +331,7 @@ jobs:
             - name: Save the compiled dependencies
               if: >-
                   ${{ steps.cinnabar-cache.outputs.cache-hit != 'true' && steps.deps.outputs.cache-hit != 'true'
-                  && github.event_name != 'pull_request' && matrix.pin.name == needs.protocol-matrix.outputs.latest }}
+                  && github.event_name != 'pull_request' && matrix.pin.name == needs.changes.outputs.latest }}
               uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
               with:
                   path: ${{ runner.temp }}/jsprismarine/cinnabar-deps
@@ -373,7 +358,7 @@ jobs:
                   NAME: ${{ matrix.pin.name }}
                   KEY: ${{ steps.pin.outputs.key }}
                   # Only the latest protocol's pin keeps compiled dependencies, so another deletes its own.
-                  DEPS_KEY: ${{ matrix.pin.name == needs.protocol-matrix.outputs.latest && steps.pin.outputs.deps-key || 'none' }}
+                  DEPS_KEY: ${{ matrix.pin.name == needs.changes.outputs.latest && steps.pin.outputs.deps-key || 'none' }}
               run: |
                   # The prefix of v2225 also starts v2225-nethernet's keys, so only a key that is the
                   # prefix and a commit belongs to this pin.
@@ -392,10 +377,10 @@ jobs:
         # A NetherNet entry says it may fail, which is also how pr-job-results.mjs leaves it out.
         name: >-
             🎮 Client E2E (protocol ${{ matrix.pin.protocol }}${{ matrix.pin.transport == 'nethernet' && ', NetherNet, allowed to fail' || '' }})
-        needs: [changes, protocol-matrix, cinnabar-build]
+        needs: [changes, cinnabar-build]
         # A skipped cinnabar-build means every pin was already cached.
         if: >-
-            ${{ !cancelled() && needs.protocol-matrix.result == 'success'
+            ${{ !cancelled() && needs.changes.result == 'success' && needs.changes.outputs.code == 'true'
             && (needs.cinnabar-build.result == 'success' || needs.cinnabar-build.result == 'skipped')
             && needs.changes.outputs.reused != 'true' }}
         # The NetherNet pin is a development commit of cinnabar; see the top of this file.
@@ -403,7 +388,7 @@ jobs:
         strategy:
             fail-fast: false
             matrix:
-                pin: ${{ fromJSON(needs.protocol-matrix.outputs.pins) }}
+                pin: ${{ fromJSON(needs.changes.outputs.pins) }}
         # runs-on: blacksmith-6vcpu-macos-latest
         runs-on: ubuntu-latest
         timeout-minutes: 60
@@ -463,7 +448,7 @@ jobs:
             - name: 🏭 Prepare the Java data
               run: pnpm --filter @jsprismarine/bedrock-data run ensure:worldgen
 
-            # protocol-matrix found this entry or cinnabar-build saved it, so a miss is a workflow
+            # The `changes` job found this entry or cinnabar-build saved it, so a miss is a workflow
             # bug, not a reason to compile.
             - name: Restore the cinnabar build
               uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
@@ -490,7 +475,7 @@ jobs:
                   # Expands unquoted below: empty vanishes, and scenarios word-split by design.
                   # run.mts calls ensureCinnabar too; it finds the restored build and compiles nothing.
                   JSP_CINNABAR_CACHE_DIR: ${{ runner.temp }}/jsprismarine/cinnabar
-                  SCENARIOS: ${{ inputs.scenarios || needs.protocol-matrix.outputs.scenarios }}
+                  SCENARIOS: ${{ inputs.scenarios || needs.changes.outputs.scenarios }}
                   PROTOCOL: ${{ matrix.pin.protocol }}
                   TRANSPORT: ${{ matrix.pin.transport }}
                   SUITES: ${{ steps.size.outputs.suites }}
@@ -514,7 +499,7 @@ jobs:
             # A run of some scenarios covers less than the full run, so it uploads nothing and
             # Codecov carries the last full report forward.
             - name: 🦺 Upload client e2e coverage to Codecov
-              if: ${{ !cancelled() && steps.client-e2e-coverage.outcome == 'success' && needs.protocol-matrix.outputs.scenarios == '' }}
+              if: ${{ !cancelled() && steps.client-e2e-coverage.outcome == 'success' && needs.changes.outputs.scenarios == '' }}
               uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
               with:
                   token: ${{ secrets.CODECOV_TOKEN }}
@@ -528,7 +513,7 @@ jobs:
 
             # The push to master that merges this pull request skips this job and uploads it.
             - name: 📤 Keep the coverage for the merge
-              if: ${{ !cancelled() && steps.client-e2e-coverage.outcome == 'success' && github.event_name == 'pull_request' && needs.protocol-matrix.outputs.scenarios == '' }}
+              if: ${{ !cancelled() && steps.client-e2e-coverage.outcome == 'success' && github.event_name == 'pull_request' && needs.changes.outputs.scenarios == '' }}
               uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
               with:
                   name: codecov-client-e2e-${{ matrix.pin.name }}
@@ -563,7 +548,7 @@ jobs:
     # one reports under its unexpanded name, so neither can be required directly.
     client-e2e-passed:
         name: ✅ Client E2E
-        needs: [changes, protocol-matrix, cinnabar-build, client-e2e]
+        needs: [changes, cinnabar-build, client-e2e]
         if: ${{ always() }}
         # runs-on: blacksmith-2vcpu-ubuntu-2404
         runs-on: ubuntu-latest
@@ -585,7 +570,7 @@ jobs:
                   # reuses the merged pull request's passing runs. A failed NetherNet entry still
                   # reports its job as a success here: both jobs set continue-on-error for it.
                   jq -e '(.changes.outputs.reused == "true") as $reused
-                      | (.["protocol-matrix"].outputs.build == "[]") as $cached
+                      | (.changes.outputs.build == "[]") as $cached
                       | to_entries
                       | all(.value.result == "success"
                           or ($cached and .key == "cinnabar-build" and .value.result == "skipped")
