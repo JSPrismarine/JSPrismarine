@@ -133,7 +133,8 @@ export default class MinecraftSession {
     private queuedPackets: QueuedPacket[] = [];
     private queuedPacketBytes = 0;
     private queuedBatchOptions: PacketBatchOptions | undefined;
-    private flushScheduled = false;
+    /** The flush {@link scheduleOutboundFlush} set for the next turn of the event loop, if any. */
+    private scheduledFlush: NodeJS.Immediate | undefined;
 
     public constructor(
         connection: TransportConnection,
@@ -532,6 +533,12 @@ export default class MinecraftSession {
      * @returns Resolves after the batch holding these packets has been framed.
      */
     public async flushOutboundPackets(): Promise<void> {
+        // This flush takes everything the scheduled one would have, so that one is dropped
+        // rather than left to run later on an empty queue.
+        if (this.scheduledFlush !== undefined) {
+            clearImmediate(this.scheduledFlush);
+            this.scheduledFlush = undefined;
+        }
         const queued = this.queuedPackets;
         if (queued.length === 0) return;
 
@@ -646,10 +653,9 @@ export default class MinecraftSession {
     }
 
     private scheduleOutboundFlush(): void {
-        if (this.flushScheduled) return;
-        this.flushScheduled = true;
-        setImmediate(() => {
-            this.flushScheduled = false;
+        if (this.scheduledFlush !== undefined) return;
+        this.scheduledFlush = setImmediate(() => {
+            this.scheduledFlush = undefined;
             void this.flushOutboundPackets().catch((error: unknown) => this.logger.error(error));
         });
     }
