@@ -25,7 +25,7 @@ export default class ShowCreditsHandler implements PacketHandler<ShowCreditsPack
             server
                 .getLogger()
                 .debug(
-                    `${session.getPlayer().getName()} reported the end credits finished with none pending`,
+                    `${session.identity.name} reported the end credits finished with none pending`,
                     'ShowCreditsHandler/handle'
                 );
             return;
@@ -34,7 +34,7 @@ export default class ShowCreditsHandler implements PacketHandler<ShowCreditsPack
         server
             .getLogger()
             .debug(
-                `${session.getPlayer().getName()} reported the end credits started, which only the server may say`,
+                `${session.identity.name} reported the end credits started, which only the server may say`,
                 'ShowCreditsHandler/handle'
             );
     }

@@ -21,7 +21,7 @@ export default class ModalFormResponseHandler implements PacketHandler<ModalForm
     /** Logs the form id with either the JSON or the cancel reason, and never throws. */
     public handle(packet: ModalFormResponsePacket, server: Server, session: PlayerSession): void {
         const logger = server.getLogger();
-        const name = session.getPlayer().getName();
+        const name = session.identity.name;
 
         if (packet.jsonResponse !== null && !parses(packet.jsonResponse)) {
             logger.warn(

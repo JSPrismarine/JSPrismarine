@@ -29,7 +29,7 @@ export default class SetDifficultyHandler implements PacketHandler<SetDifficulty
         server
             .getLogger()
             .debug(
-                `${session.getPlayer().getName()} asked for difficulty ${Difficulty[data.difficulty] ?? data.difficulty}, which the server does not change`,
+                `${session.identity.name} asked for difficulty ${Difficulty[data.difficulty] ?? data.difficulty}, which the server does not change`,
                 'SetDifficultyHandler/handle'
             );
 

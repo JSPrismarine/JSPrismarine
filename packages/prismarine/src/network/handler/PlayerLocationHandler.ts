@@ -27,7 +27,7 @@ export default class PlayerLocationHandler implements PacketHandler<PlayerLocati
         server
             .getLogger()
             .debug(
-                `${session.getPlayer().getName()} sent a player location for actor ${data.targetActorId} (${location}), which only the server should send`,
+                `${session.identity.name} sent a player location for actor ${data.targetActorId} (${location}), which only the server should send`,
                 'PlayerLocationHandler/handle'
             );
     }
