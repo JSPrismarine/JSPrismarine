@@ -894,8 +894,7 @@ export class World implements Service {
      */
     private sendCookingProgress(at: ContentPosition, properties: ReadonlyMap<number, number>): void {
         const position = new Vector3(at.x, at.y, at.z);
-        for (const player of this.getPlayers()) {
-            const session = player.getNetworkSession();
+        for (const session of this.getViewers()) {
             if (session.getOpenBlockContainer() === undefined) continue;
             void session.sendContainerData(position, properties).catch((error: unknown) => {
                 this.server.getLogger().error(error);
@@ -1270,9 +1269,7 @@ export class World implements Service {
 
         // Drain the per-session fallback queues once all tick-driven traffic, including
         // movement and time, has had a chance to join the same outbound batch.
-        await Promise.all(
-            this.getPlayers().map((player) => player.getNetworkSession().getConnection().flushOutboundPackets())
-        );
+        await Promise.all(this.getViewers().map((session) => session.getConnection().flushOutboundPackets()));
     }
 
     /**
@@ -1867,9 +1864,9 @@ export class World implements Service {
      * times the speed.
      * @param {Vector3} position - The block being struck.
      * @param {number} face - Which side was hit; the chips come off that one.
-     * @param {Player} [striker] - Who is striking it, when a player is.
+     * @param [striker] - Who is striking it, when a player is, matched by entity id.
      */
-    public async hitBlock(position: Vector3, face: number, striker?: Player): Promise<void> {
+    public async hitBlock(position: Vector3, face: number, striker?: Pick<ShownActor, 'getRuntimeId'>): Promise<void> {
         const state = await this.getBlockState(position.getX(), position.getY(), position.getZ());
         if (state.name === 'minecraft:air') return;
 
@@ -2976,7 +2973,10 @@ export class World implements Service {
      * @param player - The player who dropped the stacks.
      * @param contents - The stacks to drop; nulls and empty stacks are skipped.
      */
-    public async dropFromPlayer(player: Player, contents: Array<Block | Item | null>): Promise<void> {
+    public async dropFromPlayer(
+        player: Pick<ShownActor, 'getPosition' | 'pitch' | 'yaw'>,
+        contents: Array<Block | Item | null>
+    ): Promise<void> {
         const eyes = player.getPosition();
         const random = randomOf(this.server);
         const pitch = (player.pitch * Math.PI) / 180;
@@ -4160,11 +4160,11 @@ export class World implements Service {
     }
 
     /**
-     * Get the player data for a player.
-     * @param {Player} player - The player to get the data for.
+     * Get the player data for a player, filed under `keyOfPlayer`.
+     * @param player - The player to get the data for, of which only the name and XUID are read.
      * @returns {Promise<WorldPlayerData>} The player data.
      */
-    public async getPlayerData(player: Player): Promise<Partial<WorldPlayerData>> {
+    public async getPlayerData(player: Parameters<typeof keyOfPlayer>[0]): Promise<Partial<WorldPlayerData>> {
         const key = keyOfPlayer(player);
         const data = await this.level.getPlayerData(key);
         if (data) return data;

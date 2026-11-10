@@ -1,6 +1,5 @@
 import type { Vector3 } from '@jsprismarine/math';
 import type { ActorEvent, LevelEvent, LevelSoundEvent } from '@jsprismarine/minecraft';
-import type Player from '../Player';
 import type { Attribute } from '@jsprismarine/protocol/wire/structures/Attribute';
 import type { StatusEffect, StatusEffectChange } from '../entity/StatusEffect';
 import type { ShownActor } from './ShownActor';
@@ -63,9 +62,15 @@ export interface WorldChangeSink {
      * @param {Vector3} position - Where it happened, at the center of the block.
      * @param {LevelSoundEvent} sound - Which noise.
      * @param {number} blockRuntimeId - The block that made it.
-     * @param {Player} [except] - A player who already hears it, because their own client plays it.
+     * @param [except] - A player who already hears it, because their own client plays it, matched
+     *   by entity id.
      */
-    blockSound(position: Vector3, sound: LevelSoundEvent, blockRuntimeId: number, except?: Player): void;
+    blockSound(
+        position: Vector3,
+        sound: LevelSoundEvent,
+        blockRuntimeId: number,
+        except?: Pick<ShownActor, 'getRuntimeId'>
+    ): void;
 
     /**
      * A named sound played at a position.
