@@ -304,6 +304,21 @@ describe('Player', () => {
             expect(player.metadata.breathing).toBe(false);
         });
 
+        it('waits while its head is in a chunk that is not loaded, and loads none', async () => {
+            const { player } = fakePlayer({ underwater: true });
+            await tick(player, 40);
+            const world = player.getWorld();
+            world.loadedBlockAt = () => undefined;
+            world.getBlock = () => {
+                throw new Error('the breath check loaded a chunk');
+            };
+
+            await tick(player, 40);
+
+            expect(player.metadata.air).toBe(MAX_AIR_TICKS - 40);
+            expect(player.metadata.breathing).toBe(false);
+        });
+
         it('drowns once the air is gone, two half-hearts a second', async () => {
             const { player } = fakePlayer({ underwater: true });
 
