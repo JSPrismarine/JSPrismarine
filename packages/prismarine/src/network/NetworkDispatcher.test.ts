@@ -116,6 +116,15 @@ const message = (text: string) => {
     });
 };
 
+/** One batch holding the packets, in order, as bytes off the wire. */
+const batchOf = (packets: readonly (TextPacket | ClientCacheStatusPacket)[]) =>
+    BatchCodec.uncompressed().encode(
+        packets.map((packet) => {
+            packet.encode();
+            return packet.getBuffer();
+        })
+    );
+
 /** One batch holding the packet, as bytes off the wire. */
 const frameOf = (packet: TextPacket | ClientCacheStatusPacket, compressed = false) => {
     packet.encode();
@@ -155,6 +164,8 @@ const makeDispatcher = (options?: {
     logFilter?: PacketLogFilter;
     /** The lane each packet's handler declares, by packet name; `connection` when not named. */
     lanes?: Readonly<Record<string, Lane>>;
+    /** The phases each packet's handler accepts, by packet name; `handler.phases` when not named. */
+    phasesOf?: Readonly<Record<string, readonly SessionPhase[]>>;
     /** Called when a connection's player is torn down. */
     onClosePlayerSession?: () => void;
     handler?: {
@@ -171,7 +182,11 @@ const makeDispatcher = (options?: {
         getHandler: (name: string) => {
             if (!options?.handler) throw new Error('no handler registered');
             // Every double here runs in the handshake phase, before a session exists.
-            return { lane: options.lanes?.[name] ?? 'connection', ...options.handler };
+            return {
+                lane: options.lanes?.[name] ?? 'connection',
+                ...options.handler,
+                phases: options.phasesOf?.[name] ?? options.handler.phases
+            };
         }
     });
     const built: ClientConnection[] = [];
@@ -921,7 +936,7 @@ describe('network', () => {
             ]);
         });
 
-        it('keeps arrival order across a tick boundary, holding a later packet of any lane behind an input', async () => {
+        it('applies every input a connection sent before a step in that step, and a later read after it', async () => {
             const order: string[] = [];
             const { transport, dispatcher } = makeDispatcher({
                 lanes: { TextPacket: 'input', ClientCacheStatusPacket: 'read' },
@@ -936,24 +951,166 @@ describe('network', () => {
 
             const arrivals = [
                 transport.emitFrame(frameOf(message('first')), 1),
-                transport.emitFrame(frameOf(cacheStatus()), 1),
-                transport.emitFrame(frameOf(message('second')), 1)
+                transport.emitFrame(frameOf(message('second')), 1),
+                transport.emitFrame(frameOf(message('third')), 1),
+                transport.emitFrame(frameOf(cacheStatus()), 1)
             ];
-            await turn();
-            // The read packet arrived after a held input, so it waits behind it.
-            expect(order).toEqual([]);
-            expect(dispatcher.pendingInputs).toBe(1);
-
-            expect(await dispatcher.admitInputs()).toBe(1);
-            await turn();
-            // The read packet ran once the input before it applied; the second input, reached
-            // only then, waits for the next step rather than joining this one.
-            expect(order).toEqual(['input:first', 'read']);
-            expect(dispatcher.pendingInputs).toBe(1);
-
-            expect(await dispatcher.admitInputs()).toBe(1);
+            // Every frame is decoded and passed on without waiting for a tick.
             await Promise.all(arrivals);
-            expect(order).toEqual(['input:first', 'read', 'input:second']);
+            await turn();
+            expect(order).toEqual([]);
+            expect(dispatcher.pendingInputs).toBe(3);
+
+            expect(await dispatcher.admitInputs()).toBe(3);
+            await turn();
+            // The read arrived after held inputs, so it runs once the step that applied them is over.
+            expect(order).toEqual(['input:first', 'input:second', 'input:third', 'read']);
+            expect(dispatcher.pendingInputs).toBe(0);
+        });
+
+        it('applies the inputs of one batch in one step, in batch order', async () => {
+            const order: string[] = [];
+            const { transport, dispatcher } = makeDispatcher({
+                lanes: { TextPacket: 'input' },
+                handler: {
+                    phases: ['handshake'],
+                    handle: async (packet) => {
+                        order.push(nameOf(packet));
+                    }
+                }
+            });
+            await transport.emitConnect(fakeConnection(1).connection);
+
+            await transport.emitFrame(batchOf([message('a'), message('b'), message('c')]), 1);
+            expect(dispatcher.pendingInputs).toBe(3);
+
+            expect(await dispatcher.admitInputs()).toBe(3);
+            expect(order).toEqual(['input:a', 'input:b', 'input:c']);
+            expect(dispatcher.pendingInputs).toBe(0);
+        });
+
+        it('keeps no more than one tick of backlog for a client that sends an input and a read every tick', async () => {
+            const order: string[] = [];
+            const { transport, dispatcher } = makeDispatcher({
+                lanes: { TextPacket: 'input', ClientCacheStatusPacket: 'read' },
+                handler: {
+                    phases: ['handshake'],
+                    handle: async (packet) => {
+                        order.push(nameOf(packet));
+                    }
+                }
+            });
+            await transport.emitConnect(fakeConnection(1).connection);
+
+            const backlog: number[] = [];
+            for (let tick = 0; tick < 100; tick++) {
+                await transport.emitFrame(frameOf(message(`${tick}`)), 1);
+                await transport.emitFrame(frameOf(cacheStatus()), 1);
+                await dispatcher.admitInputs();
+                await turn();
+                backlog.push(dispatcher.pendingInputs);
+            }
+
+            expect(Math.max(...backlog)).toBe(0);
+            expect(order).toEqual(Array.from({ length: 100 }, (_unused, tick) => [`input:${tick}`, 'read']).flat());
+        });
+
+        it('runs reads from a connection with no held input on arrival, in arrival order', async () => {
+            const order: string[] = [];
+            const { transport, dispatcher } = makeDispatcher({
+                lanes: { TextPacket: 'read' },
+                handler: {
+                    phases: ['handshake'],
+                    handle: async (packet) => {
+                        order.push(nameOf(packet));
+                    }
+                }
+            });
+            await transport.emitConnect(fakeConnection(1).connection);
+
+            await Promise.all([
+                transport.emitFrame(frameOf(message('one')), 1),
+                transport.emitFrame(frameOf(message('two')), 1),
+                transport.emitFrame(batchOf([message('three'), message('four')]), 1)
+            ]);
+
+            expect(order).toEqual(['input:one', 'input:two', 'input:three', 'input:four']);
+            expect(dispatcher.pendingInputs).toBe(0);
+        });
+
+        it('keeps reads that follow a held input in order, behind the step, without holding later inputs back', async () => {
+            const order: string[] = [];
+            let releaseRead!: () => void;
+            const readGate = new Promise<void>((resolve) => (releaseRead = resolve));
+            const { transport, dispatcher } = makeDispatcher({
+                lanes: { TextPacket: 'input', ClientCacheStatusPacket: 'read' },
+                handler: {
+                    phases: ['handshake'],
+                    handle: async (packet) => {
+                        const name = nameOf(packet);
+                        order.push(`${name}:start`);
+                        if (name === 'read' && !order.includes('read:end')) await readGate;
+                        order.push(`${name}:end`);
+                    }
+                }
+            });
+            await transport.emitConnect(fakeConnection(1).connection);
+
+            await transport.emitFrame(frameOf(message('one')), 1);
+            await transport.emitFrame(frameOf(cacheStatus()), 1);
+            await transport.emitFrame(frameOf(cacheStatus()), 1);
+            await transport.emitFrame(frameOf(message('two')), 1);
+            expect(dispatcher.pendingInputs).toBe(2);
+
+            await dispatcher.admitInputs();
+            await turn();
+            // The first read waits on something of its own; the second keeps its place behind it.
+            expect(order).toEqual([
+                'input:one:start',
+                'input:one:end',
+                'input:two:start',
+                'input:two:end',
+                'read:start'
+            ]);
+
+            // An input sent meanwhile is held at once, and the next step applies it.
+            await transport.emitFrame(frameOf(message('three')), 1);
+            expect(dispatcher.pendingInputs).toBe(1);
+            await dispatcher.admitInputs();
+            expect(order.at(-1)).toBe('input:three:end');
+
+            releaseRead();
+            await turn();
+            expect(order.filter((entry) => entry.startsWith('read'))).toEqual([
+                'read:start',
+                'read:end',
+                'read:start',
+                'read:end'
+            ]);
+        });
+
+        it('gates a packet behind a held input on the phase that input leaves the connection in', async () => {
+            const order: string[] = [];
+            const { transport, built, dispatcher } = makeDispatcher({
+                lanes: { TextPacket: 'input', ClientCacheStatusPacket: 'read' },
+                phasesOf: { ClientCacheStatusPacket: ['play'] },
+                handler: {
+                    phases: ['handshake'],
+                    handle: async (packet) => {
+                        order.push(nameOf(packet));
+                        // Like the resource pack response that starts the game.
+                        built[0]!.phase = 'play';
+                        built[0]!.getPlayerSession = () => stub<PlayerSession>();
+                    }
+                }
+            });
+            await transport.emitConnect(fakeConnection(1).connection);
+
+            await transport.emitFrame(batchOf([message('join'), cacheStatus()]), 1);
+            await dispatcher.admitInputs();
+            await turn();
+
+            expect(order).toEqual(['input:join', 'read']);
         });
 
         it('admits at most its budget of inputs in a step, whatever the backlog, and the rest in order after', async () => {
