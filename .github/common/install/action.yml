@@ -74,9 +74,11 @@ runs:
                 - win32-arm64
               YAML
 
+        # Frozen, so a pull request whose lockfile does not match its manifests fails here instead
+        # of testing dependencies nobody committed.
         - name: Install dependencies
           shell: bash
-          run: pnpm install --no-frozen-lockfile --prefer-offline
+          run: pnpm install --frozen-lockfile --prefer-offline
 
         # A pull request never saves the store. Its entry is visible to that pull request alone,
         # and a copy per pull request pushed master's entries, the ones every pull request
