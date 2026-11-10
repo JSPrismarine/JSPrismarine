@@ -4,6 +4,7 @@ import type { ComponentFactory } from '@jsprismarine/content';
 import { accepted, rejected } from '@jsprismarine/content';
 import type { EntityHooks } from '../hooks';
 import { asList, booleanAt, isRecord, numberAt } from './schemas';
+import { parseTimeRange } from './shared';
 
 /** What `minecraft:navigation.*` declares; every field is a capability of the path finder. */
 export interface NavigationParams {
@@ -75,6 +76,11 @@ export interface MovementModeParams {
     readonly kind: string;
     /** The most degrees the entity turns per tick. */
     readonly maxTurn: number;
+    /**
+     * How long `minecraft:movement.jump` waits on the ground between two hops, in seconds,
+     * as a `[min, max]` pair. Present only on the `jump` flavor.
+     */
+    readonly jumpDelay?: readonly [number, number];
 }
 
 /** Builds one `minecraft:movement.<kind>` component. */
@@ -86,7 +92,11 @@ export const movementComponent = (
     hooks: [],
     schema: (value) =>
         isRecord(value)
-            ? accepted({ kind, maxTurn: numberAt(value, 'max_turn', defaultMaxTurn) })
+            ? accepted({
+                  kind,
+                  maxTurn: numberAt(value, 'max_turn', defaultMaxTurn),
+                  ...(kind === 'jump' ? { jumpDelay: parseTimeRange(value.jump_delay) } : {})
+              })
             : rejected('expected an object'),
     create: () => ({})
 });
