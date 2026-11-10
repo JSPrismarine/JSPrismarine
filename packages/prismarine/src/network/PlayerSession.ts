@@ -19,6 +19,7 @@ import { CommandEnum } from '@jsprismarine/protocol/wire/structures/CommandEnum'
 import { commandDataOf } from '../command/availableCommands';
 import type { Attribute, Attributes } from '@jsprismarine/protocol/wire/structures/Attribute';
 import type { Entity } from '../entity/Entity';
+import type { ShownActor } from '../world/ShownActor';
 import type { LiveOffer, TradeContext, TradeResult } from '@jsprismarine/trading';
 import UpdateTradePacket from '@jsprismarine/protocol/packet/UpdateTradePacket';
 import { tradeOffersPayload } from './tradeOffers';
@@ -712,11 +713,11 @@ export default class PlayerSession {
      * mean a spawn that failed left the entity flagged as delivered, and nothing would ever
      * send it again - the same lesson `flushChunkBatch` records for chunks, where it left a
      * permanent hole in the world.
-     * @param {Iterable<Entity>} [entities] - Every entity in the world, and it must be every
+     * @param {Iterable<ShownActor>} [entities] - Every entity in the world, and it must be every
      * one - anything tracked and absent from it is taken to have left and is despawned.
      * Defaults to asking the world. For a single arrival, use {@link PlayerSession.considerEntity}.
      */
-    public async reconcileTrackedEntities(entities?: Iterable<Entity>): Promise<void> {
+    public async reconcileTrackedEntities(entities?: Iterable<ShownActor>): Promise<void> {
         if (this.reconciling || !this.isConnected()) return;
 
         this.reconciling = true;
@@ -725,7 +726,7 @@ export default class PlayerSession {
                 viewer: this.player.getPosition(),
                 viewDistance: this.player.viewDistance,
                 self: this.player.getRuntimeId(),
-                entities: entities ?? this.player.getWorld().getEntities()
+                entities: entities ?? this.player.getWorld().shownActors()
             });
 
             for (const entity of change.spawn) {
@@ -749,7 +750,7 @@ export default class PlayerSession {
      * whole pass over everything in it.
      * @param {Entity} entity - The entity to consider.
      */
-    public async considerEntity(entity: Entity): Promise<void> {
+    public async considerEntity(entity: ShownActor): Promise<void> {
         if (!this.isConnected()) return;
         if (entity.getRuntimeId() === this.player.getRuntimeId()) return;
         if (!this.entityTracker.shouldSpawn(entity, this.player.getPosition(), this.player.viewDistance)) return;
@@ -765,7 +766,7 @@ export default class PlayerSession {
      * the client still has an entity it does not, and block it from ever being sent again.
      * @param {Entity} entity - The entity that is going away.
      */
-    public async dropEntity(entity: Entity): Promise<void> {
+    public async dropEntity(entity: ShownActor): Promise<void> {
         if (!this.entityTracker.remove(entity.getRuntimeId())) return;
         await this.sendRemoveActorById(entity.getRuntimeId());
     }
@@ -2435,7 +2436,7 @@ export default class PlayerSession {
      * the world for the list of players to send them to.
      * @param {Entity} entity - The entity to show.
      */
-    public async sendAddActor(entity: Entity): Promise<void> {
+    public async sendAddActor(entity: ShownActor): Promise<void> {
         const packet = new AddActorPacket();
         packet.runtimeEntityId = entity.getRuntimeId();
         packet.type = entity.getType();
@@ -2470,7 +2471,7 @@ export default class PlayerSession {
      * Sends every active effect after the actor that owns them has spawned.
      * @param {Entity} entity - The spawned actor.
      */
-    public async sendStatusEffects(entity: Entity): Promise<void> {
+    public async sendStatusEffects(entity: ShownActor): Promise<void> {
         for (const effect of entity.getStatusEffects()) await this.sendStatusEffect(entity, effect, 'add');
     }
 
@@ -2480,7 +2481,7 @@ export default class PlayerSession {
      * @param {StatusEffect} effect - The effect state.
      * @param {StatusEffectChange} change - Whether it was added, updated, or removed.
      */
-    public async sendStatusEffect(entity: Entity, effect: StatusEffect, change: StatusEffectChange): Promise<void> {
+    public async sendStatusEffect(entity: ShownActor, effect: StatusEffect, change: StatusEffectChange): Promise<void> {
         const effectId = bedrockMobEffectId(effect.id);
         if (effectId === undefined) return;
 
@@ -2551,7 +2552,7 @@ export default class PlayerSession {
      * follows only when something is in it, the way vanilla sends it.
      * @param {Entity} entity - Whose equipment it is.
      */
-    public async sendEquipmentFor(entity: Entity): Promise<void> {
+    public async sendEquipmentFor(entity: ShownActor): Promise<void> {
         const worn = entity.getEquipment();
 
         const context = this.connection.codec.context;
@@ -2587,7 +2588,7 @@ export default class PlayerSession {
      * @param {Entity} entity - Whose hand it is in.
      * @param {Item} item - What they are holding.
      */
-    public async sendHeldItemFor(entity: Entity, item: Item): Promise<void> {
+    public async sendHeldItemFor(entity: ShownActor, item: Item): Promise<void> {
         // A mob has no inventory to name a slot in; vanilla sends zero for both.
         await this.send(
             new MobEquipmentPacket({
@@ -2629,7 +2630,7 @@ export default class PlayerSession {
      * Takes an entity off this connection.
      * @param {Entity} entity - The entity to remove.
      */
-    public async sendRemoveActor(entity: Entity): Promise<void> {
+    public async sendRemoveActor(entity: ShownActor): Promise<void> {
         await this.sendRemoveActorById(entity.getRuntimeId());
     }
 

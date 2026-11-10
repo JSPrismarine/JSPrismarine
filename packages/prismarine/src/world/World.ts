@@ -45,6 +45,7 @@ import BlockUpdateScheduler from './BlockUpdateScheduler';
 import { breakBlockWithContent, collectBreakDrops, wearBreakingTool } from './blockBreak';
 import { notifyContentNeighbors } from './neighborContent';
 import CoordinateUtils from './CoordinateUtils';
+import type { ShownActor } from './ShownActor';
 import type { NamedSoundOptions, WorldChangeSink } from './WorldChangeSink';
 import { NULL_WORLD_CHANGE_SINK } from './WorldChangeSink';
 import { Dimensions, maxY } from './Dimension';
@@ -1814,7 +1815,7 @@ export class World implements Service {
      * @param {Entity} entity - Who made it.
      * @param {LevelSoundEvent} sound - Which noise.
      */
-    public async sendActorSound(entity: Entity, sound: LevelSoundEvent): Promise<void> {
+    public async sendActorSound(entity: ShownActor, sound: LevelSoundEvent): Promise<void> {
         this.changes.actorSound(entity, sound);
     }
 
@@ -1822,7 +1823,7 @@ export class World implements Service {
      * Tells everyone watching that an entity now looks different.
      * @param {Entity} entity - Who changed.
      */
-    public async sendActorMetadata(entity: Entity): Promise<void> {
+    public async sendActorMetadata(entity: ShownActor): Promise<void> {
         await this.changes.entityMetadataChanged(entity);
     }
 
@@ -1833,7 +1834,7 @@ export class World implements Service {
      * already dropped the writes that changed nothing.
      * @param {Entity} entity - Whose equipment changed.
      */
-    public entityEquipmentChanged(entity: Entity): void {
+    public entityEquipmentChanged(entity: ShownActor): void {
         void this.changes
             .entityEquipmentChanged(entity)
             .catch((error: unknown) => this.server.getLogger().error(error));
@@ -1962,7 +1963,7 @@ export class World implements Service {
      * @param {ActorEvent} event - What happened.
      * @param {number} [data=0] - Extra detail, for the events that carry any.
      */
-    public async sendActorEvent(entity: Entity, event: ActorEvent, data = 0): Promise<void> {
+    public async sendActorEvent(entity: ShownActor, event: ActorEvent, data = 0): Promise<void> {
         await this.changes.actorEffect(entity, event, data);
     }
 
@@ -1972,7 +1973,7 @@ export class World implements Service {
      * @param {StatusEffect} effect - The effect state.
      * @param {StatusEffectChange} change - Whether it was added, updated, or removed.
      */
-    public async sendStatusEffect(entity: Entity, effect: StatusEffect, change: StatusEffectChange): Promise<void> {
+    public async sendStatusEffect(entity: ShownActor, effect: StatusEffect, change: StatusEffectChange): Promise<void> {
         await this.changes.statusEffectChanged?.(entity, effect, change);
     }
 
@@ -3516,7 +3517,7 @@ export class World implements Service {
     private async updateTracking(tick: number): Promise<void> {
         if (tick % this.server.getConfig().getEntityTrackingInterval() !== 0) return;
 
-        await this.changes.reconcile(this.getEntities());
+        await this.changes.reconcile(this.shownActors());
     }
 
     /**
@@ -3647,6 +3648,16 @@ export class World implements Service {
     private gameEventListeners(): GameEventListenerRegistry {
         this.gameEventListenerRegistry ??= new GameEventListenerRegistry(this);
         return this.gameEventListenerRegistry;
+    }
+
+    /**
+     * Every actor this world shows its clients: the legacy entities and the store's entities.
+     *
+     * What tracking reads, and it has to be every one, because a tracker hides anything it
+     * holds that is missing from the set.
+     */
+    public shownActors(): ShownActor[] {
+        return this.getEntities();
     }
 
     /**

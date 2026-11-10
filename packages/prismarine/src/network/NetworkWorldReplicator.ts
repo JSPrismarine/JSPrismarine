@@ -8,7 +8,7 @@ import Player from '../Player';
 import type Server from '../Server';
 import type { Attribute } from '@jsprismarine/protocol/wire/structures/Attribute';
 import type { StatusEffect, StatusEffectChange } from '../entity/StatusEffect';
-import type { Entity } from '../entity/Entity';
+import type { ShownActor } from '../world/ShownActor';
 import { toNetworkGameRule } from '../world/GameRuleManager';
 import { Position } from '../world/Position';
 import { bedrockMobEffectId } from '../entity/StatusEffect';
@@ -82,7 +82,7 @@ interface BlockEntityChange {
 const positionKey = (position: Vector3): string => `${position.getX()},${position.getY()},${position.getZ()}`;
 
 /** Builds the actor pose packet once, before the move is fanned out to tracking sessions. */
-const movePacketFor = (entity: Entity, teleport: boolean): MoveActorAbsolutePacket => {
+const movePacketFor = (entity: ShownActor, teleport: boolean): MoveActorAbsolutePacket => {
     const packet = new MoveActorAbsolutePacket();
     packet.runtimeEntityId = entity.getRuntimeId();
     packet.position = entity.getPosition();
@@ -560,7 +560,7 @@ export class NetworkWorldReplicator implements WorldChangeSink {
     }
 
     /** @inheritdoc */
-    public actorSound(entity: Entity, sound: LevelSoundEvent): void {
+    public actorSound(entity: ShownActor, sound: LevelSoundEvent): void {
         const position = entity.getPosition();
 
         const packet = new LevelSoundEventPacket();
@@ -600,7 +600,7 @@ export class NetworkWorldReplicator implements WorldChangeSink {
     }
 
     /** @inheritdoc */
-    public async actorEffect(entity: Entity, effect: ActorEvent, data: number): Promise<void> {
+    public async actorEffect(entity: ShownActor, effect: ActorEvent, data: number): Promise<void> {
         const packetForViewer = (): ActorEventPacket => {
             const packet = new ActorEventPacket();
             packet.runtimeEntityId = entity.getRuntimeId();
@@ -614,7 +614,7 @@ export class NetworkWorldReplicator implements WorldChangeSink {
     }
 
     /** @inheritdoc */
-    public async entityAttributesChanged(entity: Entity, attributes: Attribute[]): Promise<void> {
+    public async entityAttributesChanged(entity: ShownActor, attributes: Attribute[]): Promise<void> {
         if (attributes.length === 0) return;
 
         const packetsForCodec = (): UpdateAttributesPacket[] => {
@@ -632,7 +632,11 @@ export class NetworkWorldReplicator implements WorldChangeSink {
     }
 
     /** @inheritdoc */
-    public async statusEffectChanged(entity: Entity, effect: StatusEffect, change: StatusEffectChange): Promise<void> {
+    public async statusEffectChanged(
+        entity: ShownActor,
+        effect: StatusEffect,
+        change: StatusEffectChange
+    ): Promise<void> {
         const effectId = bedrockMobEffectId(effect.id);
         if (effectId === undefined) return;
 
@@ -661,7 +665,7 @@ export class NetworkWorldReplicator implements WorldChangeSink {
     }
 
     /** @inheritdoc */
-    public async entityMetadataChanged(entity: Entity): Promise<void> {
+    public async entityMetadataChanged(entity: ShownActor): Promise<void> {
         const runtimeEntityId = entity.getRuntimeId();
         const metadata = entity.metadata;
         const syncedProperties = entity.getSyncedProperties();
@@ -679,7 +683,7 @@ export class NetworkWorldReplicator implements WorldChangeSink {
     }
 
     /** @inheritdoc */
-    public async entityEquipmentChanged(entity: Entity): Promise<void> {
+    public async entityEquipmentChanged(entity: ShownActor): Promise<void> {
         const worn = entity.getEquipment();
         const runtimeEntityId = entity.getRuntimeId();
         const packetsForCodec = (codec: ProtocolCodec): NetworkPacket<unknown>[] => {
@@ -720,11 +724,11 @@ export class NetworkWorldReplicator implements WorldChangeSink {
     }
 
     /** @inheritdoc */
-    public async entityAdded(entity: Entity): Promise<void> {
+    public async entityAdded(entity: ShownActor): Promise<void> {
         if (entity instanceof Player) {
             // Everything already here, shown to the arriving player. Itself excluded by the
             // tracker, since a client is never sent a spawn for the entity it is controlling.
-            await entity.getNetworkSession().reconcileTrackedEntities(this.world.getEntities());
+            await entity.getNetworkSession().reconcileTrackedEntities(this.world.shownActors());
         }
 
         // And the arriving entity offered to everyone already here. This used to return early
@@ -740,7 +744,7 @@ export class NetworkWorldReplicator implements WorldChangeSink {
     }
 
     /** @inheritdoc */
-    public async entityRemoved(entity: Entity): Promise<void> {
+    public async entityRemoved(entity: ShownActor): Promise<void> {
         // Through the tracker rather than `despawnFrom`, so only the clients that were
         // actually shown this entity are told to take it away, and so every client forgets it
         // either way - a stale id left behind would block it from ever being tracked again.
@@ -748,7 +752,7 @@ export class NetworkWorldReplicator implements WorldChangeSink {
     }
 
     /** @inheritdoc */
-    public entityMoved(entity: Entity, teleport = false): void {
+    public entityMoved(entity: ShownActor, teleport = false): void {
         // Keep one final pose per actor for the tick. Its packet is encoded once for each
         // protocol codec, then viewers join their own visible subset from those shared bytes.
         const runtimeId = Number(entity.getRuntimeId());
@@ -774,7 +778,7 @@ export class NetworkWorldReplicator implements WorldChangeSink {
     }
 
     /** @inheritdoc */
-    public async reconcile(entities: Entity[]): Promise<void> {
+    public async reconcile(entities: readonly ShownActor[]): Promise<void> {
         await Promise.all(
             this.world.getPlayers().map(async (player) => player.getNetworkSession().reconcileTrackedEntities(entities))
         );
@@ -788,7 +792,7 @@ export class NetworkWorldReplicator implements WorldChangeSink {
      * @param packetsForCodec - Builds the packet values with the selected codec's context.
      */
     private async sendToTrackedEntity(
-        entity: Entity,
+        entity: ShownActor,
         packetsForCodec: (codec: ProtocolCodec) => readonly NetworkPacket<unknown>[]
     ): Promise<void> {
         const runtimeId = entity.getRuntimeId();
