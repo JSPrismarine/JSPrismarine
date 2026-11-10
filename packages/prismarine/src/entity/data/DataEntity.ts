@@ -29,6 +29,7 @@ import { liveFactsOf } from './facts';
 import { moveOnAxis } from './collision';
 import { ObservedMap, ObservedSet } from './observedCollections';
 import { entityEyePosition } from './position';
+import { walkStride } from './travel';
 
 /** How close to its destination an entity has to be to have arrived, in blocks. */
 const ARRIVAL_RADIUS = 0.25;
@@ -49,6 +50,13 @@ interface MobBodyStepOptions {
     readonly stepHeight: number;
     /** Whether the entity's collision box fits at the proposed position. */
     readonly canOccupy: (position: EntityPosition) => boolean;
+    /** The Java friction of the block under the entity, which a walk on land accelerates against. */
+    readonly groundFriction: number;
+    /**
+     * Draws how many ticks the entity waits on the ground before its next hop, for a mob that
+     * moves by hopping, as `minecraft:movement.jump` does. Absent for a mob that walks.
+     */
+    readonly nextHopDelay?: () => number;
 }
 
 /** Java's default jump power for an entity without a jump component or attribute. */
@@ -485,6 +493,14 @@ export class MobBody {
     private instance: EntityInstance | undefined;
     private destination: EntityPosition | undefined;
     private speedMultiplier = 1;
+    /** Blocks per tick a walk on land carries into the next tick, along the heading. */
+    private walkMomentum = 0;
+    /** Ticks a hopping mob still waits on the ground before its next hop. */
+    private hopWait = 0;
+    /** Draws a hopping mob's next wait, from the last step that walked it on land. */
+    private hopDelay: (() => number) | undefined;
+    /** Whether the body jumped this tick, which Java still travels as a tick on the ground. */
+    private takingOff = false;
     /** Ticks since the destination was set without the entity getting any closer. */
     private idleTicks = 0;
     private lastDistance = Number.POSITIVE_INFINITY;
@@ -658,12 +674,20 @@ export class MobBody {
             if (isRecord(params) && params.canJump === false) return;
         }
 
+        // A hopper's move control owns its cadence, as Java's `SlimeMoveControl` does: a jump
+        // a goal asks for during the wait is refused, and every hop starts the next wait.
+        if (this.hopDelay !== undefined) {
+            if (this.hopWait > 0) return;
+            this.hopWait = this.hopDelay();
+        }
+
         const params = instance.componentParams('minecraft:jump.static');
         const jumpPower =
             isRecord(params) && typeof params.jumpPower === 'number' ? params.jumpPower : DEFAULT_JUMP_POWER;
         this.push({ x: 0, y: jumpPower, z: 0 });
         this.conditions.delete('on_ground');
         this.conditions.add('jumping');
+        this.takingOff = true;
         if (jumpPower > 0) instance.trigger('minecraft:on_start_takeoff');
     }
 
@@ -680,11 +704,21 @@ export class MobBody {
         this.destination = undefined;
     }
 
+    /**
+     * Drops the walk's momentum, for a tick the body takes no step. A goal that stops and
+     * starts again within one tick, as a re-aimed path does, keeps it, as Java's velocity would.
+     */
+    public rest(): void {
+        this.walkMomentum = 0;
+        this.takingOff = false;
+    }
+
     /** Moves instantly, clears the current impulse, and marks the client update as a teleport. */
     public teleportTo(position: EntityPosition): void {
         this.velocity = { x: 0, y: 0, z: 0 };
         this.conditions.delete('jumping');
         this.stopMoving();
+        this.rest();
         this.position = position;
         this.teleportPending = true;
     }
@@ -747,11 +781,39 @@ export class MobBody {
             this.idleTicks += 1;
         }
 
-        const movement = this.conditions.has('in_water') ? this.facts.underwaterMovement : this.facts.movement;
+        const inWater = this.conditions.has('in_water');
+        const movement = inWater ? this.facts.underwaterMovement : this.facts.movement;
         const speed = movement * this.speedMultiplier;
         if (speed <= 0) return;
 
-        const scale = Math.min(speed, remaining) / remaining;
+        // A walk on land follows Java's travel, where the speed is an acceleration that friction
+        // balances, not a distance per tick. Flying, swimming and climbing keep the plain speed.
+        let stride = speed;
+        if (options !== undefined && !options.allowVertical && !inWater) {
+            this.hopDelay = options.nextHopDelay;
+            const tookOff = this.takingOff;
+            this.takingOff = false;
+            // A body no physics marks on the ground stands on it while no impulse carries it.
+            const grounded = tookOff || this.conditions.has('on_ground') || !this.airborne;
+            if (this.hopDelay !== undefined && grounded && !tookOff) {
+                // Java's `SlimeMoveControl`: on the ground a hopper waits out its delay standing
+                // still, then hops, and covers ground only on the way up and down.
+                if (this.hopWait > 0) {
+                    this.hopWait -= 1;
+                    this.rest();
+                    this.lookAt(destination);
+                    return;
+                }
+                // This tick is the take-off, and it already travels as a tick on the ground.
+                this.jump();
+                this.takingOff = false;
+            }
+            const next = walkStride(this.walkMomentum, speed, grounded, options.groundFriction);
+            this.walkMomentum = next.momentum;
+            stride = next.stride;
+        }
+
+        const scale = Math.min(stride, remaining) / remaining;
         const proposed = {
             x: this.position.x + (destination.x - this.position.x) * scale,
             y: this.position.y + (target.y - this.position.y) * scale,
