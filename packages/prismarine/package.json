@@ -181,6 +181,7 @@
         "@jsprismarine/structures": "workspace:*",
         "@jsprismarine/trading": "workspace:*",
         "@jsprismarine/worldgen": "workspace:*",
-        "jsonc-parser": "3.3.1"
+        "jsonc-parser": "3.3.1",
+        "nethernet": "1.1.2"
     }
 }
