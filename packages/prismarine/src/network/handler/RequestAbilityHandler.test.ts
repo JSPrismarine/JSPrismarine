@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import type { Logger } from '@jsprismarine/logger';
 import type Player from '../../Player';
 import type Server from '../../Server';
+import { identityNamed } from '../../testing/sessionIdentity.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import type PlayerSession from '../PlayerSession';
 import type { ShownPlayer } from '../../world/ShownPlayer';
@@ -37,6 +38,7 @@ const fakeSession = ({ flying = false, canFly = true }: { flying?: boolean; canF
             getLogger: () => stub<Logger>({ debug: (...message) => void logged.push(message[0] ?? '') })
         }),
         session: stub<PlayerSession>({
+            identity: identityNamed('Steve'),
             getPlayer: () => player,
             sendAbilities: async (target) => void resent.push(target)
         })

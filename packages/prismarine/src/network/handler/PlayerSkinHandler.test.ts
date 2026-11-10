@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 import type Player from '../../Player';
 import type Server from '../../Server';
 import type SessionManager from '../../SessionManager';
+import { identityNamed } from '../../testing/sessionIdentity.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import UUID from '@jsprismarine/protocol/wire/structures/UUID';
 import Skin from '@jsprismarine/protocol/wire/structures/skin/Skin';
@@ -43,10 +44,11 @@ const classicSkin = (id: string, overrides: Partial<ClientData> = {}) =>
     });
 
 /** An online player whose session records what it is sent. */
-const onlinePlayer = (name: string, uuid: string) => {
+const onlinePlayer = (name: string, uuid: string, runtimeId: bigint) => {
     const send = vi.fn(async () => {});
     const player = stub<Player>({
         getName: () => name,
+        getRuntimeId: () => runtimeId,
         getUUID: () => UUID.fromString(uuid),
         skin: classicSkin(`${name}-old`),
         getNetworkSession: () => stub<PlayerSession>({ send })
@@ -63,9 +65,9 @@ const skinChange = (uuid: string, skin = classicSkin('new-skin')) =>
     });
 
 const setUp = () => {
-    const sender = onlinePlayer('runner', SENDER_UUID);
-    const alice = onlinePlayer('alice', '11111111-1111-4111-8111-111111111111');
-    const bob = onlinePlayer('bob', '22222222-2222-4222-8222-222222222222');
+    const sender = onlinePlayer('runner', SENDER_UUID, 7n);
+    const alice = onlinePlayer('alice', '11111111-1111-4111-8111-111111111111', 8n);
+    const bob = onlinePlayer('bob', '22222222-2222-4222-8222-222222222222', 9n);
     const debug = vi.fn();
 
     // The entry built at login, which `sendPlayerList` hands to whoever joins later.
@@ -90,7 +92,11 @@ const setUp = () => {
                 getPlayerList: () => playerList
             })
     });
-    const session = stub<PlayerSession>({ getPlayer: () => sender.player });
+    const session = stub<PlayerSession>({
+        runtimeId: 7n,
+        identity: identityNamed('runner', SENDER_UUID),
+        getPlayer: () => sender.player
+    });
     return { sender, alice, bob, debug, server, session, playerList, loginEntry };
 };
 

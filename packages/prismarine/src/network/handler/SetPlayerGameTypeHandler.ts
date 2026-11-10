@@ -7,6 +7,13 @@ import type PacketHandler from './PacketHandler';
 
 const isGametype = (value: number): value is Gametype => Gametype[value] !== undefined;
 
+/** The sender as this handler sees it: what the permission check reads, and the change. */
+interface GamemodePlayer {
+    isOp(): boolean;
+    getPermissions(): string[];
+    setGamemode(mode: Gametype): Promise<void>;
+}
+
 /**
  * Applies the game type a client picked from its dropdown.
  *
@@ -24,7 +31,7 @@ export default class SetPlayerGameTypeHandler implements PacketHandler<SetPlayer
         const data = packet.getPacketData();
         if (data === null) throw new Error('Cannot handle SetPlayerGameTypePacket without decoded data');
 
-        const player = session.getPlayer();
+        const player: GamemodePlayer = session.getPlayer();
         const allowed = server.getPermissionManager().can(player).execute('minecraft.command.gamemode');
         if (!allowed || !isGametype(data.gametype)) {
             await session.sendGamemode();
