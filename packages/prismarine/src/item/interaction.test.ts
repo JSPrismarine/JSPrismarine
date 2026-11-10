@@ -304,7 +304,9 @@ const playerHolding = (
         pitch: rotation.pitch,
         yaw: rotation.yaw,
         headYaw: rotation.yaw,
-        getName: () => 'tester',
+        // Its own name, because per-player services are keyed by the name of a player with no XUID.
+        getName: () => `tester-${runtimeId}`,
+        getXUID: () => null,
         getType: () => 'minecraft:player',
         getEquipment: () => ({}),
         attributes: new Attributes(Attributes.getPlayerDefaults()),

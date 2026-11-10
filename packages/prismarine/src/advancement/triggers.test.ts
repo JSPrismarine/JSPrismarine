@@ -263,7 +263,9 @@ const scene = () => {
     const player: Player = stubOf(Player, {
         getRuntimeId: () => runtimeId,
         getType: () => 'minecraft:player',
-        getName: () => 'tester',
+        // Its own name, because per-player services are keyed by the name of a player with no XUID.
+        getName: () => `tester-${runtimeId}`,
+        getXUID: () => null,
         getPosition: () => ({ getX: () => 0, getY: () => 64, getZ: () => 0 }) as never,
         getServer: () => server,
         getWorld: () => world,
@@ -399,7 +401,7 @@ describe('earning vanilla advancements by playing', () => {
 
         advancementPickedUpItem(player, cobblestone);
         expect(announced).toEqual([
-            { key: 'chat.type.achievement', parameters: ['tester', 'advancements.story.mine_stone.title'] }
+            { key: 'chat.type.achievement', parameters: [player.getName(), 'advancements.story.mine_stone.title'] }
         ]);
     });
 
