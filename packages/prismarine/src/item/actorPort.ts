@@ -31,7 +31,7 @@ import Player from '../Player';
 import { Position } from '../world/Position';
 import type { ActorItemAction, ItemActorPort } from './contentAdapter';
 import type { ContentEntityAccess, ContentItemDrop, ContentLevelFacts } from '../content/world/adapter';
-import type { Entity } from '../entity/Entity';
+import { StoreActor } from '../entity/data/storeActors';
 import type { EntityItemInteraction } from '../entity/data/itemInteraction';
 import type { ContentTags } from '../content/tags';
 import type { ItemStack } from '@jsprismarine/items';
@@ -46,6 +46,7 @@ import type {
     SourceState
 } from '@jsprismarine/item-behaviors';
 import type { World } from '../world/World';
+import type { WorldActor } from '../world/WorldActor';
 
 /** The live world whose entities and players this port acts on. */
 export type LiveWorld = () => World | undefined;
@@ -59,24 +60,24 @@ export interface ItemActorPortOptions {
     /** The clock, which is what an item cooldown is measured against. */
     readonly level: ContentLevelFacts;
     /** Starts a projectile in the live entity runtime, or is absent when that runtime is unavailable. */
-    readonly launchProjectile?: (action: LaunchProjectileAction, shooter: Entity) => boolean;
+    readonly launchProjectile?: (action: LaunchProjectileAction, shooter: WorldActor) => boolean;
     /** Attaches a live holder to a leashable data-driven entity. */
     readonly attachLead?: (holder: ItemSource, target: ItemSource) => boolean;
     /** Whether the target is a data-driven entity that accepts a name tag. */
-    readonly canNameEntity?: (target: Entity) => boolean;
+    readonly canNameEntity?: (target: WorldActor) => boolean;
     /** Applies a player's held item to a data-driven entity, when its components accept it. */
     readonly interactWithEntity?: (
-        target: Entity,
+        target: WorldActor,
         player: Player,
         itemIdentifier: string,
         heldItem: ContentItemDrop
     ) => EntityItemInteraction;
     /** Names a data-driven entity after its active `minecraft:nameable` component accepts it. */
-    readonly nameEntity?: (target: Entity, name: string) => boolean;
+    readonly nameEntity?: (target: WorldActor, name: string) => boolean;
     /** Whether a data-driven entity accepts the requested dye. */
-    readonly canDyeEntity?: (target: Entity, color: string) => boolean;
+    readonly canDyeEntity?: (target: WorldActor, color: string) => boolean;
     /** Applies a dye to a data-driven entity. */
-    readonly dyeEntity?: (target: Entity, color: string) => boolean;
+    readonly dyeEntity?: (target: WorldActor, color: string) => boolean;
 }
 
 /**
@@ -167,7 +168,7 @@ const effectInHolderSet = (effects: HolderSet, identifier: string, tags: Content
  * A player reports its eyes rather than its feet, which is what `eyeInWater` asks about, and a
  * player is the only thing on this server that uses an item.
  */
-const inWater = (world: World, entity: Entity): boolean => {
+const inWater = (world: World, entity: WorldActor): boolean => {
     const position = entity.getPosition();
     const block = world.loadedBlockAt(
         Math.floor(position.getX()),
@@ -199,7 +200,7 @@ export const createItemActorPort = (options: ItemActorPortOptions): ServerItemAc
     /** What the interaction being performed landed on, by the runtime id of whoever started it. */
     const targets = new Map<number, ItemSource>();
 
-    const entityOf = (source: ItemSource): Entity | null => world()?.getEntity(BigInt(source.runtimeId)) ?? null;
+    const entityOf = (source: ItemSource): WorldActor | null => world()?.getActor(BigInt(source.runtimeId)) ?? null;
 
     const useItemOnEntity = (source: ItemSource): boolean => {
         const player = entityOf(source);
@@ -475,6 +476,11 @@ export const createItemActorPort = (options: ItemActorPortOptions): ServerItemAc
             : null;
         if (surface === null) return;
 
+        // A store entity moves in the store, which shows clients a teleport.
+        if (entity instanceof StoreActor) {
+            entity.entity.body.teleportTo({ x: x + 0.5, y: surface + 1, z: z + 0.5 });
+            return;
+        }
         void entity
             .setPosition({ position: Position.fromVector3(new Vector3(x + 0.5, surface + 1, z + 0.5), loaded) })
             .catch((error: unknown) => loaded.getServer().getLogger().error(error));

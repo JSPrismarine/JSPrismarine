@@ -38,6 +38,7 @@ import { Item } from '../item/Item';
 import BlockPosition from '../world/BlockPosition';
 import { Position } from '../world/Position';
 import type { World } from '../world/World';
+import type { WorldActor } from '../world/WorldActor';
 import CoordinateUtils from '../world/CoordinateUtils';
 import { effectiveViewDistance, toChunk } from '../world/Proximity';
 import { dimensionByBedrockId, maxSubChunk, minSubChunk } from '../world/Dimension';
@@ -241,7 +242,7 @@ export interface TradeSource {
 
 /** A trade screen's trader, and what happens when the player stops trading. */
 export interface OpenTrade {
-    readonly trader: Entity;
+    readonly trader: WorldActor;
     /** The title of the screen as a translation key, such as `entity.villager.farmer`; the trader's name when absent. */
     readonly title?: string;
     readonly source: TradeSource;

@@ -28,7 +28,7 @@ const fakeSession = (options: { npcDistance?: number; tracked?: boolean } = {}) 
 
     // Annotated, because the entity the world answers with holds a position back into it.
     const world: World = stub<World>({
-        getEntity: (runtimeId) =>
+        getActor: (runtimeId) =>
             runtimeId === NPC && options.npcDistance !== undefined
                 ? stub<Entity>({ getPosition: () => new Position(options.npcDistance ?? 0, 0, 0, world) })
                 : null
