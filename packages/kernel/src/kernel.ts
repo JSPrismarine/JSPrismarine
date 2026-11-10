@@ -119,9 +119,15 @@ export class Kernel<Events extends EventMap = EventMap> {
      * dependency order. Legal again after `stop()`: the `register()` phases do
      * not rerun, so the modules' services carry over into the next start.
      *
+     * A module whose `start()` throws leaves nothing running: the modules that
+     * had already started are stopped in reverse order, the kernel goes back
+     * to registered, and the error is rethrown. The failing module itself is
+     * not stopped, because its start never finished.
+     *
      * @throws KernelError when the kernel is already starting or started, when
      * a declared dependency has no provider, or when the dependency graph has a
      * cycle.
+     * @throws Whatever a module's `start()` throws, after the rollback.
      */
     public async start(): Promise<void> {
         if (this.phase === 'starting' || this.phase === 'started') {
@@ -129,8 +135,17 @@ export class Kernel<Events extends EventMap = EventMap> {
         }
         await this.registerAll();
         this.phase = 'starting';
+        const started: ModuleEntry<Events>[] = [];
         for (const entry of this.startOrder) {
-            await entry.module.start?.(entry.context);
+            try {
+                await entry.module.start?.(entry.context);
+            } catch (error) {
+                this.bus.removeScope(entry.module.id);
+                await this.stopEntries(started);
+                this.phase = 'registered';
+                throw error;
+            }
+            started.push(entry);
         }
         this.phase = 'started';
     }
@@ -144,7 +159,12 @@ export class Kernel<Events extends EventMap = EventMap> {
     public async stop(): Promise<void> {
         if (this.phase !== 'started') return;
         this.phase = 'registered';
-        for (const entry of [...this.startOrder].reverse()) {
+        await this.stopEntries(this.startOrder);
+    }
+
+    /** Stops the given modules in reverse order, logging rather than throwing each failure. */
+    private async stopEntries(entries: readonly ModuleEntry<Events>[]): Promise<void> {
+        for (const entry of [...entries].reverse()) {
             try {
                 await entry.module.stop?.(entry.context);
             } catch (error) {
