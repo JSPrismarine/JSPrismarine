@@ -63,10 +63,18 @@ rests on. A **neighbor update** runs inside the call that changed the block, thr
 transcription of `CollectingNeighborUpdater`, and the chain it can set off is capped at 1,000,000
 updates.
 
-Each list gets 65536 ticks per game tick, Java's number, and the light engine gets 4096 queue
-nodes. Both limits exist so a single tick cannot stall on a backlog of scheduled ticks or a
-light flood; whatever is left over is reported and runs next tick. When a tick is due, the world
+Each list gets <!-- fact:tick.scheduledTickBudget -->65536<!-- /fact --> ticks per game tick,
+Java's number, and the light engine gets <!-- fact:tick.lightBudget -->4096<!-- /fact --> queue
+nodes. Before either runs, block physics gets <!-- fact:tick.blockUpdateBudget -->4096<!-- /fact -->
+due block updates. These limits exist so a single tick cannot stall on a backlog or a light flood;
+whatever is left over keeps its place and runs first next tick. When a tick is due, the world
 dispatches it to the active block family's `onTick` hook.
+
+Every limit is a count, and nothing in this phase reads the clock. A host too slow to finish a
+tick's work within one tick's period ticks slower, as Java does, and does the same work a fast
+host does, so a replay of the same inputs ends in the same state on both. Tests stub
+`performance.now` to throw and run block updates and scheduled ticks through their budgets to
+hold that.
 
 ## Random ticking
 
