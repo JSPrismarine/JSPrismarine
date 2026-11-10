@@ -116,12 +116,14 @@ export class DragonFight {
     /** A saved respawn first loads its portal chunks before checking the crystal identities. */
     private respawnChunksLoaded: boolean;
     /**
-     * A death's world consequences still in flight.
+     * A dragon that died since the last fight tick, whose world consequences the next tick runs.
      *
-     * The removal listener is synchronous, so {@link setDragonKilled} runs as its own task;
-     * the next tick waits it out, so no tick or save sees a half-opened portal.
+     * The removal listener can fire between ticks, from a console `/kill`, and a chunk the
+     * consequences load there would wait for the next input step while the tick waited for the
+     * consequences, so the tick would never end. Run from the tick, the chunks they wait for are
+     * admitted inside it.
      */
-    private settling: Promise<void> | undefined;
+    private died: DataEntity | undefined;
 
     /**
      * Restores a fight from its saved state, or starts a fresh one that scans the world on its
@@ -152,9 +154,10 @@ export class DragonFight {
      * waited 1200 ticks - the crystals heal it, and its health drives the bar.
      */
     public async tick(): Promise<void> {
-        if (this.settling !== undefined) {
-            await this.settling;
-            this.settling = undefined;
+        const died = this.died;
+        if (died !== undefined) {
+            this.died = undefined;
+            await this.setDragonKilled(died).catch((error: unknown) => this.report(String(error)));
         }
 
         this.ticks += 1;
@@ -181,8 +184,8 @@ export class DragonFight {
      * index is spent on a new gateway, the egg lands on a world's first kill, the experience
      * is paid, and the flags flip so no new dragon spawns until a respawn sequence runs.
      *
-     * The removal listener calls this when the 200-tick death hold ends, which is when Java's
-     * `tickDeath` calls its counterpart.
+     * The fight tick after the 200-tick death hold ends calls this, which is the tick after
+     * Java's `tickDeath` calls its counterpart.
      */
     public async setDragonKilled(dragon: DataEntity): Promise<void> {
         if (this.fight.dragonUniqueId !== undefined && dragon.persistentIdentity !== this.fight.dragonUniqueId) return;
@@ -250,7 +253,7 @@ export class DragonFight {
 
         this.dragon = undefined;
         if (reason === 'death' || reason === 'death_behavior') {
-            this.settling = this.setDragonKilled(entity).catch((error: unknown) => this.report(String(error)));
+            this.died = entity;
         } else if (reason !== 'chunk unload') {
             // Gone without dying or being saved - forget it, so the 1200-tick check spawns anew.
             this.fight.dragonUniqueId = undefined;
