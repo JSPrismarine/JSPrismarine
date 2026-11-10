@@ -12,6 +12,8 @@ Not every inbound packet is an input. A handler declares one of three lanes, and
 - The read lane is for a handler that reads authoritative state, writes none, and replies only to the connection that asked, such as a sub-chunk request. It runs when the packet arrives, between ticks, against the state the last tick closed with. It may wait for a chunk, and the chunk still enters the world as an input. Its replies are not recorded, because they cannot change a digest.
 - The input lane is for every handler that writes authoritative state or produces something other players see. Only these packets are inputs, applied in the input step and recorded.
 
+A connection's packets keep their order across lanes. A later packet of any lane does not overtake an earlier packet of the same connection that is still held for the input step, because a sub-chunk request that follows a move has to see the move. Such a read waits at most one tick, and packets from other connections still run when they arrive.
+
 Without the read lane, chunk streaming would wait for the next tick and slow down with the tick rate. The read lane depends on the handler and the tick sharing a thread. A world that moves to its own thread serves these reads from replication's replica ([ADR 0016](0016-replication-reads-the-change-log.md)) and the chunk payload cache instead.
 
 The rule says nothing about threads. It describes how a world talks to anything outside it, which is what lets pathfinding, replication or a whole world run elsewhere later without changing the model.
