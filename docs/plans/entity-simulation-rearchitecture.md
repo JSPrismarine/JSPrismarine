@@ -146,19 +146,34 @@ Nothing here depends on another package, and no two packages edit the same files
 | B2      | 1     | A2         | Chunk completions are recorded as inputs                                                                                                                          |
 | B3      | 5     | none       | Player persistence, chat fan-out and respawn search move out of `Player` into services keyed by player identity, while `Player` is still a legacy entity          |
 | B4      | 8     | none       | Measure the bytes in a save pass and confirm what a saved player record copies, so ADR 0018 can be accepted or changed                                            |
+| B5      | 5     | none       | Re-key the seven maps keyed by the `Player` object by player identity or entity id |
 
-B1 and B2 both edit the ticker, so B2 follows B1. B3 and B4 run beside them.
+B1 and B2 both edit the ticker, so B2 follows B1. B3, B4 and B5 run beside them.
 
 ### Phase C: the store
 
 | Package | Slice | Depends on | Work                                                                                                                         |
 | ------- | ----- | ---------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| C1      | 2     | A4, A5, B1 | The entity store, logged setters, the one index and the adapter over legacy entities                                         |
+| C1      | 2     | A4, A5, B1 | The entity store, logged setters, the one index and the adapter over legacy entities. Component state the entities package keeps in `WeakMap`s moves onto the instance, where the store can log and save it |
 | C2      | 3     | C1         | Items and the eye of ender move into the store                                                                               |
 | C3      | 4     | C1         | Staged damage and death, the mirror deleted, `damage` synchronous                                                            |
-| C4      | 5     | C2, C3, B3 | Players move into the store. The legacy entity classes and the adapter are deleted                                           |
+| C4      | 5     | C2, C3, B3, B5 | Players move into the store. The legacy entity classes and the adapter are deleted. Split into the packages below |
 
 C2 and C3 run side by side if C1 leaves item code and damage code in separate files. Otherwise C3 follows C2.
+
+[The player spike](../research/player-entity-spike.md) found that a player fits the store with three host rules, which ADR 0008 now records, and that C4 is too large for one package. 79 source files and 117 test files name `Player`. C4 splits as follows.
+
+| Package | Depends on | Work |
+| ------- | ---------- | ---- |
+| C4b | C1, C3 | The player overlay, the rule that the client owns a player's movement, and a death that keeps the entity |
+| C4c | C1 | Player components with logged setters, and an inventory that logs one entry for each slot |
+| C4d | C4b, C4c | Player systems: hunger, breath, fall damage, consumption and mining, reading loaded chunks only |
+| C4e | C4c, B3 | Persistence from the store entity, with the saved record unchanged |
+| C4f | C4c | The session holds the entity id. Convert the files that name `Player`, split by directory |
+| C4g | C4b, C4c | Show store players to clients through the current replicator until slice 7 |
+| C4h | C4b to C4g | Convert the tests, then delete the legacy entity classes and the adapter |
+
+C4b and C4c run side by side. C4d, C4e, C4f and C4g run side by side after C4c. The spike's note lists what the adapter of C1 must provide while players are still legacy, and that list is part of C1's brief. One item needs an answer when C3 lands: the mirror is what shows store mobs to legacy sessions today, so from the slice that deletes it until slice 5 something else has to encode them.
 
 ### Phase D: handlers and replication
 
