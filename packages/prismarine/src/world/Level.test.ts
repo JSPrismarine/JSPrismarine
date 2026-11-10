@@ -380,6 +380,46 @@ describe('Level', () => {
 
             await level.disable();
         });
+        it('ticks every world in stem order and carries on past one that throws', async () => {
+            const errors: unknown[] = [];
+            const server = testServer();
+            Object.assign(server, {
+                getLogger: () =>
+                    stub<Logger>({
+                        info: () => {},
+                        warn: () => {},
+                        error: (message: unknown) => void errors.push(message),
+                        debug: () => {},
+                        verbose: () => {}
+                    })
+            });
+            const { level } = buildLevel('isolation', {}, emptyGenerator, server);
+            await level.enable();
+            // Enabled out of stem order, so the order the tick walks is the stems' and not this one.
+            const sky = await level.world(SKY_STEM_ID);
+            const nether = await level.world(NETHER_STEM_ID);
+            const overworld = await level.world(OVERWORLD_STEM_ID);
+
+            const ticked: string[] = [];
+            const failure = new Error('the overworld broke');
+            vi.spyOn(overworld, 'update').mockImplementation(async () => {
+                ticked.push(overworld.getName());
+                throw failure;
+            });
+            for (const world of [nether, sky]) {
+                vi.spyOn(world, 'update').mockImplementation(async () => void ticked.push(world.getName()));
+            }
+
+            await level.update(1);
+
+            expect(ticked).toEqual([overworld.getName(), nether.getName(), sky.getName()]);
+            expect(errors).toContain(failure);
+            expect(errors.some((message) => typeof message === 'string' && message.includes(overworld.getName()))).toBe(
+                true
+            );
+
+            await level.disable();
+        });
     });
 
     describe('the game rules and the weather', () => {
