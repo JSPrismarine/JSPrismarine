@@ -16,6 +16,13 @@ inputs:
             times larger.
         required: false
         default: 'false'
+    root-only:
+        description: >-
+            Install only the root package's dependencies and run no install scripts. Enough for a
+            job that runs a root tool such as commitlint or Vitest's report merge, and it skips the
+            `prepare` hook that fetches and generates the Bedrock data.
+        required: false
+        default: 'false'
 
 runs:
     using: 'composite'
@@ -35,8 +42,8 @@ runs:
         # gained since the cached store was saved are downloaded. An exact key is a lockfile the
         # store already holds; the prefix falls back to the newest store for any lockfile.
         #
-        # Only Linux caches it, and a job installing every platform's packages never saves it, so
-        # the entry holds one platform's. The macOS and Windows copies, saved when the store held
+        # Only Linux caches it, and a job installing every platform's packages or only the root's
+        # never saves it, so the entry holds one platform's full install. The macOS and Windows copies, saved when the store held
         # every platform, took half of the repository's 10 GB of cache between them.
         - name: Find the pnpm store
           id: pnpm-store
@@ -78,7 +85,12 @@ runs:
         # of testing dependencies nobody committed.
         - name: Install dependencies
           shell: bash
-          run: pnpm install --frozen-lockfile --prefer-offline
+          env:
+              ROOT_ONLY: ${{ inputs.root-only == 'true' && '--ignore-scripts --filter .' || '' }}
+          run: |
+              # Unquoted on purpose: empty vanishes, and the flags word-split.
+              # shellcheck disable=SC2086
+              pnpm install --frozen-lockfile --prefer-offline $ROOT_ONLY
 
         # A pull request never saves the store. Its entry is visible to that pull request alone,
         # and a copy per pull request pushed master's entries, the ones every pull request
@@ -86,12 +98,12 @@ runs:
         # The prune drops what the restored store held for an older lockfile, so the entry stays
         # the size of one install.
         - name: Drop the packages the lockfile no longer names
-          if: ${{ steps.pnpm-cache.outcome == 'success' && steps.pnpm-cache.outputs.cache-hit != 'true' && github.event_name != 'pull_request' && inputs.all-architectures != 'true' }}
+          if: ${{ steps.pnpm-cache.outcome == 'success' && steps.pnpm-cache.outputs.cache-hit != 'true' && github.event_name != 'pull_request' && inputs.all-architectures != 'true' && inputs.root-only != 'true' }}
           shell: bash
           run: pnpm store prune
 
         - name: Save the pnpm store
-          if: ${{ steps.pnpm-cache.outcome == 'success' && steps.pnpm-cache.outputs.cache-hit != 'true' && github.event_name != 'pull_request' && inputs.all-architectures != 'true' }}
+          if: ${{ steps.pnpm-cache.outcome == 'success' && steps.pnpm-cache.outputs.cache-hit != 'true' && github.event_name != 'pull_request' && inputs.all-architectures != 'true' && inputs.root-only != 'true' }}
           uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
           with:
               path: ${{ steps.pnpm-store.outputs.path }}
