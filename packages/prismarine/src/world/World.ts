@@ -42,6 +42,7 @@ import { storedInventory, storedItem } from '../inventory/persistence';
 import type PlayerSession from '../network/PlayerSession';
 import { keyOfPlayer } from '../playerIdentity';
 import { playerRecordOf } from './playerRecord';
+import type { LivePlayerRecordSource } from './playerRecord';
 import { Item } from '../item/Item';
 import BlockUpdateScheduler from './BlockUpdateScheduler';
 import { breakBlockWithContent, collectBreakDrops, wearBreakingTool } from './blockBreak';
@@ -4186,7 +4187,10 @@ export class World implements Service {
      *
      * @param requireSuccess - Propagate a persistence error when creating a replay checkpoint.
      */
-    public async savePlayerData(player: Player, requireSuccess = false): Promise<void> {
+    public async savePlayerData(
+        player: LivePlayerRecordSource & Parameters<typeof keyOfPlayer>[0],
+        requireSuccess = false
+    ): Promise<void> {
         await this.level.savePlayerData(
             keyOfPlayer(player),
             playerRecordOf(player, this.getDimension()),
