@@ -67,6 +67,29 @@ layout is verified by `encode(decode(bytes)) === bytes` over those captures — 
 decodes a real server's bytes through a layout, the same layout is what our server encodes with,
 so one proof covers both roles.
 
+## When a body stays hand-written
+
+A packet body is a layout unless it needs logic the layout vocabulary cannot express. These are
+the reasons, and `scripts/wire-layout-exceptions.json` records each remaining hand-written packet
+against one of them:
+
+- `conditional`: which fields travel, or how a value is read, depends on another field's value
+  (a mode, an action or a selector byte), or decoding rejects values.
+- `structure`: a field is a hand-written structure class with no wire type, or the payload holds
+  class instances where a definition would hold plain records.
+- `context`: encoding or decoding needs the connection's protocol context, such as item or block
+  registries.
+- `repeated-record`: a list whose items are records of several fields. The vocabulary has lists
+  of one wire type, so these keep their loops until a record type exists.
+- `raw-stream`: the body is not a field sequence, for example embedded sub-streams, packed bit
+  sets or the remaining bytes of the packet.
+
+Anything else is a layout, including packets with a version gate, an optional or a list of one
+wire type. `node scripts/check-wire-layouts.mts`, part of `pnpm run lint:custom`, fails when a
+packet class writes its own body and is not in that file, and when a listed packet has become a
+layout. Adding an exception takes `--update --reason <reason>`, so a new hand-written packet is a
+choice somebody reviews. Converting one is the way an entry leaves the list.
+
 ## Migration
 
 Foundation and a pilot first (`Animate`, byte-compatible with the classes it replaces at 2193 and
