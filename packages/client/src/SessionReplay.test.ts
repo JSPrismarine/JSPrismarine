@@ -20,7 +20,7 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { performance } from 'node:perf_hooks';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
     deserializeReplayInitialStateManifest,
     restoreReplayInitialStateSnapshot,
@@ -28,6 +28,7 @@ import {
 } from '@jsprismarine/prismarine/network/ReplayManifest';
 
 import Client from './Client';
+import { LoopbackNetwork } from './testing/loopback.test.helper';
 
 interface Position {
     readonly x: number;
@@ -59,6 +60,10 @@ interface LiveSession {
     readonly mover: Client;
     readonly observer: Client;
     readonly initialStateManifest?: Buffer;
+    /** Waits until the server and both clients have handled everything already sent. */
+    settle(): Promise<void>;
+    /** Settles, then runs ticks by hand until the server's next tick is `tick`. */
+    stepTo(tick: number): Promise<void>;
     close(): Promise<void>;
 }
 
@@ -67,7 +72,25 @@ const REPLAY_START_TICK = 160;
 const SAMPLE_LEAD_TICKS = 2;
 const SAMPLE_TRAIL_TICKS = 4;
 const MOVEMENT_COUNT = 4;
-const PORT_BASE = 20_000 + (process.pid % 20_000);
+/** Ticks between two movement packets of the capture. */
+const MOVEMENT_INTERVAL_TICKS = 4;
+/** More ticks than a join can need. A join that takes longer has failed, whatever the host. */
+const MAX_JOIN_TICKS = 120;
+/**
+ * Only a safety net, never a wait: the replay path sets no timer, so a login that gets here has
+ * stalled. It is long so that a loaded host fails on the tick bound above, not on this.
+ */
+const LOGIN_TIMEOUT_MS = 600_000;
+/**
+ * Chunk streaming leaves when the chunk scheduler's time budget says, which no tick decides,
+ * and ADR 0006 keeps it out of the outbound digest.
+ */
+const CHUNK_STREAM_PACKETS = new Set(['LevelChunkPacket', 'SubChunkPacket', 'NetworkChunkPublisherUpdatePacket']);
+
+/** Sessions still open, so a case that fails or times out still releases its world and folder. */
+const openSessions = new Set<LiveSession>();
+/** World folders not yet removed, including one whose session failed before it was registered. */
+const stateRoots = new Set<string>();
 const MOVER_ID = '00000000-0000-4000-8000-000000284701';
 const OBSERVER_ID = '00000000-0000-4000-8000-000000284702';
 
@@ -97,31 +120,8 @@ const seededRandom = (seed: number) => {
     };
 };
 
-const waitForTick = (server: Server, expected: number): Promise<void> => {
-    if (server.getTick() >= expected) return Promise.resolve();
-
-    return new Promise((resolve, reject) => {
-        const timeout = setTimeout(() => {
-            server.removeListener('tick', onTick);
-            reject(new Error(`Server did not reach tick ${expected}`));
-        }, 20_000);
-        const onTick = (event: { getTick(): number }): void => {
-            if (event.getTick() < expected) return;
-            clearTimeout(timeout);
-            server.removeListener('tick', onTick);
-            resolve();
-        };
-        server.on('tick', onTick);
-    });
-};
-
-const waitFor = async (description: string, condition: () => boolean): Promise<void> => {
-    const deadline = Date.now() + 20_000;
-    while (!condition()) {
-        if (Date.now() >= deadline) throw new Error(`Timed out waiting for ${description}`);
-        await new Promise((resolve) => setTimeout(resolve, 10));
-    }
-};
+/** One turn of the event loop, so I/O callbacks and `setImmediate` work get to run. No timer. */
+const nextTurn = (): Promise<void> => new Promise((resolve) => setImmediate(resolve));
 
 const positionOf = (position: { x: number; y: number; z: number }): Position => ({
     x: position.x,
@@ -148,6 +148,7 @@ const replayPacketDigestsByTick = (
     const recordsByTick = new Map<number, OutboundPacketRecord[]>();
     const firstSequenceByConnection = new Map<number, number>();
     for (const record of trace.records()) {
+        if (CHUNK_STREAM_PACKETS.has(record.packetName)) continue;
         const atTick = recordsByTick.get(record.tick) ?? [];
         atTick.push(record);
         recordsByTick.set(record.tick, atTick);
@@ -217,7 +218,6 @@ const outboundJsonRecordBytes = (records: readonly OutboundPacketRecord[]): numb
     );
 
 const openSession = async (
-    port: number,
     moverAuth: OfflineAuthProvider,
     observerAuth: OfflineAuthProvider,
     options: {
@@ -227,7 +227,10 @@ const openSession = async (
         readonly initialState?: ReplayInitialStateManifest;
     } = {}
 ): Promise<LiveSession> => {
+    // A folder of its own for each run, so a run beside it in another worktree, or a case that
+    // failed before it, never shares a LevelDB lock with it.
     const stateRoot = mkdtempSync(path.join(tmpdir(), 'jsprismarine-session-replay-'));
+    stateRoots.add(stateRoot);
     vi.stubEnv('JSP_DIR', stateRoot);
     writeFileSync(
         path.join(stateRoot, 'config.json'),
@@ -236,96 +239,166 @@ const openSession = async (
             'preload-radius': 0,
             'view-distance': 1,
             'max-players': 2,
+            // The harness steps every tick by hand, and generation stays on this thread so a
+            // chunk load is I/O the harness can wait for rather than another process's timing.
+            'enable-ticking': false,
+            'chunk-workers': 0,
+            'enable-query': false,
             worlds: { world: { preset: 'minecraft:flat', provider: 'LevelDB', seed: SESSION_SEED } }
         })
     );
 
+    const network = new LoopbackNetwork();
     const inbound = new PacketTrace();
     const outbound = gatedPacketTrace();
     const server = new Server({
         logger: new Logger('error'),
         config: new Config(),
         headless: true,
+        transport: network.transport,
         ...(options.recordPackets === false
             ? {}
             : { inboundPacketRecorder: inbound, outboundPacketRecorder: outbound.recorder })
     });
     if (!options.serializableRandom) server.setRandom(seededRandom(Number(SESSION_SEED)));
 
-    const mover = new Client({
-        host: '127.0.0.1',
-        port,
-        auth: moverAuth,
-        logger: new Logger('error'),
-        loginTimeoutMs: 30_000
-    });
-    const observer = new Client({
-        host: '127.0.0.1',
-        port,
-        auth: observerAuth,
-        logger: new Logger('error'),
-        loginTimeoutMs: 30_000
-    });
+    const client = (auth: OfflineAuthProvider): Client =>
+        new Client({
+            host: '127.0.0.1',
+            transport: network.client(),
+            auth,
+            logger: new Logger('error'),
+            loginTimeoutMs: LOGIN_TIMEOUT_MS
+        });
+    const mover = client(moverAuth);
+    const observer = client(observerAuth);
+    const clients = [mover, observer];
+    let world: World | undefined;
 
-    try {
-        if (options.initialState !== undefined) {
-            const provider = new LevelDB(path.join(stateRoot, 'worlds', 'world'), server);
-            await restoreReplayInitialStateSnapshot(provider, options.initialState);
-        }
-        await server.bootstrap('127.0.0.1', port);
-        if (options.serializableRandom) {
-            const randomState = server.getReplayRandomState();
-            server.restoreReplayRandomState({
-                ...randomState,
-                server: { ...randomState.server, state: Number(SESSION_SEED) }
-            });
-        }
-        const world = server.getWorldManager().getWorldByName('world');
-        if (world === null) throw new Error('The default world did not load');
-        // This flat fixture is a slime-spawn biome; disable natural spawning before clients join
-        // so the digest compares the scripted session rather than unrelated mob spawn timing.
-        world.getGameRuleManager().setGameRule('doMobSpawning', false, true);
-        const initialStateManifest = options.captureInitialState
-            ? serializeReplayInitialStateManifest(await world.getLevel().captureReplayInitialState())
-            : undefined;
-        if (options.initialState !== undefined) {
-            const level = world.getLevel();
-            level.setTicks(options.initialState.level.tick);
-            level.getWeather().restore(options.initialState.level.weather);
-            level.restoreReplayRandomState(options.initialState);
-        }
-        await mover.connect();
-        await observer.connect();
-
-        return {
-            server,
-            world,
-            inbound,
-            outbound,
-            mover,
-            observer,
-            ...(initialStateManifest === undefined ? {} : { initialStateManifest }),
-            close: async () => {
-                mover.disconnect();
-                observer.disconnect();
-                await server.shutdown({ stayAlive: true });
-                rmSync(stateRoot, { recursive: true, force: true });
+    const connections = () => network.connectionIds().flatMap((id) => server.getSessionManager().get(id) ?? []);
+    const quiet = (): boolean =>
+        network.isIdle() &&
+        clients.every((each) => each.getSession().isIdle()) &&
+        connections().every((connection) => connection.isOutboundSettled()) &&
+        server.getChunkScheduler().isIdle() &&
+        (world?.getPendingChunkLoadCount() ?? 0) === 0;
+    // A fixed point, not a delay: every frame each side sent has been handled, every packet the
+    // server sent has been framed, and no chunk load is still reading or generating. Only then
+    // may the next tick run, so a tick sees the same state on a fast host as on a loaded one.
+    const settle = async (): Promise<void> => {
+        for (;;) {
+            await network.idle();
+            await Promise.all(clients.map((each) => each.getSession().settled()));
+            await server.getChunkScheduler().settled();
+            await Promise.all(connections().map((connection) => connection.settleOutbound()));
+            if (!quiet()) {
+                // Whatever is left waits on I/O, so let the event loop turn rather than spin.
+                await nextTurn();
+                continue;
             }
-        };
-    } catch (error: unknown) {
-        mover.disconnect();
-        observer.disconnect();
-        await server.shutdown({ stayAlive: true }).catch(() => {});
-        rmSync(stateRoot, { recursive: true, force: true });
-        throw error;
+            // The outbound flush runs from `setImmediate`, and I/O lands between turns of the
+            // event loop, so the state is only quiet if it still is after one more turn.
+            await nextTurn();
+            if (quiet()) return;
+        }
+    };
+    const stepTo = async (tick: number): Promise<void> => {
+        await settle();
+        while (server.getTick() < tick) {
+            await server.advanceTick();
+            await settle();
+        }
+    };
+    /** Steps ticks until the client has joined; a join needs chunks, and chunks are sent in ticks. */
+    const join = async (each: Client): Promise<void> => {
+        let joined = false;
+        const seen: string[] = [];
+        const onPacket = (packet: { name: string }): void => void seen.push(packet.name);
+        each.getSession().on('packet', onPacket);
+        const connecting = each.connect().finally(() => {
+            joined = true;
+        });
+        // Read below, after the loop; this keeps an early failure from going unhandled meanwhile.
+        connecting.catch(() => {});
+        for (let ticks = 0; !joined; ticks++) {
+            if (ticks > MAX_JOIN_TICKS)
+                throw new Error(
+                    `A client did not join within ${MAX_JOIN_TICKS} ticks; the last packets it got: ${seen.slice(-5).join(', ')}`
+                );
+            await settle();
+            if (!joined) await stepTo(server.getTick() + 1);
+        }
+        each.getSession().off('packet', onPacket);
+        await connecting;
+    };
+
+    let closed = false;
+    const close = async (): Promise<void> => {
+        if (closed) return;
+        closed = true;
+        openSessions.delete(live);
+        try {
+            mover.disconnect();
+            observer.disconnect();
+            await server.shutdown({ stayAlive: true });
+        } finally {
+            rmSync(stateRoot, { recursive: true, force: true });
+            stateRoots.delete(stateRoot);
+        }
+    };
+    const live: LiveSession = {
+        server,
+        get world(): World {
+            if (world === undefined) throw new Error('The default world did not load');
+            return world;
+        },
+        inbound,
+        outbound,
+        mover,
+        observer,
+        settle,
+        stepTo,
+        close
+    };
+    openSessions.add(live);
+
+    if (options.initialState !== undefined) {
+        const provider = new LevelDB(path.join(stateRoot, 'worlds', 'world'), server);
+        await restoreReplayInitialStateSnapshot(provider, options.initialState);
     }
+    await server.bootstrap('127.0.0.1', 0);
+    if (options.serializableRandom) {
+        const randomState = server.getReplayRandomState();
+        server.restoreReplayRandomState({
+            ...randomState,
+            server: { ...randomState.server, state: Number(SESSION_SEED) }
+        });
+    }
+    world = server.getWorldManager().getWorldByName('world') ?? undefined;
+    if (world === undefined) throw new Error('The default world did not load');
+    // This flat fixture is a slime-spawn biome; disable natural spawning before clients join
+    // so the digest compares the scripted session rather than unrelated mob spawn timing.
+    world.getGameRuleManager().setGameRule('doMobSpawning', false, true);
+    const initialStateManifest = options.captureInitialState
+        ? serializeReplayInitialStateManifest(await world.getLevel().captureReplayInitialState())
+        : undefined;
+    if (options.initialState !== undefined) {
+        const level = world.getLevel();
+        level.setTicks(options.initialState.level.tick);
+        level.getWeather().restore(options.initialState.level.weather);
+        level.restoreReplayRandomState(options.initialState);
+    }
+    await join(mover);
+    await join(observer);
+
+    return initialStateManifest === undefined ? live : { ...live, initialStateManifest };
 };
 
 const captureSession = async (
     moverAuth: OfflineAuthProvider,
     observerAuth: OfflineAuthProvider
 ): Promise<CapturedSession> => {
-    const live = await openSession(PORT_BASE, moverAuth, observerAuth, {
+    const live = await openSession(moverAuth, observerAuth, {
         captureInitialState: true,
         serializableRandom: true
     });
@@ -342,7 +415,7 @@ const captureSession = async (
         const firstSendTick = live.server.getTick() + 4;
         live.server.on('tick', recordRandomTickState);
         for (let index = 0; index < MOVEMENT_COUNT; index += 1) {
-            await waitForTick(live.server, firstSendTick + index * 4);
+            await live.stepTo(firstSendTick + index * MOVEMENT_INTERVAL_TICKS);
             await live.mover.getSession().send(
                 new MovePlayerPacket({
                     runtimeEntityId: startGame.runtimeEntityId,
@@ -356,10 +429,7 @@ const captureSession = async (
                     tick: BigInt(index + 1)
                 })
             );
-            await waitFor(
-                `movement packet ${index + 1}`,
-                () => live.inbound.records().filter((record) => record.packetName === 'MovePlayerPacket').length > index
-            );
+            await live.settle();
         }
 
         const movement = live.inbound.records().filter((record) => record.packetName === 'MovePlayerPacket');
@@ -389,7 +459,6 @@ const captureSession = async (
 };
 
 const replaySession = async (
-    port: number,
     moverAuth: OfflineAuthProvider,
     observerAuth: OfflineAuthProvider,
     captured: CapturedSession,
@@ -402,7 +471,7 @@ const replaySession = async (
     const measureCosts = options.measureCosts ?? false;
     const instrumented = options.instrumented ?? true;
     const initialState = deserializeReplayInitialStateManifest(captured.initialStateManifest);
-    const live = await openSession(port, moverAuth, observerAuth, {
+    const live = await openSession(moverAuth, observerAuth, {
         serializableRandom: options.serializableRandom,
         recordPackets: !measureCosts || instrumented,
         initialState
@@ -514,10 +583,6 @@ const replaySession = async (
         // The service method reads its dispatcher through `this`, so retain the receiver.
         const replayInboundRecord = networking.replayInboundRecord.bind(networking);
 
-        let resolveComplete!: () => void;
-        const complete = new Promise<void>((resolve) => {
-            resolveComplete = resolve;
-        });
         const onTick = async (event: { getTick(): number }): Promise<void> => {
             const tick = event.getTick();
             if (tick === sampleStart && instrumented) live.outbound.setEnabled(true);
@@ -526,13 +591,14 @@ const replaySession = async (
             if (measureCosts && tick === sampleStart) {
                 measurementStart = { wallMs: performance.now(), cpu: process.cpuUsage() };
             }
+            if (tick === sampleStart) {
+                // Login and chunk startup are outside the recorded play-phase trace. Restore the
+                // captured counter at the segment boundary so their draw counts cannot shift every
+                // later Java random-tick position. An unrecorded baseline needs it as much as an
+                // instrumented run, or the two would not compare the same simulation.
+                live.world.getSystems().restoreRandomTickState(captured.replayRandomTickState);
+            }
             if (tick >= sampleStart && tick <= sampleEnd && instrumented) {
-                if (tick === sampleStart) {
-                    // Login and asynchronous chunk startup are outside the recorded play-phase trace.
-                    // Restore the captured counter at the segment boundary so their variable draw
-                    // counts cannot shift every later Java random-tick position.
-                    live.world.getSystems().restoreRandomTickState(captured.replayRandomTickState);
-                }
                 if (measureCosts) {
                     const digestWallStarted = performance.now();
                     const digestCpuStarted = process.cpuUsage();
@@ -558,15 +624,18 @@ const replaySession = async (
                     wallMs: performance.now(),
                     cpu: process.cpuUsage(measurementStart.cpu)
                 };
-                resolveComplete();
-            } else if (!measureCosts && tick === sampleEnd) resolveComplete();
+            }
         };
 
         expect(live.server.getTick()).toBeLessThan(sampleStart);
+        if (live.server.getChunkScheduler().pending > 0) {
+            throw new Error('Chunks were still streaming when the sample began; the join needs more ticks');
+        }
         live.server.on('tick', onTick);
         try {
-            await complete;
-            await waitForTick(live.server, sampleEnd + 1);
+            // Through the last sampled tick, and for a cost run through the tick after it, whose
+            // start ends the measurement.
+            await live.stepTo(measureCosts ? sampleEnd + 2 : sampleEnd + 1);
         } finally {
             live.server.removeListener('tick', onTick);
             live.server.removeListener('playerMove', onMove);
@@ -660,6 +729,40 @@ const replaySession = async (
     }
 };
 
+/** One replay's per-tick digests, keyed by the tick's offset from the replay's first input. */
+interface ReplaySeries {
+    readonly worldSeries: readonly (readonly [number, string])[];
+    readonly packetSeries: readonly (readonly [number, string | null])[];
+}
+
+/**
+ * The first tick at which two replays disagree, and on what; undefined when they agree on
+ * every tick. Ticks are compared in order, so the report names where the runs split.
+ */
+const firstDivergence = (first: ReplaySeries, second: ReplaySeries): string | undefined => {
+    const ticks = [...new Set([...first.worldSeries, ...second.worldSeries].map(([tick]) => tick))].sort(
+        (left, right) => left - right
+    );
+    const at = <T>(series: readonly (readonly [number, T])[], tick: number): T | undefined =>
+        series.find(([each]) => each === tick)?.[1];
+    for (const tick of ticks) {
+        const world = [at(first.worldSeries, tick), at(second.worldSeries, tick)];
+        if (world[0] !== world[1]) return `tick ${tick}: world digest ${world[0]} then ${world[1]}`;
+        const packets = [at(first.packetSeries, tick), at(second.packetSeries, tick)];
+        if (packets[0] !== packets[1]) return `tick ${tick}: outbound digest ${packets[0]} then ${packets[1]}`;
+    }
+    return undefined;
+};
+
+afterEach(async () => {
+    // A case that failed or timed out left its sessions open; close them so the next case
+    // starts with no server running and no world folder left behind.
+    await Promise.allSettled([...openSessions].map((session) => session.close()));
+    for (const stateRoot of stateRoots) rmSync(stateRoot, { recursive: true, force: true });
+    stateRoots.clear();
+    vi.unstubAllEnvs();
+});
+
 describe('live session replay', () => {
     it(
         'replays one captured play session into two fresh seeded worlds and compares each tick',
@@ -673,16 +776,20 @@ describe('live session replay', () => {
                 const captured = await captureSession(moverAuth, observerAuth);
                 expect(captured.movement).toHaveLength(MOVEMENT_COUNT);
 
-                const first = await replaySession(PORT_BASE + 1, moverAuth, observerAuth, captured);
-                const second = await replaySession(PORT_BASE + 2, moverAuth, observerAuth, captured);
+                const first = await replaySession(moverAuth, observerAuth, captured);
+                const second = await replaySession(moverAuth, observerAuth, captured);
 
                 expect(first.finalMoverPosition.x).toBeGreaterThan(captured.moverStart.x + 0.8);
                 expect(first.moveEvents).toBe(MOVEMENT_COUNT);
                 expect(second.moveEvents).toBe(MOVEMENT_COUNT);
                 expect(second.finalMoverPosition).toEqual(first.finalMoverPosition);
-                expect(second.worldSeries).toEqual(first.worldSeries);
-                expect(second.packetSeries).toEqual(first.packetSeries);
-                expect(first.packetSeries.some(([, digest]) => digest !== null)).toBe(true);
+                // Every sampled tick has a world digest, and the movement made the server send
+                // something, so the comparison below cannot pass by comparing nothing.
+                expect(first.worldSeries).toHaveLength(
+                    SAMPLE_LEAD_TICKS + (MOVEMENT_COUNT - 1) * MOVEMENT_INTERVAL_TICKS + SAMPLE_TRAIL_TICKS + 1
+                );
+                expect(first.packetSeries.filter(([, digest]) => digest !== null).length).toBeGreaterThan(0);
+                expect(firstDivergence(first, second)).toBeUndefined();
             } finally {
                 random.mockRestore();
                 vi.unstubAllEnvs();
@@ -700,12 +807,12 @@ describe('live session replay', () => {
 
             try {
                 const captured = await captureSession(moverAuth, observerAuth);
-                const baseline = await replaySession(PORT_BASE + 3, moverAuth, observerAuth, captured, {
+                const baseline = await replaySession(moverAuth, observerAuth, captured, {
                     measureCosts: true,
                     instrumented: false,
                     serializableRandom: true
                 });
-                const instrumented = await replaySession(PORT_BASE + 4, moverAuth, observerAuth, captured, {
+                const instrumented = await replaySession(moverAuth, observerAuth, captured, {
                     measureCosts: true,
                     instrumented: true,
                     serializableRandom: true
