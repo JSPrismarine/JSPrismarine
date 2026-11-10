@@ -4,7 +4,9 @@ import type { EntityPosition } from '@jsprismarine/entities';
 import { ActorEvent, DisconnectReason, Gametype, getGametypeId } from '@jsprismarine/minecraft';
 import type { InetAddress } from '@jsprismarine/raknet';
 import assert from 'node:assert';
-import { CHAT_TEXT_TYPE, Chat, ChatType } from './chat/Chat';
+import { Chat, ChatType } from './chat/Chat';
+import type { ChatRecipient } from './chat/ChatManager';
+import { keyOfPlayer } from './playerIdentity';
 import { Attribute, AttributeIds } from '@jsprismarine/protocol/wire/structures/Attribute';
 import { DamageSource } from './entity/DamageSource';
 import { deathMessage } from './entity/DeathMessages';
@@ -25,7 +27,6 @@ import {
 } from './entity/Environment';
 import Human, { eyePositionAt } from './entity/Human';
 import { FlagType, MAX_AIR_TICKS, MetadataFlag } from '@jsprismarine/protocol/wire/structures/Metadata';
-import ChatEvent from './events/chat/ChatEvent';
 import PlayerSetGamemodeEvent from './events/player/PlayerSetGamemodeEvent';
 import PlayerToggleFlightEvent from './events/player/PlayerToggleFlightEvent';
 import PlayerToggleSprintEvent from './events/player/PlayerToggleSprintEvent';
@@ -171,8 +172,8 @@ export default class Player extends Human {
     private timer: Timer;
     private connected = false;
 
-    /** The bound chat listener, held so `disable` can unregister the same function object. */
-    private readonly boundChatHandler: (evt: ChatEvent) => Promise<void>;
+    /** This player as chat fan-out reaches them, held so `disable` leaves with the same object. */
+    private readonly chatRecipient: ChatRecipient;
 
     public xuid = '';
     public randomId = 0;
@@ -297,11 +298,13 @@ export default class Player extends Human {
         this.device = identity.device;
         this.setName(identity.name);
 
-        // Bound once and kept, because `removeListener` matches on identity: binding inline
-        // at registration and passing the naked method to `removeListener` in `disable` are
-        // two different functions, so nothing was ever unregistered and every disconnected
-        // player stayed subscribed to chat for the life of the process.
-        this.boundChatHandler = this.chatHandler.bind(this);
+        // Built once and kept, because the fan-out only lets the recipient that joined leave.
+        this.chatRecipient = {
+            key: keyOfPlayer(this),
+            getName: () => this.getName(),
+            isOp: () => this.isOp(),
+            receive: (delivery) => this.getNetworkSession().sendMessage(delivery)
+        };
     }
 
     /**
@@ -372,11 +375,11 @@ export default class Player extends Human {
             false
         );
 
-        // Registered here rather than in the constructor, and only once the rest has
-        // succeeded: a player whose join failed part way through would otherwise stay
-        // subscribed for the life of the process, because the connection has no session to
-        // reach `disable` through until the join completes.
-        this.server.on('chat', this.boundChatHandler);
+        // Joined here rather than in the constructor, and only once the rest has succeeded: a
+        // player whose join failed part way through would otherwise stay in the fan-out for the
+        // life of the process, because the connection has no session to reach `disable` through
+        // until the join completes.
+        this.server.getChatManager().join(this.chatRecipient);
 
         // Finally mark the player as connected.
         this.server.getLogger().debug(`(Complete player creation took ${this.timer.stop()} ms)`);
@@ -458,7 +461,10 @@ export default class Player extends Human {
         await this.getNetworkSession().removeFromPlayerList();
 
         // Announce disconnection
-        const event = new ChatEvent(
+        // The leaving player is still in the fan-out here, as it was still subscribed when this
+        // went through the event alone.
+        const chat = this.server.getChatManager();
+        await chat.send(
             new Chat({
                 sender: this.server.getConsoleSender(),
                 // The bare translation key, for the reason given in ResourcePackClientResponseHandler.
@@ -468,41 +474,9 @@ export default class Player extends Human {
                 type: ChatType.TRANSLATION
             })
         );
-        await this.server.emit('chat', event);
 
         this.connected = false;
-        this.server.removeListener('chat', this.boundChatHandler);
-    }
-
-    private async chatHandler(evt: ChatEvent): Promise<void> {
-        if (evt.isCanceled()) return;
-
-        const chat = evt.getChat();
-
-        // TODO: proper channel system
-        if (
-            chat.getChannel() !== '*.everyone' &&
-            !(chat.getChannel() === '*.ops' && this.isOp()) &&
-            chat.getChannel() !== `*.player.${this.getName()}`
-        )
-            return;
-
-        // A player's chat names its author, as a dedicated server does: the client draws
-        // `<name>` from it and can mute or report the XUID, which it checks against the
-        // player list. Every other type is a line the server formatted, sent as written.
-        const sender = chat.getSender();
-        const author =
-            chat.getType() === ChatType.CHAT
-                ? { sourceName: sender.getName(), xuid: sender instanceof Player ? (sender.getXUID() ?? '') : '' }
-                : {};
-
-        await this.getNetworkSession().sendMessage({
-            message: chat.getMessage(),
-            type: CHAT_TEXT_TYPE[chat.getType()],
-            parameters: chat.getParameters(),
-            needsTranslation: chat.isNeedsTranslation(),
-            ...author
-        });
+        chat.leave(this.chatRecipient);
     }
 
     /**
@@ -1003,7 +977,7 @@ export default class Player extends Human {
         const deathInfo = new DeathInfoPacket({ cause: key.replace(/^%/, ''), messages: parameters });
         await this.getNetworkSession().getConnection().sendDataPacket(deathInfo);
 
-        const event = new ChatEvent(
+        await this.server.getChatManager().send(
             new Chat({
                 sender: this.server.getConsoleSender(),
                 message: key,
@@ -1012,7 +986,6 @@ export default class Player extends Human {
                 type: ChatType.TRANSLATION
             })
         );
-        await this.server.emit('chat', event);
     }
 
     /** This player's own spawn point, or undefined when they come back at the world spawn. */
