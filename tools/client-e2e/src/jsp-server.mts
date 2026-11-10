@@ -481,8 +481,8 @@ export const startServer = async (
         })
     );
 
-    const waitForLine = (pattern: RegExp, timeoutMs = 60_000): Promise<string> =>
-        new Promise((resolve, reject) => {
+    const waitForLine = (pattern: RegExp, timeoutMs = 60_000): Promise<string> => {
+        const line = new Promise<string>((resolve, reject) => {
             const waiter = { pattern, resolve };
             lineWaiters.push(waiter);
             setTimeout(() => {
@@ -492,6 +492,12 @@ export const startServer = async (
                 reject(new Error(`server never printed ${pattern} (last: ${lines.at(-1) ?? '<nothing>'})`));
             }, timeoutMs).unref();
         });
+        // Callers start a wait before the action that prints the line, then await something else
+        // first. A wait that times out meanwhile was an unhandled rejection, which killed the run
+        // before it wrote its artifacts; whoever awaits the wait still gets the error.
+        line.catch(() => {});
+        return line;
+    };
 
     const seconds = options.seconds ?? 120;
     // Registered with the listening wait: signaling binds its TCP port after that line prints.
