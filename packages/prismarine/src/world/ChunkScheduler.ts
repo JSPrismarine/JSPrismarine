@@ -83,7 +83,8 @@ export class ChunkScheduler {
 
     /**
      * Flushes still dispatching, kept apart from {@link inFlight} because that set's size is
-     * the delivery depth gate and a flush must not eat into it. Only {@link close} reads this.
+     * the delivery depth gate and a flush must not eat into it. Read by {@link close} and
+     * {@link settled}.
      */
     private readonly flushTasks = new Set<Promise<void>>();
 
@@ -110,6 +111,23 @@ export class ChunkScheduler {
     /** How many chunk deliveries may be generating at once. Clamped to at least one. */
     public setDepth(depth: number): void {
         this.depth = Math.max(1, Math.trunc(depth));
+    }
+
+    /**
+     * Whether no delivery is generating and no flush is dispatching. Work that waits for the
+     * next {@link tick} does not count: chunks still queued, which {@link pending} counts, and
+     * finished deliveries the next tick flushes.
+     */
+    public isIdle(): boolean {
+        return this.inFlight.size === 0 && this.flushTasks.size === 0;
+    }
+
+    /**
+     * Resolves once {@link isIdle} holds. A harness that steps the server waits on it so each
+     * tick starts the deliveries its budget allows from the same point, whatever the host's speed.
+     */
+    public async settled(): Promise<void> {
+        while (!this.isIdle()) await Promise.allSettled([...this.inFlight, ...this.flushTasks]);
     }
 
     public get pending(): number {

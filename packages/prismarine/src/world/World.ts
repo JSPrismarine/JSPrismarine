@@ -3786,6 +3786,11 @@ export class World implements Service {
         return this.level.getGameRuleManager();
     }
 
+    /** How many chunk loads are in flight: read from disk or generating, and not in the world yet. */
+    public getPendingChunkLoadCount(): number {
+        return this.loading.size;
+    }
+
     /** The level's clock, which every world of the save shares. */
     public getTicks(): number {
         return this.level.getTicks();

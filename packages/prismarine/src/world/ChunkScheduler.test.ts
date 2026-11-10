@@ -40,6 +40,36 @@ describe('world', () => {
             expect(delivered.length).toBe(3);
         });
 
+        it('settles once the deliveries a tick started have finished, leaving queued chunks for the next', async () => {
+            const scheduler = new ChunkScheduler(1000, () => {}, 1);
+            const finish: Array<() => void> = [];
+            const sender = new ChunkSender();
+            sender.enqueue(0, 0);
+            sender.enqueue(1, 0);
+            scheduler.add({
+                sender,
+                deliver: () => new Promise<void>((resolve) => void finish.push(resolve)),
+                flush: async () => {},
+                isConnected: () => true
+            });
+
+            await scheduler.tick();
+            expect(scheduler.isIdle()).toBe(false);
+            let settled = false;
+            const settling = scheduler.settled().then(() => {
+                settled = true;
+            });
+            await Promise.resolve();
+            expect(settled).toBe(false);
+
+            finish[0]!();
+            await settling;
+            // The depth of one held the second chunk back; it waits for a tick, not for this.
+            expect(scheduler.isIdle()).toBe(true);
+            expect(scheduler.pending).toBe(1);
+            expect(finish).toHaveLength(1);
+        });
+
         it('stops at the budget and resumes on the next tick', async () => {
             // The property the whole design rests on: a long queue costs a bounded amount
             // per tick instead of running to completion and freezing the server.
