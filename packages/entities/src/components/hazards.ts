@@ -3,13 +3,12 @@
 import type { ComponentFactory } from '@jsprismarine/content';
 import { accepted, rejected } from '@jsprismarine/content';
 import type { Filter } from '@jsprismarine/packs';
+import { defineComponentState, stateField } from '../componentState';
 import type { EntityInstance } from '../entityInstance';
 import { evaluateFilter } from '../filters';
 import type { EntityHooks } from '../hooks';
 import { TICKS_PER_SECOND } from '../hooks';
 import { asList, booleanAt, isRecord, numberAt, parseFilterValue, stringAt } from './schemas';
-
-import type { IntervalState } from './shared';
 
 /**
  * How many ticks apart an environmental hurt lands.
@@ -34,6 +33,9 @@ export interface DamageCondition {
 export interface HurtOnConditionParams {
     readonly conditions: readonly DamageCondition[];
 }
+
+/** Ticks until `minecraft:hurt_on_condition` next checks its conditions. */
+const HURT_ON_CONDITION_STATE = defineComponentState('minecraft:hurt_on_condition', { remaining: stateField.number });
 
 /**
  * `minecraft:hurt_on_condition`, carried by 87 vanilla entities and in all but
@@ -66,16 +68,18 @@ export const hurtOnCondition: ComponentFactory<EntityHooks, HurtOnConditionParam
         return accepted({ conditions });
     },
     create: (params) => {
-        const states = new WeakMap<EntityInstance, IntervalState>();
         return {
             onInitialize: (entity) => {
-                states.set(entity, { remaining: 0 });
+                entity.componentState.set(HURT_ON_CONDITION_STATE, { remaining: 0 });
             },
             onTick: (entity) => {
-                const state = states.get(entity);
+                const state = entity.componentState.get(HURT_ON_CONDITION_STATE);
                 if (state === undefined) return;
-                state.remaining -= 1;
-                if (state.remaining > 0) return;
+                const remaining = state.remaining - 1;
+                if (remaining > 0) {
+                    entity.componentState.set(HURT_ON_CONDITION_STATE, { remaining });
+                    return;
+                }
 
                 const context = entity.filterContext();
                 let hurt = false;
@@ -85,7 +89,7 @@ export const hurtOnCondition: ComponentFactory<EntityHooks, HurtOnConditionParam
                     entity.damage({ cause: condition.cause, amount: condition.damagePerTick });
                     hurt = true;
                 }
-                state.remaining = hurt ? HURT_INTERVAL_TICKS : 0;
+                entity.componentState.set(HURT_ON_CONDITION_STATE, { remaining: hurt ? HURT_INTERVAL_TICKS : 0 });
             }
         };
     }
@@ -142,6 +146,9 @@ export interface DamageOverTimeParams {
     readonly timeBetweenHurt: number;
 }
 
+/** Ticks until `minecraft:damage_over_time` next hurts. */
+const DAMAGE_OVER_TIME_STATE = defineComponentState('minecraft:damage_over_time', { remaining: stateField.number });
+
 /**
  * `minecraft:damage_over_time`, which hurts the entity while it is active.
  *
@@ -161,17 +168,16 @@ export const damageOverTime: ComponentFactory<EntityHooks, DamageOverTimeParams>
             : rejected('expected an object'),
     create: (params) => {
         const interval = Math.max(HURT_INTERVAL_TICKS, Math.round(params.timeBetweenHurt * TICKS_PER_SECOND));
-        const states = new WeakMap<EntityInstance, IntervalState>();
         return {
             onInitialize: (entity) => {
-                states.set(entity, { remaining: interval });
+                entity.componentState.set(DAMAGE_OVER_TIME_STATE, { remaining: interval });
             },
             onTick: (entity) => {
-                const state = states.get(entity);
+                const state = entity.componentState.get(DAMAGE_OVER_TIME_STATE);
                 if (state === undefined || params.damagePerHurt <= 0) return;
-                state.remaining -= 1;
-                if (state.remaining > 0) return;
-                state.remaining = interval;
+                const remaining = state.remaining - 1;
+                entity.componentState.set(DAMAGE_OVER_TIME_STATE, { remaining: remaining > 0 ? remaining : interval });
+                if (remaining > 0) return;
                 entity.damage({ cause: 'none', amount: params.damagePerHurt });
             }
         };
@@ -194,12 +200,14 @@ export interface BreathableParams {
 /** How much health one suffocation hurt takes, which both editions put at one heart. */
 export const SUFFOCATION_DAMAGE = 2;
 
-/** One entity's air, in ticks of supply left. */
-interface AirState {
-    remaining: number;
-    /** Ticks until the next suffocation hurt, once the supply is gone. */
-    untilHurt: number;
-}
+/**
+ * One entity's air: `remaining` ticks of supply left, and `untilHurt` ticks until the next
+ * suffocation hurt once the supply is gone.
+ */
+export const AIR_STATE = defineComponentState('minecraft:breathable', {
+    remaining: stateField.number,
+    untilHurt: stateField.number
+});
 
 /**
  * `minecraft:breathable`, carried by 84 vanilla entities.
@@ -238,7 +246,6 @@ export const breathable: ComponentFactory<EntityHooks, BreathableParams> = {
         const hurtInterval =
             params.suffocateTime > 0 ? Math.round(params.suffocateTime * TICKS_PER_SECOND) : HURT_INTERVAL_TICKS;
         const inhale = Math.max(1, Math.round(params.inhaleTime * TICKS_PER_SECOND));
-        const states = new WeakMap<EntityInstance, AirState>();
 
         /** Whether the medium the entity is in is one the component says it breathes. */
         const canBreathe = (entity: EntityInstance): boolean => {
@@ -250,26 +257,28 @@ export const breathable: ComponentFactory<EntityHooks, BreathableParams> = {
 
         return {
             onInitialize: (entity) => {
-                states.set(entity, { remaining: supply, untilHurt: hurtInterval });
+                entity.componentState.set(AIR_STATE, { remaining: supply, untilHurt: hurtInterval });
             },
             onTick: (entity) => {
-                const state = states.get(entity);
+                const state = entity.componentState.get(AIR_STATE);
                 if (state === undefined) return;
 
                 if (canBreathe(entity)) {
-                    state.remaining = Math.min(supply, state.remaining + Math.ceil(supply / inhale));
-                    state.untilHurt = hurtInterval;
+                    entity.componentState.set(AIR_STATE, {
+                        remaining: Math.min(supply, state.remaining + Math.ceil(supply / inhale)),
+                        untilHurt: hurtInterval
+                    });
                     return;
                 }
 
                 if (state.remaining > 0) {
-                    state.remaining -= 1;
+                    entity.componentState.set(AIR_STATE, { ...state, remaining: state.remaining - 1 });
                     return;
                 }
 
-                state.untilHurt -= 1;
-                if (state.untilHurt > 0) return;
-                state.untilHurt = hurtInterval;
+                const untilHurt = state.untilHurt - 1;
+                entity.componentState.set(AIR_STATE, { ...state, untilHurt: untilHurt > 0 ? untilHurt : hurtInterval });
+                if (untilHurt > 0) return;
                 entity.damage({ cause: 'drowning', amount: SUFFOCATION_DAMAGE });
             }
         };
