@@ -181,6 +181,11 @@ by biome, `/locate`, or portals between dimensions.
 - Run the relevant checks for the change. The root scripts include `pnpm run build`,
   `pnpm run typecheck`, `pnpm run test`, and `pnpm run lint`; use package-scoped scripts when they
   cover the affected work.
+- `pnpm run lint` and `pnpm run format` run Prettier and Biome on the files that differ from the
+  merge base with `master`, including staged, unstaged and untracked files. A change to the
+  formatters' configuration, the root `package.json` or the lockfile checks every file.
+  `pnpm run lint:all` and `pnpm run format:all` always cover every file; the lint workflow runs
+  `lint:all`.
 - After changing repository files, run `pnpm run lint:custom` after your final edit. It runs the
   American filename, packet codec, wire layout, JSDoc, Unicode escape and docs facts checks. `pnpm run lint` includes this
   aggregate.
