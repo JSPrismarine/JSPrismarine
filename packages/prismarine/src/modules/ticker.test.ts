@@ -145,6 +145,31 @@ describe('modules/ticker', () => {
         expect(order).toEqual(['inputs', 'tick', 'world', 'functions', 'network']);
     });
 
+    it('opens each world change log tick before the input step and seals one the world did not update', async () => {
+        const order: string[] = [];
+        const harness = buildHarness({
+            isTickingEnabled: () => false,
+            admitInputs: async () => {
+                order.push('inputs');
+                return 0;
+            },
+            getWorlds: () => [
+                {
+                    getName: () => 'world',
+                    beginChangeTick: () => order.push('begin'),
+                    update: async () => {
+                        order.push('world');
+                    },
+                    sealChangeTick: () => order.push('seal')
+                }
+            ]
+        });
+
+        await harness.ticker.advance();
+
+        expect(order).toEqual(['begin', 'inputs', 'world', 'seal']);
+    });
+
     it('runs the simulation phases inside the tick, and chunk delivery and the poll outside it', async () => {
         const inside: Record<string, boolean> = {};
         const harness = buildHarness({

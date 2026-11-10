@@ -6,6 +6,7 @@ import type { NBTTagCompound } from '@jsprismarine/nbt';
 import type Server from '../Server';
 import type PlayerSession from '../network/PlayerSession';
 import { Position } from '../world/Position';
+import { logLegacyWrite } from './legacyAdapter';
 import type { World } from '../world/World';
 import { SyncedProperties } from '@jsprismarine/protocol/wire/structures/SyncedProperties';
 import type { Attribute } from '@jsprismarine/protocol/wire/structures/Attribute';
@@ -794,7 +795,9 @@ export class Entity {
      */
     public async setHealth(health: number, source: DamageCause | DamageSource = DamageCause.Generic): Promise<void> {
         const alive = this.isAlive();
+        const before = this.getHealth();
         this.attributes.setValue(AttributeIds.Health, health);
+        logLegacyWrite(this, 'health', before, this.getHealth());
 
         // Only on the transition: something that is already dead does not die again, and
         // health being set to zero twice should not run a death twice.
@@ -1140,7 +1143,10 @@ export class Entity {
     public async heal(amount: number): Promise<boolean> {
         if (amount <= 0 || !this.isAlive()) return false;
 
-        return this.attributes.addValue(AttributeIds.Health, amount);
+        const before = this.getHealth();
+        const healed = this.attributes.addValue(AttributeIds.Health, amount);
+        logLegacyWrite(this, 'health', before, this.getHealth());
+        return healed;
     }
 
     /**
@@ -1248,8 +1254,18 @@ export class Entity {
      * @internal
      */
     protected relocate(position: Position): void {
+        const before = this.position;
         this.position = position;
-        position.getWorld().entityRelocated(this);
+        position.getWorld().entityRelocated(this, before);
+    }
+
+    /**
+     * Moves the entity without telling a client. Only the entity store's undo calls this,
+     * through the legacy adapter, to write a logged position back.
+     * @param {Position} position - The position to put back.
+     */
+    public restorePosition(position: Position): void {
+        this.relocate(position);
     }
 
     /**

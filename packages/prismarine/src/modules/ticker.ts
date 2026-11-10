@@ -106,6 +106,10 @@ const summarizeLateTicks = (profiles: readonly LateTickProfile[]): string => {
 export interface TickerWorld {
     getName(): string;
     update(tick: number): Promise<unknown>;
+    /** Opens the world's change log tick before the input step, so the inputs land in it. */
+    beginChangeTick?(): void;
+    /** Seals the world's change log tick when the world did not update, such as a frozen one. */
+    sealChangeTick?(): unknown;
 }
 
 /**
@@ -535,6 +539,10 @@ export class ServerTicker implements Ticker, TickControl {
                 // so the step can yield, but nothing else in the tick runs until it has finished.
                 // The levels tick one after another, so this one step is the input step of every
                 // world; when they tick apart, each world drains the inputs of its own players.
+                // Every world's change log tick opens first, so what the step applies is logged
+                // in the tick that applied it, and each world seals its tick when it closes.
+                const ticked = server.getWorlds();
+                for (const world of ticked) world.beginChangeTick?.();
                 const endInputsProfile = startProfile?.('Server.inputs');
                 try {
                     await server.admitInputs();
@@ -594,6 +602,10 @@ export class ServerTicker implements Ticker, TickControl {
                 } finally {
                     worldUpdatesMs = now() - phaseStartedAt;
                 }
+
+                // A world opened above and not updated, because the server is frozen or the world
+                // list changed, closes its tick here.
+                for (const world of ticked) world.sealChangeTick?.();
 
                 // `#minecraft:tick` and whatever `/schedule` put on this tick. After the
                 // worlds, as Java runs it, so a function sees the world the tick left.

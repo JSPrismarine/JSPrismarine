@@ -28,6 +28,7 @@ import {
     serializeReplayInitialStateManifest
 } from '@jsprismarine/prismarine/network/ReplayManifest';
 
+import { reportProgress } from '../../../.test/reportProgress';
 import Client from './Client';
 import { LoopbackNetwork } from './testing/loopback.test.helper';
 
@@ -736,6 +737,12 @@ const replaySession = async (
             }
             await scripted.beforeTick(tick);
         };
+        // The world's change log, counted per sampled tick as each tick seals (ADR 0012).
+        const changeLogCosts: [number, Parameters<Parameters<World['onChangeTickCost']>[0]>[0]][] = [];
+        const stopCounting = live.world.onChangeTickCost((cost) => {
+            const tick = live.server.getTick();
+            if (tick >= sampleStart && tick <= sampleEnd) changeLogCosts.push([tick - REPLAY_START_TICK, cost]);
+        });
         live.server.on('tick', onTick);
         try {
             // Through the last sampled tick, and for a cost run through the tick after it, whose
@@ -744,6 +751,7 @@ const replaySession = async (
             await Promise.all(replayed);
             await Promise.all(scripted.requests);
         } finally {
+            stopCounting();
             clock?.mockRestore();
             live.server.removeListener('tick', onTick);
             live.server.removeListener('playerMove', onMove);
@@ -801,6 +809,7 @@ const replaySession = async (
         return {
             worldSeries,
             packetSeries,
+            changeLogCosts,
             sampledAdmissions,
             admissionDivergences,
             capturedAdmissions: admissionsIn(
@@ -970,6 +979,17 @@ describe('live session replay', () => {
                 expect(second.tickElapsedMs.length).toBe(first.worldSeries.length);
                 expect(second.tickElapsedMs.every((elapsedMs) => elapsedMs >= 1000)).toBe(true);
                 expect(firstDivergence(first, second)).toBeUndefined();
+                // The change log is part of the simulation's output, so both replays log the same
+                // entries and bytes in every tick. The figures themselves are reported, not gated.
+                expect(second.changeLogCosts).toEqual(first.changeLogCosts);
+                const entries = first.changeLogCosts.map(([, cost]) => cost.entries);
+                const bytes = first.changeLogCosts.map(([, cost]) => cost.bytes);
+                const sum = (values: readonly number[]) => values.reduce((total, value) => total + value, 0);
+                reportProgress(
+                    `change log over ${entries.length} replayed ticks: ${sum(entries)} entries and ${sum(bytes)} bytes, ` +
+                        `at most ${Math.max(0, ...entries)} entries and ${Math.max(0, ...bytes)} bytes in one tick`,
+                    'Change log cost'
+                );
             } finally {
                 random.mockRestore();
                 vi.unstubAllEnvs();
