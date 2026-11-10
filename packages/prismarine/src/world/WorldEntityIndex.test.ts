@@ -14,7 +14,6 @@ import { Item as ItemStack } from '../item/Item';
 import { testEntityServer } from '../testing/entityServer';
 import { stub, stubOf } from '../testing/stub.test.helper';
 import { Dimensions } from './Dimension';
-import EntityGrid from './EntityGrid';
 import { Position } from './Position';
 import { World } from './World';
 import { NULL_WORLD_CHANGE_SINK } from './WorldChangeSink';
@@ -32,7 +31,6 @@ const indexedWorld = () => {
     });
     const world: World = Object.assign(Object.create(World.prototype), {
         chunks: new Map(),
-        entityGrid: new EntityGrid(),
         entities: new Map(),
         entityChunkIndices: new Map(),
         players: new Map(),

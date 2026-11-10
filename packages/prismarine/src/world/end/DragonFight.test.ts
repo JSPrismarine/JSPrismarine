@@ -35,7 +35,6 @@ import { BlockRuntimeIds } from '../../block/state/BlockRuntimeIds';
 import BlockUpdateScheduler from '../BlockUpdateScheduler';
 import Chunk from '../chunk/Chunk';
 import { Dimensions } from '../Dimension';
-import EntityGrid from '../EntityGrid';
 import { AttributeIds } from '@jsprismarine/protocol/wire/structures/Attribute';
 import { portalRuleOf } from '../portal/rules';
 import { createEngineWorld } from '../EngineWorld';
@@ -210,7 +209,6 @@ const liveEndWorld = (): {
         blockUpdates: new BlockUpdateScheduler(),
         entities: new Map(),
         entityChunkIndices: new Map(),
-        entityGrid: new EntityGrid(),
         players,
         server
     });

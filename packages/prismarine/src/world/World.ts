@@ -44,7 +44,6 @@ import BlockUpdateScheduler from './BlockUpdateScheduler';
 import { breakBlockWithContent, collectBreakDrops, wearBreakingTool } from './blockBreak';
 import { notifyContentNeighbors } from './neighborContent';
 import CoordinateUtils from './CoordinateUtils';
-import EntityGrid from './EntityGrid';
 import type { NamedSoundOptions, WorldChangeSink } from './WorldChangeSink';
 import { NULL_WORLD_CHANGE_SINK } from './WorldChangeSink';
 import { Dimensions, maxY } from './Dimension';
@@ -532,9 +531,6 @@ export class World implements Service {
     /** Reverse membership lets unloads visit one chunk's actors without rescanning the world. */
     private entityRuntimeIdsByChunk = new Map<number, Set<number>>();
     private gameEventListenerRegistry: GameEventListenerRegistry | undefined;
-
-    /** Where everything is, bucketed once a tick so mobs can ask who they are touching. */
-    private readonly entityGrid = new EntityGrid();
 
     /**
      * The subset of `entities` that are player-controlled, kept alongside it.
@@ -1035,28 +1031,20 @@ export class World implements Service {
         this.tickSpawners(playerChunkRefCounts);
         const isPositionTicking = (x: number, z: number): boolean =>
             playerChunkRefCounts.simulates(CoordinateUtils.fromBlockToChunk(x), CoordinateUtils.fromBlockToChunk(z));
-        const entities = this.getEntities();
-
-        // Also before them, and for the same reason: every mob asks who it is touching, and it has
-        // to be answered from where everything was at the top of the tick. Rebuilding it inside
-        // the loop would let a mob be pushed by a neighbor that had already moved and not by one
-        // that had not, which makes the shove depend on map iteration order.
-        const endEntityGridProfile = startProfile?.(`World.entityGrid:${this.name}`);
-        try {
-            this.entityGrid.rebuild(entities);
-        } finally {
-            endEntityGridProfile?.();
-        }
 
         // Claimed per tick, so an entity that arrived from a world the level ticked earlier
-        // this pass is not updated twice: see {@link Entity.claimUpdate}.
-        const tickingEntities = entities.filter((entity) => {
+        // this pass is not updated twice: see {@link Entity.claimUpdate}. Taken from the map
+        // into the one list the loop below walks, because an update can add or remove entities.
+        // No index is rebuilt here: the entity index is refiled on every position write, so a
+        // query sees each entity where its last write put it (ADR 0007).
+        const tickingEntities: Entity[] = [];
+        for (const entity of this.entities.values()) {
             if (!(entity instanceof Player)) {
                 const position = entity.getPosition();
-                if (!isPositionTicking(position.getX(), position.getZ())) return false;
+                if (!isPositionTicking(position.getX(), position.getZ())) continue;
             }
-            return entity.claimUpdate(tick);
-        });
+            if (entity.claimUpdate(tick)) tickingEntities.push(entity);
+        }
 
         // Before the updates, so the contact an entity's own update advances this tick already
         // knows whether it stood in a portal, as Java's `checkInsideBlocks` runs inside `tick`
@@ -3085,7 +3073,6 @@ export class World implements Service {
 
         this.entities.set(runtimeId, entity);
         if (entity instanceof Player) this.players.set(runtimeId, entity);
-        this.entityGrid.add(entity);
         this.getEntityIndex().addLegacy(entity);
         this.markEntityChunkChanged(entity);
 
@@ -3115,7 +3102,6 @@ export class World implements Service {
         if (this.itemEntities !== undefined && entity instanceof ItemEntity && this.entities.has(runtimeIdKey))
             this.itemEntities -= 1;
 
-        this.entityGrid.remove(entity);
         this.getEntityIndex().removeLegacy(entity);
         this.entities.delete(runtimeIdKey);
         this.players.delete(runtimeIdKey);
@@ -3453,7 +3439,6 @@ export class World implements Service {
      * @param {boolean} teleport - Whether clients should snap instead of interpolate.
      */
     public async broadcastMove(entity: Entity, teleport = false): Promise<void> {
-        this.entityGrid.refilePickupItem(entity);
         this.markEntityChunkChanged(entity);
         this.changes.entityMoved(entity, teleport);
     }
@@ -3715,14 +3700,6 @@ export class World implements Service {
      */
     public getEntity(runtimeId: bigint): Entity | null {
         return this.entities.get(Number(runtimeId)) ?? null;
-    }
-
-    /**
-     * Where everything is, as of the top of this tick.
-     * @returns {EntityGrid} The grid, for asking what is near a point.
-     */
-    public getEntityGrid(): EntityGrid {
-        return this.entityGrid;
     }
 
     /**

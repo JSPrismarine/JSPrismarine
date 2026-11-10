@@ -2,19 +2,19 @@
  * Benchmarks many mobs searching a world with many dropped item stacks.
  *
  * Run `pnpm --filter @jsprismarine/prismarine run bench:items [items] [mobs] [samples]`. It
- * compares the former whole-world scan with the live fine-cell pickup query, including exact
+ * compares the former whole-world scan with the entity index's item query, including exact
  * three-dimensional filtering, nearest-first ordering, stable ties, and an output digest.
  */
 import { createHash } from 'node:crypto';
 import os from 'node:os';
 
 import type { ContentPosition } from '../src/content/world/adapter';
+import { EntityIndex } from '../src/entity/data/entityIndex';
 import type { ContentItemEntity } from '../src/entity/data/host';
 import type { Entity } from '../src/entity/Entity';
 import { stub } from '../src/testing/stub.test.helper';
 import type { World } from '../src/world/World';
 import { Position } from '../src/world/Position';
-import EntityGrid from '../src/world/EntityGrid';
 import { percentile } from './percentile';
 
 const argumentsAfterScript = process.argv.slice(2).filter((argument) => argument !== '--');
@@ -55,8 +55,8 @@ for (let id = 0; id < ITEM_COUNT; id++) {
     });
 }
 
-const grid = new EntityGrid();
-grid.rebuild(itemEntities);
+const index = new EntityIndex();
+for (const entity of itemEntities) index.addLegacy(entity);
 const allItems = [...itemDetails.values()];
 const mobs: ContentPosition[] = Array.from({ length: MOB_COUNT }, (_unused, index) => ({
     x: ((index * 229) % 1024) - 512 + 0.5,
@@ -82,7 +82,7 @@ const run = (indexed: boolean): Sample => {
     for (const center of mobs) {
         const candidates: ContentItemEntity[] = [];
         if (indexed) {
-            for (const entity of grid.nearItemsForPickup(center.x, center.z, RADIUS)) {
+            for (const entity of index.itemsWithin(center.x, center.z, RADIUS)) {
                 const item = itemDetails.get(entity.getRuntimeId());
                 if (item !== undefined) candidates.push(item);
             }
