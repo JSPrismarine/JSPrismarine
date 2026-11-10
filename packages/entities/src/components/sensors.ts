@@ -649,9 +649,8 @@ export const damageSensor: ComponentFactory<EntityHooks, DamageSensorParams> = {
                 if (trigger.cause !== 'any' && trigger.cause !== damage.cause) continue;
                 if (trigger.filters !== undefined && !evaluateFilter(trigger.filters, context)) continue;
                 const events = trigger.event === undefined ? [] : [trigger.event];
-                for (const event of events) entity.fire(event);
                 const amount = trigger.dealsDamage === 'yes' ? damage.amount * trigger.damageMultiplier : 0;
-                return { amount, events };
+                return { amount, events, multiplier: trigger.dealsDamage === 'yes' ? trigger.damageMultiplier : 0 };
             }
             return undefined;
         }

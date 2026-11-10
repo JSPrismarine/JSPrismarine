@@ -149,12 +149,39 @@ export interface DamageEvent {
     readonly damager?: FilterEntityView;
 }
 
-/** What a damage hook decides about one damage event. */
+/**
+ * What a damage hook decides about one damage event.
+ *
+ * A hook decides and does not act: the events it names are fired when the damage is applied,
+ * so a host can sense a blow, refuse it, and leave the entity as it was.
+ */
 export interface DamageOutcome {
     /** The damage to apply; zero means the entity takes none. */
     readonly amount: number;
-    /** Events to fire as a result, applied on the entity's next tick. */
+    /** Events to fire when the damage is applied, which queues them for the entity's next tick. */
     readonly events?: readonly string[];
+    /**
+     * The factor the hook scales a blow by, when it scales one. A host that changes the amount
+     * after sensing, such as for armor, applies this to its own amount.
+     */
+    readonly multiplier?: number;
+}
+
+/**
+ * What the entity's own components make of one damage event, before anything is applied.
+ *
+ * {@link EntityInstance.senseDamage} reads it without changing the entity, and
+ * {@link EntityInstance.applyDamage} applies an amount with the events it names.
+ */
+export interface DamageSensing {
+    /** What the sensors and immunities leave of the blow. */
+    readonly amount: number;
+    /** The factor a matching sensor scales the blow by, or 1 when none matched or none scaled. */
+    readonly multiplier: number;
+    /** Whether a sensor or an immunity turned the blow aside entirely. */
+    readonly blocked: boolean;
+    /** The events the matching sensor fires when the damage is applied, whatever the amount. */
+    readonly events: readonly string[];
 }
 
 /**
