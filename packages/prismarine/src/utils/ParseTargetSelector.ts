@@ -1,6 +1,13 @@
 import { getGametypeName } from '@jsprismarine/minecraft';
-import Player from '../Player';
 import type { Entity } from '../entity/Entity';
+
+/** What a selector reads of a player beyond what every entity has: the game mode `m=` compares. */
+interface SelectedPlayer {
+    readonly gamemode: number;
+}
+
+/** Whether an entity is a player, by its type, which every kind of player answers the same. */
+const isPlayer = (entity: Entity): entity is Entity & SelectedPlayer => entity.getType() === 'minecraft:player';
 
 const SORTS = ['nearest', 'furthest', 'random', 'arbitrary'] as const;
 type Sort = (typeof SORTS)[number];
@@ -67,7 +74,7 @@ const ParseTargetSelector = ({
     // Apply filters based on type
     switch (type) {
         case 'a':
-            targets = targets.filter((entity) => entity instanceof Player);
+            targets = targets.filter(isPlayer);
             sort = 'arbitrary';
             break;
         case 'e':
@@ -115,7 +122,7 @@ const ParseTargetSelector = ({
             case 'gamemode': // Java
                 targets = targets.filter(
                     (entity) =>
-                        entity instanceof Player &&
+                        isPlayer(entity) &&
                         (filter.reverse
                             ? getGametypeName(entity.gamemode).toLowerCase() !== filter.value.toLowerCase()
                             : getGametypeName(entity.gamemode).toLowerCase() === filter.value.toLowerCase())
@@ -138,7 +145,7 @@ const ParseTargetSelector = ({
 
     switch (sort) {
         case 'nearest':
-            targets = source.getNearestEntity(targets.filter((entity) => entity instanceof Player));
+            targets = source.getNearestEntity(targets.filter(isPlayer));
             break;
         case 'random':
             // FIXME: respect limit filter

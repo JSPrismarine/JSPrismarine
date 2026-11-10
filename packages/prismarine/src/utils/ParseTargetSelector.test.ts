@@ -26,11 +26,11 @@ const somewhere = () => new Position(0, 0, 0, fakeWorld());
 const sheep = () => new GenericEntity({ identifier: 'minecraft:sheep', position: somewhere() });
 
 /**
- * A stand-in that answers `instanceof Player` without a connection behind it.
+ * A stand-in that answers the player's type without a connection behind it.
  *
- * The selector tells players apart by their class rather than by asking them, so an object
- * carrying the right methods no longer passes for one. Going through the prototype rather
- * than the constructor keeps the network session out of a unit test.
+ * The selector tells players apart by their type, which a double built from the player's
+ * prototype answers through its class. Going through the prototype rather than the
+ * constructor keeps the network session out of a unit test.
  */
 const fakePlayer = () => stubOf(Player);
 
