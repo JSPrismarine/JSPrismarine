@@ -1,6 +1,7 @@
 import { randomBytes } from 'node:crypto';
 import { EventEmitter } from 'events';
 import Dgram from 'node:dgram';
+import { isIPv6 } from 'node:net';
 import type { RemoteInfo } from 'node:dgram';
 import { MIN_DATAGRAM_BYTE_LENGTH, RAKNET_TICK_INTERVAL_MS } from './Constants';
 import RakNetSession from './Session';
@@ -29,7 +30,8 @@ const makeGuid = (): bigint => {
 };
 
 export default class ServerSocket extends EventEmitter implements RakNetListenerLike {
-    private readonly socket: Dgram.Socket;
+    /** Created by {@link start}, which knows from the bind address which family it needs. */
+    private socket: Dgram.Socket | undefined;
     private readonly guid: bigint;
     /**
      * Sessions keyed by "address:port". Every incoming datagram needs this lookup, so it
@@ -52,7 +54,9 @@ export default class ServerSocket extends EventEmitter implements RakNetListener
      * @param logger - where the socket reports.
      * @param socketBufferOptions - requested UDP buffers, which the OS may cap.
      * @param datagramSendMode - experimental frame-set send path; copy remains the default.
-     * @param serverGuid - optional identifier supplied by a worker-owning facade.
+     * @param serverGuid - optional identifier supplied by a worker-owning facade. Without one the
+     * socket takes the guid `serverName` already carries, so an IPv4 and an IPv6 socket sharing
+     * one server name answer with the same guid, and draws a fresh one only when it has none.
      */
     public constructor(
         private maxConnections: number,
@@ -65,24 +69,47 @@ export default class ServerSocket extends EventEmitter implements RakNetListener
     ) {
         super();
         validateSocketBufferOptions(socketBufferOptions);
-        this.socket = Dgram.createSocket('udp4').unref();
         // allocUnsafe would hand us recycled or zeroed memory, not a unique identifier.
         // https://github.com/facebookarchive/RakNet/blob/master/Source/RakPeer.cpp#L4525
-        this.guid = serverGuid ?? makeGuid();
+        const sharedGuid = serverName.getServerId();
+        this.guid = serverGuid ?? (sharedGuid === 0n ? makeGuid() : sharedGuid);
         // The MOTD line carries the guid too, and a client matches the two.
         this.serverName.setServerId(this.guid);
     }
 
+    /**
+     * Binds the UDP socket and starts ticking sessions. An IPv6 address binds an IPv6-only
+     * socket, so the IPv4 and IPv6 listeners of one server never contend for the same traffic.
+     *
+     * A socket that cannot bind, such as one whose port another program holds, emits `error`
+     * and stops. With no `error` listener, the error is thrown, as for any `EventEmitter`.
+     * @param address - The address to bind, IPv4 or IPv6.
+     * @param port - The port to bind; 0 lets the operating system choose.
+     */
     public start(address: string, port: number): void {
+        const ipv6 = isIPv6(address);
+        const socket = Dgram.createSocket(ipv6 ? { type: 'udp6', ipv6Only: true } : { type: 'udp4' }).unref();
+        this.socket = socket;
+        socket.once('error', (error) => {
+            this.logger.error(`Failed to bind ${address}:${port}, error=${error.message}`, 'RakNet/ServerSocket/Start');
+            this.stopped = true;
+            clearTimeout(this.ticker);
+            socket.close();
+            this.socket = undefined;
+            this.emit('error', error);
+        });
+
         try {
             // The MOTD advertises the port, and the one that was asked for is not always the
             // one that was granted: binding port 0 means "any", which the tests use and which
             // a client reading the MOTD would then be told to connect to.
-            this.socket.bind(port, address, () => {
+            socket.bind(port, address, () => {
                 // dgram rejects buffer getters before bind, so configure and report them here.
-                configureSocketBuffers(this.socket, this.logger, this.socketBufferOptions, 'RakNet/ServerSocket');
-                this.serverName.setPort(this.socket.address().port);
-                this.emit('listening', this.socket.address().port);
+                configureSocketBuffers(socket, this.logger, this.socketBufferOptions, 'RakNet/ServerSocket');
+                const bound = socket.address().port;
+                if (ipv6) this.serverName.setPortV6(bound);
+                else this.serverName.setPort(bound);
+                this.emit('listening', bound);
             });
         } catch (error: unknown) {
             this.logger.error(
@@ -144,7 +171,7 @@ export default class ServerSocket extends EventEmitter implements RakNetListener
         // Start ticking
         tick(RAKNET_TICK_INTERVAL_MS);
 
-        this.socket.on('message', this.handleMessage.bind(this));
+        socket.on('message', this.handleMessage.bind(this));
     }
 
     private handleMessage(msg: Buffer, rinfo: RemoteInfo): void {
@@ -219,7 +246,8 @@ export default class ServerSocket extends EventEmitter implements RakNetListener
         // Closed a tick late, on purpose: `dgram.send` is asynchronous however immediate the
         // priority was, so closing the handle in the same tick can drop the goodbyes that
         // have just been queued. The same reason `ClientSocket.kill` defers it.
-        setImmediate(() => this.socket.close());
+        const socket = this.socket;
+        setImmediate(() => socket?.close());
     }
 
     /**
@@ -308,7 +336,7 @@ export default class ServerSocket extends EventEmitter implements RakNetListener
     }
 
     private sendBuffers(buffers: readonly Buffer[], rinfo: RemoteInfo): void {
-        if (this.stopped) return;
+        if (this.stopped || this.socket === undefined) return;
 
         this.socket.send(buffers, rinfo.port, rinfo.address, (error) => {
             // The frame contents are borrowed buffers, so retain the vector until libuv has
@@ -321,7 +349,7 @@ export default class ServerSocket extends EventEmitter implements RakNetListener
     public sendBuffer(buffer: Buffer, rinfo: RemoteInfo): void {
         // Sending on a closed socket throws ERR_SOCKET_DGRAM_NOT_RUNNING, which from a
         // timer callback would surface as an uncaughtException.
-        if (this.stopped) return;
+        if (this.stopped || this.socket === undefined) return;
 
         this.socket.send(buffer, rinfo.port, rinfo.address);
     }

@@ -24,7 +24,8 @@ const serverName: any = {
     setOnlinePlayerCount: vi.fn(),
     setSessionCount: vi.fn(),
     setPort: vi.fn(),
-    setServerId: vi.fn()
+    setServerId: vi.fn(),
+    getServerId: () => 0n
 };
 
 const CLIENT_GUID = 0x0123456789abcdefn;
@@ -46,7 +47,7 @@ const start = async () => {
     client.on('message', (msg) => inbox.push(msg));
     await new Promise<void>((resolve) => client.bind(0, '127.0.0.1', resolve));
 
-    const socket = server['socket'];
+    const socket = server['socket']!;
     const port = await new Promise<number>((resolve, reject) => {
         try {
             resolve(socket.address().port);

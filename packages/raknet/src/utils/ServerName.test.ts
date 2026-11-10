@@ -26,7 +26,8 @@ describe('ServerName', () => {
         const name = build();
         name.setServerId(0x0123_4567_89ab_cdefn);
         name.setOnlinePlayerCount(3);
-        name.setPort(19_133);
+        name.setPort(19_134);
+        name.setPortV6(19_135);
 
         expect(name.toString()).toBe(
             [
@@ -40,8 +41,8 @@ describe('ServerName', () => {
                 'JSRakNet', // sub name
                 'Survival', // gamemode
                 '1', // flag, not a count: a longer line is dropped unless this is exactly 1
-                '19133', // ipv4 port
-                '19133', // ipv6 port
+                '19134', // ipv4 port
+                '19135', // ipv6 port
                 '0',
                 '0',
                 '' // the line is terminated by a separator, not merely separated by them
@@ -63,8 +64,10 @@ describe('ServerName', () => {
         expect(name.toString().split(';')[3]).toBe('1.26.51');
     });
 
-    it('advertises the default Bedrock port until the socket says otherwise', () => {
-        expect(build().toString().split(';')[10]).toBe('19132');
+    it('advertises the default Bedrock ports until the sockets say otherwise', () => {
+        const fields = build().toString().split(';');
+        expect(fields[10]).toBe('19132');
+        expect(fields[11]).toBe('19133');
     });
 
     it('falls back to a placeholder motd rather than an empty field', () => {

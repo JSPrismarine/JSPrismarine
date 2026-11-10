@@ -1045,7 +1045,8 @@ describe('H9 - server GUID', () => {
             setOnlinePlayerCount: vi.fn(),
             setSessionCount: vi.fn(),
             setPort: vi.fn(),
-            setServerId: vi.fn()
+            setServerId: vi.fn(),
+            getServerId: () => 0n
         };
         const guids = new Set<bigint>();
         for (let i = 0; i < 8; i++) {

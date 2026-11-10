@@ -224,6 +224,38 @@ describe('WorkerServerSocket', () => {
         expect(server.getMetrics().outbound.fullWrites).toBe(1);
     });
 
+    it('reports a port another socket holds as an error and a rejected start', async () => {
+        server = new WorkerServerSocket(10, false, makeServerName(), logger, {}, 1024 * 1024);
+        server.start('127.0.0.1', 0);
+        await server.waitUntilReady();
+        const port = server.serverName.getPort();
+
+        const loser = new WorkerServerSocket(10, false, makeServerName(), logger, {}, 1024 * 1024);
+        const errors: Error[] = [];
+        loser.on('error', (error) => errors.push(error));
+        loser.start('127.0.0.1', port);
+
+        await expect(loser.waitUntilReady()).rejects.toThrow('EADDRINUSE');
+        expect(errors).toHaveLength(1);
+        loser.kill();
+    });
+
+    it('fails a start nobody awaits through error alone, not an unhandled rejection', async () => {
+        server = new WorkerServerSocket(10, false, makeServerName(), logger, {}, 1024 * 1024);
+        server.start('127.0.0.1', 0);
+        await server.waitUntilReady();
+
+        // Never asked for readiness, as the server's networking never asks.
+        const loser = new WorkerServerSocket(10, false, makeServerName(), logger, {}, 1024 * 1024);
+        const failed = new Promise<Error>((resolve) => loser.on('error', resolve));
+        loser.start('127.0.0.1', server.serverName.getPort());
+
+        expect((await failed).message).toContain('EADDRINUSE');
+        // Let a rejection nobody handles reach the process, where Vitest fails the run on it.
+        await delay(50);
+        loser.kill();
+    });
+
     it('emits session closes when the worker listener is killed', async () => {
         const { server } = await start();
         const closed: string[] = [];

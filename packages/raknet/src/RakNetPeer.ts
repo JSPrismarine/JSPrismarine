@@ -69,4 +69,6 @@ export interface RakNetListenerLike extends RakNetPeer {
     on(event: 'closeConnection', listener: (address: InetAddress, reason: string) => void): this;
     on(event: 'encapsulated', listener: (frame: Frame, address: InetAddress) => void): this;
     on(event: 'raw', listener: (buffer: Buffer, address: InetAddress) => void): this;
+    /** The socket could not bind, so the listener has stopped. */
+    on(event: 'error', listener: (error: Error) => void): this;
 }

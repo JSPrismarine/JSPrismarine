@@ -1,5 +1,6 @@
 import { randomBytes } from 'node:crypto';
 import { EventEmitter } from 'node:events';
+import { isIPv6 } from 'node:net';
 import { Worker } from 'node:worker_threads';
 import type { RemoteInfo } from 'node:dgram';
 import type Packet from './protocol/Packet';
@@ -74,6 +75,8 @@ export default class WorkerServerSocket extends EventEmitter implements RakNetLi
     private readonly sessionIdsByAddress = new Map<string, number>();
     private readonly unsubscribeNameChanges: () => void;
     private worker: Worker | undefined;
+    /** The address {@link start} bound, which says whether the worker's port is the IPv6 one. */
+    private address: string | undefined;
     private maxConnections: number;
     private stopped = false;
     private readyPromise: Promise<void> | undefined;
@@ -104,7 +107,9 @@ export default class WorkerServerSocket extends EventEmitter implements RakNetLi
         this.metricsMemory = new SharedArrayBuffer(METRIC_COUNT * Int32Array.BYTES_PER_ELEMENT);
         this.metrics = new Int32Array(this.metricsMemory);
 
-        this.guid = this.createGuid();
+        // Shared with any other socket on this server name, so both answer with one guid.
+        const sharedGuid = this.serverName.getServerId();
+        this.guid = sharedGuid === 0n ? this.createGuid() : sharedGuid;
         this.serverName.setServerId(this.guid);
         this.unsubscribeNameChanges = this.serverName.onChange((snapshot) => {
             try {
@@ -122,11 +127,16 @@ export default class WorkerServerSocket extends EventEmitter implements RakNetLi
     public start(address: string, port: number): void {
         if (this.worker) throw new Error('Worker RakNet socket has already been started');
         if (this.stopped) throw new Error('Cannot start a stopped Worker RakNet socket');
+        this.address = address;
 
         this.readyPromise = new Promise<void>((resolve, reject) => {
             this.resolveReady = resolve;
             this.rejectReady = reject;
         });
+        // A failed start also emits `error`, which is where a caller that never asks for
+        // readiness hears of it. Without this, that caller's failure was an unhandled rejection;
+        // `waitUntilReady` still rejects.
+        this.readyPromise.catch(() => {});
 
         const sourceWorker = import.meta.url.endsWith('.ts') && embeddedWorker() === undefined;
         const workerUrl = new URL(
@@ -345,7 +355,8 @@ export default class WorkerServerSocket extends EventEmitter implements RakNetLi
         if (typeof message.type !== 'string') return;
 
         if (message.type === 'ready' && 'port' in message && typeof message.port === 'number') {
-            this.serverName.setPort(message.port);
+            if (this.address !== undefined && isIPv6(this.address)) this.serverName.setPortV6(message.port);
+            else this.serverName.setPort(message.port);
             this.resolveReady?.();
             this.resolveReady = undefined;
             this.rejectReady = undefined;
@@ -401,6 +412,10 @@ export default class WorkerServerSocket extends EventEmitter implements RakNetLi
         this.unsubscribeNameChanges();
         this.serverName.setSessionCount(0);
         this.stopped = true;
+        // A worker whose socket could not bind is still running; one that crashed is not.
+        void this.worker?.terminate();
+        // Only to a listener: a failed worker has always been logged rather than thrown.
+        if (this.listenerCount('error') > 0) this.emit('error', error);
     }
 
     private deliverRecord(record: Buffer): void {
@@ -416,7 +431,7 @@ export default class WorkerServerSocket extends EventEmitter implements RakNetLi
 
         if (type === EVENT_CONNECTED) {
             if (payload.byteLength !== CONNECTED_PAYLOAD_BYTES) return;
-            const rinfo: RemoteInfo = { address, port, family: 'IPv4', size: 0 };
+            const rinfo: RemoteInfo = { address, port, family: isIPv6(address) ? 'IPv6' : 'IPv4', size: 0 };
             const mtuSize = payload.readUInt16LE(0) + UDP_HEADER_SIZE;
             const guid = payload.readBigUInt64LE(2);
             const session = new WorkerSessionProxy(this, id, mtuSize, rinfo, guid);
