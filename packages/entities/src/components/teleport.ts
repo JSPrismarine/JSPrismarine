@@ -1,6 +1,7 @@
 import type { ComponentFactory } from '@jsprismarine/content';
 import { accepted, rejected } from '@jsprismarine/content';
 import type { Filter } from '@jsprismarine/packs';
+import { defineComponentState, stateField } from '../componentState';
 
 import type { EntityInstance } from '../entityInstance';
 import type { EntityHooks, EntityPosition } from '../hooks';
@@ -29,9 +30,8 @@ export interface TeleportParams {
     readonly teleportsOnProjectileHit: boolean;
 }
 
-interface TeleportState {
-    randomTeleportTicks: number;
-}
+/** Ticks until `minecraft:teleport` next rolls a random teleport. */
+const TELEPORT_STATE = defineComponentState('minecraft:teleport', { randomTeleportTicks: stateField.number });
 
 const DEFAULT_TELEPORT_CUBE = { x: 32, y: 16, z: 32 };
 
@@ -86,14 +86,14 @@ export const teleport: ComponentFactory<EntityHooks, TeleportParams> = {
         });
     },
     create: (params) => {
-        const states = new WeakMap<EntityInstance, TeleportState>();
-
         return {
             onInitialize: (entity) => {
-                states.set(entity, { randomTeleportTicks: nextRandomTeleportTicks(entity, params) });
+                entity.componentState.set(TELEPORT_STATE, {
+                    randomTeleportTicks: nextRandomTeleportTicks(entity, params)
+                });
             },
             onTick: (entity) => {
-                const state = states.get(entity);
+                const state = entity.componentState.get(TELEPORT_STATE);
                 if (state === undefined) return;
 
                 const actuator = entity.actuator;
@@ -111,15 +111,19 @@ export const teleport: ComponentFactory<EntityHooks, TeleportParams> = {
                         params.targetDistance
                     );
                     if (destination !== undefined && teleportTo(actuator, destination)) {
-                        state.randomTeleportTicks = nextRandomTeleportTicks(entity, params);
+                        entity.componentState.set(TELEPORT_STATE, {
+                            randomTeleportTicks: nextRandomTeleportTicks(entity, params)
+                        });
                         return;
                     }
                 }
 
                 if (!params.randomTeleports) return;
-                state.randomTeleportTicks -= 1;
-                if (state.randomTeleportTicks > 0) return;
-                state.randomTeleportTicks = nextRandomTeleportTicks(entity, params);
+                const remaining = state.randomTeleportTicks - 1;
+                entity.componentState.set(TELEPORT_STATE, {
+                    randomTeleportTicks: remaining > 0 ? remaining : nextRandomTeleportTicks(entity, params)
+                });
+                if (remaining > 0) return;
 
                 const lightLevel = entity.filterContext().self.measure?.('light_level');
                 if (lightLevel === undefined) return;
