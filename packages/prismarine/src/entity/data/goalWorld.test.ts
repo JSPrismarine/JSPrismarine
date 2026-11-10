@@ -667,6 +667,22 @@ describe('the goal world over the entity runtime', () => {
             expect(world.sounds).toContain('random.explode');
         });
 
+        it('reads only the index cells its reach touches', () => {
+            const world = new TestEntityWorld();
+            const fixture = fixtureOf(world);
+            const creeper = spawned(fixture, 'jsprismarine:bomber', groundAt(0, 0));
+            const near = spawned(fixture, 'jsprismarine:pet', groundAt(2, 0));
+            // Far outside a power-3 blast's reach, in cells it does not touch.
+            for (let index = 0; index < 20; index += 1) spawned(fixture, 'jsprismarine:pet', groundAt(200 + index, 0));
+            const { index } = fixture.runtime;
+            const before = index.candidatesExamined();
+
+            fixture.runtime.explode(creeper.body);
+
+            expect(index.candidatesExamined() - before).toBeLessThanOrEqual(2);
+            expect(near.instance.attributes.get('health')?.current).toBeLessThan(20);
+        });
+
         it('takes the ground out from under it', () => {
             const world = new TestEntityWorld();
             const fixture = fixtureOf(world);
