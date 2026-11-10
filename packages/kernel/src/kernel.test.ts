@@ -82,6 +82,36 @@ describe('Kernel lifecycle', () => {
         expect(calls).toStrictEqual(['c:stop', 'b:stop', 'a:stop']);
     });
 
+    it('stops the modules that started when a later start throws, and can start again', async () => {
+        const calls: string[] = [];
+        let fail = true;
+        const kernel = new Kernel();
+        kernel.register(provider('a', aToken, calls));
+        kernel.register(provider('b', bToken, calls, [aToken]));
+        kernel.register({
+            id: 'broken',
+            dependencies: [bToken],
+            register() {},
+            start() {
+                calls.push('broken:start');
+                if (fail) throw new Error('start exploded');
+            },
+            stop() {
+                calls.push('broken:stop');
+            }
+        });
+        await kernel.registerAll();
+        calls.length = 0;
+
+        await expect(kernel.start()).rejects.toThrow('start exploded');
+        expect(calls).toStrictEqual(['a:start', 'b:start', 'broken:start', 'b:stop', 'a:stop']);
+
+        fail = false;
+        calls.length = 0;
+        await kernel.start();
+        expect(calls).toStrictEqual(['a:start', 'b:start', 'broken:start']);
+    });
+
     it('logs a failing stop and keeps stopping the remaining modules', async () => {
         const calls: string[] = [];
         const lines: string[] = [];
