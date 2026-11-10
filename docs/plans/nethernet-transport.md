@@ -70,8 +70,9 @@ Facts gathered on 2026-11-10, from the sources listed.
 **[`bedrock-protocol` 3.61](https://github.com/PrismarineJS/bedrock-protocol), the other `nethernet`
 consumer:**
 
-- Over NetherNet a batch has no `0xFE` header, and there is no Minecraft-level encryption (no
-  `ServerToClientHandshake`); DTLS covers the wire.
+- Over NetherNet a batch has no `0xFE` header. bedrock-protocol's client still reads
+  `ServerToClientHandshake` and answers it, but never turns encryption on; DTLS covers the wire.
+  (The hill climb below confirmed BDS does the same.)
 - The LAN advertisement is version 7: varint-prefixed strings and zigzag varints for MOTD, protocol,
   game version, level name, player counts, game mode, editor and hardcore flags, accepted auth kinds,
   a nonce, and a connection type.
@@ -135,8 +136,9 @@ slice when it lands on the branch.
    `LoginHandler` read the address from the transport connection. `BaseTransport` and
    `KeyedTransport` hold what `RakNetTransport` used to own. `InetAddress` stays as the peer address
    value type: every transport, including a future Java one, has an IP address and port.
-3. [x] **Capability-driven encryption.** Skip `ServerToClientHandshake` when the transport reports
-   `encrypted`. Unit test both paths.
+3. [x] **Capability-driven encryption.** On a transport that reports `encrypted`, send
+   `ServerToClientHandshake` but leave encryption off, as BDS 1.26.51 does over NetherNet. (First
+   written to skip the handshake; the BDS hill climb showed BDS sends it.)
 4. [x] **Multiple transports.** `MultiTransport` owning the shared allocator, forwarding events with
    each child's ordering intact, and `close` fanning out. `ServerNetworking` builds it from the
    enabled transports (after the config slice). Unit tests with manual transports.
@@ -170,23 +172,33 @@ slice when it lands on the branch.
     slice, and this plan. Left: mark NetherNet done in the
     [rearchitecture plan](server-rearchitecture.md) once the client e2e run confirms a real join.
 
-11. [ ] **`@jsprismarine/nethernet`.** A transport package beside `@jsprismarine/raknet`, so the
+11. [x] **`@jsprismarine/nethernet`.** A transport package beside `@jsprismarine/raknet`, so the
     server and the client share one home for NetherNet: SDP helpers, the ES384 JWS, `a=identity`
     signing and verification (the server's JWK `cpk`, the client's base64 DER `cpk`), the LAN
-    advertisement codec, the join status, HTTP signaling for both ends, and LAN discovery. It depends
-    on `@jsprismarine/binaryutils`, `@jsprismarine/logger` and npm `nethernet`; the `0xFE` batch id
-    stays in each side's transport, which already knows the Bedrock batch.
-12. [ ] **Client NetherNet transport.** `@jsprismarine/client` gets a NetherNet `ITransport` that
+    advertisement codec, the join status and HTTP signaling for both ends. It depends on
+    `@jsprismarine/binaryutils` and npm `nethernet`, with its own small logger interface; the `0xFE`
+    batch id stays in each side's transport, which already knows the Bedrock batch. LAN discovery
+    from the client side is not written yet.
+12. [x] **Client NetherNet transport.** `@jsprismarine/client` gets a NetherNet `ITransport` that
     joins by address: probe `GET /v1/join`, post a signed offer, verify the answer's identity, then
-    carry batches. The client and server test against each other first.
-13. [ ] **Hill climb against BDS.** Point the client at a Bedrock Dedicated Server with
-    `transport=nethernet` (BDS answered our unsigned offer with `37`) and fix whatever stops it,
-    on both sides. A client that joins BDS shows what the server must accept from real clients.
+    carry batches. `Client` picks it with `network: 'nethernet'`. The login test joins the in-process
+    server over NetherNet and spawns.
+13. [x] **Hill climb against BDS.** The client joins BDS 1.26.51.1 (`transport=nethernet`,
+    `online-mode=false`) and spawns. What it took, on 2026-11-10:
+    - BDS answers `37` to an offer without `a=identity` and accepts a self-signed client identity
+      (base64 DER `cpk`, domain `self`).
+    - With LAN visibility off, BDS answers `GET /v1/join` with `200` and an empty body, so the probe
+      treats any 2xx as NetherNet and the status as optional.
+    - BDS sends `ServerToClientHandshake` over NetherNet but keeps batches in the clear; an
+      encrypted `ClientToServerHandshake` stalls the login. Client and server now both leave
+      encryption off on an encrypting transport.
+    Next rungs: online mode (a GameServerToken identity), and a real game client through cinnabar.
 
 ## Open questions
 
-- What does BDS's `37` mean? BDS answered `200 application/sdp` with that body to an offer without
-  `a=identity`, with `online-mode=false`.
+- BDS answers `37` (`200 application/sdp`) to an offer without `a=identity`. Our signaling answers
+  a refused offer with a non-2xx status, as go-nethernet does; whether game clients treat BDS's
+  form differently is untested.
 - Online-mode servers could match the offer's `cpk` to the Login packet's GameServerToken, the
   check go-nethernet's listener leaves to the Minecraft layer.
 - Should an online-mode server verify the offer's GameServerToken before answering? It is a second
