@@ -203,7 +203,7 @@ export default class WorkerServerSocket extends EventEmitter implements RakNetLi
         }
         this.sessionsById.clear();
         this.sessionIdsByAddress.clear();
-        this.serverName.setOnlinePlayerCount(0);
+        this.serverName.setSessionCount(0);
     }
 
     /** Whether the main-thread view has room for another completed connection. */
@@ -399,7 +399,7 @@ export default class WorkerServerSocket extends EventEmitter implements RakNetLi
         this.sessionsById.clear();
         this.sessionIdsByAddress.clear();
         this.unsubscribeNameChanges();
-        this.serverName.setOnlinePlayerCount(0);
+        this.serverName.setSessionCount(0);
         this.stopped = true;
     }
 
@@ -422,7 +422,7 @@ export default class WorkerServerSocket extends EventEmitter implements RakNetLi
             const session = new WorkerSessionProxy(this, id, mtuSize, rinfo, guid);
             this.sessionsById.set(id, session);
             this.sessionIdsByAddress.set(session.getAddress().toToken(), id);
-            this.serverName.setOnlinePlayerCount(this.sessionsById.size);
+            this.serverName.setSessionCount(this.sessionsById.size);
             this.emit('openConnection', session);
             return;
         }
@@ -442,7 +442,7 @@ export default class WorkerServerSocket extends EventEmitter implements RakNetLi
             session.markClosed();
             this.sessionsById.delete(id);
             this.sessionIdsByAddress.delete(session.getAddress().toToken());
-            this.serverName.setOnlinePlayerCount(this.sessionsById.size);
+            this.serverName.setSessionCount(this.sessionsById.size);
             this.emit('closeConnection', session.getAddress(), payload.toString('utf8') || 'closed');
             return;
         }

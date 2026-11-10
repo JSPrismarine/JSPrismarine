@@ -255,7 +255,7 @@ export default class ServerSocket extends EventEmitter implements RakNetListener
         const key = ServerSocket.sessionKey(rinfo.address, rinfo.port);
         this.sessions.set(key, new RakNetSession(this, mtuSize, rinfo, incomingGuid));
         this.logger.verbose(`Session created for client=${rinfo.address}:${rinfo.port}, mtu=${mtuSize}`);
-        this.serverName.setOnlinePlayerCount(this.sessions.size);
+        this.serverName.setSessionCount(this.sessions.size);
     }
 
     public removeSession(session: RakNetSession, reason?: string): void {
@@ -267,7 +267,7 @@ export default class ServerSocket extends EventEmitter implements RakNetListener
 
         this.emit('closeConnection', session.getAddress(), reason);
         this.logger.verbose(`Closed session for client=${session.getAddress()}, reason=${reason}`);
-        this.serverName.setOnlinePlayerCount(this.sessions.size);
+        this.serverName.setSessionCount(this.sessions.size);
     }
 
     public getLogger(): Logger {

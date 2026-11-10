@@ -90,4 +90,17 @@ describe('ServerName', () => {
 
         expect(changes).toEqual(['new motd:19132', 'new motd:19140']);
     });
+
+    it('follows the socket session count until an owner takes the player count over', () => {
+        const name = build();
+
+        name.setSessionCount(2);
+        expect(name.getOnlinePlayerCount()).toBe(2);
+
+        // A server with players on NetherNet too: RakNet's sessions are only part of the count.
+        name.ownPlayerCount();
+        name.setOnlinePlayerCount(5);
+        name.setSessionCount(1);
+        expect(name.getOnlinePlayerCount()).toBe(5);
+    });
 });

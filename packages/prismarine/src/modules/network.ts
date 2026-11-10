@@ -94,6 +94,8 @@ export class ServerNetworking implements Networking {
         const server = this.server;
         const config = server.getConfig();
         this.serverName = new ServerName(server, latestCodec);
+        // Players arrive over every transport, so RakNet's sessions are not the count; see countConnection.
+        this.serverName.ownPlayerCount();
 
         const serverName = this.serverName;
         this.transport = new MultiTransport((ids) => {
