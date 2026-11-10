@@ -87,6 +87,10 @@ commit messages and comments.
   source file stays unchanged. When editing one, implement both directions before updating the
   baseline with `node scripts/check-packet-codecs.mts --update`. Add round-trip coverage when
   adding a packet or changing its wire layout.
+- Give a new or changed packet in `packages/protocol` a declarative wire layout
+  ([ADR 0003](docs/adr/0003-declarative-wire-layouts.md)). Write its body by hand only for a
+  reason the ADR lists, and record it with `node scripts/check-wire-layouts.mts --update --reason
+  <reason>`; `pnpm run lint:wire-layouts` fails on an unlisted hand-written body.
 - Choose the smallest design that meets the request. Trace affected callers, package dependents, and
   failure paths before changing shared behavior.
 - Code is the source of truth for every value it owns: versions, requirements, defaults, counts,
@@ -166,7 +170,7 @@ starts. When the plan has none, say so and propose one instead of benchmarking a
   `pnpm run typecheck`, `pnpm run test`, and `pnpm run lint`; use package-scoped scripts when they
   cover the affected work.
 - After changing repository files, run `pnpm run lint:custom` after your final edit. It runs the
-  American filename, packet codec, JSDoc, Unicode escape and docs facts checks. `pnpm run lint` includes this
+  American filename, packet codec, wire layout, JSDoc, Unicode escape and docs facts checks. `pnpm run lint` includes this
   aggregate.
 - `scripts/agent-lint-gate.mts` runs as a Claude Code and Codex hook (`.claude/settings.json`, `.codex/hooks.json`). It runs `pnpm run lint` before `git commit` and `git push` and blocks them on failure. It also runs when you finish with uncommitted changes. Fix the reported problems instead of working around the hook. Codex asks to trust the project hooks on first use; review them with `/hooks`.
 - Review the diff and `git status --short` before finishing. Report the checks actually run and any failures or checks that could not be completed.
