@@ -10,9 +10,17 @@
  * definitions.
  */
 import type { SpawnableEntityClass } from './Entity';
-import Player from './Human';
+import Human from './Human';
 
-export { Player };
+export { Human };
+
+/**
+ * The player body, under the name this module used to give it.
+ * @deprecated Use {@link Human}. A player is reached through its session, by entity id.
+ */
+export const Player = Human;
+/** @deprecated Use {@link Human}. */
+export type Player = Human;
 
 /** @see {@link writtenEntities} */
 let index: ReadonlyMap<string, SpawnableEntityClass> | undefined;
@@ -25,4 +33,4 @@ let index: ReadonlyMap<string, SpawnableEntityClass> | undefined;
  * @returns {ReadonlyMap<string, SpawnableEntityClass>} The classes, keyed by `MOB_ID`.
  */
 export const writtenEntities = (): ReadonlyMap<string, SpawnableEntityClass> =>
-    (index ??= new Map([Player].map((written) => [written.MOB_ID, written])));
+    (index ??= new Map([Human].map((written) => [written.MOB_ID, written])));
