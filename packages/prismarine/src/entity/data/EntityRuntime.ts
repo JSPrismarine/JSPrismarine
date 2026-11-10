@@ -1310,44 +1310,62 @@ export class EntityRuntime implements EntityScene {
         const entities =
             shouldTick === undefined ? allEntities : allEntities.filter((entity) => shouldTick(entity.position));
         for (const entity of entities) {
-            if (entity.removed !== undefined) continue;
-            if (this.pendingDeaths.delete(entity.id)) {
-                entity.instance.applyQueuedEvents();
-                if (entity.removed !== undefined) continue;
-                if (!entity.instance.hasComponent('minecraft:behavior.dragondeath')) {
-                    if (this.explodeOnDeath(entity)) continue;
-                    this.kill(entity);
-                    continue;
-                }
-                // The killing hit added the death-hold goal, so the hold begins this tick.
-                this.host.startDeathAnimation?.(entity.id);
+            if (entity.removed !== undefined || this.store.isSkipped(entity.id)) continue;
+            if (this.store.broken !== undefined) break;
+            // One unit per update (ADR 0015): a throw undoes what this update wrote, skips the
+            // entity for the rest of the tick and counts against it, and the pass goes on.
+            const outcome = this.store.unit(() => this.updateEntity(entity, tick));
+            if (!outcome.failed) {
+                this.store.succeeded(entity.id);
+                continue;
             }
-            this.updateMedium(entity);
-            this.tickTimers(entity.body);
-            if (entity.runsGoals) this.resetNoActionTimeNearPlayers(entity);
-            entity.instance.tick(entity.runsGoals);
-            this.tickDaylightBurn(entity);
-            this.tickVoid(entity);
-            if (entity.removed !== undefined) continue;
-            entity.body.containerCapacity = this.containerCapacityOf(entity.instance);
-            this.syncGameEventListener(entity);
-            this.index.refreshFamilies(entity);
-            this.tickBrain(entity);
-            tickBrainNavigation(entity);
-            this.coast(entity);
-            if (entity.removed !== undefined) continue;
-            this.step(entity);
-            this.updateMedium(entity);
-            this.updateGrounded(entity);
-            this.tickAreaAttack(entity, tick);
-            if (entity.removed !== undefined) continue;
-            if (this.tickFuse(entity)) continue;
-            this.carryRiders(entity);
-            if (entity.removed !== undefined) continue;
-            this.pushIntersectingEntity(entity);
+            this.report(
+                `${entity.identifier} ${entity.id} threw in its update, which was undone: ${String(outcome.error)}`
+            );
+            if (this.store.failed(entity.id) && this.store.broken === undefined)
+                this.remove(entity.id, 'update_failed');
         }
+        if (this.store.broken !== undefined) return;
         this.runSpawnCycle(tick);
         this.runDespawnCycle(shouldTick);
+    }
+
+    /** One entity's update in the entity pass, which {@link EntityRuntime.tickEntities} runs as a unit. */
+    private updateEntity(entity: DataEntity, tick: number): void {
+        if (this.pendingDeaths.delete(entity.id)) {
+            entity.instance.applyQueuedEvents();
+            if (entity.removed !== undefined) return;
+            if (!entity.instance.hasComponent('minecraft:behavior.dragondeath')) {
+                if (this.explodeOnDeath(entity)) return;
+                this.kill(entity);
+                return;
+            }
+            // The killing hit added the death-hold goal, so the hold begins this tick.
+            this.host.startDeathAnimation?.(entity.id);
+        }
+        this.updateMedium(entity);
+        this.tickTimers(entity.body);
+        if (entity.runsGoals) this.resetNoActionTimeNearPlayers(entity);
+        entity.instance.tick(entity.runsGoals);
+        this.tickDaylightBurn(entity);
+        this.tickVoid(entity);
+        if (entity.removed !== undefined) return;
+        entity.body.containerCapacity = this.containerCapacityOf(entity.instance);
+        this.syncGameEventListener(entity);
+        this.index.refreshFamilies(entity);
+        this.tickBrain(entity);
+        tickBrainNavigation(entity);
+        this.coast(entity);
+        if (entity.removed !== undefined) return;
+        this.step(entity);
+        this.updateMedium(entity);
+        this.updateGrounded(entity);
+        this.tickAreaAttack(entity, tick);
+        if (entity.removed !== undefined) return;
+        if (this.tickFuse(entity)) return;
+        this.carryRiders(entity);
+        if (entity.removed !== undefined) return;
+        this.pushIntersectingEntity(entity);
     }
 
     /** Builds the current tick's player list and id index from the host's live view. */
