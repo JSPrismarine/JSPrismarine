@@ -85,6 +85,14 @@ describe('Server', () => {
                 return false;
             }
 
+            /**
+             * The listener on this thread, which `stubRakNetListener` replaces, so no test binds a
+             * socket. The worker listener would bind a real one, on a port another run may hold.
+             */
+            public override getUseRakNetWorker() {
+                return false;
+            }
+
             public override getEnableTicking() {
                 return options.ticking ?? false;
             }
@@ -125,7 +133,7 @@ describe('Server', () => {
             config: debugConfig('test-world')
         });
 
-        await prismarine.bootstrap('127.0.0.1', 12345);
+        await prismarine.bootstrap('127.0.0.1', 0);
         await expect(prismarine.shutdown({ stayAlive: true })).resolves.toBeUndefined();
     });
 
@@ -137,7 +145,7 @@ describe('Server', () => {
         // No tick has run yet, so there is nothing to report.
         expect(prismarine.getTickMs()).toBe(0);
 
-        await prismarine.bootstrap('127.0.0.1', 12345);
+        await prismarine.bootstrap('127.0.0.1', 0);
         await new Promise((resolve) => setTimeout(resolve, 200));
         try {
             const tickMs = prismarine.getTickMs();
@@ -170,7 +178,7 @@ describe('Server', () => {
         });
         let bootstrapped = false;
         try {
-            await prismarine.bootstrap('127.0.0.1', 12345);
+            await prismarine.bootstrap('127.0.0.1', 0);
             bootstrapped = true;
             await new Promise((resolve) => setTimeout(resolve, 4500));
             expect(writes.length).toBeLessThanOrEqual(1);
@@ -195,7 +203,7 @@ describe('Server', () => {
             headless: true
         });
 
-        await prismarine.bootstrap('127.0.0.1', 12345);
+        await prismarine.bootstrap('127.0.0.1', 0);
         await expect(prismarine.shutdown({ stayAlive: true })).resolves.toBeUndefined();
     });
 });
