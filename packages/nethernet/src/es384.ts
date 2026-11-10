@@ -1,4 +1,4 @@
-import { sign } from 'node:crypto';
+import { sign, verify } from 'node:crypto';
 import type { KeyObject } from 'node:crypto';
 
 /** The curve Bedrock signs with: the login chain, the encryption handshake and NetherNet identities. */
@@ -54,3 +54,17 @@ export const detachedEs384 = (payload: string, privateKey: KeyObject): string =>
     const signed = signEs384({}, Buffer.from(payload).toString('base64url'), privateKey);
     return `${signed.header}..${signed.signature}`;
 };
+
+/**
+ * Whether `signature` is an ES384 signature, `r || s` as JWS writes it, over `signingInput`.
+ * @param signingInput - `header.payload`, both base64url.
+ * @param signature - The base64url signature.
+ * @param publicKey - The P-384 key it should verify against.
+ */
+export const verifiesEs384 = (signingInput: string, signature: string, publicKey: KeyObject): boolean =>
+    verify(
+        'sha384',
+        Buffer.from(signingInput),
+        { key: publicKey, dsaEncoding: 'ieee-p1363' },
+        Buffer.from(signature, 'base64url')
+    );

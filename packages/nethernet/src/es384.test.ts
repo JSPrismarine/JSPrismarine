@@ -1,18 +1,12 @@
-import { generateKeyPairSync, verify } from 'node:crypto';
+import { generateKeyPairSync } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 
-import { BEDROCK_CURVE, compactEs384, detachedEs384 } from './es384';
+import { BEDROCK_CURVE, compactEs384, detachedEs384, verifiesEs384 } from './es384';
 
 const keys = generateKeyPairSync('ec', { namedCurve: BEDROCK_CURVE });
 
-/** Checks a JWS signature the way a JOSE library does: ES384 over `header.payload`, `r || s`. */
 const verifies = (header: string, payload: string, signature: string): boolean =>
-    verify(
-        'sha384',
-        Buffer.from(`${header}.${payload}`),
-        { key: keys.publicKey, dsaEncoding: 'ieee-p1363' },
-        Buffer.from(signature, 'base64url')
-    );
+    verifiesEs384(`${header}.${payload}`, signature, keys.publicKey);
 
 const json = (part: string): unknown => JSON.parse(Buffer.from(part, 'base64url').toString());
 
