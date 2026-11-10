@@ -129,7 +129,8 @@ const replicatorOver = ({
     const world = stub<World>({
         getName: () => 'test',
         getPlayers: () => players,
-        getEntities: () => entities
+        getEntities: () => entities,
+        shownActors: () => entities
     });
 
     const server = stub<Server>({

@@ -11,6 +11,7 @@ import type PlayerSession from '../network/PlayerSession';
 import Player from '../Player';
 import { stub, stubOf } from '../testing/stub.test.helper';
 import type { DimensionTravel, PortalBlockRef } from './portal/DimensionTravel';
+import type { ShownActor } from './ShownActor';
 import type { SystemBlock } from './WorldSystems';
 import BlockUpdateScheduler from './BlockUpdateScheduler';
 import { Dimensions } from './Dimension';
@@ -418,7 +419,7 @@ describe('world', () => {
 
         it('continues flushing later attributes after a synchronous sink failure', async () => {
             const entities: Entity[] = [];
-            const sent: Entity[] = [];
+            const sent: ShownActor[] = [];
             let failingEntity: Entity | undefined;
             const { world } = worldTicking({
                 entities,
