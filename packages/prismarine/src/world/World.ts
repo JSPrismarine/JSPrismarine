@@ -3768,11 +3768,13 @@ export class World implements Service {
                 // A slot can carry two counts that normally agree; preserve both so the digest
                 // catches the same split state that can duplicate a stack during inventory moves.
                 // The cursor is transient and is not part of storedInventory's persistence record.
+                // The components are what the change log records of the player besides its body.
                 hash.update(
                     JSON.stringify({
                         inventory: storedInventory(inventory),
                         cursor: cursor === null ? null : storedItem(cursor),
-                        stackCounts
+                        stackCounts,
+                        components: entity.componentSnapshot()
                     })
                 );
             }
