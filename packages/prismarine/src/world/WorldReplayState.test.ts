@@ -11,8 +11,27 @@ import { Dimensions } from './Dimension';
 import type { Generator } from './Generator';
 import type BaseProvider from './providers/BaseProvider';
 import { World } from './World';
+import { Position } from './Position';
+import { GenericEntity } from '../entity/GenericEntity';
+import type { LiveEntityRuntime } from '../entity/data/live';
+import { DATA_ENTITY_TAG } from '../entity/data/persistence';
+import { NBTTagCompound, Types } from '@jsprismarine/nbt';
 
-const createWorld = () => {
+/**
+ * A runtime that writes each body's component record the way the real one does at save time:
+ * onto `persistentNbt`, creating the compound when the body has none.
+ */
+const recordingRuntime = (bodies: () => readonly GenericEntity[], health: () => number): LiveEntityRuntime =>
+    stub<LiveEntityRuntime>({
+        persist: () => {
+            for (const body of bodies()) {
+                body.persistentNbt ??= new NBTTagCompound('');
+                body.persistentNbt.addValue(DATA_ENTITY_TAG, new Types.StringVal(JSON.stringify({ health: health() })));
+            }
+        }
+    });
+
+const createWorld = (entityRuntime: LiveEntityRuntime = inertEntityRuntime()) => {
     const logger = stub<Logger>({
         info: () => {},
         warn: () => {},
@@ -24,7 +43,7 @@ const createWorld = () => {
         getLogger: () => logger,
         getConfig: () => stub<Config>({ getEntityTrackingInterval: () => 20 }),
         getContent: () => testContent(),
-        getEntityRuntime: () => inertEntityRuntime()
+        getEntityRuntime: () => entityRuntime
     });
     const provider = stub<BaseProvider>({
         readChunk: async (_dimension, x, z) => new Chunk(x, z, new Map(), Dimensions.Overworld)
@@ -91,5 +110,35 @@ describe('World.replayStateDigest', () => {
         while (systems.lighting.pending.queued > 0) systems.lighting.flush(Number.MAX_SAFE_INTEGER);
 
         expect(world.replayStateDigest()).not.toBe(pendingDigest);
+    });
+
+    it('leaves every body as it found it, while still hashing the runtime state', () => {
+        let health = 20;
+        const bodies: GenericEntity[] = [];
+        const world = createWorld(
+            recordingRuntime(
+                () => bodies,
+                () => health
+            )
+        );
+        const fresh = new GenericEntity({ identifier: 'minecraft:cow', position: new Position(1, 64, 1, world) });
+        const saved = new GenericEntity({ identifier: 'minecraft:pig', position: new Position(2, 64, 2, world) });
+        const savedNbt = new NBTTagCompound('');
+        const savedRecord = new Types.StringVal(JSON.stringify({ health: 7 }));
+        savedNbt.addValue(DATA_ENTITY_TAG, savedRecord);
+        saved.persistentNbt = savedNbt;
+        bodies.push(fresh, saved);
+        vi.spyOn(world, 'getEntities').mockImplementation(() => [...bodies]);
+
+        const before = world.replayStateDigest();
+        health = 12;
+        const after = world.replayStateDigest();
+
+        // A body with no compound is what `isLegacyEntity` reads as legacy; a digest must not change that.
+        expect(fresh.persistentNbt).toBeNull();
+        expect(saved.persistentNbt).toBe(savedNbt);
+        expect(savedNbt.children.get(DATA_ENTITY_TAG)).toBe(savedRecord);
+        expect(savedNbt.getString(DATA_ENTITY_TAG, '')).toBe('{"health":7}');
+        expect(after).not.toBe(before);
     });
 });
