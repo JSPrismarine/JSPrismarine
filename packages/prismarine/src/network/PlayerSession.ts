@@ -55,7 +55,7 @@ import type ClientConnection from './ClientConnection';
 import { EntityTracker } from './EntityTracker';
 import { craftingRecipeCount, joinContentPayloads, limitCraftingData } from './contentPayloads';
 import { sendCachedJoinPacket } from './joinPacketCache';
-import { creativeContentFrom, craftingDataFromRecipes } from './payloadAdapters';
+import { creativeContentFrom } from './payloadAdapters';
 import { overworldSpawnOf, playerSpawnPositionPacket } from './spawnPosition';
 import AddActorPacket from '@jsprismarine/protocol/packet/AddActorPacket';
 import AddItemActorPacket from '@jsprismarine/protocol/packet/AddItemActorPacket';
@@ -1535,9 +1535,9 @@ export default class PlayerSession {
      * Until it has these the client proposes nothing and never sends a `CRAFTING_RECIPE`, so
      * everything below this - the matcher, the stations, the grid - is invisible without it.
      *
-     * The recipes come from the content build when there is one, which is the only way
-     * Java's brewing recipes and a pack's own recipes reach the client, and from the recipe
-     * manager otherwise.
+     * The recipes come from the content build's recipe book, and a recipe's net id is its
+     * position in that book, which is what an `ItemStackRequest` names it by. A build that
+     * produced no payload sends nothing, so the client proposes nothing it cannot craft.
      *
      * How many go out is `crafting-recipe-limit` in the config: `0` sends nothing, `-1`
      * sends everything, and it starts at one. See there for why.
@@ -1550,39 +1550,21 @@ export default class PlayerSession {
         const payloads = joinContentPayloads(content, this.server.getLogger(), {
             itemData: this.connection.codec.itemData
         });
-        if (payloads !== undefined && craftingRecipeCount(payloads.crafting) > 0) {
-            const all = craftingRecipeCount(payloads.crafting);
-            const crafting = limit < 0 ? payloads.crafting : limitCraftingData(payloads.crafting, limit);
+        if (payloads === undefined || craftingRecipeCount(payloads.crafting) === 0) return;
 
-            await sendCachedJoinPacket(
-                this.connection,
-                content,
-                limit,
-                this.server.getConfig().getPacketCompressionLevel(),
-                new CraftingDataPacket(crafting)
-            );
+        const all = craftingRecipeCount(payloads.crafting);
+        const crafting = limit < 0 ? payloads.crafting : limitCraftingData(payloads.crafting, limit);
 
-            const sent = craftingRecipeCount(crafting);
-            this.server.getLogger().debug(`Sent §b${sent}§r of §b${all}§r recipe(s) to ${this.player.getName()}`);
+        await sendCachedJoinPacket(
+            this.connection,
+            content,
+            limit,
+            this.server.getConfig().getPacketCompressionLevel(),
+            new CraftingDataPacket(crafting)
+        );
 
-            return;
-        }
-
-        const manager = this.server.getRecipeManager();
-        const all = manager.getRecipes();
-
-        const recipes = limit < 0 ? all : all.slice(0, limit);
-        // The net id is the recipe's position in the manager's list, not in what was sent -
-        // otherwise trimming the list would renumber what the client refers to.
-        const crafting = craftingDataFromRecipes(recipes, (recipe) => manager.getNetId(recipe) ?? 0);
-
-        await this.connection.sendDataPacket(new CraftingDataPacket(crafting));
-
-        this.server
-            .getLogger()
-            .debug(
-                `Sent §b${craftingRecipeCount(crafting)}§r of §b${all.length}§r recipe(s) to ${this.player.getName()}`
-            );
+        const sent = craftingRecipeCount(crafting);
+        this.server.getLogger().debug(`Sent §b${sent}§r of §b${all}§r recipe(s) to ${this.player.getName()}`);
     }
 
     public async sendCreativeContents(empty = false): Promise<void> {

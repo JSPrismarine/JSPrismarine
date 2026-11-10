@@ -7,13 +7,16 @@
  * behavior families and the real flattening, so a test exercises the
  * composition rather than a mock of it.
  */
-import { BlockPalette, BlockStateModel, behaviorFor } from '@jsprismarine/blocks';
+import { item_tags as ItemTags } from '@jsprismarine/bedrock-data';
+import { BlockPalette, BlockStateModel, behaviorFor, vanillaBlockPalette } from '@jsprismarine/blocks';
 import type { Definition as ContentDefinition } from '@jsprismarine/content';
 import { vanillaItemDefinitions } from '@jsprismarine/items';
 import type { Definitions } from '@jsprismarine/packs';
 
 import { definitionOf, definitionsOf } from './ContentOptions';
 import type { ContentOptions } from './ContentOptions';
+import { buildServerContent } from './ServerContent';
+import type { ServerContent } from './ServerContent';
 
 /** The two blocks the fixture declares, which are also the whole of its palette. */
 export const FIXTURE_BLOCKS = ['minecraft:stone', 'minecraft:redstone_lamp'] as const;
@@ -224,3 +227,38 @@ export const fixtureContentOptions = (overrides: ContentOptions = {}): ContentOp
     itemDefinitions: fixtureItemDefinitions(),
     ...overrides
 });
+
+/**
+ * The fixture content plus some Java recipes, on the vanilla block palette and item registry.
+ *
+ * A crafting test needs what the client sees: the recipe's Bedrock output resolved against the
+ * full palette, and the `#minecraft:planks` tag a vanilla wooden recipe names. The fixture's own
+ * blocks stay as they are; only the palette the payload builder reads is the vanilla one.
+ *
+ * @param recipes - Java recipe files by recipe id, merged over the fixture's.
+ * @returns The content, whose `recipes.netIds` numbers each recipe as the crafting packet does.
+ */
+export const fixtureRecipeContent = (recipes: Readonly<Record<string, unknown>>): ServerContent => {
+    const base = fixtureDefinitions();
+    const definitions = definitionsOf({
+        ...base,
+        recipesJava: new Map([
+            ...base.recipesJava,
+            ...Object.entries(recipes).map(([id, data]) => [id, definitionOf('recipesJava', id, data)] as const)
+        ]),
+        tags: new Map([
+            ...base.tags,
+            [
+                'item/minecraft:planks',
+                definitionOf('tags', 'item/minecraft:planks', { values: ItemTags['minecraft:planks'] })
+            ]
+        ])
+    });
+    const content = buildServerContent({
+        ...fixtureContentOptions(),
+        blockPalette: vanillaBlockPalette(),
+        itemDefinitions: vanillaItemDefinitions(),
+        load: () => ({ definitions, diagnostics: [] })
+    });
+    return { ...content, blocks: { ...content.blocks, palette: vanillaBlockPalette() } };
+};

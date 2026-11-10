@@ -126,7 +126,7 @@ const readSlotInfo = (stream: BinaryStream): ItemStackRequestSlotInfo => ({
  * the fields of the descriptor the index names. `Empty` has none; `ItemName` is Full Name
  * (string) and Aux Value (varint); `Molang` is Tag Expression (string) and Molang Version
  * (int16 LE); `ItemTag` is Item Tag (string). The server's form, which `CraftingDataPacket`
- * carries and `RecipeIngredientCodec` writes, spells the kind out as a string instead.
+ * carries and `RecipeIngredient` writes, spells the kind out as a string instead.
  * Nothing here uses the descriptor, so it is read for its length and dropped.
  * @throws when the variant index names no descriptor, because from there the stream cannot be trusted.
  */
