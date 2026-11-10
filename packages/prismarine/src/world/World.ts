@@ -3435,14 +3435,24 @@ export class World implements Service {
      * {@link PlayerSession.queueMoveActor}, which explains why sending each one on its own made
      * mobs move in fits and starts. A move outside the tick waits at most one tick, which is
      * fifty milliseconds and below anything a player can see.
+     *
+     * It only announces. The entity was refiled when its position was written, through
+     * {@link World.entityRelocated}, whether or not the move is announced.
      * @param {Entity} entity - The entity that moved.
      * @param {boolean} teleport - Whether clients should snap instead of interpolate.
      */
     public async broadcastMove(entity: Entity, teleport = false): Promise<void> {
-        this.markEntityChunkChanged(entity);
         this.changes.entityMoved(entity, teleport);
     }
 
+    /**
+     * Files a non-player entity under the chunk it stands in, for chunk save and unload.
+     *
+     * Kept apart from the entity index on purpose. It follows the body a client is shown, which
+     * is what a chunk saves, while the index finds a data-driven mob where the runtime put it,
+     * and it files every entity under one chunk while the index files a large box in every cell
+     * its footprint overlaps. {@link World.entityRelocated} writes both, so they move together.
+     */
     private markEntityChunkChanged(entity: Entity): void {
         if (entity instanceof Player) return;
         const runtimeIdsByChunk = this.runtimeIdsByChunk();
@@ -3716,14 +3726,17 @@ export class World implements Service {
     /**
      * Refiles an entity after its position was written, which {@link Entity.relocate} calls.
      *
-     * Only for an entity this world holds: one on its way in from another world is filed by
-     * {@link World.addEntity} once it arrives.
+     * The one writer of both structures that say where a legacy entity is: the entity index,
+     * and the chunk membership that chunk save and unload read. Only for an entity this world
+     * holds: one on its way in from another world is filed by {@link World.addEntity} once it
+     * arrives.
      * @param {Entity} entity - The entity that moved.
      * @internal
      */
     public entityRelocated(entity: Entity): void {
         if (this.entities.get(Number(entity.getRuntimeId())) !== entity) return;
         this.getEntityIndex().refileLegacy(entity);
+        this.markEntityChunkChanged(entity);
     }
     /**
      * Get all players in this world.
