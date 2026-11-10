@@ -183,6 +183,7 @@ import type { GameEventListener } from '../../world/GameEventListenerRegistry';
 import { VOID_DAMAGE, VOID_DEPTH, VOID_INTERVAL } from '../Environment';
 import type { StatusEffectInput } from '../StatusEffect';
 import { mergeStatusEffect, normalizeStatusEffectId, removeStatusEffectFromMap } from '../StatusEffect';
+import { clientOwnsMovement } from '../playerOverlay';
 
 /** The interval between projectile samples, small enough not to skip a target. */
 const PROJECTILE_SWEEP_STEP = 0.25;
@@ -1216,6 +1217,13 @@ export class EntityRuntime implements EntityScene {
         });
         entityForBarter = entity;
         body.onWrite = (field, before, after) => this.store.written(entity, field, before, after);
+        if (clientOwnsMovement(entity.identifier))
+            body.onImpulse = ({ x, y, z }) =>
+                this.store.occurred({
+                    kind: 'occurrence',
+                    occurrence: 'impulse',
+                    data: { entity: BigInt(id), x, y, z }
+                });
         this.store.admit(entity);
         this.byPersistentIdentity.set(entity.persistentIdentity, entity);
         this.byInstance.set(instance, entity);
@@ -1447,6 +1455,8 @@ export class EntityRuntime implements EntityScene {
         this.tickDaylightBurn(entity);
         this.tickVoid(entity);
         if (entity.removed !== undefined) return;
+        // The client moves this body and reports where it went as an input (ADR 0008).
+        if (clientOwnsMovement(entity.identifier)) return;
         entity.body.containerCapacity = this.containerCapacityOf(entity.instance);
         this.syncGameEventListener(entity);
         this.index.refreshFamilies(entity);
@@ -2240,6 +2250,51 @@ export class EntityRuntime implements EntityScene {
         if (health.current <= 0 || health.current >= health.max) return false;
 
         entity.instance.attributes.set('health', Math.min(health.max, health.current + amount));
+        return true;
+    }
+
+    /**
+     * Brings a dead player back, with the same id, at full health (ADR 0008). Its death left it
+     * in the store, so nothing enters or leaves here: the log holds one health entry.
+     *
+     * @returns Whether the entity was a dead player that is alive again.
+     */
+    public revive(id: number): boolean {
+        const entity = this.store.get(id);
+        const health = entity?.instance.attributes.get('health');
+        if (entity === undefined || health === undefined || !clientOwnsMovement(entity.identifier)) return false;
+        if (!this.dying.has(id)) return false;
+
+        this.dying.delete(id);
+        this.hitGraces.delete(id);
+        entity.instance.attributes.set('health', health.max);
+        return true;
+    }
+
+    /**
+     * Writes where a client says its body is, which is the one way such a body moves besides
+     * a server move through `MobBody.teleportTo` that the client has to acknowledge. The input
+     * step calls it with what the client reported (ADR 0009).
+     *
+     * @returns Whether the entity is one whose client owns its movement.
+     */
+    public applyClientMovement(
+        id: number,
+        movement: {
+            readonly position: EntityPosition;
+            readonly yaw: number;
+            readonly pitch: number;
+            readonly onGround: boolean;
+        }
+    ): boolean {
+        const entity = this.store.get(id);
+        if (entity === undefined || !clientOwnsMovement(entity.identifier)) return false;
+
+        entity.body.yaw = movement.yaw;
+        entity.body.pitch = movement.pitch;
+        entity.position = movement.position;
+        if (movement.onGround) entity.body.conditions.add('on_ground');
+        else entity.body.conditions.delete('on_ground');
         return true;
     }
 
@@ -3540,6 +3595,9 @@ export class EntityRuntime implements EntityScene {
      * class-based `Mob.onDeath` already reads.
      */
     public kill(entity: DataEntity): void {
+        // A player stays in the store while its death screen is up, dead and with its id, until
+        // `revive` brings it back (ADR 0008). It drops nothing here: its loot table is empty.
+        if (clientOwnsMovement(entity.identifier)) return;
         // Live, which puts the active component first. Of the 128 vanilla entity files, 29
         // declare `minecraft:loot` only inside a component group: the cow carries it in
         // `minecraft:cow_adult`, so a type-level read finds nothing and a grown cow drops
@@ -4833,6 +4891,8 @@ export class EntityRuntime implements EntityScene {
 
     /** Whether Java's entity type or its active custom component allows pushing. */
     private isPushable(entity: DataEntity): boolean {
+        // The client pushes its own body; it still pushes mobs it walks into.
+        if (clientOwnsMovement(entity.identifier)) return false;
         const java = entity.instance.javaNavigation;
         if (java !== undefined) return java.pushable;
 
