@@ -147,6 +147,8 @@ describe('config', () => {
             expect(config.getEnableRakNet()).toBe(true);
             expect(config.getEnableNetherNet()).toBe(true);
             expect(config.getEnableLanVisibility()).toBe(true);
+            // Empty, as Bedrock Dedicated Server ships it: the system picks NetherNet's UDP ports.
+            expect(config.getServerUdpPorts()).toBe('');
         });
 
         it('reads the transport and LAN visibility switches from config.json', async () => {

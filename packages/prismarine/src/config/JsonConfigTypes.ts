@@ -143,6 +143,8 @@ export interface ConfigFile {
     'use-raknet-worker'?: boolean;
     /** Whether to accept clients over NetherNet, the WebRTC transport Bedrock Dedicated Server defaults to. */
     'enable-nethernet'?: boolean;
+    /** UDP ports for NetherNet players, in Bedrock Dedicated Server's `server-udp-ports` syntax: a local range, and external mappings to advertise. */
+    'server-udp-ports'?: string;
     /** Whether players on the local network see the server among their LAN games, as Bedrock Dedicated Server's `enable-lan-visibility`. */
     'enable-lan-visibility'?: boolean;
     /** The zlib level for outgoing batches. @asType integer @minimum -1 @maximum 9 */
@@ -209,6 +211,7 @@ export const CONFIG_KEY_ORDER = [
     'enable-raknet',
     'use-raknet-worker',
     'enable-nethernet',
+    'server-udp-ports',
     'enable-lan-visibility',
     'packet-compression-level',
     'packet-compression-algorithm',
