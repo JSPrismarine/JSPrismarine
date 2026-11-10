@@ -29,6 +29,7 @@ import { bedrockEnchantType } from './bedrockIds';
 import { bookshelfPowerAround } from './bookshelves';
 import type { BlockPosition } from './bookshelves';
 import { randomOf } from '../utils/Random';
+import { keyOfPlayer } from '../playerIdentity';
 
 /** An enchanting table always shows three rows, even when some of them are empty. */
 export const ENCHANTING_SLOTS = 3;
@@ -43,12 +44,12 @@ const WORN_GROUPS: ReadonlySet<string> = new Set(['armor', 'head', 'chest', 'leg
 const HELD_GROUPS: ReadonlySet<string> = new Set(['mainhand', 'offhand', 'hand']);
 
 /**
- * Each player's enchantment seed, by entity runtime id. The seed is read from the player data at
- * join and saved at leave, so it lives exactly as long as the connection's entity does. Keyed by
- * runtime id rather than UUID for the reason `advancement/progress.ts` gives. `PlayerSession.disable`
- * calls {@link forgetEnchantmentSeed} once it is saved.
+ * Each player's enchantment seed, by the player's key (`keyOfPlayer`). The seed is read from the
+ * player data at join and saved at leave. Keyed by the account rather than the entity runtime id
+ * for the reason `advancement/progress.ts` gives. `PlayerSession.disable` calls
+ * {@link forgetEnchantmentSeed} once it is saved.
  */
-const seeds = new Map<bigint, number>();
+const seeds = new Map<string, number>();
 
 /** A fresh seed, in the 32-bit range Java's own reroll produces. */
 const freshSeed = (player: Player): number => {
@@ -63,19 +64,19 @@ const freshSeed = (player: Player): number => {
  *   this player is asked.
  */
 export const enchantmentSeedOf = (player: Player, stored?: number): number => {
-    const runtimeId = player.getRuntimeId();
-    const held = seeds.get(runtimeId);
+    const key = keyOfPlayer(player);
+    const held = seeds.get(key);
     if (held !== undefined) return held;
 
     const seed = stored ?? freshSeed(player);
-    seeds.set(runtimeId, seed);
+    seeds.set(key, seed);
     return seed;
 };
 
 /** Draws a new seed, which is what Java does the moment something is enchanted. */
 export const rerollEnchantmentSeed = (player: Player): number => {
     const seed = freshSeed(player);
-    seeds.set(player.getRuntimeId(), seed);
+    seeds.set(keyOfPlayer(player), seed);
     return seed;
 };
 
@@ -86,7 +87,7 @@ export const rerollEnchantmentSeed = (player: Player): number => {
  * again through {@link enchantmentSeedOf}.
  */
 export const forgetEnchantmentSeed = (player: Player): void => {
-    seeds.delete(player.getRuntimeId());
+    seeds.delete(keyOfPlayer(player));
 };
 
 /** Where an offer's enchantments go in the three lists the packet carries. */

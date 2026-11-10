@@ -11,8 +11,8 @@ const leave = async (player: ReturnType<typeof fakePlayer>['player']): Promise<v
 
 describe('advancement progress', () => {
     it('keeps one progress for each player', () => {
-        const first = fakePlayer().player;
-        const second = fakePlayer().player;
+        const first = fakePlayer({ name: 'first' }).player;
+        const second = fakePlayer({ name: 'second' }).player;
 
         expect(advancementsOf(first)).toBe(advancementsOf(first));
         expect(advancementsOf(first)).not.toBe(advancementsOf(second));

@@ -127,7 +127,9 @@ const scene = (built: ServerContent, world = worldOf(), random: () => number = (
     const player: Player = stub<Player>({
         getType: () => 'minecraft:player',
         getRuntimeId: () => runtimeId,
-        getName: () => 'tester',
+        // Its own name, because per-player services are keyed by the name of a player with no XUID.
+        getName: () => `tester-${runtimeId}`,
+        getXUID: () => null,
         getServer: () => stub<Server>({ getContent: () => built, getRandom: () => random }),
         getWorld: () => world,
         getPosition: () => ({ getX: () => 0, getY: () => 64, getZ: () => 0 }) as never,

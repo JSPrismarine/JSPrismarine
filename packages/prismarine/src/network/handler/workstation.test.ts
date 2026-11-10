@@ -139,7 +139,9 @@ const scene = (open: OpenBlockContainer) => {
     const runtimeId = nextRuntimeId++;
     const player: Player = stub<Player>({
         getType: () => 'minecraft:player',
-        getName: () => 'tester',
+        // Its own name, because per-player services are keyed by the name of a player with no XUID.
+        getName: () => `tester-${runtimeId}`,
+        getXUID: () => null,
         getRuntimeId: () => runtimeId,
         getServer: () => server,
         getWorld: () =>
