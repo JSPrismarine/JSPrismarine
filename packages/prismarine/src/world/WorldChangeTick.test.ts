@@ -119,10 +119,8 @@ const PLAYER_COMPONENT_WRITES: readonly {
     },
     {
         field: 'vitals.drowningTicks',
-        write: (player) => {
-            player['drowningTicks'] = 5;
-        },
-        read: (player) => player['drowningTicks']
+        write: (player) => player['components'].set('vitals.drowningTicks', 5),
+        read: (player) => player['components'].get('vitals.drowningTicks')
     },
     {
         field: 'vitals.fallDistance',

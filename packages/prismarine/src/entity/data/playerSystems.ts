@@ -30,6 +30,7 @@ import { addExhaustion, addMovementExhaustion, hungerOutcome } from '../playerHu
 import { cushions, land, trackFall } from '../playerFall';
 import { beginMeal, cancelMeal, dueMeal } from '../playerMeal';
 import { mineTick, stopCracking } from '../playerMining';
+import { diedVitals, respawnVitals } from '../playerRespawn';
 import type { MiningEvent } from '../playerMining';
 import type { SurvivalPlayer } from '../survivalPlayer';
 import type { DamageIntent, DamageOutcome } from './damagePipeline';
@@ -130,6 +131,28 @@ export class PlayerSystems {
         }
         this.tickMeal(entity, survival);
         this.tickMining(survival);
+    }
+
+    /**
+     * What a store player's death does to its survival state: the drowning in progress ends, and
+     * so do the cracks on the block it was mining. The runtime calls this inside the blow that
+     * killed it.
+     *
+     * @param entity - The player who died.
+     */
+    public died(entity: DataEntity): void {
+        diedVitals(this.playerOf(entity).survival);
+        this.stopMining(entity);
+    }
+
+    /**
+     * What a store player's revival gives it besides its health: its attributes back at their
+     * defaults, full lungs, and a body that is not running, crouching, flying or sleeping.
+     *
+     * @param entity - The player coming back.
+     */
+    public revived(entity: DataEntity): void {
+        respawnVitals(this.playerOf(entity).survival);
     }
 
     /**
