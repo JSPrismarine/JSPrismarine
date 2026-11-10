@@ -22,7 +22,7 @@
  * A tick of the log is one world tick, numbered by the store from 1 and not by the level clock,
  * because `/time set` moves the clock backwards and the log only goes forward.
  */
-import type { ChangeEntry, StateEntry } from '../../world/changelog/ChangeEntry';
+import type { ChangeEntry, OccurrenceEntry, StateEntry } from '../../world/changelog/ChangeEntry';
 import type { SealedTick, Span } from '../../world/changelog/ChangeLog';
 import { ChangeLog } from '../../world/changelog/ChangeLog';
 import type { PlainData, PlainRecord } from '../../world/changelog/PlainData';
@@ -189,6 +189,14 @@ export class EntityStore {
             before,
             after
         });
+    }
+
+    /**
+     * Appends an occurrence, which changes no state: something replication sends, or the
+     * record of an action a guard vetoed.
+     */
+    public occurred(entry: OccurrenceEntry): void {
+        this.append(entry);
     }
 
     /**
