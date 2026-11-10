@@ -1,3 +1,6 @@
+import { positionTrackingDBClientRequestPacket } from '../wire/definitions/positionTrackingDBClientRequest';
+import { layoutAt } from '../wire/WireLayout';
+
 import FieldNetworkPacket from '../FieldNetworkPacket';
 
 /** What a `PositionTrackingDBClientRequestPacket` asks for, as the Action uint8 numbers it. */
@@ -26,13 +29,11 @@ export default class PositionTrackingDBClientRequestPacket extends FieldNetworkP
 
     /** Reads the action and the tracking id. */
     public decodePayload(): void {
-        this.action = this.readByte();
-        this.id = this.readVarInt();
+        Object.assign(this, layoutAt(positionTrackingDBClientRequestPacket, this.codecProtocol).decode(this));
     }
 
     /** Writes the action and the tracking id. */
     public encodePayload(): void {
-        this.writeByte(this.action);
-        this.writeVarInt(this.id);
+        layoutAt(positionTrackingDBClientRequestPacket, this.codecProtocol).encode(this, this);
     }
 }

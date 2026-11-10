@@ -1,5 +1,7 @@
 import NetworkPacket from '../NetworkPacket';
 import { PacketIdentifier } from '../PacketIdentifier';
+import { removeVolumeEntityPacket } from '../wire/definitions/removeVolumeEntity';
+import { layoutAt } from '../wire/WireLayout';
 
 import type NetworkBinaryStream from '../NetworkBinaryStream';
 
@@ -25,14 +27,10 @@ export default class RemoveVolumeEntityPacket extends NetworkPacket<RemoveVolume
     }
 
     protected serializePayload(stream: NetworkBinaryStream, data: RemoveVolumeEntity): void {
-        stream.writeUnsignedVarInt(data.entityNetworkId);
-        stream.writeVarInt(data.dimension);
+        layoutAt(removeVolumeEntityPacket, this.codecProtocol).encode(stream, data);
     }
 
     protected deserializePayload(stream: NetworkBinaryStream): RemoveVolumeEntity {
-        return {
-            entityNetworkId: stream.readUnsignedVarInt(),
-            dimension: stream.readVarInt()
-        };
+        return layoutAt(removeVolumeEntityPacket, this.codecProtocol).decode(stream);
     }
 }

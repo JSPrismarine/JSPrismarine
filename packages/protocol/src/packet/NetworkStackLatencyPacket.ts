@@ -1,3 +1,6 @@
+import { networkStackLatencyPacket } from '../wire/definitions/networkStackLatency';
+import { layoutAt } from '../wire/WireLayout';
+
 import FieldNetworkPacket from '../FieldNetworkPacket';
 
 /**
@@ -16,13 +19,11 @@ export default class NetworkStackLatencyPacket extends FieldNetworkPacket {
 
     /** Reads the timestamp and the direction flag. */
     public decodePayload(): void {
-        this.creationTime = this.readUnsignedLongLE();
-        this.isFromServer = this.readBoolean();
+        Object.assign(this, layoutAt(networkStackLatencyPacket, this.codecProtocol).decode(this));
     }
 
     /** Writes the timestamp and the direction flag. */
     public encodePayload(): void {
-        this.writeUnsignedLongLE(this.creationTime);
-        this.writeBoolean(this.isFromServer);
+        layoutAt(networkStackLatencyPacket, this.codecProtocol).encode(this, this);
     }
 }

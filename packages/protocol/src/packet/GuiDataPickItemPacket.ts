@@ -1,5 +1,7 @@
 import NetworkPacket from '../NetworkPacket';
 import { PacketIdentifier } from '../PacketIdentifier';
+import { guiDataPickItemPacket } from '../wire/definitions/guiDataPickItem';
+import { layoutAt } from '../wire/WireLayout';
 
 import type NetworkBinaryStream from '../NetworkBinaryStream';
 
@@ -27,16 +29,10 @@ export default class GuiDataPickItemPacket extends NetworkPacket<GuiDataPickItem
     }
 
     protected serializePayload(stream: NetworkBinaryStream, data: GuiDataPickItem): void {
-        stream.writeString(data.itemName);
-        stream.writeString(data.itemEffectName);
-        stream.writeIntLE(data.slot);
+        layoutAt(guiDataPickItemPacket, this.codecProtocol).encode(stream, data);
     }
 
     protected deserializePayload(stream: NetworkBinaryStream): GuiDataPickItem {
-        return {
-            itemName: stream.readString(),
-            itemEffectName: stream.readString(),
-            slot: stream.readIntLE()
-        };
+        return layoutAt(guiDataPickItemPacket, this.codecProtocol).decode(stream);
     }
 }

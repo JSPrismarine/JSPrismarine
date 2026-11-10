@@ -1,5 +1,7 @@
 import NetworkPacket from '../NetworkPacket';
 import { PacketIdentifier } from '../PacketIdentifier';
+import { gameTestResultsPacket } from '../wire/definitions/gameTestResults';
+import { layoutAt } from '../wire/WireLayout';
 
 import type NetworkBinaryStream from '../NetworkBinaryStream';
 
@@ -25,16 +27,10 @@ export default class GameTestResultsPacket extends NetworkPacket<GameTestResults
     }
 
     protected serializePayload(stream: NetworkBinaryStream, data: GameTestResults): void {
-        stream.writeBoolean(data.succeeded);
-        stream.writeString(data.error);
-        stream.writeString(data.testName);
+        layoutAt(gameTestResultsPacket, this.codecProtocol).encode(stream, data);
     }
 
     protected deserializePayload(stream: NetworkBinaryStream): GameTestResults {
-        return {
-            succeeded: stream.readBoolean(),
-            error: stream.readString(),
-            testName: stream.readString()
-        };
+        return layoutAt(gameTestResultsPacket, this.codecProtocol).decode(stream);
     }
 }

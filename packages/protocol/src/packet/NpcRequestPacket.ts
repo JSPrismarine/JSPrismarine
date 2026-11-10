@@ -1,5 +1,7 @@
+import { npcRequestPacket } from '../wire/definitions/npcRequest';
+import { layoutAt } from '../wire/WireLayout';
+
 import FieldNetworkPacket from '../FieldNetworkPacket';
-import { NetworkUtil } from '../wire/networkUtil';
 
 /** What the player asked the NPC to do, as the `Request Type` byte numbers it. */
 export enum NpcRequestType {
@@ -41,19 +43,11 @@ export default class NpcRequestPacket extends FieldNetworkPacket {
 
     /** Reads the NPC, the request type, and the action and scene it names. */
     public decodePayload(): void {
-        this.npcRuntimeId = this.readUnsignedVarLong();
-        this.requestType = this.readByte();
-        this.actions = NetworkUtil.readString(this);
-        this.actionIndex = this.readByte();
-        this.sceneName = NetworkUtil.readString(this);
+        Object.assign(this, layoutAt(npcRequestPacket, this.codecProtocol).decode(this));
     }
 
     /** Writes the NPC, the request type, and the action and scene it names. */
     public encodePayload(): void {
-        this.writeUnsignedVarLong(this.npcRuntimeId);
-        this.writeByte(this.requestType);
-        NetworkUtil.writeString(this, this.actions);
-        this.writeByte(this.actionIndex);
-        NetworkUtil.writeString(this, this.sceneName);
+        layoutAt(npcRequestPacket, this.codecProtocol).encode(this, this);
     }
 }
