@@ -1,9 +1,15 @@
 /**
  * What a player's own tick writes to the change log, counted (ADR 0012). A player who does
  * nothing appends nothing, and one who walks appends a bounded number of entries per tick.
+ *
+ * Also the rule ADR 0008 gives a player's movement, as entries: the client owns it, so a shove
+ * is an occurrence and a server move waits for the client's acknowledgment.
  */
 import { Vector3 } from '@jsprismarine/math';
 import { Gametype } from '@jsprismarine/minecraft';
+import { PositionMode } from '@jsprismarine/protocol';
+import MovePlayerPacket from '@jsprismarine/protocol/packet/MovePlayerPacket';
+import SetActorMotionPacket from '@jsprismarine/protocol/packet/SetActorMotionPacket';
 import { describe, expect, it } from 'vitest';
 
 import type { LiveBodies } from './entity/data/liveBodies';
@@ -72,5 +78,33 @@ describe("a player's change log", () => {
             exhausting += fields.length;
         }
         expect(exhausting).toBe(40);
+    });
+});
+
+describe("a player's movement belongs to its client", () => {
+    it('logs a shove as one impulse occurrence and asks the client to take it', async () => {
+        const { player, sent, tick } = loggedPlayer();
+
+        const entries = await tick(1, async () => player.applyKnockback(1, 0, 0.4));
+
+        expect(fieldsOf(entries)).toEqual(['occurrence']);
+        expect(entries[0]).toMatchObject({
+            occurrence: 'impulse',
+            data: { entity: player.getRuntimeId(), x: 0.4, z: 0 }
+        });
+        expect(sent.filter((packet) => packet instanceof SetActorMotionPacket)).toHaveLength(1);
+        expect(player.getPosition().getX()).toBe(0);
+    });
+
+    it("moves a player the server moves as a teleport, and drops the client's stale reports", async () => {
+        const { player, sent } = loggedPlayer();
+        const session = player.getNetworkSession();
+
+        await player.setPosition({ position: new Vector3(20, 70, 0) });
+
+        const moves = sent.filter((packet) => packet instanceof MovePlayerPacket);
+        expect(moves.map((packet) => packet.getPacketData()?.mode)).toEqual([PositionMode.Teleport]);
+        expect(session.holdsMovementForTeleport(new Vector3(0, 64, 0), false)).toBe(true);
+        expect(session.holdsMovementForTeleport(new Vector3(20, 70.5, 0), true)).toBe(false);
     });
 });

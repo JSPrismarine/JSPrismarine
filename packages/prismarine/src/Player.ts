@@ -55,7 +55,7 @@ import type { PlayerSpawn } from './world/SpawnPlacement';
 import type { BlockMining } from './world/BlockMining';
 import CoordinateUtils from './world/CoordinateUtils';
 import { DEFAULT_VIEW_DISTANCE_CHUNKS } from './world/Proximity';
-import { logLegacyWrite } from './entity/legacyAdapter';
+import { logLegacyImpulse, logLegacyWrite } from './entity/legacyAdapter';
 import type { ExperienceHolder } from './entity/Experience';
 import { PlayerComponents } from './entity/playerComponents';
 import type { PlainData, PlainRecord } from './world/changelog/PlainData';
@@ -1238,16 +1238,19 @@ export default class Player extends Human {
      * @param {number} strength - How hard, with knockback resistance already taken off.
      */
     public override applyKnockback(directionX: number, directionZ: number, strength: number, _damping = 0.5): void {
-        if (!this.connected) return;
-
-        void this.getNetworkSession().sendMotion(
-            new Vector3(directionX * strength, KNOCKBACK_LIFT, directionZ * strength)
-        );
+        this.applyImpulse({ x: directionX * strength, y: KNOCKBACK_LIFT, z: directionZ * strength });
     }
 
-    /** Asks the client to apply a world-space impulse, including nonstandard vertical lift. */
+    /**
+     * Asks the client to apply a world-space impulse, including nonstandard vertical lift.
+     *
+     * Logged as an `impulse` occurrence and not as a velocity: the client owns a player's
+     * movement (ADR 0008), so the shove is something replication sends, and the player's state
+     * is unchanged until the client reports where it took them.
+     */
     public override applyImpulse(impulse: EntityPosition): void {
         if (!this.connected) return;
+        logLegacyImpulse(this, impulse);
         void this.getNetworkSession().sendMotion(new Vector3(impulse.x, impulse.y, impulse.z));
     }
 
@@ -1631,13 +1634,18 @@ export default class Player extends Human {
     }
 
     /**
-     * Moves the player as an {@link Entity} move: a step, or a teleport when `teleport` is set.
-     * @param {EntityPositionOptions} options - The position, rotation and whether to snap.
+     * Moves the player as an {@link Entity} move, which for a player is always a teleport.
+     *
+     * The client owns a player's movement (ADR 0008), so a move the server makes is a request
+     * the client has to acknowledge, and the positions it reports until then are dropped
+     * (`PlayerSession.holdsMovementForTeleport`). A `Normal` move would ask for no acknowledgment,
+     * and the next stale report would put the player back.
+     * @param {EntityPositionOptions} options - The position and rotation; `teleport` is ignored.
      * @returns {Promise<void>} A promise that resolves when the player's client has been told.
      * @remarks {@link Player.setPlayerPosition} takes the movement mode and the broadcast choice.
      */
-    public override async setPosition({ teleport = false, ...options }: EntityPositionOptions): Promise<void> {
-        await this.setPlayerPosition({ ...options, type: teleport ? PositionMode.Teleport : PositionMode.Normal });
+    public override async setPosition({ teleport: _teleport, ...options }: EntityPositionOptions): Promise<void> {
+        await this.setPlayerPosition({ ...options, type: PositionMode.Teleport });
     }
 
     /**
