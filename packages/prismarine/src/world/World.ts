@@ -2,6 +2,7 @@ import type GameRuleManager from './GameRuleManager';
 import { GameRules } from './GameRuleManager';
 
 import { createHash } from 'node:crypto';
+import type { Hash } from 'node:crypto';
 
 import { Vector3 } from '@jsprismarine/math';
 import BinaryStream from '@jsprismarine/binaryutils';
@@ -29,7 +30,7 @@ import type { BlockState } from '../block/state/BlockState';
 import { AttributeIds } from '@jsprismarine/protocol/wire/structures/Attribute';
 import { writtenEntities } from '../entity/Entities';
 import type { LiveEntityRuntime } from '../entity/data/live';
-import { dataEntityRecordIn } from '../entity/data/persistence';
+import { DATA_ENTITY_TAG, dataEntityRecordIn } from '../entity/data/persistence';
 import EntitySerializer from '../entity/EntitySerializer';
 import { ITEM_POSITION_OFFSET, Item as ItemEntity } from '../entity/other/Item';
 import type { Entity } from '../entity/Entity';
@@ -3518,8 +3519,6 @@ export class World implements Service {
             hash.update(chunk.networkSerialize());
         }
 
-        // Data-driven actors keep component state in their runtime until save time.
-        this.dataEntities().persist();
         // Entity map insertion order follows spawn timing; runtime ids sort that order, while
         // leaving the ids out of the hash lets a fresh process compare the same actor state.
         const entities = this.getEntities().sort((left, right) => {
@@ -3527,6 +3526,32 @@ export class World implements Service {
             const rightId = right.getRuntimeId();
             return leftId < rightId ? -1 : leftId > rightId ? 1 : 0;
         });
+        // Data-driven actors keep component state in their runtime until save time, and
+        // `persist` writes it onto each body's `persistentNbt`. A digest must not change what it
+        // measures: a body that gains a compound here reads as no longer legacy when its chunk
+        // reloads. Each body's compound and its record tag are put back once the hash is taken.
+        const persisted = entities.map((entity) => {
+            const nbt = entity.persistentNbt;
+            const record: unknown = nbt?.children.get(DATA_ENTITY_TAG);
+            return { entity, nbt, record };
+        });
+        this.dataEntities().persist();
+        try {
+            this.hashEntities(hash, entities);
+        } finally {
+            for (const { entity, nbt, record } of persisted) {
+                entity.persistentNbt = nbt;
+                if (nbt === null) continue;
+                if (record === undefined) nbt.remove(DATA_ENTITY_TAG);
+                else nbt.children.set(DATA_ENTITY_TAG, record);
+            }
+        }
+
+        return hash.digest('hex');
+    }
+
+    /** Feeds each entity's saved form, attributes and, for a player, inventory into a digest. */
+    private hashEntities(hash: Hash, entities: readonly Entity[]): void {
         for (const entity of entities) {
             const stream = new BinaryStream();
             new NBTWriter(stream, ByteOrder.LITTLE_ENDIAN).writeCompound(EntitySerializer.toNBT(entity));
@@ -3576,8 +3601,6 @@ export class World implements Service {
                 );
             }
         }
-
-        return hash.digest('hex');
     }
 
     /**
