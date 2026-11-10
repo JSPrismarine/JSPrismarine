@@ -25,6 +25,7 @@ import { EntityIndex } from './data/entityIndex';
 import { explode } from './Explosion';
 import { Attribute, AttributeIds } from '@jsprismarine/protocol/wire/structures/Attribute';
 import { GenericEntity } from './GenericEntity';
+import { inertEntityRuntime } from '../testing/entityServer';
 
 /** @see {@link emptyContent} */
 let bareBuild: ServerContent | undefined;
@@ -94,7 +95,8 @@ const scene = ({ griefing = true, solid = false, block = '', content = emptyCont
         },
         dropFromBlock: async (at: ContentPosition, contents: Array<Block | Item | null>) =>
             void dropped.push({ at, names: contents.flatMap((item) => (item === null ? [] : [item.getName()])) }),
-        getLoadedChunk: () => null
+        getLoadedChunk: () => null,
+        dataEntities: () => inertEntityRuntime()
     });
 
     /**

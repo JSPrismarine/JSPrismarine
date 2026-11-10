@@ -2788,7 +2788,7 @@ describe('EntityRuntime', () => {
             }
         };
 
-        it('explodes a killed crystal once before it is removed', () => {
+        it('explodes a killed crystal once, inside the blow that killed it', () => {
             const world = new TestEntityWorld();
             const { runtime, removed } = entityFixture(world, {}, { 'minecraft:ender_crystal': CRYSTAL });
             const crystal = runtime.spawn('minecraft:ender_crystal', GROUND);
@@ -2797,7 +2797,7 @@ describe('EntityRuntime', () => {
                 throw new Error('the fixture declares no crystal and cow');
 
             runtime.hurt(crystal, undefined, 'entity_attack', 1);
-            expect(runtime.all()).toContain(crystal);
+            expect(runtime.all()).not.toContain(crystal);
             runtime.tick(1);
 
             expect(removed.map((entry) => [entry.entity.identifier, entry.reason])).toContainEqual([

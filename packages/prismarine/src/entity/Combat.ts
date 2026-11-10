@@ -163,7 +163,11 @@ export const meleeAttack = async (attacker: Entity, target: Entity, options: Mel
 
     // Something that does no damage still makes a noise, because the alternative is a swing that
     // produces nothing at all and reads as the server having missed the packet.
-    const landed = damage > NO_DAMAGE && (await target.damage(damage, DamageSource.entity(attacker, shove)));
+    // A data-driven target takes the blow through the entity store's damage pipeline.
+    const source = DamageSource.entity(attacker, shove);
+    const landed =
+        damage > NO_DAMAGE &&
+        (world.dataEntities().damageEntity(target, damage, source, 'melee') ?? (await target.damage(damage, source)));
 
     if (!landed) {
         await world.sendActorSound(attacker, LevelSoundEvent.ATTACK_NODAMAGE);
