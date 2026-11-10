@@ -11,7 +11,6 @@
 import { blockState, endGateway, endPodium, endSpike, endSpikesForSeed, shuffledCopy } from '@jsprismarine/features';
 import type { EndSpike } from '@jsprismarine/features';
 import { Vector3 } from '@jsprismarine/math';
-import { AttributeIds } from '@jsprismarine/protocol/wire/structures/Attribute';
 import { LegacyRandomSource } from '@jsprismarine/worldgen';
 
 import type { DataEntity } from '../../entity/data/DataEntity';
@@ -604,15 +603,7 @@ export class DragonFight {
         const killer = this.world.getPlayers().find((player) => Number(player.getRuntimeId()) === killerId);
         if (killer === undefined) return;
 
-        addExperiencePoints(
-            {
-                getLevel: () => killer.attributes.getValue(AttributeIds.PlayerLevel),
-                getProgress: () => killer.attributes.getValue(AttributeIds.PlayerExperience),
-                setLevel: (level) => killer.attributes.setValue(AttributeIds.PlayerLevel, level),
-                setProgress: (progress) => killer.attributes.setValue(AttributeIds.PlayerExperience, progress)
-            },
-            xp
-        );
+        addExperiencePoints(killer.getExperience(), xp);
     }
 
     /** Java's `spawnExitPortal` position: the (0, 0) surface, stepped down through bedrock above y 63. */

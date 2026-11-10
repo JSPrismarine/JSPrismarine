@@ -19,6 +19,7 @@ import type { ContentEntityAccess } from '../content/world/adapter';
 import { unwiredWorld } from '../content/world/unwired';
 import { testContent } from '../testing/entityServer';
 import { stub, stubOf } from '../testing/stub.test.helper';
+import { withPlayerComponents } from '../testing/playerDouble.test.helper';
 import { advancementsOf, loadAdvancements, storedAdvancements } from './progress';
 import {
     advancementBlockUsed,
@@ -260,30 +261,32 @@ const scene = () => {
         getServer: () => server
     });
 
-    const player: Player = stubOf(Player, {
-        getRuntimeId: () => runtimeId,
-        getType: () => 'minecraft:player',
-        // Its own name, because per-player services are keyed by the name of a player with no XUID.
-        getName: () => `tester-${runtimeId}`,
-        getXUID: () => null,
-        getPosition: () => ({ getX: () => 0, getY: () => 64, getZ: () => 0 }) as never,
-        getServer: () => server,
-        getWorld: () => world,
-        getInventory: () => inventory,
-        getEquipment: () => ({}),
-        getStatusEffects: () => [],
-        attributes: new Attributes(Attributes.getPlayerDefaults()),
-        metadata: { sprinting: false } as never,
-        gamemode: 0,
-        isSneaking: () => false,
-        isFlying: () => false,
-        getFood: () => 20,
-        getSaturation: () => 5,
-        addFood: () => {},
-        sendMessage: async (message: string, _type?: number, parameters: string[] = []) => {
-            announced.push({ key: message, parameters });
-        }
-    });
+    const player: Player = withPlayerComponents(
+        stubOf(Player, {
+            getRuntimeId: () => runtimeId,
+            getType: () => 'minecraft:player',
+            // Its own name, because per-player services are keyed by the name of a player with no XUID.
+            getName: () => `tester-${runtimeId}`,
+            getXUID: () => null,
+            getPosition: () => ({ getX: () => 0, getY: () => 64, getZ: () => 0 }) as never,
+            getServer: () => server,
+            getWorld: () => world,
+            getInventory: () => inventory,
+            getEquipment: () => ({}),
+            getStatusEffects: () => [],
+            attributes: new Attributes(Attributes.getPlayerDefaults()),
+            metadata: { sprinting: false } as never,
+            gamemode: 0,
+            isSneaking: () => false,
+            isFlying: () => false,
+            getFood: () => 20,
+            getSaturation: () => 5,
+            addFood: () => {},
+            sendMessage: async (message: string, _type?: number, parameters: string[] = []) => {
+                announced.push({ key: message, parameters });
+            }
+        })
+    );
 
     const port = createItemActorPort({
         world: () => world,

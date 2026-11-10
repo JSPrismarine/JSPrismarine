@@ -14,6 +14,7 @@ import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import PlayerEnchantOptionsPacket, { EnchantType } from '@jsprismarine/protocol/packet/PlayerEnchantOptionsPacket';
 import { fakePlayer } from '../testing/fakePlayer.test.helper';
 import { stub } from '../testing/stub.test.helper';
+import { experienceIn } from '../testing/playerDouble.test.helper';
 import { bookshelfPowerAround } from './bookshelves';
 import {
     enchantingRows,
@@ -135,6 +136,7 @@ const scene = (built: ServerContent, world = worldOf(), random: () => number = (
         getPosition: () => ({ getX: () => 0, getY: () => 64, getZ: () => 0 }) as never,
         getEquipment: () => ({}),
         attributes,
+        getExperience: () => experienceIn(attributes),
         // What `advancementSubject` reads when the enchant raises
         // `enchanted_item`.
         metadata: { sprinting: false } as never,

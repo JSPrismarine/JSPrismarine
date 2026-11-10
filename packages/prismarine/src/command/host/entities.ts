@@ -77,12 +77,7 @@ const gameModeNameOf = (player: Player): string => getGametypeName(player.gamemo
  * counts points. {@link import('../../entity/Experience')} holds the curve
  * that converts between them.
  */
-const experienceOf = (player: Player): ExperienceHolder => ({
-    getLevel: () => player.attributes.getValue(AttributeIds.PlayerLevel),
-    getProgress: () => player.attributes.getValue(AttributeIds.PlayerExperience),
-    setLevel: (level) => player.attributes.setValue(AttributeIds.PlayerLevel, level),
-    setProgress: (progress) => player.attributes.setValue(AttributeIds.PlayerExperience, progress)
-});
+const experienceOf = (player: Player): ExperienceHolder => player.getExperience();
 
 /** What `/xp query` answers, in the unit it was asked in. */
 const readExperience = (holder: ExperienceHolder, unit: 'points' | 'levels'): number => {
