@@ -27,7 +27,7 @@ import { bedrockMobEffectId } from '../entity/StatusEffect';
 import type { Metadata } from '@jsprismarine/protocol/wire/structures/Metadata';
 import type Human from '../entity/Human';
 import { eyePositionAt } from '../entity/Human';
-import type { Item as ItemEntity } from '../entity/other/Item';
+import type { ItemActorBody } from '../entity/data/itemBodies';
 import type ContainerEntry from '../inventory/ContainerEntry';
 import { blockContainerOf } from '../inventory/blockContainers';
 import { blockSlotName } from '../inventory/containerSlots';
@@ -2652,7 +2652,7 @@ export default class PlayerSession {
      * Writes a dropped item onto this connection.
      * @param {Item} item - The item entity to show.
      */
-    public async sendAddItemActor(item: ItemEntity): Promise<void> {
+    public async sendAddItemActor(item: ItemActorBody): Promise<void> {
         const stack = item.getItem();
         if (!stack) return;
 

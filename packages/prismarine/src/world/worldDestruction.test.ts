@@ -16,13 +16,15 @@ import { definitionOf, definitionsOf } from '../content/ContentOptions';
 import { overlayPackPath } from '../content/packStack';
 import { buildServerContent } from '../content/ServerContent';
 import { serverWorldSource } from '../content/world/serverSource';
+import { builtInEntityDefinitions } from '../content/testing';
+import { EntityRuntimes } from '../entity/data/live';
 import { inertEntityRuntime } from '../testing/entityServer';
 import { stub } from '../testing/stub.test.helper';
 import type Player from '../Player';
 import type { ContentPosition } from '../content/world/adapter';
 import type { Entity } from '../entity/Entity';
 import { explode } from '../entity/Explosion';
-import { Item as ItemEntity } from '../entity/other/Item';
+import { ItemActorBody as ItemEntity } from '../entity/data/itemBodies';
 import type { ServerContent } from '../content/ServerContent';
 import BlockUpdateScheduler from './BlockUpdateScheduler';
 import Chunk from './chunk/Chunk';
@@ -215,7 +217,11 @@ interface Fixture {
 }
 
 /** A `World` reduced to what a destruction touches: no disk, no network, everything else real. */
-const liveWorld = (content: () => ServerContent | undefined, getRandom: () => RandomSource): Fixture => {
+const liveWorld = (
+    content: () => ServerContent | undefined,
+    getRandom: () => RandomSource,
+    entityRuntimes: EntityRuntimes
+): Fixture => {
     const chunk = new Chunk(0, 0);
     const spawned: Entity[] = [];
     const rules = new Map<string, GameRuleEntry>();
@@ -265,7 +271,8 @@ const liveWorld = (content: () => ServerContent | undefined, getRandom: () => Ra
                 verbose: () => {},
                 warn: () => {}
             }),
-            getEntityRuntime: () => inertEntityRuntime(),
+            // The dimension's runtime the content build opened, where a drop becomes a store stack.
+            getEntityRuntime: (dimension: string) => entityRuntimes.at(dimension) ?? inertEntityRuntime(),
             getContent: content
         }
     });
@@ -299,22 +306,26 @@ describe('a block the world destroyed', () => {
 
     beforeEach(() => {
         let built: ServerContent | undefined;
+        const entityRuntimes = new EntityRuntimes();
         ({ world, chunk, spawned, rules } = liveWorld(
             () => built,
-            () => random
+            () => random,
+            entityRuntimes
         ));
 
         const source = serverWorldSource({
             worldFor: () => world,
             content: () => built!,
             seed: 1234n,
-            difficulty: () => Difficulty.NORMAL
+            difficulty: () => Difficulty.NORMAL,
+            entityRuntimes
         });
         random = source.at(DIMENSION).random;
         content = buildServerContent({
             load: () => ({
                 definitions: definitionsOf({
                     blocks: new Map(BLOCKS.map((id) => [id, overlayBlock(id)])),
+                    entities: new Map(builtInEntityDefinitions()),
                     lootTablesJava: new Map(
                         Object.entries(LOOT_TABLES).map(([id, table]) => [
                             id,

@@ -31,11 +31,12 @@ import type { LiveEntityRuntime } from '../entity/data/live';
 import type { DataEntityRecord } from '../entity/data/persistence';
 import { dataEntityRecordIn } from '../entity/data/persistence';
 import EntitySerializer from '../entity/EntitySerializer';
-import { ITEM_POSITION_OFFSET, Item as ItemEntity } from '../entity/other/Item';
+import { ITEM_ENTITY } from '../entity/data/droppedItems';
+import { ItemActorBody } from '../entity/data/itemBodies';
+import { storedItemActorOf } from '../entity/EntitySerializer';
 import type { Entity } from '../entity/Entity';
 import type { StatusEffect, StatusEffectChange } from '../entity/StatusEffect';
 import { GenericEntity } from '../entity/GenericEntity';
-import ContainerEntry from '../inventory/ContainerEntry';
 import { storedInventory, storedItem } from '../inventory/persistence';
 import { keyOfPlayer } from '../playerIdentity';
 import { playerRecordOf } from './playerRecord';
@@ -424,12 +425,14 @@ const FULL_SKY_LIGHT = 15;
 
 /** Where one dropped stack starts, and how fast it leaves; see {@link World.dropContents}. */
 interface DropStart {
-    /** Where the stack lies, below the position its entity reports. */
+    /** Where the stack lies, below the position its entity reports, unless `reported` says otherwise. */
     readonly position: Vector3;
+    /** Whether `position` is the one the entity reports rather than where the stack lies. */
+    readonly reported?: boolean;
     /** Its speed in blocks per tick, or still when absent. */
     readonly motion?: Vector3;
-    /** Ticks before a player may pick it up, or the item entity's default when absent. */
-    readonly pickupDelay?: number;
+    /** The identity of the player who threw it, which also gives it the thrown pickup delay. */
+    readonly thrower?: string;
 }
 
 /**
@@ -1699,7 +1702,7 @@ export class World implements Service {
             if (nbt.getString('identifier', '') === 'minecraft:player') continue;
 
             const entity = EntitySerializer.fromNBT(nbt, this);
-            if (entity instanceof ItemEntity && entity.getItem() === undefined) {
+            if (entity.getType() === ITEM_ENTITY && storedItemActorOf(nbt) === undefined) {
                 this.server
                     .getLogger()
                     .warn(`Skipped dropped item without a stack in chunk ${chunk.getX()},${chunk.getZ()}`);
@@ -1737,11 +1740,12 @@ export class World implements Service {
      */
     private restoreDataEntity(stored: Entity, live = this.server.getEntityRuntime?.(this.dimension.name)): boolean {
         if (live === undefined) return false;
+        if (stored.getType() === ITEM_ENTITY) return live.restoreItem(stored) !== undefined;
 
         const record = stored.persistentNbt === null ? undefined : dataEntityRecordIn(stored.persistentNbt);
         if (record !== undefined) return live.restore(record, stored) !== undefined;
 
-        return !(stored instanceof ItemEntity) && live.restoreExisting(stored) !== undefined;
+        return live.restoreExisting(stored) !== undefined;
     }
 
     private isLegacyEntity(candidate: Entity, stored: Entity): boolean {
@@ -1774,7 +1778,7 @@ export class World implements Service {
             // Java world generation writes mobs and structure actors, never dropped stacks.
             // A generated item has no loot payload and would otherwise live forever without
             // anything for the player to pick up.
-            if (spawn.type === ItemEntity.MOB_ID) continue;
+            if (spawn.type === ITEM_ENTITY) continue;
 
             const at = { x: spawn.x, y: spawn.y, z: spawn.z };
 
@@ -2922,24 +2926,17 @@ export class World implements Service {
     /** Ticks between two reports that {@link World.ITEM_ENTITY_LIMIT} turned a drop away. */
     private static readonly ITEM_ENTITY_LIMIT_REPORT_INTERVAL = 20;
 
-    /** The running answer {@link World.itemEntityCount} gives, absent until something asks. */
-    private itemEntities: number | undefined;
-
     /** The tick the limit was last reported on, so one cascade is one line a second. */
     private itemEntityLimitReportedAt: number | undefined;
 
     /**
-     * How many of {@link World.entities} are dropped stacks.
-     *
-     * Counted from the map once and kept in step by {@link World.addEntity} and
-     * {@link World.removeEntity} after that. A cascade of block updates reaches the drop path
-     * thousands of times in a tick, and walking the map that often is the cost this limit
-     * exists to avoid.
+     * How many dropped stacks lie in this world, which the store's item bodies count as each one
+     * enters and leaves. A cascade of block updates reaches the drop path thousands of times in a
+     * tick, and walking the entities that often is the cost this limit exists to avoid.
      * @returns {number} The number of `minecraft:item` entities in the world.
      */
     private itemEntityCount(): number {
-        this.itemEntities ??= [...this.entities.values()].filter((entity) => entity instanceof ItemEntity).length;
-        return this.itemEntities;
+        return this.dataEntities().itemBodies.size;
     }
 
     /**
@@ -2977,8 +2974,8 @@ export class World implements Service {
      * Drops player-held stacks from the player's eyes, with Java's forward toss and pickup delay.
      *
      * Java places the item at eye height minus 0.3 blocks and gives it a 0.3-block-per-tick
-     * velocity along the view, with its small vanilla spread. The spawn position passed to
-     * {@link World.spill} is the item's feet; the item actor reports 0.125 blocks above it.
+     * velocity along the view, with its small vanilla spread. That is the position the item actor
+     * reports; the stack lies the definition's `position_offset` below it.
      * @param player - The player who dropped the stacks.
      * @param contents - The stacks to drop; nulls and empty stacks are skipped.
      */
@@ -2988,7 +2985,8 @@ export class World implements Service {
         const pitch = (player.pitch * Math.PI) / 180;
         const yaw = (player.yaw * Math.PI) / 180;
         const horizontal = Math.cos(pitch) * 0.3;
-        const feet = new Vector3(eyes.getX(), eyes.getY() - 0.3 - ITEM_POSITION_OFFSET, eyes.getZ());
+        const reported = new Vector3(eyes.getX(), eyes.getY() - 0.3, eyes.getZ());
+        const thrower = player.getUUID().toString();
 
         await this.spill(eyes, contents, () => {
             const angle = random() * Math.PI * 2;
@@ -2999,7 +2997,7 @@ export class World implements Service {
                 Math.cos(yaw) * horizontal + Math.sin(angle) * spread
             );
 
-            return { position: feet, motion, pickupDelay: 40 };
+            return { position: reported, reported: true, motion, thrower };
         });
     }
 
@@ -3054,8 +3052,7 @@ export class World implements Service {
         // ground costs no roll.
         await Promise.all(
             wanted.slice(0, room).map(async (drop) => {
-                const { position: at, motion, pickupDelay } = start();
-                await this.dropItem(at, drop, motion, pickupDelay);
+                this.dropItem(drop, start());
             })
         );
     }
@@ -3081,25 +3078,23 @@ export class World implements Service {
     }
 
     /**
-     * Puts one stack on the ground as a `minecraft:item` entity.
+     * Puts one stack on the ground as a `minecraft:item` entity of the store.
      *
      * A block is turned into the item it becomes once picked up: only an item can go on the
-     * wire, and `Block` has no serialisation of its own - which is exactly the cast
-     * `ContainerEntry` warns about, made honestly here instead.
+     * wire, and `Block` has no serialisation of its own. The stack goes in as a stored stack, so
+     * the stack network id it had in a player's inventory stays behind: ids are counted per
+     * player, and whoever picks it up gives it one of their own.
      */
-    private async dropItem(
-        position: Vector3,
-        drop: Block | Item,
-        motion?: Vector3,
-        pickupDelay?: number
-    ): Promise<void> {
+    private dropItem(drop: Block | Item, start: DropStart): void {
         const item =
             drop instanceof Item ? drop : new Item({ name: drop.getName(), content: this.server.getContent() });
+        const position = start.position;
 
         // A stack with no runtime id goes out as air, and the client draws an item actor holding
         // air as an empty item on the ground. That is an unknown Java id `bedrockDrops` kept, or
         // a block whose drop names no item. Logged, so the block that made it can be found.
-        if (item.getName() === 'minecraft:air' || item.getRuntimeId() === 0) {
+        const stack = storedItem(item);
+        if (stack === null || item.getRuntimeId() === 0) {
             this.server
                 .getLogger()
                 .debug(
@@ -3109,26 +3104,18 @@ export class World implements Service {
             return;
         }
 
-        // Without the stack network id it had in a player's inventory. Ids are counted per
-        // player, so whoever picks the stack up gives it one of their own; carried along, it
-        // could name another of their stacks as well.
-        let grounded = item;
-        if (item.stackNetworkId !== 0) {
-            grounded = item.withCount(item.getAmount());
-            grounded.stackNetworkId = 0;
-        }
-
-        // Built where it lands, so nothing has to be moved into place afterwards and no
-        // client is told about a position the entity never actually held. The entity's own
-        // position is the one a client is told, which is above where the stack lies.
-        const entity = new ItemEntity({
-            item: new ContainerEntry({ item: grounded, count: grounded.getAmount() }),
-            position: new Position(position.getX(), position.getY() + ITEM_POSITION_OFFSET, position.getZ(), this),
-            motion,
-            pickupDelay
-        });
-
-        await this.addEntity(entity);
+        // Built where it lands, so nothing has to be moved into place afterwards and no client is
+        // told about a position the entity never held.
+        const motion = start.motion;
+        const entity = this.dataEntities().dropItem(
+            { x: position.getX(), y: position.getY(), z: position.getZ() },
+            {
+                stack,
+                ...(motion === undefined ? {} : { motion: { x: motion.getX(), y: motion.getY(), z: motion.getZ() } }),
+                ...(start.thrower === undefined ? {} : { thrower: start.thrower, thrown: true }),
+                ...(start.reported === true ? { reported: true } : {})
+            }
+        );
 
         // Said once per drop, because everything between here and a floating item on screen -
         // the entity, the visibility pass, the actor packet - is invisible from the outside,
@@ -3136,7 +3123,9 @@ export class World implements Service {
         this.server
             .getLogger()
             .debug(
-                `Dropped ${item.getName()} (runtime id ${item.getRuntimeId()}) at ${position.toString()}`,
+                entity === undefined
+                    ? `Dropped nothing for ${item.getName()} at ${position.toString()}: no dropped item is declared`
+                    : `Dropped ${item.getName()} (runtime id ${item.getRuntimeId()}) at ${position.toString()}`,
                 'World/dropItem'
             );
     }
@@ -3174,13 +3163,14 @@ export class World implements Service {
         )
             return;
 
-        // Kept in step only once something has asked for it; before that the first count
-        // reads the map, which already holds this arrival. Re-adding one the world already
-        // has is a replacement rather than an arrival.
-        const runtimeId = Number(entity.getRuntimeId());
+        // The body of a stack that left another world's store, through a portal: this world's
+        // store takes the stack in and gives it a body of its own.
+        if (entity instanceof ItemActorBody && live !== undefined && live.itemBodies.entityIdOf(entity) === undefined) {
+            live.adoptItem(entity);
+            return;
+        }
 
-        if (this.itemEntities !== undefined && entity instanceof ItemEntity && !this.entities.has(runtimeId))
-            this.itemEntities += 1;
+        const runtimeId = Number(entity.getRuntimeId());
 
         this.entities.set(runtimeId, entity);
         if (entity instanceof Player) this.players.set(runtimeId, entity);
@@ -3209,9 +3199,6 @@ export class World implements Service {
             if (runtimeIds?.size === 0) this.runtimeIdsByChunk().delete(chunkIndex);
         }
         this.entityChunkIndices.delete(runtimeIdKey);
-
-        if (this.itemEntities !== undefined && entity instanceof ItemEntity && this.entities.has(runtimeIdKey))
-            this.itemEntities -= 1;
 
         this.getEntityIndex().removeLegacy(entity);
         this.entities.delete(runtimeIdKey);

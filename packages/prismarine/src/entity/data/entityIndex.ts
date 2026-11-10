@@ -307,17 +307,6 @@ export class EntityIndex {
     }
 
     /**
-     * Legacy dropped items within a horizontal radius of a point, in ascending runtime id order,
-     * until the legacy item entity is gone.
-     */
-    public legacyItemsWithin(x: number, z: number, radius: number): Entity[] {
-        if (radius < 0) return [];
-        const found: Entity[] = [];
-        this.collectItems(found, x, z, radius);
-        return inRuntimeIdOrder(found);
-    }
-
-    /**
      * Every entity the world holds within a horizontal radius of a point, as
      * the legacy classes see them, in ascending runtime id order.
      *

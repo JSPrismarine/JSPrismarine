@@ -9,7 +9,10 @@ import type { LiveBodies } from '../entity/data/liveBodies';
 import type { Entity } from '../entity/Entity';
 import { GenericEntity } from '../entity/GenericEntity';
 import { EyeOfEnderSignal } from '../entity/other/EyeOfEnderSignal';
-import { Item } from '../entity/other/Item';
+import type { DataEntity } from '../entity/data/DataEntity';
+import type { EntityRuntime } from '../entity/data/EntityRuntime';
+import { ItemActorBody } from '../entity/data/itemBodies';
+import type { ItemBodies } from '../entity/data/itemBodies';
 import { Item as ItemStack } from '../item/Item';
 import { testEntityServer } from '../testing/entityServer';
 import { stub, stubOf } from '../testing/stub.test.helper';
@@ -27,6 +30,7 @@ const indexedWorld = () => {
     const live = stub<LiveEntityRuntime>({
         runtime: fixture.runtime,
         bodies: stub<LiveBodies>({ entityIdOf: (entity) => bodies.get(entity) }),
+        itemBodies: stub<ItemBodies>({ entityIdOf: (entity) => bodies.get(entity) }),
         removeBody: () => false,
         restoreExisting: () => undefined
     });
@@ -52,8 +56,28 @@ const Y = FLOOR_Y + 1;
  */
 let nextLegacyId = 1_000n;
 
-const droppedItem = (world: World, x: number, z: number): Item =>
-    new Item({ position: new Position(x, Y, z, world), runtimeId: nextLegacyId++ });
+/** A legacy entity the world holds with no store entity behind it. */
+const legacyEntity = (world: World, x: number, z: number): GenericEntity =>
+    new GenericEntity({
+        identifier: 'minecraft:armor_stand',
+        position: new Position(x, Y, z, world),
+        runtimeId: nextLegacyId++
+    });
+
+/** A dropped stack of the store and the body the world holds for it. */
+const droppedItem = (
+    world: World,
+    runtime: EntityRuntime,
+    bodies: Map<Entity, number>,
+    x: number,
+    z: number
+): { entity: DataEntity; body: ItemActorBody } => {
+    const entity = runtime.droppedItems.spawn({ x, y: Y, z }, { stack: { name: 'minecraft:dirt', count: 1 } });
+    if (entity === undefined) throw new Error('the fixture declares no dropped item');
+    const body = new ItemActorBody(entity, runtime.droppedItems, world);
+    bodies.set(body, entity.id);
+    return { entity, body };
+};
 
 const eyeOfEnder = (world: World, x: number, z: number): EyeOfEnderSignal =>
     new EyeOfEnderSignal({
@@ -80,21 +104,20 @@ const finds = (world: World, entity: Entity, x: number, z: number): boolean =>
     world.getEntityIndex().legacyWithin(x, z, 1).includes(entity);
 
 describe('the entity index over a world', () => {
-    it('sees a dropped item where each kind of position write moved it, announced or not', async () => {
-        const { world } = indexedWorld();
-        const item = droppedItem(world, 0.5, 0.5);
-        await world.addEntity(item);
-        expect(finds(world, item, 0.5, 0.5)).toBe(true);
+    it('sees a dropped stack where the store moved it, before its body catches up', async () => {
+        const { world, runtime, bodies } = indexedWorld();
+        const { entity, body } = droppedItem(world, runtime, bodies, 0.5, 0.5);
+        await world.addEntity(body);
+        expect(finds(world, body, 0.5, 0.5)).toBe(true);
 
-        await item.setPosition({ position: new Vector3(40.5, Y, 0.5) });
-        expect(finds(world, item, 0.5, 0.5)).toBe(false);
-        expect(finds(world, item, 40.5, 0.5)).toBe(true);
+        entity.position = { x: 40.5, y: Y, z: 0.5 };
+        expect(finds(world, body, 0.5, 0.5)).toBe(false);
+        expect(finds(world, body, 40.5, 0.5)).toBe(true);
+        expect(world.getEntityIndex().itemsWithin(40.5, 0.5, 0.5)).toEqual([entity]);
 
-        // Suppressed, so no client hears about it, and the index still does.
-        await item.setX(80.5, true);
-        expect(finds(world, item, 40.5, 0.5)).toBe(false);
-        expect(finds(world, item, 80.5, 0.5)).toBe(true);
-        expect(world.getEntityIndex().itemsWithin(80.5, 0.5, 0.5)).toEqual([item]);
+        // Gone from the store, so no query finds it as a stack any more.
+        runtime.remove(entity.id, 'merged');
+        expect(world.getEntityIndex().itemsWithin(40.5, 0.5, 0.5)).toEqual([]);
     });
 
     it('sees an eye of ender and a player where their last write put them', async () => {
@@ -124,7 +147,7 @@ describe('the entity index over a world', () => {
             persistentNbt: null
         });
         bodies.set(body, cow.id);
-        const item = droppedItem(world, 1.5, 0.5);
+        const item = droppedItem(world, runtime, bodies, 1.5, 0.5).body;
         const player = await playerAt(world, 2.5, 0.5);
 
         // Filed highest id first, so the answer's order cannot be the order things arrived in.
@@ -140,7 +163,7 @@ describe('the entity index over a world', () => {
 
     it('leaves nothing behind once everything it filed is removed', async () => {
         const { world, index } = indexedWorld();
-        const item = droppedItem(world, 0.5, 0.5);
+        const item = legacyEntity(world, 0.5, 0.5);
         const eye = eyeOfEnder(world, 17.5, 0.5);
         const player = await playerAt(world, -17.5, 0.5);
         for (const entity of [item, eye, player]) await world.addEntity(entity);
@@ -156,7 +179,7 @@ describe('the entity index over a world', () => {
     it('moves an entity out of one world index and into the next on a dimension change', async () => {
         const from = indexedWorld();
         const to = indexedWorld();
-        const item = droppedItem(from.world, 0.5, 0.5);
+        const item = legacyEntity(from.world, 0.5, 0.5);
         await from.world.addEntity(item);
 
         // The order `DimensionTravel` uses: out of the old world, moved, into the new one.
@@ -166,12 +189,12 @@ describe('the entity index over a world', () => {
 
         expect(from.index.size).toBe(0);
         expect(from.index.occupiedCells).toBe(0);
-        expect(to.world.getEntityIndex().itemsWithin(8.5, 8.5, 0.5)).toEqual([item]);
+        expect(to.world.getEntityIndex().legacyWithin(8.5, 8.5, 0.5)).toEqual([item]);
     });
 
     it('moves chunk membership with the same write that refiles the index', async () => {
         const { world, entityChunkIndices } = indexedWorld();
-        const item = droppedItem(world, 0.5, 0.5);
+        const item = legacyEntity(world, 0.5, 0.5);
         await world.addEntity(item);
         const id = Number(item.getRuntimeId());
         expect(entityChunkIndices.get(id)).toBe(Chunk.packXZ(0, 0));
@@ -179,7 +202,7 @@ describe('the entity index over a world', () => {
         // Suppressed, which used to leave the chunk a save would write the item into behind.
         await item.setX(40.5, true);
         expect(entityChunkIndices.get(id)).toBe(Chunk.packXZ(2, 0));
-        expect(world.getEntityIndex().itemsWithin(40.5, 0.5, 0.5)).toEqual([item]);
+        expect(world.getEntityIndex().legacyWithin(40.5, 0.5, 0.5)).toEqual([item]);
 
         await world.removeEntity(item);
         expect(entityChunkIndices.has(id)).toBe(false);
@@ -187,7 +210,7 @@ describe('the entity index over a world', () => {
 
     it('does not file an entity a world does not hold, even when its position names that world', async () => {
         const { world, index } = indexedWorld();
-        const item = droppedItem(world, 0.5, 0.5);
+        const item = legacyEntity(world, 0.5, 0.5);
 
         await item.setPosition({ position: new Vector3(8.5, Y, 0.5) });
 
