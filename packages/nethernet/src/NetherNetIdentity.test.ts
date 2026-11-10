@@ -35,10 +35,10 @@ describe('NetherNetIdentity', () => {
     const now = 1_794_000_000_000;
     const { privateKey } = generateKeyPairSync('ec', { namedCurve: BEDROCK_CURVE });
 
-    it('signs an answer a NetherNet client accepts, with the key as a JWK', () => {
-        const signed = new NetherNetIdentity(privateKey, { now: () => now }).sign(DESCRIPTION);
+    it('signs an answer a NetherNet client accepts, with the key as a JWK', async () => {
+        const signed = await new NetherNetIdentity(privateKey, { now: () => now }).sign(DESCRIPTION);
 
-        const verified = verifySelfSignedIdentity(signed, now);
+        const verified = await verifySelfSignedIdentity(signed, now);
         expect(verified.domain).toBe('self');
         expect(verified.description).toBe(DESCRIPTION);
         expect(claimsOf(signed)).toMatchObject({
@@ -48,19 +48,19 @@ describe('NetherNetIdentity', () => {
         });
     });
 
-    it('signs an offer the way a client does, with the key as base64 DER', () => {
+    it('signs an offer the way a client does, with the key as base64 DER', async () => {
         const identity = NetherNetIdentity.client('example.test');
-        const signed = identity.sign(DESCRIPTION);
+        const signed = await identity.sign(DESCRIPTION);
 
-        const verified = verifySelfSignedIdentity(signed);
+        const verified = await verifySelfSignedIdentity(signed);
         expect(verified.domain).toBe('example.test');
         expect(claimsOf(signed)).toMatchObject({ cpk: expect.stringMatching(/^MHYwEAYHKoZIzj0CAQYFK4EEACIDYgAE/) });
     });
 
-    it("carries an authority's token instead of signing one, and still signs the fingerprints", () => {
+    it("carries an authority's token instead of signing one, and still signs the fingerprints", async () => {
         // A signed-in client: its multiplayer token names its key, issued by Minecraft's services.
         const issued = 'eyJhbGciOiJSUzI1NiJ9.eyJjcGsiOiJrZXkifQ.signature';
-        const signed = new NetherNetIdentity(privateKey, { keyFormat: 'der', token: issued }).sign(DESCRIPTION);
+        const signed = await new NetherNetIdentity(privateKey, { keyFormat: 'der', token: issued }).sign(DESCRIPTION);
 
         const line = signed.split('\r\n').find((candidate) => candidate.startsWith('a=identity:'))!;
         const identity = JSON.parse(Buffer.from(line.slice('a=identity:'.length), 'base64').toString());
@@ -69,16 +69,16 @@ describe('NetherNetIdentity', () => {
         expect(assertion.fingerprints).toMatch(/^[\w-]+\.\.[\w-]+$/);
     });
 
-    it('refuses an identity once its token has expired', () => {
-        const signed = new NetherNetIdentity(privateKey, { now: () => now }).sign(DESCRIPTION);
+    it('refuses an identity once its token has expired', async () => {
+        const signed = await new NetherNetIdentity(privateKey, { now: () => now }).sign(DESCRIPTION);
 
-        expect(() => verifySelfSignedIdentity(signed, now + 61_000)).toThrow('expired');
+        await expect(verifySelfSignedIdentity(signed, now + 61_000)).rejects.toThrow('expired');
     });
 
-    it('refuses an identity whose fingerprints were swapped after signing', () => {
-        const signed = new NetherNetIdentity(privateKey, { now: () => now }).sign(DESCRIPTION);
+    it('refuses an identity whose fingerprints were swapped after signing', async () => {
+        const signed = await new NetherNetIdentity(privateKey, { now: () => now }).sign(DESCRIPTION);
 
-        expect(() => verifySelfSignedIdentity(signed.replace('3B:6F', '00:00'), now)).toThrow(
+        await expect(verifySelfSignedIdentity(signed.replace('3B:6F', '00:00'), now)).rejects.toThrow(
             "does not sign this description's fingerprints"
         );
     });
@@ -97,20 +97,20 @@ describe('NetherNetIdentity', () => {
             },
             'no usable cpk claim'
         ]
-    ])('refuses %s', (_name, identity, reason) => {
+    ])('refuses %s', async (_name, identity, reason) => {
         const value = typeof identity === 'string' ? identity : JSON.stringify(identity);
         const forged = DESCRIPTION.replace(
             'm=application',
             `a=identity:${Buffer.from(value).toString('base64')}\r\nm=application`
         );
 
-        expect(() => verifySelfSignedIdentity(forged)).toThrow(reason);
+        await expect(verifySelfSignedIdentity(forged)).rejects.toThrow(reason);
     });
 
-    it('refuses a token signed by a key other than the one it names', () => {
+    it('refuses a token signed by a key other than the one it names', async () => {
         const { privateKey: other } = generateKeyPairSync('ec', { namedCurve: BEDROCK_CURVE });
-        const genuine = new NetherNetIdentity(privateKey, { now: () => now }).sign(DESCRIPTION);
-        const impostor = new NetherNetIdentity(other, { now: () => now }).sign(DESCRIPTION);
+        const genuine = await new NetherNetIdentity(privateKey, { now: () => now }).sign(DESCRIPTION);
+        const impostor = await new NetherNetIdentity(other, { now: () => now }).sign(DESCRIPTION);
         const identityOf = (description: string) =>
             JSON.parse(
                 Buffer.from(
@@ -133,35 +133,37 @@ describe('NetherNetIdentity', () => {
             `a=identity:${Buffer.from(JSON.stringify({ ...identityOf(genuine), assertion: JSON.stringify(forgedAssertion) })).toString('base64')}`
         );
 
-        expect(() => verifySelfSignedIdentity(forged, now)).toThrow('not signed by its own key');
+        await expect(verifySelfSignedIdentity(forged, now)).rejects.toThrow('not signed by its own key');
     });
 
-    it('refuses a description with no identity at all', () => {
-        expect(() => verifySelfSignedIdentity(DESCRIPTION)).toThrow('carries no a=identity');
+    it('refuses a description with no identity at all', async () => {
+        await expect(verifySelfSignedIdentity(DESCRIPTION)).rejects.toThrow('carries no a=identity');
     });
 
-    it('puts a=identity at session level, before the media section', () => {
-        const lines = new NetherNetIdentity(privateKey).sign(DESCRIPTION).split('\r\n');
+    it('puts a=identity at session level, before the media section', async () => {
+        const lines = (await new NetherNetIdentity(privateKey).sign(DESCRIPTION)).split('\r\n');
 
         expect(lines.findIndex((line) => line.startsWith('a=identity:'))).toBe(
             lines.findIndex((line) => line.startsWith('m=')) - 1
         );
     });
 
-    it('refuses to sign a description with no fingerprint', () => {
-        expect(() => new NetherNetIdentity(privateKey).sign('v=0\r\nm=application 9 UDP/DTLS/SCTP x\r\n')).toThrow(
-            'without a fingerprint'
-        );
+    it('refuses to sign a description with no fingerprint', async () => {
+        await expect(
+            new NetherNetIdentity(privateKey).sign('v=0\r\nm=application 9 UDP/DTLS/SCTP x\r\n')
+        ).rejects.toThrow('without a fingerprint');
     });
 
-    it('keeps one key across restarts, in a file only its owner can read', () => {
+    it('keeps one key across restarts, in a file only its owner can read', async () => {
         const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'jsp-nethernet-identity-'));
         try {
             const file = path.join(directory, 'nethernet-identity.pem');
-            const key = (identity: NetherNetIdentity) =>
-                verifySelfSignedIdentity(identity.sign(DESCRIPTION)).publicKey.export({ format: 'jwk' });
+            const key = async (identity: NetherNetIdentity) =>
+                (await verifySelfSignedIdentity(await identity.sign(DESCRIPTION))).publicKey.export({ format: 'jwk' });
 
-            expect(key(NetherNetIdentity.loadOrCreate(file))).toStrictEqual(key(NetherNetIdentity.loadOrCreate(file)));
+            expect(await key(NetherNetIdentity.loadOrCreate(file))).toStrictEqual(
+                await key(NetherNetIdentity.loadOrCreate(file))
+            );
             if (process.platform !== 'win32') expect(fs.statSync(file).mode & 0o777).toBe(0o600);
         } finally {
             fs.rmSync(directory, { recursive: true, force: true });

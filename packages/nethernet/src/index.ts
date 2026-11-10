@@ -1,4 +1,4 @@
-export { BEDROCK_CURVE, compactEs384, detachedEs384, verifiesEs384 } from './es384';
+export { BEDROCK_CURVE, compactEs384, detachedEs384, verifiesDetachedEs384 } from './es384';
 export { HttpSignaling } from './HttpSignaling';
 export type { HttpSignalingOptions, NetherNetOfferAnswerer, SignalingLogger } from './HttpSignaling';
 export {

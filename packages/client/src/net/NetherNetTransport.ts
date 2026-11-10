@@ -121,8 +121,8 @@ export default class NetherNetTransport extends EventEmitter implements ITranspo
         offer: string,
         deadline: AbortSignal
     ): Promise<void> {
-        const answer = await exchangeOffer(this.address, client.networkId, identity.sign(offer), deadline);
-        const { description } = verifySelfSignedIdentity(answer);
+        const answer = await exchangeOffer(this.address, client.networkId, await identity.sign(offer), deadline);
+        const { description } = await verifySelfSignedIdentity(answer);
         client.handleSignal(
             new SignalStructure(SignalType.ConnectResponse, client.connectionId, description, client.serverNetworkId)
         );

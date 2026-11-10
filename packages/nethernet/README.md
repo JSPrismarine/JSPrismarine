@@ -13,7 +13,7 @@ which carries the WebRTC connection itself:
   helpers it is built on.
 - `encodeLanAdvertisement` and `decodeLanAdvertisement`, the advertisement a server answers LAN
   discovery with, on the fixed UDP port `NETHERNET_LAN_PORT`.
-- `compactEs384` and `detachedEs384`, the ES384 JSON Web Signatures Bedrock signs its tokens with.
+- `compactEs384`, `detachedEs384` and `verifiesDetachedEs384`, the ES384 JSON Web Signatures Bedrock signs its tokens with, made and checked by [`jose`](https://github.com/panva/jose).
 
 It knows nothing about Minecraft packets. The `0xFE` batch id NetherNet leaves out of each message
 is the business of whichever transport carries batches over it.

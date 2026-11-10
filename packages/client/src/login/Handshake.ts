@@ -1,5 +1,7 @@
 import { createHash, createPrivateKey, createPublicKey, diffieHellman } from 'node:crypto';
 
+import { decodeJwt, decodeProtectedHeader } from 'jose';
+
 /**
  * The key both ends of a connection arrive at without either sending it.
  *
@@ -10,16 +12,9 @@ import { createHash, createPrivateKey, createPublicKey, diffieHellman } from 'no
  * different - there is no negotiation and no error, only a connection that stops.
  */
 
-const decodeSegment = (segment: string): unknown => {
-    const json = Buffer.from(segment, 'base64url').toString('utf8');
-    return JSON.parse(json);
-};
-
-/** A string claim from a decoded segment, or undefined when it is missing or not a string. */
-const stringClaim = (segment: unknown, key: string): string | undefined => {
-    if (typeof segment !== 'object' || segment === null) return undefined;
-
-    const value: unknown = Reflect.get(segment, key);
+/** A string field of a decoded header or claim set, or undefined when it is missing or not a string. */
+const stringField = (fields: Readonly<Record<string, unknown>>, key: string): string | undefined => {
+    const value = fields[key];
     return typeof value === 'string' ? value : undefined;
 };
 
@@ -32,16 +27,20 @@ const stringClaim = (segment: unknown, key: string): string | undefined => {
  * wrong key yields a wrong secret, which the very next batch fails its checksum on.
  */
 export const readHandshake = (jwt: string): { publicKeyDer: string; salt: Buffer } => {
-    const [rawHeader, rawPayload] = jwt.split('.');
-    if (rawHeader === undefined || rawPayload === undefined) {
+    let header: Readonly<Record<string, unknown>>;
+    let claims: Readonly<Record<string, unknown>>;
+    try {
+        header = decodeProtectedHeader(jwt);
+        claims = decodeJwt(jwt);
+    } catch {
         throw new Error('A handshake token has a header and a payload separated by dots');
     }
 
     // `x5u` is the header field carrying the sender's public key, as base64 DER rather than a JWK.
-    const x5u = stringClaim(decodeSegment(rawHeader), 'x5u');
+    const x5u = stringField(header, 'x5u');
     if (x5u === undefined) throw new Error('The handshake token carries no `x5u` public key');
 
-    const salt = stringClaim(decodeSegment(rawPayload), 'salt');
+    const salt = stringField(claims, 'salt');
     if (salt === undefined) throw new Error('The handshake token carries no `salt`');
 
     // Base64 without padding is what the claim carries; Node wants either, but only if it is

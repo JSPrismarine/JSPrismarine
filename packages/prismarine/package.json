@@ -132,7 +132,6 @@
         "@types/node": "26.6.6",
         "@types/terminal-kit": "2.5.7",
         "ajv": "8.20.0",
-        "fast-jwt": "6.3.6",
         "glob": "14.0.4",
         "rimraf": "6.1.4",
         "ts-json-schema-generator": "2.9.0",
@@ -182,6 +181,7 @@
         "@jsprismarine/structures": "workspace:*",
         "@jsprismarine/trading": "workspace:*",
         "@jsprismarine/worldgen": "workspace:*",
+        "jose": "6.2.13",
         "jsonc-parser": "3.3.1",
         "nethernet": "1.1.2"
     }

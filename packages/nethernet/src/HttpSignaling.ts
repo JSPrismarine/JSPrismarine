@@ -39,7 +39,7 @@ export interface HttpSignalingOptions {
     /** The `GET /v1/join` body, read per request. */
     readonly status: () => string;
     /** Adds the server's `a=identity` to an answer; the client refuses one without it. */
-    readonly sign: (answer: string) => string;
+    readonly sign: (answer: string) => string | Promise<string>;
     readonly logger: SignalingLogger;
     /** How long an offer may wait for its answer. */
     readonly answerTimeoutMs?: number;
@@ -145,7 +145,7 @@ export class HttpSignaling {
         const started = Date.now();
         const result = await this.negotiate(networkId, offer);
         if ('answer' in result) {
-            const answer = this.options.sign(result.answer);
+            const answer = await this.options.sign(result.answer);
             logger.info(
                 `NetherNet join from ${from} answered in ${Date.now() - started} ms as connection ${result.connectionId}, offering ${describeCandidates(answer).join(', ') || 'no candidates'}`
             );

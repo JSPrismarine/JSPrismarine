@@ -29,7 +29,7 @@ export class SessionEncryption {
      * @param clientPublicKey - The client's identity key, base64 DER, as its login names it.
      * @throws when the key is not a P-384 public key.
      */
-    public begin(clientPublicKey: string): SessionEncryptionHandshake {
+    public async begin(clientPublicKey: string): Promise<SessionEncryptionHandshake> {
         const peer = createPublicKey({ key: Buffer.from(clientPublicKey, 'base64'), format: 'der', type: 'spki' });
         if (peer.asymmetricKeyType !== 'ec' || peer.asymmetricKeyDetails?.namedCurve !== BEDROCK_CURVE) {
             throw new Error(`The client identity key is not a ${BEDROCK_CURVE} public key`);
@@ -39,7 +39,7 @@ export class SessionEncryption {
         const secret = diffieHellman({ privateKey: this.keys.privateKey, publicKey: peer });
         const key = createHash('sha256').update(salt).update(secret).digest();
 
-        const jwt = compactEs384({ x5u: this.x5u }, { salt: salt.toString('base64') }, this.keys.privateKey);
+        const jwt = await compactEs384({ x5u: this.x5u }, { salt: salt.toString('base64') }, this.keys.privateKey);
         return { jwt, codec: new EncryptionCodec(key) };
     }
 }

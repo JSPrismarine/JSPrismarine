@@ -159,9 +159,9 @@ export default class LoginHandler implements ConnectionPacketHandler<LoginPacket
         server: Server,
         connection: ClientConnection
     ): Promise<boolean> {
-        let handshake: ReturnType<ReturnType<typeof sessionEncryption>['begin']>;
+        let handshake: Awaited<ReturnType<ReturnType<typeof sessionEncryption>['begin']>>;
         try {
-            handshake = sessionEncryption().begin(identity.identityPublicKey!);
+            handshake = await sessionEncryption().begin(identity.identityPublicKey!);
         } catch (error: unknown) {
             LoginHandler.reportRefusal(login.protocolVersion, identity, server, 'unusable identity key');
             server.getLogger().debug(String(error), 'LoginHandler/beginEncryption');
