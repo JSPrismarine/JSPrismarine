@@ -6,15 +6,17 @@
  * 1. `present` (pack): the target is in the store, alive, not already dying and has health.
  * 2. `invulnerable` (pack): the record's invulnerable flag, as the respawn sequence's end
  *    crystals carry.
- * 3. `hit_grace` (pack): the half second after a hit during which a weaker blow is ignored.
- * 4. `cannot_be_attacked` (pack): `minecraft:cannot_be_attacked` and the type rules an attacker
+ * 3. `damage_resistant` (pack): a dropped stack whose item's `minecraft:damage_resistant` names
+ *    the cause, such as a nether star in a blast.
+ * 4. `hit_grace` (pack): the half second after a hit during which a weaker blow is ignored.
+ * 5. `cannot_be_attacked` (pack): `minecraft:cannot_be_attacked` and the type rules an attacker
  *    in the store declares.
- * 5. `dragon` (pack): Java's `EnderDragon.hurt` rules, which the Bedrock pack does not carry.
- * 6. `damage_sensor` (pack): a `minecraft:damage_sensor` that does not deal damage, or an
+ * 6. `dragon` (pack): Java's `EnderDragon.hurt` rules, which the Bedrock pack does not carry.
+ * 7. `damage_sensor` (pack): a `minecraft:damage_sensor` that does not deal damage, or an
  *    immunity component, replaces the amount with zero. The blow still commits, so the sensor's
  *    event fires and the hurt observers see it, which is what Bedrock does.
- * 7. Game rules: `fireDamage` for a burning entity.
- * 8. Before-hooks, which a host adds.
+ * 8. Game rules: `fireDamage` for a burning entity.
+ * 9. Before-hooks, which a host adds.
  *
  * Modifier slots, lowest priority first: the grace period's difference, armor, protection
  * enchantments, resistance, absorption, the dragon's scaling and the damage sensor's multiplier.
@@ -60,6 +62,8 @@ export interface DamageStageReads {
     mitigation?(target: DataEntity, intent: DamageIntent): DamageMitigation | undefined;
     /** Whether an attacker's type rules allow it to hurt the target. */
     canAttack(attacker: DataEntity, target: DataEntity): boolean;
+    /** Whether the target turns a cause aside whole, as a dropped nether star does a blast. */
+    resists?(target: DataEntity, cause: string): boolean;
 }
 
 /** Causes whose `cannot_be_attacked` and type rules are asked, which is every blow an entity deals. */
@@ -131,6 +135,14 @@ export const damageGuards = (reads: DamageStageReads, sensing: DamageSensingSlot
         name: 'invulnerable',
         stage: 'pack',
         check: (intent) => (reads.target(intent.target)?.body.invulnerable === true ? VETO : PASS)
+    },
+    {
+        name: 'damage_resistant',
+        stage: 'pack',
+        check: (intent) => {
+            const target = reads.target(intent.target);
+            return target !== undefined && reads.resists?.(target, intent.cause) === true ? VETO : PASS;
+        }
     },
     {
         name: 'hit_grace',

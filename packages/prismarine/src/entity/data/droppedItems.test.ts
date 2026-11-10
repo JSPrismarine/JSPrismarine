@@ -365,6 +365,28 @@ describe('dropped items in the store', () => {
             expect(fixture.runtime.droppedItems.hurt(star, 6, DamageCause.Explosion)).toBe(false);
             expect([stone.removed, star.removed]).toEqual(['death', undefined]);
         });
+
+        it("takes its damage through the store's pipeline, which turns a runtime blast aside from a nether star", () => {
+            const fixture = entityFixture(new TestEntityWorld(), { itemDefinitions: vanillaItemDefinitions() });
+            const stone = drop(fixture, 0.5, SURFACE, 0.5);
+            const star = drop(fixture, 4.5, SURFACE, 0.5, { stack: { name: 'minecraft:nether_star', count: 1 } });
+            const blast = (target: number) =>
+                fixture.runtime.damage({
+                    target,
+                    cause: 'entity_explosion',
+                    amount: 6,
+                    source: { route: 'explosion', feedback: false }
+                });
+
+            fixture.runtime.droppedItems.hurt(stone, 1, DamageCause.Fire);
+            const vetoed = blast(star.id);
+
+            expect(fixture.runtime.damagePipeline.runsByRoute().get('item')).toBe(1);
+            expect(vetoed).toMatchObject({ committed: false, rejectedBy: 'damage_resistant' });
+            expect(star.removed).toBe(undefined);
+            expect(blast(stone.id)).toMatchObject({ committed: true, died: true });
+            expect(stone.removed).toBe('death');
+        });
     });
 
     it('undoes an update that throws and skips the stack for the rest of the tick', () => {

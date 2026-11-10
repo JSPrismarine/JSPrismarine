@@ -25,7 +25,7 @@ import { defineComponentState, stateField } from '@jsprismarine/entities/compone
 
 import type { StoredItemStack } from '../../inventory/persistence';
 import { isStoredItemStack } from '../../inventory/persistence';
-import { DamageCause } from '../DamageCause';
+import { DamageCause, damageCauseOf } from '../DamageCause';
 import { HAZARD_DAMAGE, HAZARD_INTERVAL, VOID_DEPTH } from '../Environment';
 import { hazardOf } from '../ai/BlockView';
 import type { DataEntity } from './DataEntity';
@@ -275,6 +275,11 @@ export interface DroppedItemsHost {
     /** Takes an entity out of the store. */
     remove(id: number, reason: string): void;
     /**
+     * Runs a blow on a stack through the store's damage pipeline, which removes it when it dies.
+     * @returns Whether it took health off the stack.
+     */
+    damage(id: number, amount: number, cause: string): boolean;
+    /**
      * Gives a stack to a player, with the take animation and the advancement.
      * @returns How many of the stack's items did not fit.
      */
@@ -352,22 +357,25 @@ export class DroppedItems {
     }
 
     /**
-     * Hurts a dropped stack, which loses health with no grace period, as Java's `ItemEntity.hurt`.
-     *
-     * An item whose `minecraft:damage_resistant` names the damage survives it.
+     * Hurts a dropped stack through the store's damage pipeline, which takes health off it with
+     * no grace period, as Java's `ItemEntity.hurt`, and removes it when it dies.
      * @returns Whether the blow landed.
      */
     public hurt(entity: DataEntity, amount: number, cause: string): boolean {
-        const view = itemViewOf(entity);
-        if (view === undefined || amount <= 0) return false;
-        const tag = RESISTED_TAGS[cause];
-        if (tag !== undefined && this.host.resists(view.stack.name, tag)) return false;
+        if (itemViewOf(entity) === undefined || amount <= 0) return false;
+        return this.host.damage(entity.id, amount, cause);
+    }
 
-        const health = entity.instance.attributes.get('health');
-        const left = (health?.current ?? 0) - amount;
-        entity.instance.attributes.set('health', Math.max(0, left));
-        if (left <= 0) this.host.remove(entity.id, 'death');
-        return true;
+    /**
+     * Whether a stack survives a kind of damage, because its item's `minecraft:damage_resistant`
+     * names the damage: netherite survives fire and a nether star a blast. The store's damage
+     * pipeline asks this as a guard, so a blast the runtime deals is turned aside too.
+     * @param cause - The cause, by the server's name or Bedrock's.
+     */
+    public resistsDamage(entity: DataEntity, cause: string): boolean {
+        const view = itemViewOf(entity);
+        const tag = RESISTED_TAGS[damageCauseOf(cause)];
+        return view !== undefined && tag !== undefined && this.host.resists(view.stack.name, tag);
     }
 
     /**
