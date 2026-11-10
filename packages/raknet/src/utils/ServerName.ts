@@ -45,6 +45,8 @@ export class ServerName {
     private version: string;
     private maxPlayers: number;
     private onlinePlayers: number = 0;
+    /** Set by {@link ServerName.ownPlayerCount}; the sockets' session counts are ignored after it. */
+    private playerCountOwned = false;
     private gamemode: string;
     private serverId = 0n;
     private port = DEFAULT_PORT;
@@ -173,6 +175,24 @@ export class ServerName {
     public setOnlinePlayerCount(count: number): void {
         this.onlinePlayers = count;
         this.invalidatePongName();
+    }
+
+    /**
+     * Reports how many sessions a RakNet socket holds, which is the advertised player count
+     * unless {@link ServerName.ownPlayerCount} handed the count to someone else.
+     * @param {number} count - The socket's session count.
+     */
+    public setSessionCount(count: number): void {
+        if (!this.playerCountOwned) this.setOnlinePlayerCount(count);
+    }
+
+    /**
+     * Takes the player count away from the sockets: from now on only
+     * {@link ServerName.setOnlinePlayerCount} changes it. For a server whose players arrive over
+     * more than RakNet, so one transport's sessions are not the whole count.
+     */
+    public ownPlayerCount(): void {
+        this.playerCountOwned = true;
     }
 
     /**

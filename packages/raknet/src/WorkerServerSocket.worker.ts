@@ -109,6 +109,10 @@ const serverName = new ServerName(
     { protocolVersion: options.name.protocol, minecraftVersions: [options.name.version] }
 );
 
+// This copy mirrors the main thread's name, player count included: the count the main thread
+// reports is what the pong says, not the sessions this worker's socket happens to hold.
+serverName.ownPlayerCount();
+
 const applyServerName = (snapshot: ServerNameSnapshot): void => {
     serverName.setMotd(snapshot.motd);
     serverName.setName(snapshot.name);
