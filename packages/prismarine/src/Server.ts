@@ -39,6 +39,7 @@ import { packetHandlersModule } from './modules/packetHandlers';
 import { networkModule, ServerNetworking } from './modules/network';
 import type { InboundPacketRecorder } from './network/InboundPacketTrace';
 import type { OutboundPacketRecorder } from './network/OutboundPacketTrace';
+import type { Transport } from './network/transport/Transport';
 import { permissionsModule } from './modules/permissions';
 import { socialModule } from './modules/social';
 import { worldsModule } from './modules/worlds';
@@ -222,6 +223,9 @@ export default class Server extends EventEmitter {
      * @param {InboundPacketRecorder} [options.inboundPacketRecorder] - Opt-in sink for accepted inbound packet bytes,
      *   which may include login identity data.
      * @param {OutboundPacketRecorder} [options.outboundPacketRecorder] - Opt-in sink for encoded clientbound packets.
+     * @param [options.transport] - A transport to listen on instead of the ones the config
+     *   enables, such as an in-process loopback a replay harness drives. `bootstrap` then binds no
+     *   socket. Its connections draw their IDs from a `ConnectionIds` of its own.
      * @param options.onStopCommandComplete - Called after a successful `/stop` dispatch sends
      *   its feedback.
      * @returns {Server} The server instance.
@@ -233,6 +237,7 @@ export default class Server extends EventEmitter {
         profile = false,
         inboundPacketRecorder,
         outboundPacketRecorder,
+        transport,
         onStopCommandComplete
     }: {
         logger: Logger;
@@ -241,12 +246,13 @@ export default class Server extends EventEmitter {
         profile?: boolean;
         inboundPacketRecorder?: InboundPacketRecorder;
         outboundPacketRecorder?: OutboundPacketRecorder;
+        transport?: Transport;
         onStopCommandComplete?: () => void;
     }) {
         super();
 
         this.headless = headless;
-        this.networking = new ServerNetworking(this, inboundPacketRecorder, outboundPacketRecorder);
+        this.networking = new ServerNetworking(this, inboundPacketRecorder, outboundPacketRecorder, transport);
 
         const protocols = describeSupportedProtocols();
         logger.info(

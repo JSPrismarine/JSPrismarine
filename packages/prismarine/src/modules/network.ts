@@ -103,13 +103,22 @@ export class ServerNetworking implements Networking {
     /** Every connection the transports have announced and not yet withdrawn. */
     private readonly liveConnections = new Set<ConnectionId>();
 
+    /**
+     * @param server - The server whose sessions and handlers the dispatcher drives.
+     * @param inboundPacketRecorder - Opt-in sink for accepted inbound packets.
+     * @param outboundPacketRecorder - Opt-in sink for clientbound packets.
+     * @param givenTransport - A transport to listen on instead of the ones the config enables,
+     *   such as an in-process loopback for a replay. The server then binds no socket: no RakNet,
+     *   NetherNet or query listener.
+     */
     public constructor(
         private readonly server: Server,
         private readonly inboundPacketRecorder?: InboundPacketRecorder,
-        private readonly outboundPacketRecorder?: OutboundPacketRecorder
+        private readonly outboundPacketRecorder?: OutboundPacketRecorder,
+        private readonly givenTransport?: Transport
     ) {}
 
-    /** Binds every enabled transport and subscribes the packet dispatcher to them. */
+    /** Binds every enabled transport, or takes the given one, and subscribes the packet dispatcher. */
     public start(address: string, port: number): void {
         const server = this.server;
         const config = server.getConfig();
@@ -119,19 +128,23 @@ export class ServerNetworking implements Networking {
 
         const serverName = this.serverName;
         const rakNet: RakNetTransport[] = [];
-        this.transport = new MultiTransport((ids) => {
-            const transports: Transport[] = [];
-            if (config.getEnableRakNet()) {
-                rakNet.push(this.startRakNet(address, port, serverName, ids));
-                if (address === IPV4_WILDCARD) rakNet.push(this.startRakNetV6(serverName, ids));
-                transports.push(...rakNet);
-            }
-            if (config.getEnableNetherNet()) transports.push(this.startNetherNet(address, port, serverName, ids));
-            if (transports.length === 0) {
-                throw new Error('No transport is enabled: turn on enable-raknet or enable-nethernet in config.json');
-            }
-            return transports;
-        });
+        this.transport =
+            this.givenTransport ??
+            new MultiTransport((ids) => {
+                const transports: Transport[] = [];
+                if (config.getEnableRakNet()) {
+                    rakNet.push(this.startRakNet(address, port, serverName, ids));
+                    if (address === IPV4_WILDCARD) rakNet.push(this.startRakNetV6(serverName, ids));
+                    transports.push(...rakNet);
+                }
+                if (config.getEnableNetherNet()) transports.push(this.startNetherNet(address, port, serverName, ids));
+                if (transports.length === 0) {
+                    throw new Error(
+                        'No transport is enabled: turn on enable-raknet or enable-nethernet in config.json'
+                    );
+                }
+                return transports;
+            });
 
         // The dispatcher subscribes itself; holding it is unnecessary, the transport keeps
         // it alive through the listeners it installed.
@@ -154,7 +167,8 @@ export class ServerNetworking implements Networking {
                     () => server.getConfig().getPacketCompressionThreshold()
                 )
         });
-        if (config.getEnableQuery()) this.startQuery(address, port, serverName, rakNet);
+        if (this.givenTransport === undefined && config.getEnableQuery())
+            this.startQuery(address, port, serverName, rakNet);
 
         // After the dispatcher, so the count changes once a connection is registered or released.
         // Counted here rather than per transport: every transport advertises the same total.
