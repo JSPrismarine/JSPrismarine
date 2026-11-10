@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { sessionNearBlocks } from '../../testing/blockTarget.test.helper';
+import { sessionNamedNearBlocks } from '../../testing/namedBlockTarget.test.helper';
 import BlockPosition from '../../world/BlockPosition';
 import LabTablePacket, { LabTableReactionType, LabTableType } from '@jsprismarine/protocol/packet/LabTablePacket';
 import BlockPos from '@jsprismarine/protocol/structure/BlockPos';
@@ -14,7 +14,7 @@ const packetAt = (position: BlockPosition) =>
 
 describe('LabTableHandler', () => {
     it('logs the action by name and the position of a lab table in reach', () => {
-        const { logged, server, session } = sessionNearBlocks({ '4,1,2': 'minecraft:lab_table' });
+        const { logged, server, session } = sessionNamedNearBlocks({ '4,1,2': 'minecraft:lab_table' });
 
         new LabTableHandler().handle(packetAt(new BlockPosition(4, 1, 2)), server, session);
 
@@ -25,7 +25,7 @@ describe('LabTableHandler', () => {
     });
 
     it('drops a position that holds no lab table', () => {
-        const { logged, server, session } = sessionNearBlocks({ '4,1,2': 'minecraft:crafting_table' });
+        const { logged, server, session } = sessionNamedNearBlocks({ '4,1,2': 'minecraft:crafting_table' });
 
         new LabTableHandler().handle(packetAt(new BlockPosition(4, 1, 2)), server, session);
 

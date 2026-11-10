@@ -26,17 +26,16 @@ export default class AnvilDamageHandler implements PacketHandler<AnvilDamagePack
         const data = packet.getPacketData();
         if (data === null) throw new Error('Cannot handle an AnvilDamagePacket without decoded data');
 
-        const player = session.getPlayer();
         const { blockPosition: protocolPosition } = data;
         const blockPosition = new BlockPosition(protocolPosition.x, protocolPosition.y, protocolPosition.z);
         const where = `${blockPosition.getX()}, ${blockPosition.getY()}, ${blockPosition.getZ()}`;
 
-        const rejection = blockTargetRejection(player, blockPosition, ANVILS);
+        const rejection = blockTargetRejection(session.getPlayer(), blockPosition, ANVILS);
         if (rejection !== null) {
             server
                 .getLogger()
                 .verbose(
-                    `Dropped an anvil damage request from ${player.getName()} at ${where}: ${rejection}`,
+                    `Dropped an anvil damage request from ${session.identity.name} at ${where}: ${rejection}`,
                     'AnvilDamageHandler/handle'
                 );
             return;
@@ -45,7 +44,7 @@ export default class AnvilDamageHandler implements PacketHandler<AnvilDamagePack
         server
             .getLogger()
             .debug(
-                `${player.getName()} asked to damage the anvil at ${where}. Anvils are not modeled`,
+                `${session.identity.name} asked to damage the anvil at ${where}. Anvils are not modeled`,
                 'AnvilDamageHandler/handle'
             );
     }

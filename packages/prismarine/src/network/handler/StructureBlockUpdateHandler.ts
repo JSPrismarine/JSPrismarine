@@ -23,19 +23,18 @@ export default class StructureBlockUpdateHandler implements PacketHandler<Struct
 
     /** Checks the position names a structure block in reach, then logs the structure name. */
     public handle(packet: StructureBlockUpdatePacket, server: Server, session: PlayerSession): void {
-        const player = session.getPlayer();
         const data = packet.getPacketData();
         if (data === null) throw new Error('Cannot handle a StructureBlockUpdatePacket without decoded data');
 
         const blockPosition = new BlockPosition(data.blockPosition.x, data.blockPosition.y, data.blockPosition.z);
         const where = `${blockPosition.getX()}, ${blockPosition.getY()}, ${blockPosition.getZ()}`;
 
-        const rejection = blockTargetRejection(player, blockPosition, STRUCTURE_BLOCKS);
+        const rejection = blockTargetRejection(session.getPlayer(), blockPosition, STRUCTURE_BLOCKS);
         if (rejection !== null) {
             server
                 .getLogger()
                 .verbose(
-                    `Dropped a structure block update from ${player.getName()} at ${where}: ${rejection}`,
+                    `Dropped a structure block update from ${session.identity.name} at ${where}: ${rejection}`,
                     'StructureBlockUpdateHandler/handle'
                 );
             return;
@@ -45,7 +44,7 @@ export default class StructureBlockUpdateHandler implements PacketHandler<Struct
         server
             .getLogger()
             .debug(
-                `${player.getName()} set the structure block at ${where} to structure "${name}". Structure blocks are not stored`,
+                `${session.identity.name} set the structure block at ${where} to structure "${name}". Structure blocks are not stored`,
                 'StructureBlockUpdateHandler/handle'
             );
     }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { sessionNearBlocks } from '../../testing/blockTarget.test.helper';
+import { sessionNamedNearBlocks } from '../../testing/namedBlockTarget.test.helper';
 import BlockPosition from '../../world/BlockPosition';
 import StructureTemplateDataRequestPacket, {
     StructureTemplateRequestOperation
@@ -18,7 +18,7 @@ const packetAt = (structurePosition: BlockPosition) =>
 
 describe('StructureTemplateDataRequestHandler', () => {
     it('logs the structure name and the operation by name for a structure block in reach', () => {
-        const { logged, server, session } = sessionNearBlocks({ '1,0,1': 'minecraft:structure_block' });
+        const { logged, server, session } = sessionNamedNearBlocks({ '1,0,1': 'minecraft:structure_block' });
 
         new StructureTemplateDataRequestHandler().handle(packetAt(new BlockPosition(1, 0, 1)), server, session);
 
@@ -29,7 +29,7 @@ describe('StructureTemplateDataRequestHandler', () => {
     });
 
     it('drops a request whose position holds no structure block', () => {
-        const { logged, server, session } = sessionNearBlocks({});
+        const { logged, server, session } = sessionNamedNearBlocks({});
 
         new StructureTemplateDataRequestHandler().handle(packetAt(new BlockPosition(1, 0, 1)), server, session);
 

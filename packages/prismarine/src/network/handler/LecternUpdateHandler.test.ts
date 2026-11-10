@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { sessionNearBlocks } from '../../testing/blockTarget.test.helper';
+import { sessionNamedNearBlocks } from '../../testing/namedBlockTarget.test.helper';
 import BlockPosition from '../../world/BlockPosition';
 import LecternUpdatePacket from '@jsprismarine/protocol/packet/LecternUpdatePacket';
 import BlockPos from '@jsprismarine/protocol/structure/BlockPos';
@@ -14,7 +14,7 @@ const packetAt = (position: BlockPosition) =>
 
 describe('LecternUpdateHandler', () => {
     it('logs the page and position of a lectern in reach', () => {
-        const { logged, server, session } = sessionNearBlocks({ '4,1,2': 'minecraft:lectern' });
+        const { logged, server, session } = sessionNamedNearBlocks({ '4,1,2': 'minecraft:lectern' });
 
         new LecternUpdateHandler().handle(packetAt(new BlockPosition(4, 1, 2)), server, session);
 
@@ -25,7 +25,7 @@ describe('LecternUpdateHandler', () => {
     });
 
     it('drops a position that holds no lectern', () => {
-        const { logged, server, session } = sessionNearBlocks({ '4,1,2': 'minecraft:bookshelf' });
+        const { logged, server, session } = sessionNamedNearBlocks({ '4,1,2': 'minecraft:bookshelf' });
 
         new LecternUpdateHandler().handle(packetAt(new BlockPosition(4, 1, 2)), server, session);
 
