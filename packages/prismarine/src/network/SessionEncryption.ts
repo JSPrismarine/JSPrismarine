@@ -1,9 +1,7 @@
-import { createHash, createPublicKey, diffieHellman, generateKeyPairSync, randomBytes, sign } from 'node:crypto';
+import { createHash, createPublicKey, diffieHellman, generateKeyPairSync, randomBytes } from 'node:crypto';
 
 import { EncryptionCodec } from '@jsprismarine/protocol';
-
-/** The curve Bedrock uses for both the server's handshake key and the client's identity key. */
-const CURVE = 'secp384r1';
+import { BEDROCK_CURVE, compactEs384 } from './es384';
 
 /** Bytes of salt the server mixes into the key. */
 const SALT_BYTES = 16;
@@ -24,7 +22,7 @@ export interface SessionEncryptionHandshake {
  * server's public key as `x5u` and the salt as a claim, signed ES384, and nothing secret.
  */
 export class SessionEncryption {
-    private readonly keys = generateKeyPairSync('ec', { namedCurve: CURVE });
+    private readonly keys = generateKeyPairSync('ec', { namedCurve: BEDROCK_CURVE });
     private readonly x5u = this.keys.publicKey.export({ type: 'spki', format: 'der' }).toString('base64');
 
     /**
@@ -33,22 +31,16 @@ export class SessionEncryption {
      */
     public begin(clientPublicKey: string): SessionEncryptionHandshake {
         const peer = createPublicKey({ key: Buffer.from(clientPublicKey, 'base64'), format: 'der', type: 'spki' });
-        if (peer.asymmetricKeyType !== 'ec' || peer.asymmetricKeyDetails?.namedCurve !== CURVE) {
-            throw new Error(`The client identity key is not a ${CURVE} public key`);
+        if (peer.asymmetricKeyType !== 'ec' || peer.asymmetricKeyDetails?.namedCurve !== BEDROCK_CURVE) {
+            throw new Error(`The client identity key is not a ${BEDROCK_CURVE} public key`);
         }
 
         const salt = randomBytes(SALT_BYTES);
         const secret = diffieHellman({ privateKey: this.keys.privateKey, publicKey: peer });
         const key = createHash('sha256').update(salt).update(secret).digest();
 
-        const header = Buffer.from(JSON.stringify({ alg: 'ES384', x5u: this.x5u })).toString('base64url');
-        const claims = Buffer.from(JSON.stringify({ salt: salt.toString('base64') })).toString('base64url');
-        const signature = sign('sha384', Buffer.from(`${header}.${claims}`), {
-            key: this.keys.privateKey,
-            dsaEncoding: 'ieee-p1363'
-        });
-
-        return { jwt: `${header}.${claims}.${signature.toString('base64url')}`, codec: new EncryptionCodec(key) };
+        const jwt = compactEs384({ x5u: this.x5u }, { salt: salt.toString('base64') }, this.keys.privateKey);
+        return { jwt, codec: new EncryptionCodec(key) };
     }
 }
 
