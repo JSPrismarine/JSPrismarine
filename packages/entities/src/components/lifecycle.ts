@@ -3,6 +3,7 @@
 import type { ComponentFactory } from '@jsprismarine/content';
 import { accepted, rejected } from '@jsprismarine/content';
 import type { Filter } from '@jsprismarine/packs';
+import { defineComponentState, stateField } from '../componentState';
 import type { EntityInstance } from '../entityInstance';
 import { splitSpawnReference } from '../eventEngine';
 import type { FilterItemView } from '../filterContext';
@@ -13,7 +14,7 @@ import type { EntitySpawnRequest } from '../hooks';
 import type { ComponentRecord } from './schemas';
 import { asList, booleanAt, isRecord, numberAt, parseFilterValue, stringAt } from './schemas';
 
-import type { IntervalState, SensorTrigger } from './shared';
+import type { SensorTrigger } from './shared';
 import { normalizedItemIdentifier, parseComponentTrigger, parseTimeRange, qualifiedSpawnIdentifier } from './shared';
 
 /** What `minecraft:despawn` declares. */
@@ -105,9 +106,8 @@ export interface TimerParams {
     readonly down?: SensorTrigger;
 }
 
-interface TimerState {
-    remaining: number;
-}
+/** Ticks until `minecraft:timer` fires; absent once a timer that does not loop has fired. */
+const TIMER_STATE = defineComponentState('minecraft:timer', { remaining: stateField.number });
 
 /**
  * `minecraft:timer`, which fires an event after a delay.
@@ -133,7 +133,6 @@ export const timer: ComponentFactory<EntityHooks, TimerParams> = {
         });
     },
     create: (params) => {
-        const states = new WeakMap<EntityInstance, TimerState>();
         const draw = (entity: EntityInstance): number => {
             if (params.choices.length > 0) {
                 const total = params.choices.reduce((sum, choice) => sum + Math.max(0, choice.weight), 0);
@@ -151,17 +150,21 @@ export const timer: ComponentFactory<EntityHooks, TimerParams> = {
 
         return {
             onInitialize: (entity) => {
-                states.set(entity, { remaining: Math.round(draw(entity) * TICKS_PER_SECOND) });
+                entity.componentState.set(TIMER_STATE, { remaining: Math.round(draw(entity) * TICKS_PER_SECOND) });
             },
             onTick: (entity) => {
-                const state = states.get(entity);
+                const state = entity.componentState.get(TIMER_STATE);
                 if (state === undefined) return;
-                state.remaining -= 1;
-                if (state.remaining > 0) return;
+                const remaining = state.remaining - 1;
+                if (remaining > 0) {
+                    entity.componentState.set(TIMER_STATE, { remaining });
+                    return;
+                }
                 if (params.down?.event !== undefined)
                     entity.raise(params.down.event, params.down.target, 'minecraft:timer');
-                if (params.looping) state.remaining = Math.round(draw(entity) * TICKS_PER_SECOND);
-                else states.delete(entity);
+                if (params.looping)
+                    entity.componentState.set(TIMER_STATE, { remaining: Math.round(draw(entity) * TICKS_PER_SECOND) });
+                else entity.componentState.clear(TIMER_STATE);
             }
         };
     }
@@ -176,11 +179,14 @@ interface SpawnEntityEntry {
     readonly filters?: Filter;
 }
 
-/** The spawn entries active on one entity. */
-interface SpawnEntityState {
-    readonly remaining: number[];
-    readonly used: Set<number>;
-}
+/**
+ * The spawn entries active on one entity: ticks until each entry next spawns, and whether a
+ * `single_use` entry has spawned already, both by entry index.
+ */
+const SPAWN_ENTITY_STATE = defineComponentState('minecraft:spawn_entity', {
+    remaining: stateField.list(stateField.number),
+    used: stateField.list(stateField.boolean)
+});
 
 /** What `minecraft:spawn_entity` declares. */
 export interface SpawnEntityParams {
@@ -204,7 +210,7 @@ const spawnWaitTicks = (entity: EntityInstance, entry: SpawnEntityEntry): number
  */
 export const spawnEntity: ComponentFactory<EntityHooks, SpawnEntityParams> = {
     name: 'minecraft:spawn_entity',
-    hooks: ['onInitialize', 'onRemove', 'onTick'],
+    hooks: ['onInitialize', 'onTick'],
     schema: (value) => {
         if (!isRecord(value)) return rejected('expected an object');
 
@@ -265,33 +271,34 @@ export const spawnEntity: ComponentFactory<EntityHooks, SpawnEntityParams> = {
         return accepted({ entries });
     },
     create: (params) => {
-        const states = new WeakMap<EntityInstance, SpawnEntityState>();
         return {
             onInitialize: (entity) => {
-                states.set(entity, {
+                entity.componentState.set(SPAWN_ENTITY_STATE, {
                     remaining: params.entries.map((entry) => spawnWaitTicks(entity, entry)),
-                    used: new Set()
+                    used: params.entries.map(() => false)
                 });
             },
-            onRemove: (entity) => states.delete(entity),
             onTick: (entity) => {
-                const state = states.get(entity);
+                const state = entity.componentState.get(SPAWN_ENTITY_STATE);
                 if (state === undefined) return;
+                const remaining = [...state.remaining];
+                const used = [...state.used];
 
                 for (const [index, entry] of params.entries.entries()) {
-                    if (state.used.has(index)) continue;
-                    state.remaining[index] = Math.max(0, state.remaining[index]! - 1);
-                    if (state.remaining[index]! > 0) continue;
+                    if (used[index] === true) continue;
+                    remaining[index] = Math.max(0, (remaining[index] ?? 0) - 1);
+                    if (remaining[index] > 0) continue;
 
                     if (entry.filters !== undefined && !evaluateFilter(entry.filters, entity.filterContext())) {
-                        state.remaining[index] = spawnWaitTicks(entity, entry);
+                        remaining[index] = spawnWaitTicks(entity, entry);
                         continue;
                     }
 
                     const spawned = entity.requestSpawn(entry.request);
-                    if (entry.singleUse && spawned) state.used.add(index);
-                    else state.remaining[index] = spawnWaitTicks(entity, entry);
+                    if (entry.singleUse && spawned) used[index] = true;
+                    else remaining[index] = spawnWaitTicks(entity, entry);
                 }
+                entity.componentState.set(SPAWN_ENTITY_STATE, { remaining, used });
             }
         };
     }
@@ -342,10 +349,14 @@ const ageableResultItem = (item: unknown): string | undefined => {
     return result === undefined ? undefined : normalizedItemIdentifier(result);
 };
 
-interface AgeableState {
-    remaining: number;
-    paused: boolean;
-}
+/**
+ * Ticks until a baby grows up, -1 for one that never does, and whether a pause item stopped the
+ * count. Absent once the entity has grown up.
+ */
+const AGEABLE_STATE = defineComponentState('minecraft:ageable', {
+    remaining: stateField.number,
+    paused: stateField.boolean
+});
 
 /**
  * `minecraft:ageable`, carried by the baby group of 35 vanilla entities.
@@ -358,7 +369,7 @@ interface AgeableState {
  */
 export const ageable: ComponentFactory<EntityHooks, AgeableParams> = {
     name: 'minecraft:ageable',
-    hooks: ['onInitialize', 'onRemove', 'onTick', 'onInteractWithItem'],
+    hooks: ['onInitialize', 'onTick', 'onInteractWithItem'],
     schema: (value) => {
         if (!isRecord(value)) return rejected('expected an object');
         let interactFilters: Filter | undefined;
@@ -380,16 +391,15 @@ export const ageable: ComponentFactory<EntityHooks, AgeableParams> = {
         });
     },
     create: (params) => {
-        const states = new WeakMap<EntityInstance, AgeableState>();
         const durationTicks = params.duration < 0 ? -1 : Math.round(params.duration * TICKS_PER_SECOND);
         return {
             onInitialize: (entity) => {
-                states.set(entity, { remaining: durationTicks, paused: false });
+                entity.componentState.set(AGEABLE_STATE, { remaining: durationTicks, paused: false });
             },
-            onRemove: (entity) => states.delete(entity),
             onInteractWithItem: (entity, itemIdentifier, other) => {
-                const state = states.get(entity);
+                const state = entity.componentState.get(AGEABLE_STATE);
                 if (state === undefined) return undefined;
+                let { remaining, paused } = state;
 
                 const normalizedItem = normalizedItemIdentifier(itemIdentifier);
                 const pausesGrowth = ageableItemMatches(params.pauseGrowthItems, normalizedItem);
@@ -398,7 +408,7 @@ export const ageable: ComponentFactory<EntityHooks, AgeableParams> = {
                     const identifier = ageableItemIdentifier(entry);
                     return identifier !== undefined && normalizedItemIdentifier(identifier) === normalizedItem;
                 });
-                if (!pausesGrowth && !resetsGrowth && (feedItem === undefined || state.remaining < 0)) return undefined;
+                if (!pausesGrowth && !resetsGrowth && (feedItem === undefined || remaining < 0)) return undefined;
 
                 if (params.interactFilters !== undefined) {
                     const item: FilterItemView = { identifier: () => normalizedItem };
@@ -415,30 +425,34 @@ export const ageable: ComponentFactory<EntityHooks, AgeableParams> = {
 
                 // Vanilla lists golden dandelion in both fields, so reset first and leave it paused.
                 if (resetsGrowth) {
-                    state.remaining = durationTicks;
+                    remaining = durationTicks;
                     if (params.resetGrowth?.event !== undefined)
                         entity.raise(params.resetGrowth.event, params.resetGrowth.target, 'minecraft:ageable');
                 }
                 if (pausesGrowth) {
-                    state.paused = true;
+                    paused = true;
                     if (params.pauseGrowth?.event !== undefined)
                         entity.raise(params.pauseGrowth.event, params.pauseGrowth.target, 'minecraft:ageable');
                 }
-                if (feedItem !== undefined && state.remaining >= 0) {
+                if (feedItem !== undefined && remaining >= 0) {
                     const growth = isRecord(feedItem) && typeof feedItem.growth === 'number' ? feedItem.growth : 0.1;
-                    const secondsUntilAdult = Math.trunc(state.remaining / TICKS_PER_SECOND);
+                    const secondsUntilAdult = Math.trunc(remaining / TICKS_PER_SECOND);
                     const secondsToAdvance = Math.trunc(secondsUntilAdult * Math.fround(growth));
-                    state.remaining = Math.max(0, state.remaining - secondsToAdvance * TICKS_PER_SECOND);
+                    remaining = Math.max(0, remaining - secondsToAdvance * TICKS_PER_SECOND);
                 }
+                entity.componentState.set(AGEABLE_STATE, { remaining, paused });
                 const resultItem = ageableResultItem(feedItem);
                 return resultItem === undefined ? true : { resultItem };
             },
             onTick: (entity) => {
-                const state = states.get(entity);
+                const state = entity.componentState.get(AGEABLE_STATE);
                 if (state === undefined || state.remaining < 0 || (state.paused && state.remaining > 0)) return;
-                if (!state.paused) state.remaining -= 1;
-                if (state.remaining > 0) return;
-                states.delete(entity);
+                const remaining = state.paused ? state.remaining : state.remaining - 1;
+                if (remaining > 0) {
+                    entity.componentState.set(AGEABLE_STATE, { ...state, remaining });
+                    return;
+                }
+                entity.componentState.clear(AGEABLE_STATE);
                 for (const item of params.dropItems) {
                     const identifier = ageableItemIdentifier(item);
                     if (identifier === undefined) continue;
@@ -472,6 +486,9 @@ export interface AmbientSoundIntervalParams {
     readonly choices: readonly AmbientSoundChoice[];
 }
 
+/** Ticks until `minecraft:ambient_sound_interval` plays; absent for a body that names no interval. */
+const AMBIENT_SOUND_STATE = defineComponentState('minecraft:ambient_sound_interval', { remaining: stateField.number });
+
 /**
  * `minecraft:ambient_sound_interval`, carried by 32 vanilla entities.
  *
@@ -504,7 +521,6 @@ export const ambientSoundInterval: ComponentFactory<EntityHooks, AmbientSoundInt
     },
     create: (params) => {
         const silent = params.value <= 0 && params.range <= 0;
-        const states = new WeakMap<EntityInstance, IntervalState>();
         const draw = (entity: EntityInstance): number =>
             Math.round((params.value + entity.random.next() * params.range) * TICKS_PER_SECOND);
 
@@ -520,14 +536,14 @@ export const ambientSoundInterval: ComponentFactory<EntityHooks, AmbientSoundInt
 
         return {
             onInitialize: (entity) => {
-                if (!silent) states.set(entity, { remaining: draw(entity) });
+                if (!silent) entity.componentState.set(AMBIENT_SOUND_STATE, { remaining: draw(entity) });
             },
             onTick: (entity) => {
-                const state = states.get(entity);
+                const state = entity.componentState.get(AMBIENT_SOUND_STATE);
                 if (state === undefined) return;
-                state.remaining -= 1;
-                if (state.remaining > 0) return;
-                state.remaining = draw(entity);
+                const remaining = state.remaining - 1;
+                entity.componentState.set(AMBIENT_SOUND_STATE, { remaining: remaining > 0 ? remaining : draw(entity) });
+                if (remaining > 0) return;
                 if (!entity.perform({ name: 'play_sound', sound: pick(entity) }))
                     entity.report('minecraft:ambient_sound_interval has no world to play its sound through');
             }
@@ -549,9 +565,8 @@ export interface TransformationParams {
     readonly dropInventory: boolean;
 }
 
-interface TransformState {
-    remaining: number;
-}
+/** Ticks until `minecraft:transformation` replaces the entity; absent once it has. */
+const TRANSFORM_STATE = defineComponentState('minecraft:transformation', { remaining: stateField.number });
 
 /**
  * `minecraft:transformation`, which replaces the entity with another type
@@ -583,20 +598,19 @@ export const transformation: ComponentFactory<EntityHooks, TransformationParams>
         });
     },
     create: (params) => {
-        const states = new WeakMap<EntityInstance, TransformState>();
         const target = splitSpawnReference(params.into);
         return {
             onInitialize: (entity) => {
-                states.set(entity, { remaining: Math.round(params.delay * TICKS_PER_SECOND) });
+                entity.componentState.set(TRANSFORM_STATE, { remaining: Math.round(params.delay * TICKS_PER_SECOND) });
             },
             onTick: (entity) => {
-                const state = states.get(entity);
+                const state = entity.componentState.get(TRANSFORM_STATE);
                 if (state === undefined) return;
                 if (state.remaining > 0) {
-                    state.remaining -= 1;
+                    entity.componentState.set(TRANSFORM_STATE, { remaining: state.remaining - 1 });
                     return;
                 }
-                states.delete(entity);
+                entity.componentState.clear(TRANSFORM_STATE);
                 entity.transform({
                     identifier: target.identifier,
                     event: target.event,
