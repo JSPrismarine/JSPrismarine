@@ -592,11 +592,15 @@ export class EntityRuntime implements EntityScene {
             spawn: (identifier, at, options) => this.spawn(identifier, at, options),
             byId: (id) => this.store.get(id),
             itemsWithin: (x, z, radius) => this.index.itemsWithin(x, z, radius),
-            blocksMovement: (position) => !this.navigation().isPassable(position),
+            solidAt: (position) => {
+                const navigation = this.navigation();
+                if (navigation.isSolid(position)) return true;
+                return navigation.isPassable(position) ? false : undefined;
+            },
             blockAt: (position) => this.navigation().blockAt(position),
             players: () => this.host.players(),
-            playerIdentityOf: (id) => this.host.playerIdentityOf?.(id),
             minY: () => this.world.level.minY,
+            maxY: () => this.world.level.maxY,
             gameTime: () => this.world.level.gameTime(),
             resists: (name, tag) => resistsDamageOf(name, tag, this.content()),
             maxCount: (name) => maxStackSizeOf(name, this.content()),

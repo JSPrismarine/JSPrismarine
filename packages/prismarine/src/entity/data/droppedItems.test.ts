@@ -126,13 +126,27 @@ describe('dropped items in the store', () => {
             expect(item.body.velocity.x).toBe(0);
         });
 
-        it('treats an unloaded block as one in its way, and loads nothing', () => {
+        it('waits where it is over a chunk that is not loaded, and loads nothing', () => {
             const fixture = fixtureOf({ unloadedFromX: 1 });
-            const item = drop(fixture, 0.5, SURFACE, 0.5, { motion: { x: 0.6, y: 0, z: 0 } });
+            const item = drop(fixture, 0.5, SURFACE + 2, 0.5, { motion: { x: 0.6, y: 0.1, z: 0 } });
+            const at = item.position;
 
-            step(fixture);
+            step(fixture, 3);
 
-            expect(item.position.x).toBe(0.5);
+            expect(item.position).toEqual(at);
+            expect(item.body.velocity).toEqual({ x: 0.6, y: 0.1, z: 0 });
+        });
+
+        it('falls on past the lowest block, which no chunk holds', () => {
+            const fixture = fixtureOf();
+            const { minY } = fixture.world.world.level;
+            fixture.world.setBlock({ x: 0, y: minY, z: 0 }, 'minecraft:air');
+            const item = drop(fixture, 0.5, minY + 0.5, 0.5);
+
+            step(fixture, 10);
+
+            expect(item.position.y).toBeLessThan(minY);
+            expect(item.removed).toBe(undefined);
         });
 
         it('writes nothing about where it is once it has settled', () => {
@@ -281,18 +295,6 @@ describe('dropped items in the store', () => {
             step(fixture);
             expect(countOf(item)).toBe(3);
             expect(fixture.world.stackChanges).toEqual([{ itemId: item.id, count: 3 }]);
-        });
-
-        it('goes only to its owner', () => {
-            const fixture = fixtureOf({ players: [player(7, 0.5, 0.5)] });
-            const item = drop(fixture, 0.5, SURFACE, 0.5, { pickupDelay: 0, owner: 'player-8' });
-
-            step(fixture, 5);
-            expect(item.removed).toBe(undefined);
-
-            fixture.world.players = [player(8, 0.5, 0.5)];
-            step(fixture);
-            expect(item.removed).toBe('picked_up');
         });
 
         it('gives a mob what it takes and leaves the rest lying there', () => {

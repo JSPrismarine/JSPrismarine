@@ -6,7 +6,6 @@ import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
 import { BlockState } from '../block/state/BlockState';
 import type { Entity } from '../entity/Entity';
 import { ItemActorBody as ItemEntity } from '../entity/data/itemBodies';
-import { itemViewOf } from '../entity/data/droppedItems';
 import { Item } from '../item/Item';
 import { NetworkWorldReplicator } from '../network/NetworkWorldReplicator';
 import AddItemActorPacket from '@jsprismarine/protocol/packet/AddItemActorPacket';
@@ -212,7 +211,6 @@ describe('world', () => {
             expect(dropped.getMotion().getY()).toBeCloseTo(0.1);
             expect(dropped.getMotion().getZ()).toBeCloseTo(0.3);
             expect(dropped.savedItem()?.pickupDelay).toBe(40);
-            expect(itemViewOf(dropped.getDriver())?.thrower).toBe('thrower');
         });
 
         it('drops nothing for a block whose drop has no item id, rather than air', async () => {
