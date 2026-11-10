@@ -15,6 +15,7 @@ import { stub } from '../testing/stub.test.helper';
 import UUID from '@jsprismarine/protocol/wire/structures/UUID';
 import { canExecute, PermissionManager } from './PermissionManager';
 import type { PermissionManagerServer } from './PermissionManager';
+import { identityNamed } from '../testing/sessionIdentity.test.helper';
 
 const FILFAT_UUID = 'fbf8646c-652c-38c4-96ff-a29d86cb5943';
 
@@ -179,6 +180,18 @@ describe('permission', () => {
             otherGrants = await manager.getPermissions(sameNameWithAnotherUuid);
 
             expect(manager.can(sameNameWithAnotherUuid).execute('minecraft.command.op')).toBe(false);
+        });
+
+        it('reads and sets permissions by the UUID of a login identity', async () => {
+            await manager.enable();
+            const identity = identityNamed('Filfat', FILFAT_UUID);
+
+            expect(await manager.getPermissions(identity)).toContain('*');
+
+            const other = identityNamed('Other', '00000000-0000-0000-0000-000000000004');
+            manager.setPermissions(other, ['namespace.scope.action']);
+            const player = stub<Player>({ getUUID: () => UUID.fromString(other.uuid) });
+            expect(await manager.getPermissions(player)).toContain('namespace.scope.action');
         });
 
         it('loads commented permission and operator entries by UUID', async () => {

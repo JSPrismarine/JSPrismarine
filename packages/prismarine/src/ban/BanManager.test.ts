@@ -54,6 +54,9 @@ describe('ban', () => {
                 // A ban with no reason still reads as banned.
                 expect(banManager.isBanned({ getName: () => 'player2' })).not.toBe(false);
                 expect(banManager.isBanned({ getName: () => 'player3' })).toBe(false);
+                // A login's identity, before any player exists.
+                expect(banManager.isBanned({ name: 'player1' })).toBe('reason1');
+                expect(banManager.isBanned({ name: 'player3' })).toBe(false);
             });
 
             it('should create ban list file if it does not exist', async () => {

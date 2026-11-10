@@ -1,10 +1,10 @@
 import fs from 'node:fs';
 
-import type Player from '../Player';
 import type Server from '../Server';
 import type { BannedPlayerEntry } from '../config/JsonConfigTypes';
 import { readJsonFile, removeListEntries, upsertListEntry, writeJsonFile } from '../config/JsonFile';
 import { withCwd } from '../utils/cwd';
+import type { PlayerIdentity } from '../playerIdentity';
 
 export type { BannedPlayerEntry } from '../config/JsonConfigTypes';
 
@@ -23,9 +23,13 @@ const isBannedPlayerEntry = (value: unknown): value is BannedPlayerEntry =>
 export type BanManagerServer = Pick<Server, 'getLogger'>;
 
 /**
- * The part of a player a ban check reads. Bans are keyed by name only.
+ * The part of a player a ban check reads. Bans are keyed by name only, so this is the name of the
+ * identity a login carries, or anything that answers `getName`, such as a player.
  */
-export type BanSubject = Pick<Player, 'getName'>;
+export type BanSubject = Pick<PlayerIdentity, 'name'> | { getName(): string };
+
+/** The name a ban check looks up. */
+const bannedNameOf = (subject: BanSubject): string => ('getName' in subject ? subject.getName() : subject.name);
 
 const FILE_NAME = 'banned-players.json';
 
@@ -111,8 +115,9 @@ export default class BanManager {
      * @returns {string | boolean} Reason if banned, false if not banned.
      */
     public isBanned(player: BanSubject): string | boolean {
-        if (this.banned.has(player.getName())) {
-            return this.banned.get(player.getName())?.reason || true;
+        const name = bannedNameOf(player);
+        if (this.banned.has(name)) {
+            return this.banned.get(name)?.reason || true;
         }
 
         return false;

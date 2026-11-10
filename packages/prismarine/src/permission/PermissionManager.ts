@@ -2,7 +2,8 @@ import fs from 'node:fs';
 
 import { PlayerNotFoundError } from '@jsprismarine/errors';
 import Console from '../Console';
-import type { Player, Server, Service } from '../';
+import type { Server, Service } from '../';
+import type { PlayerIdentity } from '../playerIdentity';
 import { parseConfigDocument } from '../config/ConfigDocument';
 import type { OpEntry, PlayerPermissions } from '../config/JsonConfigTypes';
 import { readJsonFile, removeListEntries, upsertListEntry, writeJsonFile } from '../config/JsonFile';
@@ -32,7 +33,17 @@ const OPS_FILE_NAME = 'ops.json';
  * Anything that can be checked for command permissions: the console or a player-like object
  * exposing operator status and granted permissions.
  */
-export type PermissionSubject = Console | Pick<Player, 'isOp' | 'getPermissions'>;
+export type PermissionSubject = Console | { isOp(): boolean; getPermissions(): string[] };
+
+/**
+ * Whose permissions to read or set: the identity a login carries, or anything that answers
+ * `getUUID`, such as a player. Permissions and operators are filed by UUID.
+ */
+export type PermissionHolder = Pick<PlayerIdentity, 'uuid'> | { getUUID(): { toString(): string } };
+
+/** The UUID permissions are filed under. */
+const permissionKeyOf = (holder: PermissionHolder): string =>
+    'getUUID' in holder ? holder.getUUID().toString() : holder.uuid;
 
 /**
  * Build a permission check for an executer. The console always passes; operators and holders
@@ -133,24 +144,25 @@ export class PermissionManager implements Service {
      * Built on every call rather than cached, so revoking operator status or replacing a
      * player's grants takes effect on the player's next command.
      *
-     * @param player - The player to get permissions for.
+     * @param player - The identity, or the player, to get permissions for.
      * @returns The player's current permissions.
      */
-    public permissionsOf(player: Pick<Player, 'getUUID' | 'isOp'>): string[] {
+    public permissionsOf(player: PermissionHolder): string[] {
+        const uuid = permissionKeyOf(player);
         return [
             ...this.defaultPermissions,
-            ...(this.permissions.get(player.getUUID().toString()) ?? []),
-            ...(player.isOp() ? this.defaultOperatorPermissions : [])
+            ...(this.permissions.get(uuid) ?? []),
+            ...(this.isOp(uuid) ? this.defaultOperatorPermissions : [])
         ];
     }
 
     /**
      * Get a player's permissions.
-     * @param {Player} player - The player to get permissions for.
+     * @param {PermissionHolder} player - The identity, or the player, to get permissions for.
      * @returns {Promise<string[]>} A promise that resolves with the player's permissions.
      * @see {@link PermissionManager.permissionsOf} for the synchronous form.
      */
-    public async getPermissions(player: Player): Promise<string[]> {
+    public async getPermissions(player: PermissionHolder): Promise<string[]> {
         return this.permissionsOf(player);
     }
 
@@ -160,11 +172,11 @@ export class PermissionManager implements Service {
      * @remarks
      * This will not be saved to the permissions.json file.
      *
-     * @param {Player} player - The player to set permissions for.
+     * @param {PermissionHolder} player - The identity, or the player, to set permissions for.
      * @param {string[]} [permissions=[]] - The permissions to set.
      */
-    public setPermissions(player: Player, permissions: string[] = []) {
-        this.permissions.set(player.getUUID().toString(), permissions);
+    public setPermissions(player: PermissionHolder, permissions: string[] = []) {
+        this.permissions.set(permissionKeyOf(player), permissions);
     }
 
     private async parsePermissions(): Promise<void> {
