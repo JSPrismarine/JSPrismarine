@@ -2,5 +2,6 @@
     "include": ["packages/**/src/**/*.ts", "packages/**/src/**/*.mts"],
     "exclude": ["**/*.test.ts", "**/*.test.mts", "**/__fixtures__/**", "**/src/index.ts"],
     "reporter": ["lcov", "text-summary"],
-    "reports-dir": "coverage/client-e2e"
+    "reports-dir": "coverage/client-e2e",
+    "merge-async": true
 }
