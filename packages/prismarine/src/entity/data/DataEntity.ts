@@ -27,6 +27,7 @@ import { MOB_EQUIPMENT_SLOTS, NO_EQUIPMENT, sameEquipment } from '../equipment';
 import type { EntityFacts } from './facts';
 import { liveFactsOf } from './facts';
 import { moveOnAxis } from './collision';
+import { ObservedMap, ObservedSet } from './observedCollections';
 import { entityEyePosition } from './position';
 
 /** How close to its destination an entity has to be to have arrived, in blocks. */
@@ -57,6 +58,56 @@ const DEFAULT_JUMP_POWER = 0.42;
 const FLUID_JUMP_IMPULSE = 0.04;
 
 /**
+ * The body fields a save or a replay digest reads, each held once and written through one
+ * setter that reports the change ({@link MobBody.onWrite}).
+ */
+export interface LoggedBodyState {
+    position: EntityPosition;
+    yaw: number;
+    pitch: number;
+    velocity: EntityPosition;
+    nameTag: string | undefined;
+    color: number | undefined;
+    home: EntityPosition | undefined;
+    ownerIdentity: string | undefined;
+    curedBy: string | undefined;
+    sitting: boolean;
+    sleeping: boolean;
+    loveTicks: number;
+    breedCooldown: number;
+    beamTarget: EntityPosition | undefined;
+    showBottom: boolean | undefined;
+    invulnerable: boolean;
+    fuseTicks: number | undefined;
+    fireTicks: number;
+    projectileAge: number;
+    projectileStuck: boolean;
+    equipment: MobEquipmentSet;
+    inventory: readonly string[];
+    containerSlots: readonly (ContentItemDrop | undefined)[];
+}
+
+/** The name of one {@link LoggedBodyState} field, or of a collection the body reports. */
+export type LoggedBodyField = keyof LoggedBodyState | 'tags' | 'statusEffects' | 'equipmentInventorySlots';
+
+/** What {@link MobBody.onWrite} receives: one field, with its value before and after a change. */
+export type BodyWriteObserver = (field: LoggedBodyField, before: unknown, after: unknown) => void;
+
+/** Whether two values of a logged field are the same, comparing positions by coordinates. */
+const sameValue = (left: unknown, right: unknown): boolean => {
+    if (left === right) return true;
+    if (!isRecord(left) || !isRecord(right)) return false;
+    return (
+        typeof left['x'] === 'number' &&
+        left['x'] === right['x'] &&
+        left['y'] === right['y'] &&
+        left['z'] === right['z'] &&
+        Object.keys(left).length === 3 &&
+        Object.keys(right).length === 3
+    );
+};
+
+/**
  * Everything about a live entity that exists before its components do.
  *
  * The split is forced rather than chosen: a goal component builds its
@@ -80,33 +131,81 @@ export class MobBody {
      */
     public onMove: (() => void) | undefined;
 
+    /**
+     * Told about every change to a field a save or a digest reads, with the value before and
+     * after it.
+     *
+     * {@link EntityRuntime} sets it to append the change to the world's change log. A write
+     * that leaves a field as it was is not reported, and a position is compared by its
+     * coordinates.
+     */
+    public onWrite: BodyWriteObserver | undefined;
+
     /** Whether the next client movement update must snap to this body's position. */
     public teleportPending = false;
-
-    /** Where the entity faces, in degrees. */
-    public yaw = 0;
-    public pitch = 0;
 
     /** The boolean facts a brain reads off the body, such as `on_ground` or `aggressive`. */
     public readonly conditions = new Set<string>();
 
     /** The entity's dynamic string tags, shared with `/tag` and `has_tag` filters. */
-    public readonly tags = new Set<string>();
+    public readonly tags = new ObservedSet<string>();
 
     /** The status effects mirrored by the client-facing entity body. */
-    public readonly statusEffects = new Map<string, StatusEffect>();
-
-    /** The custom name set by an accepted name tag. */
-    public nameTag: string | undefined;
-
-    /** The palette color set by an accepted dye, overriding `minecraft:color` from the definition. */
-    public color: number | undefined;
+    public readonly statusEffects = new ObservedMap<string, StatusEffect>();
 
     /** Who the entity is fighting, by runtime id, or undefined when it is fighting nobody. */
     public target: number | undefined;
 
+    /** The fields a save reads, each behind an accessor below that reports its changes. */
+    private readonly logged: LoggedBodyState;
+
+    /** Set while {@link MobBody.restore} writes, which keeps the side effects of a setter from running. */
+    private restoring = false;
+
+    /** Where the entity faces, in degrees. */
+    public get yaw(): number {
+        return this.logged.yaw;
+    }
+
+    public set yaw(yaw: number) {
+        this.write('yaw', yaw);
+    }
+
+    /** The entity's head pitch, in degrees. */
+    public get pitch(): number {
+        return this.logged.pitch;
+    }
+
+    public set pitch(pitch: number) {
+        this.write('pitch', pitch);
+    }
+
+    /** The custom name set by an accepted name tag. */
+    public get nameTag(): string | undefined {
+        return this.logged.nameTag;
+    }
+
+    public set nameTag(nameTag: string | undefined) {
+        this.write('nameTag', nameTag);
+    }
+
+    /** The palette color set by an accepted dye, overriding `minecraft:color` from the definition. */
+    public get color(): number | undefined {
+        return this.logged.color;
+    }
+
+    public set color(color: number | undefined) {
+        this.write('color', color);
+    }
+
     /** Ticks remaining on an active `minecraft:explode` fuse, if this component is lit. */
-    public fuseTicks: number | undefined;
+    public get fuseTicks(): number | undefined {
+        return this.logged.fuseTicks;
+    }
+
+    public set fuseTicks(fuseTicks: number | undefined) {
+        this.write('fuseTicks', fuseTicks);
+    }
 
     /**
      * The block an end crystal's beam points at, or undefined for no beam.
@@ -115,7 +214,13 @@ export class MobBody {
      * position the same as an absent key, so clearing a beam it has already seen means
      * writing `{ x: 0, y: 0, z: 0 }` rather than undefined.
      */
-    public beamTarget: EntityPosition | undefined;
+    public get beamTarget(): EntityPosition | undefined {
+        return this.logged.beamTarget;
+    }
+
+    public set beamTarget(beamTarget: EntityPosition | undefined) {
+        this.write('beamTarget', beamTarget);
+    }
 
     /**
      * Whether an end crystal draws its bedrock base plate.
@@ -123,25 +228,52 @@ export class MobBody {
      * Undefined keeps the client's default, which is to draw it; the end crystal item
      * spawns with false, as Java's `EndCrystalItem.useOn` does.
      */
-    public showBottom: boolean | undefined;
+    public get showBottom(): boolean | undefined {
+        return this.logged.showBottom;
+    }
+
+    public set showBottom(showBottom: boolean | undefined) {
+        this.write('showBottom', showBottom);
+    }
 
     /** Whether the entity refuses all damage, as the respawn sequence's crystals do. */
-    public invulnerable = false;
+    public get invulnerable(): boolean {
+        return this.logged.invulnerable;
+    }
+
+    public set invulnerable(invulnerable: boolean) {
+        this.write('invulnerable', invulnerable);
+    }
 
     /** Ticks an ignited entity remains visibly on fire after leaving sunlight. */
-    public fireTicks = 0;
+    public get fireTicks(): number {
+        return this.logged.fireTicks;
+    }
+
+    public set fireTicks(fireTicks: number) {
+        this.write('fireTicks', fireTicks);
+    }
 
     /** The entity's home position, from `minecraft:home` or a `set_home_position` event. */
-    public home: EntityPosition | undefined;
+    public get home(): EntityPosition | undefined {
+        return this.logged.home;
+    }
+
+    public set home(home: EntityPosition | undefined) {
+        this.write('home', home);
+    }
 
     /**
      * What the entity is holding and wearing, rolled from `minecraft:equipment` at spawn.
      *
      * The main hand of this is what {@link MobBody.carried} reads and writes, so the goals'
      * one-identifier view of a held item and the body's full set are the same state rather
-     * than two that can disagree. See `entity/equipment.ts`.
+     * than two that can disagree. See `entity/equipment.ts`. Written through
+     * {@link MobBody.setEquipment}.
      */
-    public equipment: MobEquipmentSet = NO_EQUIPMENT;
+    public get equipment(): MobEquipmentSet {
+        return this.logged.equipment;
+    }
 
     /**
      * How many times {@link MobBody.equipment} has been written.
@@ -200,7 +332,7 @@ export class MobBody {
                 this.equipmentInventorySlots.delete(slot);
         }
 
-        this.equipment = equipment;
+        this.write('equipment', equipment);
         this.equipmentRevision += 1;
         this.onEquipmentChanged?.(previous, equipment);
 
@@ -208,16 +340,48 @@ export class MobBody {
     }
 
     /** What the entity carries that is not in its hand, as item identifiers. */
-    public readonly inventory: string[] = [];
+    public get inventory(): readonly string[] {
+        return this.logged.inventory;
+    }
+
+    /** Replaces what the entity carries outside its hand. */
+    public setInventory(inventory: readonly string[]): void {
+        if (
+            inventory.length === this.inventory.length &&
+            inventory.every((item, index) => item === this.inventory[index])
+        )
+            return;
+        this.write('inventory', [...inventory]);
+    }
 
     /** Item stacks in the entity container declared by `minecraft:inventory`. */
-    public readonly containerSlots: (ContentItemDrop | undefined)[] = [];
+    public get containerSlots(): readonly (ContentItemDrop | undefined)[] {
+        return this.logged.containerSlots;
+    }
+
+    /**
+     * Puts a stack in one container slot, or empties it.
+     *
+     * @param index - The slot. A slot past the end grows the container with empty slots.
+     * @param item - The stack, or undefined to empty the slot.
+     */
+    public setContainerSlot(index: number, item: ContentItemDrop | undefined): void {
+        if (this.containerSlots[index] === item && index < this.containerSlots.length) return;
+        const slots = [...this.containerSlots];
+        slots[index] = item;
+        this.write('containerSlots', slots);
+    }
+
+    /** Replaces every container slot. */
+    public setContainerSlots(slots: readonly (ContentItemDrop | undefined)[]): void {
+        this.write('containerSlots', [...slots]);
+    }
 
     /** Capacity of the active `minecraft:inventory` component, for filters and slot validation. */
     public containerCapacity = 0;
 
     /** Inventory indices projected into wearable equipment slots by an interaction. */
-    public readonly equipmentInventorySlots = new Map<MobEquipmentSlot, number>();
+    public readonly equipmentInventorySlots = new ObservedMap<MobEquipmentSlot, number>();
 
     /** Who has hurt the entity, with the running total each has dealt. */
     public readonly damage = new DamageLog();
@@ -229,41 +393,95 @@ export class MobBody {
     public owner: number | undefined;
 
     /** Stable player identity behind {@link MobBody.owner}, retained across server restarts. */
-    public ownerIdentity: string | undefined;
+    public get ownerIdentity(): string | undefined {
+        return this.logged.ownerIdentity;
+    }
+
+    public set ownerIdentity(ownerIdentity: string | undefined) {
+        this.write('ownerIdentity', ownerIdentity);
+    }
+
     /**
      * The identity of the player who cured this villager. A zombie villager holds the player who
      * fed it the golden apple here, and the villager it becomes inherits it.
      */
-    public curedBy: string | undefined;
+    public get curedBy(): string | undefined {
+        return this.logged.curedBy;
+    }
+
+    public set curedBy(curedBy: string | undefined) {
+        this.write('curedBy', curedBy);
+    }
 
     /** The player with the entity's trade screen open, by runtime id. */
     public tradingPlayer: number | undefined;
 
     /** Whether the entity is sat down, which the sit goals hold while they run. */
-    public sitting = false;
+    public get sitting(): boolean {
+        return this.logged.sitting;
+    }
+
+    public set sitting(sitting: boolean) {
+        this.write('sitting', sitting);
+    }
 
     /** Whether the entity is asleep, which the sleep and nap goals hold while they run. */
-    public sleeping = false;
+    public get sleeping(): boolean {
+        return this.logged.sleeping;
+    }
+
+    public set sleeping(sleeping: boolean) {
+        this.write('sleeping', sleeping);
+    }
 
     /**
      * How many ticks the entity stays in love, which is what feeding it a
      * breeding item sets and what `minecraft:behavior.breed` spends.
      */
-    public loveTicks = 0;
+    public get loveTicks(): number {
+        return this.logged.loveTicks;
+    }
+
+    public set loveTicks(loveTicks: number) {
+        this.write('loveTicks', loveTicks);
+    }
 
     /** How many ticks before the entity may breed again, from Java's `Animal.ageUp`. */
-    public breedCooldown = 0;
+    public get breedCooldown(): number {
+        return this.logged.breedCooldown;
+    }
+
+    public set breedCooldown(breedCooldown: number) {
+        this.write('breedCooldown', breedCooldown);
+    }
 
     /** Movement velocity in blocks per tick, including projectile flight. */
-    public velocity: EntityPosition = { x: 0, y: 0, z: 0 };
+    public get velocity(): EntityPosition {
+        return this.logged.velocity;
+    }
+
+    public set velocity(velocity: EntityPosition) {
+        this.write('velocity', velocity);
+    }
 
     /** Ticks spent in flight by `minecraft:projectile`, retained across a world restart. */
-    public projectileAge = 0;
+    public get projectileAge(): number {
+        return this.logged.projectileAge;
+    }
+
+    public set projectileAge(projectileAge: number) {
+        this.write('projectileAge', projectileAge);
+    }
 
     /** Whether the projectile has stuck to a block and should remain there until expiry. */
-    public projectileStuck = false;
+    public get projectileStuck(): boolean {
+        return this.logged.projectileStuck;
+    }
 
-    private at: EntityPosition;
+    public set projectileStuck(projectileStuck: boolean) {
+        this.write('projectileStuck', projectileStuck);
+    }
+
     private instance: EntityInstance | undefined;
     private destination: EntityPosition | undefined;
     private speedMultiplier = 1;
@@ -279,8 +497,73 @@ export class MobBody {
         /** What the type's base components declare, which {@link MobBody.facts} falls back to. */
         public readonly typeFacts: EntityFacts
     ) {
-        this.at = position;
+        this.logged = {
+            position,
+            yaw: 0,
+            pitch: 0,
+            velocity: { x: 0, y: 0, z: 0 },
+            nameTag: undefined,
+            color: undefined,
+            home: undefined,
+            ownerIdentity: undefined,
+            curedBy: undefined,
+            sitting: false,
+            sleeping: false,
+            loveTicks: 0,
+            breedCooldown: 0,
+            beamTarget: undefined,
+            showBottom: undefined,
+            invulnerable: false,
+            fuseTicks: undefined,
+            fireTicks: 0,
+            projectileAge: 0,
+            projectileStuck: false,
+            equipment: NO_EQUIPMENT,
+            inventory: [],
+            containerSlots: []
+        };
         this.live = typeFacts;
+        this.tags.observer = (before) => this.report('tags', before, [...this.tags]);
+        this.statusEffects.observer = (before) =>
+            this.report(
+                'statusEffects',
+                before.map(([, effect]) => effect),
+                [...this.statusEffects.values()]
+            );
+        this.equipmentInventorySlots.observer = (before) =>
+            this.report('equipmentInventorySlots', before, [...this.equipmentInventorySlots]);
+    }
+
+    /**
+     * Writes a saved value back into one field without running the setter's side effects: no
+     * {@link MobBody.onWrite} report, no equipment hook, and no change to the inventory slots
+     * that a new equipment set would clear. A position still refiles the body in its index,
+     * because the index is derived from the position. This is how the entity store undoes a
+     * change.
+     */
+    public restore<K extends keyof LoggedBodyState>(field: K, value: LoggedBodyState[K]): void {
+        this.restoring = true;
+        try {
+            this.logged[field] = value;
+            if (field === 'equipment') this.equipmentRevision += 1;
+            if (field === 'position') this.onMove?.();
+        } finally {
+            this.restoring = false;
+        }
+    }
+
+    /**
+     * The one write path of the logged fields. An equal value is still stored, because caches
+     * keyed by a position's identity read the new object as a move, and it is not reported.
+     */
+    private write<K extends keyof LoggedBodyState>(field: K, value: LoggedBodyState[K]): void {
+        const before = this.logged[field];
+        this.logged[field] = value;
+        if (!sameValue(before, value)) this.report(field, before, value);
+    }
+
+    private report(field: LoggedBodyField, before: unknown, after: unknown): void {
+        if (!this.restoring) this.onWrite?.(field, before, after);
     }
 
     /**
@@ -312,11 +595,11 @@ export class MobBody {
 
     /** Where the entity is now. */
     public get position(): EntityPosition {
-        return this.at;
+        return this.logged.position;
     }
 
     public set position(position: EntityPosition) {
-        this.at = position;
+        this.write('position', position);
         this.onMove?.();
     }
 

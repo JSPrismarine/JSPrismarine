@@ -869,13 +869,13 @@ describe('EntityRuntime', () => {
             );
             const entity = runtime.spawn('jsprismarine:item_repairer', GROUND);
             if (entity === undefined) throw new Error('the fixture declares no item repairer');
-            entity.body.containerSlots[0] = {
+            entity.body.setContainerSlot(0, {
                 identifier: 'minecraft:diamond_pickaxe',
                 count: 1,
                 damage: 7,
                 customName: 'Field tool',
                 enchantments: { 'minecraft:efficiency': 2 }
-            };
+            });
 
             expect(runtime.interactWithItem(entity.id, 42, 'minecraft:stick')).toEqual({
                 accepted: true,
@@ -914,7 +914,7 @@ describe('EntityRuntime', () => {
                 customName: 'Returned sword',
                 enchantments: { 'minecraft:sharpness': 2 }
             };
-            entity.body.containerSlots[0] = item;
+            entity.body.setContainerSlot(0, item);
             entity.body.setEquipment({ mainhand: item });
             entity.body.equipmentInventorySlots.set('mainhand', 0);
             const emptyHand: FilterEntityView = { equipment: () => undefined };
@@ -1193,12 +1193,12 @@ describe('EntityRuntime', () => {
                         : undefined
             };
             const heldItem = { identifier: 'minecraft:iron_horse_armor', count: 1, meta: 0 };
-            horse.body.containerSlots[0] = {
+            horse.body.setContainerSlot(0, {
                 identifier: 'minecraft:diamond_pickaxe',
                 count: 1,
                 damage: 3,
                 enchantments: { 'minecraft:efficiency': 1 }
-            };
+            });
 
             expect(runtime.interactWithItem(horse.id, 42, heldItem.identifier, playerView, heldItem)).toEqual({
                 accepted: true,
@@ -2558,7 +2558,12 @@ describe('EntityRuntime', () => {
             world.setBlock(composterAt, 'minecraft:composter');
             const villager = runtime.spawn('minecraft:villager_v2', GROUND);
             if (villager === undefined) throw new Error('the fixture declares no minecraft:villager_v2');
-            villager.body.inventory.push('minecraft:wheat', 'minecraft:wheat', 'minecraft:wheat');
+            villager.body.setInventory([
+                ...villager.body.inventory,
+                'minecraft:wheat',
+                'minecraft:wheat',
+                'minecraft:wheat'
+            ]);
 
             expect(runtime.villagerTask(villager.body, 'work_at_composter', composterAt)).toBe(true);
 
@@ -2570,7 +2575,8 @@ describe('EntityRuntime', () => {
             const first = runtime.spawn('minecraft:villager_v2', GROUND);
             const second = runtime.spawn('minecraft:villager_v2', { ...GROUND, x: 1.5 });
             if (first === undefined || second === undefined) throw new Error('no villagers');
-            for (const villager of [first, second]) villager.body.inventory.push(...Array(3).fill('minecraft:bread'));
+            for (const villager of [first, second])
+                villager.body.setInventory([...villager.body.inventory, ...Array(3).fill('minecraft:bread')]);
             const before = runtime.all().length;
 
             expect(runtime.villagerTask(first.body, 'make_love', second.id)).toBe(false);
@@ -2622,7 +2628,7 @@ describe('EntityRuntime', () => {
             const first = runtime.spawn('minecraft:villager_v2', GROUND);
             const second = runtime.spawn('minecraft:villager_v2', { ...GROUND, x: 1.5 });
             if (first === undefined || second === undefined) throw new Error('no villagers');
-            first.body.inventory.push(...Array(4).fill('minecraft:bread'));
+            first.body.setInventory([...first.body.inventory, ...Array(4).fill('minecraft:bread')]);
 
             expect(runtime.villagerTask(first.body, 'trade_with_villager', second.id)).toBe(true);
 

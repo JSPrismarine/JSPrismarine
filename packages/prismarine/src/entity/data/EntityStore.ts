@@ -1,0 +1,384 @@
+/**
+ * The entity store: one world's data-driven entities and the change log that records what
+ * happens to them.
+ *
+ * The store owns membership. An entity enters it once, after its construction and its spawn
+ * event or its restore, and leaves it once, and each is one membership entry carrying the
+ * entity's saved form. Every change to a member's authoritative state in between reaches the
+ * store through {@link EntityStore.written} and becomes one field entry with the value before and
+ * after it ([ADR 0012](../../../../../docs/adr/0012-the-change-log-is-the-history.md)). A write
+ * made while the entity was being built is part of the saved form its entering entry carries,
+ * so it is not logged on its own.
+ *
+ * A unit of work, such as one entity's update or one applied input, runs through
+ * {@link EntityStore.unit} or {@link EntityStore.unitAsync}. When it throws, the store reverts
+ * the unit's span: it writes the inverse of each entry the unit appended, newest first, through
+ * the writers the runtime and the legacy adapter register, and ignores the reports those writes
+ * cause. When an inverse throws, the store can no longer be trusted, so it records the failure
+ * in {@link EntityStore.broken} and the world stops ticking
+ * ([ADR 0015](../../../../../docs/adr/0015-a-tick-is-a-fixed-sequence-of-synchronous-phases.md)).
+ *
+ * The log lives here until block writes join it (slice 7), at which point it moves to the world.
+ * A tick of the log is one world tick, numbered by the store from 1 and not by the level clock,
+ * because `/time set` moves the clock backwards and the log only goes forward.
+ */
+import type { ChangeEntry, StateEntry } from '../../world/changelog/ChangeEntry';
+import type { SealedTick, Span } from '../../world/changelog/ChangeLog';
+import { ChangeLog } from '../../world/changelog/ChangeLog';
+import type { PlainData, PlainRecord } from '../../world/changelog/PlainData';
+import { plainOf, samePlain } from '../../world/changelog/PlainData';
+import type { DataEntity } from './DataEntity';
+
+/**
+ * How many updates in a row an entity may fail before the store removes it. One failure can
+ * be a bad neighbor or a bad block; a run of them is the entity itself.
+ */
+export const ENTITY_FAILURE_LIMIT = 3;
+
+/**
+ * Writes one inverse entry back to the state it describes, without logging it.
+ *
+ * @returns Whether the writer knew the entity the entry addresses. The store asks the runtime
+ *   first and the legacy adapter second.
+ */
+export type InverseWriter = (inverse: StateEntry) => boolean;
+
+/** How a unit of work ended. */
+export type UnitOutcome = { readonly failed: false } | { readonly failed: true; readonly error: unknown };
+
+const SUCCEEDED: UnitOutcome = { failed: false };
+
+/** What the store reports about itself, by count. */
+export interface EntityStoreCounts {
+    /** Writes the log could not hold because no tick was open, such as a command between ticks. */
+    readonly unlogged: number;
+    /** Units that threw and were reverted. */
+    readonly reverted: number;
+}
+
+/** One world's data-driven entities, by runtime id, and the change log of their state. */
+export class EntityStore {
+    private readonly members = new Map<number, DataEntity>();
+    /** Members whose entering entry is in the log, so their writes are logged. */
+    private readonly entered = new WeakSet<DataEntity>();
+    private readonly log = new ChangeLog();
+    private readonly writers: InverseWriter[] = [];
+    private ticks = 0;
+    private open = false;
+    private reverting = false;
+    private failure: unknown;
+    private unlogged = 0;
+    private reverted = 0;
+    private readonly failures = new Map<number, number>();
+    private readonly skipped = new Set<number>();
+
+    /**
+     * @param report - Receives a line for each inverse that failed.
+     */
+    public constructor(private readonly report: (message: string) => void = () => undefined) {}
+
+    /** The member with this runtime id, or undefined when the store holds none. */
+    public get(id: number): DataEntity | undefined {
+        return this.members.get(id);
+    }
+
+    /** Whether the store holds an entity with this runtime id. */
+    public has(id: number): boolean {
+        return this.members.has(id);
+    }
+
+    /** Every member, in the order they were admitted. */
+    public values(): IterableIterator<DataEntity> {
+        return this.members.values();
+    }
+
+    /** How many members the store holds. */
+    public get size(): number {
+        return this.members.size;
+    }
+
+    /**
+     * Takes in an entity that is still being built. Queries find it from now on, and its
+     * writes are not logged until {@link EntityStore.enter} records it.
+     */
+    public admit(entity: DataEntity): void {
+        this.members.set(entity.id, entity);
+    }
+
+    /**
+     * Records that an admitted entity has entered the world, with the saved form it entered
+     * with. Its writes are logged from now on.
+     */
+    public enter(entity: DataEntity, saved: PlainRecord): void {
+        this.entered.add(entity);
+        this.append({ kind: 'membership', change: 'enter', entity: BigInt(entity.id), saved });
+    }
+
+    /** Whether a member's entering entry has been recorded, so its writes are logged. */
+    public hasEntered(entity: DataEntity): boolean {
+        return this.entered.has(entity);
+    }
+
+    /**
+     * Takes an entity out of the store. Its own writes stop being logged; call
+     * {@link EntityStore.recordLeave} once its removal has finished.
+     */
+    public detach(entity: DataEntity): void {
+        this.members.delete(entity.id);
+        this.entered.delete(entity);
+        this.failures.delete(entity.id);
+    }
+
+    /**
+     * Records that an entity left, with the saved form it had before its removal began. Called
+     * last, so that undoing the removal adds the entity back before the changes its removal made
+     * to other entities are undone.
+     */
+    public recordLeave(id: number, saved: PlainRecord): void {
+        this.append({ kind: 'membership', change: 'leave', entity: BigInt(id), saved });
+    }
+
+    /**
+     * Logs one change to a member's state, with its value before and after.
+     *
+     * A write by an entity that has not entered, or that is leaving, is part of a saved form
+     * and is dropped. Values are copied into plain data here, so a caller may pass the live
+     * value it just stored.
+     * @param field - The field's name in the entry's address, such as `position` or `component:minecraft:breathable`.
+     */
+    public written(entity: DataEntity, field: string, before: unknown, after: unknown): void {
+        if (!this.entered.has(entity)) return;
+        this.writtenField(entity.id, field, before, after);
+    }
+
+    /**
+     * Logs one change to an entity the store does not hold, such as a legacy player, addressed
+     * by its runtime id. The legacy adapter is the only caller.
+     */
+    public writtenLegacy(id: bigint | number, field: string, before: unknown, after: unknown): void {
+        this.writtenField(id, field, before, after);
+    }
+
+    /**
+     * Logs one change to one slot of an entity's container, addressed by its runtime id.
+     * @param container - Which of the entity's containers, such as `inventory` or `armor`.
+     */
+    public writtenSlot(
+        id: bigint | number,
+        container: string,
+        slot: number,
+        before: PlainRecord | null,
+        after: PlainRecord | null
+    ): void {
+        if (this.reverting) return;
+        if (before === after || (before !== null && after !== null && samePlain(before, after))) return;
+        if (!this.open) {
+            this.unlogged += 1;
+            return;
+        }
+        this.log.append({
+            kind: 'field',
+            field: 'inventory-slot',
+            address: { entity: BigInt(id), container, slot },
+            before,
+            after
+        });
+    }
+
+    /** Appends a chunk entry, which names a chunk that entered or left the world. */
+    public chunk(change: 'enter' | 'leave', x: number, z: number): void {
+        this.append({ kind: 'chunk', change, x, z });
+    }
+
+    /**
+     * Writes the state each entry leads to, forward, through the registered writers and without
+     * logging: a field takes its after-value, an entering entity is added from its saved form
+     * and a leaving one is removed. A store built from a snapshot reaches the live store's state
+     * this way, which is what makes a snapshot plus the log a replay.
+     * @throws {Error} When no writer knows an entry's entity.
+     */
+    public replay(entries: Iterable<ChangeEntry>): void {
+        this.reverting = true;
+        try {
+            for (const entry of entries) {
+                if (entry.kind !== 'field' && entry.kind !== 'membership') continue;
+                if (!this.writers.some((write) => write(entry)))
+                    throw new Error(`No writer knows entity ${String(addressedEntity(entry))}`);
+            }
+        } finally {
+            this.reverting = false;
+        }
+    }
+
+    /** Registers a writer for inverse entries; the first one that knows the entity writes it. */
+    public addInverseWriter(writer: InverseWriter): void {
+        this.writers.push(writer);
+    }
+
+    /** Opens the next tick of the log, or does nothing when one is already open. */
+    public beginTick(): void {
+        if (this.open) return;
+        this.ticks += 1;
+        this.log.begin(this.ticks);
+        this.open = true;
+        this.skipped.clear();
+    }
+
+    /**
+     * Seals the open tick, which is what the tick's close phase does.
+     * @returns The sealed tick, or undefined when no tick was open.
+     */
+    public sealTick(): SealedTick | undefined {
+        if (!this.open) return undefined;
+        this.open = false;
+        return this.log.seal();
+    }
+
+    /** Whether a tick is open, so writes are logged. */
+    public get tickOpen(): boolean {
+        return this.open;
+    }
+
+    /** The last sealed tick, until the next tick begins, or undefined when there is none. */
+    public lastSealed(): SealedTick | undefined {
+        return this.open ? undefined : this.log.read(this.ticks);
+    }
+
+    /** What the store counted, for reports. */
+    public counts(): EntityStoreCounts {
+        return { unlogged: this.unlogged, reverted: this.reverted };
+    }
+
+    /**
+     * The first inverse that failed to write, or undefined while the store can be trusted.
+     * A world whose store is broken stops ticking.
+     */
+    public get broken(): unknown {
+        return this.failure;
+    }
+
+    /**
+     * Runs one unit of work in a span of its own. When it throws, the span is reverted and the
+     * error is returned instead of thrown.
+     *
+     * With no tick open there is nothing to revert from, so the work runs as it is and a throw
+     * passes through, as it did before the store existed.
+     */
+    public unit(work: () => void): UnitOutcome {
+        if (!this.open || this.reverting) {
+            work();
+            return SUCCEEDED;
+        }
+        const span = this.log.startSpan();
+        try {
+            work();
+        } catch (error: unknown) {
+            this.revert(span);
+            return { failed: true, error };
+        }
+        this.log.closeSpan(span);
+        return SUCCEEDED;
+    }
+
+    /**
+     * {@link EntityStore.unit} for asynchronous work, which an input handler still is.
+     *
+     * The span stays open across the work's awaits, so a write that something else makes while
+     * the work waits lands in it. The input step runs one input at a time, which keeps that to
+     * code the step does not run.
+     */
+    public async unitAsync(work: () => Promise<void>): Promise<UnitOutcome> {
+        if (!this.open || this.reverting) {
+            await work();
+            return SUCCEEDED;
+        }
+        const span = this.log.startSpan();
+        try {
+            await work();
+        } catch (error: unknown) {
+            this.revert(span);
+            return { failed: true, error };
+        }
+        this.log.closeSpan(span);
+        return SUCCEEDED;
+    }
+
+    /**
+     * Counts one more failed update for an entity and marks it skipped for the rest of the tick.
+     * @returns Whether the entity has now failed {@link ENTITY_FAILURE_LIMIT} updates in a row.
+     */
+    public failed(id: number): boolean {
+        const count = (this.failures.get(id) ?? 0) + 1;
+        this.failures.set(id, count);
+        this.skipped.add(id);
+        return count >= ENTITY_FAILURE_LIMIT;
+    }
+
+    /** Clears an entity's run of failures after an update that finished. */
+    public succeeded(id: number): void {
+        this.failures.delete(id);
+    }
+
+    /** Whether an entity failed earlier in this tick and is skipped until the next. */
+    public isSkipped(id: number): boolean {
+        return this.skipped.has(id);
+    }
+
+    private writtenField(id: bigint | number, field: string, before: unknown, after: unknown): void {
+        if (this.reverting) return;
+        const plainBefore = plainValue(before);
+        const plainAfter = plainValue(after);
+        if (samePlain(plainBefore, plainAfter)) return;
+        if (!this.open) {
+            this.unlogged += 1;
+            return;
+        }
+        this.log.append({
+            kind: 'field',
+            field: 'entity',
+            address: { entity: BigInt(id), field },
+            before: plainBefore,
+            after: plainAfter
+        });
+    }
+
+    private append(entry: ChangeEntry): void {
+        if (this.reverting) return;
+        if (!this.open) {
+            this.unlogged += 1;
+            return;
+        }
+        this.log.append(entry);
+    }
+
+    private revert(span: Span): void {
+        this.reverting = true;
+        this.reverted += 1;
+        try {
+            this.log.revertSpan(span, (inverse) => {
+                if (!this.writers.some((write) => write(inverse)))
+                    throw new Error(`No writer knows entity ${String(addressedEntity(inverse))}`);
+            });
+        } catch (error: unknown) {
+            this.failure ??= error;
+            this.report(`An inverse entry failed to write, so the store stops: ${String(error)}`);
+        } finally {
+            this.reverting = false;
+        }
+    }
+}
+
+/** The entity an inverse entry addresses. */
+export const addressedEntity = (entry: StateEntry): bigint | undefined => {
+    if (entry.kind === 'membership') return entry.entity;
+    if (entry.field === 'entity' || entry.field === 'inventory-slot') return entry.address.entity;
+    return undefined;
+};
+
+/** A logged value as plain data, with `undefined` standing for "nothing" as `null`. */
+const plainValue = (value: unknown): PlainData => {
+    if (value === undefined) return null;
+    const plain = plainOf(value);
+    if (plain === undefined) throw new TypeError(`A logged value has no plain form: ${String(value)}`);
+    return plain;
+};
