@@ -17,6 +17,7 @@ export type { JoinProbe, SignalingAddress } from './joinByAddress';
 export type { NetherNetStatus } from './NetherNetStatus';
 export { constrainIcePorts } from './constrainIcePorts';
 export { sdpFingerprints, withoutIdentity, withSessionAttribute } from './sdp';
+export { describeCandidates, tracePeerConnection } from './tracePeerConnection';
 export { parseUdpPorts, withMappedCandidates } from './udpPorts';
 export type { PortMapping, PortRange, UdpPorts } from './udpPorts';
 export type { SdpFingerprint } from './sdp';

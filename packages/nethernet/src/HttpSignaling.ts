@@ -5,6 +5,7 @@ import type { AddressInfo } from 'node:net';
 
 import { SignalStructure, SignalType } from 'nethernet';
 import { withoutIdentity } from './sdp';
+import { describeCandidates, tracePeerConnection } from './tracePeerConnection';
 
 /** The largest SDP offer accepted. A real offer with every candidate is a few kilobytes. */
 const MAX_OFFER_BYTES = 64 * 1024;
@@ -18,7 +19,7 @@ const MAX_NETWORK_ID = (1n << 64n) - 1n;
 /** The part of `nethernet`'s `Server` that turns an offer into an answer. */
 export interface NetherNetOfferAnswerer {
     /** Every peer by connection ID, which a new offer's ID must not collide with. */
-    readonly connections: ReadonlyMap<bigint, { close(reason?: string): void }>;
+    readonly connections: ReadonlyMap<bigint, { close(reason?: string): void; readonly rtcConnection?: unknown }>;
     /** Negotiates a peer for the offer, answering through `respond`. */
     handleOffer(signal: SignalStructure, respond: (signal: SignalStructure) => void): Promise<void>;
 }
@@ -26,6 +27,8 @@ export interface NetherNetOfferAnswerer {
 /** Where the signaling server reports what went wrong. `@jsprismarine/logger`'s `Logger` fits. */
 export interface SignalingLogger {
     debug(message: string): void;
+    info(message: string): void;
+    warn(message: string): void;
     error(error: unknown): void;
 }
 
@@ -43,7 +46,10 @@ export interface HttpSignalingOptions {
 }
 
 /** How a negotiation ended. */
-type Negotiation = { readonly answer: string } | { readonly error: string } | { readonly timedOut: true };
+type Negotiation =
+    | { readonly answer: string; readonly connectionId: bigint }
+    | { readonly error: string }
+    | { readonly timedOut: true };
 
 /** Thrown while reading an offer, carrying the status the request is refused with. */
 class RefusedRequest extends Error {
@@ -109,6 +115,7 @@ export class HttpSignaling {
         const path = (request.url ?? '').split('?')[0];
         try {
             if (request.method === 'GET' && path === '/v1/join') {
+                this.options.logger.debug(`NetherNet status asked for by ${remoteOf(request)}`);
                 response.writeHead(200, { 'Content-Type': 'application/json' }).end(this.options.status());
                 return;
             }
@@ -129,20 +136,28 @@ export class HttpSignaling {
     }
 
     private async join(networkIdText: string, request: IncomingMessage, response: ServerResponse): Promise<void> {
+        const { logger } = this.options;
         const networkId = parseNetworkId(networkIdText);
         const offer = await readOffer(request);
+        const from = `${remoteOf(request)} (network ${networkId})`;
+        logger.info(`NetherNet join from ${from}, offering ${describeCandidates(offer).join(', ') || 'no candidates'}`);
 
+        const started = Date.now();
         const result = await this.negotiate(networkId, offer);
         if ('answer' in result) {
-            response.writeHead(200, { 'Content-Type': 'application/sdp' }).end(this.options.sign(result.answer));
+            const answer = this.options.sign(result.answer);
+            logger.info(
+                `NetherNet join from ${from} answered in ${Date.now() - started} ms as connection ${result.connectionId}, offering ${describeCandidates(answer).join(', ') || 'no candidates'}`
+            );
+            response.writeHead(200, { 'Content-Type': 'application/sdp' }).end(answer);
             return;
         }
         if ('error' in result) {
-            this.options.logger.debug(`NetherNet offer from ${networkId} failed with error ${result.error}`);
+            logger.warn(`NetherNet join from ${from} failed with error ${result.error}`);
             text(response, 500, result.error);
             return;
         }
-        this.options.logger.debug(`NetherNet offer from ${networkId} timed out waiting for an answer`);
+        logger.warn(`NetherNet join from ${from} timed out waiting for an answer`);
         text(response, 504, 'Timed out waiting for answer');
     }
 
@@ -164,8 +179,13 @@ export class HttpSignaling {
 
             // The answer already lists every candidate, so later CANDIDATEADD signals are dropped.
             const respond = (signal: SignalStructure) => {
-                if (signal.type === SignalType.ConnectResponse) settle({ answer: signal.data });
-                else if (signal.type === SignalType.ConnectError) settle({ error: signal.data });
+                if (signal.type === SignalType.ConnectResponse) {
+                    // From here the join is WebRTC's: report each state change until it settles.
+                    tracePeerConnection(answerer.connections.get(connectionId)?.rtcConnection, (line) =>
+                        this.options.logger.info(`NetherNet connection ${connectionId}: ${line}`)
+                    );
+                    settle({ answer: signal.data, connectionId });
+                } else if (signal.type === SignalType.ConnectError) settle({ error: signal.data });
             };
             const request = new SignalStructure(
                 SignalType.ConnectRequest,
@@ -180,6 +200,9 @@ export class HttpSignaling {
         });
     }
 }
+
+/** Who sent the request, as `address:port`. */
+const remoteOf = (request: IncomingMessage): string => `${request.socket.remoteAddress}:${request.socket.remotePort}`;
 
 /** Ends the response with a plain-text body, as Bedrock Dedicated Server does for its errors. */
 const text = (response: ServerResponse, status: number, body: string): void => {
