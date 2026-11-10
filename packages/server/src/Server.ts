@@ -149,7 +149,7 @@ const runInProcess = async (args: ServerArgs, { remote }: { remote: boolean }): 
                         .getLevels()
                         .flatMap((level) => [...level.worlds()]),
                 world: (name: string) => server.getWorldManager().getWorldByName(name),
-                entities: (name: string) => server.getWorldManager().getWorldByName(name)?.getEntities() ?? [],
+                entities: (name: string) => server.getWorldManager().getWorldByName(name)?.getActors() ?? [],
                 entityRuntime: (dimension: string) => server.getEntityRuntime(dimension)
             })
         });

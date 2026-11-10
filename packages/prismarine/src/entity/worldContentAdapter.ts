@@ -14,7 +14,8 @@ import type { ContentLookup } from '../content/world/views';
 import { itemOfDrop } from '../inventory/persistence';
 import { itemFromContent } from '../item/itemFromContent';
 import type { World } from '../world/World';
-import type { Entity } from './Entity';
+import { StoreActor } from './data/storeActors';
+import type { WorldActor } from '../world/WorldActor';
 import { applyBlockEntityRecord } from '../blockentity/contentRecord';
 import { NBTTagCompound } from '@jsprismarine/nbt';
 
@@ -57,7 +58,7 @@ const PLAYER_IDENTIFIER = 'minecraft:player';
  * climbs by one per entity, so every id a session produces is exact as a double; a world
  * that somehow passed 2^53 entities would be long out of other resources first.
  */
-const contentEntityOf = (entity: Entity): ContentEntity => {
+const contentEntityOf = (entity: WorldActor): ContentEntity => {
     const position = entity.getPosition();
 
     return {
@@ -69,7 +70,7 @@ const contentEntityOf = (entity: Entity): ContentEntity => {
 };
 
 /** Whether an entity's position falls inside one block. */
-const standsIn = (entity: Entity, at: ContentPosition): boolean => {
+const standsIn = (entity: WorldActor, at: ContentPosition): boolean => {
     const position = entity.getPosition();
     return (
         Math.floor(position.getX()) === at.x &&
@@ -79,7 +80,7 @@ const standsIn = (entity: Entity, at: ContentPosition): boolean => {
 };
 
 /** How far an entity is from a position, squared, which is enough to sort and to compare. */
-const distanceSquared = (entity: Entity, from: ContentPosition): number => {
+const distanceSquared = (entity: WorldActor, from: ContentPosition): number => {
     const position = entity.getPosition();
     const dx = position.getX() - from.x;
     const dy = entity.getFeetY() - from.y;
@@ -105,12 +106,12 @@ export const worldEntityAccess = (options: WorldEntityAccessOptions): ContentEnt
     return {
         at: (position) =>
             live()
-                .getEntities()
+                .getActors()
                 .filter((entity) => standsIn(entity, position))
                 .map(contentEntityOf),
         near: (center, radius) =>
             live()
-                .getEntities()
+                .getActors()
                 .filter((entity) => distanceSquared(entity, center) <= radius * radius)
                 .sort((left, right) => distanceSquared(left, center) - distanceSquared(right, center))
                 .map(contentEntityOf),
@@ -136,18 +137,22 @@ export const worldEntityAccess = (options: WorldEntityAccessOptions): ContentEnt
             }
 
             if (runtimeId !== 0 && data !== undefined) {
-                const body = loaded.getEntity(BigInt(runtimeId));
-                if (body !== null) {
-                    body.persistentNbt ??= new NBTTagCompound('');
-                    applyBlockEntityRecord(body.persistentNbt, data);
+                const spawned = loaded.getActor(BigInt(runtimeId));
+                if (spawned !== null) {
+                    spawned.persistentNbt ??= new NBTTagCompound('');
+                    applyBlockEntityRecord(spawned.persistentNbt, data);
                 }
             }
             return runtimeId;
         },
         remove: (id) => {
             const loaded = live();
-            const entity = loaded.getEntity(BigInt(id));
+            const entity = loaded.getActor(BigInt(id));
             if (entity === null) return;
+            if (entity instanceof StoreActor) {
+                loaded.dataEntities().runtime.remove(entity.entity.id, 'body removed');
+                return;
+            }
 
             void loaded.removeEntity(entity).catch((error: unknown) => {
                 loaded.getServer().getLogger().error(error);
@@ -186,7 +191,7 @@ export const worldEntityAccess = (options: WorldEntityAccessOptions): ContentEnt
         },
         countOfType: (identifier, at, radius) =>
             live()
-                .getEntities()
+                .getActors()
                 .filter((entity) => entity.getType() === identifier && distanceSquared(entity, at) <= radius * radius)
                 .length
     };
