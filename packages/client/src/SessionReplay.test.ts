@@ -1,3 +1,5 @@
+// The slow host patches asynchronous APIs, so it loads before any module that keeps one.
+import { SlowHost, nextTurn } from './testing/slowHost.test.helper';
 import { OfflineAuthProvider } from '@jsprismarine/auth';
 import { Logger } from '@jsprismarine/logger';
 import { Config, Server } from '@jsprismarine/prismarine';
@@ -50,6 +52,8 @@ interface CapturedSession {
     readonly inboundSerializedBytes: number;
     /** Every chunk completion the capture admitted, in admission order. */
     readonly admissions: readonly ChunkAdmissionRecord[];
+    /** The server tick at which each client had joined, mover first. */
+    readonly joinTicks: readonly number[];
 }
 
 interface GatedPacketTrace {
@@ -68,6 +72,8 @@ interface LiveSession {
     readonly initialStateManifest?: Buffer;
     /** Every chunk completion this server admitted, in admission order. */
     readonly admissions: readonly ChunkAdmissionRecord[];
+    /** The server tick at which each client had joined, mover first. */
+    readonly joinTicks: readonly number[];
     /** Waits until the server and both clients have handled everything already sent. */
     settle(): Promise<void>;
     /**
@@ -141,9 +147,6 @@ const seededRandom = (seed: number) => {
         return state / 0x1_0000_0000;
     };
 };
-
-/** One turn of the event loop, so I/O callbacks and `setImmediate` work get to run. No timer. */
-const nextTurn = (): Promise<void> => new Promise((resolve) => setImmediate(resolve));
 
 const positionOf = (position: { x: number; y: number; z: number }): Position => ({
     x: position.x,
@@ -249,6 +252,8 @@ const openSession = async (
         readonly initialState?: ReplayInitialStateManifest;
         /** The most chunk completions one input step admits while no trace decides. */
         readonly chunkAdmissionBudget?: number;
+        /** A wall clock 3 ms later on every read while the clients join. */
+        readonly jumpingJoinClock?: boolean;
     } = {}
 ): Promise<LiveSession> => {
     // A folder of its own for each run, so a run beside it in another worktree, or a case that
@@ -267,6 +272,10 @@ const openSession = async (
             // chunk load is I/O the harness can wait for rather than another process's timing.
             'enable-ticking': false,
             'chunk-workers': 0,
+            // Chunk streaming stops on a time budget, so a slow tick would start fewer deliveries
+            // and a join would take more ticks on a loaded host. With no time limit the counts
+            // decide alone: the delivery depth and what each player has queued.
+            'chunk-send-budget-ms': Number.MAX_SAFE_INTEGER,
             'enable-query': false,
             worlds: { world: { preset: 'minecraft:flat', provider: 'LevelDB', seed: SESSION_SEED } }
         })
@@ -336,6 +345,15 @@ const openSession = async (
                 // Decoded and held before the tick runs, so its input step finds them.
                 await settle();
             }
+            // On a slow host, anything still held is work this tick would run ahead of.
+            const held = SlowHost.held();
+            if (held.length > 0) {
+                throw new Error(
+                    `Tick ${server.getTick()} would run ahead of work the harness does not wait for: ${held
+                        .map((work) => `${work.api} from ${work.origin}`)
+                        .join('; ')}`
+                );
+            }
             await server.advanceTick();
             await settle();
         }
@@ -377,6 +395,7 @@ const openSession = async (
             stateRoots.delete(stateRoot);
         }
     };
+    const joinTicks: number[] = [];
     const live: LiveSession = {
         server,
         get world(): World {
@@ -386,6 +405,7 @@ const openSession = async (
         inbound,
         outbound,
         admissions,
+        joinTicks,
         mover,
         observer,
         settle,
@@ -424,8 +444,16 @@ const openSession = async (
         level.getWeather().restore(options.initialState.level.weather);
         level.restoreReplayRandomState(options.initialState);
     }
-    await join(mover);
-    await join(observer);
+    let now = Date.now();
+    const clock = options.jumpingJoinClock ? vi.spyOn(Date, 'now').mockImplementation(() => (now += 3)) : undefined;
+    try {
+        for (const each of [mover, observer]) {
+            await join(each);
+            joinTicks.push(server.getTick());
+        }
+    } finally {
+        clock?.mockRestore();
+    }
 
     return initialStateManifest === undefined ? live : { ...live, initialStateManifest };
 };
@@ -531,7 +559,8 @@ const captureSession = async (
             initialStateManifest,
             inboundPayloadBytes: live.inbound.getPayloadBytes(),
             inboundSerializedBytes: live.inbound.serialize().byteLength,
-            admissions: [...live.admissions]
+            admissions: [...live.admissions],
+            joinTicks: live.joinTicks
         };
     } finally {
         live.server.removeListener('tick', recordRandomTickState);
@@ -552,17 +581,44 @@ const replaySession = async (
         readonly chunkAdmissionBudget?: number;
         /** A clock a second slower on every read, from the first sampled tick on. */
         readonly jumpingClock?: boolean;
+        /** A wall clock 3 ms later on every read while the clients join. */
+        readonly jumpingJoinClock?: boolean;
+        /** Runs on a {@link SlowHost}, where every asynchronous completion lands late. */
+        readonly slowHost?: boolean;
     } = {}
 ) => {
     const measureCosts = options.measureCosts ?? false;
     const instrumented = options.instrumented ?? true;
     const initialState = deserializeReplayInitialStateManifest(captured.initialStateManifest);
-    const live = await openSession(moverAuth, observerAuth, {
-        serializableRandom: options.serializableRandom,
-        recordPackets: !measureCosts || instrumented,
-        initialState,
-        ...(options.chunkAdmissionBudget === undefined ? {} : { chunkAdmissionBudget: options.chunkAdmissionBudget })
-    });
+    const heldBefore = SlowHost.heldCount;
+    if (options.slowHost) SlowHost.start();
+    try {
+        return await replayOn(
+            await openSession(moverAuth, observerAuth, {
+                serializableRandom: options.serializableRandom,
+                recordPackets: !measureCosts || instrumented,
+                initialState,
+                jumpingJoinClock: options.jumpingJoinClock,
+                ...(options.chunkAdmissionBudget === undefined
+                    ? {}
+                    : { chunkAdmissionBudget: options.chunkAdmissionBudget })
+            }),
+            captured,
+            { ...options, measureCosts, instrumented },
+            heldBefore
+        );
+    } finally {
+        SlowHost.stop();
+    }
+};
+
+const replayOn = async (
+    live: LiveSession,
+    captured: CapturedSession,
+    options: Parameters<typeof replaySession>[3] & { readonly measureCosts: boolean; readonly instrumented: boolean },
+    heldBefore: number
+) => {
+    const { measureCosts, instrumented } = options;
     try {
         const startGame = live.mover.getStartGame();
         if (startGame === null) throw new Error('Replay mover did not receive StartGame');
@@ -819,6 +875,8 @@ const replaySession = async (
                 tickOffset - REPLAY_START_TICK
             ),
             tickElapsedMs,
+            joinTicks: live.joinTicks,
+            heldCompletions: SlowHost.heldCount - heldBefore,
             moveEvents,
             moveTickOffsets: moveTicks.map((tick) => tick - REPLAY_START_TICK),
             finalWorldDigest,
@@ -929,10 +987,19 @@ describe('live session replay', () => {
                 const first = await replaySession(moverAuth, observerAuth, captured);
                 // A host that admits one chunk a step and reads a clock a second slower on every
                 // read: its ticks run far behind the clock, and it still replays the same ticks.
+                // The clients join on a wall clock 3 ms later on every read, and every asynchronous
+                // completion lands late: a stepped tick that ran ahead of any of it fails here.
                 const second = await replaySession(moverAuth, observerAuth, captured, {
                     chunkAdmissionBudget: 1,
-                    jumpingClock: true
+                    jumpingClock: true,
+                    jumpingJoinClock: true,
+                    slowHost: true
                 });
+                expect(second.heldCompletions).toBeGreaterThan(0);
+                // Counts alone decide how long a join takes, so the capture and a replay on the
+                // same budget join in the same ticks, and the slow host joins in no more ticks
+                // than its budget needs.
+                expect(first.joinTicks).toEqual(captured.joinTicks);
 
                 expect(first.finalMoverPosition.x).toBeGreaterThan(captured.moverStart.x + 0.8);
                 expect(first.moveEvents).toBe(MOVEMENT_COUNT);
