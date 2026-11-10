@@ -175,6 +175,13 @@ C2 and C3 run side by side if C1 leaves item code and damage code in separate fi
 
 C4b and C4c run side by side. C4d, C4e, C4f and C4g run side by side after C4c. The spike's note lists what the adapter of C1 must provide while players are still legacy, and that list is part of C1's brief. One item needs an answer when C3 lands: the mirror is what shows store mobs to legacy sessions today, so from the slice that deletes it until slice 5 something else has to encode them.
 
+The change log module of A4 left questions for C1, answered here.
+
+- A chunk entering the world is a unit of its own. The input step admits a chunk as one input, and no other write shares its span, so a span that would have to be undone never holds a chunk entry.
+- A membership entry carries one record, the entity's saved form, and that form has to contain everything replication sends on first sight. ADR 0012 and ADR 0016 describe the same record.
+- Inverses are written through setters that do not log. If writing an inverse throws, the store can no longer be trusted, so the world stops ticking and reports the failure. It does not go on with a half-undone unit.
+- A chest's slots are fields of its block entity, addressed by block position. An entity's inventory slots are addressed by entity id.
+
 ### Phase D: handlers and replication
 
 | Package | Slice | Depends on | Work                                                                                                              |
