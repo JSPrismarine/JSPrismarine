@@ -37,6 +37,7 @@ import { jump } from './scenarios/jump.mts';
 import { gait } from './scenarios/gait.mts';
 import { lookDirection } from './scenarios/look-direction.mts';
 import { damage } from './scenarios/damage.mts';
+import { playerKnockback } from './scenarios/player-knockback.mts';
 import { fallDamage } from './scenarios/fall-damage.mts';
 import { title } from './scenarios/title.mts';
 import { blockPlacement } from './scenarios/block-placement.mts';
@@ -88,6 +89,7 @@ const suites: ScenarioSuite[] = [
             title,
             fallDamage,
             damage,
+            playerKnockback,
             lookDirection,
             gait,
             movementFanout,
