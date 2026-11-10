@@ -163,20 +163,16 @@ export class TickList {
      * later game tick, never in the batch being run, which is what makes a
      * repeater chain take its delay rather than collapsing into one tick.
      *
+     * The budget is a count and nothing else. The list reads no clock, so a slow host runs the
+     * same ticks as a fast one and only takes longer to do it.
+     *
      * @param currentTick - The game tick to run.
      * @param run - Called once per due tick, in order.
-     * @param maxTicks - The per-tick budget, defaulting to Java's 65536.
-     * @param deadline - A `performance.now()` time after which no further tick starts. The ticks it
-     * leaves stay queued, still due, and run first on the next game tick. A count is no bound on
-     * time: a slow host, or ticks that each scan a neighborhood, spend seconds inside 65536.
+     * @param maxTicks - The per-tick budget, defaulting to Java's 65536. Due ticks past it stay
+     * queued, still due, and run first on the next game tick.
      * @returns How many ticks ran.
      */
-    tick(
-        currentTick: number,
-        run: TickHandler,
-        maxTicks: number = MAX_SCHEDULED_TICKS_PER_TICK,
-        deadline: number = Number.POSITIVE_INFINITY
-    ): number {
+    tick(currentTick: number, run: TickHandler, maxTicks: number = MAX_SCHEDULED_TICKS_PER_TICK): number {
         this.queue.sort(drainOrder);
 
         let dueCount = 0;
@@ -197,13 +193,6 @@ export class TickList {
 
         let ran = 0;
         for (const tick of this.batch) {
-            if (ran > 0 && performance.now() > deadline) {
-                // Out of time: what has not run goes back, still due, in the order it had.
-                const left = collected.slice(ran);
-                for (const waiting of left) this.queued.add(identity(waiting));
-                this.queue.unshift(...left);
-                break;
-            }
             this.batchIdentities.delete(identity(tick));
             run(tick);
             ran += 1;
@@ -240,17 +229,15 @@ export class TickScheduler {
      * @param currentTick - The game tick to run.
      * @param run - Called with each due tick and the list it came from.
      * @param maxTicks - The per-list budget, defaulting to Java's 65536.
-     * @param deadline - A `performance.now()` time shared by both lists; see {@link TickList.tick}.
      * @returns How many ticks ran across both lists.
      */
     tick(
         currentTick: number,
         run: (kind: TickKind, tick: ScheduledTick) => void,
-        maxTicks: number = MAX_SCHEDULED_TICKS_PER_TICK,
-        deadline: number = Number.POSITIVE_INFINITY
+        maxTicks: number = MAX_SCHEDULED_TICKS_PER_TICK
     ): number {
-        const blocks = this.lists.block.tick(currentTick, (tick) => run('block', tick), maxTicks, deadline);
-        const fluids = this.lists.fluid.tick(currentTick, (tick) => run('fluid', tick), maxTicks, deadline);
+        const blocks = this.lists.block.tick(currentTick, (tick) => run('block', tick), maxTicks);
+        const fluids = this.lists.fluid.tick(currentTick, (tick) => run('fluid', tick), maxTicks);
         return blocks + fluids;
     }
 }
