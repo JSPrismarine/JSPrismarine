@@ -495,9 +495,12 @@ jobs:
                   RUST_BACKTRACE: '1'
               run: |
                   # The clients open their hidden windows on the virtual display xvfb-run starts.
+                  # `--retry` runs a failed scenario once more on a fresh server and client, so one
+                  # flaky scenario does not cost a rerun of every protocol. It is reported as a
+                  # warning and in the summary when it passes the second time.
                   # shellcheck disable=SC2086
                   xvfb-run --auto-servernum --server-args='-screen 0 1280x720x24' \
-                      pnpm run e2e:client -- --artifacts "$RUNNER_TEMP/client-e2e" --protocol "$PROTOCOL" --concurrency "$SUITES" $SCENARIOS
+                      pnpm run e2e:client -- --retry --artifacts "$RUNNER_TEMP/client-e2e" --protocol "$PROTOCOL" --concurrency "$SUITES" $SCENARIOS
 
             - name: 🔎 Verify client e2e coverage
               id: client-e2e-coverage

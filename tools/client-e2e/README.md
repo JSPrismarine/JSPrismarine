@@ -84,6 +84,10 @@ protocol and pin, outside its workspace. A build on `master` of the latest proto
 cargo's intermediate directory, which only the next build reads. The runner also writes a pass/fail
 table to the job summary.
 
+`--retry` runs each failed scenario once more, on a server and client of its own, and CI passes it.
+A scenario that passes the second time passes the run, and the job summary and a warning annotation
+name it as flaky.
+
 A pull request runs only the scenarios its changes can affect, which `src/select.mts` decides from
 the changed files. Every scenario boots the whole server, so a change to anything the server can
 load runs them all. A pull request that changes only tests, benchmarks, Markdown or a package the

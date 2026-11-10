@@ -6,6 +6,7 @@
  * pnpm --filter @jsprismarine/client-e2e run e2e                         # every scenario
  * pnpm --filter @jsprismarine/client-e2e run e2e movement                # a selection
  * pnpm --filter @jsprismarine/client-e2e run e2e --concurrency 2 --record # parallel suites, with recordings
+ * pnpm --filter @jsprismarine/client-e2e run e2e --retry                 # failed scenarios run once more
  * ```
  *
  * Evidence lands in `--artifacts` (default: a fresh temporary directory, printed at the end).
@@ -19,6 +20,8 @@ import { parseArgs } from 'node:util';
 import { ensureCinnabar } from './cinnabar.mts';
 import { CinnabarClient } from './client.mts';
 import { startServer } from './jsp-server.mts';
+import type { ScenarioResult } from './retry.mts';
+import { mergeRetries, retrySuites } from './retry.mts';
 import { sleep, standAt } from './scenario.mts';
 import type { Scenario } from './scenario.mts';
 import { chat } from './scenarios/chat.mts';
@@ -117,6 +120,7 @@ const { values, positionals } = parseArgs({
     args: argv,
     options: {
         record: { type: 'boolean', default: false },
+        retry: { type: 'boolean', default: false },
         artifacts: { type: 'string' },
         port: { type: 'string' },
         protocol: { type: 'string' },
@@ -203,7 +207,6 @@ console.log('ensuring the pinned cinnabar build (the first run clones and compil
 const cinnabar = ensureCinnabar(protocolVersion);
 console.log(`client targets Bedrock ${cinnabar.target.gameVersion} (protocol ${cinnabar.target.wireProtocol})`);
 
-type ScenarioResult = { name: string; ok: boolean; note: string };
 const serverLogs: string[] = new Array(selectedSuites.length);
 
 const resetBetweenScenarios = async (
@@ -561,27 +564,45 @@ const runSuite = async (suite: ScenarioSuite, index: number): Promise<ScenarioRe
     return results;
 };
 
-const resultsBySuite: Array<ScenarioResult[] | undefined> = new Array(selectedSuites.length);
-let nextSuiteIndex = 0;
-const worker = async (): Promise<void> => {
-    for (;;) {
-        const index = nextSuiteIndex;
-        nextSuiteIndex += 1;
-        const suite = selectedSuites[index];
-        if (!suite) return;
-        resultsBySuite[index] = await runSuite(suite, index);
-    }
+/** Runs suites `concurrency` at a time. `firstIndex` numbers their server logs after earlier runs'. */
+const runSuites = async (toRun: readonly ScenarioSuite[], firstIndex: number): Promise<ScenarioResult[]> => {
+    const resultsBySuite: Array<ScenarioResult[] | undefined> = new Array(toRun.length);
+    let nextSuiteIndex = 0;
+    const worker = async (): Promise<void> => {
+        for (;;) {
+            const index = nextSuiteIndex;
+            nextSuiteIndex += 1;
+            const suite = toRun[index];
+            if (!suite) return;
+            resultsBySuite[index] = await runSuite(suite, firstIndex + index);
+        }
+    };
+    await Promise.all(Array.from({ length: Math.min(concurrency, toRun.length) }, worker));
+    return resultsBySuite.flatMap((suiteResults) => suiteResults ?? []);
 };
-await Promise.all(Array.from({ length: Math.min(concurrency, selectedSuites.length) }, worker));
 
-const results = resultsBySuite.flatMap((suiteResults) => suiteResults ?? []);
+const firstResults = await runSuites(selectedSuites, 0);
+// `--retry` runs each failed scenario once more, on a fresh server and client. One that passes
+// then is flaky, not broken: the run passes, and the summary and a warning name it.
+const toRetry = values.retry ? retrySuites(selectedSuites, firstResults) : [];
+if (toRetry.length > 0) {
+    const names = toRetry.flatMap((suite) => suite.scenarios.map((scenario) => scenario.name));
+    console.log(`retrying ${names.length} failed scenario(s): ${names.join(', ')}`);
+}
+const results = mergeRetries(firstResults, await runSuites(toRetry, selectedSuites.length));
+for (const result of results) {
+    if (!result.retried) continue;
+    const message = `${result.name} failed, then passed when run again. ${result.note}`.replaceAll('\n', ' ');
+    console.warn(process.env.GITHUB_ACTIONS ? `::warning title=Flaky client e2e scenario::${message}` : message);
+}
 const failures = results.filter((result) => !result.ok).length;
 fs.writeFileSync(path.join(artifacts, 'server.log'), serverLogs.filter(Boolean).join('\n'));
 // On GitHub Actions, put the verdicts on the run's summary page beside the uploaded artifacts.
 if (process.env.GITHUB_STEP_SUMMARY) {
     const escape = (text: string): string => text.replaceAll('|', '\\|').replaceAll('\n', ' ');
     const rows = results.map(
-        (result) => `| ${result.name} | ${result.ok ? 'pass' : 'FAIL'} | ${escape(result.note)} |`
+        (result) =>
+            `| ${result.name} | ${result.retried ? 'pass on retry' : result.ok ? 'pass' : 'FAIL'} | ${escape(result.note)} |`
     );
     fs.appendFileSync(
         process.env.GITHUB_STEP_SUMMARY,
