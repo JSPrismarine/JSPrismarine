@@ -1,5 +1,6 @@
 import type Player from './Player';
 import type ClientConnection from './network/ClientConnection';
+import type PlayerSession from './network/PlayerSession';
 import { LegacyPlayers } from './network/sessionPlayers';
 import type { ConnectionId } from './network/transport/ConnectionId';
 import type { PlayerListEntry } from '@jsprismarine/protocol/wire/structures/PlayerListEntry';
@@ -139,6 +140,49 @@ export default class SessionManager {
     }
 
     /**
+     * The sessions of every online player on the server, in any world: the sessions of the
+     * players {@link SessionManager.getAllPlayers} lists, in the same order. A session is
+     * online while {@link PlayerSession.isConnected} says so, which is its player's own test.
+     * @returns The sessions.
+     */
+    public getSessions(): PlayerSession[] {
+        const sessions: PlayerSession[] = [];
+        for (const connection of this.connections.values()) {
+            const session = connection.getPlayerSession();
+            if (session?.isConnected()) sessions.push(session);
+        }
+        return sessions;
+    }
+
+    /**
+     * The session of the online player with entity id `id`.
+     * @param id - The player's entity id, which its session holds.
+     * @returns The session, or null when no online player has that id.
+     */
+    public sessionOf(id: bigint): PlayerSession | null {
+        return this.getSessions().find((session) => session.runtimeId === id) ?? null;
+    }
+
+    /**
+     * The session of the online player whose login named this name or XUID, matched against
+     * the identity each session holds.
+     *
+     * Sees only players who finished joining, as {@link SessionManager.findPlayer} does.
+     * @param query - The name or XUID to look for.
+     * @param query.name - The display name.
+     * @param query.xuid - The Xbox Live id. An empty one names no account and matches nobody.
+     * @returns The session, or null when no online player matches.
+     */
+    public findSession({ name, xuid }: { name?: string; xuid?: string }): PlayerSession | null {
+        return (
+            this.getSessions().find(
+                ({ identity }) =>
+                    identity.name === name || (xuid !== undefined && xuid !== '' && identity.xuid === xuid)
+            ) ?? null
+        );
+    }
+
+    /**
      * Kick all players.
      * @param {string} reason - The reason to kick the players.
      */
@@ -156,8 +200,8 @@ export default class SessionManager {
      * @param query.xuid - The Xbox Live id.
      * @returns The player, or null when no online player matches.
      */
-    public findPlayer({ name, xuid }: { name?: string; xuid?: string }): Player | null {
-        return this.getAllPlayers().find((p) => p.getName() === name || p.getXUID() === xuid) ?? null;
+    public findPlayer(query: { name?: string; xuid?: string }): Player | null {
+        return this.findSession(query)?.getPlayer() ?? null;
     }
 
     /**
@@ -168,8 +212,7 @@ export default class SessionManager {
      * @returns
      */
     public getPlayerByExactName(name: string): Player | null {
-        const found = this.getAllPlayers().find((p) => p.getName() === name) ?? null;
-        return found;
+        return this.findSession({ name })?.getPlayer() ?? null;
     }
 
     /**
@@ -183,6 +226,6 @@ export default class SessionManager {
      * @returns The player, or null when no online player has that id.
      */
     public getPlayerById(id: bigint): Player | null {
-        return this.getAllPlayers().find((p) => p.getRuntimeId() === id) ?? null;
+        return this.sessionOf(id)?.getPlayer() ?? null;
     }
 }

@@ -5,15 +5,24 @@ import SessionManager from './SessionManager';
 import type ClientConnection from './network/ClientConnection';
 import type PlayerSession from './network/PlayerSession';
 import type { PlayerIdentity } from './playerIdentity';
+import { identityNamed } from './testing/sessionIdentity.test.helper';
 import { stub } from './testing/stub.test.helper';
 
-/** A connection whose session speaks for an online player with runtime id `id`. */
-const connectionFor = (id: bigint) => {
-    const player = stub<Player>({ getRuntimeId: () => id, isOnline: () => true });
-    const session = stub<PlayerSession>({ getPlayer: () => player });
+/** Who a test's player logged in as, unless it names someone else. */
+const ALEX = identityNamed('Alex');
+
+/** A connection whose session holds runtime id `id` and `identity`, for a player online or not. */
+const connectionFor = (id: bigint, identity = ALEX, online = true) => {
+    const player = stub<Player>({});
+    const session = stub<PlayerSession>({
+        runtimeId: id,
+        identity,
+        isConnected: () => online,
+        getPlayer: () => player
+    });
     const connection = stub<ClientConnection>({ getPlayerSession: () => session });
 
-    return { connection, player };
+    return { connection, player, session };
 };
 
 /** A connection whose session holds `identity`, with no login reservation. */
@@ -36,6 +45,40 @@ describe('SessionManager', () => {
             manager.add(1, connectionFor(7n).connection);
 
             expect(manager.getPlayerById(8n)).toBeNull();
+        });
+
+        it('finds the session by the id it holds, and nobody who is not online', () => {
+            const manager = new SessionManager();
+            const online = connectionFor(7n);
+            manager.add(1, online.connection);
+            manager.add(2, connectionFor(8n, ALEX, false).connection);
+
+            expect(manager.sessionOf(7n)).toBe(online.session);
+            expect(manager.sessionOf(8n)).toBeNull();
+            expect(manager.getPlayerById(8n)).toBeNull();
+        });
+    });
+
+    describe('findPlayer', () => {
+        it("matches the name or XUID its session's identity holds", () => {
+            const manager = new SessionManager();
+            const alex = connectionFor(7n);
+            const steve = connectionFor(8n, { ...identityNamed('Steve', 'b'), xuid: '2535400000000001' });
+            manager.add(1, alex.connection);
+            manager.add(2, steve.connection);
+
+            expect(manager.findPlayer({ name: 'Alex' })).toBe(alex.player);
+            expect(manager.findPlayer({ xuid: '2535400000000001' })).toBe(steve.player);
+            expect(manager.getPlayerByExactName('Steve')).toBe(steve.player);
+            expect(manager.findSession({ name: 'Steve' })).toBe(steve.session);
+        });
+
+        it('matches nobody by an empty XUID', () => {
+            // A player with no XUID holds an empty one, which names no account.
+            const manager = new SessionManager();
+            manager.add(1, connectionFor(7n).connection);
+
+            expect(manager.findPlayer({ xuid: '' })).toBeNull();
         });
     });
 
