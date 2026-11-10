@@ -19,7 +19,7 @@ export default class PhotoTransferHandler implements PacketHandler<PhotoTransfer
         server
             .getLogger()
             .debug(
-                `${session.getPlayer().getName()} sent photo ${packet.photoName} with ${packet.photoData.byteLength} byte(s) of image data. The server has no photo storage`,
+                `${session.identity.name} sent photo ${packet.photoName} with ${packet.photoData.byteLength} byte(s) of image data. The server has no photo storage`,
                 'PhotoTransferHandler/handle'
             );
     }

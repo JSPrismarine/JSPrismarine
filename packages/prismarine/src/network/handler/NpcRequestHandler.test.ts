@@ -1,9 +1,9 @@
 import type { Logger } from '@jsprismarine/logger';
 import { describe, expect, it } from 'vitest';
 import * as Handlers from '../Handlers';
-import type Player from '../../Player';
 import type Server from '../../Server';
 import { stub } from '../../testing/stub.test.helper';
+import { STEVE } from '../../testing/steveIdentity.test.helper';
 import type PlayerSession from '../PlayerSession';
 import NpcRequestPacket, { NpcRequestType } from '@jsprismarine/protocol/packet/NpcRequestPacket';
 import NpcRequestHandler from './NpcRequestHandler';
@@ -14,7 +14,7 @@ describe('NpcRequestHandler', () => {
         const server = stub<Server>({
             getLogger: () => stub<Logger>({ debug: (...message) => void logged.push(message[0] ?? '') })
         });
-        const session = stub<PlayerSession>({ getPlayer: () => stub<Player>({ getName: () => 'Steve' }) });
+        const session = stub<PlayerSession>({ identity: STEVE });
         const packet = Object.assign(new NpcRequestPacket(), { npcRuntimeId: 7n, requestType });
 
         new NpcRequestHandler().handle(packet, server, session);

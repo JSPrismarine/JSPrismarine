@@ -23,7 +23,7 @@ export default class PurchaseReceiptHandler implements PacketHandler<PurchaseRec
         server
             .getLogger()
             .debug(
-                `${session.getPlayer().getName()} sent ${data.purchaseReceipts.length} purchase receipts, which the server does not verify`,
+                `${session.identity.name} sent ${data.purchaseReceipts.length} purchase receipts, which the server does not verify`,
                 'PurchaseReceiptHandler/handle'
             );
     }

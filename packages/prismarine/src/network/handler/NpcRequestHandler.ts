@@ -22,7 +22,7 @@ export default class NpcRequestHandler implements PacketHandler<NpcRequestPacket
         server
             .getLogger()
             .debug(
-                `${session.getPlayer().getName()} sent ${requestType} to NPC ${packet.npcRuntimeId}, which the server has no NPCs to apply`,
+                `${session.identity.name} sent ${requestType} to NPC ${packet.npcRuntimeId}, which the server has no NPCs to apply`,
                 'NpcRequestHandler/handle'
             );
     }
