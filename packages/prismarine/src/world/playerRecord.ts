@@ -23,7 +23,6 @@ import type { ServerContent } from '../content/ServerContent';
 import { enchantmentSeedOf } from '../enchantment/enchantingTable';
 import type HumanInventory from '../inventory/HumanInventory';
 import { restoreInventory, storedInventory } from '../inventory/persistence';
-import type Player from '../Player';
 import type { DimensionType } from './Dimension';
 import type { StoredSpawnPoint } from './RespawnPoint';
 
@@ -150,12 +149,20 @@ export const playerRecordFrom = (
 };
 
 /**
+ * What a live player's record reads: the record's own fields, and whatever the advancement and
+ * enchantment seed services take to find the player's state.
+ */
+export type LivePlayerRecordSource = PlayerRecordSource &
+    Parameters<typeof storedAdvancements>[0] &
+    Parameters<typeof enchantmentSeedOf>[0];
+
+/**
  * A live player's record, with what the per-player services hold for them.
  * @param player - Whose state to record.
  * @param dimension - The dimension the record is stamped with; see {@link playerRecordFrom}.
  * @returns The record.
  */
-export const playerRecordOf = (player: Player, dimension: DimensionType): WorldPlayerData =>
+export const playerRecordOf = (player: LivePlayerRecordSource, dimension: DimensionType): WorldPlayerData =>
     playerRecordFrom(
         player,
         { advancements: storedAdvancements(player), enchantmentSeed: enchantmentSeedOf(player) },
