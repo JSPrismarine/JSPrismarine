@@ -2,6 +2,7 @@ import { PlayerPermissionLevel } from '@jsprismarine/minecraft';
 import type Server from '../../Server';
 import type PlayerSession from '../PlayerSession';
 import type RequestPermissionsPacket from '@jsprismarine/protocol/packet/RequestPermissionsPacket';
+import type { ShownPlayer } from '../../world/ShownPlayer';
 import type PacketHandler from './PacketHandler';
 
 /**
@@ -21,7 +22,8 @@ export default class RequestPermissionsHandler implements PacketHandler<RequestP
 
     /** Applies the level through the op list, or resends the current abilities when refused. */
     public async handle(packet: RequestPermissionsPacket, server: Server, session: PlayerSession): Promise<void> {
-        const requester = session.getPlayer();
+        const requester: Pick<ShownPlayer, 'isOp'> = session.getPlayer();
+        const { name } = session.identity;
         const level = PlayerPermissionLevel[packet.playerPermissionLevel] ?? packet.playerPermissionLevel;
         const target = server
             .getSessionManager()
@@ -32,7 +34,7 @@ export default class RequestPermissionsHandler implements PacketHandler<RequestP
             server
                 .getLogger()
                 .debug(
-                    `${requester.getName()} asked to set player ${packet.targetPlayerUniqueId} to permission level ${level} without being an operator`,
+                    `${name} asked to set player ${packet.targetPlayerUniqueId} to permission level ${level} without being an operator`,
                     'RequestPermissionsHandler/handle'
                 );
             await session.sendAbilities();
@@ -43,7 +45,7 @@ export default class RequestPermissionsHandler implements PacketHandler<RequestP
             server
                 .getLogger()
                 .debug(
-                    `${requester.getName()} asked to set player ${packet.targetPlayerUniqueId} to permission level ${level}, but no such player is online`,
+                    `${name} asked to set player ${packet.targetPlayerUniqueId} to permission level ${level}, but no such player is online`,
                     'RequestPermissionsHandler/handle'
                 );
             return;
@@ -61,7 +63,7 @@ export default class RequestPermissionsHandler implements PacketHandler<RequestP
                 server
                     .getLogger()
                     .debug(
-                        `${requester.getName()} asked to set ${target.getName()} to permission level ${level} (custom flags 0x${packet.customPermissionFlags.toString(16)}). Only Member and Operator are modeled, so the current abilities were sent back`,
+                        `${name} asked to set ${target.getName()} to permission level ${level} (custom flags 0x${packet.customPermissionFlags.toString(16)}). Only Member and Operator are modeled, so the current abilities were sent back`,
                         'RequestPermissionsHandler/handle'
                     );
                 await session.sendAbilities(target);

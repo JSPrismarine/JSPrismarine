@@ -6,6 +6,7 @@ import type Server from '../../Server';
 import type { Chat } from '../../chat/Chat';
 import { ChatType } from '../../chat/Chat';
 import type { ChatManager } from '../../chat/ChatManager';
+import { identityNamed } from '../../testing/sessionIdentity.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import type PlayerSession from '../PlayerSession';
 import TextPacket from '@jsprismarine/protocol/packet/TextPacket';
@@ -115,6 +116,6 @@ const fakeChat = () => {
             getChatManager: () => stub<ChatManager>({ send: async (chat) => void sent.push(chat) }),
             getLogger: () => stub<Logger>({ verbose: (message: string) => void dropped.push(message) })
         }),
-        session: stub<PlayerSession>({ getPlayer: () => player })
+        session: stub<PlayerSession>({ identity: identityNamed('runner'), getPlayer: () => player })
     };
 };

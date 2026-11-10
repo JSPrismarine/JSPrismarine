@@ -53,7 +53,9 @@ export default class TextHandler implements PacketHandler<TextPacket> {
         const text = packet.getPacketData();
 
         if (text === null) {
-            server.getLogger().verbose(`Dropped an empty text packet from ${player.getName()}`, 'TextHandler/handle');
+            server
+                .getLogger()
+                .verbose(`Dropped an empty text packet from ${session.identity.name}`, 'TextHandler/handle');
             return;
         }
 
@@ -61,7 +63,7 @@ export default class TextHandler implements PacketHandler<TextPacket> {
             server
                 .getLogger()
                 .verbose(
-                    `Dropped a text of type ${TextPacketType[text.type] ?? text.type} from ${player.getName()}: a client only sends Chat`,
+                    `Dropped a text of type ${TextPacketType[text.type] ?? text.type} from ${session.identity.name}: a client only sends Chat`,
                     'TextHandler/handle'
                 );
             return;

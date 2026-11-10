@@ -32,7 +32,7 @@ export default class CommandRequestHandler implements PacketHandler<CommandReque
             server
                 .getLogger()
                 .debug(
-                    `Dropped a command request from ${player.getName()} with origin ${CommandOriginType[origin.type] ?? origin.type}; a client may only send the Player origin`,
+                    `Dropped a command request from ${session.identity.name} with origin ${CommandOriginType[origin.type] ?? origin.type}; a client may only send the Player origin`,
                     'CommandRequestHandler/handle'
                 );
             return;
