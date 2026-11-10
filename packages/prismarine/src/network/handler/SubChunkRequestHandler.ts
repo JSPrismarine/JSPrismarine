@@ -7,6 +7,7 @@ import type PacketHandler from './PacketHandler';
 export default class SubChunkRequestHandler implements PacketHandler<SubChunkRequestPacket> {
     public static PacketName = 'SubChunkRequestPacket';
     public readonly phases = ['play'] as const;
+    public readonly lane = 'read';
 
     /** Sends a result for every requested offset and logs the request summary. */
     public async handle(packet: SubChunkRequestPacket, server: Server, session: PlayerSession): Promise<void> {

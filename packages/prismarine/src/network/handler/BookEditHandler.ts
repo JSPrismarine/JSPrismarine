@@ -47,6 +47,7 @@ const bookEditRejection = (player: Player, data: BookEdit): string | null => {
 export default class BookEditHandler implements PacketHandler<BookEditPacket> {
     public static PacketName = 'BookEditPacket';
     public readonly phases = ['play'] as const;
+    public readonly lane = 'read';
 
     /** Checks the slot holds a book and quill, then logs the edit by action. */
     public handle(packet: BookEditPacket, server: Server, session: PlayerSession): void {
