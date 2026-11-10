@@ -53,6 +53,9 @@ export default class ClientSession extends EventEmitter {
     /** Sends still compressing, which have not reached the transport yet. */
     private readonly pendingSends = new Set<Promise<void>>();
 
+    /** Work packet listeners started and handed to {@link ClientSession.track}, still running. */
+    private readonly pendingWork = new Set<Promise<unknown>>();
+
     public constructor(
         private readonly transport: ITransport,
         private readonly registry: ClientPacketRegistry,
@@ -129,14 +132,32 @@ export default class ClientSession extends EventEmitter {
      * has nothing left to say before it runs the next tick.
      */
     public isIdle(): boolean {
-        return this.pendingBatches === 0 && this.pendingSends.size === 0;
+        return this.pendingBatches === 0 && this.pendingSends.size === 0 && this.pendingWork.size === 0;
     }
 
     /** Resolves once {@link ClientSession.isIdle} holds, including for work that work started. */
     public async settled(): Promise<void> {
         while (!this.isIdle()) {
-            await Promise.allSettled([this.inbound, ...this.pendingSends]);
+            await Promise.allSettled([this.inbound, ...this.pendingSends, ...this.pendingWork]);
         }
+    }
+
+    /**
+     * Counts work a packet listener started, such as signing a login or answering a dimension
+     * change, until it settles, so {@link ClientSession.isIdle} stays false meanwhile.
+     *
+     * A listener runs synchronously inside the batch that carried its packet, but what it
+     * awaits finishes later, and a reply it sends after that await is not yet a send this
+     * session knows about. Without this a stepped harness can see an idle client while the
+     * client still has something to say, and run the next tick ahead of it.
+     * @param work - The listener's work. Its failure is the caller's to handle.
+     * @returns The same work, for the caller to chain on.
+     */
+    public track<T>(work: Promise<T>): Promise<T> {
+        this.pendingWork.add(work);
+        const forget = (): void => void this.pendingWork.delete(work);
+        work.then(forget, forget);
+        return work;
     }
 
     /** The handshake steps, which the server is blocking on and must not be held behind anything. */

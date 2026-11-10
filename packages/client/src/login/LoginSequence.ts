@@ -128,7 +128,7 @@ export default class LoginSequence {
     private readonly onPacket = (packet: DecodedPacket): void => {
         if (this.settled) return;
 
-        void this.dispatch(packet).catch((error: unknown) => {
+        void this.session.track(this.dispatch(packet)).catch((error: unknown) => {
             this.fail(error instanceof Error ? error : new Error(String(error)));
         });
     };
