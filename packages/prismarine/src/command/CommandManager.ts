@@ -8,21 +8,33 @@ import { CommandPermissionLevel } from '@jsprismarine/minecraft';
 
 import type { Entity, Server, Service } from '../';
 import { collectAsyncCommands, deferCommandWork } from './deferred';
-// Imported straight from its module rather than through the barrel: `index.ts` exports
-// `./world/` before `Player`, so reaching for it via '../' lands in a half-initialized
-// module and the binding is not a constructor yet by the time `instanceof` runs.
-import Player from '../Player';
 import Timer from '../utils/Timer';
 import type { CommandExecutor } from './CommandExecutor';
 import { isCommandExecutor } from './CommandExecutor';
 import type { FunctionContent } from './function';
 import { FunctionRuntime, functionContentOf, loadServerFunctions } from './function';
 import { dimensionIdOf, entityRefOf } from './host/support';
+import type { ReferencedEntity } from './host/support';
 import { serverCommandHost } from './host/serverCommandHost';
 import { RandomSequences } from './host/randomSequences';
 import type { RandomSequencesState } from './host/randomSequences';
 import { JSPRISMARINE_COMMAND_PERMISSIONS, registerJsprismarineCommands } from './jsprismarineCommands';
 import { buildVanillaCommands, contentRegistryIds, UNWIRED_COMMANDS } from './vanillaCommands';
+
+/**
+ * A player who sent a command, as the dispatch reads one: the entity a vanilla command runs as,
+ * and the operator status and permissions it is gated by.
+ */
+export interface PlayerCommandSender extends CommandExecutor, ReferencedEntity {
+    isOp(): boolean;
+    getPermissions(): string[];
+}
+
+/**
+ * Whether a sender is a player rather than the console. A sender standing at a runtime id is a
+ * player: no other executor is an entity.
+ */
+const isPlayerSender = (sender: CommandExecutor): sender is PlayerCommandSender => 'getRuntimeId' in sender;
 
 type VanillaCommandTreeNode = NonNullable<ReturnType<RootCommandNode<CommandSource>['getChild']>>;
 
@@ -506,15 +518,16 @@ export class CommandManager implements Service {
      * `canExecute` was letting the same player through on the node.
      */
     private vanillaSource(sender: CommandExecutor, target: CommandExecutor): CommandSource {
-        const entity = target instanceof Player ? entityRefOf(target) : undefined;
-        const operator = sender instanceof Player ? sender.isOp() || sender.getPermissions().includes('*') : true;
-        const world = sender instanceof Player ? sender.getWorld() : this.server.getWorldManager().getDefaultWorld();
+        const entity = isPlayerSender(target) ? entityRefOf(target) : undefined;
+        const player = isPlayerSender(sender) ? sender : undefined;
+        const operator = player === undefined || player.isOp() || player.getPermissions().includes('*');
+        const world = player?.getWorld() ?? this.server.getWorldManager().getDefaultWorld();
 
         return createCommandSource({
             host: this.host,
             ...(entity === undefined ? {} : { entity }),
             permissionLevel:
-                sender instanceof Player
+                player !== undefined
                     ? operator
                         ? CommandPermissionLevel.OWNER
                         : CommandPermissionLevel.ANY
@@ -522,7 +535,7 @@ export class CommandManager implements Service {
             // `sendCommandFeedback` is Java's switch for exactly this: the
             // success message, never the failure.
             silent: world.getGameRuleManager()?.getGameRule('sendCommandFeedback')?.[0] !== true,
-            dialect: sender instanceof Player ? 'bedrock' : 'java',
+            dialect: player === undefined ? 'java' : 'bedrock',
             onFeedback: (message) => deferCommandWork(Promise.resolve(sender.sendMessage(message))),
             onError: (message) => deferCommandWork(Promise.resolve(sender.sendMessage(`§c${message}`)))
         });
@@ -543,7 +556,7 @@ export class CommandManager implements Service {
         const vanilla = this.vanillaRegistry();
         const metadata = vanilla.getMetadata(name)!;
 
-        if (sender instanceof Player) {
+        if (isPlayerSender(sender)) {
             if (!this.server.getPermissionManager().can(sender).execute(commandPermissionOf(name))) {
                 await sender.sendMessage(
                     "§cI'm sorry, but you do not have permission to perform this command. " +
@@ -581,7 +594,7 @@ export class CommandManager implements Service {
      * Dispatches a command and executes it.
      *
      * @param sender - the player/console who executed the command
-     * @param target - the Player/entity/console who should execute the command
+     * @param target - the player, entity or console who should execute the command
      * @param input - the command input including arguments
      * @returns True when the command ran. False when the target cannot run commands, the
      * sender lacks the permission, the command is unknown, or it threw; in each of those
@@ -604,7 +617,7 @@ export class CommandManager implements Service {
             const typed = input.split(' ')[0] ?? '';
             const vanilla = this.vanillaName(typed);
             if (vanilla !== undefined) {
-                if (sender instanceof Player) {
+                if (isPlayerSender(sender)) {
                     this.server
                         .getLogger()
                         .debug(
