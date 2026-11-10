@@ -530,7 +530,7 @@ describe('the goal world over the entity runtime', () => {
             const fixture = fixtureOf();
             const giver = spawned(fixture, 'jsprismarine:giver', groundAt(0, 0));
             const taker = spawned(fixture, 'jsprismarine:collector', groundAt(2, 0));
-            giver.body.inventory.push('minecraft:bread');
+            giver.body.setInventory([...giver.body.inventory, 'minecraft:bread']);
 
             run(fixture, 20);
 

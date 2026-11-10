@@ -19,6 +19,12 @@ export class RideIndex {
     /** The riders of each vehicle, in the order they got on. */
     private readonly riders = new Map<number, number[]>();
 
+    /**
+     * Told whenever a rider's vehicle changes, with the vehicle before and after, so the entity
+     * store can log the link as a field of the rider.
+     */
+    public onChange: ((rider: number, before: number | undefined, after: number | undefined) => void) | undefined;
+
     /** What an entity rides, or undefined when it rides nothing. */
     public vehicleOf(rider: number): number | undefined {
         return this.vehicles.get(rider);
@@ -39,9 +45,11 @@ export class RideIndex {
         if (rider === vehicle) return false;
         if (this.vehicles.get(rider) === vehicle) return false;
 
-        this.dismount(rider);
+        const before = this.vehicles.get(rider);
+        this.unlink(rider);
         this.vehicles.set(rider, vehicle);
         this.riders.set(vehicle, [...this.ridersOf(vehicle), rider]);
+        this.onChange?.(rider, before, vehicle);
         return true;
     }
 
@@ -51,6 +59,22 @@ export class RideIndex {
      * @returns The vehicle it was on, or undefined when it was on nothing.
      */
     public dismount(rider: number): number | undefined {
+        const vehicle = this.unlink(rider);
+        if (vehicle !== undefined) this.onChange?.(rider, vehicle, undefined);
+        return vehicle;
+    }
+
+    /** Takes an entity out of the index, both as a rider and as a vehicle. */
+    public remove(id: number): void {
+        this.dismount(id);
+        for (const rider of this.ridersOf(id)) {
+            this.vehicles.delete(rider);
+            this.onChange?.(rider, id, undefined);
+        }
+        this.riders.delete(id);
+    }
+
+    private unlink(rider: number): number | undefined {
         const vehicle = this.vehicles.get(rider);
         if (vehicle === undefined) return undefined;
 
@@ -59,12 +83,5 @@ export class RideIndex {
         if (remaining.length === 0) this.riders.delete(vehicle);
         else this.riders.set(vehicle, remaining);
         return vehicle;
-    }
-
-    /** Takes an entity out of the index, both as a rider and as a vehicle. */
-    public remove(id: number): void {
-        this.dismount(id);
-        for (const rider of this.ridersOf(id)) this.vehicles.delete(rider);
-        this.riders.delete(id);
     }
 }
