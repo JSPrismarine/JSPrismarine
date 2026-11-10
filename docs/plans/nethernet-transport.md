@@ -143,11 +143,13 @@ slice when it lands on the branch.
 5. [x] **Config.** `enable-raknet`, `enable-nethernet` and `enable-lan-visibility`, all defaulting to
    `true`, in `Config`, the JSON schema and the generated settings docs. Refuse to start with both
    transports off.
-6. [ ] **NetherNet transport over LAN signaling.** Add `nethernet` to `@jsprismarine/prismarine`.
+6. [x] **NetherNet transport over LAN signaling.** Add `nethernet` to `@jsprismarine/prismarine`.
    `NetherNetTransport` wraps `nethernet`'s `Server`: connections, frames with the `0xFE` adaptation,
-   disconnects and close. Integration test: a `nethernet` `Client` on loopback completes
-   `RequestNetworkSettings` against the server.
-7. [ ] **LAN visibility.** Encode the version 7 advertisement from the server's MOTD, level, version
+   disconnects and close. The peer's address comes from the ICE candidate pair werift chose. A
+   loopback test drives a real `nethernet` `Client` through WebRTC; it skips itself when another
+   program holds UDP 7551, which a running dev server does.
+7. [ ] **LAN visibility.** (Advertisement done: version 7, byte-identical to a captured BDS
+   1.26.51.1 answer, refreshed from the shared `ServerName`.) Encode the version 7 advertisement from the server's MOTD, level, version
    and player counts, refresh it on join and leave, and bind UDP 7551 only when LAN visibility is on.
    Decide what RakNet LAN visibility needs: BDS binds 19132 when `server-port` differs, and today we
    answer pings only on the configured port.
@@ -173,6 +175,9 @@ slice when it lands on the branch.
   host candidates only and record a follow-up if a remote join needs more.
 - Does werift keep up with many players? Measure by counts (messages, bytes, allocations), not by
   wall-clock time, as [AGENTS.md](../../AGENTS.md#measuring-performance) asks.
+- RakNet's `ServerSocket` still sets the advertised player count to its own session count on
+  each RakNet open and close; `ServerNetworking` overwrites it with the all-transport count right
+  after. Give `@jsprismarine/raknet` a way to leave the count to its owner.
 - Worker mode (`use-raknet-worker`) stays RakNet-only. Does NetherNet need a worker later?
 - `nethernet` keys peers on the connection ID the client picks, and its LAN path applies a
   `CANDIDATEADD` to whichever peer that ID names, whoever sent it. Report upstream if a LAN peer can
