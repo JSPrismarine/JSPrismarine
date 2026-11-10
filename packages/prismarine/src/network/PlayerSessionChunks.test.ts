@@ -10,7 +10,7 @@ import type { NetworkPacket } from '@jsprismarine/protocol';
 import ClientCacheBlobStatusPacket from '@jsprismarine/protocol/packet/ClientCacheBlobStatusPacket';
 import ClientCacheMissResponsePacket from '@jsprismarine/protocol/packet/ClientCacheMissResponsePacket';
 import LevelChunkPacket from '@jsprismarine/protocol/packet/LevelChunkPacket';
-import SubChunkPacket, { SubChunkRequestResult } from '@jsprismarine/protocol/packet/SubChunkPacket';
+import SubChunkPacket, { HeightMapDataType, SubChunkRequestResult } from '@jsprismarine/protocol/packet/SubChunkPacket';
 import SubChunkRequestPacket from '@jsprismarine/protocol/packet/SubChunkRequestPacket';
 import { Dimensions } from '../world/Dimension';
 import Chunk from '../world/chunk/Chunk';
@@ -353,6 +353,51 @@ describe('network', () => {
             expect(reads).toEqual(['1,2']);
         });
 
+        // A 1.26.60 client dropped with ClientDisconnection-90 (BAD_PACKET) when an all-air
+        // section came with a blob id and an `AllCopied` render heightmap. It asks for the air
+        // above a column it already holds when that column is sent again, as after a respawn
+        // away from where the player died. A Bedrock Dedicated Server 1.26.60.6 answers such a
+        // section with no bytes, no blob id, and `AllTooLow` for both heightmaps.
+        it.each([true, false])('answers an all-air section with no bytes or blob id (cache %s)', async (cache) => {
+            const chunk = new Chunk(1, 2, new Map(), Dimensions.Overworld);
+            for (let x = 0; x < 16; x++) {
+                for (let z = 0; z < 16; z++) {
+                    chunk.setBlockRuntimeId(x, -64, z, BlockRuntimeIds.getByName('minecraft:stone'));
+                }
+            }
+            const world = stub<World>({
+                getDimension: () => Dimensions.Overworld,
+                getLoadedChunk: () => chunk
+            });
+            const playerWithWorld = stub<Player>({ getWorld: () => world, isOnline: () => true });
+            const sentPackets: NetworkPacket<unknown>[] = [];
+            const airSession = new PlayerSession(
+                server,
+                stub<ClientConnection>({ sendDataPacket: async (packet) => void sentPackets.push(packet) }),
+                playerWithWorld
+            );
+            airSession.setClientCacheEnabled(cache);
+            const request = new SubChunkRequestPacket();
+            request.dimensionType = 0;
+            request.centerPos = { x: 1, y: 0, z: 2 };
+            request.offsets = [-4, -3, 7].map((y) => ({ x: 0, y, z: 0 }));
+
+            await airSession.handleSubChunkRequest(request);
+            const response = sentPackets.at(-1);
+            if (!(response instanceof SubChunkPacket)) throw new Error('SubChunkPacket response was not sent');
+            const [floor, ...air] = response.getPacketData()?.entries ?? [];
+
+            expect(floor?.result).toBe(SubChunkRequestResult.SUCCESS);
+            expect(air).toHaveLength(2);
+            for (const entry of air) {
+                expect(entry.result).toBe(SubChunkRequestResult.SUCCESS_ALL_AIR);
+                expect(entry.serializedSubChunk).toBeUndefined();
+                expect(entry.blobId).toBeUndefined();
+                expect(entry.heightMaps.heightMapType).toBe(HeightMapDataType.ALL_TOO_LOW);
+                expect(entry.heightMaps.renderHeightMapType).toBe(HeightMapDataType.ALL_TOO_LOW);
+            }
+        });
+
         it('uses confirmed subchunk blobs on repeat requests and serves cache misses', async () => {
             const chunk = new Chunk(1, 2, new Map(), Dimensions.Overworld);
             const world = stub<World>({
@@ -369,39 +414,7 @@ describe('network', () => {
             cacheSession.setClientCacheEnabled(true);
             const request = new SubChunkRequestPacket();
             request.dimensionType = 0;
-            request.centerPos = { x: 1, y: -3, z: 2 };
             request.offsets = [{ x: 0, y: 0, z: 0 }];
-
-            await cacheSession.handleSubChunkRequest(request);
-            const initial = sentPackets.at(-1);
-            if (!(initial instanceof SubChunkPacket)) throw new Error('Initial SubChunkPacket response was not sent');
-            const initialData = initial.getPacketData();
-            if (initialData === null) throw new Error('Initial SubChunkPacket data is unavailable');
-            const initialEntry = initialData.entries[0];
-            expect(initialEntry?.result).toBe(SubChunkRequestResult.SUCCESS_ALL_AIR);
-            expect(initialEntry?.serializedSubChunk).toBeUndefined();
-            const blobId = initialEntry?.blobId;
-            if (blobId === undefined) throw new Error('Cached all-air response did not include a blob id');
-
-            const missing = new ClientCacheBlobStatusPacket();
-            missing.missingIds = [blobId];
-            expect(await cacheSession.handleClientCacheBlobStatus(missing)).toBe(1);
-            const missResponse = sentPackets.at(-1);
-            if (!(missResponse instanceof ClientCacheMissResponsePacket)) {
-                throw new Error('ClientCacheMissResponsePacket was not sent');
-            }
-            expect(missResponse.blobs).toEqual([{ blobId, blobData: Buffer.from([8, 0]) }]);
-
-            const found = new ClientCacheBlobStatusPacket();
-            found.foundIds = [blobId];
-            await cacheSession.handleClientCacheBlobStatus(found);
-            await cacheSession.handleSubChunkRequest(request);
-            const repeated = sentPackets.at(-1);
-            if (!(repeated instanceof SubChunkPacket)) throw new Error('Repeated SubChunkPacket response was not sent');
-            const repeatedData = repeated.getPacketData();
-            if (repeatedData === null) throw new Error('Repeated SubChunkPacket data is unavailable');
-            expect(repeatedData.entries[0]).toMatchObject({ blobId });
-            expect(repeatedData.entries[0]?.serializedSubChunk).toBeUndefined();
 
             chunk.setBlockRuntimeId(1, -64, 2, BlockRuntimeIds.getByName('minecraft:stone'));
             request.centerPos = { x: 1, y: -4, z: 2 };
@@ -415,6 +428,17 @@ describe('network', () => {
             expect(terrainEntry?.serializedSubChunk).toEqual(chunk.networkSerializeRequestSubChunk(-4));
             const terrainBlobId = terrainEntry?.blobId;
             if (terrainBlobId === undefined) throw new Error('Cached terrain response did not include a blob id');
+
+            const missing = new ClientCacheBlobStatusPacket();
+            missing.missingIds = [terrainBlobId];
+            expect(await cacheSession.handleClientCacheBlobStatus(missing)).toBe(1);
+            const missResponse = sentPackets.at(-1);
+            if (!(missResponse instanceof ClientCacheMissResponsePacket)) {
+                throw new Error('ClientCacheMissResponsePacket was not sent');
+            }
+            expect(missResponse.blobs).toEqual([
+                { blobId: terrainBlobId, blobData: chunk.networkSerializeRequestSubChunk(-4) }
+            ]);
 
             const terrainFound = new ClientCacheBlobStatusPacket();
             terrainFound.foundIds = [terrainBlobId];

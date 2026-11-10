@@ -326,9 +326,17 @@ export default class Chunk {
             : allTooLow
               ? HeightMapDataType.ALL_TOO_LOW
               : HeightMapDataType.HAS_DATA;
-        const heightMap = heightMapType === HeightMapDataType.HAS_DATA ? heightmap : undefined;
+        const hasData = heightMapType === HeightMapDataType.HAS_DATA;
 
-        return new SubChunkHeightmapData(heightMapType, heightMap, HeightMapDataType.ALL_COPIED);
+        // The render heightmap copies the regular one only when that one has data; a section
+        // wholly above or below the terrain repeats the same type, as a Bedrock Dedicated
+        // Server 1.26.60.6 sends it. A 1.26.60 client disconnects with BAD_PACKET on an
+        // all-air section that says `AllCopied` instead.
+        return new SubChunkHeightmapData(
+            heightMapType,
+            hasData ? heightmap : undefined,
+            hasData ? HeightMapDataType.ALL_COPIED : heightMapType
+        );
     }
 
     /**

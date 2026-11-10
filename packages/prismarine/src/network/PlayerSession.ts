@@ -589,17 +589,23 @@ export default class PlayerSession {
 
             const blob = cacheEnabled ? this.clientBlobCache.prepareRequestSubChunk(chunk, y) : undefined;
             const data = blob?.data ?? chunk.networkSerializeRequestSubChunk(y);
-            const allAir = data.byteLength === 2 && data[0] === 8 && data[1] === 0;
-            entry.result = allAir ? SubChunkRequestResult.SUCCESS_ALL_AIR : SubChunkRequestResult.SUCCESS;
             entry.heightMaps = chunk.networkSubChunkHeightmaps(y);
+
+            // An all-air section is its result alone: no bytes and no blob id, with the cache on
+            // or off, as a Bedrock Dedicated Server 1.26.60.6 answers it.
+            if (data.byteLength === 2 && data[0] === 8 && data[1] === 0) {
+                entry.result = SubChunkRequestResult.SUCCESS_ALL_AIR;
+                entries.push(entry);
+                continue;
+            }
+            entry.result = SubChunkRequestResult.SUCCESS;
 
             if (blob !== undefined) {
                 this.clientBlobCache.track([blob]);
                 Object.assign(entry, { blobId: blob.id });
 
-                // The client can reuse a confirmed blob. An all-air section also carries only
-                // its hash when caching is enabled; a miss is answered through the cache packet.
-                if (allAir || this.clientBlobCache.hasClientBlob(blob.id)) {
+                // The client can reuse a confirmed blob; a miss is answered through the cache packet.
+                if (this.clientBlobCache.hasClientBlob(blob.id)) {
                     entries.push(entry);
                     continue;
                 }

@@ -73,18 +73,18 @@ const measurePhase = async (
         );
         for (let y = minSubChunk(chunk.getDimension()); y <= highestY; y++) {
             const blob = cache.prepareRequestSubChunk(chunk, y);
+            const offset = new SubChunkPosOffset(chunk.getX() - center.x, y - center.y, chunk.getZ() - center.z);
+            const heightMaps = chunk.networkSubChunkHeightmaps(y);
+            // An all-air section goes without bytes or a blob id, as `PlayerSession` answers it.
+            if (blob.data.byteLength === 2 && blob.data[0] === 8 && blob.data[1] === 0) {
+                entries.push({ offset, result: SubChunkRequestResult.SUCCESS_ALL_AIR, heightMaps });
+                continue;
+            }
             cache.track([blob]);
-            const allAir = blob.data.byteLength === 2 && blob.data[0] === 8 && blob.data[1] === 0;
             const hasClientBlob = cache.hasClientBlob(blob.id);
-            const entry = {
-                offset: new SubChunkPosOffset(chunk.getX() - center.x, y - center.y, chunk.getZ() - center.z),
-                result: allAir ? SubChunkRequestResult.SUCCESS_ALL_AIR : SubChunkRequestResult.SUCCESS,
-                heightMaps: chunk.networkSubChunkHeightmaps(y),
-                blobId: blob.id
-            };
+            const entry = { offset, result: SubChunkRequestResult.SUCCESS, heightMaps, blobId: blob.id };
 
-            if (!walkBack && allAir) missingIds.push(blob.id);
-            else if (!walkBack) {
+            if (!walkBack) {
                 foundIds.push(blob.id);
                 Object.assign(entry, { serializedSubChunk: blob.data });
             } else if (!hasClientBlob) {
@@ -131,7 +131,7 @@ const measurePhase = async (
         cacheMissResponseBytes,
         levelChunks: levelChunks.length,
         subChunkEntries: entries.length,
-        uniqueBlobIds: new Set(entries.map(({ blobId }) => blobId)).size,
+        uniqueBlobIds: new Set(entries.flatMap((entry) => ('blobId' in entry ? [entry.blobId] : []))).size,
         wallMs: Number(wallMs.toFixed(3))
     };
 };
