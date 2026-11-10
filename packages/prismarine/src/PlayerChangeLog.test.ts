@@ -2,15 +2,18 @@
  * What a player's own tick writes to the change log, counted (ADR 0012). A player who does
  * nothing appends nothing, and one who walks appends a bounded number of entries per tick.
  *
- * Also the rule ADR 0008 gives a player's movement, as entries: the client owns it, so a shove
- * is an occurrence and a server move waits for the client's acknowledgment.
+ * Also the rules ADR 0008 gives a player, as entries: the client owns its movement, so a shove
+ * is an occurrence and a server move waits for the client's acknowledgment, and a death keeps
+ * the entity, so death and respawn append no membership entry and keep the runtime id.
  */
 import { Vector3 } from '@jsprismarine/math';
 import { Gametype } from '@jsprismarine/minecraft';
 import { PositionMode } from '@jsprismarine/protocol';
 import MovePlayerPacket from '@jsprismarine/protocol/packet/MovePlayerPacket';
 import SetActorMotionPacket from '@jsprismarine/protocol/packet/SetActorMotionPacket';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+
+import { DamageCause } from './entity/DamageCause';
 
 import type { LiveBodies } from './entity/data/liveBodies';
 import type { LiveEntityRuntime } from './entity/data/live';
@@ -106,5 +109,42 @@ describe("a player's movement belongs to its client", () => {
         expect(moves.map((packet) => packet.getPacketData()?.mode)).toEqual([PositionMode.Teleport]);
         expect(session.holdsMovementForTeleport(new Vector3(0, 64, 0), false)).toBe(true);
         expect(session.holdsMovementForTeleport(new Vector3(20, 70.5, 0), true)).toBe(false);
+    });
+});
+
+describe("a player's death keeps the entity", () => {
+    it('commits a blow before the damage promise first waits', async () => {
+        const { player, server } = loggedPlayer();
+        const posted = vi.spyOn(server, 'post');
+
+        const landing = player.damage(5, DamageCause.Generic);
+        expect(player.getHealth()).toBe(15);
+        await landing;
+
+        const deathly = player.damage(50, DamageCause.Generic);
+        expect(player.isAlive()).toBe(false);
+        expect(posted.mock.calls.map(([[name]]) => name)).toContain('entityDeath');
+        expect(server.getRespawnRequests().size).toBe(1);
+        await deathly;
+    });
+
+    it('keeps its runtime id and appends no membership entry through death and respawn', async () => {
+        const { player, roster, respawnRequests, tick } = loggedPlayer();
+        const id = player.getRuntimeId();
+
+        const death = await tick(1, async () => void (await player.damage(50, DamageCause.Generic)));
+        expect(fieldsOf(death)).toContain('entity:health');
+        expect(fieldsOf(death)).not.toContain('membership');
+
+        const respawn = await tick(2, async () => {
+            await respawnRequests.admit();
+            await player.respawn();
+        });
+        expect(fieldsOf(respawn)).toContain('entity:health');
+        expect(fieldsOf(respawn)).not.toContain('membership');
+
+        expect(player.isAlive()).toBe(true);
+        expect(player.getRuntimeId()).toBe(id);
+        expect(roster).toEqual([]);
     });
 });
