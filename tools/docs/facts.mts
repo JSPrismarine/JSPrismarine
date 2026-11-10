@@ -319,6 +319,19 @@ function dataSources(sources: Sources): FactSource[] {
                 const { BEDROCK_BIOME_LOSSES } = await import('../../packages/mapping/src/lossList.ts');
                 return { 'mapping.bedrockBiomeLosses': BEDROCK_BIOME_LOSSES.length };
             }
+        },
+        {
+            label: 'the player overlay',
+            dir: path.join(repoRoot, 'packages', 'prismarine', 'src', 'entity'),
+            names: ['player.overlayHealth'],
+            read: async () => {
+                const { PLAYER_OVERLAY_COMPONENTS } =
+                    await import('../../packages/prismarine/src/entity/playerOverlay.ts');
+                const health = PLAYER_OVERLAY_COMPONENTS['minecraft:health'];
+                const value = typeof health === 'object' && health !== null && 'value' in health ? health.value : null;
+                if (typeof value !== 'number') throw new Error('the player overlay gives no minecraft:health value');
+                return { 'player.overlayHealth': value };
+            }
         }
     ];
 }
