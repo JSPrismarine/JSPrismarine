@@ -135,6 +135,7 @@ export const fakePlayer = ({ underwater = false, worlds: others = [], name = 'Te
         getGameRuleManager: () => stub<GameRuleManager>({ getGameRule: () => [true, true] }),
         getBlock: async () => stub<Block>({ getName: () => blockName, isSolid: () => false }),
         getBlockState: async () => new BlockState(blockName),
+        loadedBlockAt: () => ({ name: blockName, states: {} }),
         getChunk: async (x, z) => new Chunk(x, z),
         sendActorEvent: async (_entity, event) => void actorEvents.push(event),
         sendStatusEffect: async () => {},

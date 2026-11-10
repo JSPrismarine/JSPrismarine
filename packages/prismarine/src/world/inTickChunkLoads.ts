@@ -24,12 +24,6 @@ export interface InTickChunkLoad {
  */
 export const IN_TICK_CHUNK_LOADS: readonly InTickChunkLoad[] = [
     {
-        path: 'player breath check',
-        file: 'Player.ts',
-        call: 'private async isHeadInWater()',
-        slice: 5
-    },
-    {
         path: 'player landing check for a soft block',
         file: 'Player.ts',
         call: 'private async isStandingInSomethingSoft()',

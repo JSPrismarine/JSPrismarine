@@ -333,6 +333,11 @@ export class PlayerComponents {
         if (before !== after) this.written(field, before, after);
     }
 
+    /** The most breath the player can hold, in ticks, which `vitals.air` is kept within. */
+    public maxAir(): number {
+        return this.home.metadata.maxAir;
+    }
+
     /**
      * Writes an attribute by its id through the field it is kept in, which reports the change.
      *

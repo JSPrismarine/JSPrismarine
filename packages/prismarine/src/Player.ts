@@ -13,17 +13,7 @@ import { DamageCause } from './entity/Entity';
 import type { EntityPositionOptions } from './entity/Entity';
 import { PORTAL_COOLDOWN_TICKS, PORTAL_TRANSITION_TICKS } from './entity/PortalContact';
 import type { PortalRule } from './world/portal/rules';
-import {
-    breaksAFall,
-    DROWNING_DAMAGE,
-    DROWNING_INTERVAL,
-    FALL_GRACE,
-    isAllowed,
-    isUnderwater,
-    VOID_DAMAGE,
-    VOID_DEPTH,
-    VOID_INTERVAL
-} from './entity/Environment';
+import { breaksAFall, FALL_GRACE, isAllowed, VOID_DAMAGE, VOID_DEPTH, VOID_INTERVAL } from './entity/Environment';
 import Human, { eyePositionAt } from './entity/Human';
 import { FlagType, MAX_AIR_TICKS, MetadataFlag } from '@jsprismarine/protocol/wire/structures/Metadata';
 import PlayerSetGamemodeEvent from './events/player/PlayerSetGamemodeEvent';
@@ -70,13 +60,11 @@ import {
     hungerOutcome,
     setSaturation
 } from './entity/playerHunger';
+import { breathe, refillBreath } from './entity/playerBreath';
 import type { PlainData, PlainRecord } from './world/changelog/PlainData';
 
 /** How often the two per-player triggers are checked, which is Java's one second. */
 const ADVANCEMENT_CHECK_TICKS = 20;
-
-/** Ticks of breath regained per tick out of the water; the bar empties at one. */
-const AIR_REGAIN_PER_TICK = 5;
 
 /** Breath is only reported to the client in steps of this many ticks - see `syncBreath`. */
 const AIR_SYNC_STEP = 10;
@@ -835,33 +823,22 @@ export default class Player extends Human {
     }
 
     /**
-     * Fills or empties the player's lungs, and drowns them once they are empty.
+     * Fills or empties the player's lungs, and drowns them once they are empty - see
+     * {@link breathe}.
+     *
+     * The position a client reports is its eye position, so the block the player is recorded at
+     * *is* the block their head is in. Nothing here adds an eye height on top. Only a loaded
+     * chunk is read: a player whose head is in one that is not loaded waits for it.
      */
     private async updateBreath(): Promise<void> {
-        const air = this.components.get('vitals.air');
-
-        if (await this.isHeadInWater()) {
-            this.components.set('vitals.breathing', false);
-            this.components.set('vitals.air', air - 1);
-
-            if (this.components.get('vitals.air') > 0) this.drowningTicks = 0;
-            else if (++this.drowningTicks >= DROWNING_INTERVAL) {
-                this.drowningTicks = 0;
-
-                // The gamerule has been registered and defaulted since long before anything read
-                // it. The bar still empties either way - the client draws it, and a world with
-                // drowning turned off is not one where nobody is underwater.
-                if (isAllowed(this.getWorld(), DamageCause.Drowning)) {
-                    await this.damage(DROWNING_DAMAGE, DamageCause.Drowning);
-                }
-            }
-        } else {
-            this.drowningTicks = 0;
-            this.components.set('vitals.breathing', true);
-            // Vanilla refills the bar far faster than it empties: a lungful is a few seconds
-            // of surfacing, not another fifteen.
-            if (air < this.metadata.maxAir) this.components.set('vitals.air', air + AIR_REGAIN_PER_TICK);
-        }
+        const position = this.getPosition();
+        const head = this.getWorld().loadedBlockAt(
+            Math.floor(position.getX()),
+            Math.floor(position.getY()),
+            Math.floor(position.getZ())
+        );
+        const drowning = breathe(this.survival, head?.name, isAllowed(this.getWorld(), DamageCause.Drowning));
+        if (drowning !== undefined) await this.damage(drowning, DamageCause.Drowning);
 
         await this.syncBreath();
     }
@@ -890,31 +867,6 @@ export default class Player extends Human {
         this.sentAir = air;
         this.sentBreathing = breathing;
         await this.getNetworkSession().sendMetadata();
-    }
-
-    /**
-     * Whether the player's head is underwater - which is what drowns them, rather than
-     * standing in water up to the knees.
-     * @remarks The position a client reports is its eye position, so the block the player is
-     * recorded at *is* the block their head is in. Nothing here adds an eye height on top.
-     */
-    private async isHeadInWater(): Promise<boolean> {
-        const position = this.getPosition();
-
-        try {
-            const block = await this.getWorld().getBlock(
-                Math.floor(position.getX()),
-                Math.floor(position.getY()),
-                Math.floor(position.getZ())
-            );
-
-            return isUnderwater(block.getName());
-        } catch {
-            // Asking about a block that is not there to be read - a chunk still loading,
-            // a player who has walked off the edge of what is generated. Not being able to
-            // answer is not a reason to break the tick, and dry is the safe answer.
-            return false;
-        }
     }
 
     /**
@@ -1132,11 +1084,9 @@ export default class Player extends Human {
             const health = this.getHealth();
             this.components.reportingChanges(() => this.attributes.reset());
             logLegacyWrite(this, 'health', health, this.getHealth());
-            this.components.set('vitals.air', this.metadata.maxAir);
-            this.components.set('vitals.breathing', true);
+            refillBreath(this.survival);
             this.sentAir = this.metadata.air;
             this.sentBreathing = true;
-            this.drowningTicks = 0;
 
             // A fresh body is not running, crouching, flying or sleeping, and carries no leftover hurt.
             // These survive a death because nothing resets them, and the client draws what it
