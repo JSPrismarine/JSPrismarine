@@ -8,7 +8,7 @@
  * the record was looked for in every loaded world and the newest `savedAt` won; a record from
  * before this field has no dimension and keeps the player where the login built them.
  */
-import type Player from '../Player';
+import type { keyOfPlayer } from '../playerIdentity';
 import type { Level } from './Level';
 import type { World, WorldPlayerData } from './World';
 
@@ -32,7 +32,10 @@ export interface PlayerRecord {
  *   case is logged as a warning, since the player comes back in another dimension than the
  *   one they left.
  */
-export const lastPlayerRecord = async (player: Player, level: Level): Promise<PlayerRecord> => {
+export const lastPlayerRecord = async (
+    player: Parameters<typeof keyOfPlayer>[0] & { getWorld(): World },
+    level: Level
+): Promise<PlayerRecord> => {
     const here = player.getWorld();
     const data = await here.getPlayerData(player);
     const dimension = data.dimension;
