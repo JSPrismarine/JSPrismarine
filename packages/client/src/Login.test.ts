@@ -169,7 +169,7 @@ describe('logging into a real server', () => {
         ).not.toContain('KickTester');
     }, 40_000);
 
-    it('frees the address the instant RakNet forgets a session, not after the tear-down', async () => {
+    it('releases the connection the instant RakNet forgets a session, not after the tear-down', async () => {
         const client = newClient('RaceTester');
         await client.connect();
 
@@ -177,9 +177,10 @@ describe('logging into a real server', () => {
             .getSessionManager()
             .getAllPlayers()
             .find((candidate: any) => candidate.getName() === 'RaceTester');
-        const address = player!.getNetworkSession().getConnection().getRakNetSession().getAddress();
-        const token = address.toToken();
-        expect(server!.getSessionManager().has(token)).toBe(true);
+        const connection = player!.getNetworkSession().getConnection();
+        const address = connection.getAddress();
+        const id = connection.getConnectionId();
+        expect(server!.getSessionManager().has(id)).toBe(true);
 
         let continueTeardown!: () => void;
         const teardownGate = new Promise<void>((resolve) => {
@@ -196,15 +197,15 @@ describe('logging into a real server', () => {
 
         // What RakNet does the moment it drops a session, and what the `openConnection` of a
         // client reconnecting from the same port races against. The tear-down that follows
-        // is asynchronous; releasing the token has to happen before any of it, or the
-        // reconnection is refused as "already connected" and then torn down in its place.
+        // is asynchronous; releasing the connection has to happen before any of it, so nothing
+        // that runs during the tear-down can reach a connection being torn down.
         server!.getRaknet()!.emit('closeConnection', address, 'test');
 
         // The transport keeps events for one session in FIFO order, so observe the queued
         // disconnect at its async teardown boundary and hold it there while checking release.
         await teardownStarted;
         try {
-            expect(server!.getSessionManager().has(token)).toBe(false);
+            expect(server!.getSessionManager().has(id)).toBe(false);
         } finally {
             continueTeardown();
         }

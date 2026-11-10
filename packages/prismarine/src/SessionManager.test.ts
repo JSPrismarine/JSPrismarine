@@ -20,7 +20,7 @@ describe('SessionManager', () => {
         it('finds the online player with that runtime id', () => {
             const manager = new SessionManager();
             const { connection, player } = connectionFor(7n);
-            manager.add('token', connection);
+            manager.add(1, connection);
 
             expect(manager.getPlayerById(7n)).toBe(player);
         });
@@ -28,7 +28,7 @@ describe('SessionManager', () => {
         it('returns null for an id nobody has, rather than throwing', () => {
             // It asserted, so asking after a player who had just left took the caller down.
             const manager = new SessionManager();
-            manager.add('token', connectionFor(7n).connection);
+            manager.add(1, connectionFor(7n).connection);
 
             expect(manager.getPlayerById(8n)).toBeNull();
         });

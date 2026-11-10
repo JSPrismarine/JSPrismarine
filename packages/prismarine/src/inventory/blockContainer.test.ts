@@ -22,7 +22,6 @@ import type { Logger } from '@jsprismarine/logger';
 import { Vector3 } from '@jsprismarine/math';
 import { ContainerUiId, WindowTypes } from '@jsprismarine/minecraft';
 import { InetAddress } from '@jsprismarine/raknet';
-import type { RakNetSession } from '@jsprismarine/raknet';
 import { vanillaItemDefinitions } from '@jsprismarine/items';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
@@ -288,7 +287,7 @@ const buildPlayer = (world: World, server: Server, name: string): Player => {
 
     const connection = stub<ClientConnection>({
         codec: Codec2193,
-        getRakNetSession: () => stub<RakNetSession>({ getAddress: () => new InetAddress('127.0.0.1', 19132) }),
+        getAddress: () => new InetAddress('127.0.0.1', 19132),
         sendDataPacket: async (packet: NetworkPacket<unknown>) => {
             sentPackets.push({ name: packet.getName(), packet });
         },

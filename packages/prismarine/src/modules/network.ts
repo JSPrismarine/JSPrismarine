@@ -6,6 +6,7 @@ import ClientConnection from '../network/ClientConnection';
 import type { InboundPacketRecord, InboundPacketRecorder } from '../network/InboundPacketTrace';
 import type { OutboundPacketRecorder } from '../network/OutboundPacketTrace';
 import NetworkDispatcher from '../network/NetworkDispatcher';
+import { ConnectionIds } from '../network/transport/ConnectionId';
 import RakNetTransport from '../network/transport/RakNetTransport';
 import type { RakNetTransportConnection } from '../network/transport/RakNetTransport';
 import { latestCodec } from '../network/codec/CodecRegistry';
@@ -85,7 +86,7 @@ export class ServerNetworking implements Networking {
         // The dispatcher subscribes itself; holding it is unnecessary, the transport keeps
         // it alive through the listeners it installed.
         this.dispatcher = new NetworkDispatcher({
-            transport: new RakNetTransport(this.raknet, server),
+            transport: new RakNetTransport(this.raknet, server, new ConnectionIds()),
             sessionManager: server.getSessionManager(),
             packetHandlerRegistry: server.getPacketHandlerRegistry(),
             events: server,

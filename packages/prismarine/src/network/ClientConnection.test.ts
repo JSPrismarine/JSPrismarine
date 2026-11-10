@@ -7,12 +7,13 @@ import type Player from '../Player';
 import { stub } from '../testing/stub.test.helper';
 import ClientConnection from './ClientConnection';
 import type PlayerSession from './PlayerSession';
-import type { RakNetTransportConnection } from './transport/RakNetTransport';
+import { InetAddress } from '@jsprismarine/raknet';
+import type { TransportConnection } from './transport/Transport';
 
 describe('network', () => {
     describe('ClientConnection', () => {
         const fakeConnection = () =>
-            new ClientConnection(stub<RakNetTransportConnection>(), stub<Logger>({ isEnabled: () => false }));
+            new ClientConnection(stub<TransportConnection>(), stub<Logger>({ isEnabled: () => false }));
 
         /**
          * A player whose teardown is `disable`.
@@ -146,6 +147,19 @@ describe('network', () => {
                 message: 'Kicked'
             });
             expect(send).toHaveBeenLastCalledWith(kickedPacket, false, true);
+        });
+
+        it("reads the client's ID and address from whichever transport carried it", () => {
+            const address = new InetAddress('192.0.2.7', 50000);
+            const connection = new ClientConnection(
+                stub<TransportConnection>({ id: 4, address }),
+                stub<Logger>({ isEnabled: () => false })
+            );
+
+            expect(connection.getConnectionId()).toBe(4);
+            expect(connection.getAddress()).toBe(address);
+            // The deprecated accessor only has a session to give for a RakNet client.
+            expect(() => connection.getRakNetSession()).toThrow('Connection 4 did not connect over RakNet');
         });
 
         it('does nothing for a connection that never got a player', async () => {

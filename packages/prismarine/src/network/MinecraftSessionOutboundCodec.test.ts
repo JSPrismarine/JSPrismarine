@@ -40,7 +40,7 @@ const fakeSession = (
 ) => {
     const framed: Buffer[] = [];
     const connection = stub<TransportConnection>({
-        token: '127.0.0.1:19132',
+        id: 1,
         sendFrame: (payload: Buffer) => void framed.push(payload),
         close: () => {}
     });
@@ -187,7 +187,7 @@ describe('network', () => {
             const framed: Buffer[] = [];
             const errors: unknown[] = [];
             const connection = stub<TransportConnection>({
-                token: '127.0.0.1:19132',
+                id: 1,
                 sendFrame: (payload: Buffer) => void framed.push(payload),
                 close: () => {}
             });

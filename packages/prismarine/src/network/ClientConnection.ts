@@ -1,14 +1,16 @@
 import type { PlayerSession } from '../';
 
 import type { Logger } from '@jsprismarine/logger';
-import type { RakNetSession } from '@jsprismarine/raknet';
+import type { InetAddress, RakNetSession } from '@jsprismarine/raknet';
 import { DisconnectReason } from '@jsprismarine/minecraft';
 import assert from 'assert';
 import MinecraftSession from './MinecraftSession';
 import { DisconnectPacket } from '@jsprismarine/protocol';
 import type { PacketLogFilter } from './PacketLogFilter';
 import type { SessionPhase } from './SessionPhase';
-import type { RakNetTransportConnection } from './transport/RakNetTransport';
+import { RakNetTransportConnection } from './transport/RakNetTransport';
+import type { ConnectionId } from './transport/ConnectionId';
+import type { TransportConnection } from './transport/Transport';
 
 /**
  * Handles the connection before the player creation itself, very helpful as
@@ -34,7 +36,7 @@ export default class ClientConnection extends MinecraftSession {
     public resumeLogin: (() => Promise<void>) | null = null;
 
     public constructor(
-        private readonly transportConnection: RakNetTransportConnection,
+        private readonly transportConnection: TransportConnection,
         logger: Logger,
         logFilter?: PacketLogFilter,
         getCompressionLevel?: () => number,
@@ -73,7 +75,7 @@ export default class ClientConnection extends MinecraftSession {
     /**
      * Tears the player and its session down together, exactly once.
      *
-     * The single teardown entry point: a kick, a RakNet disconnect and a failed join all
+     * The single teardown entry point: a kick, a transport disconnect and a failed join all
      * arrive here, and whichever gets here first does the work. The session is detached
      * before anything is awaited so that a second caller finds nothing to do, and the
      * session's own release runs even if the player's fails.
@@ -92,7 +94,7 @@ export default class ClientConnection extends MinecraftSession {
     }
 
     /**
-     * The one way out: tells the client why, releases the player, and hangs up on RakNet.
+     * The one way out: tells the client why, releases the player, and hangs up on the transport.
      *
      * Awaitable because the caller may be about to close the socket. `Server.shutdown` kicks
      * everyone immediately before `RakNetListener.kill`, and a goodbye that has not been
@@ -133,11 +135,26 @@ export default class ClientConnection extends MinecraftSession {
         return this.playerSession;
     }
 
+    /** The server's ID for this connection, unique across every transport and never reused. */
+    public getConnectionId(): ConnectionId {
+        return this.transportConnection.id;
+    }
+
+    /** Where the client connected from, whichever transport carried it. */
+    public getAddress(): InetAddress {
+        return this.transportConnection.address;
+    }
+
     /**
-     * The RakNet session under the transport seam, for what still wants it: the address the
-     * login handler gives the player.
+     * The RakNet session under the transport seam.
+     * @deprecated Use {@link ClientConnection.getAddress} for the client's address. A client that
+     * joined over another transport has no RakNet session.
+     * @throws {Error} When the client did not connect over RakNet.
      */
     public getRakNetSession(): RakNetSession {
+        if (!(this.transportConnection instanceof RakNetTransportConnection)) {
+            throw new Error(`Connection ${this.transportConnection.id} did not connect over RakNet`);
+        }
         return this.transportConnection.getRakNetSession();
     }
 }

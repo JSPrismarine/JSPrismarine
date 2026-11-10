@@ -1,9 +1,12 @@
 import { performance } from 'node:perf_hooks';
 import { EventEmitter as NodeEventEmitter } from 'node:events';
 import { InetAddress, Protocol } from '@jsprismarine/raknet';
+import type { RakNetSession } from '@jsprismarine/raknet';
 import { EventEmitter } from '../src/events/EventEmitter';
+import { ConnectionIds } from '../src/network/transport/ConnectionId';
 import RakNetTransport from '../src/network/transport/RakNetTransport';
 import type { RakNetTransportSource } from '../src/network/transport/RakNetTransport';
+import { stub } from '../src/testing/stub.test.helper';
 
 class BenchSource extends NodeEventEmitter implements RakNetTransportSource {
     public kill(): void {}
@@ -19,7 +22,7 @@ const run = async (withPluginListener: boolean): Promise<void> => {
     const events = new EventEmitter();
     if (withPluginListener) events.on('raknetEncapsulatedPacket', () => {});
 
-    const transport = new RakNetTransport(source, events);
+    const transport = new RakNetTransport(source, events, new ConnectionIds());
     let delivered = 0;
     let finish = () => {};
     const complete = new Promise<void>((resolve) => {
@@ -29,6 +32,11 @@ const run = async (withPluginListener: boolean): Promise<void> => {
         delivered++;
         if (delivered === frameCount) finish();
     });
+
+    // Frames only reach listeners from a session the transport has accepted.
+    const connected = new Promise<void>((resolve) => transport.onConnect(() => resolve()));
+    source.emit('openConnection', stub<RakNetSession>({ getAddress: () => address }));
+    await connected;
 
     const started = performance.now();
     for (let index = 0; index < frameCount; index++) source.emit('encapsulated', frame, address);

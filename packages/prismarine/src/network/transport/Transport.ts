@@ -1,4 +1,5 @@
 import type { InetAddress } from '@jsprismarine/raknet';
+import type { ConnectionId } from './ConnectionId';
 
 /**
  * What a transport does for the session layer, so the layers above can decide what they
@@ -14,13 +15,26 @@ export interface TransportCapabilities {
 }
 
 /**
- * One client's duplex byte-frame channel. It knows nothing about Minecraft packets: a frame
- * is an opaque payload, already batched, compressed, and encrypted by the layers above as
+ * One client's duplex byte-frame channel. It knows nothing about the packets it carries: a
+ * frame is an opaque payload, already batched, compressed, and encrypted by the layers above as
  * {@link TransportConnection.capabilities} requires.
+ *
+ * A Bedrock frame is a batch in the form RakNet carries it, starting with the `0xFE` batch id. A
+ * transport whose wire leaves that byte out, as NetherNet's does, adds it to what it receives and
+ * strips it from what it sends, so the batch and encryption codecs above see one format.
  */
 export interface TransportConnection {
-    /** Identifies the connection for the life of the transport; the session registry keys on it. */
-    readonly token: string;
+    /**
+     * The server's ID for this connection, drawn from the allocator every transport of the
+     * server shares, so no two live or past connections have the same one.
+     */
+    readonly id: ConnectionId;
+    /**
+     * Where the client connected from: an IP address and port, whichever transport carried it.
+     * `InetAddress` is the value type for that, not a RakNet dependency of the seam. Several
+     * connections may share one, and an address may come back on a later connection.
+     */
+    readonly address: InetAddress;
     /** What this connection's transport does on its own - see {@link TransportCapabilities}. */
     readonly capabilities: TransportCapabilities;
     /**
@@ -40,19 +54,26 @@ export interface TransportConnection {
  * A listening transport: accepts connections and surfaces what arrives on them.
  *
  * Subscriptions rather than an event-map emitter, so each listener keeps its own signature.
- * Listeners of one subscription run in order, each awaited before the next.
+ * Listeners of one subscription run in order, each awaited before the next. A transport
+ * delivers one connection's connect, frames and disconnect in order, none overtaking another.
  * @typeParam C - The transport's own connection type, for a consumer that needs more than
- * the {@link TransportConnection} contract while the legacy RakNet events still exist.
+ * the {@link TransportConnection} contract.
  */
 export interface Transport<C extends TransportConnection = TransportConnection> {
     /** Calls the listener once per accepted connection. */
     onConnect(listener: (connection: C) => Promise<void> | void): void;
-    /** Calls the listener when the transport forgets a connection, however it ended. */
-    onDisconnect(listener: (address: InetAddress, reason: string) => Promise<void> | void): void;
-    /** Calls the listener with each frame a connected client sent. */
-    onFrame(listener: (payload: Buffer, address: InetAddress) => Promise<void> | void): void;
-    /** Calls the listener with datagrams from hosts that are not connected, such as queries. */
-    onRaw(listener: (payload: Buffer, address: InetAddress) => Promise<void> | void): void;
+    /**
+     * Calls the listener when the transport forgets a connection, however it ended. It also runs
+     * for a connection whose connect never reached {@link Transport.onConnect} listeners.
+     */
+    onDisconnect(listener: (id: ConnectionId, address: InetAddress, reason: string) => Promise<void> | void): void;
+    /** Calls the listener with each frame a connected client sent, and the connection's ID. */
+    onFrame(listener: (payload: Buffer, id: ConnectionId) => Promise<void> | void): void;
+    /**
+     * Calls the listener with datagrams from hosts that are not connected, such as queries.
+     * Only a transport that shares its socket with such traffic implements it.
+     */
+    onRaw?(listener: (payload: Buffer, address: InetAddress) => Promise<void> | void): void;
     /** Stops listening and drops every connection. */
     close(): void;
 }

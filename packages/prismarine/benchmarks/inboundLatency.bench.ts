@@ -9,7 +9,8 @@ import { deflateRaw } from 'node:zlib';
 
 import type { Logger } from '@jsprismarine/logger';
 import { PacketCompressionAlgorithm } from '@jsprismarine/minecraft';
-import type { InetAddress } from '@jsprismarine/raknet';
+import { InetAddress } from '@jsprismarine/raknet';
+import type { ConnectionId } from '../src/network/transport/ConnectionId';
 import { BatchCodec } from '@jsprismarine/protocol';
 import TextPacket from '@jsprismarine/protocol/packet/TextPacket';
 import { TextPacketType } from '@jsprismarine/protocol';
@@ -59,7 +60,7 @@ const randomText = (length: number): string =>
 
 class BenchTransport implements Transport<TransportConnection> {
     private connectListener: ((connection: TransportConnection) => Promise<void> | void) | undefined;
-    private frameListener: ((payload: Buffer, address: InetAddress) => Promise<void> | void) | undefined;
+    private frameListener: ((payload: Buffer, id: ConnectionId) => Promise<void> | void) | undefined;
 
     public onConnect(listener: (connection: TransportConnection) => Promise<void> | void): void {
         this.connectListener = listener;
@@ -67,7 +68,7 @@ class BenchTransport implements Transport<TransportConnection> {
 
     public onDisconnect(): void {}
 
-    public onFrame(listener: (payload: Buffer, address: InetAddress) => Promise<void> | void): void {
+    public onFrame(listener: (payload: Buffer, id: ConnectionId) => Promise<void> | void): void {
         this.frameListener = listener;
     }
 
@@ -79,12 +80,11 @@ class BenchTransport implements Transport<TransportConnection> {
         await this.connectListener?.(connection);
     }
 
-    public async emitFrame(payload: Buffer, address: InetAddress): Promise<void> {
-        await this.frameListener?.(payload, address);
+    public async emitFrame(payload: Buffer, id: ConnectionId): Promise<void> {
+        await this.frameListener?.(payload, id);
     }
 }
 
-const token = 'inbound-latency:1';
 const transport = new BenchTransport();
 const sessionManager = new SessionManager();
 let frameArrival = 0;
@@ -129,12 +129,12 @@ new NetworkDispatcher({
 });
 
 const transportConnection: TransportConnection = {
-    token,
+    id: 1,
+    address: new InetAddress('127.0.0.1', 19132),
     capabilities: { encrypted: false, reliableOrdered: true, maxFrameSize: Number.POSITIVE_INFINITY },
     sendFrame: () => {},
     close: () => {}
 };
-const address = stub<InetAddress>({ toToken: () => token });
 const inboundPacket = new TextPacket({
     type: TextPacketType.Raw,
     needsTranslation: false,
@@ -165,7 +165,7 @@ for (let sample = 0; sample < WARMUPS + SAMPLES; sample++) {
 
     for (let index = 0; index < FRAMES_PER_SAMPLE; index++) {
         frameArrival = performance.now();
-        await transport.emitFrame(frame, address);
+        await transport.emitFrame(frame, transportConnection.id);
     }
 
     await poolWork;

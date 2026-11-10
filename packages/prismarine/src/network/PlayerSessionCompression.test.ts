@@ -11,7 +11,7 @@ import { Position } from '../world/Position';
 import type { World } from '../world/World';
 import ClientConnection from './ClientConnection';
 import { encodePacketBatch } from './encodePacketBatch';
-import type { RakNetTransportConnection } from './transport/RakNetTransport';
+import type { TransportConnection } from './transport/Transport';
 import PlayerSession from './PlayerSession';
 import Codec2193 from './codec/Codec2193';
 
@@ -20,8 +20,8 @@ describe('PlayerSession movement compression', () => {
         const configuredLevel = 1;
         const frames: Buffer[] = [];
         const connection = new ClientConnection(
-            stub<RakNetTransportConnection>({
-                token: '127.0.0.1:19132',
+            stub<TransportConnection>({
+                id: 1,
                 sendFrame: (frame) => void frames.push(frame),
                 close: () => {}
             }),
