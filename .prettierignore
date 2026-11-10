@@ -33,6 +33,8 @@ tools/docs/site/public/parity-tracker/
 # Test files
 # Fixture pack JSON exercises lenient parsing (comments, trailing commas), which Prettier rejects.
 packages/packs/fixtures/**/*.json
+# A player record as the server writes it, compared byte for byte.
+packages/prismarine/src/world/__fixtures__/player-record.json
 
 # File formats
 *.dat

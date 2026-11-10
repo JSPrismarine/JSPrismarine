@@ -1,0 +1,224 @@
+{
+    "$schema": "https://unpkg.com/@jsprismarine/prismarine@0.20.0/schemas/player-data.schema.json",
+    "uuid": "0f1e2d3c-4b5a-4968-8776-655443322110",
+    "username": "Recorded",
+    "gamemode": "Survival",
+    "flying": false,
+    "position": {
+        "x": 12.5,
+        "y": 71.62,
+        "z": -8.5,
+        "pitch": 10,
+        "yaw": 20,
+        "headYaw": 30
+    },
+    "dimension": "minecraft:overworld",
+    "advancements": {
+        "minecraft:story/root": {
+            "criteria": {
+                "crafting_table": "2026-11-10"
+            },
+            "done": false
+        }
+    },
+    "enchantmentSeed": 987654,
+    "inventory": {
+        "items": [
+            null,
+            null,
+            null,
+            {
+                "name": "minecraft:diamond_pickaxe",
+                "count": 1,
+                "damage": 37,
+                "customName": "Hole Maker",
+                "lore": [
+                    "Property of the test suite"
+                ],
+                "enchantments": {
+                    "minecraft:efficiency": 4
+                }
+            },
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+        ],
+        "handSlot": 3,
+        "armor": [
+            null,
+            null,
+            null,
+            null
+        ],
+        "offhand": [
+            {
+                "name": "minecraft:shield",
+                "count": 1
+            }
+        ],
+        "enderChest": [
+            null,
+            null,
+            null,
+            null,
+            null,
+            {
+                "name": "minecraft:diamond",
+                "count": 9
+            },
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+        ]
+    },
+    "health": 11,
+    "food": 13,
+    "saturation": 4,
+    "experience": {
+        "level": 27,
+        "progress": 0
+    },
+    "attributes": {
+        "minecraft:health": {
+            "min": 0,
+            "max": 20,
+            "base": 20,
+            "current": 11
+        },
+        "minecraft:absorption": {
+            "min": 0,
+            "max": 3.4028234663852886e+38,
+            "base": 0,
+            "current": 0
+        },
+        "minecraft:knockback_resistance": {
+            "min": 0,
+            "max": 1,
+            "base": 0,
+            "current": 0
+        },
+        "minecraft:movement": {
+            "min": 0,
+            "max": 3.4028234663852886e+38,
+            "base": 0.1,
+            "current": 0.1
+        },
+        "minecraft:underwater_movement": {
+            "min": 0,
+            "max": 3.4028234663852886e+38,
+            "base": 0.02,
+            "current": 0.02
+        },
+        "minecraft:lava_movement": {
+            "min": 0,
+            "max": 3.4028234663852886e+38,
+            "base": 0.02,
+            "current": 0.02
+        },
+        "minecraft:follow_range": {
+            "min": 0,
+            "max": 2048,
+            "base": 16,
+            "current": 16
+        },
+        "minecraft:attack_damage": {
+            "min": 0,
+            "max": 3.4028234663852886e+38,
+            "base": 1,
+            "current": 1
+        },
+        "minecraft:player.hunger": {
+            "min": 0,
+            "max": 20,
+            "base": 20,
+            "current": 13
+        },
+        "minecraft:player.saturation": {
+            "min": 0,
+            "max": 20,
+            "base": 20,
+            "current": 4
+        },
+        "minecraft:player.exhaustion": {
+            "min": 0,
+            "max": 5,
+            "base": 0,
+            "current": 0
+        },
+        "minecraft:player.level": {
+            "min": 0,
+            "max": 24791,
+            "base": 0,
+            "current": 27
+        },
+        "minecraft:player.experience": {
+            "min": 0,
+            "max": 1,
+            "base": 0,
+            "current": 0
+        },
+        "minecraft:luck": {
+            "min": -1024,
+            "max": 1024,
+            "base": 0,
+            "current": 0
+        }
+    },
+    "spawn": {
+        "x": 3,
+        "y": 64,
+        "z": -7,
+        "dimension": "minecraft:overworld",
+        "forced": true
+    },
+    "portalCooldown": 40,
+    "seenCredits": true,
+    "savedAt": 1794312000000
+}
