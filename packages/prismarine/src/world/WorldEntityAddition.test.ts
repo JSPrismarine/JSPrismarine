@@ -55,11 +55,15 @@ describe('World.addEntity', () => {
     });
 });
 
-describe('World.broadcastMove', () => {
-    it('initializes the reverse chunk index when a prototype world tracks entity movement', async () => {
+describe('World.entityRelocated', () => {
+    it('initializes the reverse chunk index when a prototype world tracks entity movement', () => {
+        const entities = new Map<number, Entity>();
         const world: World = Object.assign(Object.create(World.prototype), {
             chunks: new Map(),
-            entityChunkIndices: new Map()
+            entities,
+            entityChunkIndices: new Map(),
+            dimension: Dimensions.Overworld,
+            server: stub<Server>({ getEntityRuntime: () => inertEntityRuntime() })
         });
         world.attachChangeSink(NULL_WORLD_CHANGE_SINK);
         const entity = stubOf(GenericEntity, {
@@ -68,7 +72,8 @@ describe('World.broadcastMove', () => {
             getPosition: () => new Position(32, 64, -16, world),
             persistentNbt: null
         });
+        entities.set(42, entity);
 
-        await world.broadcastMove(entity);
+        world.entityRelocated(entity);
     });
 });
