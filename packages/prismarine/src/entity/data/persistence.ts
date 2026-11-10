@@ -25,6 +25,8 @@
  */
 import type { AttributeName, EntityPosition, PropertyValue } from '@jsprismarine/entities';
 import { ATTRIBUTES, noEffects } from '@jsprismarine/entities';
+import type { ComponentStateRecord, ComponentStateSnapshot } from '@jsprismarine/entities/componentState';
+import { isComponentStateRecord } from '@jsprismarine/entities/componentState';
 import type { NBTTagCompound } from '@jsprismarine/nbt';
 import { merchantSnapshotIn } from '@jsprismarine/trading';
 import type { MerchantSnapshot } from '@jsprismarine/trading';
@@ -53,6 +55,12 @@ export interface DataEntityRecord {
     readonly componentGroups: readonly string[];
     /** Entity property name to its value. */
     readonly properties: Readonly<Record<string, PropertyValue>>;
+    /**
+     * The state each active component keeps between ticks, such as a timer or an air supply, by
+     * component name, with `null` for a component that holds none. A record written before this
+     * field existed leaves it out, and its components keep the state they initialize with.
+     */
+    readonly componentState?: ComponentStateSnapshot;
     /** Attribute name to its current value; the bounds come back from the components. */
     readonly attributes: Readonly<Partial<Record<AttributeName, number>>>;
     readonly yaw: number;
@@ -130,6 +138,8 @@ export const dataEntityRecordOf = (
         if (attribute !== undefined) attributes[name] = attribute.current;
     }
 
+    const componentState = instance.componentState.snapshot();
+
     return {
         identifier: entity.identifier,
         persistentIdentity: entity.persistentIdentity,
@@ -137,6 +147,7 @@ export const dataEntityRecordOf = (
         ...(pool === undefined ? {} : { pool }),
         componentGroups: instance.activeComponentGroups(),
         properties,
+        ...(Object.keys(componentState).length === 0 ? {} : { componentState }),
         attributes,
         yaw: body.yaw,
         pitch: body.pitch,
@@ -292,6 +303,16 @@ const propertiesOf = (value: unknown): Record<string, PropertyValue> => {
     return properties;
 };
 
+/** Saved component state, keeping only entries that are plain data or `null`. */
+const componentStateOf = (value: unknown): ComponentStateSnapshot | undefined => {
+    if (!isObject(value)) return undefined;
+    const state: Record<string, ComponentStateRecord | null> = {};
+    for (const [component, written] of Object.entries(value)) {
+        if (written === null || isComponentStateRecord(written)) state[component] = written;
+    }
+    return state;
+};
+
 const attributesOf = (value: unknown): Partial<Record<AttributeName, number>> => {
     const attributes: Partial<Record<AttributeName, number>> = {};
     if (!isObject(value)) return attributes;
@@ -349,6 +370,7 @@ export const dataEntityRecordIn = (nbt: NBTTagCompound): DataEntityRecord | unde
     const containerSlots = containerSlotsOf(parsed['containerSlots']);
     const projectile = projectileOf(parsed['projectile']);
     const merchant = merchantSnapshotIn(parsed['merchant']);
+    const componentState = componentStateOf(parsed['componentState']);
 
     return {
         identifier,
@@ -357,6 +379,7 @@ export const dataEntityRecordIn = (nbt: NBTTagCompound): DataEntityRecord | unde
         ...(typeof pool === 'string' ? { pool } : {}),
         componentGroups: stringsOf(parsed['componentGroups']),
         properties: propertiesOf(parsed['properties']),
+        ...(componentState === undefined ? {} : { componentState }),
         attributes: attributesOf(parsed['attributes']),
         yaw: numberOf(parsed['yaw'], 0),
         pitch: numberOf(parsed['pitch'], 0),
@@ -395,7 +418,7 @@ export const dataEntityRecordIn = (nbt: NBTTagCompound): DataEntityRecord | unde
  * The component groups go on first, because adding a group initializes its
  * components and a component that declares an attribute writes that attribute
  * back to its base. The saved values land after, so a cow restored at four
- * hearts stays at four hearts.
+ * hearts stays at four hearts, and a mob saved mid-timer resumes the timer.
  */
 export const applyDataEntityRecord = (entity: DataEntity, record: DataEntityRecord): void => {
     const { body, instance } = entity;
@@ -405,6 +428,10 @@ export const applyDataEntityRecord = (entity: DataEntity, record: DataEntityReco
     }
 
     for (const [name, value] of Object.entries(record.properties)) instance.properties.set(name, value);
+    if (record.componentState !== undefined) {
+        for (const component of instance.componentState.restore(record.componentState))
+            instance.report(`the saved state of ${component} does not fit the component, so it starts afresh`);
+    }
     // Walked over the attribute names rather than the record's keys, so the name
     // reaching `set` is one of them rather than whatever string the file held.
     for (const name of ATTRIBUTES) {
