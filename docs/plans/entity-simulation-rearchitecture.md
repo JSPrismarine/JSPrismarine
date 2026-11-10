@@ -150,6 +150,16 @@ Nothing here depends on another package, and no two packages edit the same files
 
 B1 and B2 both edit the ticker, so B2 follows B1. B3, B4 and B5 run beside them.
 
+The lane declarations of A3 put 35 handlers in the connection lane, 9 in the read lane and 28 in the input lane, and left B1 these rules.
+
+- An input-lane packet is applied in the input step of the world its sender's entity is in. An effect on another world leaves as a message under ADR 0011 and is admitted at that world's next input step.
+- Server-wide state that is not a world's authoritative state, such as the operator list, the default game mode and chat fan-out, changes in memory when the handler runs and persists off the tick.
+- A player's removal is an input, whether a `Disconnect` packet or a closed transport caused it.
+- `SubChunkRequest` can load a chunk the world evicted. The handler may wait for it, and the loaded chunk is admitted through the completion queue like any other.
+- `Login` and `ClientToServerHandshake` stay in the connection lane although they read the default world's spawn and build the player. That work moves in front of the join in slice 6.
+
+Slice 6 inherits a list of what stops an input-lane handler from being synchronous. Eight handlers load chunks or search for a position, among them `PlayerAction`, `InventoryTransaction`, `ItemStackRequest`, `Respawn` and `RequestChunkRadius`. Six reach the disk through `savePlayerData`, the operator file or the config. `Text`, `CommandRequest` and `SettingsCommand` call into commands and chat, which can do anything. Six read-lane handlers are write requests the server drops today, and each moves to the input lane when its write is implemented.
+
 ### Phase C: the store
 
 | Package | Slice | Depends on | Work                                                                                                                         |
