@@ -12,6 +12,7 @@ import type PacketHandler from './PacketHandler';
 export default class ServerboundDiagnosticsHandler implements PacketHandler<ServerboundDiagnosticsPacket> {
     public static PacketName = 'ServerboundDiagnosticsPacket';
     public readonly phases = ['resourcePacks', 'play'] as const;
+    public readonly lane = 'connection';
 
     /** Logs the frame rate and tick times from the sample. */
     public handle(packet: ServerboundDiagnosticsPacket, server: Server, session: PlayerSession): void {

@@ -13,6 +13,7 @@ import type PacketHandler from './PacketHandler';
 export default class MapInfoRequestHandler implements PacketHandler<MapInfoRequestPacket> {
     public static PacketName = 'MapInfoRequestPacket';
     public readonly phases = ['play'] as const;
+    public readonly lane = 'connection';
 
     /** Logs the map id and how many pixels came with it. */
     public handle(packet: MapInfoRequestPacket, server: Server, session: PlayerSession): void {

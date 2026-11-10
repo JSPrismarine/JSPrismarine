@@ -7,6 +7,7 @@ import type PacketHandler from './PacketHandler';
 export default class ClientCacheStatusHandler implements PacketHandler<ClientCacheStatusPacket> {
     public static PacketName = 'ClientCacheStatusPacket';
     public readonly phases = ['resourcePacks', 'play'] as const;
+    public readonly lane = 'connection';
 
     /** Records whether chunk packets can use blob hashes for this session. */
     public async handle(packet: ClientCacheStatusPacket, server: Server, session: PlayerSession): Promise<void> {
