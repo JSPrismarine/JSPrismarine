@@ -68,7 +68,7 @@
     },
     "dependencies": {
         "@jsprismarine/minecraft": "workspace:*",
-        "jose": "6.2.13"
+        "jose": "6.2.17"
     },
     "peerDependencies": {
         "prismarine-auth": "^3.1.1"
