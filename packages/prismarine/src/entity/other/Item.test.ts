@@ -8,7 +8,7 @@ import { Item as ItemStack } from '../../item/Item';
 import TakeItemActorPacket from '@jsprismarine/protocol/packet/TakeItemActorPacket';
 import MoveActorAbsolutePacket from '@jsprismarine/protocol/packet/MoveActorAbsolutePacket';
 import { testEntityServer } from '../../testing/entityServer';
-import EntityGrid from '../../world/EntityGrid';
+import { EntityIndex } from '../data/entityIndex';
 import { Position } from '../../world/Position';
 import { Item } from './Item';
 
@@ -22,27 +22,30 @@ const fakeWorld = (groundY: number, walls: (x: number, z: number) => boolean = (
     const removed: any[] = [];
     const events: Array<{ event: number; data: number }> = [];
     // The real one: merging asks it who is nearby, exactly as a mob does.
-    const grid = new EntityGrid();
+    const index = new EntityIndex();
 
     return {
         players,
         removed,
         events,
-        grid,
-        getEntityGrid: () => grid,
+        index,
+        getEntityIndex: () => index,
         // Only ever reached when a failing expectation prints an entity.
         getName: () => 'test',
         // An entity takes its server from the world its position names.
         getServer: () => testEntityServer(),
         getBlock: async (x: number, y: number, z: number) => ({ isSolid: () => y <= groundY || walls(x, z) }),
         getPlayers: () => players,
-        removeEntity: async (entity: any) => void removed.push(entity),
+        removeEntity: async (entity: any) => {
+            removed.push(entity);
+            index.removeLegacy(entity);
+        },
         // How a merge reaches the client: there is no packet that updates a dropped stack,
         // so the new size travels as an actor event.
         sendActorEvent: async (_entity: any, event: number, data: number) => void events.push({ event, data }),
         // Mirrors the real one: telling everybody an entity moved is the world's job now,
         // not something the entity does to itself.
-        entityRelocated: () => {},
+        entityRelocated: (entity: any) => index.refileLegacy(entity),
         broadcastMove: async (entity: any) => {
             const pk = new MoveActorAbsolutePacket();
             pk.runtimeEntityId = entity.getRuntimeId();
@@ -108,7 +111,7 @@ const lying = (world: any, items: Array<{ name: string; count: number; x: number
                 pickupDelay
             })
     );
-    world.grid.rebuild(entities);
+    for (const entity of entities) world.index.addLegacy(entity);
 
     return entities;
 };
@@ -224,7 +227,7 @@ describe('entity', () => {
         });
 
         describe('merging', () => {
-            it('keeps the general grid order for nearby items across chunk boundaries', () => {
+            it('finds nearby items in ascending runtime id order across chunk boundaries', () => {
                 const world = fakeWorld(63);
                 const [nextChunk, firstCurrentChunk, secondCurrentChunk, outsideRadius] = lying(world, [
                     { name: 'minecraft:cobblestone', count: 1, x: 16.2 },
@@ -233,8 +236,8 @@ describe('entity', () => {
                     { name: 'minecraft:cobblestone', count: 1, x: 14.4 }
                 ]);
 
-                const candidates = world.grid.nearItems(16, 0.5, 1.5);
-                expect(candidates).toEqual([firstCurrentChunk, secondCurrentChunk, nextChunk]);
+                const candidates = world.index.itemsWithin(16, 0.5, 1.5);
+                expect(candidates).toEqual([nextChunk, firstCurrentChunk, secondCurrentChunk]);
                 expect(candidates).not.toContain(outsideRadius);
             });
 
@@ -245,7 +248,7 @@ describe('entity', () => {
                     { name: 'minecraft:cobblestone', count: 1, x: -0.5 }
                 ]);
 
-                expect(world.grid.nearItems(0, 0.5, 1.5)).toEqual([negative, positive]);
+                expect(world.index.itemsWithin(0, 0.5, 1.5)).toEqual([positive, negative]);
             });
 
             it('draws a neighboring stack of the same thing into one', async () => {
@@ -264,6 +267,37 @@ describe('entity', () => {
                 // the entry's rather than the stack's.
                 expect(first!.getItem()!.getCount()).toBe(2);
                 expect(world.removed).toContain(second);
+            });
+
+            it('draws in a stack that slid next to it earlier in the same tick', async () => {
+                const world = fakeWorld(63);
+                const [first, second] = lying(world, [
+                    { name: 'minecraft:cobblestone', count: 1, x: 0.5 },
+                    { name: 'minecraft:cobblestone', count: 1, x: 5.5 }
+                ]);
+
+                await second!.setPosition({ position: new Vector3(0.7, 64.125, 0.5) });
+                await first!.update(1);
+
+                expect(first!.getItem()!.getItem().getAmount()).toBe(2);
+                expect(world.removed).toEqual([second]);
+            });
+
+            it('never sees again a stack it drew in earlier in the same tick', async () => {
+                const world = fakeWorld(63);
+                const [first, second, third] = lying(world, [
+                    { name: 'minecraft:cobblestone', count: 1, x: 0.5 },
+                    { name: 'minecraft:cobblestone', count: 1, x: 0.6 },
+                    { name: 'minecraft:cobblestone', count: 1, x: 0.7 }
+                ]);
+
+                await first!.update(1);
+                await second!.update(1);
+                await third!.update(1);
+
+                expect(first!.getItem()!.getItem().getAmount()).toBe(3);
+                expect(world.removed).toEqual([second, third]);
+                expect(world.index.itemsWithin(0.5, 0.5, 1)).toEqual([first]);
             });
 
             it('leaves a different item alone', async () => {
