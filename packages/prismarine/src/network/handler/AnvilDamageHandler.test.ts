@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { sessionNearBlocks } from '../../testing/blockTarget.test.helper';
+import { sessionNamedNearBlocks } from '../../testing/namedBlockTarget.test.helper';
 import BlockPosition from '../../world/BlockPosition';
 import BlockPos from '@jsprismarine/protocol/structure/BlockPos';
 import AnvilDamagePacket from '@jsprismarine/protocol/packet/AnvilDamagePacket';
@@ -12,7 +12,7 @@ const packetAt = (blockPosition: BlockPosition) =>
 
 describe('AnvilDamageHandler', () => {
     it('logs the position of an anvil in reach, whatever its wear', () => {
-        const { logged, server, session } = sessionNearBlocks({
+        const { logged, server, session } = sessionNamedNearBlocks({
             '3,2,2': 'minecraft:anvil',
             '1,2,2': 'minecraft:damaged_anvil'
         });
@@ -29,7 +29,7 @@ describe('AnvilDamageHandler', () => {
     });
 
     it('drops a position that holds no anvil', () => {
-        const { logged, server, session } = sessionNearBlocks({ '1,2,2': 'minecraft:iron_block' });
+        const { logged, server, session } = sessionNamedNearBlocks({ '1,2,2': 'minecraft:iron_block' });
 
         new AnvilDamageHandler().handle(packetAt(new BlockPosition(1, 2, 2)), server, session);
 

@@ -24,7 +24,6 @@ export default class StructureTemplateDataRequestHandler implements PacketHandle
 
     /** Checks the position names a structure block in reach, then logs the name and operation. */
     public handle(packet: StructureTemplateDataRequestPacket, server: Server, session: PlayerSession): void {
-        const player = session.getPlayer();
         const data = packet.getPacketData();
         if (data === null) throw new Error('Cannot handle a StructureTemplateDataRequestPacket without decoded data');
 
@@ -34,12 +33,12 @@ export default class StructureTemplateDataRequestHandler implements PacketHandle
             data.structurePosition.z
         );
 
-        const rejection = blockTargetRejection(player, structurePosition, STRUCTURE_BLOCKS);
+        const rejection = blockTargetRejection(session.getPlayer(), structurePosition, STRUCTURE_BLOCKS);
         if (rejection !== null) {
             server
                 .getLogger()
                 .verbose(
-                    `Dropped a structure template request from ${player.getName()} at ${structurePosition.getX()}, ${structurePosition.getY()}, ${structurePosition.getZ()}: ${rejection}`,
+                    `Dropped a structure template request from ${session.identity.name} at ${structurePosition.getX()}, ${structurePosition.getY()}, ${structurePosition.getZ()}: ${rejection}`,
                     'StructureTemplateDataRequestHandler/handle'
                 );
             return;
@@ -49,7 +48,7 @@ export default class StructureTemplateDataRequestHandler implements PacketHandle
         server
             .getLogger()
             .debug(
-                `${player.getName()} requested structure ${data.structureName} with operation ${operation}. The server stores no structure templates`,
+                `${session.identity.name} requested structure ${data.structureName} with operation ${operation}. The server stores no structure templates`,
                 'StructureTemplateDataRequestHandler/handle'
             );
     }

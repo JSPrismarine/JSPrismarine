@@ -1,6 +1,6 @@
 import type { Vector3 } from '@jsprismarine/math';
-import type Player from '../../Player';
 import { CREATIVE_REACH } from '../../entity/Combat';
+import type { World } from '../../world/World';
 
 /**
  * How far from the player a block named in a packet may stand.
@@ -12,6 +12,14 @@ import { CREATIVE_REACH } from '../../entity/Combat';
  * it is not an anti-cheat reach check.
  */
 export const MAX_BLOCK_TARGET_DISTANCE = CREATIVE_REACH + 1;
+
+/** What {@link blockTargetRejection} reads of the player who sent a block position. */
+export interface BlockTargetSender {
+    /** Where the player stands. */
+    getPosition(): Vector3;
+    /** The world the block is read in. */
+    getWorld(): World;
+}
 
 /**
  * Why a block position a client sent must not be acted on, or null when it names one of
@@ -26,11 +34,17 @@ export const MAX_BLOCK_TARGET_DISTANCE = CREATIVE_REACH + 1;
  * entities it read from disk; a lectern a player placed has none, and refusing it would
  * drop every legitimate packet.
  *
+ * @param sender - The player who sent the position.
+ * @param position - The block position the packet names.
  * @param blocks - The block names the packet may name, such as `minecraft:lectern`.
  * @returns The reason to drop the packet, fit for a log line, or null to go ahead.
  */
-export const blockTargetRejection = (player: Player, position: Vector3, blocks: ReadonlySet<string>): string | null => {
-    const distance = player.getPosition().distanceTo(position);
+export const blockTargetRejection = (
+    sender: BlockTargetSender,
+    position: Vector3,
+    blocks: ReadonlySet<string>
+): string | null => {
+    const distance = sender.getPosition().distanceTo(position);
     if (!Number.isFinite(distance) || distance > MAX_BLOCK_TARGET_DISTANCE) {
         return `it is ${distance.toFixed(1)} blocks away`;
     }
@@ -38,7 +52,7 @@ export const blockTargetRejection = (player: Player, position: Vector3, blocks: 
     const x = position.getX();
     const y = position.getY();
     const z = position.getZ();
-    const chunk = player.getWorld().getLoadedChunk(x >> 4, z >> 4);
+    const chunk = sender.getWorld().getLoadedChunk(x >> 4, z >> 4);
     if (chunk === null) return 'its chunk is not loaded';
 
     const { name } = chunk.getBlock(x, y, z);

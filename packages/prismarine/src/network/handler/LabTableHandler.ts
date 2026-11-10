@@ -24,19 +24,18 @@ export default class LabTableHandler implements PacketHandler<LabTablePacket> {
 
     /** Checks the position names a lab table in reach, then logs the action and position. */
     public handle(packet: LabTablePacket, server: Server, session: PlayerSession): void {
-        const player = session.getPlayer();
         const data = packet.getPacketData();
         if (data === null) throw new Error('Cannot handle a LabTablePacket without decoded data');
 
         const position = new BlockPosition(data.position.x, data.position.y, data.position.z);
         const where = `${position.getX()}, ${position.getY()}, ${position.getZ()}`;
 
-        const rejection = blockTargetRejection(player, position, LAB_TABLES);
+        const rejection = blockTargetRejection(session.getPlayer(), position, LAB_TABLES);
         if (rejection !== null) {
             server
                 .getLogger()
                 .verbose(
-                    `Dropped a lab table action from ${player.getName()} at ${where}: ${rejection}`,
+                    `Dropped a lab table action from ${session.identity.name} at ${where}: ${rejection}`,
                     'LabTableHandler/handle'
                 );
             return;
@@ -45,7 +44,7 @@ export default class LabTableHandler implements PacketHandler<LabTablePacket> {
         server
             .getLogger()
             .debug(
-                `${player.getName()} ran ${LabTableType[data.type] ?? data.type} on the lab table at ${where}. Chemistry is not simulated`,
+                `${session.identity.name} ran ${LabTableType[data.type] ?? data.type} on the lab table at ${where}. Chemistry is not simulated`,
                 'LabTableHandler/handle'
             );
     }

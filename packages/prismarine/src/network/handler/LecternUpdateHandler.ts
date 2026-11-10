@@ -23,19 +23,18 @@ export default class LecternUpdateHandler implements PacketHandler<LecternUpdate
 
     /** Checks the position names a lectern in reach, then logs the page and position. */
     public handle(packet: LecternUpdatePacket, server: Server, session: PlayerSession): void {
-        const player = session.getPlayer();
         const data = packet.getPacketData();
         if (data === null) throw new Error('Cannot handle a LecternUpdatePacket without decoded data');
 
         const position = new BlockPosition(data.position.x, data.position.y, data.position.z);
         const where = `${position.getX()}, ${position.getY()}, ${position.getZ()}`;
 
-        const rejection = blockTargetRejection(player, position, LECTERNS);
+        const rejection = blockTargetRejection(session.getPlayer(), position, LECTERNS);
         if (rejection !== null) {
             server
                 .getLogger()
                 .verbose(
-                    `Dropped a lectern update from ${player.getName()} at ${where}: ${rejection}`,
+                    `Dropped a lectern update from ${session.identity.name} at ${where}: ${rejection}`,
                     'LecternUpdateHandler/handle'
                 );
             return;
@@ -44,7 +43,7 @@ export default class LecternUpdateHandler implements PacketHandler<LecternUpdate
         server
             .getLogger()
             .debug(
-                `${player.getName()} turned the lectern at ${where} to page ${data.newPage} of ${data.totalPages}. Lectern pages are not stored`,
+                `${session.identity.name} turned the lectern at ${where} to page ${data.newPage} of ${data.totalPages}. Lectern pages are not stored`,
                 'LecternUpdateHandler/handle'
             );
     }

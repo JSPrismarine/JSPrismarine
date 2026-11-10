@@ -26,18 +26,21 @@ export default class PlayerToggleCrafterSlotRequestHandler implements PacketHand
 
     /** Checks the position names a crafter in reach and the slot exists, then logs the toggle. */
     public handle(packet: PlayerToggleCrafterSlotRequestPacket, server: Server, session: PlayerSession): void {
-        const player = session.getPlayer();
         const where = `${packet.posX}, ${packet.posY}, ${packet.posZ}`;
 
         const rejection =
             packet.slotIndex >= CRAFTER_SLOTS
                 ? `a crafter has no slot ${packet.slotIndex}`
-                : blockTargetRejection(player, new BlockPosition(packet.posX, packet.posY, packet.posZ), CRAFTERS);
+                : blockTargetRejection(
+                      session.getPlayer(),
+                      new BlockPosition(packet.posX, packet.posY, packet.posZ),
+                      CRAFTERS
+                  );
         if (rejection !== null) {
             server
                 .getLogger()
                 .verbose(
-                    `Dropped a crafter slot toggle from ${player.getName()} at ${where}: ${rejection}`,
+                    `Dropped a crafter slot toggle from ${session.identity.name} at ${where}: ${rejection}`,
                     'PlayerToggleCrafterSlotRequestHandler/handle'
                 );
             return;
@@ -46,7 +49,7 @@ export default class PlayerToggleCrafterSlotRequestHandler implements PacketHand
         server
             .getLogger()
             .debug(
-                `${player.getName()} ${packet.isDisabled ? 'disabled' : 'enabled'} slot ${packet.slotIndex} of the crafter at ${where}. Crafters are not stored`,
+                `${session.identity.name} ${packet.isDisabled ? 'disabled' : 'enabled'} slot ${packet.slotIndex} of the crafter at ${where}. Crafters are not stored`,
                 'PlayerToggleCrafterSlotRequestHandler/handle'
             );
     }
