@@ -115,6 +115,27 @@ function eventFacts() {
     };
 }
 
+/**
+ * The count budgets a world tick runs under, read from the constants that set them. No budget in a
+ * tick is a time, so these counts are the whole of what bounds the work.
+ */
+function tickBudgetFacts() {
+    const world = path.join(repoRoot, 'packages', 'prismarine', 'src', 'world');
+    const budgets = {
+        'tick.blockUpdateBudget': ['BlockUpdateScheduler.ts', 'BLOCK_UPDATE_BUDGET_PER_TICK'],
+        'tick.scheduledTickBudget': ['WorldSystems.ts', 'SCHEDULED_TICK_BUDGET_PER_TICK'],
+        'tick.lightBudget': ['WorldSystems.ts', 'LIGHT_BUDGET_PER_TICK']
+    } as const;
+    return Object.fromEntries(
+        Object.entries(budgets).map(([fact, [file, name]]) => {
+            const source = readFileSync(path.join(world, file), 'utf8');
+            const value = new RegExp(`export const ${name} = (\\d+);`).exec(source)?.[1];
+            if (value === undefined) throw new Error(`The docs facts no longer find ${name} in ${file}.`);
+            return [fact, value];
+        })
+    );
+}
+
 /** The download cache the data scripts fill, where the generated game data lives. */
 const cacheRoot = path.join(repoRoot, 'node_modules', '.cache', 'jsprismarine');
 
@@ -347,7 +368,8 @@ export async function loadFacts(): Promise<Facts> {
             ...Object.fromEntries(Object.entries(palette).map(([name, { hex }]) => [`palette.${name}`, hex])),
             ...(await commandFacts()),
             ...(await configFacts()),
-            ...eventFacts()
+            ...eventFacts(),
+            ...tickBudgetFacts()
         })
     );
     const missing: string[] = [];
