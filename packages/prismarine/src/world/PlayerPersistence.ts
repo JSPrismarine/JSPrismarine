@@ -25,8 +25,9 @@ export interface PlayerPersistenceOptions {
 /**
  * Where and when one level's player records are read and written.
  *
- * The caller hands it a plain record and receives one. Building a record from a player is
- * `playerRecordOf`'s job and applying one is the player's, so this module knows nothing about a
+ * The caller hands it a plain record and receives one. Building a record from a player and
+ * applying one to a player are `playerRecordFrom` and `applyPlayerRecord` in `playerRecord.ts`,
+ * which work on a live player and a store player alike, so this module knows nothing about a
  * player beyond the record's shape.
  *
  * Records are keyed by `playerKeyOf` in `playerIdentity.ts`: the XUID, or the name when there is
