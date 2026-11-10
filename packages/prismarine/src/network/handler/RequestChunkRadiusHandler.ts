@@ -16,6 +16,8 @@ import type Server from '../../Server';
 export default class RequestChunkRadiusHandler implements PacketHandler<RequestChunkRadiusPacket> {
     public static PacketName = 'RequestChunkRadiusPacket';
     public readonly phases = ['play'] as const;
+    // Input: it sets the player's view distance, which decides the chunks the world keeps loaded.
+    public readonly lane = 'input';
 
     /** Grants a radius and records the exchange at debug level, since the join hinges on it. */
     public async handle(packet: RequestChunkRadiusPacket, server: Server, session: PlayerSession): Promise<void> {

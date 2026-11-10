@@ -17,6 +17,8 @@ import type PacketHandler from './PacketHandler';
 export default class DisconnectHandler implements PacketHandler<DisconnectPacket> {
     public static PacketName = 'DisconnectPacket';
     public readonly phases = ['resourcePacks', 'play'] as const;
+    // Input, not connection: closing the session removes the player and tells everyone else.
+    public readonly lane = 'input';
 
     /**
      * Logs the reason the client gave at info level, then starts the RakNet goodbye.

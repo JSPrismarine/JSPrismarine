@@ -20,6 +20,8 @@ const CLIENT_ACTIONS: ReadonlySet<number> = new Set([
 export default class AnimateHandler implements PacketHandler<AnimatePacket> {
     public static PacketName = 'AnimatePacket';
     public readonly phases = ['play'] as const;
+    // Relays to the players that see the sender, so it is an input though it writes nothing.
+    public readonly lane = 'input';
 
     /**
      * Rebroadcasts the animation under the sender's runtime id, keeping the action, data and

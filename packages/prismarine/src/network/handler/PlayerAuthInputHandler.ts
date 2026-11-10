@@ -122,6 +122,7 @@ export const rejectionReason = (input: ReturnType<typeof playerAuthInputFromProt
 export default class PlayerAuthInputHandler implements PacketHandler<PlayerAuthInputPacket> {
     public static PacketName = 'PlayerAuthInputPacket';
     public readonly phases = ['play'] as const;
+    public readonly lane = 'input';
 
     private readonly actions = new PlayerActionHandler();
     private readonly transactions = new InventoryTransactionHandler();

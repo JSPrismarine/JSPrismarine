@@ -40,6 +40,7 @@ const isTypeable = (character: string): boolean => {
 export default class TextHandler implements PacketHandler<TextPacket> {
     public static PacketName = 'TextPacket';
     public readonly phases = ['play'] as const;
+    public readonly lane = 'input';
 
     /**
      * Sends the message on, once it has been cut to something a chat box could have produced.
