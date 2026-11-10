@@ -122,6 +122,9 @@ jobs:
 
             - name: 📦 Install
               uses: ./.github/common/install
+              with:
+                  # build-aot.mjs compiles for other platforms than the runner's.
+                  all-architectures: true
 
             - name: 🔨 Build packages
               run: pnpm run build
