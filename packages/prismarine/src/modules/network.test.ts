@@ -62,6 +62,36 @@ describe('modules/network', () => {
         expect(networking.getListener()).toBeUndefined();
     });
 
+    it('starts with NetherNet alone, advertising the same server name RakNet would', () => {
+        const server = stub<Server>({
+            getConfig: () =>
+                stub<Config>({
+                    getGamemode: () => 'survival',
+                    getMaxPlayers: () => 1,
+                    getMotd: () => 'test server',
+                    getEnableRakNet: () => false,
+                    getEnableNetherNet: () => true,
+                    // Off, so the test binds nothing: UDP 7551 is a fixed, shared port.
+                    getEnableLanVisibility: () => false
+                }),
+            getLogger: () => stub<Logger>({ info: () => {}, warn: () => {}, error: () => {} }),
+            getPacketHandlerRegistry: () => stub<ReturnType<Server['getPacketHandlerRegistry']>>({}),
+            getPacketLogFilter: () => new PacketLogFilter(),
+            getQueryManager: () => stub<ReturnType<Server['getQueryManager']>>({}),
+            getSessionManager: () => new SessionManager()
+        });
+        const networking = new ServerNetworking(server);
+
+        try {
+            networking.start('127.0.0.1', 0);
+
+            expect(networking.getListener()).toBeUndefined();
+            expect(networking.getServerName()?.getMotd()).toBe('test server');
+        } finally {
+            networking.kill();
+        }
+    });
+
     it('rejects replay before the network dispatcher starts', async () => {
         const networking = new ServerNetworking(stub<Server>({}));
 
@@ -88,6 +118,7 @@ describe('modules/network', () => {
                     getMotd: () => 'test server',
                     getOnlineMode: () => false,
                     getEnableRakNet: () => true,
+                    getEnableNetherNet: () => false,
                     getUseRakNetWorker: () => false
                 }),
             getLogger: () =>
