@@ -22,6 +22,11 @@ import { InboundPacketTrace } from './InboundPacketTrace';
 import type { OutboundPacketRecorder } from './OutboundPacketTrace';
 import type { SessionPhase } from './SessionPhase';
 import type { ConnectionId } from './transport/ConnectionId';
+import type { Lane } from './handler/Lane';
+import ClientCacheStatusPacket from '@jsprismarine/protocol/packet/ClientCacheStatusPacket';
+import { ServerTicker } from '../modules/ticker';
+import type { TickerServer, TickerWorld } from '../modules/ticker';
+import { ChunkCompletionQueue } from '../world/ChunkCompletionQueue';
 import type { Transport, TransportCapabilities, TransportConnection } from './transport/Transport';
 import { TextPacketType } from '@jsprismarine/protocol';
 
@@ -112,7 +117,7 @@ const message = (text: string) => {
 };
 
 /** One batch holding the packet, as bytes off the wire. */
-const frameOf = (packet: TextPacket, compressed = false) => {
+const frameOf = (packet: TextPacket | ClientCacheStatusPacket, compressed = false) => {
     packet.encode();
     const payloads = [packet.getBuffer()];
     return compressed
@@ -148,6 +153,10 @@ const makeDispatcher = (options?: {
     tick?: () => number;
     loggerEnabled?: boolean;
     logFilter?: PacketLogFilter;
+    /** The lane each packet's handler declares, by packet name; `connection` when not named. */
+    lanes?: Readonly<Record<string, Lane>>;
+    /** Called when a connection's player is torn down. */
+    onClosePlayerSession?: () => void;
     handler?: {
         phases: readonly SessionPhase[];
         handle: (packet: unknown, server: Server, target: unknown) => Promise<void>;
@@ -159,10 +168,10 @@ const makeDispatcher = (options?: {
     const logFilter = options?.logFilter ?? new PacketLogFilter();
     const server = stub<Server>({ getTick: options?.tick ?? (() => 0) });
     const packetHandlerRegistry = stub<PacketHandlerRegistry>({
-        getHandler: () => {
+        getHandler: (name: string) => {
             if (!options?.handler) throw new Error('no handler registered');
             // Every double here runs in the handshake phase, before a session exists.
-            return { lane: 'connection', ...options.handler };
+            return { lane: options.lanes?.[name] ?? 'connection', ...options.handler };
         }
     });
     const built: ClientConnection[] = [];
@@ -190,7 +199,7 @@ const makeDispatcher = (options?: {
                 phase: 'handshake',
                 decryptFrame: (frame) => frame,
                 getPlayerSession: () => null,
-                closePlayerSession: async () => {},
+                closePlayerSession: async () => options?.onClosePlayerSession?.(),
                 setOutboundPacketRecorder: (recorder, connectionId, getTick) =>
                     void outboundRecorderSetup.push({ recorder, connectionId, getTick })
             });
@@ -330,7 +339,7 @@ describe('network', () => {
             expect(targets).toStrictEqual([built[0]]);
         });
 
-        it('records accepted packet bytes with global order, connection order, and arrival tick', async () => {
+        it('records accepted packet bytes with global order, connection order, and the tick they ran in', async () => {
             const trace = new InboundPacketTrace();
             let tick = 18;
             const { transport, built } = makeDispatcher({
@@ -578,11 +587,15 @@ describe('network', () => {
             const liveFrame = transport.emitFrame(frameOf(message('live input')), 1);
             await liveStarted;
             const replay = dispatcher.replayInboundRecord(trace.records()[0]!);
-            await transport.emitDisconnect(1, 'client disconnected');
+            // The connection leaves the registry at once; the removal of its player waits for
+            // the input step.
+            const disconnected = transport.emitDisconnect(1, 'client disconnected');
 
             releaseLive();
             await liveFrame;
             await expect(replay).rejects.toThrow('Replay connection 1 is no longer connected');
+            await dispatcher.admitInputs();
+            await disconnected;
         });
 
         it('queues replay after unfinished frames from the same connection', async () => {
@@ -628,7 +641,7 @@ describe('network', () => {
             expect(trace.records()).toHaveLength(1);
         });
 
-        it('keeps the arrival tick when a prior handler holds the connection queue', async () => {
+        it('stamps a packet with the tick its handler ran in, not the tick it arrived in', async () => {
             const trace = new InboundPacketTrace();
             let tick = 7;
             let handled = 0;
@@ -664,7 +677,8 @@ describe('network', () => {
             releaseFirst();
             await Promise.all([first, second]);
 
-            expect(trace.records().map((record) => record.tick)).toEqual([7, 8]);
+            // The second arrived in tick 8 and ran once the first let go, in tick 9.
+            expect(trace.records().map((record) => record.tick)).toEqual([7, 9]);
         });
 
         it('drops a handshake packet once the connection has left the handshake phase', async () => {
@@ -822,6 +836,295 @@ describe('network', () => {
             await transport.emitFrame(frameOf(message('boom')), 1);
 
             expect(lines.some(({ level, message: m }) => level === 'error' && m.includes('Handler error'))).toBe(true);
+        });
+    });
+
+    describe('NetworkDispatcher input lane', () => {
+        const cacheStatus = () => {
+            const packet = new ClientCacheStatusPacket();
+            packet.enabled = true;
+            return packet;
+        };
+        const nameOf = (packet: unknown): string =>
+            packet instanceof TextPacket ? `input:${packet.getPacketData()!.message}` : 'read';
+        /** One event-loop turn, enough for a frame to decode and reach its handler. */
+        const turn = () => new Promise<void>((resolve) => setImmediate(resolve));
+
+        /** A ticker that drives the dispatcher's input step and the given worlds, stepped by hand. */
+        const tickerOver = (dispatcher: NetworkDispatcher<TransportConnection>, worlds: TickerWorld[]) => {
+            const completions = new ChunkCompletionQueue();
+            const deps: TickerServer = {
+                admitInputs: () => dispatcher.admitInputs(),
+                emitTick: async () => {},
+                pollNetwork: () => 0,
+                getWorlds: () => worlds,
+                tickFunctions: async () => 0,
+                getChunkScheduler: () => ({ setBudget: () => {}, tick: async () => 0 }),
+                getChunkCompletionQueue: () => completions,
+                getChunkSendBudgetMs: () => 0,
+                isTickingEnabled: () => false,
+                isProcessTitleEnabled: () => false,
+                isHeadless: () => true,
+                isStopping: () => false,
+                getProfileOwner: () => deps,
+                getLogger: () => ({ warn: () => {}, verbose: () => {}, error: () => {} })
+            };
+            return new ServerTicker(deps);
+        };
+
+        it('never runs an input-lane handler inside a world update, and a read-lane one on arrival', async () => {
+            const order: string[] = [];
+            let tick = 0;
+            const { transport, dispatcher } = makeDispatcher({
+                tick: () => tick,
+                lanes: { TextPacket: 'input', ClientCacheStatusPacket: 'read' },
+                handler: {
+                    phases: ['handshake'],
+                    handle: async (packet) => {
+                        order.push(nameOf(packet));
+                    }
+                }
+            });
+            await transport.emitConnect(fakeConnection(1).connection);
+            await transport.emitConnect(fakeConnection(2).connection);
+            const arrivals: Promise<void>[] = [];
+            const ticker = tickerOver(dispatcher, [
+                {
+                    getName: () => 'world',
+                    update: async (at) => {
+                        order.push(`world:${at}:start`);
+                        if (at === 0) {
+                            // Both arrive in the middle of the update, between its awaits.
+                            arrivals.push(transport.emitFrame(frameOf(message('move')), 1));
+                            arrivals.push(transport.emitFrame(frameOf(cacheStatus()), 2));
+                            await turn();
+                            await turn();
+                        }
+                        order.push(`world:${at}:end`);
+                    }
+                }
+            ]);
+
+            await ticker.advance();
+            tick = 1;
+            await ticker.advance();
+            await Promise.all(arrivals);
+
+            expect(order).toEqual([
+                'world:0:start',
+                'read',
+                'world:0:end',
+                // Held until the input step of the next tick, ahead of that tick's update.
+                'input:move',
+                'world:1:start',
+                'world:1:end'
+            ]);
+        });
+
+        it('keeps arrival order across a tick boundary, holding a later packet of any lane behind an input', async () => {
+            const order: string[] = [];
+            const { transport, dispatcher } = makeDispatcher({
+                lanes: { TextPacket: 'input', ClientCacheStatusPacket: 'read' },
+                handler: {
+                    phases: ['handshake'],
+                    handle: async (packet) => {
+                        order.push(nameOf(packet));
+                    }
+                }
+            });
+            await transport.emitConnect(fakeConnection(1).connection);
+
+            const arrivals = [
+                transport.emitFrame(frameOf(message('first')), 1),
+                transport.emitFrame(frameOf(cacheStatus()), 1),
+                transport.emitFrame(frameOf(message('second')), 1)
+            ];
+            await turn();
+            // The read packet arrived after a held input, so it waits behind it.
+            expect(order).toEqual([]);
+            expect(dispatcher.pendingInputs).toBe(1);
+
+            expect(await dispatcher.admitInputs()).toBe(1);
+            await turn();
+            // The read packet ran once the input before it applied; the second input, reached
+            // only then, waits for the next step rather than joining this one.
+            expect(order).toEqual(['input:first', 'read']);
+            expect(dispatcher.pendingInputs).toBe(1);
+
+            expect(await dispatcher.admitInputs()).toBe(1);
+            await Promise.all(arrivals);
+            expect(order).toEqual(['input:first', 'read', 'input:second']);
+        });
+
+        it('admits at most its budget of inputs in a step, whatever the backlog, and the rest in order after', async () => {
+            for (const backlog of [5, 50]) {
+                const handled: string[] = [];
+                const { transport, dispatcher } = makeDispatcher({
+                    lanes: { TextPacket: 'input' },
+                    handler: {
+                        phases: ['handshake'],
+                        handle: async (packet) => {
+                            handled.push(nameOf(packet));
+                        }
+                    }
+                });
+                const arrivals: Promise<void>[] = [];
+                for (let index = 0; index < backlog; index++) {
+                    await transport.emitConnect(fakeConnection(index).connection);
+                    arrivals.push(transport.emitFrame(frameOf(message(`${index}`)), index));
+                }
+                await turn();
+                await turn();
+                expect(dispatcher.pendingInputs).toBe(backlog);
+
+                const steps: number[] = [];
+                while (dispatcher.pendingInputs > 0) steps.push(await dispatcher.admitInputs(4));
+                await Promise.all(arrivals);
+
+                expect(Math.max(...steps)).toBeLessThanOrEqual(4);
+                expect(handled).toEqual(Array.from({ length: backlog }, (_unused, index) => `input:${index}`));
+            }
+        });
+
+        it('stamps a captured input with the tick whose input step applied it', async () => {
+            const trace = new InboundPacketTrace();
+            let tick = 10;
+            const { transport, dispatcher } = makeDispatcher({
+                recorder: trace,
+                tick: () => tick,
+                lanes: { TextPacket: 'input' },
+                handler: { phases: ['handshake'], handle: async () => {} }
+            });
+            await transport.emitConnect(fakeConnection(1).connection);
+
+            // Arrives while tick 10 runs; the next input step is tick 11's.
+            const arrival = transport.emitFrame(frameOf(message('move')), 1);
+            await turn();
+            tick = 11;
+            await dispatcher.admitInputs();
+            await arrival;
+
+            expect(trace.records().map((record) => record.tick)).toEqual([11]);
+        });
+
+        it('A replay applies each recorded input at the tick the capture stamped', async () => {
+            // Capture: inputs arrive mid-tick and are applied, and stamped, at later input steps.
+            const trace = new InboundPacketTrace();
+            const capturedAt: Array<[string, number]> = [];
+            let tick = 20;
+            const handler = (applied: Array<[string, number]>) => ({
+                phases: ['handshake'] as const,
+                handle: async (packet: unknown) => {
+                    applied.push([nameOf(packet), tick]);
+                }
+            });
+            const live = makeDispatcher({
+                recorder: trace,
+                tick: () => tick,
+                lanes: { TextPacket: 'input', ClientCacheStatusPacket: 'read' },
+                handler: handler(capturedAt)
+            });
+            await live.transport.emitConnect(fakeConnection(1).connection);
+            const arrivals = [live.transport.emitFrame(frameOf(message('one')), 1)];
+            await turn();
+            tick = 21;
+            await live.dispatcher.admitInputs();
+            arrivals.push(live.transport.emitFrame(frameOf(cacheStatus()), 1));
+            arrivals.push(live.transport.emitFrame(frameOf(message('two')), 1));
+            await turn();
+            tick = 22;
+            await live.dispatcher.admitInputs();
+            await Promise.all(arrivals);
+            expect(trace.records().map((record) => record.tick)).toEqual([21, 21, 22]);
+
+            // Replay: each record is offered before its tick runs, and applied in that tick.
+            let replayTick = 30;
+            const replayedAt: Array<[string, number]> = [];
+            const replay = makeDispatcher({
+                tick: () => replayTick,
+                lanes: { TextPacket: 'input', ClientCacheStatusPacket: 'read' },
+                handler: {
+                    phases: ['handshake'],
+                    handle: async (packet: unknown) => {
+                        replayedAt.push([nameOf(packet), replayTick]);
+                    }
+                }
+            });
+            await replay.transport.emitConnect(fakeConnection(1).connection);
+            const offset = 30 - 20;
+            const applied: Promise<void>[] = [];
+            for (const at of [20, 21, 22]) {
+                replayTick = at + offset;
+                for (const record of trace.records().filter((each) => each.tick === at)) {
+                    applied.push(replay.dispatcher.replayInboundRecord(record, offset));
+                }
+                await turn();
+                await replay.dispatcher.admitInputs();
+                await turn();
+            }
+            await Promise.all(applied);
+
+            expect(replayedAt).toEqual(capturedAt.map(([name, at]) => [name, at + offset]));
+            expect(replayedAt).toEqual([
+                ['input:one', 31],
+                ['read', 31],
+                ['input:two', 32]
+            ]);
+        });
+
+        it('rejects a replayed input whose input step runs in another tick than its record', async () => {
+            const trace = new InboundPacketTrace();
+            let tick = 4;
+            const live = makeDispatcher({
+                recorder: trace,
+                tick: () => tick,
+                lanes: { TextPacket: 'input' },
+                handler: { phases: ['handshake'], handle: async () => {} }
+            });
+            await live.transport.emitConnect(fakeConnection(1).connection);
+            const arrival = live.transport.emitFrame(frameOf(message('move')), 1);
+            await turn();
+            await live.dispatcher.admitInputs();
+            await arrival;
+
+            const replay = makeDispatcher({
+                tick: () => tick,
+                lanes: { TextPacket: 'input' },
+                handler: { phases: ['handshake'], handle: async () => {} }
+            });
+            await replay.transport.emitConnect(fakeConnection(1).connection);
+            const replayed = replay.dispatcher.replayInboundRecord(trace.records()[0]!);
+            await turn();
+            tick = 5;
+            await replay.dispatcher.admitInputs();
+
+            await expect(replayed).rejects.toThrow('Replay packet tick 4 does not match server tick 5');
+        });
+
+        it("applies a player's removal by a closed transport at the next input step, after its inputs", async () => {
+            const order: string[] = [];
+            const { transport, dispatcher } = makeDispatcher({
+                lanes: { TextPacket: 'input' },
+                onClosePlayerSession: () => void order.push('removed'),
+                handler: {
+                    phases: ['handshake'],
+                    handle: async (packet) => {
+                        order.push(nameOf(packet));
+                    }
+                }
+            });
+            await transport.emitConnect(fakeConnection(1).connection);
+
+            const arrival = transport.emitFrame(frameOf(message('last move')), 1);
+            await turn();
+            const closed = transport.emitDisconnect(1, 'client disconnected');
+            await turn();
+            expect(order).toEqual([]);
+            expect(dispatcher.pendingInputs).toBe(2);
+
+            await dispatcher.admitInputs();
+            await Promise.all([arrival, closed]);
+            expect(order).toEqual(['input:last move', 'removed']);
         });
     });
 });

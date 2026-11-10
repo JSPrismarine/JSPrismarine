@@ -24,6 +24,7 @@ const buildHarness = (overrides: Partial<TickerServer> = {}) => {
         emitTick: async (event) => {
             tickEvents.push(event);
         },
+        admitInputs: async () => 0,
         pollNetwork: () => 0,
         getWorlds: () => [],
         tickFunctions: async () => 0,
@@ -108,24 +109,54 @@ describe('modules/ticker', () => {
         }
     });
 
-    it('hands pending worker network records to the game thread before tick handlers', async () => {
+    it('runs the input step before anything else in the tick and polls the network last', async () => {
         const order: string[] = [];
         const harness = buildHarness({
+            isTickingEnabled: () => false,
+            admitInputs: async () => {
+                order.push('inputs');
+                return 0;
+            },
             pollNetwork: () => {
                 order.push('network');
                 return 1;
             },
             emitTick: async () => {
                 order.push('tick');
+            },
+            getWorlds: () => [
+                {
+                    getName: () => 'world',
+                    update: async () => {
+                        order.push('world');
+                    }
+                }
+            ],
+            tickFunctions: async () => {
+                order.push('functions');
             }
         });
-        const handle = await startTestModule(tickerModule(harness.ticker));
-        try {
-            await vi.advanceTimersByTimeAsync(0);
-            expect(order.slice(0, 2)).toEqual(['network', 'tick']);
-        } finally {
-            await handle.stop();
-        }
+
+        await harness.ticker.advance();
+
+        // Worker records polled at the end of one tick reach the input step of the next, as a
+        // frame the socket transport delivers during the tick does.
+        expect(order).toEqual(['inputs', 'tick', 'world', 'functions', 'network']);
+    });
+
+    it('polls the network even when the work of the tick throws', async () => {
+        let polled = 0;
+        const harness = buildHarness({
+            isTickingEnabled: () => false,
+            emitTick: async () => {
+                throw new Error('a tick listener failed');
+            },
+            pollNetwork: () => ++polled
+        });
+
+        await harness.ticker.advance();
+
+        expect(polled).toBe(1);
     });
 
     it('uses a timeout for a tick that finishes before its fixed deadline', async () => {
@@ -233,9 +264,11 @@ describe('modules/ticker', () => {
         let blockMs = 0;
         const harness = buildHarness({
             emitTick: async () => {
-                // Fake `performance` only moves with the timers, so the stall is advanced by hand.
-                if (blockMs > 0) await vi.advanceTimersByTimeAsync(blockMs);
+                // Fake `performance` only moves with the timers, so the stall is a timer that the
+                // test's own advance runs, rather than an advance nested inside that one.
+                const stall = blockMs;
                 blockMs = 0;
+                if (stall > 0) await new Promise((resolve) => setTimeout(resolve, stall));
             }
         });
         const handle = await startTestModule(tickerModule(harness.ticker));
