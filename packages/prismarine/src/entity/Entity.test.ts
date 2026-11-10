@@ -13,6 +13,7 @@ const entityAt = (x: number, y: number, z: number) => {
     const world = stub<World>({
         getName: () => 'test',
         getServer: () => testEntityServer(),
+        entityRelocated: () => {},
         broadcastMove
     });
     return { entity: new Entity({ position: new Position(x, y, z, world) }), broadcastMove };

@@ -20,6 +20,7 @@ import type { ServerContent } from '../content/ServerContent';
 import { buildServerContent } from '../content/ServerContent';
 import { fixtureContentOptions } from '../content/testing';
 import type { EntityRuntime } from '../entity/data/EntityRuntime';
+import { EntityIndex } from '../entity/data/entityIndex';
 import type { LiveEntityRuntime } from '../entity/data/live';
 import type { LiveBodies } from '../entity/data/liveBodies';
 import type Server from '../Server';
@@ -55,7 +56,8 @@ export const inertEntityRuntime = (): LiveEntityRuntime =>
         // The fixture build, so a caller that asks the runtime what the stack declares - which
         // is what `/summon` does before it spawns - gets an answer rather than a crash. The
         // fixture declares no entity, so every such question answers no.
-        runtime: stub<EntityRuntime>({ content: () => testContent(), blockBroken: () => {} }),
+        // A real index, empty, so a world double files its entities somewhere it can ask again.
+        runtime: stub<EntityRuntime>({ content: () => testContent(), blockBroken: () => {}, index: new EntityIndex() }),
         bodies: stub<LiveBodies>({ entityIdOf: () => undefined }),
         // Nothing it holds rides anything, so nothing is kept out of a portal.
         isInRide: () => false,
@@ -109,13 +111,16 @@ export const testEntityServer = (options: TestEntityServerOptions = {}): Server 
     // One queue per double, as a real server has one. It is never activated, so a chunk's
     // lighting completes inline rather than waiting for a ticker that no test runs.
     const chunkCompletionQueue = new ChunkCompletionQueue();
+    // One for the life of the double, as a real server keeps one per dimension: the world files
+    // an entity in this runtime's index on arrival and asks the same index where it went.
+    const entityRuntime = options.entityRuntime ?? inertEntityRuntime();
     return stub<Server>({
         // The listener count, which is what the emitter answers and nothing here reads.
         post: () => 0,
         getTick: () => options.tick ?? 0,
         getRandom: () => () => options.chance ?? 0.5,
         getContent: () => options.content ?? testContent(),
-        getEntityRuntime: () => options.entityRuntime ?? inertEntityRuntime(),
+        getEntityRuntime: () => entityRuntime,
         getChunkCompletionQueue: () => chunkCompletionQueue,
         getConfig: () =>
             stub<Config>({

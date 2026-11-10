@@ -64,6 +64,7 @@ const worldDouble = (player: Player, recorded: Recorded, target?: Entity): World
             getRandom: () => () => 0.5
         }),
         addEntity: async (entity: Entity) => void recorded.added.push(entity),
+        entityRelocated: () => {},
         broadcastMove: async () => {},
         sendActorSound: async (entity: Entity, sound: number) =>
             void recorded.actorSounds.push({ runtimeId: entity.getRuntimeId(), sound }),

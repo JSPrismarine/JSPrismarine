@@ -24,6 +24,7 @@ const thrownEye = () => {
     const replicator = new NetworkWorldReplicator(world, server);
     Object.assign(world, {
         getPlayers: () => [player],
+        entityRelocated: () => {},
         broadcastMove: async (entity: EyeOfEnderSignal, teleport?: boolean) => replicator.entityMoved(entity, teleport),
         dropContents: async () => {}
     });
