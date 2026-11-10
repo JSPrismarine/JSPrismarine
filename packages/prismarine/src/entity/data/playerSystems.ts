@@ -12,13 +12,16 @@
  * No live player is a store entity until C4h, so this runs in tests only. C4e and C4f can move
  * the components onto the entity unchanged.
  */
+import { AIR_STATE } from '@jsprismarine/entities';
 import { Attributes } from '@jsprismarine/protocol/wire/structures/Attribute';
 
 import type { ContentBlock, ContentLevelFacts, ContentPosition } from '../../content/world/adapter';
-import { NATURAL_REGENERATION, ruleIsOn } from '../../content/world/gameRules';
+import { DROWNING_DAMAGE, NATURAL_REGENERATION, ruleIsOn } from '../../content/world/gameRules';
 import type { PlainData } from '../../world/changelog/PlainData';
 import { DamageCause } from '../DamageCause';
 import { DamageSource } from '../DamageSource';
+import { EYE_HEIGHT } from '../Human';
+import { breathe } from '../playerBreath';
 import { PlayerComponents } from '../playerComponents';
 import { addExhaustion, hungerOutcome } from '../playerHunger';
 import type { SurvivalPlayer } from '../survivalPlayer';
@@ -64,7 +67,20 @@ export class PlayerSystems {
     }
 
     /**
-     * One tick of a store player's systems, in the order a legacy player runs them: hunger.
+     * Runs before a store player's components tick. A player's air is the breath system's, so the
+     * `minecraft:breathable` the shipped player declares keeps none, and its tick, which reads its
+     * own air, does nothing. The component builds its air again whenever it initializes, such as
+     * after a component group change, so this clears it before every tick.
+     *
+     * @param entity - The player.
+     */
+    public beforeComponents(entity: DataEntity): void {
+        entity.instance.componentState.clear(AIR_STATE);
+    }
+
+    /**
+     * One tick of a store player's systems, in the order a legacy player runs them: breath, then
+     * hunger.
      *
      * @param entity - The player.
      * @param tick - The world tick, which the hunger clock reads.
@@ -73,6 +89,7 @@ export class PlayerSystems {
         const { survival } = this.playerOf(entity);
         if (!survival.vulnerable() || !survival.alive()) return;
 
+        this.tickBreath(entity, survival);
         this.tickHunger(entity, survival, tick);
     }
 
@@ -84,6 +101,14 @@ export class PlayerSystems {
      */
     public restore(entity: DataEntity, field: string, value: PlainData): boolean {
         return this.playerOf(entity).survival.components.restore(field, value);
+    }
+
+    /** Breath, read at the block the player's eyes are in, which a store player's feet are {@link EYE_HEIGHT} below. */
+    private tickBreath(entity: DataEntity, survival: SurvivalPlayer): void {
+        const { x, y, z } = entity.position;
+        const head = this.ports.blockAt({ x: Math.floor(x), y: Math.floor(y + EYE_HEIGHT), z: Math.floor(z) });
+        const drowning = breathe(survival, head?.identifier, ruleIsOn(this.ports.level, DROWNING_DAMAGE));
+        if (drowning !== undefined) this.hurt(entity, DamageCause.Drowning, drowning);
     }
 
     private tickHunger(entity: DataEntity, survival: SurvivalPlayer, tick: number): void {

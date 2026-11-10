@@ -42,6 +42,9 @@ export const SPAWN_MOBS = idOf('doMobSpawning');
 /** `minecraft:fire_spread_radius_around_player`: how far from a player fire ticks. */
 export const FIRE_SPREAD_RADIUS = idOf('doFireTick');
 
+/** `minecraft:drowning_damage`: whether an empty breath bar hurts. */
+export const DROWNING_DAMAGE = idOf('drowningDamage');
+
 /** `minecraft:natural_health_regeneration`: whether a well-fed player heals. */
 export const NATURAL_REGENERATION = idOf('naturalRegeneration');
 

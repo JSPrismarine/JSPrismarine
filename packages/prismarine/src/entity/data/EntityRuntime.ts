@@ -1464,6 +1464,7 @@ export class EntityRuntime implements EntityScene {
         this.updateMedium(entity);
         this.tickTimers(entity.body);
         if (entity.runsGoals) this.resetNoActionTimeNearPlayers(entity);
+        if (clientOwnsMovement(entity.identifier)) this.playerSystems.beforeComponents(entity);
         entity.instance.tick(entity.runsGoals);
         this.tickDaylightBurn(entity);
         this.tickVoid(entity);
