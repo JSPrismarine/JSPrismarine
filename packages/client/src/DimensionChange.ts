@@ -62,7 +62,7 @@ export default class DimensionChange extends EventEmitter {
     }
 
     private readonly onPacket = (packet: DecodedPacket): void => {
-        void this.dispatch(packet).catch((error: unknown) => {
+        void this.session.track(this.dispatch(packet)).catch((error: unknown) => {
             this.logger.warn(
                 `Client/DimensionChange: ${error instanceof Error ? error.message : String(error)}`,
                 'Client/DimensionChange/dispatch'
