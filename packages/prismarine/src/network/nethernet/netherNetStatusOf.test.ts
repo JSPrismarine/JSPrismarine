@@ -12,7 +12,8 @@ const snapshot: ServerNameSnapshot = {
     maxPlayers: 10,
     gamemode: 'survival',
     serverId: '1',
-    port: 19132
+    port: 19132,
+    portV6: 19133
 };
 
 describe('network/nethernet/netherNetStatusOf', () => {

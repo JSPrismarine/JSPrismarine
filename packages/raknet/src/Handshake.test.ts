@@ -22,7 +22,8 @@ const serverName: any = {
     setOnlinePlayerCount: vi.fn(),
     setSessionCount: vi.fn(),
     setPort: vi.fn(),
-    setServerId: vi.fn()
+    setServerId: vi.fn(),
+    getServerId: () => 0n
 };
 
 const CLIENT_GUID = 0x0123456789abcdefn;
@@ -46,7 +47,7 @@ const start = async (name = serverName) => {
 
     // ServerSocket.start binds asynchronously; wait for the port to be assigned.
     const port = await new Promise<number>((resolve, reject) => {
-        const socket = server['socket'];
+        const socket = server['socket']!;
         try {
             resolve(socket.address().port);
         } catch {
@@ -182,7 +183,7 @@ describe('offline handshake over a real socket', () => {
         expect(reply1[0]).toBe(MessageIdentifiers.OPEN_CONNECTION_REPLY_1);
         expect(reply1.readBigUInt64BE(1 + OFFLINE_MESSAGE_DATA_ID.byteLength)).toBe(guid);
 
-        send(openConnectionRequest2(1200, server['socket'].address().port));
+        send(openConnectionRequest2(1200, server['socket']!.address().port));
         const reply2 = await next();
         expect(reply2[0]).toBe(MessageIdentifiers.OPEN_CONNECTION_REPLY_2);
         expect(reply2.readBigUInt64BE(1 + OFFLINE_MESSAGE_DATA_ID.byteLength)).toBe(guid);

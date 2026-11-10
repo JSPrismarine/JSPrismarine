@@ -23,7 +23,8 @@ const serverName: any = {
     setOnlinePlayerCount: vi.fn(),
     setSessionCount: vi.fn(),
     setPort: vi.fn(),
-    setServerId: vi.fn()
+    setServerId: vi.fn(),
+    getServerId: () => 0n
 };
 
 let teardown: Array<() => void> = [];
@@ -80,7 +81,7 @@ const udpPair = async (
     const server = new ServerSocket(10, false, serverName, logger, socketBufferOptions, sendMode);
     server.start('127.0.0.1', 0);
     const port = await new Promise<number>((resolve, reject) => {
-        const socket = server['socket'];
+        const socket = server['socket']!;
         try {
             resolve(socket.address().port);
         } catch {

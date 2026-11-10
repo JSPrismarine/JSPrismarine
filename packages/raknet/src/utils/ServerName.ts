@@ -23,10 +23,13 @@ export interface ServerNameSnapshot {
     readonly gamemode: string;
     readonly serverId: string;
     readonly port: number;
+    readonly portV6: number;
 }
 
 /** The default Bedrock port, advertised until {@link ServerName.setPort} says otherwise. */
 const DEFAULT_PORT = 19_132;
+/** The default Bedrock IPv6 port, advertised until {@link ServerName.setPortV6} says otherwise. */
+const DEFAULT_PORT_V6 = 19_133;
 
 /**
  * The tenth field, which is a flag and not a count.
@@ -50,6 +53,7 @@ export class ServerName {
     private gamemode: string;
     private serverId = 0n;
     private port = DEFAULT_PORT;
+    private portV6 = DEFAULT_PORT_V6;
     private cachedPongName: string | null = null;
     private readonly changeListeners = new Set<(snapshot: ServerNameSnapshot) => void>();
 
@@ -91,7 +95,8 @@ export class ServerName {
             maxPlayers: this.maxPlayers,
             gamemode: this.gamemode,
             serverId: this.serverId.toString(),
-            port: this.port
+            port: this.port,
+            portV6: this.portV6
         };
     }
 
@@ -246,6 +251,23 @@ export class ServerName {
     }
 
     /**
+     * Get the IPv6 port advertised in the MOTD.
+     * @returns {number} The port.
+     */
+    public getPortV6(): number {
+        return this.portV6;
+    }
+    /**
+     * Set the IPv6 port advertised in the MOTD. A socket bound to an IPv6 address sets it once
+     * it has bound, the way an IPv4 socket sets {@link ServerName.setPort}.
+     * @param {number} port - The port the server is listening on for IPv6.
+     */
+    public setPortV6(port: number): void {
+        this.portV6 = port;
+        this.invalidatePongName();
+    }
+
+    /**
      * The MOTD line an `UnconnectedPong` carries, in the order a Bedrock Dedicated Server
      * broadcasts it.
      *
@@ -271,7 +293,7 @@ export class ServerName {
                     this.getGamemode(),
                     NINTH_FIELD_FLAG,
                     this.getPort(),
-                    this.getPort(),
+                    this.getPortV6(),
                     0,
                     0
                 ].join(';') + ';';

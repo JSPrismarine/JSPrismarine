@@ -1,3 +1,4 @@
+import { isIPv6 } from 'node:net';
 import { parentPort, workerData } from 'node:worker_threads';
 import type { RemoteInfo } from 'node:dgram';
 import Frame from './protocol/Frame';
@@ -47,7 +48,8 @@ const isServerNameSnapshot = (value: unknown): value is ServerNameSnapshot =>
     typeof value.maxPlayers === 'number' &&
     typeof value.gamemode === 'string' &&
     typeof value.serverId === 'string' &&
-    typeof value.port === 'number';
+    typeof value.port === 'number' &&
+    typeof value.portV6 === 'number';
 
 const isWorkerOptions = (value: unknown): value is WorkerServerOptions =>
     isRecord(value) &&
@@ -123,6 +125,7 @@ const applyServerName = (snapshot: ServerNameSnapshot): void => {
     serverName.setGamemode(snapshot.gamemode);
     serverName.setServerId(BigInt(snapshot.serverId));
     serverName.setPort(snapshot.port);
+    serverName.setPortV6(snapshot.portV6);
 };
 applyServerName(options.name);
 
@@ -228,12 +231,8 @@ const drainCommands = (): void => {
             const addressLength = command.readUInt16LE(7);
             const payloadOffset = EVENT_HEADER_BYTES + addressLength;
             if (payloadOffset > command.byteLength) continue;
-            const rinfo: RemoteInfo = {
-                address: command.toString('utf8', EVENT_HEADER_BYTES, payloadOffset),
-                port,
-                family: 'IPv4',
-                size: 0
-            };
+            const address = command.toString('utf8', EVENT_HEADER_BYTES, payloadOffset);
+            const rinfo: RemoteInfo = { address, port, family: isIPv6(address) ? 'IPv6' : 'IPv4', size: 0 };
             server.sendBuffer(command.subarray(payloadOffset), rinfo);
         }
     }
@@ -273,6 +272,10 @@ pumpTimer.unref();
 
 server.once('listening', (port: number) => {
     workerPort.postMessage({ type: 'ready', port, serverGuid: server.getServerGuid().toString() });
+});
+// A port another program holds fails the worker the way a crash would, and the parent reports it.
+server.once('error', (error: Error) => {
+    workerPort.postMessage({ type: 'failure', text: error.message });
 });
 server.start(options.address, options.port);
 

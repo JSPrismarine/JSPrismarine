@@ -25,7 +25,8 @@ const serverName: any = {
     setOnlinePlayerCount: vi.fn(),
     setSessionCount: vi.fn(),
     setPort: vi.fn(),
-    setServerId: vi.fn()
+    setServerId: vi.fn(),
+    getServerId: () => 0n
 };
 
 let running: { server: ServerSocket | null; clients: ClientSocket[]; sockets: Dgram.Socket[] } | null = null;
@@ -43,7 +44,7 @@ const startServer = async (maxConnections = 10) => {
 
     // ServerSocket.start binds asynchronously; wait for the port to be assigned.
     const port = await new Promise<number>((resolve, reject) => {
-        const socket = server['socket'];
+        const socket = server['socket']!;
         try {
             resolve(socket.address().port);
         } catch {
