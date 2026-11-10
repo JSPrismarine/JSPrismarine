@@ -9,6 +9,7 @@ import type { NetworkWorldReplicator, WorldReplicators } from '../NetworkWorldRe
 import { Position } from '../../world/Position';
 import type { World } from '../../world/World';
 import type { StubMembers } from '../../testing/stub.test.helper';
+import { identityNamed } from '../../testing/sessionIdentity.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import type PlayerSession from '../PlayerSession';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
@@ -39,7 +40,11 @@ const fakeSession = () => {
             getLogger: () => stub<Logger>({ verbose: () => {} }),
             getWorldReplicators: () => stub<WorldReplicators>({ for: () => replicator })
         }),
-        session: stub<PlayerSession>({ getPlayer: () => player })
+        session: stub<PlayerSession>({
+            runtimeId: SENDER_ID,
+            identity: identityNamed('tester'),
+            getPlayer: () => player
+        })
     };
 };
 

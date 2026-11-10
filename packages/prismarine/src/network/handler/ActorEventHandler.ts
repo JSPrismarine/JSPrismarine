@@ -2,7 +2,9 @@ import type Server from '../../Server';
 import type PlayerSession from '../PlayerSession';
 import type ActorEventPacket from '@jsprismarine/protocol/packet/ActorEventPacket';
 import { ActorEvent } from '@jsprismarine/protocol/packet/ActorEventPacket';
+import type { ShownActor } from '../../world/ShownActor';
 import type PacketHandler from './PacketHandler';
+import type { PlacedPlayer } from './playerPorts';
 
 /**
  * The events a vanilla client reports about its own player.
@@ -31,12 +33,12 @@ export default class ActorEventHandler implements PacketHandler<ActorEventPacket
 
     /** Relays an allowed event about the sender to the players tracking it, and drops the rest. */
     public async handle(packet: ActorEventPacket, server: Server, session: PlayerSession): Promise<void> {
-        const player = session.getPlayer();
+        const player: ShownActor & Pick<PlacedPlayer, 'getWorld'> = session.getPlayer();
         const logger = server.getLogger();
 
-        if (packet.runtimeEntityId !== player.getRuntimeId()) {
+        if (packet.runtimeEntityId !== session.runtimeId) {
             logger.verbose(
-                `Dropped actor event ${packet.event} from ${player.getName()}: it names actor ${packet.runtimeEntityId}, not the sender`,
+                `Dropped actor event ${packet.event} from ${session.identity.name}: it names actor ${packet.runtimeEntityId}, not the sender`,
                 'ActorEventHandler/handle'
             );
             return;
@@ -44,7 +46,7 @@ export default class ActorEventHandler implements PacketHandler<ActorEventPacket
 
         if (!CLIENT_EVENTS.has(packet.event)) {
             logger.verbose(
-                `Dropped actor event ${packet.event} from ${player.getName()}: a client does not send it`,
+                `Dropped actor event ${packet.event} from ${session.identity.name}: a client does not send it`,
                 'ActorEventHandler/handle'
             );
             return;
