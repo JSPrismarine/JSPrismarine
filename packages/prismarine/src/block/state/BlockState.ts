@@ -1,10 +1,12 @@
+import type { BlockStateValue } from '@jsprismarine/blocks';
 import { NBTTagCompound, Types } from '@jsprismarine/nbt';
 
 /**
- * A block state property value. Vanilla only ever uses these three NBT types, and which one
- * a property uses is part of the block's identity - see {@link BlockState.toNBT}.
+ * A block state property value, as `@jsprismarine/blocks` defines it. Vanilla only ever uses
+ * three NBT types, and which one a property uses is part of the block's identity - see
+ * {@link BlockState.toNBT}.
  */
-export type BlockStateValue = string | number | boolean;
+export type { BlockStateValue };
 
 /** How a property is written to NBT. `byte` is vanilla's boolean. */
 export type BlockStatePropertyType = 'byte' | 'int' | 'string';

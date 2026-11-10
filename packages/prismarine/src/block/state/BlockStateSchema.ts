@@ -1,8 +1,8 @@
+import type { BlockStateModel, BlockStateType } from '@jsprismarine/blocks';
+import { vanillaBlockPalette } from '@jsprismarine/blocks';
+
 import { BlockState } from './BlockState';
 import type { BlockStatePropertyType, BlockStateValue } from './BlockState';
-// The catalog is generated and lives with the rest of the vanilla facts. It used to sit
-// beside this file, produced by a script in a third package writing across package lines.
-import { blockSchemas as vanillaSchemas } from '@jsprismarine/minecraft';
 
 /** One property: how it is written, what it accepts, and what it is when unspecified. */
 export interface BlockStateProperty {
@@ -111,21 +111,53 @@ export class BlockStateSchema {
     }
 }
 
+/** The NBT type each of `@jsprismarine/blocks`' state types is written as. */
+const NBT_TYPE_OF = {
+    bool: 'byte',
+    int: 'int',
+    string: 'string'
+} as const satisfies Record<BlockStateType, BlockStatePropertyType>;
+
+/** A value as the wire writes it: `@jsprismarine/blocks` holds a bit as a boolean, NBT as a byte. */
+const wireValueOf = (type: BlockStateType, value: BlockStateValue): BlockStateValue =>
+    type === 'bool' ? Number(value) : value;
+
 /**
- * The 1477 schemas JSPrismarine ships with, built once at import.
+ * A block's schema, read off its `@jsprismarine/blocks` state model.
  *
- * Bootstrapped from the vanilla state dump by
- * `packages/bedrock-data/utils/generate-block-schemas.js` and owned here from that point
- * on: it is committed, diffable and editable, and the generator only runs again when
- * somebody deliberately runs it.
+ * The model is the one description of which states a block has and what each accepts; this is
+ * that description in the NBT types the runtime id hash is computed over.
+ *
+ * @param name - The block identifier.
+ * @param model - Its state model.
+ * @returns The schema.
+ */
+export const schemaFromModel = (name: string, model: BlockStateModel): BlockStateSchema =>
+    new BlockStateSchema(
+        name,
+        Object.fromEntries(
+            model.states.map((state) => [
+                state.name,
+                {
+                    type: NBT_TYPE_OF[state.type],
+                    values: state.values.map((value) => wireValueOf(state.type, value)),
+                    default: wireValueOf(state.type, state.defaultValue)
+                }
+            ])
+        )
+    );
+
+/**
+ * The schemas JSPrismarine ships with, built once at import from the vanilla palette
+ * `@jsprismarine/blocks` reads out of the generated catalog.
  *
  * Constant rather than loaded on the first read behind a `loaded` flag. The generated
  * catalog cannot change, so the flag only bought a branch on every lookup and a way for
- * {@link BlockStateSchemas.reset} to throw away 1477 schema objects and the default states
+ * {@link BlockStateSchemas.reset} to throw away every schema object and the default states
  * memoized on them.
  */
 const SHIPPED: ReadonlyMap<string, BlockStateSchema> = new Map(
-    Object.entries(vanillaSchemas.blocks).map(([name, data]) => [name, new BlockStateSchema(name, data.properties)])
+    vanillaBlockPalette().entries.map(({ identifier, model }) => [identifier, schemaFromModel(identifier, model)])
 );
 
 /**
