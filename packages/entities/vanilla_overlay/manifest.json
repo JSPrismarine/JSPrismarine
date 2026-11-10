@@ -2,7 +2,7 @@
     "format_version": 2,
     "header": {
         "name": "JSPrismarine entity overlay",
-        "description": "Entity definitions for Java entities absent from Bedrock's vanilla behavior pack.",
+        "description": "Built-in entity definitions for entities Bedrock's vanilla behavior pack has no file for.",
         "uuid": "8d7b676d-321f-4b76-9ed5-3a287c1042fa",
         "version": [0, 1, 0],
         "min_engine_version": [1, 26, 50]
