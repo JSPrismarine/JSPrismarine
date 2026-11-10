@@ -146,3 +146,23 @@ describe('ClientPacketRegistry', () => {
         expect(() => registry.register(PlayStatusPacket)).toThrow(/already registered/);
     });
 });
+
+describe('ClientSession settling', () => {
+    it('is idle only once every batch it got is handled and every send reached the transport', async () => {
+        const { transport, session } = newSession();
+        session.enableCompression({ algorithm: PacketCompressionAlgorithm.ZLIB, threshold: 1 });
+        const received: number[] = [];
+        session.on('packet', (packet: { id: number }) => received.push(packet.id));
+        expect(session.isIdle()).toBe(true);
+
+        transport.emit('batch', await zlib().encodeAsync([encode(bigText(64_000))]));
+        const sending = session.send(bigText(64_000));
+        expect(session.isIdle()).toBe(false);
+
+        await session.settled();
+        expect(session.isIdle()).toBe(true);
+        expect(received).toHaveLength(1);
+        expect(transport.sent).toHaveLength(1);
+        await sending;
+    });
+});
