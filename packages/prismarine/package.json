@@ -16,6 +16,7 @@
                 "module": "./dist/*.js"
             },
             "./world/positionKeys": null,
+            "./world/changelog/*": null,
             "./package.json": "./package.json"
         }
     },
@@ -41,6 +42,7 @@
             "default": "./src/*.ts"
         },
         "./world/positionKeys": null,
+        "./world/changelog/*": null,
         "./package.json": "./package.json"
     },
     "homepage": "https://github.com/JSPrismarine/JSPrismarine/tree/master/packages/prismarine",
