@@ -7,7 +7,9 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
+import Random from './bot/Random';
 import Client from './Client';
+import { conditionLink } from './net/LinkConditions';
 
 /**
  * The whole of phase one, proved the only way it can be: a real server booted in this
@@ -100,6 +102,26 @@ describe('logging into a real server', () => {
         expect(client.isConnected()).toBe(true);
         const players = server!.getSessionManager().getAllPlayers();
         expect(players.map((player: any) => player.getName())).toContain('NetherNetTester');
+    }, 40_000);
+
+    it('spawns over NetherNet across a long, lossy path', async () => {
+        // Werift 0.24.4 could stop sending for good once a retransmission timer fired after a gap
+        // ack, which loss on a long path makes likely, and the client then waited on a link that
+        // still looked up. Both ends run in this process, so each datagram is held and each may
+        // be dropped on its way out of either.
+        const random = new Random(90);
+        const link = conditionLink({ latencyMs: 50, loss: 0.02, random: () => random.next() });
+        try {
+            const client = newClient('FarAwayTester', 'nethernet');
+
+            const startGame = await client.connect();
+
+            expect(startGame.runtimeEntityId).toBeGreaterThan(0n);
+            expect(client.isConnected()).toBe(true);
+            expect(link.dropped).toBeGreaterThan(0);
+        } finally {
+            link.restore();
+        }
     }, 40_000);
 
     it('is visible to the server as a joined player', async () => {

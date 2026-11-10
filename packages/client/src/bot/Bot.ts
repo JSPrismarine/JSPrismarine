@@ -14,6 +14,8 @@ export const TICK_INTERVAL_MS = 50;
 export interface BotOptions {
     readonly host: string;
     readonly port: number;
+    /** Which transport to dial; RakNet by default. */
+    readonly network?: 'raknet' | 'nethernet';
     readonly displayName: string;
     readonly behaviors: readonly Behavior[];
     readonly random: Random;
@@ -54,6 +56,7 @@ export default class Bot {
         this.client = new Client({
             host: options.host,
             port: options.port,
+            network: options.network,
             logger: options.logger,
             auth: new OfflineAuthProvider({ displayName: options.displayName }),
             loginTimeoutMs: options.loginTimeoutMs

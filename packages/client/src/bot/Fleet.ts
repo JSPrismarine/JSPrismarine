@@ -8,6 +8,8 @@ import { createBehaviors } from './behavior/Behaviors';
 export interface FleetOptions {
     readonly host: string;
     readonly port?: number;
+    /** Which transport every bot dials; RakNet by default. */
+    readonly network?: 'raknet' | 'nethernet';
     readonly count: number;
     /** Behavior names, e.g. `['walk', 'chat']`. */
     readonly behaviors?: readonly string[];
@@ -69,6 +71,7 @@ export default class Fleet {
                 new Bot({
                     host: options.host,
                     port: options.port ?? 19132,
+                    network: options.network,
                     displayName: `${prefix}${index}`,
                     // Built per bot rather than shared: a behavior holds state - which way
                     // it is walking, when it next speaks - and one instance across five

@@ -5,7 +5,8 @@ import { writeFile } from 'node:fs/promises';
 import Client from '../Client';
 import Fleet from '../bot/Fleet';
 import { formatReport } from '../bot/Metrics';
-import { UsageError, parseCount, parseDuration, parseRate } from './Cli';
+import { UsageError, parseCount, parseDuration, parseNetwork, parsePercent, parseRate } from './Cli';
+import { conditionLink } from '../net/LinkConditions';
 
 import { isPacket } from '../net/ClientPacketRegistry';
 
@@ -37,6 +38,25 @@ const port = (values: Values): number => {
     return value === undefined ? DEFAULT_PORT : parseCount(value, '--port');
 };
 
+const network = (values: Values): 'raknet' | 'nethernet' => parseNetwork(optionalString(values, 'network') ?? 'raknet');
+
+/**
+ * Runs a command over the path `--latency` and `--loss` describe, or directly when neither is
+ * given. The conditions are read before anything connects, so a typo fails first.
+ */
+const overLink = async (values: Values, command: () => Promise<number>): Promise<number> => {
+    const latencyMs = optionalParsed(values, 'latency', parseDuration);
+    const loss = optionalParsed(values, 'loss', (value) => parsePercent(value, '--loss'));
+    if (latencyMs === undefined && loss === undefined) return command();
+
+    const link = conditionLink({ latencyMs, loss });
+    try {
+        return await command();
+    } finally {
+        link.restore();
+    }
+};
+
 const logger = (values: Values): Logger => new Logger(values.verbose === true ? 'silly' : 'error');
 
 /** Resolves when the process is asked to stop, so a long-running command can tidy up. */
@@ -53,11 +73,15 @@ const untilInterrupted = (): Promise<void> =>
     });
 
 /** Joins a server and prints its chat until interrupted. */
-export const runConnect = async (values: Values, io: CliIo): Promise<number> => {
+export const runConnect = async (values: Values, io: CliIo): Promise<number> =>
+    overLink(values, () => connect(values, io));
+
+const connect = async (values: Values, io: CliIo): Promise<number> => {
     const host = requireString(values, 'host');
     const client = new Client({
         host,
         port: port(values),
+        network: network(values),
         displayName: optionalString(values, 'name') ?? 'Player',
         logger: logger(values),
         loginTimeoutMs: optionalParsed(values, 'timeout', parseDuration)
@@ -113,7 +137,9 @@ export const runPing = async (values: Values, io: CliIo): Promise<number> => {
  * Exits non-zero when any bot failed to connect, so this is usable as a CI gate rather than
  * only as something to read.
  */
-export const runBot = async (values: Values, io: CliIo): Promise<number> => {
+export const runBot = async (values: Values, io: CliIo): Promise<number> => overLink(values, () => bot(values, io));
+
+const bot = async (values: Values, io: CliIo): Promise<number> => {
     const host = requireString(values, 'host');
     const count = parseCount(requireString(values, 'count'), '--count');
     if (count === 0) throw new UsageError('--count must be at least 1');
@@ -129,6 +155,7 @@ export const runBot = async (values: Values, io: CliIo): Promise<number> => {
     const fleet = new Fleet({
         host,
         port: port(values),
+        network: network(values),
         count,
         behaviors,
         ramp,

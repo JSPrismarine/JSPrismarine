@@ -36,6 +36,22 @@ export const parseRate = (value: string): number => {
     return Number(match[1]);
 };
 
+/** Parses a percentage, `2%` or `2`, as a share from 0 to 1. */
+export const parsePercent = (value: string, flag: string): number => {
+    const match = /^(\d+(?:\.\d+)?)%?$/.exec(value.trim());
+    const percent = match ? Number(match[1]) : Number.NaN;
+    if (!(percent >= 0 && percent <= 100))
+        throw new UsageError(`${flag} must be a percentage from 0 to 100, got "${value}"`);
+
+    return percent / 100;
+};
+
+/** Parses which transport to dial. */
+export const parseNetwork = (value: string): 'raknet' | 'nethernet' => {
+    if (value === 'raknet' || value === 'nethernet') return value;
+    throw new UsageError(`--network must be raknet or nethernet, got "${value}"`);
+};
+
 /** Parses a non-negative whole-number option. */
 export const parseCount = (value: string, flag: string): number => {
     const count = Number(value);
@@ -62,6 +78,9 @@ export interface Values {
     'name-prefix'?: string;
     report?: string;
     timeout?: string;
+    network?: string;
+    latency?: string;
+    loss?: string;
     verbose?: boolean;
 }
 
@@ -89,6 +108,24 @@ const HOST_PORT_OPTIONS = {
         alias: 'p',
         default: DEFAULT_PORT,
         describe: 'Server port',
+        type: 'string'
+    }
+} satisfies Record<string, Options>;
+
+/** How to reach the server: the transport, and a simulated path to it. */
+const LINK_OPTIONS = {
+    network: {
+        alias: 'n',
+        default: 'raknet',
+        describe: 'Transport to dial: raknet or nethernet',
+        type: 'string'
+    },
+    latency: {
+        describe: 'Delay every datagram the client sends, as on a long path, e.g. 150ms',
+        type: 'string'
+    },
+    loss: {
+        describe: 'Drop this share of the datagrams the client sends, e.g. 2%',
         type: 'string'
     }
 } satisfies Record<string, Options>;
@@ -136,6 +173,7 @@ export const run = async (argv: readonly string[], io: CliIo = CONSOLE_IO): Prom
             (yargs) =>
                 yargs.options({
                     ...HOST_PORT_OPTIONS,
+                    ...LINK_OPTIONS,
                     name: { type: 'string', default: 'Player', describe: 'Player display name' },
                     timeout: { type: 'string', describe: 'Login timeout, e.g. 30s' }
                 }),
@@ -157,6 +195,7 @@ export const run = async (argv: readonly string[], io: CliIo = CONSOLE_IO): Prom
             (yargs) =>
                 yargs.options({
                     ...HOST_PORT_OPTIONS,
+                    ...LINK_OPTIONS,
                     count: { alias: 'c', type: 'string', describe: 'Number of bots to run (required)' },
                     behavior: {
                         alias: 'b',
