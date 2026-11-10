@@ -382,7 +382,7 @@ const runSuite = async (suite: ScenarioSuite, index: number): Promise<ScenarioRe
         const joined = suiteServer.waitForLine(new RegExp(`${playerName} joined the game`), joinBudgetMs);
         const measureChunkJoin = suite.scenarios.some((scenario) => scenario.name === cachedChunkDelivery.name);
         const connectStarted = performance.now();
-        await client.connect(suiteServer.port);
+        await client.connect(suiteServer.port, transport === 'nethernet');
         let playerSpawnMs: number | undefined;
         let radius2ChunkReadyMs: number | undefined;
         if (measureChunkJoin) {
@@ -450,7 +450,7 @@ const runSuite = async (suite: ScenarioSuite, index: number): Promise<ScenarioRe
                             new RegExp(`${displayName} joined the game`),
                             120_000
                         );
-                        await additional.connect(suiteServer.port);
+                        await additional.connect(suiteServer.port, transport === 'nethernet');
                         await additional.waitFor('in_world', 120_000);
                         await additional.waitForScreenAbsent('Loading', 120_000);
                         await additionalJoined;
@@ -496,7 +496,7 @@ const runSuite = async (suite: ScenarioSuite, index: number): Promise<ScenarioRe
                         await client.close().catch(() => {});
                         client = await launchClient();
                         const rejoined = suiteServer.waitForLine(new RegExp(`${playerName} joined the game`), 120_000);
-                        await client.connect(suiteServer.port);
+                        await client.connect(suiteServer.port, transport === 'nethernet');
                         await client.waitFor('in_world', 120_000);
                         await client.waitForScreenAbsent('Loading', 120_000);
                         await rejoined;
