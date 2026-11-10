@@ -71,6 +71,59 @@ describe('NetherNetIdentity', () => {
         );
     });
 
+    it.each([
+        ['an identity that is not an object', '"text"', 'has no assertion'],
+        ['an assertion that is not a token and fingerprints', { assertion: '{}', idp: {} }, 'assertion is malformed'],
+        [
+            'a token with no key in it',
+            {
+                assertion: JSON.stringify({
+                    token: `${Buffer.from('{}').toString('base64url')}.${Buffer.from('{"exp":1}').toString('base64url')}.x`,
+                    fingerprints: 'a..b'
+                }),
+                idp: {}
+            },
+            'no usable cpk claim'
+        ]
+    ])('refuses %s', (_name, identity, reason) => {
+        const value = typeof identity === 'string' ? identity : JSON.stringify(identity);
+        const forged = DESCRIPTION.replace(
+            'm=application',
+            `a=identity:${Buffer.from(value).toString('base64')}\r\nm=application`
+        );
+
+        expect(() => verifySelfSignedIdentity(forged)).toThrow(reason);
+    });
+
+    it('refuses a token signed by a key other than the one it names', () => {
+        const { privateKey: other } = generateKeyPairSync('ec', { namedCurve: BEDROCK_CURVE });
+        const genuine = new NetherNetIdentity(privateKey, { now: () => now }).sign(DESCRIPTION);
+        const impostor = new NetherNetIdentity(other, { now: () => now }).sign(DESCRIPTION);
+        const identityOf = (description: string) =>
+            JSON.parse(
+                Buffer.from(
+                    description
+                        .split('\r\n')
+                        .find((line) => line.startsWith('a=identity:'))!
+                        .slice(11),
+                    'base64'
+                ).toString()
+            );
+        // The genuine token's claims, carrying the genuine key, under the impostor's signature.
+        const [, claims] = JSON.parse(identityOf(genuine).assertion).token.split('.');
+        const [header, , signature] = JSON.parse(identityOf(impostor).assertion).token.split('.');
+        const forgedAssertion = {
+            ...JSON.parse(identityOf(genuine).assertion),
+            token: `${header}.${claims}.${signature}`
+        };
+        const forged = genuine.replace(
+            /a=identity:\S+/,
+            `a=identity:${Buffer.from(JSON.stringify({ ...identityOf(genuine), assertion: JSON.stringify(forgedAssertion) })).toString('base64')}`
+        );
+
+        expect(() => verifySelfSignedIdentity(forged, now)).toThrow('not signed by its own key');
+    });
+
     it('refuses a description with no identity at all', () => {
         expect(() => verifySelfSignedIdentity(DESCRIPTION)).toThrow('carries no a=identity');
     });

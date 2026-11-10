@@ -100,6 +100,30 @@ describe('HttpSignaling', () => {
         expect(await response.text()).toBe('13');
     });
 
+    it('answers 500 when negotiating the offer throws, and logs why', async () => {
+        const errors: unknown[] = [];
+        const answerer: NetherNetOfferAnswerer = {
+            connections: new Map(),
+            handleOffer: async () => {
+                throw new Error('peer connection failed');
+            }
+        };
+        const signaling = new HttpSignaling({
+            answerer,
+            status: () => '{}',
+            sign: (answer) => answer,
+            logger: { debug: () => {}, error: (error) => void errors.push(error) }
+        });
+        running.push(signaling);
+        const port = await signaling.listen(0, '127.0.0.1');
+
+        const response = await post(`http://127.0.0.1:${port}/v1/join/1`, OFFER);
+
+        expect(response.status).toBe(500);
+        expect(await response.text()).toBe('An error occurred while answering');
+        expect(String(errors[0])).toContain('peer connection failed');
+    });
+
     it('gives up on an offer that is never answered and closes its peer', async () => {
         const { answerer, closed, offers } = fakeAnswerer(() => {});
         const base = await start(answerer, 50);
