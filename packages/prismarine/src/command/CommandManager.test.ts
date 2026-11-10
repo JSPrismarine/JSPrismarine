@@ -2,8 +2,6 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
-import type { CommandDispatcher } from '@jsprismarine/brigadier';
-import { integer } from '@jsprismarine/brigadier';
 import type { Logger } from '@jsprismarine/logger';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Server } from '../';
@@ -22,14 +20,10 @@ import { Position } from '../world/Position';
 import type { Level } from '../world/Level';
 import type { World } from '../world/World';
 import type WorldManager from '../world/WorldManager';
-import { CommandParameterFlags } from '@jsprismarine/protocol/wire/structures/CommandParameter';
 import { testContent } from '../testing/entityServer';
-import * as Commands from './Commands';
-import { Command, argument, literal } from './Command';
-import { isCommandArgument } from './CommandArguments';
-import type { CommandExecutor } from './CommandExecutor';
 import type { ConsoleSender } from './ConsoleSender';
-import { CommandManager } from './CommandManager';
+import { CommandManager, commandPermissionOf } from './CommandManager';
+import { JSPRISMARINE_COMMAND_PERMISSIONS } from './jsprismarineCommands';
 
 describe('command', () => {
     describe('CommandManager', () => {
@@ -51,14 +45,21 @@ describe('command', () => {
             emit: vi.fn().mockResolvedValue({})
         }))();
 
-        it('should register commands on enable', async () => {
+        it("registers this server's own commands in the same registry as the vanilla set", async () => {
             const commandManager = new CommandManager(server);
-
-            // Mock the registerClassCommand method
-            commandManager.registerCommand = vi.fn();
             await commandManager.enable();
 
-            expect(commandManager.registerCommand).toHaveBeenCalledTimes(Object.keys(Commands).length);
+            const names = commandManager.getVanillaCommands().getNames();
+            for (const name of Object.keys(JSPRISMARINE_COMMAND_PERMISSIONS)) expect(names).toContain(name);
+            expect(names).toContain('teleport');
+            expect(commandManager.vanillaName('about')).toBe('version');
+        });
+
+        it('gates each command by the permission node it has always used', () => {
+            expect(commandPermissionOf('tps')).toBe('jsprismarine.command.tps');
+            expect(commandPermissionOf('version')).toBe('jsprismarine.command.version');
+            expect(commandPermissionOf('ban')).toBe('minecraft.command.ban');
+            expect(commandPermissionOf('teleport')).toBe('minecraft.command.teleport');
         });
 
         it('keeps pre-enable tree access and reuses one flattened list', () => {
@@ -69,27 +70,6 @@ describe('command', () => {
             expect(commandManager.getVanillaCommands()).toBe(tree);
             expect(commandManager.getVanillaCommandList()).toBe(commands);
             expect(commands.map(({ name }) => name)).toContain('teleport');
-        });
-
-        it('should clear commands on disable', async () => {
-            const commandManager = new CommandManager(server);
-
-            commandManager.getCommands().set('test', new Command({ id: 'test:test' }));
-            await commandManager.disable();
-
-            expect(commandManager.getCommands().size).toBe(0);
-        });
-
-        it('should register a command by class', async () => {
-            const commandManager = new CommandManager(server);
-
-            const command = new Command({
-                id: 'test:command'
-            });
-
-            await commandManager.registerCommand(command);
-
-            expect(commandManager.getCommands().get('test:command')).toBe(command);
         });
 
         /** A manager whose permission checks are observable, plus the spy watching them. */
@@ -158,86 +138,21 @@ describe('command', () => {
             expect(sendMessage).toHaveBeenCalledWith(expect.stringContaining('do not have permission'));
         });
 
-        it('should register every command under the name its id gives it', async () => {
-            // The client's command list is built by matching each dispatcher root literal
-            // against `Command.name`, so a literal spelled differently from the id suffix
-            // drops the command from the client and leaves neither spelling dispatchable.
-            const commandManager = new CommandManager(server);
-            await commandManager.enable();
-
-            const root = commandManager.getDispatcher().getRoot();
-            const unregistered = Array.from(commandManager.getCommands().values())
-                .filter((command) => root.getChild(command.name) === undefined)
-                .map((command) => command.id);
-            expect(unregistered).toEqual([]);
-
-            const names = new Set(Array.from(commandManager.getCommands().values(), (command) => command.name));
-            const orphaned = commandManager
-                .getCommandsList()
-                .map(([literal]) => literal)
-                .filter((literal) => !names.has(literal));
-            expect(orphaned).toEqual([]);
-        });
-
         it('should list each command once, with the overloads of every branch', async () => {
-            // The client keys commands by name. One entry per top-level argument node, which
-            // is what the tree walk used to produce, sent `/ban` three times and left the
-            // client with whichever copy it read last.
+            // The client keys commands by name, so a command reaching it twice leaves it with
+            // whichever copy it read last.
             const commandManager = new CommandManager(server);
             await commandManager.enable();
 
-            const list = commandManager.getCommandsList();
-            const names = list.map(([name]) => name);
+            const list = commandManager.getVanillaCommandList();
+            const names = list.map(({ name }) => name);
             expect(new Set(names).size).toBe(names.length);
 
-            const overloadsOf = (name: string) => list.find(([literal]) => literal === name)?.[2];
+            const overloadsOf = (name: string) => list.find((command) => command.name === name)?.overloads;
             // `/ban <player>` and `/ban <player> <reason>`.
-            expect(overloadsOf('ban')?.map((overload) => overload.length)).toEqual([1, 2]);
+            expect(overloadsOf('ban')?.map((overload) => overload.parameters.length)).toEqual([1, 2]);
             // `/version` runs bare and takes nothing else.
-            expect(overloadsOf('version')).toEqual([[]]);
-        });
-
-        it('should keep the vanilla set out of the class-registered list', async () => {
-            // A name belongs to exactly one of the two trees. A vanilla command that was
-            // also still registered as a class would reach the client twice over.
-            const commandManager = new CommandManager(server);
-            await commandManager.enable();
-
-            const classes = commandManager.getCommandsList().map(([name]) => name);
-            const vanilla = commandManager.getVanillaCommandList().map((command) => command.name);
-
-            expect(classes.filter((name) => vanilla.includes(name))).toEqual([]);
-            expect(vanilla).toContain('teleport');
-            expect(vanilla).toContain('time');
-        });
-
-        it('should flatten nested literals and redirect targets into hard enums', () => {
-            const commandManager = new CommandManager(server);
-            const dispatcher = commandManager.getDispatcher();
-            const destination = dispatcher.register(
-                literal('destination').then(literal('child').then(argument('value', integer()).executes(() => 0)))
-            );
-            dispatcher.register(
-                literal('nested').then(literal('sub').then(argument('value', integer()).executes(() => 0)))
-            );
-            dispatcher.register(literal('alias').redirect(destination));
-
-            const overloadsOf = (name: string) =>
-                commandManager.getCommandsList().find(([entry]) => entry === name)?.[2];
-            const nestedKeyword = overloadsOf('nested')?.[0]?.[0];
-            const redirectedKeyword = overloadsOf('alias')?.[0]?.[0];
-
-            if (!nestedKeyword || !isCommandArgument(nestedKeyword)) throw new Error('Expected a literal parameter');
-            if (!redirectedKeyword || !isCommandArgument(redirectedKeyword))
-                throw new Error('Expected a redirected literal parameter');
-
-            const [nestedParameter] = nestedKeyword.getParameters(server) ?? [];
-            const [redirectedParameter] = redirectedKeyword.getParameters(server) ?? [];
-            expect(nestedParameter?.enum?.values).toEqual(['sub']);
-            expect(nestedParameter?.enum?.soft).toBe(false);
-            expect(nestedParameter?.flags).toBe(CommandParameterFlags.FORCE_COLLAPSE_ENUM);
-            expect(redirectedParameter?.enum?.values).toEqual(['child']);
-            expect(redirectedParameter?.enum?.soft).toBe(false);
+            expect(overloadsOf('version')?.map((overload) => overload.parameters.length)).toEqual([0]);
         });
 
         it('should dispatch a vanilla command through the command layer', async () => {
@@ -271,28 +186,11 @@ describe('command', () => {
         it('should resolve to true once a command has run', async () => {
             // `CommandRequestHandler` reports this to the client as the reply's success count.
             const { commandManager } = managerWithPermissionSpy();
-            const runs: string[] = [];
-
-            class PingCommand extends Command {
-                public constructor() {
-                    super({ id: 'test:ping' });
-                }
-
-                public async register(dispatcher: CommandDispatcher<CommandExecutor>): Promise<void> {
-                    dispatcher.register(
-                        literal('ping').executes((context) => {
-                            runs.push(context.getInput());
-                            // The result count `execute store result` would capture: one ping.
-                            return 1;
-                        })
-                    );
-                }
-            }
-            await commandManager.registerCommand(new PingCommand());
+            await commandManager.enable();
 
             const console = new Console(server);
-            await expect(commandManager.dispatchCommand(console, console, '/ping')).resolves.toBe(true);
-            expect(runs).toEqual(['ping']);
+            vi.spyOn(console, 'sendMessage').mockImplementation(() => {});
+            await expect(commandManager.dispatchCommand(console, console, '/gamerule fall_damage')).resolves.toBe(true);
         });
 
         it('should refuse an unknown command without throwing at the caller', async () => {

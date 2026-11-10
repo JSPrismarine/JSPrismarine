@@ -1,110 +1,70 @@
 import type { ParseResults, RootCommandNode } from '@jsprismarine/brigadier';
-import { ArgumentCommandNode, CommandDispatcher, CommandSyntaxException } from '@jsprismarine/brigadier';
+import { CommandSyntaxException } from '@jsprismarine/brigadier';
 import type { CommandHost, CommandRegistry, CommandSource, FlattenedCommand } from '@jsprismarine/commands';
 import { bedrockCommand, createCommandSource, flattenCommandTree } from '@jsprismarine/commands';
-import {
-    CommandRegisterClassMalformedOrMissingError,
-    CommandUnknownCommandError,
-    Error,
-    GenericNamespaceInvalidError
-} from '@jsprismarine/errors';
+import { Error } from '@jsprismarine/errors';
 import { TICK_FUNCTION_TAG } from '@jsprismarine/mcfunction';
 import { CommandPermissionLevel } from '@jsprismarine/minecraft';
 
-import type { Command, Entity, Server, Service } from '../';
-import { Chat } from '../chat/Chat';
-import { collectAsyncCommands, deferCommandWork } from './Command';
+import type { Entity, Server, Service } from '../';
+import { collectAsyncCommands, deferCommandWork } from './deferred';
 // Imported straight from its module rather than through the barrel: `index.ts` exports
 // `./world/` before `Player`, so reaching for it via '../' lands in a half-initialized
 // module and the binding is not a constructor yet by the time `instanceof` runs.
 import Player from '../Player';
-import CommandRegisterEvent from '../events/command/CommandRegisterEvent';
-import { CommandEnum } from '@jsprismarine/protocol/wire/structures/CommandEnum';
-import CommandParameter, { CommandParameterFlags } from '@jsprismarine/protocol/wire/structures/CommandParameter';
 import Timer from '../utils/Timer';
-import type { CommandArgumentType } from './CommandArguments';
-import { CommandArgument, isCommandArgument } from './CommandArguments';
 import type { CommandExecutor } from './CommandExecutor';
 import { isCommandExecutor } from './CommandExecutor';
-import * as Commands from './Commands';
 import type { FunctionContent } from './function';
 import { FunctionRuntime, functionContentOf, loadServerFunctions } from './function';
 import { dimensionIdOf, entityRefOf } from './host/support';
 import { serverCommandHost } from './host/serverCommandHost';
 import { RandomSequences } from './host/randomSequences';
 import type { RandomSequencesState } from './host/randomSequences';
+import { JSPRISMARINE_COMMAND_PERMISSIONS, registerJsprismarineCommands } from './jsprismarineCommands';
 import { buildVanillaCommands, contentRegistryIds, UNWIRED_COMMANDS } from './vanillaCommands';
 
-/**
- * A node of the registered command tree. Brigadier does not export `CommandNode`, so the type
- * is read off the root node's API.
- */
-export type CommandTreeNode = NonNullable<ReturnType<RootCommandNode<CommandExecutor>['getChild']>>;
 type VanillaCommandTreeNode = NonNullable<ReturnType<RootCommandNode<CommandSource>['getChild']>>;
-
-/**
- * A registered command: its name, its node, and each overload's arguments in input order. A
- * command that runs without arguments has an empty overload for that form.
- */
-export type CommandListEntry = [name: string, node: CommandTreeNode, overloads: CommandArgumentType[][]];
 
 const HELP_PAGE_SIZE = 7;
 const MAX_HELP_SYNTAX_LINES = 18;
 const MAX_FUNCTION_PARSE_CACHE_ENTRIES = 8192;
 
-/** A literal encoded as a one-value hard enum for the Bedrock command packet. */
-class LiteralCommandArgument extends CommandArgument {
-    public constructor(private readonly literal: string) {
-        super();
-    }
-
-    public override getReadableType(): string {
-        return this.literal;
-    }
-
-    public override getParameters(): Set<CommandParameter> {
-        const literalEnum = new CommandEnum();
-        literalEnum.name = `Literal:${this.literal}`;
-        literalEnum.values = [this.literal];
-
-        return new Set([
-            new CommandParameter({
-                paramName: this.literal,
-                enum: literalEnum,
-                flags: CommandParameterFlags.FORCE_COLLAPSE_ENUM
-            })
-        ]);
-    }
-}
-
 /**
- * The permission node a vanilla command is gated by.
+ * The permission node a command is gated by.
  *
  * The command layer carries a `CommandPermissionLevel`; this server gates on
- * named nodes, and the names are the ones the legacy command classes used, so
- * a `permissions.json` that granted `minecraft.command.me` still grants it.
+ * named nodes. A vanilla command's node is `minecraft.command.<name>`, so a
+ * `permissions.json` that granted `minecraft.command.me` still grants it, and
+ * this server's own commands keep the nodes in
+ * {@link JSPRISMARINE_COMMAND_PERMISSIONS}.
  */
-export const vanillaPermissionOf = (name: string): string => `minecraft.command.${name}`;
+export const commandPermissionOf = (name: string): string =>
+    JSPRISMARINE_COMMAND_PERMISSIONS[name] ?? `minecraft.command.${name}`;
+
+/**
+ * Builds the one registry this server dispatches: the vanilla set plus this
+ * server's own commands.
+ */
+const buildCommands = (server: Server, content?: Parameters<typeof buildVanillaCommands>[0]) => {
+    const registry = buildVanillaCommands(content);
+    registerJsprismarineCommands(registry, server);
+    return registry;
+};
 
 export class CommandManager implements Service {
-    private readonly commands: Map<string, Command> = new Map();
     private readonly server: Server;
     private readonly onStopCommandComplete: (() => void) | undefined;
     private stopCommandRequests = 0;
-    private dispatcher!: CommandDispatcher<CommandExecutor>;
 
     /** What `@jsprismarine/commands` calls into - see {@link import('./host').serverCommandHost}. */
     private readonly host: CommandHost;
     private readonly randomSequences: RandomSequences;
 
     /**
-     * The vanilla command set, as a Java-shaped Brigadier tree.
-     *
-     * A second registry beside {@link CommandManager.dispatcher} rather than a
-     * replacement for it: the two dispatch different source types, and the
-     * `jsprismarine:` commands and the two vanilla ones the package does not
-     * implement still run on the old one. A command name belongs to exactly
-     * one of them, which is what {@link CommandManager.vanillaName} decides.
+     * Every command this server runs, as a Java-shaped Brigadier tree: the
+     * vanilla set from `@jsprismarine/commands` and this server's own, from
+     * `jsprismarineCommands.ts`.
      */
     private vanilla: CommandRegistry<CommandSource> | undefined;
 
@@ -130,7 +90,6 @@ export class CommandManager implements Service {
     public constructor(server: Server, onStopCommandComplete?: () => void) {
         this.server = server;
         this.onStopCommandComplete = onStopCommandComplete;
-        this.dispatcher = new CommandDispatcher<CommandExecutor>();
         this.randomSequences = new RandomSequences(() => server.getWorldManager().getDefaultWorld().getSeed());
         this.host = serverCommandHost(
             server,
@@ -153,7 +112,7 @@ export class CommandManager implements Service {
 
     /** Keeps the pre-enable API available without building a throwaway tree at startup. */
     private vanillaRegistry(): CommandRegistry<CommandSource> {
-        this.vanilla ??= buildVanillaCommands();
+        this.vanilla ??= buildCommands(this.server);
         return this.vanilla;
     }
 
@@ -291,175 +250,23 @@ export class CommandManager implements Service {
         // build runs between the two and the registry arguments validate
         // against what it loaded, so a pack's own entity, block, item or
         // enchantment is spellable.
-        this.vanilla = buildVanillaCommands(contentRegistryIds(this.server.getContent()));
+        this.vanilla = buildCommands(this.server, contentRegistryIds(this.server.getContent()));
         this.flattenedVanillaCommands = undefined;
         this.functionParseCache.clear();
 
         this.server
             .getLogger()
             .verbose(
-                `Registered §b${this.vanillaRegistry().getNames().length}§r vanilla command(s); ` +
-                    `§e${Object.keys(UNWIRED_COMMANDS).length}§r need a subsystem this server does not have`
+                `Registered §b${this.vanillaRegistry().getNames().length}§r command(s) in §e${timer.stop()} ms§r; ` +
+                    `§e${Object.keys(UNWIRED_COMMANDS).length}§r vanilla command(s) need a subsystem this server does not have`
             );
-
-        const commands = Object.values(Commands);
-
-        // Register jsprismarine commands
-        await Promise.all(
-            commands.map(async (Command) => {
-                const command = new Command();
-
-                const event = new CommandRegisterEvent(command);
-                await this.server.emit('commandRegister', event);
-                if (event.isCanceled()) return;
-
-                try {
-                    await this.registerCommand(command);
-                } catch (error: unknown) {
-                    this.server.getLogger().error(error);
-                    this.server.getLogger().warn(`Failed to register command ${command.id}`);
-                }
-            })
-        );
-
-        this.server
-            .getLogger()
-            .verbose(`Registered §b${this.commands.size}§r commands(s) (took §e${timer.stop()} ms§r)!`);
     }
 
     /**
      * On disable hook.
      * @group Lifecycle
      */
-    public async disable(): Promise<void> {
-        this.commands.clear();
-        // TODO: clear commands in dispatcher
-    }
-
-    /**
-     * Register a command into command manager by class.
-     * @param {Command} [command] - The command class to register
-     */
-    public async registerCommand(command?: Command): Promise<void> {
-        if (!command || !command.id) throw new CommandRegisterClassMalformedOrMissingError();
-        if (command.id.split(':').length !== 2) throw new GenericNamespaceInvalidError();
-
-        await command.register(this.dispatcher);
-        this.commands.set(command.id, command);
-
-        await Promise.all(
-            this.server
-                .getSessionManager()
-                .getAllPlayers()
-                .map(async (player) => player.getNetworkSession().sendAvailableCommands())
-        );
-
-        this.server.getLogger().debug(`Command with id §b${command.id}§r registered`);
-    }
-
-    /**
-     * Get a registered command by ID.
-     * @remarks This is case-insensitive, works with or without namespace, and also with aliases.
-     * @param {string} id - The command ID.
-     * @returns {Command} The command if found, otherwise undefined.
-     */
-    public getCommand(id: string): Command {
-        const command = Array.from(this.commands.values()).find(
-            (command) =>
-                // Check if it matches ID without namespace.
-                command.name === id ||
-                // Check if it's an alias.
-                command.aliases?.includes(id) ||
-                // Last check if it's the whole ID (this is uncommon so,
-                //  it's last to avoid the most checks).
-                command.id === id
-        );
-
-        if (!command) throw new CommandUnknownCommandError();
-        return command;
-    }
-
-    /**
-     * Get all enabled commands.
-     */
-    public getCommands(): Map<string, Command> {
-        return this.commands;
-    }
-
-    /**
-     * Get a list of all registered commands with the overloads the command tree spells out.
-     *
-     * @remarks
-     * This is EXCLUDING legacy commands.
-     */
-    public getCommandsList(): CommandListEntry[] {
-        const argumentFor = (node: CommandTreeNode): CommandArgumentType =>
-            node instanceof ArgumentCommandNode ? node.getType() : new LiteralCommandArgument(node.getName());
-
-        const flatten = (
-            node: CommandTreeNode,
-            path: CommandArgumentType[],
-            ancestors: ReadonlySet<CommandTreeNode>
-        ): CommandArgumentType[][] => {
-            if (ancestors.has(node)) return [];
-
-            const nodePath = [...path, argumentFor(node)];
-            const descendants = new Set(Array.from(node.getChildren()));
-            const redirect = node.getRedirect();
-            if (redirect) {
-                for (const child of redirect.getChildren()) descendants.add(child);
-            }
-
-            const nextAncestors = new Set(ancestors).add(node);
-            const overloads = node.getCommand() ? [nodePath] : [];
-            for (const child of descendants) overloads.push(...flatten(child, nodePath, nextAncestors));
-
-            return overloads;
-        };
-
-        const res = Array.from(this.dispatcher.getRoot().getChildren()).map((command): CommandListEntry => {
-            // One entry per command, whatever the tree's shape. This used to return one entry
-            // per top-level argument node, so `/tp` reached the client four times over and the
-            // client, which keys commands by name, kept whichever copy it read last.
-            const overloads: CommandArgumentType[][] = command.getCommand() ? [[]] : [];
-            const descendants = new Set(Array.from(command.getChildren()));
-            const redirect = command.getRedirect();
-            if (redirect) {
-                for (const child of redirect.getChildren()) descendants.add(child);
-            }
-            for (const node of descendants) {
-                overloads.push(...flatten(node, [], new Set([command])));
-            }
-
-            return [command.getName(), command, overloads];
-        });
-
-        res.toString = () => {
-            return `${this.getCommandsList()
-                .map((item) => {
-                    if (!item[2].length) return `/${item[0]}`;
-                    return item[2]
-                        .map((entries) =>
-                            [
-                                `/${item[0]}`,
-                                ...entries.map((argument) =>
-                                    isCommandArgument(argument) ? argument.getReadableType() : argument.constructor.name
-                                )
-                            ].join(' ')
-                        )
-                        .join(`\n`);
-                })
-                .join('\n')}`;
-        };
-        return res;
-    }
-
-    /**
-     * Get dispatcher
-     */
-    public getDispatcher(): CommandDispatcher<CommandExecutor> {
-        return this.dispatcher;
-    }
+    public async disable(): Promise<void> {}
 
     /** The vanilla command set, for the session that has to advertise it. */
     public getVanillaCommands(): CommandRegistry<CommandSource> {
@@ -737,7 +544,7 @@ export class CommandManager implements Service {
         const metadata = vanilla.getMetadata(name)!;
 
         if (sender instanceof Player) {
-            if (!this.server.getPermissionManager().can(sender).execute(vanillaPermissionOf(name))) {
+            if (!this.server.getPermissionManager().can(sender).execute(commandPermissionOf(name))) {
                 await sender.sendMessage(
                     "§cI'm sorry, but you do not have permission to perform this command. " +
                         'Please contact the server administrators if you believe that this is in error.'
@@ -794,9 +601,6 @@ export class CommandManager implements Service {
             if (input.startsWith('/')) input = input.slice(1);
             input = input.trim();
 
-            // The vanilla set first. A name belongs to exactly one of the two
-            // trees, and the vanilla one owns every name it holds - which is
-            // what retires a legacy class rather than shadowing it.
             const typed = input.split(' ')[0] ?? '';
             const vanilla = this.vanillaName(typed);
             if (vanilla !== undefined) {
@@ -817,81 +621,12 @@ export class CommandManager implements Service {
                 return succeeded;
             }
 
-            const parsed = this.dispatcher.parse(input.trim(), target);
-            const id = parsed.getReader().getString().split(' ')[0]!;
-
-            // Get command from parsed string.
-            const command = this.getCommand(id);
-
-            // Permissions gate players only. The console is the process operator: it is
-            // trusted by the fact that it exists, not by a permission node - which is what
-            // the `isConsole()` bypass inside the permission manager used to say.
-            if (sender instanceof Player) {
-                this.server
-                    .getLogger()
-                    .debug(
-                        `Entity with §b${sender.getRuntimeId()}§r is dispatching command: ${input} (id: ${id})`,
-                        'CommandManager/dispatchCommand'
-                    );
-
-                if (!this.server.getPermissionManager().can(sender).execute(command.permission)) {
-                    await sender.sendMessage(
-                        "§cI'm sorry, but you do not have permission to perform this command. " +
-                            'Please contact the server administrators if you believe that this is in error.'
-                    );
-                    return false;
-                }
-            }
-
-            // Handle aliases and IDs.
-            if (command.name !== id) {
-                return this.dispatchCommand(sender, target, input.replace(id, command.name));
-            }
-
-            // The dispatcher is synchronous and a command body returns a result code, so the
-            // work a body awaits is collected here and awaited before the feedback goes out.
-            // See `asyncCommand` for why the bodies cannot return their promises directly.
-            const stopRequestsBefore = this.stopCommandRequests;
-            const res = await Promise.all(collectAsyncCommands(() => this.dispatcher.execute(parsed)));
-
-            // `sendCommandFeedback` is a per-world gamerule, so it is read from the world the
-            // sender is standing in. The console stands in none; the default world answers
-            // for it.
-            const world =
-                sender instanceof Player ? sender.getWorld() : this.server.getWorldManager().getDefaultWorld();
-            // The stored rule is a `[value, editable]` pair, so the value is
-            // what decides. Read as the pair itself, the check was a non-empty
-            // array and the gamerule never suppressed anything.
-            const feedback = world.getGameRuleManager()?.getGameRule('sendCommandFeedback')?.[0];
-
-            // Make sure we don't send feedback if sendCommandFeedback is set to false
-            if (feedback) {
-                await Promise.all(
-                    res.map(async (feedback) => {
-                        const chat = new Chat({
-                            sender: this.server.getConsoleSender(),
-                            message: `§o§7[${target.getName()}: ${feedback ?? `issued server command: /${input}`}]§r`,
-                            channel: '*.ops'
-                        });
-
-                        // TODO: should this be broadcasted to the executer?
-                        await this.server.getChatManager().send(chat);
-                    })
-                );
-            }
-
-            // The process entry releases its keepalive only after `/stop` has sent its feedback.
-            if (command.name === 'stop' && this.stopCommandRequests > stopRequestsBefore)
-                this.onStopCommandComplete?.();
-
-            return true;
+            await sender.sendMessage('§cUnknown command. Type "/help" for help.');
+            return false;
         } catch (error: unknown) {
             switch (true) {
                 case error instanceof CommandSyntaxException:
                     await sender.sendMessage(`§c${error.getMessage()}`);
-                    return false;
-                case error instanceof CommandUnknownCommandError:
-                    await sender.sendMessage(`§cUnknown command. Type "/help" for help.`);
                     return false;
                 case error instanceof Error:
                     await sender.sendMessage(`§c${error.message}`);

@@ -110,16 +110,19 @@ verbs as its Java spelling. `/camerashake`, `/fog` and `/playanimation` have no 
 behind them at all. Each asks the client to draw something, and sending the packet is the server's
 whole part.
 
-Five more commands come from the older class-based dispatcher rather than from the vanilla set:
-`/ban` and `/pardon`, which Java keeps outside the shared set and Bedrock spells differently, plus
-`/version`, `/tps` and `/debug` in the `jsprismarine:` namespace.
+The server adds its own commands to the same registry, in
+`packages/prismarine/src/command/jsprismarineCommands.ts`: `/ban` and `/pardon`, which Java keeps
+outside the shared set and Bedrock does not have, plus `/version` (also `/about`), `/tps` and
+`/debug`. One dispatcher parses them, `/help` lists them, and they reach your client the same way
+the vanilla commands do.
 
 ### Who may run what
 
 Two gates apply, and both have to pass.
 
 The first is this server's named permissions, in `permissions.json`. A vanilla command's node is
-`minecraft.command.<name>`, so `/teleport` needs `minecraft.command.teleport`. A fresh
+`minecraft.command.<name>`, so `/teleport` needs `minecraft.command.teleport`. `/tps`, `/version`
+and `/debug` keep their `jsprismarine.command.<name>` nodes. A fresh
 `permissions.json` grants every player `minecraft.command.help`, `minecraft.command.list` and
 `minecraft.command.me`, and grants every operator `*`. The command list each player receives is
 filtered by these nodes, so a player who was granted nothing sees three Minecraft commands in their

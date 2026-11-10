@@ -29,7 +29,7 @@ import type Server from '../../Server';
 import type { Entity } from '../../entity/Entity';
 import { dimensionByName } from '../../world/Dimension';
 import type { World } from '../../world/World';
-import { deferCommandWork } from '../Command';
+import { deferCommandWork } from '../deferred';
 
 /**
  * Refuses a command whose host verb has no subsystem behind it.

@@ -1,9 +1,7 @@
-export * from './Command';
-export * from './CommandArguments';
+export * from './deferred';
 export type * from './CommandExecutor';
 export * from './CommandManager';
 export * from './availableCommands';
 export * from './host/serverCommandHost';
+export * from './jsprismarineCommands';
 export * from './vanillaCommands';
-
-export * as Commands from './Commands';

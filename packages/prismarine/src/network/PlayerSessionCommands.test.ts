@@ -1,4 +1,3 @@
-import type { CommandDispatcher } from '@jsprismarine/brigadier';
 import type { Logger } from '@jsprismarine/logger';
 import { CommandPermissionLevel } from '@jsprismarine/minecraft';
 import { describe, expect, it } from 'vitest';
@@ -6,9 +5,6 @@ import { describe, expect, it } from 'vitest';
 import type Player from '../Player';
 import type Server from '../Server';
 import type SessionManager from '../SessionManager';
-import { Command, argument, literal } from '../command/Command';
-import { CommandArgumentEntity } from '../command/CommandArguments';
-import type { CommandExecutor } from '../command/CommandExecutor';
 import { CommandManager } from '../command/CommandManager';
 import { UNWIRED_COMMANDS } from '../command/vanillaCommands';
 import type { Config } from '../config/Config';
@@ -29,10 +25,10 @@ const DEFAULT_PERMISSIONS = ['minecraft.command.help', 'minecraft.command.list',
  * The `AvailableCommandsPacket` the default command set produces for one player, through the
  * real command manager and the real permission rules over a fixed set of grants.
  */
-const commandsSentTo = async (
-    { op = false, permissions = DEFAULT_PERMISSIONS }: { op?: boolean; permissions?: string[] } = {},
-    register?: (commandManager: CommandManager) => Promise<void>
-) => {
+const commandsSentTo = async ({
+    op = false,
+    permissions = DEFAULT_PERMISSIONS
+}: { op?: boolean; permissions?: string[] } = {}) => {
     const sent: NetworkPacket[] = [];
     const players: Player[] = [];
     const logger = stub<Logger>({ verbose() {}, debug() {}, info() {}, warn() {}, error() {} });
@@ -58,7 +54,6 @@ const commandsSentTo = async (
     });
     const commandManager = new CommandManager(server);
     await commandManager.enable();
-    await register?.(commandManager);
 
     const player = stub<Player>({
         getName: () => 'Steve',
@@ -106,16 +101,16 @@ describe('PlayerSession', () => {
             expect(teleport?.aliases?.values).toEqual(['teleport', 'tp']);
         });
 
-        it('describes brigadier arguments by their node name and parse symbol', async () => {
-            // These went out with empty overloads: the built-in types were checked after the
-            // prismarine-argument guard had already returned.
+        it("describes this server's own commands by their node names and parse symbols", async () => {
+            // `/ban` completes a name from the `Player` soft enum, and its reason runs to the end
+            // of the line as `/say`'s message does.
             const commands = await commandsSentTo({ op: true });
             const overloadsOf = (name: string) =>
                 commands.find(({ commandName }) => commandName === name)?.overloads.map(spell);
 
             expect(overloadsOf('ban')).toEqual([
                 ['player: Player'],
-                ['player: Player', `reason: ${CommandParameterType.Message}`]
+                ['player: Player', `reason: ${CommandParameterType.MessageRoot}`]
             ]);
         });
 
@@ -206,29 +201,6 @@ describe('PlayerSession', () => {
             for (const unwired of Object.keys(UNWIRED_COMMANDS)) expect(names).not.toContain(unwired);
         });
 
-        it('folds overloads that read the same into one', async () => {
-            class EchoCommand extends Command {
-                public constructor() {
-                    super({ id: 'test:echo' });
-                }
-
-                public async register(dispatcher: CommandDispatcher<CommandExecutor>): Promise<void> {
-                    // Two nodes, one description: both hold a target the client sees as `victim`.
-                    dispatcher.register(
-                        literal('echo')
-                            .then(argument('a', new CommandArgumentEntity({ name: 'victim' })).executes(() => 0))
-                            .then(argument('b', new CommandArgumentEntity({ name: 'victim' })).executes(() => 0))
-                    );
-                }
-            }
-            const commands = await commandsSentTo({ op: true }, (commandManager) =>
-                commandManager.registerCommand(new EchoCommand())
-            );
-
-            const echo = commands.find(({ commandName }) => commandName === 'echo');
-            expect(echo?.overloads.map(spell)).toEqual([[`victim: ${CommandParameterType.Target}`]]);
-        });
-
         it('fills the EntityType enum /summon completes from', async () => {
             // Mojang's own published list rather than this server's class registry: the
             // command layer reads it out of `mojang-commands.json`, where `/summon` has it
@@ -257,13 +229,13 @@ describe('PlayerSession', () => {
             );
 
             // An operator is `Owner`, which is the level that lets the client offer `/stop`.
-            // The class-registered half has no level of its own and caps at `GameDirectors`.
+            // `/ban` declares `Admin`, under the operator's own level.
             expect(levels.get('help')).toBe(CommandPermissionLevel.ANY);
             expect(levels.get('me')).toBe(CommandPermissionLevel.ANY);
             expect(levels.get('say')).toBe(CommandPermissionLevel.GAME_DIRECTORS);
             expect(levels.get('teleport')).toBe(CommandPermissionLevel.GAME_DIRECTORS);
             expect(levels.get('stop')).toBe(CommandPermissionLevel.OWNER);
-            expect(levels.get('ban')).toBe(CommandPermissionLevel.GAME_DIRECTORS);
+            expect(levels.get('ban')).toBe(CommandPermissionLevel.ADMIN);
         });
 
         it('sends a player only the commands they may run, at their own level', async () => {

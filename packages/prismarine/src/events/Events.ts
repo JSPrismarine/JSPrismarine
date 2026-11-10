@@ -1,5 +1,4 @@
 import ChatEvent from './chat/ChatEvent';
-import CommandRegisterEvent from './command/CommandRegisterEvent';
 import EntityDamageEvent from './entity/EntityDamageEvent';
 import EntityDeathEvent from './entity/EntityDeathEvent';
 import EntityPortalEnterEvent from './entity/EntityPortalEnterEvent';
@@ -21,7 +20,6 @@ import TickEvent from './other/TickEvent';
 
 export {
     ChatEvent,
-    CommandRegisterEvent,
     EntityDamageEvent,
     EntityDeathEvent,
     EntityPortalEnterEvent,
