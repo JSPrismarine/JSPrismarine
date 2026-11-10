@@ -229,6 +229,26 @@ const entityScenarios: readonly BehaviorScenario<EntitySubject>[] = [
         }
     },
     {
+        name: 'player-health',
+        java: "A player has Java's 20 health, which Bedrock gives it in code and its shipped player file leaves out.",
+        reference: 'Java LivingEntity.createLivingAttributes (MAX_HEALTH 20), which Player.createAttributes keeps',
+        subjects: () => ['minecraft:player'].flatMap((javaId) => mappedEntity(javaId) ?? []),
+        idOf: (subject) => subject.javaId,
+        covers: (subject) => subject.javaId,
+        run: (subject) => {
+            // The resolved type, because the overlay applies when types resolve and leaves the
+            // pack's file as it shipped.
+            const type = serverContent().entities.registry.get(subject.bedrock);
+            if (type === undefined) return `the server declares no ${subject.bedrock}`;
+            const health = type.entity.components.get('minecraft:health');
+            const value = field(health, 'value');
+            const max = field(health, 'max');
+            return value === 20 && max === 20
+                ? undefined
+                : `the server gives the player health ${String(value)} of ${String(max)}, where Java has 20 of 20`;
+        }
+    },
+    {
         name: 'built-in-motion',
         java: "A dropped item and a thrown eye of ender move, wait, despawn and shatter by Java's ItemEntity and EyeOfEnder constants.",
         reference:
