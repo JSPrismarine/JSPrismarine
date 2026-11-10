@@ -211,7 +211,10 @@ const lyingItemsIn = (world: World | undefined): readonly ContentItemEntity[] =>
     return found;
 };
 
-/** The item stacks within a pickup radius, selected from the world's fine live item index. */
+/**
+ * The item stacks within a pickup radius, from the world's entity index, in ascending runtime id
+ * order. Live, so a stack another mob took earlier in the tick has already left it.
+ */
 const lyingItemsNear = (
     world: World | undefined,
     center: ContentPosition,
@@ -220,7 +223,7 @@ const lyingItemsNear = (
     if (world === undefined || radius < 0) return [];
 
     const found: ContentItemEntity[] = [];
-    for (const entity of world.getEntityGrid().nearItemsForPickup(center.x, center.z, radius)) {
+    for (const entity of world.getEntityIndex().itemsWithin(center.x, center.z, radius)) {
         if (!(entity instanceof ItemEntity) || world.getEntity(entity.getRuntimeId()) !== entity) continue;
         const held = entity.getItem();
         if (held === undefined) continue;
