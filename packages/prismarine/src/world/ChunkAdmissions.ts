@@ -284,6 +284,24 @@ export class ChunkAdmissions implements ChunkAdmissionScheduler {
     }
 
     /**
+     * Applies every held completion now, for a tick that has stalled with them held: something
+     * the tick awaits may wait for one of them, and the next input step cannot come until the
+     * tick ends. Each is recorded as `inline` and counted in
+     * {@link ChunkAdmissionSnapshot.admittedInTick}.
+     *
+     * @returns What was held, in the order it was applied.
+     */
+    public admitParked(): readonly ChunkAdmission[] {
+        const parked: ChunkAdmission[] = [];
+        for (let held = this.takeNext(); held !== undefined; held = this.takeNext()) {
+            const { world, change, x, z } = held.completion;
+            parked.push({ world, change, x, z });
+            void this.apply(held, this.tick(), 'inline');
+        }
+        return parked;
+    }
+
+    /**
      * Moves a held completion to a more urgent lane, such as a background chunk a player now
      * stands in.
      *

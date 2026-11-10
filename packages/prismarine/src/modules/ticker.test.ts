@@ -7,9 +7,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { startTestModule } from '@jsprismarine/kernel/testing';
 import type { TickEvent } from '../events/Events';
 import { attachProfiler, ServerProfiler } from '../profiling/ServerProfiler';
-import { ServerTicker, tickerModule } from './ticker';
+import { ServerTicker, TICK_STALL_MS, TickStalledError, tickerModule } from './ticker';
 import type { TickerServer } from './ticker';
 import { tickerToken } from './tokens';
+import type { ChunkAdmissionRecord } from '../world/ChunkAdmissions';
 import { ChunkCompletionQueue } from '../world/ChunkCompletionQueue';
 import { insideTick } from '../world/TickContext';
 
@@ -255,6 +256,7 @@ describe('modules/ticker', () => {
         const queue = {
             activate: () => order.push('activate'),
             deactivate: () => order.push('deactivate'),
+            admitParked: () => [],
             drain: () => {
                 order.push('completion');
                 return 1;
@@ -472,6 +474,88 @@ describe('modules/ticker', () => {
         }
     });
 
+    describe('a tick stalled on a chunk held for the next input step', () => {
+        it('names what was held, admits it inline and lets the tick end', async () => {
+            const queue = new ChunkCompletionQueue(undefined, { tick: () => 7 });
+            const records: ChunkAdmissionRecord[] = [];
+            queue.admissions.setRecorder({ record: (record) => void records.push(record) });
+            queue.activate();
+            const errors: unknown[] = [];
+            // Started between ticks, as a console command's work is: the chunk waits for an input
+            // step, and the tick below waits for the chunk.
+            const between = queue.admissions.hold({
+                world: 'level/minecraft:the_end',
+                change: 'enter',
+                x: -5,
+                z: 3,
+                priority: 'immediate',
+                apply: async () => true
+            });
+            let waited = false;
+            const harness = buildHarness({
+                isTickingEnabled: () => false,
+                getChunkCompletionQueue: () => queue,
+                getWorlds: () => [
+                    {
+                        getName: () => 'the_end',
+                        update: async () => {
+                            // The input step has run, so the chunk is parked behind the next one.
+                            await between;
+                            waited = true;
+                        }
+                    }
+                ],
+                getLogger: () => ({ warn: () => {}, verbose: () => {}, error: (error) => void errors.push(error) })
+            });
+            // Parks the completion behind the next step, as a completion that is ready after the
+            // input step began would be.
+            const tick = harness.ticker.advance();
+            await vi.advanceTimersByTimeAsync(TICK_STALL_MS - 1);
+            expect(waited).toBe(false);
+
+            await vi.advanceTimersByTimeAsync(1);
+            await tick;
+
+            expect(waited).toBe(true);
+            expect(errors).toHaveLength(1);
+            const [error] = errors;
+            expect(error).toBeInstanceOf(TickStalledError);
+            expect(error).toMatchObject({
+                tick: 0,
+                waitedMs: TICK_STALL_MS,
+                parked: [{ world: 'level/minecraft:the_end', change: 'enter', x: -5, z: 3 }]
+            });
+            expect(String(error)).toContain('enter level/minecraft:the_end -5,3');
+            expect(records).toEqual([expect.objectContaining({ tick: 7, x: -5, z: 3, step: 'inline' })]);
+            expect(queue.admissions.snapshot()).toMatchObject({ pending: 0, admittedInTick: 1 });
+        });
+
+        it('leaves a held chunk for the input step when the tick does not stall', async () => {
+            const queue = new ChunkCompletionQueue();
+            queue.activate();
+            const errors: unknown[] = [];
+            const harness = buildHarness({
+                isTickingEnabled: () => false,
+                getChunkCompletionQueue: () => queue,
+                getLogger: () => ({ warn: () => {}, verbose: () => {}, error: (error) => void errors.push(error) })
+            });
+            await harness.ticker.advance();
+            void queue.admissions.hold({
+                world: 'level/minecraft:overworld',
+                change: 'enter',
+                x: 0,
+                z: 0,
+                priority: 'idle',
+                apply: async () => true
+            });
+
+            await vi.advanceTimersByTimeAsync(TICK_STALL_MS * 2);
+
+            expect(errors).toEqual([]);
+            expect(queue.admissions.pending).toBe(1);
+        });
+    });
+
     describe('advance', () => {
         it('runs exactly one tick per call when ticking is disabled, and schedules nothing', async () => {
             const updated: number[] = [];
@@ -498,8 +582,14 @@ describe('modules/ticker', () => {
                 expect(harness.tickEvents.map((event) => event.getTick())).toEqual([0, 1, 2]);
                 expect(updated).toEqual([0, 1, 2]);
                 expect(harness.ticker.recorder.between(0).map((sample) => sample.tick)).toEqual([0, 1, 2]);
-                // Nothing waits on a timer, so the same calls take the same steps on any host.
-                expect(timeout).not.toHaveBeenCalled();
+                // Nothing waits on a timer, so the same calls take the same steps on any host. The
+                // only timer is each tick's stall watch, which ends with the tick.
+                expect(timeout.mock.calls.map(([, delay]) => delay)).toEqual([
+                    TICK_STALL_MS,
+                    TICK_STALL_MS,
+                    TICK_STALL_MS
+                ]);
+                expect(vi.getTimerCount()).toBe(0);
                 expect(immediate).not.toHaveBeenCalled();
             } finally {
                 timeout.restore();

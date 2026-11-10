@@ -3,6 +3,7 @@ import type { Module } from '@jsprismarine/kernel';
 import { TickEvent } from '../events/Events';
 import { profileSpanStarter } from '../profiling/ServerProfiler';
 import { TickRecorder } from '../profiling/TickRecorder';
+import type { ChunkAdmission } from '../world/ChunkAdmissions';
 import type { ChunkCompletionQueue } from '../world/ChunkCompletionQueue';
 import { DEFAULT_CHUNK_COMPLETION_BUDGET_MS } from '../world/ChunkCompletionQueue';
 import { runInTick } from '../world/TickContext';
@@ -56,6 +57,40 @@ const MINECRAFT_TICK_TIME_MS = 1000 / DEFAULT_TICK_RATE;
  * event loop exactly when it is already struggling.
  */
 const MAX_CATCH_UP_MS = 2000;
+
+/**
+ * How long a tick's simulation phases may run while chunk completions wait for the next input
+ * step before the ticker calls the tick stalled on them. Far above any tick that loads its
+ * chunks inline, so it fires on a tick that waits for work only the next input step can finish,
+ * which never comes while the tick runs.
+ */
+export const TICK_STALL_MS = 30_000;
+
+/**
+ * A tick that stalled with chunk completions held for the next input step. Something the tick
+ * awaits was started outside it, such as from an event or a command between ticks, and loads a
+ * chunk that waits for an input step. The ticker logs this and admits the held completions
+ * inline, so the tick can end.
+ */
+export class TickStalledError extends Error {
+    public override readonly name = 'TickStalledError';
+
+    /**
+     * @param tick - The tick that stalled.
+     * @param waitedMs - How long it had run when the ticker found it stalled.
+     * @param parked - The completions held for the next input step, which the ticker admitted.
+     */
+    public constructor(
+        public readonly tick: number,
+        public readonly waitedMs: number,
+        public readonly parked: readonly ChunkAdmission[]
+    ) {
+        const listed = parked.map(({ world, change, x, z }) => `${change} ${world} ${x},${z}`).join(', ');
+        super(
+            `Tick ${tick} ran ${waitedMs} ms with chunk completions held for the next input step, so it may be waiting for one; admitted them inline: ${listed}`
+        );
+    }
+}
 
 /** Weight of the newest tick in the tick-duration average: the last ten or so ticks carry most of it. */
 const TICK_MS_SMOOTHING = 0.2;
@@ -146,7 +181,7 @@ export interface TickerServer {
         tick(): Promise<unknown>;
     };
     /** Deferred worker translations and background lighting, budgeted separately from packet sends. */
-    getChunkCompletionQueue(): Pick<ChunkCompletionQueue, 'activate' | 'deactivate' | 'drain'>;
+    getChunkCompletionQueue(): Pick<ChunkCompletionQueue, 'activate' | 'deactivate' | 'drain' | 'admitParked'>;
     /** This tick's chunk-send budget, read fresh each tick so config reloads apply. */
     getChunkSendBudgetMs(): number;
     /** Whether the loop should run at all. Read once per `start()`. */
@@ -531,6 +566,7 @@ export class ServerTicker implements Ticker, TickControl {
             // The simulation phases run inside the tick's scope, so a chunk that code inside them
             // waits for is told apart from one a chunk delivery or a read-lane handler waits for,
             // which waits for the next input step instead (ADR 0009). Chunk delivery is outside.
+            const stopWatching = this.watchForStall(this.getTick());
             await runInTick(async () => {
                 // The input step comes first (ADR 0015): the input-lane packets and player removals
                 // held since the last tick, applied in arrival order before any world updates, then
@@ -615,7 +651,7 @@ export class ServerTicker implements Ticker, TickControl {
                 } finally {
                     endFunctionsProfile?.();
                 }
-            });
+            }).finally(stopWatching);
 
             // Whatever fits in this tick's slice; the rest waits for the next one.
             phaseStartedAt = now();
@@ -661,6 +697,35 @@ export class ServerTicker implements Ticker, TickControl {
             slowestWorldName,
             slowestWorldMs
         };
+    }
+
+    /**
+     * Watches a tick's simulation phases for a stall on chunk completions held for the next input
+     * step ({@link TickStalledError}). Every {@link TICK_STALL_MS} the tick runs, held completions
+     * are admitted inline and the stall is logged.
+     *
+     * The wall clock decides only when the completions are admitted, which ADR 0009 allows, and
+     * each is recorded with its tick.
+     *
+     * @param tick - The tick being watched.
+     * @returns Stops watching.
+     */
+    private watchForStall(tick: number): () => void {
+        const queue = this.server.getChunkCompletionQueue();
+        let waitedMs = 0;
+        let timer: ReturnType<typeof setTimeout>;
+        const watch = () => {
+            timer = setTimeout(check, TICK_STALL_MS);
+            timer.unref();
+        };
+        const check = () => {
+            waitedMs += TICK_STALL_MS;
+            const parked = queue.admitParked();
+            if (parked.length > 0) this.server.getLogger().error(new TickStalledError(tick, waitedMs, parked));
+            watch();
+        };
+        watch();
+        return () => clearTimeout(timer);
     }
 
     /** Stops the loop: clears the pending timer and stops a tick in flight from rescheduling. */
