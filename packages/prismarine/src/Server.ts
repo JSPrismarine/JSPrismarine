@@ -33,11 +33,15 @@ import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import { broadcastSharedBatches } from './network/MinecraftSession';
 import type { PermissionManager } from './permission/PermissionManager';
 import { bansModule } from './modules/bans';
+import { commandsModule, loadFunctionsModule } from './modules/commands';
+import { contentModule } from './modules/content';
+import { packetHandlersModule } from './modules/packetHandlers';
 import { networkModule, ServerNetworking } from './modules/network';
 import type { InboundPacketRecorder } from './network/InboundPacketTrace';
 import type { OutboundPacketRecorder } from './network/OutboundPacketTrace';
 import { permissionsModule } from './modules/permissions';
 import { socialModule } from './modules/social';
+import { worldsModule } from './modules/worlds';
 import { ServerTicker, tickerModule } from './modules/ticker';
 import type { TickRecorder } from './profiling/TickRecorder';
 import type { TickControl } from './modules/ticker';
@@ -102,12 +106,12 @@ export default class Server extends EventEmitter {
     private readonly worldManager: WorldManager;
 
     /**
-     * The module kernel the managers run on. Built once in the constructor; the
-     * kernel starts inside {@link Server.enable} and stops inside
-     * {@link Server.disable}, so its modules keep their place in the
-     * hand-ordered lifecycle of the pieces not yet converted. A kernel restarts
-     * cleanly, so the same instance — and the managers its modules constructed —
-     * carries through {@link Server.reload}'s disable-then-enable cycle.
+     * The module kernel the managers run on, built once in the constructor.
+     * {@link Server.enable} starts it between the config and the console, and
+     * {@link Server.disable} stops it, so every manager starts in dependency
+     * order and stops in reverse. A kernel restarts cleanly, so the same
+     * instance, and the managers its modules hold, carries through
+     * {@link Server.reload}'s disable-then-enable cycle.
      */
     private readonly kernel: Kernel;
 
@@ -299,19 +303,40 @@ export default class Server extends EventEmitter {
     }
 
     /**
-     * Builds the kernel and registers the manager modules on it.
+     * Builds the kernel and registers every manager module on it.
      *
-     * Registration order is start order among modules with no dependency edge,
-     * so it mirrors the order {@link Server.enable} used to call the managers in.
+     * The kernel starts providers before their dependents and keeps
+     * registration order among modules with no dependency edge between them.
+     * One place relies on that order rather than on an edge: the commands start
+     * before the worlds, because the console takes commands while the start
+     * region is still generating, and neither module uses the other.
      * @internal
      */
     private buildKernel(): Kernel {
         const kernel = new Kernel({ logger: this.logger });
+        kernel.register(
+            contentModule(this, {
+                build: () => {
+                    const startedAt = startStartupPhase();
+                    this.enableContent();
+                    finishStartupPhase('content-build', startedAt);
+                    // Built before a player arrives, so the report of what the content
+                    // build invented reads as a startup line and a build that cannot
+                    // produce payloads says so here rather than on the first join.
+                    joinContentPayloads(this.content, this.logger);
+                },
+                close: () => this.entityRuntimes.closeAll()
+            })
+        );
+        kernel.register(packetHandlersModule(this.packetHandlerRegistry));
         kernel.register(permissionsModule(this));
         kernel.register(bansModule(this));
         kernel.register(socialModule(this));
         kernel.register(tickerModule(this.ticker));
         kernel.register(networkModule(this.networking));
+        kernel.register(commandsModule(this.commandManager));
+        kernel.register(worldsModule(this.worldManager, this.chunkScheduler));
+        kernel.register(loadFunctionsModule(this.commandManager));
         return kernel;
     }
 
@@ -325,25 +350,15 @@ export default class Server extends EventEmitter {
         // Output needs only stdout, so attach it before anything logs.
         this.logger.setConsole(this.console);
         await this.logger.enable();
-        const contentBuildStartedAt = startStartupPhase();
-        this.enableContent();
-        finishStartupPhase('content-build', contentBuildStartedAt);
-        // Built before a player arrives, so the report of what the content
-        // build invented reads as a startup line and a build that cannot
-        // produce payloads says so here rather than on the first join.
-        joinContentPayloads(this.content, this.logger);
-        await this.packetHandlerRegistry.enable();
-        await this.kernel.start();
-        const commandBuildStartedAt = startStartupPhase();
-        await this.commandManager.enable();
-        finishStartupPhase('command-build', commandBuildStartedAt);
-        const worldManagerEnableStartedAt = startStartupPhase();
-        await this.worldManager.enable();
-        finishStartupPhase('world-manager-enable', worldManagerEnableStartedAt);
-
-        // `#minecraft:load` runs once the packs are loaded and the worlds are
-        // up, because its functions are allowed to touch a world.
-        await this.commandManager.runLoadFunctions();
+        // Everything between the config and the console is a kernel module; see `buildKernel`.
+        try {
+            await this.kernel.start();
+        } catch (error: unknown) {
+            // A shutdown during startup stops the kernel under it, which cancels the world
+            // preload. That is the shutdown working, not a failed start.
+            if (this.lifecycle.isStopping()) return;
+            throw error;
+        }
 
         // The console reads commands as soon as it is enabled, and piped input is already
         // waiting, so it comes last: commands need the registry and the default world.
@@ -440,16 +455,10 @@ export default class Server extends EventEmitter {
      * @internal
      */
     private async disable(): Promise<void> {
-        // Before the worlds: a chunk delivery still generating would otherwise land in a
-        // world mid-teardown. `shutdown()` has already kicked every player by this point,
-        // so no new deliveries start while this drains.
-        await this.chunkScheduler.close();
-        await this.worldManager.disable();
-        // After the worlds: a closing world ticks and saves through its dimension's runtime.
-        this.entityRuntimes.closeAll();
-        await this.commandManager.disable();
+        // The modules stop in reverse start order: the worlds drain their chunk deliveries
+        // and close, and the content's entity runtimes close after them, because a closing
+        // world saves through its dimension's runtime.
         await this.kernel.stop();
-        await this.packetHandlerRegistry.disable();
         await this.config.disable();
         await this.logger.disable();
     }
@@ -480,6 +489,8 @@ export default class Server extends EventEmitter {
     public async bootstrap(serverIp?: string, port?: number): Promise<void> {
         await this.remoteConsole?.enable();
         await this.enable();
+        // Shut down while it was starting: there is nothing to listen for.
+        if (this.lifecycle.isStopping()) return;
 
         const bindAddress = serverIp ?? this.config.getServerIp();
         const bindPort = port ?? this.config.getServerPort();

@@ -9,11 +9,13 @@ the server re-architecture workstream.
 Progress (2026-10-30):
 
 - Done: Phase 0 (hygiene), Phase 1 (transport + `NetworkDispatcher` extraction), Phase 2
-  (`packages/kernel` plus the bans, permissions, recipes, stations, social, ticker, and network
-  modules), Phase 3 (codec layer), Phase 4 (pipeline + phase-keyed handlers), and Phase 5
+  (`packages/kernel` plus the bans, permissions, social, ticker, and network modules; the recipes
+  and stations modules were removed with the legacy recipe manager), Phase 3 (codec layer), Phase 4 (pipeline + phase-keyed handlers), and Phase 5
   (`Codec2225` delta codec with the `protocol.negotiation` parity family).
 - Phase 6: the ticker, networking (`prismarine:network`), and shutdown-interrupt extractions are
-  done; the kernel-backed `getXxxManager()` getters are deprecated; the kernel and the token
+  done; the content build, packet handlers, commands, worlds and `#minecraft:load` run as kernel
+  modules with declared dependencies, so `Server.enable` is the config, the logger, `kernel.start()`
+  and the console, and `Server.disable` is `kernel.stop()` plus the config and the logger; the kernel-backed `getXxxManager()` getters are deprecated; the kernel and the token
   barrel are exported from `@jsprismarine/prismarine` as the module API; block changes flow
   through the typed `WorldChange` stream into the replicators.
 - Phase 7: Protocol package ownership is complete. `@jsprismarine/protocol` owns the packet
@@ -75,7 +77,7 @@ Progress (2026-10-30):
     and `SetHudPacket`. `StartGamePacket`, `LevelChunkPacket`, and `UpdateSubChunkBlocksPacket`
     already use their declarative layouts.
   - The version-aware `ItemStackRequest` reader (the `CraftReservedAction` renumber at 2225).
-  - Commands and worlds modules; widening the `WorldChange` stream beyond block changes; the
+  - Widening the `WorldChange` stream beyond block changes; the
     version-independent intent/update vocabulary; NetherNet and Java transports.
   - `bedrock-data`'s versioned captures beyond the wire fixtures (see "bedrock-data versioning"
     below); worker support for the Node single executable.
