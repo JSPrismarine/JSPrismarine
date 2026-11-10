@@ -48,7 +48,7 @@ export class ClientBlobCache {
     private readonly pending = new Map<bigint, Buffer>();
     private readonly found = new Set<bigint>();
 
-    /** Total blob payload bytes held while waiting for client acknowledgements. */
+    /** Total blob payload bytes held while waiting for client acknowledgments. */
     public get pendingBytes(): number {
         let bytes = 0;
         for (const data of this.pending.values()) bytes += data.byteLength;

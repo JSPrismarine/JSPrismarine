@@ -162,7 +162,8 @@ export default class PlayerAuthInputHandler implements PacketHandler<PlayerAuthI
             headYaw: input.headYaw,
             // The input has no "on ground" bit. A vertical collision is the nearest thing it
             // says: the ground pushing back, every tick the player stands on it.
-            onGround: input.inputData.has(PlayerAuthInputData.VERTICAL_COLLISION)
+            onGround: input.inputData.has(PlayerAuthInputData.VERTICAL_COLLISION),
+            handledTeleport: input.inputData.has(PlayerAuthInputData.HANDLED_TELEPORT)
         });
 
         for (const [flag, action] of FLAG_ACTIONS) {
