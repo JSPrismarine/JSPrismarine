@@ -39,6 +39,7 @@ import type { Entity } from '../entity/Entity';
 import type { StatusEffect, StatusEffectChange } from '../entity/StatusEffect';
 import { GenericEntity } from '../entity/GenericEntity';
 import { storedInventory, storedItem } from '../inventory/persistence';
+import type PlayerSession from '../network/PlayerSession';
 import { keyOfPlayer } from '../playerIdentity';
 import { playerRecordOf } from './playerRecord';
 import { Item } from '../item/Item';
@@ -514,8 +515,11 @@ export interface AudienceOptions {
      * audible for about sixteen blocks, not for a hundred and sixty.
      */
     radius?: number;
-    /** Recipients left out whatever the geometry says, usually whoever caused the event. */
-    exclude?: Player | readonly Player[];
+    /**
+     * Recipients left out whatever the geometry says, usually whoever caused the event, matched
+     * by entity id.
+     */
+    exclude?: Pick<ShownActor, 'getRuntimeId'> | readonly Pick<ShownActor, 'getRuntimeId'>[];
 }
 
 export class World implements Service {
@@ -3897,6 +3901,24 @@ export class World implements Service {
      */
     public getPlayers(): Player[] {
         return Array.from(this.players.values()).filter((player) => player.isOnline());
+    }
+
+    /**
+     * The clients that see this world: the sessions of its online players, as
+     * {@link World.getPlayers} lists them.
+     * @returns The sessions.
+     */
+    public getViewers(): PlayerSession[] {
+        return this.getPlayers().map((player) => player.getNetworkSession());
+    }
+
+    /**
+     * The session of the player with this entity id in this world, joined or not.
+     * @param runtimeId - The player's entity id.
+     * @returns The session, or undefined when no player in this world has the id.
+     */
+    public viewerOf(runtimeId: bigint): PlayerSession | undefined {
+        return this.players.get(Number(runtimeId))?.getNetworkSession();
     }
 
     /**
