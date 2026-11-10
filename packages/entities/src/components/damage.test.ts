@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
+import type { ComponentStateWrite } from '../componentState';
+import { observing, tickThenUndo } from '../componentState.test.helper';
 import type { EntityEnvironment, EntityInstance } from '../entityInstance';
 import { EntityTypes } from '../entityTypes';
 import type { EntityFlag } from '../filterContext';
@@ -169,6 +171,71 @@ describe('minecraft:breathable', () => {
         tick(beached, 40 + HURT_INTERVAL_TICKS);
 
         expect(beached.attributes.value('health')).toBe(40 - SUFFOCATION_DAMAGE);
+    });
+});
+
+describe('hazard component state', () => {
+    it('reports the hurt countdown of minecraft:hurt_on_condition and undoes it exactly', () => {
+        const writes: ComponentStateWrite[] = [];
+        const entity = spawn(toad, 'test:toad', observing(writes, standingIn('in_lava')));
+        const run = tickThenUndo(entity, writes, 3);
+
+        expect(run.writes[0]).toEqual({
+            component: 'minecraft:hurt_on_condition',
+            before: { remaining: 0 },
+            after: { remaining: HURT_INTERVAL_TICKS }
+        });
+        expect(run.ticked['minecraft:hurt_on_condition']).toEqual({ remaining: HURT_INTERVAL_TICKS - 2 });
+        expect(run.undone).toEqual(run.before);
+    });
+
+    it('writes nothing while minecraft:hurt_on_condition has no condition to act on', () => {
+        const writes: ComponentStateWrite[] = [];
+        const entity = spawn(toad, 'test:toad', observing(writes));
+
+        expect(tickThenUndo(entity, writes, 20).writes).toEqual([]);
+    });
+
+    it('reports the countdown of minecraft:damage_over_time and undoes it exactly', () => {
+        const writes: ComponentStateWrite[] = [];
+        const entity = spawn(vex, 'test:vex', observing(writes));
+        const run = tickThenUndo(entity, writes, 25);
+
+        expect(run.writes[0]).toEqual({
+            component: 'minecraft:damage_over_time',
+            before: { remaining: 20 },
+            after: { remaining: 19 }
+        });
+        expect(run.ticked['minecraft:damage_over_time']).toEqual({ remaining: 15 });
+        expect(run.undone).toEqual(run.before);
+    });
+
+    it('reports the air supply of minecraft:breathable and undoes it exactly', () => {
+        const writes: ComponentStateWrite[] = [];
+        const entity = spawn(diver, 'test:diver', observing(writes, standingIn('in_water')));
+        const run = tickThenUndo(entity, writes, 45);
+
+        expect(run.writes[0]).toEqual({
+            component: 'minecraft:breathable',
+            before: { remaining: 40, untilHurt: HURT_INTERVAL_TICKS },
+            after: { remaining: 39, untilHurt: HURT_INTERVAL_TICKS }
+        });
+        expect(run.ticked['minecraft:breathable']).toEqual({ remaining: 0, untilHurt: HURT_INTERVAL_TICKS - 5 });
+        expect(run.undone).toEqual(run.before);
+    });
+
+    it('lets a host write an earlier air supply back and resumes from it', () => {
+        const entity = spawn(diver, 'test:diver', standingIn('in_water'));
+        tick(entity, 39);
+        const saved = entity.componentState.snapshot();
+
+        tick(entity, 1 + HURT_INTERVAL_TICKS);
+        expect(entity.attributes.value('health')).toBe(40 - SUFFOCATION_DAMAGE);
+
+        entity.componentState.restore(saved);
+        tick(entity, 1 + HURT_INTERVAL_TICKS);
+
+        expect(entity.attributes.value('health')).toBe(40 - 2 * SUFFOCATION_DAMAGE);
     });
 });
 
