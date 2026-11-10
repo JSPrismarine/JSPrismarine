@@ -118,6 +118,10 @@ const openScreen = (screen: WindowTypes): OpenBlockContainer => ({
     bookshelfPower: 15
 });
 
+/** Each scene's player runtime id. Distinct from each other and from
+ * real entities' ids, because the enchantment seed is kept by it. */
+let nextRuntimeId = 1n << 40n;
+
 /** A player at a workstation, with the levels to pay for what it offers. */
 const scene = (open: OpenBlockContainer) => {
     const built = content();
@@ -132,9 +136,11 @@ const scene = (open: OpenBlockContainer) => {
         getRandom: () => () => 0.25
     });
 
+    const runtimeId = nextRuntimeId++;
     const player: Player = stub<Player>({
         getType: () => 'minecraft:player',
         getName: () => 'tester',
+        getRuntimeId: () => runtimeId,
         getServer: () => server,
         getWorld: () =>
             stub<World>({

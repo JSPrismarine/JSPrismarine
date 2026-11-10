@@ -232,8 +232,11 @@ const content = (): ServerContent =>
         itemDefinitions: fixtureItemDefinitions()
     });
 
-/** Whoever is holding the item, as the item runtime names one, matched to the player below. */
-const SOURCE = { identifier: 'minecraft:player', runtimeId: 7 };
+/**
+ * Each scene's player runtime id. Distinct from each other and from real entities' ids, because
+ * advancement progress is kept by it.
+ */
+let nextRuntimeId = 1n << 40n;
 
 /**
  * A player with an inventory, the attributes a subject reads, and a world to announce into.
@@ -242,6 +245,9 @@ const SOURCE = { identifier: 'minecraft:player', runtimeId: 7 };
  * call site is inside it are driven by the call site rather than by the helper.
  */
 const scene = () => {
+    const runtimeId = nextRuntimeId++;
+    /** Whoever is holding the item, as the item runtime names one: this scene's player. */
+    const source = { identifier: 'minecraft:player', runtimeId: Number(runtimeId) };
     const built = content();
     const announced: Array<{ key: string; parameters: string[] }> = [];
     const inventory = new HumanInventory();
@@ -249,12 +255,13 @@ const scene = () => {
     const server = stub<Server>({ getContent: () => built });
     const world = stub<World>({
         getPlayers: () => [player],
-        getEntity: (runtimeId: bigint) => (runtimeId === 7n ? player : null),
+        getEntity: (id: bigint) => (id === runtimeId ? player : null),
         loadedBlockAt: () => ({ name: 'minecraft:air', states: {} }) as never,
         getServer: () => server
     });
 
     const player: Player = stubOf(Player, {
+        getRuntimeId: () => runtimeId,
         getType: () => 'minecraft:player',
         getName: () => 'tester',
         getPosition: () => ({ getX: () => 0, getY: () => 64, getZ: () => 0 }) as never,
@@ -282,7 +289,7 @@ const scene = () => {
         level: { ...unwiredWorld().level, gameTime: () => 0 }
     });
 
-    return { player, inventory, announced, port };
+    return { player, inventory, announced, port, source };
 };
 
 const mob = (type: string): Entity =>
@@ -397,29 +404,29 @@ describe('earning vanilla advancements by playing', () => {
     });
 
     it('earns husbandry/root the first time the player eats anything', () => {
-        const { player, port, inventory } = scene();
+        const { player, port, inventory, source } = scene();
         inventory.setItem(0, new ContainerEntry({ item: new Item({ name: 'minecraft:stone' }), count: 1 }));
 
         expect(done(player, 'minecraft:husbandry/root')).toBe(false);
 
         // Through the port's own `feed`, which is where `minecraft:consumable`
         // lands, rather than through the trigger helper.
-        port.perform({ kind: 'feed', target: SOURCE, nutrition: 4, saturation: 2.4 });
+        port.perform({ kind: 'feed', target: source, nutrition: 4, saturation: 2.4 });
 
         expect(done(player, 'minecraft:husbandry/root')).toBe(true);
     });
 
     it('earns a durability advancement from the hit that wore the tool down', () => {
-        const { player, port, inventory } = scene();
+        const { player, port, inventory, source } = scene();
         const pickaxe = new Item({ name: 'minecraft:diamond_pickaxe' });
         inventory.setItem(0, new ContainerEntry({ item: pickaxe, count: 1 }));
         pickaxe.durability = 4;
 
-        port.perform({ kind: 'consume-durability', source: SOURCE, amount: 1, broke: false });
+        port.perform({ kind: 'consume-durability', source, amount: 1, broke: false });
         expect(done(player, 'minecraft:story/wear_out_a_pickaxe')).toBe(false);
 
         // One more, which takes it to the single point the criterion asks for.
-        port.perform({ kind: 'consume-durability', source: SOURCE, amount: 1, broke: false });
+        port.perform({ kind: 'consume-durability', source, amount: 1, broke: false });
         expect(done(player, 'minecraft:story/wear_out_a_pickaxe')).toBe(true);
     });
 

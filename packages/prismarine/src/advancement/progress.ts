@@ -9,10 +9,15 @@
  * LevelDB provider that is the `player_server_<key>` record, and for the file
  * provider `worlds/<name>/playerdata/<key>.json`.
  *
- * The store is a `WeakMap` keyed on the player rather than a field on
- * `Player`, so the advancement subsystem can be added and removed without the
- * player class growing a member for every subsystem that wants one. A player
- * who leaves is collected along with their progress.
+ * The store is a map keyed by the player's entity runtime id rather than a
+ * field on `Player`, so the advancement subsystem can be added and removed
+ * without the player class growing a member for every subsystem that wants
+ * one. The entry lives from the load at join to the save at leave, the life
+ * of one connection, which is exactly how long the runtime id lasts. Not keyed
+ * by the player's UUID: until a second login of an account that is still
+ * joining is refused, two live players can share one, and the first to leave
+ * would take the other's progress with it. `PlayerSession.disable` calls
+ * {@link forgetAdvancements} once the progress is saved.
  */
 import { PlayerAdvancements } from '@jsprismarine/advancements';
 import type { PlayerProgressJson } from '@jsprismarine/advancements';
@@ -20,7 +25,7 @@ import type { PlayerProgressJson } from '@jsprismarine/advancements';
 import type Player from '../Player';
 import { isRecord } from '../utils/isRecord';
 
-const stores = new WeakMap<Player, PlayerAdvancements>();
+const stores = new Map<bigint, PlayerAdvancements>();
 
 /**
  * The player's progress, created empty on first ask.
@@ -30,11 +35,12 @@ const stores = new WeakMap<Player, PlayerAdvancements>();
  * from nothing, which is what a first join looks like anyway.
  */
 export const advancementsOf = (player: Player): PlayerAdvancements => {
-    const held = stores.get(player);
+    const runtimeId = player.getRuntimeId();
+    const held = stores.get(runtimeId);
     if (held) return held;
 
     const created = new PlayerAdvancements();
-    stores.set(player, created);
+    stores.set(runtimeId, created);
     return created;
 };
 
@@ -75,7 +81,17 @@ const readProgress = (stored: unknown): PlayerProgressJson => {
  *   who has none.
  */
 export const loadAdvancements = (player: Player, stored: unknown): void => {
-    stores.set(player, PlayerAdvancements.fromJSON(readProgress(stored)));
+    stores.set(player.getRuntimeId(), PlayerAdvancements.fromJSON(readProgress(stored)));
+};
+
+/**
+ * Lets go of a player's progress, for a player who is leaving.
+ *
+ * Called after the progress has been saved. A player who comes back has it
+ * read from the record again by {@link loadAdvancements}.
+ */
+export const forgetAdvancements = (player: Player): void => {
+    stores.delete(player.getRuntimeId());
 };
 
 /**

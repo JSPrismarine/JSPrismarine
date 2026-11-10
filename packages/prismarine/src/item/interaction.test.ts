@@ -248,6 +248,12 @@ const installWorldSystems = (
  * game mode off it. The inventory is a real one with the stack in hotbar slot 0, because a
  * placement takes from it.
  */
+/**
+ * Each player's runtime id. Distinct from each other and from real entities' ids, because
+ * advancement progress is kept by it.
+ */
+let nextPlayerRuntimeId = 1n << 40n;
+
 const playerHolding = (
     world: World,
     holding: string | Item,
@@ -284,12 +290,13 @@ const playerHolding = (
         send: async () => {}
     };
 
+    const runtimeId = nextPlayerRuntimeId++;
     return Object.assign(Object.create(Player.prototype), {
         getWorld: () => world,
         getServer: () => world.getServer(),
         getInventory: () => inventory,
         getNetworkSession: () => session,
-        getRuntimeId: () => 7n,
+        getRuntimeId: () => runtimeId,
         getPosition: () => new Vector3(1.5, 65, 1.5),
         getFeetY: () => 65 - 1.62,
         getBox: () => ({ width: 0.6, height: 1.8 }),
