@@ -515,6 +515,20 @@ export class Item {
         return copy;
     }
 
+    /**
+     * A copy of this stack with `durability` left, which is how a tool wears.
+     *
+     * A copy and not a change in place, so the slot that holds the stack is written and the
+     * change log hears it. The stack network id comes along, as {@link Item.withCount} keeps it.
+     *
+     * @param durability - The durability the copy has left.
+     */
+    public withDurability(durability: number): Item {
+        const copy = this.withCount(this.count);
+        copy.durability = durability;
+        return copy;
+    }
+
     /** One copy constructor for the `with*` methods, so each states only what it changes. */
     private copyWith(changes: Partial<ItemProps>): Item {
         const copy = new Item({
