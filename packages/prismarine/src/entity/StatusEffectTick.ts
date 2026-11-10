@@ -1,3 +1,4 @@
+import type { StatusEffect } from './StatusEffect';
 import { DamageCause } from './DamageCause';
 
 /** What one effect does to its holder's health on a tick it applies. */
@@ -64,5 +65,46 @@ export const effectHealthChange = (
             return { kind: 'damage', amount: 1, cause: DamageCause.Wither };
         default:
             return undefined;
+    }
+};
+
+/** What {@link tickStatusEffects} reads and writes of the holder of a set of effects. */
+export interface StatusEffectHolder {
+    /** The holder's active effects by id, which the tick counts down in place. */
+    readonly effects: Map<string, StatusEffect>;
+    /** How many ticks the holder's effects have been ticked, the clock of an endless effect. */
+    readonly age: number;
+    /** What one effect does on the holder this tick, such as Poison's damage. */
+    apply(effect: StatusEffect, clock: number): Promise<void> | void;
+    /** Takes one spent effect off the holder and tells clients. */
+    remove(id: string): void;
+}
+
+/**
+ * Applies the effects that act on the server, then counts finite ones down and takes off the
+ * ones that ran out.
+ *
+ * Speed, jump boost, night vision and the like are the client's to apply once it has been told
+ * of the effect; what lands here is what changes health, food and the damage taken. An instant
+ * effect acts on the first tick and is spent, and an effect with a duration of one tick still
+ * acts before it expires.
+ */
+export const tickStatusEffects = async (holder: StatusEffectHolder): Promise<void> => {
+    const { effects } = holder;
+    // Most entities carry no effects, and copying an empty map into an array every tick adds up.
+    if (effects.size === 0) return;
+
+    for (const effect of [...effects.values()]) {
+        const clock = effect.durationTicks < 0 ? holder.age : effect.durationTicks;
+        await holder.apply(effect, clock);
+
+        // Applying an effect can kill the holder, clear its effects or replace this one.
+        if (effects.get(effect.id) !== effect) continue;
+        if (isInstantEffect(effect.id) || (effect.durationTicks >= 0 && effect.durationTicks <= 1)) {
+            holder.remove(effect.id);
+            continue;
+        }
+        if (effect.durationTicks < 0) continue;
+        effects.set(effect.id, { ...effect, durationTicks: effect.durationTicks - 1 });
     }
 };

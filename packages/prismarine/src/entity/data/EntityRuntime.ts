@@ -256,7 +256,7 @@ const runtimeEntityIdentifierOf = (identifier: string, content: ServerContent): 
     bedrockEntityIdentifierOf(identifier, (candidate) => content.entities.registry.has(candidate));
 
 /** Whether an active data-driven entity accepts the named status effect. */
-const acceptsStatusEffect = (entity: EntityInstance, identifier: string): boolean => {
+export const acceptsStatusEffect = (entity: EntityInstance, identifier: string): boolean => {
     const immunity = entity.componentParams('minecraft:mob_effect_immunity');
     if (!isRecord(immunity) || !Array.isArray(immunity.mob_effects)) return true;
     const normalized = normalizeStatusEffectId(identifier);

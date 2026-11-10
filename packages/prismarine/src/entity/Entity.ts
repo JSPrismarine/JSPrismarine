@@ -26,7 +26,7 @@ import { boxOf } from './data/facts';
 import { Metadata, MetadataFlag } from '@jsprismarine/protocol/wire/structures/Metadata';
 import type { ViewableEquipment } from './predicateView';
 import type { StatusEffect, StatusEffectChange, StatusEffectInput } from './StatusEffect';
-import { effectHealthChange, isInstantEffect } from './StatusEffectTick';
+import { effectHealthChange, tickStatusEffects } from './StatusEffectTick';
 import { PORTAL_COOLDOWN_TICKS, PORTAL_TRANSITION_TICKS, PortalContact } from './PortalContact';
 import type { PortalBlockRef } from '../world/portal/DimensionTravel';
 import { portalRuleOf } from '../world/portal/rules';
@@ -1020,33 +1020,15 @@ export class Entity {
         return true;
     }
 
-    /**
-     * Applies the effects that act on the server, then counts finite ones down and tells clients
-     * when one expires.
-     *
-     * Speed, jump boost, night vision and the like are the client's to apply once it has been told
-     * of the effect; what lands here is what changes health, food and the damage taken. An instant
-     * effect acts on the first tick and is spent, and an effect with a duration of one tick still
-     * acts before it expires.
-     */
+    /** Ticks this entity's status effects, and tells clients when one expires. */
     private async tickStatusEffects(): Promise<void> {
         this.statusEffectAge++;
-        // Most entities carry no effects, and copying an empty map into an array every tick adds up.
-        if (this.statusEffectMap().size === 0) return;
-
-        for (const effect of this.getStatusEffects()) {
-            const clock = effect.durationTicks < 0 ? this.statusEffectAge : effect.durationTicks;
-            await this.applyStatusEffectTick(effect, clock);
-
-            // Applying an effect can kill the holder, clear its effects or replace this one.
-            if (this.statusEffectMap().get(effect.id) !== effect) continue;
-            if (isInstantEffect(effect.id) || (effect.durationTicks >= 0 && effect.durationTicks <= 1)) {
-                this.removeStatusEffect(effect.id);
-                continue;
-            }
-            if (effect.durationTicks < 0) continue;
-            this.statusEffectMap().set(effect.id, { ...effect, durationTicks: effect.durationTicks - 1 });
-        }
+        await tickStatusEffects({
+            effects: this.statusEffectMap(),
+            age: this.statusEffectAge,
+            apply: async (effect, clock) => this.applyStatusEffectTick(effect, clock),
+            remove: (id) => this.removeStatusEffect(id)
+        });
     }
 
     /**

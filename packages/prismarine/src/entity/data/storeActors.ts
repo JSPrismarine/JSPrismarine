@@ -15,9 +15,19 @@
  *
  * Nothing here is mob-specific. Any entity type in the store is shown the same way, with the
  * metadata its projection gives it.
+ *
+ * A store actor is also how the legacy world code reaches a store entity: commands and
+ * selectors, legacy blasts and swings, interactions, saves, portals and the plugin events. It
+ * answers them from the store and hands every effect back to it: a blow goes through the store's
+ * damage pipeline, a shove onto the entity's body, a status effect or a tag into its component
+ * state. It keeps no copy of the simulation. What it keeps beside the store is what the store
+ * does not model yet: the actor record tags a save carries forward, the portal clock, and the
+ * clock of the status effects. Slices 7 and 9 of the entity and tick re-architecture take those
+ * over, with replication from the change log and travel as messages.
  */
 import { Vector3 } from '@jsprismarine/math';
 import type { EntityPosition } from '@jsprismarine/entities';
+import type { NBTTagCompound } from '@jsprismarine/nbt';
 import { Attribute, AttributeIds, Attributes } from '@jsprismarine/protocol/wire/structures/Attribute';
 import { Metadata } from '@jsprismarine/protocol/wire/structures/Metadata';
 import type { SyncedProperties } from '@jsprismarine/protocol/wire/structures/SyncedProperties';
@@ -25,13 +35,31 @@ import type { SyncedProperties } from '@jsprismarine/protocol/wire/structures/Sy
 import type { ServerContent } from '../../content/ServerContent';
 import { sameSyncedProperties, syncedPropertiesOf } from '../../network/actorProperties';
 import type PlayerSession from '../../network/PlayerSession';
+import type Server from '../../Server';
+import type { PortalBlockRef } from '../../world/portal/DimensionTravel';
+import { portalRuleOf } from '../../world/portal/rules';
+import type { PortalRule } from '../../world/portal/rules';
 import type { ShownActor } from '../../world/ShownActor';
 import type { World } from '../../world/World';
+import { DamageCause } from '../DamageCause';
+import { DamageSource } from '../DamageSource';
 import { sameEquipmentItems, viewableEquipmentOf } from '../equipment';
+import { KNOCKBACK_LIFT } from '../knockback';
+import { PORTAL_COOLDOWN_TICKS, PORTAL_TRANSITION_TICKS, PortalContact } from '../PortalContact';
 import type { ViewableEquipment } from '../predicateView';
-import type { StatusEffect } from '../StatusEffect';
+import type { StatusEffect, StatusEffectChange, StatusEffectInput } from '../StatusEffect';
+import {
+    bedrockMobEffectId,
+    mergeStatusEffect,
+    normalizeStatusEffectId,
+    removeStatusEffectFromMap
+} from '../StatusEffect';
+import { effectHealthChange, tickStatusEffects } from '../StatusEffectTick';
 import type { DataEntity } from './DataEntity';
+import type { DamageRoute } from './damagePipeline';
 import type { EntityRuntime } from './EntityRuntime';
+import { acceptsStatusEffect } from './EntityRuntime';
+import type { EntityBox } from './facts';
 import { boxOf } from './facts';
 import {
     actorMetadataInputs,
@@ -57,8 +85,18 @@ interface ShownPose {
     readonly pitch: number;
 }
 
+/** Where a store actor sends the blows and heals the legacy world code gives it. */
+export interface StoreActorBlows {
+    /** A blow through {@link StoreActor.damage} or a status effect, run through the store's pipeline. */
+    hurt(entity: DataEntity, amount: number, source: DamageSource, route: DamageRoute): boolean;
+    /** A lower health written through {@link StoreActor.setHealth}, by how much it is lower. */
+    written(entity: DataEntity, taken: number, source: DamageSource): void;
+    /** A heal, which the store applies up to the entity's maximum. */
+    heal(entity: DataEntity, amount: number): boolean;
+}
+
 /**
- * One store entity as the network layer reads it.
+ * One store entity as the network layer and the legacy world code read it.
  *
  * Position, rotation, velocity, synced properties, status effects and the ground state are read
  * from the store on every call. The metadata, the attributes and the equipment are encoded
@@ -79,12 +117,26 @@ export class StoreActor implements ShownActor {
     public shownEquipmentRevision = -1;
     private equipment: ViewableEquipment = {};
 
+    /**
+     * The actor record tags this server does not model, which the next save writes back, such
+     * as the actor's `UniqueID`. A save writes the entity's record into it first.
+     */
+    public persistentNbt: NBTTagCompound | null = null;
+
+    private portalCooldown = 0;
+    private portalContactState: PortalContact | undefined;
+    private lastUpdatedTick = -1;
+    /** How many ticks the status effects have been ticked, the clock of an endless effect. */
+    private statusEffectAge = 0;
+
     public constructor(
         /** The store entity behind the actor. */
         public readonly entity: DataEntity,
-        content: ServerContent,
-        leashHolderId: number | undefined
+        private readonly world: World,
+        leashHolderId: number | undefined,
+        private readonly blows: StoreActorBlows
     ) {
+        const content = world.getServer().getContent();
         const health = entity.instance.attributes.get('health');
         // The type's maximum rather than `Attributes.getDefaults`' twenty, so a client draws a
         // ten-health cow with five hearts instead of with two and a half. A type with no health
@@ -109,6 +161,16 @@ export class StoreActor implements ShownActor {
         this.shownOwner = entity.body.owner;
         this.shownPose = StoreActor.poseOf(entity);
         this.writeEquipment(content);
+    }
+
+    /** The world the entity stands in. */
+    public getWorld(): World {
+        return this.world;
+    }
+
+    /** The server the world belongs to. */
+    public getServer(): Server {
+        return this.world.getServer();
     }
 
     /** Where a store entity stands and faces now. */
@@ -171,6 +233,246 @@ export class StoreActor implements ShownActor {
         return this.entity.conditions.has('on_ground');
     }
 
+    /** Where the bottom of the body is, which for a store entity is its position. */
+    public getFeetY(): number {
+        return this.entity.position.y;
+    }
+
+    /** How big the entity is, from its type's collision box. */
+    public getBox(): EntityBox {
+        return boxOf(this.getServer().getContent().entities.registry, this.entity.identifier);
+    }
+
+    /** The entity's name tag, or an empty string when it has none. */
+    public getName(): string {
+        return this.entity.body.nameTag ?? '';
+    }
+
+    /** Names the entity in the store, which shows it to clients. */
+    public setName(name: string): void {
+        this.entity.body.nameTag = name;
+    }
+
+    /** The entity's health in the store, or zero for a type with no health. */
+    public getHealth(): number {
+        return this.entity.instance.attributes.get('health')?.current ?? 0;
+    }
+
+    /** The entity's maximum health in the store, or zero for a type with no health. */
+    public getMaxHealth(): number {
+        return this.entity.instance.attributes.get('health')?.max ?? 0;
+    }
+
+    /** Whether the entity is still in the store and has health left. */
+    public isAlive(): boolean {
+        return this.entity.removed === undefined && this.getHealth() > 0;
+    }
+
+    /** Whether a save writes the entity, which Bedrock's `minecraft:transient` turns off. */
+    public shouldPersist(): boolean {
+        return !this.entity.instance.hasComponent('minecraft:transient');
+    }
+
+    /**
+     * Hands a blow to the store's damage pipeline, which decides it and applies it before this
+     * returns.
+     */
+    public async damage(amount: number, source: DamageCause | DamageSource = DamageCause.Generic): Promise<boolean> {
+        if (amount <= 0) return false;
+        return this.blows.hurt(this.entity, amount, DamageSource.of(source), 'legacy_body');
+    }
+
+    /**
+     * A health written onto the entity: a lower one, which is what `/kill` writes, is a blow for
+     * the difference through the store's pipeline, and a higher one is a heal.
+     */
+    public async setHealth(health: number, source: DamageCause | DamageSource = DamageCause.Generic): Promise<void> {
+        const current = this.entity.instance.attributes.get('health')?.current;
+        if (current === undefined || health === current) return;
+        if (health > current) this.blows.heal(this.entity, health - current);
+        else this.blows.written(this.entity, current - health, DamageSource.of(source));
+    }
+
+    /** Heals the entity in the store. */
+    public async heal(amount: number): Promise<boolean> {
+        return this.blows.heal(this.entity, amount);
+    }
+
+    /** Adds an impulse to the entity body the runtime integrates each tick. */
+    public applyImpulse(impulse: EntityPosition): void {
+        this.entity.body.push({ x: impulse.x, y: impulse.y, z: impulse.z });
+    }
+
+    /**
+     * Shoves the entity: vanilla's rule is that each shove halves whatever motion the last one
+     * left before adding its own, which is what makes a sprint hit both throw harder and cancel
+     * more of the run the target was making.
+     */
+    public applyKnockback(directionX: number, directionZ: number, strength: number, damping = 0.5): void {
+        const moving = this.entity.body;
+        const carried = moving.velocity;
+        moving.velocity = { x: carried.x * damping, y: carried.y, z: carried.z * damping };
+        moving.push({ x: directionX * strength, y: KNOCKBACK_LIFT, z: directionZ * strength });
+    }
+
+    /** The `/tag` tags of the entity. */
+    public getTags(): readonly string[] {
+        return [...this.entity.body.tags];
+    }
+
+    /** Adds a `/tag` tag. @returns Whether the entity did not already carry it. */
+    public addTag(tag: string): boolean {
+        if (this.entity.body.tags.has(tag)) return false;
+        this.entity.body.tags.add(tag);
+        return true;
+    }
+
+    /** Takes a `/tag` tag off. @returns Whether the entity carried it. */
+    public removeTag(tag: string): boolean {
+        return this.entity.body.tags.delete(tag);
+    }
+
+    /** One active effect by its namespaced id or bare Bedrock name. */
+    public getStatusEffect(identifier: string): StatusEffect | undefined {
+        return this.entity.body.statusEffects.get(normalizeStatusEffectId(identifier));
+    }
+
+    /** Whether one status effect is active. */
+    public hasStatusEffect(identifier: string): boolean {
+        return this.getStatusEffect(identifier) !== undefined;
+    }
+
+    /**
+     * Applies or refreshes a status effect in the store, unless the entity's
+     * `minecraft:mob_effect_immunity` refuses it. The merge rule is `Entity.addStatusEffect`'s.
+     *
+     * @param notify - Whether to tell clients about an accepted change.
+     * @returns Whether the effect changed.
+     */
+    public addStatusEffect(input: StatusEffectInput, notify = true): boolean {
+        const id = normalizeStatusEffectId(input.id);
+        if (bedrockMobEffectId(id) === undefined || !acceptsStatusEffect(this.entity.instance, id)) return false;
+        const effects = this.entity.body.statusEffects;
+        const change = mergeStatusEffect(effects, input);
+        if (change === undefined) return false;
+        const effect = effects.get(id);
+        if (effect !== undefined && notify) this.announceStatusEffect(effect, change);
+        return true;
+    }
+
+    /** Removes one status effect. @returns Whether an active effect was removed. */
+    public removeStatusEffect(identifier: string, notify = true): boolean {
+        const previous = removeStatusEffectFromMap(this.entity.body.statusEffects, identifier);
+        if (previous === undefined) return false;
+        if (notify) this.announceStatusEffect(previous, 'remove');
+        return true;
+    }
+
+    /** Removes every active status effect. @returns How many were cleared. */
+    public clearStatusEffects(notify = true): number {
+        let cleared = 0;
+        for (const effect of this.getStatusEffects()) {
+            if (this.removeStatusEffect(effect.id, notify)) cleared += 1;
+        }
+        return cleared;
+    }
+
+    private announceStatusEffect(effect: StatusEffect, change: StatusEffectChange): void {
+        void this.world
+            .sendStatusEffect(this, effect, change)
+            .catch((error: unknown) => this.getServer().getLogger().error(error));
+    }
+
+    /** Ticks a non-player entity waits in a portal before it goes through, which is none. */
+    public getPortalTransitionTicks(_rule?: PortalRule): number {
+        return PORTAL_TRANSITION_TICKS.other;
+    }
+
+    /** How long the entity refuses portals after a dimension change. */
+    public getDefaultPortalCooldown(): number {
+        return PORTAL_COOLDOWN_TICKS.entity;
+    }
+
+    /** Ticks left before the entity may enter a portal again. */
+    public getPortalCooldown(): number {
+        return this.portalCooldown;
+    }
+
+    /** Starts the portal cooldown, on arrival through a portal. */
+    public setPortalCooldown(ticks: number = this.getDefaultPortalCooldown()): void {
+        this.portalCooldown = Math.max(0, Math.floor(ticks));
+    }
+
+    /** Whether the entity still refuses portals after a recent dimension change. */
+    public isOnPortalCooldown(): boolean {
+        return this.portalCooldown > 0;
+    }
+
+    /** The portal the entity is in contact with, if any. */
+    public portalContact(): PortalContact | undefined {
+        return this.portalContactState;
+    }
+
+    /**
+     * Records that the entity overlaps a portal block this tick, as `Entity.touchPortal` does: a
+     * touch on cooldown winds the cooldown back instead of opening a contact.
+     */
+    public touchPortal(at: Vector3, portal?: PortalBlockRef): void {
+        if (this.isOnPortalCooldown()) {
+            this.setPortalCooldown();
+            return;
+        }
+        this.portalContactState ??= new PortalContact(at);
+        this.portalContactState.touch(at, portal);
+    }
+
+    /** Claims the entity's one update of a server tick; see `Entity.claimUpdate`. */
+    public claimUpdate(tick: number): boolean {
+        if (this.lastUpdatedTick === tick) return false;
+        this.lastUpdatedTick = tick;
+        return true;
+    }
+
+    /**
+     * The part of a tick the store does not run yet: the portal clock, a trip through a portal
+     * once the contact is ready, and the status effects, whose harm and healing go through the
+     * store.
+     */
+    public async update(_tick: number): Promise<void> {
+        if (this.portalCooldown > 0) this.portalCooldown--;
+
+        const contact = this.portalContactState;
+        if (contact !== undefined) {
+            const portal = contact.getPortal();
+            const rule = portal === undefined ? undefined : portalRuleOf(portal.block);
+            const ready = contact.tick(this.getPortalTransitionTicks(rule));
+            if (ready && portal !== undefined) {
+                this.portalContactState = undefined;
+                const travel = this.getServer().getDimensionTravel();
+                const arrival = await travel.resolve(this, portal);
+                if (arrival !== undefined) await travel.transfer(this, arrival);
+            } else if (!ready && contact.hasExpired()) this.portalContactState = undefined;
+        }
+
+        this.statusEffectAge++;
+        await tickStatusEffects({
+            effects: this.entity.body.statusEffects,
+            age: this.statusEffectAge,
+            apply: (effect, clock) => this.applyStatusEffectTick(effect, clock),
+            remove: (id) => this.removeStatusEffect(id)
+        });
+    }
+
+    /** A status effect's harm as a blow through the store's pipeline, and its healing as a heal. */
+    private applyStatusEffectTick(effect: StatusEffect, clock: number): void {
+        const health = this.entity.instance.attributes.get('health');
+        if (health === undefined) return;
+        const change = effectHealthChange(effect.id, effect.amplifier, clock, health.current, health.max);
+        if (change === undefined || change.amount <= 0) return;
+        if (change.kind === 'heal') this.blows.heal(this.entity, change.amount);
+        else this.blows.hurt(this.entity, change.amount, DamageSource.of(change.cause), 'status_effect');
+    }
+
     /** @inheritdoc */
     public getTrackingRange(): number {
         return TRACKING_RANGE_CHUNKS;
@@ -207,6 +509,8 @@ export interface StoreActorsOptions {
     world(): World | undefined;
     /** Receives everything the actors met and could not carry out. */
     report(message: string): void;
+    /** Where each actor sends the blows and heals the legacy world code gives it. */
+    readonly blows: StoreActorBlows;
     /** Hears each new actor metadata projection, for a legacy body that still carries one. */
     projected?(entity: DataEntity, projection: ActorMetadataProjection): void;
 }
@@ -237,7 +541,7 @@ export class StoreActors {
         const world = this.options.world();
         if (world === undefined) return;
 
-        const actor = new StoreActor(entity, world.getServer().getContent(), leashHolderId);
+        const actor = new StoreActor(entity, world, leashHolderId, this.options.blows);
         this.actors.set(entity.id, actor);
         this.options.projected?.(entity, actor.shownProjection);
         void world.showActor(actor).catch((error: unknown) => this.failed('show', error));

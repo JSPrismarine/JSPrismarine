@@ -46,6 +46,7 @@ import { breakBlockWithContent, collectBreakDrops, wearBreakingTool } from './bl
 import { notifyContentNeighbors } from './neighborContent';
 import CoordinateUtils from './CoordinateUtils';
 import type { ShownActor } from './ShownActor';
+import type { WorldActor } from './WorldActor';
 import type { NamedSoundOptions, WorldChangeSink } from './WorldChangeSink';
 import { NULL_WORLD_CHANGE_SINK } from './WorldChangeSink';
 import { Dimensions, maxY } from './Dimension';
@@ -3689,6 +3690,35 @@ export class World implements Service {
      */
     public getEntities(): Entity[] {
         return Array.from(this.entities.values());
+    }
+
+    /**
+     * Every entity of this world, the legacy entities and the store's through their actors, in
+     * ascending runtime id order.
+     * @returns {WorldActor[]} The entities.
+     */
+    public getActors(): WorldActor[] {
+        const live = this.server.getEntityRuntime?.(this.dimension.name);
+        const actors: WorldActor[] = [];
+        for (const entity of this.entities.values()) {
+            if (live?.bodies.entityIdOf(entity) === undefined) actors.push(entity);
+        }
+        if (live !== undefined) for (const actor of live.actors.all()) actors.push(actor);
+        return actors.sort((left, right) => {
+            const leftId = left.getRuntimeId();
+            const rightId = right.getRuntimeId();
+            return leftId < rightId ? -1 : leftId > rightId ? 1 : 0;
+        });
+    }
+
+    /**
+     * One entity of this world by its runtime id, a store entity through its actor.
+     * @param {bigint} runtimeId - The entity's runtime id.
+     * @returns {WorldActor | null} The entity, or null if nothing here has that id.
+     */
+    public getActor(runtimeId: bigint): WorldActor | null {
+        const id = Number(runtimeId);
+        return this.server.getEntityRuntime?.(this.dimension.name)?.actors.actorOf(id) ?? this.entities.get(id) ?? null;
     }
 
     /**
