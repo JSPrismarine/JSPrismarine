@@ -5,6 +5,7 @@ import { itemOfSlotValue, slotValueOfItem } from './slotLog';
 import type { Item } from '../item/Item';
 import type { ServerContent } from '../content/ServerContent';
 import type { PlainData } from '../world/changelog/PlainData';
+import type { ViewableEquipment } from '../entity/predicateView';
 
 /** Slots the hotbar reaches, and so the range a hand slot may name. */
 const HOTBAR_SIZE = 9;
@@ -101,6 +102,23 @@ export default class HumanInventory extends Inventory {
     /** The player's own ender chest contents. */
     public getEnderChest(): Inventory {
         return this.enderChest;
+    }
+
+    /**
+     * What is worn and held, as the network layer and the enchantment effect components read
+     * it. The armor container's four slots are helmet, chestplate, leggings and boots in the
+     * order the client numbers them, so the mapping is positional rather than looked up.
+     */
+    public getEquipment(): ViewableEquipment {
+        const armor = this.getArmor();
+        return {
+            mainhand: this.getItemInHand(),
+            offhand: this.getOffhand().getEntry(0)?.toItemStack(),
+            head: armor.getEntry(0)?.toItemStack(),
+            chest: armor.getEntry(1)?.toItemStack(),
+            legs: armor.getEntry(2)?.toItemStack(),
+            feet: armor.getEntry(3)?.toItemStack()
+        };
     }
 
     /**
