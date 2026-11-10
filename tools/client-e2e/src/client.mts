@@ -46,6 +46,13 @@ const lightweightSettings = {
     discord_presence: 0
 };
 
+/** The trust prompt's confirm action, as `state.menu.focused_action` names it while focused. */
+const TRUST_AND_JOIN = 'ServerTrust(true)';
+/** How often a join checks for the trust prompt. A state reply is large, so not every frame. */
+const TRUST_POLL_MS = 500;
+/** How long a join waits for the trust prompt before leaving the verdict to the caller's waits. */
+const JOIN_TRUST_WINDOW_MS = 60_000;
+
 /** A connected MCP session controlling one cinnabar client process. */
 export class CinnabarClient {
     private readonly session: Client;
@@ -127,9 +134,40 @@ export class CinnabarClient {
         if (logFilter !== undefined && logFilter !== '') await this.call('log_filter_set', { spec: logFilter });
     }
 
-    /** Joins a loopback server. The controller refuses non-loopback addresses by design. */
-    async connect(port: number): Promise<void> {
+    /**
+     * Joins a loopback server. The controller refuses non-loopback addresses by design.
+     *
+     * @param port - The server's port on 127.0.0.1.
+     * @param acceptTrustPrompt - Answer the server trust prompt before returning. A NetherNet
+     *   join by address signs in with the server's self-signed identity, which the game, and
+     *   cinnabar like it, asks the player to trust before it joins. The controller runs one call
+     *   at a time, so this cannot happen beside the caller's `wait_for`: it must finish first.
+     */
+    async connect(port: number, acceptTrustPrompt = false): Promise<void> {
         await this.call('connect', { address: `127.0.0.1:${port}` });
+        if (acceptTrustPrompt) await this.acceptServerTrust(JOIN_TRUST_WINDOW_MS);
+    }
+
+    /**
+     * Presses Enter once the trust prompt has "Trust and Join" focused. Returns early when the
+     * client is in the world or stops connecting, since a client that already trusts the server
+     * is never asked; the caller's own waits report a join that failed.
+     */
+    private async acceptServerTrust(windowMs: number): Promise<void> {
+        const deadline = Date.now() + windowMs;
+        while (Date.now() < deadline) {
+            const state = await this.call('state');
+            if (state.in_world === true) return;
+            const menu = state.menu;
+            if (typeof menu === 'object' && menu !== null) {
+                if ('focused_action' in menu && menu.focused_action === TRUST_AND_JOIN) {
+                    await this.input({ press: ['Enter'] });
+                    return;
+                }
+                if ('connecting' in menu && menu.connecting === false) return;
+            }
+            await new Promise((resolve) => setTimeout(resolve, TRUST_POLL_MS));
+        }
     }
 
     /** Blocks until the condition holds, or throws after `timeoutMs` (controller default 60 s). */
