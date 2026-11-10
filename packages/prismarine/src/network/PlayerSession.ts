@@ -7,6 +7,7 @@ import {
     CommandPermissionLevel,
     ContainerUiId,
     Dimension,
+    DisconnectReason,
     Gametype,
     PlayerPermissionLevel
 } from '@jsprismarine/minecraft';
@@ -538,7 +539,7 @@ export default class PlayerSession {
 
     /** Queues a resident chunk without entering the generation and disk-read depth gate. */
     public tryDeliverLoaded(x: number, z: number): CachedChunkDelivery {
-        const chunk = this.own().getWorld().getLoadedChunk(x, z);
+        const chunk = this.getWorld().getLoadedChunk(x, z);
         if (chunk === null) return { kind: 'not-loaded' };
 
         const queued = this.prepareQueuedChunk(chunk);
@@ -601,7 +602,7 @@ export default class PlayerSession {
         if (packet.offsets.length === 0) return 0;
 
         const online = this.isConnected();
-        const world = online ? this.own().getWorld() : undefined;
+        const world = online ? this.getWorld() : undefined;
         const dimension = world?.getDimension();
         const cacheEnabled = this.clientCacheEnabled;
         const entries: SubChunkEntry[] = [];
@@ -1135,9 +1136,7 @@ export default class PlayerSession {
 
     public async requestChunk(x: number, z: number): Promise<void> {
         const epoch = this.chunkEpoch;
-        const chunk = await this.own()
-            .getWorld()
-            .getChunk(x, z, { urgency: this.urgencyOf(x, z) });
+        const chunk = await this.getWorld().getChunk(x, z, { urgency: this.urgencyOf(x, z) });
         await this.queueChunk(chunk, epoch);
     }
 
@@ -1805,6 +1804,18 @@ export default class PlayerSession {
         }
 
         await this.getConnection().sendDataPacket(pk);
+    }
+
+    /**
+     * The world this session's player is in, which is the world its chunks are streamed from.
+     *
+     * During a dimension change it is the destination from the moment the player moves, while
+     * the client may still be on its loading screen.
+     * @returns The world.
+     * @throws {Error} Once {@link PlayerSession.disable} has forgotten the player.
+     */
+    public getWorld(): World {
+        return this.own().getWorld();
     }
 
     /**
@@ -2909,6 +2920,19 @@ export default class PlayerSession {
         // shirtsleeves however well equipped they are.
         await this.sendArmorFor(player);
         await this.sendStatusEffects(player);
+    }
+
+    /**
+     * Disconnects this client with a reason it shows, and hangs up its connection.
+     *
+     * `Player.kick` does the same, for callers that hold the player.
+     * @param reason - Shown to the client.
+     * @param code - The code the client shows beside the reason. `Server.shutdown` passes
+     *   `SHUTDOWN`.
+     */
+    public async kick(reason = 'unknown reason', code: DisconnectReason = DisconnectReason.KICKED): Promise<void> {
+        await this.connection.disconnect(reason, false, code);
+        this.server.getLogger().verbose(`Player with id §b${this.runtimeId}§r was kicked: ${reason}`);
     }
 
     /** Sends a `PlayStatus` to this player's client. */
