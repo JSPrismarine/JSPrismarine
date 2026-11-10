@@ -24,12 +24,6 @@ export interface InTickChunkLoad {
  */
 export const IN_TICK_CHUNK_LOADS: readonly InTickChunkLoad[] = [
     {
-        path: 'player landing check for a soft block',
-        file: 'Player.ts',
-        call: 'private async isStandingInSomethingSoft()',
-        slice: 5
-    },
-    {
         // A death files the search and the next input step awaits its answer
         // (`world/RespawnRequests.ts`), and the `Respawn` handler still searches as it runs.
         path: 'player respawn search, awaited by the input step that answers a death',

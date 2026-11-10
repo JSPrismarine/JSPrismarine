@@ -31,6 +31,23 @@ const ticks = (fixture: EntityFixture, count: number, from = 1) => {
     return entries;
 };
 
+/** Reports one client move of a store player, as the input step would. */
+const report = (fixture: EntityFixture, player: DataEntity, at: { x?: number; y: number }, onGround: boolean) =>
+    fixture.runtime.applyClientMovement(player.id, {
+        position: { x: at.x ?? 0.5, y: at.y, z: 0.5 },
+        yaw: 0,
+        pitch: 0,
+        onGround
+    });
+
+/** Drops a store player from `height` blocks above the floor to it, a block a report, and lands it. */
+const dropFrom = (fixture: EntityFixture, player: DataEntity, height: number) =>
+    logged(fixture.runtime, () => {
+        report(fixture, player, { y: FLOOR_Y + 1 + height }, false);
+        for (let fallen = 1; fallen <= height; fallen += 1)
+            report(fixture, player, { y: FLOOR_Y + 1 + height - fallen }, fallen === height);
+    });
+
 describe('a store player', () => {
     describe('hunger', () => {
         it('starves on the four-second clock with an empty bar, through the damage pipeline', () => {
@@ -145,6 +162,66 @@ describe('a store player', () => {
             const entries = ticks(fixture, 5);
             expect(components.get('vitals.air')).toBe(100);
             expect(fieldsOf(entries, 'vitals.air')).toHaveLength(0);
+        });
+    });
+
+    describe('falls', () => {
+        it('takes a half-heart for every block past the third, through the damage pipeline', () => {
+            const fixture = storePlayerFixture();
+            const { player } = standingPlayer(fixture);
+
+            const entries = dropFrom(fixture, player, 10);
+
+            expect(healthOf(player)).toBe(13);
+            expect(fieldsOf(entries, 'attribute:health')).toHaveLength(1);
+            expect(fieldsOf(entries, 'vitals.fallDistance').length).toBeGreaterThan(0);
+        });
+
+        it('starts the fall at the top of a jump', () => {
+            const fixture = storePlayerFixture();
+            const { player, components } = standingPlayer(fixture);
+
+            report(fixture, player, { y: FLOOR_Y + 2 }, false);
+            expect(components.get('vitals.fallDistance')).toBe(0);
+            report(fixture, player, { y: FLOOR_Y + 1 }, true);
+            expect(healthOf(player)).toBe(20);
+            expect(components.get('vitals.fallDistance')).toBe(0);
+        });
+
+        it('lands softly on a block under the feet that breaks a fall', () => {
+            const fixture = storePlayerFixture();
+            fixture.world.setBlock({ x: 0, y: FLOOR_Y, z: 0 }, 'minecraft:hay_block');
+            const { player } = standingPlayer(fixture);
+
+            dropFrom(fixture, player, 10);
+            expect(healthOf(player)).toBe(20);
+        });
+
+        it('is not hurt with the fall damage game rule off', () => {
+            const fixture = storePlayerFixture(new TestEntityWorld({ gameRules: { fallDamage: false } }));
+            const { player } = standingPlayer(fixture);
+
+            dropFrom(fixture, player, 10);
+            expect(healthOf(player)).toBe(20);
+        });
+
+        it('is not hurt landing where no chunk is loaded, and loads none', () => {
+            const fixture = storePlayerFixture(new TestEntityWorld({ unloadedFromX: 0 }));
+            const { player } = standingPlayer(fixture);
+
+            dropFrom(fixture, player, 10);
+            expect(healthOf(player)).toBe(20);
+        });
+
+        it('charges a walk on the ground in exhaustion, and a long jump as a teleport not at all', () => {
+            const fixture = storePlayerFixture();
+            const { player, components } = standingPlayer(fixture);
+
+            report(fixture, player, { x: 2.5, y: FLOOR_Y + 1 }, true);
+            expect(components.get('vitals.exhaustion')).toBeCloseTo(0.02);
+
+            report(fixture, player, { x: 40.5, y: FLOOR_Y + 1 }, true);
+            expect(components.get('vitals.exhaustion')).toBeCloseTo(0.02);
         });
     });
 });

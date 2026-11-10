@@ -2308,11 +2308,14 @@ export class EntityRuntime implements EntityScene {
         const entity = this.store.get(id);
         if (entity === undefined || !clientOwnsMovement(entity.identifier)) return false;
 
+        const from = { ...entity.position };
+        const wasOnGround = entity.body.conditions.has('on_ground');
         entity.body.yaw = movement.yaw;
         entity.body.pitch = movement.pitch;
         entity.position = movement.position;
         if (movement.onGround) entity.body.conditions.add('on_ground');
         else entity.body.conditions.delete('on_ground');
+        this.playerSystems.moved(entity, from, wasOnGround);
         return true;
     }
 

@@ -5,6 +5,7 @@ import { Vector3 } from '@jsprismarine/math';
 import { PositionMode } from '@jsprismarine/protocol';
 import Player from './Player';
 import { DamageCause } from './entity/Entity';
+import { EYE_HEIGHT } from './entity/Human';
 import { Position } from './world/Position';
 import { Attributes } from '@jsprismarine/protocol/wire/structures/Attribute';
 import { withPlayerComponents } from './testing/playerDouble.test.helper';
@@ -19,14 +20,22 @@ import { withPlayerComponents } from './testing/playerDouble.test.helper';
  */
 
 /** A player with everything but the fall bookkeeping replaced. */
-const fallingPlayer = ({ gamemode = Gametype.SURVIVAL, landingOn = 'minecraft:stone', flying = false } = {}) => {
+const fallingPlayer = ({
+    gamemode = Gametype.SURVIVAL,
+    landingOn = 'minecraft:stone',
+    flying = false,
+    blockAt = (_y: number): string | undefined => landingOn
+} = {}) => {
     const hits: Array<{ amount: number; cause: DamageCause }> = [];
 
     const world: any = {
         getName: () => 'test',
         getServer: () => ({}),
         getGameRuleManager: () => ({ getGameRule: () => [true, true] }),
-        getBlockState: async () => ({ name: landingOn }),
+        loadedBlockAt: (_x: number, y: number) => {
+            const name = blockAt(y);
+            return name === undefined ? undefined : { name, states: {} };
+        },
         entityRelocated: () => {},
         broadcastMove: async () => {}
     };
@@ -108,6 +117,24 @@ describe('fall damage', () => {
 
     it('is broken by landing in water', async () => {
         const { hits, fall } = fallingPlayer({ landingOn: 'minecraft:water' });
+        await fall(100, 60);
+
+        expect(hits).toEqual([]);
+    });
+
+    it('reads the block under the feet, not the one under the eyes', async () => {
+        // A client reports its eyes, 1.62 above its feet. Standing on hay at y 63 puts the feet in
+        // the air block at 64 and the eyes in the one at 65.
+        const { hits, fall } = fallingPlayer({
+            blockAt: (y) => (y === 63 ? 'minecraft:hay_block' : 'minecraft:air')
+        });
+        await fall(100 + EYE_HEIGHT, 64 + EYE_HEIGHT);
+
+        expect(hits).toEqual([]);
+    });
+
+    it('costs nothing for a landing it cannot read, and loads no chunk to read it', async () => {
+        const { hits, fall } = fallingPlayer({ blockAt: () => undefined });
         await fall(100, 60);
 
         expect(hits).toEqual([]);
