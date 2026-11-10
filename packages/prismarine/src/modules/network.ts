@@ -6,9 +6,10 @@ import ClientConnection from '../network/ClientConnection';
 import type { InboundPacketRecord, InboundPacketRecorder } from '../network/InboundPacketTrace';
 import type { OutboundPacketRecorder } from '../network/OutboundPacketTrace';
 import NetworkDispatcher from '../network/NetworkDispatcher';
-import { ConnectionIds } from '../network/transport/ConnectionId';
+import type { ConnectionIds } from '../network/transport/ConnectionId';
+import MultiTransport from '../network/transport/MultiTransport';
 import RakNetTransport from '../network/transport/RakNetTransport';
-import type { RakNetTransportConnection } from '../network/transport/RakNetTransport';
+import type { Transport, TransportConnection } from '../network/transport/Transport';
 import { latestCodec } from '../network/codec/CodecRegistry';
 import type Server from '../Server';
 import { networkToken } from './tokens';
@@ -22,9 +23,10 @@ import { networkToken } from './tokens';
  */
 export interface Networking {
     /**
-     * Binds the listener and wires inbound traffic to the packet dispatcher.
+     * Binds every enabled transport and wires inbound traffic to the packet dispatcher.
      * @param address - The address to bind.
      * @param port - The port to bind.
+     * @throws {Error} When the config enables no transport, so no client could connect.
      */
     start(address: string, port: number): void;
 
@@ -32,31 +34,39 @@ export interface Networking {
     replayInboundRecord?(record: InboundPacketRecord, tickOffset?: number): Promise<void>;
 
     /**
-     * Kills the listener, dropping every session with it. A no-op before
+     * Closes every transport, dropping every session with them. A no-op before
      * {@link Networking.start}, so an early shutdown has nothing to do here.
      */
     kill(): void;
 
     /**
-     * The listener underneath, for what the transport seam does not cover yet:
-     * the query protocol's raw datagrams and the advertised server name.
-     * @returns The listener, or undefined before {@link Networking.start}.
+     * The RakNet listener, for what the transport seam does not cover: the query protocol's
+     * replies go out through its socket.
+     * @returns The listener, or undefined before {@link Networking.start} or with RakNet off.
      */
     getListener(): RakNetListenerLike | undefined;
+
+    /**
+     * What every transport advertises about the server: MOTD, version and player counts.
+     * @returns The server name, or undefined before {@link Networking.start}.
+     */
+    getServerName(): ServerName | undefined;
 
     /** Hands worker-delivered network records to the game thread at the start of a tick. */
     pollInbound(): number;
 }
 
 /**
- * The RakNet-backed {@link Networking}: owns the `RakNetListener` and, once
- * started, the `NetworkDispatcher` routing its traffic. Extracted verbatim from
- * `Server.bootstrap`; construction does no I/O, so the instance is safe to
- * build and provide before anything binds.
+ * The server's {@link Networking}: owns the transports the config enables and, once
+ * started, the `NetworkDispatcher` routing their traffic through one `MultiTransport`.
+ * Construction does no I/O, so the instance is safe to build and provide before anything
+ * binds.
  */
 export class ServerNetworking implements Networking {
     private raknet: RakNetListenerLike | undefined;
-    private dispatcher: NetworkDispatcher<RakNetTransportConnection> | undefined;
+    private serverName: ServerName | undefined;
+    private transport: Transport | undefined;
+    private dispatcher: NetworkDispatcher<TransportConnection> | undefined;
 
     public constructor(
         private readonly server: Server,
@@ -64,29 +74,26 @@ export class ServerNetworking implements Networking {
         private readonly outboundPacketRecorder?: OutboundPacketRecorder
     ) {}
 
-    /** Binds the RakNet listener and subscribes the packet dispatcher to it. */
+    /** Binds every enabled transport and subscribes the packet dispatcher to them. */
     public start(address: string, port: number): void {
         const server = this.server;
-        const serverName = new ServerName(server, latestCodec);
-        this.raknet = server.getConfig().getUseRakNetWorker()
-            ? new WorkerServerSocket(
-                  server.getConfig().getMaxPlayers(),
-                  server.getConfig().getOnlineMode(),
-                  serverName,
-                  server.getLogger()
-              )
-            : new RakNetListener(
-                  server.getConfig().getMaxPlayers(),
-                  server.getConfig().getOnlineMode(),
-                  serverName,
-                  server.getLogger()
-              );
-        this.raknet.start(address, port);
+        const config = server.getConfig();
+        this.serverName = new ServerName(server, latestCodec);
+
+        const serverName = this.serverName;
+        this.transport = new MultiTransport((ids) => {
+            const transports: Transport[] = [];
+            if (config.getEnableRakNet()) transports.push(this.startRakNet(address, port, serverName, ids));
+            if (transports.length === 0) {
+                throw new Error('No transport is enabled: turn on enable-raknet or enable-nethernet in config.json');
+            }
+            return transports;
+        });
 
         // The dispatcher subscribes itself; holding it is unnecessary, the transport keeps
         // it alive through the listeners it installed.
         this.dispatcher = new NetworkDispatcher({
-            transport: new RakNetTransport(this.raknet, server, new ConnectionIds()),
+            transport: this.transport,
             sessionManager: server.getSessionManager(),
             packetHandlerRegistry: server.getPacketHandlerRegistry(),
             events: server,
@@ -121,19 +128,36 @@ export class ServerNetworking implements Networking {
         await dispatcher.replayInboundRecord(record, tickOffset);
     }
 
-    /** Kills the listener if one was started. */
+    /** Closes every transport that was started. */
     public kill(): void {
-        this.raknet?.kill();
+        this.transport?.close();
     }
 
-    /** The listener, or undefined before {@link ServerNetworking.start}. */
+    /** The RakNet listener, or undefined before {@link ServerNetworking.start} or with RakNet off. */
     public getListener(): RakNetListenerLike | undefined {
         return this.raknet;
+    }
+
+    /** The advertised server name, or undefined before {@link ServerNetworking.start}. */
+    public getServerName(): ServerName | undefined {
+        return this.serverName;
     }
 
     /** Drains worker events in queue order; socket mode already delivers on the event loop. */
     public pollInbound(): number {
         return this.raknet instanceof WorkerServerSocket ? this.raknet.pollInbound() : 0;
+    }
+
+    /** Binds the RakNet listener, on a worker thread when the config says so. */
+    private startRakNet(address: string, port: number, serverName: ServerName, ids: ConnectionIds): RakNetTransport {
+        const server = this.server;
+        const config = server.getConfig();
+        const raknet = config.getUseRakNetWorker()
+            ? new WorkerServerSocket(config.getMaxPlayers(), config.getOnlineMode(), serverName, server.getLogger())
+            : new RakNetListener(config.getMaxPlayers(), config.getOnlineMode(), serverName, server.getLogger());
+        raknet.start(address, port);
+        this.raknet = raknet;
+        return new RakNetTransport(raknet, server, ids);
     }
 }
 

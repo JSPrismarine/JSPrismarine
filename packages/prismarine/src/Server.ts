@@ -464,9 +464,9 @@ export default class Server extends EventEmitter {
     }
 
     public getMetadata() {
-        const raknet = this.networking.getListener();
-        if (!raknet) throw new Error('Server is not started');
-        return raknet.serverName;
+        const serverName = this.networking.getServerName();
+        if (!serverName) throw new Error('Server is not started');
+        return serverName;
     }
 
     /**
