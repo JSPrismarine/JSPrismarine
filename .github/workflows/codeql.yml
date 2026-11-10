@@ -19,8 +19,20 @@ env:
 on:
   push:
     branches: [ "master" ]
+  # A pull request is analyzed when it changes a file the analysis reads. The push to master and
+  # the weekly run still analyze everything.
   pull_request:
     branches: [ "master" ]
+    paths:
+      - '**/*.ts'
+      - '**/*.mts'
+      - '**/*.cts'
+      - '**/*.tsx'
+      - '**/*.js'
+      - '**/*.mjs'
+      - '**/*.cjs'
+      - '**/*.jsx'
+      - '.github/workflows/codeql.yml'
   schedule:
     - cron: '18 15 * * 4'
 
