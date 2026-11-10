@@ -9,6 +9,7 @@ import HumanInventory from '../../inventory/HumanInventory';
 import { WindowTypes } from '../../inventory/WindowTypes';
 import { Item } from '../../item/Item';
 import type { StubMembers } from '../../testing/stub.test.helper';
+import { identityNamed } from '../../testing/sessionIdentity.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import { Position } from '../../world/Position';
 import type { World } from '../../world/World';
@@ -58,6 +59,7 @@ const run = async ({
     });
 
     const session = stub<PlayerSession>({
+        identity: identityNamed('Steve'),
         getConnection: () => stub<ClientConnection>({ sendDataPacket: async (packet) => void sent.push(packet) }),
         getPlayer: () =>
             stub<Player>({

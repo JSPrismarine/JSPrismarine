@@ -5,6 +5,7 @@ import type Server from '../../Server';
 import HumanInventory from '../../inventory/HumanInventory';
 import MobEquipmentPacket from '@jsprismarine/protocol/packet/MobEquipmentPacket';
 import type PacketHandler from './PacketHandler';
+import type { InventoryHolder, PlacedPlayer } from './playerPorts';
 
 /**
  * A client reporting which hotbar slot it holds.
@@ -32,7 +33,7 @@ export default class MobEquipmentHandler implements PacketHandler<MobEquipmentPa
     public async handle(packet: MobEquipmentPacket, server: Server, session: PlayerSession): Promise<void> {
         const data = packet.getPacketData();
         if (data === null) return;
-        const player = session.getPlayer();
+        const player: InventoryHolder & PlacedPlayer = session.getPlayer();
 
         if (data.windowId === WindowIds.OFFHAND) return;
 
@@ -40,7 +41,7 @@ export default class MobEquipmentHandler implements PacketHandler<MobEquipmentPa
             server
                 .getLogger()
                 .debug(
-                    `${player.getName()} reported equipment for container ${data.windowId}; dropped`,
+                    `${session.identity.name} reported equipment for container ${data.windowId}; dropped`,
                     'MobEquipmentHandler/handle'
                 );
             return;
@@ -50,7 +51,7 @@ export default class MobEquipmentHandler implements PacketHandler<MobEquipmentPa
             server
                 .getLogger()
                 .debug(
-                    `${player.getName()} selected slot ${data.hotbarSlot} (slot ${data.inventorySlot}), which is outside the hotbar; dropped`,
+                    `${session.identity.name} selected slot ${data.hotbarSlot} (slot ${data.inventorySlot}), which is outside the hotbar; dropped`,
                     'MobEquipmentHandler/handle'
                 );
             return;
@@ -81,14 +82,14 @@ export default class MobEquipmentHandler implements PacketHandler<MobEquipmentPa
             player
                 .getWorld()
                 .getPlayers()
-                .filter((other) => other !== player)
-                .filter((other) => other.getNetworkSession().tracks(player.getRuntimeId()))
+                .filter((other) => other.getRuntimeId() !== session.runtimeId)
+                .filter((other) => other.getNetworkSession().tracks(session.runtimeId))
                 .map(async (other) => {
                     const targetSession = other.getNetworkSession();
                     const context = targetSession.getConnection().codec.context;
                     return targetSession.send(
                         new MobEquipmentPacket({
-                            runtimeEntityId: player.getRuntimeId(),
+                            runtimeEntityId: session.runtimeId,
                             item: inventory.getItemInHand().toStackDescriptor(context),
                             inventorySlot: data.hotbarSlot,
                             hotbarSlot: data.hotbarSlot,

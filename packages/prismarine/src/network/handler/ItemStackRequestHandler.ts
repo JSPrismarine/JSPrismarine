@@ -35,6 +35,7 @@ import type { ItemStackRequest, ItemStackRequestSlotInfo } from '@jsprismarine/p
 import { ContainerUiId, ItemStackRequestActionType } from '@jsprismarine/protocol';
 import type { OpenBlockContainer } from '../PlayerSession';
 import type PacketHandler from './PacketHandler';
+import type { CraftingHolder, InventoryHolder, PlacedPlayer } from './playerPorts';
 import { selectTrade } from './tradeScreen';
 import {
     refreshEnchantOptions,
@@ -324,7 +325,7 @@ export default class ItemStackRequestHandler implements PacketHandler<ItemStackR
      * answered the same way, once the request has been rolled back.
      */
     public async handle(packet: ItemStackRequestPacket, server: Server, session: PlayerSession): Promise<void> {
-        const player = session.getPlayer();
+        const player: InventoryHolder & CraftingHolder & PlacedPlayer = session.getPlayer();
         const inventory = player.getInventory();
 
         // What the client actually asked for, by name: what a client sends for a given gesture
@@ -355,32 +356,40 @@ export default class ItemStackRequestHandler implements PacketHandler<ItemStackR
 
         const response = new ItemStackResponsePacket();
         response.responses = packet.requests.map((request) =>
-            this.apply(request, server, player, inventory, craftingInput, itemDataForProtocol(packet.codecProtocol), {
-                session,
-                changed: workstationChanged,
-                containerChanged,
-                drops,
-                after
-            })
+            this.apply(
+                request,
+                server,
+                session.getPlayer(),
+                inventory,
+                craftingInput,
+                itemDataForProtocol(packet.codecProtocol),
+                {
+                    session,
+                    changed: workstationChanged,
+                    containerChanged,
+                    drops,
+                    after
+                }
+            )
         );
 
         await session.send(response);
         for (const work of after) await work();
 
-        if (drops.length > 0) await player.getWorld().dropFromPlayer(player, drops);
+        if (drops.length > 0) await player.getWorld().dropFromPlayer(session.getPlayer(), drops);
 
         // Redrawn whenever the item in the table changed, which is what `showEnchantingTable`
         // says it has to be called for: the three rows are a function of the stack.
         const open = session.getOpenBlockContainer();
         if (open !== undefined && open.screen === WindowTypes.ENCHANTMENT && workstationChanged.size > 0) {
-            await refreshEnchantOptions(player, open);
+            await refreshEnchantOptions(session.getPlayer(), open);
         }
 
         // Everyone else standing at the same chest. Their client holds its own copy of the
         // slots and nothing in the exchange above goes anywhere near them, so without this two
         // players sharing a chest each see only their own half of what is in it.
         if (open !== undefined && containerChanged.size > 0) {
-            await this.tellOtherViewers(player, open, containerChanged);
+            await this.tellOtherViewers(session.getPlayer(), open, containerChanged);
         }
     }
 
@@ -744,7 +753,7 @@ export default class ItemStackRequestHandler implements PacketHandler<ItemStackR
                         if (open?.screen === WindowTypes.TRADE) {
                             if (unpaid()) return deny('a trade began before the last one was paid for');
 
-                            const trade = selectTrade(player, open, action.recipeNetId ?? 0);
+                            const trade = selectTrade(player, open, action.recipeNetId ?? 0, server.getContent());
                             if (trade === undefined) return deny('the villager refused the offer');
 
                             created = trade.stack;
