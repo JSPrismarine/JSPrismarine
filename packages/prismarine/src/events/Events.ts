@@ -7,6 +7,7 @@ import PlayerChangeDimensionEvent from './player/PlayerChangeDimensionEvent';
 import PlayerConnectEvent from './player/PlayerConnectEvent';
 import PlayerDespawnEvent from './player/PlayerDespawnEvent';
 import PlayerDisconnectEvent from './player/PlayerDisconnectEvent';
+import PlayerEvent from './player/PlayerEvent';
 import PlayerMoveEvent from './player/PlayerMoveEvent';
 import PlayerSetGamemodeEvent from './player/PlayerSetGamemodeEvent';
 import PlayerSpawnEvent from './player/PlayerSpawnEvent';
@@ -28,6 +29,7 @@ export {
     PlayerConnectEvent,
     PlayerDespawnEvent,
     PlayerDisconnectEvent,
+    PlayerEvent,
     PlayerMoveEvent,
     PlayerSetGamemodeEvent,
     PlayerSpawnEvent,
