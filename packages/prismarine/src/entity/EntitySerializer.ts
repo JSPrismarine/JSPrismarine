@@ -12,7 +12,8 @@ import { DEFAULT_FUSE_TICKS } from './fuse';
 import { MetadataFlag } from '@jsprismarine/protocol/wire/structures/Metadata';
 import type { StatusEffect } from './StatusEffect';
 import { bedrockMobEffectIdentifier, bedrockMobEffectId } from './StatusEffect';
-import { dataEntityRecordIn } from './data/persistence';
+import type { DataEntityRecord } from './data/persistence';
+import { dataEntityRecordIn, writeDataEntityRecord } from './data/persistence';
 import { Position } from '../world/Position';
 import type { World } from '../world/World';
 import { isRecord } from '../utils/isRecord';
@@ -91,8 +92,15 @@ export class EntitySerializer {
         return entity;
     }
 
-    public static toNBT(entity: Entity): NBTTagCompound {
+    /**
+     * Writes an entity's actor NBT.
+     * @param entity - The entity.
+     * @param record - A data-driven entity's record, written into the copy rather than onto the
+     *   entity, as a save that called `LiveEntityRuntime.persist` first would hold it.
+     */
+    public static toNBT(entity: Entity, record?: DataEntityRecord): NBTTagCompound {
         const nbt = entity.persistentNbt ? copy(entity.persistentNbt) : new NBTTagCompound('');
+        if (record !== undefined) writeDataEntityRecord(nbt, record);
         const position = entity.getPosition();
 
         nbt.addValue('identifier', new Types.StringVal(entity.getType()));
