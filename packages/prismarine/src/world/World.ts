@@ -74,7 +74,11 @@ import type { DragonFightState } from './WorldPersistence';
 import { isMidDimensionChange } from './portal/DimensionTravel';
 import type { PortalBlockRef } from './portal/DimensionTravel';
 import { PortalIndex } from './portal/PortalIndex';
+import type { ChunkAdmission, ChunkAdmissionScheduler } from './ChunkAdmissions';
+import { chunkAdmissionWorld } from './ChunkAdmissions';
 import type { ChunkCompletionScheduler } from './ChunkCompletionQueue';
+import type { TickWaitTracker } from './TickContext';
+import { currentTickScope, currentTickWaitTracker, insideTick } from './TickContext';
 import { isPortalBlock } from './portal/rules';
 import { furnaceScreenData, tickFurnace } from './cooking';
 import { tickSpawner } from './spawners';
@@ -181,6 +185,23 @@ export const structureNameMatches = (name: string, structure: string): boolean =
 
 /** Chunks generated between yields to the event loop while preloading. */
 const PRELOAD_BATCH_SIZE = 32;
+
+/** What a chunk load in flight shares with the callers that join it. */
+interface ChunkLoadState {
+    /** How badly the chunk is wanted, raised by a caller that joins and wants it more. */
+    readonly urgency: { value: NonNullable<ChunkRequestOptions['urgency']> };
+    /** Whether the chunk is ready and waits only for an input step to admit it. */
+    parked: boolean;
+    /** The trackers of the callers waiting, told when the load parks and when it moves on. */
+    readonly waiters: TickWaitTracker[];
+    /** The tick that waits for the chunk, if one does. */
+    wantedBy: { readonly open: boolean } | undefined;
+}
+
+/** One chunk load in flight. */
+interface ChunkLoad extends ChunkLoadState {
+    readonly chunk: Promise<Chunk>;
+}
 
 /**
  * Chunks written between yields to the event loop while saving.
@@ -544,10 +565,7 @@ export class World implements Service {
      * What makes a second request for a chunk already on its way wait for that one instead of
      * generating it again. See {@link World.loadChunk}.
      */
-    private readonly loading: Map<
-        number,
-        { readonly chunk: Promise<Chunk>; readonly urgency: { value: NonNullable<ChunkRequestOptions['urgency']> } }
-    > = new Map();
+    private readonly loading: Map<number, ChunkLoad> = new Map();
 
     /** The last chunk {@link getLoadedChunk} answered with. A packed key is never negative. */
     private lastChunkIndex = -1;
@@ -1367,22 +1385,62 @@ export class World implements Service {
             if (priorities.indexOf(urgency) < priorities.indexOf(running.urgency.value)) {
                 running.urgency.value = urgency;
                 this.generator.raiseUrgency?.(x, z, urgency);
-                this.completionQueue?.promote(this.lightingCompletionKey(index), urgency);
-                this.completionQueue?.promote(this.fluidsCompletionKey(index), urgency);
+                this.admissions?.promote(this.chunkAdmission('enter', x, z), urgency);
             }
-            return running.chunk;
+            // Code inside the tick that waits for a chunk the tick cannot run without. Holding it
+            // for the next input step would leave the tick unable to finish, so it is admitted the
+            // moment it is ready. A path that still breaks the admission rule, and the queue
+            // counts it; see `inTickChunkLoads.ts`.
+            if (insideTick()) {
+                running.wantedBy = currentTickScope();
+                if (running.parked) this.admissions?.admitNow(this.chunkAdmission('enter', x, z));
+            }
+            return this.awaitLoad(running);
         }
 
         // The entry is dropped whether the load worked or not, so a chunk whose provider threw
         // is asked for again next time rather than handing out the same failure forever.
-        const urgency = { value: options?.urgency ?? 'immediate' };
-        const chunk = this.readChunkInto(index, x, z, options, urgency);
-        this.loading.set(index, { chunk, urgency });
+        const state: ChunkLoadState = {
+            urgency: { value: options?.urgency ?? 'immediate' },
+            parked: false,
+            waiters: [],
+            wantedBy: currentTickScope()
+        };
+        const load: ChunkLoad = Object.assign(state, { chunk: this.readChunkInto(index, x, z, options, state) });
+        this.loading.set(index, load);
         try {
-            return await chunk;
+            return await this.awaitLoad(load);
         } finally {
             this.loading.delete(index);
         }
+    }
+
+    /**
+     * Waits for a load, and while the load waits only for an input step, tells the caller's
+     * tracker that its work is parked on a tick ({@link trackTickWaits}).
+     */
+    private async awaitLoad(load: ChunkLoad): Promise<Chunk> {
+        const tracker = currentTickWaitTracker();
+        if (tracker === undefined) return load.chunk;
+
+        load.waiters.push(tracker);
+        if (load.parked) tracker.park();
+        try {
+            return await load.chunk;
+        } finally {
+            load.waiters.splice(load.waiters.indexOf(tracker), 1);
+            if (load.parked) tracker.unpark();
+        }
+    }
+
+    /** The admission queue chunks wait in, when the ticker runs one. */
+    private get admissions(): ChunkAdmissionScheduler | undefined {
+        return this.completionQueue?.admissions;
+    }
+
+    /** One of this world's chunks entering or leaving it, as the admission queue names it. */
+    private chunkAdmission(change: ChunkAdmission['change'], x: number, z: number): ChunkAdmission {
+        return { world: chunkAdmissionWorld(this.name, this.dimension.name), change, x, z };
     }
 
     /**
@@ -1411,7 +1469,7 @@ export class World implements Service {
         x: number,
         z: number,
         options: ChunkRequestOptions | undefined,
-        urgency: { value: NonNullable<ChunkRequestOptions['urgency']> }
+        load: ChunkLoadState
     ): Promise<Chunk> {
         // Try - catch for provider errors
         const chunk = await this.getProvider().readChunk(
@@ -1423,55 +1481,35 @@ export class World implements Service {
             this.config,
             options
         );
-        // The provider has completed generation or disk decoding; keep its mutable write fast path
-        // out of the final retained form and pack each section before it enters the loaded world.
-        this.measured('chunk-register', () => {
-            chunk.packBlockStorage();
-            this.chunks.set(index, chunk);
-            this.loadedChunksRevision++;
-            this.getPlayerChunkRefCounts().chunkLoaded(chunk);
-            this.getPortalIndex().chunkLoaded(chunk);
-            this.server.invalidateEntityBlockCaches?.(this.dimension.name, x, z);
-            // The only thing that changes what `getLoadedChunk` should answer.
-            this.lastChunkIndex = -1;
-            this.markEntitiesInChunkChanged(chunk);
-        });
 
-        // After the chunk is in the map: the engine reads the blocks back through the world.
-        // Background chunks can wait for the ticker's separate completion slice; a chunk the
-        // player is waiting on keeps lighting on the current path for readiness and gameplay.
-        const lightChunk = () => this.systems.onChunkLoaded(x, z);
-        if (urgency.value === 'immediate' || this.completionQueue === undefined) {
-            this.measured('chunk-lighting', lightChunk);
-        } else {
-            await this.completionQueue.defer(lightChunk, {
-                priority: urgency.value,
-                label: 'chunk-lighting',
-                key: this.lightingCompletionKey(index)
-            });
-        }
-
-        // The scan for fluid that borders air is per-chunk work like lighting, so a background
-        // chunk takes its turn in the completion queue's slice instead of adding to a burst. The
-        // chunk may have been unloaded while it waited, in which case there is nothing to schedule.
-        const scheduleFluids = () => {
-            if (this.chunks.get(index) === chunk) this.scheduleExposedFluids(chunk);
+        let discardedStacklessItems = false;
+        const enter = async (): Promise<boolean> => {
+            discardedStacklessItems = await this.enterChunk(index, chunk);
+            return true;
         };
-        if (urgency.value === 'immediate' || this.completionQueue === undefined) {
-            this.measured('chunk-fluids', scheduleFluids);
+        const admissions = this.admissions;
+        if (admissions === undefined) {
+            await enter();
         } else {
-            await this.completionQueue.defer(scheduleFluids, {
-                priority: urgency.value,
-                label: 'chunk-fluids',
-                key: this.fluidsCompletionKey(index)
-            });
+            // The chunk is ready, and it enters the world only when the input step admits it
+            // (ADR 0009), so no tick sees the loaded set change in its middle. A tick that waits
+            // for it cannot end before it enters, so that one is admitted now.
+            const now = insideTick() || load.wantedBy?.open === true;
+            this.parkLoad(load, admissions.isActive && !now);
+            try {
+                await admissions.hold(
+                    {
+                        ...this.chunkAdmission('enter', x, z),
+                        priority: load.urgency.value,
+                        content: () => chunk.networkSerialize(),
+                        apply: enter
+                    },
+                    now
+                );
+            } finally {
+                this.parkLoad(load, false);
+            }
         }
-
-        const discardedStacklessItems = await this.measuredAsync('chunk-entities/wall', async () => {
-            const discarded = await this.createStoredEntities(chunk);
-            await this.createGeneratedEntities(chunk);
-            return discarded;
-        });
 
         if (discardedStacklessItems && this.getProvider().supportsChunkUnload === true) {
             try {
@@ -1489,6 +1527,50 @@ export class World implements Service {
 
         // TODO: event here, eg onChunkLoad
         return chunk;
+    }
+
+    /** Marks a load as waiting for the input step, or as no longer waiting, for its waiters. */
+    private parkLoad(load: ChunkLoadState, parked: boolean): void {
+        if (load.parked === parked) return;
+        load.parked = parked;
+        for (const waiter of load.waiters) {
+            if (parked) waiter.park();
+            else waiter.unpark();
+        }
+    }
+
+    /**
+     * Puts a ready chunk into the world: registers it, lights it, schedules the fluid that
+     * borders air and creates its entities. What an admitted chunk completion applies.
+     *
+     * @returns Whether a stored item without a stack was dropped, which the caller saves.
+     */
+    private async enterChunk(index: number, chunk: Chunk): Promise<boolean> {
+        const x = chunk.getX();
+        const z = chunk.getZ();
+        // The provider has completed generation or disk decoding; keep its mutable write fast path
+        // out of the final retained form and pack each section before it enters the loaded world.
+        this.measured('chunk-register', () => {
+            chunk.packBlockStorage();
+            this.chunks.set(index, chunk);
+            this.loadedChunksRevision++;
+            this.getPlayerChunkRefCounts().chunkLoaded(chunk);
+            this.getPortalIndex().chunkLoaded(chunk);
+            this.server.invalidateEntityBlockCaches?.(this.dimension.name, x, z);
+            // The only thing that changes what `getLoadedChunk` should answer.
+            this.lastChunkIndex = -1;
+            this.markEntitiesInChunkChanged(chunk);
+        });
+
+        // After the chunk is in the map: the engine reads the blocks back through the world.
+        this.measured('chunk-lighting', () => this.systems.onChunkLoaded(x, z));
+        this.measured('chunk-fluids', () => this.scheduleExposedFluids(chunk));
+
+        return this.measuredAsync('chunk-entities/wall', async () => {
+            const discarded = await this.createStoredEntities(chunk);
+            await this.createGeneratedEntities(chunk);
+            return discarded;
+        });
     }
 
     /** Books a synchronous piece of chunk completion under a label, when the scheduler does accounting. */
@@ -1514,16 +1596,6 @@ export class World implements Service {
         } finally {
             queue.record(label, performance.now() - startedAt);
         }
-    }
-
-    /** Unique queue key for this world's one-time fluid scan of a loaded chunk. */
-    private fluidsCompletionKey(index: number): string {
-        return `${this.uuid}:fluids:${index}`;
-    }
-
-    /** Unique queue key for this world's one-time light initialization of a loaded chunk. */
-    private lightingCompletionKey(index: number): string {
-        return `${this.uuid}:lighting:${index}`;
     }
 
     /** Restores the actor NBT the provider read for this chunk. */
@@ -3111,13 +3183,25 @@ export class World implements Service {
 
         this.dataEntities().persist();
         const saveContext = this.chunkSaveContext();
-        for (const chunk of candidates) await this.unloadChunk(chunk, saveContext);
+        // Saved one after another, and each saved chunk then waits for the input step to take it
+        // out, so a batch leaves at the next step rather than one chunk a tick.
+        const leaving: Promise<boolean>[] = [];
+        for (const chunk of candidates) leaving.push((await this.unloadChunk(chunk, saveContext)).left);
+        await Promise.all(leaving);
     }
 
-    /** Saves and removes one chunk and the non-player entities it holds. */
-    private async unloadChunk(chunk: Chunk, saveContext: ChunkSaveContext): Promise<boolean> {
+    /**
+     * Saves one chunk, then has the admission queue take it and the non-player entities it holds
+     * out of the world (ADR 0009): a chunk leaves at an input step, like one that enters.
+     *
+     * @returns Settles once the save is done, with the removal, which settles once applied.
+     */
+    private async unloadChunk(
+        chunk: Chunk,
+        saveContext: ChunkSaveContext
+    ): Promise<{ readonly left: Promise<boolean> }> {
         const index = Chunk.packXZ(chunk.getX(), chunk.getZ());
-        if (this.chunks.get(index) !== chunk || this.loading.has(index)) return false;
+        if (this.chunks.get(index) !== chunk || this.loading.has(index)) return { left: Promise.resolve(false) };
 
         try {
             await this.enqueueSave(async () => {
@@ -3134,9 +3218,29 @@ export class World implements Service {
             this.getPlayerChunkRefCounts().synchronize(this.players);
             this.server.getLogger().error(`Failed to save chunk ${chunk.getX()},${chunk.getZ()} before unloading`);
             this.server.getLogger().error(error);
-            return false;
+            return { left: Promise.resolve(false) };
         }
 
+        const leave = () => this.leaveChunk(chunk);
+        const admissions = this.admissions;
+        if (admissions === undefined) return { left: leave() };
+        return {
+            left: admissions.hold({
+                ...this.chunkAdmission('leave', chunk.getX(), chunk.getZ()),
+                priority: 'idle',
+                apply: leave
+            })
+        };
+    }
+
+    /**
+     * Takes a saved chunk and the non-player entities it holds out of the world, unless something
+     * wants it again: a load, a change since the save, or a player who came back.
+     *
+     * @returns Whether it left.
+     */
+    private async leaveChunk(chunk: Chunk): Promise<boolean> {
+        const index = Chunk.packXZ(chunk.getX(), chunk.getZ());
         this.getPlayerChunkRefCounts().synchronize(this.players);
         if (
             this.chunks.get(index) !== chunk ||
@@ -3793,9 +3897,15 @@ export class World implements Service {
         return this.level.getGameRuleManager();
     }
 
-    /** How many chunk loads are in flight: read from disk or generating, and not in the world yet. */
+    /**
+     * How many chunk loads are in flight: read from disk or generating, and not in the world yet.
+     * A load whose chunk is ready and waits only for the next input step to admit it is not
+     * counted, because only a tick moves it on.
+     */
     public getPendingChunkLoadCount(): number {
-        return this.loading.size;
+        let reading = 0;
+        for (const load of this.loading.values()) if (!load.parked) reading++;
+        return reading;
     }
 
     /** The level's clock, which every world of the save shares. */
