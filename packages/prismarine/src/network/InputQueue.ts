@@ -17,8 +17,8 @@ interface HeldInput {
  * ([ADR 0009](../../../../docs/adr/0009-external-inputs-enter-once-per-tick.md)).
  *
  * An input-lane packet and a player's removal are inputs. Holding one returns a promise that
- * settles once the input step has applied it, so a caller that waits on it, such as a
- * connection's frame queue, lets nothing it holds overtake that input.
+ * settles once the input step that applied it is over, so work that waits on it runs after every
+ * input of that step, and never between two of them.
  *
  * The server keeps one queue and drains it once at the start of a tick, before the first level
  * updates. The levels tick one after another, so that is the input step of every world. When the
@@ -38,7 +38,8 @@ export class InputQueue {
      *
      * @param apply - Applies the input. It runs inside the input step, after every input held
      *   before it has been applied.
-     * @returns Settles as `apply` does, once the input step has run it.
+     * @returns Settles as `apply` does, once the input step that ran it has applied every input
+     *   it took.
      */
     public hold(apply: () => Promise<void>): Promise<void> {
         return new Promise<void>((resolve, reject) => {
@@ -50,23 +51,26 @@ export class InputQueue {
      * The input step: applies held inputs in arrival order, each awaited before the next.
      *
      * The step takes the inputs held when it begins, up to `budget` of them. An input held while
-     * the step runs, such as one that a connection could only reach once an earlier input was
-     * applied, waits for the next step, so which step applies an input never depends on how fast
-     * the inputs before it ran. A failing input settles its own caller and does not stop the step.
+     * the step runs, such as one a handler in the step holds, waits for the next step, so which step applies an input never depends on how fast
+     * the inputs before it ran. A failing input settles its own caller with its error and does not
+     * stop the step. The callers settle once the last input of the step has been applied, so
+     * nothing that waits on one input runs while the step is still applying the others.
      *
      * @param budget - The most inputs this step applies.
      * @returns How many inputs this step applied.
      */
     public async admit(budget = INPUT_ADMISSION_BUDGET_PER_TICK): Promise<number> {
         const step = this.held.splice(0, Math.max(0, budget));
+        const settles: (() => void)[] = [];
         for (const input of step) {
             try {
                 await input.apply();
-                input.resolve();
+                settles.push(input.resolve);
             } catch (error: unknown) {
-                input.reject(error);
+                settles.push(() => input.reject(error));
             }
         }
+        for (const settle of settles) settle();
         return step.length;
     }
 }
