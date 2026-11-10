@@ -1,5 +1,6 @@
 import type { SealedTick } from './ChangeLog';
 import type { PlainData } from './PlainData';
+import { isPlainList } from './PlainData';
 
 /**
  * What one sealed tick costs the change log, in counts rather than time, for reporting
@@ -45,7 +46,7 @@ export function estimatePlainBytes(value: PlainData): number {
             return value.length * 2;
     }
     if (ArrayBuffer.isView(value)) return value.byteLength;
-    if (isPlainArray(value)) {
+    if (isPlainList(value)) {
         let bytes = 0;
         for (const item of value) bytes += estimatePlainBytes(item);
         return bytes;
@@ -53,9 +54,4 @@ export function estimatePlainBytes(value: PlainData): number {
     let bytes = 0;
     for (const [key, item] of Object.entries(value)) bytes += key.length * 2 + estimatePlainBytes(item);
     return bytes;
-}
-
-// `Array.isArray` does not narrow a `readonly` array type out of a union.
-function isPlainArray(value: PlainData): value is readonly PlainData[] {
-    return Array.isArray(value);
 }
