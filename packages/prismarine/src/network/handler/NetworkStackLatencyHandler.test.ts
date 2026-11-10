@@ -4,7 +4,7 @@ import type { Logger } from '@jsprismarine/logger';
 import type ClientConnection from '../ClientConnection';
 import type Server from '../../Server';
 import { stub } from '../../testing/stub.test.helper';
-import { STEVE } from '../../testing/steveIdentity.test.helper';
+import { STEVE } from '../../testing/sessionIdentity.test.helper';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import NetworkStackLatencyPacket from '@jsprismarine/protocol/packet/NetworkStackLatencyPacket';
 import type PlayerSession from '../PlayerSession';

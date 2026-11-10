@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import type { Logger } from '@jsprismarine/logger';
 import type Server from '../../Server';
 import { stub } from '../../testing/stub.test.helper';
-import { STEVE } from '../../testing/steveIdentity.test.helper';
+import { STEVE } from '../../testing/sessionIdentity.test.helper';
 import UUID from '@jsprismarine/protocol/wire/structures/UUID';
 import type PlayerSession from '../PlayerSession';
 import ServerboundPackSettingChangePacket from '@jsprismarine/protocol/packet/ServerboundPackSettingChangePacket';

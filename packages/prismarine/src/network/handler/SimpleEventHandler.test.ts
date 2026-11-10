@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 
 import type Server from '../../Server';
 import { stub } from '../../testing/stub.test.helper';
-import { STEVE } from '../../testing/steveIdentity.test.helper';
+import { STEVE } from '../../testing/sessionIdentity.test.helper';
 import type PlayerSession from '../PlayerSession';
 import SimpleEventPacket, { SimpleEventSubtype } from '@jsprismarine/protocol/packet/SimpleEventPacket';
 import SimpleEventHandler from './SimpleEventHandler';
