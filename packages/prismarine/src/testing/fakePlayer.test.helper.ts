@@ -25,6 +25,7 @@ import type { World } from '../world/World';
 import type WorldManager from '../world/WorldManager';
 import Chunk from '../world/chunk/Chunk';
 import { Dimensions } from '../world/DimensionType';
+import { RespawnRequests } from '../world/RespawnRequests';
 import { testContent } from './entityServer';
 import { fakeLevel } from './level';
 import { stub } from './stub.test.helper';
@@ -90,6 +91,7 @@ export const fakePlayer = ({ underwater = false, worlds: others = [], name = 'Te
         broadcastPacket: async () => {},
         removeListener: () => server,
         getChatManager: () => chat,
+        getRespawnRequests: () => respawnRequests,
         getChunkScheduler: () => stub<ChunkScheduler>({ add: () => {}, remove: () => {} }),
         getPermissionManager: () => stub<PermissionManager>({ getPermissions: async () => [], isOp }),
         getWorldManager: () => stub<WorldManager>({ getDefaultWorld: () => world }),
@@ -108,6 +110,8 @@ export const fakePlayer = ({ underwater = false, worlds: others = [], name = 'Te
     });
 
     const chat = new ChatManager(server);
+    // The searches a death files, which a test admits as the input step would.
+    const respawnRequests = new RespawnRequests((error) => void logged.push(String(error)));
 
     const blockName = underwater ? 'minecraft:water' : 'minecraft:air';
     const world = stub<World>({
@@ -204,6 +208,7 @@ export const fakePlayer = ({ underwater = false, worlds: others = [], name = 'Te
         namedSounds,
         logged,
         roster,
+        respawnRequests,
         disconnects,
         isOp,
         cracked,

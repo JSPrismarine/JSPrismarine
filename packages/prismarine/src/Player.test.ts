@@ -28,7 +28,11 @@ import type { World } from './world/World';
 
 /** Runs `n` ticks, the way the world does. */
 const tick = async (player: Player, n: number, from = 1) => {
-    for (let i = 0; i < n; i++) await player.update(from + i);
+    for (let i = 0; i < n; i++) {
+        // The input step first, as a tick runs it, which is where a death's respawn answer lands.
+        await player.getServer().getRespawnRequests().admit();
+        await player.update(from + i);
+    }
 };
 
 /** Walks the player `blocks` meters east, one meter at a time, as movement packets do. */
@@ -574,7 +578,18 @@ describe('Player', () => {
             expect(player.getHealth()).toBe(7);
         });
 
-        it('says where the player will come back the moment they die', async () => {
+        it('says where the player will come back at the input step after the death, not inside it', async () => {
+            const { player, sent } = fakePlayer();
+
+            await player.setHealth(0);
+            expect(sent.filter((packet) => packet instanceof RespawnPacket)).toHaveLength(0);
+            expect(player.getServer().getRespawnRequests().size).toBe(1);
+
+            await player.getServer().getRespawnRequests().admit();
+            expect(sent.filter((packet) => packet instanceof RespawnPacket)).toHaveLength(1);
+        });
+
+        it('says where the player will come back', async () => {
             // The client will not even offer the respawn button until it knows, which is what
             // left a death screen stuck on "Respawning".
             const { player, sent } = fakePlayer({ underwater: true });
@@ -908,6 +923,8 @@ describe('Player', () => {
             await fallTo(player, -200);
 
             await tick(player, 50);
+            // The next input step, which sends the respawn answer and the death screen's cause.
+            await player.getServer().getRespawnRequests().admit();
 
             expect(player.isAlive()).toBe(false);
             const death = sent.find((packet) => packet instanceof DeathInfoPacket);
