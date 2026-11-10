@@ -359,9 +359,24 @@ an event take a mob out of the world, add a component group carrying `minecraft:
 which removes it without rolling its loot table. To kill it properly, deal the damage from the
 code that fired the event.
 
-When lethal damage queues a self event, the runtime leaves one tick for it to apply before
-removing the entity. That lets the Ender Dragon's data-defined death event activate
-`minecraft:behavior.dragondeath`; the goal holds its controls for 200 ticks, then removes it.
+Every blow a data-driven entity takes runs one staged pipeline, as
+[ADR 0013](../adr/0013-vetoable-actions-are-staged.md) describes: a mob's bite, a projectile, a blast, a
+player's swing, a status effect, a command, an item and a component hazard such as drowning, and a
+dropped stack's fire, lava and cactus. The guards run first and write nothing: the store's own
+rules, the hurt cooldown, `minecraft:cannot_be_attacked`, a dropped stack's
+`minecraft:damage_resistant`, Java's Ender Dragon rules, `minecraft:damage_sensor` and the immunity
+components, the `fireDamage` game rule, and then before-hooks such as the `entityDamage` plugin
+event, which can cancel a blow or change its amount. A veto leaves only an `action-rejected` entry
+in the change log. Declared modifiers then work out what lands, in priority order: the hurt
+cooldown's difference, armor, protection enchantments, resistance, absorption, the dragon's scaling
+and the damage sensor's multiplier. A blow from a player, a blast, a command or an effect keeps the
+cooldown, armor and knockback the legacy pipeline gave a mob, and a mob's own attacks keep none of
+them. A damage sensor reads Bedrock's cause names, so a player's swing is `entity_attack`.
+
+The commit applies the blow and runs a death inside the same call. When lethal damage queues a
+self event, the event applies before the runtime decides what the death is. That lets the Ender
+Dragon's data-defined death event activate `minecraft:behavior.dragondeath`; the goal holds its
+controls for 200 ticks, then removes it.
 
 ## Filters
 
@@ -599,10 +614,12 @@ lifetime it plays its break sound and leaves, dropping the eye as a stack or bur
 `LevelEvent` 2003, as the roll made when it was thrown decided. Its definition is
 `minecraft:transient`, so it is never saved, since a restored eye would have no thrower.
 
-Until replication reads the change log, the legacy tracker still shows store entities to clients
-through a body in the world's entity map. A mob and the eye get theirs from the mirror in
-`entity/data/liveBodies.ts`. A dropped stack gets an `ItemActorBody` from `entity/data/itemBodies.ts`,
-which reads everything from the store entity and goes on the wire as an `AddItemActor`.
+Until replication reads the change log, clients are shown a mob and the eye through a
+`StoreActor` from `entity/data/storeActors.ts`, which answers the network layer from store state
+and sends each tick's moves, metadata, health and equipment. A dropped stack gets an
+`ItemActorBody` from `entity/data/itemBodies.ts`, which reads everything from the store entity and
+goes on the wire as an `AddItemActor`. The legacy code still reaches a mob through a body in the
+world's entity map, from `entity/data/liveBodies.ts`, which clients are never shown.
 
 The server opens one `EntityRuntime` per dimension as that dimension's content adapter is
 assembled, and `World.update` ticks it. Each tick, for each entity in order: the queued events
