@@ -43,6 +43,7 @@ const fake = ({ serverAuthoritativeBreaking = false, changingDimension = false }
     const logged: string[] = [];
     const world = stub<World>({
         getPlayers: () => [],
+        entityRelocated: () => {},
         broadcastMove: vi.fn(async () => {}),
         hitBlock: async (position, face) =>
             void calls.push(`hit ${position.getX()},${position.getY()},${position.getZ()} face ${face}`),

@@ -25,6 +25,7 @@ const fallingPlayer = ({ gamemode = Gametype.SURVIVAL, landingOn = 'minecraft:st
         getServer: () => ({}),
         getGameRuleManager: () => ({ getGameRule: () => [true, true] }),
         getBlockState: async () => ({ name: landingOn }),
+        entityRelocated: () => {},
         broadcastMove: async () => {}
     };
 

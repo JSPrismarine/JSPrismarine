@@ -332,7 +332,7 @@ export default class Player extends Human {
         // nothing has been told where this player is yet. The level builds the world when its
         // stem is lazy and nobody has been there since the boot.
         const record = await lastPlayerRecord(this, this.getWorld().getLevel());
-        if (record.world !== this.getWorld()) this.position = this.position.withWorld(record.world);
+        if (record.world !== this.getWorld()) this.relocate(this.getPosition().withWorld(record.world));
 
         const playerData = record.data;
 
@@ -509,10 +509,10 @@ export default class Player extends Human {
      * with an initial view radius of DEFAULT_VIEW_DISTANCE_CHUNKS.
      */
     public async sendInitialSpawnChunks(): Promise<void> {
-        const minX = CoordinateUtils.fromBlockToChunk(this.position.getX()) - DEFAULT_VIEW_DISTANCE_CHUNKS;
-        const minZ = CoordinateUtils.fromBlockToChunk(this.position.getZ()) - DEFAULT_VIEW_DISTANCE_CHUNKS;
-        const maxX = CoordinateUtils.fromBlockToChunk(this.position.getX()) + DEFAULT_VIEW_DISTANCE_CHUNKS;
-        const maxZ = CoordinateUtils.fromBlockToChunk(this.position.getZ()) + DEFAULT_VIEW_DISTANCE_CHUNKS;
+        const minX = CoordinateUtils.fromBlockToChunk(this.getPosition().getX()) - DEFAULT_VIEW_DISTANCE_CHUNKS;
+        const minZ = CoordinateUtils.fromBlockToChunk(this.getPosition().getZ()) - DEFAULT_VIEW_DISTANCE_CHUNKS;
+        const maxX = CoordinateUtils.fromBlockToChunk(this.getPosition().getX()) + DEFAULT_VIEW_DISTANCE_CHUNKS;
+        const maxZ = CoordinateUtils.fromBlockToChunk(this.getPosition().getZ()) + DEFAULT_VIEW_DISTANCE_CHUNKS;
 
         const savedChunks: ChunkCoord[] = [];
         for (let chunkX = minX; chunkX <= maxX; ++chunkX) {
@@ -532,8 +532,8 @@ export default class Player extends Human {
         // Queued, not sent: the player joins immediately and the world fills in around them
         // from the middle outwards, instead of everyone waiting while 81 chunks are built.
         this.getNetworkSession().queueChunks(
-            CoordinateUtils.fromBlockToChunk(this.position.getX()),
-            CoordinateUtils.fromBlockToChunk(this.position.getZ()),
+            CoordinateUtils.fromBlockToChunk(this.getPosition().getX()),
+            CoordinateUtils.fromBlockToChunk(this.getPosition().getZ()),
             savedChunks.map((coord): [number, number] => [coord.x, coord.z])
         );
     }

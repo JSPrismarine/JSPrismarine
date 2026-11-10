@@ -12,7 +12,8 @@ import AddItemActorPacket from '@jsprismarine/protocol/packet/AddItemActorPacket
 import PlayerSession from '../network/PlayerSession';
 import BlockUpdateScheduler from './BlockUpdateScheduler';
 import EntityGrid from './EntityGrid';
-import { testContent } from '../testing/entityServer';
+import { inertEntityRuntime, testContent } from '../testing/entityServer';
+import { Dimensions } from './Dimension';
 import Chunk from './chunk/Chunk';
 import { World } from './World';
 import { NULL_WORLD_CHANGE_SINK } from './WorldChangeSink';
@@ -81,9 +82,12 @@ const fakeWorld = (initial: BlockState, { id = 1, dropName = initial.name } = {}
     // because the world keeps no public count of what it holds.
     const entities = new Map<bigint, Entity>();
 
+    // Whose index the world files its drops in.
+    const live = inertEntityRuntime();
     const world: World = Object.assign(Object.create(World.prototype), {
         chunks: new Map([[Chunk.packXZ(0, 0), chunk]]),
         entityGrid: new EntityGrid(),
+        dimension: Dimensions.Overworld,
         entityChunkIndices: new Map(),
         level: fakeLevel(),
         blockUpdates: new BlockUpdateScheduler(),
@@ -104,7 +108,8 @@ const fakeWorld = (initial: BlockState, { id = 1, dropName = initial.name } = {}
             // The two-block fixture, which covers neither the block broken here nor any
             // family, so the break falls through to the block's own drops - which is the
             // path these tests are about.
-            getContent: () => testContent()
+            getContent: () => testContent(),
+            getEntityRuntime: () => live
         }
     });
 
@@ -126,9 +131,12 @@ const emptyWorld = () => {
     // Counted, so a test can say how many rolls the drops took. Each is the middle of its range.
     let rolls = 0;
 
+    // Whose index the world files its drops in.
+    const live = inertEntityRuntime();
     const world: World = Object.assign(Object.create(World.prototype), {
         name: 'flooded',
         entityGrid: new EntityGrid(),
+        dimension: Dimensions.Overworld,
         entities,
         players: new Map(),
         entityChunkIndices: new Map(),
@@ -138,6 +146,7 @@ const emptyWorld = () => {
         server: {
             getLogger: () => ({ debug: () => {}, warn: (message: string) => void warnings.push(message) }),
             getContent: () => testContent(),
+            getEntityRuntime: () => live,
             getRandom: () => () => {
                 rolls += 1;
                 return 0.5;

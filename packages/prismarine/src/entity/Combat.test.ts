@@ -36,6 +36,7 @@ const scene = ({ pvp = true } = {}) => {
         sendActorSound: async (entity: Entity, sound: LevelSoundEvent) =>
             void noises.push({ type: entity.getType(), sound }),
         sendWorldEvent: async (_at: unknown, event: LevelEvent) => void effects.push(event),
+        entityRelocated: () => {},
         broadcastMove: async () => {},
         getGameRuleManager: () => ({ getGameRule: () => [pvp, true] }),
         getLoadedChunk: () => null,
