@@ -127,7 +127,9 @@ export const hasUndeliveredData = (peer: NetherNetPeer): boolean | undefined => 
     const association = isRecord(transport) ? transport.sctp : undefined;
     if (!isRecord(association)) return false;
     const inFlight = typeof association.flightSize === 'number' && association.flightSize > 0;
-    const queued = Array.isArray(association.outboundQueue) && association.outboundQueue.length > 0;
+    // An array before werift 0.26, a `FifoQueue` with a `length` since.
+    const queue = association.outboundQueue;
+    const queued = (Array.isArray(queue) || isRecord(queue)) && typeof queue.length === 'number' && queue.length > 0;
     return inFlight || queued;
 };
 

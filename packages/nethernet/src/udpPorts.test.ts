@@ -2,6 +2,7 @@ import { Client, Server, SignalStructure, SignalType } from 'nethernet';
 import { describe, expect, it } from 'vitest';
 
 import { constrainIcePorts } from './constrainIcePorts';
+import { adaptPeerConnections } from './peerConnections';
 import { parseUdpPorts, withMappedCandidates } from './udpPorts';
 
 describe('parseUdpPorts', () => {
@@ -75,8 +76,10 @@ describe('withMappedCandidates', () => {
 describe('constrainIcePorts', () => {
     it('makes the server gather its candidates from the range', async () => {
         const server = new Server();
+        adaptPeerConnections(server);
         constrainIcePorts(server, { start: 47_200, end: 47_299 });
         const client = new Client(server.networkId, '127.0.0.1');
+        adaptPeerConnections(client);
         try {
             const answer = await new Promise<string>((resolve, reject) => {
                 client.signalHandler = (signal) => {

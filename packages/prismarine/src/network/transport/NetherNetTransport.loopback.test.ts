@@ -1,6 +1,7 @@
 import { Client, Server } from 'nethernet';
 import { describe, expect, it } from 'vitest';
 
+import { adaptPeerConnections } from '@jsprismarine/nethernet';
 import { BATCH_PACKET_ID } from '@jsprismarine/protocol';
 import { ConnectionIds } from './ConnectionId';
 import NetherNetTransport from './NetherNetTransport';
@@ -12,6 +13,7 @@ const isAddressInUse = (error: unknown): boolean =>
 describe('network/transport/NetherNetTransport over a real WebRTC connection', () => {
     it('carries batches both ways between a nethernet client and the server', async (context) => {
         const nethernet = new Server({ host: '127.0.0.1' });
+        adaptPeerConnections(nethernet);
         // The client finds the server through discovery, which needs some advertisement to answer with.
         nethernet.setAdvertisement(Buffer.from([0]));
         try {
@@ -25,6 +27,7 @@ describe('network/transport/NetherNetTransport over a real WebRTC connection', (
 
         const transport = new NetherNetTransport(nethernet, new ConnectionIds());
         const client = new Client(nethernet.networkId, '127.0.0.1');
+        adaptPeerConnections(client);
         try {
             const connected = new Promise<NetherNetTransportConnection>((resolve) => transport.onConnect(resolve));
             const serverFrame = new Promise<Buffer>((resolve) => transport.onFrame((payload) => resolve(payload)));

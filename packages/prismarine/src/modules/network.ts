@@ -4,6 +4,7 @@ import type { Module } from '@jsprismarine/kernel';
 import { RakNetListener, ServerName, WorkerServerSocket } from '@jsprismarine/raknet';
 import type { RakNetListenerLike } from '@jsprismarine/raknet';
 import {
+    adaptPeerConnections,
     constrainIcePorts,
     HttpSignaling,
     joinStatusJson,
@@ -304,6 +305,7 @@ export class ServerNetworking implements Networking {
         const logger = server.getLogger();
         // Discovery is IPv4 broadcast, so an IPv6 bind address leaves it on every interface.
         const nethernet = new NetherNetServer({ host: isIPv4(address) ? address : '0.0.0.0' });
+        adaptPeerConnections(nethernet);
         // Read before anything binds, so a malformed setting stops the start instead of half of it.
         const udpPorts = parseUdpPorts(config.getServerUdpPorts());
         if (udpPorts.local !== undefined) constrainIcePorts(nethernet, udpPorts.local);

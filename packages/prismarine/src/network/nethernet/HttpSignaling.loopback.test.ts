@@ -8,11 +8,12 @@ import { stub } from '../../testing/stub.test.helper';
 import { ConnectionIds } from '../transport/ConnectionId';
 import NetherNetTransport from '../transport/NetherNetTransport';
 import type { NetherNetTransportConnection } from '../transport/NetherNetTransport';
-import { BEDROCK_CURVE, HttpSignaling, NetherNetIdentity } from '@jsprismarine/nethernet';
+import { adaptPeerConnections, BEDROCK_CURVE, HttpSignaling, NetherNetIdentity } from '@jsprismarine/nethernet';
 
 describe('network/nethernet/HttpSignaling over a real WebRTC connection', () => {
     it('lets a client join by address: offer over HTTP, then batches over the data channel', async () => {
         const nethernet = new Server();
+        adaptPeerConnections(nethernet);
         const transport = new NetherNetTransport(nethernet, new ConnectionIds());
         const { privateKey } = generateKeyPairSync('ec', { namedCurve: BEDROCK_CURVE });
         const signaling = new HttpSignaling({
@@ -25,6 +26,7 @@ describe('network/nethernet/HttpSignaling over a real WebRTC connection', () => 
 
         // A client joining by address signals over HTTP instead of LAN discovery.
         const client = new Client(nethernet.networkId, '127.0.0.1');
+        adaptPeerConnections(client);
         const answers: string[] = [];
         client.signalHandler = (signal) => {
             if (signal.type !== SignalType.ConnectRequest) return;

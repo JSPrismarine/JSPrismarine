@@ -16,6 +16,7 @@ export { exchangeOffer, JoinRefusedError, probeJoin } from './joinByAddress';
 export type { JoinProbe, SignalingAddress } from './joinByAddress';
 export type { NetherNetStatus } from './NetherNetStatus';
 export { constrainIcePorts } from './constrainIcePorts';
+export { adaptPeerConnections } from './peerConnections';
 export { sdpFingerprints, withoutIdentity, withSessionAttribute } from './sdp';
 export { describeCandidates, tracePeerConnection } from './tracePeerConnection';
 export { parseUdpPorts, withMappedCandidates } from './udpPorts';

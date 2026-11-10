@@ -12,3 +12,10 @@ allowBuilds:
   scriptc: true
 
 minimumReleaseAge: 0
+
+# nethernet 1.1.2 pins werift 0.24.4, whose SCTP stops sending for good after a
+# retransmission timeout that follows a gap ack (werift #806, fixed in 0.27.0) and
+# slows down quadratically on large send bursts (fixed in 0.26.0). Both hit
+# NetherNet players on a long or lossy path.
+overrides:
+  werift: 0.27.0

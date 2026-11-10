@@ -188,6 +188,12 @@ describe('network/transport/NetherNetTransport', () => {
             expect(hasUndeliveredData(fakePeer(1n).peer)).toBeUndefined();
         });
 
+        it("counts werift 0.26's queue of chunks not yet sent", () => {
+            const reliable = { bufferedAmount: 0, sctp: { sctp: { flightSize: 0, outboundQueue: { length: 2 } } } };
+
+            expect(hasUndeliveredData({ ...fakePeer(1n).peer, reliable })).toBe(true);
+        });
+
         it('counts a channel with nothing buffered and no association as delivered', () => {
             expect(hasUndeliveredData({ ...fakePeer(1n).peer, reliable: { bufferedAmount: 0 } })).toBe(false);
         });

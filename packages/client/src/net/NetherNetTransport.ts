@@ -1,6 +1,12 @@
 import { EventEmitter } from 'node:events';
 
-import { exchangeOffer, NetherNetIdentity, probeJoin, verifySelfSignedIdentity } from '@jsprismarine/nethernet';
+import {
+    adaptPeerConnections,
+    exchangeOffer,
+    NetherNetIdentity,
+    probeJoin,
+    verifySelfSignedIdentity
+} from '@jsprismarine/nethernet';
 import type { SignalingAddress } from '@jsprismarine/nethernet';
 import { BATCH_PACKET_ID } from '@jsprismarine/protocol';
 import { Client as NetherNetClient, SignalStructure, SignalType } from 'nethernet';
@@ -69,6 +75,7 @@ export default class NetherNetTransport extends EventEmitter implements ITranspo
         const identity = (typeof chosen === 'function' ? await chosen() : chosen) ?? NetherNetIdentity.client();
         // The server's network ID is not known when joining by address; signals carry the client's.
         const client = new NetherNetClient(0n, this.options.host);
+        adaptPeerConnections(client);
         this.client = client;
 
         await new Promise<void>((resolve, reject) => {
