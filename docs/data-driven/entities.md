@@ -589,6 +589,17 @@ cycle and the despawn pass run. The body and the entity behind it stay in step i
 so a player's blow reaches the components that decide what it cost and the shove that came with it
 moves the mob.
 
+Each runtime also owns its dimension's entity index, the one place the server asks what stands
+near a point ([ADR 0007](../adr/0007-one-entity-index-visible-on-write.md)). It holds the runtime's
+mobs and the world's other entities: players, dropped stacks and the eye of ender. Goals, brains,
+collision, item merging and pickup, and explosions all query it. A position write refiles the
+entity before the write returns, so a query later in the same tick finds a mob that already moved
+where it moved to, and every query answers in ascending runtime id order. That order is what
+breaks a tie, such as which of two equally near villagers a zombie picks. A mob's client body is not
+filed a second time. A query that wants legacy entities, such as a blast's, answers with the body
+and finds it where the runtime put the mob. The index is derived state and stays out of the replay
+digest.
+
 A default build registers all 129 of those definitions and recognizes every non-goal component
 name they use. BDS keeps chemistry, the editor, and four experimental packs in the same
 `behavior_packs` folder, and the default asks for none of them; `PackStackRequest.bedrockPacks`
