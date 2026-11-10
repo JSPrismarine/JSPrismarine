@@ -11,6 +11,7 @@ import type { ReplayInitialStateManifest } from '@jsprismarine/prismarine/networ
 import { OutboundPacketTrace } from '@jsprismarine/prismarine/network/OutboundPacketTrace';
 import { networkToken } from '@jsprismarine/prismarine/modules/tokens';
 import type { World } from '@jsprismarine/prismarine/world/World';
+import type { ChunkAdmissionRecord } from '@jsprismarine/prismarine/world/ChunkAdmissions';
 import LevelDB from '@jsprismarine/prismarine/world/providers/leveldb/LevelDB';
 import { MovePlayerPacket, PositionMode } from '@jsprismarine/protocol';
 import MoveActorAbsolutePacket from '@jsprismarine/protocol/packet/MoveActorAbsolutePacket';
@@ -46,6 +47,8 @@ interface CapturedSession {
     readonly initialStateManifest: Buffer;
     readonly inboundPayloadBytes: number;
     readonly inboundSerializedBytes: number;
+    /** Every chunk completion the capture admitted, in admission order. */
+    readonly admissions: readonly ChunkAdmissionRecord[];
 }
 
 interface GatedPacketTrace {
@@ -62,15 +65,20 @@ interface LiveSession {
     readonly mover: Client;
     readonly observer: Client;
     readonly initialStateManifest?: Buffer;
+    /** Every chunk completion this server admitted, in admission order. */
+    readonly admissions: readonly ChunkAdmissionRecord[];
     /** Waits until the server and both clients have handled everything already sent. */
     settle(): Promise<void>;
     /**
      * Settles, then runs ticks by hand until the server's next tick is `tick`.
      * @param beforeTick - Called before each tick runs, with that tick, to offer it its inputs.
      */
-    stepTo(tick: number, beforeTick?: (tick: number) => void): Promise<void>;
+    stepTo(tick: number, beforeTick?: BeforeTick): Promise<void>;
     close(): Promise<void>;
 }
+
+/** Work a run does before a tick, with that tick; awaited before the run settles. */
+type BeforeTick = (tick: number) => void | Promise<void>;
 
 const SESSION_SEED = '2847';
 const REPLAY_START_TICK = 160;
@@ -91,6 +99,14 @@ const LOGIN_TIMEOUT_MS = 600_000;
  * and ADR 0006 keeps it out of the outbound digest.
  */
 const CHUNK_STREAM_PACKETS = new Set(['LevelChunkPacket', 'SubChunkPacket', 'NetworkChunkPublisherUpdatePacket']);
+/**
+ * Chunks every run asks for from outside a tick, as a read-lane handler would, beyond the view
+ * distance so none is loaded yet. They are ready together and enter at one input step.
+ */
+const BACKGROUND_CHUNKS = 6;
+/** Ticks after the first movement at which every run places water and asks for those chunks. */
+const WATER_TICK = 0;
+const CHUNK_REQUEST_TICK = 1;
 
 /** Sessions still open, so a case that fails or times out still releases its world and folder. */
 const openSessions = new Set<LiveSession>();
@@ -230,6 +246,8 @@ const openSession = async (
         readonly recordPackets?: boolean;
         readonly captureInitialState?: boolean;
         readonly initialState?: ReplayInitialStateManifest;
+        /** The most chunk completions one input step admits while no trace decides. */
+        readonly chunkAdmissionBudget?: number;
     } = {}
 ): Promise<LiveSession> => {
     // A folder of its own for each run, so a run beside it in another worktree, or a case that
@@ -261,11 +279,14 @@ const openSession = async (
         config: new Config(),
         headless: true,
         transport: network.transport,
+        ...(options.chunkAdmissionBudget === undefined ? {} : { chunkAdmissionBudget: options.chunkAdmissionBudget }),
         ...(options.recordPackets === false
             ? {}
             : { inboundPacketRecorder: inbound, outboundPacketRecorder: outbound.recorder })
     });
     if (!options.serializableRandom) server.setRandom(seededRandom(Number(SESSION_SEED)));
+    const admissions: ChunkAdmissionRecord[] = [];
+    server.getChunkCompletionQueue().admissions.setRecorder({ record: (record) => void admissions.push(record) });
 
     const client = (auth: OfflineAuthProvider): Client =>
         new Client({
@@ -306,11 +327,11 @@ const openSession = async (
             if (quiet()) return;
         }
     };
-    const stepTo = async (tick: number, beforeTick?: (tick: number) => void): Promise<void> => {
+    const stepTo = async (tick: number, beforeTick?: BeforeTick): Promise<void> => {
         await settle();
         while (server.getTick() < tick) {
             if (beforeTick !== undefined) {
-                beforeTick(server.getTick());
+                await beforeTick(server.getTick());
                 // Decoded and held before the tick runs, so its input step finds them.
                 await settle();
             }
@@ -363,6 +384,7 @@ const openSession = async (
         },
         inbound,
         outbound,
+        admissions,
         mover,
         observer,
         settle,
@@ -376,6 +398,10 @@ const openSession = async (
         await restoreReplayInitialStateSnapshot(provider, options.initialState);
     }
     await server.bootstrap('127.0.0.1', 0);
+    // On from here, as the ticker turns it on when its loop starts: a chunk that becomes ready
+    // between two stepped ticks waits for the next one's input step. The bootstrap before it
+    // has no tick to wait for.
+    server.getChunkCompletionQueue().activate();
     if (options.serializableRandom) {
         const randomState = server.getReplayRandomState();
         server.restoreReplayRandomState({
@@ -403,6 +429,40 @@ const openSession = async (
     return initialStateManifest === undefined ? live : { ...live, initialStateManifest };
 };
 
+/**
+ * What every run does around the captured inputs, at the same ticks after the first movement:
+ * water placed in the air near the mover, which flows through block updates and scheduled
+ * fluid ticks, and chunks asked for from outside a tick, which enter through the input step.
+ *
+ * @param firstInputTick - The tick that applies the first movement in this run.
+ * @returns The work to run before each tick, and the chunk requests it started.
+ */
+const scriptedWork = (
+    live: LiveSession,
+    start: Position,
+    firstInputTick: number
+): { readonly beforeTick: BeforeTick; readonly requests: Promise<unknown>[] } => {
+    const requests: Promise<unknown>[] = [];
+    const beforeTick = async (tick: number): Promise<void> => {
+        if (tick === firstInputTick + WATER_TICK) {
+            await live.world.setBlockByName(
+                Math.floor(start.x) + 2,
+                Math.floor(start.y) + 1,
+                Math.floor(start.z) + 2,
+                'minecraft:water'
+            );
+        }
+        if (tick === firstInputTick + CHUNK_REQUEST_TICK) {
+            const chunkX = Math.floor(start.x) >> 4;
+            const chunkZ = Math.floor(start.z) >> 4;
+            for (let index = 0; index < BACKGROUND_CHUNKS; index += 1) {
+                requests.push(live.world.getChunk(chunkX + 8 + index, chunkZ, { urgency: 'idle' }));
+            }
+        }
+    };
+    return { beforeTick, requests };
+};
+
 const captureSession = async (
     moverAuth: OfflineAuthProvider,
     observerAuth: OfflineAuthProvider
@@ -424,10 +484,12 @@ const captureSession = async (
         if (startGame === null) throw new Error('Mover did not receive StartGame');
         const moverStart = positionOf(startGame.position);
         const firstSendTick = live.server.getTick() + 4;
+        // The first movement is sent before tick `firstSendTick` and applied in its input step.
+        const scripted = scriptedWork(live, moverStart, firstSendTick);
         live.server.on('tick', recordRandomTickState);
         live.server.on('playerMove', recordMoveTick);
         for (let index = 0; index < MOVEMENT_COUNT; index += 1) {
-            await live.stepTo(firstSendTick + index * MOVEMENT_INTERVAL_TICKS);
+            await live.stepTo(firstSendTick + index * MOVEMENT_INTERVAL_TICKS, scripted.beforeTick);
             await live.mover.getSession().send(
                 new MovePlayerPacket({
                     runtimeEntityId: startGame.runtimeEntityId,
@@ -443,8 +505,10 @@ const captureSession = async (
             );
             await live.settle();
         }
-        // The last packet is held for the next tick's input step, so run that tick too.
-        await live.stepTo(live.server.getTick() + 1);
+        // The last packet is held for the next tick's input step, and the replay samples the
+        // ticks after it, so run through the whole sample.
+        await live.stepTo(live.server.getTick() + SAMPLE_TRAIL_TICKS + 1, scripted.beforeTick);
+        await Promise.all(scripted.requests);
 
         const movement = live.inbound.records().filter((record) => record.packetName === 'MovePlayerPacket');
         if (movement.length !== MOVEMENT_COUNT) {
@@ -465,7 +529,8 @@ const captureSession = async (
             replayRandomTickState,
             initialStateManifest,
             inboundPayloadBytes: live.inbound.getPayloadBytes(),
-            inboundSerializedBytes: live.inbound.serialize().byteLength
+            inboundSerializedBytes: live.inbound.serialize().byteLength,
+            admissions: [...live.admissions]
         };
     } finally {
         live.server.removeListener('tick', recordRandomTickState);
@@ -482,6 +547,10 @@ const replaySession = async (
         readonly measureCosts?: boolean;
         readonly instrumented?: boolean;
         readonly serializableRandom?: boolean;
+        /** The replay's own admission budget, which its trace overrides from the sample on. */
+        readonly chunkAdmissionBudget?: number;
+        /** A clock a second slower on every read, from the first sampled tick on. */
+        readonly jumpingClock?: boolean;
     } = {}
 ) => {
     const measureCosts = options.measureCosts ?? false;
@@ -490,7 +559,8 @@ const replaySession = async (
     const live = await openSession(moverAuth, observerAuth, {
         serializableRandom: options.serializableRandom,
         recordPackets: !measureCosts || instrumented,
-        initialState
+        initialState,
+        ...(options.chunkAdmissionBudget === undefined ? {} : { chunkAdmissionBudget: options.chunkAdmissionBudget })
     });
     try {
         const startGame = live.mover.getStartGame();
@@ -566,6 +636,11 @@ const replaySession = async (
         const lastReplayTick = Math.max(...recordsByTick.keys());
         const sampleStart = REPLAY_START_TICK - SAMPLE_LEAD_TICKS;
         const sampleEnd = lastReplayTick + SAMPLE_TRAIL_TICKS;
+        // From the sample on, the capture's trace decides which chunks each input step admits,
+        // whatever this run's own budget or clock would choose.
+        const admissionQueue = live.server.getChunkCompletionQueue().admissions;
+        admissionQueue.replay({ records: captured.admissions, tickOffset, fromTick: sampleStart });
+        const scripted = scriptedWork(live, captured.moverStart, REPLAY_START_TICK);
         const worldDigests = new Map<number, string>();
         const replayErrors: string[] = [];
         let measurementStart: { readonly wallMs: number; readonly cpu: NodeJS.CpuUsage } | undefined;
@@ -646,7 +721,12 @@ const replaySession = async (
         // that applies it: a read-lane record runs at once, and an input-lane one in that tick's
         // input step. Not awaited here, because an input settles only once its tick has run.
         const replayed: Promise<void>[] = [];
-        const offerInputs = (tick: number): void => {
+        let clock: { mockRestore(): void } | undefined;
+        const offerInputs = async (tick: number): Promise<void> => {
+            if (options.jumpingClock && tick === sampleStart) {
+                let now = performance.now();
+                clock = vi.spyOn(performance, 'now').mockImplementation(() => (now += 1000));
+            }
             for (const record of recordsByTick.get(tick) ?? []) {
                 replayed.push(
                     replayInboundRecord(record, tickOffset).catch((error: unknown) => {
@@ -654,6 +734,7 @@ const replaySession = async (
                     })
                 );
             }
+            await scripted.beforeTick(tick);
         };
         live.server.on('tick', onTick);
         try {
@@ -661,11 +742,19 @@ const replaySession = async (
             // start ends the measurement.
             await live.stepTo(measureCosts ? sampleEnd + 2 : sampleEnd + 1, offerInputs);
             await Promise.all(replayed);
+            await Promise.all(scripted.requests);
         } finally {
+            clock?.mockRestore();
             live.server.removeListener('tick', onTick);
             live.server.removeListener('playerMove', onMove);
             live.outbound.setEnabled(false);
         }
+        const admissionDivergences = admissionQueue.snapshot().divergences;
+        const sampledAdmissions = admissionsIn(live.admissions, sampleStart, sampleEnd, -REPLAY_START_TICK);
+        const tickElapsedMs = live.server
+            .getTickRecorder()
+            .between(sampleStart, sampleEnd + 1)
+            .map((sample) => sample.elapsedMs);
         if (replayErrors.length > 0) throw new Error(`Replay rejected packets: ${replayErrors.join('; ')}`);
 
         const worldSeries = instrumented
@@ -712,6 +801,15 @@ const replaySession = async (
         return {
             worldSeries,
             packetSeries,
+            sampledAdmissions,
+            admissionDivergences,
+            capturedAdmissions: admissionsIn(
+                captured.admissions,
+                sampleStart - tickOffset,
+                sampleEnd - tickOffset,
+                tickOffset - REPLAY_START_TICK
+            ),
+            tickElapsedMs,
             moveEvents,
             moveTickOffsets: moveTicks.map((tick) => tick - REPLAY_START_TICK),
             finalWorldDigest,
@@ -755,6 +853,23 @@ const replaySession = async (
     }
 };
 
+/**
+ * The admissions of a tick range, keyed by tick offset so a capture and its replays compare,
+ * with everything that names the chunk and its content.
+ */
+const admissionsIn = (
+    records: readonly ChunkAdmissionRecord[],
+    firstTick: number,
+    lastTick: number,
+    offset: number
+): readonly string[] =>
+    records
+        .filter((record) => record.tick >= firstTick && record.tick <= lastTick)
+        .map(
+            ({ tick, world, change, x, z, step, digest }) =>
+                `${tick + offset} ${step} ${change} ${world} ${x},${z} ${digest ?? '-'}`
+        );
+
 /** One replay's per-tick digests, keyed by the tick's offset from the replay's first input. */
 interface ReplaySeries {
     readonly worldSeries: readonly (readonly [number, string])[];
@@ -791,7 +906,7 @@ afterEach(async () => {
 
 describe('live session replay', () => {
     it(
-        'replays one captured play session into two fresh seeded worlds and compares each tick',
+        'replays one captured play session into two fresh seeded worlds and compares each tick, whatever the clock',
         { tags: ['real-data'], timeout: 90_000 },
         async () => {
             const random = vi.spyOn(Math, 'random').mockReturnValue(0.5);
@@ -803,7 +918,12 @@ describe('live session replay', () => {
                 expect(captured.movement).toHaveLength(MOVEMENT_COUNT);
 
                 const first = await replaySession(moverAuth, observerAuth, captured);
-                const second = await replaySession(moverAuth, observerAuth, captured);
+                // A host that admits one chunk a step and reads a clock a second slower on every
+                // read: its ticks run far behind the clock, and it still replays the same ticks.
+                const second = await replaySession(moverAuth, observerAuth, captured, {
+                    chunkAdmissionBudget: 1,
+                    jumpingClock: true
+                });
 
                 expect(first.finalMoverPosition.x).toBeGreaterThan(captured.moverStart.x + 0.8);
                 expect(first.moveEvents).toBe(MOVEMENT_COUNT);
@@ -822,6 +942,33 @@ describe('live session replay', () => {
                     SAMPLE_LEAD_TICKS + (MOVEMENT_COUNT - 1) * MOVEMENT_INTERVAL_TICKS + SAMPLE_TRAIL_TICKS + 1
                 );
                 expect(first.packetSeries.filter(([, digest]) => digest !== null).length).toBeGreaterThan(0);
+                // The water flows: block updates and scheduled fluid ticks change the world on
+                // most sampled ticks after it lands.
+                const afterWater = first.worldSeries.filter(([tick]) => tick >= WATER_TICK).map(([, digest]) => digest);
+                expect(new Set(afterWater).size).toBeGreaterThan(afterWater.length / 2);
+
+                // Both replays admit exactly the chunks the capture admitted, at the same ticks,
+                // with the same content, and the background chunks entered at one input step.
+                const inputsPerTick = (admissions: readonly string[]): number[] => {
+                    const counts = new Map<string, number>();
+                    for (const admission of admissions) {
+                        const [tick, step] = admission.split(' ');
+                        if (step === 'input') counts.set(tick!, (counts.get(tick!) ?? 0) + 1);
+                    }
+                    return [...counts.values()];
+                };
+                expect(Math.max(0, ...inputsPerTick(first.capturedAdmissions))).toBeGreaterThanOrEqual(
+                    BACKGROUND_CHUNKS
+                );
+                expect(first.sampledAdmissions).toEqual(first.capturedAdmissions);
+                expect(second.sampledAdmissions).toEqual(first.capturedAdmissions);
+                expect(first.admissionDivergences).toEqual([]);
+                expect(second.admissionDivergences).toEqual([]);
+                // The second replay's own budget would have admitted one chunk a step.
+                expect(Math.max(0, ...inputsPerTick(second.sampledAdmissions))).toBeGreaterThan(1);
+                // Every sampled tick of the second replay took at least a second by its clock.
+                expect(second.tickElapsedMs.length).toBe(first.worldSeries.length);
+                expect(second.tickElapsedMs.every((elapsedMs) => elapsedMs >= 1000)).toBe(true);
                 expect(firstDivergence(first, second)).toBeUndefined();
             } finally {
                 random.mockRestore();
