@@ -44,10 +44,15 @@ export interface TransportConnection {
      */
     sendFrame(payload: Buffer, immediate?: boolean): void;
     /**
-     * Hangs up on the client.
+     * Hangs up on the client, after what was already sent has had its chance to arrive.
+     *
+     * RakNet holds the session open until the client acknowledges its last datagrams, so it
+     * hangs up at once. A transport that would drop frames still in flight waits for them
+     * first and returns a promise that settles once it has hung up, so a caller that sent a
+     * goodbye can wait for it to arrive before the process exits.
      * @param reason - Recorded as the disconnect reason the transport reports back.
      */
-    close(reason?: string): void;
+    close(reason?: string): Promise<void> | void;
 }
 
 /**

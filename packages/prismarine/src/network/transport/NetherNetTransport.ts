@@ -33,12 +33,23 @@ const EARLY_MESSAGE_LIMIT = 16;
 /** Where a peer whose address the transport could not learn is said to be. */
 const UNKNOWN_ADDRESS = new InetAddress('0.0.0.0', 0);
 
+/**
+ * How long a hang-up waits for the client to acknowledge what was sent before it. go-nethernet
+ * waits as long before it closes a connection.
+ */
+export const NETHERNET_DRAIN_TIMEOUT_MS = 3_000;
+
+/** How often a hang-up looks at whether the client has acknowledged everything. */
+const NETHERNET_DRAIN_POLL_MS = 10;
+
 /** The part of a `nethernet` connection the transport uses. */
 export interface NetherNetPeer {
     /** The connection ID the client chose, which is how `nethernet` keys its connections. */
     readonly address: bigint;
     /** The WebRTC peer connection underneath, whose chosen ICE pair names the client's address. */
     readonly rtcConnection?: unknown;
+    /** The reliable data channel, whose send buffer says whether the client has everything. */
+    readonly reliable?: unknown;
     /** Whether the peer has closed; `nethernet` throws on a send after that. */
     readonly closed: boolean;
     /** Sends one message on the reliable data channel, fragmenting it as needed. */
@@ -101,6 +112,37 @@ export const selectedCandidateAddress: NetherNetPeerAddress = (peer) => {
 };
 
 /**
+ * Whether the reliable channel holds data the client has not acknowledged. Werift, `nethernet`'s
+ * default backend, counts it in three places: the channel's `bufferedAmount` (messages not yet
+ * handed to SCTP), and the association's `outboundQueue` (chunks not yet sent) and `flightSize`
+ * (bytes sent but not acknowledged).
+ * @returns Undefined when the backend exposes none of it, so nothing can be waited for.
+ */
+export const hasUndeliveredData = (peer: NetherNetPeer): boolean | undefined => {
+    const channel = peer.reliable;
+    if (!isRecord(channel) || typeof channel.bufferedAmount !== 'number') return undefined;
+    if (channel.bufferedAmount > 0) return true;
+
+    const transport = channel.sctp;
+    const association = isRecord(transport) ? transport.sctp : undefined;
+    if (!isRecord(association)) return false;
+    const inFlight = typeof association.flightSize === 'number' && association.flightSize > 0;
+    const queued = Array.isArray(association.outboundQueue) && association.outboundQueue.length > 0;
+    return inFlight || queued;
+};
+
+/**
+ * Waits until the client has acknowledged everything sent to it, has hung up itself, or
+ * {@link NETHERNET_DRAIN_TIMEOUT_MS} has passed.
+ */
+const drain = async (peer: NetherNetPeer): Promise<void> => {
+    for (let waited = 0; waited < NETHERNET_DRAIN_TIMEOUT_MS; waited += NETHERNET_DRAIN_POLL_MS) {
+        if (peer.closed || hasUndeliveredData(peer) !== true) return;
+        await new Promise((resolve) => setTimeout(resolve, NETHERNET_DRAIN_POLL_MS));
+    }
+};
+
+/**
  * One NetherNet peer as a {@link TransportConnection}. Frames go out on the reliable data
  * channel without their `0xFE` batch id, which NetherNet's wire does not carry.
  */
@@ -130,8 +172,17 @@ export class NetherNetTransportConnection implements TransportConnection {
         this.peer.send(payload.subarray(1));
     }
 
-    /** Closes the peer connection; `nethernet` then reports it closed with this reason. */
-    public close(reason?: string): void {
+    /**
+     * Closes the peer connection once the client has what was sent before; `nethernet` then
+     * reports it closed with this reason.
+     *
+     * `nethernet` closes the data channels and the peer connection at once, and werift throws
+     * away what SCTP has not delivered. A kick is a `DisconnectPacket` followed by this call, so
+     * closing straight away lost the packet, and the client showed `NetherNetDataChannelClosed`
+     * (`ClientDisconnection-122`) where it should have shown the kick's reason.
+     */
+    public async close(reason?: string): Promise<void> {
+        await drain(this.peer);
         this.peer.close(reason);
     }
 }

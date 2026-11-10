@@ -1,5 +1,5 @@
 import { EventEmitter } from 'node:events';
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { BATCH_PACKET_ID } from '@jsprismarine/protocol';
 import { InetAddress } from '@jsprismarine/raknet';
@@ -7,6 +7,8 @@ import { settle } from '../../testing/manualTransport.test.helper';
 import { ConnectionIds } from './ConnectionId';
 import NetherNetTransport, {
     candidateAddress,
+    hasUndeliveredData,
+    NETHERNET_DRAIN_TIMEOUT_MS,
     NetherNetTransportConnection,
     selectedCandidateAddress
 } from './NetherNetTransport';
@@ -96,12 +98,98 @@ describe('network/transport/NetherNetTransport', () => {
             expect(sent).toStrictEqual([]);
         });
 
-        it('closes the peer with the reason', () => {
+        it('closes the peer with the reason', async () => {
             const { connection: under, closed } = connection();
 
-            under.close('Kicked');
+            await under.close('Kicked');
 
             expect(closed).toStrictEqual(['Kicked']);
+        });
+
+        describe('hanging up', () => {
+            /** A peer over a werift-shaped reliable channel whose backlog the test controls. */
+            const drainingPeer = () => {
+                const association = { flightSize: 0, outboundQueue: [] as unknown[] };
+                const reliable = { bufferedAmount: 0, sctp: { sctp: association } };
+                const closed: (string | undefined)[] = [];
+                const peer = {
+                    address: 9n,
+                    reliable,
+                    closed: false,
+                    send: (data: Buffer) => data.byteLength,
+                    close: (reason?: string) => void closed.push(reason)
+                };
+                const under = new NetherNetTransportConnection(3, peer, new InetAddress('192.0.2.1', 5));
+                return { peer, reliable, association, closed, under };
+            };
+
+            beforeEach(() => {
+                vi.useFakeTimers();
+            });
+
+            afterEach(() => {
+                vi.useRealTimers();
+            });
+
+            it('waits until the client has acknowledged everything sent before it', async () => {
+                const { reliable, association, closed, under } = drainingPeer();
+                reliable.bufferedAmount = 120;
+
+                const closing = under.close('Server closed.');
+                await vi.advanceTimersByTimeAsync(50);
+                expect(closed).toStrictEqual([]);
+
+                // Handed to SCTP, but sent and not yet acknowledged.
+                reliable.bufferedAmount = 0;
+                association.flightSize = 120;
+                await vi.advanceTimersByTimeAsync(50);
+                expect(closed).toStrictEqual([]);
+
+                association.flightSize = 0;
+                association.outboundQueue.push({});
+                await vi.advanceTimersByTimeAsync(50);
+                expect(closed).toStrictEqual([]);
+
+                association.outboundQueue.length = 0;
+                await vi.advanceTimersByTimeAsync(50);
+                await closing;
+                expect(closed).toStrictEqual(['Server closed.']);
+            });
+
+            it('stops waiting once the client hangs up itself', async () => {
+                const { peer, reliable, closed, under } = drainingPeer();
+                reliable.bufferedAmount = 120;
+
+                const closing = under.close('Kicked');
+                peer.closed = true;
+                await vi.advanceTimersByTimeAsync(50);
+                await closing;
+
+                expect(closed).toStrictEqual(['Kicked']);
+            });
+
+            it('hangs up anyway when the client never acknowledges', async () => {
+                const { association, closed, under } = drainingPeer();
+                association.flightSize = 1;
+
+                const closing = under.close('Kicked');
+                await vi.advanceTimersByTimeAsync(NETHERNET_DRAIN_TIMEOUT_MS - 50);
+                expect(closed).toStrictEqual([]);
+
+                await vi.advanceTimersByTimeAsync(50);
+                await closing;
+                expect(closed).toStrictEqual(['Kicked']);
+            });
+        });
+    });
+
+    describe('hasUndeliveredData', () => {
+        it('knows nothing about a backend that exposes no send buffer', () => {
+            expect(hasUndeliveredData(fakePeer(1n).peer)).toBeUndefined();
+        });
+
+        it('counts a channel with nothing buffered and no association as delivered', () => {
+            expect(hasUndeliveredData({ ...fakePeer(1n).peer, reliable: { bufferedAmount: 0 } })).toBe(false);
         });
     });
 

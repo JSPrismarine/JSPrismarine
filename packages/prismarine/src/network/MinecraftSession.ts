@@ -677,8 +677,13 @@ export default class MinecraftSession {
         return drop;
     }
 
-    public forceDisconnect(): void {
-        this.connection.close();
+    /**
+     * Hangs up on the client.
+     * @returns What the transport returns: over NetherNet, a promise that settles once the
+     * frames sent before the hang-up have arrived or the wait for them ran out.
+     */
+    public forceDisconnect(): Promise<void> | void {
+        return this.connection.close();
     }
 
     private frameEncodedDataPacket(batch: ReturnType<typeof encodePacketBatch>, direct: boolean): void {
