@@ -33,6 +33,7 @@ import { TOKEN_ISSUER } from '@jsprismarine/auth/protocol';
 import { useLoginKeys } from '@jsprismarine/auth/server';
 import { testContent } from '../../testing/entityServer';
 import { fakeLevel } from '../../testing/level';
+import { ChatManager } from '../../chat/ChatManager';
 
 /** A well-formed client identity; every real login carries one. */
 const IDENTITY = 'd1b3f8a24c5e4f6a9b7c8d9e0f1a2b3c';
@@ -142,6 +143,7 @@ describe('network', () => {
             const banManager = (): BanManager => stub<BanManager>({ isBanned: () => false });
 
             const server: Server = stub<Server>({
+                getChatManager: () => chat,
                 getChunkScheduler: chunkScheduler,
                 // No pack stack, so a restored inventory resolves no item through the content.
                 getContent: () => testContent(),
@@ -153,9 +155,11 @@ describe('network', () => {
                 getBanManager: banManager,
                 getTick: () => 0,
                 on: vi.fn(),
+                removeListener: vi.fn(),
                 post: vi.fn(),
                 emit: async () => {}
             });
+            const chat = new ChatManager(server);
 
             // The session is built by `createConnectedPlayer` now, not mocked in: the
             // connection is handed the real one and only has to accept it.

@@ -10,6 +10,7 @@ import type Server from '../Server';
 import type SessionManager from '../SessionManager';
 import type { Block } from '../block/Block';
 import { BlockState } from '../block/state/BlockState';
+import { ChatManager } from '../chat/ChatManager';
 import type { ConsoleSender } from '../command/ConsoleSender';
 import type { Config } from '../config/Config';
 import type ClientConnection from '../network/ClientConnection';
@@ -88,6 +89,7 @@ export const fakePlayer = ({ underwater = false, worlds: others = [], name = 'Te
         getSessionManager: () => stub<SessionManager>({ getPlayerList: () => new Map(), getAllPlayers: () => [] }),
         broadcastPacket: async () => {},
         removeListener: () => server,
+        getChatManager: () => chat,
         getChunkScheduler: () => stub<ChunkScheduler>({ add: () => {}, remove: () => {} }),
         getPermissionManager: () => stub<PermissionManager>({ getPermissions: async () => [], isOp }),
         getWorldManager: () => stub<WorldManager>({ getDefaultWorld: () => world }),
@@ -104,6 +106,8 @@ export const fakePlayer = ({ underwater = false, worlds: others = [], name = 'Te
                 getPacketCompressionThreshold: () => 256
             })
     });
+
+    const chat = new ChatManager(server);
 
     const blockName = underwater ? 'minecraft:water' : 'minecraft:air';
     const world = stub<World>({
