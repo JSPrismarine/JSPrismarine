@@ -510,6 +510,23 @@ export default class MinecraftSession {
         }
     }
 
+    /** Whether every packet sent so far has been framed; see {@link MinecraftSession.settleOutbound}. */
+    public isOutboundSettled(): boolean {
+        return this.queuedPackets.length === 0 && this.pendingAsyncSends === 0;
+    }
+
+    /**
+     * Resolves once every packet sent so far has been framed: the queue is flushed and no
+     * asynchronous encode is still in flight. A harness that steps the server waits on it so
+     * that a packet counts toward the tick that sent it, whatever the host's speed.
+     */
+    public async settleOutbound(): Promise<void> {
+        while (!this.isOutboundSettled()) {
+            await this.flushOutboundPackets();
+            await this.outbound;
+        }
+    }
+
     /**
      * Frames packets accumulated since the last queue boundary.
      * @returns Resolves after the batch holding these packets has been framed.
