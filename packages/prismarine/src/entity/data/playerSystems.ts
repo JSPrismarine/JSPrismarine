@@ -25,9 +25,12 @@ import { DamageSource } from '../DamageSource';
 import { EYE_HEIGHT } from '../Human';
 import { breathe } from '../playerBreath';
 import { PlayerComponents } from '../playerComponents';
+import type { PlayerMining } from '../playerComponents';
 import { addExhaustion, addMovementExhaustion, hungerOutcome } from '../playerHunger';
 import { cushions, land, trackFall } from '../playerFall';
 import { beginMeal, cancelMeal, dueMeal } from '../playerMeal';
+import { mineTick, stopCracking } from '../playerMining';
+import type { MiningEvent } from '../playerMining';
 import type { SurvivalPlayer } from '../survivalPlayer';
 import type { DamageIntent, DamageOutcome } from './damagePipeline';
 import type { DataEntity } from './DataEntity';
@@ -41,6 +44,10 @@ export interface PlayerSystemsPorts {
     readonly level: ContentLevelFacts;
     /** The block at a position, or undefined when its chunk is not loaded. */
     blockAt(at: ContentPosition): ContentBlock | undefined;
+    /** The runtime id at a position, or undefined when its chunk is not loaded. */
+    runtimeIdAt(at: ContentPosition): number | undefined;
+    /** Sends a level event at a point, such as a tick of crack animation. */
+    levelEvent(at: ContentPosition, event: number, data: number): void;
     /** Runs one blow through the store's damage pipeline. */
     damage(intent: DamageIntent): DamageOutcome;
     /** Gives health back, up to the maximum. */
@@ -109,7 +116,8 @@ export class PlayerSystems {
 
     /**
      * One tick of a store player's systems, in the order a legacy player runs them: breath and
-     * hunger for a player they reach, then the meal in progress for any player.
+     * hunger for a player they reach, then the meal in progress and the block being mined for any
+     * player.
      *
      * @param entity - The player.
      * @param tick - The world tick, which the hunger clock reads.
@@ -121,6 +129,33 @@ export class PlayerSystems {
             this.tickHunger(entity, survival, tick);
         }
         this.tickMeal(entity, survival);
+        this.tickMining(survival);
+    }
+
+    /**
+     * Sets the block a store player is mining, whose cracks the systems animate every tick until
+     * it breaks or the player stops. The start of the cracks is the caller's, as
+     * `World.startBlockCracking` sends it for a legacy player.
+     *
+     * @param entity - The player.
+     * @param mining - The block, or null when the player stopped or broke it.
+     */
+    public setMining(entity: DataEntity, mining: PlayerMining | null): void {
+        this.componentsOf(entity).set('mining.block', mining);
+    }
+
+    /**
+     * Stops the cracks on the block a store player was mining, if any, and forgets it, for whatever
+     * ends the mining without the client saying so, such as a death.
+     *
+     * @param entity - The player.
+     */
+    public stopMining(entity: DataEntity): void {
+        const components = this.componentsOf(entity);
+        const mining = components.get('mining.block');
+        if (mining === null) return;
+        components.set('mining.block', null);
+        this.send(stopCracking(mining));
     }
 
     /**
@@ -193,6 +228,20 @@ export class PlayerSystems {
     private tickMeal(entity: DataEntity, survival: SurvivalPlayer): void {
         const item = dueMeal(survival.components, this.ports.level.gameTime(), this.ports.heldItem(entity.id));
         if (item !== undefined) this.ports.finishMeal(entity.id, item);
+    }
+
+    /** A tick of crack animation on the block being mined, read from a loaded chunk only. */
+    private tickMining(survival: SurvivalPlayer): void {
+        const mining = survival.components.get('mining.block');
+        if (mining === null) return;
+
+        const step = mineTick(mining, this.ports.runtimeIdAt({ x: mining.x, y: mining.y, z: mining.z }));
+        for (const event of step.events) this.send(event);
+        if (!step.continues) survival.components.set('mining.block', null);
+    }
+
+    private send({ at, event, data }: MiningEvent): void {
+        this.ports.levelEvent(at, event, data);
     }
 
     private tickHunger(entity: DataEntity, survival: SurvivalPlayer, tick: number): void {

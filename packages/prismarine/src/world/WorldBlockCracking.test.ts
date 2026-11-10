@@ -20,12 +20,12 @@ import { World } from './World';
  */
 const fakeWorld = (initial: BlockState, breakSeconds: number) => {
     const effects: Array<{ position: Vector3 | null; event: LevelEvent; data: number }> = [];
-    const at = { state: initial };
+    const at: { state: BlockState; loaded: boolean } = { state: initial, loaded: true };
     const clock = { tick: 40 };
 
     const world: World = Object.assign(Object.create(World.prototype), {
         getBlockState: async () => at.state,
-        loadedBlockRuntimeIdAt: () => BlockRuntimeIds.get(at.state),
+        loadedBlockRuntimeIdAt: () => (at.loaded ? BlockRuntimeIds.get(at.state) : undefined),
         server: stub<Server>({ getTick: () => clock.tick }),
         getBlock: async () =>
             stub<Block>({
@@ -113,6 +113,16 @@ describe('world', () => {
             expect(await world.updateBlockCracking(mining!)).toBe(false);
 
             expect(effects).toEqual([{ position: BLOCK, event: LevelEvent.STOP_BLOCK_CRACKING, data: 0 }]);
+        });
+
+        it('waits, sending nothing, while the mined block is in a chunk that is not loaded', async () => {
+            const { world, effects, at } = fakeWorld(STONE, 0.6);
+            const mining = await world.startBlockCracking(BLOCK, 5, PICKAXE, null);
+            effects.length = 0;
+            at.loaded = false;
+
+            expect(await world.updateBlockCracking(mining!)).toBe(true);
+            expect(effects).toEqual([]);
         });
 
         it('animates nothing for a block that breaks at once', async () => {
