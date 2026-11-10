@@ -21,8 +21,13 @@ import type { BlockPositionKey } from './positionKeys';
  *   take the tick down with it. Work left over is simply carried to the next tick.
  */
 
-/** How many updates one tick may process before leaving the rest for the next. */
-const UPDATES_PER_TICK = 4096;
+/**
+ * How many updates one tick may process before leaving the rest for the next.
+ *
+ * A count and nothing else, so the same queue drains the same way on every host. A host too slow
+ * to run this many in a tick's period ticks slower and does not process fewer.
+ */
+export const BLOCK_UPDATE_BUDGET_PER_TICK = 4096;
 
 interface PendingUpdate {
     readonly at: number;
@@ -112,7 +117,7 @@ export class BlockUpdateScheduler {
     /**
      * Takes the updates that have come due.
      * @param {number} now - The current tick.
-     * @returns {BlockUpdate[]} At most {@link UPDATES_PER_TICK} of them; the rest stay queued.
+     * @returns {BlockUpdate[]} At most {@link BLOCK_UPDATE_BUDGET_PER_TICK} of them; the rest stay queued.
      */
     public due(now: number): BlockUpdate[] {
         if (this.pending.size === 0 || this.earliestDue > now) return [];
@@ -126,7 +131,7 @@ export class BlockUpdateScheduler {
             ready.push(entry.update);
             this.pending.delete(key);
 
-            if (ready.length >= UPDATES_PER_TICK) {
+            if (ready.length >= BLOCK_UPDATE_BUDGET_PER_TICK) {
                 reachedBudget = true;
                 break;
             }
@@ -139,32 +144,6 @@ export class BlockUpdateScheduler {
         }
 
         return ready;
-    }
-
-    /**
-     * Hands back updates {@link due} gave out that the tick ran out of time for.
-     *
-     * They go to the front of the queue, still due, so the next tick takes them before anything
-     * queued since: leftover work keeps its place in line, as it does when the count budget
-     * leaves it. A position that was queued again meanwhile keeps that later entry's time if it
-     * is the earlier one.
-     * @param {readonly BlockUpdate[]} updates - The unprocessed tail, in processing order.
-     * @param {number} now - The current tick.
-     */
-    public defer(updates: readonly BlockUpdate[], now: number): void {
-        if (updates.length === 0) return;
-
-        const waiting = new Map<BlockPositionKey, PendingUpdate>();
-        for (const update of updates) {
-            const key = blockPositionKey(update.x, update.y, update.z);
-            const queued = this.pending.get(key);
-            waiting.set(key, { at: queued !== undefined && queued.at < now ? queued.at : now, update });
-        }
-        for (const [key, entry] of this.pending) if (!waiting.has(key)) waiting.set(key, entry);
-
-        this.pending.clear();
-        for (const [key, entry] of waiting) this.pending.set(key, entry);
-        this.earliestDue = Math.min(this.earliestDue, now);
     }
 
     /** Re-scans only after the current earliest due tick has left the queue. */
