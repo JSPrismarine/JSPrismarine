@@ -31,7 +31,6 @@ import ContainerEntry from './ContainerEntry';
 import type Inventory from './Inventory';
 import { itemDropOf, restoredItem, storedItem, storedItemDrop } from './persistence';
 import { Item } from '../item/Item';
-import type Player from '../Player';
 import type { BlockEntityData, ContentPosition } from '../content/world/adapter';
 import type { ServerContent } from '../content/ServerContent';
 
@@ -123,8 +122,22 @@ const halvesOf = (world: WorldActions, at: ContentPosition, identifier: string):
  */
 export const isPerPlayerContainer = (identifier: string): boolean => identifier.endsWith('ender_chest');
 
+/**
+ * What a container screen reads of the player who opened it: the content and the dimension a
+ * block's slots are read from, and the ender chest, whose slots are the player's own.
+ */
+export interface ContainerViewer {
+    getServer(): { getContent(): ServerContent | undefined };
+    getWorld(): { getDimension(): { readonly name: string } };
+    getInventory(): { getEnderChest(): Inventory };
+}
+
 /** A block's own slots, across however many block entities the block spans. */
-const blockEntityBacking = (player: Player, at: ContentPosition, identifier: string): SlotBacking | undefined => {
+const blockEntityBacking = (
+    player: ContainerViewer,
+    at: ContentPosition,
+    identifier: string
+): SlotBacking | undefined => {
     const content = player.getServer().getContent();
     if (content === undefined) return undefined;
 
@@ -159,7 +172,7 @@ const blockEntityBacking = (player: Player, at: ContentPosition, identifier: str
  * @param identifier - The block standing there, which decides how many slots it has.
  */
 export const openContainerSlots = (
-    player: Player,
+    player: ContainerViewer,
     at: ContentPosition,
     identifier: string
 ): OpenContainerSlots | undefined => {
@@ -230,7 +243,11 @@ export const restorePlacedContents = (
  * has to compare what they hold rather than where they were opened from. The answer is the half
  * the slots are ordered from, which is the one {@link openContainerSlots} reads first.
  */
-export const containerAnchorOf = (player: Player, at: ContentPosition, identifier: string): ContentPosition => {
+export const containerAnchorOf = (
+    player: ContainerViewer,
+    at: ContentPosition,
+    identifier: string
+): ContentPosition => {
     const content = player.getServer().getContent();
     if (content === undefined || isPerPlayerContainer(identifier)) return at;
 
@@ -245,7 +262,11 @@ export const containerAnchorOf = (player: Player, at: ContentPosition, identifie
  * then move a stack through are the same slots in the same order. A double chest is 54 entries
  * here for the same reason.
  */
-export const openContainerContents = (player: Player, at: ContentPosition, identifier: string): ContainerEntry[] => {
+export const openContainerContents = (
+    player: ContainerViewer,
+    at: ContentPosition,
+    identifier: string
+): ContainerEntry[] => {
     const slots = openContainerSlots(player, at, identifier);
     if (slots === undefined) return [];
 
