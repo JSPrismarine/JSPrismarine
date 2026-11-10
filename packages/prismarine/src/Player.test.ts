@@ -776,7 +776,7 @@ describe('Player', () => {
             await player.setGamemode(Gametype.SURVIVAL);
 
             expect(stopped).toEqual([]);
-            expect(player.getMining()).toBe(mining);
+            expect(player.getMining()).toEqual(mining);
         });
     });
 

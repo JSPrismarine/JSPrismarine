@@ -900,7 +900,7 @@ export class Entity {
         if (absorption <= 0 || amount <= 0) return amount;
 
         const absorbed = Math.min(absorption, amount);
-        this.attributes.setValue(AttributeIds.Absorption, absorption - absorbed);
+        this.setAttributeValue(AttributeIds.Absorption, absorption - absorbed);
 
         return amount - absorbed;
     }
@@ -1198,6 +1198,16 @@ export class Entity {
      */
     public restorePosition(position: Position): void {
         this.relocate(position);
+    }
+
+    /**
+     * Sets one attribute's value, clamped to its bounds. A player logs the write.
+     * @param {string} name - The attribute's namespaced id.
+     * @param {number} value - The wanted value.
+     * @returns {boolean} `true` if the value changed.
+     */
+    public setAttributeValue(name: string, value: number): boolean {
+        return this.attributes.setValue(name, value);
     }
 
     /**

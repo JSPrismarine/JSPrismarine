@@ -17,7 +17,9 @@ export const withPlayerComponents = <T extends Player>(
     player: T,
     attributes: Attributes = player.attributes ?? new Attributes(Attributes.getPlayerDefaults())
 ): T => {
-    Object.defineProperty(player, 'components', { value: new PlayerComponents(attributes, () => {}) });
+    Object.defineProperty(player, 'components', {
+        value: new PlayerComponents(attributes, () => {}, player.metadata)
+    });
     return player;
 };
 
