@@ -1,6 +1,6 @@
 # Entity and tick re-architecture: one entity model, one tick pipeline
 
-Status: draft. The direction is accepted and nothing is implemented. The decisions were taken on 2026-11-10, and this draft was written the same day after a review of the first version found ten gaps. Counts in this page are from that day.
+Status: in progress. The decisions were taken on 2026-11-10 and this plan was written the same day. Counts in this page are from that day. Slices 0 to 2 have landed on the program branch (`t3/subagent-architecture-review`, pull request #2948), and slices 3 to 5 were in progress when work moved to another machine on 2026-11-10. [The handoff](entity-simulation-rearchitecture.handoff.md) says where each package stands and how to pick it up.
 
 The server runs two simulations of the same world and reconciles them every tick. Every data-driven mob lives once in `EntityRuntime` and a second time as a legacy body in the world's entity map, and health crosses between the two by comparison. Two entity indexes answer the same question under opposite rules. A tick awaits at 233 points, so a packet handler can change a player in the middle of it. This plan replaces all of that with one entity store, one index, a synchronous tick, and replication that reads a change log.
 
@@ -121,6 +121,24 @@ Every slice lands on `master`, and a slice deletes what it replaces. The one exc
 11. **Explicit exports.** Prismarine's barrels and its `"./*"` export are replaced.
 
 Players come before replication so the log is complete when replication reads it. Handlers come before replication so they have somewhere to put their output. The cost of that order is that the encode-once change lands at slice 7.
+
+## Progress
+
+As of 2026-11-10, at program head `646dd8a4f3`, rebased on `master` `9a2c1d5af5`. Every CI check passed on `46a1d6977a`, Client E2E included.
+
+| Package | State |
+| --- | --- |
+| A1 barrel ban, A2 count budgets and world order, A3 handler lanes, A4 change log module, A5 player spike | Landed |
+| B1 input admission, with its two follow-up fixes (a held input blocked its connection; a stale move undid a teleport) | Landed |
+| B2 chunk completions as recorded inputs, with the follow-up fix for the tick that stalled after the dragon died | Landed |
+| B3a one live player per account (#2951) and the persistence service | Landed |
+| B3b chat fan-out and respawn search as services | Work in progress, not landed |
+| B4 save pass measurement, B5 re-keyed maps | Landed |
+| C1a component state on the instance, C1b one entity index, C1c the entity store with logged setters, spans and undo | Landed |
+| Replay determinism fixes (settle gaps, wall-clock chunk budget in the harness) | Landed |
+| C2 items and the eye of ender in the store | Work in progress, not landed |
+| C3 staged damage and death, the mirror deleted | Work in progress, not landed |
+| C4 and everything in phases D to F | Not started |
 
 ## Phases and work packages
 
