@@ -138,7 +138,10 @@ export const fetchSource = async (descriptor: SourceDescriptor, options: FetchOp
     }
 
     await mkdir(versionDir, { recursive: true });
-    const partPath = `${archivePath}.part`;
+    // Worktrees can share one cache, so two installs may fetch the same version at once. Each
+    // writes its own part file and unpacks into its own directory, and only finished results are
+    // renamed into place.
+    const partPath = `${archivePath}.${process.pid}.part`;
     await download(descriptor.url, partPath, fetchImpl);
 
     const actual = await hashFile(partPath, descriptor.hash.algorithm);
@@ -152,8 +155,11 @@ export const fetchSource = async (descriptor: SourceDescriptor, options: FetchOp
     await rename(partPath, archivePath);
 
     if (descriptor.unpack) {
+        const unpacking = `${contentPath}.${process.pid}.unpacking`;
+        await rm(unpacking, { recursive: true, force: true });
+        await extractZip(archivePath, unpacking, allowlistFilter(descriptor.extract));
         await rm(contentPath, { recursive: true, force: true });
-        await extractZip(archivePath, contentPath, allowlistFilter(descriptor.extract));
+        await rename(unpacking, contentPath);
     }
 
     const written: FetchMarker = {
