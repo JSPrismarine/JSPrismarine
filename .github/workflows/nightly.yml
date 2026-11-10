@@ -1,12 +1,47 @@
 name: Executable
 
+# Runs when a file that reaches the executables changes. A push builds them to publish a nightly
+# release, and a pull request builds them to check they still compile and start.
 on:
     push:
         branches:
             - master
+        paths:
+            - '.github/workflows/nightly.yml'
+            - '.github/common/**'
+            - '.github/scripts/**'
+            - 'packages/**'
+            - 'scripts/**'
+            - 'package.json'
+            - 'pnpm-lock.yaml'
+            - 'pnpm-workspace.yaml'
+            - '.npmrc'
+            - '.nvmrc'
+            - 'tsconfig*.json'
+            - 'turbo.json'
+            - 'vite.config.ts'
+            - '!**/*.md'
+            - '!**/*.test.ts'
     pull_request:
         branches:
             - master
+        # The same paths as the push.
+        paths:
+            - '.github/workflows/nightly.yml'
+            - '.github/common/**'
+            - '.github/scripts/**'
+            - 'packages/**'
+            - 'scripts/**'
+            - 'package.json'
+            - 'pnpm-lock.yaml'
+            - 'pnpm-workspace.yaml'
+            - '.npmrc'
+            - '.nvmrc'
+            - 'tsconfig*.json'
+            - 'turbo.json'
+            - 'vite.config.ts'
+            - '!**/*.md'
+            - '!**/*.test.ts'
 
 env:
     GIT_CONFIG_COUNT: '1'
@@ -31,6 +66,8 @@ jobs:
             GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         outputs:
             version: ${{ steps.metadata.outputs.BUILD_VERSION }}
+            # A pull request always builds; a push builds only for a release it will publish.
+            build: ${{ github.event_name != 'push' || steps.release_cadence.outputs.publish == 'true' }}
         steps:
             # - uses: useblacksmith/checkout@v1
             - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -48,8 +85,21 @@ jobs:
                   GITHUB_RUN_STARTED_AT: ${{ steps.start_time.outputs.started_at }}
               run: node .github/scripts/set-build-metadata.mjs
 
+            # Nightlies are published at most once every six hours. Deciding that here, before the
+            # builds, keeps a push inside the interval from compiling three executables that the
+            # release job would then discard.
+            - name: 🕕 Check nightly release interval
+              id: release_cadence
+              if: ${{ github.event_name == 'push' }}
+              env:
+                  BUILD_VERSION: ${{ steps.metadata.outputs.BUILD_VERSION }}
+              run: .github/scripts/nightly-release-due.sh
+
+    # The builds need it, and skipping it skips them and the release.
     aot-data:
         name: 🗃️ Prepare executable data
+        needs: nightly-version
+        if: ${{ needs.nightly-version.outputs.build == 'true' }}
         concurrency:
             group: nightly-data-${{ github.event.pull_request.number || github.ref }}
             cancel-in-progress: false
@@ -212,36 +262,15 @@ jobs:
             BUILD_TYPE: nightly
             BUILD_VERSION: ${{ needs.nightly-version.outputs.version }}
         steps:
-            - name: 🕕 Check nightly release interval
-              id: release_cadence
-              shell: bash
-              run: |
-                  latest_nightly="$(gh api "repos/${GITHUB_REPOSITORY}/releases?per_page=100" \
-                      --jq '[.[] | select(.prerelease == true and (.tag_name | startswith("jsprismarine@")) and (.tag_name | contains("-nightly.")) and (.published_at != null)) | [.tag_name, .published_at]] | first // empty | @tsv')"
-                  if [[ -n "$latest_nightly" ]]; then
-                      IFS=$'\t' read -r latest_tag latest_published_at <<< "$latest_nightly"
-                      if [[ "$latest_tag" != "jsprismarine@${BUILD_VERSION}" ]]; then
-                          latest_published_epoch="$(date -u --date="$latest_published_at" +%s)"
-                          current_epoch="$(date -u +%s)"
-                          if (( current_epoch - latest_published_epoch < 6 * 60 * 60 )); then
-                              echo "publish=false" >> "$GITHUB_OUTPUT"
-                              echo "Skipping nightly release; the previous one was published at $latest_published_at."
-                              {
-                                  echo '### Nightly release skipped'
-                                  echo
-                                  echo "The previous nightly was published less than six hours ago. This run's executables remain available as workflow artifacts."
-                              } >> "$GITHUB_STEP_SUMMARY"
-                              exit 0
-                          fi
-                      fi
-                  fi
-                  echo "publish=true" >> "$GITHUB_OUTPUT"
-
             - name: 🕶️ Checkout repository
-              if: ${{ steps.release_cadence.outputs.publish == 'true' }}
               uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
               with:
                   fetch-depth: 0
+
+            # Checked again: another run may have published while this one was building.
+            - name: 🕕 Check nightly release interval
+              id: release_cadence
+              run: .github/scripts/nightly-release-due.sh
 
             - name: 🏷️ Set build metadata
               if: ${{ steps.release_cadence.outputs.publish == 'true' }}
