@@ -2,25 +2,18 @@
  * Compares string coordinate keys with the production numeric coordinate indexes.
  *
  * Run `pnpm --filter @jsprismarine/prismarine run bench:world-keys [entries] [samples]`. The
- * scheduler and entity-grid rows exercise production classes; redstone measures the same nested
+ * scheduler rows exercise a production class; redstone measures the same nested
  * key layout used by `contentRedstoneUpdateHandlers`.
  */
 import os from 'node:os';
 
-import type { Entity } from '../src/entity/Entity';
-import { stub } from '../src/testing/stub.test.helper';
 import { BlockUpdateScheduler } from '../src/world/BlockUpdateScheduler';
-import CoordinateUtils from '../src/world/CoordinateUtils';
-import EntityGrid from '../src/world/EntityGrid';
-import { Position } from '../src/world/Position';
 import { blockPositionKeys, coordinatePairKey } from '../src/world/positionKeys';
-import type { World } from '../src/world/World';
 
 const argumentsAfterScript = process.argv.slice(2).filter((argument) => argument !== '--');
 const ENTRY_COUNT = Number.parseInt(argumentsAfterScript[0] ?? '20000', 10);
 const SAMPLES = Number.parseInt(argumentsAfterScript[1] ?? '5', 10);
 const WARMUPS = 2;
-const CENTER_COUNT = 200;
 
 for (const [name, value] of [
     ['entries', ENTRY_COUNT],
@@ -98,70 +91,6 @@ const measureScheduler = (indexed: boolean, mixed: boolean): ScheduleSample => {
     return { scheduleMs, dueMs, dueCount: due.length, digest };
 };
 
-interface EntityGridSample {
-    readonly rebuildMs: number;
-    readonly queryMs: number;
-    readonly candidates: number;
-    readonly digest: number;
-}
-
-const world = stub<World>({ getName: () => 'world map key benchmark' });
-const entities: Entity[] = Array.from({ length: ENTRY_COUNT }, (_unused, index) => {
-    const x = ((index * 37) % 8192) - 4096 + 0.25;
-    const z = ((index * 97) % 8192) - 4096 + 0.75;
-    const position = new Position(x, 64, z, world);
-    return stub<Entity>({
-        getRuntimeId: () => BigInt(index + 1),
-        getType: () => 'minecraft:cow',
-        getPosition: () => position
-    });
-});
-const centers = Array.from({ length: CENTER_COUNT }, (_unused, index) => ({
-    x: ((index * 193) % 8192) - 4096,
-    z: ((index * 313) % 8192) - 4096
-}));
-
-const measureEntityGrid = (indexed: boolean): EntityGridSample => {
-    const grid = indexed ? new EntityGrid() : undefined;
-    const stringCells = indexed ? undefined : new Map<string, Entity[]>();
-    const startedRebuild = performance.now();
-    if (grid !== undefined) grid.rebuild(entities);
-    else {
-        for (const entity of entities) {
-            const position = entity.getPosition();
-            const chunkX = CoordinateUtils.fromBlockToChunk(position.getX());
-            const chunkZ = CoordinateUtils.fromBlockToChunk(position.getZ());
-            const key = `${chunkX},${chunkZ}`;
-            const cell = stringCells!.get(key);
-            if (cell === undefined) stringCells!.set(key, [entity]);
-            else cell.push(entity);
-        }
-    }
-    const rebuildMs = performance.now() - startedRebuild;
-
-    let candidates = 0;
-    let digest = 0;
-    const startedQuery = performance.now();
-    for (const center of centers) {
-        const found: Entity[] = [];
-        if (grid !== undefined) found.push(...grid.near(center.x, center.z));
-        else {
-            const chunkX = CoordinateUtils.fromBlockToChunk(center.x);
-            const chunkZ = CoordinateUtils.fromBlockToChunk(center.z);
-            for (let offsetX = -1; offsetX <= 1; offsetX++)
-                for (let offsetZ = -1; offsetZ <= 1; offsetZ++) {
-                    const cell = stringCells!.get(`${chunkX + offsetX},${chunkZ + offsetZ}`);
-                    if (cell !== undefined) found.push(...cell);
-                }
-        }
-        candidates += found.length;
-        for (const entity of found)
-            digest = Math.imul(digest ^ Number(entity.getRuntimeId() & 0xffff_ffffn), 16_777_619) | 0;
-    }
-    const queryMs = performance.now() - startedQuery;
-    return { rebuildMs, queryMs, candidates, digest };
-};
-
 interface RedstoneSample {
     readonly ms: number;
     readonly invalidations: number;
@@ -220,8 +149,6 @@ for (let warmup = 0; warmup < WARMUPS; warmup++) {
         measureScheduler(false, mixed);
         measureScheduler(true, mixed);
     }
-    measureEntityGrid(false);
-    measureEntityGrid(true);
     measureRedstoneCache(false);
     measureRedstoneCache(true);
 }
@@ -230,10 +157,6 @@ const schedulerResults = [false, true].map((indexed) => ({
     indexed,
     allFuture: Array.from({ length: SAMPLES }, () => measureScheduler(indexed, false)),
     mixed: Array.from({ length: SAMPLES }, () => measureScheduler(indexed, true))
-}));
-const entityResults = [false, true].map((indexed) => ({
-    indexed,
-    runs: Array.from({ length: SAMPLES }, () => measureEntityGrid(indexed))
 }));
 const redstoneResults = [false, true].map((indexed) => ({
     indexed,
@@ -248,10 +171,6 @@ for (const scenario of ['allFuture', 'mixed'] as const) {
     if (baseline.some((run, index) => run.digest !== numeric[index]?.digest))
         throw new Error(`Scheduler ${scenario} outputs differ: ${JSON.stringify({ baseline, numeric })}`);
 }
-const baselineEntity = entityResults.find(({ indexed }) => !indexed)!.runs;
-const indexedEntity = entityResults.find(({ indexed }) => indexed)!.runs;
-if (baselineEntity.some((run, index) => run.digest !== indexedEntity[index]?.digest))
-    throw new Error('Entity-grid candidate arrays differ');
 const baselineRedstone = redstoneResults.find(({ indexed }) => !indexed)!.runs;
 const indexedRedstone = redstoneResults.find(({ indexed }) => indexed)!.runs;
 if (baselineRedstone.some((run, index) => run.digest !== indexedRedstone[index]?.digest))
@@ -272,12 +191,6 @@ process.stdout.write(
             scheduleMsP50: row(allFuture, 'scheduleMs'),
             allFutureDueCount: allFuture[0]?.dueCount ?? 0,
             mixedDueCount: mixed[0]?.dueCount ?? 0
-        })),
-        entityGrid: entityResults.map(({ indexed, runs }) => ({
-            key: indexed ? 'numeric-key' : 'string',
-            rebuildMsP50: row(runs, 'rebuildMs'),
-            queryMsP50: row(runs, 'queryMs'),
-            candidates: runs[0]?.candidates ?? 0
         })),
         redstoneCache: redstoneResults.map(({ indexed, runs }) => ({
             key: indexed ? 'numeric-key' : 'string',
