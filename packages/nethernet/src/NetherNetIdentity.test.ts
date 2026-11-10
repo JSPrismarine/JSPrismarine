@@ -57,6 +57,18 @@ describe('NetherNetIdentity', () => {
         expect(claimsOf(signed)).toMatchObject({ cpk: expect.stringMatching(/^MHYwEAYHKoZIzj0CAQYFK4EEACIDYgAE/) });
     });
 
+    it("carries an authority's token instead of signing one, and still signs the fingerprints", () => {
+        // A signed-in client: its multiplayer token names its key, issued by Minecraft's services.
+        const issued = 'eyJhbGciOiJSUzI1NiJ9.eyJjcGsiOiJrZXkifQ.signature';
+        const signed = new NetherNetIdentity(privateKey, { keyFormat: 'der', token: issued }).sign(DESCRIPTION);
+
+        const line = signed.split('\r\n').find((candidate) => candidate.startsWith('a=identity:'))!;
+        const identity = JSON.parse(Buffer.from(line.slice('a=identity:'.length), 'base64').toString());
+        const assertion = JSON.parse(identity.assertion);
+        expect(assertion.token).toBe(issued);
+        expect(assertion.fingerprints).toMatch(/^[\w-]+\.\.[\w-]+$/);
+    });
+
     it('refuses an identity once its token has expired', () => {
         const signed = new NetherNetIdentity(privateKey, { now: () => now }).sign(DESCRIPTION);
 
