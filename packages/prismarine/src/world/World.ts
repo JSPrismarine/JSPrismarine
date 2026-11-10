@@ -29,6 +29,7 @@ import { BlockStateSchemas } from '../block/state/BlockStateSchema';
 import type { BlockState } from '../block/state/BlockState';
 import { AttributeIds } from '@jsprismarine/protocol/wire/structures/Attribute';
 import { writtenEntities } from '../entity/Entities';
+import type { EntityIndex } from '../entity/data/entityIndex';
 import type { LiveEntityRuntime } from '../entity/data/live';
 import { DATA_ENTITY_TAG, dataEntityRecordIn } from '../entity/data/persistence';
 import EntitySerializer from '../entity/EntitySerializer';
@@ -3092,6 +3093,7 @@ export class World implements Service {
         this.entities.set(runtimeId, entity);
         if (entity instanceof Player) this.players.set(runtimeId, entity);
         this.entityGrid.add(entity);
+        this.getEntityIndex().addLegacy(entity);
         this.markEntityChunkChanged(entity);
 
         // Reported once the maps hold it, so that whoever works out who should see what is
@@ -3121,6 +3123,7 @@ export class World implements Service {
             this.itemEntities -= 1;
 
         this.entityGrid.remove(entity);
+        this.getEntityIndex().removeLegacy(entity);
         this.entities.delete(runtimeIdKey);
         this.players.delete(runtimeIdKey);
 
@@ -3727,6 +3730,30 @@ export class World implements Service {
      */
     public getEntityGrid(): EntityGrid {
         return this.entityGrid;
+    }
+
+    /**
+     * Where every entity of this world is now, data-driven and legacy alike.
+     *
+     * The dimension's one index (ADR 0007), which the entity runtime owns. A position write is
+     * visible to the next query, and every query answers in ascending runtime id order.
+     * @returns {EntityIndex} The index, for asking what is near a point.
+     */
+    public getEntityIndex(): EntityIndex {
+        return this.dataEntities().runtime.index;
+    }
+
+    /**
+     * Refiles an entity after its position was written, which {@link Entity.relocate} calls.
+     *
+     * Only for an entity this world holds: one on its way in from another world is filed by
+     * {@link World.addEntity} once it arrives.
+     * @param {Entity} entity - The entity that moved.
+     * @internal
+     */
+    public entityRelocated(entity: Entity): void {
+        if (this.entities.get(Number(entity.getRuntimeId())) !== entity) return;
+        this.getEntityIndex().refileLegacy(entity);
     }
     /**
      * Get all players in this world.

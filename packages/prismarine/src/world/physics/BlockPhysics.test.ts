@@ -84,6 +84,7 @@ class TestWorld {
         dropFromBlock: async (_block, contents) => {
             for (const drop of contents) if (drop) this.dropped.push(drop.getName());
         },
+        entityRelocated: () => {},
         broadcastMove: async () => {},
         getDimension: () => Dimensions.Overworld,
         getBlockState: async (x, y, z) => {

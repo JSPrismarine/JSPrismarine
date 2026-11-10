@@ -77,6 +77,7 @@ const scene = ({ griefing = true, solid = false, block = '', content = emptyCont
         sendActorSound: async () => {},
         sendActorMetadata: async () => {},
         sendWorldEvent: async (_at: unknown, event: LevelEvent) => void effects.push(event),
+        entityRelocated: () => {},
         broadcastMove: async () => {},
         playNamedSound: () => {},
         getGameRuleManager: () =>

@@ -140,8 +140,11 @@ export class Entity {
      * the shape of a position's - so an entity could not be built at a coordinate, and the
      * base was entered at `(0, 0, 0)` with a `// TODO` beside it. Everything restored from
      * disk therefore appeared at the origin.
+     *
+     * Private, and written only through {@link Entity.relocate}, so no write can miss the
+     * world's entity index.
      */
-    protected position: Position;
+    private position: Position;
 
     public pitch: number;
     public yaw: number;
@@ -1236,6 +1239,20 @@ export class Entity {
     }
 
     /**
+     * Moves the entity, and refiles it in the entity index of the world it is now in.
+     *
+     * The one place a position is written after construction, so a query later in the same
+     * tick sees the entity where it moved to, whether or not the move is announced (ADR 0007).
+     * Synchronous on purpose: the refile happens before anything else can run.
+     * @param {Position} position - Where the entity now is.
+     * @internal
+     */
+    protected relocate(position: Position): void {
+        this.position = position;
+        position.getWorld().entityRelocated(this);
+    }
+
+    /**
      * Set the `x` position.
      * @param {number} x - The `x` coordinate.
      * @param {boolean} [suppress=false] - If true, the client won't be notified about the position change.
@@ -1250,7 +1267,7 @@ export class Entity {
      * single client hearing about it.
      */
     public async setX(x: number, suppress = false): Promise<void> {
-        this.position = this.position.withX(x);
+        this.relocate(this.position.withX(x));
         if (!suppress && !this.broadcastsOwnMovement()) await this.getWorld().broadcastMove(this);
     }
 
@@ -1266,7 +1283,7 @@ export class Entity {
      * @remarks This method will also send the position update to the client if `suppress` is `false`.
      */
     public async setY(y: number, suppress = false): Promise<void> {
-        this.position = this.position.withY(y);
+        this.relocate(this.position.withY(y));
         if (!suppress && !this.broadcastsOwnMovement()) await this.getWorld().broadcastMove(this);
     }
 
@@ -1282,7 +1299,7 @@ export class Entity {
      * @remarks This method will also send the position update to the client if `suppress` is `false`.
      */
     public async setZ(z: number, suppress = false): Promise<void> {
-        this.position = this.position.withZ(z);
+        this.relocate(this.position.withZ(z));
         if (!suppress && !this.broadcastsOwnMovement()) await this.getWorld().broadcastMove(this);
     }
 
@@ -1315,8 +1332,9 @@ export class Entity {
         this.yaw = yaw;
         this.headYaw = headYaw;
 
-        this.position =
-            position instanceof Position ? position : Position.fromVector3(position, this.position.getWorld());
+        this.relocate(
+            position instanceof Position ? position : Position.fromVector3(position, this.position.getWorld())
+        );
 
         await this.getWorld().broadcastMove(this, teleport);
     }

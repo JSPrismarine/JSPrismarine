@@ -121,6 +121,7 @@ describe('network', () => {
                     // `lastPlayerRecord`.
                     getLevel: () => fakeLevel({ server }),
                     // Announcing a move is the world's job now, not the entity's.
+                    entityRelocated: () => {},
                     broadcastMove: async () => {},
                     getPlayerData: async () => ({ position: { x: 0, y: 0, z: 0, pitch: 0, yaw: 0, headYaw: 0 } })
                 });

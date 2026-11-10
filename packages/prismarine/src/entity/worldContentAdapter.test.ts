@@ -14,16 +14,13 @@ describe('the live entity content adapter', () => {
     it('reports player mode and feet-level position', () => {
         const world = stub<World>();
         const position = new Position(2.5, 64 + EYE_HEIGHT, -1.5, world);
-        const player = Object.assign(
-            stubOf(Player, {
-                getRuntimeId: () => 7n,
-                getType: () => 'minecraft:player',
-                getPosition: () => position,
-                getTags: () => [],
-                gamemode: Gametype.CREATIVE
-            }),
-            { position }
-        );
+        const player = stubOf(Player, {
+            getRuntimeId: () => 7n,
+            getType: () => 'minecraft:player',
+            getPosition: () => position,
+            getTags: () => [],
+            gamemode: Gametype.CREATIVE
+        });
         Object.assign(world, { getPlayers: () => [player] });
         const access = worldEntityAccess({
             world: () => world,

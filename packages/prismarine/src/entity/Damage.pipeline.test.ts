@@ -71,6 +71,7 @@ const scene = () => {
         sendActorSound: async (entity: Entity, sound: LevelSoundEvent) => {
             noises.push({ id: entity.getRuntimeId(), sound });
         },
+        entityRelocated: () => {},
         broadcastMove: async () => {}
     };
 

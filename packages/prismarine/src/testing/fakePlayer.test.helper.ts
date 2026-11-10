@@ -107,6 +107,7 @@ export const fakePlayer = ({ underwater = false, worlds: others = [] }: FakePlay
         getLevel: () => level,
         getPlayerData: async () => ({}),
         getDimension: () => Dimensions.Overworld,
+        entityRelocated: () => {},
         broadcastMove: async () => {},
         removeEntity: async () => void roster.push('remove'),
         addEntity: async () => void roster.push('add'),
