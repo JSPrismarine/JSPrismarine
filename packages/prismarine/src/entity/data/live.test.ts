@@ -2477,6 +2477,30 @@ describe('the data-driven entity runtime over a live world', () => {
             expect(body?.yaw).toBe(90);
         });
 
+        it('names a summoned mob in the store, where its actor shows the name', () => {
+            const host = entityCommandHost(world.getServer(), new Scoreboard());
+            const ref = host.summon(
+                'jsprismarine:dustling',
+                { x: 2.5, y: GROUND_Y, z: 2.5 },
+                { yaw: 0, pitch: 0 },
+                { name: 'Dusty' }
+            );
+
+            const dustling = live.runtime.all().find((entity) => entity.identifier === 'jsprismarine:dustling');
+            expect(ref?.name).toBe('Dusty');
+            expect(dustling?.body.nameTag).toBe('Dusty');
+        });
+
+        it('kills a summoned mob through its actor, in the store', () => {
+            const host = entityCommandHost(world.getServer(), new Scoreboard());
+            const ref = summon('jsprismarine:dustling', { x: 2.5, y: GROUND_Y, z: 2.5 });
+            if (ref === undefined) throw new Error('the dustling was not summoned');
+
+            expect(world.getActor(BigInt(ref.id))).toBe(live.actors.actorOf(Number(ref.id)));
+            expect(host.kill(ref)).toBe(true);
+            expect(live.runtime.byId(Number(ref.id))).toBeUndefined();
+        });
+
         it('summons a vanilla mob through the data path rather than a written class', () => {
             summon('minecraft:cow', { x: 4.5, y: GROUND_Y, z: 4.5 });
 
