@@ -148,27 +148,47 @@ slice when it lands on the branch.
    disconnects and close. The peer's address comes from the ICE candidate pair werift chose. A
    loopback test drives a real `nethernet` `Client` through WebRTC; it skips itself when another
    program holds UDP 7551, which a running dev server does.
-7. [ ] **LAN visibility.** (Advertisement done: version 7, byte-identical to a captured BDS
-   1.26.51.1 answer, refreshed from the shared `ServerName`.) Encode the version 7 advertisement from the server's MOTD, level, version
-   and player counts, refresh it on join and leave, and bind UDP 7551 only when LAN visibility is on.
-   Decide what RakNet LAN visibility needs: BDS binds 19132 when `server-port` differs, and today we
-   answer pings only on the configured port.
-8. [ ] **HTTP signaling.** A small `node:http` server on TCP `server-port`: `GET /v1/join` metadata,
-   `POST /v1/join/{networkId}` offer to answer through `handleOffer`, `404` for everything else, body
-   and time limits. HTTP signaling carries no connection ID, so the server picks the `nethernet` one
-   for each offer, unused by any live peer. Persist an ES384 server identity key and sign `a=identity` into each answer.
-   Settle the open encoding questions against go-nethernet. Strip the offer's `a=identity` and accept
-   offers without one for now (see open questions).
-9. [ ] **End-to-end verification.** Join over NetherNet with a werift client and with cinnabar
-   through the client e2e harness. Add a scenario if the harness can select the transport.
-10. [ ] **Docs and release.** Running and configuration guides, a Changeset per touched package, and
-    a note in the [rearchitecture plan](server-rearchitecture.md) that the NetherNet transport
-    landed.
+7. [x] **LAN visibility.** The version 7 advertisement is byte-identical to a captured BDS
+   1.26.51.1 answer and follows the shared `ServerName`; UDP 7551 is bound only with LAN visibility
+   on. RakNet LAN visibility stays as it is: the RakNet socket answers broadcast pings on the
+   configured port, which is the default one unless changed. Binding 19132 as well when `port`
+   differs, as BDS does, is left out: current clients discover LAN games over NetherNet.
+8. [x] **HTTP signaling.** `HttpSignaling` serves `GET /v1/join` (the shared status, as BDS spells it)
+   and `POST /v1/join/{networkId}` on TCP `port`, under a connection ID it picks, with go-nethernet's
+   refusals and limits. `NetherNetIdentity` signs `a=identity` into each answer the way go-nethernet
+   does (ES384 token with `x5u` and a JWK `cpk`, detached ES384 over canonical fingerprints, padded
+   base64, domain `self`) and keeps its key in `nethernet-identity.pem`. The offer's `a=identity`
+   is stripped and not checked (see open questions). A loopback test joins a real `nethernet`
+   client by address over HTTP and exchanges batches; no fixed port is involved.
+9. [ ] **End-to-end verification.** Join over NetherNet with cinnabar through the client e2e
+   harness: cinnabar picks NetherNet when `GET /v1/join` answers 2xx, so the PR's Client E2E job
+   exercises it once its pinned cinnabar has addressed NetherNet joins. Not runnable on the
+   development host (no Go toolchain). Add a scenario that names the transport if the harness
+   gains a way to choose it.
+10. [ ] **Docs and release.** Done: the running guide's Networking section (ports, firewall, NAT
+    limits, the identity file, with the LAN port and file name as docs facts), Changesets for each
+    slice, and this plan. Left: mark NetherNet done in the
+    [rearchitecture plan](server-rearchitecture.md) once the client e2e run confirms a real join.
+
+11. [ ] **`@jsprismarine/nethernet`.** A transport package beside `@jsprismarine/raknet`, so the
+    server and the client share one home for NetherNet: SDP helpers, the ES384 JWS, `a=identity`
+    signing and verification (the server's JWK `cpk`, the client's base64 DER `cpk`), the LAN
+    advertisement codec, the join status, HTTP signaling for both ends, and LAN discovery. It depends
+    on `@jsprismarine/binaryutils`, `@jsprismarine/logger` and npm `nethernet`; the `0xFE` batch id
+    stays in each side's transport, which already knows the Bedrock batch.
+12. [ ] **Client NetherNet transport.** `@jsprismarine/client` gets a NetherNet `ITransport` that
+    joins by address: probe `GET /v1/join`, post a signed offer, verify the answer's identity, then
+    carry batches. The client and server test against each other first.
+13. [ ] **Hill climb against BDS.** Point the client at a Bedrock Dedicated Server with
+    `transport=nethernet` (BDS answered our unsigned offer with `37`) and fix whatever stops it,
+    on both sides. A client that joins BDS shows what the server must accept from real clients.
 
 ## Open questions
 
-- What does BDS's `37` mean, and does BDS reject offers without `a=identity` even with
-  `online-mode=false`?
+- What does BDS's `37` mean? BDS answered `200 application/sdp` with that body to an offer without
+  `a=identity`, with `online-mode=false`.
+- Online-mode servers could match the offer's `cpk` to the Login packet's GameServerToken, the
+  check go-nethernet's listener leaves to the Minecraft layer.
 - Should an online-mode server verify the offer's GameServerToken before answering? It is a second
   check on top of the login chain, and it needs the auth service's keys.
 - NAT: BDS's `server-udp-ports` pins the UDP range and advertises an external mapping. We start with
