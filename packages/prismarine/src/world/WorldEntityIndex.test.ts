@@ -13,6 +13,7 @@ import { Item } from '../entity/other/Item';
 import { Item as ItemStack } from '../item/Item';
 import { testEntityServer } from '../testing/entityServer';
 import { stub, stubOf } from '../testing/stub.test.helper';
+import Chunk from './chunk/Chunk';
 import { Dimensions } from './Dimension';
 import { Position } from './Position';
 import { World } from './World';
@@ -29,16 +30,18 @@ const indexedWorld = () => {
         removeBody: () => false,
         restoreExisting: () => undefined
     });
+    /** The chunk each non-player entity is filed under, which chunk save and unload read. */
+    const entityChunkIndices = new Map<number, number>();
     const world: World = Object.assign(Object.create(World.prototype), {
         chunks: new Map(),
         entities: new Map(),
-        entityChunkIndices: new Map(),
+        entityChunkIndices,
         players: new Map(),
         dimension: Dimensions.Overworld,
         server: testEntityServer({ entityRuntime: live })
     });
     world.attachChangeSink(NULL_WORLD_CHANGE_SINK);
-    return { world, bodies, index: fixture.runtime.index, runtime: fixture.runtime };
+    return { world, bodies, entityChunkIndices, index: fixture.runtime.index, runtime: fixture.runtime };
 };
 
 const Y = FLOOR_Y + 1;
@@ -164,6 +167,22 @@ describe('the entity index over a world', () => {
         expect(from.index.size).toBe(0);
         expect(from.index.occupiedCells).toBe(0);
         expect(to.world.getEntityIndex().itemsWithin(8.5, 8.5, 0.5)).toEqual([item]);
+    });
+
+    it('moves chunk membership with the same write that refiles the index', async () => {
+        const { world, entityChunkIndices } = indexedWorld();
+        const item = droppedItem(world, 0.5, 0.5);
+        await world.addEntity(item);
+        const id = Number(item.getRuntimeId());
+        expect(entityChunkIndices.get(id)).toBe(Chunk.packXZ(0, 0));
+
+        // Suppressed, which used to leave the chunk a save would write the item into behind.
+        await item.setX(40.5, true);
+        expect(entityChunkIndices.get(id)).toBe(Chunk.packXZ(2, 0));
+        expect(world.getEntityIndex().itemsWithin(40.5, 0.5, 0.5)).toEqual([item]);
+
+        await world.removeEntity(item);
+        expect(entityChunkIndices.has(id)).toBe(false);
     });
 
     it('does not file an entity a world does not hold, even when its position names that world', async () => {
