@@ -2375,8 +2375,8 @@ describe('the data-driven entity runtime over a live world', () => {
             const villagerBody = () => {
                 const villager = live.runtime.spawn('minecraft:villager_v2', { x: 0.5, y: GROUND_Y, z: 0.5 });
                 if (villager === undefined) throw new Error('the fixture declares no minecraft:villager_v2');
-                const body = live.bodies.bodyOf(villager.id);
-                if (body === undefined) throw new Error('the villager has no client-facing body');
+                const body = live.actors.actorOf(villager.id);
+                if (body === undefined) throw new Error('the villager has no store actor');
                 return { villager, body };
             };
 
