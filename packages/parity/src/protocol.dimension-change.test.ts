@@ -46,6 +46,7 @@ const worldOf = (dimension: DimensionType): World =>
         getDimension: () => dimension,
         addEntity: async () => {},
         broadcastMove: async () => {},
+        entityRelocated: () => {},
         getPlayers: () => [],
         getSpawnPosition: async () => new Position(8, 70, 8, target()),
         getChunk: async (x, z) => new Chunk(x, z, new Map(), dimension)
