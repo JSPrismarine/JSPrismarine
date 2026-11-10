@@ -45,6 +45,9 @@ export const FIRE_SPREAD_RADIUS = idOf('doFireTick');
 /** `minecraft:drowning_damage`: whether an empty breath bar hurts. */
 export const DROWNING_DAMAGE = idOf('drowningDamage');
 
+/** `minecraft:fall_damage`: whether a fall hurts. */
+export const FALL_DAMAGE = idOf('fallDamage');
+
 /** `minecraft:natural_health_regeneration`: whether a well-fed player heals. */
 export const NATURAL_REGENERATION = idOf('naturalRegeneration');
 
