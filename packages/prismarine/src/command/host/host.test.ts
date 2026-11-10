@@ -52,6 +52,7 @@ import type { WorldActor } from '../../world/WorldActor';
 import { collectAsyncCommands } from '../deferred';
 import { buildVanillaCommands } from '../vanillaCommands';
 import { serverCommandHost } from './serverCommandHost';
+import { identityNamed } from '../../testing/sessionIdentity.test.helper';
 
 /** One block position's contents, keyed as `x,y,z`. */
 type BlockTable = Map<string, { name: string; states: Record<string, string | number | boolean> }>;
@@ -309,8 +310,11 @@ const mobAt = (fixture: Fixture, id: bigint, type: string, position: Vector3): E
 
 const playerAt = (fixture: Fixture, id: bigint, name: string, position: Vector3): Player => {
     const inventory = new HumanInventory();
-    // One session per player, so a test can read back what the player's session was told.
-    const session = stub<PlayerSession>({
+    // One session per player, so a test can read back what the player's session was told. The
+    // command host reaches a target's state through its session.
+    const session: PlayerSession = stub<PlayerSession>({
+        identity: identityNamed(name, `00000000-0000-0000-0000-${id.toString().padStart(12, '0')}`),
+        getPlayer: () => player,
         send: async (packet: unknown) => {
             fixture.sent.push(packet);
         },

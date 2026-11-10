@@ -24,6 +24,7 @@ import { testContent } from '../testing/entityServer';
 import type { ConsoleSender } from './ConsoleSender';
 import { CommandManager, commandPermissionOf } from './CommandManager';
 import { JSPRISMARINE_COMMAND_PERMISSIONS } from './jsprismarineCommands';
+import { identityNamed } from '../testing/sessionIdentity.test.helper';
 
 describe('command', () => {
     describe('CommandManager', () => {
@@ -233,8 +234,12 @@ describe('command', () => {
                 const target: Player = stubOf(Player, {
                     getName: () => 'Target',
                     getUUID: () => UUID.fromString(targetUuid),
+                    // The command host reads who the target is off its session.
                     getNetworkSession: () =>
-                        stub<ReturnType<Player['getNetworkSession']>>({ sendAvailableCommands: async () => {} }),
+                        stub<ReturnType<Player['getNetworkSession']>>({
+                            identity: identityNamed('Target', targetUuid),
+                            sendAvailableCommands: async () => {}
+                        }),
                     getServer: () => server,
                     // A vanilla command names its targets as `EntityRef`s and resolves them
                     // back by scanning the loaded worlds, so a target has to have a runtime
