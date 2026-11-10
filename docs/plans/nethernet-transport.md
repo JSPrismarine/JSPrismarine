@@ -135,12 +135,12 @@ slice when it lands on the branch.
    `LoginHandler` read the address from the transport connection. `BaseTransport` and
    `KeyedTransport` hold what `RakNetTransport` used to own. `InetAddress` stays as the peer address
    value type: every transport, including a future Java one, has an IP address and port.
-3. [ ] **Capability-driven encryption.** Skip `ServerToClientHandshake` when the transport reports
+3. [x] **Capability-driven encryption.** Skip `ServerToClientHandshake` when the transport reports
    `encrypted`. Unit test both paths.
-4. [ ] **Multiple transports.** `MultiTransport` owning the shared allocator, forwarding events with
+4. [x] **Multiple transports.** `MultiTransport` owning the shared allocator, forwarding events with
    each child's ordering intact, and `close` fanning out. `ServerNetworking` builds it from the
    enabled transports (after the config slice). Unit tests with manual transports.
-5. [ ] **Config.** `enable-raknet`, `enable-nethernet` and `enable-lan-visibility`, all defaulting to
+5. [x] **Config.** `enable-raknet`, `enable-nethernet` and `enable-lan-visibility`, all defaulting to
    `true`, in `Config`, the JSON schema and the generated settings docs. Refuse to start with both
    transports off.
 6. [ ] **NetherNet transport over LAN signaling.** Add `nethernet` to `@jsprismarine/prismarine`.
