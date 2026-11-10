@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest';
 
 import { coalesceTick } from '../../world/changelog/coalesceTick';
 import type { PlainRecord } from '../../world/changelog/PlainData';
+import type { EntityWorldFacts } from './host';
 import type { DataEntity } from './DataEntity';
+import { ENTITY_FAILURE_LIMIT } from './EntityStore';
 import type { EntityRuntime } from './EntityRuntime';
 import { entityFixture, FLOOR_Y, TestEntityWorld } from './testing';
 
@@ -294,5 +296,97 @@ describe('the entity store', () => {
         for (const sealed of log) rebuilt.runtime.store.replay(sealed.entries);
 
         expect(savedForms(rebuilt.runtime)).toEqual(savedForms(live.runtime));
+    });
+
+    describe('failure containment', () => {
+        /** A world whose block reads around one column throw while `failing` says so. */
+        class FaultyWorld extends TestEntityWorld {
+            public failing: (at: { readonly x: number }) => boolean = () => false;
+
+            public override get world(): EntityWorldFacts {
+                const facts = super.world;
+                return {
+                    ...facts,
+                    blocks: {
+                        ...facts.blocks,
+                        get: (at) => {
+                            if (this.failing(at)) throw new Error('the block read failed');
+                            return facts.blocks.get(at);
+                        }
+                    }
+                };
+            }
+        }
+
+        it('undoes the update of an entity that throws, skips it, and removes it after the fixed count', () => {
+            const world = new FaultyWorld({ random: [0.95, 0.5, 0.5, 0.1] });
+            const { runtime, reports } = entityFixture(world, {}, EXTRA);
+            const faulty = spawnLogged(runtime, { x: 20.5, y: FLOOR_Y + 1, z: 0.5 });
+            const healthy = spawnLogged(runtime);
+            faulty.body.loveTicks = 1000;
+            healthy.body.loveTicks = 1000;
+            for (let tick = 1; tick <= 3; tick += 1) runtime.tick(tick);
+
+            // The update reads blocks before and after it counts love down, and the reads after
+            // throw, so each failing update has already written when it throws.
+            let loveAtStart = faulty.body.loveTicks;
+            world.failing = (at) => Math.abs(at.x - 20) < 4 && faulty.body.loveTicks < loveAtStart;
+
+            for (let failure = 1; failure <= ENTITY_FAILURE_LIMIT; failure += 1) {
+                loveAtStart = faulty.body.loveTicks;
+                const before = runtime.savedFormOf(faulty);
+                const healthyLove = healthy.body.loveTicks;
+                runtime.store.beginTick();
+                runtime.tick(3 + failure);
+                const sealed = runtime.store.sealTick();
+
+                const addressed = (sealed?.entries ?? []).filter(
+                    (entry) =>
+                        entry.kind === 'field' && entry.field === 'entity' && entry.address.entity === BigInt(faulty.id)
+                );
+                expect(addressed).toEqual([]);
+                if (failure < ENTITY_FAILURE_LIMIT) {
+                    expect(runtime.savedFormOf(faulty)).toEqual(before);
+                    expect(runtime.store.has(faulty.id)).toBe(true);
+                }
+                // The pass goes on: the entity after the failing one still updates.
+                expect(healthy.body.loveTicks).toBe(healthyLove - 1);
+            }
+
+            expect(runtime.store.has(faulty.id)).toBe(false);
+            expect(reports.filter((line) => line.includes('threw in its update'))).toHaveLength(ENTITY_FAILURE_LIMIT);
+            expect(runtime.store.broken).toBeUndefined();
+        });
+
+        it('forgets a run of failures once an update finishes', () => {
+            const world = new FaultyWorld();
+            const { runtime } = entityFixture(world, {}, EXTRA);
+            const entity = spawnLogged(runtime);
+            for (let tick = 1; tick <= 20; tick += 1) {
+                world.failing = (at) => tick % 2 === 0 && Math.abs(at.x) < 4;
+                runtime.store.beginTick();
+                runtime.tick(tick);
+                runtime.store.sealTick();
+            }
+
+            expect(runtime.store.has(entity.id)).toBe(true);
+        });
+
+        it('stops the pass when an inverse cannot be written, since the store can no longer be trusted', () => {
+            const { runtime, reports } = entityFixture(undefined, {}, EXTRA);
+            const entity = spawnLogged(runtime);
+            entity.body.loveTicks = 1000;
+            runtime.store.beginTick();
+
+            runtime.store.unit(() => {
+                runtime.store.written(entity, 'not-a-field', 1, 2);
+                throw new Planned();
+            });
+            runtime.tick(1);
+
+            expect(runtime.store.broken).toBeInstanceOf(Error);
+            expect(reports.some((line) => line.includes('no writer for not-a-field'))).toBe(true);
+            expect(entity.body.loveTicks).toBe(1000);
+        });
     });
 });
