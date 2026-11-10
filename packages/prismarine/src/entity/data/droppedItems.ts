@@ -56,7 +56,7 @@ const RESISTED_TAGS: Readonly<Record<string, string>> = {
 };
 
 /** A stack as component state holds it: a stored stack, as a plain record. */
-const isStackState = (value: unknown): value is ComponentStateRecord => isStoredItemStack(value);
+export const isStackState = (value: unknown): value is ComponentStateRecord => isStoredItemStack(value);
 
 /**
  * One dropped stack's state.
@@ -172,7 +172,7 @@ export const itemTuningOf = (entity: DataEntity): ItemTuning => {
 export const isDroppedItem = (entity: DataEntity): boolean => entity.instance.hasComponent(ITEM_COMPONENT);
 
 /** A stored stack as a component state record. */
-const stackRecord = (stack: StoredItemStack): ComponentStateRecord => ({
+export const stackRecord = (stack: StoredItemStack): ComponentStateRecord => ({
     name: stack.name,
     count: stack.count,
     ...(stack.meta === undefined ? {} : { meta: stack.meta }),
