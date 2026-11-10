@@ -915,8 +915,21 @@ describe('the data-driven entity runtime over a live world', () => {
     const startAtNight = (): void => world.setTicks(13_000);
 
     /** Puts a player in the world, which is what the spawner spawns around. */
-    const addPlayer = (x: number, z: number): Player => {
+    const addPlayer = (x: number, z: number, uuid?: string): Player => {
         const player = playerAt(world, x, z);
+        if (uuid !== undefined) Object.assign(player, { uuid: UUID.fromString(uuid) });
+        // The session a joined player has, which the world finds it by.
+        Object.assign(player, {
+            networkSession: stub<PlayerSession>({
+                runtimeId: player.getRuntimeId(),
+                identity: identityNamed(player.getName(), player.getUUID().toString()),
+                getPlayer: () => player,
+                isConnected: () => player.isOnline(),
+                tracks: () => false,
+                send: async () => {},
+                sendInventory: async () => {}
+            })
+        });
         // Both maps, the way `World.addEntity` fills them: `getPlayers` reads one and
         // `getEntity`, which is how a blow finds whoever it landed on, reads the other.
         // `World` indexes runtime ids as numbers, so these fixtures must use the same key type.
@@ -1075,8 +1088,7 @@ describe('the data-driven entity runtime over a live world', () => {
 
     it('reattaches a saved tame to its owner after the owner gets a new runtime id', async () => {
         const ownerUuid = '00000000-0000-0000-0000-000000000042';
-        const firstPlayer = addPlayer(2, 2);
-        Object.assign(firstPlayer, { uuid: UUID.fromString(ownerUuid) });
+        const firstPlayer = addPlayer(2, 2, ownerUuid);
         const pet = live.runtime.spawn('jsprismarine:pet_fixture', { x: 2.5, y: GROUND_Y, z: 2.5 });
         if (pet === undefined) throw new Error('the fixture declares no tameable pet');
 
@@ -1090,8 +1102,7 @@ describe('the data-driven entity runtime over a live world', () => {
         expect(record).toMatchObject({ ownerIdentity: ownerUuid });
 
         live.runtime.remove(pet.id, 'test restart');
-        const rejoinedPlayer = addPlayer(4, 4);
-        Object.assign(rejoinedPlayer, { uuid: UUID.fromString(ownerUuid) });
+        const rejoinedPlayer = addPlayer(4, 4, ownerUuid);
         const at = body.getPosition();
         const restored = live.restoreRecord(
             record,

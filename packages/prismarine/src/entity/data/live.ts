@@ -260,9 +260,11 @@ const givePlayerItem = (
     drop: ContentItemDrop
 ): number => {
     const world = options.liveWorld();
-    const taker = world?.getEntity(BigInt(playerId));
+    const session = world?.viewerOf(BigInt(playerId));
     const item = itemOfDrop(drop, options.content());
-    if (world === undefined || !(taker instanceof Player) || item === null) return drop.count;
+    if (world === undefined || session === undefined || item === null) return drop.count;
+    // The live player, for the inventory the store does not hold yet.
+    const taker = session.getPlayer();
 
     const entry = new ContainerEntry({ item, count: item.getAmount() });
     const left = taker.getInventory().addItem(entry);
@@ -274,20 +276,15 @@ const givePlayerItem = (
 
     const take = new TakeItemActorPacket();
     take.itemRuntimeEntityId = BigInt(itemId);
-    take.takerRuntimeEntityId = taker.getRuntimeId();
+    take.takerRuntimeEntityId = session.runtimeId;
     // Both actors have to be known to the recipient: the packet animates the item flying into
     // the taker, and a client missing either one has nothing to draw.
     const watchers = world
-        .getPlayers()
-        .filter((player) => {
-            const session = player.getNetworkSession();
-            return session.tracks(BigInt(itemId)) && session.tracks(taker.getRuntimeId());
-        })
-        .map(async (player) => player.getNetworkSession().send(take));
+        .getViewers()
+        .filter((viewer) => viewer.tracks(BigInt(itemId)) && viewer.tracks(session.runtimeId))
+        .map(async (viewer) => viewer.send(take));
     // The take packet animates the stack; it does not say what the inventory now holds.
-    void Promise.all([...watchers, taker.getNetworkSession().sendInventory()]).catch((error: unknown) =>
-        options.report(String(error))
-    );
+    void Promise.all([...watchers, session.sendInventory()]).catch((error: unknown) => options.report(String(error)));
     return left;
 };
 
@@ -330,19 +327,16 @@ const liveHost = (
     },
     players: () => options.entities.players(),
     playerView: (id) => {
-        const player = options.liveWorld()?.getEntity(BigInt(id));
-        return player instanceof Player ? playerFilterView(player) : undefined;
+        const session = options.liveWorld()?.viewerOf(BigInt(id));
+        return session === undefined ? undefined : playerFilterView(session.getPlayer());
     },
-    playerIdentityOf: (id) => {
-        const player = options.liveWorld()?.getEntity(BigInt(id));
-        return player instanceof Player ? player.getUUID().toString() : undefined;
-    },
+    playerIdentityOf: (id) => options.liveWorld()?.viewerOf(BigInt(id))?.identity.uuid,
     playerIdForIdentity: (identity) => {
-        const player = options
+        const session = options
             .liveWorld()
-            ?.getPlayers()
-            .find((candidate) => candidate.getUUID().toString() === identity);
-        return player === undefined ? undefined : Number(player.getRuntimeId());
+            ?.getViewers()
+            .find((candidate) => candidate.identity.uuid === identity);
+        return session === undefined ? undefined : Number(session.runtimeId);
     },
     drop: (at, item) => options.entities.drop(at, item),
     destroyBlock: (at, destruction) => {
