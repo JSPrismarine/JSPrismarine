@@ -278,6 +278,23 @@ describe('EntityRuntime', () => {
             expect(runtime.near(center, 32, ['undeclared'])).toEqual([]);
             expect(runtime.near(center, 32, [])).toEqual([]);
         });
+
+        it('answers in ascending runtime id order after a move reorders a cell', () => {
+            const { runtime } = runtimeOf();
+            const first = runtime.spawn('minecraft:cow', { x: 0.5, y: FLOOR_Y + 1, z: 0.5 });
+            const second = runtime.spawn('minecraft:cow', { x: 32.5, y: FLOOR_Y + 1, z: 0.5 });
+            if (first === undefined || second === undefined) throw new Error('the fixture declares no cow');
+
+            // Into the second cow's cell, where it lands behind the second cow in the cell's list.
+            first.body.position = { x: 33.5, y: FLOOR_Y + 1, z: 0.5 };
+
+            const center = { x: 33, y: FLOOR_Y + 1, z: 0.5 };
+            expect(runtime.near(center, 4)).toEqual([first, second]);
+            expect(runtime.inBox({ x: 30, y: FLOOR_Y, z: -2 }, { x: 36, y: FLOOR_Y + 4, z: 3 })).toEqual([
+                first,
+                second
+            ]);
+        });
     });
 
     describe('block queries', () => {
