@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import type {
     Identifier,
@@ -185,6 +185,22 @@ describe('network/handler/Lane', () => {
         for (const relay of ['ActorEventHandler', 'AnimateHandler', 'EmoteHandler', 'LevelSoundEventHandler']) {
             expect(lanes.get(relay), relay).toBe('input');
         }
+    });
+
+    it("moves a player's position only from input-lane handlers", async () => {
+        // The client owns a player's movement (ADR 0008): its reports and the server moves a
+        // packet asks for, such as a respawn or a world change, are applied in the input step.
+        const writes = /applyClientMovement\(|setPlayerPosition\(|\.setPosition\(|\.respawn\(|changeWorld\(/;
+        const lanes = new Map((await registeredHandlers()).map((handler) => [handler.constructor.name, handler.lane]));
+        const movers = [...lanes.keys()].filter((name) => {
+            const file = `${here}${name}.ts`;
+            return existsSync(file) && writes.test(readFileSync(file, 'utf8'));
+        });
+
+        expect(movers).toEqual(
+            expect.arrayContaining(['MovePlayerHandler', 'PlayerAuthInputHandler', 'RespawnHandler'])
+        );
+        for (const mover of movers) expect(lanes.get(mover), mover).toBe('input');
     });
 
     it('answers sub-chunk requests in the read lane', async () => {
