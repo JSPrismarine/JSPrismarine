@@ -31,8 +31,10 @@ import { definitionOf, definitionsOf } from '../content/ContentOptions';
 import { buildServerContent } from '../content/ServerContent';
 import type { ServerContent } from '../content/ServerContent';
 import { serverWorldSource } from '../content/world/serverSource';
+import { builtInEntityDefinitions } from '../content/testing';
+import { EntityRuntimes } from '../entity/data/live';
 import { Item } from '../item/Item';
-import { Item as ItemEntity } from '../entity/other/Item';
+import { ItemActorBody as ItemEntity } from '../entity/data/itemBodies';
 import type ClientConnection from '../network/ClientConnection';
 import Codec2193 from '../network/codec/Codec2193';
 import { createConnectedPlayer } from '../network/createConnectedPlayer';
@@ -175,6 +177,7 @@ const buildScene = async (name: string) => {
     const folder = path.join(scratch, 'worlds', name);
     let world: World | undefined;
     let content: ServerContent | undefined;
+    const entityRuntimes = new EntityRuntimes();
 
     const server: Server = stub<Server>({
         on: () => server,
@@ -192,7 +195,8 @@ const buildScene = async (name: string) => {
             if (content === undefined) throw new Error('the content was read before it was built');
             return content;
         },
-        getEntityRuntime: () => inertEntityRuntime(),
+        // The dimension's runtime the content build opened, where a drop becomes a store stack.
+        getEntityRuntime: (dimension: string) => entityRuntimes.at(dimension) ?? inertEntityRuntime(),
         getDimensionTravel: () => stub<DimensionTravel>({ touch: async () => {} }),
         getConfig: () =>
             stub<Config>({
@@ -224,7 +228,8 @@ const buildScene = async (name: string) => {
             return content;
         },
         seed: 1234n,
-        difficulty: () => 2
+        difficulty: () => 2,
+        entityRuntimes
     });
 
     content = buildServerContent({
@@ -232,6 +237,7 @@ const buildScene = async (name: string) => {
         load: () => ({
             definitions: definitionsOf({
                 blocks: new Map(BLOCKS.map((id) => [id, definitionOf('blocks', id, blockFile(id))])),
+                entities: new Map(builtInEntityDefinitions()),
                 recipesJava: new Map([
                     [
                         'minecraft:iron_ingot_from_smelting',

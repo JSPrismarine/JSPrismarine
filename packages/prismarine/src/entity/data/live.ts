@@ -50,8 +50,16 @@ import { EntityRuntime, PROJECTILE_EYE_HEIGHT_FRACTION } from './EntityRuntime';
 import { LiveBodies } from './liveBodies';
 import { tradeDisplayNameOf } from './trading';
 import type { DataEntityRecord } from './persistence';
-import { Item as ItemEntity } from '../other/Item';
 import type { Item } from '../../item/Item';
+import { advancementPickedUpItem } from '../../advancement/triggers';
+import { itemDropOf, itemOfDrop, storedItemDrop } from '../../inventory/persistence';
+import ContainerEntry from '../../inventory/ContainerEntry';
+import { TakeItemActorPacket } from '@jsprismarine/protocol';
+import type { DroppedItems, ItemStart } from './droppedItems';
+import { isDroppedItem, itemTuningOf, itemViewOf } from './droppedItems';
+import { ItemBodies } from './itemBodies';
+import type { ItemActorBody } from './itemBodies';
+import { storedItemActorOf } from '../EntitySerializer';
 
 /** A held or equipped item as the entity filter language reads it. */
 const filterItemOf = (item: Item | undefined): FilterItemView | undefined =>
@@ -183,64 +191,84 @@ export interface LiveEntityOptions {
     report(message: string): void;
 }
 
+/** One dropped stack of the store as the pickup goals read it, at the height where it lies. */
+const lyingItemOf = (entity: DataEntity, content: ServerContent): ContentItemEntity | undefined => {
+    const view = itemViewOf(entity);
+    if (view === undefined || entity.removed !== undefined) return undefined;
+    const at = entity.position;
+    const item = itemOfDrop(itemDropOf(view.stack), content);
+    return {
+        id: entity.id,
+        position: { x: at.x, y: at.y - itemTuningOf(entity).positionOffset, z: at.z },
+        item: itemDropOf(view.stack),
+        ...(item === null ? {} : { filterView: filterItemOf(item) })
+    };
+};
+
 /**
- * Every item stack lying in one world, as the pickup goals read them.
- *
- * The server's item entities are `minecraft:item` bodies with a
- * `ContainerEntry` on them. One that has lost its stack - taken this tick by
- * somebody else - is left out rather than reported as an empty pile. The
- * height is where the stack lies, 0.125 below the position a client is told.
+ * The dropped stacks within a pickup radius, from the runtime's index, in ascending runtime id
+ * order. Live, so a stack another mob took earlier in the tick has already left it.
  */
-const lyingItemsIn = (world: World | undefined): readonly ContentItemEntity[] => {
-    if (world === undefined) return [];
-
+const lyingItemsNear = (runtime: EntityRuntime, center: ContentPosition, radius: number): readonly ContentItemEntity[] => {
+    if (radius < 0) return [];
     const found: ContentItemEntity[] = [];
-    for (const entity of world.getEntities()) {
-        if (!(entity instanceof ItemEntity)) continue;
-        const held = entity.getItem();
-        if (held === undefined) continue;
-
-        const at = entity.getPosition();
-        found.push({
-            id: Number(entity.getRuntimeId()),
-            position: { x: at.getX(), y: entity.getFeetY(), z: at.getZ() },
-            item: { identifier: held.getItem().getName(), count: held.getCount() },
-            filterView: filterItemOf(held.getItem())
-        });
+    for (const entity of runtime.index.itemsWithin(center.x, center.z, radius)) {
+        const lying = lyingItemOf(entity, runtime.content());
+        if (lying !== undefined) found.push(lying);
     }
     return found;
 };
 
 /**
- * The item stacks within a pickup radius, from the world's entity index, in ascending runtime id
- * order. Live, so a stack another mob took earlier in the tick has already left it.
+ * Gives a dropped stack to a live player: what fits goes into the inventory, the advancement
+ * that names the item is earned, and every client that sees both is shown the stack fly in.
+ * @returns How many of the stack's items did not fit.
  */
-const lyingItemsNear = (
-    world: World | undefined,
-    center: ContentPosition,
-    radius: number
-): readonly ContentItemEntity[] => {
-    if (world === undefined || radius < 0) return [];
+const givePlayerItem = (
+    options: LiveEntityOptions,
+    playerId: number,
+    itemId: number,
+    drop: ContentItemDrop
+): number => {
+    const world = options.liveWorld();
+    const taker = world?.getEntity(BigInt(playerId));
+    const item = itemOfDrop(drop, options.content());
+    if (world === undefined || !(taker instanceof Player) || item === null) return drop.count;
 
-    const found: ContentItemEntity[] = [];
-    for (const entity of world.getEntityIndex().legacyItemsWithin(center.x, center.z, radius)) {
-        if (!(entity instanceof ItemEntity) || world.getEntity(entity.getRuntimeId()) !== entity) continue;
-        const held = entity.getItem();
-        if (held === undefined) continue;
+    const entry = new ContainerEntry({ item, count: item.getAmount() });
+    const left = taker.getInventory().addItem(entry);
+    if (left >= drop.count) return left;
 
-        const at = entity.getPosition();
-        found.push({
-            id: Number(entity.getRuntimeId()),
-            position: { x: at.getX(), y: entity.getFeetY(), z: at.getZ() },
-            item: { identifier: held.getItem().getName(), count: held.getCount() },
-            filterView: filterItemOf(held.getItem())
-        });
-    }
-    return found;
+    // Here rather than in the inventory, which has no idea whose it is. Nearly every "get this
+    // item" advancement is earned this way: Java has no block-break trigger.
+    advancementPickedUpItem(taker, entry.toItemStack());
+
+    const take = new TakeItemActorPacket();
+    take.itemRuntimeEntityId = BigInt(itemId);
+    take.takerRuntimeEntityId = taker.getRuntimeId();
+    // Both actors have to be known to the recipient: the packet animates the item flying into
+    // the taker, and a client missing either one has nothing to draw.
+    const watchers = world
+        .getPlayers()
+        .filter((player) => {
+            const session = player.getNetworkSession();
+            return session.tracks(BigInt(itemId)) && session.tracks(taker.getRuntimeId());
+        })
+        .map(async (player) => player.getNetworkSession().send(take));
+    // The take packet animates the stack; it does not say what the inventory now holds.
+    void Promise.all([...watchers, taker.getNetworkSession().sendInventory()]).catch((error: unknown) =>
+        options.report(String(error))
+    );
+    return left;
 };
 
 /** The host facts over one live world. */
-const liveHost = (options: LiveEntityOptions, bodies: LiveBodies): EntityHostFacts => ({
+const liveHost = (
+    options: LiveEntityOptions,
+    bodies: LiveBodies,
+    itemBodies: ItemBodies,
+    runtime: () => EntityRuntime
+): EntityHostFacts => ({
     players: () => options.entities.players(),
     playerView: (id) => {
         const player = options.liveWorld()?.getEntity(BigInt(id));
@@ -265,31 +293,21 @@ const liveHost = (options: LiveEntityOptions, bodies: LiveBodies): EntityHostFac
         destroyBlock({ world, position: at, ...destruction });
         return true;
     },
-    items: () => lyingItemsIn(options.liveWorld()),
-    itemsNear: (center, radius) => lyingItemsNear(options.liveWorld(), center, radius),
+    itemsNear: (center, radius) => lyingItemsNear(runtime(), center, radius),
     takeItem: (id, count) => {
+        const taken = runtime().droppedItems.take(id, count);
+        return taken === undefined ? undefined : itemDropOf(taken);
+    },
+    givePlayerItem: (playerId, itemId, item) => givePlayerItem(options, playerId, itemId, item),
+    itemStackChanged: (itemId, count) => {
         const world = options.liveWorld();
-        const entity = world?.getEntity(BigInt(id));
-        if (world === undefined || !(entity instanceof ItemEntity)) return undefined;
-
-        const held = entity.getItem();
-        if (held === undefined) return undefined;
-
-        const available = held.getCount();
-        const taken = Math.min(available, count === undefined ? available : Math.max(0, Math.floor(count)));
-        if (taken <= 0) return undefined;
-
-        const remaining = available - taken;
-        if (remaining === 0) {
-            void world.removeEntity(entity).catch((error: unknown) => options.report(String(error)));
-        } else {
-            held.getItem().count = remaining;
-            held.setCount(remaining);
-            void world
-                .sendActorEvent(entity, ActorEvent.UPDATE_STACK_SIZE, remaining)
-                .catch((error: unknown) => options.report(String(error)));
-        }
-        return { identifier: held.getItem().getName(), count: taken };
+        const body = itemBodies.bodyOf(itemId);
+        if (world === undefined || body === undefined) return;
+        // There is no packet that updates a dropped stack: `AddItemActor` carries the item and is
+        // only sent when the entity appears, so this event is the one way to say the number changed.
+        void world
+            .sendActorEvent(body, ActorEvent.UPDATE_STACK_SIZE, count)
+            .catch((error: unknown) => options.report(String(error)));
     },
     hurt: (id, amount, cause, sourceId, deathMessageOverride) => {
         const world = options.liveWorld();
@@ -432,6 +450,9 @@ export class LiveEntityRuntime {
     /** The body each entity shows a client. */
     public readonly bodies: LiveBodies;
 
+    /** The body each dropped stack shows a client. */
+    public readonly itemBodies: ItemBodies;
+
     private readonly options: LiveEntityOptions;
     /** The world the spawn rules read, which is not known until the adapter is assembled. */
     private spawnWorld: SpawnWorld | undefined;
@@ -447,14 +468,19 @@ export class LiveEntityRuntime {
             hurt: (entity, sourceId, cause, amount) =>
                 this.runtime.hurt(entity, sourceId, cause, amount, { feedback: false })
         });
+        this.itemBodies = new ItemBodies({ world: options.liveWorld, report: options.report });
         this.runtime = new EntityRuntime({
             content: options.content,
             world: options.world,
-            host: liveHost(options, this.bodies),
+            host: liveHost(options, this.bodies, this.itemBodies, () => this.runtime),
             report: options.report,
-            onSpawn: (entity) => this.bodies.add(entity, this.runtime.leashHolderIdOf(entity.id)),
+            onSpawn: (entity) => {
+                if (isDroppedItem(entity)) this.itemBodies.add(entity, this.runtime.droppedItems);
+                else this.bodies.add(entity, this.runtime.leashHolderIdOf(entity.id));
+            },
             onRemove: (entity, reason) => {
-                this.bodies.drop(entity);
+                if (isDroppedItem(entity)) this.itemBodies.drop(entity);
+                else this.bodies.drop(entity);
                 for (const listener of this.removalListeners) listener(entity, reason);
             },
             gameEvents: {
@@ -517,7 +543,65 @@ export class LiveEntityRuntime {
         }
 
         this.runtime.tick(tick, shouldTick);
-        await Promise.all(this.bodies.sync(this.runtime, shouldTick));
+        await Promise.all([...this.bodies.sync(this.runtime, shouldTick), ...this.itemBodies.sync()]);
+    }
+
+    /** The dropped stacks of this dimension. */
+    public get droppedItems(): DroppedItems {
+        return this.runtime.droppedItems;
+    }
+
+    /**
+     * Puts a stack on the ground as a store entity.
+     * @param lying - Where it lies; it reports itself a little above.
+     * @returns The entity, or undefined when the stack is empty or the content declares no item.
+     */
+    public dropItem(lying: ContentPosition, start: ItemStart): DataEntity | undefined {
+        return this.runtime.droppedItems.spawn(lying, start);
+    }
+
+    /**
+     * Brings a saved dropped stack back as a store entity, from the actor record a chunk or a
+     * portal carried.
+     *
+     * @param stored - A body whose position, tags and kept actor tags the record was read into.
+     * @returns The entity, or undefined when the record holds no stack.
+     */
+    public restoreItem(stored: Entity): DataEntity | undefined {
+        const saved = stored.persistentNbt === null ? undefined : storedItemActorOf(stored.persistentNbt);
+        return saved === undefined ? undefined : this.restoreItemFrom(stored, saved);
+    }
+
+    /**
+     * Takes in the body of a stack that left another dimension's store through a portal, with the
+     * state it left with, and gives it a body of this dimension's.
+     * @returns The entity, or undefined when the body held no stack.
+     */
+    public adoptItem(arrived: ItemActorBody): DataEntity | undefined {
+        const saved = arrived.savedItem();
+        if (saved === undefined) return undefined;
+        const { motion } = saved;
+        return this.restoreItemFrom(arrived, {
+            ...saved,
+            motion: { x: motion.getX(), y: motion.getY(), z: motion.getZ() }
+        });
+    }
+
+    /** Spawns a stack where a body reports it, carrying over the actor tags the body kept. */
+    private restoreItemFrom(stored: Entity, saved: ItemStart): DataEntity | undefined {
+        const at = stored.getPosition();
+        const entity = this.runtime.droppedItems.spawn(
+            { x: at.getX(), y: at.getY(), z: at.getZ() },
+            { ...saved, reported: true }
+        );
+        if (entity === undefined) return undefined;
+        const body = this.itemBodies.bodyOf(entity.id);
+        if (body !== undefined) {
+            body.persistentNbt = stored.persistentNbt;
+            for (const tag of stored.getTags()) body.addTag(tag);
+            body.setPortalCooldown(stored.getPortalCooldown());
+        }
+        return entity;
     }
 
     /**
@@ -782,7 +866,7 @@ export class LiveEntityRuntime {
      * @returns Whether this runtime owned the body.
      */
     public removeBody(body: Entity, reason = 'body removed'): boolean {
-        const id = this.bodies.detach(body);
+        const id = this.bodies.detach(body) ?? this.itemBodies.detach(body);
         if (id === undefined) return false;
 
         this.runtime.remove(id, reason);
@@ -916,6 +1000,7 @@ export class EntityRuntimes {
     /** Forgets one dimension's runtime, which is what closing its world does. */
     public close(dimension: string): void {
         this.byDimension.get(dimension)?.bodies.clear();
+        this.byDimension.get(dimension)?.itemBodies.clear();
         this.byDimension.delete(dimension);
     }
 

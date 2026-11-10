@@ -1,13 +1,13 @@
 import { Vector3 } from '@jsprismarine/math';
 import { NBTTagCompound, Types } from '@jsprismarine/nbt';
 
-import ContainerEntry from '../inventory/ContainerEntry';
-import { isStoredItemStack, restoredItem, storedItem } from '../inventory/persistence';
+import { isStoredItemStack } from '../inventory/persistence';
 import type { StoredItemStack } from '../inventory/persistence';
 import { writtenEntities } from './Entities';
 import type { Entity } from './Entity';
 import { GenericEntity } from './GenericEntity';
-import { Item } from './other/Item';
+import { ItemActorBody } from './data/itemBodies';
+import type { ItemStart } from './data/droppedItems';
 import { DEFAULT_FUSE_TICKS } from './fuse';
 import { MetadataFlag } from '@jsprismarine/protocol/wire/structures/Metadata';
 import type { StatusEffect } from './StatusEffect';
@@ -58,24 +58,14 @@ export class EntitySerializer {
         const identifier = nbt.getString('identifier', '');
         const [x, y, z] = readFloats(nbt, 'Pos', 3);
         const [yaw, pitch] = readFloats(nbt, 'Rotation', 2);
-        const [motionX, motionY, motionZ] = readFloats(nbt, 'Motion', 3);
 
         const position = new Position(x ?? 0, y ?? 0, z ?? 0, world);
         const modeled = writtenEntities().get(identifier);
         const options = { position, pitch: pitch ?? 0, yaw: yaw ?? 0, headYaw: yaw ?? 0 };
 
-        const entity =
-            identifier === Item.MOB_ID
-                ? new Item({
-                      ...options,
-                      age: nbt.getShort('Age', 0),
-                      motion: new Vector3(motionX ?? 0, motionY ?? 0, motionZ ?? 0),
-                      pickupDelay: nbt.getShort('PickupDelay', 10),
-                      ...itemEntryFrom(nbt, world)
-                  })
-                : modeled
-                  ? new modeled(options)
-                  : new GenericEntity({ identifier, ...options });
+        // A dropped stack comes back as a generic body carrying its record, which the world hands
+        // to the store; see `LiveEntityRuntime.restoreItem`.
+        const entity = modeled ? new modeled(options) : new GenericEntity({ identifier, ...options });
 
         if (identifier === TNT_IDENTIFIER) {
             const fuse = nbt.getNumber('JSPFuse', nbt.getNumber('Fuse', nbt.getNumber('fuse', DEFAULT_FUSE_TICKS)));
@@ -122,13 +112,13 @@ export class EntitySerializer {
         if (allEffects.length > 0) nbt.addValue('ActiveEffects', new Set(allEffects));
         else nbt.remove('ActiveEffects');
 
-        if (entity instanceof Item) {
-            nbt.addValue('Age', new Types.ShortVal(entity.getAge()));
-            nbt.addValue('PickupDelay', new Types.ShortVal(entity.getPickupDelay()));
-            const motion = entity.getMotion();
+        if (entity instanceof ItemActorBody) {
+            const saved = entity.savedItem();
+            nbt.addValue('Age', new Types.ShortVal(saved?.age ?? 0));
+            nbt.addValue('PickupDelay', new Types.ShortVal(saved?.pickupDelay ?? 0));
+            const motion = saved?.motion ?? Vector3.ZERO;
             nbt.addValue('Motion', doubles([motion.getX(), motion.getY(), motion.getZ()]));
-            const entry = entity.getItem();
-            const stack = entry === undefined ? null : storedItem(entry.getItem(), entry.getCount());
+            const stack = saved?.stack ?? null;
             if (stack === null) {
                 nbt.remove('Item');
             } else {
@@ -167,10 +157,21 @@ export class EntitySerializer {
     }
 }
 
-/** Restores the stack in an item actor, including this server's item components. */
-const itemEntryFrom = (nbt: NBTTagCompound, world: World): { item?: ContainerEntry } => {
-    const stack = restoredItem(itemStackFrom(nbt), world.getServer().getContent());
-    return stack === null ? {} : { item: new ContainerEntry({ item: stack, count: stack.getAmount() }) };
+/**
+ * What a dropped stack's actor record holds beside the fields every actor has, or undefined when
+ * it holds no stack. A record without `PickupDelay` takes the definition's.
+ * @param nbt - The actor record.
+ */
+export const storedItemActorOf = (nbt: NBTTagCompound): ItemStart | undefined => {
+    const stack = itemStackFrom(nbt);
+    if (stack === null) return undefined;
+    const [x, y, z] = readFloats(nbt, 'Motion', 3);
+    return {
+        stack,
+        age: nbt.getShort('Age', 0),
+        ...(nbt.has('PickupDelay') ? { pickupDelay: nbt.getShort('PickupDelay', 0) } : {}),
+        motion: { x: x ?? 0, y: y ?? 0, z: z ?? 0 }
+    };
 };
 
 /** Reads the dropped stack from this server's saved form or the basic Bedrock item fields. */

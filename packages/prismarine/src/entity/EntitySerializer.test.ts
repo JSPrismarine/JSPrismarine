@@ -9,7 +9,11 @@ import type { World } from '../world/World';
 import { EntitySerializer } from './EntitySerializer';
 import { GenericEntity } from './GenericEntity';
 import { MetadataFlag } from '@jsprismarine/protocol/wire/structures/Metadata';
-import { Item as ItemEntity } from './other/Item';
+import BinaryStream from '@jsprismarine/binaryutils';
+import { ByteOrder, NBTWriter } from '@jsprismarine/nbt';
+import { liveTestEntities } from '../testing/entityServer';
+import type { Entity } from './Entity';
+import { ItemActorBody } from './data/itemBodies';
 
 /**
  * A world stand-in. `Entity` takes its server from the world its position is in, so the fake has
@@ -77,37 +81,109 @@ describe('entity', () => {
             expect(cow.pitch).toBe(45);
         });
 
-        it('restores an item actor with its Bedrock stack fields', () => {
-            const item = EntitySerializer.fromNBT(
-                actor('minecraft:item', (root) => {
-                    root.addValue(
-                        'Motion',
-                        new Set([new Types.DoubleVal(-0.01), new Types.DoubleVal(0.1), new Types.DoubleVal(0.3)])
-                    );
-                    root.addValue('PickupDelay', new Types.ShortVal(27));
-                    const stack = new NBTTagCompound('Item');
-                    stack.addValue('Name', new Types.StringVal('minecraft:stone'));
-                    stack.addValue('Count', new Types.ByteVal(2));
-                    stack.addValue('Damage', new Types.ShortVal(0));
-                    root.addValue('Item', stack);
-                }),
-                world
-            );
+        describe('a dropped stack', () => {
+            /** A world whose server runs real entity runtimes, so a stack comes back into a store. */
+            const itemWorld = () => {
+                const added: Entity[] = [];
+                let world: World | undefined;
+                const entities = liveTestEntities(() => world);
+                const server = testEntityServer({ entityRuntime: entities.entityRuntime('minecraft:overworld') });
+                world = stub<World>({
+                    getName: () => 'test',
+                    getServer: () => server,
+                    getDimension: () => Dimensions.Overworld,
+                    addEntity: async (entity: Entity) => void added.push(entity),
+                    entityRelocated: () => {}
+                });
+                return { world, added, live: entities.entityRuntime('minecraft:overworld') };
+            };
 
-            expect(item).toBeInstanceOf(ItemEntity);
-            if (!(item instanceof ItemEntity)) throw new Error('the item actor was not restored as an item');
-            expect(item.getItem()?.getItem().getName()).toBe('minecraft:stone');
-            expect(item.getItem()?.getCount()).toBe(2);
-            expect(item.getPickupDelay()).toBe(27);
-            expect([item.getMotion().getX(), item.getMotion().getY(), item.getMotion().getZ()]).toEqual([
-                -0.01, 0.1, 0.3
-            ]);
+            /**
+             * An item actor as the legacy item entity saved one it had loaded: the tags it kept in
+             * the order it read them, then the ones it rewrites.
+             */
+            const savedItem = () => {
+                const root = new NBTTagCompound('');
+                root.addValue('UniqueID', new Types.LongVal(-77n));
+                root.addValue('Age', new Types.ShortVal(120));
+                root.addValue('PickupDelay', new Types.ShortVal(27));
+                root.addValue(
+                    'Motion',
+                    new Set([new Types.DoubleVal(-0.01), new Types.DoubleVal(0.1), new Types.DoubleVal(0.3)])
+                );
+                const stack = new NBTTagCompound('Item');
+                stack.addValue('Name', new Types.StringVal('minecraft:stone'));
+                stack.addValue('Count', new Types.ByteVal(2));
+                stack.addValue('Damage', new Types.ShortVal(0));
+                stack.addValue('JSPStack', new Types.StringVal(JSON.stringify({ name: 'minecraft:stone', count: 2 })));
+                root.addValue('Item', stack);
+                root.addValue('OnGround', new Types.ByteVal(1));
+                root.addValue('FallDistance', new Types.FloatVal(0));
+                root.addValue('Fire', new Types.ShortVal(0));
+                root.addValue('Air', new Types.ShortVal(300));
+                root.addValue('Invulnerable', new Types.ByteVal(0));
+                root.addValue('identifier', new Types.StringVal('minecraft:item'));
+                root.addValue('Pos', floats([10.5, -60.125, -3.5]));
+                root.addValue('Rotation', floats([0, 0]));
+                root.addValue('PortalCooldown', new Types.NumberVal(0));
+                root.addValue('DimensionId', new Types.NumberVal(0));
+                return root;
+            };
 
-            const written = EntitySerializer.toNBT(item);
-            expect(written.getShort('PickupDelay', 0)).toBe(27);
-            expect([...(written.getList('Motion', false) ?? [])].map((value) => value.getValue())).toEqual([
-                -0.01, 0.1, 0.3
-            ]);
+            const bytesOf = (compound: NBTTagCompound): Buffer => {
+                const stream = new BinaryStream();
+                const writer = new NBTWriter(stream, ByteOrder.LITTLE_ENDIAN);
+                writer.setUseVarint(false);
+                writer.writeCompound(compound);
+                return stream.getBuffer();
+            };
+
+            it('comes back as a store stack with its Bedrock fields', () => {
+                const { world, live } = itemWorld();
+                const stored = EntitySerializer.fromNBT(savedItem(), world);
+
+                const entity = live.restoreItem(stored);
+
+                expect(entity?.identifier).toBe('minecraft:item');
+                const body = entity === undefined ? undefined : live.itemBodies.bodyOf(entity.id);
+                expect(body).toBeInstanceOf(ItemActorBody);
+                expect(body?.getItem()?.getItem().getName()).toBe('minecraft:stone');
+                expect(body?.getItem()?.getCount()).toBe(2);
+                expect(body?.savedItem()).toMatchObject({ age: 120, pickupDelay: 27 });
+                expect(entity?.position).toEqual({ x: 10.5, y: -60.125, z: -3.5 });
+                expect(entity?.body.velocity).toEqual({ x: -0.01, y: 0.1, z: 0.3 });
+            });
+
+            it('saves the record it was loaded from byte for byte', () => {
+                const { world, live } = itemWorld();
+                const record = savedItem();
+                const entity = live.restoreItem(EntitySerializer.fromNBT(record, world));
+                const body = entity === undefined ? undefined : live.itemBodies.bodyOf(entity.id);
+                if (body === undefined) throw new Error('the stack was not restored');
+
+                const written = EntitySerializer.toNBT(body);
+                expect(bytesOf(written)).toEqual(bytesOf(record));
+
+                // And again, from what this server wrote.
+                const again = live.restoreItem(EntitySerializer.fromNBT(written, world));
+                const reloaded = again === undefined ? undefined : live.itemBodies.bodyOf(again.id);
+                expect(reloaded === undefined ? undefined : bytesOf(EntitySerializer.toNBT(reloaded))).toEqual(
+                    bytesOf(record)
+                );
+            });
+
+            it('takes the definition pickup delay when the record has none, and refuses one with no stack', () => {
+                const { world, live } = itemWorld();
+                const withoutDelay = savedItem();
+                withoutDelay.remove('PickupDelay');
+                const withoutStack = savedItem();
+                withoutStack.remove('Item');
+
+                const entity = live.restoreItem(EntitySerializer.fromNBT(withoutDelay, world));
+
+                expect(entity === undefined ? undefined : live.itemBodies.bodyOf(entity.id)?.savedItem()?.pickupDelay).toBe(10);
+                expect(live.restoreItem(EntitySerializer.fromNBT(withoutStack, world))).toBe(undefined);
+            });
         });
 
         it('writes the position and rotation back', () => {
