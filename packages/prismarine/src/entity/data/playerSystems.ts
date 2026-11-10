@@ -15,15 +15,18 @@
 import { AIR_STATE } from '@jsprismarine/entities';
 import { Attributes } from '@jsprismarine/protocol/wire/structures/Attribute';
 
+import type { EntityPosition } from '@jsprismarine/entities';
+
 import type { ContentBlock, ContentLevelFacts, ContentPosition } from '../../content/world/adapter';
-import { DROWNING_DAMAGE, NATURAL_REGENERATION, ruleIsOn } from '../../content/world/gameRules';
+import { DROWNING_DAMAGE, FALL_DAMAGE, NATURAL_REGENERATION, ruleIsOn } from '../../content/world/gameRules';
 import type { PlainData } from '../../world/changelog/PlainData';
 import { DamageCause } from '../DamageCause';
 import { DamageSource } from '../DamageSource';
 import { EYE_HEIGHT } from '../Human';
 import { breathe } from '../playerBreath';
 import { PlayerComponents } from '../playerComponents';
-import { addExhaustion, hungerOutcome } from '../playerHunger';
+import { addExhaustion, addMovementExhaustion, hungerOutcome } from '../playerHunger';
+import { cushions, land, trackFall } from '../playerFall';
 import type { SurvivalPlayer } from '../survivalPlayer';
 import type { DamageIntent, DamageOutcome } from './damagePipeline';
 import type { DataEntity } from './DataEntity';
@@ -44,6 +47,13 @@ export interface PlayerSystemsPorts {
     /** Whether the entity has died and waits to be revived. */
     dying(id: number): boolean;
 }
+
+/** The block a position is in. */
+const blockOf = ({ x, y, z }: EntityPosition): ContentPosition => ({
+    x: Math.floor(x),
+    y: Math.floor(y),
+    z: Math.floor(z)
+});
 
 /** One store player's state beside its entity. */
 interface StorePlayer {
@@ -94,6 +104,34 @@ export class PlayerSystems {
     }
 
     /**
+     * Charges a store player for a move its client reported and adds it to the fall in progress,
+     * then pays for the fall if the move landed it, in the order the legacy movement handler
+     * runs them: the step, then the ground. The runtime calls this after it wrote the move.
+     *
+     * @param entity - The player, already at its new position and ground state.
+     * @param from - Where it was.
+     * @param wasOnGround - Whether it was on the ground before the move.
+     */
+    public moved(entity: DataEntity, from: EntityPosition, wasOnGround: boolean): void {
+        const { survival } = this.playerOf(entity);
+        const to = entity.position;
+        const flying = survival.components.get('abilities.flying');
+
+        addMovementExhaustion(survival, from, to, flying);
+        trackFall(survival, from.y, to.y, { onGround: wasOnGround, flying });
+        if (wasOnGround || !entity.body.conditions.has('on_ground')) return;
+
+        const damage = land(survival, ruleIsOn(this.ports.level, FALL_DAMAGE), () => {
+            const { x, y, z } = blockOf(to);
+            return cushions(
+                this.ports.blockAt({ x, y, z })?.identifier,
+                this.ports.blockAt({ x, y: y - 1, z })?.identifier
+            );
+        });
+        if (damage !== undefined) this.hurt(entity, DamageCause.Fall, damage);
+    }
+
+    /**
      * Writes a logged component field of a store player back, without logging it, for the store's
      * undo.
      *
@@ -106,7 +144,7 @@ export class PlayerSystems {
     /** Breath, read at the block the player's eyes are in, which a store player's feet are {@link EYE_HEIGHT} below. */
     private tickBreath(entity: DataEntity, survival: SurvivalPlayer): void {
         const { x, y, z } = entity.position;
-        const head = this.ports.blockAt({ x: Math.floor(x), y: Math.floor(y + EYE_HEIGHT), z: Math.floor(z) });
+        const head = this.ports.blockAt(blockOf({ x, y: y + EYE_HEIGHT, z }));
         const drowning = breathe(survival, head?.identifier, ruleIsOn(this.ports.level, DROWNING_DAMAGE));
         if (drowning !== undefined) this.hurt(entity, DamageCause.Drowning, drowning);
     }

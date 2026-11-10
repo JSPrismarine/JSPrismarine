@@ -2,8 +2,6 @@
  * Hunger: exhaustion, saturation and food, and the four-second clock that starves an empty player
  * and heals a well-fed one. One home for both models of a player (see `survivalPlayer.ts`).
  */
-import type { Vector3 } from '@jsprismarine/math';
-
 import type { PlayerComponents } from './playerComponents';
 import type { SurvivalPlayer } from './survivalPlayer';
 
@@ -49,6 +47,12 @@ const REGENERATION_HEALTH = 1;
  * exhaustion. Without it a world change or a `/tp` across the map would empty the food bar.
  */
 const MAX_EXHAUSTING_STEP = 10;
+
+/** A position as the movement charge reads it: only the horizontal axes count. */
+export interface HorizontalPoint {
+    readonly x: number;
+    readonly z: number;
+}
 
 /**
  * Sets saturation, which never exceeds the current food level in vanilla, so it is capped there
@@ -103,19 +107,19 @@ export const addExhaustion = (player: SurvivalPlayer, amount: number): void => {
  * vanilla - falling is free - and a flying player or a step long enough to be a teleport costs
  * nothing.
  * @param {SurvivalPlayer} player - The player.
- * @param {Vector3} from - Where the player was.
- * @param {Vector3} to - Where the player now is.
+ * @param {HorizontalPoint} from - Where the player was.
+ * @param {HorizontalPoint} to - Where the player now is.
  * @param {boolean} flying - Whether the player is flying.
  */
 export const addMovementExhaustion = (
     player: SurvivalPlayer,
-    from: Pick<Vector3, 'getX' | 'getZ'>,
-    to: Pick<Vector3, 'getX' | 'getZ'>,
+    from: HorizontalPoint,
+    to: HorizontalPoint,
     flying: boolean
 ): void => {
     if (!player.vulnerable() || flying) return;
 
-    const distance = Math.hypot(to.getX() - from.getX(), to.getZ() - from.getZ());
+    const distance = Math.hypot(to.x - from.x, to.z - from.z);
     if (distance <= 0 || distance > MAX_EXHAUSTING_STEP) return;
 
     const sprinting = player.components.get('movement.sprinting');

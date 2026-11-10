@@ -13,7 +13,7 @@ import { DamageCause } from './entity/Entity';
 import type { EntityPositionOptions } from './entity/Entity';
 import { PORTAL_COOLDOWN_TICKS, PORTAL_TRANSITION_TICKS } from './entity/PortalContact';
 import type { PortalRule } from './world/portal/rules';
-import { breaksAFall, FALL_GRACE, isAllowed, VOID_DAMAGE, VOID_DEPTH, VOID_INTERVAL } from './entity/Environment';
+import { isAllowed, VOID_DAMAGE, VOID_DEPTH, VOID_INTERVAL } from './entity/Environment';
 import Human, { eyePositionAt } from './entity/Human';
 import { FlagType, MAX_AIR_TICKS, MetadataFlag } from '@jsprismarine/protocol/wire/structures/Metadata';
 import PlayerSetGamemodeEvent from './events/player/PlayerSetGamemodeEvent';
@@ -61,6 +61,7 @@ import {
     setSaturation
 } from './entity/playerHunger';
 import { breathe, refillBreath } from './entity/playerBreath';
+import { cushions, land, trackFall } from './entity/playerFall';
 import type { PlainData, PlainRecord } from './world/changelog/PlainData';
 
 /** How often the two per-player triggers are checked, which is Java's one second. */
@@ -1456,66 +1457,29 @@ export default class Player extends Human {
     }
 
     /**
-     * Adds a downward step to the fall in progress.
-     *
-     * Rising resets it, which is what makes the fall start at the top of a jump rather than at the
-     * ground the player jumped from - otherwise every jump would be measured from the floor and
-     * land for its own height.
+     * Ends the fall in progress, and hurts the player for it if it was far enough - see
+     * {@link land}.
      */
-    private trackFall(from: Vector3, to: Vector3): void {
-        if (this.onGround || this.isFlying() || !this.isVulnerable()) {
-            this.fallDistance = 0;
-            return;
-        }
-
-        const climb = to.getY() - from.getY();
-        if (climb > 0) this.fallDistance = 0;
-        else this.fallDistance -= climb;
+    private async land(): Promise<void> {
+        const damage = land(this.survival, isAllowed(this.getWorld(), DamageCause.Fall), () =>
+            this.isStandingInSomethingSoft()
+        );
+        if (damage !== undefined) await this.damage(damage, DamageCause.Fall);
     }
 
     /**
-     * Hurts the player for the fall they have just finished, if it was far enough.
-     *
-     * One half-heart per block past the third, which is vanilla's rule. Landing in anything that
-     * breaks a fall costs nothing at all.
+     * Whether the block the player's feet are in, or the one under it, breaks the fall - see
+     * {@link cushions}. Read from loaded chunks only: the position a client reports is its eye
+     * position, so the feet are {@link Human.getFeetY} below it.
      */
-    private async land(): Promise<void> {
-        const fallen = this.fallDistance;
-        this.fallDistance = 0;
-
-        if (fallen <= FALL_GRACE || !this.isVulnerable()) return;
-        if (!isAllowed(this.getWorld(), DamageCause.Fall)) return;
-        if (await this.isStandingInSomethingSoft()) return;
-
-        const damage = Math.floor(fallen - FALL_GRACE);
-        if (damage > 0) await this.damage(damage, DamageCause.Fall);
-    }
-
-    /** Whether whatever the player is standing in cushions the landing. */
-    private async isStandingInSomethingSoft(): Promise<boolean> {
+    private isStandingInSomethingSoft(): boolean {
         const position = this.getPosition();
+        const x = Math.floor(position.getX());
+        const y = Math.floor(this.getFeetY());
+        const z = Math.floor(position.getZ());
+        const world = this.getWorld();
 
-        try {
-            // Both the block they are in and the one they came to rest on: water breaks a fall
-            // from inside it, hay from underneath.
-            const feet = await this.getWorld().getBlockState(
-                Math.floor(position.getX()),
-                Math.floor(position.getY()),
-                Math.floor(position.getZ())
-            );
-            const below = await this.getWorld().getBlockState(
-                Math.floor(position.getX()),
-                Math.floor(position.getY()) - 1,
-                Math.floor(position.getZ())
-            );
-
-            return breaksAFall(feet.name) || breaksAFall(below.name);
-        } catch {
-            // A chunk still loading, or a player off the edge of what is generated. Not being able
-            // to answer is not a reason to hurt them - see `isHeadInWater`, which reasons the same
-            // way about the other direction.
-            return true;
-        }
+        return cushions(world.loadedBlockAt(x, y, z)?.name, world.loadedBlockAt(x, y - 1, z)?.name);
     }
 
     /**
@@ -1576,8 +1540,16 @@ export default class Player extends Human {
         // A reset or a teleport is not the player walking, so it costs nothing - and it must not
         // count as a fall either, or arriving anywhere below where you left would hurt.
         if (type === PositionMode.Normal) {
-            addMovementExhaustion(this.survival, previous, position, this.isFlying());
-            this.trackFall(previous, position);
+            addMovementExhaustion(
+                this.survival,
+                { x: previous.getX(), z: previous.getZ() },
+                { x: position.getX(), z: position.getZ() },
+                this.isFlying()
+            );
+            trackFall(this.survival, previous.getY(), position.getY(), {
+                onGround: this.onGround,
+                flying: this.isFlying()
+            });
         } else {
             this.fallDistance = 0;
         }
