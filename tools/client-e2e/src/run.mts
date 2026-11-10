@@ -53,6 +53,7 @@ import { attackEntity } from './scenarios/attack-entity.mts';
 import { movement } from './scenarios/movement.mts';
 import { movementFanout } from './scenarios/movement-fanout.mts';
 import { duplicateLogin } from './scenarios/duplicate-login.mts';
+import { rejoin } from './scenarios/rejoin.mts';
 import { movementRotation } from './scenarios/movement-rotation.mts';
 import { naturalSpawnPlacement } from './scenarios/natural-spawn-placement.mts';
 import { naturalSpawnUnderCanopy } from './scenarios/natural-spawn-under-canopy.mts';
@@ -99,6 +100,7 @@ const suites: ScenarioSuite[] = [
             gait,
             movementFanout,
             duplicateLogin,
+            rejoin,
             movementRotation,
             chat,
             miningDrops,
