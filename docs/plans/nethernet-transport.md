@@ -18,6 +18,20 @@ Requirements from the request:
   by side.
 - `enable-lan-visibility`, named as BDS names it and on by default, as BDS ships it.
 
+## Status
+
+As of 2026-11-10. Both transports run side by side, on by default:
+
+- **RakNet** works as before, now behind the transport-neutral seam.
+- **NetherNet** joins work two ways: by address over HTTP signaling on the TCP side of `port`, and
+  on the local network over UDP 7551, where the server also advertises itself.
+- **Our own client** joins our server and Bedrock Dedicated Server 1.26.51.1 over NetherNet, by
+  address, offline mode, and spawns.
+- **Not yet proven:** a real game client. The PR's Client E2E job (cinnabar) is the test for that.
+  Its first NetherNet run, on an older head, did not join; the handshake fix found by the BDS hill
+  climb landed after it.
+- **In progress:** `server-udp-ports` (slice 15), then online mode against BDS (slice 16).
+
 ## What we know
 
 Facts gathered on 2026-11-10, from the sources listed.
@@ -81,7 +95,7 @@ consumer:**
 addressed servers over NetherNet through a go-nethernet fork. Its source answers the encoding
 questions above, and it can verify the join end to end.
 
-**This repository:**
+**This repository, when the work started:**
 
 - `packages/prismarine/src/network/transport/Transport.ts` already defines the seam the
   [rearchitecture plan](server-rearchitecture.md#network-stack) describes. It still speaks RakNet's
@@ -109,8 +123,10 @@ questions above, and it can verify the join end to end.
   adds the byte to what it receives and strips it from what it sends, so the protocol codecs and the
   client package stay as they are. A Java transport would carry Java packet frames to its own
   session pipeline; the seam only moves opaque frames and never interprets them.
-- **Capabilities drive the session.** `capabilities.encrypted` makes the login skip the encryption
-  handshake. `maxFrameSize` stays infinite because `nethernet` fragments for us.
+- **Capabilities describe the transport, the login follows BDS.** `capabilities.encrypted` says
+  DTLS covers the wire: the login still sends `ServerToClientHandshake` but leaves encryption off, as
+  BDS does over NetherNet. `maxFrameSize` is `nethernet`'s message limit, which its fragmenting
+  allows.
 - **One dispatcher, several transports.** A `MultiTransport` merges the enabled transports into one
   `Transport`, so `NetworkDispatcher` serves them all through one subscription.
 - **Networking owns the listeners.** `ServerNetworking` starts each enabled transport and the LAN
@@ -120,6 +136,12 @@ questions above, and it can verify the join end to end.
   per-connection ordering; `KeyedTransport` maps wire keys to connection IDs; one server status snapshot
   (MOTD, level, version, player counts, game mode) feeds the RakNet pong, the LAN advertisement and
   `GET /v1/join`; the data channel's fragment framing stays in `nethernet`.
+- **One package per transport.** `@jsprismarine/nethernet` sits beside `@jsprismarine/raknet` and
+  holds what the server and the client share: signaling, identities, the LAN advertisement and the
+  ES384 JWS. Each side's transport adapts it to Bedrock batches. A Java transport gets its own
+  package the same way.
+- **The advertised player count has one owner.** `ServerNetworking` counts live connections across
+  transports and calls `ServerName.ownPlayerCount()`, so RakNet's sockets stop setting it.
 - **Signaling sits apart from the WebRTC peer.** The HTTP signaling server on TCP `server-port` and
   the LAN signaling on UDP 7551 both feed the same `nethernet` `Server` through `handleOffer`. The
   answer gets `a=identity` from a server identity key stored beside the world data.
@@ -192,25 +214,49 @@ slice when it lands on the branch.
     - BDS sends `ServerToClientHandshake` over NetherNet but keeps batches in the clear; an
       encrypted `ClientToServerHandshake` stalls the login. Client and server now both leave
       encryption off on an encrypting transport.
-    Next rungs: online mode (a GameServerToken identity), and a real game client through cinnabar.
+    Next rungs: online mode (slice 16), and a real game client through cinnabar (slice 9).
+14. [x] **One owner for the player count.** RakNet's sockets report sessions through
+    `ServerName.setSessionCount`, which `ServerName.ownPlayerCount()` turns off. `ServerNetworking`
+    and the RakNet worker's mirror of the main thread's name both own the count.
+15. [ ] **`server-udp-ports`.** BDS's setting, in BDS's syntax: a local UDP port range for WebRTC,
+    and optionally the external address and ports clients should be told about, for a server behind
+    NAT or a firewall. Constrain werift's port allocation to the range, and put the advertised
+    mapping into the answer's candidates.
+16. [ ] **Hill climb online mode.** Join an online-mode BDS with the client's GameServerToken
+    identity, then make the server check that identity the way BDS does.
 
 ## Open questions
 
 - BDS answers `37` (`200 application/sdp`) to an offer without `a=identity`. Our signaling answers
   a refused offer with a non-2xx status, as go-nethernet does; whether game clients treat BDS's
   form differently is untested.
-- Online-mode servers could match the offer's `cpk` to the Login packet's GameServerToken, the
-  check go-nethernet's listener leaves to the Minecraft layer.
-- Should an online-mode server verify the offer's GameServerToken before answering? It is a second
-  check on top of the login chain, and it needs the auth service's keys.
-- NAT: BDS's `server-udp-ports` pins the UDP range and advertises an external mapping. We start with
-  host candidates only and record a follow-up if a remote join needs more.
-- Does werift keep up with many players? Measure by counts (messages, bytes, allocations), not by
-  wall-clock time, as [AGENTS.md](../../AGENTS.md#measuring-performance) asks.
-- RakNet's `ServerSocket` still sets the advertised player count to its own session count on
-  each RakNet open and close; `ServerNetworking` overwrites it with the all-transport count right
-  after. Give `@jsprismarine/raknet` a way to leave the count to its owner.
-- Worker mode (`use-raknet-worker`) stays RakNet-only. Does NetherNet need a worker later?
-- `nethernet` keys peers on the connection ID the client picks, and its LAN path applies a
-  `CANDIDATEADD` to whichever peer that ID names, whoever sent it. Report upstream if a LAN peer can
-  disturb another's negotiation that way.
+- Should an online-mode server verify the offer's GameServerToken before answering, or only match
+  its `cpk` to the Login packet's, as go-nethernet's listener leaves to the Minecraft layer? Slice 16
+  answers this against BDS.
+
+## Future work
+
+Not needed for a viable NetherNet transport, but known and worth doing:
+
+- **A real game client in CI.** Once cinnabar joins over NetherNet, add a client e2e scenario that
+  names the transport, so a RakNet fallback cannot hide a NetherNet regression. Then mark NetherNet
+  done in the [rearchitecture plan](server-rearchitecture.md).
+- **Joining from outside the local network.** Beyond `server-udp-ports`: STUN to learn a reflexive
+  address without configuring one, and TURN for players behind symmetric NAT. Mojang's guide
+  advises against STUN and TURN for HTTP signaling, so start with the static mapping.
+- **Friends and Realms joins.** BDS signs in to Microsoft's signaling service at startup ("Signed in
+  to signaling service successfully"), which is how friends join a server they have not typed the
+  address of. That needs an Xbox Live identity for the server.
+- **LAN discovery in the client.** `@jsprismarine/client` joins by address only; finding servers on
+  the local network needs the discovery side of `nethernet`'s `Client`.
+- **NetherNet load.** Whether werift keeps up with many players. Measure by counts (messages, bytes,
+  allocations, tasks), not wall-clock time, as [AGENTS.md](../../AGENTS.md#measuring-performance)
+  asks, and decide from that whether NetherNet needs a worker thread like RakNet's.
+- **An upstream question for `nethernet`.** It keys peers on the connection ID the client picks,
+  and its LAN path applies a `CANDIDATEADD` to whichever peer that ID names, whoever sent it. Check
+  whether one LAN peer can disturb another's negotiation, and report it upstream if so.
+- **A Java Edition transport.** The seam is ready for one: a `KeyedTransport` over TCP drawing from
+  the same `ConnectionIds`, in a package of its own, feeding a Java session pipeline rather than the
+  Bedrock dispatcher.
+- **Dropped:** binding RakNet's default port as well when `port` differs, as BDS does with
+  `transport=raknet`. Current clients discover LAN games over NetherNet.
