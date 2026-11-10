@@ -21,10 +21,11 @@ export const LANES = ['connection', 'read', 'input'] as const;
  *   A handler that only relays a packet to the players who can see the sender is an input too.
  *   Input-lane packets are the inputs a world applies in its input step and records.
  *
- * A packet waits behind an input the same client sent before it, whatever its own lane: the
- * connection's frames are handled in order, and a held input holds the ones after it until the
- * input step has applied it. A client that moves and then asks for something the move changed
- * gets the answer the move leads to. Packets from other clients do not wait.
+ * A packet waits behind an input the same client sent before it, whatever its own lane: a
+ * connection-lane or read-lane packet that follows a held input runs once the input step that
+ * applies that input is over, while the client's later inputs are still held for that step. A
+ * client that moves and then asks for something the move changed gets the answer the move leads
+ * to, or a newer one. Packets from other clients do not wait.
  *
  * When a handler fits more than one lane, or its effects cannot be traced, declare `input`:
  * running a handler in the input step is always safe, and running it outside is not. A
