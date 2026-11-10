@@ -600,6 +600,24 @@ filed a second time. A query that wants legacy entities, such as a blast's, answ
 and finds it where the runtime put the mob. The index is derived state and stays out of the replay
 digest.
 
+The runtime's entities live in its entity store, `EntityRuntime.store`, which owns membership and
+the world's change log ([ADR 0012](../adr/0012-the-change-log-is-the-history.md)). A mob enters
+the log once, after its spawn event or its restore, with its saved form: the record a save writes,
+plus its runtime id, position, velocity, tags, status effects and the vehicle it rides. It leaves
+once, with the form it had. Every change in between to a field a save or the replay digest reads is
+one field entry with the value before and after it: position, rotation and velocity, the other body
+fields a save holds, attributes, properties, component groups, component state, equipment, carried
+items, container slots, tags, status effects, and leash and riding links. A write made while a mob
+is being built belongs to the form it enters with and is not logged on its own. A merchant's offers
+are saved but not yet logged; a trade changes them in place.
+
+Each mob's update in the entity pass is one unit of the log. When an update throws, the store
+writes back the before-value of everything that update logged, newest first, through setters that
+do not log, reports the mob's type and id, and skips it for the rest of the tick. A mob that fails
+`ENTITY_FAILURE_LIMIT` updates in a row is removed. Only what a save or a digest reads is undone,
+so a goal's progress or a pending death the update cleared stays as the throw left it. If an undo
+itself throws, the store can no longer be trusted, so its world stops ticking and logs that once.
+
 A default build registers all 129 of those definitions and recognizes every non-goal component
 name they use. BDS keeps chemistry, the editor, and four experimental packs in the same
 `behavior_packs` folder, and the default asks for none of them; `PackStackRequest.bedrockPacks`
@@ -633,7 +651,9 @@ budget. The navigator and path-finder's block view cost about 20 microseconds pe
 down from 623, but there is no tick budget for individual goals.
 
 **A mob's attack target is lost over a save.** The target is a runtime id, drawn fresh each
-session, so saving it could point the mob at an unrelated entity after restart. A tamed mob's
+session, so saving it could point the mob at an unrelated entity after restart. The same holds for
+`minecraft:target_nearby_sensor`, whose state names its target by runtime id: it is left out of the
+saved form, so a reloaded mob's sensor starts with no target and reports the current one afresh. A tamed mob's
 owner is saved by the player's stable UUID and rebound to that player's current runtime id when
 they rejoin. The other component state survives too: a save writes each entity's component groups,
 property values, attributes, component state, body state and population pool into its actor

@@ -173,6 +173,16 @@ C1a and C1b left these for later packages.
 - Viewer tracking still passes every entity in the world to `EntityTracker.plan`. D4 replaces that with audiences computed from the index.
 - Inside the tick, `World.getEntities()` is still copied for spawner counts, the attribute flush and tracking, and `EntityRuntime.all()` is copied for the entity pass, the despawn cycle and the mirror's `sync`. Slice 5's target removes the copies.
 
+C1c left these for later packages.
+
+- The store is `EntityRuntime.store`, which took over the runtime's entity map, and it holds the world's change log until block writes join it in D3. A log tick is numbered by the store, not by the level clock, which `/time set` moves backwards.
+- A player's inventory is not logged. A slot changes by mutating the `Item` in place and `Inventory` does not know its owner, so from slice 2 to slice 5 the replay digest covers player inventories only through its snapshot. C4c's inventory with one entry per slot closes this. Legacy position, health and game mode are logged through `entity/legacyAdapter.ts`.
+- A merchant's offers are saved and hashed but not logged, because a trade changes the `Merchant` in place.
+- An undo restores only what a save or the digest reads. Goal progress, pending deaths and other runtime bookkeeping stay as the throw left them.
+- A chunk admitted inline inside a unit pins the unit, which then keeps its writes if it throws, until slices 3 to 9 remove the inline loads.
+- Writes between ticks, such as tick functions, which run after the worlds seal, and connection-lane handlers, are counted as unlogged and not logged.
+- A player whose update throws is not contained yet: legacy updates do not run as units. When players move into the store, the store's failure count disconnects the session instead of removing the entity.
+
 ### Phase C: the store
 
 | Package | Slice | Depends on | Work                                                                                                                         |
