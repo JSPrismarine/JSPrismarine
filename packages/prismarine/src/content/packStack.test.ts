@@ -118,6 +118,58 @@ describe('resolvePackStack', () => {
     });
 });
 
+/**
+ * Items and the eye of ender have no entity file in Mojang's pack, so the entity overlay ships the
+ * built-in definitions ADR 0008 asks for. A pack later in the stack replaces either one.
+ */
+describe('the built-in entity definitions', () => {
+    const entityPack = (identifier: string, width: number): string => {
+        const directory = mkdtempSync(join(tmpdir(), 'jsp-entity-pack-'));
+        temporaryDirs.push(directory);
+        mkdirSync(join(directory, 'entities'));
+        writeFileSync(
+            join(directory, 'manifest.json'),
+            JSON.stringify({
+                format_version: 2,
+                header: { name: 'test', uuid: '0f6f3b55-58d4-4b8f-a0c4-6e2a0a6f9a10', version: [1, 0, 0] },
+                modules: [{ type: 'data', uuid: '6c51e1a5-8f0b-4f7a-9c43-0d9a3a2d7f11', version: [1, 0, 0] }]
+            })
+        );
+        writeFileSync(
+            join(directory, 'entities', 'replaced.json'),
+            JSON.stringify({
+                format_version: '1.26.20',
+                'minecraft:entity': {
+                    description: { identifier, is_spawnable: false, is_summonable: true },
+                    components: { 'minecraft:collision_box': { width, height: width } }
+                }
+            })
+        );
+        return directory;
+    };
+
+    it('declares the dropped item and the eye of ender with their host components', () => {
+        const { entities } = buildServerContent({ stack: [{ kind: 'directory', path: entityOverlayPackPath() }] });
+
+        expect(entities.registry.get('minecraft:item')?.declaredComponents).toContain('jsprismarine:item');
+        expect(entities.registry.get('minecraft:eye_of_ender_signal')?.declaredComponents).toContain(
+            'jsprismarine:eye_of_ender_signal'
+        );
+    });
+
+    it.each(['minecraft:item', 'minecraft:eye_of_ender_signal'])('lets a later pack replace %s', (identifier) => {
+        const { entities } = buildServerContent({
+            stack: [
+                { kind: 'directory', path: entityOverlayPackPath() },
+                { kind: 'directory', path: entityPack(identifier, 0.5) }
+            ]
+        });
+
+        const type = entities.registry.get(identifier);
+        expect(type?.declaredComponents).toEqual(['minecraft:collision_box']);
+    });
+});
+
 describe('vanilla overlay cache fingerprint', () => {
     it('changes when an overlay file changes at the same path', () => {
         const directory = mkdtempSync(join(tmpdir(), 'jsp-overlay-fingerprint-'));

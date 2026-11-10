@@ -1,0 +1,29 @@
+{
+    "format_version": "1.26.20",
+    "minecraft:entity": {
+        "description": {
+            "identifier": "minecraft:eye_of_ender_signal",
+            "is_spawnable": false,
+            "is_summonable": false
+        },
+        "components": {
+            "minecraft:collision_box": {
+                "width": 0.25,
+                "height": 0.25
+            },
+            "minecraft:transient": {},
+            "minecraft:type_family": {
+                "family": ["eye_of_ender_signal"]
+            },
+            "jsprismarine:eye_of_ender_signal": {
+                "too_far_distance": 12,
+                "too_far_signal_height": 8,
+                "lifetime": 80,
+                "speed_lerp": 0.0025,
+                "near_target_damping": 0.8,
+                "vertical_lerp": 0.015,
+                "shatter_rolls": 5
+            }
+        }
+    }
+}
