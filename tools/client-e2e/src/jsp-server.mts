@@ -42,11 +42,21 @@ const tcpPortFree = (port: number): Promise<boolean> =>
         listener.listen(port, '127.0.0.1', () => listener.close(() => resolve(true)));
     });
 
+/** Whether a UDP socket could bind the port on every IPv6 interface right now. */
+export const udp6PortFree = (port: number): Promise<boolean> =>
+    new Promise((resolve) => {
+        const socket = dgram.createSocket({ type: 'udp6', ipv6Only: true });
+        // A host without IPv6 fails the bind with another code, and the server's IPv6 listener
+        // will not bind there either.
+        socket.once('error', (error: NodeJS.ErrnoException) => resolve(error.code !== 'EADDRINUSE'));
+        socket.bind(port, '::', () => socket.close(() => resolve(true)));
+    });
+
 /**
- * Reserves a port the OS considers free right now for UDP and for TCP: the server listens on
- * both, RakNet on UDP and NetherNet's signaling on TCP.
+ * Reserves a port the OS considers free right now for UDP, on IPv4 and IPv6, and for TCP: the
+ * server listens on all three, RakNet on UDP and NetherNet's signaling on TCP.
  */
-const reserveFreeUdpPort = async (): Promise<number> => {
+export const reserveFreeUdpPort = async (): Promise<number> => {
     for (;;) {
         const port = await new Promise<number>((resolve, reject) => {
             const socket = dgram.createSocket('udp4');
@@ -56,7 +66,7 @@ const reserveFreeUdpPort = async (): Promise<number> => {
                 socket.close(() => resolve(port));
             });
         });
-        if (reservedUdpPorts.has(port) || !(await tcpPortFree(port))) continue;
+        if (reservedUdpPorts.has(port) || !(await tcpPortFree(port)) || !(await udp6PortFree(port))) continue;
         reservedUdpPorts.add(port);
         return port;
     }
@@ -135,6 +145,9 @@ export const startServer = async (
         if (reservedUdpPorts.has(port)) throw new Error(`UDP port ${port} is already reserved by this e2e run`);
         reservedUdpPorts.add(port);
     }
+    // The server also listens for IPv6 clients on `server-portv6`, which defaults to 19133 on
+    // every server, so servers started side by side would contend for it.
+    const portV6 = await reserveFreeUdpPort();
     const dir = options.dir ?? fs.mkdtempSync(path.join(os.tmpdir(), 'jsp-e2e-server-'));
     fs.mkdirSync(dir, { recursive: true });
 
@@ -365,6 +378,7 @@ export const startServer = async (
     });
     const config = {
         port: port,
+        'server-portv6': portV6,
         'online-mode': false,
         // Debug, so the transactions and moves the server drops on purpose, and which loading
         // screens the client opened and closed, show in the evidence log.
@@ -479,6 +493,7 @@ export const startServer = async (
     const exited = new Promise<void>((resolve) =>
         child.once('exit', () => {
             reservedUdpPorts.delete(port);
+            reservedUdpPorts.delete(portV6);
             resolve();
         })
     );

@@ -2,7 +2,13 @@ import dgram from 'node:dgram';
 import { once } from 'node:events';
 import { describe, expect, it } from 'vitest';
 
-import { answersRakNetPing, RAKNET_UNCONNECTED_PING, RAKNET_UNCONNECTED_PONG } from './jsp-server.mts';
+import {
+    answersRakNetPing,
+    RAKNET_UNCONNECTED_PING,
+    RAKNET_UNCONNECTED_PONG,
+    reserveFreeUdpPort,
+    udp6PortFree
+} from './jsp-server.mts';
 
 /**
  * RakNet's ids, loaded at run time: the enum that holds them is syntax this package's compiler
@@ -67,5 +73,32 @@ describe('jsp-server', () => {
         } finally {
             silent.close();
         }
+    });
+
+    it('never reserves one port twice', async () => {
+        // Each server takes two ports, its game port and `server-portv6`, so two side by side
+        // must get four.
+        const ports = await Promise.all([
+            reserveFreeUdpPort(),
+            reserveFreeUdpPort(),
+            reserveFreeUdpPort(),
+            reserveFreeUdpPort()
+        ]);
+
+        expect(new Set(ports).size).toBe(ports.length);
+    });
+
+    it('sees a port another socket holds on IPv6 as taken', async () => {
+        const holder = dgram.createSocket({ type: 'udp6', ipv6Only: true });
+        holder.bind(0, '::');
+        await once(holder, 'listening');
+        const { port } = holder.address();
+        try {
+            expect(await udp6PortFree(port)).toBe(false);
+        } finally {
+            holder.close();
+        }
+        await once(holder, 'close');
+        expect(await udp6PortFree(port)).toBe(true);
     });
 });
