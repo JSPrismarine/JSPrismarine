@@ -1,21 +1,15 @@
-import { Event } from '../Event';
+import PlayerEvent from './PlayerEvent';
 import type Player from '../../Player';
 
 /**
  * Fired as the player toggle flying
  */
-export default class PlayerToggleFlightEvent extends Event {
-    private readonly player;
+export default class PlayerToggleFlightEvent extends PlayerEvent {
     private readonly flying: boolean;
 
     public constructor(player: Player, flying: boolean) {
-        super();
-        this.player = player;
+        super(player);
         this.flying = flying;
-    }
-
-    public getPlayer(): Player {
-        return this.player;
     }
 
     public getIsFlying(): boolean {
