@@ -50,23 +50,6 @@ export const DEFAULT_BOX: EntityBox = { width: 1, height: 1 };
 export const PLAYER_BOX: EntityBox = { width: 0.6, height: 1.8 };
 
 /**
- * The boxes of the types the server models that no entity file declares.
- *
- * A dropped stack and an eye of ender in flight are bodies the server makes
- * rather than types a pack describes, so Mojang's behavior pack ships no
- * `item.json` and no `eye_of_ender_signal.json`. The numbers are Java's, which
- * are also what the Bedrock client draws for them. The falling block's box
- * comes from the entities package overlay.
- *
- * Every other type comes from the registry. A row added here is a row the
- * content no longer owns, so the table is meant to stay this short.
- */
-const UNDECLARED_BOXES: Readonly<Record<string, EntityBox>> = {
-    'minecraft:item': { width: 0.25, height: 0.25 },
-    'minecraft:eye_of_ender_signal': { width: 0.25, height: 0.25 }
-};
-
-/**
  * The hitbox of one entity type, from its `minecraft:collision_box`.
  *
  * The server collides bodies against the world with these numbers and the
@@ -77,11 +60,11 @@ const UNDECLARED_BOXES: Readonly<Record<string, EntityBox>> = {
  *
  * @param registry - The entity types of the running content build.
  * @param identifier - The namespaced type, as `Entity.getType` reports it.
- * @returns The declared box, one of {@link UNDECLARED_BOXES}, or
- *   {@link DEFAULT_BOX} for a type nothing describes.
+ * @returns The declared box, or {@link DEFAULT_BOX} for a type nothing describes. A dropped
+ *   stack and an eye of ender declare theirs in the entities package overlay.
  */
 export const boxOf = (registry: Registry<EntityType>, identifier: string): EntityBox =>
-    registry.get(identifier)?.params(collisionBox) ?? UNDECLARED_BOXES[identifier] ?? DEFAULT_BOX;
+    registry.get(identifier)?.params(collisionBox) ?? DEFAULT_BOX;
 
 /**
  * Everything the server reads about an entity that is a number or a name.
