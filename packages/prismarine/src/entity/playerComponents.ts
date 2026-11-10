@@ -180,6 +180,21 @@ export class PlayerComponents {
         if (before !== after) this.written(field, before, after);
     }
 
+    /**
+     * Runs a change made to the attributes behind these fields, such as a respawn's reset, and
+     * reports each field it moved, as {@link PlayerComponents.set} would have.
+     *
+     * @param change - Writes the attributes directly.
+     */
+    public reportingChanges(change: () => void): void {
+        const before = COMPONENT_FIELDS.map((field) => [field, this.get(field)] as const);
+        change();
+        for (const [field, value] of before) {
+            const after = this.get(field);
+            if (value !== after) this.written(field, value, after);
+        }
+    }
+
     /** Every field's value as plain data, by field name, which the replay digest hashes. */
     public snapshot(): PlainRecord {
         return Object.fromEntries(COMPONENT_FIELDS.map((field) => [field, plainOf(this.get(field)) ?? null]));
