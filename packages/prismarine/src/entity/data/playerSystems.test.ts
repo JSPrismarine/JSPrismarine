@@ -393,4 +393,45 @@ describe('a store player', () => {
             expect(components.get('mining.block')).toBeNull();
         });
     });
+
+    describe('death and revival', () => {
+        it('ends the drowning and the mining in the blow that kills it', () => {
+            const fixture = storePlayerFixture();
+            const { player, components } = standingPlayer(fixture);
+            components.set('vitals.drowningTicks', 7);
+            fixture.runtime.playerSystems.setMining(player, {
+                x: 0,
+                y: FLOOR_Y,
+                z: 0,
+                face: 1,
+                runtimeId: 1,
+                progressPerTick: 9
+            });
+
+            fixture.runtime.hurt(player, undefined, 'entity_attack', 50);
+
+            expect(components.get('vitals.drowningTicks')).toBe(0);
+            expect(components.get('mining.block')).toBeNull();
+            expect(fixture.world.levelEvents.map(({ event }) => event)).toEqual([LevelEvent.STOP_BLOCK_CRACKING]);
+        });
+
+        it('comes back fed, with full lungs and a body at rest, and the log says so', () => {
+            const fixture = storePlayerFixture();
+            const { player, components } = standingPlayer(fixture);
+            components.set('vitals.food', 3);
+            components.set('vitals.air', 40);
+            components.set('movement.sprinting', true);
+            fixture.runtime.hurt(player, undefined, 'entity_attack', 50);
+
+            const revival = logged(fixture.runtime, () => {
+                expect(fixture.runtime.revive(player.id)).toBe(true);
+            });
+
+            expect(components.get('vitals.food')).toBe(20);
+            expect(components.get('vitals.air')).toBe(components.maxAir());
+            expect(components.get('movement.sprinting')).toBe(false);
+            expect(fieldsOf(revival, 'vitals.food')).toHaveLength(1);
+            expect(revival.filter((entry) => entry.kind === 'membership')).toHaveLength(0);
+        });
+    });
 });

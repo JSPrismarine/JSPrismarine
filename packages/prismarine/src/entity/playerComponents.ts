@@ -368,6 +368,11 @@ export class PlayerComponents {
         }
     }
 
+    /** Puts every attribute back at its default, as a respawn does, and reports each field it moved. */
+    public resetAttributes(): void {
+        this.reportingChanges(() => this.home.attributes.reset());
+    }
+
     /** Every field's value as plain data, by field name, which the replay digest hashes. */
     public snapshot(): PlainRecord {
         return Object.fromEntries(COMPONENT_FIELDS.map((field) => [field, plainOf(this.get(field)) ?? null]));

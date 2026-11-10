@@ -2244,6 +2244,7 @@ export class EntityRuntime implements EntityScene {
         }
         if (result.died) {
             this.dying.add(entity.id);
+            if (clientOwnsMovement(entity.identifier)) this.playerSystems.died(entity);
             if (damager !== undefined) this.notifyAttackTargetKilled(entity, damager);
         }
 
@@ -2277,7 +2278,8 @@ export class EntityRuntime implements EntityScene {
 
     /**
      * Brings a dead player back, with the same id, at full health (ADR 0008). Its death left it
-     * in the store, so nothing enters or leaves here: the log holds one health entry.
+     * in the store, so nothing enters or leaves here: the log holds one health entry, and one for
+     * each player component the revival resets (`PlayerSystems.revived`).
      *
      * @returns Whether the entity was a dead player that is alive again.
      */
@@ -2290,6 +2292,7 @@ export class EntityRuntime implements EntityScene {
         this.dying.delete(id);
         this.hitGraces.delete(id);
         entity.instance.attributes.set('health', health.max);
+        this.playerSystems.revived(entity);
         return true;
     }
 
