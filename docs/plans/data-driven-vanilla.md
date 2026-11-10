@@ -219,7 +219,7 @@ Every package is below 1.0.0, so by [the versioning policy](https://github.com/J
 - `World.getBlock` returns a block instance for every palette state instead of air for unregistered names.
 - `instanceof Item` and `instanceof Mob` become type queries over families and tags.
 - `BlockStateSchemas`, `BlockRuntimeIds`, `CreativeInventory` and `BlockEntityRegistry` lose their static caches.
-- Recipe net ids are assigned from registry order, and `RecipeManager.registerRecipe` takes a recipe definition.
+- Recipe net ids are assigned from recipe book order. Done: the legacy `RecipeManager`, its stations and the `recipeRegister` event are removed, and a recipe is a pack definition.
 - The roughly 60 tests pinning vanilla numbers become data checks against the goldens.
 - `config.yaml` gains the EULA acceptance setting and the pack stack settings; `world_behavior_packs.json` is honored, and a datapack directory is added beside it.
 

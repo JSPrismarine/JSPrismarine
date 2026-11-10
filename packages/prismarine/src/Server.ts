@@ -21,8 +21,6 @@ import { serverWorldSource } from './content/world/serverSource';
 import { EntityRuntimes } from './entity/data/live';
 import type { LiveEntityRuntime } from './entity/data/live';
 import type { ServerWorldHandle } from './content/world/serverSource';
-import type { StationRegistry } from './crafting/CraftingStation';
-import type RecipeManager from './crafting/RecipeManager';
 import { CommandManager } from './command/CommandManager';
 import { EventEmitter } from './events/EventEmitter';
 import { CreativeInventory } from './inventory/CreativeInventory';
@@ -39,12 +37,11 @@ import { networkModule, ServerNetworking } from './modules/network';
 import type { InboundPacketRecorder } from './network/InboundPacketTrace';
 import type { OutboundPacketRecorder } from './network/OutboundPacketTrace';
 import { permissionsModule } from './modules/permissions';
-import { recipesModule, stationsModule } from './modules/recipes';
 import { socialModule } from './modules/social';
 import { ServerTicker, tickerModule } from './modules/ticker';
 import type { TickRecorder } from './profiling/TickRecorder';
 import type { TickControl } from './modules/ticker';
-import { bansToken, chatToken, permissionsToken, queryToken, recipesToken, stationsToken } from './modules/tokens';
+import { bansToken, chatToken, permissionsToken, queryToken } from './modules/tokens';
 import type { QueryManager } from './query/QueryManager';
 import Timer from './utils/Timer';
 import { worldSeedOf } from './utils/Seed';
@@ -311,8 +308,6 @@ export default class Server extends EventEmitter {
     private buildKernel(): Kernel {
         const kernel = new Kernel({ logger: this.logger });
         kernel.register(permissionsModule(this));
-        kernel.register(recipesModule(this));
-        kernel.register(stationsModule());
         kernel.register(bansModule(this));
         kernel.register(socialModule(this));
         kernel.register(tickerModule(this.ticker));
@@ -882,26 +877,6 @@ export default class Server extends EventEmitter {
      * console.log(server.getConfig().getMaxPlayers()); // 20
      * ```
      */
-    /**
-     * Every recipe the server knows.
-     * @returns {RecipeManager} the manager.
-     * @deprecated Resolve it through the kernel instead: `server.getKernel().get(recipesToken)`,
-     * with `recipesToken` from `@jsprismarine/prismarine/modules/tokens`.
-     */
-    public getRecipeManager(): RecipeManager {
-        return this.kernel.get(recipesToken);
-    }
-
-    /**
-     * Where a player can craft, and what each block does with a grid.
-     * @returns {StationRegistry} the registry.
-     * @deprecated Resolve it through the kernel instead: `server.getKernel().get(stationsToken)`,
-     * with `stationsToken` from `@jsprismarine/prismarine/modules/tokens`.
-     */
-    public getStationRegistry(): StationRegistry {
-        return this.kernel.get(stationsToken);
-    }
-
     public getConfig(): Config {
         return this.config;
     }

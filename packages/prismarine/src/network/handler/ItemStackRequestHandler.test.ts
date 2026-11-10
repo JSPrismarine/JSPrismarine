@@ -1,8 +1,6 @@
 import type { Logger } from '@jsprismarine/logger';
-import { vanillaBlockPalette } from '@jsprismarine/blocks';
 import { Vector3 } from '@jsprismarine/math';
 import { WindowTypes } from '@jsprismarine/minecraft';
-import { item_table as ItemTable, item_tags as ItemTags } from '@jsprismarine/bedrock-data';
 import { vanillaItemDefinitions } from '@jsprismarine/items';
 import { describe, expect, it } from 'vitest';
 
@@ -14,15 +12,11 @@ import {
     fixtureBlockPalette,
     fixtureContentOptions,
     fixtureDefinitions,
-    fixtureItemDefinitions
+    fixtureItemDefinitions,
+    fixtureRecipeContent
 } from '../../content/testing';
 import ContainerEntry from '../../inventory/ContainerEntry';
 import CraftingInput from '../../crafting/CraftingInput';
-import { StationRegistry } from '../../crafting/CraftingStation';
-import { ShapelessRecipe } from '../../crafting/Recipe';
-import RecipeManager from '../../crafting/RecipeManager';
-import { ItemIngredient } from '../../crafting/RecipeIngredient';
-import VanillaRecipes from '../../crafting/VanillaRecipes';
 import type CreativeInventory from '../../inventory/CreativeInventory';
 import HumanInventory from '../../inventory/HumanInventory';
 import { Item } from '../../item/Item';
@@ -99,6 +93,38 @@ const fakeServer = (creative: Item[], overrides: Partial<Server> = {}) => {
         getCreativeInventory: () => menu,
         ...overrides
     });
+};
+
+/** A server whose content holds the fixture recipes plus `recipes`, keyed by Java recipe id. */
+const recipeServer = (recipes: Readonly<Record<string, unknown>>): Server => {
+    const content = fixtureRecipeContent(recipes);
+    return fakeServer([], { getContent: () => content });
+};
+
+/** The net id the crafting packet gave a recipe, which is what a request names it by. */
+const netIdOf = (server: Server, id: string): number => {
+    const netId = server.getContent().recipes.netIds.get(id);
+    if (netId === undefined) throw new Error(`the content has no recipe ${id}`);
+    return netId;
+};
+
+/** Two oak planks make sticks, in whatever count `count` says. */
+const sticksRecipe = (count = 1) => ({
+    'test:sticks': {
+        type: 'minecraft:crafting_shapeless',
+        ingredients: ['minecraft:oak_planks', 'minecraft:oak_planks'],
+        result: { id: 'minecraft:stick', count }
+    }
+});
+
+/** Vanilla's crafting table: any four planks in a square. */
+const craftingTableRecipe = {
+    'minecraft:crafting_table': {
+        type: 'minecraft:crafting_shaped',
+        pattern: ['PP', 'PP'],
+        key: { P: '#minecraft:planks' },
+        result: { id: 'minecraft:crafting_table' }
+    }
 };
 
 const run = async (
@@ -465,8 +491,7 @@ describe('network', () => {
                 })
             );
             const server = fakeServer([], {
-                getContent: () => content,
-                getRecipeManager: () => stub<RecipeManager>({ getByNetId: () => null })
+                getContent: () => content
             });
             const payloads = joinContentPayloads(content, server.getLogger(), {
                 clientPalette: fixtureBlockPalette()
@@ -675,9 +700,7 @@ describe('network', () => {
             // the earlier ones had done - while the client, told only that the whole request
             // failed, put all of it back. A plank left in the crafting grid on the server and
             // not on the screen then made every later craft match a grid nobody could see.
-            const server = fakeServer([], {
-                getRecipeManager: () => stub<RecipeManager>({ getByNetId: () => null })
-            });
+            const server = fakeServer([]);
 
             const inventory = new HumanInventory();
             inventory.setItem(
@@ -768,23 +791,7 @@ describe('network', () => {
             // The whole chain: a recipe registered, a grid filled, the client naming the
             // recipe by number, and the output landing in the inventory.
             const planks = () => new Item({ runtimeId: 1, name: 'minecraft:oak_planks' });
-            const recipe = new ShapelessRecipe(
-                'sticks',
-                'crafting_table',
-                [new ItemIngredient('minecraft:oak_planks'), new ItemIngredient('minecraft:oak_planks')],
-                [new Item({ runtimeId: 2, name: 'minecraft:stick' })]
-            );
-
-            const manager = new RecipeManager({ getLogger: () => ({ debug: () => {} }), emit: async () => {} });
-            await manager.registerRecipe(recipe);
-            const registry = new StationRegistry();
-            const server = stub<Server>({
-                getRecipeManager: () => manager,
-                getStationRegistry: () => registry,
-                getLogger: () => stub<Logger>({ debug: () => {} }),
-                getContent: () => testContent()
-            });
-            registry.registerRecipeStations(server);
+            const server = recipeServer(sticksRecipe());
 
             const craftingInput = new CraftingInput();
             craftingInput.set(0, planks());
@@ -796,7 +803,11 @@ describe('network', () => {
                     {
                         requestId: -3,
                         actions: [
-                            { type: ItemStackRequestActionType.CRAFTING_RECIPE, recipeNetId: 1, repetitions: 1 },
+                            {
+                                type: ItemStackRequestActionType.CRAFTING_RECIPE,
+                                recipeNetId: netIdOf(server, 'test:sticks'),
+                                repetitions: 1
+                            },
                             { type: ItemStackRequestActionType.CRAFTING_CONSUME_INPUT, count: 1, source: craftSlot(0) },
                             { type: ItemStackRequestActionType.CRAFTING_CONSUME_INPUT, count: 1, source: craftSlot(1) },
                             // The result is taken from the created output, as the retail client
@@ -823,137 +834,42 @@ describe('network', () => {
             expect(craftingInput.isEmpty()).toBe(true);
         });
 
-        it('crafts with jungle planks in the lower rows of a table grid', async () => {
-            const base = fixtureDefinitions();
-            const definitions = definitionsOf({
-                ...base,
-                recipesJava: new Map([
-                    ...base.recipesJava,
-                    [
-                        'minecraft:crafting_table',
-                        definitionOf('recipesJava', 'minecraft:crafting_table', {
-                            type: 'minecraft:crafting_shaped',
-                            pattern: ['PP', 'PP'],
-                            key: { P: '#minecraft:planks' },
-                            result: { id: 'minecraft:crafting_table' }
+        it.each([
+            ['minecraft:jungle_planks', [3, 4, 6, 7]],
+            ['minecraft:crimson_planks', [0, 1, 3, 4]],
+            ['minecraft:warped_planks', [0, 1, 3, 4]],
+            ['minecraft:mangrove_planks', [0, 1, 3, 4]]
+        ])(
+            'crafts a crafting table from %s at table slots %j through the shared plank recipe',
+            async (planks, slots) => {
+                const logs: string[] = [];
+                const content = fixtureRecipeContent(craftingTableRecipe);
+                const server = fakeServer([], {
+                    getContent: () => content,
+                    getLogger: () =>
+                        stub<Logger>({
+                            debug: (...values) => void logs.push(values.map(String).join(' ')),
+                            info: () => {},
+                            warn: () => {},
+                            error: (...values) => void logs.push(values.map(String).join(' '))
                         })
-                    ]
-                ]),
-                tags: new Map([
-                    ...base.tags,
-                    [
-                        'item/minecraft:planks',
-                        definitionOf('tags', 'item/minecraft:planks', {
-                            values: ItemTags['minecraft:planks']
-                        })
-                    ]
-                ])
-            });
-            const content = buildServerContent({
-                ...fixtureContentOptions(),
-                blockPalette: vanillaBlockPalette(),
-                itemDefinitions: vanillaItemDefinitions(),
-                load: () => ({ definitions, diagnostics: [] })
-            });
-            // This crafting fixture only declares the blocks used by the handler. The client
-            // still has the full vanilla palette, so give the payload builder that palette
-            // while retaining the fixture's recipes, tags, and item registry.
-            const wireContent = { ...content, blocks: { ...content.blocks, palette: vanillaBlockPalette() } };
-            const logs: string[] = [];
-            const server = fakeServer([], {
-                getContent: () => wireContent,
-                getLogger: () =>
-                    stub<Logger>({
-                        debug: (...values) => void logs.push(values.map(String).join(' ')),
-                        info: () => {},
-                        warn: () => {},
-                        error: (...values) => void logs.push(values.map(String).join(' '))
-                    })
-            });
-            const craftingInput = new CraftingInput();
-            craftingInput.useGrid(CraftingInput.LARGE);
-            for (const index of [3, 4, 6, 7]) {
-                craftingInput.set(index, new Item({ name: 'minecraft:jungle_planks', meta: 0 }));
-            }
-            const inventory = new HumanInventory();
-
-            const response = await run(
-                [
-                    {
-                        requestId: -3,
-                        actions: [
-                            {
-                                type: ItemStackRequestActionType.CRAFTING_RECIPE,
-                                recipeNetId: content.recipes.netIds.get('minecraft:crafting_table'),
-                                repetitions: 1
-                            },
-                            ...[3, 4, 6, 7].map((index) => ({
-                                type: ItemStackRequestActionType.CRAFTING_CONSUME_INPUT,
-                                count: 1,
-                                source: tableSlot(index)
-                            })),
-                            {
-                                type: ItemStackRequestActionType.PLACE,
-                                count: 1,
-                                source: createdOutput,
-                                destination: slot(0)
-                            }
-                        ],
-                        filterStrings: [],
-                        filterStringCause: 0
-                    }
-                ],
-                inventory,
-                server,
-                craftingInput
-            );
-
-            expect(response.responses[0]?.result, logs.join('\n')).toBe(ItemStackResponseResult.OK);
-            expect(inventory.getItem(0).getName()).toBe('minecraft:crafting_table');
-            expect(craftingInput.isEmpty()).toBe(true);
-        });
-
-        it.each(['minecraft:crimson_planks', 'minecraft:warped_planks', 'minecraft:mangrove_planks'])(
-            'crafts a crafting table from %s when the client requests the shared plank recipe',
-            async (planks) => {
-                const recipes = VanillaRecipes.load((name) => ItemTable[name] !== undefined);
-                const recipe = recipes.find(
-                    (candidate) => candidate.id === 'crafting_table/minecraft:WorkBench_recipeId'
-                );
-                if (!recipe) throw new Error('the vanilla shared-plank crafting-table recipe was not loaded');
-
-                const tableRecipes = recipes.filter(
-                    (candidate) =>
-                        candidate.station === 'crafting_table' &&
-                        candidate.getOutputs().some((output) => output.getName() === 'minecraft:crafting_table')
-                );
-                const manager = new RecipeManager({ getLogger: () => ({ debug: () => {} }), emit: async () => {} });
-                for (const tableRecipe of tableRecipes) await manager.registerRecipe(tableRecipe);
-
-                const recipeNetId = manager.getNetId(recipe);
-                if (recipeNetId === null) throw new Error('the shared-plank recipe has no network id');
-
-                const registry = new StationRegistry();
-                const server = stub<Server>({
-                    getRecipeManager: () => manager,
-                    getStationRegistry: () => registry,
-                    getLogger: () => stub<Logger>({ debug: () => {} }),
-                    getContent: () => testContent()
                 });
-                registry.registerRecipeStations(server);
-
                 const craftingInput = new CraftingInput();
                 craftingInput.useGrid(CraftingInput.LARGE);
-                for (const index of [0, 1, 3, 4]) craftingInput.set(index, new Item({ name: planks }));
-
+                for (const index of slots) craftingInput.set(index, new Item({ name: planks, meta: 0 }));
                 const inventory = new HumanInventory();
+
                 const response = await run(
                     [
                         {
                             requestId: -3,
                             actions: [
-                                { type: ItemStackRequestActionType.CRAFTING_RECIPE, recipeNetId, repetitions: 1 },
-                                ...[0, 1, 3, 4].map((index) => ({
+                                {
+                                    type: ItemStackRequestActionType.CRAFTING_RECIPE,
+                                    recipeNetId: netIdOf(server, 'minecraft:crafting_table'),
+                                    repetitions: 1
+                                },
+                                ...slots.map((index) => ({
                                     type: ItemStackRequestActionType.CRAFTING_CONSUME_INPUT,
                                     count: 1,
                                     source: tableSlot(index)
@@ -974,7 +890,7 @@ describe('network', () => {
                     craftingInput
                 );
 
-                expect(response.responses[0]?.result).toBe(ItemStackResponseResult.OK);
+                expect(response.responses[0]?.result, logs.join('\n')).toBe(ItemStackResponseResult.OK);
                 expect(inventory.getItem(0).getName()).toBe('minecraft:crafting_table');
                 expect(craftingInput.isEmpty()).toBe(true);
             }
@@ -982,25 +898,14 @@ describe('network', () => {
 
         describe('a crafted stack', () => {
             /** A server that knows one recipe: a diamond in the grid makes `output`. */
-            const craftingServer = async (output: Item) => {
-                const recipe = new ShapelessRecipe(
-                    'test',
-                    'crafting_table',
-                    [new ItemIngredient('minecraft:diamond')],
-                    [output]
-                );
-                const manager = new RecipeManager({ getLogger: () => ({ debug: () => {} }), emit: async () => {} });
-                await manager.registerRecipe(recipe);
-                const registry = new StationRegistry();
-                const server = stub<Server>({
-                    getRecipeManager: () => manager,
-                    getStationRegistry: () => registry,
-                    getLogger: () => stub<Logger>({ debug: () => {} }),
-                    getContent: () => testContent()
+            const craftingServer = (output: string) =>
+                recipeServer({
+                    'test:diamond': {
+                        type: 'minecraft:crafting_shapeless',
+                        ingredients: ['minecraft:diamond'],
+                        result: { id: output }
+                    }
                 });
-                registry.registerRecipeStations(server);
-                return server;
-            };
 
             /** One craft, taken into inventory slot 0. */
             const craftInto = async (server: Server, inventory: HumanInventory) => {
@@ -1012,7 +917,11 @@ describe('network', () => {
                         {
                             requestId: -3,
                             actions: [
-                                { type: ItemStackRequestActionType.CRAFTING_RECIPE, recipeNetId: 1, repetitions: 1 },
+                                {
+                                    type: ItemStackRequestActionType.CRAFTING_RECIPE,
+                                    recipeNetId: netIdOf(server, 'test:diamond'),
+                                    repetitions: 1
+                                },
                                 {
                                     type: ItemStackRequestActionType.PLACE,
                                     count: 1,
@@ -1033,7 +942,7 @@ describe('network', () => {
             it('reads its tags, so a crafted pickaxe harvests stone', async () => {
                 // A recipe's output is built from the catalog with no content behind it, and
                 // that is where an item reads its tags from.
-                const server = await craftingServer(new Item({ name: 'minecraft:diamond_pickaxe' }));
+                const server = craftingServer('minecraft:diamond_pickaxe');
                 const inventory = new HumanInventory();
 
                 await craftInto(server, inventory);
@@ -1045,7 +954,7 @@ describe('network', () => {
             it('adds a second craft to the stack the first one left', async () => {
                 // The slot's count was raised and its item's was not, and the answer reads the
                 // item's: the client was told the slot still held one.
-                const server = await craftingServer(new Item({ name: 'minecraft:stick' }));
+                const server = craftingServer('minecraft:stick');
                 const inventory = new HumanInventory();
 
                 await craftInto(server, inventory);
@@ -1062,25 +971,9 @@ describe('network', () => {
 
         describe('paying for a craft', () => {
             /** A server that knows one recipe: two planks side by side make four sticks. */
-            const sticksServer = async () => {
-                const recipe = new ShapelessRecipe(
-                    'sticks',
-                    'crafting_table',
-                    [new ItemIngredient('minecraft:oak_planks'), new ItemIngredient('minecraft:oak_planks')],
-                    [new Item({ name: 'minecraft:stick', count: 4 })]
-                );
-                const manager = new RecipeManager({ getLogger: () => ({ debug: () => {} }), emit: async () => {} });
-                await manager.registerRecipe(recipe);
-                const registry = new StationRegistry();
-                const server = stub<Server>({
-                    getRecipeManager: () => manager,
-                    getStationRegistry: () => registry,
-                    getLogger: () => stub<Logger>({ debug: () => {} }),
-                    getContent: () => testContent()
-                });
-                registry.registerRecipeStations(server);
-                return server;
-            };
+            const sticksServer = () => recipeServer(sticksRecipe(4));
+            /** Its net id, which every request below names it by. */
+            const sticksNetId = netIdOf(sticksServer(), 'test:sticks');
 
             /** A grid holding `count` planks in each of its first two slots. */
             const planksGrid = (count: number) => {
@@ -1098,7 +991,7 @@ describe('network', () => {
             ): ItemStackRequest => ({
                 requestId: -3,
                 actions: [
-                    { type, recipeNetId: 1, repetitions },
+                    { type, recipeNetId: sticksNetId, repetitions },
                     ...spent.map(({ slot: index, count }) => ({
                         type: ItemStackRequestActionType.CRAFTING_CONSUME_INPUT,
                         count,
@@ -1124,7 +1017,7 @@ describe('network', () => {
                 const response = await run(
                     [craft(ItemStackRequestActionType.CRAFTING_RECIPE, 1, [{ slot: 0, count: 1 }], 4)],
                     inventory,
-                    await sticksServer(),
+                    sticksServer(),
                     craftingInput
                 );
 
@@ -1151,7 +1044,7 @@ describe('network', () => {
                         )
                     ],
                     inventory,
-                    await sticksServer(),
+                    sticksServer(),
                     craftingInput
                 );
 
@@ -1176,7 +1069,7 @@ describe('network', () => {
                             actions: [
                                 {
                                     type: ItemStackRequestActionType.CRAFTING_RECIPE_AUTO,
-                                    recipeNetId: 1,
+                                    recipeNetId: sticksNetId,
                                     repetitions: 1
                                 },
                                 {
@@ -1196,7 +1089,7 @@ describe('network', () => {
                         }
                     ],
                     inventory,
-                    await sticksServer()
+                    sticksServer()
                 );
 
                 expect(response.responses[0]?.result).toBe(ItemStackResponseResult.OK);
@@ -1222,7 +1115,7 @@ describe('network', () => {
                         )
                     ],
                     inventory,
-                    await sticksServer(),
+                    sticksServer(),
                     planksGrid(1)
                 );
 
@@ -1303,30 +1196,20 @@ describe('network', () => {
 
         it('refuses a recipe the grid does not actually hold', async () => {
             // Believing the client's number would let a player craft anything by naming it.
-            const recipe = new ShapelessRecipe(
-                'sticks',
-                'crafting_table',
-                [new ItemIngredient('minecraft:oak_planks')],
-                [new Item({ runtimeId: 2, name: 'minecraft:stick' })]
-            );
-
-            const manager = new RecipeManager({ getLogger: () => ({ debug: () => {} }), emit: async () => {} });
-            await manager.registerRecipe(recipe);
-            const registry = new StationRegistry();
-            const server = stub<Server>({
-                getRecipeManager: () => manager,
-                getStationRegistry: () => registry,
-                getLogger: () => stub<Logger>({ debug: () => {} }),
-                getContent: () => testContent()
-            });
-            registry.registerRecipeStations(server);
+            const server = recipeServer(sticksRecipe());
 
             const empty = new CraftingInput();
             const response = await run(
                 [
                     {
                         requestId: -9,
-                        actions: [{ type: ItemStackRequestActionType.CRAFTING_RECIPE, recipeNetId: 1, repetitions: 1 }],
+                        actions: [
+                            {
+                                type: ItemStackRequestActionType.CRAFTING_RECIPE,
+                                recipeNetId: netIdOf(server, 'test:sticks'),
+                                repetitions: 1
+                            }
+                        ],
                         filterStrings: [],
                         filterStringCause: 0
                     }

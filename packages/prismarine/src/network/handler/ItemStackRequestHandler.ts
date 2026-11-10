@@ -12,7 +12,6 @@ import type Player from '../../Player';
 import type Server from '../../Server';
 import { advancementItemCrafted } from '../../advancement/triggers';
 import CraftingInput from '../../crafting/CraftingInput';
-import type { RecipeIngredient } from '../../crafting/RecipeIngredient';
 import ContainerEntry from '../../inventory/ContainerEntry';
 import type Inventory from '../../inventory/Inventory';
 import type HumanInventory from '../../inventory/HumanInventory';
@@ -252,12 +251,6 @@ const javaRequirement = (ingredient: JavaIngredient): CraftingRequirement => ({
         const stack = javaStackOf(item);
         return stack !== undefined && ingredientAccepts(ingredient, stack);
     }
-});
-
-/** Makes item requirements from a Bedrock recipe ingredient. */
-const bedrockRequirement = (ingredient: RecipeIngredient): CraftingRequirement => ({
-    count: ingredient.count,
-    matches: (item) => ingredient.matches(item)
 });
 
 /**
@@ -781,10 +774,9 @@ export default class ItemStackRequestHandler implements PacketHandler<ItemStackR
                         }
 
                         // The client says which recipe it believes it is making. The content
-                        // recipe ids are the ids sent in CraftingDataPacket; when that payload
-                        // exists, use its Java recipe book and validate the exact recipe against
-                        // the grid. The older manager is the source only when the content
-                        // payload could not be built and sendCraftingData used that list instead.
+                        // recipe ids are the ids sent in CraftingDataPacket, so the recipe is
+                        // looked up in the Java recipe book behind that payload and validated
+                        // against the grid.
                         const crafts = action.repetitions ?? 1;
                         if (!Number.isSafeInteger(crafts) || crafts < 1) return deny(`invalid craft count ${crafts}`);
 
@@ -797,189 +789,125 @@ export default class ItemStackRequestHandler implements PacketHandler<ItemStackR
                         let costStore: number = ContainerUiId.CRAFTING_INPUT;
                         const ingredients: Item[] = [];
 
-                        if (payloads !== undefined && craftingRecipeCount(payloads.crafting) > 0) {
-                            const advertised = [
-                                ...payloads.crafting.shaped,
-                                ...payloads.crafting.shapeless,
-                                ...payloads.crafting.smithingTransform
-                            ].find((candidate) => candidate.netId === recipeNetId);
-                            if (advertised === undefined)
-                                return deny(`no advertised recipe with net id ${recipeNetId}`);
+                        if (payloads === undefined || craftingRecipeCount(payloads.crafting) === 0) {
+                            return deny('no recipes were advertised to craft from');
+                        }
+                        const advertised = [
+                            ...payloads.crafting.shaped,
+                            ...payloads.crafting.shapeless,
+                            ...payloads.crafting.smithingTransform
+                        ].find((candidate) => candidate.netId === recipeNetId);
+                        if (advertised === undefined) return deny(`no advertised recipe with net id ${recipeNetId}`);
 
-                            const content = server.getContent();
-                            const recipe = content.recipes.get(advertised.id);
-                            if (recipe === undefined || content.recipes.netIds.get(advertised.id) !== recipeNetId) {
-                                return deny(`no Java recipe for advertised net id ${recipeNetId}`);
+                        const content = server.getContent();
+                        const recipe = content.recipes.get(advertised.id);
+                        if (recipe === undefined || content.recipes.netIds.get(advertised.id) !== recipeNetId) {
+                            return deny(`no Java recipe for advertised net id ${recipeNetId}`);
+                        }
+
+                        if (action.type === ItemStackRequestActionType.CRAFTING_RECIPE_AUTO) {
+                            if (recipe.station !== 'crafting') {
+                                return deny(`recipe ${recipe.id} cannot be auto-crafted from inventory`);
                             }
+                            const advertisedOutput =
+                                'outputs' in advertised ? advertised.outputs[0] : advertised.output;
+                            if (advertisedOutput === undefined)
+                                return deny(`the advertised recipe ${recipe.id} has no output`);
+                            const result = recipeResult(recipe);
+                            if (result?.id === undefined)
+                                return deny(`the automatic recipe ${recipe.id} has no static result item`);
+                            const recipeOutput = bedrockRecipeResult(result.id, advertisedOutput, server);
+                            if (recipeOutput === undefined)
+                                return deny(`the result of ${recipe.id} has no Bedrock item mapping`);
 
-                            if (action.type === ItemStackRequestActionType.CRAFTING_RECIPE_AUTO) {
-                                if (recipe.station !== 'crafting') {
-                                    return deny(`recipe ${recipe.id} cannot be auto-crafted from inventory`);
-                                }
-                                const advertisedOutput =
-                                    'outputs' in advertised ? advertised.outputs[0] : advertised.output;
-                                if (advertisedOutput === undefined)
-                                    return deny(`the advertised recipe ${recipe.id} has no output`);
-                                const result = recipeResult(recipe);
-                                if (result?.id === undefined)
-                                    return deny(`the automatic recipe ${recipe.id} has no static result item`);
-                                const recipeOutput = bedrockRecipeResult(result.id, advertisedOutput, server);
-                                if (recipeOutput === undefined)
-                                    return deny(`the result of ${recipe.id} has no Bedrock item mapping`);
-
-                                recipeId = recipe.id;
-                                output = recipeOutput;
-                                cost = new Map();
-                                autoCraftPlan = {
-                                    recipeId,
-                                    crafts,
-                                    requirements: recipeIngredients(recipe).flatMap((ingredient) =>
-                                        ingredient === null ? [] : [javaRequirement(ingredient)]
-                                    ),
-                                    spent: []
-                                };
-                            } else {
-                                let inputItems: (Item | null)[] = [];
-                                let recipeInput: RecipeInput;
-                                if (recipe.station === 'crafting') {
-                                    const grid = craftingInput.toGrid(craftingInput.gridSize());
-                                    inputItems = Array.from({ length: grid.width * grid.height }, (_, slot) => {
-                                        const item = grid.at(slot % grid.width, Math.floor(slot / grid.width));
-                                        return item?.getName() === 'minecraft:air' ? null : item;
-                                    });
-                                    const slots: (RecipeItemStack | null)[] = [];
-                                    for (const [slot, item] of inputItems.entries()) {
-                                        const javaStack = item === null ? null : javaStackOf(item);
-                                        if (javaStack === undefined) {
-                                            return deny(`crafting slot ${slot} has no Java item mapping`);
-                                        }
-                                        slots.push(javaStack);
-                                    }
-                                    recipeInput = {
-                                        station: 'crafting',
-                                        grid: { width: grid.width, height: grid.height, slots }
-                                    };
-                                } else if (
-                                    recipe.station === 'stonecutting' &&
-                                    open?.screen === WindowTypes.STONECUTTER
-                                ) {
-                                    costStore = WORKSTATION;
-                                    const input = open.inputs[0];
-                                    inputItems = [input ?? null];
-                                    const stack = input == null ? null : javaStackOf(input);
-                                    if (stack === undefined)
-                                        return deny('the stonecutter input has no Java item mapping');
-                                    recipeInput = { station: 'stonecutting', item: stack };
-                                } else if (
-                                    recipe.station === 'smithing' &&
-                                    open?.screen === WindowTypes.SMITHING_TABLE
-                                ) {
-                                    costStore = WORKSTATION;
-                                    inputItems = [
-                                        open.inputs[0] ?? null,
-                                        open.inputs[1] ?? null,
-                                        open.inputs[2] ?? null
-                                    ];
-                                    const slots: (RecipeItemStack | null)[] = [];
-                                    for (const [slot, item] of inputItems.entries()) {
-                                        const javaStack = item === null ? null : javaStackOf(item);
-                                        if (javaStack === undefined) {
-                                            return deny(`smithing slot ${slot} has no Java item mapping`);
-                                        }
-                                        slots.push(javaStack);
-                                    }
-                                    recipeInput = {
-                                        station: 'smithing',
-                                        template: slots[0] ?? null,
-                                        base: slots[1] ?? null,
-                                        addition: slots[2] ?? null
-                                    };
-                                } else {
-                                    return deny(`recipe ${recipe.id} requires an open ${recipe.station} station`);
-                                }
-
-                                const matched = content.recipes
-                                    .matchAll(recipeInput)
-                                    .find((candidate) => candidate.recipe.id === recipe.id);
-                                if (matched === undefined) {
-                                    return deny(`the open station inputs do not make advertised recipe ${recipe.id}`);
-                                }
-
-                                const advertisedOutput =
-                                    'outputs' in advertised ? advertised.outputs[0] : advertised.output;
-                                if (advertisedOutput === undefined)
-                                    return deny(`the advertised recipe ${recipe.id} has no output`);
-                                const recipeOutput = bedrockRecipeResult(matched.result.id, advertisedOutput, server);
-                                if (recipeOutput === undefined)
-                                    return deny(`the result of ${recipe.id} has no Bedrock item mapping`);
-
-                                recipeId = recipe.id;
-                                output = recipeOutput;
-                                cost = new Map<number, number>();
-                                matched.consumed.forEach((count, slot) => {
-                                    if (count > 0) cost.set(slot, count * crafts);
-                                });
-                                for (const [slot, amount] of cost) {
-                                    const stack = inputItems[slot];
-                                    if (stack === null || stack === undefined)
-                                        return deny(`input slot ${slot} is empty`);
-                                    if (stack.getAmount() < amount) {
-                                        return deny(`input slot ${slot} holds fewer than ${amount}`);
-                                    }
-                                    ingredients.push(stack);
-                                }
-                            }
+                            recipeId = recipe.id;
+                            output = recipeOutput;
+                            cost = new Map();
+                            autoCraftPlan = {
+                                recipeId,
+                                crafts,
+                                requirements: recipeIngredients(recipe).flatMap((ingredient) =>
+                                    ingredient === null ? [] : [javaRequirement(ingredient)]
+                                ),
+                                spent: []
+                            };
                         } else {
-                            const recipe = server.getRecipeManager().getByNetId(recipeNetId);
-                            if (!recipe) return deny(`no recipe with net id ${recipeNetId}`);
-
-                            if (action.type === ItemStackRequestActionType.CRAFTING_RECIPE_AUTO) {
-                                if (recipe.station !== 'crafting_table') {
-                                    return deny(`recipe ${recipe.id} cannot be auto-crafted from inventory`);
+                            let inputItems: (Item | null)[] = [];
+                            let recipeInput: RecipeInput;
+                            if (recipe.station === 'crafting') {
+                                const grid = craftingInput.toGrid(craftingInput.gridSize());
+                                inputItems = Array.from({ length: grid.width * grid.height }, (_, slot) => {
+                                    const item = grid.at(slot % grid.width, Math.floor(slot / grid.width));
+                                    return item?.getName() === 'minecraft:air' ? null : item;
+                                });
+                                const slots: (RecipeItemStack | null)[] = [];
+                                for (const [slot, item] of inputItems.entries()) {
+                                    const javaStack = item === null ? null : javaStackOf(item);
+                                    if (javaStack === undefined) {
+                                        return deny(`crafting slot ${slot} has no Java item mapping`);
+                                    }
+                                    slots.push(javaStack);
                                 }
-                                const recipeOutput = recipe.getOutputs()[0];
-                                if (!recipeOutput) return deny('the recipe yields nothing');
-
-                                recipeId = recipe.id;
-                                output = recipeOutput;
-                                cost = new Map();
-                                autoCraftPlan = {
-                                    recipeId,
-                                    crafts,
-                                    requirements: recipe.getIngredients().map(bedrockRequirement),
-                                    spent: []
+                                recipeInput = {
+                                    station: 'crafting',
+                                    grid: { width: grid.width, height: grid.height, slots }
+                                };
+                            } else if (recipe.station === 'stonecutting' && open?.screen === WindowTypes.STONECUTTER) {
+                                costStore = WORKSTATION;
+                                const input = open.inputs[0];
+                                inputItems = [input ?? null];
+                                const stack = input == null ? null : javaStackOf(input);
+                                if (stack === undefined) return deny('the stonecutter input has no Java item mapping');
+                                recipeInput = { station: 'stonecutting', item: stack };
+                            } else if (recipe.station === 'smithing' && open?.screen === WindowTypes.SMITHING_TABLE) {
+                                costStore = WORKSTATION;
+                                inputItems = [open.inputs[0] ?? null, open.inputs[1] ?? null, open.inputs[2] ?? null];
+                                const slots: (RecipeItemStack | null)[] = [];
+                                for (const [slot, item] of inputItems.entries()) {
+                                    const javaStack = item === null ? null : javaStackOf(item);
+                                    if (javaStack === undefined) {
+                                        return deny(`smithing slot ${slot} has no Java item mapping`);
+                                    }
+                                    slots.push(javaStack);
+                                }
+                                recipeInput = {
+                                    station: 'smithing',
+                                    template: slots[0] ?? null,
+                                    base: slots[1] ?? null,
+                                    addition: slots[2] ?? null
                                 };
                             } else {
-                                const station = server.getStationRegistry().get(recipe.station);
-                                if (!station) return deny(`no station for recipe ${action.recipeNetId}`);
+                                return deny(`recipe ${recipe.id} requires an open ${recipe.station} station`);
+                            }
 
-                                const grid = craftingInput.toGrid(craftingInput.gridSize());
-                                const matched = station.match(grid);
-                                if (matched !== recipe) {
-                                    const held = Array.from({ length: grid.width * grid.height }, (_, index) =>
-                                        grid.at(index % grid.width, Math.floor(index / grid.width))
-                                    )
-                                        .map((item) => item?.getName().replace('minecraft:', '') ?? '-')
-                                        .join(' ');
+                            const matched = content.recipes
+                                .matchAll(recipeInput)
+                                .find((candidate) => candidate.recipe.id === recipe.id);
+                            if (matched === undefined) {
+                                return deny(`the open station inputs do not make advertised recipe ${recipe.id}`);
+                            }
 
-                                    return deny(
-                                        `the grid does not make ${recipe.id}: ${grid.width}x${grid.height} holding [${held}], ` +
-                                            `matched ${matched?.id ?? 'nothing'}`
-                                    );
+                            const advertisedOutput =
+                                'outputs' in advertised ? advertised.outputs[0] : advertised.output;
+                            if (advertisedOutput === undefined)
+                                return deny(`the advertised recipe ${recipe.id} has no output`);
+                            const recipeOutput = bedrockRecipeResult(matched.result.id, advertisedOutput, server);
+                            if (recipeOutput === undefined)
+                                return deny(`the result of ${recipe.id} has no Bedrock item mapping`);
+
+                            recipeId = recipe.id;
+                            output = recipeOutput;
+                            cost = new Map<number, number>();
+                            matched.consumed.forEach((count, slot) => {
+                                if (count > 0) cost.set(slot, count * crafts);
+                            });
+                            for (const [slot, amount] of cost) {
+                                const stack = inputItems[slot];
+                                if (stack === null || stack === undefined) return deny(`input slot ${slot} is empty`);
+                                if (stack.getAmount() < amount) {
+                                    return deny(`input slot ${slot} holds fewer than ${amount}`);
                                 }
-
-                                const recipeOutput = recipe.getOutputs()[0];
-                                if (!recipeOutput) return deny('the recipe yields nothing');
-
-                                recipeId = recipe.id;
-                                output = recipeOutput;
-                                cost = new Map();
-                                for (let slot = 0; slot < CraftingInput.SLOTS; slot++) {
-                                    const stack = craftingInput.get(slot);
-                                    if (stack === null || stack.getName() === 'minecraft:air') continue;
-                                    cost.set(slot, crafts);
-                                    ingredients.push(stack);
-                                }
+                                ingredients.push(stack);
                             }
                         }
 

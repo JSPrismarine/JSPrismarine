@@ -16,7 +16,6 @@ import type Server from '../Server';
 import type { Config } from '../config/Config';
 import { buildServerContent } from '../content/ServerContent';
 import { fixtureBlockPalette, fixtureContentOptions } from '../content/testing';
-import type RecipeManager from '../crafting/RecipeManager';
 import CreativeInventory from '../inventory/CreativeInventory';
 import type { StubMembers } from '../testing/stub.test.helper';
 import { stub } from '../testing/stub.test.helper';
@@ -164,19 +163,13 @@ describe('PlayerSession', () => {
     });
 
     describe('sendCraftingData', () => {
-        it('sends the recipe manager list when no content was built', async () => {
-            const recipes = stub<RecipeManager>({ getRecipes: () => [], getNetId: () => 0 });
-            const { session, sent } = sessionFor(captureServer({ getRecipeManager: () => recipes }));
+        it('sends no recipes when the content build produced no crafting payload', async () => {
+            // The test content's palette is not the client's, so no payload can be built from it.
+            const { session, sent } = sessionFor(captureServer());
 
             await session.sendCraftingData();
 
-            expect(craftingData(sent)).toEqual({
-                shaped: [],
-                shapeless: [],
-                smithingTransform: [],
-                potionMixes: [],
-                cleanRecipes: true
-            });
+            expect(sent.some((packet) => packet instanceof CraftingDataPacket)).toBe(false);
         });
 
         it('sends the compiled recipes when there is a content build', async () => {

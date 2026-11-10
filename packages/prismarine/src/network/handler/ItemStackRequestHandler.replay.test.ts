@@ -1,5 +1,4 @@
 import { item_table as ItemTable } from '@jsprismarine/bedrock-data';
-import { BlockPalette } from '@jsprismarine/blocks';
 import type { Logger } from '@jsprismarine/logger';
 import fs from 'node:fs';
 import { describe, expect, it } from 'vitest';
@@ -7,13 +6,10 @@ import { describe, expect, it } from 'vitest';
 import type Player from '../../Player';
 import type Server from '../../Server';
 import CraftingInput from '../../crafting/CraftingInput';
-import type { CraftingStation, StationRegistry } from '../../crafting/CraftingStation';
-import type { Recipe } from '../../crafting/Recipe';
-import type RecipeManager from '../../crafting/RecipeManager';
+import { fixtureRecipeContent } from '../../content/testing';
 import ContainerEntry from '../../inventory/ContainerEntry';
 import HumanInventory from '../../inventory/HumanInventory';
 import { Item } from '../../item/Item';
-import { testContent } from '../../testing/entityServer';
 import { stub } from '../../testing/stub.test.helper';
 import { Position } from '../../world/Position';
 import type { World } from '../../world/World';
@@ -32,8 +28,9 @@ import ItemStackRequestHandler from './ItemStackRequestHandler';
  * Drops and blocks placed travel as legacy transactions instead; their `set` lines say what
  * each left in its slot, so the replay holds what BDS held.
  *
- * Recipes are named by BDS's numbers, which this server does not share yet, so each line
- * also says what that number makes; the replay hands the handler that recipe.
+ * Recipes are named by BDS's numbers, which this server does not share, so each line also says
+ * which recipe that number is; the replay renames it to the net id this server's crafting packet
+ * gave the same Java recipe, and the handler matches the grid against that recipe.
  */
 const FIXTURE = new URL('./__fixtures__/bds-1.26.52-item-stack-requests.ndjson', import.meta.url);
 
@@ -56,14 +53,41 @@ const lines = fs
 const itemOf = ({ name, count, meta, blockRuntimeId }: Omit<StackLine, 'slot' | 'stackNetworkId'>): Item =>
     new Item({ runtimeId: ItemTable[name]?.runtime_id ?? 0, name, meta, count, blockRuntimeId });
 
-/** A recipe as far as the handler looks at it: its station and what it makes. */
-const recipeOf = (line: Record<string, unknown>): Recipe =>
-    stub<Recipe>({
-        id: String(line.id),
-        station: 'crafting_table',
-        // Parsed JSON again, written by the fixture builder in this shape.
-        getOutputs: () => [itemOf(line.output as StackLine)]
-    });
+/** The Java recipe each of BDS's recipe ids in the recording is. */
+const JAVA_RECIPE_OF: Readonly<Record<string, string>> = {
+    'minecraft:wooden_pickaxe': 'minecraft:wooden_pickaxe',
+    'minecraft:stick': 'minecraft:stick',
+    WoodPressurePlate_recipeId: 'minecraft:oak_pressure_plate',
+    'minecraft:WorkBench_recipeId': 'minecraft:crafting_table'
+};
+
+/** Those Java recipes, as vanilla's data pack writes them. */
+const JAVA_RECIPES = {
+    'minecraft:wooden_pickaxe': {
+        type: 'minecraft:crafting_shaped',
+        pattern: ['XXX', ' # ', ' # '],
+        key: { '#': 'minecraft:stick', X: '#minecraft:planks' },
+        result: { id: 'minecraft:wooden_pickaxe' }
+    },
+    'minecraft:stick': {
+        type: 'minecraft:crafting_shaped',
+        pattern: ['#', '#'],
+        key: { '#': '#minecraft:planks' },
+        result: { id: 'minecraft:stick', count: 4 }
+    },
+    'minecraft:oak_pressure_plate': {
+        type: 'minecraft:crafting_shaped',
+        pattern: ['##'],
+        key: { '#': 'minecraft:oak_planks' },
+        result: { id: 'minecraft:oak_pressure_plate' }
+    },
+    'minecraft:crafting_table': {
+        type: 'minecraft:crafting_shaped',
+        pattern: ['##', '##'],
+        key: { '#': '#minecraft:planks' },
+        result: { id: 'minecraft:crafting_table' }
+    }
+};
 
 /** An answer as both sides are compared: which request, whether it was accepted, and the slots. */
 interface Answer {
@@ -126,31 +150,21 @@ const replay = async () => {
         seeded.set(inventory.assignStackNetworkId(item), stack.stackNetworkId);
     }
 
-    const recipes = new Map(
-        lines.filter((line) => line.kind === 'recipe').map((line) => [Number(line.netId), recipeOf(line)])
+    const content = fixtureRecipeContent(JAVA_RECIPES);
+    // BDS's number for each recipe in the recording, to this server's.
+    const netIds = new Map(
+        lines
+            .filter((line) => line.kind === 'recipe')
+            .map((line) => {
+                const java = JAVA_RECIPE_OF[String(line.id)];
+                const netId = java === undefined ? undefined : content.recipes.netIds.get(java);
+                if (netId === undefined) throw new Error(`the replay has no recipe for BDS's ${String(line.id)}`);
+                return [Number(line.netId), netId] as const;
+            })
     );
-    // The recipe the request last named, which the station then says the grid makes: what is
-    // under test is what the handler does with a craft, not which recipe a grid matches.
-    let named: Recipe | null = null;
-    const content = testContent();
-    // The recording uses the legacy recipe manager's ids. Make the content packet build fail
-    // as it can at startup, so sendCraftingData and this handler both use that same recipe list.
-    const unavailablePayloadContent = {
-        ...content,
-        blocks: { ...content.blocks, palette: new BlockPalette([]) }
-    };
     const server: Server = stub<Server>({
         getLogger: () => stub<Logger>({ debug: () => {}, info: () => {}, warn: () => {}, error: () => {} }),
-        // A finished craft raises `recipe_crafted`, which asks for the server's content.
-        getContent: () => unavailablePayloadContent,
-        getRecipeManager: () =>
-            stub<RecipeManager>({
-                getByNetId: (netId: number) => (named = recipes.get(netId) ?? null)
-            }),
-        getStationRegistry: () =>
-            stub<StationRegistry>({
-                get: () => stub<CraftingStation>({ match: () => named })
-            })
+        getContent: () => content
     });
 
     const sent: NetworkPacket[] = [];
@@ -181,6 +195,11 @@ const replay = async () => {
         } else if (line.kind === 'request') {
             const packet = new ItemStackRequestPacket(Buffer.from(String(line.payload), 'base64'));
             packet.decode();
+            for (const request of packet.requests) {
+                for (const action of request.actions) {
+                    if (action.recipeNetId !== undefined) action.recipeNetId = netIds.get(action.recipeNetId);
+                }
+            }
             await new ItemStackRequestHandler().handle(packet, server, session);
         }
     }

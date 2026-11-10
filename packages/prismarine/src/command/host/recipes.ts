@@ -77,8 +77,7 @@ export const changeRecipes = (
     give: boolean
 ): number => {
     const all = recipe === ALL_RECIPES;
-    const recipes = book.recipes.length > 0 ? book.recipes : server.getRecipeManager().getRecipes();
-    const ids = recipes.map((entry) => entry.id);
+    const ids = book.recipes.map((entry) => entry.id);
     if (!all && !ids.includes(recipe)) refuse(`There is no recipe called ${recipe}`);
 
     const changedIds = all ? ids : [recipe];
