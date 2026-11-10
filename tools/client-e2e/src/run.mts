@@ -17,7 +17,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { parseArgs } from 'node:util';
 
-import { ensureCinnabar } from './cinnabar.mts';
+import { ensureCinnabar, parseTransport } from './cinnabar.mts';
 import { CinnabarClient } from './client.mts';
 import { startServer } from './jsp-server.mts';
 import type { ScenarioResult } from './retry.mts';
@@ -124,6 +124,7 @@ const { values, positionals } = parseArgs({
         artifacts: { type: 'string' },
         port: { type: 'string' },
         protocol: { type: 'string' },
+        transport: { type: 'string', default: 'raknet' },
         'compression-algorithm': { type: 'string', default: 'snappy' },
         'raknet-worker': { type: 'boolean', default: true },
         concurrency: { type: 'string', default: '2' }
@@ -178,6 +179,7 @@ const protocolVersion = values.protocol === undefined ? undefined : Number(value
 if (protocolVersion !== undefined && (!Number.isSafeInteger(protocolVersion) || protocolVersion <= 0)) {
     throw new Error('--protocol must be a positive integer');
 }
+const transport = parseTransport(values.transport);
 const compressionAlgorithm = (() => {
     switch (values['compression-algorithm']) {
         case 'zlib':
@@ -204,8 +206,10 @@ if (requestedPort !== undefined && concurrency > 1 && selectedSuites.length > 1)
 }
 
 console.log('ensuring the pinned cinnabar build (the first run clones and compiles it)...');
-const cinnabar = ensureCinnabar(protocolVersion);
-console.log(`client targets Bedrock ${cinnabar.target.gameVersion} (protocol ${cinnabar.target.wireProtocol})`);
+const cinnabar = ensureCinnabar(protocolVersion, transport);
+console.log(
+    `client targets Bedrock ${cinnabar.target.gameVersion} (protocol ${cinnabar.target.wireProtocol}) over ${transport}`
+);
 
 const serverLogs: string[] = new Array(selectedSuites.length);
 
@@ -329,6 +333,7 @@ const runSuite = async (suite: ScenarioSuite, index: number): Promise<ScenarioRe
             port: requestedPort,
             compressionAlgorithm,
             raknetWorker: values['raknet-worker'],
+            transport,
             profile: suite.scenarios.some((scenario) => scenario.serverOptions?.profile === true),
             ...(suite.scenarios.some((scenario) => scenario.serverOptions?.preloadRadius !== undefined)
                 ? {
@@ -607,7 +612,7 @@ if (process.env.GITHUB_STEP_SUMMARY) {
     fs.appendFileSync(
         process.env.GITHUB_STEP_SUMMARY,
         [
-            `## Client e2e (cinnabar ${cinnabar.target.gameVersion}, protocol ${cinnabar.target.wireProtocol})`,
+            `## Client e2e (cinnabar ${cinnabar.target.gameVersion}, protocol ${cinnabar.target.wireProtocol}, ${transport})`,
             '',
             '| scenario | result | note |',
             '| --- | --- | --- |',

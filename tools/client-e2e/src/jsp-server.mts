@@ -6,12 +6,15 @@ import type { ChildProcess } from 'node:child_process';
 import { spawn } from 'node:child_process';
 import dgram from 'node:dgram';
 import fs from 'node:fs';
+import net from 'node:net';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { OFFLINE_MESSAGE_DATA_ID } from '../../../packages/raknet/src/Constants.ts';
 import { chunkWorkerCount } from '../../../packages/prismarine/src/world/generators/chunkConcurrency.ts';
 import { repoRoot } from './cinnabar.mts';
+import type { ClientTransport } from './cinnabar.mts';
 
 /** A running scratch server: its address, console, log stream, and shutdown. */
 export interface JspServer {
@@ -31,7 +34,18 @@ export interface JspServer {
 /** Ports reserved by servers this process is starting or running. */
 const reservedUdpPorts = new Set<number>();
 
-/** Reserves a UDP port the OS considers free right now. */
+/** Whether a TCP listener could bind the port right now. */
+const tcpPortFree = (port: number): Promise<boolean> =>
+    new Promise((resolve) => {
+        const listener = net.createServer();
+        listener.once('error', () => resolve(false));
+        listener.listen(port, '127.0.0.1', () => listener.close(() => resolve(true)));
+    });
+
+/**
+ * Reserves a port the OS considers free right now for UDP and for TCP: the server listens on
+ * both, RakNet on UDP and NetherNet's signaling on TCP.
+ */
 const reserveFreeUdpPort = async (): Promise<number> => {
     for (;;) {
         const port = await new Promise<number>((resolve, reject) => {
@@ -42,11 +56,44 @@ const reserveFreeUdpPort = async (): Promise<number> => {
                 socket.close(() => resolve(port));
             });
         });
-        if (reservedUdpPorts.has(port)) continue;
+        if (reservedUdpPorts.has(port) || !(await tcpPortFree(port))) continue;
         reservedUdpPorts.add(port);
         return port;
     }
 };
+
+/**
+ * RakNet's unconnected ping and pong ids. `MessageIdentifiers` is an enum, which Node cannot
+ * strip from TypeScript, so they are repeated here; `jsp-server.test.mts` holds them to it.
+ */
+export const RAKNET_UNCONNECTED_PING = 0x01;
+export const RAKNET_UNCONNECTED_PONG = 0x1c;
+
+/** How long a RakNet ping waits for a pong before the port counts as not speaking RakNet. */
+const RAKNET_SILENCE_MS = 2_000;
+
+/**
+ * Whether anything answers a RakNet unconnected ping on the port. A server with RakNet on answers
+ * within a tick of its socket; a NetherNet-only server sends nothing back.
+ */
+export const answersRakNetPing = (port: number): Promise<boolean> =>
+    new Promise((resolve) => {
+        const socket = dgram.createSocket('udp4');
+        const finish = (answered: boolean): void => {
+            clearTimeout(timer);
+            socket.close();
+            resolve(answered);
+        };
+        const timer = setTimeout(() => finish(false), RAKNET_SILENCE_MS);
+        socket.on('message', (message) => {
+            if (message[0] === RAKNET_UNCONNECTED_PONG) finish(true);
+        });
+        // Unconnected ping: id, the sender's time, the offline magic, the sender's guid.
+        const ping = Buffer.alloc(1 + 8 + OFFLINE_MESSAGE_DATA_ID.byteLength + 8);
+        ping[0] = RAKNET_UNCONNECTED_PING;
+        OFFLINE_MESSAGE_DATA_ID.copy(ping, 9);
+        socket.send(ping, port, '127.0.0.1');
+    });
 
 /**
  * Starts a scratch server from source or the built workspace output, then waits until it listens.
@@ -58,6 +105,9 @@ const reserveFreeUdpPort = async (): Promise<number> => {
  *   the only option that leaves natural spawning on.
  * @param options.compressionAlgorithm - Batch algorithm advertised to the client. Defaults to Snappy.
  * @param options.raknetWorker - Runs RakNet socket and reliability work in a worker thread.
+ * @param options.transport - How the client joins. `nethernet` turns RakNet off, so the client's
+ *   probe finds NetherNet signaling and nothing to fall back to, and the boot fails if the port
+ *   still answers a RakNet ping. Defaults to RakNet.
  * @param options.profile - Enables Node DevTools and preserves the shutdown trace for inspection.
  * @param options.preloadRadius - Chunks around spawn to generate and keep resident before listening.
  * @param options.worldgenSpawn - Boots the normal Overworld at seed 1234 for spawn testing.
@@ -71,6 +121,7 @@ export const startServer = async (
         naturalCowSpawning?: boolean;
         compressionAlgorithm?: 'zlib' | 'snappy' | 'none';
         raknetWorker?: boolean;
+        transport?: ClientTransport;
         profile?: boolean;
         preloadRadius?: number;
         worldgenSpawn?: boolean;
@@ -320,6 +371,10 @@ export const startServer = async (
         'log-level': 'debug',
         'packet-compression-algorithm': options.compressionAlgorithm ?? 'snappy',
         'use-raknet-worker': options.raknetWorker ?? true,
+        ...(options.transport === 'nethernet' ? { 'enable-raknet': false } : {}),
+        // UDP 7551 is one fixed port per machine, and concurrent suites would contend for it. The
+        // client joins by address, which needs none of it.
+        'enable-lan-visibility': false,
         // The natural-spawn suite leaves spawning on for its cows, and the flat world's surface
         // sits below y 40, where a slime chunk spawns slimes in daylight. A slime killed the
         // survival player while the scenario sprinted ticks. Every monster's spawn rule has a
@@ -439,13 +494,22 @@ export const startServer = async (
         });
 
     const seconds = options.seconds ?? 120;
+    // Registered with the listening wait: signaling binds its TCP port after that line prints.
+    const signaling =
+        options.transport === 'nethernet'
+            ? waitForLine(/NetherNet clients can join by address/, seconds * 1000)
+            : Promise.resolve();
     try {
         await Promise.race([
-            waitForLine(/now listening on port/, seconds * 1000),
+            Promise.all([waitForLine(/now listening on port/, seconds * 1000), signaling]),
             exited.then(() => {
                 throw new Error(`server exited during startup; output ends with: ${lines.slice(-10).join('\n')}`);
             })
         ]);
+        // A NetherNet run proves nothing if the client could have fallen back to RakNet.
+        if (options.transport === 'nethernet' && (await answersRakNetPing(port))) {
+            throw new Error(`the NetherNet server answered a RakNet ping on UDP port ${port}; RakNet must be off`);
+        }
     } catch (error) {
         if (child.exitCode === null && child.signalCode === null) {
             const killer = setTimeout(() => child.kill('SIGKILL'), 15_000);

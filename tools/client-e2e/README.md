@@ -23,6 +23,9 @@ pnpm --filter @jsprismarine/client-e2e run ensure
 # Select a protocol explicitly when testing a particular server version.
 pnpm --filter @jsprismarine/client-e2e run ensure -- --protocol 2193
 
+# Build a protocol's NetherNet pin instead of its RakNet one.
+pnpm --filter @jsprismarine/client-e2e run ensure -- --protocol 2225 --transport nethernet
+
 # Run every scenario, or a selection. Independent suites run two at a time by default.
 pnpm run e2e:client
 pnpm run e2e:client movement chat
@@ -30,11 +33,18 @@ pnpm run e2e:client:dist spawn movement
 JSP_E2E_FULL_FLUSH_FRAGMENTS=1 pnpm run e2e:client:dist spawn movement
 pnpm run e2e:client -- --protocol 2193 movement chat
 pnpm run e2e:client -- --compression-algorithm zlib movement chat
+pnpm run e2e:client -- --protocol 2225 --transport nethernet spawn
 pnpm run e2e:client -- --concurrency 1 --record --artifacts /tmp/evidence
 ```
 
 `--compression-algorithm` selects the algorithm the scratch server advertises: `snappy` (the
 default), `zlib`, or `none`.
+
+`--transport nethernet` runs the protocol's NetherNet pin against a scratch server with RakNet
+turned off. Cinnabar has no transport setting: like the game, it probes the address for NetherNet
+signaling on the TCP side of the port and falls back to RakNet, so with RakNet off the join goes
+over NetherNet or fails. The default, `raknet`, leaves the server's NetherNet on, so the client
+may join over either.
 
 The scratch server runs RakNet on a worker thread, so a tick that overruns its budget does not
 stop it answering the client's keepalives and acknowledgements, and the client keeps its session
@@ -59,12 +69,14 @@ server log per suite) and exits non-zero when any scenario fails. The root `pnpm
 command also collects V8 coverage from the server processes and writes an LCOV report to
 `coverage/client-e2e/lcov.info`.
 
-In CI, `.github/workflows/client-e2e.yml` builds a matrix from every BDS protocol in
-`packages/bedrock-data/sources.json` and runs the full suite with the compatibility default (`zlib`)
+In CI, `.github/workflows/client-e2e.yml` builds a matrix from every cinnabar pin of a BDS protocol
+in `packages/bedrock-data/sources.json`, listed by `src/pin-matrix.mts`, and runs the full suite with the compatibility default (`zlib`)
 on `ubuntu-latest` for each one, with the client rendering through Mesa's software Vulkan driver on
 a virtual X display. The job runs as many suites at once as the runner's cores and memory allow. A second matrix runs the full suite with `snappy` and `none` across every
 supported protocol, covering retail-client negotiation without duplicating the `zlib` jobs. Each
-protocol job uploads evidence and an LCOV report to Codecov. A preceding job builds each
+pin's job uploads evidence and an LCOV report to Codecov. A NetherNet pin's build and e2e jobs set
+`continue-on-error`, so they report a failure without failing the run until NetherNet works end to
+end in both the server and cinnabar. A preceding job builds each
 pinned client that has no cached build. It restores cargo's compiled dependencies from the closest
 earlier build, its own protocol's first and then any other, so a pin bump compiles only the crates
 that changed, and it links with `mold`. Locally, source checkouts live
@@ -96,7 +108,12 @@ the scenarios those files define. A push to `master` and a manual run keep every
 
 ## Version pin
 
-`cinnabar.json` pins a cinnabar commit for each wire protocol. `ensure` cross-checks the selected
+`cinnabar.json` pins a cinnabar commit for each wire protocol in `commit`, the RakNet pin, and may
+pin another in `nethernet.commit` for NetherNet runs. Bedrock 1.26.60 joins over NetherNet only,
+so new protocols will carry a NetherNet pin, and a protocol may have it alone. The NetherNet pin
+for 2225 is a cinnabar development commit rather than a release, because no release joins over
+NetherNet reliably yet. A NetherNet pin's checkout and build cache are named `v<protocol>-nethernet`
+instead of `v<protocol>`. `ensure` cross-checks the selected
 pin's Bedrock target (`assets/bedrock-target.json` in the checkout) against the requested protocol
 and the protocols this checkout serves. The matrix fails if a newly supported protocol has no
 cinnabar pin. Point `JSP_CINNABAR_PATH` at an existing cinnabar checkout to skip the clone (offline,
