@@ -5,11 +5,12 @@ import RespawnPacket from '@jsprismarine/protocol/packet/RespawnPacket';
 import type { Vector3 } from '@jsprismarine/math';
 import { DisconnectReason } from '@jsprismarine/minecraft';
 import StartGamePacket from '@jsprismarine/protocol/packet/StartGamePacket';
-import type { Player, PlayerSession } from '../../';
+import type { PlayerSession } from '../../';
 import { eyePositionAt } from '../../entity/Human';
 import { syncActorPropertyPacket } from '../actorProperties';
 import type Server from '../../Server';
 import type { Level } from '../../world/Level';
+import type { PlayerSpawn } from '../../world/SpawnPlacement';
 import ChatEvent from '../../events/chat/ChatEvent';
 import PlayerSpawnEvent from '../../events/player/PlayerSpawnEvent';
 import AvailableActorIdentifiersPacket from '@jsprismarine/protocol/packet/AvailableActorIdentifiersPacket';
@@ -27,6 +28,18 @@ import { overworldSpawnOf, playerSpawnPositionPacket } from '../spawnPosition';
 import { createStartGameData } from '../startGameData';
 import { sendCachedJoinPacket } from '../joinPacketCache';
 import type PacketHandler from './PacketHandler';
+import type { KickedPlayer, PlacedPlayer } from './playerPorts';
+
+/**
+ * The joining player as the join burst reads it. The burst also hands `session.getPlayer()` to
+ * the spawn event, `StartGame` and the spawn position, which take a legacy player.
+ */
+interface JoiningPlayer extends Pick<PlacedPlayer, 'getWorld'> {
+    /** Where the join placed the player, or null for a player returning to a saved position. */
+    getJoinSpawn(): PlayerSpawn | null;
+    /** Sends the player's game mode, adventure settings and abilities. */
+    sendSettings(): Promise<void>;
+}
 
 /**
  * Drives the end of the login exchange, from the client's answer about resource packs to the
@@ -49,7 +62,7 @@ export default class ResourcePackClientResponseHandler implements PacketHandler<
      * None for a player returning to a saved position. What BDS sends then has not been
      * measured, and this server sent none before.
      */
-    private static joinRespawns(player: Player): Array<[Vector3, PlayerRespawnState, bigint]> {
+    private static joinRespawns(player: JoiningPlayer): Array<[Vector3, PlayerRespawnState, bigint]> {
         const joinSpawn = player.getJoinSpawn();
         if (joinSpawn === null) return [];
 
@@ -134,12 +147,13 @@ export default class ResourcePackClientResponseHandler implements PacketHandler<
         server: Server,
         session: PlayerSession
     ): Promise<void> {
-        const player = session.getPlayer();
+        const player: KickedPlayer = session.getPlayer();
+        const { name } = session.identity;
         const logger = server.getLogger();
         const response = packet.getPacketData();
 
         if (response === null) {
-            logger.debug(`${player.getName()} sent an empty resource pack response; dropped`);
+            logger.debug(`${name} sent an empty resource pack response; dropped`);
             return;
         }
 
@@ -150,7 +164,7 @@ export default class ResourcePackClientResponseHandler implements PacketHandler<
 
             case ResourcePackStatus.SendPacks:
                 logger.debug(
-                    `${player.getName()} asked for ${response.packIds.length} resource pack(s); the server offers none`,
+                    `${name} asked for ${response.packIds.length} resource pack(s); the server offers none`,
                     'ResourcePackClientResponseHandler/handle'
                 );
                 await player.kick(
@@ -162,7 +176,7 @@ export default class ResourcePackClientResponseHandler implements PacketHandler<
             case ResourcePackStatus.HaveAllPacks: {
                 if (this.joined.has(session)) {
                     logger.debug(
-                        `${player.getName()} said it had all packs after its join started; dropped`,
+                        `${name} said it had all packs after its join started; dropped`,
                         'ResourcePackClientResponseHandler/handle'
                     );
                     return;
@@ -184,7 +198,7 @@ export default class ResourcePackClientResponseHandler implements PacketHandler<
             case ResourcePackStatus.Completed:
                 if (this.joined.has(session)) {
                     logger.debug(
-                        `${player.getName()} completed the resource packs twice; the second was dropped`,
+                        `${name} completed the resource packs twice; the second was dropped`,
                         'ResourcePackClientResponseHandler/handle'
                     );
                     return;
@@ -201,7 +215,7 @@ export default class ResourcePackClientResponseHandler implements PacketHandler<
 
             default:
                 logger.debug(
-                    `Dropped a resource pack response with unknown status ${response.status} from ${player.getName()}`,
+                    `Dropped a resource pack response with unknown status ${response.status} from ${name}`,
                     'ResourcePackClientResponseHandler/handle'
                 );
         }
@@ -244,21 +258,21 @@ export default class ResourcePackClientResponseHandler implements PacketHandler<
      *   spawning and throws away what step 6 told it.
      */
     private async sendJoinBurst(server: Server, session: PlayerSession): Promise<void> {
-        const player = session.getPlayer();
+        const player: JoiningPlayer = session.getPlayer();
+        const { identity } = session;
+        const connection = session.getConnection();
+        const address = connection.getAddress();
         server
             .getLogger()
             .info(
-                `§b${player.getName()}§f is attempting to join with id §b${player.getUUID()}§f (§b${player.getRuntimeId()}§f) from ${player
-                    .getAddress()
-                    .getAddress()}:${player.getAddress().getPort()}`
+                `§b${identity.name}§f is attempting to join with id §b${identity.uuid}§f (§b${session.runtimeId}§f) from ${address.getAddress()}:${address.getPort()}`
             );
 
-        const spawnEvent = new PlayerSpawnEvent(player);
+        const spawnEvent = new PlayerSpawnEvent(session.getPlayer());
         server.post(['playerSpawn', spawnEvent]);
         if (spawnEvent.isCanceled()) return;
 
         const world = player.getWorld();
-        const connection = session.getConnection();
         const content = server.getContent();
         const recipeLimit = server.getConfig().getCraftingRecipeLimit();
         const compressionLevel = server.getConfig().getPacketCompressionLevel();
@@ -279,7 +293,7 @@ export default class ResourcePackClientResponseHandler implements PacketHandler<
             new StartGamePacket(
                 createStartGameData({
                     server,
-                    player,
+                    player: session.getPlayer(),
                     world,
                     worldSpawnPosition: worldSpawnPos,
                     serverVersion: connection.codec.minecraftVersions.at(-1) ?? '',
@@ -337,7 +351,9 @@ export default class ResourcePackClientResponseHandler implements PacketHandler<
 
         await session.sendTime(world.getTicks());
 
-        await connection.sendDataPacket(playerSpawnPositionPacket(player, world, await overworldSpawnOf(world)));
+        await connection.sendDataPacket(
+            playerSpawnPositionPacket(session.getPlayer(), world, await overworldSpawnOf(world))
+        );
 
         await player.sendSettings();
         await session.sendAttributes();
@@ -361,7 +377,7 @@ export default class ResourcePackClientResponseHandler implements PacketHandler<
                 // The bare translation key: a color code in front of the `%` stops the
                 // client resolving it, and it renders the unresolved string instead.
                 message: `%multiplayer.player.joined`,
-                parameters: [player.getName()],
+                parameters: [identity.name],
                 needsTranslation: true,
                 type: ChatType.TRANSLATION
             })

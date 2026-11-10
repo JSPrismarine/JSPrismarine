@@ -13,6 +13,7 @@ import { buildServerContent } from '../../content/ServerContent';
 import { fixtureBlockPalette, fixtureContentOptions } from '../../content/testing';
 import type { Event } from '../../events/Event';
 import { fakeLevel, TEST_OVERWORLD_STEM } from '../../testing/level';
+import { identityNamed } from '../../testing/sessionIdentity.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import UUID from '@jsprismarine/protocol/wire/structures/UUID';
 import type GameRuleManager from '../../world/GameRuleManager';
@@ -101,7 +102,6 @@ const harness = ({
         getName: () => 'runner',
         getUUID: () => UUID.fromRandom(),
         getRuntimeId: () => 1n,
-        getAddress: () => new InetAddress('127.0.0.1', 19132),
         getWorld: () => world,
         getPosition: () => new Position(0, 64, 0, world),
         gamemode: Gametype.SURVIVAL,
@@ -115,6 +115,7 @@ const harness = ({
 
     const connection = stub<ClientConnection>({
         codec,
+        getAddress: () => new InetAddress('127.0.0.1', 19132),
         sendDataPacket: async (packet: NetworkPacket) => {
             sent.push(packet.constructor.name);
             packets.push(packet);
@@ -127,6 +128,8 @@ const harness = ({
     });
 
     const session = stub<PlayerSession>({
+        runtimeId: 1n,
+        identity: identityNamed('runner'),
         getPlayer: () => player,
         getConnection: () => connection,
         sendCreativeContents: record('CreativeContent'),

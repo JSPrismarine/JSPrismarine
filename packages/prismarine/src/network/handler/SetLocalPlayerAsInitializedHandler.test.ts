@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 import type { Entity } from '../../entity/Entity';
 import type Player from '../../Player';
 import type Server from '../../Server';
+import { identityNamed } from '../../testing/sessionIdentity.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import type { World } from '../../world/World';
 import type PlayerSession from '../PlayerSession';
@@ -38,7 +39,7 @@ const fakeSession = () => {
         completeSpawn,
         order,
         server: stub<Server>({ getLogger: () => stub<Logger>({ debug: () => {} }) }),
-        session: stub<PlayerSession>({ getPlayer: () => player })
+        session: stub<PlayerSession>({ runtimeId: 7n, identity: identityNamed('Steve'), getPlayer: () => player })
     };
 };
 
