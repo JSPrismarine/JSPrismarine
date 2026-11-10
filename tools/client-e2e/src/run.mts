@@ -41,6 +41,7 @@ import { title } from './scenarios/title.mts';
 import { blockPlacement } from './scenarios/block-placement.mts';
 import { deathRespawn } from './scenarios/death-respawn.mts';
 import { teleportWhileDead } from './scenarios/teleport-while-dead.mts';
+import { spawnpointRespawn } from './scenarios/spawnpoint-respawn.mts';
 import { summonEntity } from './scenarios/summon-entity.mts';
 import { leverLamp } from './scenarios/lever-lamp.mts';
 import { attackEntity } from './scenarios/attack-entity.mts';
@@ -104,6 +105,7 @@ const suites: ScenarioSuite[] = [
             placementOverlap,
             enderDragon,
             dimensionsScenario,
+            spawnpointRespawn,
             // Last, because it reshapes the terrain it runs on - tilled ground, planted wheat
             // and a water source stay behind - and nothing should have to play on top of that.
             farmland
