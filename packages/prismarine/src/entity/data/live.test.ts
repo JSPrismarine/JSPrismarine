@@ -1001,6 +1001,18 @@ describe('the data-driven entity runtime over a live world', () => {
         expect(typesIn(world)).not.toContain('minecraft:cow');
     });
 
+    it('gives a data mob one id, which its body carries on the wire', async () => {
+        const pet = live.runtime.spawn('jsprismarine:pet_fixture', { x: 2.5, y: GROUND_Y, z: 2.5 });
+        if (pet === undefined) throw new Error('the fixture declares no tameable pet');
+        await run(1);
+
+        const body = live.bodies.bodyOf(pet.id);
+        if (body === undefined) throw new Error('the pet has no client-facing body');
+        expect(body.getRuntimeId()).toBe(BigInt(pet.id));
+        expect(live.bodies.entityIdOf(body)).toBe(pet.id);
+        expect(world.getEntity(BigInt(pet.id))).toBe(body);
+    });
+
     it('replaces a successfully used tame item through the live inventory path', async () => {
         const player = addPlayer(2, 2);
         Object.assign(player, { inventory: new HumanInventory() });

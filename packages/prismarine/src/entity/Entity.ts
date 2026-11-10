@@ -251,6 +251,7 @@ export class Entity {
      * @param {number} [options.yaw=0] - The yaw.
      * @param {number} [options.headYaw=0] - The head yaw.
      * @param {Attribute[]} [options.attributes] - Initial attributes, or this entity's defaults when omitted.
+     * @param {bigint} [options.runtimeId] - An id already drawn from the shared counter, or a new one when omitted.
      * @returns {Entity} The entity instance.
      * @remarks The server is taken from the position's world rather than passed alongside
      * it, so the two can never disagree about which server the entity belongs to.
@@ -265,21 +266,30 @@ export class Entity {
         pitch = 0,
         yaw = 0,
         headYaw = 0,
-        attributes
+        attributes,
+        runtimeId
     }: {
         position: Position;
         pitch?: number;
         yaw?: number;
         headYaw?: number;
         attributes?: Attribute[];
+        /**
+         * An id already drawn from {@link Entity.runtimeIdCount}, for a body whose entity was
+         * given its id elsewhere: a data-driven mob's runtime draws from the same counter, and
+         * its body takes that id so the mob has one id rather than two.
+         */
+        runtimeId?: bigint;
     }) {
-        // Hot world and tracking indexes use Number(runtimeId), so refuse the first id that
-        // cannot be represented exactly as a JavaScript number.
-        if (Entity.runtimeIdCount >= BigInt(Number.MAX_SAFE_INTEGER)) {
-            throw new RangeError('Entity runtime id counter exceeded Number.MAX_SAFE_INTEGER');
+        if (runtimeId === undefined) {
+            // Hot world and tracking indexes use Number(runtimeId), so refuse the first id that
+            // cannot be represented exactly as a JavaScript number.
+            if (Entity.runtimeIdCount >= BigInt(Number.MAX_SAFE_INTEGER)) {
+                throw new RangeError('Entity runtime id counter exceeded Number.MAX_SAFE_INTEGER');
+            }
+            Entity.runtimeIdCount += 1n;
         }
-        Entity.runtimeIdCount += 1n;
-        this.runtimeId = Entity.runtimeIdCount;
+        this.runtimeId = runtimeId ?? Entity.runtimeIdCount;
         this.position = position;
         this.server = position.getWorld().getServer();
         this.attributes = new Attributes(attributes ?? this.getDefaultAttributes());

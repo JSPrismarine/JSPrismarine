@@ -22,7 +22,8 @@ export class GenericEntity extends Entity {
         pitch = 0,
         yaw = 0,
         headYaw = 0,
-        attributes
+        attributes,
+        runtimeId
     }: {
         identifier: string;
         position: Position;
@@ -30,8 +31,10 @@ export class GenericEntity extends Entity {
         yaw?: number;
         headYaw?: number;
         attributes?: Attribute[];
+        /** An id already drawn from the shared counter; see `Entity`'s constructor. */
+        runtimeId?: bigint;
     }) {
-        super({ position, pitch, yaw, headYaw, attributes });
+        super({ position, pitch, yaw, headYaw, attributes, ...(runtimeId === undefined ? {} : { runtimeId }) });
         this.identifier = identifier;
 
         // Again, now that there is an identifier to look the size up by. Every other entity knows
