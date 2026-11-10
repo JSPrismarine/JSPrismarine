@@ -213,6 +213,19 @@ describe('world', () => {
             expect(dropped.savedItem()?.pickupDelay).toBe(40);
         });
 
+        it('drops the whole stack a player let go of as one stack of the same size', async () => {
+            const { world, player, entities } = fakeWorld(new BlockState('minecraft:stone'));
+
+            await world.dropFromPlayer(player, [
+                new Item({ runtimeId: 1, name: 'minecraft:stone', meta: 0, count: 2 })
+            ]);
+
+            const dropped = [...entities.values()].filter((entity) => entity instanceof ItemEntity);
+            expect(dropped).toHaveLength(1);
+            expect(dropped[0]?.savedItem()?.stack.count).toBe(2);
+            expect(dropped[0]?.getItem()?.getCount()).toBe(2);
+        });
+
         it('drops nothing for a block whose drop has no item id, rather than air', async () => {
             // On the wire it was an item actor holding air: an empty item on the ground.
             const { world, player, sent, entities } = fakeWorld(new BlockState('minecraft:cobblestone'), {
