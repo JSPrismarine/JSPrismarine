@@ -5,6 +5,12 @@ import { evaluateFilter } from '@jsprismarine/entities';
 import { entitiesTable } from '@jsprismarine/mapping/tables';
 import { javaEntityTypeToBedrock, javaIdentifierToBedrock, javaItemToBedrock } from '@jsprismarine/mapping';
 import { parseBiomeTags } from '@jsprismarine/prismarine/content/biomeTags';
+import { breathe } from '@jsprismarine/prismarine/entity/playerBreath';
+import { PlayerComponents } from '@jsprismarine/prismarine/entity/playerComponents';
+import { land, trackFall } from '@jsprismarine/prismarine/entity/playerFall';
+import { EXHAUSTION } from '@jsprismarine/prismarine/entity/playerHunger';
+import type { SurvivalPlayer } from '@jsprismarine/prismarine/entity/survivalPlayer';
+import { Attributes } from '@jsprismarine/protocol/wire/structures/Attribute';
 import { expect, it } from 'vitest';
 
 import type { BehaviorScenario } from './behaviorScenarios.ts';
@@ -142,6 +148,33 @@ const mappedEntity = (javaId: string, tag?: string): EntitySubject | undefined =
         : undefined;
 };
 
+/** A fresh survival player as the shared survival rules read one, with 20 of 20 health. */
+const survivalPlayer = (): SurvivalPlayer => ({
+    components: new PlayerComponents(new Attributes(Attributes.getPlayerDefaults()), () => undefined),
+    vulnerable: () => true,
+    alive: () => true,
+    health: () => 20,
+    maxHealth: () => 20
+});
+
+/** The fall damage the shared rule deals for a drop of `blocks`, landing on stone. */
+const fallDamageFor = (blocks: number): number => {
+    const player = survivalPlayer();
+    trackFall(player, blocks, 0, { onGround: false, flying: false });
+    return land(player, true, () => false) ?? 0;
+};
+
+/** The ticks from empty lungs to the first drowning blow, and its damage, under the shared rule. */
+const firstDrowning = (): { readonly ticks: number; readonly damage: number } => {
+    const player = survivalPlayer();
+    player.components.set('vitals.air', 0);
+    for (let tick = 1; tick <= 100; tick += 1) {
+        const damage = breathe(player, 'minecraft:water', true);
+        if (damage !== undefined) return { ticks: tick, damage };
+    }
+    return { ticks: Number.POSITIVE_INFINITY, damage: 0 };
+};
+
 const entityScenarios: readonly BehaviorScenario<EntitySubject>[] = [
     {
         name: 'breeding-food',
@@ -246,6 +279,58 @@ const entityScenarios: readonly BehaviorScenario<EntitySubject>[] = [
             return value === 20 && max === 20
                 ? undefined
                 : `the server gives the player health ${String(value)} of ${String(max)}, where Java has 20 of 20`;
+        }
+    },
+    {
+        name: 'player-survival',
+        java: "A player's breath, drowning, fall damage and exhaustion follow Java's constants and the shipped player file.",
+        reference:
+            'Java LivingEntity.getMaxAirSupply (300) and baseTick (2 damage once air reaches -20), LivingEntity.calculateFallDamage (ceil of the distance past 3), and FoodConstants (sprint 0.1, jump 0.05, sprint jump 0.2, attack 0.1, heal 6); Bedrock entities/player.json minecraft:breathable and minecraft:exhaustion_values',
+        subjects: () => ['minecraft:player'].flatMap((javaId) => mappedEntity(javaId) ?? []),
+        idOf: (subject) => subject.javaId,
+        covers: (subject) => subject.javaId,
+        run: (subject) => {
+            const differences: string[] = [];
+
+            const [breathable] = componentValues(subject.bedrock, 'minecraft:breathable');
+            const supply = field(breathable, 'total_supply');
+            const maxAir = survivalPlayer().components.maxAir();
+            if (typeof supply !== 'number' || supply * 20 !== maxAir || maxAir !== 300)
+                differences.push(
+                    `a lungful is ${maxAir} ticks, where Java has 300 and the shipped file ${String(supply)} seconds`
+                );
+
+            const drowning = firstDrowning();
+            if (drowning.ticks !== 20 || drowning.damage !== 2)
+                differences.push(
+                    `empty lungs hurt ${drowning.damage} after ${drowning.ticks} ticks, where Java hurts 2 after 20`
+                );
+
+            for (let blocks = 0; blocks <= 23; blocks += 1) {
+                const java = Math.max(0, Math.ceil(blocks - 3));
+                const server = fallDamageFor(blocks);
+                if (server !== java)
+                    differences.push(`a ${blocks} block fall costs ${server}, where Java's costs ${java}`);
+            }
+
+            // Bedrock's walk cost is 0 and the server charges walking, so only the shared keys are compared.
+            const [exhaustion] = componentValues(subject.bedrock, 'minecraft:exhaustion_values');
+            const costs: readonly [string, number, number][] = [
+                ['sprint', EXHAUSTION.sprinting, 0.1],
+                ['jump', EXHAUSTION.jumping, 0.05],
+                ['sprint_jump', EXHAUSTION.sprintJumping, 0.2],
+                ['attack', EXHAUSTION.attacking, 0.1],
+                ['heal', EXHAUSTION.regeneration, 6]
+            ];
+            for (const [key, server, java] of costs) {
+                const shipped = field(exhaustion, key);
+                if (server !== java || shipped !== java)
+                    differences.push(
+                        `${key} costs ${server}, where Java has ${java} and the shipped file ${String(shipped)}`
+                    );
+            }
+
+            return differences.length === 0 ? undefined : differences.join('; ');
         }
     },
     {
