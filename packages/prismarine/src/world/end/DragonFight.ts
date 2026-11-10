@@ -670,9 +670,9 @@ export class DragonFight {
         await this.bar.setActorUniqueId(this.actorIdOf(dragon));
     }
 
-    /** The actor id the client tracks the dragon's body by, which is what the bar binds to. */
+    /** The actor id the client tracks the dragon by, which is its runtime id and what the bar binds to. */
     private actorIdOf(dragon: DataEntity): bigint {
-        return this.world.dataEntities().bodies.bodyOf(dragon.id)?.getRuntimeId() ?? BigInt(dragon.id);
+        return BigInt(dragon.id);
     }
 
     /** Java's `checkCrystals`: one point of health per ten ticks while a crystal is within 32. */

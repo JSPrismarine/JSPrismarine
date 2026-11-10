@@ -974,7 +974,7 @@ export class World implements Service {
                     return feet.distanceSquaredTo(center) <= range * range;
                 }),
             countNearby: (identifier, range) =>
-                this.getEntities().filter((entity) => {
+                this.getActors().filter((entity) => {
                     const position = entity.getPosition();
                     return (
                         entity.getType() === identifier &&
@@ -1146,13 +1146,21 @@ export class World implements Service {
         // into the one list the loop below walks, because an update can add or remove entities.
         // No index is rebuilt here: the entity index is refiled on every position write, so a
         // query sees each entity where its last write put it (ADR 0007).
-        const tickingEntities: Entity[] = [];
+        // A store entity's actor runs the part of a tick the store does not run yet, the portal
+        // clock and the status effects, after the legacy entities.
+        const live = this.dataEntities();
+        const tickingEntities: WorldActor[] = [];
         for (const entity of this.entities.values()) {
+            if (live.bodies.entityIdOf(entity) !== undefined) continue;
             if (!(entity instanceof Player)) {
                 const position = entity.getPosition();
                 if (!isPositionTicking(position.getX(), position.getZ())) continue;
             }
             if (entity.claimUpdate(tick)) tickingEntities.push(entity);
+        }
+        for (const actor of live.actors.all()) {
+            const { x, z } = actor.entity.position;
+            if (isPositionTicking(x, z) && actor.claimUpdate(tick)) tickingEntities.push(actor);
         }
 
         // Before the updates, so the contact an entity's own update advances this tick already
@@ -3380,7 +3388,7 @@ export class World implements Service {
      * the last change is skipped: another change would be refused, so the body scan is not
      * worth running.
      */
-    private async touchPortals(entities: readonly Entity[]): Promise<void> {
+    private async touchPortals(entities: readonly WorldActor[]): Promise<void> {
         const travel = this.server.getDimensionTravel();
 
         // Awaited so that an asynchronous `entityPortalEnter` listener has answered before
@@ -3401,7 +3409,7 @@ export class World implements Service {
      * `1.0E-6`, so a body resting on a block boundary does not count the block beyond it, and a
      * portal at head height alone still counts.
      */
-    private portalOverlapping(entity: Entity): PortalBlockRef | undefined {
+    private portalOverlapping(entity: WorldActor): PortalBlockRef | undefined {
         const at = entity.getPosition();
         const { width, height } = entity.getBox();
         const half = Math.max(width / 2 - BODY_SHRINK, 0);
