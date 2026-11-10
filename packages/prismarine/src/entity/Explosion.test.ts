@@ -21,7 +21,7 @@ import { GameRules } from '../world/GameRuleManager';
 import { Position } from '../world/Position';
 import type { World } from '../world/World';
 import { DamageCause } from './DamageCause';
-import type { Entity } from './Entity';
+import { EntityIndex } from './data/entityIndex';
 import { explode } from './Explosion';
 import { Attribute, AttributeIds } from '@jsprismarine/protocol/wire/structures/Attribute';
 import { GenericEntity } from './GenericEntity';
@@ -50,7 +50,8 @@ const emptyContent = (): ServerContent =>
  */
 const scene = ({ griefing = true, solid = false, block = '', content = emptyContent() } = {}) => {
     const blockName = block !== '' ? block : solid ? 'minecraft:stone' : 'minecraft:air';
-    const nearby: Entity[] = [];
+    // The real one, so a blast finds what it catches the way a live world's does.
+    const index = new EntityIndex();
     const effects: LevelEvent[] = [];
     const cleared: string[] = [];
     const dropped: Array<{ at: ContentPosition; names: string[] }> = [];
@@ -77,14 +78,14 @@ const scene = ({ griefing = true, solid = false, block = '', content = emptyCont
         sendActorSound: async () => {},
         sendActorMetadata: async () => {},
         sendWorldEvent: async (_at: unknown, event: LevelEvent) => void effects.push(event),
-        entityRelocated: () => {},
+        entityRelocated: (entity) => index.refileLegacy(entity),
         broadcastMove: async () => {},
         playNamedSound: () => {},
         getGameRuleManager: () =>
             stub<ReturnType<World['getGameRuleManager']>>({
                 getGameRule: (name: string) => [name === GameRules.MobGriefing ? griefing : true, true]
             }),
-        getEntityGrid: () => stub<ReturnType<World['getEntityGrid']>>({ near: () => nearby }),
+        getEntityIndex: () => index,
         loadedBlockAt: () => ({ name: blockName, states: {} }),
         loadedBlockRuntimeIdAt: () => runtimeId,
         setLoadedBlockState: (x: number, y: number, z: number) => {
@@ -106,7 +107,7 @@ const scene = ({ griefing = true, solid = false, block = '', content = emptyCont
     const spawn = (identifier: string, x = 0, z = 0, health = 10): Shoved => {
         const entity = new Shoved({ identifier, position: new Position(x, 64, z, world) });
         entity.attributes.setAttribute(new Attribute({ name: AttributeIds.Health, min: 0, max: health, def: health }));
-        nearby.push(entity);
+        index.addLegacy(entity);
         return entity;
     };
 
@@ -187,6 +188,17 @@ describe('explosions', () => {
         expect(close).toBeGreaterThan(middling);
         expect(middling).toBeGreaterThan(far);
         expect(far).toBeGreaterThan(0);
+    });
+
+    it('catches an entity where it moved to earlier in the tick', async () => {
+        const moved = stage.spawn('minecraft:cow', 40, 0);
+        const stayed = stage.spawn('minecraft:cow', 40, 2);
+        await moved.setPosition({ position: new Vector3(0, 64, 0) });
+
+        await explode(stage.world, new Vector3(0, 64, 0), { power: 3, breaksBlocks: false });
+
+        expect(moved.isAlive()).toBe(false);
+        expect(stayed.getHealth()).toBe(10);
     });
 
     it('does nothing at all past twice its power', async () => {

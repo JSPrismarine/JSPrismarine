@@ -14,7 +14,7 @@
  * @see https://minecraft.wiki/w/Explosion
  */
 import type { BlockPosition, ExplosionEntity, ExplosionWorld } from '@jsprismarine/engine-systems';
-import { explode as castBlast } from '@jsprismarine/engine-systems';
+import { EXPLOSION_ENTITY_REACH, explode as castBlast } from '@jsprismarine/engine-systems';
 import type { Vector3 } from '@jsprismarine/math';
 import { LevelEvent, LevelSoundEvent } from '@jsprismarine/minecraft';
 
@@ -75,7 +75,7 @@ export const explode = async (world: World, at: Vector3, options: ExplosionOptio
     if (source) await world.sendActorSound(source, LevelSoundEvent.EXPLODE);
 
     const center = { x: at.getX(), y: at.getY(), z: at.getZ() };
-    const caught = entitiesNear(world, at);
+    const caught = entitiesNear(world, at, power);
     const drops: Array<{ at: BlockPosition; item: Block | Item }> = [];
     const caughtTnt: BlockPosition[] = [];
 
@@ -163,16 +163,27 @@ const griefingAllowed = (world: World): boolean => {
 };
 
 /**
+ * How much wider than the blast's reach the candidate search looks, in blocks.
+ *
+ * The index finds a data-driven mob where the runtime put it, and the blast measures the body a
+ * client is shown, which catches up at the end of the runtime's tick. Four blocks covers a mob
+ * that a knockback threw this tick.
+ */
+const BODY_LAG_SLACK = 4;
+
+/**
  * Everything that might be caught, with its box, its feet and its eyes.
  *
- * The entity grid rather than every entity in the world: it is rebuilt once a tick and covers
- * the three by three chunks around a point, which is wider than any blast this server produces.
- * The blast does the range test itself, so nothing is filtered here.
+ * From the world's entity index rather than every entity in the world, so an entity that moved
+ * earlier in the tick is caught where it now stands and one taken out of the world is not caught
+ * at all. The engine accepts anything within its reach plus a block and runs the range test
+ * itself; the search looks a little further for the reason {@link BODY_LAG_SLACK} gives. In
+ * ascending runtime id order, which is the order the hits come back in.
  */
-const entitiesNear = (world: World, at: Vector3): readonly CaughtEntity[] =>
+const entitiesNear = (world: World, at: Vector3, power: number): readonly CaughtEntity[] =>
     world
-        .getEntityGrid()
-        .near(at.getX(), at.getZ())
+        .getEntityIndex()
+        .legacyWithin(at.getX(), at.getZ(), power * EXPLOSION_ENTITY_REACH + 1 + BODY_LAG_SLACK)
         .map((entity) => {
             const position = entity.getPosition();
             const { width, height } = entity.getBox();
