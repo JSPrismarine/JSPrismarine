@@ -43,6 +43,8 @@ import { effectiveViewDistance, toChunk } from '../world/Proximity';
 import { dimensionByBedrockId, maxSubChunk, minSubChunk } from '../world/Dimension';
 import Chunk from '../world/chunk/Chunk';
 import type ClientConnection from './ClientConnection';
+import { forgetAdvancements } from '../advancement/progress';
+import { forgetEnchantmentSeed } from '../enchantment/enchantingTable';
 import { BossBar } from './BossBar';
 import { EntityTracker } from './EntityTracker';
 import { craftingRecipeCount, joinContentPayloads, limitCraftingData } from './contentPayloads';
@@ -441,13 +443,19 @@ export default class PlayerSession {
     }
 
     /**
-     * Takes this client back out of the chunk rotation and off every boss bar. Paired with
-     * {@link PlayerSession.enable} and safe to call more than once.
+     * Takes this client back out of the chunk rotation and off every boss bar, and lets go of
+     * the player's state kept outside the player. Paired with {@link PlayerSession.enable} and
+     * safe to call more than once.
+     *
+     * `ClientConnection.closePlayerSession` runs this after `Player.disable` has saved the
+     * player, and whether or not that succeeded or the join ever completed.
      * @group Lifecycle
      */
     public disable(): void {
         this.server.getChunkScheduler().remove(this);
         BossBar.releasePlayer(this.player);
+        forgetAdvancements(this.player);
+        forgetEnchantmentSeed(this.player);
     }
 
     /** The queue the scheduler drains - see {@link ChunkRecipient}. */
