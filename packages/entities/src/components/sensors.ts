@@ -3,6 +3,7 @@
 import type { ComponentFactory } from '@jsprismarine/content';
 import { accepted, rejected } from '@jsprismarine/content';
 import type { Filter } from '@jsprismarine/packs';
+import { defineComponentState, stateField } from '../componentState';
 import type { EntityInstance } from '../entityInstance';
 import { parseEventTarget } from '../events';
 import { damagerSubjects, isPlayerView } from '../filterContext';
@@ -98,9 +99,10 @@ export interface EntitySensorParams {
     readonly subsensors: readonly EntitySensorSubsensor[];
 }
 
-interface EntitySensorState {
-    readonly cooldowns: number[];
-}
+/** Ticks of cooldown left on each `minecraft:entity_sensor` subsensor, by subsensor index. */
+const ENTITY_SENSOR_STATE = defineComponentState('minecraft:entity_sensor', {
+    cooldowns: stateField.list(stateField.number)
+});
 
 const isEntitySensorRange = (value: unknown): value is readonly [number, number] =>
     Array.isArray(value) &&
@@ -176,24 +178,24 @@ const parseEntitySensor = (
 /** `minecraft:entity_sensor`, which emits events when nearby entity filters and count bounds pass. */
 export const entitySensor: ComponentFactory<EntityHooks, EntitySensorParams> = {
     name: 'minecraft:entity_sensor',
-    hooks: ['onInitialize', 'onRemove', 'onTick'],
+    hooks: ['onInitialize', 'onTick'],
     schema: (value) => {
         const parsed = parseEntitySensor(value);
         return parsed.ok ? accepted(parsed.params) : rejected(parsed.message);
     },
     create: (params) => {
-        const states = new WeakMap<EntityInstance, EntitySensorState>();
         return {
-            onInitialize: (entity) => states.set(entity, { cooldowns: params.subsensors.map(() => 0) }),
-            onRemove: (entity) => states.delete(entity),
+            onInitialize: (entity) =>
+                entity.componentState.set(ENTITY_SENSOR_STATE, { cooldowns: params.subsensors.map(() => 0) }),
             onTick: (entity) => {
-                const state = states.get(entity);
+                const state = entity.componentState.get(ENTITY_SENSOR_STATE);
                 if (state === undefined) return;
+                const cooldowns = [...state.cooldowns];
 
                 for (const [index, subsensor] of params.subsensors.entries()) {
-                    const remaining = state.cooldowns[index] ?? 0;
+                    const remaining = cooldowns[index] ?? 0;
                     if (remaining > 0) {
-                        state.cooldowns[index] = remaining - 1;
+                        cooldowns[index] = remaining - 1;
                         continue;
                     }
 
@@ -222,9 +224,9 @@ export const entitySensor: ComponentFactory<EntityHooks, EntitySensorParams> = {
                     if (subsensor.event?.event === undefined) continue;
 
                     entity.raise(subsensor.event.event, subsensor.event.target, 'minecraft:entity_sensor');
-                    if (subsensor.cooldown >= 0)
-                        state.cooldowns[index] = Math.ceil(subsensor.cooldown * TICKS_PER_SECOND);
+                    if (subsensor.cooldown >= 0) cooldowns[index] = Math.ceil(subsensor.cooldown * TICKS_PER_SECOND);
                 }
+                entity.componentState.set(ENTITY_SENSOR_STATE, { cooldowns });
             }
         };
     }
@@ -389,21 +391,23 @@ const parseInsideBlockNotifier = (
     return { ok: true, params: { blockList } };
 };
 
-const insideBlockNotifierState = new WeakMap<EntityInstance, ReadonlySet<number>>();
+/** The `block_list` indices whose block the entity was inside on its last tick. */
+const INSIDE_BLOCK_STATE = defineComponentState('minecraft:inside_block_notifier', {
+    inside: stateField.list(stateField.number)
+});
 
 /** `minecraft:inside_block_notifier`, which raises events on block-state transitions. */
 export const insideBlockNotifier: ComponentFactory<EntityHooks, InsideBlockNotifierParams> = {
     name: 'minecraft:inside_block_notifier',
-    hooks: ['onInitialize', 'onRemove', 'onTick'],
+    hooks: ['onInitialize', 'onTick'],
     schema: (value) => {
         const parsed = parseInsideBlockNotifier(value);
         return parsed.ok ? accepted(parsed.params) : rejected(parsed.message);
     },
     create: (params) => ({
-        onInitialize: (entity) => insideBlockNotifierState.set(entity, new Set()),
-        onRemove: (entity) => insideBlockNotifierState.delete(entity),
+        onInitialize: (entity) => entity.componentState.set(INSIDE_BLOCK_STATE, { inside: [] }),
         onTick: (entity) => {
-            const previous = insideBlockNotifierState.get(entity);
+            const previous = entity.componentState.get(INSIDE_BLOCK_STATE)?.inside;
             const position = entity.actuator?.position();
             if (previous === undefined || position === undefined) return;
 
@@ -428,7 +432,7 @@ export const insideBlockNotifier: ComponentFactory<EntityHooks, InsideBlockNotif
                 }
             }
 
-            const next = new Set<number>();
+            const next: number[] = [];
             for (const [index, entry] of params.blockList.entries()) {
                 const matches = blocks.some(
                     (block) =>
@@ -436,9 +440,9 @@ export const insideBlockNotifier: ComponentFactory<EntityHooks, InsideBlockNotif
                         block.identifier === entry.blockName &&
                         Object.entries(entry.states).every(([name, expected]) => block.states[name] === expected)
                 );
-                const wasInside = previous.has(index);
+                const wasInside = previous.includes(index);
                 if (matches) {
-                    next.add(index);
+                    next.push(index);
                     if (!wasInside && entry.enteredBlockEvent?.event !== undefined)
                         entity.raise(
                             entry.enteredBlockEvent.event,
@@ -452,10 +456,10 @@ export const insideBlockNotifier: ComponentFactory<EntityHooks, InsideBlockNotif
                         'minecraft:inside_block_notifier'
                     );
                 } else if (wasInside && unknownBlock) {
-                    next.add(index);
+                    next.push(index);
                 }
             }
-            insideBlockNotifierState.set(entity, next);
+            entity.componentState.set(INSIDE_BLOCK_STATE, { inside: next });
         }
     })
 };
@@ -470,8 +474,18 @@ export interface TargetNearbySensorParams {
     readonly onVisionLostInsideRange?: SensorTrigger;
 }
 
+/** What `minecraft:target_nearby_sensor` remembers about the target it last saw. */
+const TARGET_NEARBY_STATE = defineComponentState('minecraft:target_nearby_sensor', {
+    /** The target's id, or null when there was none. */
+    targetId: stateField.nullable(stateField.id),
+    inRange: stateField.boolean,
+    visibleInsideRange: stateField.boolean,
+    insideEventFired: stateField.boolean
+});
+
+/** A working copy of {@link TARGET_NEARBY_STATE} that one tick updates before writing it back. */
 interface TargetNearbySensorState {
-    targetId: string | number | undefined;
+    targetId: string | number | null;
     inRange: boolean;
     visibleInsideRange: boolean;
     insideEventFired: boolean;
@@ -487,7 +501,7 @@ const raiseTargetNearbyEvent = (entity: EntityInstance, trigger: SensorTrigger |
  */
 export const targetNearbySensor: ComponentFactory<EntityHooks, TargetNearbySensorParams> = {
     name: 'minecraft:target_nearby_sensor',
-    hooks: ['onInitialize', 'onRemove', 'onTick'],
+    hooks: ['onInitialize', 'onTick'],
     schema: (value) => {
         if (!isRecord(value)) return rejected('expected an object');
         return accepted({
@@ -500,56 +514,60 @@ export const targetNearbySensor: ComponentFactory<EntityHooks, TargetNearbySenso
         });
     },
     create: (params) => {
-        const states = new WeakMap<EntityInstance, TargetNearbySensorState>();
+        /** One tick of the sensor over a working copy of its state. */
+        const update = (entity: EntityInstance, state: TargetNearbySensorState): void => {
+            const target = entity.targetProximity();
+            const targetId = target?.id ?? null;
+            if (state.targetId !== targetId) {
+                if (state.inRange) raiseTargetNearbyEvent(entity, params.onOutsideRange);
+                state.targetId = targetId;
+                state.inRange = false;
+                state.visibleInsideRange = false;
+                state.insideEventFired = false;
+            }
+            if (target === undefined) return;
+
+            if (target.distance > params.outsideRange) {
+                if (state.inRange) raiseTargetNearbyEvent(entity, params.onOutsideRange);
+                state.inRange = false;
+                state.visibleInsideRange = false;
+                state.insideEventFired = false;
+                return;
+            }
+            if (target.distance > params.insideRange) {
+                state.visibleInsideRange = false;
+                return;
+            }
+
+            state.inRange = true;
+            if (state.visibleInsideRange && !target.visible)
+                raiseTargetNearbyEvent(entity, params.onVisionLostInsideRange);
+            state.visibleInsideRange = target.visible;
+
+            if (params.mustSee && !target.visible) {
+                state.insideEventFired = false;
+                return;
+            }
+            if (state.insideEventFired) return;
+
+            raiseTargetNearbyEvent(entity, params.onInsideRange);
+            state.insideEventFired = true;
+        };
         return {
             onInitialize: (entity) => {
-                states.set(entity, {
-                    targetId: undefined,
+                entity.componentState.set(TARGET_NEARBY_STATE, {
+                    targetId: null,
                     inRange: false,
                     visibleInsideRange: false,
                     insideEventFired: false
                 });
             },
-            onRemove: (entity) => states.delete(entity),
             onTick: (entity) => {
-                const state = states.get(entity);
-                if (state === undefined) return;
-
-                const target = entity.targetProximity();
-                if (state.targetId !== target?.id) {
-                    if (state.inRange) raiseTargetNearbyEvent(entity, params.onOutsideRange);
-                    state.targetId = target?.id;
-                    state.inRange = false;
-                    state.visibleInsideRange = false;
-                    state.insideEventFired = false;
-                }
-                if (target === undefined) return;
-
-                if (target.distance > params.outsideRange) {
-                    if (state.inRange) raiseTargetNearbyEvent(entity, params.onOutsideRange);
-                    state.inRange = false;
-                    state.visibleInsideRange = false;
-                    state.insideEventFired = false;
-                    return;
-                }
-                if (target.distance > params.insideRange) {
-                    state.visibleInsideRange = false;
-                    return;
-                }
-
-                state.inRange = true;
-                if (state.visibleInsideRange && !target.visible)
-                    raiseTargetNearbyEvent(entity, params.onVisionLostInsideRange);
-                state.visibleInsideRange = target.visible;
-
-                if (params.mustSee && !target.visible) {
-                    state.insideEventFired = false;
-                    return;
-                }
-                if (state.insideEventFired) return;
-
-                raiseTargetNearbyEvent(entity, params.onInsideRange);
-                state.insideEventFired = true;
+                const saved = entity.componentState.get(TARGET_NEARBY_STATE);
+                if (saved === undefined) return;
+                const state = { ...saved };
+                update(entity, state);
+                entity.componentState.set(TARGET_NEARBY_STATE, state);
             }
         };
     }
