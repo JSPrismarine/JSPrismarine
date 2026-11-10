@@ -33,10 +33,10 @@ import { GenericEntity } from '../../entity/GenericEntity';
 import type ClientConnection from '../../network/ClientConnection';
 import Codec2193 from '../../network/codec/Codec2193';
 import { createConnectedPlayer } from '../../network/createConnectedPlayer';
+import { sessionsWith } from '../../testing/playerSession.test.helper';
 import type { PermissionManager } from '../../permission/PermissionManager';
 import Player from '../../Player';
 import type Server from '../../Server';
-import type SessionManager from '../../SessionManager';
 import { inertEntityRuntime } from '../../testing/entityServer';
 import { TEST_GENERATOR_KIND } from '../../testing/level';
 import { stub } from '../../testing/stub.test.helper';
@@ -117,6 +117,7 @@ const buildScene = async ({ entities }: SceneOptions = {}) => {
 
     // A real bus, so a test can listen for the travel events and cancel one.
     const events = new EventEmitter();
+    const sessions = sessionsWith({ getPlayerList: () => new Map(), getAllPlayers: () => [] });
     const server: Server = stub<Server>({
         on: (id, listener) => {
             events.on(id, listener);
@@ -133,7 +134,7 @@ const buildScene = async ({ entities }: SceneOptions = {}) => {
             stub<Logger>({ info: () => {}, warn: () => {}, error: () => {}, debug: () => {}, verbose: () => {} }),
         getChunkScheduler: () => stub<ChunkScheduler>({ add: () => {}, remove: () => {} }),
         getPermissionManager: () => stub<PermissionManager>({ getPermissions: async () => [] }),
-        getSessionManager: () => stub<SessionManager>({ getPlayerList: () => new Map(), getAllPlayers: () => [] }),
+        getSessionManager: () => sessions,
         getChunkCompletionQueue: () => new ChunkCompletionQueue(),
         getContent: () => {
             if (content === undefined) throw new Error('the content was read before it was built');

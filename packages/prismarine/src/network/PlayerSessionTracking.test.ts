@@ -6,6 +6,7 @@ import type { Position } from '../world/Position';
 import { EntityTracker } from './EntityTracker';
 import RemoveActorPacket from '@jsprismarine/protocol/packet/RemoveActorPacket';
 import PlayerSession from './PlayerSession';
+import { sessionPlayerFields } from '../testing/playerSession.test.helper';
 
 /**
  * How a client's set of visible entities is kept in step with where its player is standing.
@@ -37,7 +38,7 @@ const trackingSession = ({ viewDistance = 10, spawnFails = false, reconciling = 
 
     const session: PlayerSession = Object.assign(Object.create(PlayerSession.prototype), {
         connection,
-        player,
+        ...sessionPlayerFields(player, 1n),
         entityTracker: new EntityTracker({ hysteresis: 2, enabled: true }),
         reconciling
     });

@@ -9,6 +9,7 @@ import type { World } from '../world/World';
 import MovePlayerPacket from '@jsprismarine/protocol/packet/MovePlayerPacket';
 import SetActorMotionPacket from '@jsprismarine/protocol/packet/SetActorMotionPacket';
 import PlayerSession from './PlayerSession';
+import { sessionPlayerFields } from '../testing/playerSession.test.helper';
 
 import type { MovePlayer } from '@jsprismarine/protocol/packet/MovePlayerPacket';
 
@@ -40,7 +41,7 @@ const movementSession = () => {
         connection: {
             sendDataPacket: async (packet: MovePlayerPacket | SetActorMotionPacket) => void sent.push(packet)
         },
-        player,
+        ...sessionPlayerFields(player, 1n),
         // A teleport notes the server tick it went out on.
         server: { getTick: () => 0 },
         lastInputTick: 0n

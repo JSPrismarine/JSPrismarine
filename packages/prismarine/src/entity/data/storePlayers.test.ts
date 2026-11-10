@@ -64,11 +64,20 @@ const identityOf = (name: string): StorePlayerIdentity => ({
 const entryOf = (name: string) => new ContainerEntry({ item: new Item({ runtimeId: 0, name }), count: 1 });
 
 const fixture = () => {
-    // Ids from the server's own counter, so a store player and the viewers never share one.
+    // Ids from the server's own counter, so a store player and the viewers never share one,
+    // unless a test hands the next spawn an id of its own.
+    let nextId: number | undefined;
     const store = entityFixture(undefined, {}, { [PLAYER_IDENTIFIER]: SHIPPED_PLAYER }, () => {
+        const claimed = nextId;
+        nextId = undefined;
+        if (claimed !== undefined) return claimed;
         Entity.runtimeIdCount += 1n;
         return Number(Entity.runtimeIdCount);
     });
+    /** Gives the next spawned entity this id. */
+    const spawnNextAs = (id: bigint) => {
+        nextId = Number(id);
+    };
     const viewers = [fakePlayer({ name: 'Alex' }), fakePlayer({ name: 'Sam' })];
     for (const viewer of viewers) viewer.player.viewDistance = 4;
 
@@ -127,7 +136,7 @@ const fixture = () => {
         await replicator.flushMovement();
     };
 
-    return { store, viewers, actors, replicator, reports, spawn, tick };
+    return { store, viewers, actors, replicator, reports, spawn, spawnNextAs, tick };
 };
 
 /** Lets the announcements the actors start without awaiting reach the connections. */
@@ -192,12 +201,12 @@ describe('a store player shown to other clients', () => {
     });
 
     it('is never shown to the client whose own entity it is', async () => {
-        const { viewers, spawn, tick, store, actors } = fixture();
+        const { viewers, spawn, spawnNextAs, tick, store, actors } = fixture();
         const [own, other] = viewers;
-        // C4h's session holds its store entity's id; a legacy viewer given that id stands in.
-        const { entity } = spawn(identityOf('Steve'), (spawned) => {
-            Object.assign(own!.player, { getRuntimeId: () => BigInt(spawned.entity.id) });
-        });
+        // C4h's session holds its store entity's id; a store entity given a legacy viewer's id
+        // stands in.
+        spawnNextAs(own!.player.getRuntimeId());
+        const { entity } = spawn(identityOf('Steve'));
         const ownId = BigInt(entity.id);
         await settle();
         // The periodic pass, which hands every viewer every actor.

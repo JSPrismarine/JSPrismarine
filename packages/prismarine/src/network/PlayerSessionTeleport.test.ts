@@ -6,10 +6,10 @@ import { PositionMode } from '@jsprismarine/protocol';
 import type Player from '../Player';
 import type Server from '../Server';
 import type { Config } from '../config/Config';
+import { sessionFor } from '../testing/playerSession.test.helper';
 import { stub } from '../testing/stub.test.helper';
 import type { ChunkScheduler } from '../world/ChunkScheduler';
 import type ClientConnection from './ClientConnection';
-import PlayerSession from './PlayerSession';
 
 /**
  * After a teleport the client keeps sending its old position until it applies the teleport, and
@@ -42,7 +42,9 @@ describe('PlayerSession after a teleport', () => {
                     getPacketCompressionLevel: () => 7
                 })
         });
-        const session = new PlayerSession(server, stub<ClientConnection>({ sendDataPacket: async () => {} }), player);
+        const session = sessionFor(server, stub<ClientConnection>({ sendDataPacket: async () => {} }), player, {
+            runtimeId: 1n
+        });
         const teleport = async (x: number, z: number) => {
             at.x = x;
             at.z = z;

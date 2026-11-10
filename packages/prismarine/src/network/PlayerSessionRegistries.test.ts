@@ -20,6 +20,7 @@ import CreativeInventory from '../inventory/CreativeInventory';
 import type { StubMembers } from '../testing/stub.test.helper';
 import { stub } from '../testing/stub.test.helper';
 import PlayerSession from './PlayerSession';
+import { sessionPlayerFields } from '../testing/playerSession.test.helper';
 import type ClientConnection from './ClientConnection';
 import { joinContentPayloads, limitCraftingData } from './contentPayloads';
 import Codec2193 from './codec/Codec2193';
@@ -44,7 +45,7 @@ const sessionFor = (server: Server, codec: ProtocolCodec = Codec2193) => {
     const player = stub<Player>({ getServer: () => server, getName: () => 'runner' });
     const session: PlayerSession = Object.assign(Object.create(PlayerSession.prototype), {
         connection,
-        player,
+        ...sessionPlayerFields(player),
         server
     });
 

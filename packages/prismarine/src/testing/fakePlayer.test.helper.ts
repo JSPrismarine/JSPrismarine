@@ -7,7 +7,6 @@ import { vi } from 'vitest';
 
 import Player from '../Player';
 import type Server from '../Server';
-import type SessionManager from '../SessionManager';
 import type { Block } from '../block/Block';
 import { BlockState } from '../block/state/BlockState';
 import { ChatManager } from '../chat/ChatManager';
@@ -28,6 +27,7 @@ import { Dimensions } from '../world/DimensionType';
 import { RespawnRequests } from '../world/RespawnRequests';
 import { testContent } from './entityServer';
 import { fakeLevel } from './level';
+import { sessionsWith } from './playerSession.test.helper';
 import { stub } from './stub.test.helper';
 
 /** What a test says about the player's surroundings. */
@@ -87,7 +87,7 @@ export const fakePlayer = ({ underwater = false, worlds: others = [], name = 'Te
                 verbose: () => {}
             }),
         // What leaving and a change of game mode tell everyone else.
-        getSessionManager: () => stub<SessionManager>({ getPlayerList: () => new Map(), getAllPlayers: () => [] }),
+        getSessionManager: () => sessions,
         broadcastPacket: async () => {},
         removeListener: () => server,
         getChatManager: () => chat,
@@ -109,6 +109,7 @@ export const fakePlayer = ({ underwater = false, worlds: others = [], name = 'Te
             })
     });
 
+    const sessions = sessionsWith({ getPlayerList: () => new Map(), getAllPlayers: () => [] });
     const chat = new ChatManager(server);
     // The searches a death files, which a test admits as the input step would.
     const respawnRequests = new RespawnRequests((error) => void logged.push(String(error)));

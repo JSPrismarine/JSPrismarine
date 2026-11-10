@@ -34,6 +34,7 @@ import { serverWorldSource } from '../content/world/serverSource';
 import { useItemOnBlock } from '../item/interaction';
 import type ClientConnection from '../network/ClientConnection';
 import { createConnectedPlayer } from '../network/createConnectedPlayer';
+import { sessionsWith } from '../testing/playerSession.test.helper';
 import type { PermissionManager } from '../permission/PermissionManager';
 import Player from '../Player';
 import type Server from '../Server';
@@ -116,7 +117,10 @@ const buildScene = async (name: string) => {
     let level: Level | undefined;
     let content: ServerContent | undefined;
 
+    const sessions = sessionsWith();
+
     const server: Server = stub<Server>({
+        getSessionManager: () => sessions,
         getChatManager: () => chat,
         on: () => server,
         post: () => 0,

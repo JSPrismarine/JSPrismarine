@@ -13,7 +13,7 @@ import type { Config } from '../src/config/Config';
 import Chunk from '../src/world/chunk/Chunk';
 import { World } from '../src/world/World';
 import type { Position as PositionType } from '../src/world/Position';
-import PlayerSession from '../src/network/PlayerSession';
+import { sessionFor } from '../src/testing/playerSession.test.helper';
 import type ClientConnection from '../src/network/ClientConnection';
 
 const PLAYER_COUNT = 20;
@@ -171,7 +171,7 @@ const server = stub<Server>({ getConfig: () => config });
 const sessions = Array.from(states.values(), (state) => {
     const player = players.get(state.id);
     if (player === undefined) throw new Error('Benchmark player session lost its player');
-    return new PlayerSession(server, stub<ClientConnection>(), player);
+    return sessionFor(server, stub<ClientConnection>(), player);
 });
 
 const queueSamples: number[] = [];

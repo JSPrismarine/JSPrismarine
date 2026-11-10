@@ -12,7 +12,7 @@ import type { World } from '../world/World';
 import ClientConnection from './ClientConnection';
 import { encodePacketBatch } from './encodePacketBatch';
 import type { TransportConnection } from './transport/Transport';
-import PlayerSession from './PlayerSession';
+import { sessionFor } from '../testing/playerSession.test.helper';
 import Codec2193 from './codec/Codec2193';
 
 describe('PlayerSession movement compression', () => {
@@ -35,7 +35,7 @@ describe('PlayerSession movement compression', () => {
             getEntityTrackingHysteresis: () => 2,
             getProximityBroadcast: () => true
         });
-        const session = new PlayerSession(stub<Server>({ getConfig: () => config }), connection, stub<Player>());
+        const session = sessionFor(stub<Server>({ getConfig: () => config }), connection, stub<Player>());
         const position = new Position(12, 64, -5, stub<World>());
         const entity = stub<Entity>({
             getRuntimeId: () => 300n,
