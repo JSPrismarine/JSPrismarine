@@ -4,8 +4,8 @@
  * All three are published packages with no idea a chunk exists. This is the one place that
  * owns them: it builds the light view out of the world's blocks, dispatches scheduled block
  * ticks through resolved content hooks, hands the chunk sections a random tick may land in to
- * the engine, and keeps all three inside a budget so no single tick can stall on a light flood
- * or a backlog of fluid ticks.
+ * the engine, and keeps all three inside count budgets, so a light flood or a backlog of fluid
+ * ticks spreads over the ticks that follow. No budget reads the clock.
  */
 import type { BlockPosition, LightFlushResult, LightSectionHint } from '@jsprismarine/lighting';
 import { LightEngine } from '@jsprismarine/lighting';
@@ -49,17 +49,11 @@ export const LIGHT_BUDGET_PER_TICK = 4096;
  *
  * Java's limit is 65536 for each of the block and fluid lists. Bedrock's is 100 per chunk,
  * which this server does not implement; the Java number is the one the package defaults to.
+ *
+ * It is the only bound. A host too slow to run the batch in a tick's period ticks slower, as
+ * Java does, and runs the same ticks a fast host runs, so a replay agrees on both.
  */
 export const SCHEDULED_TICK_BUDGET_PER_TICK = 65536;
-
-/**
- * How long one world tick may spend running scheduled ticks before it leaves the rest for the next.
- *
- * Java has only the count above. This server also has hosts that run a tick of 20,000 leaf decay
- * checks in two seconds, long enough that every connected client times out, so the clock bounds
- * what the count does not.
- */
-export const SCHEDULED_TICK_TIME_BUDGET_MS = 25;
 
 /** What one world tick's systems pass did. */
 export interface WorldSystemsReport {
@@ -349,8 +343,7 @@ export class WorldSystems {
                 }
                 contentHandler?.(tick.at);
             },
-            SCHEDULED_TICK_BUDGET_PER_TICK,
-            performance.now() + SCHEDULED_TICK_TIME_BUDGET_MS
+            SCHEDULED_TICK_BUDGET_PER_TICK
         );
 
         return {
