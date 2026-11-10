@@ -1,5 +1,7 @@
 import NetworkPacket from '../NetworkPacket';
 import { PacketIdentifier } from '../PacketIdentifier';
+import { unlockedRecipesPacket } from '../wire/definitions/unlockedRecipes';
+import { layoutAt } from '../wire/WireLayout';
 
 import type NetworkBinaryStream from '../NetworkBinaryStream';
 
@@ -43,23 +45,10 @@ export default class UnlockedRecipesPacket extends NetworkPacket<UnlockedRecipes
     }
 
     protected serializePayload(stream: NetworkBinaryStream, data: UnlockedRecipes): void {
-        stream.writeUnsignedIntLE(data.type);
-
-        stream.writeUnsignedVarInt(data.recipes.length);
-        for (const recipe of data.recipes) {
-            stream.writeString(recipe);
-        }
+        layoutAt(unlockedRecipesPacket, this.codecProtocol).encode(stream, data);
     }
 
     protected deserializePayload(stream: NetworkBinaryStream): UnlockedRecipes {
-        const type = stream.readUnsignedIntLE();
-
-        const recipes: string[] = [];
-        let count = stream.readUnsignedVarInt();
-        while (count-- > 0) {
-            recipes.push(stream.readString());
-        }
-
-        return { type, recipes };
+        return layoutAt(unlockedRecipesPacket, this.codecProtocol).decode(stream);
     }
 }
