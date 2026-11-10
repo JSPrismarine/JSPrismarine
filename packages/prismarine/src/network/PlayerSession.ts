@@ -14,6 +14,7 @@ import {
 import { advancementChangedDimension } from '../advancement/triggers';
 import type Player from '../Player';
 import type { PlayerIdentity } from '../playerIdentity';
+import { playerKeyOf } from '../playerIdentity';
 import type Server from '../Server';
 import { commandPermissionOf } from '../command/CommandManager';
 import { PLAYER_SOFT_ENUM } from '../command/jsprismarineCommands';
@@ -503,12 +504,12 @@ export default class PlayerSession {
      */
     public disable(): void {
         this.server.getChunkScheduler().remove(this);
-        const player = this.players.of(Number(this.runtimeId));
-        if (player === undefined) return;
+        // Only once: a second call finds the player forgotten already.
+        if (!this.players.delete(Number(this.runtimeId))) return;
         BossBar.releasePlayer(this.runtimeId);
-        forgetAdvancements(player);
-        forgetEnchantmentSeed(player);
-        this.players.delete(Number(this.runtimeId));
+        const key = playerKeyOf(this.identity);
+        forgetAdvancements(key);
+        forgetEnchantmentSeed(key);
     }
 
     /** The queue the scheduler drains - see {@link ChunkRecipient}. */
