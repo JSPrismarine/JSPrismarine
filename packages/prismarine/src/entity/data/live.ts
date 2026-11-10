@@ -25,6 +25,7 @@ import type {
     FilterItemView
 } from '@jsprismarine/entities';
 import { ActorEvent, LevelSoundEvent } from '@jsprismarine/minecraft';
+import type { NBTTagCompound } from '@jsprismarine/nbt';
 
 import { singleDimension } from '../../content/world/adapter';
 import type { ContentEntityAccess, ServerWorldAdapter } from '../../content/world/adapter';
@@ -49,6 +50,7 @@ import type { ContentItemEntity, EntityHostFacts, EntityWorldFacts } from './hos
 import { EntityRuntime, PROJECTILE_EYE_HEIGHT_FRACTION } from './EntityRuntime';
 import { LiveBodies } from './liveBodies';
 import { StoreActors } from './storeActors';
+import type { StoreActorBlows } from './storeActors';
 import { tradeDisplayNameOf } from './trading';
 import type { DataEntityRecord } from './persistence';
 import EntityDamageEvent from '../../events/entity/EntityDamageEvent';
@@ -59,6 +61,7 @@ import { PASS, VETO, replaceAmount } from './damagePipeline';
 import type { DamageOutcome, DamageRoute } from './damagePipeline';
 import { intentOfHealthWrite, intentOfLegacyBlow, legacySourceOfIntent, viewableDataEntity } from './legacyDamage';
 import type { Item } from '../../item/Item';
+import type { StatusEffect } from '../StatusEffect';
 import { advancementDamage, advancementKill, advancementPickedUpItem } from '../../advancement/triggers';
 import { itemDropOf, itemOfDrop } from '../../inventory/persistence';
 import ContainerEntry from '../../inventory/ContainerEntry';
@@ -176,6 +179,18 @@ const playerFilterView = (player: Player): FilterEntityView => {
     playerFilterViews.set(player, view);
     return view;
 };
+
+/** What an actor record held apart from an entity's record, which a restored entity keeps. */
+export interface KeptActorState {
+    /** The actor record tags this server does not model, which the next save writes back. */
+    readonly persistentNbt: NBTTagCompound | null;
+    /** The name tag, for a record that does not name the entity itself. */
+    readonly nameTag?: string;
+    /** The `/tag` tags. */
+    readonly tags: readonly string[];
+    /** The status effects, which the entity's immunities still filter. */
+    readonly statusEffects: readonly StatusEffect[];
+}
 
 /** What {@link EntityRuntimes.open} is given for one dimension. */
 export interface LiveEntityOptions {
@@ -518,21 +533,21 @@ export class LiveEntityRuntime {
 
     public constructor(options: LiveEntityOptions) {
         this.options = options;
-        this.actors = new StoreActors({
-            world: options.liveWorld,
-            report: options.report,
-            projected: (entity, projection) => this.bodies.project(entity, projection)
-        });
-        this.bodies = new LiveBodies({
-            world: options.liveWorld,
-            report: options.report,
+        const blows: StoreActorBlows = {
             hurt: (entity, amount, source, route) =>
                 this.landed(this.runtime.damage(intentOfLegacyBlow(entity, amount, source, route))),
             written: (entity, taken, source) => {
                 this.runtime.damage(intentOfHealthWrite(entity, taken, source, 'legacy_body'));
             },
             heal: (entity, amount) => this.runtime.heal(entity.id, amount)
+        };
+        this.actors = new StoreActors({
+            world: options.liveWorld,
+            report: options.report,
+            blows,
+            projected: (entity, projection) => this.bodies.project(entity, projection)
         });
+        this.bodies = new LiveBodies({ world: options.liveWorld, report: options.report, ...blows });
         this.itemBodies = new ItemBodies({ world: options.liveWorld, report: options.report });
         this.runtime = new EntityRuntime({
             content: options.content,
@@ -764,17 +779,16 @@ export class LiveEntityRuntime {
     }
 
     /**
-     * Whether a live body rides something or carries a rider.
+     * Whether an entity rides something or carries a rider.
      *
      * Bedrock sends nothing with passengers through a portal (MCPE-47288), and the only riding
      * the server models is the data-driven `minecraft:rideable` index, so a player on a mob
      * answers through the mob's side and a written entity never rides.
      *
-     * @param target - The client-facing body.
+     * @param id - The entity's runtime id.
      */
-    public isInRide(target: Entity): boolean {
-        const id = this.bodies.entityIdOf(target);
-        const entity = id === undefined ? undefined : this.runtime.byId(id);
+    public isInRide(id: number): boolean {
+        const entity = this.runtime.byId(id);
         if (entity === undefined) return false;
         return this.runtime.vehicleOf(entity.body) !== undefined || this.runtime.ridersOf(entity.body).length > 0;
     }
@@ -1014,17 +1028,43 @@ export class LiveEntityRuntime {
      */
     public restore(record: DataEntityRecord, stored: Entity): DataEntity | undefined {
         const at = stored.getPosition();
-        const entity = this.runtime.restore(record, { x: at.getX(), y: at.getY(), z: at.getZ() });
-        if (entity === undefined) return undefined;
+        return this.restoreRecord(
+            record,
+            { x: at.getX(), y: at.getY(), z: at.getZ() },
+            {
+                persistentNbt: stored.persistentNbt,
+                nameTag: stored.metadata.nameTag || undefined,
+                tags: stored.getTags(),
+                statusEffects: stored.getStatusEffects()
+            }
+        );
+    }
 
-        const body = this.bodies.bodyOf(entity.id);
-        if (body !== undefined) {
-            body.persistentNbt = stored.persistentNbt;
-            entity.body.nameTag ??= stored.metadata.nameTag || undefined;
-            for (const tag of stored.getTags()) body.addTag(tag);
-            for (const effect of stored.getStatusEffects()) body.addStatusEffect(effect, false);
-        }
+    /**
+     * Brings one entity back into the runtime from its record, at a position, with what the
+     * record does not hold: the actor record tags to carry forward, and the name tag, tags and
+     * status effects the actor record held apart from it.
+     *
+     * @returns The entity, or undefined when no loaded pack declares its type.
+     */
+    public restoreRecord(record: DataEntityRecord, at: EntityPosition, kept: KeptActorState): DataEntity | undefined {
+        const entity = this.runtime.restore(record, at);
+        if (entity === undefined) return undefined;
+        this.keep(entity, kept);
+        entity.body.nameTag ??= kept.nameTag;
         return entity;
+    }
+
+    /** Puts what an actor record held apart from the entity's record onto the restored entity. */
+    private keep(entity: DataEntity, kept: KeptActorState): void {
+        const actor = this.actors.actorOf(entity.id);
+        if (actor !== undefined) {
+            actor.persistentNbt = kept.persistentNbt;
+            for (const tag of kept.tags) actor.addTag(tag);
+            for (const effect of kept.statusEffects) actor.addStatusEffect(effect, false);
+        }
+        const body = this.bodies.bodyOf(entity.id);
+        if (body !== undefined) body.persistentNbt = kept.persistentNbt;
     }
 
     /**
@@ -1073,13 +1113,12 @@ export class LiveEntityRuntime {
         const health = entity.instance.attributes.get('health');
         if (health !== undefined) entity.instance.attributes.set('health', Math.min(health.max, stored.getHealth()));
 
-        const body = this.bodies.bodyOf(entity.id);
-        if (body !== undefined) {
-            body.persistentNbt = stored.persistentNbt;
-            entity.body.nameTag = stored.metadata.nameTag || undefined;
-            for (const tag of stored.getTags()) body.addTag(tag);
-            for (const effect of stored.getStatusEffects()) body.addStatusEffect(effect, false);
-        }
+        entity.body.nameTag = stored.metadata.nameTag || undefined;
+        this.keep(entity, {
+            persistentNbt: stored.persistentNbt,
+            tags: stored.getTags(),
+            statusEffects: stored.getStatusEffects()
+        });
         return entity;
     }
 }

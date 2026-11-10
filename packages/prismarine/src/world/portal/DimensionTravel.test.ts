@@ -54,6 +54,7 @@ import type WorldManager from '../WorldManager';
 import { DimensionTravel, END_ARRIVAL_YAW } from './DimensionTravel';
 import type { PortalBlockRef } from './DimensionTravel';
 import { ChunkCompletionQueue } from '../ChunkCompletionQueue';
+import type { WorldActor } from '../WorldActor';
 
 const NETHER_STEM_ID = 'minecraft:the_nether';
 const END_STEM_ID = 'minecraft:the_end';
@@ -558,7 +559,7 @@ describe('DimensionTravel.touch', () => {
         const scene = await buildScene();
         const item = itemAt(scene.overworld, new Vector3(80.5, 64, 0.5));
         item.setPortalCooldown(5);
-        const entered: Entity[] = [];
+        const entered: WorldActor[] = [];
         scene.server.on('entityPortalEnter', (event) => void entered.push(event.getEntity()));
 
         await scene.travel.touch(item, portalAt(scene.overworld, new Vector3(80, 64, 0)));
@@ -969,7 +970,7 @@ describe('DimensionTravel through the tick', () => {
         const pending = bot.getNetworkSession().pendingDimensionChange();
         expect(pending?.arrival.world).toBe(scene.nether);
         expect(scene.nether.getPortalIndex().has({ x: 9, y: 70, z: 0 })).toBe(true);
-        const entered: Entity[] = [];
+        const entered: WorldActor[] = [];
         scene.server.on('entityPortalEnter', (event) => void entered.push(event.getEntity()));
 
         // The bot stands in the portal the trip built, the client has still not closed the
