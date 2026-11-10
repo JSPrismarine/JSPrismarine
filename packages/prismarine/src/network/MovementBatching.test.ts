@@ -10,7 +10,7 @@ import type { World } from '../world/World';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import MoveActorAbsolutePacket from '@jsprismarine/protocol/packet/MoveActorAbsolutePacket';
 import type ClientConnection from './ClientConnection';
-import PlayerSession from './PlayerSession';
+import { sessionFor } from '../testing/playerSession.test.helper';
 
 /**
  * How a tick's entity movement reaches the client.
@@ -33,7 +33,7 @@ const sessionWithCountedSends = () => {
         flushOutboundPackets: async () => {}
     });
     const config = stub<Config>({ getEntityTrackingHysteresis: () => 2, getProximityBroadcast: () => true });
-    const session = new PlayerSession(stub<Server>({ getConfig: () => config }), connection, stub<Player>());
+    const session = sessionFor(stub<Server>({ getConfig: () => config }), connection, stub<Player>());
 
     return { session, batches, singles };
 };

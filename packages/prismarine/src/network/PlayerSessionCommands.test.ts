@@ -12,7 +12,7 @@ import type { PermissionManager } from '../permission/PermissionManager';
 import { canExecute } from '../permission/PermissionManager';
 import { stub } from '../testing/stub.test.helper';
 import type ClientConnection from './ClientConnection';
-import PlayerSession from './PlayerSession';
+import { sessionFor } from '../testing/playerSession.test.helper';
 import AvailableCommandsPacket from '@jsprismarine/protocol/packet/AvailableCommandsPacket';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import { CommandParameterType } from '@jsprismarine/protocol/wire/structures/CommandParameter';
@@ -68,7 +68,7 @@ const commandsSentTo = async ({
         }
     });
 
-    await new PlayerSession(server, connection, player).sendAvailableCommands();
+    await sessionFor(server, connection, player).sendAvailableCommands();
 
     const [packet] = sent;
     if (!(packet instanceof AvailableCommandsPacket)) throw new Error('No AvailableCommandsPacket was sent');
@@ -179,7 +179,7 @@ describe('PlayerSession', () => {
                     sent.push(packet);
                 }
             });
-            const session = new PlayerSession(server, connection, player);
+            const session = sessionFor(server, connection, player);
 
             await session.sendAvailableCommands();
             permissions = ['minecraft.command.stop'];

@@ -11,7 +11,7 @@ import type { PermissionManager } from '../../permission/PermissionManager';
 import { stub } from '../../testing/stub.test.helper';
 import type ClientConnection from '../ClientConnection';
 import { NetworkUtil } from '../NetworkUtil';
-import PlayerSession from '../PlayerSession';
+import { sessionFor } from '../../testing/playerSession.test.helper';
 import { CommandChainedSubcommand } from '@jsprismarine/protocol/wire/structures/CommandChainedSubcommand';
 import CommandData from '@jsprismarine/protocol/wire/structures/CommandData';
 import { CommandEnum } from '@jsprismarine/protocol/wire/structures/CommandEnum';
@@ -437,7 +437,7 @@ describe('AvailableCommandsPacket', () => {
             }
         });
 
-        await new PlayerSession(server, connection, player).sendAvailableCommands();
+        await sessionFor(server, connection, player).sendAvailableCommands();
 
         const [packet] = sent;
         expect(packet).toBeInstanceOf(AvailableCommandsPacket);

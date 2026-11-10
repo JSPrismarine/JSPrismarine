@@ -11,6 +11,7 @@ import UpdateAbilitiesPacket, {
     AbilityLayerType
 } from '@jsprismarine/protocol/packet/UpdateAbilitiesPacket';
 import PlayerSession from './PlayerSession';
+import { sessionPlayerFields } from '../testing/playerSession.test.helper';
 
 /**
  * The one `BASE` layer `sendAbilities` builds. Every `AbilitiesIndex` bit is named so the
@@ -30,7 +31,10 @@ const sessionFor = (player: Player) => {
     const connection = stub<ClientConnection>({
         sendDataPacket: async (packet) => void sent.push(packet)
     });
-    const session: PlayerSession = Object.assign(Object.create(PlayerSession.prototype), { connection, player });
+    const session: PlayerSession = Object.assign(Object.create(PlayerSession.prototype), {
+        connection,
+        ...sessionPlayerFields(player, player.getRuntimeId())
+    });
     return { session, sent };
 };
 

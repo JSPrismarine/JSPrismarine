@@ -38,6 +38,7 @@ import { ItemActorBody as ItemEntity } from '../entity/data/itemBodies';
 import type ClientConnection from '../network/ClientConnection';
 import Codec2193 from '../network/codec/Codec2193';
 import { createConnectedPlayer } from '../network/createConnectedPlayer';
+import { sessionsWith } from '../testing/playerSession.test.helper';
 import type ContainerSetDataPacket from '@jsprismarine/protocol/packet/ContainerSetDataPacket';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import { FURNACE_DATA_BURN_DURATION, FURNACE_DATA_BURN_REMAINING, FURNACE_DATA_COOK_TICKS } from '../world/cooking';
@@ -179,8 +180,9 @@ const buildScene = async (name: string) => {
     let world: World | undefined;
     let content: ServerContent | undefined;
     const entityRuntimes = new EntityRuntimes();
-
+    const sessions = sessionsWith();
     const server: Server = stub<Server>({
+        getSessionManager: () => sessions,
         getChatManager: () => chat,
         on: () => server,
         post: () => 0,

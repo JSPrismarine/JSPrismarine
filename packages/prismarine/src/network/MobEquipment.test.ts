@@ -20,6 +20,7 @@ import { MobArmorEquipmentPacket, MobEquipmentPacket } from '@jsprismarine/proto
 import type { ProtocolContext } from '@jsprismarine/protocol';
 import type { ProtocolCodec } from '@jsprismarine/protocol';
 import PlayerSession from './PlayerSession';
+import { sessionPlayerFields } from '../testing/playerSession.test.helper';
 
 const protocolContext: ProtocolContext = { protocolVersion: 2193 };
 const protocolCodec = stub<ProtocolCodec>({ protocolVersion: 2193, context: protocolContext });
@@ -40,7 +41,7 @@ const recordingSession = () => {
 
     const session: PlayerSession = Object.assign(Object.create(PlayerSession.prototype), {
         connection,
-        player: stub<Player>()
+        ...sessionPlayerFields(stub<Player>())
     });
 
     return { session, sent };

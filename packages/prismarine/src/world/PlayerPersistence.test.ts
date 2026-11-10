@@ -24,6 +24,7 @@ import { AttributeIds } from '@jsprismarine/protocol/wire/structures/Attribute';
 import { Item } from '../item/Item';
 import type ClientConnection from '../network/ClientConnection';
 import { createConnectedPlayer } from '../network/createConnectedPlayer';
+import { sessionsWith } from '../testing/playerSession.test.helper';
 import type { PermissionManager } from '../permission/PermissionManager';
 import Player from '../Player';
 import { stub } from '../testing/stub.test.helper';
@@ -56,7 +57,9 @@ let scratch: string;
 let previousDirectory: string | undefined;
 
 const testServer = (): Server => {
+    const sessions = sessionsWith();
     const server: Server = stub<Server>({
+        getSessionManager: () => sessions,
         getChatManager: () => chat,
         getWorldManager: () => stub<WorldManager>({}),
         on: () => server,

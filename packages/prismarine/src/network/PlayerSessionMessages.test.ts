@@ -6,6 +6,7 @@ import type ClientConnection from './ClientConnection';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import TextPacket from '@jsprismarine/protocol/packet/TextPacket';
 import PlayerSession from './PlayerSession';
+import { sessionPlayerFields } from '../testing/playerSession.test.helper';
 import { TextPacketType } from '@jsprismarine/protocol';
 
 /** A session whose connection records what goes out. */
@@ -17,7 +18,7 @@ const sessionWithRecorder = () => {
 
     const session: PlayerSession = Object.assign(Object.create(PlayerSession.prototype), {
         connection,
-        player: stub<Player>()
+        ...sessionPlayerFields(stub<Player>())
     });
 
     return { session, sent };

@@ -18,7 +18,8 @@ import type { World } from '../world/World';
 import type { ChunkScheduler } from '../world/ChunkScheduler';
 import { Position } from '../world/Position';
 import type ClientConnection from './ClientConnection';
-import PlayerSession from './PlayerSession';
+import type PlayerSession from './PlayerSession';
+import { sessionFor } from '../testing/playerSession.test.helper';
 import Codec2193 from './codec/Codec2193';
 import Codec2225 from './codec/Codec2225';
 import { xxHash64 } from './xxHash64';
@@ -73,7 +74,7 @@ describe('network', () => {
 
         beforeEach(() => {
             player = playerAt(0, 0);
-            session = new PlayerSession(server, stub<ClientConnection>(), player.player);
+            session = sessionFor(server, stub<ClientConnection>(), player.player);
         });
 
         it('queues the chunks around the player', async () => {
@@ -160,11 +161,7 @@ describe('network', () => {
                 getPosition: () => stub<Position>({ getX: () => 0, getZ: () => 0 }),
                 getWorld: () => world
             });
-            const residentSession = new PlayerSession(
-                server,
-                stub<ClientConnection>({ codec: Codec2225 }),
-                playerWithWorld
-            );
+            const residentSession = sessionFor(server, stub<ClientConnection>({ codec: Codec2225 }), playerWithWorld);
             const payloadBytes = chunk.networkSerialize().byteLength;
 
             expect(residentSession.tryDeliverLoaded(1, 2)).toEqual({ kind: 'queued', queuedBytes: payloadBytes });
@@ -187,7 +184,7 @@ describe('network', () => {
                 getPosition: () => stub<Position>({ getX: () => 0, getZ: () => 0 }),
                 getWorld: () => world
             });
-            const cacheSession = new PlayerSession(server, stub<ClientConnection>({ codec: Codec2225 }), cachePlayer);
+            const cacheSession = sessionFor(server, stub<ClientConnection>({ codec: Codec2225 }), cachePlayer);
             const payload = chunk.networkSerializeRequestSkeleton();
             cacheSession.setClientCacheEnabled(true);
 
@@ -234,7 +231,7 @@ describe('network', () => {
                     sendDataPacket: async () => {},
                     sendSharedCompressedBatchAsync: async (_content, packets) => void sentBatches.push([...packets])
                 });
-                const cacheSession = new PlayerSession(server, connection, playerWithWorld);
+                const cacheSession = sessionFor(server, connection, playerWithWorld);
                 cacheSession.setClientCacheEnabled(true);
                 const skeleton = chunk.networkSerializeRequestSkeleton();
                 cacheSession.tryDeliverLoaded(1, 2);
@@ -293,7 +290,7 @@ describe('network', () => {
                 getName: () => 'tester'
             });
             const sentPackets: NetworkPacket<unknown>[] = [];
-            const sessionWithResponses = new PlayerSession(
+            const sessionWithResponses = sessionFor(
                 server,
                 stub<ClientConnection>({ sendDataPacket: async (packet) => void sentPackets.push(packet) }),
                 playerWithWorld
@@ -368,7 +365,7 @@ describe('network', () => {
                 sendDataPacket: async (packet) => void sent.push(packet),
                 sendSharedCompressedBatchAsync: async () => {}
             });
-            const announced = new PlayerSession(server, connection, playerWithWorld);
+            const announced = sessionFor(server, connection, playerWithWorld);
             announced.tryDeliverLoaded(1, 2);
             await announced.flush();
             resident = null;
@@ -401,7 +398,7 @@ describe('network', () => {
             });
             const playerWithWorld = stub<Player>({ getWorld: () => world, isOnline: () => true });
             const sentPackets: NetworkPacket<unknown>[] = [];
-            const cacheSession = new PlayerSession(
+            const cacheSession = sessionFor(
                 server,
                 stub<ClientConnection>({ sendDataPacket: async (packet) => void sentPackets.push(packet) }),
                 playerWithWorld

@@ -12,6 +12,7 @@ import {
 } from '@jsprismarine/minecraft';
 import { advancementChangedDimension } from '../advancement/triggers';
 import type Player from '../Player';
+import type { PlayerIdentity } from '../playerIdentity';
 import type Server from '../Server';
 import { commandPermissionOf } from '../command/CommandManager';
 import { PLAYER_SOFT_ENUM } from '../command/jsprismarineCommands';
@@ -49,6 +50,7 @@ import { forgetAdvancements } from '../advancement/progress';
 import { forgetEnchantmentSeed } from '../enchantment/enchantingTable';
 import { BossBar } from './BossBar';
 import { EntityTracker } from './EntityTracker';
+import type { SessionPlayerRef, SessionPlayers } from './sessionPlayers';
 import { craftingRecipeCount, joinContentPayloads, limitCraftingData } from './contentPayloads';
 import { sendCachedJoinPacket } from './joinPacketCache';
 import { creativeContentFrom } from './payloadAdapters';
@@ -279,7 +281,15 @@ const SUB_CHUNK_REQUESTS_SINCE = 2225;
 export default class PlayerSession {
     private connection: ClientConnection;
     private readonly server: Server;
-    private player: Player;
+
+    /** The player's entity id, as the wire carries it. */
+    public readonly runtimeId: bigint;
+
+    /** Who logged in on this session. */
+    public readonly identity: PlayerIdentity;
+
+    /** Where {@link PlayerSession.getPlayer} finds the player by {@link PlayerSession.runtimeId}. */
+    private readonly players: SessionPlayers<Player>;
 
     /**
      * Entity movement produced by this tick, waiting to go out as one batch.
@@ -421,10 +431,23 @@ export default class PlayerSession {
     /** The last teleport sent to this client that it has not said it handled, and when. */
     private teleportAwaitingAck: { readonly x: number; readonly z: number; readonly sentAtTick: number } | undefined;
 
-    public constructor(server: Server, connection: ClientConnection, player: Player) {
+    /**
+     * @param server - The server the session belongs to.
+     * @param connection - The connection it speaks through.
+     * @param player - The id and identity of the player it speaks for.
+     * @param players - Where the player is filed by that id.
+     */
+    public constructor(
+        server: Server,
+        connection: ClientConnection,
+        player: SessionPlayerRef,
+        players: SessionPlayers<Player>
+    ) {
         this.server = server;
         this.connection = connection;
-        this.player = player;
+        this.runtimeId = player.runtimeId;
+        this.identity = player.identity;
+        this.players = players;
 
         const config = this.server.getConfig();
         this.entityTracker = new EntityTracker({
@@ -446,9 +469,10 @@ export default class PlayerSession {
     }
 
     /**
-     * Takes this client back out of the chunk rotation and off every boss bar, and lets go of
-     * the player's state kept outside the player. Paired with {@link PlayerSession.enable} and
-     * safe to call more than once.
+     * Takes this client back out of the chunk rotation and off every boss bar, lets go of the
+     * player's state kept outside the player, and forgets the player itself, after which
+     * {@link PlayerSession.getPlayer} throws. Paired with {@link PlayerSession.enable} and safe to
+     * call more than once.
      *
      * `ClientConnection.closePlayerSession` runs this after `Player.disable` has saved the
      * player, and whether or not that succeeded or the join ever completed.
@@ -456,9 +480,12 @@ export default class PlayerSession {
      */
     public disable(): void {
         this.server.getChunkScheduler().remove(this);
-        BossBar.releasePlayer(this.player);
-        forgetAdvancements(this.player);
-        forgetEnchantmentSeed(this.player);
+        const player = this.players.of(Number(this.runtimeId));
+        if (player === undefined) return;
+        BossBar.releasePlayer(player);
+        forgetAdvancements(player);
+        forgetEnchantmentSeed(player);
+        this.players.delete(Number(this.runtimeId));
     }
 
     /** The queue the scheduler drains - see {@link ChunkRecipient}. */
@@ -489,7 +516,7 @@ export default class PlayerSession {
 
     /** Queues a resident chunk without entering the generation and disk-read depth gate. */
     public tryDeliverLoaded(x: number, z: number): CachedChunkDelivery {
-        const chunk = this.player.getWorld().getLoadedChunk(x, z);
+        const chunk = this.getPlayer().getWorld().getLoadedChunk(x, z);
         if (chunk === null) return { kind: 'not-loaded' };
 
         const queued = this.prepareQueuedChunk(chunk);
@@ -552,7 +579,7 @@ export default class PlayerSession {
         if (packet.offsets.length === 0) return 0;
 
         const online = this.isConnected();
-        const world = online ? this.player.getWorld() : undefined;
+        const world = online ? this.getPlayer().getWorld() : undefined;
         const dimension = world?.getDimension();
         const cacheEnabled = this.clientCacheEnabled;
         const entries: SubChunkEntry[] = [];
@@ -598,7 +625,7 @@ export default class PlayerSession {
                 this.server
                     .getLogger()
                     .debug(
-                        `${this.player.getName()} asked for sub chunk ${x}, ${y}, ${z}, which is not loaded`,
+                        `${this.identity.name} asked for sub chunk ${x}, ${y}, ${z}, which is not loaded`,
                         'PlayerSession/handleSubChunkRequest'
                     );
                 entry.result = SubChunkRequestResult.LEVEL_CHUNK_DOESNT_EXIST;
@@ -645,8 +672,9 @@ export default class PlayerSession {
         return entries.length;
     }
 
+    /** Whether the player has joined and not left. */
     public isConnected(): boolean {
-        return this.player.isOnline();
+        return this.players.of(Number(this.runtimeId))?.isOnline() ?? false;
     }
 
     /** Queues the chunks around a position, nearest first, without sending anything yet. */
@@ -676,7 +704,7 @@ export default class PlayerSession {
             this.server
                 .getLogger()
                 .warn(
-                    `${this.player.getName()} never closed loading screen ${pending.loadingScreenId} of the change to ${pending.arrival.world.getName()}; finishing it for them`,
+                    `${this.identity.name} never closed loading screen ${pending.loadingScreenId} of the change to ${pending.arrival.world.getName()}; finishing it for them`,
                     'PlayerSession/update'
                 );
             this.endLoadingScreen(pending.loadingScreenId);
@@ -689,16 +717,17 @@ export default class PlayerSession {
             this.server
                 .getLogger()
                 .debug(
-                    `${this.player.getName()} has not opened loading screen ${pending.loadingScreenId}; sending its arrival columns anyway`,
+                    `${this.identity.name} has not opened loading screen ${pending.loadingScreenId}; sending its arrival columns anyway`,
                     'PlayerSession/update'
                 );
             pending.arrivalReleased = true;
             await this.flush();
         }
 
-        if (!this.player.viewDistance) return;
+        const player = this.getPlayer();
+        if (!player.viewDistance) return;
 
-        const position = this.player.getPosition();
+        const position = player.getPosition();
         const chunkX = toChunk(position.getX());
         const chunkZ = toChunk(position.getZ());
 
@@ -722,7 +751,7 @@ export default class PlayerSession {
      * @returns {boolean} `true` if the client can act on a packet naming that id.
      */
     public tracks(runtimeId: bigint): boolean {
-        return runtimeId === this.player.getRuntimeId() || this.entityTracker.tracks(runtimeId);
+        return runtimeId === this.runtimeId || this.entityTracker.tracks(runtimeId);
     }
 
     /**
@@ -741,11 +770,12 @@ export default class PlayerSession {
 
         this.reconciling = true;
         try {
+            const player = this.getPlayer();
             const change = this.entityTracker.plan({
-                viewer: this.player.getPosition(),
-                viewDistance: this.player.viewDistance,
-                self: this.player.getRuntimeId(),
-                entities: entities ?? this.player.getWorld().shownActors()
+                viewer: player.getPosition(),
+                viewDistance: player.viewDistance,
+                self: this.runtimeId,
+                entities: entities ?? player.getWorld().shownActors()
             });
 
             for (const entity of change.spawn) {
@@ -771,8 +801,9 @@ export default class PlayerSession {
      */
     public async considerEntity(entity: ShownActor): Promise<void> {
         if (!this.isConnected()) return;
-        if (entity.getRuntimeId() === this.player.getRuntimeId()) return;
-        if (!this.entityTracker.shouldSpawn(entity, this.player.getPosition(), this.player.viewDistance)) return;
+        if (entity.getRuntimeId() === this.runtimeId) return;
+        const player = this.getPlayer();
+        if (!this.entityTracker.shouldSpawn(entity, player.getPosition(), player.viewDistance)) return;
 
         await entity.spawnTo(this);
         this.entityTracker.add(entity.getRuntimeId());
@@ -851,7 +882,7 @@ export default class PlayerSession {
         // should be showing, so naming only the current batch un-rendered everything sent
         // before it. What governs visibility is the radius around the position.
         // https://github.com/PrismarineJS/minecraft-data/blob/master/data/bedrock/1.21.42/proto.yml
-        const publisherSend = this.sendNetworkChunkPublisher(effectiveViewDistance(this.player.viewDistance), []);
+        const publisherSend = this.sendNetworkChunkPublisher(effectiveViewDistance(this.getPlayer().viewDistance), []);
 
         try {
             await publisherSend;
@@ -945,7 +976,7 @@ export default class PlayerSession {
      * @param player - The client-controlled entity
      */
     public async sendSettings(player?: Player): Promise<void> {
-        const target = player ?? this.player;
+        const target = player ?? this.getPlayer();
 
         const spectator = target.gamemode === Gametype.SPECTATOR;
         const packet = new UpdateAdventureSettingsPacket({
@@ -969,7 +1000,7 @@ export default class PlayerSession {
      *   to this session's own player.
      */
     public async sendAbilities(player?: ShownPlayer): Promise<void> {
-        const target = player ?? this.player;
+        const target = player ?? this.getPlayer();
 
         // Read off the gamemode rather than each written out by hand, which is how
         // `INSTABUILD` - the flag that *is* creative, as far as the client is concerned - came
@@ -1017,10 +1048,11 @@ export default class PlayerSession {
     }
 
     public async needNewChunks(forceResend = false, dist?: number): Promise<void> {
-        const currentXChunk = CoordinateUtils.fromBlockToChunk(this.player.getPosition().getX());
-        const currentZChunk = CoordinateUtils.fromBlockToChunk(this.player.getPosition().getZ());
+        const player = this.getPlayer();
+        const currentXChunk = CoordinateUtils.fromBlockToChunk(player.getPosition().getX());
+        const currentZChunk = CoordinateUtils.fromBlockToChunk(player.getPosition().getZ());
 
-        const viewDistance = this.player.viewDistance || dist || 0;
+        const viewDistance = player.viewDistance || dist || 0;
 
         this.chunkSender.setCenter(currentXChunk, currentZChunk);
 
@@ -1083,7 +1115,9 @@ export default class PlayerSession {
 
     public async requestChunk(x: number, z: number): Promise<void> {
         const epoch = this.chunkEpoch;
-        const chunk = await this.player.getWorld().getChunk(x, z, { urgency: this.urgencyOf(x, z) });
+        const chunk = await this.getPlayer()
+            .getWorld()
+            .getChunk(x, z, { urgency: this.urgencyOf(x, z) });
         await this.queueChunk(chunk, epoch);
     }
 
@@ -1159,7 +1193,7 @@ export default class PlayerSession {
         const distance = Math.max(Math.abs(x - this.lastChunkX), Math.abs(z - this.lastChunkZ));
         if (distance <= URGENT_CHUNK_DISTANCE) return 'immediate';
 
-        return distance <= this.player.viewDistance / 2 ? 'soon' : 'idle';
+        return distance <= this.getPlayer().viewDistance / 2 ? 'soon' : 'idle';
     }
 
     /**
@@ -1196,7 +1230,7 @@ export default class PlayerSession {
      * nothing to name it by, so the click on a furnace's input never became a request.
      */
     private stackIdFor(item: Item): number | null {
-        const id = this.player.getInventory().assignStackNetworkId(item);
+        const id = this.getPlayer().getInventory().assignStackNetworkId(item);
         return id > 0 ? id : null;
     }
 
@@ -1209,7 +1243,7 @@ export default class PlayerSession {
      * an `ItemStackRequest` was ever sent.
      */
     public async sendInventory(windowId: number = WindowIds.INVENTORY): Promise<void> {
-        const inventory = this.player.getInventory();
+        const inventory = this.getPlayer().getInventory();
         const context = this.connection.codec.context;
         // Every stack goes out with the id the client will name it by in its requests.
         inventory.assignStackNetworkIds();
@@ -1243,7 +1277,7 @@ export default class PlayerSession {
         armor.containerId = ContainerUiId.ARMOR_CONTAINER;
         await this.connection.sendDataPacket(armor);
 
-        await this.sendArmorFor(this.player);
+        await this.sendArmorFor(this.getPlayer());
     }
 
     /**
@@ -1293,7 +1327,7 @@ export default class PlayerSession {
         packet.windowId = this.nextWindowId();
         packet.containerType = WindowTypes.INVENTORY;
         // No position: a container an actor carries is named by the actor, not by a block.
-        packet.containerEntityId = this.player.getRuntimeId();
+        packet.containerEntityId = this.runtimeId;
         this.openWindows.set(packet.windowId, packet.containerType);
         await this.connection.sendDataPacket(packet);
 
@@ -1476,7 +1510,7 @@ export default class PlayerSession {
             size: offers.length,
             traderTier: trade.source.level - 1,
             entityUniqueId: trade.trader.getRuntimeId(),
-            lastTradingPlayer: this.player.getRuntimeId(),
+            lastTradingPlayer: this.runtimeId,
             displayName: trade.title ?? trade.trader.getName(),
             useNewTradeScreen: true,
             usingEconomyTrade: true,
@@ -1603,7 +1637,7 @@ export default class PlayerSession {
         );
 
         const sent = craftingRecipeCount(crafting);
-        this.server.getLogger().debug(`Sent §b${sent}§r of §b${all}§r recipe(s) to ${this.player.getName()}`);
+        this.server.getLogger().debug(`Sent §b${sent}§r of §b${all}§r recipe(s) to ${this.identity.name}`);
     }
 
     public async sendCreativeContents(empty = false): Promise<void> {
@@ -1615,7 +1649,7 @@ export default class PlayerSession {
         // The same list a creative pick is resolved through, so that the position the client
         // sends back names the entry it was shown. `creativePick` reads the same two sources
         // in the same order.
-        const server = this.player.getServer();
+        const server = this.getPlayer().getServer();
         const content = server.getContent();
         const payloads = joinContentPayloads(content, server.getLogger(), {
             itemData: this.connection.codec.itemData
@@ -1642,10 +1676,10 @@ export default class PlayerSession {
      * @param {Item} item - The entity.
      */
     public async sendHandItem(item: Item): Promise<void> {
-        const slot = this.player.getInventory().getHandSlotIndex();
+        const slot = this.getPlayer().getInventory().getHandSlotIndex();
         await this.connection.sendDataPacket(
             new MobEquipmentPacket({
-                runtimeEntityId: this.player.getRuntimeId(),
+                runtimeEntityId: this.runtimeId,
                 item: item.toStackDescriptor(this.connection.codec.context),
                 inventorySlot: slot,
                 hotbarSlot: slot,
@@ -1668,7 +1702,7 @@ export default class PlayerSession {
      * @param {Gametype} gamemode - the numeric gamemode ID.
      */
     public async sendGamemode(gamemode?: Gametype): Promise<void> {
-        const packet = new SetPlayerGameTypePacket({ gametype: gamemode ?? this.player.gamemode });
+        const packet = new SetPlayerGameTypePacket({ gametype: gamemode ?? this.getPlayer().gamemode });
         await this.connection.sendDataPacket(packet);
     }
 
@@ -1686,7 +1720,7 @@ export default class PlayerSession {
         const packet = new UpdatePlayerGameTypePacket({
             playerGameType: target.gamemode,
             targetPlayer: target.getRuntimeId(),
-            tick: target.getRuntimeId() === this.player.getRuntimeId() ? this.lastInputTick : 0n
+            tick: target.getRuntimeId() === this.runtimeId ? this.lastInputTick : 0n
         });
         await this.connection.sendDataPacket(packet);
     }
@@ -1702,7 +1736,7 @@ export default class PlayerSession {
     }
 
     public async sendNetworkChunkPublisher(distance: number, savedChunks: ChunkCoord[]): Promise<void> {
-        const position = BlockPosition.fromVector3(this.player.getPosition());
+        const position = BlockPosition.fromVector3(this.getPlayer().getPosition());
         const pk = new NetworkChunkPublisherUpdatePacket({
             position: { x: position.getX(), y: position.getY(), z: position.getZ() },
             radius: distance << 4,
@@ -1738,13 +1772,13 @@ export default class PlayerSession {
         const commandManager = this.server.getCommandManager();
         for (const command of commandManager.getVanillaCommandList()) {
             const permission = commandPermissionOf(command.name);
-            if (!this.server.getPermissionManager().can(this.player).execute(permission)) continue;
+            if (!this.server.getPermissionManager().can(this.getPlayer()).execute(permission)) continue;
 
             // The level the command declares, capped at the player's own: a
             // client hides a command whose level is above its own even though
             // the server would run it, which is what a player granted one
             // operator command by name would otherwise see.
-            const own = this.player.isOp() ? CommandPermissionLevel.OWNER : CommandPermissionLevel.ANY;
+            const own = this.getPlayer().isOp() ? CommandPermissionLevel.OWNER : CommandPermissionLevel.ANY;
             pk.commandData.push(commandDataOf(command, Math.min(command.permissionLevel, own)));
         }
 
@@ -1757,7 +1791,7 @@ export default class PlayerSession {
      * @param distance - The view distance
      */
     public async setViewDistance(distance: number): Promise<void> {
-        this.player.viewDistance = distance;
+        this.getPlayer().viewDistance = distance;
         const packet = new ChunkRadiusUpdatedPacket({ radius: distance });
         await this.connection.sendDataPacket(packet);
 
@@ -1777,7 +1811,7 @@ export default class PlayerSession {
 
         this.spawnChunksSent = true;
         this.spawnChunksPending = true;
-        await this.player.sendInitialSpawnChunks();
+        await this.getPlayer().sendInitialSpawnChunks();
 
         // Nothing queued - there is no flush coming that would do it, so announce here.
         await this.announceSpawnIfReady();
@@ -1822,9 +1856,9 @@ export default class PlayerSession {
      * The client rebuilds the local player during the spawn sequence, so this has to be sent
      * again once the player is in the world - anything sent before that is thrown away, which
      * is why the hunger bar sat empty however correct the values were here.
-     * @param {Attributes} [attributes=this.player.attributes] - The attributes to send.
+     * @param {Attributes} [attributes] - The attributes to send, the player's own by default.
      */
-    public async sendAttributes(attributes: Attributes = this.player.attributes): Promise<void> {
+    public async sendAttributes(attributes: Attributes = this.getPlayer().attributes): Promise<void> {
         await this.sendAttributeList(attributes.getAttributes());
         attributes.clearDirty();
     }
@@ -1836,15 +1870,16 @@ export default class PlayerSession {
      * a value that only exists on the server.
      */
     public async syncAttributes(): Promise<void> {
-        const dirty = this.player.attributes.getDirty();
+        const { attributes } = this.getPlayer();
+        const dirty = attributes.getDirty();
         if (dirty.length === 0) return;
 
         await this.sendAttributeList(dirty);
-        this.player.attributes.clearDirty();
+        attributes.clearDirty();
     }
 
     private async sendAttributeList(attributes: Attribute[]): Promise<void> {
-        await this.sendAttributesFor(this.player, attributes);
+        await this.sendAttributesFor(this.getPlayer(), attributes);
     }
 
     /**
@@ -1866,7 +1901,7 @@ export default class PlayerSession {
         packet.attributes = attributes;
         // `PlayerInputTick`: the client's last input tick for its own player, zero for anything
         // that is not the player, as the docs ask. See {@link PlayerSession.recordInputTick}.
-        packet.tick = entity === this.player ? this.lastInputTick : 0n;
+        packet.tick = entity.getRuntimeId() === this.runtimeId ? this.lastInputTick : 0n;
         await this.connection.sendDataPacket(packet);
     }
 
@@ -1934,7 +1969,7 @@ export default class PlayerSession {
         arrival: Arrival,
         options: { readonly whenPending?: 'queue' | 'drop' } = {}
     ): Promise<void> {
-        const player = this.player;
+        const player = this.getPlayer();
         const { world } = arrival;
         const target = world.getDimension();
 
@@ -2109,7 +2144,7 @@ export default class PlayerSession {
             this.server
                 .getLogger()
                 .debug(
-                    `Refused to roll the credits for ${this.player.getName()}: they are already rolling`,
+                    `Refused to roll the credits for ${this.identity.name}: they are already rolling`,
                     'PlayerSession/startCredits'
                 );
             return;
@@ -2117,7 +2152,7 @@ export default class PlayerSession {
 
         this.pendingCredits = arrival;
         const packet = new ShowCreditsPacket();
-        packet.playerRuntimeId = this.player.getRuntimeId();
+        packet.playerRuntimeId = this.runtimeId;
         packet.creditsState = CreditsState.Start;
         await this.send(packet);
     }
@@ -2201,13 +2236,14 @@ export default class PlayerSession {
         this.pendingChange = undefined;
 
         const { world } = pending.arrival;
-        await this.sendMove(this.player, PositionMode.Teleport);
+        const player = this.getPlayer();
+        await this.sendMove(player, PositionMode.Teleport);
         await this.sendAttributes();
         await this.sendInventory();
         // The compass and the map point at the spawn across dimensions, so the client needs
         // the spawn's dimension again now that its own has changed.
-        await this.send(playerSpawnPositionPacket(this.player, world, await overworldSpawnOf(world)));
-        advancementChangedDimension(this.player, pending.left, world.getDimension().name);
+        await this.send(playerSpawnPositionPacket(player, world, await overworldSpawnOf(world)));
+        advancementChangedDimension(player, pending.left, world.getDimension().name);
 
         const queued = this.queuedChange;
         this.queuedChange = undefined;
@@ -2229,14 +2265,14 @@ export default class PlayerSession {
      */
     public async sendMotion(motion: Vector3): Promise<void> {
         const packet = new SetActorMotionPacket();
-        packet.runtimeEntityId = this.player.getRuntimeId();
+        packet.runtimeEntityId = this.runtimeId;
         packet.motion = motion;
         packet.tick = this.lastInputTick;
         await this.connection.sendDataPacket(packet);
     }
 
     public async sendMetadata(metadata?: Metadata): Promise<void> {
-        await this.sendMetadataFor(this.player, metadata);
+        await this.sendMetadataFor(this.getPlayer(), metadata);
     }
 
     /**
@@ -2256,7 +2292,7 @@ export default class PlayerSession {
         packet.syncedProperties = entity.getSyncedProperties();
         // `PlayerInputTick`: the client's last input tick for its own player, zero for anything
         // that is not the player, as the docs ask. See {@link PlayerSession.recordInputTick}.
-        packet.tick = entity === this.player ? this.lastInputTick : 0n;
+        packet.tick = entity.getRuntimeId() === this.runtimeId ? this.lastInputTick : 0n;
         await this.connection.sendDataPacket(packet);
     }
 
@@ -2268,12 +2304,13 @@ export default class PlayerSession {
      * No `MovePlayer`: the client has put itself at the `ReadyToSpawn` position already.
      */
     public async sendRespawned(): Promise<void> {
+        const player = this.getPlayer();
         const event = new ActorEventPacket();
-        event.runtimeEntityId = this.player.getRuntimeId();
+        event.runtimeEntityId = this.runtimeId;
         event.event = ActorEvent.SPAWN_ALIVE;
         await this.connection.sendDataPacket(event);
 
-        const health = new SetHealthPacket({ health: Math.ceil(this.player.getHealth()) });
+        const health = new SetHealthPacket({ health: Math.ceil(player.getHealth()) });
         await this.connection.sendDataPacket(health);
 
         await this.sendAttributes();
@@ -2382,11 +2419,11 @@ export default class PlayerSession {
             // The server does not model why a teleport happened, so the cause is Unknown (0)
             // and the source actor type is 0.
             ...(mode === PositionMode.Teleport ? { teleportCause: 0, teleportItemId: 0 } : {}),
-            tick: player === this.player ? this.lastInputTick : 0n
+            tick: player.getRuntimeId() === this.runtimeId ? this.lastInputTick : 0n
         });
         // From here until the client says it handled the teleport, its inputs still name where
         // it was; see holdsMovementForTeleport.
-        if (player === this.player && mode === PositionMode.Teleport) {
+        if (player.getRuntimeId() === this.runtimeId && mode === PositionMode.Teleport) {
             this.teleportAwaitingAck = { x: position.getX(), z: position.getZ(), sentAtTick: this.server.getTick() };
         }
         await this.send(packet);
@@ -2433,9 +2470,9 @@ export default class PlayerSession {
      * the server and also to the player itself.
      */
     public async addToPlayerList(): Promise<void> {
-        const entry = playerListEntryOf(this.player);
+        const entry = playerListEntryOf(this.getPlayer());
 
-        this.server.getSessionManager().getPlayerList().set(this.player.getUUID().toString(), entry);
+        this.server.getSessionManager().getPlayerList().set(this.identity.uuid, entry);
 
         const packet = new PlayerListPacket();
         packet.type = PlayerListAction.TYPE_ADD;
@@ -2448,10 +2485,10 @@ export default class PlayerSession {
      */
     public async removeFromPlayerList(): Promise<void> {
         const entry = new PlayerListEntry({
-            uuid: this.player.getUUID()
+            uuid: this.getPlayer().getUUID()
         });
 
-        this.server.getSessionManager().getPlayerList().delete(this.player.getUUID().toString());
+        this.server.getSessionManager().getPlayerList().delete(this.identity.uuid);
 
         const packet = new PlayerListPacket();
         packet.type = PlayerListAction.TYPE_REMOVE;
@@ -2534,7 +2571,7 @@ export default class PlayerSession {
         packet.effectAmplifier = effect.amplifier;
         packet.showParticles = effect.showParticles;
         packet.effectDurationTicks = effect.durationTicks;
-        packet.tick = entity === this.player ? this.lastInputTick : 0n;
+        packet.tick = entity.getRuntimeId() === this.runtimeId ? this.lastInputTick : 0n;
         packet.ambient = effect.ambient;
         await this.send(packet);
     }
@@ -2844,7 +2881,21 @@ export default class PlayerSession {
         return this.connection;
     }
 
+    /**
+     * The player this session speaks for, found by its entity id.
+     *
+     * The one way from a session to its player's state. Code that needs only the id, the name
+     * or the key reads {@link PlayerSession.runtimeId} or {@link PlayerSession.identity} instead,
+     * and keeps working when package C4h of the entity and tick re-architecture makes this a
+     * store player.
+     * @returns The player.
+     * @throws {Error} Once {@link PlayerSession.disable} has forgotten the player.
+     */
     public getPlayer(): Player {
-        return this.player;
+        const player = this.players.of(Number(this.runtimeId));
+        if (player === undefined) {
+            throw new Error(`${this.identity.name} (entity ${this.runtimeId}) has left: its session has no player`);
+        }
+        return player;
     }
 }

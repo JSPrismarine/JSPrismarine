@@ -5,6 +5,7 @@ import type { Entity } from '../entity/Entity';
 import { stub } from '../testing/stub.test.helper';
 import type UpdateAttributesPacket from '@jsprismarine/protocol/packet/UpdateAttributesPacket';
 import PlayerSession from './PlayerSession';
+import { sessionPlayerFields } from '../testing/playerSession.test.helper';
 
 /**
  * The `Tick` of an `UpdateAttributesPacket` is a `PlayerInputTick`. The docs want the tick of
@@ -23,7 +24,7 @@ const attributeSession = () => {
         connection: {
             sendDataPacket: async (packet: UpdateAttributesPacket) => void sent.push(packet)
         },
-        player,
+        ...sessionPlayerFields(player, 1n),
         lastInputTick: 0n
     });
 

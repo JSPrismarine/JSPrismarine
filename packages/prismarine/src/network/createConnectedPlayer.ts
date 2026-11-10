@@ -2,6 +2,7 @@ import type Player from '../Player';
 import type Server from '../Server';
 import type ClientConnection from './ClientConnection';
 import PlayerSession from './PlayerSession';
+import { sessionPlayerRefOf } from './sessionPlayers';
 
 /**
  * Joins a player to the connection it speaks through.
@@ -35,7 +36,11 @@ export const createConnectedPlayer = ({
     connection: ClientConnection;
     player: Player;
 }): PlayerSession => {
-    const session = new PlayerSession(server, connection, player);
+    // Filed by id before the session exists, because the session holds the id and not the
+    // player. `PlayerSession.disable` forgets it.
+    const players = server.getSessionManager().getLegacyPlayers();
+    players.add(player);
+    const session = new PlayerSession(server, connection, sessionPlayerRefOf(player), players);
 
     player.attachNetworkSession(session);
     connection.attachPlayerSession(session);

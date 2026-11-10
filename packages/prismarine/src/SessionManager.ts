@@ -1,5 +1,6 @@
 import type Player from './Player';
 import type ClientConnection from './network/ClientConnection';
+import { LegacyPlayers } from './network/sessionPlayers';
 import type { ConnectionId } from './network/transport/ConnectionId';
 import type { PlayerListEntry } from '@jsprismarine/protocol/wire/structures/PlayerListEntry';
 import type { PlayerIdentity } from './playerIdentity';
@@ -22,6 +23,7 @@ export interface ReplacedLogin {
 export default class SessionManager {
     private readonly connections: Map<ConnectionId, ClientConnection> = new Map();
     private readonly playerList: Map<string, PlayerListEntry> = new Map();
+    private readonly legacyPlayers = new LegacyPlayers();
 
     /**
      * The account each logging-in or live connection holds, so that a login can find the other
@@ -112,6 +114,14 @@ export default class SessionManager {
 
     public getPlayerList(): Map<string, PlayerListEntry> {
         return this.playerList;
+    }
+
+    /**
+     * Every player that has a session, by entity id, from the moment its session is built until
+     * the session is disabled. Sessions find their players here.
+     */
+    public getLegacyPlayers(): LegacyPlayers {
+        return this.legacyPlayers;
     }
 
     /**

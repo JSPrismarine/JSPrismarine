@@ -17,6 +17,7 @@ import { Merchant, parseTradeTable } from '@jsprismarine/trading';
 import { seededRandom } from '@jsprismarine/predicates';
 import type { Entity } from '../entity/Entity';
 import PlayerSession from './PlayerSession';
+import { sessionPlayerFields } from '../testing/playerSession.test.helper';
 
 const protocolCodec = stub<ProtocolCodec>({ context: { protocolVersion: 2193 } });
 
@@ -48,7 +49,7 @@ const sessionFor = () => {
 
     const session: PlayerSession = Object.assign(Object.create(PlayerSession.prototype), {
         connection,
-        player,
+        ...sessionPlayerFields(player, 7n),
         windowId: 0,
         openWindows: new Map<number, number>(),
         containerData: new Map<number, number>(),

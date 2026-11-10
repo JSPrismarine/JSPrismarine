@@ -26,6 +26,7 @@ import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import InventoryContentPacket from '@jsprismarine/protocol/packet/InventoryContentPacket';
 import type { ProtocolCodec } from '@jsprismarine/protocol';
 import PlayerSession from './PlayerSession';
+import { sessionPlayerFields } from '../testing/playerSession.test.helper';
 
 /**
  * The packet at a position among the ones that went out, or a failure naming what was missing.
@@ -65,7 +66,10 @@ const sessionFor = (player: Player) => {
         sendDataPacket: async (packet) => void sent.push(packet)
     });
 
-    const session: PlayerSession = Object.assign(Object.create(PlayerSession.prototype), { connection, player });
+    const session: PlayerSession = Object.assign(Object.create(PlayerSession.prototype), {
+        connection,
+        ...sessionPlayerFields(player, player.getRuntimeId())
+    });
 
     return { session, sent };
 };
@@ -200,7 +204,7 @@ describe('network', () => {
             it('sends the off hand as equipment for the offhand container, not as body armor', async () => {
                 // `Body` is the body armor slot. Putting the shield there dressed the player in
                 // it; the client reads off-hand changes from `MobEquipment` with container 119.
-                const { session, sent } = sessionFor(stub<Player>());
+                const { session, sent } = sessionFor(stub<Player>({ getRuntimeId: () => 1n }));
 
                 await session.sendArmorFor(equippedHuman());
 
