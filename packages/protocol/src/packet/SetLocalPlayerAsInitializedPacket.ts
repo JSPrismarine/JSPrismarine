@@ -1,5 +1,7 @@
 import NetworkPacket from '../NetworkPacket';
 import { PacketIdentifier } from '../PacketIdentifier';
+import { setLocalPlayerAsInitializedPacket } from '../wire/definitions/player';
+import { layoutAt } from '../wire/WireLayout';
 
 import type NetworkBinaryStream from '../NetworkBinaryStream';
 
@@ -25,10 +27,10 @@ export default class SetLocalPlayerAsInitializedPacket extends NetworkPacket<Set
     }
 
     protected serializePayload(stream: NetworkBinaryStream, data: SetLocalPlayerAsInitialized): void {
-        stream.writeUnsignedVarLong(data.runtimeEntityId);
+        layoutAt(setLocalPlayerAsInitializedPacket, this.codecProtocol).encode(stream, data);
     }
 
     protected deserializePayload(stream: NetworkBinaryStream): SetLocalPlayerAsInitialized {
-        return { runtimeEntityId: stream.readUnsignedVarLong() };
+        return layoutAt(setLocalPlayerAsInitializedPacket, this.codecProtocol).decode(stream);
     }
 }

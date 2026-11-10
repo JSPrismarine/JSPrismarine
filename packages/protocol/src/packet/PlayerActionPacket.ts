@@ -1,5 +1,7 @@
 import NetworkPacket from '../NetworkPacket';
 import { PacketIdentifier } from '../PacketIdentifier';
+import { playerActionPacket } from '../wire/definitions/player';
+import { layoutAt } from '../wire/WireLayout';
 
 import type NetworkBinaryStream from '../NetworkBinaryStream';
 
@@ -83,31 +85,11 @@ export default class PlayerActionPacket extends NetworkPacket<PlayerActionData> 
         return PacketIdentifier.PLAYER_ACTION;
     }
 
-    private static writeBlockPos(stream: NetworkBinaryStream, position: BlockCoordinates): void {
-        stream.writeVarInt(position.x);
-        stream.writeVarInt(position.y);
-        stream.writeVarInt(position.z);
-    }
-
-    private static readBlockPos(stream: NetworkBinaryStream): BlockCoordinates {
-        return { x: stream.readVarInt(), y: stream.readVarInt(), z: stream.readVarInt() };
-    }
-
     protected serializePayload(stream: NetworkBinaryStream, data: PlayerActionData): void {
-        stream.writeUnsignedVarLong(data.runtimeEntityId);
-        stream.writeVarInt(data.action);
-        PlayerActionPacket.writeBlockPos(stream, data.blockPosition);
-        PlayerActionPacket.writeBlockPos(stream, data.resultPosition);
-        stream.writeVarInt(data.blockFace);
+        layoutAt(playerActionPacket, this.codecProtocol).encode(stream, data);
     }
 
     protected deserializePayload(stream: NetworkBinaryStream): PlayerActionData {
-        return {
-            runtimeEntityId: stream.readUnsignedVarLong(),
-            action: stream.readVarInt(),
-            blockPosition: PlayerActionPacket.readBlockPos(stream),
-            resultPosition: PlayerActionPacket.readBlockPos(stream),
-            blockFace: stream.readVarInt()
-        };
+        return layoutAt(playerActionPacket, this.codecProtocol).decode(stream);
     }
 }
