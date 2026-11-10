@@ -40,7 +40,7 @@ const scene = ({ pvp = true } = {}) => {
         broadcastMove: async () => {},
         getGameRuleManager: () => ({ getGameRule: () => [pvp, true] }),
         getLoadedChunk: () => null,
-        getEntityGrid: () => ({ near: () => [] })
+        getEntityIndex: () => ({ legacyWithin: () => [] })
     };
 
     /**
