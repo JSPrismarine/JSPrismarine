@@ -1,5 +1,15 @@
 # @jsprismarine/entities
 
+## 0.20.0
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @jsprismarine/mapping@0.20.0
+  - @jsprismarine/content@0.20.0
+  - @jsprismarine/molang@0.20.0
+  - @jsprismarine/packs@0.20.0
+
 ## 0.19.2
 
 ### Patch Changes

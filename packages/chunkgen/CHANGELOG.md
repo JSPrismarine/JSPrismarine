@@ -1,5 +1,11 @@
 # @jsprismarine/chunkgen
 
+## 0.20.0
+
+### Minor Changes
+
+- [#2945](https://github.com/JSPrismarine/JSPrismarine/pull/2945) [`67d6870`](https://github.com/JSPrismarine/JSPrismarine/commit/67d6870a21b09ec1406ee78fe936be39dd0ccb52) Thanks [@filiphsps](https://github.com/filiphsps)! - Remove `ProtoChunk`, `ProtoChunkDetachedError`, `HEIGHTMAPS` and the `ProtoChunk*` payload types from `@jsprismarine/chunkgen`. Nothing ran on them: the server's generator climbs the ladder with its own `GenerationChunk`. `ChunkHolder`, `ChunkHolderMap`, `GenerationScheduler`, `StepRegion`, `StepTask`, `StepTasks`, `NeighborReader` and `ChunkStepBody` now take the chunk type as a required parameter. `ChunkStatusRegressionError` moves beside `StagedChunk`, and the prismarine generator raises it in place of its own `GenerationChunkRegressionError`.
+
 ## 0.19.2
 
 No changes in this release.

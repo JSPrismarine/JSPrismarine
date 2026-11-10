@@ -1,5 +1,17 @@
 # @jsprismarine/auth
 
+## 0.20.0
+
+### Patch Changes
+
+- [#2944](https://github.com/JSPrismarine/JSPrismarine/pull/2944) [`2f505cd`](https://github.com/JSPrismarine/JSPrismarine/commit/2f505cdb9140773af493c3f73890473556bed003) Thanks [@filiphsps](https://github.com/filiphsps)! - `@jsprismarine/auth` covers both ends of a Bedrock login. `XboxAuthProvider` signs in to Xbox Live through prismarine-auth, an optional peer dependency loaded only when a provider signs in, and presents the chain and multiplayer token Minecraft services issue for its key. `createAuthProvider` builds a provider by name, and `KeyedAuthProvider` is the base both providers share. A provider's `getMultiplayerToken()` returns its token, and `@jsprismarine/client` signs its NetherNet offer with it, as a signed-in game client does. The server's login verification moved into the package as `verifyLogin`, exported from `@jsprismarine/auth/server`, beside the values both ends agree on in `@jsprismarine/auth/protocol`.
+  
+  Every JWT and JWS is now signed, verified and decoded by `jose` rather than by hand or through fast-jwt, which no package depends on any more. `verifyLogin` fetches the issuer's keys through `jose`'s remote key set, and allows a minute of clock drift on a token's expiry as well as its start.
+  
+  Breaking: `@jsprismarine/prismarine/network/LoginVerifier` is removed; import `verifyLogin`, `LoginRefused`, `MojangKeys` and `useLoginKeys` from `@jsprismarine/auth/server`, and `TOKEN_ISSUER` from `@jsprismarine/auth/protocol`. `MojangKeys` takes a `fetch` implementation instead of a key set loader and a clock. `SessionEncryption.begin` returns a promise.
+- Updated dependencies [[`4871ae6`](https://github.com/JSPrismarine/JSPrismarine/commit/4871ae64bf290095e3af06a7d7e13206d2989d16)]:
+  - @jsprismarine/minecraft@0.20.0
+
 ## 0.19.2
 
 ### Patch Changes

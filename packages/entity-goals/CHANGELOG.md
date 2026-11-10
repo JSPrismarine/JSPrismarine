@@ -1,5 +1,14 @@
 # @jsprismarine/entity-goals
 
+## 0.20.0
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @jsprismarine/math@0.20.0
+  - @jsprismarine/entities@0.20.0
+  - @jsprismarine/content@0.20.0
+
 ## 0.19.2
 
 ### Patch Changes

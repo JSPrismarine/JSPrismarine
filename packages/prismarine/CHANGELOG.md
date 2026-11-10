@@ -1,5 +1,97 @@
 # @jsprismarine/prismarine
 
+## 0.20.0
+
+### Minor Changes
+
+- [#2945](https://github.com/JSPrismarine/JSPrismarine/pull/2945) [`0df23d5`](https://github.com/JSPrismarine/JSPrismarine/commit/0df23d5aaccd9d81dd3b1e467928eb335a8d610a) Thanks [@filiphsps](https://github.com/filiphsps)! - Run every command from one registry. `/tps`, `/version` (`/about`), `/debug`, `/ban` and `/pardon` now register into the same `@jsprismarine/commands` registry as the vanilla set, so `/help` lists them and the remote console completes every command name rather than these five alone. `/ban` and `/pardon` still complete a name from the players online and accept one who is offline.
+  
+  Removed with the second dispatcher: the `Command` class, `CommandArguments`, the `Commands` namespace, `CommandManager.registerCommand`, `getCommand`, `getCommands`, `getCommandsList` and `getDispatcher`, the `commandRegister` event and `CommandRegisterEvent`, and `vanillaPermissionOf`, which is now `commandPermissionOf`. `asyncCommand` is gone; `deferCommandWork` and `collectAsyncCommands` move to `command/deferred`.
+
+- [#2944](https://github.com/JSPrismarine/JSPrismarine/pull/2944) [`dc2dfdd`](https://github.com/JSPrismarine/JSPrismarine/commit/dc2dfdd656fa922ce984495ed2664e6669b2e5ac) Thanks [@filiphsps](https://github.com/filiphsps)! - The query protocol is part of the server's networking now, with a new `query-port` setting beside `enable-query`, which stays on by default. A `query-port` equal to `port`, which a fresh config writes, answers on the RakNet socket as before; any other port gets a UDP socket of its own. Query replies now require the challenge token from the handshake, so a forged source address gets no status reply, and full stat requests get the full key list and player names. Basic stat replies follow the protocol, with the host port as a little-endian short.
+  
+  Breaking: `QueryManager`, `Server.getQueryManager()` and the `queryToken` kernel token are removed, `NetworkDispatcherOptions` no longer takes a `query` option, and a `RakNetTransportSource` needs `sendBuffer`.
+
+- [#2945](https://github.com/JSPrismarine/JSPrismarine/pull/2945) [`4bb200f`](https://github.com/JSPrismarine/JSPrismarine/commit/4bb200ff834a896bcf167a1dd536ce875508a4bf) Thanks [@filiphsps](https://github.com/filiphsps)! - Remove the legacy recipe manager. Crafting runs on the content build's recipe book only: `CraftingDataPacket` is built from it and an `ItemStackRequest` is resolved against it, so the two always agree on net ids. A content build that produced no crafting payload now sends no recipes, where it used to fall back to a second, differently numbered list.
+  
+  Removed: `Server.getRecipeManager`, `Server.getStationRegistry`, `recipesToken`, `stationsToken`, the `recipeRegister` event and `RecipeRegisterEvent`, and the `crafting/` `RecipeManager`, `Recipe`, `RecipeIngredient`, `VanillaRecipes` and `CraftingStation` modules. Add recipes through a pack's recipe definitions instead.
+
+- [#2944](https://github.com/JSPrismarine/JSPrismarine/pull/2944) [`16e3296`](https://github.com/JSPrismarine/JSPrismarine/commit/16e3296fad1e3545c60ac8438d49622963492365) Thanks [@filiphsps](https://github.com/filiphsps)! - The server now names every connection itself, so transports other than RakNet can plug in without their clients' identities colliding. A `ConnectionId` is allocated per accepted connection from one sequence every transport shares (1, 2, 3 in accept order, never reused), and the session registry, per-connection frame queues, and inbound and outbound packet traces all key on it. A client reconnecting from the same address and port is a new connection with a new ID.
+  
+  The transport seam changes with it. `TransportConnection.token` is replaced by `id` and gains `address`, the client's IP address and port. `Transport.onDisconnect` listeners receive `(id, address, reason)` and `Transport.onFrame` listeners `(payload, id)`, and `onRaw` is optional because only RakNet carries datagrams from hosts that are not connected. `SessionManager.add`, `has`, `get` and `remove` take a `ConnectionId`. `BaseTransport`, `KeyedTransport` and `MultiTransport` hold the subscriptions, per-connection ordering, wire-key mapping and transport merging that every transport shares; `MultiTransport` owns the allocator and hands it to the transports it builds, and `Server.getMetadata()` no longer needs RakNet to be enabled; `RakNetTransport` takes the allocator as a third argument. `ClientConnection.getConnectionId()` and `ClientConnection.getAddress()` work whichever transport carried the client; `ClientConnection.getRakNetSession()` is deprecated and throws for a client that did not connect over RakNet. The `raknetDisconnect` event fires for every transport's clients.
+
+- [#2944](https://github.com/JSPrismarine/JSPrismarine/pull/2944) [`2f505cd`](https://github.com/JSPrismarine/JSPrismarine/commit/2f505cdb9140773af493c3f73890473556bed003) Thanks [@filiphsps](https://github.com/filiphsps)! - `@jsprismarine/auth` covers both ends of a Bedrock login. `XboxAuthProvider` signs in to Xbox Live through prismarine-auth, an optional peer dependency loaded only when a provider signs in, and presents the chain and multiplayer token Minecraft services issue for its key. `createAuthProvider` builds a provider by name, and `KeyedAuthProvider` is the base both providers share. A provider's `getMultiplayerToken()` returns its token, and `@jsprismarine/client` signs its NetherNet offer with it, as a signed-in game client does. The server's login verification moved into the package as `verifyLogin`, exported from `@jsprismarine/auth/server`, beside the values both ends agree on in `@jsprismarine/auth/protocol`.
+  
+  Every JWT and JWS is now signed, verified and decoded by `jose` rather than by hand or through fast-jwt, which no package depends on any more. `verifyLogin` fetches the issuer's keys through `jose`'s remote key set, and allows a minute of clock drift on a token's expiry as well as its start.
+  
+  Breaking: `@jsprismarine/prismarine/network/LoginVerifier` is removed; import `verifyLogin`, `LoginRefused`, `MojangKeys` and `useLoginKeys` from `@jsprismarine/auth/server`, and `TOKEN_ISSUER` from `@jsprismarine/auth/protocol`. `MojangKeys` takes a `fetch` implementation instead of a key set loader and a clock. `SessionEncryption.begin` returns a promise.
+
+### Patch Changes
+
+- [#2945](https://github.com/JSPrismarine/JSPrismarine/pull/2945) [`8c2054b`](https://github.com/JSPrismarine/JSPrismarine/commit/8c2054b0db2010d5ae60ee1c4165a94d375f6aae) Thanks [@filiphsps](https://github.com/filiphsps)! - Build the shipped block-state schemas from `@jsprismarine/blocks`' vanilla palette instead of reading the generated catalog a second time, so one package owns which states a block has and what each accepts. `BlockStateValue` is now `@jsprismarine/blocks`' type, re-exported unchanged, and `schemaFromModel` turns a `BlockStateModel` into the NBT-typed schema the runtime id hash uses. Runtime ids do not change.
+
+- [#2945](https://github.com/JSPrismarine/JSPrismarine/pull/2945) [`bfa224c`](https://github.com/JSPrismarine/JSPrismarine/commit/bfa224c60c9a6079a0551d4e04dda6ce459e8364) Thanks [@filiphsps](https://github.com/filiphsps)! - Give each data-driven mob one runtime id. Its client-facing body used to draw a second id after the runtime drew the first, so the wire, the world's entity map and the runtime named the same mob by two numbers bridged by a lookup table. The body now carries the runtime's id, and `Entity` and `GenericEntity` take an optional `runtimeId` for a body whose id was drawn elsewhere.
+
+- [#2944](https://github.com/JSPrismarine/JSPrismarine/pull/2944) [`e498e81`](https://github.com/JSPrismarine/JSPrismarine/commit/e498e81b74d4ca6ee2ea27dedc773c6b2fd37ab0) Thanks [@filiphsps](https://github.com/filiphsps)! - New package `@jsprismarine/nethernet` holds the NetherNet pieces a server and a client share: HTTP signaling, the signed `a=identity` on SDP answers, the LAN advertisement codec and the ES384 JSON Web Signatures Bedrock uses. `@jsprismarine/prismarine` uses it for its NetherNet transport and its encryption handshake.
+
+- [#2944](https://github.com/JSPrismarine/JSPrismarine/pull/2944) [`40bef5d`](https://github.com/JSPrismarine/JSPrismarine/commit/40bef5d6ff291f3435c859aaeb1084a34fb5ee00) Thanks [@filiphsps](https://github.com/filiphsps)! - The server accepts Bedrock clients over NetherNet, the WebRTC transport Bedrock Dedicated Server defaults to, alongside RakNet. A client joining by address signals over HTTP on the TCP side of the game port (`GET /v1/join` and `POST /v1/join/{networkId}`), and every answer carries the server's signed identity, whose P-384 key the server keeps in `nethernet-identity.pem` in its data directory so returning players are not asked to trust a new one. With `enable-lan-visibility` on, it answers NetherNet discovery on UDP port 7551, so players on the local network see it among their LAN games and join it over NetherNet. The advertisement carries the same MOTD, version and player counts as the RakNet server list entry, and the player count now covers every transport's clients. `NetherNetTransport` carries the peers of a `nethernet` server, adding and removing the `0xFE` batch id the NetherNet wire leaves out.
+
+- [#2944](https://github.com/JSPrismarine/JSPrismarine/pull/2944) [`5409d2e`](https://github.com/JSPrismarine/JSPrismarine/commit/5409d2e110332d3a721b0e9ee26e86d9bf3f1410) Thanks [@filiphsps](https://github.com/filiphsps)! - `ServerName.ownPlayerCount()` hands the advertised player count to whoever owns the server name: the RakNet sockets then report their sessions through `ServerName.setSessionCount`, which no longer changes the count. JSPrismarine takes the count over, so a RakNet socket no longer briefly overwrites a count that includes NetherNet players with its own session count.
+
+- [#2945](https://github.com/JSPrismarine/JSPrismarine/pull/2945) [`67d6870`](https://github.com/JSPrismarine/JSPrismarine/commit/67d6870a21b09ec1406ee78fe936be39dd0ccb52) Thanks [@filiphsps](https://github.com/filiphsps)! - Remove `ProtoChunk`, `ProtoChunkDetachedError`, `HEIGHTMAPS` and the `ProtoChunk*` payload types from `@jsprismarine/chunkgen`. Nothing ran on them: the server's generator climbs the ladder with its own `GenerationChunk`. `ChunkHolder`, `ChunkHolderMap`, `GenerationScheduler`, `StepRegion`, `StepTask`, `StepTasks`, `NeighborReader` and `ChunkStepBody` now take the chunk type as a required parameter. `ChunkStatusRegressionError` moves beside `StagedChunk`, and the prismarine generator raises it in place of its own `GenerationChunkRegressionError`.
+
+- [#2945](https://github.com/JSPrismarine/JSPrismarine/pull/2945) [`7cfee35`](https://github.com/JSPrismarine/JSPrismarine/commit/7cfee358456c0bc2e3d6f179d23450bee1203f08) Thanks [@filiphsps](https://github.com/filiphsps)! - Start and stop the whole server through its module kernel. The content build, the packet handlers, the commands, the worlds and the `#minecraft:load` functions are kernel modules with declared dependencies, so they start in dependency order and stop in reverse, and `modules/tokens` exports `contentToken`, `packetHandlersToken`, `commandsToken` and `worldsToken` for them. A shutdown during the start-region preload now closes the worlds and ends the boot without opening the listener.
+
+- [#2944](https://github.com/JSPrismarine/JSPrismarine/pull/2944) [`7f30eb8`](https://github.com/JSPrismarine/JSPrismarine/commit/7f30eb80291c4a6bf08d57f236dcc1707c7bedfb) Thanks [@filiphsps](https://github.com/filiphsps)! - A server bound to `0.0.0.0` also listens for RakNet clients on IPv6, on the new `server-portv6` setting (19133 by default, as in Bedrock Dedicated Server), and advertises that port in its server list pong. A server bound to one IPv4 address through `server-ip` stays IPv4 only. When another program holds `server-portv6`, the server starts anyway and logs that IPv6 clients cannot join.
+
+- [#2944](https://github.com/JSPrismarine/JSPrismarine/pull/2944) [`0ddefe0`](https://github.com/JSPrismarine/JSPrismarine/commit/0ddefe0ab22512f7448a4f7bc14b7a1a77c93025) Thanks [@filiphsps](https://github.com/filiphsps)! - The new `server-udp-ports` setting, as in Bedrock Dedicated Server, confines the UDP ports NetherNet players connect through to a range such as `49152-49200`, and advertises `[ip:]external:internal` mappings in the join answer so a server behind NAT reaches players from outside. Empty, the default, lets the system pick the ports. A malformed value stops the server from starting.
+
+- [#2944](https://github.com/JSPrismarine/JSPrismarine/pull/2944) [`45aabcd`](https://github.com/JSPrismarine/JSPrismarine/commit/45aabcdcafa354ea385d6d58bd9b4ece820f987b) Thanks [@filiphsps](https://github.com/filiphsps)! - Three settings choose how clients reach the server, all on by default: `enable-raknet` accepts clients over RakNet, `enable-nethernet` accepts them over NetherNet, the WebRTC transport Bedrock Dedicated Server defaults to, and `enable-lan-visibility`, named as Bedrock Dedicated Server names it, shows the server to players on the local network. `Config` reads them through `getEnableRakNet()`, `getEnableNetherNet()` and `getEnableLanVisibility()`.
+
+- [#2944](https://github.com/JSPrismarine/JSPrismarine/pull/2944) [`c3138ba`](https://github.com/JSPrismarine/JSPrismarine/commit/c3138ba293271ffbacba0553db8fdcf4dbff902b) Thanks [@filiphsps](https://github.com/filiphsps)! - On a transport that encrypts the connection itself, as NetherNet's DTLS does, the login still sends `ServerToClientHandshake` but leaves batches unencrypted, as Bedrock Dedicated Server 1.26.51 does over NetherNet. `MinecraftSession.transportCapabilities` exposes what the transport under a session does on its own.
+- Updated dependencies [[`f030c63`](https://github.com/JSPrismarine/JSPrismarine/commit/f030c63e5c6269288d8dc576bddde160eda3cc74), [`7f8040c`](https://github.com/JSPrismarine/JSPrismarine/commit/7f8040c97c2d5b8de33303a9d5cfcf5c2c2c7ba9), [`e65baae`](https://github.com/JSPrismarine/JSPrismarine/commit/e65baae41fad94186ed958d224c01592d9847eb0), [`bbcb98e`](https://github.com/JSPrismarine/JSPrismarine/commit/bbcb98ec61ebf0a5deb2c48d64b20cfd13b39321), [`e498e81`](https://github.com/JSPrismarine/JSPrismarine/commit/e498e81b74d4ca6ee2ea27dedc773c6b2fd37ab0), [`ab14f6b`](https://github.com/JSPrismarine/JSPrismarine/commit/ab14f6b7c3d74bf359196aa64f121844f5e243c4), [`5409d2e`](https://github.com/JSPrismarine/JSPrismarine/commit/5409d2e110332d3a721b0e9ee26e86d9bf3f1410), [`4871ae6`](https://github.com/JSPrismarine/JSPrismarine/commit/4871ae64bf290095e3af06a7d7e13206d2989d16), [`67d6870`](https://github.com/JSPrismarine/JSPrismarine/commit/67d6870a21b09ec1406ee78fe936be39dd0ccb52), [`2f505cd`](https://github.com/JSPrismarine/JSPrismarine/commit/2f505cdb9140773af493c3f73890473556bed003)]:
+  - @jsprismarine/binaryutils@0.20.0
+  - @jsprismarine/protocol@0.20.0
+  - @jsprismarine/kernel@0.20.0
+  - @jsprismarine/nethernet@0.20.0
+  - @jsprismarine/raknet@0.20.0
+  - @jsprismarine/minecraft@0.20.0
+  - @jsprismarine/chunkgen@0.20.0
+  - @jsprismarine/auth@0.20.0
+  - @jsprismarine/bedrock-data@0.20.0
+  - @jsprismarine/math@0.20.0
+  - @jsprismarine/nbt@0.20.0
+  - @jsprismarine/structures@0.20.0
+  - @jsprismarine/blocks@0.20.0
+  - @jsprismarine/commands@0.20.0
+  - @jsprismarine/mapping@0.20.0
+  - @jsprismarine/entity-goals@0.20.0
+  - @jsprismarine/block-behaviors@0.20.0
+  - @jsprismarine/engine-systems@0.20.0
+  - @jsprismarine/entities@0.20.0
+  - @jsprismarine/items@0.20.0
+  - @jsprismarine/loot@0.20.0
+  - @jsprismarine/recipes@0.20.0
+  - @jsprismarine/spawning@0.20.0
+  - @jsprismarine/trading@0.20.0
+  - @jsprismarine/advancements@0.20.0
+  - @jsprismarine/brigadier@0.20.0
+  - @jsprismarine/color-parser@0.20.0
+  - @jsprismarine/console-protocol@0.20.0
+  - @jsprismarine/content@0.20.0
+  - @jsprismarine/enchantments@0.20.0
+  - @jsprismarine/entity-brains@0.20.0
+  - @jsprismarine/errors@0.20.0
+  - @jsprismarine/features@0.20.0
+  - @jsprismarine/item-behaviors@0.20.0
+  - @jsprismarine/leveldb@0.20.0
+  - @jsprismarine/lighting@0.20.0
+  - @jsprismarine/logger@0.20.0
+  - @jsprismarine/mcfunction@0.20.0
+  - @jsprismarine/packs@0.20.0
+  - @jsprismarine/predicates@0.20.0
+  - @jsprismarine/worldgen@0.20.0
+
 ## 0.19.2
 
 ### Patch Changes

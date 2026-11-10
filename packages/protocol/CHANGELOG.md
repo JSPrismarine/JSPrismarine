@@ -1,5 +1,22 @@
 # @jsprismarine/protocol
 
+## 0.20.0
+
+### Patch Changes
+
+- [#2945](https://github.com/JSPrismarine/JSPrismarine/pull/2945) [`7f8040c`](https://github.com/JSPrismarine/JSPrismarine/commit/7f8040c97c2d5b8de33303a9d5cfcf5c2c2c7ba9) Thanks [@filiphsps](https://github.com/filiphsps)! - Move the bodies of the flat packets onto declarative wire layouts. Each class keeps its payload
+  shape and writes the same bytes. The layout definitions, such as `animateEntityPacket` and
+  `unlockedRecipesPacket`, are now exported from the package.
+- Updated dependencies [[`f030c63`](https://github.com/JSPrismarine/JSPrismarine/commit/f030c63e5c6269288d8dc576bddde160eda3cc74), [`4871ae6`](https://github.com/JSPrismarine/JSPrismarine/commit/4871ae64bf290095e3af06a7d7e13206d2989d16)]:
+  - @jsprismarine/binaryutils@0.20.0
+  - @jsprismarine/minecraft@0.20.0
+  - @jsprismarine/math@0.20.0
+  - @jsprismarine/nbt@0.20.0
+  - @jsprismarine/blocks@0.20.0
+  - @jsprismarine/items@0.20.0
+  - @jsprismarine/recipes@0.20.0
+  - @jsprismarine/content@0.20.0
+
 ## 0.19.2
 
 ### Patch Changes

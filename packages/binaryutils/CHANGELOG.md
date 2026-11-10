@@ -1,5 +1,11 @@
 # @jsprismarine/binaryutils
 
+## 0.20.0
+
+### Patch Changes
+
+- [#2944](https://github.com/JSPrismarine/JSPrismarine/pull/2944) [`f030c63`](https://github.com/JSPrismarine/JSPrismarine/commit/f030c63e5c6269288d8dc576bddde160eda3cc74) Thanks [@filiphsps](https://github.com/filiphsps)! - `BinaryStream` reads and writes varuint32-length-prefixed values: `readLengthPrefixed` and `writeLengthPrefixed` for bytes, and `readVarString` and `writeVarString` for UTF-8 strings, the form Bedrock writes strings in. `NetworkBinaryStream` in `@jsprismarine/protocol` now inherits them instead of defining its own, so a package that needs Bedrock strings without the protocol package can use them.
+
 ## 0.19.2
 
 No changes in this release.

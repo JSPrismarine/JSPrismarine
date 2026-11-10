@@ -1,6 +1,6 @@
 {
     "name": "@jsprismarine/client-e2e",
-    "version": "0.19.2",
+    "version": "0.20.0",
     "private": true,
     "description": "Drives the cinnabar Bedrock client against a local JSPrismarine server for end-to-end verification",
     "type": "module",
