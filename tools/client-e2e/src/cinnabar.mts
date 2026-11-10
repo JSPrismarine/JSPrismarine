@@ -39,7 +39,7 @@ export const readPin = (protocolVersion: number): CinnabarPin => {
     return { repository: pin.repository, commit: versionPin.commit };
 };
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
+export const isRecord = (value: unknown): value is Record<string, unknown> =>
     typeof value === 'object' && value !== null && !Array.isArray(value);
 
 /** Where one protocol's pinned checkout lives, honoring a `JSP_CINNABAR_PATH` override. */

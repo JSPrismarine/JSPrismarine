@@ -84,6 +84,12 @@ finished build the e2e jobs restore, and cargo's intermediate directory, which o
 reads. The runner also writes a pass/fail table to the
 job summary.
 
+A pull request runs only the scenarios its changes can affect, which `src/select.mts` decides from
+the changed files. Every scenario boots the whole server, so a change to anything the server can
+load runs them all. A pull request that changes only tests, benchmarks, Markdown or a package the
+server does not depend on runs none, and one that changes only files under `src/scenarios/` runs
+the scenarios those files define. A push to `master` and a manual run keep every scenario.
+
 ## Version pin
 
 `cinnabar.json` pins a cinnabar commit for each wire protocol. `ensure` cross-checks the selected

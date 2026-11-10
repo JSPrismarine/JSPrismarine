@@ -11,7 +11,8 @@ name: Client E2E
 #
 # The workflow runs on every push and pull request so the `✅ Client E2E` job always reports: it is
 # the one branch rules require. A change that touches no package code or dependencies (docs, the
-# docs site, other workflows) skips the e2e jobs and passes it, so it can still auto-merge.
+# docs site, other workflows) skips the e2e jobs and passes it, so it can still auto-merge. So does
+# a pull request that changes only files a running server never loads; see the `changes` job.
 on:
     push:
         branches:
@@ -50,7 +51,9 @@ jobs:
             contents: read
             pull-requests: read
         outputs:
-            code: ${{ github.event_name == 'workflow_dispatch' || steps.filter.outputs.code == 'true' }}
+            code: ${{ github.event_name == 'workflow_dispatch' || (steps.filter.outputs.code == 'true' && steps.select.outputs.mode != 'none') }}
+            # Empty runs every scenario.
+            scenarios: ${{ steps.select.outputs.scenarios }}
             reused: ${{ contains(fromJSON(steps.reuse.outputs.passed || '[]'), '🎮 Client E2E') }}
             run-id: ${{ steps.reuse.outputs.run-id }}
         steps:
@@ -90,6 +93,31 @@ jobs:
                           - 'tsconfig*.json'
                           - 'turbo.json'
                           - '!**/*.md'
+
+            # select.mts imports the scenario files a pull request changed, which are TypeScript.
+            - name: 🏎️ Setup Node
+              if: ${{ github.event_name == 'pull_request' && steps.filter.outputs.code == 'true' }}
+              uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+              with:
+                  node-version-file: '.nvmrc'
+
+            # Every scenario boots the whole server, so most changes run them all. A pull request
+            # that changes only files a running server never loads (tests, benchmarks, packages
+            # the server does not depend on) runs none, and one that changes only scenario files
+            # runs those scenarios. A push and a manual run keep every scenario, and a failure
+            # here leaves the outputs empty, which also runs them all.
+            - name: Select the scenarios the pull request affects
+              id: select
+              if: ${{ github.event_name == 'pull_request' && steps.filter.outputs.code == 'true' }}
+              continue-on-error: true
+              env:
+                  GH_TOKEN: ${{ github.token }}
+                  NUMBER: ${{ github.event.pull_request.number }}
+              run: |
+                  set -o pipefail
+                  gh api --paginate "repos/$GITHUB_REPOSITORY/pulls/$NUMBER/files" \
+                      --jq '.[] | .filename, (.previous_filename // empty)' |
+                      node tools/client-e2e/src/select.mts
 
     protocol-matrix:
         name: Read supported protocols
@@ -136,7 +164,7 @@ jobs:
                   ' >> "$GITHUB_OUTPUT"
               env:
                   LATEST_ONLY: ${{ inputs.latest_only }}
-                  SCENARIOS: ${{ inputs.scenarios || '' }}
+                  SCENARIOS: ${{ inputs.scenarios || needs.changes.outputs.scenarios || '' }}
 
             # A run can restore entries saved on its own ref or on master. The key matches the one
             # cinnabar-build writes, whose `runner.os` is `Linux`.
@@ -467,8 +495,10 @@ jobs:
               id: client-e2e-coverage
               run: node scripts/check-client-e2e-coverage.mts
 
+            # A run of some scenarios covers less than the full run, so it uploads nothing and
+            # Codecov carries the last full report forward.
             - name: 🦺 Upload client e2e coverage to Codecov
-              if: ${{ !cancelled() && steps.client-e2e-coverage.outcome == 'success' }}
+              if: ${{ !cancelled() && steps.client-e2e-coverage.outcome == 'success' && needs.protocol-matrix.outputs.scenarios == '' }}
               uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
               with:
                   token: ${{ secrets.CODECOV_TOKEN }}
@@ -482,7 +512,7 @@ jobs:
 
             # The push to master that merges this pull request skips this job and uploads it.
             - name: 📤 Keep the coverage for the merge
-              if: ${{ !cancelled() && steps.client-e2e-coverage.outcome == 'success' && github.event_name == 'pull_request' }}
+              if: ${{ !cancelled() && steps.client-e2e-coverage.outcome == 'success' && github.event_name == 'pull_request' && needs.protocol-matrix.outputs.scenarios == '' }}
               uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
               with:
                   name: codecov-client-e2e-${{ matrix.protocol }}
@@ -531,7 +561,7 @@ jobs:
                       exit 1
                   fi
                   if [ "$(jq -r '.changes.outputs.code' <<< "$NEEDS")" != 'true' ]; then
-                      echo 'No package code or dependency changes; the client e2e scenarios were skipped.'
+                      echo 'Nothing a running server loads changed; the client e2e scenarios were skipped.'
                       exit 0
                   fi
                   jq -r 'to_entries[] | "\(.key): \(.value.result)"' <<< "$NEEDS"
