@@ -367,6 +367,67 @@ describe('modules/ticker', () => {
         }
     });
 
+    describe('advance', () => {
+        it('runs exactly one tick per call when ticking is disabled, and schedules nothing', async () => {
+            const updated: number[] = [];
+            const harness = buildHarness({
+                isTickingEnabled: () => false,
+                getWorlds: () => [
+                    {
+                        getName: () => 'world',
+                        update: async (tick: number) => {
+                            updated.push(tick);
+                        }
+                    }
+                ]
+            });
+            const timeout = recordCalls('setTimeout');
+            const immediate = recordCalls('setImmediate');
+            const handle = await startTestModule(tickerModule(harness.ticker));
+            try {
+                await harness.ticker.advance();
+                await harness.ticker.advance();
+                await harness.ticker.advance();
+
+                expect(harness.ticker.getTick()).toBe(3);
+                expect(harness.tickEvents.map((event) => event.getTick())).toEqual([0, 1, 2]);
+                expect(updated).toEqual([0, 1, 2]);
+                expect(harness.ticker.recorder.between(0).map((sample) => sample.tick)).toEqual([0, 1, 2]);
+                // Nothing waits on a timer, so the same calls take the same steps on any host.
+                expect(timeout).not.toHaveBeenCalled();
+                expect(immediate).not.toHaveBeenCalled();
+            } finally {
+                timeout.restore();
+                immediate.restore();
+                await handle.stop();
+            }
+        });
+
+        it('refuses to run beside the loop or beside another manual tick', async () => {
+            let release = (): void => {};
+            const harness = buildHarness({
+                isTickingEnabled: () => false,
+                emitTick: () =>
+                    new Promise<void>((resolve) => {
+                        release = resolve;
+                    })
+            });
+            const first = harness.ticker.advance();
+            await expect(harness.ticker.advance()).rejects.toThrow('manual tick is in flight');
+            release();
+            await first;
+            expect(harness.ticker.getTick()).toBe(1);
+
+            const running = buildHarness();
+            const handle = await startTestModule(tickerModule(running.ticker));
+            try {
+                await expect(running.ticker.advance()).rejects.toThrow('while its loop runs');
+            } finally {
+                await handle.stop();
+            }
+        });
+    });
+
     it('stops ticking when the module stops and resumes on a fresh epoch after restart', async () => {
         const harness = buildHarness();
         const handle = await startTestModule(tickerModule(harness.ticker));
