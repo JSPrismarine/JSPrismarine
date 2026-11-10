@@ -70,6 +70,6 @@
     "dependencies": {
         "@jsprismarine/console-protocol": "workspace:*",
         "@jsprismarine/logger": "workspace:*",
-        "@opentui/core": "0.8.3"
+        "@opentui/core": "0.8.4"
     }
 }
