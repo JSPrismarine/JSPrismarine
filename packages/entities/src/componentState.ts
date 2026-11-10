@@ -49,6 +49,21 @@ export interface ComponentStateKey<S extends ComponentStateRecord> {
     readonly component: string;
     /** Whether a value has this state's shape. */
     readonly is: (value: unknown) => value is S;
+    /**
+     * False for state that means something only in the session that wrote it, such as another
+     * entity's runtime id, which the next session draws again. The saved form leaves it out, so
+     * a reload starts the component from its `onInitialize` state. Absent means saved.
+     */
+    readonly saved?: false;
+}
+
+/** Options for {@link defineComponentState}. */
+export interface ComponentStateOptions {
+    /**
+     * False to keep the state out of the saved form, for state that names something by a
+     * session's runtime id. See {@link ComponentStateKey.saved}.
+     */
+    readonly saved?: boolean;
 }
 
 /** Field guards for {@link defineComponentState}. */
@@ -78,6 +93,7 @@ export const stateField = {
  *
  * @param component - The component name, which is also the slot key.
  * @param fields - One guard per field. The state type is derived from them.
+ * @param options - Whether the state is saved; it is unless `saved` is false.
  * @example
  * ```typescript
  * const AIR = defineComponentState('minecraft:breathable', {
@@ -89,13 +105,15 @@ export const stateField = {
  */
 export const defineComponentState = <const F extends Readonly<Record<string, ComponentStateGuard<ComponentStateData>>>>(
     component: string,
-    fields: F
+    fields: F,
+    options: ComponentStateOptions = {}
 ): ComponentStateKey<ComponentStateShape<F>> => {
     const names = Object.keys(fields);
     return {
         component,
         is: (value): value is ComponentStateShape<F> =>
-            isRecord(value) && names.every((name) => fields[name]?.(value[name]) === true)
+            isRecord(value) && names.every((name) => fields[name]?.(value[name]) === true),
+        ...(options.saved === false ? { saved: false } : {})
     };
 };
 
@@ -259,13 +277,14 @@ export class ComponentStates {
     }
 
     /**
-     * The saved form: each active component that has declared state, sorted by name, so two
-     * entities in the same state save the same form.
+     * The saved form: each active component that has declared saved state, sorted by name, so
+     * two entities in the same state save the same form. State declared with `saved: false` is
+     * left out.
      */
     public snapshot(): ComponentStateSnapshot {
         const saved: Record<string, ComponentStateRecord | null> = {};
-        for (const component of [...this.keys.keys()].sort()) {
-            if (!this.owner.hasComponent(component)) continue;
+        for (const [component, key] of [...this.keys].sort(([left], [right]) => (left < right ? -1 : 1))) {
+            if (key.saved === false || !this.owner.hasComponent(component)) continue;
             saved[component] = this.values.get(component) ?? null;
         }
         return saved;
@@ -276,7 +295,8 @@ export class ComponentStates {
      *
      * Only active components are written. A component the form leaves out keeps the state its
      * `onInitialize` set, and a value that is not plain data, or fails the component's declared
-     * shape, is skipped in the same way.
+     * shape, is skipped in the same way. State declared with `saved: false` is never restored,
+     * so a form written before the declaration said so loads as if it left that state out.
      *
      * @param saved - A saved form, possibly parsed from an older or damaged record.
      * @returns The names of the components whose saved value was skipped as malformed.
@@ -284,7 +304,7 @@ export class ComponentStates {
     public restore(saved: Readonly<Record<string, unknown>>): readonly string[] {
         const skipped: string[] = [];
         for (const [component, value] of Object.entries(saved)) {
-            if (!this.owner.hasComponent(component)) continue;
+            if (!this.owner.hasComponent(component) || this.keys.get(component)?.saved === false) continue;
             const accepted = (value === null || isComponentStateRecord(value)) && this.write(component, value);
             if (!accepted) skipped.push(component);
         }
