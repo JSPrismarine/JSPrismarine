@@ -353,6 +353,29 @@ All four groups run side by side, each in its own worktree, because no file is i
 - No group edits `Player.ts`, `Human.ts`, `Entity.ts` or an existing file under `testing/`. A group that needs a test helper adds a file of its own beside the others.
 - Each group adds its own Changeset. F4's events and command host change plugin-facing types, which the versioning policy makes `minor`.
 
+F2, the handlers that change the player, left these for C4h.
+
+- Every F2 handler logs `session.identity.name` and compares the runtime id a packet names with `session.runtimeId`. The rest of what it reads or changes of the player goes through `session.getPlayer()` typed as a port for that use. The ports two handlers share are in `network/handler/playerPorts.ts`: `KickedPlayer`, `PlacedPlayer` (the position and the world), `InventoryHolder`, `CraftingHolder` and `FlyingPlayer`. The others live in their handler: `GamemodePlayer` in `SetPlayerGameTypeHandler`, `ReskinnedPlayer` in `PlayerSkinHandler`, `JoiningPlayer` in `ResourcePackClientResponseHandler`, `SpawningPlayer` in `SetLocalPlayerAsInitializedHandler`, `MovedPlayer` in `MovePlayerHandler`, `RespawningPlayer` in `RespawnHandler`, `ActingPlayer` in `PlayerActionHandler` and `Trader` in `tradeScreen.ts`. The rest are picks of `ShownPlayer` (`isOp`, `gamemode`) and `ShownActor` (`getType`, and the whole actor for `ActorEventHandler`'s relay).
+- Session operations: `DisconnectHandler` reads the address from the connection, which is the address the player was built with, and `PlayerAuthInputHandler` and `InventoryTransactionHandler` ask `session.isConnected()` in place of `Player.isOnline()`. After the player has left the server, a `Disconnect` still closes the connection and an input or a transaction is dropped, where `getPlayer()` threw before. `PlayerSkinHandler` matches the packet's UUID with `session.identity.uuid` and leaves the sender out of the relay by runtime id, as `MobEquipmentHandler` does.
+- What still takes `session.getPlayer()`, because the callee is another group's or C4h's: `PlayerMoveEvent`, `PlayerSpawnEvent`, `PlayerSession.sendMove`, `createStartGameData`, `playerSpawnPositionPacket`, `World.addEntity`, `hitBlock`, `breakBlock`, `dropFromPlayer` and an audience's `exclude`, the content interactions, `meleeAttack`, `loose`, `consumeTicksOf`, the enchanting and anvil code `workstation.ts` calls, `advancementItemCrafted`, `containerAnchorOf` and `openContainerSlots`, the command manager, the chat, the permission check and `BossBar.answerQuery`. `workstation.ts` does nothing with its player but pass it to the enchanting code, so it is unchanged. `LoginHandler` still builds the `Player`, which is C4h's.
+- What a `StorePlayer` lacks, by port. Each is a method a legacy `Player` has; the store half named after it is where C4h can find the state.
+  - `PlacedPlayer.getWorld`, which twelve of the handlers read. A store player's world is the runtime it is in, which it does not hold.
+  - `KickedPlayer.kick`. The session can own it, see below.
+  - `CraftingHolder.getCraftingInput`: no crafting grid.
+  - `FlyingPlayer.setFlying`: only `restoreFlying`, with no event and no abilities sent.
+  - `GamemodePlayer`: `isOp`, `getPermissions` and `setGamemode`; only the `gamemode` field. `StorePlayerActor.isOp` answers the `ShownPlayer` picks.
+  - `JoiningPlayer`: `getJoinSpawn` and `sendSettings`. `SpawningPlayer`: `completeSpawn`.
+  - `MovedPlayer`: `isOnGround`, `setPlayerPosition` and `setOnGround`, which `EntityRuntime.applyClientMovement` and the `on_ground` condition cover.
+  - `RespawningPlayer`: `isAlive` and `getRespawnPoint`. `EntityRuntime.revive` and the level's `RespawnSearch` cover them.
+  - `ActingPlayer`: `getMining` and `setMining` (`PlayerSystems.setMining`), `respawn` (`EntityRuntime.revive`), `addJumpExhaustion` (the shared rule over the components), `setSprinting` (`movement.sprinting`), `setSneaking`, `setSleeping` and `setFlying`.
+  - `Trader.getExperience`: private, though its `PlayerComponents.experience()` has it.
+  - `Pick<ShownActor, 'getType'>`: none on `StorePlayer`; the entity's identifier has it. `ActorEventHandler` relays a `ShownActor`, which for a store player is its `StorePlayerActor`, not the `StorePlayer`.
+- Session members F2 needs from F3 or C4h, used through `getPlayer()` until then:
+  1. `PlayerSession.kick(reason, code)`. `Player.kick` is the connection's `disconnect(reason, false, code)` and a verbose log line, so the session can own it and `Player.kick` can call it. `KickedPlayer` then goes.
+  2. A way from the session to the player's world, which F3's chunk streaming needs too. `PlacedPlayer.getWorld` then reads it.
+- Tests: the handler tests give their session doubles `runtimeId` and `identity`, the latter from `identityNamed` in `testing/sessionIdentity.test.helper.ts`. `sessionNearBlocks` in `testing/blockTarget.test.helper.ts` builds a session without either, so `BookEditHandler.test.ts` adds the identity to the session it returns, and F1's handlers that use the helper may need the same.
+- In-game checks for the orchestrator's combined pass: none beyond C4f's, since no handler's behavior changed.
+
 ### Phase C: the store
 
 | Package | Slice | Depends on | Work                                                                                                                         |
