@@ -39,7 +39,8 @@ const fake = () => {
     const session = stub<PlayerSession>({
         getPlayer: () => player,
         sendMove: vi.fn(async () => {}),
-        recordInputTick: vi.fn()
+        recordInputTick: vi.fn(),
+        holdsMovementForTeleport: () => false
     });
     const server = stub<Server>({
         post: () => 0,
@@ -102,7 +103,7 @@ describe('MovePlayerHandler', () => {
             yaw: { get: () => pose.yaw },
             headYaw: { get: () => pose.headYaw }
         });
-        const session = stub<PlayerSession>({ getPlayer: () => player });
+        const session = stub<PlayerSession>({ getPlayer: () => player, holdsMovementForTeleport: () => false });
         let events = 0;
         const server = stub<Server>({ post: () => ++events });
         const movement = {
@@ -136,6 +137,21 @@ describe('MovePlayerHandler', () => {
         );
         expect(player.setOnGround).toHaveBeenCalledWith(true);
         expect(dropped).toEqual([]);
+    });
+
+    it('drops a move the session says was sent before an unacknowledged teleport', async () => {
+        const { dropped, player, session, server } = fake();
+        session.holdsMovementForTeleport = vi.fn(() => true);
+        let events = 0;
+        server.post = () => ++events;
+
+        await new MovePlayerHandler().handle(move(), server, session);
+
+        expect(session.holdsMovementForTeleport).toHaveBeenCalledWith(new Vector3(3, 70, -4), false);
+        expect(player.setPlayerPosition).not.toHaveBeenCalled();
+        expect(events).toBe(0);
+        expect(dropped).toHaveLength(1);
+        expect(dropped[0]).toContain('Dropped a position from tester sent before its teleport');
     });
 
     it('does not send a second MovePlayer update to observers', async () => {

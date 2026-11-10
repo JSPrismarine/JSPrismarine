@@ -15,6 +15,8 @@ export interface ClientMovement {
     onGround: boolean;
     /** What the client says the move is. Only `MovePlayerPacket` carries one; input is always a normal move. */
     mode?: PositionMode;
+    /** Whether the input carries the `HandledTeleport` flag. Only `PlayerAuthInputPacket` has one. */
+    handledTeleport?: boolean;
 }
 
 /**
@@ -40,6 +42,17 @@ export const applyClientMovement = async (
     movement: ClientMovement
 ): Promise<void> => {
     const player = session.getPlayer();
+
+    // A report from before a teleport the client has not handled yet would undo the teleport.
+    if (session.holdsMovementForTeleport(movement.position, movement.handledTeleport ?? false)) {
+        server
+            .getLogger()
+            .debug(
+                `Dropped a position from ${player.getName()} sent before its teleport`,
+                'MovePlayerHandler/applyClientMovement'
+            );
+        return;
+    }
 
     // Keep the per-input plugin event cadence stable; unchanged poses only skip state and network work.
     const event = new PlayerMoveEvent(player, movement.position, movement.mode ?? PositionMode.Normal);

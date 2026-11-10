@@ -2023,7 +2023,7 @@ export default class PlayerSession {
 
         await this.sendNetworkChunkPublisher(effectiveViewDistance(player.viewDistance), []);
 
-        // Since 1.19.50 the server sends the acknowledgement that used to be the client's, and
+        // Since 1.19.50 the server sends the acknowledgment that used to be the client's, and
         // sends it before any chunk; the client still answers with its own copy afterwards.
         await this.send(
             new PlayerActionPacket({
