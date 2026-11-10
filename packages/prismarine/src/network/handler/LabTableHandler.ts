@@ -20,6 +20,7 @@ const LAB_TABLES: ReadonlySet<string> = new Set(['minecraft:lab_table']);
 export default class LabTableHandler implements PacketHandler<LabTablePacket> {
     public static PacketName = 'LabTablePacket';
     public readonly phases = ['play'] as const;
+    public readonly lane = 'read';
 
     /** Checks the position names a lab table in reach, then logs the action and position. */
     public handle(packet: LabTablePacket, server: Server, session: PlayerSession): void {
