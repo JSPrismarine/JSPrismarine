@@ -6,6 +6,7 @@ import type Player from '../../Player';
 import type Server from '../../Server';
 import { stub } from '../../testing/stub.test.helper';
 import type PlayerSession from '../PlayerSession';
+import type { ShownPlayer } from '../../world/ShownPlayer';
 import RequestAbilityPacket, { RequestAbilityValueType } from '@jsprismarine/protocol/packet/RequestAbilityPacket';
 import RequestAbilityHandler from './RequestAbilityHandler';
 
@@ -16,7 +17,7 @@ import RequestAbilityHandler from './RequestAbilityHandler';
  */
 const fakeSession = ({ flying = false, canFly = true }: { flying?: boolean; canFly?: boolean } = {}) => {
     const requested: boolean[] = [];
-    const resent: Array<Player | undefined> = [];
+    const resent: Array<ShownPlayer | undefined> = [];
     const logged: string[] = [];
     let isFlying = flying;
     const player = stub<Player>({
