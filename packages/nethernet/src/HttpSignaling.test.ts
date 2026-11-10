@@ -1,8 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
 
-import type { Logger } from '@jsprismarine/logger';
 import { SignalStructure, SignalType } from 'nethernet';
-import { stub } from '../../testing/stub.test.helper';
 import { HttpSignaling } from './HttpSignaling';
 import type { NetherNetOfferAnswerer } from './HttpSignaling';
 
@@ -32,7 +30,7 @@ const start = async (answerer: NetherNetOfferAnswerer, answerTimeoutMs?: number)
         answerer,
         status: () => '{"name":"Test"}',
         sign: (answer) => `${answer}a=identity:signed\r\n`,
-        logger: stub<Logger>({ debug: () => {}, error: () => {} }),
+        logger: { debug: () => {}, error: () => {} },
         answerTimeoutMs
     });
     running.push(signaling);
@@ -43,7 +41,7 @@ const start = async (answerer: NetherNetOfferAnswerer, answerTimeoutMs?: number)
 const post = (url: string, body: string) =>
     fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/sdp' }, body });
 
-describe('network/nethernet/HttpSignaling', () => {
+describe('HttpSignaling', () => {
     afterEach(() => {
         for (const signaling of running.splice(0)) signaling.close();
     });

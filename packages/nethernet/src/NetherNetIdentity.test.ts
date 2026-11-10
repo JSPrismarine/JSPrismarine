@@ -4,8 +4,8 @@ import path from 'node:path';
 import { createPublicKey, generateKeyPairSync, verify } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 
-import { isRecord } from '../../utils/isRecord';
-import { BEDROCK_CURVE } from '../es384';
+import { isRecord } from './isRecord';
+import { BEDROCK_CURVE } from './es384';
 import { canonicalFingerprints, NetherNetIdentity } from './NetherNetIdentity';
 import { sdpFingerprints } from './sdp';
 
@@ -71,7 +71,7 @@ const clientVerifies = (answer: string, nowSeconds: number) => {
     return { idp: identity.idp, header: part(header!), claims };
 };
 
-describe('network/nethernet/NetherNetIdentity', () => {
+describe('NetherNetIdentity', () => {
     const now = 1_794_000_000_000;
     const { privateKey } = generateKeyPairSync('ec', { namedCurve: BEDROCK_CURVE });
 

@@ -1,8 +1,8 @@
 import { randomBytes } from 'node:crypto';
 
 import type { ServerName } from '@jsprismarine/raknet';
-import { encodeLanAdvertisement, lanAdvertisementOf } from './LanAdvertisement';
-import { netherNetStatusOf } from './NetherNetStatus';
+import { encodeLanAdvertisement, lanAdvertisementOf } from '@jsprismarine/nethernet';
+import { netherNetStatusOf } from './netherNetStatusOf';
 
 /** Where the advertisement goes: `nethernet`'s `Server`, which answers discovery requests with it. */
 export interface LanAdvertisementTarget {

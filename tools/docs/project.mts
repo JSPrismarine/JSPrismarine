@@ -139,7 +139,7 @@ export function loadProject(): ProjectData {
         'NetherNetDefaults.ts'
     );
     const [, netherNetLanPort] = fromSource(
-        netherNetDefaults,
+        path.join(packagesDir, 'nethernet', 'src', 'NetherNetDefaults.ts'),
         /^export const NETHERNET_LAN_PORT = (\d+);$/m,
         'the NetherNet LAN port'
     );

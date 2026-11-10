@@ -62,6 +62,7 @@
         { "path": "./packages/math/tsconfig.json" },
         { "path": "./packages/minecraft/tsconfig.json" },
         { "path": "./packages/nbt/tsconfig.json" },
+        { "path": "./packages/nethernet/tsconfig.json" },
         { "path": "./packages/packs/tsconfig.json" },
         { "path": "./packages/prismarine/tsconfig.json" },
         { "path": "./packages/protocol/tsconfig.json" },

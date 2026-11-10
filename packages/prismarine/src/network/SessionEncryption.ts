@@ -1,7 +1,7 @@
 import { createHash, createPublicKey, diffieHellman, generateKeyPairSync, randomBytes } from 'node:crypto';
 
 import { EncryptionCodec } from '@jsprismarine/protocol';
-import { BEDROCK_CURVE, compactEs384 } from './es384';
+import { BEDROCK_CURVE, compactEs384 } from '@jsprismarine/nethernet';
 
 /** Bytes of salt the server mixes into the key. */
 const SALT_BYTES = 16;

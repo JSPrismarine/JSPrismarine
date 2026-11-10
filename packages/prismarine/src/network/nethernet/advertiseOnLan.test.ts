@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { ServerName } from '@jsprismarine/raknet';
 import { advertiseOnLan, lanNonce } from './advertiseOnLan';
-import { decodeLanAdvertisement } from './LanAdvertisement';
+import { decodeLanAdvertisement } from '@jsprismarine/nethernet';
 
 const serverName = () =>
     new ServerName(

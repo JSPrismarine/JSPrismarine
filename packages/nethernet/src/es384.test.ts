@@ -16,7 +16,7 @@ const verifies = (header: string, payload: string, signature: string): boolean =
 
 const json = (part: string): unknown => JSON.parse(Buffer.from(part, 'base64url').toString());
 
-describe('network/es384', () => {
+describe('es384', () => {
     it('signs a compact JWS with ES384 and the extra header fields', () => {
         const [header, payload, signature] = compactEs384({ x5u: 'key' }, { salt: 'abc' }, keys.privateKey).split('.');
 

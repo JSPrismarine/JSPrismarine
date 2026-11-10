@@ -1,4 +1,4 @@
-import NetworkBinaryStream from '@jsprismarine/protocol/NetworkBinaryStream';
+import BinaryStream from '@jsprismarine/binaryutils';
 import type { NetherNetStatus } from './NetherNetStatus';
 
 /** The advertisement layout Bedrock Dedicated Server 1.26.51 answers LAN discovery with. */
@@ -44,12 +44,12 @@ export const lanAdvertisementOf = (status: NetherNetStatus, onlineMode: boolean,
  * varint-prefixed strings, zigzag varints and booleans in a fixed order.
  */
 export const encodeLanAdvertisement = (advertisement: LanAdvertisement): Buffer => {
-    const stream = new NetworkBinaryStream();
+    const stream = new BinaryStream();
     stream.writeByte(LAN_ADVERTISEMENT_VERSION);
-    stream.writeString(advertisement.motd);
+    stream.writeVarString(advertisement.motd);
     stream.writeVarInt(advertisement.protocol);
-    stream.writeString(advertisement.version);
-    stream.writeString(advertisement.levelName);
+    stream.writeVarString(advertisement.version);
+    stream.writeVarString(advertisement.levelName);
     stream.writeVarInt(advertisement.playerCount);
     stream.writeVarInt(advertisement.maxPlayers);
     stream.writeVarInt(advertisement.gameType);
@@ -57,7 +57,7 @@ export const encodeLanAdvertisement = (advertisement: LanAdvertisement): Buffer 
     stream.writeBoolean(advertisement.hardcore);
     stream.writeBoolean(advertisement.acceptsOnlineAuth);
     stream.writeBoolean(advertisement.acceptsSelfSignedAuth);
-    stream.writeString(advertisement.nonce);
+    stream.writeVarString(advertisement.nonce);
     stream.writeVarInt(advertisement.connectionType);
     return stream.getBuffer();
 };
@@ -67,16 +67,16 @@ export const encodeLanAdvertisement = (advertisement: LanAdvertisement): Buffer 
  * @throws {Error} When the buffer carries another layout version or ends early.
  */
 export const decodeLanAdvertisement = (buffer: Buffer): LanAdvertisement => {
-    const stream = new NetworkBinaryStream(buffer);
+    const stream = new BinaryStream(buffer);
     const version = stream.readByte();
     if (version !== LAN_ADVERTISEMENT_VERSION) {
         throw new Error(`Unsupported LAN advertisement version ${version}`);
     }
     return {
-        motd: stream.readString(),
+        motd: stream.readVarString(),
         protocol: stream.readVarInt(),
-        version: stream.readString(),
-        levelName: stream.readString(),
+        version: stream.readVarString(),
+        levelName: stream.readVarString(),
         playerCount: stream.readVarInt(),
         maxPlayers: stream.readVarInt(),
         gameType: stream.readVarInt(),
@@ -84,7 +84,7 @@ export const decodeLanAdvertisement = (buffer: Buffer): LanAdvertisement => {
         hardcore: stream.readBoolean(),
         acceptsOnlineAuth: stream.readBoolean(),
         acceptsSelfSignedAuth: stream.readBoolean(),
-        nonce: stream.readString(),
+        nonce: stream.readVarString(),
         connectionType: stream.readVarInt()
     };
 };

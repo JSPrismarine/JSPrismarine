@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import { createPrivateKey, createPublicKey, generateKeyPairSync } from 'node:crypto';
 import type { KeyObject } from 'node:crypto';
 
-import { BEDROCK_CURVE, compactEs384, detachedEs384 } from '../es384';
+import { BEDROCK_CURVE, compactEs384, detachedEs384 } from './es384';
 import { sdpFingerprints, withSessionAttribute } from './sdp';
 import type { SdpFingerprint } from './sdp';
 

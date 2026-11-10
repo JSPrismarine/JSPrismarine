@@ -11,7 +11,7 @@ const OFFER = [
     ''
 ].join('\r\n');
 
-describe('network/nethernet/sdp', () => {
+describe('sdp', () => {
     it('reads every fingerprint, session or media level, in order', () => {
         const sdp = `${OFFER}a=fingerprint:sha-384 CC:DD\r\n`;
 
