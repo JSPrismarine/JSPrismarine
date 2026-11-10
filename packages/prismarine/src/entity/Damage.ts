@@ -135,13 +135,23 @@ export const bypassesEnchantments = (cause: DamageCause): boolean => BYPASSES_EN
  * armorReduced(10, 15, 0); // => 4.6
  * ```
  */
-export const armorReduced = (damage: number, defensePoints: number, toughness: number): number => {
-    if (defensePoints <= 0) return damage;
+export const armorReduced = (damage: number, defensePoints: number, toughness: number): number =>
+    defensePoints <= 0 ? damage : damage * armorFactor(damage, defensePoints, toughness);
+
+/**
+ * The fraction of a blow armor lets through, which depends on how hard the blow is.
+ * @param {number} damage - The blow, in half-hearts.
+ * @param {number} defensePoints - Armor points worn; at or below zero everything gets through.
+ * @param {number} toughness - Armor toughness.
+ * @returns {number} The factor, from 0.2 to 1.
+ */
+export const armorFactor = (damage: number, defensePoints: number, toughness: number): number => {
+    if (defensePoints <= 0) return 1;
 
     const softened = defensePoints - damage / (TOUGHNESS_BASE_DIVISOR + toughness / TOUGHNESS_DIVISOR);
     const effective = Math.min(MAX_ARMOR_POINTS, Math.max(defensePoints / MIN_ARMOR_FRACTION, softened));
 
-    return damage * (1 - effective / ARMOR_DIVISOR);
+    return 1 - effective / ARMOR_DIVISOR;
 };
 
 /**
@@ -154,11 +164,18 @@ export const armorReduced = (damage: number, defensePoints: number, toughness: n
  * @param {number} enchantmentProtection - The summed Enchantment Protection Factor.
  * @returns {number} What gets through.
  */
-export const protectionReduced = (damage: number, enchantmentProtection: number): number => {
-    if (enchantmentProtection <= 0) return damage;
+export const protectionReduced = (damage: number, enchantmentProtection: number): number =>
+    enchantmentProtection <= 0 ? damage : damage * protectionFactor(enchantmentProtection);
 
-    return damage * (1 - Math.min(MAX_ENCHANTMENT_PROTECTION, enchantmentProtection) / ENCHANTMENT_DIVISOR);
-};
+/**
+ * The fraction of a blow the `damage_protection` enchantments let through.
+ * @param {number} enchantmentProtection - The summed Enchantment Protection Factor.
+ * @returns {number} The factor, from 0.2 to 1.
+ */
+export const protectionFactor = (enchantmentProtection: number): number =>
+    enchantmentProtection <= 0
+        ? 1
+        : 1 - Math.min(MAX_ENCHANTMENT_PROTECTION, enchantmentProtection) / ENCHANTMENT_DIVISOR;
 
 /**
  * What the Resistance effect leaves.
@@ -170,7 +187,19 @@ export const resistanceReduced = (damage: number, level: number): number => {
     if (level <= 0) return damage;
     if (level >= MAX_RESISTANCE_LEVEL) return 0;
 
-    return damage * (1 - level * RESISTANCE_PER_LEVEL);
+    return damage * resistanceFactor(level);
+};
+
+/**
+ * The fraction of a blow the Resistance effect lets through.
+ * @param {number} level - The effect's level; five and above stops everything.
+ * @returns {number} The factor, from 0 to 1.
+ */
+export const resistanceFactor = (level: number): number => {
+    if (level <= 0) return 1;
+    if (level >= MAX_RESISTANCE_LEVEL) return 0;
+
+    return 1 - level * RESISTANCE_PER_LEVEL;
 };
 
 /**

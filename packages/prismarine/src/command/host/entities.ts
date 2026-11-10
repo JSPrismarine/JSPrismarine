@@ -18,6 +18,7 @@ import Player from '../../Player';
 import type Server from '../../Server';
 import { AttributeIds } from '@jsprismarine/protocol/wire/structures/Attribute';
 import { DamageCause } from '../../entity/DamageCause';
+import { DamageSource } from '../../entity/DamageSource';
 import { damageSourceOfType, hasDamageType } from '../../entity/damageTypes';
 import { normalizeStatusEffectId } from '../../entity/StatusEffect';
 import type { DataEntity } from '../../entity/data/DataEntity';
@@ -262,7 +263,12 @@ export const entityCommandHost = (server: Server, scoreboard: Scoreboard): Entit
             // only way to kill it is to take it out of the world. The cause is
             // the one nothing turns aside: the ender dragon's damage rules
             // refuse a generic attacker-less blow, and `/kill` must not be one.
-            if (entity.isAlive()) return carryOut(entity.setHealth(0, DamageCause.SelfDestruct), true);
+            if (entity.isAlive()) {
+                // A data-driven entity dies through the entity store's damage pipeline.
+                const source = DamageSource.of(DamageCause.SelfDestruct);
+                if (entity.getWorld().dataEntities().killEntity(entity, source, 'command') !== undefined) return true;
+                return carryOut(entity.setHealth(0, DamageCause.SelfDestruct), true);
+            }
 
             // A dead player is on the death screen, not an entity to clear away: taking it out of
             // the world leaves it out when it respawns, and no `@s` finds it again.
@@ -289,6 +295,8 @@ export const entityCommandHost = (server: Server, scoreboard: Scoreboard): Entit
                 ...(from === undefined ? {} : { from }),
                 ...(origin?.at === undefined ? {} : { at: vectorOf(origin.at) })
             });
+            if (entity.getWorld().dataEntities().damageEntity(entity, amount, source, 'command') !== undefined)
+                return true;
             return carryOut(entity.damage(amount, source), true);
         },
 

@@ -13,7 +13,7 @@ import { ActorFlags } from '@jsprismarine/minecraft/ActorFlags';
 import { ActorEvent, Difficulty, Gametype, LevelSoundEvent } from '@jsprismarine/minecraft';
 import { AttributeIds } from '@jsprismarine/protocol/wire/structures/Attribute';
 import { entityData, vanillaItemDefinitions } from '@jsprismarine/items';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { EYE_HEIGHT } from '../../entity/Human';
 import type { RaidRecord } from '../../world/raid/RaidManager';
@@ -40,6 +40,7 @@ import { stub } from '../../testing/stub.test.helper';
 import { entityCommandHost } from '../../command/host/entities';
 import { Scoreboard } from '../../command/host/scoreboard';
 import type WorldManager from '../../world/WorldManager';
+import type { Level } from '../../world/Level';
 import BlockUpdateScheduler from '../../world/BlockUpdateScheduler';
 import Chunk from '../../world/chunk/Chunk';
 import LevelDB from '../../world/providers/leveldb/LevelDB';
@@ -60,6 +61,9 @@ import Codec2193 from '../../network/codec/Codec2193';
 import InventoryTransactionHandler from '../../network/handler/InventoryTransactionHandler';
 import { DamageCause } from '../DamageCause';
 import { DamageSource } from '../DamageSource';
+import { meleeAttack } from '../Combat';
+import { explode } from '../Explosion';
+import { advancementDamage, advancementKill } from '../../advancement/triggers';
 import { Entity } from '../Entity';
 import { GenericEntity } from '../GenericEntity';
 import { EntitySerializer } from '../EntitySerializer';
@@ -69,8 +73,21 @@ import { loose } from '../Archery';
 import type { OpenBlockContainer, OpenTrade } from '../../network/PlayerSession';
 import { dataEntityRecordIn } from './persistence';
 import { EntityRuntimes } from './live';
+import type { DataEntity } from './DataEntity';
+import type { EntityRef } from '@jsprismarine/commands';
 import type { LiveEntityRuntime } from './live';
 import type { Generator } from '../../world/Generator';
+
+// The advancement triggers keep their behavior and are recorded, so a test can read the order
+// a blow raised them in.
+vi.mock('../../advancement/triggers', async (importOriginal) => {
+    const actual = await importOriginal<typeof import('../../advancement/triggers')>();
+    return {
+        ...actual,
+        advancementDamage: vi.fn(actual.advancementDamage),
+        advancementKill: vi.fn(actual.advancementKill)
+    };
+});
 
 /**
  * The data-driven entity runtime, driving a real world.
@@ -746,7 +763,9 @@ const liveWorld = (
                 getDefaultWorld: () => world,
                 getWorldByDimension: (dimension) => (dimension === Dimensions.Overworld.id ? world : undefined),
                 // What `/summon` resolves its dimension through; the one world is already running.
-                startWorld: (dimension) => (dimension === Dimensions.Overworld.id ? world : undefined)
+                startWorld: (dimension) => (dimension === Dimensions.Overworld.id ? world : undefined),
+                // What a command resolves an entity reference through.
+                getLevels: () => [stub<Level>({ worlds: () => [world].values() })]
             }),
         getContent: () => content
     });
@@ -1619,6 +1638,123 @@ describe('the data-driven entity runtime over a live world', () => {
     });
 
     describe('combat', () => {
+        describe('through the store damage pipeline', () => {
+            const cowAt = async (x: number): Promise<{ cow: DataEntity; body: Entity }> => {
+                const cow = live.runtime.spawn('minecraft:cow', { x, y: GROUND_Y, z: 0.5 });
+                if (cow === undefined) throw new Error('the fixture declares no minecraft:cow');
+                await run(1);
+                const body = live.bodies.bodyOf(cow.id);
+                if (body === undefined) throw new Error('the cow has no client-facing body');
+                return { cow, body };
+            };
+            const routes = (): Record<string, number> => Object.fromEntries(live.runtime.damagePipeline.runsByRoute());
+
+            it("takes a player's swing as melee, and kills in the same call with the events in the legacy order", async () => {
+                const player = addPlayer(0.5, 0.5);
+                Object.assign(player, { inventory: new HumanInventory() });
+                const { cow, body } = await cowAt(1.5);
+                const posted: string[] = [];
+                vi.spyOn(world.getServer(), 'post').mockImplementation((pair) => {
+                    posted.push(pair[0]);
+                    return 0;
+                });
+                vi.mocked(advancementDamage).mockClear();
+                vi.mocked(advancementKill).mockClear();
+
+                const landed = await meleeAttack(player, body, { damage: 100 });
+
+                expect(landed).toBe(true);
+                expect(routes()).toMatchObject({ melee: 1 });
+                expect(live.runtime.byId(cow.id)).toBeUndefined();
+                expect(posted).toEqual(['entityDamage', 'entityDeath']);
+                expect(vi.mocked(advancementKill)).toHaveBeenCalledTimes(1);
+                expect(vi.mocked(advancementDamage)).toHaveBeenCalledTimes(1);
+                expect(vi.mocked(advancementKill).mock.invocationCallOrder[0]).toBeLessThan(
+                    vi.mocked(advancementDamage).mock.invocationCallOrder[0] ?? 0
+                );
+                expect(vi.mocked(advancementDamage).mock.calls[0]?.[0]).toBe(body);
+            });
+
+            it('lets an entityDamage listener cancel or rewrite a blow, as a before-hook', async () => {
+                const player = addPlayer(0.5, 0.5);
+                Object.assign(player, { inventory: new HumanInventory() });
+                const { cow, body } = await cowAt(1.5);
+                vi.spyOn(world.getServer(), 'post').mockImplementation((pair) => {
+                    if (pair[0] === 'entityDamage') pair[1].setAmount(1);
+                    return 0;
+                });
+
+                await meleeAttack(player, body, { damage: 5 });
+
+                expect(cow.instance.attributes.get('health')?.current).toBe(9);
+            });
+
+            it('takes a legacy blast as an explosion', async () => {
+                const { cow, body } = await cowAt(1.5);
+
+                await explode(world, body.getPosition(), { power: 2 });
+
+                expect(routes()).toMatchObject({ explosion: 1 });
+                expect(cow.instance.attributes.get('health')?.current ?? 0).toBeLessThan(10);
+            });
+
+            it('takes /damage and /kill as commands', async () => {
+                const { cow, body } = await cowAt(1.5);
+                const host = entityCommandHost(world.getServer(), new Scoreboard());
+                const ref: EntityRef = {
+                    id: body.getRuntimeId().toString(),
+                    type: 'minecraft:cow',
+                    name: 'Cow',
+                    isPlayer: false,
+                    position: { x: 1.5, y: GROUND_Y, z: 0.5 },
+                    rotation: { yaw: 0, pitch: 0 },
+                    dimension: Dimensions.Overworld.id
+                };
+
+                expect(host.damage(ref, 2, 'minecraft:generic')).toBe(true);
+                expect(cow.instance.attributes.get('health')?.current).toBe(8);
+                expect(host.kill(ref)).toBe(true);
+
+                expect(routes()).toMatchObject({ command: 2 });
+                expect(live.runtime.byId(cow.id)).toBeUndefined();
+            });
+
+            it("takes an item behavior's blow as an item", async () => {
+                const { cow, body } = await cowAt(1.5);
+                const actors = createItemActorPort({
+                    world: () => world,
+                    entities: stub<ContentEntityAccess>({ drop: () => undefined }),
+                    level: unwiredWorld().level
+                });
+
+                actors.perform({
+                    kind: 'damage-entity',
+                    target: { identifier: cow.identifier, runtimeId: Number(body.getRuntimeId()) },
+                    amount: 3,
+                    damageType: 'minecraft:fall'
+                });
+
+                expect(routes()).toMatchObject({ item: 1 });
+                expect(cow.instance.attributes.get('health')?.current).toBe(7);
+            });
+
+            it('takes a status effect as a status effect', async () => {
+                const { cow, body } = await cowAt(1.5);
+                body.addStatusEffect({
+                    id: 'minecraft:poison',
+                    amplifier: 4,
+                    durationTicks: 100,
+                    ambient: false,
+                    showParticles: true
+                });
+
+                for (let tick = 1; tick <= 25; tick += 1) await body.update(tick);
+
+                expect(routes().status_effect ?? 0).toBeGreaterThan(0);
+                expect(cow.instance.attributes.get('health')?.current ?? 10).toBeLessThan(10);
+            });
+        });
+
         it('keeps creative players out of zombie combat targets across game-mode changes', async () => {
             const player = addPlayer(1, 0);
             player.gamemode = Gametype.CREATIVE;

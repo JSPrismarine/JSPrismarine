@@ -15,6 +15,9 @@
 import type { FilterEntityView, FilterItemView } from '@jsprismarine/entities';
 import type { VillagerRaidEffect, VillagerRaidState } from '@jsprismarine/entity-brains';
 import type { StatusEffectInput } from '../StatusEffect';
+import type { DataEntity } from './DataEntity';
+import type { DamageIntent } from './damagePipeline';
+import type { DamageMitigation } from './damageStages';
 import type {
     ContentBlockAccess,
     ContentEffectSink,
@@ -163,4 +166,26 @@ export interface EntityHostFacts {
     villageBorderDistance?(at: ContentPosition): number | undefined;
     /** Whether Java structure spawn data reserves this type at one position. */
     structureSpawnOverrideAt?(identifier: string, at: ContentPosition): boolean | undefined;
+    /** What a data-driven entity wears against one blow: armor points, toughness and protection. */
+    damageMitigation?(target: DataEntity, intent: DamageIntent): DamageMitigation | undefined;
+    /**
+     * Hears every committed blow on a data-driven entity, after its health changed and before a
+     * death it caused removes it. The host raises its damage and death events and its advancement
+     * triggers from here.
+     */
+    damageCommitted?(commit: DamageCommit): void;
+}
+
+/** One committed blow, as {@link EntityHostFacts.damageCommitted} hears it. */
+export interface DamageCommit {
+    /** The entity that was hit, still in the store. */
+    readonly target: DataEntity;
+    /** The intent as the guards left it. */
+    readonly intent: DamageIntent;
+    /** The blow after the grace period and before armor, which Java's `DamagePredicate` calls dealt. */
+    readonly dealt: number;
+    /** What came off the health. */
+    readonly taken: number;
+    /** Whether the blow killed the entity. */
+    readonly died: boolean;
 }

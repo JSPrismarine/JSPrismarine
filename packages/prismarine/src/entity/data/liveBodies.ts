@@ -14,13 +14,10 @@
  * invulnerability timer down, so the data runtime is the only thing driving
  * it. The client draws a Bedrock mob from its identifier either way.
  *
- * Health crosses in both directions for entities that declare it, because
- * both sides can change it. The runtime's `minecraft:health` attribute is
- * the truth; for mobs, a blow that arrived through the legacy damage pipeline
- * shows up here as live health dropping below what was last written, and that
- * difference is handed back to the runtime so loot, death, and retaliation
- * happen in one place. Nonmob bodies route hits straight to the runtime so
- * they do not receive generic mob hurt feedback.
+ * Health crosses in one direction. The runtime's `minecraft:health` attribute is the truth, and
+ * the body shows it. A blow that reaches a body through the legacy damage pipeline, such as
+ * `Entity.damage` or a written health, is handed to the store's damage pipeline as an intent
+ * and the body's own pipeline never runs, so loot, death and retaliation happen in one place.
  */
 import { Vector3 } from '@jsprismarine/math';
 import { isRecord } from '@jsprismarine/entities';
@@ -29,17 +26,18 @@ import { NBTTagCompound } from '@jsprismarine/nbt';
 
 import { Position } from '../../world/Position';
 import type { World } from '../../world/World';
-import { itemOfDrop } from '../../inventory/persistence';
 import { sameSyncedProperties, syncedPropertiesOf } from '../../network/actorProperties';
 import { Attribute, AttributeIds } from '@jsprismarine/protocol/wire/structures/Attribute';
 import { DamageCause } from '../DamageCause';
 import { DamageSource } from '../DamageSource';
-import { MOB_EQUIPMENT_SLOTS, sameEquipmentItems } from '../equipment';
-import type { ViewableEquipment } from '../predicateView';
+import { sameEquipmentItems, viewableEquipmentOf } from '../equipment';
 import type { Entity } from '../Entity';
 import type { StatusEffect } from '../StatusEffect';
 import { normalizeStatusEffectId } from '../StatusEffect';
+import { effectHealthChange } from '../StatusEffectTick';
+import type { DamageRoute } from './damagePipeline';
 import { GenericEntity } from '../GenericEntity';
+import { KNOCKBACK_LIFT } from '../knockback';
 import type { DataEntity } from './DataEntity';
 import type { EntityRuntime } from './EntityRuntime';
 import {
@@ -56,13 +54,6 @@ import { dataEntityRecordOf, writeDataEntityRecord } from './persistence';
 /** How far an entity has to move before the movement is worth putting on the wire, in blocks. */
 const MOVEMENT_EPSILON = 1e-4;
 
-/**
- * How far up a shove lifts, in blocks per tick.
- *
- * Vanilla's cap, which is what a hit from a standing start produces. The runtime's gravity is
- * what brings the entity back down, so this is only the first tick of the arc.
- */
-const KNOCKBACK_LIFT = 0.4;
 
 /**
  * The body of one data-driven entity.
@@ -86,20 +77,55 @@ class DataEntityBody extends GenericEntity {
             attributes?: Attribute[];
             runtimeId: bigint;
         },
-        private readonly hurt: (amount: number, source: DamageSource) => boolean
+        private readonly blows: LiveBodyBlows
     ) {
         super(options);
     }
 
-    /** @inheritdoc */
+    /**
+     * Hands the blow to the store's damage pipeline, which decides it and applies it before this
+     * returns. The legacy pipeline in {@link Entity.damage} never runs for a data-driven entity.
+     */
     public override async damage(
         amount: number,
         source: DamageCause | DamageSource = DamageCause.Generic
     ): Promise<boolean> {
-        if (this.driver.instance.families().includes('mob')) return super.damage(amount, source);
-        if (amount <= 0 || !this.isAlive()) return false;
+        if (amount <= 0) return false;
+        return this.blows.hurt(amount, DamageSource.of(source), 'legacy_body');
+    }
 
-        return this.hurt(amount, DamageSource.of(source));
+    /**
+     * A status effect's harm, such as Poison or Wither, as a blow through the store's pipeline.
+     * A heal is not written, as {@link DataEntityBody.heal} says.
+     */
+    protected override async applyStatusEffectTick(effect: StatusEffect, clock: number): Promise<void> {
+        const health = this.driver.instance.attributes.get('health');
+        if (health === undefined) return;
+        const change = effectHealthChange(effect.id, effect.amplifier, clock, health.current, health.max);
+        if (change === undefined || change.kind === 'heal' || change.amount <= 0) return;
+        this.blows.hurt(change.amount, DamageSource.of(change.cause), 'status_effect');
+    }
+
+    /**
+     * A health written onto the body, which is what `/kill` does, is a blow for the difference
+     * through the same pipeline. A higher health is not written: the runtime's health is the truth.
+     */
+    public override async setHealth(
+        health: number,
+        source: DamageCause | DamageSource = DamageCause.Generic
+    ): Promise<void> {
+        const current = this.driver.instance.attributes.get('health')?.current;
+        if (current === undefined || health >= current) return;
+        this.blows.written(current - health, DamageSource.of(source));
+    }
+
+    /**
+     * Heals nothing. The runtime's health is the truth and the body only shows it, so a heal
+     * written onto the body would be shown and then lost. A legacy heal reaching a data-driven
+     * entity, such as Regeneration, did nothing before the store owned damage either.
+     */
+    public override async heal(_amount: number): Promise<boolean> {
+        return false;
     }
 
     /** Adds the impulse to the entity body the runtime integrates each tick. */
@@ -170,21 +196,31 @@ class DataEntityBody extends GenericEntity {
     }
 }
 
+/** Where a body sends the blows it receives through the legacy entity methods. */
+interface LiveBodyBlows {
+    /** A blow through {@link Entity.damage} or a status effect. */
+    hurt(amount: number, source: DamageSource, route: DamageRoute): boolean;
+    /** A lower health written through {@link Entity.setHealth}, by how much it is lower. */
+    written(taken: number, source: DamageSource): void;
+}
+
 /** What {@link LiveBodies} is built over. */
 export interface LiveBodiesOptions {
     /** The live world, read at call time, because the runtime outlives any one world load. */
     world(): World | undefined;
     /** Receives everything the mirror met and could not carry out. */
     report(message: string): void;
-    /** Applies a nonmob body hit through the data runtime. */
-    hurt(entity: DataEntity, sourceId: number | undefined, cause: string, amount: number): boolean;
+    /** Runs a legacy blow on a body through the store's damage pipeline. */
+    hurt(entity: DataEntity, amount: number, source: DamageSource, route: DamageRoute): boolean;
+    /** Runs a lower health written onto a body through the store's damage pipeline. */
+    written(entity: DataEntity, taken: number, source: DamageSource): void;
 }
 
 /** One live body per data-driven entity, kept in step with it. */
 export class LiveBodies {
     /** Each body by its runtime id, which is its data entity's id as well. */
     private readonly bodies = new Map<number, Entity>();
-    /** The health last written onto each body, which is how a legacy blow is noticed. */
+    /** The health last written onto each body, so an unchanged health is not written again. */
     private readonly written = new Map<number, number>();
     /** The property values last sent for each body. */
     private readonly synced = new Map<number, ReturnType<Entity['getSyncedProperties']>>();
@@ -256,10 +292,9 @@ export class LiveBodies {
                 pitch: entity.body.pitch,
                 ...(health === undefined ? { attributes: [] } : {})
             },
-            (amount, source) => {
-                const attacker = source.attacker;
-                const sourceId = attacker === null ? undefined : Number(attacker.getRuntimeId());
-                return this.options.hurt(entity, sourceId, source.cause, amount);
+            {
+                hurt: (amount, source, route) => this.options.hurt(entity, amount, source, route),
+                written: (taken, source) => this.options.written(entity, taken, source)
             }
         );
 
@@ -326,9 +361,7 @@ export class LiveBodies {
      * Brings every body back in step with its entity, after a tick of the
      * runtime.
      *
-     * Damage first and position second. A blow that landed this tick has to
-     * reach the runtime before the loot and the removal it may cause, and a
-     * body that is removed has no position left to send.
+     * The runtime's health, equipment, metadata and position, in that order.
      *
      * @param runtime - The entity runtime whose state is mirrored.
      * @param shouldSync - Optional chunk eligibility rule for derived metadata.
@@ -343,16 +376,10 @@ export class LiveBodies {
             if (body === undefined) continue;
             const isTicking = shouldSync === undefined || shouldSync(entity.position);
 
-            const writtenHealth = this.written.get(entity.id);
-            if (writtenHealth !== undefined && body.getHealth() !== writtenHealth)
-                this.takeLegacyDamage(runtime, entity, body);
-            // Removed by the damage above, in which case its body has gone with it.
-            if (!this.bodies.has(entity.id)) continue;
-
             const health = entity.instance.attributes.get('health');
             if (
                 health !== undefined &&
-                (this.written.get(entity.id) !== health.current || body.getHealth() !== health.current)
+                this.written.get(entity.id) !== health.current
             ) {
                 this.showHealth(entity, body);
             }
@@ -435,30 +462,6 @@ export class LiveBodies {
         this.owners.clear();
     }
 
-    /**
-     * Hands the runtime whatever the legacy damage pipeline took off the body.
-     *
-     * The source travels with it, so a player who hits a zombie is who the
-     * zombie's `hurt_by_target` goes after.
-     */
-    private takeLegacyDamage(runtime: EntityRuntime, entity: DataEntity, body: Entity): void {
-        const expected = this.written.get(entity.id);
-        if (expected === undefined) return;
-
-        const taken = expected - body.getHealth();
-        if (taken <= 0) return;
-
-        const source = body.getLastDamageSource();
-        const attacker = source?.attacker;
-        runtime.hurt(
-            entity,
-            attacker === null || attacker === undefined ? undefined : Number(attacker.getRuntimeId()),
-            source?.cause ?? 'generic',
-            taken,
-            { feedback: false }
-        );
-    }
-
     /** Writes the runtime's health onto the body, where the attribute flush will find it. */
     private showHealth(entity: DataEntity, body: Entity): void {
         const health = entity.instance.attributes.get('health');
@@ -505,14 +508,7 @@ export class LiveBodies {
         const content = world?.getServer().getContent();
         if (world === undefined || content === undefined) return;
 
-        const worn: ViewableEquipment = {};
-        for (const slot of MOB_EQUIPMENT_SLOTS) {
-            const drop = entity.equipment[slot];
-            if (drop === undefined) continue;
-
-            const item = itemOfDrop(drop, content);
-            if (item !== null) worn[slot] = item;
-        }
+        const worn = viewableEquipmentOf(entity.equipment, content);
 
         if (sameEquipmentItems(body.getEquipment(), worn)) return;
 

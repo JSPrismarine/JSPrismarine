@@ -17,6 +17,8 @@ import { DamageSource } from './DamageSource';
 import EntityDamageEvent from '../events/entity/EntityDamageEvent';
 import EntityDeathEvent from '../events/entity/EntityDeathEvent';
 import { advancementDamage, advancementKill } from '../advancement/triggers';
+import { knockbackOf, SINGLE_DAMPING } from './knockback';
+import { wornArmorOf } from './equipment';
 import { enchantmentProtection } from '../enchantment/mitigation';
 import type { EntityBox } from './data/facts';
 import { boxOf } from './data/facts';
@@ -70,22 +72,6 @@ const DEFAULT_MAX_HEALTH = 20;
  */
 const INVULNERABILITY_TICKS = 10;
 
-/** The shove a plain hit gives, before sprint or enchantments add to it. */
-const BASE_KNOCKBACK = 0.4;
-
-/** What each level of sprint-or-Knockback adds on top. */
-const KNOCKBACK_PER_LEVEL = 0.5;
-
-/**
- * How much of what an entity was already doing survives a shove.
- *
- * Vanilla halves the existing horizontal motion for each `knockback` call it makes - one for a
- * plain hit, two for a sprint hit, since the attack adds its own on top of the one being hurt
- * already gave. Two halvings leave a quarter, which is why a sprint hit both throws harder *and*
- * cancels more of the run the target was making.
- */
-const SINGLE_DAMPING = 0.5;
-const COMPOUND_DAMPING = 0.25;
 
 /**
  * An entity class that can be built from a position and nothing else.
@@ -933,34 +919,14 @@ export class Entity {
         const origin = source.getKnockbackOrigin();
         if (!origin) return;
 
-        const resistance = Math.min(1, Math.max(0, this.attributes.getValue(AttributeIds.KnockbackResistence)));
-        const base = BASE_KNOCKBACK * (1 - resistance);
-        const bonus = source.knockbackLevels * KNOCKBACK_PER_LEVEL * (1 - resistance);
-
-        // Vanilla shoves *twice* for a sprint hit and once for a plain one, and each shove halves
-        // whatever the last one left before adding its own. One combined impulse of `0.4 + 0.5`
-        // is not the same thing and is noticeably stronger - it sent a sheep half again as far as
-        // vanilla does. Composed here rather than issued as two calls because a player is *sent*
-        // their knockback, and two packets in one tick would only overwrite each other.
-        const strength = bonus > 0 ? base / 2 + bonus : base;
-        const damping = bonus > 0 ? COMPOUND_DAMPING : SINGLE_DAMPING;
-        if (strength <= 0) return;
-
-        let dx = this.position.getX() - origin.getX();
-        let dz = this.position.getZ() - origin.getZ();
-        let distance = Math.hypot(dx, dz);
-
-        if (distance < Number.EPSILON) {
-            // Standing exactly inside whatever hit it. Any direction will do so long as it is
-            // the same one each time, or the shove would jitter - the runtime id gives that
-            // for free.
-            const angle = (Number(this.runtimeId % 8n) / 8) * Math.PI * 2;
-            dx = Math.cos(angle);
-            dz = Math.sin(angle);
-            distance = 1;
-        }
-
-        this.applyKnockback(dx / distance, dz / distance, strength, damping);
+        const shove = knockbackOf({
+            target: { x: this.position.getX(), z: this.position.getZ() },
+            origin: { x: origin.getX(), z: origin.getZ() },
+            resistance: this.attributes.getValue(AttributeIds.KnockbackResistence),
+            levels: source.knockbackLevels,
+            tieBreak: Number(this.runtimeId % 8n)
+        });
+        if (shove !== undefined) this.applyKnockback(shove.directionX, shove.directionZ, shove.strength, shove.damping);
     }
 
     /**
@@ -988,26 +954,12 @@ export class Entity {
 
     /** Armor points worn by this actor. */
     public getArmorDefensePoints(): number {
-        const equipment = this.getEquipment();
-        return (
-            (equipment.head?.getArmorDefensePoints() ?? 0) +
-            (equipment.chest?.getArmorDefensePoints() ?? 0) +
-            (equipment.legs?.getArmorDefensePoints() ?? 0) +
-            (equipment.feet?.getArmorDefensePoints() ?? 0) +
-            (equipment.body?.getArmorDefensePoints() ?? 0)
-        );
+        return wornArmorOf(this.getEquipment()).defensePoints;
     }
 
     /** Armor toughness worn, which softens what a hard blow does to that armor. */
     public getArmorToughness(): number {
-        const equipment = this.getEquipment();
-        return (
-            (equipment.head?.getArmorToughness() ?? 0) +
-            (equipment.chest?.getArmorToughness() ?? 0) +
-            (equipment.legs?.getArmorToughness() ?? 0) +
-            (equipment.feet?.getArmorToughness() ?? 0) +
-            (equipment.body?.getArmorToughness() ?? 0)
-        );
+        return wornArmorOf(this.getEquipment()).toughness;
     }
 
     /**

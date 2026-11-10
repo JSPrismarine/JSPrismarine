@@ -48,6 +48,7 @@ import type { ContentItemDrop } from '../content/world/adapter';
 import type { ServerContent } from '../content/ServerContent';
 import type { Item } from '../item/Item';
 import type { ViewableEquipment } from './predicateView';
+import { itemOfDrop } from '../inventory/persistence';
 
 /**
  * The slots a mob's equipment reaches a client in.
@@ -255,4 +256,31 @@ const sameEnchantments = (
     const ours = Object.entries(left ?? {});
 
     return ours.length === Object.keys(right ?? {}).length && ours.every(([id, level]) => right?.[id] === level);
+};
+
+/** The armor points and toughness a set of worn items gives, summed over the five armor slots. */
+export const wornArmorOf = (equipment: ViewableEquipment): { readonly defensePoints: number; readonly toughness: number } => {
+    let defensePoints = 0;
+    let toughness = 0;
+    for (const item of [equipment.head, equipment.chest, equipment.legs, equipment.feet, equipment.body]) {
+        defensePoints += item?.getArmorDefensePoints() ?? 0;
+        toughness += item?.getArmorToughness() ?? 0;
+    }
+    return { defensePoints, toughness };
+};
+
+/**
+ * A mob's equipment as server items, which is the form the armor and enchantment rules and a
+ * client's equipment packets read. A slot whose drop names no known item is left empty.
+ */
+export const viewableEquipmentOf = (equipment: MobEquipmentSet, content: ServerContent): ViewableEquipment => {
+    const worn: ViewableEquipment = {};
+    for (const slot of MOB_EQUIPMENT_SLOTS) {
+        const drop = equipment[slot];
+        if (drop === undefined) continue;
+
+        const item = itemOfDrop(drop, content);
+        if (item !== null) worn[slot] = item;
+    }
+    return worn;
 };

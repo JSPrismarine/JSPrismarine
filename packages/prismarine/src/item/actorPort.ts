@@ -504,8 +504,12 @@ export const createItemActorPort = (options: ItemActorPortOptions): ServerItemAc
                 const entity = entityOf(action.target);
                 if (entity === null) return;
 
+                const source = DamageSource.of(causeOf(action.damageType));
+                // A data-driven entity takes the blow through the entity store's damage pipeline.
+                if (entity.getWorld().dataEntities().damageEntity(entity, action.amount, source, 'item') !== undefined)
+                    return;
                 void entity
-                    .damage(action.amount, DamageSource.of(causeOf(action.damageType)))
+                    .damage(action.amount, source)
                     .catch((error: unknown) => world()?.getServer().getLogger().error(error));
                 return;
             }

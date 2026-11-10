@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 
 import { LevelEvent, LevelSoundEvent } from '@jsprismarine/minecraft';
 import { Vector3 } from '@jsprismarine/math';
-import { testEntityServer } from '../testing/entityServer';
+import { inertEntityRuntime, testEntityServer } from '../testing/entityServer';
 import { Item } from '../item/Item';
 import { Position } from '../world/Position';
 import { canHarm, CREATIVE_REACH, distanceToBody, meleeAttack, SURVIVAL_REACH } from './Combat';
@@ -40,7 +40,8 @@ const scene = ({ pvp = true } = {}) => {
         broadcastMove: async () => {},
         getGameRuleManager: () => ({ getGameRule: () => [pvp, true] }),
         getLoadedChunk: () => null,
-        getEntityIndex: () => ({ legacyWithin: () => [] })
+        getEntityIndex: () => ({ legacyWithin: () => [] }),
+        dataEntities: () => inertEntityRuntime()
     };
 
     /**

@@ -66,7 +66,10 @@ export const inertEntityRuntime = (): LiveEntityRuntime =>
         persist: () => {},
         savedRecords: () => new Map(),
         restore: () => undefined,
-        restoreExisting: () => undefined
+        restoreExisting: () => undefined,
+        // Holds no data-driven entity, so every blow stays with the caller's own entity.
+        damageEntity: () => undefined,
+        killEntity: () => undefined
     });
 
 /** What a test says about the server behind its world. */

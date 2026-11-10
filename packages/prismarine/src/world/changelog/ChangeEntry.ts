@@ -129,6 +129,11 @@ export interface OccurrenceKinds {
     }>;
     /** An entity's emote. */
     emote: OccurrenceShape<{ readonly entity: EntityId; readonly emote: string }>;
+    /**
+     * A staged action that a guard vetoed, which is all the log holds of it
+     * ([ADR 0013](../../../../../docs/adr/0013-vetoable-actions-are-staged.md)).
+     */
+    'action-rejected': OccurrenceShape<{ readonly action: string; readonly entity: EntityId; readonly guard: string }>;
 }
 
 /** The name of an occurrence kind. */
