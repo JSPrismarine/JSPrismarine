@@ -133,7 +133,7 @@ describe('the goals against the real goal world', () => {
 
     carrier.target = mate.id;
     carrier.body.owner = 900;
-    carrier.body.inventory.push('minecraft:wheat');
+    carrier.body.setInventory([...carrier.body.inventory, 'minecraft:wheat']);
     fixture.runtime.hurt(carrier, mate.id, 'entity_attack', 1);
     fixture.runtime.knockback(
         mate.body,

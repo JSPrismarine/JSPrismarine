@@ -129,7 +129,25 @@ import type { ContentItemEntity, EntityHostFacts, EntityWorldFacts } from './hos
 import { navigationViewOf } from './navigationView';
 import type { CachedNavigationView } from './navigationView';
 import type { DataEntityRecord } from './persistence';
-import { applyDataEntityRecord } from './persistence';
+import { applyDataEntityRecord, dataEntityRecordFrom, dataEntityRecordOf } from './persistence';
+import { EntityStore } from './EntityStore';
+import {
+    attributeIn,
+    attributeNamed,
+    bodyFieldValue,
+    componentStateIn,
+    equipmentInventorySlotsIn,
+    identityIn,
+    isBodyField,
+    linkIn,
+    LoggedFieldError,
+    propertyIn,
+    statusEffectsIn,
+    stringsIn
+} from './entityFields';
+import type { StateEntry } from '../../world/changelog/ChangeEntry';
+import type { PlainData, PlainRecord } from '../../world/changelog/PlainData';
+import { isPlainRecord, plainOf } from '../../world/changelog/PlainData';
 import type { EntityItemInteraction } from './itemInteraction';
 import { JAVA_POI_TYPES, PointsOfInterest } from './poi';
 import { RideIndex } from './riding';
@@ -391,7 +409,11 @@ export class EntityRuntime implements EntityScene {
     private playerSnapshot: readonly ContentEntity[] | undefined;
     private playersById: ReadonlyMap<number, ContentEntity> | undefined;
 
-    private readonly entities = new Map<number, DataEntity>();
+    /**
+     * The entity store: membership of this dimension's data-driven entities and the change log
+     * of their state. See {@link EntityStore}.
+     */
+    public readonly store: EntityStore;
     /** Lethal hits waiting for their queued `minecraft:on_death` events to apply. */
     private readonly pendingDeaths = new Set<number>();
     /**
@@ -558,6 +580,13 @@ export class EntityRuntime implements EntityScene {
                 this.nextId += 1;
                 return id;
             });
+        this.store = new EntityStore((message) => this.report(message));
+        this.store.addInverseWriter((inverse) => this.writeInverse(inverse));
+        this.rides.onChange = (rider, before, after) => {
+            const entity = this.store.get(rider);
+            if (entity !== undefined) this.store.written(entity, 'vehicle', before, after);
+            else this.store.writtenLegacy(rider, 'vehicle', before, after);
+        };
     }
 
     /** The built content. */
@@ -577,12 +606,12 @@ export class EntityRuntime implements EntityScene {
 
     /** Every live entity, in spawn order. */
     public all(): readonly DataEntity[] {
-        return [...this.entities.values()];
+        return [...this.store.values()];
     }
 
     /** One live entity by its runtime id, or undefined when this index holds no such entity. */
     public byId(id: number): DataEntity | undefined {
-        return this.entities.get(id);
+        return this.store.get(id);
     }
 
     /**
@@ -673,7 +702,7 @@ export class EntityRuntime implements EntityScene {
     /** How many live entities count against one population pool's cap. */
     public poolCount(pool: string): number {
         let count = 0;
-        for (const [id, name] of this.pools) if (name === pool && this.entities.has(id)) count += 1;
+        for (const [id, name] of this.pools) if (name === pool && this.store.has(id)) count += 1;
         return count;
     }
 
@@ -706,6 +735,8 @@ export class EntityRuntime implements EntityScene {
         // would leave the client a frame of an empty-handed skeleton.
         this.watchEquipment(entity);
         this.equip(entity);
+        // Everything up to here built the entity, so it enters the log with the form it has now.
+        this.store.enter(entity, this.savedFormOf(entity));
         // After the spawn event, so the body a client is sent already carries whatever the
         // event added: a baby is born a baby rather than growing into one on the next tick.
         this.onSpawn(entity);
@@ -722,10 +753,12 @@ export class EntityRuntime implements EntityScene {
      *
      * @param at - Where the saved body stood, which the record does not carry
      *   because the actor compound already does.
+     * @param id - The runtime id to give it, which only undoing a removal passes; a restore from
+     *   a save draws a new one.
      * @returns The entity, or undefined when no loaded pack declares its type,
      *   in which case the caller restores the saved body the way it always did.
      */
-    public restore(record: DataEntityRecord, at: EntityPosition): DataEntity | undefined {
+    public restore(record: DataEntityRecord, at: EntityPosition, id?: number): DataEntity | undefined {
         const entity = this.create(
             record.identifier,
             at,
@@ -736,7 +769,8 @@ export class EntityRuntime implements EntityScene {
                 data: record.spawnData
             },
             record.persistentIdentity,
-            true
+            true,
+            id
         );
         if (entity === undefined) return undefined;
         if (!this.hasValidFallingBlockData(entity)) {
@@ -747,15 +781,169 @@ export class EntityRuntime implements EntityScene {
         applyDataEntityRecord(entity, record);
         if (record.merchant !== undefined) this.merchantSnapshots.set(entity.id, record.merchant);
         this.watchEquipment(entity);
-        if (record.leashHolderIdentity !== undefined) this.leashHolders.set(entity.id, record.leashHolderIdentity);
+        if (record.leashHolderIdentity !== undefined) this.setLeashHolder(entity.id, record.leashHolderIdentity);
         if (entity.instance.hasComponent('minecraft:projectile')) {
             this.projectiles.set(entity.id, { hitEntities: new Set() });
         }
         entity.body.containerCapacity = this.containerCapacityOf(entity.instance);
         this.syncGameEventListener(entity);
         this.startFuse(entity);
+        this.store.enter(entity, this.savedFormOf(entity));
         this.onSpawn(entity);
         return entity;
+    }
+
+    /**
+     * The saved form of one live entity, as a change log membership entry carries it: the
+     * persistence record and what the actor compound holds beside it, which is also what a
+     * client is sent when it first sees the entity.
+     *
+     * @returns Plain data with the runtime id, the position, the velocity, the record as it would
+     *   be written, the tags, the status effects and the vehicle it rides.
+     */
+    public savedFormOf(entity: DataEntity): PlainRecord {
+        const { body } = entity;
+        const record = dataEntityRecordOf(
+            entity,
+            this.pools.get(entity.id),
+            this.leashHolders.get(entity.id),
+            this.merchantSnapshotOf(entity)
+        );
+        // The JSON round trip is the one the save makes, so the form holds what a save holds.
+        const written = plainOf(JSON.parse(JSON.stringify(record)));
+        if (written === undefined || !isPlainRecord(written))
+            throw new LoggedFieldError(`${entity.identifier} ${entity.id} has no plain record`);
+        return {
+            id: entity.id,
+            position: { x: body.position.x, y: body.position.y, z: body.position.z },
+            velocity: { x: body.velocity.x, y: body.velocity.y, z: body.velocity.z },
+            record: written,
+            tags: [...body.tags],
+            statusEffects: [...body.statusEffects.values()].map((effect) => ({ ...effect })),
+            vehicle: this.rides.vehicleOf(entity.id) ?? null
+        };
+    }
+
+    /**
+     * Adds an entity back from the saved form a membership entry carries, with the runtime id it
+     * had. This is the inverse of a removal.
+     */
+    private reenter(saved: PlainRecord): void {
+        const { id, position, velocity, record, tags, statusEffects, vehicle } = saved;
+        const restored = record === undefined ? undefined : dataEntityRecordFrom(record);
+        const at = bodyFieldValue('position', position ?? null);
+        if (typeof id !== 'number' || restored === undefined)
+            throw new LoggedFieldError('a membership entry carries no record to add the entity back from');
+        const entity = this.restore(restored, at, id);
+        if (entity === undefined) throw new LoggedFieldError(`${restored.identifier} ${id} could not be added back`);
+        entity.body.restore('velocity', bodyFieldValue('velocity', velocity ?? null));
+        entity.body.tags.replace(stringsIn('tags', tags ?? []));
+        entity.body.statusEffects.replace(statusEffectsIn(statusEffects ?? []).map((effect) => [effect.id, effect]));
+        const ridden = linkIn('vehicle', vehicle ?? null);
+        if (ridden !== undefined) this.rides.mount(id, ridden);
+    }
+
+    /**
+     * Writes one inverse entry back without logging it, for {@link EntityStore}'s undo.
+     *
+     * @returns Whether the entry addresses an entity this runtime holds or a link it keeps.
+     */
+    private writeInverse(inverse: StateEntry): boolean {
+        if (inverse.kind === 'membership') {
+            const id = Number(inverse.entity);
+            if (inverse.change === 'leave') {
+                if (!this.store.has(id)) return false;
+                this.remove(id, 'undone');
+            } else this.reenter(inverse.saved);
+            return true;
+        }
+        if (inverse.field !== 'entity') return false;
+        const id = Number(inverse.address.entity);
+        const { field } = inverse.address;
+        if (field === 'vehicle') {
+            const vehicle = linkIn(field, inverse.after);
+            if (vehicle === undefined) this.rides.dismount(id);
+            else this.rides.mount(id, vehicle);
+            return true;
+        }
+        const entity = this.store.get(id);
+        if (entity === undefined) return false;
+        this.writeField(entity, field, inverse.after);
+        return true;
+    }
+
+    /** Writes one logged field of a data entity back, without running its setter's side effects. */
+    private writeField(entity: DataEntity, field: string, value: PlainData): void {
+        const { body, instance } = entity;
+        if (isBodyField(field)) {
+            body.restore(field, bodyFieldValue(field, value));
+            return;
+        }
+        const separator = field.indexOf(':');
+        const kind = separator === -1 ? field : field.slice(0, separator);
+        const name = field.slice(separator + 1);
+        switch (kind) {
+            case 'tags':
+                body.tags.replace(stringsIn(field, value));
+                return;
+            case 'statusEffects':
+                body.statusEffects.replace(statusEffectsIn(value).map((effect) => [effect.id, effect]));
+                return;
+            case 'equipmentInventorySlots':
+                body.equipmentInventorySlots.replace(equipmentInventorySlotsIn(value));
+                return;
+            case 'attribute':
+                instance.attributes.restore(attributeNamed(name), attributeIn(value));
+                return;
+            case 'property':
+                instance.properties.set(name, propertyIn(value));
+                return;
+            case 'component':
+                instance.componentState.write(name, componentStateIn(value));
+                return;
+            case 'groups': {
+                // The rebuild initializes the components that come back. Everything the groups
+                // change wrote was logged before it and is undone next, and everything it did not
+                // write is put back from here, so the attributes and state end up exact.
+                const attributes = instance.attributes
+                    .names()
+                    .map((attribute) => [attribute, instance.attributes.get(attribute)] as const);
+                const states = [...instance.componentState.entries()];
+                instance.restoreComponentGroups(stringsIn(field, value));
+                for (const attribute of instance.attributes.names())
+                    if (!attributes.some(([kept]) => kept === attribute)) instance.attributes.restore(attribute, null);
+                for (const [attribute, kept] of attributes) instance.attributes.restore(attribute, kept ?? null);
+                for (const [component] of [...instance.componentState.entries()])
+                    if (!states.some(([kept]) => kept === component)) instance.componentState.write(component, null);
+                for (const [component, state] of states) instance.componentState.write(component, state);
+                this.index.refreshBox(entity);
+                this.index.refreshFamilies(entity);
+                return;
+            }
+            case 'leash': {
+                const holder = identityIn(field, value);
+                if (holder === undefined) this.leashHolders.delete(entity.id);
+                else this.leashHolders.set(entity.id, holder);
+                return;
+            }
+        }
+        throw new LoggedFieldError(`no writer for ${field}`);
+    }
+
+    /** Points a leashed entity's lead at a holder, or cuts it, and logs the change. */
+    private setLeashHolder(id: number, holder: string | undefined): void {
+        const before = this.leashHolders.get(id);
+        if (before === holder) return;
+        if (holder === undefined) this.leashHolders.delete(id);
+        else this.leashHolders.set(id, holder);
+        const entity = this.store.get(id);
+        if (entity !== undefined) this.store.written(entity, 'leash', before, holder);
+    }
+
+    /** Logs a write that the entities package reported for an instance, once it belongs to an entity. */
+    private instanceWritten(instance: EntityInstance, field: string, before: unknown, after: unknown): void {
+        const entity = this.byInstance.get(instance);
+        if (entity !== undefined) this.store.written(entity, field, before, after);
     }
 
     /** The population pool one entity's spawn counted against, if any. */
@@ -786,7 +974,8 @@ export class EntityRuntime implements EntityScene {
         at: EntityPosition,
         options: SpawnOptions,
         persistentIdentity?: string,
-        restoring = false
+        restoring = false,
+        fixedId?: number
     ): DataEntity | undefined {
         const content = this.content();
         const registry = content.entities.registry;
@@ -800,7 +989,7 @@ export class EntityRuntime implements EntityScene {
         if (facts === undefined) return undefined;
         const brainMob = brainMobFor(content.entities.brains, reference);
 
-        const id = this.drawId();
+        const id = fixedId ?? this.drawId();
 
         // The body comes first: a goal component builds its support while the instance is being
         // constructed, and that reads the actuator straight away.
@@ -856,7 +1045,7 @@ export class EntityRuntime implements EntityScene {
                         const inventorySlot = body.equipmentInventorySlots.get(equipmentSlot);
                         body.setEquipment(withoutEquipmentSlot(body.equipment, equipmentSlot));
                         if (inventorySlot !== undefined) {
-                            body.containerSlots[inventorySlot] = undefined;
+                            body.setContainerSlot(inventorySlot, undefined);
                             body.equipmentInventorySlots.delete(equipmentSlot);
                         }
                         this.host.drop(blockPositionOf(body.position), item);
@@ -878,6 +1067,14 @@ export class EntityRuntime implements EntityScene {
                     const current = this.byInstance.get(changed);
                     if (current !== undefined) this.index.refreshBox(current);
                 },
+                componentStateWritten: (changed, write) =>
+                    this.instanceWritten(changed, `component:${write.component}`, write.before, write.after),
+                attributeWritten: (changed, write) =>
+                    this.instanceWritten(changed, `attribute:${write.name}`, write.before, write.after),
+                propertyWritten: (changed, write) =>
+                    this.instanceWritten(changed, `property:${write.name}`, write.before, write.after),
+                componentGroupsWritten: (changed, write) =>
+                    this.instanceWritten(changed, 'groups', write.before, write.after),
                 entitySensorCandidates: (_entity, query) => this.entitySensorCandidates(body, query),
                 random: {
                     next: () => this.world.random.nextFloat(),
@@ -920,7 +1117,8 @@ export class EntityRuntime implements EntityScene {
             ...(persistentIdentity === undefined ? {} : { persistentIdentity })
         });
         entityForBarter = entity;
-        this.entities.set(id, entity);
+        body.onWrite = (field, before, after) => this.store.written(entity, field, before, after);
+        this.store.admit(entity);
         this.byPersistentIdentity.set(entity.persistentIdentity, entity);
         this.byInstance.set(instance, entity);
         // After the index, and with the hook set last: everything a component did while the
@@ -966,7 +1164,7 @@ export class EntityRuntime implements EntityScene {
                     event: request.event
                 });
                 if (child === undefined) continue;
-                if (request.shouldLeash) this.leashHolders.set(child.id, parent.persistentIdentity);
+                if (request.shouldLeash) this.setLeashHolder(child.id, parent.persistentIdentity);
                 spawned = true;
             }
 
@@ -979,10 +1177,11 @@ export class EntityRuntime implements EntityScene {
 
     /** Takes an entity out of the world. */
     public remove(id: number, reason: string): void {
-        const entity = this.entities.get(id);
+        const entity = this.store.get(id);
         if (entity === undefined) return;
+        const saved = this.store.tickOpen && this.store.hasEntered(entity) ? this.savedFormOf(entity) : undefined;
         entity.removed = reason;
-        this.entities.delete(id);
+        this.store.detach(entity);
         this.byPersistentIdentity.delete(entity.persistentIdentity);
         if (this.trackedIdentities.has(entity.persistentIdentity)) {
             // A chunk unload saves the entity, it does not end it; only another removal does.
@@ -1013,10 +1212,11 @@ export class EntityRuntime implements EntityScene {
         this.leashHolders.delete(id);
         if (reason !== 'chunk unload') {
             for (const [leashedId, holderIdentity] of this.leashHolders) {
-                if (holderIdentity === entity.persistentIdentity) this.leashHolders.delete(leashedId);
+                if (holderIdentity === entity.persistentIdentity) this.setLeashHolder(leashedId, undefined);
             }
         }
         this.onRemove(entity, reason);
+        if (saved !== undefined) this.store.recordLeave(id, saved);
     }
 
     /**
@@ -1031,11 +1231,11 @@ export class EntityRuntime implements EntityScene {
      * @returns Whether the target accepted the leash.
      */
     public attachLead(holderId: number, targetId: number): boolean {
-        const target = this.entities.get(targetId);
+        const target = this.store.get(targetId);
         if (target === undefined || holderId === targetId || !target.instance.hasComponent('minecraft:leashable'))
             return false;
 
-        const holderEntity = this.entities.get(holderId);
+        const holderEntity = this.store.get(holderId);
         const playerIdentity = holderEntity === undefined ? this.host.playerIdentityOf?.(holderId) : undefined;
         const holderIdentity =
             holderEntity?.persistentIdentity ??
@@ -1049,7 +1249,7 @@ export class EntityRuntime implements EntityScene {
             if (!isRecord(leashable) || leashable.can_be_stolen !== true) return false;
         }
 
-        this.leashHolders.set(targetId, holderIdentity);
+        this.setLeashHolder(targetId, holderIdentity);
         this.raiseLeashEvent(target, 'on_leash');
         return true;
     }
@@ -1060,7 +1260,7 @@ export class EntityRuntime implements EntityScene {
         const leashable = target.instance.componentParams('minecraft:leashable');
 
         if (this.leashHolders.has(target.id) && isRecord(leashable) && leashable.can_be_cut !== false) {
-            this.leashHolders.delete(target.id);
+            this.setLeashHolder(target.id, undefined);
             this.raiseLeashEvent(target, 'on_unleash');
             cut = true;
         }
@@ -1070,13 +1270,13 @@ export class EntityRuntime implements EntityScene {
 
         for (const [leashedId, holderIdentity] of this.leashHolders) {
             if (holderIdentity !== target.persistentIdentity) continue;
-            const leashed = this.entities.get(leashedId);
+            const leashed = this.store.get(leashedId);
             if (leashed === undefined) continue;
 
             const component = leashed.instance.componentParams('minecraft:leashable');
             if (!isRecord(component) || component.can_be_cut === false) continue;
 
-            this.leashHolders.delete(leashedId);
+            this.setLeashHolder(leashedId, undefined);
             this.raiseLeashEvent(leashed, 'on_unleash');
             cut = true;
         }
@@ -1500,7 +1700,7 @@ export class EntityRuntime implements EntityScene {
 
     /** One entity or player, by runtime id, as a goal sees it. */
     public mobById(id: number): GoalMob | undefined {
-        const entity = this.entities.get(id);
+        const entity = this.store.get(id);
         if (entity !== undefined) return goalMobOf(entity, this);
 
         const player = this.host.playerById(id);
@@ -1639,14 +1839,14 @@ export class EntityRuntime implements EntityScene {
         if (typeof target.id !== 'number') return;
         const damage = attacker.facts.attackDamage;
 
-        const other = this.entities.get(target.id);
+        const other = this.store.get(target.id);
         const hurtPlayer = this.host.hurt;
         if (other === undefined && hurtPlayer === undefined) {
             this.report(`${attacker.identifier} hit entity ${target.id}, which nothing routes damage to`);
             return;
         }
 
-        const attackerEntity = this.entities.get(attacker.id);
+        const attackerEntity = this.store.get(attacker.id);
         const targetView = target.view();
         if (attackerEntity !== undefined) {
             if (!canEntityAttackView(attackerEntity.instance, targetView)) return;
@@ -1780,7 +1980,7 @@ export class EntityRuntime implements EntityScene {
         if (typeof targetId !== 'number') return false;
 
         if (this.host.removeStatusEffect?.(targetId, identifier)) return true;
-        const recipient = this.entities.get(targetId);
+        const recipient = this.store.get(targetId);
         if (recipient !== undefined)
             return removeStatusEffectFromMap(recipient.body.statusEffects, identifier) !== undefined;
         const spawning = this.spawning;
@@ -1795,7 +1995,7 @@ export class EntityRuntime implements EntityScene {
         targetId: number,
         effect: EntityStatusEffect | StatusEffectInput
     ): boolean {
-        const recipient = this.entities.get(targetId);
+        const recipient = this.store.get(targetId);
         if (recipient !== undefined && !acceptsStatusEffect(recipient.instance, effect.id)) return false;
 
         const spawning = this.spawning;
@@ -1836,7 +2036,7 @@ export class EntityRuntime implements EntityScene {
         if (entity.instance.attributes.get('health') === undefined) return false;
 
         if (sourceId !== undefined && ['entity_attack', 'entity_explosion', 'projectile'].includes(cause)) {
-            const attacker = this.entities.get(sourceId);
+            const attacker = this.store.get(sourceId);
             if (attacker !== undefined && !canEntityAttack(attacker.instance, entity.instance)) return false;
         }
 
@@ -1895,7 +2095,7 @@ export class EntityRuntime implements EntityScene {
 
     /** Notifies combat-regeneration components watching the target that just died. */
     private notifyAttackTargetKilled(target: DataEntity, killer: FilterEntityView): void {
-        for (const observer of this.entities.values()) {
+        for (const observer of this.store.values()) {
             if (observer.target === target.id) observer.instance.notifyAttackTargetKilled(killer);
         }
     }
@@ -2003,7 +2203,7 @@ export class EntityRuntime implements EntityScene {
 
     /** Knocks a mob away from the entity, scaled by what the target resists. */
     public knockback(source: MobBody, target: GoalMob, horizontal: number, vertical: number): void {
-        const other = typeof target.id === 'number' ? this.entities.get(target.id) : undefined;
+        const other = typeof target.id === 'number' ? this.store.get(target.id) : undefined;
         if (other === undefined) return;
 
         const resisted = 1 - other.facts.knockbackResistance;
@@ -2111,7 +2311,7 @@ export class EntityRuntime implements EntityScene {
      * about the damage.
      */
     public explode(source: MobBody): void {
-        const self = this.entities.get(source.id);
+        const self = this.store.get(source.id);
         if (self === undefined) return;
 
         const isTnt = self.instance.families().includes('tnt');
@@ -2176,7 +2376,7 @@ export class EntityRuntime implements EntityScene {
     /** Puts an entity on a mob as a rider, if the mob has a seat free for it. */
     public mount(rider: MobBody, vehicle: GoalMob): void {
         if (typeof vehicle.id !== 'number') return;
-        const mount = this.entities.get(vehicle.id);
+        const mount = this.store.get(vehicle.id);
         if (mount === undefined) return;
         if (this.rides.ridersOf(mount.id).length >= seatCountOf(mount)) return;
         this.rides.mount(rider.id, mount.id);
@@ -2254,7 +2454,7 @@ export class EntityRuntime implements EntityScene {
         if (typeof item.id !== 'number') return;
         const taken = this.host.takeItem?.(item.id, count);
         if (taken === undefined) return;
-        const entity = this.entities.get(taker.id);
+        const entity = this.store.get(taker.id);
         const piglinStarted =
             entity !== undefined &&
             (options?.admire === true || options?.barter === true) &&
@@ -2272,8 +2472,10 @@ export class EntityRuntime implements EntityScene {
             options?.storedInInventory === true &&
             this.storePickedUpItem(taker, taken);
         if (storedInInventory) return;
+        const carried = [...taker.inventory];
         for (let index = piglinStarted || carriedForConsumption ? 1 : equippedCount; index < taken.count; index += 1)
-            taker.inventory.push(taken.identifier);
+            carried.push(taken.identifier);
+        taker.setInventory(carried);
     }
 
     /** Equips one picked-up item in its declared slot when that slot is empty. */
@@ -2293,7 +2495,7 @@ export class EntityRuntime implements EntityScene {
     private storePickedUpItem(taker: MobBody, item: ContentItemDrop): boolean {
         for (let index = 0; index < taker.containerCapacity; index += 1) {
             if (taker.containerSlots[index] !== undefined) continue;
-            taker.containerSlots[index] = item;
+            taker.setContainerSlot(index, item);
             return true;
         }
         return false;
@@ -2384,7 +2586,7 @@ export class EntityRuntime implements EntityScene {
 
         if (this.takeHeldItems(giver, craft.inputIdentifier, craft.inputCount) !== craft.inputCount) return;
         for (let index = craft.outputCount; index < craft.craftedCount; index += 1)
-            giver.inventory.push(craft.outputIdentifier);
+            giver.setInventory([...giver.inventory, craft.outputIdentifier]);
         this.deliverItem(taker, craft.outputIdentifier, craft.outputCount);
     }
 
@@ -2413,18 +2615,20 @@ export class EntityRuntime implements EntityScene {
     /** Removes up to `count` items from an entity's flat inventory and declared slots. */
     private takeHeldItems(entity: MobBody, identifier: string, count: number): number {
         let remaining = count;
+        const carried = [...entity.inventory];
         while (remaining > 0) {
-            const held = entity.inventory.indexOf(identifier);
+            const held = carried.indexOf(identifier);
             if (held === -1) break;
-            entity.inventory.splice(held, 1);
+            carried.splice(held, 1);
             remaining -= 1;
         }
+        entity.setInventory(carried);
 
         for (let index = 0; index < entity.containerSlots.length && remaining > 0; index += 1) {
             const item = entity.containerSlots[index];
             if (item === undefined || item.identifier !== identifier) continue;
             const taken = Math.min(item.count, remaining);
-            entity.containerSlots[index] = taken === item.count ? undefined : { ...item, count: item.count - taken };
+            entity.setContainerSlot(index, taken === item.count ? undefined : { ...item, count: item.count - taken });
             remaining -= taken;
         }
         return count - remaining;
@@ -2432,12 +2636,12 @@ export class EntityRuntime implements EntityScene {
 
     /** Gives one item stack to a runtime entity or drops it at a player. */
     private deliverItem(taker: GoalMob, identifier: string, count: number): void {
-        const other = typeof taker.id === 'number' ? this.entities.get(taker.id) : undefined;
+        const other = typeof taker.id === 'number' ? this.store.get(taker.id) : undefined;
         if (other === undefined) {
             this.host.drop(blockPositionOf(taker.position()), { identifier, count });
             return;
         }
-        for (let index = 0; index < count; index += 1) other.body.inventory.push(identifier);
+        other.body.setInventory([...other.body.inventory, ...Array.from({ length: count }, () => identifier)]);
     }
 
     /**
@@ -2478,7 +2682,7 @@ export class EntityRuntime implements EntityScene {
         const source =
             sourceId === undefined
                 ? undefined
-                : (this.entities.get(sourceId)?.instance.filterContext().self ??
+                : (this.store.get(sourceId)?.instance.filterContext().self ??
                   this.host.playerView?.(sourceId) ??
                   this.mobById(sourceId)?.view());
         const event: EntityBlockBreakEvent = {
@@ -2501,7 +2705,7 @@ export class EntityRuntime implements EntityScene {
      */
     public openTrade(trader: MobBody, player: GoalMob): void {
         if (typeof player.id !== 'number') return;
-        const entity = this.entities.get(trader.id);
+        const entity = this.store.get(trader.id);
         if (entity === undefined) return;
         if (this.merchant(entity) === undefined) {
             this.report(`${trader.identifier} was asked to trade, and it carries no trade table`);
@@ -2517,7 +2721,7 @@ export class EntityRuntime implements EntityScene {
      * trading and has offers. A baby only shakes its head, so it does not open a screen.
      */
     public beginTrade(id: number, playerId: number): boolean {
-        const entity = this.entities.get(id);
+        const entity = this.store.get(id);
         if (entity === undefined || entity.removed !== undefined) return false;
         if (entity.body.tradingPlayer !== undefined || entity.body.sleeping) return false;
         if (entity.instance.hasComponent('minecraft:is_baby')) return false;
@@ -2534,7 +2738,7 @@ export class EntityRuntime implements EntityScene {
      *   within 16 blocks of it, which is the `nearby_cured_discount` count.
      */
     public curedFacts(id: number, playerId: number): { curedByPlayer: boolean; nearbyCured: number } {
-        const entity = this.entities.get(id);
+        const entity = this.store.get(id);
         if (entity === undefined) return { curedByPlayer: false, nearbyCured: 0 };
 
         const identity = this.host.playerIdentityOf?.(playerId);
@@ -2549,14 +2753,14 @@ export class EntityRuntime implements EntityScene {
 
     /** Frees a trader once its player has left the screen, if that player is still the one it trades with. */
     public endTrade(id: number, playerId: number): void {
-        const entity = this.entities.get(id);
+        const entity = this.store.get(id);
         if (entity !== undefined && entity.body.tradingPlayer === playerId) entity.body.tradingPlayer = undefined;
     }
 
     /** Whether two entities may breed with each other now. */
     public canBreedWith(parent: MobBody, mate: GoalMob): boolean {
-        const self = this.entities.get(parent.id);
-        const other = typeof mate.id === 'number' ? this.entities.get(mate.id) : undefined;
+        const self = this.store.get(parent.id);
+        const other = typeof mate.id === 'number' ? this.store.get(mate.id) : undefined;
         if (self === undefined || other === undefined) return false;
         return canBreed(self, other);
     }
@@ -2569,8 +2773,8 @@ export class EntityRuntime implements EntityScene {
      * parents spend their love and start their cooldown.
      */
     public breedWith(parent: MobBody, mate: GoalMob): void {
-        const self = this.entities.get(parent.id);
-        const other = typeof mate.id === 'number' ? this.entities.get(mate.id) : undefined;
+        const self = this.store.get(parent.id);
+        const other = typeof mate.id === 'number' ? this.store.get(mate.id) : undefined;
         if (self === undefined || other === undefined || !canBreed(self, other)) return;
 
         const content = this.content();
@@ -2587,7 +2791,7 @@ export class EntityRuntime implements EntityScene {
 
     /** Records who tamed an entity. */
     public setOwner(id: number, owner: number | undefined): void {
-        const entity = this.entities.get(id);
+        const entity = this.store.get(id);
         if (entity === undefined) return;
         entity.body.owner = owner;
         entity.body.ownerIdentity = owner === undefined ? undefined : this.host.playerIdentityOf?.(owner);
@@ -2598,7 +2802,7 @@ export class EntityRuntime implements EntityScene {
         const ownerIdForIdentity = this.host.playerIdForIdentity;
         if (ownerIdForIdentity === undefined) return;
 
-        for (const entity of this.entities.values()) {
+        for (const entity of this.store.values()) {
             const identity = entity.body.ownerIdentity;
             if (identity !== undefined) entity.body.owner = ownerIdForIdentity(identity);
         }
@@ -2609,7 +2813,7 @@ export class EntityRuntime implements EntityScene {
      * a breeding item does in Java's `Animal.setInLove`.
      */
     public setInLove(id: number, ticks: number): void {
-        const entity = this.entities.get(id);
+        const entity = this.store.get(id);
         if (entity !== undefined) entity.body.loveTicks = Math.max(0, ticks);
     }
 
@@ -2632,7 +2836,7 @@ export class EntityRuntime implements EntityScene {
             count: itemIdentifier === 'minecraft:air' ? 0 : 1
         }
     ): EntityItemInteraction {
-        const entity = this.entities.get(id);
+        const entity = this.store.get(id);
         if (entity === undefined || entity.removed !== undefined) return { accepted: false };
 
         if (itemIdentifier === 'minecraft:shears' && heldItem.count > 0 && this.cutLeashesAt(entity)) {
@@ -2790,7 +2994,7 @@ export class EntityRuntime implements EntityScene {
 
         const projectedIndex = entity.body.equipmentInventorySlots.get(slot);
         if (projectedIndex !== undefined) {
-            entity.body.containerSlots[projectedIndex] = undefined;
+            entity.body.setContainerSlot(projectedIndex, undefined);
             entity.body.equipmentInventorySlots.delete(slot);
         }
         entity.body.setEquipment(withoutEquipmentSlot(entity.body.equipment, slot));
@@ -2810,7 +3014,7 @@ export class EntityRuntime implements EntityScene {
             const repaired = { ...item, damage: Math.max(0, item.damage - request.amount) };
             const equipment = { ...entity.body.equipment, [equipmentSlot]: repaired };
             const projectedIndex = entity.body.equipmentInventorySlots.get(equipmentSlot);
-            if (projectedIndex !== undefined) entity.body.containerSlots[projectedIndex] = repaired;
+            if (projectedIndex !== undefined) entity.body.setContainerSlot(projectedIndex, repaired);
             entity.body.setEquipment(equipment);
             return;
         }
@@ -2830,7 +3034,7 @@ export class EntityRuntime implements EntityScene {
         if (item === undefined || item.damage === undefined || item.damage <= 0) return;
 
         const repaired = { ...item, damage: Math.max(0, item.damage - request.amount) };
-        entity.body.containerSlots[index] = repaired;
+        entity.body.setContainerSlot(index, repaired);
         let equipment = entity.body.equipment;
         let changed = false;
         for (const slot of MOB_EQUIPMENT_SLOTS) {
@@ -2866,7 +3070,7 @@ export class EntityRuntime implements EntityScene {
             this.host.drop(entity.position, previous);
         }
         const item = { ...heldItem, count: 1 };
-        entity.body.containerSlots[index] = item;
+        entity.body.setContainerSlot(index, item);
         const projectedSlot = this.equipmentSlotOfDrop(item);
         if (projectedSlot !== undefined) {
             this.equipInteractionEquipment(entity, projectedSlot, item);
@@ -2880,7 +3084,7 @@ export class EntityRuntime implements EntityScene {
         const projectedIndex = entity.body.equipmentInventorySlots.get(slot);
         if (projectedIndex !== undefined) {
             const projectedItem = entity.body.containerSlots[projectedIndex];
-            entity.body.containerSlots[projectedIndex] = undefined;
+            entity.body.setContainerSlot(projectedIndex, undefined);
             entity.body.equipmentInventorySlots.delete(slot);
             entity.body.setEquipment(withoutEquipmentSlot(entity.body.equipment, slot));
             if (projectedItem !== undefined) this.host.drop(entity.position, projectedItem);
@@ -2913,7 +3117,7 @@ export class EntityRuntime implements EntityScene {
         }
         const item = entity.body.containerSlots[index];
         if (item === undefined) return;
-        entity.body.containerSlots[index] = undefined;
+        entity.body.setContainerSlot(index, undefined);
         this.removeEquipmentProjectionAt(entity, index);
         this.host.drop(at, item);
     }
@@ -3178,7 +3382,7 @@ export class EntityRuntime implements EntityScene {
 
     /** The block under the sniffer's head, which must carry Java's diggable-block tag. */
     public snifferDigPosition(body: MobBody): EntityPosition | undefined {
-        const entity = this.entities.get(body.id);
+        const entity = this.store.get(body.id);
         if (entity?.identifier !== 'minecraft:sniffer') return undefined;
 
         const radians = (body.yaw * Math.PI) / 180;
@@ -3191,7 +3395,7 @@ export class EntityRuntime implements EntityScene {
 
     /** Rolls Java's `sniffer_digging` loot table at the sniffer's head and plays its drop sound. */
     public dropSnifferSeed(body: MobBody): void {
-        const entity = this.entities.get(body.id);
+        const entity = this.store.get(body.id);
         if (entity?.identifier !== 'minecraft:sniffer') return;
 
         const radians = (body.yaw * Math.PI) / 180;
@@ -3206,10 +3410,10 @@ export class EntityRuntime implements EntityScene {
 
     /** Resolves one warden sonic boom against the current runtime or host-owned target. */
     public sonicBoom(body: MobBody, targetId: number): void {
-        const source = this.entities.get(body.id);
+        const source = this.store.get(body.id);
         if (source?.identifier !== 'minecraft:warden') return;
 
-        const target = this.entities.get(targetId);
+        const target = this.store.get(targetId);
         if (target?.removed !== undefined) return;
         const player = target === undefined ? this.host.playerById(targetId) : undefined;
         const targetPosition = target?.position ?? player?.position;
@@ -3258,7 +3462,7 @@ export class EntityRuntime implements EntityScene {
      * {@link RESTOCK_GAP_TICKS} after the last one. A villager with a player at its screen waits.
      */
     public villagerRestock(body: MobBody): void {
-        const entity = this.entities.get(body.id);
+        const entity = this.store.get(body.id);
         if (entity === undefined || body.tradingPlayer !== undefined) return;
         const merchant = this.merchant(entity);
         if (merchant === undefined || merchant.offers().every((live) => live.uses === 0)) return;
@@ -3341,8 +3545,8 @@ export class EntityRuntime implements EntityScene {
 
     /** Whether two villagers are both willing and able to have a child now. */
     public villagerCanBreed(body: MobBody, partnerId: number): boolean {
-        const self = this.entities.get(body.id);
-        const partner = this.entities.get(partnerId);
+        const self = this.store.get(body.id);
+        const partner = this.store.get(partnerId);
         if (self === undefined || partner === undefined || partner.removed !== undefined) return false;
         const ready = (entity: DataEntity): boolean =>
             !entity.instance.hasComponent('minecraft:is_baby') &&
@@ -3353,7 +3557,7 @@ export class EntityRuntime implements EntityScene {
 
     /** Holds one item of a random trade in the villager's hand, or empties the hand. */
     public villagerShowTrade(body: MobBody, shown: boolean): void {
-        const entity = this.entities.get(body.id);
+        const entity = this.store.get(body.id);
         if (entity === undefined) return;
         if (!shown) {
             body.carried = undefined;
@@ -3380,25 +3584,38 @@ export class EntityRuntime implements EntityScene {
      * @returns Whether anything happened.
      */
     public villagerTask(body: MobBody, task: VillagerTask, target?: EntityPosition | number): boolean {
-        const self = this.entities.get(body.id);
+        const self = this.store.get(body.id);
         if (self === undefined) return false;
-        const other = typeof target === 'number' ? this.entities.get(target) : undefined;
+        const other = typeof target === 'number' ? this.store.get(target) : undefined;
 
         switch (task) {
             case 'work_at_composter':
-                return typeof target === 'object' && workAtComposter(this.villagerWorld(), body.inventory, target);
+                return (
+                    typeof target === 'object' &&
+                    editInventory(body, (inventory) => workAtComposter(this.villagerWorld(), inventory, target))
+                );
             case 'harvest_farmland':
-                return typeof target === 'object' && harvestFarmland(this.villagerWorld(), body.inventory, target);
+                return (
+                    typeof target === 'object' &&
+                    editInventory(body, (inventory) => harvestFarmland(this.villagerWorld(), inventory, target))
+                );
             case 'use_bonemeal':
-                return typeof target === 'object' && useBonemeal(this.villagerWorld(), body.inventory, target);
+                return (
+                    typeof target === 'object' &&
+                    editInventory(body, (inventory) => useBonemeal(this.villagerWorld(), inventory, target))
+                );
             case 'trade_with_villager':
                 return (
                     other !== undefined &&
-                    shareWithVillager(
-                        body.inventory,
-                        other.body.inventory,
-                        professionOf(other.instance) === 'farmer',
-                        professionOf(self.instance) === 'farmer'
+                    editInventory(body, (inventory) =>
+                        editInventory(other.body, (otherInventory) =>
+                            shareWithVillager(
+                                inventory,
+                                otherInventory,
+                                professionOf(other.instance) === 'farmer',
+                                professionOf(self.instance) === 'farmer'
+                            )
+                        )
                     )
                 );
             case 'give_gift_to_hero': {
@@ -3413,8 +3630,8 @@ export class EntityRuntime implements EntityScene {
             }
             case 'make_love': {
                 if (other === undefined || !this.villagerCanBreed(body, other.id)) return false;
-                digest(body.inventory, WILLING_FOOD_POINTS);
-                digest(other.body.inventory, WILLING_FOOD_POINTS);
+                editInventory(body, (inventory) => digest(inventory, WILLING_FOOD_POINTS));
+                editInventory(other.body, (inventory) => digest(inventory, WILLING_FOOD_POINTS));
                 self.body.breedCooldown = VILLAGER_BREED_COOLDOWN_TICKS;
                 other.body.breedCooldown = VILLAGER_BREED_COOLDOWN_TICKS;
                 return (
@@ -3455,7 +3672,7 @@ export class EntityRuntime implements EntityScene {
 
     /** Whether a raider spawned earlier is still alive here. */
     public isAliveByIdentity(identity: string): boolean {
-        for (const entity of this.entities.values()) {
+        for (const entity of this.store.values()) {
             if (entity.persistentIdentity === identity) return entity.removed === undefined;
         }
         return this.unloadedIdentities.has(identity);
@@ -3494,7 +3711,7 @@ export class EntityRuntime implements EntityScene {
             }
             case 'move_to_sky_seeing_spot': {
                 const spot = this.skySeeingSpot(body.position);
-                const entity = this.entities.get(body.id);
+                const entity = this.store.get(body.id);
                 if (spot === undefined || entity?.brain === undefined) return;
                 entity.brain.setMemory(MemoryModuleTypes.WALK_TARGET, {
                     target: blockPosTracker({ x: Math.floor(spot.x), y: Math.floor(spot.y), z: Math.floor(spot.z) }),
@@ -3554,12 +3771,12 @@ export class EntityRuntime implements EntityScene {
 
     /** Fires an entity event on a named subject, which a `trigger` with a target does. */
     public trigger(source: MobBody, event: string, target: string): void {
-        const self = this.entities.get(source.id);
+        const self = this.store.get(source.id);
         if (target === 'self') {
             self?.instance.fire(event);
             return;
         }
-        const other = source.target === undefined ? undefined : this.entities.get(source.target);
+        const other = source.target === undefined ? undefined : this.store.get(source.target);
         if (target === 'target' && other !== undefined) {
             other.instance.fire(event);
             return;
@@ -4377,7 +4594,7 @@ export class EntityRuntime implements EntityScene {
     /** Keeps every rider where its vehicle is, which is what being carried means. */
     private carryRiders(vehicle: DataEntity): void {
         for (const rider of this.rides.ridersOf(vehicle.id)) {
-            const carried = this.entities.get(rider);
+            const carried = this.store.get(rider);
             if (carried === undefined) continue;
             carried.position = vehicle.position;
             carried.body.stopMoving();
@@ -4386,7 +4603,7 @@ export class EntityRuntime implements EntityScene {
 
     /** The `def` of the entity's `minecraft:shooter`, which names what it fires. */
     private shooterDefinitionOf(shooter: MobBody): string | undefined {
-        const params = this.entities.get(shooter.id)?.instance.componentParams('minecraft:shooter');
+        const params = this.store.get(shooter.id)?.instance.componentParams('minecraft:shooter');
         if (!isRecord(params)) return undefined;
         return typeof params.def === 'string' ? params.def : undefined;
     }
@@ -4521,5 +4738,16 @@ const midpoint = (from: EntityPosition, to: EntityPosition): EntityPosition => (
     y: (from.y + to.y) / 2,
     z: (from.z + to.z) / 2
 });
+
+/**
+ * Runs villager work that edits an inventory list in place on a copy, then writes the copy back
+ * through the body's setter, so the change is logged once.
+ */
+const editInventory = <T>(body: MobBody, work: (inventory: string[]) => T): T => {
+    const inventory = [...body.inventory];
+    const result = work(inventory);
+    body.setInventory(inventory);
+    return result;
+};
 
 export type { EntityFacts };
