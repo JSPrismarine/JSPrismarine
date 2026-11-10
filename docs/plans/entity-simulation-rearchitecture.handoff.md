@@ -18,6 +18,8 @@ To pick one up, check out its branch, run `pnpm install`, read the package's bri
 
 C2 and C3 both edit `entity/data/live.ts`, `EntityRuntime.ts` and `testing/entityServer.ts`. Land C3 first, since deleting the mirror changes what C2 builds on, then rebase C2 onto it.
 
+C2 was finished from `refactor/item-entities-to-store` on `refactor/item-entities-to-store-v2`, which starts at `cf5684e516` and holds no `broken!` commit.
+
 ## What to do next
 
 1. Finish C3, then C2, then B3b, and integrate each onto the program branch. Before each integration, rebase the program branch onto the latest `master` and keep a backup branch. After each push, wait for CI's Client E2E before starting work that builds on the change.

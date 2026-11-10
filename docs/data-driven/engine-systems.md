@@ -77,8 +77,8 @@ enters or leaves is named in the log and its content is not carried, because the
 an input. A chunk admitted inline, inside a unit, makes that unit impossible to undo, so such a unit
 keeps its writes if it throws and the store reports it. Nothing reads a sealed tick yet except the
 tests and the replay scenario, which reports its entries and bytes per tick. Data-driven entities
-are logged in full; players, dropped stacks and the eye of ender are logged only for position,
-health and a player's game mode until they move into the store, and a player's inventory is covered
+are logged in full, dropped stacks and the eye of ender among them. Players are logged only for
+position, health and game mode until they move into the store, and a player's inventory is covered
 by the replay digest's snapshot alone.
 
 `World.update` runs each system in Java's order, and `WorldSystems.tick` is the part that owns
