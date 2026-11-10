@@ -4,7 +4,7 @@ import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import { CompressionThreshold } from '@jsprismarine/protocol';
 import HandshakeCodec from './codec/HandshakeCodec';
 import type { EncryptionCodec, ProtocolCodec } from '@jsprismarine/protocol';
-import type { TransportConnection } from './transport/Transport';
+import type { TransportCapabilities, TransportConnection } from './transport/Transport';
 import type { encodePacketBatch } from './encodePacketBatch';
 import {
     encodePacketBatchAsync,
@@ -388,6 +388,11 @@ export default class MinecraftSession {
      */
     public startEncryption(codec: EncryptionCodec): void {
         this.encryption = codec;
+    }
+
+    /** What the transport under this session does on its own, such as encrypting the wire. */
+    public get transportCapabilities(): TransportCapabilities {
+        return this.connection.capabilities;
     }
 
     /** Whether frames are encrypted in both directions. */

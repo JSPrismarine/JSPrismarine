@@ -50,7 +50,8 @@ export default class LoginHandler implements ConnectionPacketHandler<LoginPacket
      * client's disconnect screen, with the message shown.
      *
      * A login that names an identity key is answered with `ServerToClientHandshake` and
-     * finishes in {@link LoginHandler.admit} once the client replies encrypted.
+     * finishes in {@link LoginHandler.admit} once the client replies, encrypted unless the
+     * transport already encrypts the wire.
      */
     public async handle(packet: LoginPacket, server: Server, connection: ClientConnection): Promise<void> {
         const login = packet.getPacketData();
@@ -131,7 +132,7 @@ export default class LoginHandler implements ConnectionPacketHandler<LoginPacket
         }
 
         // A login that names an identity key is answered with the encryption handshake, and the rest
-        // of it waits for the client's encrypted reply. One that names none stays in plaintext.
+        // of it waits for the client's reply. One that names none stays in plaintext.
         if (identity.identityPublicKey && (await LoginHandler.beginEncryption(identity, login, server, connection))) {
             return;
         }
@@ -142,6 +143,10 @@ export default class LoginHandler implements ConnectionPacketHandler<LoginPacket
     /**
      * Sends `ServerToClientHandshake` and turns encryption on, leaving the login to finish when
      * the client answers.
+     *
+     * On a transport that encrypts the wire itself the handshake still goes out but encryption
+     * stays off. That is what Bedrock Dedicated Server 1.26.51 does over NetherNet, where DTLS
+     * covers the data channel: it sends the handshake and the client answers in the clear.
      *
      * The key comes from the identity key the login chain names. That key is only as trustworthy
      * as the chain, which this server does not verify yet, so the session is protected from
@@ -168,7 +173,7 @@ export default class LoginHandler implements ConnectionPacketHandler<LoginPacket
         connection.phase = 'encryption';
         // The last frame in the clear: the client turns encryption on when it reads this.
         await connection.sendDataPacket(new ServerToClientHandshakePacket({ jwt: handshake.jwt }), true);
-        connection.startEncryption(handshake.codec);
+        if (!connection.transportCapabilities.encrypted) connection.startEncryption(handshake.codec);
         return true;
     }
 
