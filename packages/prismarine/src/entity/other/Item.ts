@@ -220,7 +220,7 @@ export class Item extends Entity {
         // already left it, and one that slid over this tick is found where it slid to.
         for (const other of this.getWorld()
             .getEntityIndex()
-            .itemsWithin(position.getX(), position.getZ(), MERGE_RANGE)) {
+            .legacyItemsWithin(position.getX(), position.getZ(), MERGE_RANGE)) {
             if (this.taken) return;
             if (!(other instanceof Item) || other === this) continue;
             if (other.taken || other.getRuntimeId() < this.getRuntimeId()) continue;

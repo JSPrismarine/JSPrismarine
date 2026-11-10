@@ -223,7 +223,7 @@ const lyingItemsNear = (
     if (world === undefined || radius < 0) return [];
 
     const found: ContentItemEntity[] = [];
-    for (const entity of world.getEntityIndex().itemsWithin(center.x, center.z, radius)) {
+    for (const entity of world.getEntityIndex().legacyItemsWithin(center.x, center.z, radius)) {
         if (!(entity instanceof ItemEntity) || world.getEntity(entity.getRuntimeId()) !== entity) continue;
         const held = entity.getItem();
         if (held === undefined) continue;

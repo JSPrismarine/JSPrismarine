@@ -24,7 +24,9 @@
  *
  * Dropped items go in cells two blocks wide of their own. A stack merges
  * within half a block and a farm can leave hundreds in one chunk, so a merge
- * search over sixteen-block cells would read every item in the chunk.
+ * search over sixteen-block cells would read every item in the chunk. They are
+ * store entities, but a mob's neighbor search never reads them: they are found
+ * through {@link EntityIndex.itemsWithin} and, as their bodies, by a legacy query.
  *
  * The index is derived state. It is rebuilt from the entities whenever they
  * are, and it stays out of the replay digest.
@@ -34,6 +36,7 @@ import type { EntityPosition } from '@jsprismarine/entities';
 import type { Entity } from '../Entity';
 import type { DataEntity } from './DataEntity';
 import { squaredDistance } from './DataEntity';
+import { ITEM_ENTITY } from './droppedItems';
 
 /**
  * How wide one cell is, as the shift that divides a coordinate by it.
@@ -73,7 +76,13 @@ const keyOf = (cellX: number, cellZ: number): number => (cellX & KEY_MASK) * KEY
 const itemCellOf = (coordinate: number): number => Math.floor(coordinate / ITEM_CELL_SIZE);
 
 /** Whether a legacy entity is a dropped item, which the index files in its fine cells. */
-const isItem = (entity: Entity): boolean => entity.getType() === 'minecraft:item';
+const isItem = (entity: Entity): boolean => entity.getType() === ITEM_ENTITY;
+
+/** Whether a store entity is a dropped item, which the index files apart from the mobs. */
+const isStoreItem = (entity: DataEntity): boolean => entity.identifier === ITEM_ENTITY;
+
+/** The fine cell key of a position, for dropped items. */
+const itemKeyOf = (position: EntityPosition): number => keyOf(itemCellOf(position.x), itemCellOf(position.z));
 
 /** The cell a legacy entity belongs in now, in the layer `item` names. */
 const legacyKeyOf = (entity: Entity, item: boolean): number => {
@@ -138,8 +147,14 @@ export class EntityIndex {
     /** Legacy entities other than dropped items, in each sixteen-block cell. */
     private readonly legacyCells = new Map<number, Entity[]>();
 
-    /** Dropped items in each two-block cell. */
+    /** Bodies of dropped items whose store entity has gone, in each two-block cell. */
     private readonly itemCells = new Map<number, Entity[]>();
+
+    /** Dropped stacks of the store in each two-block cell. */
+    private readonly storeItemCells = new Map<number, DataEntity[]>();
+
+    /** The two-block cell each dropped stack of the store is filed under now. */
+    private readonly filedItems = new Map<number, number>();
 
     /**
      * The body each data entity shows clients, once the world holds it.
@@ -167,14 +182,21 @@ export class EntityIndex {
 
     /** How many entities the index holds, a data entity and its body counting once. */
     public get size(): number {
-        return this.filed.size + this.legacyFiled.size;
+        return this.filed.size + this.filedItems.size + this.legacyFiled.size;
     }
 
     /** How many cell lists hold anything, across every layer. Zero once the index is empty. */
     public get occupiedCells(): number {
         let familyCells = 0;
         for (const cells of this.familyCells.values()) familyCells += cells.size;
-        return this.cells.size + this.largeCells.size + familyCells + this.legacyCells.size + this.itemCells.size;
+        return (
+            this.cells.size +
+            this.largeCells.size +
+            familyCells +
+            this.legacyCells.size +
+            this.itemCells.size +
+            this.storeItemCells.size
+        );
     }
 
     /** Puts one entity in the index, at the position it stands at now. */
@@ -185,6 +207,10 @@ export class EntityIndex {
             this.unfileLegacy(legacy);
             this.bodies.set(entity.id, legacy.entity);
         }
+        if (isStoreItem(entity)) {
+            this.fileItem(entity, itemKeyOf(entity.position));
+            return;
+        }
         this.file(entity, cellKeyOf(entity.position));
         this.refreshBox(entity);
         this.refreshFamilies(entity);
@@ -192,6 +218,12 @@ export class EntityIndex {
 
     /** Takes one entity out of the index. */
     public remove(entity: DataEntity): void {
+        const itemKey = this.filedItems.get(entity.id);
+        if (itemKey !== undefined) {
+            this.unfileItem(entity, itemKey);
+            this.reattachBody(entity.id);
+            return;
+        }
         const key = this.filed.get(entity.id);
         if (key === undefined) return;
         this.filed.delete(entity.id);
@@ -200,12 +232,15 @@ export class EntityIndex {
         this.unfile(entity, key);
         for (const family of this.filedFamilies.get(entity.id) ?? []) this.unfileFamily(entity, family, key);
         this.filedFamilies.delete(entity.id);
+        this.reattachBody(entity.id);
+    }
 
-        // A body the world still holds stays findable, at its own position, until the world drops it.
-        const body = this.bodies.get(entity.id);
+    /** Files a body the world still holds at its own position, until the world drops it. */
+    private reattachBody(id: number): void {
+        const body = this.bodies.get(id);
         if (body === undefined) return;
-        this.bodies.delete(entity.id);
-        this.fileLegacyAt(body, entity.id);
+        this.bodies.delete(id);
+        this.fileLegacyAt(body, id);
     }
 
     /**
@@ -216,7 +251,7 @@ export class EntityIndex {
      */
     public addLegacy(entity: Entity): void {
         const id = Number(entity.getRuntimeId());
-        if (this.filed.has(id)) {
+        if (this.filed.has(id) || this.filedItems.has(id)) {
             this.bodies.set(id, entity);
             return;
         }
@@ -249,7 +284,33 @@ export class EntityIndex {
      * Horizontal only, as item merge and pickup ask: each applies its own
      * exact distance to what comes back.
      */
-    public itemsWithin(x: number, z: number, radius: number): Entity[] {
+    public itemsWithin(x: number, z: number, radius: number): DataEntity[] {
+        if (radius < 0) return [];
+        const found: DataEntity[] = [];
+        const reach = radius * radius;
+        const lowX = itemCellOf(x - radius);
+        const highX = itemCellOf(x + radius);
+        const lowZ = itemCellOf(z - radius);
+        const highZ = itemCellOf(z + radius);
+        for (let cellX = lowX; cellX <= highX; cellX += 1)
+            for (let cellZ = lowZ; cellZ <= highZ; cellZ += 1) {
+                const cell = this.storeItemCells.get(keyOf(cellX, cellZ));
+                if (cell === undefined) continue;
+                this.examined += cell.length;
+                for (const entity of cell) {
+                    const dx = entity.position.x - x;
+                    const dz = entity.position.z - z;
+                    if (dx * dx + dz * dz <= reach) found.push(entity);
+                }
+            }
+        return inIdOrder(found);
+    }
+
+    /**
+     * Legacy dropped items within a horizontal radius of a point, in ascending runtime id order,
+     * until the legacy item entity is gone.
+     */
+    public legacyItemsWithin(x: number, z: number, radius: number): Entity[] {
         if (radius < 0) return [];
         const found: Entity[] = [];
         this.collectItems(found, x, z, radius);
@@ -269,6 +330,10 @@ export class EntityIndex {
 
         const found: Entity[] = [];
         this.collectItems(found, x, z, radius);
+        for (const item of this.itemsWithin(x, z, radius)) {
+            const body = this.bodies.get(item.id);
+            if (body !== undefined) found.push(body);
+        }
 
         const reach = radius * radius;
         const lowX = cellOf(x - radius);
@@ -306,6 +371,14 @@ export class EntityIndex {
 
     /** Moves one entity to the cell it stands in now, which a position write calls. */
     public refile(entity: DataEntity): void {
+        const itemWas = this.filedItems.get(entity.id);
+        if (itemWas !== undefined) {
+            const itemNow = itemKeyOf(entity.position);
+            if (itemNow === itemWas) return;
+            this.unfileItem(entity, itemWas);
+            this.fileItem(entity, itemNow);
+            return;
+        }
         const was = this.filed.get(entity.id);
         if (was === undefined) return;
 
@@ -533,6 +606,24 @@ export class EntityIndex {
         const at = cell.indexOf(filing.entity);
         if (at !== -1) cell.splice(at, 1);
         if (cell.length === 0) cells.delete(filing.key);
+    }
+
+    /** Puts one dropped stack of the store in its two-block cell. */
+    private fileItem(entity: DataEntity, key: number): void {
+        this.filedItems.set(entity.id, key);
+        const cell = this.storeItemCells.get(key);
+        if (cell === undefined) this.storeItemCells.set(key, [entity]);
+        else cell.push(entity);
+    }
+
+    /** Takes one dropped stack of the store out of its two-block cell. */
+    private unfileItem(entity: DataEntity, key: number): void {
+        this.filedItems.delete(entity.id);
+        const cell = this.storeItemCells.get(key);
+        if (cell === undefined) return;
+        const at = cell.indexOf(entity);
+        if (at !== -1) cell.splice(at, 1);
+        if (cell.length === 0) this.storeItemCells.delete(key);
     }
 
     /** Puts one entity in a cell and records that it is there. */
