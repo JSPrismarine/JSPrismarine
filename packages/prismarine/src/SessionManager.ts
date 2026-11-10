@@ -102,10 +102,10 @@ export default class SessionManager {
         for (const other of this.connections.values()) {
             if (other === connection || this.claims.has(other)) continue;
             if (replaced.some((entry) => entry.connection === other)) continue;
-            const player = other.getPlayerSession()?.getPlayer();
-            if (player === undefined) continue;
-            const live = { name: player.getName(), xuid: player.getXUID() ?? '', uuid: player.getUUID().toString() };
-            if (sameAccount(live, identity)) replaced.push({ connection: other, joined: null });
+            const session = other.getPlayerSession();
+            if (session !== null && sameAccount(session.identity, identity)) {
+                replaced.push({ connection: other, joined: null });
+            }
         }
 
         this.claims.set(connection, { identity, joined });
