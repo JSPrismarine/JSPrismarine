@@ -5,6 +5,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import type Player from '../../Player';
 import type Server from '../../Server';
+import { identityNamed } from '../../testing/sessionIdentity.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import { Position } from '../../world/Position';
 import type { World } from '../../world/World';
@@ -37,6 +38,8 @@ const fake = () => {
         setOnGround: vi.fn(async () => {})
     });
     const session = stub<PlayerSession>({
+        runtimeId: 7n,
+        identity: identityNamed('tester'),
         getPlayer: () => player,
         sendMove: vi.fn(async () => {}),
         recordInputTick: vi.fn(),
@@ -103,7 +106,12 @@ describe('MovePlayerHandler', () => {
             yaw: { get: () => pose.yaw },
             headYaw: { get: () => pose.headYaw }
         });
-        const session = stub<PlayerSession>({ getPlayer: () => player, holdsMovementForTeleport: () => false });
+        const session = stub<PlayerSession>({
+            runtimeId: 7n,
+            identity: identityNamed('tester'),
+            getPlayer: () => player,
+            holdsMovementForTeleport: () => false
+        });
         let events = 0;
         const server = stub<Server>({ post: () => ++events });
         const movement = {

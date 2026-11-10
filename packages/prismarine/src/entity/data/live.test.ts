@@ -36,6 +36,7 @@ import ContainerEntry from '../../inventory/ContainerEntry';
 import HumanInventory from '../../inventory/HumanInventory';
 import { testEntityServer } from '../../testing/entityServer';
 import { fakeLevel } from '../../testing/level';
+import { identityNamed } from '../../testing/sessionIdentity.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import { withPlayerComponents } from '../../testing/playerDouble.test.helper';
 import { entityCommandHost } from '../../command/host/entities';
@@ -956,7 +957,10 @@ describe('the data-driven entity runtime over a live world', () => {
             packet,
             server,
             stub<PlayerSession>({
+                runtimeId: player.getRuntimeId(),
+                identity: identityNamed(player.getName()),
                 getPlayer: () => player,
+                isConnected: () => player.isOnline(),
                 getConnection: () => stub<ReturnType<PlayerSession['getConnection']>>({ codec: Codec2193 })
             })
         );
