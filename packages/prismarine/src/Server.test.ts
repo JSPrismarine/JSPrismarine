@@ -6,6 +6,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { Logger } from '@jsprismarine/logger';
 import Server from './Server';
 import { Config } from './config/Config';
+import type { Transport } from './network/transport/Transport';
 import { stubRakNetListener } from './testing/rakNetListener.test.helper';
 
 stubRakNetListener();
@@ -193,6 +194,34 @@ describe('Server', () => {
                 Object.defineProperty(process, 'title', descriptor);
             }
         }
+    });
+
+    it('listens on the transport it was given and binds no listener of its own', async () => {
+        const subscribed: string[] = [];
+        let closed = false;
+        const transport: Transport = {
+            onConnect: () => void subscribed.push('connect'),
+            onDisconnect: () => void subscribed.push('disconnect'),
+            onFrame: () => void subscribed.push('frame'),
+            close: () => {
+                closed = true;
+            }
+        };
+        const prismarine = new Server({
+            logger: new Logger(),
+            config: debugConfig('test-world-transport'),
+            headless: true,
+            transport
+        });
+
+        await prismarine.bootstrap('0.0.0.0', 0);
+        try {
+            expect(new Set(subscribed)).toEqual(new Set(['connect', 'disconnect', 'frame']));
+            expect(prismarine.getRaknet()).toBeUndefined();
+        } finally {
+            await prismarine.shutdown({ stayAlive: true });
+        }
+        expect(closed).toBe(true);
     });
 
     it('starts and stops without crashing in headless mode', async () => {
