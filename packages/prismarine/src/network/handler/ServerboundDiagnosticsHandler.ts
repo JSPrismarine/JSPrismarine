@@ -19,7 +19,7 @@ export default class ServerboundDiagnosticsHandler implements PacketHandler<Serv
         server
             .getLogger()
             .debug(
-                `${session.getPlayer().getName()} reports ${packet.avgFps.toFixed(1)} fps, ${packet.avgClientSimTickTimeMs.toFixed(2)} ms client tick, ${packet.avgServerSimTickTimeMs.toFixed(2)} ms server tick, ${packet.memoryCategoryValues.length} memory categories`,
+                `${session.identity.name} reports ${packet.avgFps.toFixed(1)} fps, ${packet.avgClientSimTickTimeMs.toFixed(2)} ms client tick, ${packet.avgServerSimTickTimeMs.toFixed(2)} ms server tick, ${packet.memoryCategoryValues.length} memory categories`,
                 'ServerboundDiagnosticsHandler/handle'
             );
     }

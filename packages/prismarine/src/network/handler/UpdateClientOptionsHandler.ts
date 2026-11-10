@@ -25,7 +25,7 @@ export default class UpdateClientOptionsHandler implements PacketHandler<UpdateC
         server
             .getLogger()
             .debug(
-                `${session.getPlayer().getName()} changed ${changes.length > 0 ? changes.join(' and ') : 'no client options'}`,
+                `${session.identity.name} changed ${changes.length > 0 ? changes.join(' and ') : 'no client options'}`,
                 'UpdateClientOptionsHandler/handle'
             );
     }

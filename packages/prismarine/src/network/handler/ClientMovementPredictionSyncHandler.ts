@@ -19,7 +19,7 @@ export default class ClientMovementPredictionSyncHandler implements PacketHandle
         server
             .getLogger()
             .debug(
-                `${session.getPlayer().getName()} predicts actor ${packet.actorUniqueId} with speed ${packet.movementSpeed}, jump ${packet.jumpStrength}, box ${packet.boundingBoxWidth}x${packet.boundingBoxHeight}, flags 0x${packet.actorFlags.toString(16)}${packet.actorFlyingState ? ', flying' : ''}`,
+                `${session.identity.name} predicts actor ${packet.actorUniqueId} with speed ${packet.movementSpeed}, jump ${packet.jumpStrength}, box ${packet.boundingBoxWidth}x${packet.boundingBoxHeight}, flags 0x${packet.actorFlags.toString(16)}${packet.actorFlyingState ? ', flying' : ''}`,
                 'ClientMovementPredictionSyncHandler/handle'
             );
     }

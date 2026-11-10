@@ -35,7 +35,7 @@ export default class PacketViolationWarningHandler implements PacketHandler<Pack
         server
             .getLogger()
             .warn(
-                `${session.getPlayer().getName()} rejected ${name} (${id}) as ${type}, ${severity}: "${packet.message}"`,
+                `${session.identity.name} rejected ${name} (${id}) as ${type}, ${severity}: "${packet.message}"`,
                 'PacketViolationWarningHandler/handle'
             );
     }

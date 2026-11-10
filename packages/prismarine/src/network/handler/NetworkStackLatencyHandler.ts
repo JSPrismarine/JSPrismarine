@@ -23,7 +23,7 @@ export default class NetworkStackLatencyHandler implements PacketHandler<Network
         server
             .getLogger()
             .debug(
-                `${session.getPlayer().getName()} pinged at ${packet.creationTime}${packet.isFromServer ? ', asking for an answer' : ''}`,
+                `${session.identity.name} pinged at ${packet.creationTime}${packet.isFromServer ? ', asking for an answer' : ''}`,
                 'NetworkStackLatencyHandler/handle'
             );
 

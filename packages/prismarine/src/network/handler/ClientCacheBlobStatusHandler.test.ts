@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
 import type { Logger } from '@jsprismarine/logger';
-import type Player from '../../Player';
 import type Server from '../../Server';
 import { stub } from '../../testing/stub.test.helper';
+import { STEVE } from '../../testing/steveIdentity.test.helper';
 import type PlayerSession from '../PlayerSession';
 import ClientCacheBlobStatusPacket from '@jsprismarine/protocol/packet/ClientCacheBlobStatusPacket';
 import ClientCacheBlobStatusHandler from './ClientCacheBlobStatusHandler';
@@ -16,7 +16,7 @@ describe('ClientCacheBlobStatusHandler', () => {
             getLogger: () => stub<Logger>({ debug: (...message) => void logged.push(message[0] ?? '') })
         });
         const session = stub<PlayerSession>({
-            getPlayer: () => stub<Player>({ getName: () => 'Steve' }),
+            identity: STEVE,
             handleClientCacheBlobStatus: async (report) => {
                 reports.push({ missingIds: report.missingIds, foundIds: report.foundIds });
                 return 2;

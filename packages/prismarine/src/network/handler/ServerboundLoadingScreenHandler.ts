@@ -52,7 +52,7 @@ export default class ServerboundLoadingScreenHandler implements PacketHandler<Se
         server
             .getLogger()
             .debug(
-                `${session.getPlayer().getName()} ${edge} ${screen}${known}${released ? '; sending its arrival columns' : ''}`,
+                `${session.identity.name} ${edge} ${screen}${known}${released ? '; sending its arrival columns' : ''}`,
                 'ServerboundLoadingScreenHandler/handle'
             );
 

@@ -21,7 +21,7 @@ export default class ServerboundPackSettingChangeHandler implements PacketHandle
         server
             .getLogger()
             .debug(
-                `${session.getPlayer().getName()} set ${data.packSettingName} of pack ${data.packId.toString()} to ${JSON.stringify(data.packSettingValue)}, which the server does not store`,
+                `${session.identity.name} set ${data.packSettingName} of pack ${data.packId.toString()} to ${JSON.stringify(data.packSettingValue)}, which the server does not store`,
                 'ServerboundPackSettingChangeHandler/handle'
             );
     }

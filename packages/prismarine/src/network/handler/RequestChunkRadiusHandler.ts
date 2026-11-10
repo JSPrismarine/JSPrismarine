@@ -33,7 +33,7 @@ export default class RequestChunkRadiusHandler implements PacketHandler<RequestC
         server
             .getLogger()
             .debug(
-                `${session.getPlayer().getName()} asked for a chunk radius of ${request.radius} (max ${request.maxRadius}), granted ${granted}`,
+                `${session.identity.name} asked for a chunk radius of ${request.radius} (max ${request.maxRadius}), granted ${granted}`,
                 'RequestChunkRadiusHandler/handle'
             );
 

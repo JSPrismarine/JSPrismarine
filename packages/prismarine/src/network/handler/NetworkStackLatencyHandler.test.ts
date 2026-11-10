@@ -2,9 +2,9 @@ import { describe, expect, it } from 'vitest';
 
 import type { Logger } from '@jsprismarine/logger';
 import type ClientConnection from '../ClientConnection';
-import type Player from '../../Player';
 import type Server from '../../Server';
 import { stub } from '../../testing/stub.test.helper';
+import { STEVE } from '../../testing/steveIdentity.test.helper';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import NetworkStackLatencyPacket from '@jsprismarine/protocol/packet/NetworkStackLatencyPacket';
 import type PlayerSession from '../PlayerSession';
@@ -22,7 +22,7 @@ const fakeSession = () => {
             getLogger: () => stub<Logger>({ debug: (...message) => void logged.push(message[0] ?? '') })
         }),
         session: stub<PlayerSession>({
-            getPlayer: () => stub<Player>({ getName: () => 'Steve' }),
+            identity: STEVE,
             getConnection: () => connection
         })
     };
