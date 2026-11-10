@@ -1609,6 +1609,115 @@ describe('EntityRuntime', () => {
             expect(walker.position.y).toBe(GROUND.y);
         });
 
+        it('walks at Java’s stride for its speed, never its speed in blocks a tick', () => {
+            const speed = 0.23;
+            const { runtime } = entityFixture(
+                new TestEntityWorld(),
+                {},
+                {
+                    'jsprismarine:walker': {
+                        components: {
+                            'minecraft:health': { value: 20, max: 20 },
+                            'minecraft:movement': { value: speed },
+                            'minecraft:collision_box': { width: 0.6, height: 1.8 },
+                            'minecraft:physics': {},
+                            'minecraft:navigation.walk': { can_walk: true }
+                        }
+                    }
+                }
+            );
+            const walker = runtime.spawn('jsprismarine:walker', GROUND);
+            if (walker === undefined) throw new Error('the fixture declares no walker');
+            walker.body.moveTo({ x: 40.5, y: GROUND.y, z: 0.5 }, 1);
+
+            const strides: number[] = [];
+            for (let tick = 1; tick <= 40; tick += 1) {
+                const before = walker.position.x;
+                runtime.tick(tick);
+                strides.push(walker.position.x - before);
+            }
+
+            // Java's travel on default ground settles at speed² / (1 - 0.6 × 0.91).
+            const settled = (speed * speed) / (1 - 0.6 * 0.91);
+            expect(Math.max(...strides)).toBeLessThanOrEqual(settled + 1e-6);
+            expect(strides.at(-1)).toBeCloseTo(settled, 4);
+            expect(strides.every((stride, index) => index === 0 || stride >= strides[index - 1]! - 1e-12)).toBe(true);
+        });
+
+        it('keeps a walk’s momentum when its goal stops and starts it again within the tick', () => {
+            const { runtime } = moverRuntime();
+            const mover = runtime.spawn('jsprismarine:mover', GROUND);
+            if (mover === undefined) throw new Error('the fixture declares no mover');
+            const destination = { x: 40.5, y: GROUND.y, z: 0.5 };
+            mover.body.moveTo(destination, 1);
+            for (let tick = 1; tick <= 20; tick += 1) runtime.tick(tick);
+
+            const strides: number[] = [];
+            for (let tick = 21; tick <= 30; tick += 1) {
+                // What a goal that cannot continue does on a selector pass before it starts again.
+                mover.body.stopMoving();
+                mover.body.moveTo(destination, 1);
+                const before = mover.position.x;
+                runtime.tick(tick);
+                strides.push(mover.position.x - before);
+            }
+
+            expect(Math.min(...strides)).toBeCloseTo((0.25 * 0.25) / (1 - 0.6 * 0.91), 4);
+        });
+
+        it('moves a `movement.jump` mob only in its hops, and waits on the ground between them', () => {
+            const speed = 0.3;
+            const waitTicks = 10;
+            const { runtime } = entityFixture(
+                new TestEntityWorld(),
+                {},
+                {
+                    'jsprismarine:hopper': {
+                        components: {
+                            'minecraft:health': { value: 4, max: 4 },
+                            'minecraft:movement': { value: speed },
+                            'minecraft:movement.jump': { jump_delay: [waitTicks / 20, waitTicks / 20] },
+                            'minecraft:jump.static': {},
+                            'minecraft:collision_box': { width: 0.52, height: 0.52 },
+                            'minecraft:physics': {},
+                            'minecraft:navigation.walk': { can_walk: true }
+                        }
+                    }
+                }
+            );
+            const hopper = runtime.spawn('jsprismarine:hopper', GROUND);
+            if (hopper === undefined) throw new Error('the fixture declares no hopper');
+            hopper.body.moveTo({ x: 40.5, y: GROUND.y, z: 0.5 }, 1);
+
+            const hops: number[] = [];
+            let still = 0;
+            const waits: number[] = [];
+            for (let tick = 1; tick <= 120; tick += 1) {
+                const before = hopper.position.x;
+                const grounded = hopper.body.velocity.y === 0;
+                runtime.tick(tick);
+                const stride = hopper.position.x - before;
+                expect(stride).toBeLessThanOrEqual((speed * speed) / (1 - 0.6 * 0.91) + 1e-6);
+                if (stride === 0) {
+                    still += 1;
+                    continue;
+                }
+                if (grounded) {
+                    // Every stride that starts on the ground is the take-off of a hop.
+                    expect(hopper.body.velocity.y).toBeGreaterThan(0);
+                    hops.push(0);
+                    if (hops.length > 1) waits.push(still);
+                }
+                hops[hops.length - 1]! += stride;
+                still = 0;
+            }
+
+            expect(hops.length).toBeGreaterThanOrEqual(3);
+            expect(waits.every((wait) => wait === waitTicks)).toBe(true);
+            // Java's small slime covers well under a block in one hop; gliding at its speed covered 0.3 a tick.
+            expect(Math.max(...hops)).toBeLessThan(1);
+        });
+
         it('stops a walking entity at the collision box of a solid wall', () => {
             const world = new TestEntityWorld();
             world.setBlock({ x: 1, y: FLOOR_Y + 1, z: 0 }, 'minecraft:stone');
