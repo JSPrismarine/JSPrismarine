@@ -1,3 +1,4 @@
+import { AIR_STATE } from '@jsprismarine/entities';
 import { NBTTagCompound, Types } from '@jsprismarine/nbt';
 import { describe, expect, it } from 'vitest';
 
@@ -182,5 +183,102 @@ describe('the data entity record', () => {
             breedCooldown: 0
         });
         expect(restored?.persistentIdentity).toMatch(/^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$/i);
+    });
+
+    describe('component state', () => {
+        /** A fish out of water whose timer swaps it to a calm group after two seconds. */
+        const extra = {
+            'jsprismarine:stranded': {
+                components: {
+                    'minecraft:health': { value: 20, max: 20 },
+                    'minecraft:breathable': { total_supply: 3, breathes_air: false, breathes_water: true }
+                },
+                component_groups: {
+                    waiting: {
+                        'minecraft:timer': {
+                            looping: false,
+                            time: 2,
+                            time_down_event: { event: 'jsprismarine:calm', target: 'self' }
+                        }
+                    },
+                    calm: {}
+                },
+                events: {
+                    'minecraft:entity_spawned': { add: { component_groups: ['waiting'] } },
+                    'jsprismarine:calm': {
+                        add: { component_groups: ['calm'] },
+                        remove: { component_groups: ['waiting'] }
+                    }
+                }
+            }
+        };
+
+        /** Spawns the fish in one world, ticks it, and restores its saved record into a fresh world. */
+        const savedAfter = (ticks: number, record = (written: ReturnType<typeof dataEntityRecordOf>) => written) => {
+            const first = entityFixture(undefined, {}, extra);
+            const fish = first.runtime.spawn('jsprismarine:stranded', GROUND);
+            if (fish === undefined) throw new Error('the fixture declares no jsprismarine:stranded');
+            for (let tick = 1; tick <= ticks; tick += 1) first.runtime.tick(tick);
+
+            const back = dataEntityRecordIn(written(record(dataEntityRecordOf(fish, undefined))));
+            if (back === undefined) throw new Error('the record could not be read');
+            const second = entityFixture(undefined, {}, extra);
+            const restored = second.runtime.restore(back, GROUND);
+            if (restored === undefined) throw new Error('the record did not restore');
+            return { fish, restored, runtime: second.runtime, reports: second.reports };
+        };
+
+        const tickFrom = (runtime: ReturnType<typeof entityFixture>['runtime'], first: number, count: number) => {
+            for (let tick = first; tick < first + count; tick += 1) runtime.tick(tick);
+        };
+
+        it('saves the air supply and the timer as plain data', () => {
+            const { fish, restored } = savedAfter(30);
+
+            expect(dataEntityRecordOf(fish, undefined).componentState).toMatchObject({
+                'minecraft:breathable': { remaining: 30, untilHurt: 10 },
+                'minecraft:timer': { remaining: 10 }
+            });
+            expect(restored.instance.componentState.snapshot()).toEqual(fish.instance.componentState.snapshot());
+        });
+
+        it('resumes a timer where the save left it', () => {
+            const { restored, runtime } = savedAfter(30);
+            tickFrom(runtime, 31, 9);
+
+            expect(restored.instance.activeComponentGroups()).toEqual(['waiting']);
+
+            tickFrom(runtime, 40, 2);
+
+            expect(restored.instance.activeComponentGroups()).toEqual(['calm']);
+        });
+
+        it('resumes the air supply where the save left it', () => {
+            const { restored, runtime } = savedAfter(50);
+            expect(restored.instance.componentState.get(AIR_STATE)).toEqual({ remaining: 10, untilHurt: 10 });
+
+            tickFrom(runtime, 51, 19);
+            expect(restored.instance.attributes.value('health')).toBe(20);
+
+            tickFrom(runtime, 70, 1);
+            expect(restored.instance.attributes.value('health')).toBeLessThan(20);
+        });
+
+        it('starts a record written before component state was saved from the initial state', () => {
+            const { restored } = savedAfter(30, ({ componentState: _dropped, ...older }) => older);
+
+            expect(restored.instance.componentState.get(AIR_STATE)).toEqual({ remaining: 60, untilHurt: 10 });
+            expect(restored.instance.componentState.snapshot()['minecraft:timer']).toEqual({ remaining: 40 });
+        });
+
+        it('keeps the initial state of a component whose saved state is malformed, and says so', () => {
+            const { restored, reports } = savedAfter(50, (record) => ({
+                ...record,
+                componentState: { ...record.componentState, 'minecraft:breathable': { remaining: 'lots' } }
+            }));
+
+            expect(restored.instance.componentState.get(AIR_STATE)).toEqual({ remaining: 60, untilHurt: 10 });
+            expect(reports.some((line) => line.includes('minecraft:breathable'))).toBe(true);
+        });
     });
 });
