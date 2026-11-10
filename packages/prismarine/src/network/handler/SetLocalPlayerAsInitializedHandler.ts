@@ -2,6 +2,13 @@ import type { PlayerSession } from '../../';
 import type { SetLocalPlayerAsInitializedPacket } from '@jsprismarine/protocol';
 import type Server from '../../Server';
 import type PacketHandler from './PacketHandler';
+import type { PlacedPlayer } from './playerPorts';
+
+/** The player as the end of its spawn reads it, besides the entity its world takes. */
+interface SpawningPlayer extends Pick<PlacedPlayer, 'getWorld'> {
+    /** Sends the state the client throws away while it spawns. */
+    completeSpawn(): Promise<void>;
+}
 
 /**
  * The client saying it has finished spawning and has a player to show.
@@ -24,18 +31,18 @@ export default class SetLocalPlayerAsInitializedHandler implements PacketHandler
         server: Server,
         session: PlayerSession
     ): Promise<void> {
-        const player = session.getPlayer();
+        const player: SpawningPlayer = session.getPlayer();
 
         // The player's own world, which is where `completeSpawn` and everything after it
         // look for them. It is the default world today, because that is the only one a join
         // puts anybody in, but reading it off the player is what keeps the two in step.
         const world = player.getWorld();
 
-        if (world.getEntity(player.getRuntimeId()) !== null) {
+        if (world.getEntity(session.runtimeId) !== null) {
             server
                 .getLogger()
                 .debug(
-                    `${player.getName()} said it was initialized twice; the second was dropped`,
+                    `${session.identity.name} said it was initialized twice; the second was dropped`,
                     'SetLocalPlayerAsInitializedHandler/handle'
                 );
             return;
@@ -43,7 +50,7 @@ export default class SetLocalPlayerAsInitializedHandler implements PacketHandler
 
         // Into the world only now: this is the client saying it has a player to show, so
         // this is when everyone else gets an `AddPlayer` for it.
-        await world.addEntity(player);
+        await world.addEntity(session.getPlayer());
 
         // The one place `completeSpawn` runs. The join burst in `ResourcePackClientResponseHandler`
         // already sent the gamemode, settings, abilities, attributes, metadata and inventory,
