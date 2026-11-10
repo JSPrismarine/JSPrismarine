@@ -141,7 +141,8 @@ As of 2026-11-10, at program head `646dd8a4f3`, rebased on `master` `9a2c1d5af5`
 | C3b the legacy mob bodies deleted, which meets slice 4's "no mirror class" target | Done on `refactor/delete-legacy-mob-bodies`, not integrated, see below |
 | C4c player components with logged setters, and an inventory that logs one entry per slot | Done on `refactor/player-components-logged`, not integrated |
 | C4b the player overlay, client-owned movement and a death that keeps the entity | Done on `refactor/player-overlay`, not integrated. The store's rules are ready for a store player; the live player is still legacy, see below |
-| C4d to C4h and everything in phases D to F | Not started |
+| C4e player persistence from the store entity, the saved record unchanged | Done on `refactor/player-persistence-from-store`, not integrated, see below |
+| C4d, C4f to C4h and everything in phases D to F | Not started |
 
 ## Phases and work packages
 
@@ -271,6 +272,23 @@ C4b left these for later packages.
 - No client e2e scenario covers riding, because `/ride` is unsupported (`command/host/entities.ts`); a player riding a mob is checked in game. The new `player-knockback` scenario covers a mob's shove on a player.
 - Found on the way: chorus fruit puts a player's eyes where their feet belong (#2961). Run alone after `fall-damage` and `damage`, the `dimensions` scenario fails on the health those left, because nothing heals between scenarios. It passes alone, and CI's full suite has passed with it.
 
+C4e left these for later packages.
+
+- The record is a projection with one home, `world/playerRecord.ts`. `playerRecordFrom(player, services, dimension)` builds it and `applyPlayerRecord(player, data, defaultGamemode, content)` puts one back, through two structural ports, `PlayerRecordSource` and `PlayerRecordTarget`. `recordedPosition` reads where a record puts a returning player. `PlayerPersistence` still owns where a record is read and written and the key it is filed under (`keyOfPlayer`).
+- A live `Player` satisfies both ports. `World.savePlayerData` calls `playerRecordOf`, which reads the advancements and the enchantment seed from their keyed services and calls `playerRecordFrom`, and `Player.enable` calls `applyPlayerRecord` and `recordedPosition`. `Player.restoreHealth` and `Player.restoreFlying` are the two silent writes the load needs. Live behavior did not change, and `PlayerPersistenceFormat.test.ts` still passes byte for byte.
+- A store player is `StorePlayer` (`entity/storePlayer.ts`): the `minecraft:player` store entity, which holds the position, the look and the health, and beside it the parts the store does not model yet, in the objects a live player holds them in: the client's attribute table, `PlayerComponents`, `HumanInventory`, the game mode, the portal cooldown, the head yaw and the identity. The record holds the eye, so `StorePlayer` adds `EYE_HEIGHT` to the entity's feet and `placeAt` takes it off. A y that is not exact in binary can move by its last bit across a save and a load. The record's attribute table takes its health entry from the entity's health and maximum, so a store player saves the table a live player saves. The format test builds a store player the way C4b's tests do, writes both fixtures byte for byte from it, loads each fixture into a fresh one and writes the same bytes again.
+- What C4h has to switch on:
+  1. Where store players live. Nothing builds a `StorePlayer` outside tests. C4h keeps one per player entity, keyed by entity id, builds it at login from the spawned `minecraft:player`, and applies the record before the entity enters the store, so the load appends no entries, as the live load runs before the world holds the player.
+  2. Logging. A `StorePlayer`'s components and inventory log nothing, because `EntityRuntime.writeField` throws `LoggedFieldError` on a field it does not know, and an undo would then stop the world. C4h wires them to `EntityStore.written` and `writtenSlot` and adds an inverse writer for the player fields, which replaces the adapter's `restoreLoggedField` and `restoreLoggedSlot`.
+  3. The keyed services. `storedAdvancements`, `loadAdvancements`, `forgetAdvancements`, `enchantmentSeedOf` and `forgetEnchantmentSeed` take a `Player` and use only its key and the server. They need a form that takes the key, and then `World.savePlayerData`, `World.getPlayerData` and `lastPlayerRecord`, which take a `Player` today, take the key and the store player.
+  4. Copies to delete with `Player`. `StorePlayer.setSaturation` and `setPortalCooldown` repeat the clamps of `Player.setSaturation` and `Entity.setPortalCooldown`, and `EYE_HEIGHT` lives in `entity/Human.ts`, which C4h deletes.
+  5. The maximum health in a record's table is not applied to a store entity, whose type decides it. Both are 20 today.
+  6. The head yaw is kept on the `StorePlayer`, because `MobBody` has none and `EntityRuntime.applyClientMovement` takes only the yaw and the pitch.
+  7. C4b's note still applies: a store player has to stay out of chunk saves (`ChunkSaveContext.ts`) and out of the despawn cycle.
+- A saved player record is a deep copy, which closes the question under "Checks to run". Checked again at this package: `storedInventory` builds new arrays and builds each stack from primitives, the attribute table, the experience and the position are numbers, and the advancements' `toJSON` builds new objects. The one shared object was the spawn point, which was the component's own value. A write replaces it and never changes it in place, but `playerRecordFrom` now copies it, so a record held until a later commit under ADR 0018 shares nothing with the player. `inventory/persistence.test.ts` asserts it for the inventory, and the format test for a whole store player record.
+- The client e2e `rejoin` scenario is new. It leaves the Nether hurt and logs back in, and checks the dimension, the position and the health. No scenario left and rejoined before. `dimensions`, `spawnpoint-respawn` and `death-respawn` pass with it.
+- In-game checks for the orchestrator's combined pass: log out with a damaged, enchanted and renamed tool in the hand, armor on, a shield in the off hand and items in the ender chest, on part health and food, in the Nether, with a bed set in the Overworld, and log back in. Everything comes back, and dying sends the player to the bed.
+
 ### Phase C: the store
 
 | Package | Slice | Depends on | Work                                                                                                                         |
@@ -385,6 +403,6 @@ Handlers take a narrow context and not `Server`. Other files that take `Server` 
 - `World.replayStateDigest` calls `dataEntities().persist()` before it hashes, so taking a digest has a side effect. Slice 2 has to remove it or show it changes nothing.
 - The replay test asserts only that one tick has a digest. Slice 1 should make it compare two runs tick by tick before anything depends on it.
 - How the path finder treats a read from an unloaded chunk was not traced.
-- Whether a saved player's inventory record is a deep copy was not confirmed. Slice 8 depends on it.
+- Whether a saved player's inventory record is a deep copy. Confirmed by B4 and again by C4e, which also made the record copy the spawn point; see the C4e notes.
 - Tick functions run from the ticker after the worlds, and a function can act in another dimension. Slice 9 treats a function as an input to the world it runs in and a cross-world command as a message. Confirm against Bedrock when a function runs relative to the tick.
 - The handler lanes were assigned from each handler's direct calls and not from a full trace. Slice 1 reviews the 15 readers and the `Disconnect` handler one by one.
