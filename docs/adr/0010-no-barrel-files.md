@@ -2,7 +2,7 @@
 
 Status: accepted
 
-A barrel is a module that only re-exports other modules. We ban them across the repository with Biome's `noBarrelFile` and `noReExportAll` rules, enforced by a baseline that only shrinks, as the packet-codec check does. Consumers import the file that defines a symbol. A package lists the modules it makes public as explicit subpath entries in its `exports` map, and the `"./*"` patterns that expose every file are replaced.
+A barrel is a module that re-exports another module's symbols, whether or not it also declares its own. That is the meaning Biome's rule gives the word, and the rule is the definition. We ban them across the repository with Biome's `noBarrelFile` and `noReExportAll` rules, enforced by a baseline that only shrinks, as the packet-codec check does. Consumers import the file that defines a symbol. A package lists the modules it makes public as explicit subpath entries in its `exports` map, and the `"./*"` patterns that expose every file are replaced.
 
 Prismarine's barrels and its `"./*"` pattern go as part of the entity re-architecture. Other packages' aggregating root entry points follow as separate work, one package at a time, and do not block that program.
 
