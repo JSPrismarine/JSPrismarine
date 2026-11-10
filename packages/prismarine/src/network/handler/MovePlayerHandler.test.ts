@@ -22,7 +22,11 @@ import MovePlayerHandler, { applyClientMovement } from './MovePlayerHandler';
 const fake = () => {
     const dropped: string[] = [];
     const players: Player[] = [];
-    const world = stub<World>({ getPlayers: () => players, broadcastMove: vi.fn(async () => {}) });
+    const world = stub<World>({
+        getPlayers: () => players,
+        entityRelocated: () => {},
+        broadcastMove: vi.fn(async () => {})
+    });
     const player = stub<Player>({
         getName: () => 'tester',
         getRuntimeId: () => 7n,
@@ -63,7 +67,11 @@ const move = (configure: (data: MovePlayer) => void = () => {}): MovePlayerPacke
 
 describe('MovePlayerHandler', () => {
     it('keeps posting movement events but queues movement only for changed poses', async () => {
-        const world = stub<World>({ getPlayers: () => [], broadcastMove: vi.fn(async () => {}) });
+        const world = stub<World>({
+            getPlayers: () => [],
+            entityRelocated: () => {},
+            broadcastMove: vi.fn(async () => {})
+        });
         const pose = {
             position: new Position(0, 64, 0, world),
             pitch: 0,

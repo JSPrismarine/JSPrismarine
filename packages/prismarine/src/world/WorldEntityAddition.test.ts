@@ -8,14 +8,16 @@ import { GenericEntity } from '../entity/GenericEntity';
 import { stub, stubOf } from '../testing/stub.test.helper';
 import EntityGrid from './EntityGrid';
 import { Dimensions } from './Dimension';
+import { inertEntityRuntime } from '../testing/entityServer';
 import { NULL_WORLD_CHANGE_SINK } from './WorldChangeSink';
 import { World } from './World';
 import { Position } from './Position';
 
-const bodyOf = (identifier: string): Entity =>
+const bodyOf = (identifier: string, world: World): Entity =>
     stubOf(GenericEntity, {
         getRuntimeId: () => 1n,
         getType: () => identifier,
+        getPosition: () => new Position(0.5, 64, 0.5, world),
         persistentNbt: null
     });
 
@@ -36,16 +38,17 @@ const worldOf = (live: LiveEntityRuntime): World => {
 
 describe('World.addEntity', () => {
     it('offers an unclaimed generic body to the data runtime before keeping it in the world', async () => {
-        const body = bodyOf('minecraft:cow');
         const restored: Entity[] = [];
         const live = stub<LiveEntityRuntime>({
             bodies: stub<LiveBodies>({ entityIdOf: () => undefined }),
             restoreExisting: (stored) => {
                 restored.push(stored);
                 return undefined;
-            }
+            },
+            runtime: inertEntityRuntime().runtime
         });
         const world = worldOf(live);
+        const body = bodyOf('minecraft:cow', world);
 
         await world.addEntity(body);
 

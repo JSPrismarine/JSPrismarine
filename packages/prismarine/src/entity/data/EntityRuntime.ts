@@ -99,7 +99,7 @@ import { dropOfRolledStack } from '../../item/lootStack';
 import { itemOfDrop } from '../../inventory/persistence';
 import { canBreed, offspringIdentifierOf, offspringOf, spendLove } from './breeding';
 import { DataEntity, MobBody, distance } from './DataEntity';
-import { EntityGrid } from './entityGrid';
+import { EntityIndex } from './entityIndex';
 import { detonate } from './explosion';
 import {
     MOB_EQUIPMENT_SLOTS,
@@ -393,8 +393,11 @@ export class EntityRuntime implements EntityScene {
     private readonly entities = new Map<number, DataEntity>();
     /** Lethal hits waiting for their queued `minecraft:on_death` events to apply. */
     private readonly pendingDeaths = new Set<number>();
-    /** Where each of them stands, which is what makes a neighbor search cheaper than a scan. */
-    private readonly grid = new EntityGrid();
+    /**
+     * Where every entity of the dimension stands, this runtime's and the world's legacy ones,
+     * which is what makes a neighbor search cheaper than a scan. See ADR 0007.
+     */
+    public readonly index = new EntityIndex();
     /** The entity each `EntityInstance` belongs to, which is how the AI seams resolve a body. */
     private readonly byInstance = new Map<EntityInstance, DataEntity>();
     /** Invalid interaction slots reported once per entity and request. */
@@ -582,20 +585,20 @@ export class EntityRuntime implements EntityScene {
     }
 
     /**
-     * Every live entity within a radius of a position, in spawn order.
+     * Every live entity within a radius of a position, in ascending runtime id order.
      *
      * The hot read of the whole runtime: `goalWorld.mobs` calls it once per
      * goal that searches for a neighbor, which at a hundred mobs is about
-     * seventy-five times a tick. {@link EntityGrid} is what keeps that from
+     * seventy-five times a tick. {@link EntityIndex} is what keeps that from
      * crossing every entity each time.
      */
     public near(center: EntityPosition, radius: number, families?: readonly string[]): readonly DataEntity[] {
-        return this.grid.within(center, radius, families);
+        return this.index.within(center, radius, families);
     }
 
-    /** Every live entity whose collision box intersects the given AABB, in spawn order. */
+    /** Every live entity whose collision box intersects the given AABB, in ascending runtime id order. */
     public inBox(min: EntityPosition, max: EntityPosition): readonly DataEntity[] {
-        return this.grid.withinBox(min, max);
+        return this.index.withinBox(min, max);
     }
 
     /** How many live entities of one type stand within a radius of a position. */
@@ -872,7 +875,7 @@ export class EntityRuntime implements EntityScene {
                 },
                 componentSetChanged: (changed) => {
                     const current = this.byInstance.get(changed);
-                    if (current !== undefined) this.grid.refreshBox(current);
+                    if (current !== undefined) this.index.refreshBox(current);
                 },
                 entitySensorCandidates: (_entity, query) => this.entitySensorCandidates(body, query),
                 random: {
@@ -920,11 +923,11 @@ export class EntityRuntime implements EntityScene {
         this.byPersistentIdentity.set(entity.persistentIdentity, entity);
         this.byInstance.set(instance, entity);
         // After the index, and with the hook set last: everything a component did while the
-        // instance was being built moved a body nothing was watching yet, and the grid files
+        // instance was being built moved a body nothing was watching yet, and the index files
         // where the body ended up rather than where it started.
-        this.grid.add(entity);
+        this.index.add(entity);
         body.onMove = () => {
-            this.grid.refile(entity);
+            this.index.refile(entity);
             const registration = this.gameEventListeners.get(id);
             if (registration !== undefined) this.gameEvents?.move(registration.listener);
         };
@@ -991,7 +994,7 @@ export class EntityRuntime implements EntityScene {
         this.pendingDeaths.delete(id);
         this.byInstance.delete(entity.instance);
         entity.body.onEquipmentChanged = undefined;
-        this.grid.remove(entity);
+        this.index.remove(entity);
         this.removeGameEventListener(id);
         entity.body.onMove = undefined;
         this.pools.delete(id);
@@ -1127,7 +1130,7 @@ export class EntityRuntime implements EntityScene {
             if (entity.removed !== undefined) continue;
             entity.body.containerCapacity = this.containerCapacityOf(entity.instance);
             this.syncGameEventListener(entity);
-            this.grid.refreshFamilies(entity);
+            this.index.refreshFamilies(entity);
             this.tickBrain(entity);
             tickBrainNavigation(entity);
             this.coast(entity);
@@ -3930,7 +3933,7 @@ export class EntityRuntime implements EntityScene {
     ): DataEntity | ContentEntity | undefined {
         const projectileBox = projectile.facts.box;
         const owner = projectile.body.owner;
-        for (const target of this.grid.within(at, 16)) {
+        for (const target of this.index.within(at, 16)) {
             if (
                 target.id === projectile.id ||
                 target.instance.hasComponent('minecraft:projectile') ||

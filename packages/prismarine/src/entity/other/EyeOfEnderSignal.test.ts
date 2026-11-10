@@ -23,6 +23,7 @@ const fakeWorld = () => {
         namedSounds,
         getName: () => 'test',
         getServer: () => testEntityServer(),
+        entityRelocated: () => {},
         broadcastMove: async (entity: { getPosition(): Vector3 }) => void moves.push(entity.getPosition()),
         removeEntity: async (entity: unknown) => void removed.push(entity),
         dropContents: async (position: Vector3, items: unknown[]) => void dropped.push({ position, items }),

@@ -43,6 +43,7 @@ const fakeWorld = (groundY: number, walls: (x: number, z: number) => boolean = (
         sendActorEvent: async (_entity: any, event: number, data: number) => void events.push({ event, data }),
         // Mirrors the real one: telling everybody an entity moved is the world's job now,
         // not something the entity does to itself.
+        entityRelocated: () => {},
         broadcastMove: async (entity: any) => {
             const pk = new MoveActorAbsolutePacket();
             pk.runtimeEntityId = entity.getRuntimeId();

@@ -25,6 +25,7 @@ const scene = () => {
         sendActorEvent: async () => {},
         sendActorSound: async () => {},
         sendActorMetadata: async () => {},
+        entityRelocated: () => {},
         broadcastMove: async () => {},
         getGameRuleManager: () => ({ getGameRule: () => [true, true] }),
         getLoadedChunk: () => null

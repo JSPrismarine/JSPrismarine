@@ -56,7 +56,7 @@ export default class Human extends Entity {
      * them at all. Every cow, sheep, chicken and spider was, geometrically, underfoot.
      */
     public override getFeetY(): number {
-        return this.position.getY() - this.getEyeHeight();
+        return this.getPosition().getY() - this.getEyeHeight();
     }
 
     /**

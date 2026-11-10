@@ -1,5 +1,12 @@
 /**
- * Where the live entities are, filed by the cell each one stands in.
+ * Where every entity of one dimension is, filed by the cell it stands in.
+ *
+ * One index, which ADR 0007 asks for. A position write refiles the entity
+ * before the write returns, so a query later in the same tick sees it where it
+ * moved to, and every query answers in ascending runtime id order. It serves
+ * the data-driven mobs, whose `MobBody.onMove` refiles them, and the legacy
+ * entities the world still holds - players, dropped items, the eye of ender -
+ * which `Entity`'s one position setter refiles through the world.
  *
  * The runtime's one quadratic cost is the neighbor search: `goalWorld.mobs`
  * runs it once per searching goal, and a hundred mobs ask about seventy-five
@@ -15,13 +22,16 @@
  * distance or box check throws it out, which costs a column of mobs nothing
  * worth a third axis of cells.
  *
- * The index is exact rather than a snapshot. {@link EntityGrid.refile} runs on
- * every position write, through `MobBody.onMove`, so a search inside a tick
- * sees the mobs that already moved in that tick where they moved to. A grid
- * rebuilt once a tick would be cheaper and would answer a different question.
+ * Dropped items go in cells two blocks wide of their own. A stack merges
+ * within half a block and a farm can leave hundreds in one chunk, so a merge
+ * search over sixteen-block cells would read every item in the chunk.
+ *
+ * The index is derived state. It is rebuilt from the entities whenever they
+ * are, and it stays out of the replay digest.
  */
 import type { EntityPosition } from '@jsprismarine/entities';
 
+import type { Entity } from '../Entity';
 import type { DataEntity } from './DataEntity';
 import { squaredDistance } from './DataEntity';
 
@@ -50,11 +60,35 @@ const KEY_SPAN = 2 ** KEY_BITS;
 const LARGE_BOX_WIDTH = 2;
 const LARGE_BOX_HEIGHT = 3;
 
+/** How wide one dropped item cell is, in blocks. */
+const ITEM_CELL_SIZE = 2;
+
 /** The cell one horizontal coordinate falls in. */
 const cellOf = (coordinate: number): number => Math.floor(coordinate) >> CELL_BITS;
 
 /** One cell's key, which is its two coordinates packed into one number. */
 const keyOf = (cellX: number, cellZ: number): number => (cellX & KEY_MASK) * KEY_SPAN + (cellZ & KEY_MASK);
+
+/** The fine cell one horizontal coordinate falls in, for dropped items. */
+const itemCellOf = (coordinate: number): number => Math.floor(coordinate / ITEM_CELL_SIZE);
+
+/** Whether a legacy entity is a dropped item, which the index files in its fine cells. */
+const isItem = (entity: Entity): boolean => entity.getType() === 'minecraft:item';
+
+/** The cell a legacy entity belongs in now, in the layer `item` names. */
+const legacyKeyOf = (entity: Entity, item: boolean): number => {
+    const position = entity.getPosition();
+    return item
+        ? keyOf(itemCellOf(position.getX()), itemCellOf(position.getZ()))
+        : keyOf(cellOf(position.getX()), cellOf(position.getZ()));
+};
+
+/** Where one legacy entity is filed. */
+interface LegacyFiling {
+    readonly entity: Entity;
+    readonly key: number;
+    readonly item: boolean;
+}
 
 /** One entity's dimensions as the spatial index last filed them. */
 interface IndexedBox {
@@ -67,7 +101,7 @@ interface IndexedBox {
 const isLargeBox = (width: number, height: number): boolean => width > LARGE_BOX_WIDTH || height > LARGE_BOX_HEIGHT;
 
 /** The live entities of one dimension, indexed by where they stand. */
-export class EntityGrid {
+export class EntityIndex {
     /** The entities in each cell, keyed by {@link keyOf}. */
     private readonly cells = new Map<number, DataEntity[]>();
 
@@ -98,8 +132,59 @@ export class EntityGrid {
     /** The widest ordinary box, maintained as entities enter, leave, or change components. */
     private widestRegularBox = 0;
 
+    /** Legacy entities with no data entity behind them, keyed by runtime id. */
+    private readonly legacyFiled = new Map<number, LegacyFiling>();
+
+    /** Legacy entities other than dropped items, in each sixteen-block cell. */
+    private readonly legacyCells = new Map<number, Entity[]>();
+
+    /** Dropped items in each two-block cell. */
+    private readonly itemCells = new Map<number, Entity[]>();
+
+    /**
+     * The body each data entity shows clients, once the world holds it.
+     *
+     * A body shares its data entity's runtime id, and its position is a copy
+     * the runtime writes after the entity moved. So it is attached to the data
+     * entity's entry rather than filed a second time, and a legacy query that
+     * reaches the entity answers with its body.
+     */
+    private readonly bodies = new Map<number, Entity>();
+
+    /** How many candidates every query so far has read out of a cell. */
+    private examined = 0;
+
+    /**
+     * How many candidates the queries so far have read out of cells, counted
+     * from the index's creation.
+     *
+     * A query reads every entity in each cell it touches and no other, so the
+     * difference across one query is the cost of that query.
+     */
+    public candidatesExamined(): number {
+        return this.examined;
+    }
+
+    /** How many entities the index holds, a data entity and its body counting once. */
+    public get size(): number {
+        return this.filed.size + this.legacyFiled.size;
+    }
+
+    /** How many cell lists hold anything, across every layer. Zero once the index is empty. */
+    public get occupiedCells(): number {
+        let familyCells = 0;
+        for (const cells of this.familyCells.values()) familyCells += cells.size;
+        return this.cells.size + this.largeCells.size + familyCells + this.legacyCells.size + this.itemCells.size;
+    }
+
     /** Puts one entity in the index, at the position it stands at now. */
     public add(entity: DataEntity): void {
+        // A body the world filed before its data entity existed is the same entity, now attached.
+        const legacy = this.legacyFiled.get(entity.id);
+        if (legacy !== undefined) {
+            this.unfileLegacy(legacy);
+            this.bodies.set(entity.id, legacy.entity);
+        }
         this.file(entity, cellKeyOf(entity.position));
         this.refreshBox(entity);
         this.refreshFamilies(entity);
@@ -115,6 +200,108 @@ export class EntityGrid {
         this.unfile(entity, key);
         for (const family of this.filedFamilies.get(entity.id) ?? []) this.unfileFamily(entity, family, key);
         this.filedFamilies.delete(entity.id);
+
+        // A body the world still holds stays findable, at its own position, until the world drops it.
+        const body = this.bodies.get(entity.id);
+        if (body === undefined) return;
+        this.bodies.delete(entity.id);
+        this.fileLegacyAt(body, entity.id);
+    }
+
+    /**
+     * Files one legacy entity the world has just taken in.
+     *
+     * The body of a data entity is attached to that entity's entry, since the
+     * two are one entity. Anything else is filed at its own position.
+     */
+    public addLegacy(entity: Entity): void {
+        const id = Number(entity.getRuntimeId());
+        if (this.filed.has(id)) {
+            this.bodies.set(id, entity);
+            return;
+        }
+
+        const previous = this.legacyFiled.get(id);
+        if (previous !== undefined) this.unfileLegacy(previous);
+        this.fileLegacyAt(entity, id);
+    }
+
+    /** Moves one legacy entity to the cell it stands in now, which its position setter calls. */
+    public refileLegacy(entity: Entity): void {
+        const previous = this.legacyFiled.get(Number(entity.getRuntimeId()));
+        if (previous?.entity !== entity || legacyKeyOf(entity, previous.item) === previous.key) return;
+
+        this.unfileLegacy(previous);
+        this.fileLegacyAt(entity, Number(entity.getRuntimeId()));
+    }
+
+    /** Takes one legacy entity, or the body of a data entity, out of the index. */
+    public removeLegacy(entity: Entity): void {
+        const id = Number(entity.getRuntimeId());
+        if (this.bodies.get(id) === entity) this.bodies.delete(id);
+        const previous = this.legacyFiled.get(id);
+        if (previous?.entity === entity) this.unfileLegacy(previous);
+    }
+
+    /**
+     * Dropped items within a horizontal radius of a point, in ascending runtime id order.
+     *
+     * Horizontal only, as item merge and pickup ask: each applies its own
+     * exact distance to what comes back.
+     */
+    public itemsWithin(x: number, z: number, radius: number): Entity[] {
+        if (radius < 0) return [];
+        const found: Entity[] = [];
+        this.collectItems(found, x, z, radius);
+        return inRuntimeIdOrder(found);
+    }
+
+    /**
+     * Every entity the world holds within a horizontal radius of a point, as
+     * the legacy classes see them, in ascending runtime id order.
+     *
+     * A data entity answers with its body and is found by where the runtime
+     * put it, which the body catches up with at the end of the runtime's tick.
+     * A data entity whose body the world does not hold yet is left out.
+     */
+    public legacyWithin(x: number, z: number, radius: number): Entity[] {
+        if (radius < 0) return [];
+
+        const found: Entity[] = [];
+        this.collectItems(found, x, z, radius);
+
+        const reach = radius * radius;
+        const lowX = cellOf(x - radius);
+        const highX = cellOf(x + radius);
+        const lowZ = cellOf(z - radius);
+        const highZ = cellOf(z + radius);
+        for (let cellX = lowX; cellX <= highX; cellX += 1)
+            for (let cellZ = lowZ; cellZ <= highZ; cellZ += 1) {
+                const key = keyOf(cellX, cellZ);
+                const legacy = this.legacyCells.get(key);
+                if (legacy !== undefined) {
+                    this.examined += legacy.length;
+                    for (const entity of legacy) {
+                        const position = entity.getPosition();
+                        const dx = position.getX() - x;
+                        const dz = position.getZ() - z;
+                        if (dx * dx + dz * dz <= reach) found.push(entity);
+                    }
+                }
+
+                const data = this.cells.get(key);
+                if (data === undefined) continue;
+                this.examined += data.length;
+                for (const entity of data) {
+                    const body = this.bodies.get(entity.id);
+                    if (body === undefined) continue;
+                    const dx = entity.position.x - x;
+                    const dz = entity.position.z - z;
+                    if (dx * dx + dz * dz <= reach) found.push(body);
+                }
+            }
+
+        return inRuntimeIdOrder(found);
     }
 
     /** Moves one entity to the cell it stands in now, which a position write calls. */
@@ -214,6 +401,7 @@ export class EntityGrid {
                 if (families === undefined) {
                     const cell = this.cells.get(key);
                     if (cell === undefined) continue;
+                    this.examined += cell.length;
                     for (const entity of cell)
                         if (squaredDistance(center, entity.position) <= reach) found.push(entity);
                     continue;
@@ -222,6 +410,7 @@ export class EntityGrid {
                 if (singleFamilyCells !== undefined) {
                     const candidates = singleFamilyCells.get(key);
                     if (candidates === undefined) continue;
+                    this.examined += candidates.length;
                     for (const entity of candidates)
                         if (squaredDistance(center, entity.position) <= reach) found.push(entity);
                     continue;
@@ -230,6 +419,7 @@ export class EntityGrid {
                 for (const family of familyBuckets ?? []) {
                     const candidates = family.get(key);
                     if (candidates === undefined) continue;
+                    this.examined += candidates.length;
                     for (const entity of candidates) {
                         if (seen?.has(entity.id)) continue;
                         seen?.add(entity.id);
@@ -255,6 +445,7 @@ export class EntityGrid {
             for (let cellZ = lowZ; cellZ <= highZ; cellZ += 1) {
                 const cell = this.cells.get(keyOf(cellX, cellZ));
                 if (cell === undefined) continue;
+                this.examined += cell.length;
                 for (const entity of cell)
                     if (!this.largeBoxes.has(entity.id) && this.intersectsBox(entity, min, max)) found.push(entity);
             }
@@ -266,6 +457,7 @@ export class EntityGrid {
             for (let cellX = cellOf(min.x); cellX <= cellOf(max.x); cellX += 1)
                 for (let cellZ = cellOf(min.z); cellZ <= cellOf(max.z); cellZ += 1)
                     for (const entity of this.largeCells.get(keyOf(cellX, cellZ)) ?? []) {
+                        this.examined += 1;
                         if (seen.has(entity.id)) continue;
                         seen.add(entity.id);
                         if (this.intersectsBox(entity, min, max)) found.push(entity);
@@ -298,6 +490,49 @@ export class EntityGrid {
             this.regularBoxWidths.set(width, count + 1);
             this.widestRegularBox = Math.max(this.widestRegularBox, width);
         }
+    }
+
+    /** Adds the dropped items within a horizontal radius to `found`, in no particular order. */
+    private collectItems(found: Entity[], x: number, z: number, radius: number): void {
+        const reach = radius * radius;
+        const lowX = itemCellOf(x - radius);
+        const highX = itemCellOf(x + radius);
+        const lowZ = itemCellOf(z - radius);
+        const highZ = itemCellOf(z + radius);
+        for (let cellX = lowX; cellX <= highX; cellX += 1)
+            for (let cellZ = lowZ; cellZ <= highZ; cellZ += 1) {
+                const cell = this.itemCells.get(keyOf(cellX, cellZ));
+                if (cell === undefined) continue;
+                this.examined += cell.length;
+                for (const entity of cell) {
+                    const position = entity.getPosition();
+                    const dx = position.getX() - x;
+                    const dz = position.getZ() - z;
+                    if (dx * dx + dz * dz <= reach) found.push(entity);
+                }
+            }
+    }
+
+    /** Files one legacy entity at the cell it stands in now. */
+    private fileLegacyAt(entity: Entity, id: number): void {
+        const item = isItem(entity);
+        const key = legacyKeyOf(entity, item);
+        this.legacyFiled.set(id, { entity, key, item });
+        const cells = item ? this.itemCells : this.legacyCells;
+        const cell = cells.get(key);
+        if (cell === undefined) cells.set(key, [entity]);
+        else cell.push(entity);
+    }
+
+    /** Takes one legacy entity out of its cell and forgets where it was. */
+    private unfileLegacy(filing: LegacyFiling): void {
+        this.legacyFiled.delete(Number(filing.entity.getRuntimeId()));
+        const cells = filing.item ? this.itemCells : this.legacyCells;
+        const cell = cells.get(filing.key);
+        if (cell === undefined) return;
+        const at = cell.indexOf(filing.entity);
+        if (at !== -1) cell.splice(at, 1);
+        if (cell.length === 0) cells.delete(filing.key);
     }
 
     /** Puts one entity in a cell and records that it is there. */
@@ -422,5 +657,17 @@ const cellKeyOf = (position: EntityPosition): number => keyOf(cellOf(position.x)
 const inIdOrder = (found: DataEntity[]): DataEntity[] => {
     for (let index = 1; index < found.length; index += 1)
         if (found[index - 1]!.id > found[index]!.id) return found.sort((a, b) => a.id - b.id);
+    return found;
+};
+
+/** Puts legacy entities in ascending runtime id order, checking first as {@link inIdOrder} does. */
+const inRuntimeIdOrder = (found: Entity[]): Entity[] => {
+    for (let index = 1; index < found.length; index += 1)
+        if (found[index - 1]!.getRuntimeId() > found[index]!.getRuntimeId())
+            return found.sort((a, b) => {
+                const left = a.getRuntimeId();
+                const right = b.getRuntimeId();
+                return left < right ? -1 : left > right ? 1 : 0;
+            });
     return found;
 };
