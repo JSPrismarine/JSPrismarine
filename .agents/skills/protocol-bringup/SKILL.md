@@ -110,8 +110,7 @@ pnpm --filter @jsprismarine/bedrock-data run dump:bedrock --pass packets --proto
 
 Run it twice and compare: commit only files that reproduce byte-for-byte (the 2225 capture's
 stability table in the pipeline note is the precedent — `crafting_data.bin` carries per-session
-ids and never reproduces). Goldens land under `packages/bedrock-data/src/jsp/v<N>/`. Generate
-recipes with `pnpm --filter @jsprismarine/minecraft run generate:recipes`; the `palette` pass is
+ids and never reproduces). Goldens land under `packages/bedrock-data/src/jsp/v<N>/`. The `palette` pass is
 blocked until its producer reproduces (pipeline note, section 10).
 
 Done when: the stable goldens for N are committed and a re-capture is an empty diff.

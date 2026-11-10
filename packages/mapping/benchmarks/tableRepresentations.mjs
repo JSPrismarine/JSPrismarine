@@ -17,12 +17,7 @@ const assets = [
     { name: 'mapping/javaIdentifiers', file: 'packages/mapping/src/tables/javaIdentifiers.json' },
     { name: 'mapping/dimensions', file: 'packages/mapping/src/tables/dimensions.json' },
     { name: 'blocks/geometry', file: 'packages/blocks/src/tables/blockGeometry.json', nativeInCurrent: true },
-    { name: 'items/itemTypes', file: 'packages/items/src/tables/itemTypes.json', nativeInCurrent: true },
-    {
-        name: 'minecraft/recipes',
-        file: 'packages/minecraft/src/generated/v2193/recipes.json',
-        nativeInCurrent: true
-    }
+    { name: 'items/itemTypes', file: 'packages/items/src/tables/itemTypes.json', nativeInCurrent: true }
 ];
 
 const HEADER_BYTES = 28;

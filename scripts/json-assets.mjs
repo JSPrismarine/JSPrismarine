@@ -19,11 +19,6 @@ const cases = [
         asset: 'tables/itemTypes.json',
         wrapper: 'tables/itemTypes.js',
         runtime: 'tables.js'
-    },
-    {
-        packageDirectory: 'packages/minecraft',
-        asset: 'generated/v2193/recipes.json',
-        wrapper: 'generated/v2193/recipes.js'
     }
 ];
 
