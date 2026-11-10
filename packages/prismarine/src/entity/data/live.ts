@@ -313,6 +313,13 @@ const liveHost = (
             .sendActorEvent(body, ActorEvent.UPDATE_STACK_SIZE, count)
             .catch((error: unknown) => options.report(String(error)));
     },
+    playSoundAt: (at, sound) => options.liveWorld()?.playNamedSoundAt(new Vector3(at.x, at.y, at.z), sound),
+    levelEvent: (at, event, data) => {
+        void options
+            .liveWorld()
+            ?.sendWorldEvent(new Vector3(at.x, at.y, at.z), event, data)
+            .catch((error: unknown) => options.report(String(error)));
+    },
     hurt: (id, amount, cause, sourceId, deathMessageOverride) => {
         const world = options.liveWorld();
         const target = world?.getEntity(BigInt(id));

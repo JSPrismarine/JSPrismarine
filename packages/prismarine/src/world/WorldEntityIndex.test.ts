@@ -8,12 +8,10 @@ import type { LiveEntityRuntime } from '../entity/data/live';
 import type { LiveBodies } from '../entity/data/liveBodies';
 import type { Entity } from '../entity/Entity';
 import { GenericEntity } from '../entity/GenericEntity';
-import { EyeOfEnderSignal } from '../entity/other/EyeOfEnderSignal';
 import type { DataEntity } from '../entity/data/DataEntity';
 import type { EntityRuntime } from '../entity/data/EntityRuntime';
 import { ItemActorBody } from '../entity/data/itemBodies';
 import type { ItemBodies } from '../entity/data/itemBodies';
-import { Item as ItemStack } from '../item/Item';
 import { testEntityServer } from '../testing/entityServer';
 import { stub, stubOf } from '../testing/stub.test.helper';
 import Chunk from './chunk/Chunk';
@@ -79,14 +77,6 @@ const droppedItem = (
     return { entity, body };
 };
 
-const eyeOfEnder = (world: World, x: number, z: number): EyeOfEnderSignal =>
-    new EyeOfEnderSignal({
-        position: new Position(x, Y, z, world),
-        item: new ItemStack({ runtimeId: 0, name: 'minecraft:ender_eye' }),
-        random: () => 0.5,
-        runtimeId: nextLegacyId++
-    });
-
 /** A player with no connection, which is all a position write needs. */
 const playerAt = async (world: World, x: number, z: number): Promise<Player> => {
     const runtimeId = nextLegacyId++;
@@ -120,18 +110,18 @@ describe('the entity index over a world', () => {
         expect(world.getEntityIndex().itemsWithin(40.5, 0.5, 0.5)).toEqual([]);
     });
 
-    it('sees an eye of ender and a player where their last write put them', async () => {
+    it('sees a legacy entity and a player where their last write put them', async () => {
         const { world } = indexedWorld();
-        const eye = eyeOfEnder(world, 0.5, 0.5);
+        const stand = legacyEntity(world, 0.5, 0.5);
         const player = await playerAt(world, 0.5, 0.5);
-        await world.addEntity(eye);
+        await world.addEntity(stand);
         await world.addEntity(player);
 
-        await eye.setPosition({ position: new Vector3(20.5, Y, 20.5) });
+        await stand.setPosition({ position: new Vector3(20.5, Y, 20.5) });
         // The write a movement handler makes for a client-owned move.
         await player.setPlayerPosition({ position: new Vector3(-30.5, Y, 4.5) }, false);
 
-        expect(finds(world, eye, 20.5, 20.5)).toBe(true);
+        expect(finds(world, stand, 20.5, 20.5)).toBe(true);
         expect(finds(world, player, -30.5, 4.5)).toBe(true);
         expect(finds(world, player, 0.5, 0.5)).toBe(false);
     });
@@ -164,13 +154,13 @@ describe('the entity index over a world', () => {
     it('leaves nothing behind once everything it filed is removed', async () => {
         const { world, index } = indexedWorld();
         const item = legacyEntity(world, 0.5, 0.5);
-        const eye = eyeOfEnder(world, 17.5, 0.5);
+        const stand = legacyEntity(world, 17.5, 0.5);
         const player = await playerAt(world, -17.5, 0.5);
-        for (const entity of [item, eye, player]) await world.addEntity(entity);
+        for (const entity of [item, stand, player]) await world.addEntity(entity);
         await item.setPosition({ position: new Vector3(33.5, Y, 0.5) });
         expect(index.size).toBe(3);
 
-        for (const entity of [item, eye, player]) await world.removeEntity(entity);
+        for (const entity of [item, stand, player]) await world.removeEntity(entity);
 
         expect(index.size).toBe(0);
         expect(index.occupiedCells).toBe(0);

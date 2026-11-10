@@ -122,6 +122,13 @@ export interface EntityHostFacts {
     /** Tells clients that a dropped stack now holds `count` items, after a merge or a partial take. */
     itemStackChanged?(itemId: number, count: number): void;
     /**
+     * Plays a named sound at an exact point, for an entity rather than a block, which
+     * `ContentEffectSink.playSound` centers on.
+     */
+    playSoundAt?(at: ContentPosition, sound: string): void;
+    /** Plays a level event at a point, such as the burst of an eye of ender that shatters. */
+    levelEvent?(at: ContentPosition, event: number, data: number): void;
+    /**
      * Deals damage to something the entity index does not hold.
      *
      * A player is the case that matters: a zombie's `melee_attack` goal names

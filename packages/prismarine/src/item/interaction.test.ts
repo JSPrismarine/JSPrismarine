@@ -21,7 +21,6 @@ import type { ServerContent } from '../content/ServerContent';
 import type { ContentPosition } from '../content/world/adapter';
 import { serverWorldSource } from '../content/world/serverSource';
 import type { ServerWorldHandle } from '../content/world/serverSource';
-import { EyeOfEnderSignal } from '../entity/other/EyeOfEnderSignal';
 import { Item } from './Item';
 import { useItemInAir, useItemOnBlock } from './interaction';
 import { createBlockEntity } from '../world/generators/datadriven/javaGeneratedContent';
@@ -190,7 +189,7 @@ const liveWorld = (
             // to land. Read late, because the content is built over this world.
             getContent: () => content(),
             getLogger: () => ({ debug: () => {}, error: () => {}, verbose: () => {}, warn: () => {} }),
-            // Rolled by an eye of ender for its shatter; this one always survives.
+            // Rolled for the pitch of an eye of ender's launch.
             getRandom: () => () => 0.5
         }
     });
@@ -623,7 +622,13 @@ describe('useItemOnBlock', () => {
         const strongholdAt = (found: { x: number; y: number; z: number } | undefined) =>
             Object.assign(world, { locateStructure: () => found && { structure: 'minecraft:stronghold', ...found } });
 
-        /** A player holding eyes, in the numeric-keyed entity index where the throw finds its thrower. */
+        /** Every eye the store was asked to throw: where from, and toward what. */
+        let launched: { from: ContentPosition; target: ContentPosition }[];
+
+        /**
+         * A player holding eyes, in the numeric-keyed entity index where the throw finds its
+         * thrower, in a world whose store records the eyes it is asked to throw.
+         */
         const eyes = (count: number, gamemode: Gametype = Gametype.SURVIVAL) => {
             const player = playerHolding(
                 world,
@@ -631,46 +636,48 @@ describe('useItemOnBlock', () => {
                 false,
                 gamemode
             );
-            Object.assign(world, { entities: new Map([[Number(player.getRuntimeId()), player]]) });
+            launched = [];
+            const launch = (from: ContentPosition, target: ContentPosition) => {
+                launched.push({ from, target });
+                return { id: launched.length };
+            };
+            Object.assign(world, {
+                entities: new Map([[Number(player.getRuntimeId()), player]]),
+                dataEntities: () => ({ runtime: { eyesOfEnder: { launch } } })
+            });
             return player;
         };
 
-        /** The eyes in flight, once the throw's asynchronous add has settled. */
-        const thrown = async () => {
-            await new Promise((resolve) => setImmediate(resolve));
-            return world.getEntities().filter((entity) => entity instanceof EyeOfEnderSignal);
-        };
-
-        it('throws an eye of ender toward the stronghold and spends one', async () => {
+        it('throws an eye of ender toward the stronghold and spends one', () => {
             strongholdAt({ x: 400, y: 0, z: -96 });
             const player = eyes(2);
 
             expect(useItemInAir({ content, actors: handle.actorsAt(DIMENSION), player })).toBe('handled');
 
-            const [eye] = await thrown();
-            expect(eye).toBeInstanceOf(EyeOfEnderSignal);
-            expect(eye?.getPosition().getY()).toBeCloseTo(65 - 1.62 + 0.9);
+            const [eye] = launched;
+            expect(eye?.from.y).toBeCloseTo(65 - 1.62 + 0.9);
+            expect(eye?.target).toEqual({ x: 400, y: 0, z: -96 });
             expect(player.getInventory().getItemInHand().getAmount()).toBe(1);
             expect(sessionOf(player).inventoriesSent).toBe(1);
         });
 
-        it('keeps the eye in a creative hand', async () => {
+        it('keeps the eye in a creative hand', () => {
             strongholdAt({ x: 400, y: 0, z: -96 });
             const player = eyes(2, Gametype.CREATIVE);
 
             expect(useItemInAir({ content, actors: handle.actorsAt(DIMENSION), player })).toBe('handled');
 
-            expect(await thrown()).toHaveLength(1);
+            expect(launched).toHaveLength(1);
             expect(player.getInventory().getItemInHand().getAmount()).toBe(2);
         });
 
-        it('throws nothing and spends nothing when no stronghold is in range, and tells the client', async () => {
+        it('throws nothing and spends nothing when no stronghold is in range, and tells the client', () => {
             strongholdAt(undefined);
             const player = eyes(2);
 
             expect(useItemInAir({ content, actors: handle.actorsAt(DIMENSION), player })).toBe('handled');
 
-            expect(await thrown()).toHaveLength(0);
+            expect(launched).toHaveLength(0);
             expect(player.getInventory().getItemInHand().getAmount()).toBe(2);
             // The client took one out of its own hand the moment it clicked.
             expect(sessionOf(player).inventoriesSent).toBe(1);

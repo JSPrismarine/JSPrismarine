@@ -353,6 +353,9 @@ export class TestEntityWorld {
     /** Every particle emitted in this world, in the order it was emitted. */
     public readonly particles: string[] = [];
 
+    /** Every level event played in this world, in the order it was played. */
+    public readonly levelEvents: { at: ContentPosition; event: number; data: number }[] = [];
+
     /** Every game event the world received, in the order it was emitted. */
     public readonly gameEvents: { event: string; at: ContentPosition; sourceId: number | undefined }[] = [];
 
@@ -518,6 +521,8 @@ export class TestEntityWorld {
                 return item.count - fits;
             },
             itemStackChanged: (itemId, count) => this.stackChanges.push({ itemId, count }),
+            playSoundAt: (_at, sound) => this.sounds.push(sound),
+            levelEvent: (at, event, data) => this.levelEvents.push({ at, event, data }),
             hurt: (id, amount, cause, sourceId, deathMessageOverride) => {
                 this.hits.push({
                     id,
@@ -615,11 +620,15 @@ export interface EntityFixture {
  * `buildServerContent` closes its own - the runtime holds a closure over the
  * content rather than the content itself, and nothing dereferences it until a
  * hook runs.
+ *
+ * @param nextId - Draws runtime ids; the runtime counts from one when it is left out. A test
+ *   that puts the fixture's entities beside a server's own passes one that keeps them apart.
  */
 export const entityFixture = (
     world = new TestEntityWorld(),
     overrides: ContentOptions = {},
-    extra: ExtraEntities = {}
+    extra: ExtraEntities = {},
+    nextId?: () => number
 ): EntityFixture => {
     const reports: string[] = [];
     const spawned: DataEntity[] = [];
@@ -635,7 +644,8 @@ export const entityFixture = (
         host: world.host,
         report: (message) => reports.push(message),
         onSpawn: (entity) => spawned.push(entity),
-        onRemove: (entity, reason) => removed.push({ entity, reason })
+        onRemove: (entity, reason) => removed.push({ entity, reason }),
+        ...(nextId === undefined ? {} : { nextId })
     });
 
     const adapter: ServerWorldAdapter = {
