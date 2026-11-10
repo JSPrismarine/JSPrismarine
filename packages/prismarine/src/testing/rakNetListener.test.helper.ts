@@ -13,7 +13,15 @@ import { afterAll, beforeAll, vi } from 'vitest';
 export const stubRakNetListener = (): void => {
     beforeAll(() => {
         vi.spyOn(raknet, 'RakNetListener').mockImplementation(function (this: raknet.RakNetListener) {
-            Object.assign(this, { start: vi.fn(), on: vi.fn(), kill: vi.fn() });
+            Object.assign(this, {
+                start: vi.fn(),
+                // The server holds its first tick until each transport listens, so the stand-in
+                // says it does, on a later turn as a socket would.
+                on: vi.fn((event: string, listener: () => void) => {
+                    if (event === 'listening') queueMicrotask(listener);
+                }),
+                kill: vi.fn()
+            });
         });
     });
 
