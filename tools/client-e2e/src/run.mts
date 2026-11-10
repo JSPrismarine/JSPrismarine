@@ -49,6 +49,7 @@ import { leverLamp } from './scenarios/lever-lamp.mts';
 import { attackEntity } from './scenarios/attack-entity.mts';
 import { movement } from './scenarios/movement.mts';
 import { movementFanout } from './scenarios/movement-fanout.mts';
+import { duplicateLogin } from './scenarios/duplicate-login.mts';
 import { movementRotation } from './scenarios/movement-rotation.mts';
 import { naturalSpawnPlacement } from './scenarios/natural-spawn-placement.mts';
 import { naturalSpawnUnderCanopy } from './scenarios/natural-spawn-under-canopy.mts';
@@ -93,6 +94,7 @@ const suites: ScenarioSuite[] = [
             lookDirection,
             gait,
             movementFanout,
+            duplicateLogin,
             movementRotation,
             chat,
             miningDrops,
@@ -446,28 +448,42 @@ const runSuite = async (suite: ScenarioSuite, index: number): Promise<ScenarioRe
                     await client.recordStart(path.join(scenarioArtifacts, 'run.mp4'));
                     recordingStarted = true;
                 }
+                // Each additional client gets its own user root, so two clients may share a name.
+                const launchClient = async (displayName: string): Promise<CinnabarClient> => {
+                    if (!/^[a-zA-Z0-9_-]{1,16}$/.test(displayName)) {
+                        throw new Error(
+                            'additional client names must be 1 to 16 letters, numbers, underscores, or hyphens'
+                        );
+                    }
+                    const additional = await CinnabarClient.start(cinnabar.checkout, cinnabar.binaries.mcp);
+                    scenarioClients.push(additional);
+                    const root =
+                        scenarioClients.length === 1 ? displayName : `${displayName}-${scenarioClients.length}`;
+                    await additional.launch({
+                        userRoot: path.join(suiteServer.dir, `client-user-root-${root}`),
+                        clientBinary: cinnabar.clientBinary,
+                        displayName,
+                        recorded: false
+                    });
+                    return additional;
+                };
+                const connectClient = async (displayName: string): Promise<CinnabarClient> => {
+                    const additional = await launchClient(displayName);
+                    await additional.connect(suiteServer.port, transport === 'nethernet');
+                    return additional;
+                };
                 await scenario.run({
                     server: suiteServer,
                     client,
+                    connectClient,
+                    launchClient,
+                    connect: (additional) => additional.connect(suiteServer.port, transport === 'nethernet'),
                     createClient: async (displayName) => {
-                        if (!/^[a-zA-Z0-9_-]{1,16}$/.test(displayName)) {
-                            throw new Error(
-                                'additional client names must be 1 to 16 letters, numbers, underscores, or hyphens'
-                            );
-                        }
-                        const additional = await CinnabarClient.start(cinnabar.checkout, cinnabar.binaries.mcp);
-                        scenarioClients.push(additional);
-                        await additional.launch({
-                            userRoot: path.join(suiteServer.dir, `client-user-root-${displayName}`),
-                            clientBinary: cinnabar.clientBinary,
-                            displayName,
-                            recorded: false
-                        });
                         const additionalJoined = suiteServer.waitForLine(
                             new RegExp(`${displayName} joined the game`),
                             120_000
                         );
-                        await additional.connect(suiteServer.port, transport === 'nethernet');
+                        const additional = await connectClient(displayName);
                         await additional.waitFor('in_world', 120_000);
                         await additional.waitForScreenAbsent('Loading', 120_000);
                         await additionalJoined;
