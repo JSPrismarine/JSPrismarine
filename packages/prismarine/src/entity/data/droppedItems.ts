@@ -55,24 +55,16 @@ const RESISTED_TAGS: Readonly<Record<string, string>> = {
     [DamageCause.Explosion]: 'minecraft:is_explosion'
 };
 
-/** A nullable string field. */
-const nullableString = stateField.nullable((value: unknown): value is string => typeof value === 'string');
-
 /** A stack as component state holds it: a stored stack, as a plain record. */
 const isStackState = (value: unknown): value is ComponentStateRecord => isStoredItemStack(value);
 
 /**
  * One dropped stack's state.
- *
- * `owner` is the identity of the only player who may take it, and `thrower` the identity of the
- * player who dropped it. Neither is written to the item's actor record, as before.
  */
 export const itemState = defineComponentState(ITEM_COMPONENT, {
     stack: isStackState,
     age: stateField.number,
-    pickupDelay: stateField.number,
-    owner: nullableString,
-    thrower: nullableString
+    pickupDelay: stateField.number
 });
 
 /** What a dropped stack starts with or comes back from a save with. */
@@ -90,10 +82,6 @@ export interface ItemStart {
     readonly thrown?: boolean;
     /** Its speed in blocks per tick; still when absent. */
     readonly motion?: EntityPosition;
-    /** The identity of the only player who may take it. */
-    readonly owner?: string;
-    /** The identity of the player who dropped it. */
-    readonly thrower?: string;
     /**
      * Whether the position given is the one the item reports, as a saved record holds it, rather
      * than where it lies.
@@ -106,8 +94,6 @@ export interface ItemView {
     readonly stack: StoredItemStack;
     readonly age: number;
     readonly pickupDelay: number;
-    readonly owner: string | null;
-    readonly thrower: string | null;
 }
 
 /** The numbers of `jsprismarine:item`. */
@@ -203,9 +189,7 @@ const stackRecord = (stack: StoredItemStack): ComponentStateRecord => ({
 const stateRecord = (view: ItemView): Parameters<typeof writeState>[1] => ({
     stack: stackRecord(view.stack),
     age: view.age,
-    pickupDelay: view.pickupDelay,
-    owner: view.owner,
-    thrower: view.thrower
+    pickupDelay: view.pickupDelay
 });
 
 const writeState = (entity: DataEntity, state: NonNullable<ReturnType<typeof readState>>): void =>
@@ -223,9 +207,7 @@ export const itemViewOf = (entity: DataEntity): ItemView | undefined => {
     return {
         stack: state.stack,
         age: state.age,
-        pickupDelay: state.pickupDelay,
-        owner: state.owner,
-        thrower: state.thrower
+        pickupDelay: state.pickupDelay
     };
 };
 
@@ -247,9 +229,7 @@ export const startItem = (entity: DataEntity, start: ItemStart): void => {
         stateRecord({
             stack: start.stack,
             age: start.age ?? 0,
-            pickupDelay: start.pickupDelay ?? (start.thrown === true ? tuning.thrownPickupDelay : tuning.pickupDelay),
-            owner: start.owner ?? null,
-            thrower: start.thrower ?? null
+            pickupDelay: start.pickupDelay ?? (start.thrown === true ? tuning.thrownPickupDelay : tuning.pickupDelay)
         })
     );
     if (start.motion !== undefined) entity.body.velocity = start.motion;
@@ -273,16 +253,16 @@ export interface DroppedItemsHost {
     byId(id: number): DataEntity | undefined;
     /** Dropped stacks within a horizontal radius, in ascending runtime id order. */
     itemsWithin(x: number, z: number, radius: number): readonly DataEntity[];
-    /** Whether the block at a position is solid; an unloaded block answers true. */
-    blocksMovement(position: EntityPosition): boolean;
+    /** Whether the block at a position is solid, or undefined when its chunk is not loaded. */
+    solidAt(position: EntityPosition): boolean | undefined;
     /** The block at a position, or undefined when its chunk is not loaded. */
     blockAt(position: EntityPosition): string | undefined;
     /** The players of the dimension this tick, in the order the world holds them. */
     players(): readonly ItemTaker[];
-    /** A player's identity, which `owner` names. */
-    playerIdentityOf(id: number): string | undefined;
     /** The lowest block y of the dimension. */
     minY(): number;
+    /** One past the highest block y of the dimension. */
+    maxY(): number;
     /** The level clock, which the hazard cadence counts. */
     gameTime(): number;
     /**
@@ -417,33 +397,42 @@ export class DroppedItems {
      * Moves the item one tick, in the order BDS does: gravity, then the move, then drag.
      *
      * It stops against a block sideways and comes to rest on top of the first solid block below.
-     * An unloaded block stops it like a solid one, so the probe never loads a chunk. An item at
-     * rest does no work and writes nothing.
+     * An item that would read a block of a chunk that is not loaded waits where it is, with the
+     * speed it has, and writes nothing, so the probe never loads a chunk. An item at rest does no
+     * work and writes nothing either.
      */
     private move(entity: DataEntity, tuning: ItemTuning): void {
         const position = entity.position;
         const motion = entity.body.velocity;
         const feet = position.y - tuning.positionOffset;
         const still = motion.x === 0 && motion.y === 0 && motion.z === 0;
-        if (still && this.solidAt(position.x, feet - tuning.groundProbe, position.z)) return;
+        if (still) {
+            const below = this.solidAt(position.x, feet - tuning.groundProbe, position.z);
+            if (below !== false) return;
+        }
 
         let motionX = motion.x;
         let motionY = motion.y - tuning.gravity;
         let motionZ = motion.z;
 
         let x = position.x + motionX;
-        if (this.solidAt(x, feet, position.z)) {
+        const blockedX = this.solidAt(x, feet, position.z);
+        if (blockedX === undefined) return;
+        if (blockedX) {
             x = position.x;
             motionX = 0;
         }
         let z = position.z + motionZ;
-        if (this.solidAt(x, feet, z)) {
+        const blockedZ = this.solidAt(x, feet, z);
+        if (blockedZ === undefined) return;
+        if (blockedZ) {
             z = position.z;
             motionZ = 0;
         }
 
         let nextFeet = feet + motionY;
         const landed = this.solidAt(x, nextFeet, z);
+        if (landed === undefined) return;
         if (landed) {
             // The step would end inside a block, so it comes to rest on top of that one instead.
             nextFeet = Math.floor(nextFeet) + 1;
@@ -462,8 +451,14 @@ export class DroppedItems {
         entity.position = next;
     }
 
-    private solidAt(x: number, y: number, z: number): boolean {
-        return this.host.blocksMovement({ x: Math.floor(x), y: Math.floor(y), z: Math.floor(z) });
+    /**
+     * Whether the block a point is in stops an item, or undefined when its chunk is not loaded.
+     * Above and below the dimension's blocks is open, so a stack falls into the void.
+     */
+    private solidAt(x: number, y: number, z: number): boolean | undefined {
+        const block = { x: Math.floor(x), y: Math.floor(y), z: Math.floor(z) };
+        if (block.y < this.host.minY() || block.y >= this.host.maxY()) return false;
+        return this.host.solidAt(block);
     }
 
     /**
@@ -537,7 +532,6 @@ export class DroppedItems {
 
         const taker = this.host.players().find((player) => this.reaches(entity, player, tuning));
         if (taker === undefined) return;
-        if (view.owner !== null && this.host.playerIdentityOf(taker.id) !== view.owner) return;
 
         const left = this.host.give(taker.id, entity.id, view.stack);
         if (left >= view.stack.count) return;

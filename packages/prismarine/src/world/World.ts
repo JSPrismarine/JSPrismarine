@@ -431,8 +431,8 @@ interface DropStart {
     readonly reported?: boolean;
     /** Its speed in blocks per tick, or still when absent. */
     readonly motion?: Vector3;
-    /** The identity of the player who threw it, which also gives it the thrown pickup delay. */
-    readonly thrower?: string;
+    /** Whether a player threw it, which gives it the thrown pickup delay. */
+    readonly thrown?: boolean;
 }
 
 /**
@@ -2986,7 +2986,6 @@ export class World implements Service {
         const yaw = (player.yaw * Math.PI) / 180;
         const horizontal = Math.cos(pitch) * 0.3;
         const reported = new Vector3(eyes.getX(), eyes.getY() - 0.3, eyes.getZ());
-        const thrower = player.getUUID().toString();
 
         await this.spill(eyes, contents, () => {
             const angle = random() * Math.PI * 2;
@@ -2997,7 +2996,7 @@ export class World implements Service {
                 Math.cos(yaw) * horizontal + Math.sin(angle) * spread
             );
 
-            return { position: reported, reported: true, motion, thrower };
+            return { position: reported, reported: true, motion, thrown: true };
         });
     }
 
@@ -3112,7 +3111,7 @@ export class World implements Service {
             {
                 stack,
                 ...(motion === undefined ? {} : { motion: { x: motion.getX(), y: motion.getY(), z: motion.getZ() } }),
-                ...(start.thrower === undefined ? {} : { thrower: start.thrower, thrown: true }),
+                ...(start.thrown === true ? { thrown: true } : {}),
                 ...(start.reported === true ? { reported: true } : {})
             }
         );
