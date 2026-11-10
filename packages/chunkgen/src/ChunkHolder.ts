@@ -1,7 +1,6 @@
 import type { ChunkStatus } from './ChunkStatus';
 import { isOrAfter, parentOfStatus } from './ChunkStatus';
 import type { ChunkStep } from './ChunkStep';
-import type { ProtoChunk } from './ProtoChunk';
 import type { StagedChunk } from './StagedChunk';
 
 /**
@@ -11,7 +10,7 @@ import type { StagedChunk } from './StagedChunk';
  * that ran in a worker may return a chunk adopted from a transferred payload rather than the one
  * it was given.
  */
-export type ChunkStepBody<TChunk extends StagedChunk = ProtoChunk> = (chunk: TChunk) => TChunk | Promise<TChunk>;
+export type ChunkStepBody<TChunk extends StagedChunk> = (chunk: TChunk) => TChunk | Promise<TChunk>;
 
 /**
  * Raised when a holder is asked for a status whose parent it has never started.
@@ -78,7 +77,7 @@ export class ChunkNotReadyError extends Error {
  * finishes, and `ChunkHolderMap` drops the holder at zero. An LRU would evict a chunk a running
  * feature pass is still writing into.
  */
-export class ChunkHolder<TChunk extends StagedChunk = ProtoChunk> {
+export class ChunkHolder<TChunk extends StagedChunk> {
     /** The status whose body has been started, which is Java's `startedWork`. */
     private started: ChunkStatus | undefined;
     /** The status whose body has finished. Reads below `reached` are the ones that are safe. */
@@ -209,7 +208,7 @@ export class ChunkHolder<TChunk extends StagedChunk = ProtoChunk> {
 
         this.chunk ??= this.newChunk(this.chunkX, this.chunkZ);
         const produced = await body(this.chunk);
-        // `ProtoChunk.create` already hands back a chunk at `empty`, and a body that ran in a
+        // A new chunk starts at `empty`, and a body that ran in a
         // worker hands back one already at the target. Anything above the target is a body that
         // climbed too far, and `advanceTo` rejects it.
         if (produced.status !== step.targetStatus) produced.advanceTo(step.targetStatus);

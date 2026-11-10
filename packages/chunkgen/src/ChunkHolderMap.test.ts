@@ -2,12 +2,10 @@ import { describe, expect, it, vi } from 'vitest';
 
 import type { ChunkHolder } from './ChunkHolder';
 import { ChunkHolderMap } from './ChunkHolderMap';
-import { ProtoChunk } from './ProtoChunk';
+import type { TestChunk } from '../test/TestChunk';
+import { newTestChunk as newChunk } from '../test/TestChunk';
 
-const newChunk = (chunkX: number, chunkZ: number): ProtoChunk =>
-    ProtoChunk.create({ chunkX, chunkZ, minY: 0, height: 16 });
-
-const positionsOf = (holders: Iterable<ChunkHolder>): string[] =>
+const positionsOf = (holders: Iterable<ChunkHolder<TestChunk>>): string[] =>
     [...holders].map((holder) => `${holder.chunkX},${holder.chunkZ}`);
 
 describe('retaining a holder', () => {

@@ -1,5 +1,4 @@
 import { ChunkHolder } from './ChunkHolder';
-import type { ProtoChunk } from './ProtoChunk';
 import type { StagedChunk } from './StagedChunk';
 
 /**
@@ -16,7 +15,7 @@ import type { StagedChunk } from './StagedChunk';
  * releases them all when it finishes, so nothing it depends on can be dropped while it is in
  * flight. A caller that wants a chunk to stay resident past a run acquires its own reference.
  */
-export class ChunkHolderMap<TChunk extends StagedChunk = ProtoChunk> {
+export class ChunkHolderMap<TChunk extends StagedChunk> {
     private readonly holders = new Map<string, ChunkHolder<TChunk>>();
 
     /**

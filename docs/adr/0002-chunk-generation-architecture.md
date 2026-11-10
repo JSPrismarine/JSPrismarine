@@ -38,7 +38,10 @@ compare-and-exchange, because the Node event loop makes the map insert atomic. T
 a (chunk, status) body runs exactly once is therefore free, and it holds whether the body runs
 inline or in a worker, because only the owning thread touches the holder.
 
-**A proto chunk.** The intermediate state a neighbor can be handed partway through: a block
+**A proto chunk.** (Superseded: the server's generator climbs the ladder with its own
+`GenerationChunk`, which keeps Java block states rather than a flat palette, so
+`@jsprismarine/chunkgen` dropped its `ProtoChunk` on 2026-11-10 and takes the chunk type as a
+parameter.) The intermediate state a neighbor can be handed partway through: a block
 palette and a `Uint16Array` of indices, the four heightmaps, the biome palette, and the block
 entity and entity spawn requests. Flat typed arrays throughout, so the whole thing moves between
 threads in a transfer list for 18 microseconds rather than being cloned.
