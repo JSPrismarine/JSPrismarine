@@ -57,6 +57,17 @@ reply that overtook its own action. The levels tick one after another, so this o
 input step of every world, and no handler runs in the middle of a world's update. A replay
 offers each recorded packet before the tick its capture recorded, and the same step applies it.
 
+Chunks enter and leave the world through the same step. A chunk read from disk or generated, and
+one whose unload has been saved, waits until the next input step, which admits it after the
+packets: at most <!-- fact:tick.chunkAdmissionBudget -->64<!-- /fact --> chunks, three turns of
+chunks a player is waiting for to one each of background and idle ones. Admitting a chunk puts it
+in the world, lights it, gives the fluid that borders air its ticks and creates its entities, so
+no tick sees a chunk appear or vanish in its middle. Each admission is recorded with its tick and
+a digest of the chunk's content, and a replay admits the recorded chunks at the recorded ticks,
+whatever its own budget or clock would choose. A chunk that code inside the tick waits for, such
+as the dragon fight's arena, is still admitted the moment it is ready, because the tick could not
+finish without it; `IN_TICK_CHUNK_LOADS` lists those paths until later work removes them.
+
 `World.update` runs each system in Java's order, and `WorldSystems.tick` is the part that owns
 them. Scheduled block ticks run first, then scheduled fluid ticks, then the chunk tick that draws
 random positions, then the light the writes above queued. Light goes last because every block

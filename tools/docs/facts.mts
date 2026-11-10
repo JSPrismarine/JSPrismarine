@@ -128,6 +128,7 @@ function tickBudgetFacts() {
     const src = path.join(repoRoot, 'packages', 'prismarine', 'src');
     const budgets = {
         'tick.inputBudget': ['network/InputQueue.ts', 'INPUT_ADMISSION_BUDGET_PER_TICK'],
+        'tick.chunkAdmissionBudget': ['world/ChunkAdmissions.ts', 'CHUNK_ADMISSION_BUDGET_PER_TICK'],
         'tick.blockUpdateBudget': ['world/BlockUpdateScheduler.ts', 'BLOCK_UPDATE_BUDGET_PER_TICK'],
         'tick.scheduledTickBudget': ['world/WorldSystems.ts', 'SCHEDULED_TICK_BUDGET_PER_TICK'],
         'tick.lightBudget': ['world/WorldSystems.ts', 'LIGHT_BUDGET_PER_TICK']
