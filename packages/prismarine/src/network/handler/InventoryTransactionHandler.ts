@@ -10,7 +10,7 @@ import ContainerEntry from '../../inventory/ContainerEntry';
 import HumanInventory from '../../inventory/HumanInventory';
 import { WindowIds } from '../../inventory/WindowIds';
 import type { Item } from '../../item/Item';
-import { consumeHeldItem, consumeTicksOf, useItemInAir, useItemOnBlock, useItemOnEntity } from '../../item/interaction';
+import { consumeTicksOf, useItemInAir, useItemOnBlock, useItemOnEntity } from '../../item/interaction';
 import type { InteractionResult, InteractionRotation } from '../../item/interaction';
 import type InventoryTransactionPacket from '@jsprismarine/protocol/packet/InventoryTransactionPacket';
 import type {
@@ -463,14 +463,7 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
         const ticks = consumeTicksOf(server.getContent(), player);
         if (ticks === undefined) return;
 
-        const actors = server.getContentWorld().actorsAt(player.getWorld().getDimension().name);
-        player.beginConsuming(server.getTick(), ticks, async () => {
-            try {
-                consumeHeldItem({ content: server.getContent(), actors, player });
-            } catch (error: unknown) {
-                server.getLogger().error(error);
-            }
-        });
+        player.beginConsuming(server.getTick(), ticks);
     }
 
     /**

@@ -685,7 +685,9 @@ export class EntityRuntime implements EntityScene {
             blockAt: (at) => this.world.blocks.get(at),
             damage: (intent) => this.damage(intent),
             heal: (id, amount) => this.heal(id, amount),
-            dying: (id) => this.dying.has(id)
+            dying: (id) => this.dying.has(id),
+            heldItem: (id) => this.host.heldItemOf?.(id),
+            finishMeal: (id, item) => this.host.finishMeal?.(id, item)
         });
         this.rides.onChange = (rider, before, after) => {
             const entity = this.store.get(rider);

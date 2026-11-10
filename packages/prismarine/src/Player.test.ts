@@ -16,6 +16,7 @@ import RespawnPacket from '@jsprismarine/protocol/packet/RespawnPacket';
 import SetActorDataPacket from '@jsprismarine/protocol/packet/SetActorDataPacket';
 import UpdateAttributesPacket from '@jsprismarine/protocol/packet/UpdateAttributesPacket';
 import { fakePlayer } from './testing/fakePlayer.test.helper';
+import * as interaction from './item/interaction';
 import { stub } from './testing/stub.test.helper';
 import type { Block } from './block/Block';
 import { BlockState } from './block/state/BlockState';
@@ -722,6 +723,69 @@ describe('Player', () => {
 
             expect(point.world).toBe(fake.world);
             expect(point.block).toEqual(new Vector3(0, 64, 0));
+        });
+    });
+
+    describe('meals', () => {
+        /** A player holding `item`, on a server clock the test moves, whose finished meals are counted. */
+        const eating = (item: string) => {
+            const { player } = fakePlayer();
+            const clock = { now: 0 };
+            const server = player.getServer();
+            server.getTick = () => clock.now;
+            server.getContentWorld = () => stub({ actorsAt: () => stub({}) });
+            const held = { name: item };
+            player.getInventory().getItemInHand = () => stub({ getName: () => held.name });
+            const finished = vi.spyOn(interaction, 'consumeHeldItem').mockImplementation(() => true);
+            finished.mockClear();
+            return { player, clock, held, finished };
+        };
+
+        it('finishes once its time is up with the same item still in hand', async () => {
+            const { player, clock, finished } = eating('minecraft:bread');
+            player.beginConsuming(0, 32);
+
+            clock.now = 31;
+            await player.update(31);
+            expect(finished).not.toHaveBeenCalled();
+
+            clock.now = 32;
+            await player.update(32);
+            expect(finished).toHaveBeenCalledTimes(1);
+            expect(player['components'].get('consumption.meal')).toBeNull();
+        });
+
+        it('keeps the clock of a meal reported again part way through', () => {
+            const { player } = eating('minecraft:bread');
+            player.beginConsuming(0, 32);
+            player.beginConsuming(10, 32);
+
+            expect(player['components'].get('consumption.meal')).toEqual({
+                startedAt: 0,
+                ticks: 32,
+                item: 'minecraft:bread'
+            });
+        });
+
+        it('ends without finishing when another item is in hand by then', async () => {
+            const { player, clock, held, finished } = eating('minecraft:bread');
+            player.beginConsuming(0, 32);
+            held.name = 'minecraft:stone';
+
+            clock.now = 32;
+            await player.update(32);
+            expect(finished).not.toHaveBeenCalled();
+            expect(player['components'].get('consumption.meal')).toBeNull();
+        });
+
+        it('forgets a meal that is let go of', async () => {
+            const { player, clock, finished } = eating('minecraft:bread');
+            player.beginConsuming(0, 32);
+            player.cancelConsuming();
+
+            clock.now = 41;
+            await player.update(41);
+            expect(finished).not.toHaveBeenCalled();
         });
     });
 
