@@ -35,6 +35,12 @@ export interface NetherNetIdentityOptions {
     readonly keyFormat?: IdentityKeyFormat;
     /** The clock, in milliseconds since the epoch. */
     readonly now?: () => number;
+    /**
+     * A token an authority issued for this key, used instead of a self-signed one: a signed-in
+     * client's multiplayer token from Minecraft's authorization service, whose `cpk` claim names
+     * this key. The fingerprints are still signed with the key here.
+     */
+    readonly token?: string;
 }
 
 /**
@@ -50,6 +56,7 @@ export class NetherNetIdentity {
     private readonly cpk: string | object;
     private readonly domain: string;
     private readonly now: () => number;
+    private readonly issuedToken: string | undefined;
 
     /**
      * @param privateKey - A P-384 private key.
@@ -67,6 +74,7 @@ export class NetherNetIdentity {
         this.cpk = (options.keyFormat ?? 'jwk') === 'jwk' ? publicKey.export({ format: 'jwk' }) : this.x5u;
         this.domain = options.domain ?? 'self';
         this.now = options.now ?? Date.now;
+        this.issuedToken = options.token;
     }
 
     /**
@@ -102,11 +110,13 @@ export class NetherNetIdentity {
         if (fingerprints.length === 0) throw new Error('An SDP description without a fingerprint cannot be signed');
 
         const issuedAt = Math.floor(this.now() / 1000);
-        const token = compactEs384(
-            { x5u: this.x5u },
-            { exp: issuedAt + TOKEN_LIFETIME_SECONDS, iat: issuedAt, cpk: this.cpk },
-            this.privateKey
-        );
+        const token =
+            this.issuedToken ??
+            compactEs384(
+                { x5u: this.x5u },
+                { exp: issuedAt + TOKEN_LIFETIME_SECONDS, iat: issuedAt, cpk: this.cpk },
+                this.privateKey
+            );
         const identity = {
             // The assertion is JSON inside a JSON string, as NetherNet nests it.
             assertion: JSON.stringify({
