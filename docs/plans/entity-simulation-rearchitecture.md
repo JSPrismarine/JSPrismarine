@@ -138,7 +138,8 @@ As of 2026-11-10, at program head `646dd8a4f3`, rebased on `master` `9a2c1d5af5`
 | Replay determinism fixes (settle gaps, wall-clock chunk budget in the harness) | Landed |
 | C2 items and the eye of ender in the store | Done on `refactor/item-entities-to-store-v2`, not integrated |
 | C3 staged damage and death, the mirror deleted | Work in progress, not landed |
-| C4 and everything in phases D to F | Not started |
+| C4c player components with logged setters, and an inventory that logs one entry per slot | Done on `refactor/player-components-logged`, not integrated |
+| C4b, C4d to C4h and everything in phases D to F | Not started |
 
 ## Phases and work packages
 
@@ -195,7 +196,7 @@ C1a and C1b left these for later packages.
 C1c left these for later packages.
 
 - The store is `EntityRuntime.store`, which took over the runtime's entity map, and it holds the world's change log until block writes join it in D3. A log tick is numbered by the store, not by the level clock, which `/time set` moves backwards.
-- A player's inventory is not logged. A slot changes by mutating the `Item` in place and `Inventory` does not know its owner, so from slice 2 to slice 5 the replay digest covers player inventories only through its snapshot. C4c's inventory with one entry per slot closes this. Legacy position, health and game mode are logged through `entity/legacyAdapter.ts`.
+- A player's inventory was not logged: a slot changed by mutating the `Item` in place and `Inventory` did not know its owner. C4c closed this, as the notes below say. Legacy position, health and game mode are logged through `entity/legacyAdapter.ts`.
 - A merchant's offers are saved and hashed but not logged, because a trade changes the `Merchant` in place.
 - An undo restores only what a save or the digest reads. Goal progress, pending deaths and other runtime bookkeeping stay as the throw left them.
 - A chunk admitted inline inside a unit pins the unit, which then keeps its writes if it throws, until slices 3 to 9 remove the inline loads.
@@ -217,6 +218,19 @@ C2 left these for later packages.
 - A stack's age is component state, so each stack appends one component entry every tick it lies in a ticking chunk, besides its position and speed while it moves. An idle world with stacks on the ground is not an idle log.
 - The eye's shatter roll draws on the dimension's random, where the legacy eye drew on the server's.
 - A drop now goes straight into the store, so it no longer waits on `World.addEntity`. `World.ITEM_ENTITY_LIMIT` counts the item bodies.
+
+C4c left these for later packages.
+
+- Every write to a slot of a player's main inventory, armor, off hand, ender chest, cursor or crafting grid appends one `inventory-slot` entry. Its value is the stack's saved form (`inventory/slotLog.ts`), the same form the player record keeps, so an undo restores what a save and the digest read. The hand slot is the entity field `inventory.handSlot`. `Inventory.observe`, `HumanInventory.observeCarried` and `CraftingInput.observe` report the writes, and `Human` wires them to the adapter.
+- `PlayerComponents` (`entity/playerComponents.ts`) holds vitals (food, saturation, exhaustion, drowning ticks, fall distance), experience, flying, the movement flags (sneaking, sleeping, on the ground), the spawn point, the credits flag and the tick an item use began. Each field is logged as `<component>.<field>`. Food, saturation, exhaustion and experience stay in the attributes and the component reads them there. `Player`'s private fields are accessors over it, so the death, respawn and damage paths were not edited and are logged too. C4e and C4f can move this object onto the store entity unchanged.
+- The replay digest hashes `Player.componentSnapshot`, so digests of a world with a player changed once, in a commit of their own. The replay suite still finds two replays identical.
+- Not logged yet, for C4d: air (`metadata.air`, whose owner C4d decides), sprinting, the block being mined, the meal in progress, which still holds a closure, and every attribute other than the ones above, such as movement speed and luck. Absorption is on the damage path, which C3 owns.
+- A stack changed in place is not a write. The inventory keeps each slot's last logged value, so the next write to that slot still carries the right before-value, but the change lands in the tick of that write. Two paths did this and were converted: wearing a tool, now `Item.withDurability`, and a partial `/clear`. `ItemStackRequestHandler.itemOrNull` still sets an item's count from its entry in place, which changes no saved form. A slot whose entry count and item count disagree logs the entry's count only.
+- A stack network id is session state and is not in a slot's value, so an undone write gives the stack a new id. Replication has to send the slot again (slice 7).
+- A workstation's input slots and a chest's slots are block entity state, which D3 logs.
+- `Entity.restoreLoggedField` and `restoreLoggedSlot`, which `Human` and `Player` override, are how the adapter's inverse writer reaches a legacy player. C4h deletes them with the adapter. Test doubles built from `Player.prototype` without the constructor get their components from `withPlayerComponents` in `testing/playerDouble.test.helper.ts`, which C4h deletes with them.
+- `Player.getExperience` replaced six hand-built experience holders, so every experience write goes through the component.
+- The saved player record is unchanged: `PlayerPersistenceFormat.test.ts` passes byte for byte.
 
 ### Phase C: the store
 
