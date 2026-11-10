@@ -114,6 +114,11 @@ jobs:
               if: steps.changesets.outputs.published != 'true'
               run: |
                   git checkout master
+                  # `changeset version --snapshot` exits 1 when nothing is pending, such as on the release commit itself.
+                  if [ -z "$(find .changeset -maxdepth 1 -name '*.md' ! -name 'README.md' -print -quit)" ]; then
+                      echo 'No pending changesets; skipping the unstable release.'
+                      exit 0
+                  fi
                   pnpm run version:unstable
                   # Rebuild Prismarine after the snapshot version change so its schema URLs match the published package.
                   pnpm --filter @jsprismarine/prismarine run build
