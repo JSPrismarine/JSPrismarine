@@ -45,6 +45,10 @@ import { NULL_WORLD_CHANGE_SINK } from '../WorldChangeSink';
 import { WorldSystems } from '../WorldSystems';
 import type WorldManager from '../WorldManager';
 import type { DragonFightState } from '../WorldPersistence';
+import type BaseProvider from '../providers/BaseProvider';
+import type { ChunkAdmissionRecord } from '../ChunkAdmissions';
+import { ChunkCompletionQueue } from '../ChunkCompletionQueue';
+import { ServerTicker } from '../../modules/ticker';
 import { DragonFight } from './DragonFight';
 
 /**
@@ -151,8 +155,18 @@ const endChunk = (x: number, z: number): Chunk => {
     return chunk;
 };
 
+/** What a test changes about {@link liveEndWorld}. */
+interface LiveEndWorldOptions {
+    /** Chunks left out of the loaded set, so the fight has to load them. */
+    readonly unloaded?: readonly (readonly [number, number])[];
+    /** How the provider reads a chunk that is not loaded. Left out, the world has no provider. */
+    readonly readChunk?: BaseProvider['readChunk'];
+    /** The admission queue chunks wait in, as the ticker runs one. */
+    readonly completionQueue?: ChunkCompletionQueue;
+}
+
 /** A `World` reduced to what the fight touches, built on the real prototype over real chunks. */
-const liveEndWorld = (): {
+const liveEndWorld = ({ unloaded = [], readChunk, completionQueue }: LiveEndWorldOptions = {}): {
     world: World;
     players: Map<bigint, Player>;
     runtimes: EntityRuntimes;
@@ -170,6 +184,7 @@ const liveEndWorld = (): {
             }
         }
     }
+    for (const [x, z] of unloaded) chunks.delete(Chunk.packXZ(x, z));
 
     const players = new Map<bigint, Player>();
     const runtimes = new EntityRuntimes();
@@ -203,7 +218,13 @@ const liveEndWorld = (): {
     const world: World = Object.assign(Object.create(World.prototype), {
         chunks,
         loading: new Map(),
-        level: fakeLevel({ server, seed: 1234n, spawn: new Vector3(0, FLOOR_Y + 1, 0) }),
+        level: fakeLevel({
+            server,
+            seed: 1234n,
+            spawn: new Vector3(0, FLOOR_Y + 1, 0),
+            ...(readChunk === undefined ? {} : { provider: stub<BaseProvider>({ readChunk }) })
+        }),
+        completionQueue,
         dimension: END,
         generator: stub<Generator>({ generateChunk: async (x, z) => endChunk(x, z) }),
         blockUpdates: new BlockUpdateScheduler(),
@@ -282,8 +303,9 @@ describe('the dragon fight over a live End world', () => {
     let players: Map<bigint, Player>;
     let live: LiveEntityRuntime;
 
-    beforeEach(() => {
-        const built = liveEndWorld();
+    /** Builds the fixture, and the content over it, as each test starts. */
+    const open = (options?: LiveEndWorldOptions): void => {
+        const built = liveEndWorld(options);
         world = built.world;
         players = built.players;
         const { source, content } = buildOver(world, built.runtimes);
@@ -292,7 +314,9 @@ describe('the dragon fight over a live End world', () => {
         const opened = built.runtimes.at(END.name);
         if (opened === undefined) throw new Error('the content world opened no End entity runtime');
         live = opened;
-    });
+    };
+
+    beforeEach(() => open());
 
     const freshFight = (state?: DragonFightState): DragonFight => new DragonFight(world, state, world.getSeed());
 
@@ -754,6 +778,90 @@ describe('the dragon fight over a live End world', () => {
             expect(reloaded.state().respawnStage).toBeUndefined();
             expect(reloaded.state().respawnCrystalIds).toEqual([]);
             expect(blockNameAt(world, 1, FLOOR_Y, 0)).toBe('minecraft:end_portal');
+        });
+    });
+
+    describe('a death between ticks, under the ticker', () => {
+        /** The chunk under seed 1234's first gateway, (-78, 75, 56), which nothing else loads. */
+        const GATEWAY_CHUNK = GATEWAY_CHUNKS[0];
+
+        let release: () => void;
+        let queue: ChunkCompletionQueue;
+        let ticker: ServerTicker;
+        let fight: DragonFight;
+        const records: ChunkAdmissionRecord[] = [];
+
+        beforeEach(() => {
+            const gate = new Promise<void>((resolve) => {
+                release = resolve;
+            });
+            records.length = 0;
+            queue = new ChunkCompletionQueue(undefined, { tick: () => ticker.getTick() });
+            queue.admissions.setRecorder({ record: (record) => void records.push(record) });
+            queue.activate();
+            open({
+                unloaded: [GATEWAY_CHUNK],
+                // Generation finishes on its own schedule, which the test decides.
+                readChunk: async (_dimension, x, z) => {
+                    await gate;
+                    return endChunk(x, z);
+                },
+                completionQueue: queue
+            });
+            fight = freshFight();
+            ticker = new ServerTicker({
+                emitTick: async () => {},
+                admitInputs: () => queue.admissions.admit(ticker.getTick()),
+                pollNetwork: () => 0,
+                getWorlds: () => [{ getName: () => 'the_end', update: () => fight.tick() }],
+                tickFunctions: async () => 0,
+                getChunkScheduler: () => ({ setBudget: () => {}, tick: async () => {} }),
+                getChunkCompletionQueue: () => queue,
+                getChunkSendBudgetMs: () => 10,
+                isTickingEnabled: () => false,
+                isProcessTitleEnabled: () => false,
+                isHeadless: () => true,
+                isStopping: () => false,
+                getProfileOwner: () => ({}),
+                getLogger: () => ({ warn: () => {}, verbose: () => {}, error: () => {} })
+            });
+        });
+
+        /** Whether `work` settles within a few turns of the event loop. */
+        const settles = async (work: Promise<unknown>): Promise<boolean> => {
+            let settled = false;
+            void work.finally(() => {
+                settled = true;
+            });
+            for (let turn = 0; turn < 20 && !settled; turn += 1) {
+                await new Promise<void>((resolve) => setImmediate(resolve));
+            }
+            return settled;
+        };
+
+        it('keeps ticking and opens the portal when the dragon dies outside a tick', async () => {
+            enterArena(world, players, 0, 70, 0);
+            await ticker.advance();
+            const dragon = dragons()[0]!;
+
+            // A console `/kill` runs on arrival, between two ticks.
+            live.runtime.remove(dragon.id, 'death');
+            const next = ticker.advance();
+            // The gateway chunk finishes generating while the next tick runs.
+            await settles(Promise.resolve());
+            release();
+
+            expect(await settles(next)).toBe(true);
+            for (let tick = 0; tick < 3; tick += 1) expect(await settles(ticker.advance())).toBe(true);
+
+            expect(fight.state().dragonKilled).toBe(true);
+            expect(blockNameAt(world, 1, FLOOR_Y, 0)).toBe('minecraft:end_portal');
+            expect(blockNameAt(world, -78, 75, 56)).toBe('minecraft:end_gateway');
+            // The fight waited for the gateway chunk inside a tick, so it entered there and then.
+            expect(records).toEqual([
+                expect.objectContaining({ x: GATEWAY_CHUNK[0], z: GATEWAY_CHUNK[1], change: 'enter', step: 'inline' })
+            ]);
+            expect(queue.admissions.pending).toBe(0);
         });
     });
 });
