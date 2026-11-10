@@ -2,6 +2,7 @@ import type { PlayerSession } from '../../';
 import type Server from '../../Server';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import type { SessionPhase } from '../SessionPhase';
+import type { Lane } from './Lane';
 
 export default interface PacketHandler<T extends NetworkPacket<unknown>> {
     /**
@@ -10,6 +11,9 @@ export default interface PacketHandler<T extends NetworkPacket<unknown>> {
      * one exists: `resourcePacks` and `play`.
      */
     readonly phases: readonly SessionPhase[];
+
+    /** When the handler runs relative to the world tick; see {@link Lane} for the rules. */
+    readonly lane: Lane;
 
     /**
      * Handles one decoded packet.

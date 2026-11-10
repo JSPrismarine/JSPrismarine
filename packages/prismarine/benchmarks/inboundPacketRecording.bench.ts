@@ -123,6 +123,7 @@ const createReplayHarness = async (recorder?: InboundPacketRecorder) => {
     let checksum = 0;
     const handler = {
         phases: ['handshake'] as const satisfies readonly SessionPhase[],
+        lane: 'connection' as const,
         handle: async (packet: unknown) => {
             if (packet instanceof TextPacket) checksum += packet.getName().length;
         }

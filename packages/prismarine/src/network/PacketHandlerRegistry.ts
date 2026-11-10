@@ -5,6 +5,7 @@ import type Server from '../Server';
 import Timer from '../utils/Timer';
 import type PacketHandler from './handler/PacketHandler';
 import type ConnectionPacketHandler from './handler/ConnectionPacketHandler';
+import { strictestLane } from './handler/Lane';
 
 /** Handler kind stored by the server; phases determine which one receives a packet. */
 export type RegisteredHandler = PacketHandler<any> | ConnectionPacketHandler<any>;
@@ -50,7 +51,8 @@ export default class PacketHandlerRegistry {
 
     /**
      * Merge two handlers so a plugin can extend server behavior without replacing it.
-     * @param handler - The first handler, which runs first and determines the phases.
+     * @param handler - The first handler, which runs first and determines the phases. The merged
+     * handler takes the stricter of the two handlers' lanes.
      * @param handler2 - The handler that runs after the first one.
      * @returns A handler that invokes both handlers in order.
      */
@@ -58,6 +60,9 @@ export default class PacketHandlerRegistry {
         return new (class Handler {
             /** The merged handler runs in the first handler's phases. */
             public readonly phases = handler.phases;
+
+            /** The merged handler obeys both handlers' lanes. */
+            public readonly lane = strictestLane(handler.lane, handler2.lane);
 
             public async handle(packet: any, server: Server, session: PlayerSession) {
                 await handler.handle(packet, server, session);

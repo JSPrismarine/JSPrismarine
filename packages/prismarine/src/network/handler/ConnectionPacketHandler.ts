@@ -3,6 +3,7 @@ import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import type { Server } from '../../';
 import type { SessionPhase } from '../SessionPhase';
 import type PacketHandler from './PacketHandler';
+import type { Lane } from './Lane';
 
 /**
  * Handles a packet that arrives before the connection has a player session.
@@ -14,6 +15,9 @@ import type PacketHandler from './PacketHandler';
 export default interface ConnectionPacketHandler<T extends NetworkPacket<unknown>> {
     /** The session phases in which the packet is accepted; both run before a session exists. */
     readonly phases: readonly SessionPhase[];
+
+    /** When the handler runs relative to the world tick; see {@link Lane} for the rules. */
+    readonly lane: Lane;
 
     handle(packet: T, server: Server, connection: ClientConnection): Promise<void>;
 }
