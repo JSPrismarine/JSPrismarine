@@ -65,7 +65,7 @@ that cannot reach Mojang's servers, set `JSP_VANILLA_BEHAVIOR_PACK` to a copy of
 Dedicated Server `behavior_packs` folder.
 
 The server then creates `config.json`, its player lists and `worlds/` in the same folder and starts
-listening on UDP port <!-- fact:server.port -->19132<!-- /fact -->. Players add it in Minecraft under **Servers → Add Server** with your
+listening on port <!-- fact:server.port -->19132<!-- /fact -->. Players add it in Minecraft under **Servers → Add Server** with your
 machine's address. In a terminal, it opens the [terminal UI](#4-console); under a service manager,
 in Docker or with `--no-tui`, it uses the plain line console.
 
@@ -360,6 +360,30 @@ above it. The list comes from the code that writes the file, so it matches what 
 | `content-world-packs`                 | Extra behavior pack directories this world loads, after the vanilla ones.                                                                                                                          |
 | `content-datapacks`                   | Java datapack directories this world loads, after the vanilla one.                                                                                                                                 |
 <!-- /fact -->
+
+### Networking
+
+Bedrock clients reach the server over two transports, and it runs both unless `enable-raknet` or
+`enable-nethernet` turns one off:
+
+| Transport | Ports                                                                                     | Used by                                                       |
+| --------- | ----------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| RakNet    | UDP `port`                                                                                | Clients that join over Bedrock's UDP transport                |
+| NetherNet | TCP `port` to set up the connection, then one UDP port per player that WebRTC picks        | Clients that join by address the way Bedrock Dedicated Server expects |
+| LAN       | UDP <!-- fact:nethernet.lanPort -->7551<!-- /fact -->, with `enable-lan-visibility` on      | Players on your local network, who see the server among their LAN games |
+
+A firewall in front of the server needs `port` open for both UDP and TCP. Only one program on a
+machine can hold the LAN port; when another server or a game already holds it, the server starts
+anyway and logs that it is not visible on the local network.
+
+The server offers WebRTC only its own interface addresses, so a player outside your network can
+join over NetherNet only when those addresses and the ports WebRTC picks are reachable from where
+they are. There is no setting yet to pin those ports or advertise a public address.
+
+The first time NetherNet starts, the server writes its identity key to
+<!-- fact:nethernet.identityFile -->`nethernet-identity.pem`<!-- /fact --> in its data directory.
+Clients remember the key, and one that meets a different key asks the player to trust the server
+again, so keep the file with your worlds when you move or rebuild the server.
 
 ### Worlds
 

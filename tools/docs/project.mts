@@ -53,6 +53,10 @@ export interface ProjectData {
     releasesUrl: string;
     /** Whether a fresh server requires players to sign in to Xbox Live. */
     onlineMode: boolean;
+    /** The UDP port NetherNet LAN discovery uses. */
+    netherNetLanPort: number;
+    /** The file in the data directory that keeps the server's NetherNet identity key. */
+    netherNetIdentityFile: string;
     packages: PublishedPackage[];
     /** Newest protocol first, matching the order of the server's startup banner. */
     protocols: SupportedProtocol[];
@@ -126,6 +130,25 @@ export function loadProject(): ProjectData {
         'the default port'
     );
 
+    const netherNetDefaults = path.join(
+        packagesDir,
+        'prismarine',
+        'src',
+        'network',
+        'nethernet',
+        'NetherNetDefaults.ts'
+    );
+    const [, netherNetLanPort] = fromSource(
+        netherNetDefaults,
+        /^export const NETHERNET_LAN_PORT = (\d+);$/m,
+        'the NetherNet LAN port'
+    );
+    const [, netherNetIdentityFile] = fromSource(
+        netherNetDefaults,
+        /^export const NETHERNET_IDENTITY_FILE = '([^']+)';$/m,
+        'the NetherNet identity file'
+    );
+
     const [, onlineMode] = fromSource(
         path.join(packagesDir, 'prismarine', 'src', 'config', 'Config.ts'),
         /^\s+'online-mode': (true|false),$/m,
@@ -149,6 +172,8 @@ export function loadProject(): ProjectData {
         executables,
         releasesUrl: `${repositoryUrl}/releases?q=jsprismarine%40&expanded=true`,
         onlineMode: onlineMode === 'true',
+        netherNetLanPort: Number(netherNetLanPort),
+        netherNetIdentityFile,
         defaultPort: Number(port),
         engines: { node: root.engines?.node ?? '', pnpm: root.engines?.pnpm ?? '' },
         packages,
