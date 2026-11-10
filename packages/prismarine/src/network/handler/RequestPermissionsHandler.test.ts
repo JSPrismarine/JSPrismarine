@@ -8,6 +8,7 @@ import type SessionManager from '../../SessionManager';
 import type { PermissionManager } from '../../permission/PermissionManager';
 import { stub } from '../../testing/stub.test.helper';
 import type PlayerSession from '../PlayerSession';
+import type { ShownPlayer } from '../../world/ShownPlayer';
 import RequestPermissionsPacket from '@jsprismarine/protocol/packet/RequestPermissionsPacket';
 import RequestPermissionsHandler from './RequestPermissionsHandler';
 
@@ -18,7 +19,7 @@ import RequestPermissionsHandler from './RequestPermissionsHandler';
  */
 const fakeSession = ({ op = true }: { op?: boolean } = {}) => {
     const opChanges: Array<[string, boolean]> = [];
-    const resent: Array<Player | undefined> = [];
+    const resent: Array<ShownPlayer | undefined> = [];
     const logged: string[] = [];
     const requester = stub<Player>({ getName: () => 'Steve', getRuntimeId: () => 1n, isOp: () => op });
     const target = stub<Player>({ getName: () => 'Alex', getRuntimeId: () => 7n });
