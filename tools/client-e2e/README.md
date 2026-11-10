@@ -40,11 +40,13 @@ pnpm run e2e:client -- --concurrency 1 --record --artifacts /tmp/evidence
 `--compression-algorithm` selects the algorithm the scratch server advertises: `snappy` (the
 default), `zlib`, or `none`.
 
-`--transport nethernet` runs the protocol's NetherNet pin against a scratch server with RakNet
-turned off. Cinnabar has no transport setting: like the game, it probes the address for NetherNet
-signaling on the TCP side of the port and falls back to RakNet, so with RakNet off the join goes
-over NetherNet or fails. The default, `raknet`, leaves the server's NetherNet on, so the client
-may join over either.
+`--transport` picks the one transport the scratch server runs. Cinnabar has no transport
+setting: like the game, it probes the address for NetherNet signaling on the TCP side of the port
+and falls back to RakNet. `--transport nethernet` runs the protocol's NetherNet pin against a
+server with RakNet off, and the boot fails if the port still answers a RakNet ping. The default,
+`raknet`, turns the server's NetherNet off, so the probe finds nothing and the client falls back.
+A NetherNet join by address shows the game's "Trust this server?" prompt for the server's
+self-signed identity; the harness accepts it.
 
 The scratch server runs RakNet on a worker thread, so a tick that overruns its budget does not
 stop it answering the client's keepalives and acknowledgements, and the client keeps its session

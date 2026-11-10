@@ -105,9 +105,9 @@ export const answersRakNetPing = (port: number): Promise<boolean> =>
  *   the only option that leaves natural spawning on.
  * @param options.compressionAlgorithm - Batch algorithm advertised to the client. Defaults to Snappy.
  * @param options.raknetWorker - Runs RakNet socket and reliability work in a worker thread.
- * @param options.transport - How the client joins. `nethernet` turns RakNet off, so the client's
- *   probe finds NetherNet signaling and nothing to fall back to, and the boot fails if the port
- *   still answers a RakNet ping. Defaults to RakNet.
+ * @param options.transport - How the client joins, and the one transport the server runs.
+ *   `nethernet` turns RakNet off, and the boot fails if the port still answers a RakNet ping;
+ *   `raknet`, the default, turns NetherNet off.
  * @param options.profile - Enables Node DevTools and preserves the shutdown trace for inspection.
  * @param options.preloadRadius - Chunks around spawn to generate and keep resident before listening.
  * @param options.worldgenSpawn - Boots the normal Overworld at seed 1234 for spawn testing.
@@ -371,7 +371,9 @@ export const startServer = async (
         'log-level': 'debug',
         'packet-compression-algorithm': options.compressionAlgorithm ?? 'snappy',
         'use-raknet-worker': options.raknetWorker ?? true,
-        ...(options.transport === 'nethernet' ? { 'enable-raknet': false } : {}),
+        // One transport per run, so a run tests the transport it names: cinnabar probes for
+        // NetherNet first, so a RakNet run on a server with NetherNet on would join over NetherNet.
+        ...(options.transport === 'nethernet' ? { 'enable-raknet': false } : { 'enable-nethernet': false }),
         // UDP 7551 is one fixed port per machine, and concurrent suites would contend for it. The
         // client joins by address, which needs none of it.
         'enable-lan-visibility': false,
