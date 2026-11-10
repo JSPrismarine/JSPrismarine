@@ -14,6 +14,7 @@ config.yaml
 ops.json
 banned-players.json
 permissions.json
+nethernet-identity.pem
 *.log
 /logs/
 /jsp/

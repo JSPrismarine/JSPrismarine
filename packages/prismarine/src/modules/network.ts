@@ -10,6 +10,9 @@ import type { InboundPacketRecord, InboundPacketRecorder } from '../network/Inbo
 import type { OutboundPacketRecorder } from '../network/OutboundPacketTrace';
 import NetworkDispatcher from '../network/NetworkDispatcher';
 import { advertiseOnLan } from '../network/nethernet/advertiseOnLan';
+import { HttpSignaling } from '../network/nethernet/HttpSignaling';
+import { NetherNetIdentity } from '../network/nethernet/NetherNetIdentity';
+import { joinStatusJson, netherNetStatusOf } from '../network/nethernet/NetherNetStatus';
 import type { ConnectionId, ConnectionIds } from '../network/transport/ConnectionId';
 import MultiTransport from '../network/transport/MultiTransport';
 import NetherNetTransport from '../network/transport/NetherNetTransport';
@@ -17,6 +20,7 @@ import RakNetTransport from '../network/transport/RakNetTransport';
 import type { Transport, TransportConnection } from '../network/transport/Transport';
 import { latestCodec } from '../network/codec/CodecRegistry';
 import type Server from '../Server';
+import { withCwd } from '../utils/cwd';
 import { networkToken } from './tokens';
 
 /**
@@ -74,6 +78,8 @@ export class ServerNetworking implements Networking {
     private dispatcher: NetworkDispatcher<TransportConnection> | undefined;
     /** Stops keeping the LAN advertisement current; set while the server advertises on the LAN. */
     private stopLanAdvertisement: (() => void) | undefined;
+    /** NetherNet's HTTP signaling on the game port's TCP side; set while NetherNet is on. */
+    private signaling: HttpSignaling | undefined;
     /** Every connection the transports have announced and not yet withdrawn. */
     private readonly liveConnections = new Set<ConnectionId>();
 
@@ -93,7 +99,7 @@ export class ServerNetworking implements Networking {
         this.transport = new MultiTransport((ids) => {
             const transports: Transport[] = [];
             if (config.getEnableRakNet()) transports.push(this.startRakNet(address, port, serverName, ids));
-            if (config.getEnableNetherNet()) transports.push(this.startNetherNet(address, serverName, ids));
+            if (config.getEnableNetherNet()) transports.push(this.startNetherNet(address, port, serverName, ids));
             if (transports.length === 0) {
                 throw new Error('No transport is enabled: turn on enable-raknet or enable-nethernet in config.json');
             }
@@ -147,6 +153,8 @@ export class ServerNetworking implements Networking {
     public kill(): void {
         this.stopLanAdvertisement?.();
         this.stopLanAdvertisement = undefined;
+        this.signaling?.close();
+        this.signaling = undefined;
         this.transport?.close();
     }
 
@@ -178,16 +186,39 @@ export class ServerNetworking implements Networking {
     }
 
     /**
-     * Starts the `nethernet` server. With LAN visibility on it binds UDP 7551, where clients on
-     * the local network discover the server and send their offers; a port another program holds
-     * costs LAN play, not the server.
+     * Starts the `nethernet` server and the two ways offers reach it. HTTP signaling on the game
+     * port's TCP side serves clients joining by address. With LAN visibility on, UDP 7551 serves
+     * clients on the local network, which discover the server and send their offers there. A
+     * port another program holds costs that way in, with a warning, not the server.
      */
-    private startNetherNet(address: string, serverName: ServerName, ids: ConnectionIds): NetherNetTransport {
+    private startNetherNet(
+        address: string,
+        port: number,
+        serverName: ServerName,
+        ids: ConnectionIds
+    ): NetherNetTransport {
         const server = this.server;
         const config = server.getConfig();
         const logger = server.getLogger();
         // Discovery is IPv4 broadcast, so an IPv6 bind address leaves it on every interface.
         const nethernet = new NetherNetServer({ host: isIPv4(address) ? address : '0.0.0.0' });
+
+        // Kept in the server directory: a client joining over plain HTTP remembers the key and
+        // asks the player again if it ever changes.
+        const identity = NetherNetIdentity.loadOrCreate(withCwd('nethernet-identity.pem'));
+        this.signaling = new HttpSignaling({
+            answerer: nethernet,
+            status: () => joinStatusJson(netherNetStatusOf(serverName.getSnapshot(), config.getLevelName())),
+            sign: (answer) => identity.sign(answer),
+            logger
+        });
+        this.signaling.listen(port, address).then(
+            (bound) => logger.info(`NetherNet clients can join by address on TCP port ${bound}`),
+            (error: unknown) =>
+                logger.warn(
+                    `NetherNet clients cannot join by address: TCP port ${port} is unavailable (${error instanceof Error ? error.message : String(error)})`
+                )
+        );
 
         if (config.getEnableLanVisibility()) {
             this.stopLanAdvertisement = advertiseOnLan(

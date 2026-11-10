@@ -212,7 +212,9 @@ describe('config', () => {
             expect(text).toContain(
                 `https://unpkg.com/@jsprismarine/prismarine@${pkg.version}/schemas/config.schema.json`
             );
-            expect(text).toContain('// The UDP port the server listens on. Bedrock clients look for 19132.');
+            expect(text).toContain(
+                '// The port the server listens on: UDP for RakNet, TCP for NetherNet signaling. Bedrock clients look for 19132.'
+            );
             expect(text).toContain('"port": 19132');
             expect(text).toContain('// How far players see, in chunks.');
             expect(text).toContain('"view-distance": 10');
