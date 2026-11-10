@@ -58,6 +58,7 @@ import { DEFAULT_VIEW_DISTANCE_CHUNKS } from './world/Proximity';
 import { logLegacyImpulse, logLegacyWrite } from './entity/legacyAdapter';
 import type { ExperienceHolder } from './entity/Experience';
 import { PlayerComponents } from './entity/playerComponents';
+import { PLAYER_TRACKING_RANGE_CHUNKS } from './world/ShownPlayer';
 import type { PlainData, PlainRecord } from './world/changelog/PlainData';
 
 /**
@@ -767,13 +768,10 @@ export default class Player extends Human {
 
     /**
      * Players are followed as far as the viewer can see.
-     *
-     * Deliberately past any plausible view distance, so the recipient's own radius is always
-     * what decides. Vanilla uses the same trick for the same reason.
-     * @returns {number} The tracking radius in chunks.
+     * @returns {number} The tracking radius in chunks, {@link PLAYER_TRACKING_RANGE_CHUNKS}.
      */
     public override getTrackingRange(): number {
-        return 32;
+        return PLAYER_TRACKING_RANGE_CHUNKS;
     }
 
     /**

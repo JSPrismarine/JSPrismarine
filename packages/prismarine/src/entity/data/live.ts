@@ -51,6 +51,7 @@ import type { EntityItemInteraction } from './itemInteraction';
 import type { ContentItemEntity, EntityHostFacts, EntityWorldFacts } from './host';
 import { EntityRuntime, PROJECTILE_EYE_HEIGHT_FRACTION } from './EntityRuntime';
 import { StoreActor, StoreActors } from './storeActors';
+import { StorePlayers } from './storePlayers';
 import type { StoreActorBlows } from './storeActors';
 import { tradeDisplayNameOf } from './trading';
 import type { DataEntityRecord } from './persistence';
@@ -528,7 +529,11 @@ export class LiveEntityRuntime {
     /** Who hears about removals beyond the body index, such as the End's dragon fight. */
     private readonly removalListeners = new Set<(entity: DataEntity, reason: string) => void>();
 
-    public constructor(options: LiveEntityOptions) {
+    /**
+     * @param players - The server's store players, whose actors show them as players; empty
+     *   until package C4h puts live players into the store.
+     */
+    public constructor(options: LiveEntityOptions, players = new StorePlayers()) {
         this.options = options;
         const blows: StoreActorBlows = {
             hurt: (entity, amount, source, route) =>
@@ -538,7 +543,12 @@ export class LiveEntityRuntime {
             },
             heal: (entity, amount) => this.runtime.heal(entity.id, amount)
         };
-        this.actors = new StoreActors({ world: options.liveWorld, report: options.report, blows });
+        this.actors = new StoreActors({
+            world: options.liveWorld,
+            report: options.report,
+            blows,
+            playerActor: (entity, world, actorBlows) => players.actorOf(entity, world, actorBlows)
+        });
         this.itemBodies = new ItemBodies({ world: options.liveWorld, report: options.report });
         this.runtime = new EntityRuntime({
             content: options.content,
@@ -1146,6 +1156,9 @@ export class LiveEntityRuntime {
 export class EntityRuntimes {
     private readonly byDimension = new Map<string, LiveEntityRuntime>();
 
+    /** The server's store players, which every dimension's actors read. */
+    public readonly players = new StorePlayers();
+
     /**
      * The runtime for one dimension, built on first ask and kept.
      *
@@ -1156,7 +1169,7 @@ export class EntityRuntimes {
         const existing = this.byDimension.get(options.dimension);
         if (existing !== undefined) return existing;
 
-        const created = new LiveEntityRuntime(options);
+        const created = new LiveEntityRuntime(options, this.players);
         this.byDimension.set(options.dimension, created);
         return created;
     }

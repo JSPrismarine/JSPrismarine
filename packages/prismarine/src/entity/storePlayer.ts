@@ -17,9 +17,11 @@
 import { Gametype } from '@jsprismarine/minecraft';
 import { Attributes } from '@jsprismarine/protocol/wire/structures/Attribute';
 import type UUID from '@jsprismarine/protocol/wire/structures/UUID';
+import type Skin from '@jsprismarine/protocol/wire/structures/skin/Skin';
 import { Vector3 } from '@jsprismarine/math';
 
 import HumanInventory from '../inventory/HumanInventory';
+import type Device from '../utils/Device';
 import type { PlayerRecordSource, PlayerRecordTarget, RecordedPosition } from '../world/playerRecord';
 import type { StoredSpawnPoint } from '../world/RespawnPoint';
 import type { DataEntity } from './data/DataEntity';
@@ -41,6 +43,12 @@ export class StorePlayer implements PlayerRecordSource, PlayerRecordTarget {
     public gamemode: Gametype = Gametype.WORLD_DEFAULT;
     /** Where the head looks, which the client reports apart from the body's yaw. */
     public headYaw = 0;
+    /** The skin the login carried, which a skin change replaces. */
+    public skin: Skin | null = null;
+    /** The device the login named, or null when it said nothing. */
+    public device: Device | null = null;
+    /** The platform chat id, which the login handler does not read yet and leaves empty. */
+    public platformChatId = '';
 
     private readonly components = new PlayerComponents(this.attributes, () => undefined);
     private readonly inventory = new HumanInventory();

@@ -102,26 +102,9 @@ export default class Human extends Entity {
         return this.inventory.getArmorToughness();
     }
 
-    /**
-     * What is worn and held, which is what the enchantment effect components
-     * are run over.
-     *
-     * The armor container's four slots are helmet, chestplate, leggings and
-     * boots in the order the client numbers them, so the mapping is positional
-     * rather than looked up.
-     */
+    /** What is worn and held, which is what the enchantment effect components are run over. */
     public override getEquipment(): ViewableEquipment {
-        const armor = this.inventory.getArmor();
-        const offhand = this.inventory.getOffhand();
-
-        return {
-            mainhand: this.inventory.getItemInHand(),
-            offhand: offhand.getEntry(0)?.toItemStack(),
-            head: armor.getEntry(0)?.toItemStack(),
-            chest: armor.getEntry(1)?.toItemStack(),
-            legs: armor.getEntry(2)?.toItemStack(),
-            feet: armor.getEntry(3)?.toItemStack()
-        };
+        return this.inventory.getEquipment();
     }
 
     public getInventory(): HumanInventory {
