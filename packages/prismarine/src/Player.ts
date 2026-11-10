@@ -62,6 +62,8 @@ import {
 } from './entity/playerHunger';
 import { breathe, refillBreath } from './entity/playerBreath';
 import { cushions, land, trackFall } from './entity/playerFall';
+import { beginMeal, cancelMeal, dueMeal } from './entity/playerMeal';
+import { consumeHeldItem } from './item/interaction';
 import type { PlainData, PlainRecord } from './world/changelog/PlainData';
 
 /** How often the two per-player triggers are checked, which is Java's one second. */
@@ -542,7 +544,7 @@ export default class Player extends Human {
         await this.getNetworkSession().update(tick);
 
         await this.updateVitals(tick);
-        await this.tickConsuming();
+        this.tickConsuming();
         await this.updateVoid(tick);
 
         // With server-authoritative block breaking the server animates the cracks itself, every
@@ -1376,41 +1378,38 @@ export default class Player extends Human {
     }
 
     /**
-     * The meal the player has started, or null.
-     *
-     * A client says when an eating begins and never when it ends, so the server counts the meal
-     * out: it is over `ticks` after `startedAt`, if the same item is still in hand.
-     */
-    private consuming: { startedAt: number; ticks: number; item: string; finish: () => Promise<void> } | null = null;
-
-    /**
-     * Notes that the player has started eating or drinking what is in their hand.
+     * Notes that the player has started eating or drinking what is in their hand - see
+     * {@link beginMeal}. The meal finishes itself in {@link Player.update} once its time is up.
      * @param {number} tick - The server tick it began on.
      * @param {number} ticks - How long the meal takes.
-     * @param {() => Promise<void>} finish - What a finished meal does.
      */
-    public beginConsuming(tick: number, ticks: number, finish: () => Promise<void>): void {
-        const item = this.getInventory().getItemInHand().getName();
-        // A held button makes the client report its use again part way through the meal, and
-        // that is the same meal, not a new one that would start the clock over.
-        if (this.consuming?.item === item) return;
-
-        this.consuming = { startedAt: tick, ticks, item, finish };
+    public beginConsuming(tick: number, ticks: number): void {
+        beginMeal(this.components, tick, ticks, this.getInventory().getItemInHand().getName());
     }
 
     /** Forgets an unfinished meal, as letting go of the button or putting the item away does. */
     public cancelConsuming(): void {
-        this.consuming = null;
+        cancelMeal(this.components);
     }
 
-    /** Finishes the meal once its time is up, unless another item is in hand by then. */
-    private async tickConsuming(): Promise<void> {
-        const meal = this.consuming;
-        if (meal === null || this.server.getTick() - meal.startedAt < meal.ticks) return;
+    /**
+     * Finishes the meal once its time is up, unless another item is in hand by then: the item in
+     * hand runs `onConsume`, which feeds the player, applies its effects and hands back what the
+     * meal leaves.
+     */
+    private tickConsuming(): void {
+        const item = dueMeal(this.components, this.server.getTick(), this.getInventory().getItemInHand().getName());
+        if (item === undefined) return;
 
-        this.consuming = null;
-        if (this.getInventory().getItemInHand().getName() !== meal.item) return;
-        await meal.finish();
+        try {
+            consumeHeldItem({
+                content: this.server.getContent(),
+                actors: this.server.getContentWorld().actorsAt(this.getWorld().getDimension().name),
+                player: this
+            });
+        } catch (error: unknown) {
+            this.server.getLogger().error(error);
+        }
     }
 
     /**
