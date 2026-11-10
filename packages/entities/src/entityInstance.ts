@@ -3,6 +3,8 @@ import { HookTable, Instance } from '@jsprismarine/content';
 import type { MolangValue } from '@jsprismarine/molang';
 
 import { Attributes } from './attributes';
+import type { ComponentStateWrite } from './componentState';
+import { ComponentStates } from './componentState';
 import type { EquipmentParams, SlotDropChance } from './components/vanilla';
 import { isNameableParams } from './components/nameable';
 import type { NameableTrigger } from './components/nameable';
@@ -149,6 +151,14 @@ export interface EntityEnvironment {
     /** Refreshes world indexes when an event changes the active component set. */
     componentSetChanged?(entity: EntityInstance): void;
     /**
+     * Observes every write to the entity's component state, with the value before and after.
+     * Writing `before` back through {@link ComponentStates.write} undoes the write exactly.
+     *
+     * Writes that the constructor's first component initialization makes arrive here too,
+     * before the constructor returns.
+     */
+    componentStateWritten?(entity: EntityInstance, write: ComponentStateWrite): void;
+    /**
      * Builds the filter context for one evaluation. The entity fills in its
      * own facts (properties, components, type families, attributes) over
      * whatever this returns.
@@ -220,6 +230,16 @@ export interface EntityInstanceOptions {
 export class EntityInstance extends Instance<EntityHooks, EntityState, EntityTypeFlag> {
     /** The goals registered by the active `minecraft:behavior.*` components. */
     public readonly goals = new GoalScheduler();
+
+    /**
+     * The state each active component keeps between ticks, such as a timer or an air supply.
+     * Components read and write it with their declared key; a host saves, restores and observes
+     * it. A component that leaves the active set loses its state.
+     */
+    public readonly componentState: ComponentStates = new ComponentStates({
+        hasComponent: (component) => this.hasComponent(component),
+        written: (write) => this.environment.componentStateWritten?.(this, write)
+    });
 
     private readonly typeHolder: Holder<EntityType>;
     private readonly environment: EntityEnvironment;
@@ -979,6 +999,7 @@ export class EntityInstance extends Instance<EntityHooks, EntityState, EntityTyp
         for (const [name, entry] of before) {
             if (next.has(name)) continue;
             entry.component.handlers.onRemove?.(this);
+            this.componentState.write(name, null);
         }
 
         this.active = next;
