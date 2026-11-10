@@ -1,25 +1,26 @@
 import type Player from './Player';
 import type ClientConnection from './network/ClientConnection';
+import type { ConnectionId } from './network/transport/ConnectionId';
 import type { PlayerListEntry } from '@jsprismarine/protocol/wire/structures/PlayerListEntry';
 
 export default class SessionManager {
-    private readonly connections: Map<string, ClientConnection> = new Map();
+    private readonly connections: Map<ConnectionId, ClientConnection> = new Map();
     private readonly playerList: Map<string, PlayerListEntry> = new Map();
 
-    public add(token: string, connection: ClientConnection): void {
-        this.connections.set(token, connection);
+    public add(id: ConnectionId, connection: ClientConnection): void {
+        this.connections.set(id, connection);
     }
 
-    public has(token: string): boolean {
-        return this.connections.has(token);
+    public has(id: ConnectionId): boolean {
+        return this.connections.has(id);
     }
 
-    public get(token: string): ClientConnection | null {
-        return this.connections.get(token) ?? null;
+    public get(id: ConnectionId): ClientConnection | null {
+        return this.connections.get(id) ?? null;
     }
 
-    public remove(token: string): boolean {
-        return this.connections.delete(token);
+    public remove(id: ConnectionId): boolean {
+        return this.connections.delete(id);
     }
 
     public getPlayerList(): Map<string, PlayerListEntry> {

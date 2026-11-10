@@ -180,7 +180,7 @@ export default class LoginHandler implements ConnectionPacketHandler<LoginPacket
         const world = server.getWorldManager().getDefaultWorld();
         const player = new Player({
             position: Position.fromVector3(await world.getSpawnPosition(), world),
-            address: connection.getRakNetSession().getAddress(),
+            address: connection.getAddress(),
             identity: {
                 uuid: UUID.fromString(identity.identity),
                 name: identity.displayName,

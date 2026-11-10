@@ -92,10 +92,18 @@ questions above, and it can verify the join end to end.
 
 ## Design
 
-- **Transport-neutral seam.** A connection is identified by its `token`, which its transport namespaces
-  (`raknet:…`, `nethernet:…`), and describes its peer with a plain `{ address, port }` rather than
-  RakNet's `InetAddress`. Raw datagrams (`onRaw`) become an optional capability that only RakNet
-  provides.
+- **The server names every connection.** A `ConnectionId` is allocated once per accepted connection
+  from one `ConnectionIds` allocator that every transport of a server shares: 1, 2, 3 in accept
+  order, never reused. The session registry, the per-connection frame queues, and packet traces and
+  their replay all key on it. A transport's own peer key (RakNet's `address:port`, the connection ID
+  a NetherNet client picks) stays private to that transport, in `KeyedTransport`. So two transports
+  can never hand the dispatcher the same identity, a client reconnecting from the same port is a new
+  connection, and a trace captured on one server replays against a fresh one because both number
+  connections the same way. `MultiTransport` owns the allocator and hands it to the transports it
+  builds, so no wiring can give two of them separate sequences.
+- **Transport-neutral seam.** Frames and disconnects carry the `ConnectionId`; each connection
+  describes its peer with an `InetAddress`, used as a plain IP-and-port value. Raw datagrams
+  (`onRaw`) are optional, and only RakNet provides them.
 - **Frames are Bedrock batches as RakNet carries them**, starting with `0xFE`. The NetherNet transport
   adds the byte to what it receives and strips it from what it sends, so the protocol codecs and the
   client package stay as they are. A Java transport would carry Java packet frames to its own
@@ -103,9 +111,14 @@ questions above, and it can verify the join end to end.
 - **Capabilities drive the session.** `capabilities.encrypted` makes the login skip the encryption
   handshake. `maxFrameSize` stays infinite because `nethernet` fragments for us.
 - **One dispatcher, several transports.** A `MultiTransport` merges the enabled transports into one
-  `Transport`, so `NetworkDispatcher` stays as it is.
+  `Transport`, so `NetworkDispatcher` serves them all through one subscription.
 - **Networking owns the listeners.** `ServerNetworking` starts each enabled transport and the LAN
   advertiser from config, and keeps the advertisement current as players join and leave.
+- **Shared parts get one home.** What two transports or two advertisers would both write lives in one
+  module: `Subscription` runs one event's listeners; `BaseTransport` holds subscriptions and
+  per-connection ordering; `KeyedTransport` maps wire keys to connection IDs; one server status snapshot
+  (MOTD, level, version, player counts, game mode) feeds the RakNet pong, the LAN advertisement and
+  `GET /v1/join`; the data channel's fragment framing stays in `nethernet`.
 - **Signaling sits apart from the WebRTC peer.** The HTTP signaling server on TCP `server-port` and
   the LAN signaling on UDP 7551 both feed the same `nethernet` `Server` through `handleOffer`. The
   answer gets `a=identity` from a server identity key stored beside the world data.
@@ -115,14 +128,18 @@ questions above, and it can verify the join end to end.
 Each slice is one or more small commits that leave the tree building, linted and tested. Check off a
 slice when it lands on the branch.
 
-1. [ ] **Plan.** This document.
-2. [ ] **Neutral transport seam.** Replace `InetAddress` in `Transport` with a token and a neutral
-   peer address, make `onRaw` optional, and have `ClientConnection`, `LoginHandler` and the disconnect
-   path read the address from the transport connection. RakNet behavior and tokens are unchanged.
+1. [x] **Plan.** This document.
+2. [x] **Connection identity and a neutral transport seam.** `ConnectionId` from one allocator keys the
+   session registry, frame queues and traces; frames and disconnects carry it; every
+   `TransportConnection` has its peer `address`; `onRaw` is optional; `ClientConnection` and
+   `LoginHandler` read the address from the transport connection. `BaseTransport` and
+   `KeyedTransport` hold what `RakNetTransport` used to own. `InetAddress` stays as the peer address
+   value type: every transport, including a future Java one, has an IP address and port.
 3. [ ] **Capability-driven encryption.** Skip `ServerToClientHandshake` when the transport reports
    `encrypted`. Unit test both paths.
-4. [ ] **Multiple transports.** `MultiTransport` with namespaced tokens, ordered delivery per
-   connection, and `close` fanning out. Unit tests with fake transports.
+4. [ ] **Multiple transports.** `MultiTransport` owning the shared allocator, forwarding events with
+   each child's ordering intact, and `close` fanning out. `ServerNetworking` builds it from the
+   enabled transports (after the config slice). Unit tests with manual transports.
 5. [ ] **Config.** `enable-raknet`, `enable-nethernet` and `enable-lan-visibility`, all defaulting to
    `true`, in `Config`, the JSON schema and the generated settings docs. Refuse to start with both
    transports off.
@@ -136,7 +153,8 @@ slice when it lands on the branch.
    answer pings only on the configured port.
 8. [ ] **HTTP signaling.** A small `node:http` server on TCP `server-port`: `GET /v1/join` metadata,
    `POST /v1/join/{networkId}` offer to answer through `handleOffer`, `404` for everything else, body
-   and time limits. Persist an ES384 server identity key and sign `a=identity` into each answer.
+   and time limits. HTTP signaling carries no connection ID, so the server picks the `nethernet` one
+   for each offer, unused by any live peer. Persist an ES384 server identity key and sign `a=identity` into each answer.
    Settle the open encoding questions against go-nethernet. Strip the offer's `a=identity` and accept
    offers without one for now (see open questions).
 9. [ ] **End-to-end verification.** Join over NetherNet with a werift client and with cinnabar
@@ -156,3 +174,6 @@ slice when it lands on the branch.
 - Does werift keep up with many players? Measure by counts (messages, bytes, allocations), not by
   wall-clock time, as [AGENTS.md](../../AGENTS.md#measuring-performance) asks.
 - Worker mode (`use-raknet-worker`) stays RakNet-only. Does NetherNet need a worker later?
+- `nethernet` keys peers on the connection ID the client picks, and its LAN path applies a
+  `CANDIDATEADD` to whichever peer that ID names, whoever sent it. Report upstream if a LAN peer can
+  disturb another's negotiation that way.

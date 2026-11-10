@@ -1,7 +1,6 @@
 import type { Logger } from '@jsprismarine/logger';
 import { Vector3 } from '@jsprismarine/math';
 import { InetAddress } from '@jsprismarine/raknet';
-import type { RakNetSession } from '@jsprismarine/raknet';
 import UUID from '@jsprismarine/protocol/wire/structures/UUID';
 import { PacketCompressionAlgorithm } from '@jsprismarine/minecraft';
 import { vi } from 'vitest';
@@ -150,7 +149,7 @@ export const fakePlayer = ({ underwater = false, worlds: others = [] }: FakePlay
         codec: Codec2193,
         compressionAlgorithm: PacketCompressionAlgorithm.ZLIB,
         compressionThreshold: 256,
-        getRakNetSession: () => stub<RakNetSession>({ getAddress: () => new InetAddress('127.0.0.1', 19132) }),
+        getAddress: () => new InetAddress('127.0.0.1', 19132),
         sendDataPacket: async (packet) => void sent.push(packet),
         sendPacketsAsync: async (packets) => void sent.push(...packets),
         sendSharedBatch: async (_content, packets) => void sent.push(...packets),

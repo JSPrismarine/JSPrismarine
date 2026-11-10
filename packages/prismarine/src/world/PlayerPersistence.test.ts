@@ -13,7 +13,6 @@ import path from 'node:path';
 
 import { Vector3 } from '@jsprismarine/math';
 import { InetAddress } from '@jsprismarine/raknet';
-import type { RakNetSession } from '@jsprismarine/raknet';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import type { Config } from '../config/Config';
@@ -150,7 +149,7 @@ const buildPlayer = (world: World, server: Server, uuid: UUID): Player => {
     });
 
     const connection = stub<ClientConnection>({
-        getRakNetSession: () => stub<RakNetSession>({ getAddress: () => new InetAddress('127.0.0.1', 19132) }),
+        getAddress: () => new InetAddress('127.0.0.1', 19132),
         sendDataPacket: async () => {},
         attachPlayerSession: () => {},
         closePlayerSession: async () => {},

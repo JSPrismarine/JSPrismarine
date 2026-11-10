@@ -17,6 +17,7 @@ import type { RegisteredHandler } from './PacketHandlerRegistry';
 import type { InboundPacketRecord, InboundPacketRecorder } from './InboundPacketTrace';
 import type { OutboundPacketRecorder } from './OutboundPacketTrace';
 import { Pipeline } from './pipeline/ConnectionPipeline';
+import type { ConnectionId } from './transport/ConnectionId';
 import type { Transport, TransportConnection } from './transport/Transport';
 
 /** A decoded packet the phase gate has paired with the handler it will run. */
@@ -29,7 +30,7 @@ interface GatedPacket {
 export interface NetworkDispatcherOptions<C extends TransportConnection> {
     /** Where connections and frames come from. */
     transport: Transport<C>;
-    /** The registry of live connections, keyed by transport token. */
+    /** The registry of live connections, keyed by connection ID. */
     sessionManager: Pick<SessionManager, 'has' | 'add' | 'get' | 'remove'>;
     /** Resolves a packet class name to its handler; packets resolve through each connection's codec. */
     packetHandlerRegistry: Pick<PacketHandlerRegistry, 'getHandler'>;
@@ -61,7 +62,7 @@ export interface NetworkDispatcherOptions<C extends TransportConnection> {
  * of packets dispatched to their registered handlers.
  *
  * Extracted verbatim from the closures `Server.bootstrap` used to install on the RakNet
- * listener; the behavior - duplicate-token rejection, the legacy `raknetDisconnect` event's
+ * listener; the behavior - duplicate-ID rejection, the legacy `raknetDisconnect` event's
  * place in the teardown, and unknown-id warnings - is unchanged. The pre-login/post-login
  * handler split became the phase gate: each handler declares the session phases it
  * accepts, and a packet outside them is dropped.
@@ -79,12 +80,9 @@ export default class NetworkDispatcher<C extends TransportConnection> {
     private readonly outboundPacketRecorder: NetworkDispatcherOptions<C>['outboundPacketRecorder'];
     private readonly packetPayloads: WeakMap<NetworkPacket<unknown>, { payload: Buffer; tick: number }> | undefined;
     private readonly frameTicks: WeakMap<ClientConnection, number> | undefined;
-    private readonly connectionSequences: WeakMap<ClientConnection, { id: number; next: number }> | undefined;
-    private readonly connectionsByTraceId = new Map<number, ClientConnection>();
-    private readonly traceConnectionIds = new WeakMap<ClientConnection, number>();
-    private readonly traceTokens = new WeakMap<ClientConnection, string>();
-    private readonly replaySequences = new Map<number, number>();
-    private nextConnectionId = 1;
+    /** How many packets each connection has recorded, which is the next record's sequence. */
+    private readonly connectionSequences: WeakMap<ClientConnection, { next: number }> | undefined;
+    private readonly replaySequences = new Map<ConnectionId, number>();
     private nextInboundOrder = 0;
     private nextReplayOrder = 0;
     /** These codecs hold only immutable settings, so every connection can reuse them. */
@@ -109,61 +107,42 @@ export default class NetworkDispatcher<C extends TransportConnection> {
         this.connectionSequences = options.inboundPacketRecorder === undefined ? undefined : new WeakMap();
 
         options.transport.onConnect((connection) => this.handleConnect(connection));
-        options.transport.onDisconnect((address, reason) => this.handleDisconnect(address, reason));
-        options.transport.onFrame((payload, address) => this.enqueueFrame(payload, address));
-        options.transport.onRaw((payload, address) => this.handleRaw(payload, address));
+        options.transport.onDisconnect((id, address, reason) => this.handleDisconnect(id, address, reason));
+        options.transport.onFrame((payload, id) => this.enqueueFrame(payload, id));
+        options.transport.onRaw?.((payload, address) => this.handleRaw(payload, address));
     }
 
     private handleConnect(connection: C): void {
-        const token = connection.token;
-        if (this.sessionManager.has(token)) {
-            this.logger.error(`Another client with token (${token}) is already connected!`);
-            connection.close('Already connected from another location');
+        const id = connection.id;
+        // Transports draw IDs from one allocator that never repeats one, so this only trips on a
+        // transport that broke that contract; refusing beats letting two clients share a session.
+        if (this.sessionManager.has(id)) {
+            this.logger.error(`Connection ${id} from ${connection.address} reuses a live connection's ID`);
+            connection.close('Connection ID collision');
             return;
         }
 
         const timer = new Timer();
-        this.logger.debug(`${token} is attempting to connect`);
+        this.logger.debug(`${connection.address} is attempting to connect as connection ${id}`);
         const clientConnection = this.createConnection(connection);
-        const connectionId = this.nextConnectionId;
-        this.nextConnectionId += 1;
-        // Playback assigns captured ids on a fresh server even when that server is not recording.
-        this.connectionsByTraceId.set(connectionId, clientConnection);
-        this.traceConnectionIds.set(clientConnection, connectionId);
-        this.traceTokens.set(clientConnection, token);
+        // Traces name a connection by its ID rather than the client's address. A fresh server
+        // numbers its connections in the same order, which is what lets playback find them.
         if (this.outboundPacketRecorder !== undefined) {
-            clientConnection.setOutboundPacketRecorder(this.outboundPacketRecorder, connectionId, () =>
-                this.server.getTick()
-            );
+            clientConnection.setOutboundPacketRecorder(this.outboundPacketRecorder, id, () => this.server.getTick());
         }
-        if (this.inboundPacketRecorder !== undefined) {
-            // A process-local ordinal avoids writing the client's address into a trace. It is
-            // stable for this capture and does not identify the same client across captures.
-            this.connectionSequences?.set(clientConnection, { id: connectionId, next: 0 });
-        }
-        this.sessionManager.add(token, clientConnection);
+        if (this.inboundPacketRecorder !== undefined) this.connectionSequences?.set(clientConnection, { next: 0 });
+        this.sessionManager.add(id, clientConnection);
         this.logger.verbose(`New connection handling took §e${timer.stop()} ms§r`);
     }
 
-    private async handleDisconnect(inetAddr: InetAddress, reason: string): Promise<void> {
+    private async handleDisconnect(id: ConnectionId, inetAddr: InetAddress, reason: string): Promise<void> {
         const time = Date.now();
-        const token = inetAddr.toToken();
 
-        // Claimed before anything is awaited. RakNet frees the address the instant it
-        // forgets a session, and both this handler and the check in `handleConnect` key
-        // on the token, so leaving the entry in place across the awaits below left a
-        // window in which a client reconnecting from the same port was turned away as
-        // "already connected" - and the tear-down that then ran released the connection
-        // that had just replaced it.
-        const session = this.sessionManager.get(token);
-        this.sessionManager.remove(token);
-        if (session !== null) {
-            const connectionId = this.traceConnectionIds.get(session);
-            if (connectionId !== undefined) {
-                this.connectionsByTraceId.delete(connectionId);
-                this.replaySequences.delete(connectionId);
-            }
-        }
+        // Claimed before anything is awaited, so nothing that runs during the awaits below can
+        // reach a connection that is being torn down.
+        const session = this.sessionManager.get(id);
+        this.sessionManager.remove(id);
+        this.replaySequences.delete(id);
 
         // Read before the tear-down below, which detaches the session and takes the
         // player out of its world. A player is only added to a world once the client
@@ -172,11 +151,13 @@ export default class NetworkDispatcher<C extends TransportConnection> {
         const player = session?.getPlayerSession()?.getPlayer() ?? null;
         const spawned = player !== null && player.getWorld().getEntity(player.getRuntimeId()) === player;
 
+        // Fired for every transport's clients, despite the name: it is the one disconnect event a
+        // plugin sees before the player is torn down, whatever carried the connection.
         const event = new RaknetDisconnectEvent(inetAddr, reason);
         await this.events.emit('raknetDisconnect', event);
 
         if (!session) {
-            this.logger.info(`${token} disconnected due to ${reason}`);
+            this.logger.info(`${inetAddr} disconnected due to ${reason}`);
             return;
         }
 
@@ -185,9 +166,9 @@ export default class NetworkDispatcher<C extends TransportConnection> {
         // A spawned player announces its own departure in chat. For one that never got
         // that far this line is the only trace the connection leaves, so it is kept at a
         // level the default console shows.
-        if (spawned) this.logger.debug(`${token} disconnected due to ${reason}`);
+        if (spawned) this.logger.debug(`${inetAddr} disconnected due to ${reason}`);
         else {
-            const who = player === null ? token : `${player.getName()} (${token})`;
+            const who = player === null ? `${inetAddr}` : `${player.getName()} (${inetAddr})`;
             this.logger.info(`${who} disconnected during the join due to ${reason}`);
         }
         this.logger.debug(`Player destruction took about ${Date.now() - time} ms`);
@@ -205,31 +186,29 @@ export default class NetworkDispatcher<C extends TransportConnection> {
         .pipe((packet, connection) => this.gatePhase(packet, connection))
         .pipe((gated, connection) => this.dispatch(gated, connection));
 
-    private enqueueFrame(payload: Buffer, inetAddr: InetAddress): Promise<void> {
-        // Carry this lookup result through the queue instead of rebuilding it in handleFrame.
-        const token = inetAddr.toToken();
+    private enqueueFrame(payload: Buffer, id: ConnectionId): Promise<void> {
         // Stamp arrival before the per-connection queue. A previous async handler may hold this
         // frame until a later tick, but replay must keep the tick the client input arrived on.
         const tick = this.inboundPacketRecorder === undefined ? undefined : this.server.getTick();
-        const connection = this.sessionManager.get(token);
-        if (connection === null) return this.handleFrame(payload, token, undefined, tick);
+        const connection = this.sessionManager.get(id);
+        if (connection === null) return this.handleFrame(payload, id, undefined, tick);
 
         const previous = this.frameQueues.get(connection) ?? Promise.resolve();
-        const current = previous.then(() => this.handleFrame(payload, token, connection, tick));
+        const current = previous.then(() => this.handleFrame(payload, id, connection, tick));
         this.frameQueues.set(connection, current);
         return current;
     }
 
     private async handleFrame(
         payload: Buffer,
-        token: string,
+        id: ConnectionId,
         expectedConnection?: ClientConnection,
         tick?: number
     ): Promise<void> {
         try {
-            const connection = this.sessionManager.get(token);
+            const connection = this.sessionManager.get(id);
             if (connection === null || (expectedConnection !== undefined && connection !== expectedConnection)) {
-                this.logger.error(`Got a packet from a closed connection (${token})`);
+                this.logger.error(`Got a packet from a closed connection (${id})`);
                 return;
             }
 
@@ -371,7 +350,7 @@ export default class NetworkDispatcher<C extends TransportConnection> {
         if (order === undefined) return;
 
         const record = {
-            connectionId: order.id,
+            connectionId: connection.getConnectionId(),
             order: this.nextInboundOrder,
             sequence: order.next,
             tick: input.tick,
@@ -401,17 +380,14 @@ export default class NetworkDispatcher<C extends TransportConnection> {
      * @throws {Error} When the connection, global order, sequence, tick, protocol, or packet does not match.
      */
     public async replayInboundRecord(record: InboundPacketRecord, tickOffset = 0): Promise<void> {
-        const connection = this.connectionsByTraceId.get(record.connectionId);
-        if (connection === undefined) throw new Error(`Replay connection ${record.connectionId} is not connected`);
-
-        const token = this.traceTokens.get(connection);
-        if (token === undefined) throw new Error(`Replay connection ${record.connectionId} has no live session token`);
+        const connection = this.sessionManager.get(record.connectionId);
+        if (connection === null) throw new Error(`Replay connection ${record.connectionId} is not connected`);
 
         // Use the same per-connection queue as transport frames so replay cannot overtake an
         // unfinished handler from that client.
         const previous = this.frameQueues.get(connection) ?? Promise.resolve();
         const current = previous.then(async () => {
-            if (this.sessionManager.get(token) !== connection) {
+            if (this.sessionManager.get(record.connectionId) !== connection) {
                 throw new Error(`Replay connection ${record.connectionId} is no longer connected`);
             }
 

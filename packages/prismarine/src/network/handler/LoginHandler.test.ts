@@ -1,7 +1,7 @@
 import type { Logger } from '@jsprismarine/logger';
 import { DisconnectReason } from '@jsprismarine/minecraft';
 import { Vector3 } from '@jsprismarine/math';
-import type { InetAddress, RakNetSession } from '@jsprismarine/raknet';
+import type { InetAddress } from '@jsprismarine/raknet';
 import { generateKeyPairSync, sign } from 'node:crypto';
 import { afterEach, assert, describe, expect, it, vi } from 'vitest';
 
@@ -158,8 +158,7 @@ describe('network', () => {
             // connection is handed the real one and only has to accept it.
             const connection: ClientConnection = stub<ClientConnection>({
                 codec: Codec2193,
-                getRakNetSession: () =>
-                    stub<RakNetSession>({ getAddress: () => stub<InetAddress>({ toToken: () => 'token' }) }),
+                getAddress: () => stub<InetAddress>({ toToken: () => 'token' }),
                 sendDataPacket: async () => {},
                 attachPlayerSession: vi.fn(),
                 closePlayerSession: async () => {},
@@ -187,8 +186,7 @@ describe('network', () => {
                 const sent: string[] = [];
                 const quiet = stub<ClientConnection>({
                     codec: Codec2193,
-                    getRakNetSession: () =>
-                        stub<RakNetSession>({ getAddress: () => stub<InetAddress>({ toToken: () => 'token' }) }),
+                    getAddress: () => stub<InetAddress>({ toToken: () => 'token' }),
                     sendDataPacket: async (packet) => void sent.push(packet.constructor.name),
                     attachPlayerSession: vi.fn(),
                     closePlayerSession: async () => {},
@@ -238,8 +236,7 @@ describe('network', () => {
                     const disconnects: Array<[string, DisconnectReason | undefined]> = [];
                     const stubbed = stub<ClientConnection>({
                         codec: Codec2193,
-                        getRakNetSession: () =>
-                            stub<RakNetSession>({ getAddress: () => stub<InetAddress>({ toToken: () => 'token' }) }),
+                        getAddress: () => stub<InetAddress>({ toToken: () => 'token' }),
                         phase: 'login',
                         resumeLogin: null,
                         sendDataPacket: async () => {},
@@ -376,8 +373,7 @@ describe('network', () => {
                         codec: Codec2193,
                         phase: 'login',
                         resumeLogin: null,
-                        getRakNetSession: () =>
-                            stub<RakNetSession>({ getAddress: () => stub<InetAddress>({ toToken: () => 'token' }) }),
+                        getAddress: () => stub<InetAddress>({ toToken: () => 'token' }),
                         sendDataPacket: async (packet) => void sent.push(packet.constructor.name),
                         startEncryption: (codec) => void started.push(codec),
                         attachPlayerSession: vi.fn(),
@@ -453,8 +449,7 @@ describe('network', () => {
                 const sent: NetworkPacket[] = [];
                 const quiet = stub<ClientConnection>({
                     codec: Codec2193,
-                    getRakNetSession: () =>
-                        stub<RakNetSession>({ getAddress: () => stub<InetAddress>({ toToken: () => 'token' }) }),
+                    getAddress: () => stub<InetAddress>({ toToken: () => 'token' }),
                     sendDataPacket: async (packet) => void sent.push(packet),
                     attachPlayerSession: vi.fn(),
                     closePlayerSession: async () => {},
@@ -480,8 +475,7 @@ describe('network', () => {
                 const disconnect = vi.fn();
                 const rejected = stub<ClientConnection>({
                     codec: Codec2193,
-                    getRakNetSession: () =>
-                        stub<RakNetSession>({ getAddress: () => stub<InetAddress>({ toToken: () => 'token' }) }),
+                    getAddress: () => stub<InetAddress>({ toToken: () => 'token' }),
                     disconnect,
                     attachPlayerSession: vi.fn()
                 });

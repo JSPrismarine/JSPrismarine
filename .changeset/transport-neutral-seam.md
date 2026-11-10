@@ -1,0 +1,7 @@
+---
+'@jsprismarine/prismarine': minor
+---
+
+The server now names every connection itself, so transports other than RakNet can plug in without their clients' identities colliding. A `ConnectionId` is allocated per accepted connection from one sequence every transport shares (1, 2, 3 in accept order, never reused), and the session registry, per-connection frame queues, and inbound and outbound packet traces all key on it. A client reconnecting from the same address and port is a new connection with a new ID.
+
+The transport seam changes with it. `TransportConnection.token` is replaced by `id` and gains `address`, the client's IP address and port. `Transport.onDisconnect` listeners receive `(id, address, reason)` and `Transport.onFrame` listeners `(payload, id)`, and `onRaw` is optional because only RakNet carries datagrams from hosts that are not connected. `SessionManager.add`, `has`, `get` and `remove` take a `ConnectionId`. `BaseTransport` and `KeyedTransport` hold the subscriptions, per-connection ordering and wire-key mapping that every transport shares; `RakNetTransport` takes the allocator as a third argument. `ClientConnection.getConnectionId()` and `ClientConnection.getAddress()` work whichever transport carried the client; `ClientConnection.getRakNetSession()` is deprecated and throws for a client that did not connect over RakNet. The `raknetDisconnect` event fires for every transport's clients.

@@ -3,7 +3,11 @@ import { ConnectionPriority, Protocol } from '@jsprismarine/raknet';
 import type { EventEmitter } from '../../events/EventEmitter';
 import RaknetConnectEvent from '../../events/raknet/RaknetConnectEvent';
 import RaknetEncapsulatedPacketEvent from '../../events/raknet/RaknetEncapsulatedPacketEvent';
-import type { Transport, TransportCapabilities, TransportConnection } from './Transport';
+import type { ConnectionId, ConnectionIds } from './ConnectionId';
+import { KeyedTransport } from './KeyedTransport';
+import type { Listener } from './Subscription';
+import { Subscription } from './Subscription';
+import type { TransportCapabilities, TransportConnection } from './Transport';
 
 /**
  * What RakNet does on its own: everything leaves here reliable ordered, split over as many
@@ -36,11 +40,14 @@ export type RaknetEventBus = Pick<EventEmitter, 'emit' | 'hasListeners'>;
  * channel 0, which is where the order index the client applies things in is stamped.
  */
 export class RakNetTransportConnection implements TransportConnection {
-    public readonly token: string;
+    public readonly address: InetAddress;
     public readonly capabilities = RAKNET_CAPABILITIES;
 
-    public constructor(private readonly session: RakNetSession) {
-        this.token = session.getAddress().toToken();
+    public constructor(
+        public readonly id: ConnectionId,
+        private readonly session: RakNetSession
+    ) {
+        this.address = session.getAddress();
     }
 
     /** Queues the payload reliable ordered; `immediate` forces a datagram of its own. */
@@ -58,17 +65,9 @@ export class RakNetTransportConnection implements TransportConnection {
         else this.session.disconnect(reason);
     }
 
-    /**
-     * The session underneath, for what the transport seam does not cover yet: the legacy
-     * `RaknetConnectEvent` payload and the address the login handler gives the player.
-     */
+    /** The session underneath, for the legacy `RaknetConnectEvent` payload. */
     public getRakNetSession(): RakNetSession {
         return this.session;
-    }
-
-    /** The client's address, which is what the token is derived from. */
-    public getAddress(): InetAddress {
-        return this.session.getAddress();
     }
 }
 
@@ -83,52 +82,43 @@ export class RakNetTransportConnection implements TransportConnection {
  * reaching them. `raknetDisconnect` is the exception - its emission order is tied to the
  * session registry, so it stays with the dispatcher.
  */
-export default class RakNetTransport implements Transport<RakNetTransportConnection> {
-    private readonly connectListeners: ((connection: RakNetTransportConnection) => Promise<void> | void)[] = [];
-    private readonly disconnectListeners: ((address: InetAddress, reason: string) => Promise<void> | void)[] = [];
-    private readonly frameListeners: ((payload: Buffer, address: InetAddress) => Promise<void> | void)[] = [];
-    private readonly rawListeners: ((payload: Buffer, address: InetAddress) => Promise<void> | void)[] = [];
-    /** Connect, frames, and close must not overtake one another while handlers await. */
-    private readonly sessionDeliveries = new Map<string, Promise<void>>();
+export default class RakNetTransport extends KeyedTransport<RakNetTransportConnection, string> {
+    private readonly raw = new Subscription<[Buffer, InetAddress]>();
 
+    /**
+     * @param source - The RakNet listener whose sessions this carries.
+     * @param events - Where the legacy RakNet events go.
+     * @param ids - The connection ID allocator every transport of the server shares.
+     */
     public constructor(
         private readonly source: RakNetTransportSource,
-        private readonly events: RaknetEventBus
+        private readonly events: RaknetEventBus,
+        ids: ConnectionIds
     ) {
-        source.on('openConnection', (session) =>
-            this.enqueueSessionDelivery(session.getAddress().toToken(), () => this.handleOpenConnection(session))
-        );
-        source.on('closeConnection', (address, reason) => {
-            this.enqueueSessionDelivery(address.toToken(), () =>
-                this.deliver(this.disconnectListeners, (listener) => listener(address, reason))
+        super(ids);
+        // RakNet keys a session on the client's address and port, and frees it the moment the
+        // session ends, so a client reconnecting from the same port is a new key registration.
+        source.on('openConnection', (session) => {
+            this.accept(
+                session.getAddress().toToken(),
+                (id) => new RakNetTransportConnection(id, session),
+                (connection) => this.admit(connection)
             );
         });
-        source.on('encapsulated', (frame, address) =>
-            this.enqueueSessionDelivery(address.toToken(), () => this.handleEncapsulated(frame, address))
-        );
-        source.on('raw', (buffer, address) => {
-            void this.deliver(this.rawListeners, (listener) => listener(buffer, address));
+        source.on('closeConnection', (address, reason) => this.forget(address.toToken(), reason));
+        source.on('encapsulated', (frame, address) => {
+            const connection = this.connectionOf(address.toToken());
+            if (connection === undefined) return;
+            this.enqueue(connection.id, () => this.handleEncapsulated(frame, address, connection.id));
         });
-    }
-
-    /** Calls the listener once per session RakNet accepts, unless the connect event was canceled. */
-    public onConnect(listener: (connection: RakNetTransportConnection) => Promise<void> | void): void {
-        this.connectListeners.push(listener);
-    }
-
-    /** Calls the listener when RakNet forgets a session, with the reason it recorded. */
-    public onDisconnect(listener: (address: InetAddress, reason: string) => Promise<void> | void): void {
-        this.disconnectListeners.push(listener);
-    }
-
-    /** Calls the listener with each encapsulated frame's content. */
-    public onFrame(listener: (payload: Buffer, address: InetAddress) => Promise<void> | void): void {
-        this.frameListeners.push(listener);
+        source.on('raw', (buffer, address) => {
+            void this.raw.deliver(buffer, address);
+        });
     }
 
     /** Calls the listener with offline datagrams, which is where the query protocol lives. */
-    public onRaw(listener: (payload: Buffer, address: InetAddress) => Promise<void> | void): void {
-        this.rawListeners.push(listener);
+    public onRaw(listener: Listener<[Buffer, InetAddress]>): void {
+        this.raw.add(listener);
     }
 
     /** Kills the listener underneath, which drops every session with it. */
@@ -136,20 +126,20 @@ export default class RakNetTransport implements Transport<RakNetTransportConnect
         this.source.kill();
     }
 
-    private async handleOpenConnection(session: RakNetSession): Promise<void> {
+    /** Runs the legacy connect event; a canceled one hangs up before anyone hears of the session. */
+    private async admit(connection: RakNetTransportConnection): Promise<boolean> {
+        const session = connection.getRakNetSession();
         const event = new RaknetConnectEvent(session);
         await this.events.emit('raknetConnect', event);
 
         if (event.isCanceled()) {
             session.disconnect();
-            return;
+            return false;
         }
-
-        const connection = new RakNetTransportConnection(session);
-        await this.deliver(this.connectListeners, (listener) => listener(connection));
+        return true;
     }
 
-    private async handleEncapsulated(frame: Protocol.Frame, address: InetAddress): Promise<void> {
+    private async handleEncapsulated(frame: Protocol.Frame, address: InetAddress, id: ConnectionId): Promise<void> {
         // Most servers have no plugin subscribed to raw frames, so avoid an event allocation
         // and an async emit on the busiest inbound path in that common case.
         if (this.events.hasListeners('raknetEncapsulatedPacket')) {
@@ -157,28 +147,6 @@ export default class RakNetTransport implements Transport<RakNetTransportConnect
             await this.events.emit('raknetEncapsulatedPacket', event);
         }
 
-        await this.deliver(this.frameListeners, (listener) => listener(frame.content, address));
-    }
-
-    private async deliver<L>(listeners: readonly L[], call: (listener: L) => Promise<void> | void): Promise<void> {
-        for (const listener of listeners) await call(listener);
-    }
-
-    private enqueueSessionDelivery(token: string, deliver: () => Promise<void>): void {
-        const previous = this.sessionDeliveries.get(token) ?? Promise.resolve();
-        const current = previous.catch(() => {}).then(deliver);
-        this.sessionDeliveries.set(token, current);
-
-        const clear = () => {
-            if (this.sessionDeliveries.get(token) === current) this.sessionDeliveries.delete(token);
-        };
-        void current.then(clear, (error: unknown) => {
-            clear();
-            // Preserve the previous event emitter behavior: an async listener failure is
-            // still fatal, but it must not leave later session events permanently queued.
-            queueMicrotask(() => {
-                throw error;
-            });
-        });
+        await this.deliverFrame(frame.content, id);
     }
 }

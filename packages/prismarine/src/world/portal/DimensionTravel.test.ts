@@ -11,7 +11,6 @@ import type { Logger } from '@jsprismarine/logger';
 import { Vector3 } from '@jsprismarine/math';
 import { Gametype } from '@jsprismarine/minecraft';
 import { InetAddress } from '@jsprismarine/raknet';
-import type { RakNetSession } from '@jsprismarine/raknet';
 import ChangeDimensionPacket from '@jsprismarine/protocol/packet/ChangeDimensionPacket';
 import ShowCreditsPacket, { CreditsState } from '@jsprismarine/protocol/packet/ShowCreditsPacket';
 import UUID from '@jsprismarine/protocol/wire/structures/UUID';
@@ -238,7 +237,7 @@ const playerAt = (server: Server, world: World, feet: Vector3, sent: unknown[] =
     });
     const connection = stub<ClientConnection>({
         codec: Codec2193,
-        getRakNetSession: () => stub<RakNetSession>({ getAddress: () => new InetAddress('127.0.0.1', 19132) }),
+        getAddress: () => new InetAddress('127.0.0.1', 19132),
         sendDataPacket: async (packet) => void sent.push(packet),
         sendPacketsAsync: async (packets) => void sent.push(...packets),
         // Portal tests inspect travel state and sent packets, not the outbound batch queue.

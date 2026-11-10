@@ -2,7 +2,7 @@ import { DisconnectReason } from '@jsprismarine/minecraft';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { Logger } from '@jsprismarine/logger';
-import type { InetAddress } from '@jsprismarine/raknet';
+import { InetAddress } from '@jsprismarine/raknet';
 import { PacketCompressionAlgorithm } from '@jsprismarine/minecraft';
 import { BatchCodec } from '@jsprismarine/protocol';
 import type { EventEmitter } from '../events/EventEmitter';
@@ -21,28 +21,32 @@ import type { InboundPacketRecorder } from './InboundPacketTrace';
 import { InboundPacketTrace } from './InboundPacketTrace';
 import type { OutboundPacketRecorder } from './OutboundPacketTrace';
 import type { SessionPhase } from './SessionPhase';
+import type { ConnectionId } from './transport/ConnectionId';
 import type { Transport, TransportCapabilities, TransportConnection } from './transport/Transport';
 import { TextPacketType } from '@jsprismarine/protocol';
+
+/** Where every fake client connects from. */
+const address = new InetAddress('127.0.0.1', 19132);
 
 /** A transport the test drives by hand: subscriptions in, emit helpers out. */
 class FakeTransport implements Transport<TransportConnection> {
     private connect: ((connection: TransportConnection) => Promise<void> | void) | undefined;
-    private disconnect: ((address: InetAddress, reason: string) => Promise<void> | void) | undefined;
-    private frame: ((payload: Buffer, address: InetAddress) => Promise<void> | void) | undefined;
+    private disconnect: ((id: ConnectionId, address: InetAddress, reason: string) => Promise<void> | void) | undefined;
+    private frame: ((payload: Buffer, id: ConnectionId) => Promise<void> | void) | undefined;
 
     public onConnect(listener: (connection: TransportConnection) => Promise<void> | void): void {
         this.connect = listener;
     }
 
-    public onDisconnect(listener: (address: InetAddress, reason: string) => Promise<void> | void): void {
+    public onDisconnect(
+        listener: (id: ConnectionId, address: InetAddress, reason: string) => Promise<void> | void
+    ): void {
         this.disconnect = listener;
     }
 
-    public onFrame(listener: (payload: Buffer, address: InetAddress) => Promise<void> | void): void {
+    public onFrame(listener: (payload: Buffer, id: ConnectionId) => Promise<void> | void): void {
         this.frame = listener;
     }
-
-    public onRaw(): void {}
 
     public close(): void {}
 
@@ -50,12 +54,12 @@ class FakeTransport implements Transport<TransportConnection> {
         await this.connect?.(connection);
     }
 
-    public async emitDisconnect(address: InetAddress, reason: string): Promise<void> {
-        await this.disconnect?.(address, reason);
+    public async emitDisconnect(id: ConnectionId, reason: string): Promise<void> {
+        await this.disconnect?.(id, address, reason);
     }
 
-    public async emitFrame(payload: Buffer, address: InetAddress): Promise<void> {
-        await this.frame?.(payload, address);
+    public async emitFrame(payload: Buffer, id: ConnectionId): Promise<void> {
+        await this.frame?.(payload, id);
     }
 }
 
@@ -66,10 +70,11 @@ const capabilities: TransportCapabilities = {
 };
 
 /** A connection that records whether (and why) it was refused. */
-const fakeConnection = (token: string) => {
+const fakeConnection = (id: ConnectionId) => {
     const closed: (string | undefined)[] = [];
     const connection: TransportConnection = {
-        token,
+        id,
+        address,
         capabilities,
         sendFrame: () => {},
         close: (reason) => void closed.push(reason)
@@ -94,8 +99,6 @@ const fakeLogger = (sillyEnabled: boolean) => {
 
     return { logger, lines };
 };
-
-const address = (token: string) => stub<InetAddress>({ toToken: () => token });
 
 const message = (text: string) => {
     return new TextPacket({
@@ -124,8 +127,8 @@ const captureTextRecord = async () => {
         recorder: trace,
         handler: { phases: ['handshake'], handle: async () => {} }
     });
-    await source.transport.emitConnect(fakeConnection('source:1').connection);
-    await source.transport.emitFrame(frameOf(message('replay input')), address('source:1'));
+    await source.transport.emitConnect(fakeConnection(1).connection);
+    await source.transport.emitFrame(frameOf(message('replay input')), 1);
 
     return trace.records()[0]!;
 };
@@ -178,8 +181,9 @@ const makeDispatcher = (options?: {
         logFilter,
         inboundPacketRecorder: options?.recorder,
         outboundPacketRecorder: options?.outboundRecorder,
-        createConnection: () => {
+        createConnection: (transportConnection) => {
             const connection = stub<ClientConnection>({
+                getConnectionId: () => transportConnection.id,
                 hasCompression: options?.compressed ?? false,
                 codec: options?.codec ?? Codec2193,
                 phase: 'handshake',
@@ -200,12 +204,12 @@ const makeDispatcher = (options?: {
 
 describe('network', () => {
     describe('NetworkDispatcher', () => {
-        it('admits a connection into the session registry under its token', async () => {
+        it('admits a connection into the session registry under its ID', async () => {
             const { transport, sessionManager, built } = makeDispatcher();
 
-            await transport.emitConnect(fakeConnection('a:1').connection);
+            await transport.emitConnect(fakeConnection(1).connection);
 
-            expect(sessionManager.get('a:1')).toBe(built[0]);
+            expect(sessionManager.get(1)).toBe(built[0]);
         });
 
         it('installs the outbound recorder with the connection id and a live tick lookup', async () => {
@@ -216,7 +220,7 @@ describe('network', () => {
                 tick: () => tick
             });
 
-            await transport.emitConnect(fakeConnection('a:1').connection);
+            await transport.emitConnect(fakeConnection(1).connection);
 
             expect(outboundRecorderSetup).toHaveLength(1);
             expect(outboundRecorderSetup[0]?.recorder).toBe(recorder);
@@ -227,26 +231,26 @@ describe('network', () => {
             expect(outboundRecorderSetup[0]?.getTick()).toBe(8);
         });
 
-        it('refuses a second connection with the token of a live one', async () => {
+        it('refuses a connection whose ID a live one already holds', async () => {
             const { transport, sessionManager, lines, built } = makeDispatcher();
-            await transport.emitConnect(fakeConnection('a:1').connection);
+            await transport.emitConnect(fakeConnection(1).connection);
 
-            const { connection, closed } = fakeConnection('a:1');
+            const { connection, closed } = fakeConnection(1);
             await transport.emitConnect(connection);
 
-            expect(closed).toStrictEqual(['Already connected from another location']);
+            expect(closed).toStrictEqual(['Connection ID collision']);
             expect(built).toHaveLength(1);
-            expect(sessionManager.get('a:1')).toBe(built[0]);
-            expect(lines.some(({ level, message: m }) => level === 'error' && m.includes('already connected'))).toBe(
-                true
-            );
+            expect(sessionManager.get(1)).toBe(built[0]);
+            expect(
+                lines.some(({ level, message: m }) => level === 'error' && m.includes("reuses a live connection's ID"))
+            ).toBe(true);
         });
 
         it('warns about a packet id nothing is registered for, and keeps going', async () => {
             const { transport, lines } = makeDispatcher({ codec: stub<ProtocolCodec>({ createPacket: () => null }) });
-            await transport.emitConnect(fakeConnection('a:1').connection);
+            await transport.emitConnect(fakeConnection(1).connection);
 
-            await transport.emitFrame(frameOf(message('hello')), address('a:1'));
+            await transport.emitFrame(frameOf(message('hello')), 1);
 
             expect(lines.some(({ level, message: m }) => level === 'warn' && m.includes("isn't implemented"))).toBe(
                 true
@@ -255,14 +259,14 @@ describe('network', () => {
 
         it('disconnects a connection whose encrypted frame fails its checksum, and dispatches nothing', async () => {
             const { transport, lines, built } = makeDispatcher();
-            await transport.emitConnect(fakeConnection('a:1').connection);
+            await transport.emitConnect(fakeConnection(1).connection);
             const disconnect = vi.fn(async () => {});
             built[0]!.decryptFrame = () => {
                 throw new Error('Checksum mismatch on batch 0');
             };
             built[0]!.disconnect = disconnect;
 
-            await transport.emitFrame(frameOf(message('tampered')), address('a:1'));
+            await transport.emitFrame(frameOf(message('tampered')), 1);
 
             expect(disconnect).toHaveBeenCalledWith(
                 'Invalid encrypted packet',
@@ -278,7 +282,7 @@ describe('network', () => {
         it('rejects a frame from a connection the registry no longer holds', async () => {
             const { transport, lines } = makeDispatcher();
 
-            await transport.emitFrame(frameOf(message('ghost')), address('gone:0'));
+            await transport.emitFrame(frameOf(message('ghost')), 99);
 
             expect(lines.some(({ level, message: m }) => level === 'error' && m.includes('closed connection'))).toBe(
                 true
@@ -289,8 +293,8 @@ describe('network', () => {
             const silly = makeDispatcher({
                 handler: { phases: ['handshake'], handle: async () => {} }
             });
-            await silly.transport.emitConnect(fakeConnection('silly:1').connection);
-            await silly.transport.emitFrame(frameOf(message('logged')), address('silly:1'));
+            await silly.transport.emitConnect(fakeConnection(1).connection);
+            await silly.transport.emitFrame(frameOf(message('logged')), 1);
 
             expect(silly.lines).toContainEqual({ level: 'silly', message: 'Received §bTextPacket§r packet' });
 
@@ -301,8 +305,8 @@ describe('network', () => {
                 logFilter: filter,
                 handler: { phases: ['handshake'], handle: async () => {} }
             });
-            await info.transport.emitConnect(fakeConnection('info:1').connection);
-            await info.transport.emitFrame(frameOf(message('not logged')), address('info:1'));
+            await info.transport.emitConnect(fakeConnection(1).connection);
+            await info.transport.emitFrame(frameOf(message('not logged')), 1);
 
             expect(shouldLog).not.toHaveBeenCalled();
             expect(info.lines.some(({ level }) => level === 'silly')).toBe(false);
@@ -319,9 +323,9 @@ describe('network', () => {
                     }
                 }
             });
-            await transport.emitConnect(fakeConnection('a:1').connection);
+            await transport.emitConnect(fakeConnection(1).connection);
 
-            await transport.emitFrame(frameOf(message('login')), address('a:1'));
+            await transport.emitFrame(frameOf(message('login')), 1);
 
             expect(targets).toStrictEqual([built[0]]);
         });
@@ -334,28 +338,28 @@ describe('network', () => {
                 tick: () => tick,
                 handler: { phases: ['handshake'], handle: async () => {} }
             });
-            await transport.emitConnect(fakeConnection('a:1').connection);
-            await transport.emitConnect(fakeConnection('b:2').connection);
+            await transport.emitConnect(fakeConnection(1).connection);
+            await transport.emitConnect(fakeConnection(2).connection);
 
             const first = message('first');
             const firstFrame = frameOf(first);
             const firstPayload = Buffer.from(first.getBuffer());
-            await transport.emitFrame(firstFrame, address('a:1'));
+            await transport.emitFrame(firstFrame, 1);
 
             tick = 19;
             const second = message('second');
             const secondFrame = frameOf(second);
             const secondPayload = Buffer.from(second.getBuffer());
-            await transport.emitFrame(secondFrame, address('a:1'));
+            await transport.emitFrame(secondFrame, 1);
 
             const otherConnection = message('other');
             const otherFrame = frameOf(otherConnection);
             const otherPayload = Buffer.from(otherConnection.getBuffer());
-            await transport.emitFrame(otherFrame, address('b:2'));
+            await transport.emitFrame(otherFrame, 2);
 
             // A packet outside the connection's phase is rejected before it becomes a replay input.
             built[0]!.phase = 'play';
-            await transport.emitFrame(frameOf(message('rejected')), address('a:1'));
+            await transport.emitFrame(frameOf(message('rejected')), 1);
 
             expect(trace.records()).toEqual([
                 {
@@ -405,9 +409,9 @@ describe('network', () => {
                     }
                 }
             });
-            await transport.emitConnect(fakeConnection('a:1').connection);
+            await transport.emitConnect(fakeConnection(1).connection);
 
-            await transport.emitFrame(frameOf(message('still handled')), address('a:1'));
+            await transport.emitFrame(frameOf(message('still handled')), 1);
 
             expect(handled).toEqual(['still handled']);
             expect(lines.map(({ message: line }) => line)).toEqual(
@@ -428,11 +432,11 @@ describe('network', () => {
                 }
             };
             const first = makeDispatcher({ compressed: true, recorder: trace, tick: () => 6, handler });
-            await first.transport.emitConnect(fakeConnection('first:1').connection);
-            await first.transport.emitFrame(frameOf(message('bot input'), true), address('first:1'));
+            await first.transport.emitConnect(fakeConnection(1).connection);
+            await first.transport.emitFrame(frameOf(message('bot input'), true), 1);
 
             const replay = makeDispatcher({ compressed: true, recorder: trace, tick: () => 6, handler });
-            await replay.transport.emitConnect(fakeConnection('restored:1').connection);
+            await replay.transport.emitConnect(fakeConnection(1).connection);
             await replay.dispatcher.replayInboundRecord(trace.records()[0]!);
 
             expect(handled).toEqual(['bot input', 'bot input']);
@@ -451,11 +455,11 @@ describe('network', () => {
                 }
             };
             const first = makeDispatcher({ recorder: trace, tick: () => 3, handler });
-            await first.transport.emitConnect(fakeConnection('first:1').connection);
-            await first.transport.emitFrame(frameOf(message('recorded')), address('first:1'));
+            await first.transport.emitConnect(fakeConnection(1).connection);
+            await first.transport.emitFrame(frameOf(message('recorded')), 1);
 
             const replay = makeDispatcher({ tick: () => 3, handler });
-            await replay.transport.emitConnect(fakeConnection('restored:1').connection);
+            await replay.transport.emitConnect(fakeConnection(1).connection);
             replay.built[0]!.decryptFrame = () => {
                 throw new Error('a replayed record is not encrypted');
             };
@@ -468,14 +472,14 @@ describe('network', () => {
             const trace = new InboundPacketTrace();
             const handler = { phases: ['handshake'] as const, handle: async () => {} };
             const captured = makeDispatcher({ recorder: trace, tick: () => 4, handler });
-            await captured.transport.emitConnect(fakeConnection('first:1').connection);
-            await captured.transport.emitConnect(fakeConnection('second:2').connection);
-            await captured.transport.emitFrame(frameOf(message('first')), address('first:1'));
-            await captured.transport.emitFrame(frameOf(message('second')), address('second:2'));
+            await captured.transport.emitConnect(fakeConnection(1).connection);
+            await captured.transport.emitConnect(fakeConnection(2).connection);
+            await captured.transport.emitFrame(frameOf(message('first')), 1);
+            await captured.transport.emitFrame(frameOf(message('second')), 2);
 
             const replay = makeDispatcher({ tick: () => 4, handler });
-            await replay.transport.emitConnect(fakeConnection('restored-first:1').connection);
-            await replay.transport.emitConnect(fakeConnection('restored-second:2').connection);
+            await replay.transport.emitConnect(fakeConnection(1).connection);
+            await replay.transport.emitConnect(fakeConnection(2).connection);
 
             await expect(replay.dispatcher.replayInboundRecord(trace.records()[1]!)).rejects.toThrow(
                 'Replay expected inbound order 0, got 1'
@@ -487,7 +491,7 @@ describe('network', () => {
         it('rejects a replay record for a connection that was not admitted', async () => {
             const record = await captureTextRecord();
             const replay = makeDispatcher({ handler: { phases: ['handshake'], handle: async () => {} } });
-            await replay.transport.emitConnect(fakeConnection('restored:1').connection);
+            await replay.transport.emitConnect(fakeConnection(1).connection);
 
             await expect(
                 replay.dispatcher.replayInboundRecord({ ...record, connectionId: record.connectionId + 1 })
@@ -497,7 +501,7 @@ describe('network', () => {
         it('rejects a replay record from a different tick', async () => {
             const record = await captureTextRecord();
             const replay = makeDispatcher({ handler: { phases: ['handshake'], handle: async () => {} } });
-            await replay.transport.emitConnect(fakeConnection('restored:1').connection);
+            await replay.transport.emitConnect(fakeConnection(1).connection);
 
             await expect(replay.dispatcher.replayInboundRecord(record, 1)).rejects.toThrow(
                 'Replay packet tick 1 does not match server tick 0'
@@ -510,7 +514,7 @@ describe('network', () => {
                 codec: stub<ProtocolCodec>({ protocolVersion: 1 }),
                 handler: { phases: ['handshake'], handle: async () => {} }
             });
-            await replay.transport.emitConnect(fakeConnection('restored:1').connection);
+            await replay.transport.emitConnect(fakeConnection(1).connection);
 
             await expect(replay.dispatcher.replayInboundRecord(record)).rejects.toThrow(
                 'Replay protocol 2193 does not match connection protocol 1'
@@ -520,7 +524,7 @@ describe('network', () => {
         it('rejects a replay record that skips the next connection-local sequence', async () => {
             const record = await captureTextRecord();
             const replay = makeDispatcher({ handler: { phases: ['handshake'], handle: async () => {} } });
-            await replay.transport.emitConnect(fakeConnection('restored:1').connection);
+            await replay.transport.emitConnect(fakeConnection(1).connection);
 
             await expect(replay.dispatcher.replayInboundRecord({ ...record, sequence: 1 })).rejects.toThrow(
                 'Replay connection 1 expected packet 0, got 1'
@@ -530,7 +534,7 @@ describe('network', () => {
         it('rejects replay bytes that decode to a different packet name', async () => {
             const record = await captureTextRecord();
             const replay = makeDispatcher({ handler: { phases: ['handshake'], handle: async () => {} } });
-            await replay.transport.emitConnect(fakeConnection('restored:1').connection);
+            await replay.transport.emitConnect(fakeConnection(1).connection);
 
             await expect(
                 replay.dispatcher.replayInboundRecord({ ...record, packetName: 'LoginPacket' })
@@ -540,7 +544,7 @@ describe('network', () => {
         it('rejects a replay packet that is not accepted in the connection phase', async () => {
             const record = await captureTextRecord();
             const replay = makeDispatcher({ handler: { phases: ['handshake'], handle: async () => {} } });
-            await replay.transport.emitConnect(fakeConnection('restored:1').connection);
+            await replay.transport.emitConnect(fakeConnection(1).connection);
             replay.built[0]!.phase = 'play';
 
             await expect(replay.dispatcher.replayInboundRecord(record)).rejects.toThrow(
@@ -569,12 +573,12 @@ describe('network', () => {
                     }
                 }
             });
-            await transport.emitConnect(fakeConnection('a:1').connection);
+            await transport.emitConnect(fakeConnection(1).connection);
 
-            const liveFrame = transport.emitFrame(frameOf(message('live input')), address('a:1'));
+            const liveFrame = transport.emitFrame(frameOf(message('live input')), 1);
             await liveStarted;
             const replay = dispatcher.replayInboundRecord(trace.records()[0]!);
-            await transport.emitDisconnect(address('a:1'), 'client disconnected');
+            await transport.emitDisconnect(1, 'client disconnected');
 
             releaseLive();
             await liveFrame;
@@ -608,9 +612,9 @@ describe('network', () => {
                     }
                 }
             });
-            await transport.emitConnect(fakeConnection('a:1').connection);
+            await transport.emitConnect(fakeConnection(1).connection);
 
-            const liveFrame = transport.emitFrame(frameOf(message('live input')), address('a:1'));
+            const liveFrame = transport.emitFrame(frameOf(message('live input')), 1);
             await liveStarted;
             const replay = dispatcher.replayInboundRecord(trace.records()[0]!);
             await Promise.resolve();
@@ -650,12 +654,12 @@ describe('network', () => {
                     }
                 }
             });
-            await transport.emitConnect(fakeConnection('a:1').connection);
+            await transport.emitConnect(fakeConnection(1).connection);
 
-            const first = transport.emitFrame(frameOf(message('first')), address('a:1'));
+            const first = transport.emitFrame(frameOf(message('first')), 1);
             await firstHandler;
             tick = 8;
-            const second = transport.emitFrame(frameOf(message('second')), address('a:1'));
+            const second = transport.emitFrame(frameOf(message('second')), 1);
             tick = 9;
             releaseFirst();
             await Promise.all([first, second]);
@@ -671,11 +675,11 @@ describe('network', () => {
                     handle: async (_packet, _server, target) => void targets.push(target)
                 }
             });
-            await transport.emitConnect(fakeConnection('a:1').connection);
+            await transport.emitConnect(fakeConnection(1).connection);
             built[0]!.phase = 'play';
             built[0]!.getPlayerSession = () => stub<PlayerSession>();
 
-            await transport.emitFrame(frameOf(message('late')), address('a:1'));
+            await transport.emitFrame(frameOf(message('late')), 1);
 
             expect(targets).toHaveLength(0);
             expect(
@@ -691,11 +695,11 @@ describe('network', () => {
                 recorder: trace,
                 handler: { phases: ['play'], handle: async (_packet, _server, target) => void targets.push(target) }
             });
-            await transport.emitConnect(fakeConnection('a:1').connection);
+            await transport.emitConnect(fakeConnection(1).connection);
             built[0]!.phase = 'play';
             built[0]!.getPlayerSession = () => session;
 
-            await transport.emitFrame(frameOf(message('chat')), address('a:1'));
+            await transport.emitFrame(frameOf(message('chat')), 1);
 
             expect(targets).toStrictEqual([session]);
             expect(trace.records().map((record) => record.packetName)).toEqual(['TextPacket']);
@@ -724,11 +728,11 @@ describe('network', () => {
                     }
                 }
             });
-            await transport.emitConnect(fakeConnection('a:1').connection);
+            await transport.emitConnect(fakeConnection(1).connection);
 
-            const first = transport.emitFrame(frameOf(message('first')), address('a:1'));
+            const first = transport.emitFrame(frameOf(message('first')), 1);
             await firstStarted;
-            const second = transport.emitFrame(frameOf(message('second')), address('a:1'));
+            const second = transport.emitFrame(frameOf(message('second')), 1);
             await new Promise<void>((resolve) => setImmediate(resolve));
 
             expect(handled).toStrictEqual(['first:start']);
@@ -764,9 +768,9 @@ describe('network', () => {
                     }
                 }
             });
-            await transport.emitConnect(fakeConnection('a:1').connection);
+            await transport.emitConnect(fakeConnection(1).connection);
 
-            for (const frame of frames) await transport.emitFrame(frame, address('a:1'));
+            for (const frame of frames) await transport.emitFrame(frame, 1);
 
             expect(handled).toStrictEqual([smallText, largeText]);
         });
@@ -776,9 +780,9 @@ describe('network', () => {
             const { transport, lines } = makeDispatcher({
                 handler: { phases: ['play'], handle: async (_packet, _server, target) => void targets.push(target) }
             });
-            await transport.emitConnect(fakeConnection('a:1').connection);
+            await transport.emitConnect(fakeConnection(1).connection);
 
-            await transport.emitFrame(frameOf(message('early')), address('a:1'));
+            await transport.emitFrame(frameOf(message('early')), 1);
 
             expect(targets).toHaveLength(0);
             expect(
@@ -793,10 +797,10 @@ describe('network', () => {
             const { transport, built, lines } = makeDispatcher({
                 handler: { phases: ['play'], handle: async (_packet, _server, target) => void targets.push(target) }
             });
-            await transport.emitConnect(fakeConnection('a:1').connection);
+            await transport.emitConnect(fakeConnection(1).connection);
             built[0]!.phase = 'play';
 
-            await transport.emitFrame(frameOf(message('early')), address('a:1'));
+            await transport.emitFrame(frameOf(message('early')), 1);
 
             expect(targets).toHaveLength(0);
             expect(
@@ -813,9 +817,9 @@ describe('network', () => {
                     }
                 }
             });
-            await transport.emitConnect(fakeConnection('a:1').connection);
+            await transport.emitConnect(fakeConnection(1).connection);
 
-            await transport.emitFrame(frameOf(message('boom')), address('a:1'));
+            await transport.emitFrame(frameOf(message('boom')), 1);
 
             expect(lines.some(({ level, message: m }) => level === 'error' && m.includes('Handler error'))).toBe(true);
         });

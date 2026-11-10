@@ -36,7 +36,7 @@ const fakeSession = (dropped: Iterable<string>, dumped: Iterable<string> = [], d
     const framed: Buffer[] = [];
     const warnings: string[] = [];
     const connection = stub<TransportConnection>({
-        token: '127.0.0.1:19132',
+        id: 1,
         sendFrame: (payload: Buffer) => void framed.push(payload),
         close: () => {}
     });
@@ -80,7 +80,7 @@ describe('network', () => {
 
             const files = fs.readdirSync(dumpDir);
             expect(files.length).toBe(1);
-            expect(files[0]).toMatch(/^\d+-127\.0\.0\.1-19132-TextPacket\.bin$/);
+            expect(files[0]).toMatch(/^\d+-connection-1-TextPacket\.bin$/);
             // Queued sends use transient bytes, so compare the dump with the actual wire payload.
             const [wirePacket] = BatchCodec.compressed({ algorithm: PacketCompressionAlgorithm.ZLIB }).decode(
                 framed[0]!

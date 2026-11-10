@@ -20,7 +20,6 @@ import type { Logger } from '@jsprismarine/logger';
 import { vanillaItemDefinitions } from '@jsprismarine/items';
 import { Vector3 } from '@jsprismarine/math';
 import { InetAddress } from '@jsprismarine/raknet';
-import type { RakNetSession } from '@jsprismarine/raknet';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { entityRefOf } from '../command/host/support';
@@ -217,7 +216,7 @@ const buildPlayer = (world: World, server: Server, uuid: UUID): Player => {
     });
 
     const connection = stub<ClientConnection>({
-        getRakNetSession: () => stub<RakNetSession>({ getAddress: () => new InetAddress('127.0.0.1', 19132) }),
+        getAddress: () => new InetAddress('127.0.0.1', 19132),
         sendDataPacket: async () => {},
         attachPlayerSession: () => {},
         closePlayerSession: async () => {},

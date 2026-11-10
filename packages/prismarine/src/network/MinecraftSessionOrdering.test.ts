@@ -50,7 +50,7 @@ const fakeSession = () => {
     const framed: string[] = [];
     const direct: boolean[] = [];
     const connection = stub<TransportConnection>({
-        token: 'token',
+        id: 1,
         sendFrame: (payload: Buffer, immediate = false) => {
             framed.push(payload.toString('base64'));
             direct.push(immediate);

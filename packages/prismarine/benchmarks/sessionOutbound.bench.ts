@@ -79,7 +79,7 @@ const createConnections = async (): Promise<void> => {
             sendFrame(frame, priority);
         };
 
-        const minecraft = new MinecraftSession(new RakNetTransportConnection(raknet), logger);
+        const minecraft = new MinecraftSession(new RakNetTransportConnection(1, raknet), logger);
         minecraft.codec = Codec2225;
         connections.push({ loopback, raknet, minecraft, metrics });
     }

@@ -11,7 +11,8 @@ import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import TextPacket from '@jsprismarine/protocol/packet/TextPacket';
 import { BatchCodec, TextPacketType } from '@jsprismarine/protocol';
 import type { Logger } from '@jsprismarine/logger';
-import type { InetAddress } from '@jsprismarine/raknet';
+import { InetAddress } from '@jsprismarine/raknet';
+import type { ConnectionId } from '../src/network/transport/ConnectionId';
 import type { EventEmitter } from '../src/events/EventEmitter';
 import type Server from '../src/Server';
 import { stub } from '../src/testing/stub.test.helper';
@@ -77,7 +78,7 @@ const measureCpuMsAsync = async (
 /** Transport seam for replay, which feeds records directly to the dispatcher. */
 class ReplayTransport implements Transport<TransportConnection> {
     private connect: ((connection: TransportConnection) => Promise<void> | void) | undefined;
-    private frame: ((payload: Buffer, address: InetAddress) => Promise<void> | void) | undefined;
+    private frame: ((payload: Buffer, id: ConnectionId) => Promise<void> | void) | undefined;
 
     public onConnect(listener: (connection: TransportConnection) => Promise<void> | void): void {
         this.connect = listener;
@@ -85,7 +86,7 @@ class ReplayTransport implements Transport<TransportConnection> {
 
     public onDisconnect(): void {}
 
-    public onFrame(listener: (payload: Buffer, address: InetAddress) => Promise<void> | void): void {
+    public onFrame(listener: (payload: Buffer, id: ConnectionId) => Promise<void> | void): void {
         this.frame = listener;
     }
 
@@ -97,8 +98,8 @@ class ReplayTransport implements Transport<TransportConnection> {
         await this.connect?.(connection);
     }
 
-    public async emitFrame(payload: Buffer, address: InetAddress): Promise<void> {
-        await this.frame?.(payload, address);
+    public async emitFrame(payload: Buffer, id: ConnectionId): Promise<void> {
+        await this.frame?.(payload, id);
     }
 }
 
@@ -109,13 +110,12 @@ const replayCapabilities: TransportCapabilities = {
 };
 
 const replayTransportConnection: TransportConnection = {
-    token: 'benchmark:1',
+    id: 1,
+    address: new InetAddress('127.0.0.1', 19132),
     capabilities: replayCapabilities,
     sendFrame: () => {},
     close: () => {}
 };
-
-const replayAddress = stub<InetAddress>({ toToken: () => 'benchmark:1' });
 
 /** Creates a dispatcher run with the same input and handler path, with capture optional. */
 const createReplayHarness = async (recorder?: InboundPacketRecorder) => {
@@ -172,7 +172,7 @@ const createReplayHarness = async (recorder?: InboundPacketRecorder) => {
         },
         dispatchFrame: async (payload: Buffer, atTick: number) => {
             tick = atTick;
-            await transport.emitFrame(BatchCodec.uncompressed().encode([payload]), replayAddress);
+            await transport.emitFrame(BatchCodec.uncompressed().encode([payload]), replayTransportConnection.id);
         },
         replayRecord: async (record: Parameters<typeof dispatcher.replayInboundRecord>[0]) => {
             tick = record.tick;

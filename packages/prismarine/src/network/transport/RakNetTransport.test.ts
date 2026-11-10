@@ -8,7 +8,9 @@ import type { EventEmitter } from '../../events/EventEmitter';
 import { EventEmitter as ServerEventEmitter } from '../../events/EventEmitter';
 import RaknetConnectEvent from '../../events/raknet/RaknetConnectEvent';
 import RaknetEncapsulatedPacketEvent from '../../events/raknet/RaknetEncapsulatedPacketEvent';
+import { deferred, settle } from '../../testing/manualTransport.test.helper';
 import { stub } from '../../testing/stub.test.helper';
+import { ConnectionIds } from './ConnectionId';
 import RakNetTransport, { RakNetTransportConnection } from './RakNetTransport';
 
 /** The listener's event surface with a recorded `kill`, standing in for a real socket. */
@@ -24,8 +26,9 @@ class FakeListener extends NodeEventEmitter {
 const fakeSession = (token = 'host:port', onDisconnect: () => void = () => {}) => {
     const sent: { frame: Frame; priority: number }[] = [];
     const disconnects: string[] = [];
+    const address = stub<InetAddress>({ toToken: () => token });
     const session = stub<RakNetSession>({
-        getAddress: () => stub<InetAddress>({ toToken: () => token }),
+        getAddress: () => address,
         sendFrame: (frame: Frame, priority?: number) =>
             void sent.push({ frame, priority: priority ?? ConnectionPriority.NORMAL }),
         disconnect: (reason?: string) => {
@@ -51,20 +54,21 @@ const fakeBus = (onEvent?: (event: Event) => void) => {
     return { bus, emitted };
 };
 
-/** Wait for the observable callback rather than a timer that another test may fake. */
-const deferred = () => {
-    let resolve!: () => void;
-    const promise = new Promise<void>((done) => {
-        resolve = done;
-    });
-    return { promise, resolve };
+/** Opens a session at `token` and waits until the transport has announced it. */
+const openSession = async (listener: FakeListener, transport: RakNetTransport, token: string): Promise<InetAddress> => {
+    const { session } = fakeSession(token);
+    const connected = deferred();
+    transport.onConnect(() => connected.resolve());
+    listener.emit('openConnection', session);
+    await connected.promise;
+    return session.getAddress();
 };
 
 describe('network/transport', () => {
     describe('RakNetTransportConnection', () => {
         it('frames a payload reliable ordered on channel 0', () => {
             const { session, sent } = fakeSession();
-            const connection = new RakNetTransportConnection(session);
+            const connection = new RakNetTransportConnection(1, session);
 
             connection.sendFrame(Buffer.from('payload'));
 
@@ -77,22 +81,24 @@ describe('network/transport', () => {
 
         it('sends an immediate frame at immediate priority', () => {
             const { session, sent } = fakeSession();
-            const connection = new RakNetTransportConnection(session);
+            const connection = new RakNetTransportConnection(1, session);
 
             connection.sendFrame(Buffer.from('now'), true);
 
             expect(sent[0]!.priority).toBe(ConnectionPriority.IMMEDIATE);
         });
 
-        it('keys its identity on the address token', () => {
+        it("carries the ID it was given and the session's address", () => {
             const { session } = fakeSession('10.0.0.2:19132');
+            const connection = new RakNetTransportConnection(7, session);
 
-            expect(new RakNetTransportConnection(session).token).toBe('10.0.0.2:19132');
+            expect(connection.id).toBe(7);
+            expect(connection.address).toBe(session.getAddress());
         });
 
         it('closes through the session, carrying the reason', () => {
             const { session, disconnects } = fakeSession();
-            const connection = new RakNetTransportConnection(session);
+            const connection = new RakNetTransportConnection(1, session);
 
             connection.close('Already connected from another location');
             connection.close();
@@ -105,7 +111,7 @@ describe('network/transport', () => {
         it('maps openConnection to connect, after the legacy event has been heard', async () => {
             const listener = new FakeListener();
             const { bus, emitted } = fakeBus();
-            const transport = new RakNetTransport(listener, bus);
+            const transport = new RakNetTransport(listener, bus, new ConnectionIds());
             const connected: RakNetTransportConnection[] = [];
             const delivered = deferred();
             transport.onConnect((connection) => {
@@ -120,7 +126,7 @@ describe('network/transport', () => {
             expect(emitted.map(([id]) => id)).toStrictEqual(['raknetConnect']);
             expect(emitted[0]![1]).toBeInstanceOf(RaknetConnectEvent);
             expect(connected).toHaveLength(1);
-            expect(connected[0]!.token).toBe('1.2.3.4:19132');
+            expect(connected[0]!.id).toBe(1);
             expect(connected[0]!.getRakNetSession()).toBe(session);
         });
 
@@ -140,7 +146,7 @@ describe('network/transport', () => {
                     }
                 }
             });
-            const transport = new RakNetTransport(listener, bus);
+            const transport = new RakNetTransport(listener, bus, new ConnectionIds());
             const order: string[] = [];
             const disconnected = deferred();
             transport.onConnect(() => void order.push('connect'));
@@ -168,7 +174,7 @@ describe('network/transport', () => {
         it('disconnects a session whose connect event was canceled, and tells nobody', async () => {
             const listener = new FakeListener();
             const { bus } = fakeBus((event) => event.preventDefault());
-            const transport = new RakNetTransport(listener, bus);
+            const transport = new RakNetTransport(listener, bus, new ConnectionIds());
             const connected: RakNetTransportConnection[] = [];
             transport.onConnect((connection) => void connected.push(connection));
 
@@ -185,18 +191,20 @@ describe('network/transport', () => {
             const listener = new FakeListener();
             const order: string[] = [];
             const { bus, emitted } = fakeBus(() => order.push('event'));
-            const transport = new RakNetTransport(listener, bus);
-            const frames: [Buffer, string][] = [];
+            const transport = new RakNetTransport(listener, bus, new ConnectionIds());
+            const frames: [Buffer, number][] = [];
             const delivered = deferred();
-            transport.onFrame((payload, address) => {
+            transport.onFrame((payload, id) => {
                 order.push('frame');
-                frames.push([payload, address.toToken()]);
+                frames.push([payload, id]);
                 delivered.resolve();
             });
+            const address = await openSession(listener, transport, 'a:1');
+            emitted.length = 0;
+            order.length = 0;
 
             const frame = new Protocol.Frame();
             frame.content = Buffer.from('batch');
-            const address = stub<InetAddress>({ toToken: () => 'a:1' });
             listener.emit('encapsulated', frame, address);
             await delivered.promise;
 
@@ -205,7 +213,7 @@ describe('network/transport', () => {
             if (!(event instanceof RaknetEncapsulatedPacketEvent)) throw new Error('wrong event emitted');
             expect(event.getInetAddr()).toBe(address);
             expect(event.getPacket()).toBe(frame);
-            expect(frames).toStrictEqual([[Buffer.from('batch'), 'a:1']]);
+            expect(frames).toStrictEqual([[Buffer.from('batch'), 1]]);
             expect(order).toStrictEqual(['event', 'frame']);
         });
 
@@ -219,15 +227,15 @@ describe('network/transport', () => {
                 order.push('event');
                 emitted.push(event);
             });
-            const transport = new RakNetTransport(listener, events);
+            const transport = new RakNetTransport(listener, events, new ConnectionIds());
             transport.onFrame(() => {
                 order.push('frame');
                 delivered.resolve();
             });
+            const address = await openSession(listener, transport, 'a:1');
 
             const frame = new Protocol.Frame();
             frame.content = Buffer.from('batch');
-            const address = stub<InetAddress>({ toToken: () => 'a:1' });
             listener.emit('encapsulated', frame, address);
             await delivered.promise;
 
@@ -240,17 +248,19 @@ describe('network/transport', () => {
         it('skips event construction when no plugin listens and still delivers the frame', async () => {
             const listener = new FakeListener();
             const { bus, emitted } = fakeBus();
-            const transport = new RakNetTransport(listener, bus);
+            const transport = new RakNetTransport(listener, bus, new ConnectionIds());
             const frames: Buffer[] = [];
             const delivered = deferred();
             transport.onFrame((payload) => {
                 frames.push(payload);
                 delivered.resolve();
             });
+            const address = await openSession(listener, transport, 'a:1');
+            emitted.length = 0;
 
             const frame = new Protocol.Frame();
             frame.content = Buffer.from('batch');
-            listener.emit('encapsulated', frame, stub<InetAddress>({ toToken: () => 'a:1' }));
+            listener.emit('encapsulated', frame, address);
             await delivered.promise;
 
             expect(emitted).toStrictEqual([]);
@@ -259,23 +269,51 @@ describe('network/transport', () => {
 
         it('forwards closeConnection as disconnect with the reason', async () => {
             const listener = new FakeListener();
-            const transport = new RakNetTransport(listener, fakeBus().bus);
-            const gone: [string, string][] = [];
+            const transport = new RakNetTransport(listener, fakeBus().bus, new ConnectionIds());
+            const gone: [number, InetAddress, string][] = [];
             const delivered = deferred();
-            transport.onDisconnect((address, reason) => {
-                gone.push([address.toToken(), reason]);
+            transport.onDisconnect((id, address, reason) => {
+                gone.push([id, address, reason]);
                 delivered.resolve();
             });
+            const address = await openSession(listener, transport, 'b:2');
 
-            listener.emit('closeConnection', stub<InetAddress>({ toToken: () => 'b:2' }), 'timeout');
+            listener.emit('closeConnection', address, 'timeout');
             await delivered.promise;
 
-            expect(gone).toStrictEqual([['b:2', 'timeout']]);
+            expect(gone).toStrictEqual([[1, address, 'timeout']]);
+        });
+
+        it('gives a client that reconnects from the same address a new connection ID', async () => {
+            const listener = new FakeListener();
+            const transport = new RakNetTransport(listener, fakeBus().bus, new ConnectionIds());
+            const ids: number[] = [];
+            transport.onConnect((connection) => void ids.push(connection.id));
+
+            const address = await openSession(listener, transport, 'c:3');
+            listener.emit('closeConnection', address, 'timeout');
+            await openSession(listener, transport, 'c:3');
+
+            expect(ids).toStrictEqual([1, 2]);
+        });
+
+        it('drops a frame from an address with no open session', async () => {
+            const listener = new FakeListener();
+            const transport = new RakNetTransport(listener, fakeBus().bus, new ConnectionIds());
+            const frames: Buffer[] = [];
+            transport.onFrame((payload) => void frames.push(payload));
+
+            const frame = new Protocol.Frame();
+            frame.content = Buffer.from('stray');
+            listener.emit('encapsulated', frame, stub<InetAddress>({ toToken: () => 'd:4' }));
+            await settle();
+
+            expect(frames).toStrictEqual([]);
         });
 
         it('keeps the raw event for the query protocol', async () => {
             const listener = new FakeListener();
-            const transport = new RakNetTransport(listener, fakeBus().bus);
+            const transport = new RakNetTransport(listener, fakeBus().bus, new ConnectionIds());
             const raw: Buffer[] = [];
             const delivered = deferred();
             transport.onRaw((payload) => {
@@ -291,7 +329,7 @@ describe('network/transport', () => {
 
         it('kills the listener on close', () => {
             const listener = new FakeListener();
-            new RakNetTransport(listener, fakeBus().bus).close();
+            new RakNetTransport(listener, fakeBus().bus, new ConnectionIds()).close();
 
             expect(listener.killed).toBe(true);
         });

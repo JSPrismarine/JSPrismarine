@@ -648,8 +648,7 @@ export default class MinecraftSession {
 
         // Shared batches may carry packet labels without the packet streams being prepared.
         const buffer = encodedBuffer ?? packet.getBuffer();
-        const address = this.connection.token.replaceAll(':', '-');
-        const file = path.join(this.dumpDir, `${Date.now()}-${address}-${name}.bin`);
+        const file = path.join(this.dumpDir, `${Date.now()}-connection-${this.connection.id}-${name}.bin`);
         try {
             fs.mkdirSync(this.dumpDir, { recursive: true });
             fs.writeFileSync(file, buffer);
@@ -693,7 +692,7 @@ export default class MinecraftSession {
     private logPacketEncodeFailure(packet: NetworkPacket<unknown>, error: unknown): void {
         this.logger.error(error);
         this.logger.warn(
-            `Packet §b${packet.getName()}§r to §b${this.connection.token}§r failed with: ${error instanceof Error ? error.message : String(error)}`
+            `Packet §b${packet.getName()}§r to §b${this.connection.address}§r failed with: ${error instanceof Error ? error.message : String(error)}`
         );
     }
 
