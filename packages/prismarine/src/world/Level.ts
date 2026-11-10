@@ -30,7 +30,6 @@ import { replayInputFingerprint, serializeReplayInitialStateManifest } from '../
 import type { ReplayInitialStateManifest } from '../network/ReplayManifest';
 import type { WorldConfig, WorldPlayerData } from '../config/JsonConfigTypes';
 import { readJsonFile } from '../config/JsonFile';
-import Player from '../Player';
 import { Dimensions, FIRST_CUSTOM_DIMENSION_ID, dimensionTypeOf } from './Dimension';
 import type { DimensionType } from './Dimension';
 import GameRuleManager, { GameRules } from './GameRuleManager';
@@ -962,7 +961,7 @@ export class Level {
         return [...this.worlds()].flatMap((world) =>
             world
                 .getActors()
-                .filter((entity) => !(entity instanceof Player))
+                .filter((entity) => world.viewerOf(entity.getRuntimeId()) === undefined)
                 .map((entity) => ({
                     type: entity.getType(),
                     position: {
