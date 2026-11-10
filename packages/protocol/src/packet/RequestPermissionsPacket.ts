@@ -1,5 +1,8 @@
 import { PlayerPermissionLevel } from '@jsprismarine/minecraft';
 
+import { requestPermissionsPacket } from '../wire/definitions/requestPermissions';
+import { layoutAt } from '../wire/WireLayout';
+
 import FieldNetworkPacket from '../FieldNetworkPacket';
 
 /**
@@ -22,15 +25,11 @@ export default class RequestPermissionsPacket extends FieldNetworkPacket {
 
     /** Reads the target, the level, and the custom flags. */
     public decodePayload(): void {
-        this.targetPlayerUniqueId = this.readLongLE();
-        this.playerPermissionLevel = this.readVarInt();
-        this.customPermissionFlags = this.readUnsignedShortLE();
+        Object.assign(this, layoutAt(requestPermissionsPacket, this.codecProtocol).decode(this));
     }
 
     /** Writes the target, the level, and the custom flags. */
     public encodePayload(): void {
-        this.writeLongLE(this.targetPlayerUniqueId);
-        this.writeVarInt(this.playerPermissionLevel);
-        this.writeUnsignedShortLE(this.customPermissionFlags);
+        layoutAt(requestPermissionsPacket, this.codecProtocol).encode(this, this);
     }
 }

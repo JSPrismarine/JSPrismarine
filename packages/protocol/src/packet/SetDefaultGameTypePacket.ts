@@ -1,5 +1,8 @@
 import type { Gametype } from '@jsprismarine/minecraft';
 
+import { setDefaultGameTypePacket } from '../wire/definitions/setDefaultGameType';
+import { layoutAt } from '../wire/WireLayout';
+
 import FieldNetworkPacket from '../FieldNetworkPacket';
 
 /**
@@ -18,11 +21,11 @@ export default class SetDefaultGameTypePacket extends FieldNetworkPacket {
 
     /** Reads `Default Game Type` as a varint32. */
     public decodePayload(): void {
-        this.gamemode = this.readVarInt();
+        Object.assign(this, layoutAt(setDefaultGameTypePacket, this.codecProtocol).decode(this));
     }
 
     /** Writes `Default Game Type` as a varint32. */
     public encodePayload(): void {
-        this.writeVarInt(this.gamemode);
+        layoutAt(setDefaultGameTypePacket, this.codecProtocol).encode(this, this);
     }
 }

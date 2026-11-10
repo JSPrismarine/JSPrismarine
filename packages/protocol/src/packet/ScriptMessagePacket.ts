@@ -1,5 +1,7 @@
 import NetworkPacket from '../NetworkPacket';
 import { PacketIdentifier } from '../PacketIdentifier';
+import { scriptMessagePacket } from '../wire/definitions/scriptMessage';
+import { layoutAt } from '../wire/WireLayout';
 
 import type NetworkBinaryStream from '../NetworkBinaryStream';
 
@@ -27,14 +29,10 @@ export default class ScriptMessagePacket extends NetworkPacket<ScriptMessage> {
     }
 
     protected serializePayload(stream: NetworkBinaryStream, data: ScriptMessage): void {
-        stream.writeString(data.messageId);
-        stream.writeString(data.messageValue);
+        layoutAt(scriptMessagePacket, this.codecProtocol).encode(stream, data);
     }
 
     protected deserializePayload(stream: NetworkBinaryStream): ScriptMessage {
-        return {
-            messageId: stream.readString(),
-            messageValue: stream.readString()
-        };
+        return layoutAt(scriptMessagePacket, this.codecProtocol).decode(stream);
     }
 }

@@ -1,5 +1,7 @@
 import NetworkPacket from '../NetworkPacket';
 import { PacketIdentifier } from '../PacketIdentifier';
+import { updateClientInputLocksPacket } from '../wire/definitions/updateClientInputLocks';
+import { layoutAt } from '../wire/WireLayout';
 
 import type NetworkBinaryStream from '../NetworkBinaryStream';
 
@@ -58,10 +60,10 @@ export default class UpdateClientInputLocksPacket extends NetworkPacket<UpdateCl
     }
 
     protected serializePayload(stream: NetworkBinaryStream, data: UpdateClientInputLocks): void {
-        stream.writeUnsignedVarInt(data.locks);
+        layoutAt(updateClientInputLocksPacket, this.codecProtocol).encode(stream, data);
     }
 
     protected deserializePayload(stream: NetworkBinaryStream): UpdateClientInputLocks {
-        return { locks: stream.readUnsignedVarInt() };
+        return layoutAt(updateClientInputLocksPacket, this.codecProtocol).decode(stream);
     }
 }

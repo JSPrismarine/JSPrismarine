@@ -1,5 +1,7 @@
 import NetworkPacket from '../NetworkPacket';
 import { PacketIdentifier } from '../PacketIdentifier';
+import { toastRequestPacket } from '../wire/definitions/toastRequest';
+import { layoutAt } from '../wire/WireLayout';
 
 import type NetworkBinaryStream from '../NetworkBinaryStream';
 
@@ -24,14 +26,10 @@ export default class ToastRequestPacket extends NetworkPacket<ToastRequest> {
     }
 
     protected serializePayload(stream: NetworkBinaryStream, data: ToastRequest): void {
-        stream.writeString(data.title);
-        stream.writeString(data.content);
+        layoutAt(toastRequestPacket, this.codecProtocol).encode(stream, data);
     }
 
     protected deserializePayload(stream: NetworkBinaryStream): ToastRequest {
-        return {
-            title: stream.readString(),
-            content: stream.readString()
-        };
+        return layoutAt(toastRequestPacket, this.codecProtocol).decode(stream);
     }
 }

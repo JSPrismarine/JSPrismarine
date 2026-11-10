@@ -1,5 +1,7 @@
 import NetworkPacket from '../NetworkPacket';
 import { PacketIdentifier } from '../PacketIdentifier';
+import { serverStatsPacket } from '../wire/definitions/serverStats';
+import { layoutAt } from '../wire/WireLayout';
 
 import type NetworkBinaryStream from '../NetworkBinaryStream';
 
@@ -24,14 +26,10 @@ export default class ServerStatsPacket extends NetworkPacket<ServerStats> {
     }
 
     protected serializePayload(stream: NetworkBinaryStream, data: ServerStats): void {
-        stream.writeFloatLE(data.serverTime);
-        stream.writeFloatLE(data.networkTime);
+        layoutAt(serverStatsPacket, this.codecProtocol).encode(stream, data);
     }
 
     protected deserializePayload(stream: NetworkBinaryStream): ServerStats {
-        return {
-            serverTime: stream.readFloatLE(),
-            networkTime: stream.readFloatLE()
-        };
+        return layoutAt(serverStatsPacket, this.codecProtocol).decode(stream);
     }
 }

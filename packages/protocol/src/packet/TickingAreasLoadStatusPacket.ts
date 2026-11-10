@@ -1,3 +1,6 @@
+import { tickingAreasLoadStatusPacket } from '../wire/definitions/tickingAreasLoadStatus';
+import { layoutAt } from '../wire/WireLayout';
+
 import FieldNetworkPacket from '../FieldNetworkPacket';
 
 /**
@@ -21,11 +24,11 @@ export default class TickingAreasLoadStatusPacket extends FieldNetworkPacket {
 
     /** Reads the flag. */
     public decodePayload(): void {
-        this.preload = this.readBoolean();
+        Object.assign(this, layoutAt(tickingAreasLoadStatusPacket, this.codecProtocol).decode(this));
     }
 
     /** Writes the flag. */
     public encodePayload(): void {
-        this.writeBoolean(this.preload);
+        layoutAt(tickingAreasLoadStatusPacket, this.codecProtocol).encode(this, this);
     }
 }

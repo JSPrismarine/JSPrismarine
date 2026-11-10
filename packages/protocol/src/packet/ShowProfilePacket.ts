@@ -1,4 +1,6 @@
-import { NetworkUtil } from '../wire/networkUtil';
+import { showProfilePacket } from '../wire/definitions/showProfile';
+import { layoutAt } from '../wire/WireLayout';
+
 import FieldNetworkPacket from '../FieldNetworkPacket';
 
 /**
@@ -18,11 +20,11 @@ export default class ShowProfilePacket extends FieldNetworkPacket {
 
     /** Reads the XUID. */
     public decodePayload(): void {
-        this.xuid = NetworkUtil.readString(this);
+        Object.assign(this, layoutAt(showProfilePacket, this.codecProtocol).decode(this));
     }
 
     /** Writes the XUID. */
     public encodePayload(): void {
-        NetworkUtil.writeString(this, this.xuid);
+        layoutAt(showProfilePacket, this.codecProtocol).encode(this, this);
     }
 }

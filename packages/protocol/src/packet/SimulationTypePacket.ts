@@ -1,5 +1,7 @@
 import NetworkPacket from '../NetworkPacket';
 import { PacketIdentifier } from '../PacketIdentifier';
+import { simulationTypePacket } from '../wire/definitions/simulationType';
+import { layoutAt } from '../wire/WireLayout';
 
 import type NetworkBinaryStream from '../NetworkBinaryStream';
 
@@ -37,10 +39,10 @@ export default class SimulationTypePacket extends NetworkPacket<SimulationTypeDa
     }
 
     protected serializePayload(stream: NetworkBinaryStream, data: SimulationTypeData): void {
-        stream.writeByte(data.simType);
+        layoutAt(simulationTypePacket, this.codecProtocol).encode(stream, data);
     }
 
     protected deserializePayload(stream: NetworkBinaryStream): SimulationTypeData {
-        return { simType: stream.readByte() };
+        return layoutAt(simulationTypePacket, this.codecProtocol).decode(stream);
     }
 }

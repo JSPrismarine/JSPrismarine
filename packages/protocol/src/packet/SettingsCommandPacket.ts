@@ -1,5 +1,7 @@
 import NetworkPacket from '../NetworkPacket';
 import { PacketIdentifier } from '../PacketIdentifier';
+import { settingsCommandPacket } from '../wire/definitions/settingsCommand';
+import { layoutAt } from '../wire/WireLayout';
 
 import type NetworkBinaryStream from '../NetworkBinaryStream';
 
@@ -25,11 +27,10 @@ export default class SettingsCommandPacket extends NetworkPacket<SettingsCommand
     }
 
     protected serializePayload(stream: NetworkBinaryStream, data: SettingsCommand): void {
-        stream.writeString(data.command);
-        stream.writeBoolean(data.suppressOutput);
+        layoutAt(settingsCommandPacket, this.codecProtocol).encode(stream, data);
     }
 
     protected deserializePayload(stream: NetworkBinaryStream): SettingsCommand {
-        return { command: stream.readString(), suppressOutput: stream.readBoolean() };
+        return layoutAt(settingsCommandPacket, this.codecProtocol).decode(stream);
     }
 }
