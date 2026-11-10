@@ -413,6 +413,28 @@ describe('network', () => {
             expect(spy.frames).toHaveLength(0);
         });
 
+        describe('entityMetadataChanged', () => {
+            it("sends an actor's state to its observers and not to the client whose entity it is", async () => {
+                // A player in the entity store is shown through an actor, not through its
+                // session's player object, so the client is recognized by the shared runtime id.
+                const own = fakePlayer(1n);
+                const observer = fakePlayer(2n);
+                own.spy.tracked.add(1n);
+                observer.spy.tracked.add(1n);
+                const actor = stub<Entity>({
+                    getRuntimeId: () => 1n,
+                    metadata: new Metadata(),
+                    getSyncedProperties: () => new SyncedProperties()
+                });
+
+                const replicator = replicatorOver({ players: [own.player, observer.player] });
+                await replicator.entityMetadataChanged(actor);
+
+                expect(own.spy.frames).toHaveLength(0);
+                expect(observer.spy.frames).toHaveLength(1);
+            });
+        });
+
         describe('flushMovement', () => {
             it('does no work when no entity moved', async () => {
                 const first = fakePlayer(1n);
