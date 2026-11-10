@@ -26,6 +26,7 @@ import { EntityRuntimes } from '../entity/data/live';
 import { serverWorldSource } from '../content/world/serverSource';
 import type { World } from '../world/World';
 import type { LiveBodies } from '../entity/data/liveBodies';
+import type { StoreActors } from '../entity/data/storeActors';
 import type Server from '../Server';
 import { ChunkCompletionQueue } from '../world/ChunkCompletionQueue';
 import { stub } from './stub.test.helper';
@@ -62,6 +63,7 @@ export const inertEntityRuntime = (): LiveEntityRuntime =>
         // A real index, empty, so a world double files its entities somewhere it can ask again.
         runtime: stub<EntityRuntime>({ content: () => testContent(), blockBroken: () => {}, index: new EntityIndex() }),
         bodies: stub<LiveBodies>({ entityIdOf: () => undefined }),
+        actors: stub<StoreActors>({ all: () => [][Symbol.iterator]() }),
         // Nothing it holds rides anything, so nothing is kept out of a portal.
         isInRide: () => false,
         onEntityRemoved: () => () => false,

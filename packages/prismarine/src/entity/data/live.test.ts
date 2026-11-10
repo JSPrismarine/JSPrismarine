@@ -1977,6 +1977,24 @@ describe('the data-driven entity runtime over a live world', () => {
             expect(zombies.filter((zombie) => zombie.position.x > 4)).toHaveLength(24);
         });
 
+        it('shows a store entity to clients through its store actor, never its legacy body', async () => {
+            const cow = live.runtime.spawn('minecraft:cow', { x: 0.5, y: GROUND_Y, z: 0.5 });
+            if (cow === undefined) throw new Error('the fixture declares no minecraft:cow');
+            await run(1);
+            const actor = live.actors.actorOf(cow.id);
+            const body = live.bodies.bodyOf(cow.id);
+            if (actor === undefined || body === undefined) throw new Error('the cow has no actor or body');
+
+            const shown = world.shownActors();
+            expect(shown).toContain(actor);
+            expect(shown).not.toContain(body);
+
+            live.runtime.hurt(cow, undefined, 'entity_attack', 3);
+            await run(1);
+            expect(actor.attributes.getValue(AttributeIds.Health)).toBe(7);
+            expect(actor.getRuntimeId()).toBe(BigInt(cow.id));
+        });
+
         it('drops Java’s loot when a mob is killed, and takes its body away', async () => {
             const cow = live.runtime.spawn('minecraft:cow', { x: 0.5, y: GROUND_Y, z: 0.5 });
             if (cow === undefined) throw new Error('the fixture declares no minecraft:cow');
