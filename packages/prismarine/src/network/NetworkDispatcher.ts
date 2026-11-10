@@ -240,8 +240,10 @@ export default class NetworkDispatcher<C extends TransportConnection> {
             // out of its world. A player is only added to a world once the client reports itself
             // initialized, so a session whose player is not in one belongs to a client that gave
             // up between login and spawn.
-            const player = session.getPlayerSession()?.getPlayer() ?? null;
-            const spawned = player !== null && player.getWorld().getEntity(player.getRuntimeId()) === player;
+            const playerSession = session.getPlayerSession();
+            const spawned =
+                playerSession !== null &&
+                playerSession.getPlayer().getWorld().viewerOf(playerSession.runtimeId) === playerSession;
 
             try {
                 await session.closePlayerSession();
@@ -254,7 +256,7 @@ export default class NetworkDispatcher<C extends TransportConnection> {
             // level the default console shows.
             if (spawned) this.logger.debug(`${inetAddr} disconnected due to ${reason}`);
             else {
-                const who = player === null ? `${inetAddr}` : `${player.getName()} (${inetAddr})`;
+                const who = playerSession === null ? `${inetAddr}` : `${playerSession.identity.name} (${inetAddr})`;
                 this.logger.info(`${who} disconnected during the join due to ${reason}`);
             }
             this.logger.debug(`Player destruction took about ${Date.now() - time} ms`);
