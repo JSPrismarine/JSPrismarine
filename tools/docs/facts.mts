@@ -326,6 +326,8 @@ export async function loadFacts(): Promise<Facts> {
         Object.entries({
             'server.version': project.version,
             'server.port': String(project.defaultPort),
+            'nethernet.lanPort': String(project.netherNetLanPort),
+            'nethernet.identityFile': project.netherNetIdentityFile,
             'server.onlineMode': project.onlineMode ? 'on' : 'off',
             'node.minimum': project.engines.node.replace(/^>=\s*/, ''),
             'pnpm.minimum': project.engines.pnpm.replace(/^>=\s*/, ''),
