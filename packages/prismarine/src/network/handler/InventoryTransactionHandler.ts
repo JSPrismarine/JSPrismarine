@@ -2,7 +2,7 @@ import type { Vector3 } from '@jsprismarine/math';
 import { ContainerUiId, Gametype } from '@jsprismarine/minecraft';
 import type { PlayerSession } from '../../';
 import type Player from '../../Player';
-import { EXHAUSTION } from '../../Player';
+import { EXHAUSTION } from '../../entity/playerHunger';
 import type Server from '../../Server';
 import { BOW, loose } from '../../entity/Archery';
 import { CREATIVE_REACH, meleeAttack, SURVIVAL_REACH } from '../../entity/Combat';

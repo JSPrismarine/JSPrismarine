@@ -6,6 +6,7 @@ import { PositionMode } from '@jsprismarine/protocol';
 import Player from './Player';
 import { DamageCause } from './entity/Entity';
 import { Position } from './world/Position';
+import { Attributes } from '@jsprismarine/protocol/wire/structures/Attribute';
 import { withPlayerComponents } from './testing/playerDouble.test.helper';
 
 /**
@@ -46,8 +47,7 @@ const fallingPlayer = ({ gamemode = Gametype.SURVIVAL, landingOn = 'minecraft:st
             return true;
         },
         getWorld: () => world,
-        addMovementExhaustion: () => {},
-        consumesFood: () => false
+        attributes: new Attributes(Attributes.getPlayerDefaults())
     });
     // After the components, which the fall bookkeeping reads and writes through.
     Object.assign(withPlayerComponents(player), { flying, onGround: false, fallDistance: 0 });

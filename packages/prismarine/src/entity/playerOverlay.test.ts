@@ -5,32 +5,10 @@
  */
 import { describe, expect, it } from 'vitest';
 
-import { entityFixture, FLOOR_Y } from './data/testing';
-import type { ChangeEntry } from '../world/changelog/ChangeEntry';
+import { FLOOR_Y } from './data/testing';
 import { PLAYER_IDENTIFIER, withPlayerOverlay } from './playerOverlay';
-
-/** The parts of the shipped `entities/player.json` these rules read: no `minecraft:health`. */
-const SHIPPED_PLAYER = {
-    components: {
-        'minecraft:collision_box': { width: 0.6, height: 1.8 },
-        'minecraft:type_family': { family: ['player'] },
-        'minecraft:loot': { table: 'loot_tables/empty.json' },
-        'minecraft:movement': { value: 0.1 },
-        'minecraft:physics': { push_towards_closest_space: true }
-    }
-};
-
-const fixture = () => entityFixture(undefined, {}, { [PLAYER_IDENTIFIER]: SHIPPED_PLAYER });
-
-/** Runs `work` inside one tick of the store's log and returns what it appended. */
-const logged = (runtime: ReturnType<typeof fixture>['runtime'], work: () => void): readonly ChangeEntry[] => {
-    runtime.store.beginTick();
-    work();
-    return runtime.store.sealTick()?.entries ?? [];
-};
-
-const fieldsOf = (entries: readonly ChangeEntry[], field: string): readonly ChangeEntry[] =>
-    entries.filter((entry) => entry.kind === 'field' && entry.field === 'entity' && entry.address.field === field);
+import { fieldsOf, logged, storePlayerFixture as fixture } from '../testing/storePlayer.test.helper';
+import type { ChangeEntry } from '../world/changelog/ChangeEntry';
 
 const playerFile = (components: Record<string, unknown>) => ({
     format_version: '1.21.0',
