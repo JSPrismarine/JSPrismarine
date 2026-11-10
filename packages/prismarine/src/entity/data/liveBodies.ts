@@ -50,6 +50,7 @@ import {
     sameActorMetadataProjection
 } from './actorMetadata';
 import type { ActorMetadataInputs } from './actorMetadata';
+import type { DataEntityRecord } from './persistence';
 import { dataEntityRecordOf, writeDataEntityRecord } from './persistence';
 
 /** How far an entity has to move before the movement is worth putting on the wire, in blocks. */
@@ -396,13 +397,23 @@ export class LiveBodies {
      * the actor carries.
      */
     public persist(runtime: EntityRuntime): void {
+        for (const [body, record] of this.records(runtime)) {
+            body.persistentNbt ??= new NBTTagCompound('');
+            writeDataEntityRecord(body.persistentNbt, record);
+        }
+    }
+
+    /**
+     * The record {@link LiveBodies.persist} would write onto each body that persists, without
+     * writing it, so a replay digest can hash what a save holds and leave every body as it was.
+     */
+    public records(runtime: EntityRuntime): Map<Entity, DataEntityRecord> {
+        const records = new Map<Entity, DataEntityRecord>();
         for (const entity of runtime.all()) {
             const body = this.bodies.get(entity.id);
             if (body === undefined || !body.shouldPersist()) continue;
-
-            body.persistentNbt ??= new NBTTagCompound('');
-            writeDataEntityRecord(
-                body.persistentNbt,
+            records.set(
+                body,
                 dataEntityRecordOf(
                     entity,
                     runtime.poolOf(entity.id),
@@ -411,6 +422,7 @@ export class LiveBodies {
                 )
             );
         }
+        return records;
     }
 
     /** Forgets every body, for a world that is closing. */
