@@ -58,6 +58,10 @@ export class Kernel<Events extends EventMap = EventMap> {
     private phase: KernelPhase = 'created';
     private registering: string | undefined;
     private startOrder: ModuleEntry<Events>[] = [];
+    /** The modules the current run has called `start()` on, including one still starting. */
+    private launched: ModuleEntry<Events>[] = [];
+    /** Bumped by every `start()` and `stop()`, so a start loop can tell it was stopped under it. */
+    private run = 0;
 
     public constructor(options: KernelOptions = {}) {
         this.config = options.config ?? {};
@@ -124,6 +128,10 @@ export class Kernel<Events extends EventMap = EventMap> {
      * to registered, and the error is rethrown. The failing module itself is
      * not stopped, because its start never finished.
      *
+     * A `stop()` while this is still running wins: no further module starts,
+     * and this rejects with a {@link KernelError} once the module it was
+     * waiting on returns.
+     *
      * @throws KernelError when the kernel is already starting or started, when
      * a declared dependency has no provider, or when the dependency graph has a
      * cycle.
@@ -135,17 +143,21 @@ export class Kernel<Events extends EventMap = EventMap> {
         }
         await this.registerAll();
         this.phase = 'starting';
-        const started: ModuleEntry<Events>[] = [];
+        const run = ++this.run;
+        this.launched = [];
         for (const entry of this.startOrder) {
+            this.launched.push(entry);
             try {
                 await entry.module.start?.(entry.context);
             } catch (error) {
+                // A stop() during this start has already torn everything down.
+                if (this.run !== run) throw error;
+                this.launched.pop();
                 this.bus.removeScope(entry.module.id);
-                await this.stopEntries(started);
-                this.phase = 'registered';
+                await this.stopLaunched();
                 throw error;
             }
-            started.push(entry);
+            if (this.run !== run) throw new KernelError('Kernel was stopped before start() finished');
         }
         this.phase = 'started';
     }
@@ -154,16 +166,23 @@ export class Kernel<Events extends EventMap = EventMap> {
      * Runs `stop()` phases in reverse start order and detaches each module's
      * event listeners. Failures are logged, not thrown, so one module cannot
      * block the others' teardown. Leaves the kernel registered, so `start()`
-     * may run it again; a no-op unless the kernel is started.
+     * may run it again.
+     *
+     * Called while `start()` is still running, it stops the modules started so
+     * far and the one still starting, which is how a long start such as a
+     * world preload is cancelled. A no-op when nothing has started.
      */
     public async stop(): Promise<void> {
-        if (this.phase !== 'started') return;
-        this.phase = 'registered';
-        await this.stopEntries(this.startOrder);
+        if (this.phase !== 'started' && this.phase !== 'starting') return;
+        this.run++;
+        await this.stopLaunched();
     }
 
-    /** Stops the given modules in reverse order, logging rather than throwing each failure. */
-    private async stopEntries(entries: readonly ModuleEntry<Events>[]): Promise<void> {
+    /** Stops the launched modules in reverse order, logging rather than throwing each failure. */
+    private async stopLaunched(): Promise<void> {
+        const entries = this.launched;
+        this.launched = [];
+        this.phase = 'registered';
         for (const entry of [...entries].reverse()) {
             try {
                 await entry.module.stop?.(entry.context);
