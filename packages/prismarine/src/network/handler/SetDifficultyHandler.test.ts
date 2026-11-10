@@ -2,10 +2,10 @@ import { Difficulty } from '@jsprismarine/minecraft';
 import { describe, expect, it } from 'vitest';
 
 import type { Logger } from '@jsprismarine/logger';
-import type Player from '../../Player';
 import type Server from '../../Server';
 import type { Config } from '../../config/Config';
 import { stub } from '../../testing/stub.test.helper';
+import { STEVE } from '../../testing/steveIdentity.test.helper';
 import type ClientConnection from '../ClientConnection';
 import type PlayerSession from '../PlayerSession';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
@@ -24,7 +24,7 @@ const fakeSession = (configured: Difficulty) => {
             getConfig: () => stub<Config>({ getDifficulty: () => configured })
         }),
         session: stub<PlayerSession>({
-            getPlayer: () => stub<Player>({ getName: () => 'Steve' }),
+            identity: STEVE,
             getConnection: () => stub<ClientConnection>({ sendDataPacket: async (packet) => void sent.push(packet) })
         })
     };

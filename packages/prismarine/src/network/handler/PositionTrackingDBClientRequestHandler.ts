@@ -23,7 +23,7 @@ export default class PositionTrackingDBClientRequestHandler implements PacketHan
      * server could ever answer, so it is logged as dropped rather than read as a query.
      */
     public handle(packet: PositionTrackingDBClientRequestPacket, server: Server, session: PlayerSession): void {
-        const name = session.getPlayer().getName();
+        const name = session.identity.name;
 
         if (packet.action !== PositionTrackingDBClientRequestAction.Query) {
             server

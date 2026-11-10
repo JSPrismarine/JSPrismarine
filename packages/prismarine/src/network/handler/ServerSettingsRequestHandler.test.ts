@@ -1,9 +1,9 @@
 import type { Logger } from '@jsprismarine/logger';
 import { describe, expect, it } from 'vitest';
 
-import type Player from '../../Player';
 import type Server from '../../Server';
 import { stub } from '../../testing/stub.test.helper';
+import { STEVE } from '../../testing/steveIdentity.test.helper';
 import type PlayerSession from '../PlayerSession';
 import ServerSettingsRequestPacket from '@jsprismarine/protocol/packet/ServerSettingsRequestPacket';
 import ServerSettingsRequestHandler from './ServerSettingsRequestHandler';
@@ -16,7 +16,7 @@ describe('ServerSettingsRequestHandler', () => {
             getLogger: () => stub<Logger>({ debug: (...message) => void logged.push(message[0] ?? '') })
         });
         const session = stub<PlayerSession>({
-            getPlayer: () => stub<Player>({ getName: () => 'Steve' }),
+            identity: STEVE,
             sendSettings: async (player) => void settingsSent.push(player)
         });
 

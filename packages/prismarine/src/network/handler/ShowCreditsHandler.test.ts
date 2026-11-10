@@ -1,9 +1,9 @@
 import type { Logger } from '@jsprismarine/logger';
 import { describe, expect, it } from 'vitest';
 import * as Handlers from '../Handlers';
-import type Player from '../../Player';
 import type Server from '../../Server';
 import { stub } from '../../testing/stub.test.helper';
+import { STEVE } from '../../testing/steveIdentity.test.helper';
 import type PlayerSession from '../PlayerSession';
 import ShowCreditsPacket, { CreditsState } from '@jsprismarine/protocol/packet/ShowCreditsPacket';
 import ShowCreditsHandler from './ShowCreditsHandler';
@@ -17,7 +17,7 @@ describe('ShowCreditsHandler', () => {
             getLogger: () => stub<Logger>({ debug: (...message) => void logged.push(message[0] ?? '') })
         });
         const session = stub<PlayerSession>({
-            getPlayer: () => stub<Player>({ getName: () => 'Steve' }),
+            identity: STEVE,
             completeCredits: async () => {
                 completions += 1;
                 return pending;

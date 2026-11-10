@@ -23,7 +23,7 @@ export default class MultiplayerSettingsHandler implements PacketHandler<Multipl
         server
             .getLogger()
             .debug(
-                `${session.getPlayer().getName()} asked for multiplayer setting ${name}. Education Edition sessions are not modeled`,
+                `${session.identity.name} asked for multiplayer setting ${name}. Education Edition sessions are not modeled`,
                 'MultiplayerSettingsHandler/handle'
             );
     }

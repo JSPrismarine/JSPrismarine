@@ -27,7 +27,7 @@ export default class ServerSettingsRequestHandler implements PacketHandler<Serve
         server
             .getLogger()
             .debug(
-                `${session.getPlayer().getName()} asked for the server settings form, which the server does not offer`,
+                `${session.identity.name} asked for the server settings form, which the server does not offer`,
                 'ServerSettingsRequestHandler/handle'
             );
     }

@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
 import type { Logger } from '@jsprismarine/logger';
-import type Player from '../../Player';
 import type Server from '../../Server';
 import { stub } from '../../testing/stub.test.helper';
+import { STEVE } from '../../testing/steveIdentity.test.helper';
 import type PlayerSession from '../PlayerSession';
 import ModalFormResponsePacket, { ModalFormCancelReason } from '@jsprismarine/protocol/packet/ModalFormResponsePacket';
 import ModalFormResponseHandler from './ModalFormResponseHandler';
@@ -18,7 +18,7 @@ const fakeSession = () => {
                 warn: (...message) => void warn.push(message[0] ?? '')
             })
     });
-    const session = stub<PlayerSession>({ getPlayer: () => stub<Player>({ getName: () => 'Steve' }) });
+    const session = stub<PlayerSession>({ identity: STEVE });
 
     return { debug, warn, server, session };
 };

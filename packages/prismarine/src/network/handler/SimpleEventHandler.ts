@@ -23,7 +23,7 @@ export default class SimpleEventHandler implements PacketHandler<SimpleEventPack
         server
             .getLogger()
             .debug(
-                `${session.getPlayer().getName()} sent the simple event ${name}. World settings are not modeled`,
+                `${session.identity.name} sent the simple event ${name}. World settings are not modeled`,
                 'SimpleEventHandler/handle'
             );
     }

@@ -19,7 +19,7 @@ export default class PartyChangedHandler implements PacketHandler<PartyChangedPa
 
     /** Checks the id length, then logs whether the player joined, leads or left a party. */
     public handle(packet: PartyChangedPacket, server: Server, session: PlayerSession): void {
-        const name = session.getPlayer().getName();
+        const name = session.identity.name;
         const partyInfo = packet.getPacketData()?.partyInfo;
         if (partyInfo === undefined) throw new Error('Cannot handle a PartyChangedPacket without decoded data');
 

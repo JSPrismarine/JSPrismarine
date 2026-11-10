@@ -23,7 +23,7 @@ export default class SubClientLoginHandler implements PacketHandler<SubClientLog
         server
             .getLogger()
             .debug(
-                `${session.getPlayer().getName()} tried to add a split screen player, which the server does not support`,
+                `${session.identity.name} tried to add a split screen player, which the server does not support`,
                 'SubClientLoginHandler/handle'
             );
     }

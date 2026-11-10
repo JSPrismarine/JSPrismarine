@@ -30,7 +30,7 @@ export default class SetPlayerFurnaceOptionsHandler implements PacketHandler<Set
         const data = packet.getPacketData();
         if (data === null) throw new Error('Cannot handle a SetPlayerFurnaceOptionsPacket without decoded data');
 
-        const name = session.getPlayer().getName();
+        const name = session.identity.name;
         const { furnaceType, options } = data;
         const furnace = FurnaceType[furnaceType];
         const tab = FurnaceLeftTabIndex[options.leftTab];
