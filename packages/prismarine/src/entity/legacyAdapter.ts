@@ -20,6 +20,8 @@
  *    player's containers are the main inventory, the armor, the off hand, the ender chest, the
  *    cursor and the crafting grid, and each slot's value is the stack's saved form, so an undo
  *    restores what a save keeps.
+ * 6a. One `impulse` occurrence for each shove a player's client is asked to take, through
+ *    {@link logLegacyImpulse}, because the client owns a player's movement (ADR 0008).
  * 7. Store entities shown to legacy sessions. The mirror in `entity/data/liveBodies.ts` does this
  *    until slice 4 deletes it.
  *
@@ -86,6 +88,22 @@ export const logLegacySlot = (
     after: SlotValue
 ): void => {
     legacyStoreOf(entity)?.writtenSlot(entity.getRuntimeId(), container, slot, before, after);
+};
+
+/**
+ * Logs an impulse a legacy player's client is asked to take, such as a blow's knockback, as an
+ * occurrence in the change log of the world it is in. The player's position is not written.
+ *
+ * @param entity - The player shoved.
+ * @param impulse - The impulse, in blocks per tick.
+ */
+export const logLegacyImpulse = (entity: Entity, impulse: { x: number; y: number; z: number }): void => {
+    const { x, y, z } = impulse;
+    legacyStoreOf(entity)?.occurred({
+        kind: 'occurrence',
+        occurrence: 'impulse',
+        data: { entity: entity.getRuntimeId(), x, y, z }
+    });
 };
 
 /**
