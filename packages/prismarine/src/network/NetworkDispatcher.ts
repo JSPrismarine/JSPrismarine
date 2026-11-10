@@ -242,8 +242,7 @@ export default class NetworkDispatcher<C extends TransportConnection> {
             // up between login and spawn.
             const playerSession = session.getPlayerSession();
             const spawned =
-                playerSession !== null &&
-                playerSession.getPlayer().getWorld().viewerOf(playerSession.runtimeId) === playerSession;
+                playerSession !== null && playerSession.getWorld().viewerOf(playerSession.runtimeId) === playerSession;
 
             try {
                 await session.closePlayerSession();
