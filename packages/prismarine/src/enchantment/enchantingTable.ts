@@ -42,7 +42,13 @@ const WORN_GROUPS: ReadonlySet<string> = new Set(['armor', 'head', 'chest', 'leg
 /** The groups that work while the item is in a hand. */
 const HELD_GROUPS: ReadonlySet<string> = new Set(['mainhand', 'offhand', 'hand']);
 
-const seeds = new WeakMap<Player, number>();
+/**
+ * Each player's enchantment seed, by entity runtime id. The seed is read from the player data at
+ * join and saved at leave, so it lives exactly as long as the connection's entity does. Keyed by
+ * runtime id rather than UUID for the reason `advancement/progress.ts` gives. `PlayerSession.disable`
+ * calls {@link forgetEnchantmentSeed} once it is saved.
+ */
+const seeds = new Map<bigint, number>();
 
 /** A fresh seed, in the 32-bit range Java's own reroll produces. */
 const freshSeed = (player: Player): number => {
@@ -57,19 +63,30 @@ const freshSeed = (player: Player): number => {
  *   this player is asked.
  */
 export const enchantmentSeedOf = (player: Player, stored?: number): number => {
-    const held = seeds.get(player);
+    const runtimeId = player.getRuntimeId();
+    const held = seeds.get(runtimeId);
     if (held !== undefined) return held;
 
     const seed = stored ?? freshSeed(player);
-    seeds.set(player, seed);
+    seeds.set(runtimeId, seed);
     return seed;
 };
 
 /** Draws a new seed, which is what Java does the moment something is enchanted. */
 export const rerollEnchantmentSeed = (player: Player): number => {
     const seed = freshSeed(player);
-    seeds.set(player, seed);
+    seeds.set(player.getRuntimeId(), seed);
     return seed;
+};
+
+/**
+ * Lets go of a player's seed, for a player who is leaving.
+ *
+ * Called after the seed has been saved. A player who comes back has it read from the record
+ * again through {@link enchantmentSeedOf}.
+ */
+export const forgetEnchantmentSeed = (player: Player): void => {
+    seeds.delete(player.getRuntimeId());
 };
 
 /** Where an offer's enchantments go in the three lists the packet carries. */

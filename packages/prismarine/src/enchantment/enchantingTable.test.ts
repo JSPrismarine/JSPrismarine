@@ -12,6 +12,7 @@ import { AttributeIds, Attributes } from '@jsprismarine/protocol/wire/structures
 import { Item } from '../item/Item';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import PlayerEnchantOptionsPacket, { EnchantType } from '@jsprismarine/protocol/packet/PlayerEnchantOptionsPacket';
+import { fakePlayer } from '../testing/fakePlayer.test.helper';
 import { stub } from '../testing/stub.test.helper';
 import { bookshelfPowerAround } from './bookshelves';
 import {
@@ -114,12 +115,18 @@ const worldOf = (blocks: ReadonlyMap<string, string> = new Map()) =>
         getPlayers: () => []
     });
 
+/** Each scene's player runtime id. Distinct from each other and from
+ * real entities' ids, because the enchantment seed is kept by it. */
+let nextRuntimeId = 1n << 40n;
+
 const scene = (built: ServerContent, world = worldOf(), random: () => number = () => 0.5) => {
     const sent: NetworkPacket[] = [];
     const attributes = new Attributes(Attributes.getPlayerDefaults());
 
+    const runtimeId = nextRuntimeId++;
     const player: Player = stub<Player>({
         getType: () => 'minecraft:player',
+        getRuntimeId: () => runtimeId,
         getName: () => 'tester',
         getServer: () => stub<Server>({ getContent: () => built, getRandom: () => random }),
         getWorld: () => world,
@@ -151,6 +158,30 @@ describe('the enchanting table', () => {
         expect(enchantmentSeedOf(player)).toBe(Math.floor(0.25 * 0x7fffffff));
         expect(rerollEnchantmentSeed(player)).toBe(Math.floor(0.75 * 0x7fffffff));
         expect(draws).toEqual([]);
+    });
+
+    it('keeps a seed for each player', () => {
+        const first = scene(content()).player;
+        const second = scene(content()).player;
+
+        enchantmentSeedOf(first, 1234);
+        enchantmentSeedOf(second, 5678);
+
+        expect(enchantmentSeedOf(first)).toBe(1234);
+        expect(enchantmentSeedOf(second)).toBe(5678);
+    });
+
+    it("lets go of a player's seed when its session is torn down, so a rejoin reads the record", async () => {
+        // A name of its own: test files share a module instance (`isolate: false`), so another
+        // file's `Tester` may already hold a seed under the default name.
+        const { player } = fakePlayer({ name: 'SeedReleaseTester' });
+        enchantmentSeedOf(player, 1234);
+
+        await player.disable();
+        expect(enchantmentSeedOf(player, 99)).toBe(1234);
+
+        player.getNetworkSession().disable();
+        expect(enchantmentSeedOf(player, 99)).toBe(99);
     });
 
     it('offers the same three rows for the same seed, which is what keeps them still', () => {
