@@ -820,6 +820,19 @@ export class Level {
         }
     }
 
+    /**
+     * Opens this tick of every ready world's change log, before the input step, so the inputs
+     * it applies land in the tick that applied them.
+     */
+    public beginChangeTick(): void {
+        for (const world of this.worldsInStemOrder()) world.beginChangeTick();
+    }
+
+    /** Seals any world change log tick still open, for a level the ticker did not update. */
+    public sealChangeTick(): void {
+        for (const world of this.worlds()) world.sealChangeTick();
+    }
+
     /** The ready worlds in stem order, which is the order the level ticks them in. */
     private worldsInStemOrder(): World[] {
         const worlds: World[] = [];
