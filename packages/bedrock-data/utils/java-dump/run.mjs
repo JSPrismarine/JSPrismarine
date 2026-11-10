@@ -5,6 +5,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { findJdkHome } from '../java/jdk.ts';
+import { extractServer } from './extract.ts';
 
 /**
  * Compiles and runs the Java property, attribute, and navigation dumper against the pinned Java
@@ -74,32 +75,6 @@ const downloadServerJar = async () => {
     return jarPath;
 };
 
-/**
- * Unpacks the server classes and bundled libraries from the bundler jar, the documented layout
- * since 1.18: the real server jar sits at `META-INF/versions/<version>/` and its 39 dependencies
- * under `META-INF/libraries/`.
- */
-const extractServer = (jarPath) => {
-    const extractedDir = path.join(cacheDir, 'extracted');
-    const serverJar = path.join(extractedDir, 'META-INF/versions', JAVA_VERSION, `server-${JAVA_VERSION}.jar`);
-    if (!fs.existsSync(serverJar)) {
-        execFileSync('unzip', ['-o', '-q', jarPath, 'META-INF/versions/*', 'META-INF/libraries/*', '-d', extractedDir]);
-    }
-
-    const librariesDir = path.join(cacheDir, 'libraries');
-    fs.mkdirSync(librariesDir, { recursive: true });
-    const copyJars = (directory) => {
-        for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
-            const entryPath = path.join(directory, entry.name);
-            if (entry.isDirectory()) copyJars(entryPath);
-            else if (entry.name.endsWith('.jar')) fs.copyFileSync(entryPath, path.join(librariesDir, entry.name));
-        }
-    };
-    copyJars(path.join(extractedDir, 'META-INF/libraries'));
-
-    return { serverJar, librariesDir };
-};
-
 const runDumper = (jdkHome, serverJar, librariesDir) => {
     const classesDir = path.join(cacheDir, 'dump-classes');
     const outputDir = path.join(cacheDir, 'dump-out');
@@ -132,7 +107,7 @@ const writeGolden = (outputDir, name) => {
 };
 
 const jarPath = await downloadServerJar();
-const { serverJar, librariesDir } = extractServer(jarPath);
+const { serverJar, librariesDir } = extractServer(jarPath, cacheDir, JAVA_VERSION);
 const jdkHome = findJdkHome({ minimumMajor: REQUIRED_JDK_MAJOR, binaries: ['java', 'javac'] });
 const outputDir = runDumper(jdkHome, serverJar, librariesDir);
 writeGolden(outputDir, 'block_properties.json');
