@@ -988,6 +988,66 @@ describeFamily(
             runtime.remove(cube.id, 'parity runtime check complete');
         });
 
+        it("walks the vanilla zombie and hops the vanilla slime at Java's travel speed", { timeout: 180_000 }, () => {
+            const { runtime, world } = realStack();
+            // Away from the other fixtures of the cached world: a stone floor to walk along.
+            const z = 300;
+            for (let x = 295; x <= 340; x += 1) world.setBlock({ x, y: 63, z }, 'minecraft:stone');
+
+            /** Walks a mob east for a number of ticks and records each tick's stride and take-off. */
+            const walk = (identifier: string, ticks: number) => {
+                const mob = runtime.spawn(identifier, { x: 300.5, y: 64, z: z + 0.5 });
+                if (mob === undefined) throw new Error(`the vanilla stack declares no ${identifier}`);
+                const destination = { x: 339.5, y: 64, z: z + 0.5 };
+                const strides: { readonly stride: number; readonly fromGround: boolean; readonly tookOff: boolean }[] =
+                    [];
+                for (let tick = 1; tick <= ticks; tick += 1) {
+                    mob.body.moveTo(destination, 1);
+                    const before = mob.position;
+                    const fromGround = mob.body.velocity.y === 0;
+                    runtime.tick(tick);
+                    strides.push({
+                        stride: Math.hypot(mob.position.x - before.x, mob.position.z - before.z),
+                        fromGround,
+                        tookOff: mob.body.velocity.y > 0
+                    });
+                }
+                const speed = mob.facts.movement;
+                runtime.remove(mob.id, 'parity travel check complete');
+                // Java's `LivingEntity.travel` on stone settles at speed² / (1 - 0.6 × 0.91).
+                return { strides, settled: (speed * speed) / (1 - 0.6 * 0.91) };
+            };
+
+            const zombie = walk('minecraft:zombie', 40);
+            const zombieMatches =
+                Math.max(...zombie.strides.map(({ stride }) => stride)) <= zombie.settled + 1e-6 &&
+                Math.abs((zombie.strides.at(-1)?.stride ?? 0) - zombie.settled) < 1e-3;
+
+            const slime = walk('minecraft:slime', 120);
+            const hops = slime.strides.filter(({ stride, fromGround }) => stride > 0 && fromGround);
+            const slimeMatches =
+                hops.length > 0 &&
+                hops.every(({ tookOff }) => tookOff) &&
+                slime.strides.every(({ stride }) => stride <= slime.settled + 1e-6);
+
+            reportParityCases(FAMILIES.integrationEntityRuntime, import.meta.filename, [
+                {
+                    id: 'minecraft:zombie/walk-speed',
+                    title: 'minecraft:zombie',
+                    context: "Vanilla movement component → Java's travel stride on stone",
+                    status: zombieMatches ? 'passed' : 'failed'
+                },
+                {
+                    id: 'minecraft:slime/hop',
+                    title: 'minecraft:slime',
+                    context: 'Vanilla movement.jump component → ground covered only in hops',
+                    status: slimeMatches ? 'passed' : 'failed'
+                }
+            ]);
+            expect(zombieMatches).toBe(true);
+            expect(slimeMatches).toBe(true);
+        });
+
         it('ticks the Java piglin brain without selecting Bedrock goals', { timeout: 180_000 }, () => {
             const { runtime } = realStack();
             const piglin = runtime.spawn('minecraft:piglin', { x: 0.5, y: 64.5, z: 0.5 });
