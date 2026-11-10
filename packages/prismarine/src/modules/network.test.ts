@@ -45,6 +45,23 @@ describe('modules/network', () => {
         expect(() => networking.kill()).not.toThrow();
     });
 
+    it('refuses to start with every transport turned off', () => {
+        const server = stub<Server>({
+            getConfig: () =>
+                stub<Config>({
+                    getGamemode: () => 'survival',
+                    getMaxPlayers: () => 1,
+                    getMotd: () => 'test server',
+                    getEnableRakNet: () => false,
+                    getEnableNetherNet: () => false
+                })
+        });
+        const networking = new ServerNetworking(server);
+
+        expect(() => networking.start('127.0.0.1', 0)).toThrow('No transport is enabled');
+        expect(networking.getListener()).toBeUndefined();
+    });
+
     it('rejects replay before the network dispatcher starts', async () => {
         const networking = new ServerNetworking(stub<Server>({}));
 
@@ -70,6 +87,7 @@ describe('modules/network', () => {
                     getMaxPlayers: () => 1,
                     getMotd: () => 'test server',
                     getOnlineMode: () => false,
+                    getEnableRakNet: () => true,
                     getUseRakNetWorker: () => false
                 }),
             getLogger: () =>
