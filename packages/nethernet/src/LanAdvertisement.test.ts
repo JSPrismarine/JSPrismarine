@@ -30,7 +30,7 @@ const BDS_FIELDS: LanAdvertisement = {
     connectionType: 4
 };
 
-describe('network/nethernet/LanAdvertisement', () => {
+describe('LanAdvertisement', () => {
     it('decodes what Bedrock Dedicated Server advertises', () => {
         expect(decodeLanAdvertisement(BDS_ADVERTISEMENT)).toStrictEqual(BDS_FIELDS);
     });

@@ -119,5 +119,5 @@ events hand you, and every other export of the
 
 Every package is published on its own, so a tool can take one without the server: read worlds with
 `@jsprismarine/leveldb`, parse NBT with `@jsprismarine/nbt`, evaluate Molang with
-`@jsprismarine/molang`, or speak the protocol with `@jsprismarine/protocol` and
-`@jsprismarine/raknet`.
+`@jsprismarine/molang`, or speak the protocol with `@jsprismarine/protocol` over
+`@jsprismarine/raknet` or `@jsprismarine/nethernet`.

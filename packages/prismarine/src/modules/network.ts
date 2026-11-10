@@ -3,6 +3,7 @@ import { isIPv4 } from 'node:net';
 import type { Module } from '@jsprismarine/kernel';
 import { RakNetListener, ServerName, WorkerServerSocket } from '@jsprismarine/raknet';
 import type { RakNetListenerLike } from '@jsprismarine/raknet';
+import { HttpSignaling, joinStatusJson, NETHERNET_LAN_PORT, NetherNetIdentity } from '@jsprismarine/nethernet';
 import { Server as NetherNetServer } from 'nethernet';
 
 import ClientConnection from '../network/ClientConnection';
@@ -10,10 +11,8 @@ import type { InboundPacketRecord, InboundPacketRecorder } from '../network/Inbo
 import type { OutboundPacketRecorder } from '../network/OutboundPacketTrace';
 import NetworkDispatcher from '../network/NetworkDispatcher';
 import { advertiseOnLan } from '../network/nethernet/advertiseOnLan';
-import { HttpSignaling } from '../network/nethernet/HttpSignaling';
-import { NETHERNET_IDENTITY_FILE, NETHERNET_LAN_PORT } from '../network/nethernet/NetherNetDefaults';
-import { NetherNetIdentity } from '../network/nethernet/NetherNetIdentity';
-import { joinStatusJson, netherNetStatusOf } from '../network/nethernet/NetherNetStatus';
+import { NETHERNET_IDENTITY_FILE } from '../network/nethernet/NetherNetDefaults';
+import { netherNetStatusOf } from '../network/nethernet/netherNetStatusOf';
 import type { ConnectionId, ConnectionIds } from '../network/transport/ConnectionId';
 import MultiTransport from '../network/transport/MultiTransport';
 import NetherNetTransport from '../network/transport/NetherNetTransport';

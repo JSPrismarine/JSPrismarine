@@ -172,6 +172,7 @@
         "@jsprismarine/mcfunction": "workspace:*",
         "@jsprismarine/minecraft": "workspace:*",
         "@jsprismarine/nbt": "workspace:*",
+        "@jsprismarine/nethernet": "workspace:*",
         "@jsprismarine/packs": "workspace:*",
         "@jsprismarine/predicates": "workspace:*",
         "@jsprismarine/protocol": "workspace:*",

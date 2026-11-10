@@ -3,7 +3,6 @@ import http from 'node:http';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { AddressInfo } from 'node:net';
 
-import type { Logger } from '@jsprismarine/logger';
 import { SignalStructure, SignalType } from 'nethernet';
 import { withoutIdentity } from './sdp';
 
@@ -24,6 +23,12 @@ export interface NetherNetOfferAnswerer {
     handleOffer(signal: SignalStructure, respond: (signal: SignalStructure) => void): Promise<void>;
 }
 
+/** Where the signaling server reports what went wrong. `@jsprismarine/logger`'s `Logger` fits. */
+export interface SignalingLogger {
+    debug(message: string): void;
+    error(error: unknown): void;
+}
+
 /** What the signaling server needs besides the answerer. */
 export interface HttpSignalingOptions {
     /** Turns an offer into an answer and keeps the peer it negotiates. */
@@ -32,7 +37,7 @@ export interface HttpSignalingOptions {
     readonly status: () => string;
     /** Adds the server's `a=identity` to an answer; the client refuses one without it. */
     readonly sign: (answer: string) => string;
-    readonly logger: Logger;
+    readonly logger: SignalingLogger;
     /** How long an offer may wait for its answer. */
     readonly answerTimeoutMs?: number;
 }

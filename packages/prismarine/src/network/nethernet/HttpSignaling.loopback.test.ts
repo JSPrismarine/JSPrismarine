@@ -5,12 +5,10 @@ import type { Logger } from '@jsprismarine/logger';
 import { BATCH_PACKET_ID } from '@jsprismarine/protocol';
 import { Client, Server, SignalStructure, SignalType } from 'nethernet';
 import { stub } from '../../testing/stub.test.helper';
-import { BEDROCK_CURVE } from '../es384';
 import { ConnectionIds } from '../transport/ConnectionId';
 import NetherNetTransport from '../transport/NetherNetTransport';
 import type { NetherNetTransportConnection } from '../transport/NetherNetTransport';
-import { HttpSignaling } from './HttpSignaling';
-import { NetherNetIdentity } from './NetherNetIdentity';
+import { BEDROCK_CURVE, HttpSignaling, NetherNetIdentity } from '@jsprismarine/nethernet';
 
 describe('network/nethernet/HttpSignaling over a real WebRTC connection', () => {
     it('lets a client join by address: offer over HTTP, then batches over the data channel', async () => {
