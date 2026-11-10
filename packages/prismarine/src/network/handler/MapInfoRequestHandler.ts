@@ -20,7 +20,7 @@ export default class MapInfoRequestHandler implements PacketHandler<MapInfoReque
         server
             .getLogger()
             .debug(
-                `${session.getPlayer().getName()} requested map ${packet.mapUniqueId} and offered ${packet.clientPixels.length} pixel(s). Maps are not stored`,
+                `${session.identity.name} requested map ${packet.mapUniqueId} and offered ${packet.clientPixels.length} pixel(s). Maps are not stored`,
                 'MapInfoRequestHandler/handle'
             );
     }

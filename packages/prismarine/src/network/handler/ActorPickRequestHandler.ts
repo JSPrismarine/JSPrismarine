@@ -19,7 +19,7 @@ export default class ActorPickRequestHandler implements PacketHandler<ActorPickR
         server
             .getLogger()
             .debug(
-                `${session.getPlayer().getName()} picked actor ${packet.actorId}${packet.withData ? ' with data' : ''} (${packet.maxSlots} free hotbar slots). Actor picking is not implemented`,
+                `${session.identity.name} picked actor ${packet.actorId}${packet.withData ? ' with data' : ''} (${packet.maxSlots} free hotbar slots). Actor picking is not implemented`,
                 'ActorPickRequestHandler/handle'
             );
     }

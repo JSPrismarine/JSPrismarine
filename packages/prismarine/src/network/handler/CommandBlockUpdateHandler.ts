@@ -28,7 +28,7 @@ export default class CommandBlockUpdateHandler implements PacketHandler<CommandB
         server
             .getLogger()
             .debug(
-                `${session.getPlayer().getName()} set ${where} to "${data.command}". Command blocks are not stored, so nothing changed`,
+                `${session.identity.name} set ${where} to "${data.command}". Command blocks are not stored, so nothing changed`,
                 'CommandBlockUpdateHandler/handle'
             );
     }

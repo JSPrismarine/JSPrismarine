@@ -19,7 +19,7 @@ export default class MapCreateLockedCopyHandler implements PacketHandler<MapCrea
         server
             .getLogger()
             .debug(
-                `${session.getPlayer().getName()} locked map ${packet.originalMapId} as ${packet.newMapId}. The server stores no maps`,
+                `${session.identity.name} locked map ${packet.originalMapId} as ${packet.newMapId}. The server stores no maps`,
                 'MapCreateLockedCopyHandler/handle'
             );
     }

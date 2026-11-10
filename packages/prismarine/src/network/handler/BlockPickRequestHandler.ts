@@ -24,7 +24,7 @@ export default class BlockPickRequestHandler implements PacketHandler<BlockPickR
         server
             .getLogger()
             .debug(
-                `${session.getPlayer().getName()} picked the block at ${position.x}, ${position.y}, ${position.z}${data.withData ? ' with data' : ''} (${data.maxSlots} free hotbar slots). Block picking is not implemented`,
+                `${session.identity.name} picked the block at ${position.x}, ${position.y}, ${position.z}${data.withData ? ' with data' : ''} (${data.maxSlots} free hotbar slots). Block picking is not implemented`,
                 'BlockPickRequestHandler/handle'
             );
     }
