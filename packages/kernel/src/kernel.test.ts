@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { Kernel, KernelError } from './kernel';
 import type { KernelLogger } from './logger';
@@ -110,6 +110,47 @@ describe('Kernel lifecycle', () => {
         calls.length = 0;
         await kernel.start();
         expect(calls).toStrictEqual(['a:start', 'b:start', 'broken:start']);
+    });
+
+    it('cancels a start that is still running when stop() is called', async () => {
+        const calls: string[] = [];
+        let release = (): void => {};
+        const kernel = new Kernel();
+        kernel.register(provider('a', aToken, calls));
+        kernel.register({
+            id: 'slow',
+            dependencies: [aToken],
+            register(ctx) {
+                ctx.provide(bToken, named('slow'));
+            },
+            start() {
+                calls.push('slow:start');
+                return new Promise<void>((resolve) => {
+                    release = resolve;
+                });
+            },
+            stop() {
+                calls.push('slow:stop');
+                release();
+            }
+        });
+        kernel.register(provider('c', cToken, calls, [bToken]));
+        await kernel.registerAll();
+        calls.length = 0;
+
+        const starting = kernel.start();
+        await vi.waitFor(() => expect(calls).toContain('slow:start'));
+        await kernel.stop();
+
+        await expect(starting).rejects.toThrow(KernelError);
+        expect(calls).toStrictEqual(['a:start', 'slow:start', 'slow:stop', 'a:stop']);
+
+        calls.length = 0;
+        const again = kernel.start();
+        await vi.waitFor(() => expect(calls).toContain('slow:start'));
+        release();
+        await again;
+        expect(calls).toStrictEqual(['a:start', 'slow:start', 'c:start']);
     });
 
     it('logs a failing stop and keeps stopping the remaining modules', async () => {

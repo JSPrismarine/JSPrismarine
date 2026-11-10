@@ -7,7 +7,8 @@ use the same API.
 
 A module declares the service tokens it depends on, provides its own services during `register()`,
 and does its I/O in `start()`. The kernel validates the dependency graph, starts modules in
-dependency order, and stops them in reverse. A module can only `use()` tokens it declared, so the
+dependency order, and stops them in reverse. A module whose start throws rolls back the ones already
+started, and a `stop()` during a start cancels it. A module can only `use()` tokens it declared, so the
 declared list is the real dependency graph, not documentation.
 
 A kernel is built once and restarted freely: `registerAll()` runs every `register()` phase exactly
