@@ -161,7 +161,8 @@ const makeDispatcher = (options?: {
     const packetHandlerRegistry = stub<PacketHandlerRegistry>({
         getHandler: () => {
             if (!options?.handler) throw new Error('no handler registered');
-            return options.handler;
+            // Every double here runs in the handshake phase, before a session exists.
+            return { lane: 'connection', ...options.handler };
         }
     });
     const built: ClientConnection[] = [];
