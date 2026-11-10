@@ -3,10 +3,10 @@ import { describe, expect, it } from 'vitest';
 import type { Logger } from '@jsprismarine/logger';
 import type Server from '../../Server';
 import { stub } from '../../testing/stub.test.helper';
+import { STEVE } from '../../testing/steveIdentity.test.helper';
 import ClientCacheStatusHandler from './ClientCacheStatusHandler';
 import PacketHandlerRegistry from '../PacketHandlerRegistry';
 import ClientCacheStatusPacket from '@jsprismarine/protocol/packet/ClientCacheStatusPacket';
-import type Player from '../../Player';
 import type PlayerSession from '../PlayerSession';
 
 /**
@@ -63,7 +63,7 @@ describe('ClientCacheStatusPacket', () => {
         const logger = stub<Logger>({ debug: () => {}, verbose: () => {} });
         const server = stub<Server>({ getLogger: () => logger });
         const session = stub<PlayerSession>({
-            getPlayer: () => stub<Player>({ getName: () => 'Steve' }),
+            identity: STEVE,
             setClientCacheEnabled: (value) => {
                 enabled = value;
             }

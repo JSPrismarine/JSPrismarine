@@ -21,7 +21,7 @@ export default class ResourcePacksReadyForValidationHandler implements PacketHan
         server
             .getLogger()
             .debug(
-                `${session.getPlayer().getName()} finished loading its resource packs`,
+                `${session.identity.name} finished loading its resource packs`,
                 'ResourcePacksReadyForValidationHandler/handle'
             );
     }

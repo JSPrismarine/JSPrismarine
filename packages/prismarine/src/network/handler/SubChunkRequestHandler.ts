@@ -17,7 +17,7 @@ export default class SubChunkRequestHandler implements PacketHandler<SubChunkReq
         server
             .getLogger()
             .debug(
-                `${session.getPlayer().getName()} requested ${packet.offsets.length} sub chunk(s) around ${centerPos.x}, ${centerPos.y}, ${centerPos.z} in dimension ${packet.dimensionType}; answered ${answered}`,
+                `${session.identity.name} requested ${packet.offsets.length} sub chunk(s) around ${centerPos.x}, ${centerPos.y}, ${centerPos.z} in dimension ${packet.dimensionType}; answered ${answered}`,
                 'SubChunkRequestHandler/handle'
             );
     }

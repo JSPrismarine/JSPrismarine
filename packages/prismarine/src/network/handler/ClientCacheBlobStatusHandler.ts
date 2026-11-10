@@ -15,7 +15,7 @@ export default class ClientCacheBlobStatusHandler implements PacketHandler<Clien
         server
             .getLogger()
             .debug(
-                `${session.getPlayer().getName()} holds ${packet.foundIds.length} cached blob(s) and is missing ${packet.missingIds.length}; sent ${responded}`,
+                `${session.identity.name} holds ${packet.foundIds.length} cached blob(s) and is missing ${packet.missingIds.length}; sent ${responded}`,
                 'ClientCacheBlobStatusHandler/handle'
             );
     }

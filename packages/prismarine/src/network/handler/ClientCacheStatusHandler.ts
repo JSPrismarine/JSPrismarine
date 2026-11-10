@@ -15,7 +15,7 @@ export default class ClientCacheStatusHandler implements PacketHandler<ClientCac
         server
             .getLogger()
             .debug(
-                `${session.getPlayer().getName()} ${packet.enabled ? 'enabled' : 'disabled'} the blob cache`,
+                `${session.identity.name} ${packet.enabled ? 'enabled' : 'disabled'} the blob cache`,
                 'ClientCacheStatusHandler/handle'
             );
     }

@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
 import type { Logger } from '@jsprismarine/logger';
-import type Player from '../../Player';
 import type Server from '../../Server';
 import { stub } from '../../testing/stub.test.helper';
+import { STEVE } from '../../testing/steveIdentity.test.helper';
 import type PlayerSession from '../PlayerSession';
 import ServerboundDiagnosticsPacket from '@jsprismarine/protocol/packet/ServerboundDiagnosticsPacket';
 import ServerboundDiagnosticsHandler from './ServerboundDiagnosticsHandler';
@@ -14,7 +14,7 @@ describe('ServerboundDiagnosticsHandler', () => {
         const server = stub<Server>({
             getLogger: () => stub<Logger>({ debug: (...message) => void logged.push(message[0] ?? '') })
         });
-        const session = stub<PlayerSession>({ getPlayer: () => stub<Player>({ getName: () => 'Steve' }) });
+        const session = stub<PlayerSession>({ identity: STEVE });
         const packet = Object.assign(new ServerboundDiagnosticsPacket(), {
             avgFps: 59.94,
             avgClientSimTickTimeMs: 1.234,

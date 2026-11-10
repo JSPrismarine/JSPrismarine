@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
 import type { Logger } from '@jsprismarine/logger';
-import type Player from '../../Player';
 import type Server from '../../Server';
 import { stub } from '../../testing/stub.test.helper';
+import { STEVE } from '../../testing/steveIdentity.test.helper';
 import type PlayerSession from '../PlayerSession';
 import SubChunkRequestPacket from '@jsprismarine/protocol/packet/SubChunkRequestPacket';
 import SubChunkRequestHandler from './SubChunkRequestHandler';
@@ -15,7 +15,7 @@ describe('SubChunkRequestHandler', () => {
             getLogger: () => stub<Logger>({ debug: (...message) => void logged.push(message[0] ?? '') })
         });
         const session = stub<PlayerSession>({
-            getPlayer: () => stub<Player>({ getName: () => 'Steve' }),
+            identity: STEVE,
             handleSubChunkRequest: async () => 1
         });
         const packet = Object.assign(new SubChunkRequestPacket(), {

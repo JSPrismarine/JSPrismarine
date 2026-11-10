@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
 import type { Logger } from '@jsprismarine/logger';
-import type Player from '../../Player';
 import type Server from '../../Server';
 import { stub } from '../../testing/stub.test.helper';
+import { STEVE } from '../../testing/steveIdentity.test.helper';
 import type PlayerSession from '../PlayerSession';
 import type { Arrival } from '../PlayerSession';
 import ServerboundLoadingScreenPacket, {
@@ -21,7 +21,7 @@ const fakeSession = ({ open = [], pending }: { open?: number[]; pending?: number
     });
     const released: number[] = [];
     const session = stub<PlayerSession>({
-        getPlayer: () => stub<Player>({ getName: () => 'Steve' }),
+        identity: STEVE,
         endLoadingScreen: (id) => {
             ended.push(id);
             return open.includes(id);

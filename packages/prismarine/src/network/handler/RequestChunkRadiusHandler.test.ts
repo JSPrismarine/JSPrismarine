@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
 import type { Logger } from '@jsprismarine/logger';
-import type Player from '../../Player';
 import type Server from '../../Server';
 import type { Config } from '../../config/Config';
 import { stub } from '../../testing/stub.test.helper';
+import { STEVE } from '../../testing/steveIdentity.test.helper';
 import type PlayerSession from '../PlayerSession';
 import { RequestChunkRadiusPacket } from '@jsprismarine/protocol';
 import RequestChunkRadiusHandler from './RequestChunkRadiusHandler';
@@ -24,7 +24,7 @@ const run = async (
         getLogger: () => stub<Logger>({ debug: (...message) => void logged.push(message[0] ?? '') })
     });
     const session = stub<PlayerSession>({
-        getPlayer: () => stub<Player>({ getName: () => 'Steve' }),
+        identity: STEVE,
         setViewDistance: async (distance) => void (granted = distance)
     });
 
