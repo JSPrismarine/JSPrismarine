@@ -67,6 +67,7 @@ import { blockPosTracker } from '@jsprismarine/entity-brains';
 import type { VillagerRaidEffect, VillagerRaidState, VillagerTask } from '@jsprismarine/entity-brains';
 import { entityData } from '@jsprismarine/items';
 import type { RecipeBook } from '@jsprismarine/recipes';
+import { EXPLOSION_ENTITY_REACH } from '@jsprismarine/engine-systems';
 import type {
     BlockQuery,
     GoalBlock,
@@ -2127,7 +2128,11 @@ export class EntityRuntime implements EntityScene {
         const blast = detonate(this.world, {
             center: source.position,
             power,
-            candidates: this.all().filter((caught) => caught.id !== source.id),
+            // From the index, within the engine's reach and a block more, which is all it accepts.
+            // The same entities in the same order as the whole list it replaced.
+            candidates: this.index
+                .within(source.position, power * EXPLOSION_ENTITY_REACH + 1)
+                .filter((caught) => caught.id !== source.id),
             breaksBlocks: isTnt || ruleIsOn(this.world.level, MOB_GRIEFING),
             content: this.content(),
             // The blocks a blast breaks are still blocks, so `doTileDrops` decides whether they
