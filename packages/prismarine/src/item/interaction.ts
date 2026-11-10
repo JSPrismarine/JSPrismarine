@@ -43,8 +43,37 @@ import type { ServerItemActorPort } from './actorPort';
 import { contentStackOf } from './contentStack';
 import type { Item } from './Item';
 import type { ItemStack } from '@jsprismarine/items';
-import type Player from '../Player';
 import type { SystemBlock } from '../world/WorldSystems';
+import type Server from '../Server';
+import type { World } from '../world/World';
+import type HumanInventory from '../inventory/HumanInventory';
+import type PlayerSession from '../network/PlayerSession';
+import type { EntityBox } from '../entity/data/facts';
+import type { StoredSpawnPoint } from '../world/RespawnPoint';
+import type { EnchantingPlayer } from '../enchantment/enchantingTable';
+import type { ContainerViewer } from '../inventory/containerStore';
+
+/**
+ * What a click reads and changes of the player who made it: the hand and the inventory, the world
+ * a placement and a hook act on, the body a placement must not overlap, the view, the spawn point a
+ * bed moves, and the session that is told the outcome.
+ */
+export interface InteractingPlayer extends EnchantingPlayer, ContainerViewer {
+    getRuntimeId(): bigint;
+    getServer(): Server;
+    getWorld(): World;
+    getInventory(): HumanInventory;
+    getNetworkSession(): Pick<
+        PlayerSession,
+        'send' | 'sendInventory' | 'sendMessage' | 'getOpenBlockContainer' | 'openBlockContainer'
+    >;
+    getFeetY(): number;
+    getBox(): EntityBox;
+    readonly yaw: number;
+    readonly pitch: number;
+    getSpawnPoint(): StoredSpawnPoint | undefined;
+    setSpawnPoint(spawn: StoredSpawnPoint | undefined): void;
+}
 
 /** What {@link useItemOnBlock} is given about one click. */
 export interface BlockInteraction {
@@ -52,7 +81,7 @@ export interface BlockInteraction {
     readonly content: ServerContent;
     /** The item actor port of the player's dimension; see {@link ServerItemActorPort}. */
     readonly actors: ServerItemActorPort;
-    readonly player: Player;
+    readonly player: InteractingPlayer;
     /** The block the client says was clicked. */
     readonly position: ContentPosition;
     /** Which of the block's six faces, as the client numbers them. */
@@ -80,7 +109,7 @@ export type InteractionResult =
 export interface EntityInteraction {
     readonly content: ServerContent;
     readonly actors: ServerItemActorPort;
-    readonly player: Player;
+    readonly player: InteractingPlayer;
     /** The entity the click landed on, which is what `targetOf` answers with. */
     readonly target: ItemSource;
 }
@@ -89,11 +118,11 @@ export interface EntityInteraction {
 export interface AirInteraction {
     readonly content: ServerContent;
     readonly actors: ServerItemActorPort;
-    readonly player: Player;
+    readonly player: InteractingPlayer;
 }
 
 /** The block a hook reads, out of the live world, or undefined when its chunk is not loaded. */
-const hookBlockAt = (player: Player, dimension: string, at: ContentPosition): HookBlock | undefined => {
+const hookBlockAt = (player: InteractingPlayer, dimension: string, at: ContentPosition): HookBlock | undefined => {
     const block = player.getWorld().loadedBlockAt(at.x, at.y, at.z);
     return block && { identifier: block.name, position: at, dimension, states: block.states };
 };
@@ -207,7 +236,7 @@ const placementStatesOf = (
 };
 
 /** Whether one resolved block collision box intersects the player's body. */
-const collisionBoxOverlapsPlayer = (player: Player, at: ContentPosition, box: ResolvedCollisionBox) => {
+const collisionBoxOverlapsPlayer = (player: InteractingPlayer, at: ContentPosition, box: ResolvedCollisionBox) => {
     const position = player.getPosition();
     const { width, height } = player.getBox();
     const playerMinX = position.getX() - width / 2;
@@ -236,7 +265,7 @@ const collisionBoxOverlapsPlayer = (player: Player, at: ContentPosition, box: Re
 /** Whether the state an item would place collides with the player's body. */
 const placementOverlapsPlayer = (
     content: ServerContent,
-    player: Player,
+    player: InteractingPlayer,
     at: ContentPosition,
     identifier: string,
     states: Readonly<Record<string, BlockStateValue>>
@@ -318,7 +347,7 @@ const placeBlock = (
  * Through {@link Item.withCount}, so what is left keeps the stack network id the client knows it
  * by. A count of zero empties the slot rather than leaving an entry of nothing in it.
  */
-const setHeldCount = (player: Player, count: number): void => {
+const setHeldCount = (player: InteractingPlayer, count: number): void => {
     const inventory = player.getInventory();
     const slot = inventory.getHandSlotIndex();
     const held = inventory.getEntry(slot);
@@ -334,14 +363,14 @@ const setHeldCount = (player: Player, count: number): void => {
  * This is the one carry-back for every hook result: without it bone meal, a fire charge, a spawn
  * egg and every other consumable used on a block, an entity or the air stayed at full count.
  */
-const putBackStack = (player: Player, stack: ItemStack | undefined): void => {
+const putBackStack = (player: InteractingPlayer, stack: ItemStack | undefined): void => {
     const held = player.getInventory().getItemInHand();
     if (stack === undefined || stack.identifier !== held.getName()) return;
     setHeldCount(player, stack.count);
 };
 
 /** Sends a player their inventory, without holding up the click that changed it. */
-const resendInventory = (player: Player): void => {
+const resendInventory = (player: InteractingPlayer): void => {
     void player
         .getNetworkSession()
         .sendInventory()
@@ -352,7 +381,7 @@ const resendInventory = (player: Player): void => {
  * Takes one of the held item out of the hand, for anyone but a creative player: the block a
  * placement put down, or the item a block hook reported the click cost.
  */
-const spendHeldItem = (player: Player): void => {
+const spendHeldItem = (player: InteractingPlayer): void => {
     if (player.gamemode === Gametype.CREATIVE) return;
 
     const inventory = player.getInventory();
@@ -659,7 +688,10 @@ const TICKS_PER_SECOND = 20;
  * Read from `minecraft:consumable.consume_seconds`, which is how a dried kelp is quicker than a
  * steak. The client never says when a meal is over, so the server has to count this out itself.
  */
-export const consumeTicksOf = (content: ServerContent, player: Player): number | undefined => {
+export const consumeTicksOf = (
+    content: ServerContent,
+    player: { getInventory(): Pick<HumanInventory, 'getItemInHand'> }
+): number | undefined => {
     const held = player.getInventory().getItemInHand();
     const stack = contentStackOf(content, held, held.getAmount());
     if (stack === undefined) return undefined;

@@ -20,6 +20,7 @@ import { Vector3 } from '@jsprismarine/math';
 import { Gametype, LevelSoundEvent } from '@jsprismarine/minecraft';
 
 import { advancementConsumedItem, advancementDurabilityChanged } from '../advancement/triggers';
+import type { AdvancementPlayer } from '../advancement/triggers';
 import { ArmorSlot } from '@jsprismarine/minecraft';
 import ContainerEntry from '../inventory/ContainerEntry';
 import { itemDropOf, itemOfDrop, storedItem } from '../inventory/persistence';
@@ -29,6 +30,7 @@ import { normalizeStatusEffectId } from '../entity/StatusEffect';
 import { Item } from './Item';
 import { itemFromContent } from './itemFromContent';
 import Player from '../Player';
+import type HumanInventory from '../inventory/HumanInventory';
 import { Position } from '../world/Position';
 import type { ActorItemAction, ItemActorPort } from './contentAdapter';
 import type { ContentEntityAccess, ContentItemDrop, ContentLevelFacts } from '../content/world/adapter';
@@ -48,6 +50,24 @@ import type {
 } from '@jsprismarine/item-behaviors';
 import type { World } from '../world/World';
 import type { WorldActor } from '../world/WorldActor';
+
+/**
+ * What the port reads and changes of a player an action names: the inventory a stack goes into or
+ * comes out of, the hunger a meal feeds, and the state a behavior's conditions read.
+ */
+export interface ItemPlayer extends AdvancementPlayer {
+    getInventory(): HumanInventory;
+    addFood(food: number, saturation?: number): void;
+    isOnGround(): boolean;
+    getFallDistance(): number;
+}
+
+/**
+ * The player an entity is, or undefined for any other entity. Players are still the legacy class,
+ * and this is the one place the port asks for it.
+ */
+const asPlayer = (entity: WorldActor | null): (WorldActor & ItemPlayer) | undefined =>
+    entity instanceof Player ? entity : undefined;
 
 /** The live world whose entities and players this port acts on. */
 export type LiveWorld = () => World | undefined;
@@ -69,7 +89,7 @@ export interface ItemActorPortOptions {
     /** Applies a player's held item to a data-driven entity, when its components accept it. */
     readonly interactWithEntity?: (
         target: WorldActor,
-        player: Player,
+        player: WorldActor,
         itemIdentifier: string,
         heldItem: ContentItemDrop
     ) => EntityItemInteraction;
@@ -204,10 +224,10 @@ export const createItemActorPort = (options: ItemActorPortOptions): ServerItemAc
     const entityOf = (source: ItemSource): WorldActor | null => world()?.getActor(BigInt(source.runtimeId)) ?? null;
 
     const useItemOnEntity = (source: ItemSource): boolean => {
-        const player = entityOf(source);
+        const player = asPlayer(entityOf(source));
         const targetSource = targets.get(source.runtimeId);
         const target = targetSource === undefined ? null : entityOf(targetSource);
-        if (!(player instanceof Player) || target === null || interactWithEntity === undefined) return false;
+        if (player === undefined || target === null || interactWithEntity === undefined) return false;
 
         const inventory = player.getInventory();
         const heldEntry = inventory.getEntry(inventory.getHandSlotIndex());
@@ -340,7 +360,8 @@ export const createItemActorPort = (options: ItemActorPortOptions): ServerItemAc
         if (item === null) return;
 
         const position = entity?.getPosition();
-        if (!(entity instanceof Player)) {
+        const player = asPlayer(entity);
+        if (player === undefined) {
             if (position === undefined) return;
             entities.drop(
                 { x: Math.floor(position.getX()), y: Math.floor(position.getY()), z: Math.floor(position.getZ()) },
@@ -351,7 +372,7 @@ export const createItemActorPort = (options: ItemActorPortOptions): ServerItemAc
 
         // What would not fit goes on the ground, which is what vanilla does with a full
         // inventory, and `addItem` reports how many of them that is.
-        const leftOver = entity.getInventory().addItem(new ContainerEntry({ item, count: stack.count }));
+        const leftOver = player.getInventory().addItem(new ContainerEntry({ item, count: stack.count }));
         if (leftOver > 0 && position !== undefined) {
             entities.drop(
                 { x: Math.floor(position.getX()), y: Math.floor(position.getY()), z: Math.floor(position.getZ()) },
@@ -362,8 +383,8 @@ export const createItemActorPort = (options: ItemActorPortOptions): ServerItemAc
 
     /** Adds a loot drop to a player's inventory, dropping any overflow at their feet. */
     const giveDrop = (source: ItemSource, drop: ContentItemDrop): void => {
-        const entity = entityOf(source);
-        if (!(entity instanceof Player)) return;
+        const entity = asPlayer(entityOf(source));
+        if (entity === undefined) return;
 
         const item = itemOfDrop(drop, entity.getServer().getContent());
         if (item === null) return;
@@ -379,9 +400,9 @@ export const createItemActorPort = (options: ItemActorPortOptions): ServerItemAc
     };
 
     const equip = (source: ItemSource, slot: EquipmentSlot, stack: ItemStack): boolean => {
-        const entity = entityOf(source);
+        const entity = asPlayer(entityOf(source));
         const item = itemOf(stack);
-        if (!(entity instanceof Player) || item === null) return false;
+        if (entity === undefined || item === null) return false;
 
         const entry = new ContainerEntry({ item, count: stack.count });
         const inventory = entity.getInventory();
@@ -410,8 +431,8 @@ export const createItemActorPort = (options: ItemActorPortOptions): ServerItemAc
      * what `broke` says happened.
      */
     const spend = (source: ItemSource, amount: number, broke: boolean): void => {
-        const entity = entityOf(source);
-        if (!(entity instanceof Player)) return;
+        const entity = asPlayer(entityOf(source));
+        if (entity === undefined) return;
 
         const inventory = entity.getInventory();
         const hand = inventory.getHandSlotIndex();
@@ -490,8 +511,8 @@ export const createItemActorPort = (options: ItemActorPortOptions): ServerItemAc
     const perform = (action: ActorItemAction): void => {
         switch (action.kind) {
             case 'feed': {
-                const entity = entityOf(action.target);
-                if (!(entity instanceof Player)) return;
+                const entity = asPlayer(entityOf(action.target));
+                if (entity === undefined) return;
 
                 entity.addFood(action.nutrition, action.saturation);
 
@@ -641,7 +662,7 @@ export const createItemActorPort = (options: ItemActorPortOptions): ServerItemAc
             const entity = entityOf(source);
             const loaded = world();
             const position = entity?.getPosition();
-            const player = entity instanceof Player ? entity : undefined;
+            const player = asPlayer(entity);
             const now = level.gameTime();
 
             const waiting: string[] = [];
