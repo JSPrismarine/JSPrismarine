@@ -98,6 +98,9 @@ const fixture = () => {
         getName: () => 'test',
         getServer: () => server,
         getPlayers: () => viewers.map((viewer) => viewer.player),
+        getViewers: () => viewers.map((viewer) => viewer.player.getNetworkSession()),
+        viewerOf: (runtimeId) =>
+            viewers.find((viewer) => viewer.player.getRuntimeId() === runtimeId)?.player.getNetworkSession(),
         shownActors: () => [...actors.all()],
         showActor: async (actor) => replicator.entityAdded(actor),
         hideActor: async (actor) => replicator.entityRemoved(actor),

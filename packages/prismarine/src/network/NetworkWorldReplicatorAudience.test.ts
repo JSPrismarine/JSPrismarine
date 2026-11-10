@@ -3,7 +3,6 @@ import { Vector3 } from '@jsprismarine/math';
 import { LevelSoundEvent } from '@jsprismarine/minecraft';
 import { describe, expect, it } from 'vitest';
 
-import type Player from '../Player';
 import type Server from '../Server';
 import type { Config } from '../config/Config';
 import { stub } from '../testing/stub.test.helper';
@@ -19,20 +18,32 @@ import type PlayerSession from './PlayerSession';
  * rather than through the packets built on top of it.
  */
 
+/** The entity id the next viewer's player gets. */
+let nextRuntimeId = 1n;
+
 /**
- * A player standing `chunksEast` chunks from the origin.
+ * The session of a player standing `chunksEast` chunks from the origin.
  *
- * The position's world is a placeholder: the replicator only reads the player's coordinates,
+ * The position's world is a placeholder: the replicator only reads the viewer's coordinates,
  * and the world it checks is the one on the position passed to `getViewers`.
  */
-const playerAt = (chunksEast: number, { viewDistance = 10, online = true } = {}) =>
-    stub<Player>({
-        getPosition: () => new Position(chunksEast * 16 + 8, 64, 8, stub<World>()),
-        isOnline: () => online,
-        viewDistance
+const playerAt = (
+    chunksEast: number,
+    { viewDistance = 10, online = true } = {},
+    members: Partial<PlayerSession> = {}
+) =>
+    stub<PlayerSession>({
+        runtimeId: nextRuntimeId++,
+        getViewPosition: () => new Position(chunksEast * 16 + 8, 64, 8, stub<World>()),
+        getViewDistance: () => viewDistance,
+        isConnected: () => online,
+        ...members
     });
 
-const fakeWorld = ({ players = [], proximity = true }: { players?: Player[]; proximity?: boolean } = {}) => {
+/** What a broadcast names to leave a viewer out: its player, which the replicator matches by entity id. */
+const playerOf = (session: PlayerSession) => ({ getRuntimeId: () => session.runtimeId });
+
+const fakeWorld = ({ players = [], proximity = true }: { players?: PlayerSession[]; proximity?: boolean } = {}) => {
     const logged: string[] = [];
 
     // Only what the audience question actually reads of a world: who is in it, and its name
@@ -40,7 +51,7 @@ const fakeWorld = ({ players = [], proximity = true }: { players?: Player[]; pro
     // that is the code under test.
     const world = stub<World>({
         getName: () => 'test',
-        getPlayers: () => players.filter((player) => player.isOnline())
+        getViewers: () => players.filter((session) => session.isConnected())
     });
 
     const server = stub<Server>({
@@ -82,8 +93,8 @@ describe('network', () => {
             const other = playerAt(4);
             const { replicator } = fakeWorld({ players: [near, other] });
 
-            expect(replicator.getViewers(here, { exclude: near })).toEqual([other]);
-            expect(replicator.getViewers(here, { exclude: [near, other] })).toEqual([]);
+            expect(replicator.getViewers(here, { exclude: playerOf(near) })).toEqual([other]);
+            expect(replicator.getViewers(here, { exclude: [playerOf(near), playerOf(other)] })).toEqual([]);
         });
 
         it('leaves out players who are not online', () => {
@@ -133,24 +144,18 @@ describe('network', () => {
                 const near = playerAt(3);
                 const { replicator } = fakeWorld({ players: [near], proximity: false });
 
-                expect(replicator.getViewers(here, { exclude: near })).toEqual([]);
+                expect(replicator.getViewers(here, { exclude: playerOf(near) })).toEqual([]);
             });
         });
 
         it('leaves the player a block sound names out of it', () => {
             // The one striking a block, whose client plays its own hits.
             const heard: string[] = [];
-            const listener = (name: string) =>
-                stub<Player>({
-                    getPosition: () => new Position(8, 64, 8, stub<World>()),
-                    isOnline: () => true,
-                    viewDistance: 10,
-                    getNetworkSession: () => stub<PlayerSession>({ send: async () => void heard.push(name) })
-                });
+            const listener = (name: string) => playerAt(0, {}, { send: async () => void heard.push(name) });
             const striker = listener('striker');
             const { replicator } = fakeWorld({ players: [striker, listener('neighbor')] });
 
-            replicator.blockSound(here, LevelSoundEvent.HIT, 0, striker);
+            replicator.blockSound(here, LevelSoundEvent.HIT, 0, playerOf(striker));
 
             expect(heard).toEqual(['neighbor']);
         });

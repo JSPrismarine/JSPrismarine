@@ -3,10 +3,9 @@ import { Vector3 } from '@jsprismarine/math';
 import { NBTTagCompound, Types } from '@jsprismarine/nbt';
 import { describe, expect, it } from 'vitest';
 
-import Player from '../Player';
 import type Server from '../Server';
 import type { Config } from '../config/Config';
-import { stub, stubOf } from '../testing/stub.test.helper';
+import { stub } from '../testing/stub.test.helper';
 import { Position } from '../world/Position';
 import type { World } from '../world/World';
 import BlockActorDataPacket from '@jsprismarine/protocol/packet/BlockActorDataPacket';
@@ -25,22 +24,21 @@ import { NetworkWorldReplicator } from './NetworkWorldReplicator';
  * have passed against an encoder that wrote nothing.
  */
 
-/** A player at a block position, recording every packet its session is handed. */
+/** The session of a player at a block position, recording every packet it is handed. */
 const playerAt = (x: number, z: number) => {
     const sent: NetworkPacket[] = [];
 
-    const player = stubOf(Player, {
-        getPosition: () => new Position(x, 64, z, stub<World>()),
-        getNetworkSession: () => stub<PlayerSession>({ send: async (packet: NetworkPacket) => void sent.push(packet) }),
-        isOnline: () => true,
-        viewDistance: 4
+    const player = stub<PlayerSession>({
+        getViewPosition: () => new Position(x, 64, z, stub<World>()),
+        getViewDistance: () => 4,
+        send: async (packet: NetworkPacket) => void sent.push(packet)
     });
 
     return { player, sent };
 };
 
-const replicatorOver = (players: Player[]) => {
-    const world = stub<World>({ getName: () => 'test', getPlayers: () => players });
+const replicatorOver = (players: PlayerSession[]) => {
+    const world = stub<World>({ getName: () => 'test', getViewers: () => players });
     const server = stub<Server>({
         getConfig: () =>
             stub<Config>({
