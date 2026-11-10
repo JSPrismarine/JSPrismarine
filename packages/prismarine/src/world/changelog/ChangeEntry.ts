@@ -127,6 +127,12 @@ export interface OccurrenceKinds {
         readonly sound: LevelSoundEvent;
         readonly data: number;
     }>;
+    /**
+     * An impulse aimed at a body whose client owns its movement, such as a blow's knockback on a
+     * player: the server cannot move that body, so the client is asked to
+     * ([ADR 0008](../../../../../docs/adr/0008-one-entity-model.md)).
+     */
+    impulse: OccurrenceShape<{ readonly entity: EntityId; readonly x: number; readonly y: number; readonly z: number }>;
     /** An entity's emote. */
     emote: OccurrenceShape<{ readonly entity: EntityId; readonly emote: string }>;
     /**

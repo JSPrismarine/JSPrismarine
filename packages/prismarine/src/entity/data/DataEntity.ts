@@ -149,6 +149,15 @@ export class MobBody {
      */
     public onWrite: BodyWriteObserver | undefined;
 
+    /**
+     * Takes the impulses aimed at a body whose client owns its movement, such as a player's.
+     *
+     * Set by {@link EntityRuntime} for those bodies only. The server cannot move such a body, so
+     * {@link MobBody.push} hands the impulse here, where it becomes an occurrence replication
+     * sends to the client, and the body's velocity stays as it was.
+     */
+    public onImpulse: ((impulse: EntityPosition) => void) | undefined;
+
     /** Whether the next client movement update must snap to this body's position. */
     public teleportPending = false;
 
@@ -642,6 +651,10 @@ export class MobBody {
 
     /** Adds to the entity's own velocity, which is what a leap or a charge is. */
     public push(velocity: EntityPosition): void {
+        if (this.onImpulse !== undefined) {
+            this.onImpulse(velocity);
+            return;
+        }
         this.velocity = {
             x: this.velocity.x + velocity.x,
             y: this.velocity.y + velocity.y,
