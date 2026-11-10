@@ -2911,7 +2911,7 @@ export class World implements Service {
      *
      * Neither edition publishes a number like this, and neither needs one. Java bounds its
      * item entities with a 6000-tick despawn, and both editions merge stacks that land
-     * together, which this server does too in `entity/other/Item.ts`. What neither bounds is
+     * together, which this server does too in `entity/data/droppedItems.ts`. What neither bounds is
      * a burst. {@link BlockUpdateScheduler} lets one tick process 4096 positions, every one
      * of which can destroy a block and roll its loot table, and a world that has just
      * generated hundreds of chunks has that much work waiting in it. The reported crash was

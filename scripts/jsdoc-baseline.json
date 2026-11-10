@@ -588,8 +588,6 @@
     "packages/prismarine/src/entity/ai/BlockView.ts public method `BlockView.isLiquid`",
     "packages/prismarine/src/entity/ai/BlockView.ts public method `BlockView.isPassable`",
     "packages/prismarine/src/entity/ai/BlockView.ts public method `BlockView.isSolid`",
-    "packages/prismarine/src/entity/other/Item.ts exported class `Item`",
-    "packages/prismarine/src/entity/other/Item.ts public method `Item.update`",
     "packages/prismarine/src/events/Event.ts exported class `Event`",
     "packages/prismarine/src/events/EventEmitter.ts exported typealias `EventTypes`",
     "packages/prismarine/src/events/EventEmitter.ts public method `EventEmitter.on`",
