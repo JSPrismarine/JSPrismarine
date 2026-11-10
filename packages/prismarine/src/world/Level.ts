@@ -41,6 +41,7 @@ import type BaseProvider from './providers/BaseProvider';
 import { WorldWeather } from './Weather';
 import { World } from './World';
 import { PlayerPersistence } from './PlayerPersistence';
+import { RespawnSearch } from './RespawnSearch';
 import type { WorldData } from './World';
 import type { RaidRecord } from './raid/RaidManager';
 import type { DragonFightState, LegacyWorldEntity, SavedRaid, WorldPersistenceData } from './WorldPersistence';
@@ -149,6 +150,7 @@ export class Level {
     private readonly server: Server;
     private readonly provider: BaseProvider;
     private readonly playerPersistence: PlayerPersistence;
+    private readonly respawnSearch: RespawnSearch;
     private readonly stems: ReadonlyMap<string, LevelStem>;
     private readonly dimensionTypes: ReadonlyMap<string, DimensionType>;
     private readonly load: ReadonlyMap<string, DimensionLoad>;
@@ -210,6 +212,11 @@ export class Level {
             provider: options.provider,
             logger: () => this.server.getLogger(),
             isClosed: () => this.closed
+        });
+        this.respawnSearch = new RespawnSearch({
+            hasStem: (stemId) => this.stems.has(stemId),
+            world: async (stemId) => this.world(stemId),
+            worldSpawn: () => this.server.getWorldManager().getDefaultWorld()
         });
         this.seed = options.seed;
         this.stems = options.stems;
@@ -988,6 +995,11 @@ export class Level {
     }
 
     // ------------------------------------------------------------------ player records
+
+    /** Where this level's players come back after a death; see {@link RespawnSearch}. */
+    public getRespawnSearch(): RespawnSearch {
+        return this.respawnSearch;
+    }
 
     /** Where this level's player records are read and written; see {@link PlayerPersistence}. */
     public getPlayerPersistence(): PlayerPersistence {
