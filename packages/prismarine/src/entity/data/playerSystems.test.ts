@@ -8,6 +8,9 @@ import { describe, expect, it } from 'vitest';
 
 import { PLAYER_IDENTIFIER } from '../playerOverlay';
 import { fieldsOf, logged, storePlayerFixture } from '../../testing/storePlayer.test.helper';
+import UUID from '@jsprismarine/protocol/wire/structures/UUID';
+
+import { StorePlayer } from '../storePlayer';
 import type { DataEntity } from './DataEntity';
 import type { EntityFixture } from './testing';
 import { FLOOR_Y, TestEntityWorld } from './testing';
@@ -295,6 +298,27 @@ describe('a store player', () => {
             const { player, components } = standingPlayer(fixture);
             expect(fixture.runtime.playerSystems.beginMeal(player, 32)).toBe(false);
             expect(components.get('consumption.meal')).toBeNull();
+        });
+    });
+
+    describe('as a StorePlayer', () => {
+        it('shares one set of components with the systems, logged and run by them', () => {
+            const fixture = storePlayerFixture();
+            const entity = fixture.runtime.spawn(PLAYER_IDENTIFIER, { x: 0.5, y: FLOOR_Y + 1, z: 0.5 })!;
+            const player = new StorePlayer(
+                entity,
+                { uuid: UUID.fromRandom(), name: 'Steve', xuid: '' },
+                fixture.runtime.playerSystems
+            );
+
+            const entries = logged(fixture.runtime, () => {
+                player.setFood(0);
+                fixture.runtime.tick(80);
+            });
+
+            expect(fixture.runtime.playerSystems.componentsOf(entity).get('vitals.food')).toBe(0);
+            expect(fieldsOf(entries, 'vitals.food')).toHaveLength(1);
+            expect(player.getHealth()).toBe(19);
         });
     });
 });

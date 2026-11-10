@@ -291,7 +291,7 @@ const buildStorePlayer = (): StorePlayer => {
     const { runtime } = entityFixture(undefined, {}, { [PLAYER_IDENTIFIER]: SHIPPED_PLAYER });
     const entity = runtime.spawn(PLAYER_IDENTIFIER, { x: 0.5, y: FLOOR_Y + 1, z: 0.5 });
     if (entity === undefined) throw new Error('the store refused a player');
-    return new StorePlayer(entity, { uuid: IDENTITY, name: NAME, xuid: '' });
+    return new StorePlayer(entity, { uuid: IDENTITY, name: NAME, xuid: '' }, runtime.playerSystems);
 };
 
 /** What the per-player services hold for the player both fixtures describe. */
