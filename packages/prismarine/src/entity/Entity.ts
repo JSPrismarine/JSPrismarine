@@ -799,6 +799,11 @@ export class Entity {
      * Takes a bare {@link DamageCause} as readily as a full {@link DamageSource}, which is what
      * let the attacker be threaded through without touching any of the call sites - falling,
      * drowning and starving never had one and still do not need one.
+     *
+     * The blow commits before the returned promise first waits: the health, the grace period,
+     * the death and the advancement triggers are written by the time this returns, and the
+     * promise covers only the packets. The entity store hands a mob's blow on a player to this
+     * without awaiting it, and the commit lands inside the blow that caused it.
      * @param {number} amount - Half-hearts of damage, before any reduction. Ignored if not positive.
      * @param {DamageCause | DamageSource} [source=DamageCause.Generic] - What did it, and who.
      * @returns {Promise<boolean>} `true` if the blow landed.
@@ -837,25 +842,28 @@ export class Entity {
 
         // The flash, the shove and the timer belong to the hit that started the grace period.
         // A follow-up that only lands the difference is not a second hit to look at.
+        const sends: Promise<void>[] = [];
         if (fresh) {
             this.invulnerableTicks = INVULNERABILITY_TICKS;
 
             // Both, and they are not the same thing: the flash is the client's own animation and
             // makes no noise, so health arriving as a smaller number with only the event sent was
             // a silent hit.
-            await this.getWorld().sendActorEvent(this, ActorEvent.HURT_ANIMATION);
-            await this.getWorld().sendActorSound(this, LevelSoundEvent.HURT);
+            sends.push(this.getWorld().sendActorEvent(this, ActorEvent.HURT_ANIMATION));
+            sends.push(this.getWorld().sendActorSound(this, LevelSoundEvent.HURT));
 
             this.knockbackFrom(damageSource);
         }
 
-        await this.setHealth(this.getHealth() - taken, damageSource);
+        // Started, not awaited, so the health and a death commit before this method waits.
+        sends.push(this.setHealth(this.getHealth() - taken, damageSource));
 
         // After the health, so that a criterion asking how hurt the player is
         // sees the answer this blow produced. Both numbers go, because Java's
         // `DamagePredicate` compares `dealt` before armor and `taken` after and
         // a criterion may name either.
         advancementDamage(this, damageSource, landed, taken, false);
+        await Promise.all(sends);
         return true;
     }
 

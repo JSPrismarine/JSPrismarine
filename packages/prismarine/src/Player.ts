@@ -997,13 +997,12 @@ export default class Player extends Human {
      * @param {DamageSource} source - What killed them, and who is answerable for it.
      */
     protected override async onDeath(source: DamageSource): Promise<void> {
+        // What the death commits comes before the first wait, so it lands inside the blow
+        // that caused it: the counters, the death event and its advancement triggers, and the
+        // respawn search filed below. The packets follow.
         this.drowningTicks = 0;
-        await this.stopMining();
-
-        await super.onDeath(source);
-
-        await this.getNetworkSession().sendAttributes();
-        await this.getWorld().sendActorEvent(this, ActorEvent.DEATH_ANIMATION);
+        const stoppedMining = this.stopMining();
+        const died = super.onDeath(source);
 
         // The bare translation key, as with the join and leave messages: the client renders
         // it in its own language. Which key it is depends on whether anybody is to blame - see
@@ -1029,6 +1028,11 @@ export default class Player extends Human {
                 );
                 await this.getNetworkSession().getConnection().sendDataPacket(deathInfo);
             });
+
+        await stoppedMining;
+        await died;
+        await this.getNetworkSession().sendAttributes();
+        await this.getWorld().sendActorEvent(this, ActorEvent.DEATH_ANIMATION);
 
         await this.server.getChatManager().send(
             new Chat({
@@ -1164,7 +1168,11 @@ export default class Player extends Human {
         // keeps everything. The answer still goes out: the client repeats the request once a
         // second until it gets one, and silence is what leaves it on the death screen.
         if (!this.isAlive()) {
-            this.attributes.reset();
+            // Logged, so the revival is in the change log: the player's health and the
+            // component fields the attributes hold come back here, and the entity never left.
+            const health = this.getHealth();
+            this.components.reportingChanges(() => this.attributes.reset());
+            logLegacyWrite(this, 'health', health, this.getHealth());
             this.metadata.setAir();
             this.metadata.setBreathing(true);
             this.sentAir = this.metadata.air;
