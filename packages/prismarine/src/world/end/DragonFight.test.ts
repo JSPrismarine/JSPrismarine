@@ -898,6 +898,7 @@ describe('fight persistence through a real level over LevelDB', () => {
                 getSeed: () => 1234n,
                 getDimension: () => Dimensions.Overworld,
                 getEntities: () => [],
+                getActors: () => [],
                 getServer: () => server
             })
         );

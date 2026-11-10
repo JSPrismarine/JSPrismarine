@@ -44,6 +44,33 @@ describe('EntityIndex', () => {
         expect(index.withinBox({ x: -1, y: FLOOR_Y, z: -1 }, { x: 3, y: FLOOR_Y + 3, z: 2 })).toEqual([lower, higher]);
     });
 
+    it('reports each chunk a store entity enters, moves within and leaves, and lists it there', () => {
+        const { runtime } = entityFixture();
+        const { index } = runtime;
+        const reported: string[] = [];
+        index.chunkChanged = (chunkX, chunkZ) => reported.push(`${chunkX},${chunkZ}`);
+
+        const cow = runtime.spawn('minecraft:cow', { x: 0.5, y: Y, z: 0.5 });
+        if (cow === undefined) throw new Error('the fixture declares no cow');
+        expect(reported).toEqual(['0,0']);
+        expect(index.storeInChunk(0, 0)).toEqual([cow]);
+
+        reported.length = 0;
+        cow.position = { x: 3.5, y: Y, z: 0.5 };
+        expect(reported).toEqual(['0,0']);
+
+        reported.length = 0;
+        cow.position = { x: -0.5, y: Y, z: -16.5 };
+        expect(reported).toEqual(['0,0', '-1,-2']);
+        expect(index.storeInChunk(0, 0)).toEqual([]);
+        expect(index.storeInChunk(-1, -2)).toEqual([cow]);
+
+        reported.length = 0;
+        runtime.remove(cow.id, 'test');
+        expect(reported).toEqual(['-1,-2']);
+        expect(index.storeInChunk(-1, -2)).toEqual([]);
+    });
+
     it('examines at most the candidates in the cells a query touches', () => {
         const { runtime } = entityFixture();
         // Three cows in each of ten cells along x, sixteen blocks apart.

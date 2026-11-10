@@ -25,7 +25,7 @@ import type {
     FilterItemView
 } from '@jsprismarine/entities';
 import { ActorEvent, LevelSoundEvent } from '@jsprismarine/minecraft';
-import type { NBTTagCompound } from '@jsprismarine/nbt';
+import { NBTTagCompound } from '@jsprismarine/nbt';
 
 import { singleDimension } from '../../content/world/adapter';
 import type { ContentEntityAccess, ServerWorldAdapter } from '../../content/world/adapter';
@@ -39,7 +39,7 @@ import { DamageSource } from '../DamageSource';
 import { Entity } from '../Entity';
 import { GenericEntity } from '../GenericEntity';
 import AnimatePacket, { AnimateAction } from '@jsprismarine/protocol/packet/AnimatePacket';
-import { actorMotionIn } from './persistence';
+import { actorMotionIn, dataEntityRecordOf, writeDataEntityRecord } from './persistence';
 import { lookVector } from '../Archery';
 import Player from '../../Player';
 import { MetadataFlag } from '@jsprismarine/protocol/wire/structures/Metadata';
@@ -582,6 +582,8 @@ export class LiveEntityRuntime {
                 return Number(Entity.runtimeIdCount);
             }
         });
+        this.runtime.index.chunkChanged = (chunkX, chunkZ) =>
+            options.liveWorld()?.storeEntityChunkChanged(chunkX, chunkZ);
         // The plugin `entityDamage` event is a before-hook: a listener can cancel the blow or
         // change its amount, and anything at or below zero cancels it. A blow the pack already
         // turned aside is not offered, so its sensor event still fires.
@@ -971,22 +973,40 @@ export class LiveEntityRuntime {
     }
 
     /**
-     * Writes every entity's component state onto its body, ready for a save.
+     * Writes every entity's record into its actor's tags, ready for a save.
      *
-     * Called by `World.saveChunks` before it writes anything, because a data
-     * entity's state lives in the runtime and the chunk serializer only ever
-     * sees the body.
+     * Called by `World.saveChunks` before it writes anything, rather than once a tick: the
+     * record is a snapshot of state that changes every tick, and nothing reads it until a chunk
+     * is written. The chunk serializer reads it from the actor with every other tag it carries.
      */
     public persist(): void {
-        this.bodies.persist(this.runtime);
+        for (const [actor, record] of this.savedRecords()) {
+            actor.persistentNbt ??= new NBTTagCompound('');
+            writeDataEntityRecord(actor.persistentNbt, record);
+        }
     }
 
     /**
-     * The record a save would write for each body that persists, by body, without writing it.
-     * @returns {ReadonlyMap<Entity, DataEntityRecord>} The records.
+     * The record {@link LiveEntityRuntime.persist} would write for each entity that persists, by
+     * actor, without writing it, so a replay digest can hash what a save holds and change nothing.
+     * @returns {ReadonlyMap<WorldActor, DataEntityRecord>} The records, each keyed by a store actor.
      */
-    public savedRecords(): ReadonlyMap<Entity, DataEntityRecord> {
-        return this.bodies.records(this.runtime);
+    public savedRecords(): ReadonlyMap<WorldActor, DataEntityRecord> {
+        const records = new Map<WorldActor, DataEntityRecord>();
+        for (const entity of this.runtime.all()) {
+            const actor = this.actors.actorOf(entity.id);
+            if (actor === undefined || !actor.shouldPersist()) continue;
+            records.set(
+                actor,
+                dataEntityRecordOf(
+                    entity,
+                    this.runtime.poolOf(entity.id),
+                    this.runtime.leashHolderIdentityOf(entity.id),
+                    this.runtime.merchantSnapshotOf(entity)
+                )
+            );
+        }
+        return records;
     }
 
     /**

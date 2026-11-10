@@ -98,6 +98,7 @@ const fakeWorld = (initial: BlockState, { id = 1, dropName = initial.name } = {}
         getBlock: async () => block,
         getPlayers: () => [player],
         getEntities: () => [],
+        getActors: () => [],
         sendWorldEvent: async () => {},
         server: {
             getConfig: () => ({ getProximityBroadcast: () => true }),

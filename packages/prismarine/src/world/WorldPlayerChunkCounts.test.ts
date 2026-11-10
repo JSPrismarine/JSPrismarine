@@ -1,3 +1,4 @@
+import { EntityIndex } from '../entity/data/entityIndex';
 import { describe, expect, it, vi } from 'vitest';
 
 import type Player from '../Player';
@@ -29,7 +30,13 @@ const worldWith = (
         getPlayers: () => Array.from(players.values()),
         enqueueSave: async (write: () => Promise<void>) => write(),
         getEntities: () => [],
-        dataEntities: () => ({ persist: () => {}, unload: () => false }),
+        getActors: () => [],
+        dataEntities: () => ({
+            persist: () => {},
+            unload: () => false,
+            bodies: { entityIdOf: () => undefined },
+            runtime: { index: new EntityIndex(), remove: () => {} }
+        }),
         systems: { onChunkUnloaded: () => {} },
         dimension: Dimensions.Overworld,
         server: { invalidateEntityBlockCaches: () => {}, getLogger: () => ({ error: vi.fn() }) }

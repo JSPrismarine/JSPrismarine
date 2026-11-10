@@ -129,7 +129,7 @@ describe('World.replayStateDigest', () => {
         expect(world.replayStateDigest()).not.toBe(pendingDigest);
     });
 
-    it('hashes the record a save would write, and writes nothing onto a body', () => {
+    it('hashes the record a save would write, and writes nothing onto an entity', () => {
         let health = 20;
         const bodies: GenericEntity[] = [];
         const world = createWorld(
@@ -145,7 +145,7 @@ describe('World.replayStateDigest', () => {
         savedNbt.addValue(DATA_ENTITY_TAG, savedRecord);
         saved.persistentNbt = savedNbt;
         bodies.push(fresh, saved);
-        vi.spyOn(world, 'getEntities').mockImplementation(() => [...bodies]);
+        vi.spyOn(world, 'getActors').mockImplementation(() => [...bodies]);
 
         const before = world.replayStateDigest();
         health = 12;

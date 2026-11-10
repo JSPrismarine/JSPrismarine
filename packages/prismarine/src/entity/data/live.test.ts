@@ -65,6 +65,7 @@ import { DamageSource } from '../DamageSource';
 import { meleeAttack } from '../Combat';
 import { explode } from '../Explosion';
 import { Entity } from '../Entity';
+import type { StoreActor } from './storeActors';
 import { GenericEntity } from '../GenericEntity';
 import { EntitySerializer } from '../EntitySerializer';
 import { MetadataFlag } from '@jsprismarine/protocol/wire/structures/Metadata';
@@ -1019,11 +1020,10 @@ describe('the data-driven entity runtime over a live world', () => {
         if (pet === undefined) throw new Error('the fixture declares no tameable pet');
         await run(1);
 
-        const body = live.bodies.bodyOf(pet.id);
-        if (body === undefined) throw new Error('the pet has no client-facing body');
+        const body = live.actors.actorOf(pet.id);
+        if (body === undefined) throw new Error('the pet has no store actor');
         expect(body.getRuntimeId()).toBe(BigInt(pet.id));
-        expect(live.bodies.entityIdOf(body)).toBe(pet.id);
-        expect(world.getEntity(BigInt(pet.id))).toBe(body);
+        expect(world.getActor(BigInt(pet.id))).toBe(body);
     });
 
     it('replaces a successfully used tame item through the live inventory path', async () => {
@@ -1036,8 +1036,8 @@ describe('the data-driven entity runtime over a live world', () => {
         if (pet === undefined) throw new Error('the fixture declares no tameable pet');
         await run(1);
 
-        const body = live.bodies.bodyOf(pet.id);
-        if (body === undefined) throw new Error('the tameable pet has no client-facing body');
+        const body = live.actors.actorOf(pet.id);
+        if (body === undefined) throw new Error('the tameable pet has no store actor');
         const actors = createItemActorPort({
             world: () => world,
             entities: stub<ContentEntityAccess>({ drop: () => undefined }),
@@ -1075,8 +1075,8 @@ describe('the data-driven entity runtime over a live world', () => {
         const pet = live.runtime.spawn('jsprismarine:pet_fixture', { x: 2.5, y: GROUND_Y, z: 2.5 });
         if (pet === undefined) throw new Error('the fixture declares no tameable pet');
 
-        const body = live.bodies.bodyOf(pet.id);
-        if (body === undefined) throw new Error('the tameable pet has no client-facing body');
+        const body = live.actors.actorOf(pet.id);
+        if (body === undefined) throw new Error('the tameable pet has no store actor');
         expect(live.interactWithItem(body, firstPlayer, 'minecraft:bone').accepted).toBe(true);
 
         live.persist();
@@ -1087,7 +1087,12 @@ describe('the data-driven entity runtime over a live world', () => {
         live.runtime.remove(pet.id, 'test restart');
         const rejoinedPlayer = addPlayer(4, 4);
         Object.assign(rejoinedPlayer, { uuid: UUID.fromString(ownerUuid) });
-        const restored = live.restore(record, body);
+        const at = body.getPosition();
+        const restored = live.restoreRecord(
+            record,
+            { x: at.getX(), y: at.getY(), z: at.getZ() },
+            { persistentNbt: body.persistentNbt, tags: [], statusEffects: [] }
+        );
         if (restored === undefined) throw new Error('the tameable pet did not restore');
 
         await live.tick(1);
@@ -1111,8 +1116,8 @@ describe('the data-driven entity runtime over a live world', () => {
         );
         if (baby === undefined) throw new Error('the fixture declares no ageable baby');
 
-        const body = live.bodies.bodyOf(baby.id);
-        if (body === undefined) throw new Error('the ageable baby has no client-facing body');
+        const body = live.actors.actorOf(baby.id);
+        if (body === undefined) throw new Error('the ageable baby has no store actor');
         const actors = createItemActorPort({
             world: () => world,
             entities: stub<ContentEntityAccess>({ drop: () => undefined }),
@@ -1150,8 +1155,8 @@ describe('the data-driven entity runtime over a live world', () => {
         const animal = live.runtime.spawn('jsprismarine:interact_fixture', { x: 2.5, y: GROUND_Y, z: 2.5 });
         if (animal === undefined) throw new Error('the fixture declares no interactable entity');
 
-        const body = live.bodies.bodyOf(animal.id);
-        if (body === undefined) throw new Error('the interactable entity has no client-facing body');
+        const body = live.actors.actorOf(animal.id);
+        if (body === undefined) throw new Error('the interactable entity has no store actor');
         const actors = createItemActorPort({
             world: () => world,
             entities: stub<ContentEntityAccess>({ drop: () => undefined }),
@@ -1186,8 +1191,8 @@ describe('the data-driven entity runtime over a live world', () => {
         );
         const animal = live.runtime.spawn('jsprismarine:interact_fixture', { x: 2.5, y: GROUND_Y, z: 2.5 });
         if (animal === undefined) throw new Error('the fixture declares no interactable entity');
-        const body = live.bodies.bodyOf(animal.id);
-        if (body === undefined) throw new Error('the interactable entity has no client-facing body');
+        const body = live.actors.actorOf(animal.id);
+        if (body === undefined) throw new Error('the interactable entity has no store actor');
 
         expect(player.getInventory().getItemInHand().hasTag('minecraft:logs')).toBe(true);
         expect(live.interactWithItem(body, player, 'minecraft:oak_log').accepted).toBe(true);
@@ -1216,8 +1221,8 @@ describe('the data-driven entity runtime over a live world', () => {
         );
         const animal = live.runtime.spawn('jsprismarine:interact_fixture', { x: 2.5, y: GROUND_Y, z: 2.5 });
         if (animal === undefined) throw new Error('the fixture declares no interactable entity');
-        const body = live.bodies.bodyOf(animal.id);
-        if (body === undefined) throw new Error('the interactable entity has no client-facing body');
+        const body = live.actors.actorOf(animal.id);
+        if (body === undefined) throw new Error('the interactable entity has no store actor');
 
         expect(live.interactWithItem(body, player, 'minecraft:stone').accepted).toBe(true);
         await live.tick(1);
@@ -1233,8 +1238,8 @@ describe('the data-driven entity runtime over a live world', () => {
             .setItemInHand(new ContainerEntry({ item: new Item({ name: 'minecraft:chicken_spawn_egg' }), count: 1 }));
         const animal = live.runtime.spawn('jsprismarine:interact_fixture', { x: 2.5, y: GROUND_Y, z: 2.5 });
         if (animal === undefined) throw new Error('the fixture declares no interactable entity');
-        const body = live.bodies.bodyOf(animal.id);
-        if (body === undefined) throw new Error('the interactable entity has no client-facing body');
+        const body = live.actors.actorOf(animal.id);
+        if (body === undefined) throw new Error('the interactable entity has no store actor');
 
         await useHeldItemOnEntity(player, body.getRuntimeId());
 
@@ -1252,8 +1257,8 @@ describe('the data-driven entity runtime over a live world', () => {
         const animal = live.runtime.spawn('jsprismarine:interact_fixture', { x: 2.5, y: GROUND_Y, z: 2.5 });
         if (animal === undefined) throw new Error('the fixture declares no interactable entity');
 
-        const body = live.bodies.bodyOf(animal.id);
-        if (body === undefined) throw new Error('the interactable entity has no client-facing body');
+        const body = live.actors.actorOf(animal.id);
+        if (body === undefined) throw new Error('the interactable entity has no store actor');
         const actors = createItemActorPort({
             world: () => world,
             entities: stub<ContentEntityAccess>({ drop: () => undefined }),
@@ -1287,8 +1292,8 @@ describe('the data-driven entity runtime over a live world', () => {
         const animal = live.runtime.spawn('jsprismarine:interact_fixture', { x: 2.5, y: GROUND_Y, z: 2.5 });
         if (animal === undefined) throw new Error('the fixture declares no interactable entity');
 
-        const body = live.bodies.bodyOf(animal.id);
-        if (body === undefined) throw new Error('the interactable entity has no client-facing body');
+        const body = live.actors.actorOf(animal.id);
+        if (body === undefined) throw new Error('the interactable entity has no store actor');
         const actors = createItemActorPort({
             world: () => world,
             entities: stub<ContentEntityAccess>({ drop: () => undefined }),
@@ -1322,8 +1327,8 @@ describe('the data-driven entity runtime over a live world', () => {
         live.runtime.hurt(pet, undefined, 'entity_attack', 8);
         await run(1);
 
-        const body = live.bodies.bodyOf(pet.id);
-        if (body === undefined) throw new Error('the healable pet has no client-facing body');
+        const body = live.actors.actorOf(pet.id);
+        if (body === undefined) throw new Error('the healable pet has no store actor');
         const actors = createItemActorPort({
             world: () => world,
             entities: stub<ContentEntityAccess>({ drop: () => undefined }),
@@ -1363,13 +1368,12 @@ describe('the data-driven entity runtime over a live world', () => {
 
         const arrow = live.runtime.all().find((entity) => entity.identifier === 'minecraft:arrow');
         if (arrow === undefined) throw new Error('the item action did not spawn its arrow in the data runtime');
-        const arrowBody = live.bodies.bodyOf(arrow.id);
+        const arrowBody = live.actors.actorOf(arrow.id);
         if (arrowBody === undefined) throw new Error('the data-driven arrow has no live body');
 
         expect(arrow.spawnData).toEqual({ critical: true });
         expect(arrow.body.owner).toBe(runtimeId);
         expect(arrow.body.velocity.z).toBeGreaterThan(0);
-        expect(arrowBody.getTrackingInterval()).toBe(1);
 
         await run(1);
         expect(arrow.body.velocity.y).toBeCloseTo(-0.0495);
@@ -1513,10 +1517,10 @@ describe('the data-driven entity runtime over a live world', () => {
             const data = { variant: 'warm', fuse: 37 };
             const cow = live.runtime.spawn('minecraft:cow', { x: 0.5, y: GROUND_Y, z: 0.5 }, { data });
             if (cow === undefined) throw new Error('the fixture declares no minecraft:cow');
-            const body = live.bodies.bodyOf(cow.id);
-            if (body === undefined) throw new Error('the data-driven cow has no client-facing body');
+            const body = live.actors.actorOf(cow.id);
+            if (body === undefined) throw new Error('the data-driven cow has no store actor');
 
-            live.bodies.persist(live.runtime);
+            live.persist();
             if (body.persistentNbt === null) throw new Error('the cow has no saved actor data');
             const record = dataEntityRecordIn(body.persistentNbt);
             if (record === undefined) throw new Error('the saved cow record could not be read back');
@@ -1533,10 +1537,10 @@ describe('the data-driven entity runtime over a live world', () => {
                 z: 0.5
             });
             if (transient === undefined) throw new Error('the fixture declares no transient entity');
-            const body = live.bodies.bodyOf(transient.id);
-            if (body === undefined) throw new Error('the transient entity has no client-facing body');
+            const body = live.actors.actorOf(transient.id);
+            if (body === undefined) throw new Error('the transient entity has no store actor');
 
-            live.bodies.persist(live.runtime);
+            live.persist();
 
             expect(body.shouldPersist()).toBe(false);
             expect(body.persistentNbt).toBeNull();
@@ -1594,7 +1598,7 @@ describe('the data-driven entity runtime over a live world', () => {
 
             const cows = live.runtime.all().length;
             expect(typesIn(world).filter((type) => type === 'minecraft:cow')).toHaveLength(cows);
-            expect(live.bodies.size).toBe(cows);
+            expect(live.actors.size).toBe(cows);
         });
 
         it('does not report an unsupported gravity-free mob as grounded', async () => {
@@ -1607,8 +1611,8 @@ describe('the data-driven entity runtime over a live world', () => {
 
             await run(1);
 
-            expect(live.bodies.bodyOf(levitator.id)?.isOnGround()).toBe(false);
-            expect(live.bodies.bodyOf(levitator.id)?.metadata.affectedByGravity).toBe(false);
+            expect(live.actors.actorOf(levitator.id)?.isOnGround()).toBe(false);
+            expect(live.actors.actorOf(levitator.id)?.metadata.affectedByGravity).toBe(false);
         });
 
         it('spawns nothing with nobody in the world to spawn around', async () => {
@@ -1626,7 +1630,7 @@ describe('the data-driven entity runtime over a live world', () => {
             // cadence for the goal.
             await run(400);
 
-            const body = live.bodies.bodyOf(cow.id);
+            const body = live.actors.actorOf(cow.id);
             expect(body?.getPosition().getX()).toBeCloseTo(cow.position.x, 5);
             expect(body?.getPosition().getZ()).toBeCloseTo(cow.position.z, 5);
             expect(broadcasts.moved).toContain('minecraft:cow');
@@ -1635,12 +1639,12 @@ describe('the data-driven entity runtime over a live world', () => {
 
     describe('combat', () => {
         describe('through the store damage pipeline', () => {
-            const cowAt = async (x: number): Promise<{ cow: DataEntity; body: Entity }> => {
+            const cowAt = async (x: number): Promise<{ cow: DataEntity; body: StoreActor }> => {
                 const cow = live.runtime.spawn('minecraft:cow', { x, y: GROUND_Y, z: 0.5 });
                 if (cow === undefined) throw new Error('the fixture declares no minecraft:cow');
                 await run(1);
-                const body = live.bodies.bodyOf(cow.id);
-                if (body === undefined) throw new Error('the cow has no client-facing body');
+                const body = live.actors.actorOf(cow.id);
+                if (body === undefined) throw new Error('the cow has no store actor');
                 return { cow, body };
             };
             const routes = (): Record<string, number> => Object.fromEntries(live.runtime.damagePipeline.runsByRoute());
@@ -1775,8 +1779,8 @@ describe('the data-driven entity runtime over a live world', () => {
                 const immune = live.runtime.spawn('jsprismarine:sword_immune', { x: 1.5, y: GROUND_Y, z: 0.5 });
                 if (immune === undefined) throw new Error('the fixture declares no jsprismarine:sword_immune');
                 await run(1);
-                const body = live.bodies.bodyOf(immune.id);
-                if (body === undefined) throw new Error('the entity has no client-facing body');
+                const body = live.actors.actorOf(immune.id);
+                if (body === undefined) throw new Error('the entity has no store actor');
                 const before = immune.instance.attributes.get('health')?.current;
 
                 await meleeAttack(player, body, { damage: 5 });
@@ -2019,7 +2023,7 @@ describe('the data-driven entity runtime over a live world', () => {
                 .filter((entity) => entity instanceof ItemEntity)
                 .map((entity) => entity.getItem()?.getItem().getName());
             expect(dropped).toEqual(['minecraft:leather']);
-            expect(live.bodies.bodyOf(cow.id)).toBeUndefined();
+            expect(live.actors.actorOf(cow.id)).toBeUndefined();
             expect(typesIn(world)).not.toContain('minecraft:cow');
         });
 
@@ -2039,7 +2043,7 @@ describe('the data-driven entity runtime over a live world', () => {
             // The clients hear the hold begin, so they play the 200-tick death their packs define.
             expect(broadcasts.actorEffects).toContainEqual({
                 identifier: 'jsprismarine:dragon_death_fixture',
-                entityId: live.bodies.bodyOf(dragon.id)!.getRuntimeId(),
+                entityId: live.actors.actorOf(dragon.id)!.getRuntimeId(),
                 effect: ActorEvent.DRAGON_START_DEATH_ANIM
             });
 
@@ -2058,7 +2062,7 @@ describe('the data-driven entity runtime over a live world', () => {
             // What the `/kill` verb does to the body: health written to zero with the
             // one cause nothing turns aside. The mirror hands the drop to the runtime
             // with that cause, and the dragon's damage rules let it through whole.
-            await live.bodies.bodyOf(dragon.id)!.setHealth(0, DamageCause.SelfDestruct);
+            await live.actors.actorOf(dragon.id)!.setHealth(0, DamageCause.SelfDestruct);
             await run(2);
 
             expect(dragon.instance.attributes.get('health')?.current).toBe(0);
@@ -2073,7 +2077,7 @@ describe('the data-driven entity runtime over a live world', () => {
             await run(1);
 
             const puncher = playerAt(world, 0, 0.5);
-            await live.bodies.bodyOf(cow.id)!.damage(1, DamageSource.entity(puncher));
+            await live.actors.actorOf(cow.id)!.damage(1, DamageSource.entity(puncher));
 
             expect(cow.body.velocity.x).toBeGreaterThan(0);
             expect(cow.body.velocity.y).toBeGreaterThan(0);
@@ -2088,7 +2092,7 @@ describe('the data-driven entity runtime over a live world', () => {
             if (cow === undefined) throw new Error('the fixture declares no minecraft:cow');
             await run(1);
 
-            await live.bodies.bodyOf(cow.id)!.damage(4);
+            await live.actors.actorOf(cow.id)!.damage(4);
             await run(1);
 
             expect(cow.instance.attributes.get('health')?.current).toBe(6);
@@ -2099,8 +2103,8 @@ describe('the data-driven entity runtime over a live world', () => {
             if (cow === undefined) throw new Error('the fixture declares no minecraft:cow');
             await run(1);
 
-            const body = live.bodies.bodyOf(cow.id);
-            if (body === undefined) throw new Error('the data-driven cow has no client-facing body');
+            const body = live.actors.actorOf(cow.id);
+            if (body === undefined) throw new Error('the data-driven cow has no store actor');
             await body.damage(1);
 
             expect(broadcasts.actorSounds).toEqual([
@@ -2111,8 +2115,8 @@ describe('the data-driven entity runtime over a live world', () => {
         it('emits mob-attributed hurt feedback for damage applied through the data runtime', () => {
             const cow = live.runtime.spawn('minecraft:cow', { x: 0.5, y: GROUND_Y, z: 0.5 });
             if (cow === undefined) throw new Error('the fixture declares no minecraft:cow');
-            const body = live.bodies.bodyOf(cow.id);
-            if (body === undefined) throw new Error('the data-driven cow has no client-facing body');
+            const body = live.actors.actorOf(cow.id);
+            if (body === undefined) throw new Error('the data-driven cow has no store actor');
 
             live.runtime.hurt(cow, undefined, 'entity_attack', 1);
 
@@ -2128,8 +2132,8 @@ describe('the data-driven entity runtime over a live world', () => {
         it('does not duplicate hurt feedback when a legacy body hit syncs into the data runtime', async () => {
             const cow = live.runtime.spawn('minecraft:cow', { x: 0.5, y: GROUND_Y, z: 0.5 });
             if (cow === undefined) throw new Error('the fixture declares no minecraft:cow');
-            const body = live.bodies.bodyOf(cow.id);
-            if (body === undefined) throw new Error('the data-driven cow has no client-facing body');
+            const body = live.actors.actorOf(cow.id);
+            if (body === undefined) throw new Error('the data-driven cow has no store actor');
 
             await body.damage(1);
             await run(1);
@@ -2188,7 +2192,7 @@ describe('the data-driven entity runtime over a live world', () => {
                 .all()
                 .filter((entity) => entity.instance.activeComponentGroups().includes('baby'));
             expect(babies).toHaveLength(1);
-            const babyBody = live.bodies.bodyOf(babies[0]!.id);
+            const babyBody = live.actors.actorOf(babies[0]!.id);
             expect(babyBody?.metadata.getDataFlag(MetadataFlag.INDEX, BigInt(ActorFlags.BABY))).toBe(true);
             expect(babyBody?.metadata.getPropertyValue(MetadataFlag.SCALE)).toBe(0.5);
             // The lamb is in the world too, not only in the index.
@@ -2263,10 +2267,10 @@ describe('the data-driven entity runtime over a live world', () => {
             if (merchant === undefined) throw new Error('the villager carries no trade table');
             merchant.trade(0);
             merchant.trade(0);
-            const body = live.bodies.bodyOf(villager.id);
-            if (body === undefined) throw new Error('the villager has no client-facing body');
+            const body = live.actors.actorOf(villager.id);
+            if (body === undefined) throw new Error('the villager has no store actor');
 
-            live.bodies.persist(live.runtime);
+            live.persist();
             if (body.persistentNbt === null) throw new Error('the villager has no saved actor data');
             const record = dataEntityRecordIn(body.persistentNbt);
             if (record === undefined) throw new Error('the saved villager record could not be read back');
@@ -2289,8 +2293,8 @@ describe('the data-driven entity runtime over a live world', () => {
             const villager = live.runtime.spawn('minecraft:villager_v2', { x: 0.5, y: GROUND_Y, z: 0.5 });
             if (villager === undefined) throw new Error('the fixture declares no minecraft:villager_v2');
             live.runtime.merchant(villager)?.trade(0);
-            const body = live.bodies.bodyOf(villager.id);
-            live.bodies.persist(live.runtime);
+            const body = live.actors.actorOf(villager.id);
+            live.persist();
             if (body?.persistentNbt === null || body === undefined) throw new Error('nothing was saved');
             const saved = JSON.parse(body.persistentNbt.getString('jsprismarine:entity', '')) as Record<
                 string,
@@ -2517,7 +2521,7 @@ describe('the data-driven entity runtime over a live world', () => {
             summon('minecraft:cow', { x: 4.5, y: GROUND_Y, z: 4.5 });
 
             expect(live.runtime.all().map((entity) => entity.identifier)).toEqual(['minecraft:cow']);
-            expect(live.bodies.size).toBe(1);
+            expect(live.actors.size).toBe(1);
         });
 
         it('summons the villager Bedrock summons, not the pre-1.11 one', () => {
@@ -2632,7 +2636,7 @@ describe('the data-driven entity runtime over a live world', () => {
             // One body in the world, and it is the restored entity's rather than a
             // second one left behind by the legacy restore.
             expect(typesIn(second.world).filter((type) => type === 'jsprismarine:dustling')).toHaveLength(1);
-            expect(second.live.bodies.size).toBe(1);
+            expect(second.live.actors.size).toBe(1);
         });
 
         it('counts a restored entity against the population pool it was spawned under', async () => {
@@ -2775,7 +2779,7 @@ describe('the data-driven entity runtime over a live world', () => {
 
             expect(typesIn(second.world).filter((type) => type === 'minecraft:cow')).toHaveLength(1);
             expect(second.live.runtime.all()).toHaveLength(1);
-            expect(second.live.bodies.size).toBe(1);
+            expect(second.live.actors.size).toBe(1);
         });
 
         it('brings a dropped stack back into the store from its actor record', async () => {
@@ -2808,16 +2812,16 @@ describe('the data-driven entity runtime over a live world', () => {
                 { beamTarget: { x: 0, y: 128, z: 0 }, showBottom: false }
             );
             if (crystal === undefined) throw new Error('the fixture declares no minecraft:ender_crystal');
-            const body = live.bodies.bodyOf(crystal.id);
-            if (body === undefined) throw new Error('the crystal has no client-facing body');
+            const body = live.actors.actorOf(crystal.id);
+            if (body === undefined) throw new Error('the crystal has no store actor');
 
             expect(body.metadata.getPropertyValue(ActorDataID.BLOCK_TARGET)).toEqual(new Vector3(0, 128, 0));
             expect(body.metadata.getDataFlag(MetadataFlag.INDEX, BigInt(ActorFlags.SHOW_BOTTOM))).toBe(false);
 
             const bare = live.runtime.spawn('minecraft:ender_crystal', { x: 4.5, y: GROUND_Y, z: 0.5 });
             if (bare === undefined) throw new Error('the fixture declares no second crystal');
-            const bareBody = live.bodies.bodyOf(bare.id);
-            if (bareBody === undefined) throw new Error('the second crystal has no client-facing body');
+            const bareBody = live.actors.actorOf(bare.id);
+            if (bareBody === undefined) throw new Error('the second crystal has no store actor');
 
             expect(bareBody.metadata.getPropertyValue(ActorDataID.BLOCK_TARGET)).toBeNull();
             expect(bareBody.metadata.getDataFlag(MetadataFlag.INDEX, BigInt(ActorFlags.SHOW_BOTTOM))).toBe(true);
@@ -2853,8 +2857,8 @@ describe('the data-driven entity runtime over a live world', () => {
             if (crystal === undefined) throw new Error('the fixture declares no minecraft:ender_crystal');
             await run(1);
 
-            const body = live.bodies.bodyOf(crystal.id);
-            if (body === undefined) throw new Error('the crystal has no client-facing body');
+            const body = live.actors.actorOf(crystal.id);
+            if (body === undefined) throw new Error('the crystal has no store actor');
             await body.damage(1);
 
             expect(broadcasts.actorEffects).not.toContainEqual({
@@ -2876,8 +2880,8 @@ describe('the data-driven entity runtime over a live world', () => {
         it('does not give a healthless object the generic living health attribute', async () => {
             const cushion = live.runtime.spawn('minecraft:cushion', { x: 0.5, y: GROUND_Y, z: 0.5 });
             if (cushion === undefined) throw new Error('the fixture declares no minecraft:cushion');
-            const body = live.bodies.bodyOf(cushion.id);
-            if (body === undefined) throw new Error('the cushion has no client-facing body');
+            const body = live.actors.actorOf(cushion.id);
+            if (body === undefined) throw new Error('the cushion has no store actor');
 
             expect(body.attributes.getAttribute(AttributeIds.Health)).toBeNull();
             expect(live.runtime.hurt(cushion, undefined, 'entity_attack', 1)).toBe(false);
@@ -2896,7 +2900,7 @@ describe('the data-driven entity runtime over a live world', () => {
             await live.tick(2);
 
             expect(broadcasts.metadataChanged).toContain('minecraft:ender_crystal');
-            const body = live.bodies.bodyOf(crystal.id);
+            const body = live.actors.actorOf(crystal.id);
             expect(body?.metadata.getPropertyValue(ActorDataID.BLOCK_TARGET)).toEqual(new Vector3(0, 128, 0));
         });
     });
@@ -3006,7 +3010,7 @@ describe('the data-driven entity runtime over a live world', () => {
 
                 expect(arrow.body.owner).toBe(Number(player.getRuntimeId()));
                 expect(arrow.spawnData?.['critical']).toBe(true);
-                const body = live.bodies.bodyOf(arrow.id);
+                const body = live.actors.actorOf(arrow.id);
                 if (body === undefined) throw new Error('the runtime arrow has no client-facing actor');
                 expect(typesIn(world)).toContain('minecraft:arrow');
                 expect(broadcasts.actorSounds).toContainEqual({
@@ -3031,8 +3035,8 @@ describe('the data-driven entity runtime over a live world', () => {
                     await world.setBlockByName(1, GROUND_Y, 0, 'minecraft:tnt');
                     const tnt = live.runtime.spawn('minecraft:tnt', { x: 0.5, y: GROUND_Y, z: 0.5 });
                     if (tnt === undefined) throw new Error('vanilla content declares no TNT');
-                    const body = live.bodies.bodyOf(tnt.id);
-                    if (body === undefined) throw new Error('the primed TNT has no client-facing body');
+                    const body = live.actors.actorOf(tnt.id);
+                    if (body === undefined) throw new Error('the primed TNT has no store actor');
 
                     expect(body.metadata.getPropertyValue(MetadataFlag.FUSE_TIME)).toBe(80);
 
@@ -3046,8 +3050,8 @@ describe('the data-driven entity runtime over a live world', () => {
                     live.runtime.remove(tnt.id, 'test_restore');
                     const restored = live.runtime.restore(record, tnt.position);
                     if (restored === undefined) throw new Error('the saved TNT could not be restored');
-                    const restoredBody = live.bodies.bodyOf(restored.id);
-                    if (restoredBody === undefined) throw new Error('the restored TNT has no client-facing body');
+                    const restoredBody = live.actors.actorOf(restored.id);
+                    if (restoredBody === undefined) throw new Error('the restored TNT has no store actor');
 
                     expect(restored.body.fuseTicks).toBe(40);
 
@@ -3059,7 +3063,7 @@ describe('the data-driven entity runtime over a live world', () => {
                     await live.tick(80);
 
                     expect(live.runtime.byId(restored.id)).toBeUndefined();
-                    expect(live.bodies.bodyOf(restored.id)).toBeUndefined();
+                    expect(live.actors.actorOf(restored.id)).toBeUndefined();
                     expect((await world.getBlockState(0, FLOOR_Y, 0)).name).toBe('minecraft:air');
                     expect((await world.getBlockState(1, GROUND_Y, 0)).name).toBe('minecraft:air');
                     const chained = live.runtime.all().find((entity) => entity.identifier === 'minecraft:tnt');
@@ -3084,7 +3088,7 @@ describe('the data-driven entity runtime over a live world', () => {
 
                 expect(migrated.identifier).toBe('minecraft:tnt');
                 expect(migrated.body.fuseTicks).toBe(37);
-                expect(live.bodies.bodyOf(migrated.id)).toBeDefined();
+                expect(live.actors.actorOf(migrated.id)).toBeDefined();
             });
 
             it('removes a primed TNT without a blast when tntExplodes is disabled', { timeout: 180_000 }, async () => {
@@ -3142,7 +3146,7 @@ describe('the data-driven entity runtime over a live world', () => {
                     .setItemInHand(new ContainerEntry({ item: new Item({ name: 'minecraft:wheat' }), count: 2 }));
                 const sheep = live.runtime.spawn('minecraft:sheep', { x: 0.5, y: GROUND_Y, z: 0.5 });
                 if (sheep === undefined) throw new Error('vanilla content declares no sheep');
-                const body = live.bodies.bodyOf(sheep.id);
+                const body = live.actors.actorOf(sheep.id);
                 if (body === undefined) throw new Error('the vanilla sheep has no client-facing actor');
                 const actors = createItemActorPort({
                     world: () => world,
@@ -3178,7 +3182,7 @@ describe('the data-driven entity runtime over a live world', () => {
                 const golem = live.runtime.spawn('minecraft:iron_golem', { x: 0.5, y: GROUND_Y, z: 0.5 });
                 if (golem === undefined) throw new Error('vanilla content declares no iron golem');
                 const health = golem.instance.attributes.get('health');
-                const body = live.bodies.bodyOf(golem.id);
+                const body = live.actors.actorOf(golem.id);
                 if (health === undefined || body === undefined) throw new Error('the vanilla iron golem is incomplete');
 
                 live.runtime.hurt(golem, undefined, 'entity_attack', 25);
@@ -3215,7 +3219,7 @@ describe('the data-driven entity runtime over a live world', () => {
                         continue;
                     }
                     // A dropped stack's body is an item actor of its own; every other type's is the mirror's.
-                    const body = live.bodies.bodyOf(entity.id) ?? live.itemBodies.bodyOf(entity.id);
+                    const body = live.actors.actorOf(entity.id) ?? live.itemBodies.bodyOf(entity.id);
                     if (body === undefined) failures.push(`${identifier}: no live actor body`);
                 }
 
@@ -3232,7 +3236,7 @@ describe('the data-driven entity runtime over a live world', () => {
                         block: 'minecraft:stone'
                     });
                 const fallingBlock = live.runtime.byId(id);
-                const body = live.bodies.bodyOf(id);
+                const body = live.actors.actorOf(id);
 
                 expect(fallingBlock?.identifier).toBe('minecraft:falling_block');
                 expect(fallingBlock?.spawnData).toEqual({ block: 'minecraft:stone' });
@@ -3245,7 +3249,7 @@ describe('the data-driven entity runtime over a live world', () => {
 
                 expect((await world.getBlockState(2, GROUND_Y, 2)).name).toBe('minecraft:stone');
                 expect(live.runtime.byId(id)).toBeUndefined();
-                expect(live.bodies.bodyOf(id)).toBeUndefined();
+                expect(live.actors.actorOf(id)).toBeUndefined();
             });
 
             it('routes a block falling from its support through the live runtime', async () => {
@@ -3285,7 +3289,7 @@ describe('the data-driven entity runtime over a live world', () => {
                 expect(migrated?.identifier).toBe('minecraft:tnt');
                 expect(migrated?.body.fuseTicks).toBe(58);
                 expect(migrated?.instance.hasComponent('minecraft:explode')).toBe(true);
-                expect(live.bodies.bodyOf(migrated?.id ?? 0)).toBeDefined();
+                expect(live.actors.actorOf(migrated?.id ?? 0)).toBeDefined();
             });
 
             it('migrates a serialized legacy falling block into the runtime and lands it', async () => {
@@ -3391,7 +3395,7 @@ describe('the data-driven entity runtime over a live world', () => {
 
                 const lamb = live.runtime.all().find((entity) => entity.id !== first.id && entity.id !== second.id);
                 if (lamb === undefined) throw new Error('vanilla sheep breeding made no lamb');
-                const body = live.bodies.bodyOf(lamb.id);
+                const body = live.actors.actorOf(lamb.id);
                 if (body === undefined) throw new Error('the vanilla lamb has no client-facing actor');
 
                 expect(lamb.instance.hasComponent('minecraft:is_baby')).toBe(true);
@@ -3408,7 +3412,7 @@ describe('the data-driven entity runtime over a live world', () => {
                     .setItemInHand(new ContainerEntry({ item: new Item({ name: 'minecraft:shears' }), count: 1 }));
                 const sheep = live.runtime.spawn('minecraft:sheep', { x: 0.5, y: GROUND_Y, z: 0.5 });
                 if (sheep === undefined) throw new Error('vanilla content declares no sheep');
-                const body = live.bodies.bodyOf(sheep.id);
+                const body = live.actors.actorOf(sheep.id);
                 if (body === undefined) throw new Error('the vanilla sheep has no client-facing actor');
                 const color = sheep.instance.componentParams('minecraft:color');
                 const colorIndex = typeof color === 'number' ? color : 0;
@@ -3470,7 +3474,7 @@ describe('the data-driven entity runtime over a live world', () => {
                     );
                 const pig = live.runtime.spawn('minecraft:pig', { x: 0.5, y: GROUND_Y, z: 0.5 });
                 if (pig === undefined) throw new Error('vanilla content declares no pig');
-                const body = live.bodies.bodyOf(pig.id);
+                const body = live.actors.actorOf(pig.id);
                 if (body === undefined) throw new Error('the vanilla pig has no client-facing actor');
                 await useHeldItemOnEntity(player, body.getRuntimeId());
 
@@ -3478,7 +3482,7 @@ describe('the data-driven entity runtime over a live world', () => {
                 if (creeper === undefined) throw new Error('the spawn egg created no creeper');
                 expect(creeper.position).toEqual(pig.position);
                 expect(creeper.instance.hasComponent('minecraft:is_baby')).toBe(false);
-                const creeperBody = live.bodies.bodyOf(creeper.id);
+                const creeperBody = live.actors.actorOf(creeper.id);
                 if (creeperBody === undefined) throw new Error('the spawned creeper has no client-facing actor');
                 const bodyPosition = creeperBody.getPosition();
                 expect([bodyPosition.getX(), bodyPosition.getY(), bodyPosition.getZ()]).toEqual([
@@ -3502,14 +3506,14 @@ describe('the data-driven entity runtime over a live world', () => {
                     );
                 const pig = live.runtime.spawn('minecraft:pig', { x: 0.5, y: GROUND_Y, z: 0.5 });
                 if (pig === undefined) throw new Error('vanilla content declares no pig');
-                const pigBody = live.bodies.bodyOf(pig.id);
+                const pigBody = live.actors.actorOf(pig.id);
                 if (pigBody === undefined) throw new Error('the vanilla pig has no client-facing actor');
 
                 await useHeldItemOnEntity(player, pigBody.getRuntimeId());
 
                 const villager = live.runtime.all().find((entity) => entity.identifier === 'minecraft:villager_v2');
                 expect(villager?.position).toEqual(pig.position);
-                expect(villager && live.bodies.bodyOf(villager.id)).toBeDefined();
+                expect(villager && live.actors.actorOf(villager.id)).toBeDefined();
             });
 
             it('matches renamed entity ids when a spawn egg creates a baby', { timeout: 180_000 }, async () => {
@@ -3525,7 +3529,7 @@ describe('the data-driven entity runtime over a live world', () => {
                 const villager = live.runtime.spawn('minecraft:villager_v2', { x: 0.5, y: GROUND_Y, z: 0.5 });
                 if (villager === undefined) throw new Error('vanilla content declares no villager');
                 expect(villager.instance.hasComponent('minecraft:spawn_egg_interaction')).toBe(true);
-                const body = live.bodies.bodyOf(villager.id);
+                const body = live.actors.actorOf(villager.id);
                 if (body === undefined) throw new Error('the vanilla villager has no client-facing actor');
 
                 await useHeldItemOnEntity(player, body.getRuntimeId());
@@ -3535,7 +3539,7 @@ describe('the data-driven entity runtime over a live world', () => {
                     .find((entity) => entity.identifier === 'minecraft:villager_v2' && entity.id !== villager.id);
                 expect(child?.position).toEqual(villager.position);
                 expect(child?.instance.hasComponent('minecraft:is_baby')).toBe(true);
-                const childBody = child && live.bodies.bodyOf(child.id);
+                const childBody = child && live.actors.actorOf(child.id);
                 expect(childBody).toBeDefined();
                 expect(childBody?.metadata.getDataFlag(MetadataFlag.INDEX, BigInt(ActorFlags.BABY))).toBe(true);
             });
@@ -3552,7 +3556,7 @@ describe('the data-driven entity runtime over a live world', () => {
                     );
                 const zombie = live.runtime.spawn('minecraft:zombie', { x: 0.5, y: GROUND_Y, z: 0.5 });
                 if (zombie === undefined) throw new Error('vanilla content declares no zombie');
-                const body = live.bodies.bodyOf(zombie.id);
+                const body = live.actors.actorOf(zombie.id);
                 if (body === undefined) throw new Error('the vanilla zombie has no client-facing actor');
 
                 await useHeldItemOnEntity(player, body.getRuntimeId());
@@ -3561,7 +3565,7 @@ describe('the data-driven entity runtime over a live world', () => {
                     .all()
                     .find((entity) => entity.identifier === 'minecraft:zombie' && entity.id !== zombie.id);
                 expect(baby?.instance.hasComponent('minecraft:is_baby')).toBe(true);
-                const babyBody = baby && live.bodies.bodyOf(baby.id);
+                const babyBody = baby && live.actors.actorOf(baby.id);
                 expect(babyBody?.metadata.getDataFlag(MetadataFlag.INDEX, BigInt(ActorFlags.BABY))).toBe(true);
             });
 
@@ -3581,7 +3585,7 @@ describe('the data-driven entity runtime over a live world', () => {
                         );
                     const parent = live.runtime.spawn('minecraft:zombie', { x: 0.5, y: GROUND_Y, z: 0.5 });
                     if (parent === undefined) throw new Error('vanilla content declares no zombie');
-                    const body = live.bodies.bodyOf(parent.id);
+                    const body = live.actors.actorOf(parent.id);
                     if (body === undefined) throw new Error('the vanilla zombie has no client-facing actor');
 
                     await useHeldItemOnEntity(player, body.getRuntimeId());
@@ -3619,7 +3623,7 @@ describe('the data-driven entity runtime over a live world', () => {
                         );
                     const parent = live.runtime.spawn('minecraft:zombie', { x: 0.5, y: GROUND_Y, z: 0.5 });
                     if (parent === undefined) throw new Error('vanilla content declares no zombie');
-                    const body = live.bodies.bodyOf(parent.id);
+                    const body = live.actors.actorOf(parent.id);
                     if (body === undefined) throw new Error('the vanilla zombie has no client-facing actor');
 
                     for (let egg = 0; egg < 24; egg += 1) await useHeldItemOnEntity(player, body.getRuntimeId());
@@ -3657,7 +3661,7 @@ describe('the data-driven entity runtime over a live world', () => {
                 const sheep = live.runtime.spawn('minecraft:sheep', { x: 0.5, y: GROUND_Y, z: 0.5 });
                 if (sheep === undefined) throw new Error('vanilla content declares no sheep');
                 expect(sheep.instance.hasComponent('minecraft:spawn_egg_interaction')).toBe(true);
-                const body = live.bodies.bodyOf(sheep.id);
+                const body = live.actors.actorOf(sheep.id);
                 if (body === undefined) throw new Error('the vanilla sheep has no client-facing actor');
                 await useHeldItemOnEntity(player, body.getRuntimeId());
 
@@ -3705,7 +3709,7 @@ describe('the data-driven entity runtime over a live world', () => {
                     if (parent === undefined) throw new Error(`vanilla content declares no ${identifier}`);
                     expect(parent.instance.hasComponent('minecraft:spawn_egg_interaction')).toBe(true);
 
-                    const body = live.bodies.bodyOf(parent.id);
+                    const body = live.actors.actorOf(parent.id);
                     if (body === undefined) throw new Error(`${identifier} has no client-facing actor`);
                     const offspringData = parent.instance.componentParams('minecraft:offspring_data');
                     const offspringPairs = isRecord(offspringData) ? offspringData.offspring_pairs : undefined;
@@ -3729,12 +3733,12 @@ describe('the data-driven entity runtime over a live world', () => {
                     const offspringType = content.entities.registry.get(expectedChildIdentifier);
                     if (offspringType?.declaredComponents.includes('minecraft:is_baby')) {
                         expect(offspring?.instance.hasComponent('minecraft:is_baby'), identifier).toBe(true);
-                        const offspringBody = offspring && live.bodies.bodyOf(offspring.id);
+                        const offspringBody = offspring && live.actors.actorOf(offspring.id);
                         expect(offspringBody?.metadata.getDataFlag(MetadataFlag.INDEX, BigInt(ActorFlags.BABY))).toBe(
                             true
                         );
                     } else {
-                        expect(offspring && live.bodies.bodyOf(offspring.id)).toBeDefined();
+                        expect(offspring && live.actors.actorOf(offspring.id)).toBeDefined();
                     }
                 }
 
@@ -3757,8 +3761,8 @@ describe('the data-driven entity runtime over a live world', () => {
                 const tadpole = live.runtime.all().find((entity) => entity.identifier === 'minecraft:tadpole');
                 expect(tadpole?.instance.hasComponent('minecraft:is_baby')).toBe(true);
                 expect(
-                    live.bodies
-                        .bodyOf(tadpole?.id ?? 0)
+                    live.actors
+                        .actorOf(tadpole?.id ?? 0)
                         ?.metadata.getDataFlag(MetadataFlag.INDEX, BigInt(ActorFlags.BABY))
                 ).toBe(true);
             });
@@ -3779,7 +3783,7 @@ describe('the data-driven entity runtime over a live world', () => {
                     const creeper = live.runtime.spawn('minecraft:creeper', { x: 0.5, y: GROUND_Y, z: 0.5 });
                     if (creeper === undefined) throw new Error('vanilla content declares no creeper');
                     expect(creeper.instance.hasComponent('minecraft:spawn_egg_interaction')).toBe(false);
-                    const body = live.bodies.bodyOf(creeper.id);
+                    const body = live.actors.actorOf(creeper.id);
                     if (body === undefined) throw new Error('the vanilla creeper has no client-facing actor');
 
                     await useHeldItemOnEntity(player, body.getRuntimeId());
@@ -3904,8 +3908,8 @@ describe('the data-driven entity runtime over a live world', () => {
                     if (swimmingPig === undefined) throw new Error('the vanilla content declares no second pig');
                     await live.tick(1);
 
-                    const pigBody = live.bodies.bodyOf(swimmingPig.id);
-                    if (pigBody === undefined) throw new Error('the swimming pig has no client-facing body');
+                    const pigBody = live.actors.actorOf(swimmingPig.id);
+                    if (pigBody === undefined) throw new Error('the swimming pig has no store actor');
                     expect(swimmingPig.body.conditions.has('in_water')).toBe(true);
                     expect(swimmingPig.instance.goals.runningGoals()).toContain('minecraft:behavior.float');
                     expect(pigBody.metadata.getDataFlag(MetadataFlag.INDEX, BigInt(ActorFlags.SWIMMING))).toBe(true);
@@ -3917,8 +3921,8 @@ describe('the data-driven entity runtime over a live world', () => {
                     expect(navigationProfile(zombieWalker.instance).canFloat).toBe(false);
                     for (let tick = 2; tick <= 60; tick += 1) await live.tick(tick);
 
-                    const body = live.bodies.bodyOf(zombieWalker.id);
-                    if (body === undefined) throw new Error('the zombie has no client-facing body');
+                    const body = live.actors.actorOf(zombieWalker.id);
+                    if (body === undefined) throw new Error('the zombie has no store actor');
                     expect(zombieWalker.target).toBe(Number(player.getRuntimeId()));
                     expect(zombieWalker.position.x).toBeLessThan(4);
                     expect(zombieWalker.position.y).toBe(GROUND_Y);
