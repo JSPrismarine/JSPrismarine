@@ -227,6 +227,40 @@ const entityScenarios: readonly BehaviorScenario<EntitySubject>[] = [
             );
             return underwater ? undefined : 'the server drowns it, though Java lets it breathe underwater';
         }
+    },
+    {
+        name: 'built-in-motion',
+        java: "A dropped item and a thrown eye of ender move, wait, despawn and shatter by Java's ItemEntity and EyeOfEnder constants.",
+        reference:
+            'Java ItemEntity (gravity 0.04, drag 0.98, ground friction 0.6, LIFETIME 6000, pickup delays 10 and 40, merge within 0.5) and EyeOfEnder (life 80, survives random.nextInt(5) > 0)',
+        subjects: () => ['minecraft:item', 'minecraft:eye_of_ender'].flatMap((javaId) => mappedEntity(javaId) ?? []),
+        idOf: (subject) => subject.javaId,
+        covers: (subject) => subject.javaId,
+        run: (subject) => {
+            const component =
+                subject.javaId === 'minecraft:item' ? 'jsprismarine:item' : 'jsprismarine:eye_of_ender_signal';
+            const java: Readonly<Record<string, number>> =
+                subject.javaId === 'minecraft:item'
+                    ? {
+                          gravity: 0.04,
+                          air_drag: 0.98,
+                          ground_drag: 0.6 * 0.98,
+                          despawn_age: 6000,
+                          pickup_delay: 10,
+                          thrown_pickup_delay: 40,
+                          merge_range: 0.5
+                      }
+                    : { lifetime: 80, shatter_rolls: 5, too_far_distance: 12, too_far_signal_height: 8 };
+            const [declared] = componentValues(subject.bedrock, component);
+            if (declared === undefined) return `the server declares no ${component} for ${subject.bedrock}`;
+            const differences = Object.entries(java).flatMap(([key, value]) => {
+                const server = field(declared, key);
+                return typeof server === 'number' && Math.abs(server - value) < 1e-9
+                    ? []
+                    : [`${key} ${String(server)} where Java has ${value}`];
+            });
+            return differences.length === 0 ? undefined : differences.join('; ');
+        }
     }
 ];
 
