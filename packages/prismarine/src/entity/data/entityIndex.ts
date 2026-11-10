@@ -167,6 +167,15 @@ export class EntityIndex {
      */
     private readonly bodies = new Map<number, Entity>();
 
+    /**
+     * Hears each chunk a store entity other than a dropped stack enters, leaves or moves within.
+     * A cell is sixteen blocks wide and aligned to the chunks, so the cell an entity is filed
+     * under is the chunk it stands in. The world marks the chunk changed, so a save writes the
+     * chunk an entity left as well as the one it entered, and a chunk does not leave the world
+     * with an entity that moved since the chunk was saved.
+     */
+    public chunkChanged: ((chunkX: number, chunkZ: number) => void) | undefined;
+
     /** How many candidates every query so far has read out of a cell. */
     private examined = 0;
 
@@ -344,6 +353,15 @@ export class EntityIndex {
     }
 
     /**
+     * The store's entities other than dropped stacks that stand in one chunk, in ascending
+     * runtime id order, which is what a chunk that leaves the world takes with it.
+     */
+    public storeInChunk(chunkX: number, chunkZ: number): DataEntity[] {
+        const cell = this.cells.get(keyOf(chunkX, chunkZ));
+        return cell === undefined ? [] : inIdOrder([...cell]);
+    }
+
+    /**
      * The store's entities other than dropped stacks within a horizontal radius of a point, in
      * ascending runtime id order. Horizontal, as a blast asks: it applies its own exact reach.
      */
@@ -393,6 +411,7 @@ export class EntityIndex {
         const now = cellKeyOf(entity.position);
         if (now === was) {
             this.refreshFamilies(entity);
+            this.reportCell(was);
             return;
         }
 
@@ -634,6 +653,15 @@ export class EntityIndex {
         const cell = this.cells.get(key);
         if (cell === undefined) this.cells.set(key, [entity]);
         else cell.push(entity);
+        this.reportCell(key);
+    }
+
+    /** Tells the listener which chunk an entity entered or left, which is the cell it names. */
+    private reportCell(key: number): void {
+        const listener = this.chunkChanged;
+        if (listener === undefined) return;
+        const signed = (cell: number): number => (cell >= KEY_SPAN / 2 ? cell - KEY_SPAN : cell);
+        listener(signed(Math.floor(key / KEY_SPAN)), signed(key % KEY_SPAN));
     }
 
     /** Removes one entity's ordinary width from the incremental maximum. */
@@ -734,6 +762,7 @@ export class EntityIndex {
         const at = cell.indexOf(entity);
         if (at !== -1) cell.splice(at, 1);
         if (cell.length === 0) this.cells.delete(key);
+        this.reportCell(key);
     }
 }
 

@@ -743,7 +743,7 @@ export class Level {
      */
     public async enable(): Promise<void> {
         this.provider.setLevel(this);
-        this.provider.setEntitySource((dimension) => this.worldOfBedrockId(dimension.bedrockId)?.getEntities() ?? []);
+        this.provider.setEntitySource((dimension) => this.worldOfBedrockId(dimension.bedrockId)?.getActors() ?? []);
         this.opened = this.open();
 
         const eager: Promise<World>[] = [];
@@ -961,7 +961,7 @@ export class Level {
     private entitySnapshots(): LegacyWorldEntity[] {
         return [...this.worlds()].flatMap((world) =>
             world
-                .getEntities()
+                .getActors()
                 .filter((entity) => !(entity instanceof Player))
                 .map((entity) => ({
                     type: entity.getType(),

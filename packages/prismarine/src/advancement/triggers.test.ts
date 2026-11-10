@@ -257,6 +257,7 @@ const scene = () => {
     const world = stub<World>({
         getPlayers: () => [player],
         getEntity: (id: bigint) => (id === runtimeId ? player : null),
+        getActor: (id: bigint) => (id === runtimeId ? player : null),
         loadedBlockAt: () => ({ name: 'minecraft:air', states: {} }) as never,
         getServer: () => server
     });
