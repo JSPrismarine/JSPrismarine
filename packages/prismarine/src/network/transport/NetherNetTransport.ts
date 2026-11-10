@@ -23,6 +23,13 @@ const NETHERNET_CAPABILITIES: TransportCapabilities = {
     maxFrameSize: NETHERNET_MAX_MESSAGE_SIZE + 1
 };
 
+/**
+ * How many messages a peer may send before `nethernet` says it opened. A client sends its first
+ * packet as soon as its reliable channel opens, which can be before its other channel arrives;
+ * a handful covers that, and the cap keeps a peer that never opens from holding memory.
+ */
+const EARLY_MESSAGE_LIMIT = 16;
+
 /** Where a peer whose address the transport could not learn is said to be. */
 const UNKNOWN_ADDRESS = new InetAddress('0.0.0.0', 0);
 
@@ -49,6 +56,12 @@ export interface NetherNetTransportSource {
     on(event: 'closeConnection', listener: (connectionId: bigint, reason: string) => void): unknown;
     on(event: 'encapsulated', listener: (data: Buffer, connectionId: bigint) => void): unknown;
     close(reason?: string): void;
+}
+
+/** Where the transport reports peers opening and peers that never did. `Logger` fits. */
+export interface NetherNetTransportLog {
+    info(message: string): void;
+    warn(message: string): void;
 }
 
 /**
@@ -132,6 +145,9 @@ export class NetherNetTransportConnection implements TransportConnection {
  * port) is not this class's business: both feed the same `nethernet` `Server`.
  */
 export default class NetherNetTransport extends KeyedTransport<NetherNetTransportConnection, bigint> {
+    /** Messages from peers `nethernet` has not yet said are open, in arrival order. */
+    private readonly early = new Map<bigint, Buffer[]>();
+
     /**
      * @param source - The `nethernet` server whose connections this carries.
      * @param ids - The connection ID allocator every transport of the server shares.
@@ -140,22 +156,44 @@ export default class NetherNetTransport extends KeyedTransport<NetherNetTranspor
     public constructor(
         private readonly source: NetherNetTransportSource,
         ids: ConnectionIds,
-        private readonly peerAddress: NetherNetPeerAddress = selectedCandidateAddress
+        private readonly peerAddress: NetherNetPeerAddress = selectedCandidateAddress,
+        private readonly log: NetherNetTransportLog = { info: () => {}, warn: () => {} }
     ) {
         super(ids);
         // `nethernet` keys a peer on the connection ID the client picked. That ID stays in here:
         // the server knows the connection by the one `accept` allocates.
         source.on('openConnection', (peer) => {
             const address = this.peerAddress(peer) ?? UNKNOWN_ADDRESS;
-            this.accept(peer.address, (id) => new NetherNetTransportConnection(id, peer, address));
+            const accepted = this.accept(peer.address, (id) => new NetherNetTransportConnection(id, peer, address));
+            const early = this.early.get(peer.address) ?? [];
+            this.early.delete(peer.address);
+            if (accepted === undefined) return;
+            this.log.info(`NetherNet peer ${peer.address} opened from ${address} as connection ${accepted.id}`);
+            for (const frame of early) this.receive(peer.address, frame);
         });
         // A peer that closes before it opened was never accepted, so `forget` finds nothing.
-        source.on('closeConnection', (connectionId, reason) => this.forget(connectionId, reason));
+        source.on('closeConnection', (connectionId, reason) => {
+            // A peer that never opened is a join WebRTC could not finish: nothing else reports it.
+            if (this.connectionOf(connectionId) === undefined) {
+                this.log.warn(`NetherNet peer ${connectionId} closed before it opened: ${reason}`);
+            }
+            this.early.delete(connectionId);
+            this.forget(connectionId, reason);
+        });
         source.on('encapsulated', (data, connectionId) => {
             const frame = Buffer.allocUnsafe(data.byteLength + 1);
             frame[0] = BATCH_PACKET_ID;
             data.copy(frame, 1);
-            this.receive(connectionId, frame);
+            if (this.connectionOf(connectionId) !== undefined) {
+                this.receive(connectionId, frame);
+                return;
+            }
+            // `nethernet` delivers messages from a peer it has not yet said is open. Dropping
+            // them loses a client's first packet, and the client then waits for a reply forever.
+            const early = this.early.get(connectionId) ?? [];
+            if (early.length >= EARLY_MESSAGE_LIMIT) return;
+            early.push(frame);
+            this.early.set(connectionId, early);
         });
     }
 
