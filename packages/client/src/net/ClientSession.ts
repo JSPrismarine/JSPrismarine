@@ -75,9 +75,13 @@ export default class ClientSession extends EventEmitter {
      * it sends the handshake, so the very next batch either way is encrypted. There is no
      * packet that is sent in the clear after this point, including the
      * `ClientToServerHandshake` that acknowledges it.
+     *
+     * Not on a transport that encrypts the wire itself: over NetherNet, Bedrock Dedicated Server
+     * sends the handshake but keeps batches in the clear under DTLS, and so does this client.
      * @param key - the 32 bytes derived from the shared secret and the server's salt.
      */
     public enableEncryption(key: Buffer): void {
+        if (this.transport.encrypted === true) return;
         this.encryption = new EncryptionCodec(key);
     }
 

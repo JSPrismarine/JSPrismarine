@@ -29,6 +29,13 @@ export interface TransportEvents {
  * session on top of it.
  */
 export interface ITransport {
+    /**
+     * Whether the transport encrypts the wire itself, as NetherNet's DTLS does. A server on such a
+     * transport still sends `ServerToClientHandshake`, as Bedrock Dedicated Server does over
+     * NetherNet, but both ends leave batches in the clear. Absent means it does not.
+     */
+    readonly encrypted?: boolean;
+
     connect(): Promise<void>;
 
     /** Sends one framed batch. */

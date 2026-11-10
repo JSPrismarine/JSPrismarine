@@ -499,12 +499,18 @@ importers:
       '@jsprismarine/minecraft':
         specifier: workspace:*
         version: link:../minecraft
+      '@jsprismarine/nethernet':
+        specifier: workspace:*
+        version: link:../nethernet
       '@jsprismarine/protocol':
         specifier: workspace:*
         version: link:../protocol
       '@jsprismarine/raknet':
         specifier: workspace:*
         version: link:../raknet
+      nethernet:
+        specifier: 1.1.2
+        version: 1.1.2(supports-color@10.2.2)
       yargs:
         specifier: 18.2.0
         version: 18.2.0

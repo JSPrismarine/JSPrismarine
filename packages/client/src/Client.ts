@@ -25,6 +25,7 @@ import DimensionChange from './DimensionChange';
 import LoginSequence from './login/LoginSequence';
 import ClientPacketRegistry from './net/ClientPacketRegistry';
 import ClientSession from './net/ClientSession';
+import NetherNetTransport from './net/NetherNetTransport';
 import RakNetTransport from './net/RakNetTransport';
 
 import type { IAuthProvider } from '@jsprismarine/auth';
@@ -62,8 +63,13 @@ export interface ClientOptions {
     readonly displayName?: string;
     readonly auth?: IAuthProvider;
     readonly logger?: Logger;
-    /** Supply one for single player; omit it and the client dials over UDP. */
+    /** Supply one for single player; omit it and the client dials over {@link ClientOptions.network}. */
     readonly transport?: ITransport;
+    /**
+     * Which transport to dial when no {@link ClientOptions.transport} is given: RakNet over UDP,
+     * the default, or NetherNet, signaled over HTTP on the TCP side of the port.
+     */
+    readonly network?: 'raknet' | 'nethernet';
     readonly loginTimeoutMs?: number;
     /**
      * Which protocol to speak. Defaults to {@link PROTOCOL_VERSION}.
@@ -154,13 +160,10 @@ export default class Client extends EventEmitter {
             ShowCreditsPacket
         ]);
 
+        const dial = { host: options.host, port: options.port ?? 19132, timeoutMs: options.loginTimeoutMs };
         this.transport =
             options.transport ??
-            new RakNetTransport(this.logger, {
-                host: options.host,
-                port: options.port ?? 19132,
-                timeoutMs: options.loginTimeoutMs
-            });
+            (options.network === 'nethernet' ? new NetherNetTransport(dial) : new RakNetTransport(this.logger, dial));
 
         this.session = new ClientSession(this.transport, this.registry, this.logger);
 

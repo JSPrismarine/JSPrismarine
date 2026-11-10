@@ -1,6 +1,7 @@
 import { OfflineAuthProvider } from '@jsprismarine/auth';
 import { Logger } from '@jsprismarine/logger';
 import { Config, Server } from '@jsprismarine/prismarine';
+import { networkToken } from '@jsprismarine/prismarine/modules/tokens';
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -34,6 +35,8 @@ beforeAll(async () => {
             'online-mode': false,
             // Login tests do not need a spawn area; the default radius of 10 preloads 441 chunks.
             'preload-radius': 0,
+            // UDP 7551 is fixed and shared by every server on the host; joining by address needs none of it.
+            'enable-lan-visibility': false,
             worlds: { world: { generator: 'Flat' } }
         })
     );
@@ -52,15 +55,17 @@ afterEach(() => {
 });
 
 afterAll(async () => {
-    server?.getRaknet()?.kill();
+    // Every transport: RakNet's socket, and NetherNet's signaling server and peers.
+    server?.getKernel().get(networkToken).kill();
     vi.unstubAllEnvs();
     rmSync(stateRoot, { recursive: true, force: true });
 }, 30_000);
 
-const newClient = (displayName: string) => {
+const newClient = (displayName: string, network: 'raknet' | 'nethernet' = 'raknet') => {
     const client = new Client({
         host: '127.0.0.1',
         port,
+        network,
         logger: new Logger('error'),
         auth: new OfflineAuthProvider({ displayName }),
         loginTimeoutMs: 25_000
@@ -82,6 +87,19 @@ describe('logging into a real server', () => {
         expect(startGame.entityId).toBeGreaterThan(0n);
         expect(Number.isFinite(startGame.position.y)).toBe(true);
         expect(client.isConnected()).toBe(true);
+    }, 40_000);
+
+    it('completes the handshake and spawns over NetherNet, joined by address', async () => {
+        // The same login over the other transport: HTTP signaling on the port's TCP side, then a
+        // WebRTC data channel, with no Minecraft-level encryption because DTLS covers it.
+        const client = newClient('NetherNetTester', 'nethernet');
+
+        const startGame = await client.connect();
+
+        expect(startGame.runtimeEntityId).toBeGreaterThan(0n);
+        expect(client.isConnected()).toBe(true);
+        const players = server!.getSessionManager().getAllPlayers();
+        expect(players.map((player: any) => player.getName())).toContain('NetherNetTester');
     }, 40_000);
 
     it('is visible to the server as a joined player', async () => {
