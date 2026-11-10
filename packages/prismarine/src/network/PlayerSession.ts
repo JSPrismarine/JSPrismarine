@@ -31,6 +31,7 @@ import type { Metadata } from '@jsprismarine/protocol/wire/structures/Metadata';
 import { eyePositionAt } from '../entity/Human';
 import type { ItemActorBody } from '../entity/data/itemBodies';
 import type ContainerEntry from '../inventory/ContainerEntry';
+import type HumanInventory from '../inventory/HumanInventory';
 import { blockContainerOf } from '../inventory/blockContainers';
 import { blockSlotName } from '../inventory/containerSlots';
 import { WindowIds } from '../inventory/WindowIds';
@@ -278,6 +279,21 @@ export interface OpenTrade {
  */
 const SUB_CHUNK_REQUESTS_SINCE = 2225;
 
+/**
+ * What a session reads of its own player beyond the id and identity it holds: the state the
+ * entity store does not hold yet. Where the player is and its world drive chunk streaming and
+ * entity tracking, and its inventory, attributes, health and what other clients are shown of it
+ * go into the session's own sends. A legacy `Player` has every member; package C4h of the entity
+ * and tick re-architecture answers them for a store player.
+ */
+interface OwnPlayer extends ShownPlayer {
+    getWorld(): World;
+    getInventory(): HumanInventory;
+    getHealth(): number;
+    /** Queues the chunks around the player that a join or a world change starts with. */
+    sendInitialSpawnChunks(): Promise<void>;
+}
+
 export default class PlayerSession {
     private connection: ClientConnection;
     private readonly server: Server;
@@ -522,7 +538,7 @@ export default class PlayerSession {
 
     /** Queues a resident chunk without entering the generation and disk-read depth gate. */
     public tryDeliverLoaded(x: number, z: number): CachedChunkDelivery {
-        const chunk = this.getPlayer().getWorld().getLoadedChunk(x, z);
+        const chunk = this.own().getWorld().getLoadedChunk(x, z);
         if (chunk === null) return { kind: 'not-loaded' };
 
         const queued = this.prepareQueuedChunk(chunk);
@@ -585,7 +601,7 @@ export default class PlayerSession {
         if (packet.offsets.length === 0) return 0;
 
         const online = this.isConnected();
-        const world = online ? this.getPlayer().getWorld() : undefined;
+        const world = online ? this.own().getWorld() : undefined;
         const dimension = world?.getDimension();
         const cacheEnabled = this.clientCacheEnabled;
         const entries: SubChunkEntry[] = [];
@@ -732,7 +748,7 @@ export default class PlayerSession {
 
         if (!this.viewDistance) return;
 
-        const position = this.getPlayer().getPosition();
+        const position = this.own().getPosition();
         const chunkX = toChunk(position.getX());
         const chunkZ = toChunk(position.getZ());
 
@@ -775,7 +791,7 @@ export default class PlayerSession {
 
         this.reconciling = true;
         try {
-            const player = this.getPlayer();
+            const player = this.own();
             const change = this.entityTracker.plan({
                 viewer: player.getPosition(),
                 viewDistance: this.viewDistance,
@@ -807,7 +823,7 @@ export default class PlayerSession {
     public async considerEntity(entity: ShownActor): Promise<void> {
         if (!this.isConnected()) return;
         if (entity.getRuntimeId() === this.runtimeId) return;
-        if (!this.entityTracker.shouldSpawn(entity, this.getPlayer().getPosition(), this.viewDistance)) return;
+        if (!this.entityTracker.shouldSpawn(entity, this.own().getPosition(), this.viewDistance)) return;
 
         await entity.spawnTo(this);
         this.entityTracker.add(entity.getRuntimeId());
@@ -979,8 +995,8 @@ export default class PlayerSession {
      *
      * @param player - The client-controlled entity
      */
-    public async sendSettings(player?: Player): Promise<void> {
-        const target = player ?? this.getPlayer();
+    public async sendSettings(player?: Pick<ShownPlayer, 'gamemode'>): Promise<void> {
+        const target = player ?? this.own();
 
         const spectator = target.gamemode === Gametype.SPECTATOR;
         const packet = new UpdateAdventureSettingsPacket({
@@ -1004,7 +1020,7 @@ export default class PlayerSession {
      *   to this session's own player.
      */
     public async sendAbilities(player?: ShownPlayer): Promise<void> {
-        const target = player ?? this.getPlayer();
+        const target = player ?? this.own();
 
         // Read off the gamemode rather than each written out by hand, which is how
         // `INSTABUILD` - the flag that *is* creative, as far as the client is concerned - came
@@ -1052,7 +1068,7 @@ export default class PlayerSession {
     }
 
     public async needNewChunks(forceResend = false, dist?: number): Promise<void> {
-        const position = this.getPlayer().getPosition();
+        const position = this.own().getPosition();
         const currentXChunk = CoordinateUtils.fromBlockToChunk(position.getX());
         const currentZChunk = CoordinateUtils.fromBlockToChunk(position.getZ());
 
@@ -1119,7 +1135,7 @@ export default class PlayerSession {
 
     public async requestChunk(x: number, z: number): Promise<void> {
         const epoch = this.chunkEpoch;
-        const chunk = await this.getPlayer()
+        const chunk = await this.own()
             .getWorld()
             .getChunk(x, z, { urgency: this.urgencyOf(x, z) });
         await this.queueChunk(chunk, epoch);
@@ -1234,7 +1250,7 @@ export default class PlayerSession {
      * nothing to name it by, so the click on a furnace's input never became a request.
      */
     private stackIdFor(item: Item): number | null {
-        const id = this.getPlayer().getInventory().assignStackNetworkId(item);
+        const id = this.own().getInventory().assignStackNetworkId(item);
         return id > 0 ? id : null;
     }
 
@@ -1247,7 +1263,8 @@ export default class PlayerSession {
      * an `ItemStackRequest` was ever sent.
      */
     public async sendInventory(windowId: number = WindowIds.INVENTORY): Promise<void> {
-        const inventory = this.getPlayer().getInventory();
+        const player = this.own();
+        const inventory = player.getInventory();
         const context = this.connection.codec.context;
         // Every stack goes out with the id the client will name it by in its requests.
         inventory.assignStackNetworkIds();
@@ -1281,7 +1298,7 @@ export default class PlayerSession {
         armor.containerId = ContainerUiId.ARMOR_CONTAINER;
         await this.connection.sendDataPacket(armor);
 
-        await this.sendArmorFor(this.getPlayer());
+        await this.sendArmorFor(player);
     }
 
     /**
@@ -1653,7 +1670,7 @@ export default class PlayerSession {
         // The same list a creative pick is resolved through, so that the position the client
         // sends back names the entry it was shown. `creativePick` reads the same two sources
         // in the same order.
-        const server = this.getPlayer().getServer();
+        const { server } = this;
         const content = server.getContent();
         const payloads = joinContentPayloads(content, server.getLogger(), {
             itemData: this.connection.codec.itemData
@@ -1680,7 +1697,7 @@ export default class PlayerSession {
      * @param {Item} item - The entity.
      */
     public async sendHandItem(item: Item): Promise<void> {
-        const slot = this.getPlayer().getInventory().getHandSlotIndex();
+        const slot = this.own().getInventory().getHandSlotIndex();
         await this.connection.sendDataPacket(
             new MobEquipmentPacket({
                 runtimeEntityId: this.runtimeId,
@@ -1706,7 +1723,7 @@ export default class PlayerSession {
      * @param {Gametype} gamemode - the numeric gamemode ID.
      */
     public async sendGamemode(gamemode?: Gametype): Promise<void> {
-        const packet = new SetPlayerGameTypePacket({ gametype: gamemode ?? this.getPlayer().gamemode });
+        const packet = new SetPlayerGameTypePacket({ gametype: gamemode ?? this.own().gamemode });
         await this.connection.sendDataPacket(packet);
     }
 
@@ -1740,7 +1757,7 @@ export default class PlayerSession {
     }
 
     public async sendNetworkChunkPublisher(distance: number, savedChunks: ChunkCoord[]): Promise<void> {
-        const position = BlockPosition.fromVector3(this.getPlayer().getPosition());
+        const position = BlockPosition.fromVector3(this.own().getPosition());
         const pk = new NetworkChunkPublisherUpdatePacket({
             position: { x: position.getX(), y: position.getY(), z: position.getZ() },
             radius: distance << 4,
@@ -1773,16 +1790,17 @@ export default class PlayerSession {
             .map((player) => player.getName());
         pk.softEnums = [players];
 
+        const player = this.getPlayer();
         const commandManager = this.server.getCommandManager();
         for (const command of commandManager.getVanillaCommandList()) {
             const permission = commandPermissionOf(command.name);
-            if (!this.server.getPermissionManager().can(this.getPlayer()).execute(permission)) continue;
+            if (!this.server.getPermissionManager().can(player).execute(permission)) continue;
 
             // The level the command declares, capped at the player's own: a
             // client hides a command whose level is above its own even though
             // the server would run it, which is what a player granted one
             // operator command by name would otherwise see.
-            const own = this.getPlayer().isOp() ? CommandPermissionLevel.OWNER : CommandPermissionLevel.ANY;
+            const own = player.isOp() ? CommandPermissionLevel.OWNER : CommandPermissionLevel.ANY;
             pk.commandData.push(commandDataOf(command, Math.min(command.permissionLevel, own)));
         }
 
@@ -1795,7 +1813,7 @@ export default class PlayerSession {
      * @returns The position.
      */
     public getViewPosition(): Vector3 {
-        return this.getPlayer().getPosition();
+        return this.own().getPosition();
     }
 
     /**
@@ -1832,7 +1850,7 @@ export default class PlayerSession {
 
         this.spawnChunksSent = true;
         this.spawnChunksPending = true;
-        await this.getPlayer().sendInitialSpawnChunks();
+        await this.own().sendInitialSpawnChunks();
 
         // Nothing queued - there is no flush coming that would do it, so announce here.
         await this.announceSpawnIfReady();
@@ -1879,7 +1897,7 @@ export default class PlayerSession {
      * is why the hunger bar sat empty however correct the values were here.
      * @param {Attributes} [attributes] - The attributes to send, the player's own by default.
      */
-    public async sendAttributes(attributes: Attributes = this.getPlayer().attributes): Promise<void> {
+    public async sendAttributes(attributes: Attributes = this.own().attributes): Promise<void> {
         await this.sendAttributeList(attributes.getAttributes());
         attributes.clearDirty();
     }
@@ -1891,7 +1909,7 @@ export default class PlayerSession {
      * a value that only exists on the server.
      */
     public async syncAttributes(): Promise<void> {
-        const { attributes } = this.getPlayer();
+        const { attributes } = this.own();
         const dirty = attributes.getDirty();
         if (dirty.length === 0) return;
 
@@ -1900,7 +1918,7 @@ export default class PlayerSession {
     }
 
     private async sendAttributeList(attributes: Attribute[]): Promise<void> {
-        await this.sendAttributesFor(this.getPlayer(), attributes);
+        await this.sendAttributesFor(this.own(), attributes);
     }
 
     /**
@@ -2001,7 +2019,7 @@ export default class PlayerSession {
             this.server
                 .getLogger()
                 .debug(
-                    `${queue ? 'Holding' : 'Dropped'} the move of ${player.getName()} to ${world.getName()}: a change to ${pending.arrival.world.getName()} is pending on loading screen ${pending.loadingScreenId}`,
+                    `${queue ? 'Holding' : 'Dropped'} the move of ${this.identity.name} to ${world.getName()}: a change to ${pending.arrival.world.getName()} is pending on loading screen ${pending.loadingScreenId}`,
                     'PlayerSession/changeWorld'
                 );
             return;
@@ -2016,7 +2034,7 @@ export default class PlayerSession {
             this.server
                 .getLogger()
                 .debug(
-                    `${queue ? 'Holding' : 'Dropped'} the move of ${player.getName()} to ${world.getName()}: they are dead`,
+                    `${queue ? 'Holding' : 'Dropped'} the move of ${this.identity.name} to ${world.getName()}: they are dead`,
                     'PlayerSession/changeWorld'
                 );
             return;
@@ -2087,7 +2105,7 @@ export default class PlayerSession {
         // sends it before any chunk; the client still answers with its own copy afterwards.
         await this.send(
             new PlayerActionPacket({
-                runtimeEntityId: player.getRuntimeId(),
+                runtimeEntityId: this.runtimeId,
                 action: PlayerActionType.ChangeDimensionAck,
                 blockPosition: NO_BLOCK,
                 resultPosition: NO_BLOCK,
@@ -2293,7 +2311,7 @@ export default class PlayerSession {
     }
 
     public async sendMetadata(metadata?: Metadata): Promise<void> {
-        await this.sendMetadataFor(this.getPlayer(), metadata);
+        await this.sendMetadataFor(this.own(), metadata);
     }
 
     /**
@@ -2325,7 +2343,7 @@ export default class PlayerSession {
      * No `MovePlayer`: the client has put itself at the `ReadyToSpawn` position already.
      */
     public async sendRespawned(): Promise<void> {
-        const player = this.getPlayer();
+        const player = this.own();
         const event = new ActorEventPacket();
         event.runtimeEntityId = this.runtimeId;
         event.event = ActorEvent.SPAWN_ALIVE;
@@ -2422,10 +2440,10 @@ export default class PlayerSession {
      * tick, as the docs ask, so the client rewinds to it and replays its predictions from
      * there. For any other player the packet is what this client sees of them, and the tick is
      * zero because it relates to none of this client's inputs.
-     * @param {Player} player - The player that moved.
+     * @param player - The player that moved.
      * @param {PositionMode} [mode=PositionMode.Normal] - What produced the movement.
      */
-    public async sendMove(player: Player, mode = PositionMode.Normal): Promise<void> {
+    public async sendMove(player: ShownActor, mode = PositionMode.Normal): Promise<void> {
         const position = player.getPosition();
         const packet = new MovePlayerPacket({
             runtimeEntityId: player.getRuntimeId(),
@@ -2491,7 +2509,7 @@ export default class PlayerSession {
      * the server and also to the player itself.
      */
     public async addToPlayerList(): Promise<void> {
-        const entry = playerListEntryOf(this.getPlayer());
+        const entry = playerListEntryOf(this.own());
 
         this.server.getSessionManager().getPlayerList().set(this.identity.uuid, entry);
 
@@ -2506,7 +2524,7 @@ export default class PlayerSession {
      */
     public async removeFromPlayerList(): Promise<void> {
         const entry = new PlayerListEntry({
-            uuid: this.getPlayer().getUUID()
+            uuid: this.own().getUUID()
         });
 
         this.server.getSessionManager().getPlayerList().delete(this.identity.uuid);
@@ -2918,5 +2936,14 @@ export default class PlayerSession {
             throw new Error(`${this.identity.name} (entity ${this.runtimeId}) has left: its session has no player`);
         }
         return player;
+    }
+
+    /**
+     * {@link PlayerSession.getPlayer}, narrowed to what the session itself reads of its player.
+     * @returns The player.
+     * @throws {Error} Once {@link PlayerSession.disable} has forgotten the player.
+     */
+    private own(): OwnPlayer {
+        return this.getPlayer();
     }
 }
