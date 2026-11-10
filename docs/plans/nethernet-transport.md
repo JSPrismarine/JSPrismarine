@@ -32,8 +32,8 @@ As of 2026-11-10. Both transports run side by side, on by default:
 - **A retail client** (iOS 1.26.62, on mobile data) joins our server by address over NetherNet,
   logs in online and spawns, then disconnects within seconds with `ClientDisconnection-90`. See
   slice 17.
-- **Left before the pull request merges:** `XboxAuthProvider` (slice 18, next), the cinnabar run
-  (slice 9) and the rearchitecture plan note (slice 10). The retail post-spawn disconnect (slice 17) can follow in its own pull request
+- **Left before the pull request merges:** the cinnabar run (slice 9) and the rearchitecture plan
+  note (slice 10). The retail post-spawn disconnect (slice 17) can follow in its own pull request
   if it turns out not to be NetherNet's.
 
 ## What we know
@@ -248,11 +248,14 @@ slice when it lands on the branch.
       nothing on the server side reports an error. Next: join the same client over RakNet to tell
       the transport from the game, then read the last packets at log level `silly`.
 
-18. [ ] **`XboxAuthProvider` in `@jsprismarine/auth`.** The online hill climb signed in with a
-    scratch script. Give the auth package a provider that signs in through prismarine-auth, shares
-    `OfflineAuthProvider`'s signing constants, and hands `Client` the chain and the multiplayer
-    token, so the client's NetherNet offer carries the token, as a retail client's does. Next,
-    right after this plan update.
+18. [x] **`XboxAuthProvider` in `@jsprismarine/auth`.** The provider signs in through
+    prismarine-auth, an optional peer dependency loaded on first sign-in, and puts its own link,
+    naming Mojang's root key, in front of the chain Minecraft services issue. It shares the
+    identity key and client data signing with `OfflineAuthProvider` through `KeyedAuthProvider`.
+    `getMultiplayerToken()` gives `Client` the token its NetherNet offer carries. The server's
+    `verifyLogin` moved into the package too, so one package issues and checks a login, and a
+    test checks that the verifier admits what the provider sends. Every JWT and JWS, in auth and
+    in `@jsprismarine/nethernet`, is signed, verified and decoded by `jose` rather than by hand.
 
 ## Open questions
 
