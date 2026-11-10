@@ -21,6 +21,7 @@ const logger = { info: vi.fn(), warn: vi.fn(), error: vi.fn(), verbose: vi.fn(),
 const serverName: any = {
     toString: () => 'MCPE;test;748;1.21.40;0;10;',
     setOnlinePlayerCount: vi.fn(),
+    setSessionCount: vi.fn(),
     setPort: vi.fn(),
     setServerId: vi.fn()
 };

@@ -1043,6 +1043,7 @@ describe('H9 - server GUID', () => {
         const name: any = {
             toString: () => 'x',
             setOnlinePlayerCount: vi.fn(),
+            setSessionCount: vi.fn(),
             setPort: vi.fn(),
             setServerId: vi.fn()
         };
