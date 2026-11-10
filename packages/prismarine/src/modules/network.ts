@@ -11,6 +11,7 @@ import type { OutboundPacketRecorder } from '../network/OutboundPacketTrace';
 import NetworkDispatcher from '../network/NetworkDispatcher';
 import { advertiseOnLan } from '../network/nethernet/advertiseOnLan';
 import { HttpSignaling } from '../network/nethernet/HttpSignaling';
+import { NETHERNET_IDENTITY_FILE, NETHERNET_LAN_PORT } from '../network/nethernet/NetherNetDefaults';
 import { NetherNetIdentity } from '../network/nethernet/NetherNetIdentity';
 import { joinStatusJson, netherNetStatusOf } from '../network/nethernet/NetherNetStatus';
 import type { ConnectionId, ConnectionIds } from '../network/transport/ConnectionId';
@@ -205,7 +206,7 @@ export class ServerNetworking implements Networking {
 
         // Kept in the server directory: a client joining over plain HTTP remembers the key and
         // asks the player again if it ever changes.
-        const identity = NetherNetIdentity.loadOrCreate(withCwd('nethernet-identity.pem'));
+        const identity = NetherNetIdentity.loadOrCreate(withCwd(NETHERNET_IDENTITY_FILE));
         this.signaling = new HttpSignaling({
             answerer: nethernet,
             status: () => joinStatusJson(netherNetStatusOf(serverName.getSnapshot(), config.getLevelName())),
@@ -228,10 +229,10 @@ export class ServerNetworking implements Networking {
                 config.getOnlineMode()
             );
             nethernet.listen().then(
-                () => logger.info('Visible to NetherNet clients on the local network (UDP port 7551)'),
+                () => logger.info(`Visible to NetherNet clients on the local network (UDP port ${NETHERNET_LAN_PORT})`),
                 (error: unknown) =>
                     logger.warn(
-                        `Not visible on the local network: UDP port 7551 is unavailable (${error instanceof Error ? error.message : String(error)})`
+                        `Not visible on the local network: UDP port ${NETHERNET_LAN_PORT} is unavailable (${error instanceof Error ? error.message : String(error)})`
                     )
             );
         }
