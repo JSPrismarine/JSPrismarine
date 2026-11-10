@@ -58,7 +58,7 @@ import { DEFAULT_VIEW_DISTANCE_CHUNKS } from './world/Proximity';
 import { logLegacyWrite } from './entity/legacyAdapter';
 import type { ExperienceHolder } from './entity/Experience';
 import { PlayerComponents } from './entity/playerComponents';
-import type { PlainData } from './world/changelog/PlainData';
+import type { PlainData, PlainRecord } from './world/changelog/PlainData';
 
 /**
  * How much exhaustion buys one point of saturation, and then of food.
@@ -1041,6 +1041,11 @@ export default class Player extends Human {
      */
     public getExperience(): ExperienceHolder {
         return this.components.experience();
+    }
+
+    /** This player's component fields as plain data, which the replay digest hashes. */
+    public componentSnapshot(): PlainRecord {
+        return this.components.snapshot();
     }
 
     /** Writes a logged component field back; any other field is a human's. */
