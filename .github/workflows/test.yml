@@ -12,9 +12,11 @@ env:
     GIT_CONFIG_VALUE_0: master
     CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
+# A newer pull request push supersedes the old run. A push to master always finishes: its caches
+# are the ones pull requests restore, and its Codecov upload is the base they compare against.
 concurrency:
     group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
-    cancel-in-progress: false
+    cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
     # A change that touches no package code or dependencies (docs, the docs site, other workflows)
