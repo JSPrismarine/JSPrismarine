@@ -52,6 +52,7 @@ import { OVERWORLD_STEM_ID } from '@jsprismarine/worldgen';
 import { testLevel } from '../testing/level';
 import type { Level } from './Level';
 import { ChunkCompletionQueue } from './ChunkCompletionQueue';
+import { ChatManager } from '../chat/ChatManager';
 
 /** Where the bed stands, with the ground under it and nothing above. */
 const BED = { x: 10, y: 64, z: 10 };
@@ -116,6 +117,7 @@ const buildScene = async (name: string) => {
     let content: ServerContent | undefined;
 
     const server: Server = stub<Server>({
+        getChatManager: () => chat,
         on: () => server,
         post: () => 0,
         emit: async () => {},
@@ -150,6 +152,7 @@ const buildScene = async (name: string) => {
                 getDifficulty: () => 2
             })
     });
+    const chat = new ChatManager(server);
 
     // The spawn is known before the world opens, so enabling it searches for nothing.
     level = testLevel({

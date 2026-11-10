@@ -47,6 +47,7 @@ import LevelDB from './providers/leveldb/LevelDB';
 import { encodePlayerServerKey } from './providers/leveldb/LevelDBKeys';
 import type { World } from './World';
 import type WorldManager from './WorldManager';
+import { ChatManager } from '../chat/ChatManager';
 
 const FIXTURES = path.join(import.meta.dirname, '__fixtures__');
 const LEVELDB_FIXTURE = path.join(FIXTURES, 'player-record.leveldb.bin');
@@ -85,6 +86,7 @@ afterEach(() => {
 
 const testServer = (): Server => {
     const server: Server = stub<Server>({
+        getChatManager: () => chat,
         getWorldManager: () => stub<WorldManager>({}),
         on: () => server,
         removeListener: () => server,
@@ -108,6 +110,7 @@ const testServer = (): Server => {
                 getEntityTrackingInterval: () => 4
             })
     });
+    const chat = new ChatManager(server);
     return server;
 };
 

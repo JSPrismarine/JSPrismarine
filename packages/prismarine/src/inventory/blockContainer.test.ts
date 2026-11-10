@@ -62,6 +62,7 @@ import { inertEntityRuntime } from '../testing/entityServer';
 import { OVERWORLD_STEM_ID } from '@jsprismarine/worldgen';
 import { testLevel } from '../testing/level';
 import { ChunkCompletionQueue } from '../world/ChunkCompletionQueue';
+import { ChatManager } from '../chat/ChatManager';
 
 /** Where the chest stands, and the slot of the player's inventory the diamonds start in. */
 const CHEST = { x: 4, y: 64, z: 4 };
@@ -177,6 +178,7 @@ const buildScene = async (name: string) => {
     let content: ServerContent | undefined;
 
     const server: Server = stub<Server>({
+        getChatManager: () => chat,
         on: () => server,
         post: () => 0,
         emit: async () => {},
@@ -204,6 +206,7 @@ const buildScene = async (name: string) => {
                 getDifficulty: () => 2
             })
     });
+    const chat = new ChatManager(server);
 
     // The spawn is known before the world opens, so enabling it searches for nothing.
     const level = testLevel({
