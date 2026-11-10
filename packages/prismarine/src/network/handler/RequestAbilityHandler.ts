@@ -4,6 +4,7 @@ import type PlayerSession from '../PlayerSession';
 import type RequestAbilityPacket from '@jsprismarine/protocol/packet/RequestAbilityPacket';
 import { RequestAbilityValueType } from '@jsprismarine/protocol/packet/RequestAbilityPacket';
 import type PacketHandler from './PacketHandler';
+import type { FlyingPlayer } from './playerPorts';
 
 /**
  * A request to change one of the player's own abilities.
@@ -22,7 +23,7 @@ export default class RequestAbilityHandler implements PacketHandler<RequestAbili
 
     /** Applies a flight toggle, or sends the current abilities back for anything else. */
     public async handle(packet: RequestAbilityPacket, server: Server, session: PlayerSession): Promise<void> {
-        const player = session.getPlayer();
+        const player: FlyingPlayer = session.getPlayer();
 
         if (packet.ability === AbilityLayerFlag.FLYING && packet.valueType === RequestAbilityValueType.Bool) {
             const wasFlying = player.isFlying();
@@ -43,7 +44,7 @@ export default class RequestAbilityHandler implements PacketHandler<RequestAbili
         server
             .getLogger()
             .debug(
-                `${player.getName()} asked to set ability ${AbilityLayerFlag[packet.ability] ?? packet.ability} to ${value}. Only flight can be requested, so the current abilities were sent back`,
+                `${session.identity.name} asked to set ability ${AbilityLayerFlag[packet.ability] ?? packet.ability} to ${value}. Only flight can be requested, so the current abilities were sent back`,
                 'RequestAbilityHandler/handle'
             );
         await session.sendAbilities();

@@ -69,6 +69,14 @@ const skinProblem = (skin: Skin): string | null => {
 };
 
 /**
+ * A player as a skin change sees it: the skin other clients are shown, which
+ * {@link import('../../world/ShownPlayer').ShownPlayer.skin} reads.
+ */
+interface ReskinnedPlayer {
+    skin: Skin | null;
+}
+
+/**
  * A client changing its skin mid-session.
  *
  * The skin is stored on the player and on the player's list entry, so the player list shows it
@@ -95,12 +103,12 @@ export default class PlayerSkinHandler implements PacketHandler<PlayerSkinPacket
      * @param {PlayerSession} session - The client that sent it.
      */
     public async handle(packet: PlayerSkinPacket, server: Server, session: PlayerSession): Promise<void> {
-        const player = session.getPlayer();
+        const { identity } = session;
         const logger = server.getLogger();
 
-        if (!packet.uuid.equals(player.getUUID())) {
+        if (packet.uuid.toString() !== identity.uuid) {
             logger.debug(
-                `Dropped skin change from §b${player.getName()}§r for another player's UUID ${packet.uuid.toString()}`,
+                `Dropped skin change from §b${identity.name}§r for another player's UUID ${packet.uuid.toString()}`,
                 'PlayerSkinHandler/handle'
             );
             return;
@@ -108,17 +116,17 @@ export default class PlayerSkinHandler implements PacketHandler<PlayerSkinPacket
 
         const problem = skinProblem(packet.skin);
         if (problem !== null) {
-            logger.debug(`Dropped skin change from §b${player.getName()}§r: ${problem}`, 'PlayerSkinHandler/handle');
+            logger.debug(`Dropped skin change from §b${identity.name}§r: ${problem}`, 'PlayerSkinHandler/handle');
             return;
         }
 
+        const player: ReskinnedPlayer = session.getPlayer();
         player.skin = packet.skin;
 
         // The entry the session manager sends to whoever joins later was built at login.
         const playerList = server.getSessionManager().getPlayerList();
-        const key = player.getUUID().toString();
-        const entry = playerList.get(key);
-        if (entry !== undefined) playerList.set(key, entry.withSkin(packet.skin));
+        const entry = playerList.get(identity.uuid);
+        if (entry !== undefined) playerList.set(identity.uuid, entry.withSkin(packet.skin));
 
         const relay = new PlayerSkinPacket();
         relay.uuid = packet.uuid;
@@ -129,11 +137,11 @@ export default class PlayerSkinHandler implements PacketHandler<PlayerSkinPacket
         const others = server
             .getSessionManager()
             .getAllPlayers()
-            .filter((other) => other !== player);
+            .filter((other) => other.getRuntimeId() !== session.runtimeId);
         await Promise.all(others.map((other) => other.getNetworkSession().send(relay)));
 
         logger.debug(
-            `§b${player.getName()}§r changed skin to §b${packet.skin.getId()}§r, relayed to ${others.length} player(s)`,
+            `§b${identity.name}§r changed skin to §b${packet.skin.getId()}§r, relayed to ${others.length} player(s)`,
             'PlayerSkinHandler/handle'
         );
     }
