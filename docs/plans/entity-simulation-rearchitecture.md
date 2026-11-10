@@ -132,7 +132,7 @@ As of 2026-11-10, at program head `646dd8a4f3`, rebased on `master` `9a2c1d5af5`
 | B1 input admission, with its two follow-up fixes (a held input blocked its connection; a stale move undid a teleport) | Landed |
 | B2 chunk completions as recorded inputs, with the follow-up fix for the tick that stalled after the dragon died | Landed |
 | B3a one live player per account (#2951) and the persistence service | Landed |
-| B3b chat fan-out and respawn search as services | Work in progress, not landed |
+| B3b chat fan-out and respawn search as services | Done on `refactor/chat-fanout-respawn-service-v2`, not yet integrated |
 | B4 save pass measurement, B5 re-keyed maps | Landed |
 | C1a component state on the instance, C1b one entity index, C1c the entity store with logged setters, spans and undo | Landed |
 | Replay determinism fixes (settle gaps, wall-clock chunk budget in the harness) | Landed |
@@ -201,6 +201,14 @@ C1c left these for later packages.
 - A chunk admitted inline inside a unit pins the unit, which then keeps its writes if it throws, until slices 3 to 9 remove the inline loads.
 - Writes between ticks, such as tick functions, which run after the worlds seal, and connection-lane handlers, are counted as unlogged and not logged.
 - A player whose update throws is not contained yet: legacy updates do not run as units. When players move into the store, the store's failure count disconnects the session instead of removing the entity.
+
+B3b left these for C3 and C4.
+
+- Chat fan-out is `ChatManager`. A player joins it as a `ChatRecipient`, keyed by `keyOfPlayer`, with a `receive` callback, and the manager decides the audience and builds the line. Each recipient is still its own `chat` listener, because a listener that cancels the event stops only the players who joined after it. One listener with one audience pass is the shape D4 wants, and it changes which players such a listener stops, so it belongs with the guards of ADR 0013 or the event bus of slice 10.
+- Respawn search is `RespawnSearch` in `world/RespawnSearch.ts`, one for each level (`Level.getRespawnSearch`). `find(request)` takes the player's key, saved spawn point and body as plain data. It answers with `spawn` (`own` or `world`), the dimension, the three exchange positions and `spawnPointLost`, and writes nothing. Every world read is behind its `RespawnWorlds` port: building the bed's dimension, the bed and feet checks, and the world spawn, which can still run the search for dry land.
+- `Player.getRespawnPoint` is the adapter. It builds the request, applies `spawnPointLost` by clearing the point and sending `tile.bed.notValid`, and resolves the answer's world. `onDeath`, `respawn`, `RespawnHandler` and `DimensionTravel.leaveEnd` call it. For C3, `onDeath` sends the request instead of awaiting the adapter, and the input that admits the answer applies `spawnPointLost` and sends the `SearchingForSpawn`. The in-tick chunk load entry for the search names `RespawnSearch.ts` and slice 4.
+- The request does not carry the world spawn. Reading it before the search would run the search for dry land even when the player's own point holds, so the service reads it only when it falls back to it.
+- For C4, the request's spawn point comes from the store entity's component, and the chat recipient's `receive` finds the session through the session registry by identity.
 
 ### Phase C: the store
 
