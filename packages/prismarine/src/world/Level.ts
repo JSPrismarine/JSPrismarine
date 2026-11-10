@@ -29,7 +29,7 @@ import type { Server } from '../';
 import { replayInputFingerprint, serializeReplayInitialStateManifest } from '../network/ReplayManifest';
 import type { ReplayInitialStateManifest } from '../network/ReplayManifest';
 import type { WorldConfig, WorldPlayerData } from '../config/JsonConfigTypes';
-import { readJsonFile, writeJsonFile } from '../config/JsonFile';
+import { readJsonFile } from '../config/JsonFile';
 import Player from '../Player';
 import { Dimensions, FIRST_CUSTOM_DIMENSION_ID, dimensionTypeOf } from './Dimension';
 import type { DimensionType } from './Dimension';
@@ -40,7 +40,7 @@ import { requireJavaWorldgenRegistries } from './generators/datadriven/javaWorld
 import type BaseProvider from './providers/BaseProvider';
 import { WorldWeather } from './Weather';
 import { World } from './World';
-import { PLAYER_DATA_FOLDER } from './WorldPaths';
+import { PlayerPersistence } from './PlayerPersistence';
 import type { WorldData } from './World';
 import type { RaidRecord } from './raid/RaidManager';
 import type { DragonFightState, LegacyWorldEntity, SavedRaid, WorldPersistenceData } from './WorldPersistence';
@@ -148,6 +148,7 @@ export class Level {
     private readonly path: string;
     private readonly server: Server;
     private readonly provider: BaseProvider;
+    private readonly playerPersistence: PlayerPersistence;
     private readonly stems: ReadonlyMap<string, LevelStem>;
     private readonly dimensionTypes: ReadonlyMap<string, DimensionType>;
     private readonly load: ReadonlyMap<string, DimensionLoad>;
@@ -203,6 +204,13 @@ export class Level {
         this.path = options.path;
         this.server = options.server;
         this.provider = options.provider;
+        this.playerPersistence = new PlayerPersistence({
+            levelName: options.name,
+            folder: options.path,
+            provider: options.provider,
+            logger: () => this.server.getLogger(),
+            isClosed: () => this.closed
+        });
         this.seed = options.seed;
         this.stems = options.stems;
         this.load = options.load ?? new Map();
@@ -981,69 +989,27 @@ export class Level {
 
     // ------------------------------------------------------------------ player records
 
-    /**
-     * The record for one player, from the provider's player storage or the fallback JSON file.
-     *
-     * @param key - What the record is filed under; see `World.playerDataKey`.
-     * @returns The record, or null when this save has none for the key. A provider read that
-     *   fails is logged and falls through to the file.
-     */
-    public async getPlayerData(key: string): Promise<Partial<WorldPlayerData> | null> {
-        try {
-            const data = await this.provider.readPlayerData?.(key);
-            if (data) return data;
-        } catch (error: unknown) {
-            this.server.getLogger().error(`Failed to read player data for ${key}`);
-            this.server.getLogger().error(error);
-        }
-
-        const file = this.playerDataFile(key);
-        if (!fs.existsSync(file)) return null;
-
-        // Parsed JSON is a boundary the compiler cannot see; the file is trusted as written.
-        const data: unknown = (await readJsonFile(file, '{}')).get([]);
-        return data as Partial<WorldPlayerData>;
+    /** Where this level's player records are read and written; see {@link PlayerPersistence}. */
+    public getPlayerPersistence(): PlayerPersistence {
+        return this.playerPersistence;
     }
 
     /**
-     * Writes one player's record, through the provider when it stores players and into the
-     * fallback JSON file otherwise.
+     * The record for one player, from the provider's player storage or the fallback JSON file.
      *
-     * Declined once the level has closed. A shutdown kicks everyone, and each client's
-     * connection closes some time after the provider has gone, so a save arrives once more per
-     * player with nothing left to write to; the shutdown's own save wrote them while they were
-     * still online.
+     * @param key - What the record is filed under; see `playerKeyOf`.
+     * @returns The record, or null when this save has none for the key.
+     */
+    public async getPlayerData(key: string): Promise<Partial<WorldPlayerData> | null> {
+        return this.playerPersistence.load(key);
+    }
+
+    /**
+     * Writes one player's record; see {@link PlayerPersistence.save}.
      *
      * @param requireSuccess - Propagate a persistence error when creating a replay checkpoint.
      */
     public async savePlayerData(key: string, data: WorldPlayerData, requireSuccess = false): Promise<void> {
-        if (this.closed) {
-            if (requireSuccess) {
-                throw new Error(`Cannot save replay player data for ${key} after level ${this.name} closed`);
-            }
-            this.server.getLogger().debug(`${key} left after ${this.name} closed`, 'Level/savePlayerData');
-            return;
-        }
-
-        try {
-            if (this.provider.writePlayerData) {
-                await this.provider.writePlayerData(key, data);
-                return;
-            }
-
-            const file = this.playerDataFile(key);
-            await fs.promises.mkdir(path.dirname(file), { recursive: true });
-            const document = await readJsonFile(file, '{}');
-            for (const [field, value] of Object.entries(data)) document.set([field], value);
-            await writeJsonFile(file, document);
-        } catch (error: unknown) {
-            this.server.getLogger().error(`Failed to save player data for ${key}`);
-            this.server.getLogger().error(error);
-            if (requireSuccess) throw error;
-        }
-    }
-
-    private playerDataFile(key: string): string {
-        return path.join(this.path, PLAYER_DATA_FOLDER, `${key}.json`);
+        await this.playerPersistence.save(key, data, requireSuccess);
     }
 }
