@@ -394,9 +394,9 @@ A filter test whose fact nothing can answer evaluates to false and is reported, 
 defaulting to true. That matters when you are debugging: a mob that never does a thing may be
 looking at a world fact this server does not track yet, and the report names the test.
 
-`has_tag` reads the entity's dynamic string tags, the same set the `/tag` command edits. The host
-keeps that set on data-driven entities across live-body replacement and writes it to the actor's
-`Tags` list when the entity is saved.
+`has_tag` reads the entity's dynamic string tags, the same set the `/tag` command edits. The store
+keeps that set on the entity, carries it through a portal and writes it to the actor's `Tags` list
+when the entity is saved.
 
 Equipment filters scan every slot in their declared domain. `has_equipment_tag`,
 `actor_has_item_with_enchantment_in_slot`, `has_damaged_equipment`, and `has_item_with_component`
@@ -626,18 +626,22 @@ lifetime it plays its break sound and leaves, dropping the eye as a stack or bur
 
 Until replication reads the change log, clients are shown a mob and the eye through a
 `StoreActor` from `entity/data/storeActors.ts`, which answers the network layer from store state
-and sends each tick's moves, metadata, health and equipment. A dropped stack gets an
-`ItemActorBody` from `entity/data/itemBodies.ts`, which reads everything from the store entity and
-goes on the wire as an `AddItemActor`. The legacy code still reaches a mob through a body in the
-world's entity map, from `entity/data/liveBodies.ts`, which clients are never shown.
+and sends each tick's moves, metadata, health and equipment. The legacy world code reaches a store
+entity through the same actor: commands and selectors, legacy blasts and a player's swing, item
+interactions and trades, saves and the replay digest, portal travel and spawner caps.
+`World.getActors` and `World.getActor` list and find a world's entities, a store entity as its
+actor, and the actor hands every effect back to the store: a blow goes through the damage
+pipeline, a shove onto the body, a tag or a status effect into the entity's state. A store entity
+is never a legacy `Entity` in the world's entity map. A dropped stack gets an `ItemActorBody` from
+`entity/data/itemBodies.ts` instead, which reads everything from the store entity and goes on the
+wire as an `AddItemActor`.
 
 The server opens one `EntityRuntime` per dimension as that dimension's content adapter is
 assembled, and `World.update` ticks it. Each tick, for each entity in order: the queued events
 apply, the active components run, the goal scheduler runs, a brain mob updates its activity and
 ticks its brain, and the body takes one step along whatever walk the AI asked for. Then the spawn
-cycle and the despawn pass run. The body and the entity behind it stay in step in both directions,
-so a player's blow reaches the components that decide what it cost and the shove that came with it
-moves the mob.
+cycle and the despawn pass run. Each actor then runs what the store does not run yet, the portal
+clock and the status effects, whose harm and healing go through the store.
 
 Each runtime also owns its dimension's entity index, the one place the server asks what stands
 near a point ([ADR 0007](../adr/0007-one-entity-index-visible-on-write.md)). It holds the runtime's
@@ -645,10 +649,11 @@ mobs, dropped stacks and the eye of ender, and the world's other entities, such 
 collision, item merging and pickup, and explosions all query it. A position write refiles the
 entity before the write returns, so a query later in the same tick finds a mob that already moved
 where it moved to, and every query answers in ascending runtime id order. That order is what
-breaks a tie, such as which of two equally near villagers a zombie picks. A mob's client body is not
-filed a second time. A query that wants legacy entities, such as a blast's, answers with the body
-and finds it where the runtime put the mob. The index is derived state and stays out of the replay
-digest.
+breaks a tie, such as which of two equally near villagers a zombie picks. A dropped stack's body is
+not filed a second time: a query that wants legacy entities answers with the body where its stack
+lies. A blast asks for the legacy entities and the store's apart. A store entity's move marks its
+chunk for the next save, and the chunk it left too when it crossed into another. The index is
+derived state and stays out of the replay digest.
 
 The runtime's entities live in its entity store, `EntityRuntime.store`, which owns membership and
 the world's change log ([ADR 0012](../adr/0012-the-change-log-is-the-history.md)). A mob enters
