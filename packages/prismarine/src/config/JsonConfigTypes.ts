@@ -98,7 +98,7 @@ export type ConfigDifficulty = 'peaceful' | 'easy' | 'normal' | 'hard';
 export interface ConfigFile {
     /** How much the console and the log file say. */
     'log-level'?: LogLevel;
-    /** The UDP port the server listens on. Bedrock clients look for 19132. @asType integer @minimum 0 @maximum 65535 */
+    /** The port the server listens on: UDP for RakNet, TCP for NetherNet signaling. Bedrock clients look for 19132. @asType integer @minimum 0 @maximum 65535 */
     port?: number;
     /** The address to listen on. `0.0.0.0` accepts connections on every interface. */
     'server-ip'?: string;

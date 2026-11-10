@@ -1,4 +1,7 @@
-import { describe, expect, it } from 'vitest';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { describe, expect, it, vi } from 'vitest';
 
 import type { Logger } from '@jsprismarine/logger';
 import { startTestModule } from '@jsprismarine/kernel/testing';
@@ -72,7 +75,8 @@ describe('modules/network', () => {
                     getEnableRakNet: () => false,
                     getEnableNetherNet: () => true,
                     // Off, so the test binds nothing: UDP 7551 is a fixed, shared port.
-                    getEnableLanVisibility: () => false
+                    getEnableLanVisibility: () => false,
+                    getLevelName: () => 'world'
                 }),
             getLogger: () => stub<Logger>({ info: () => {}, warn: () => {}, error: () => {} }),
             getPacketHandlerRegistry: () => stub<ReturnType<Server['getPacketHandlerRegistry']>>({}),
@@ -81,14 +85,21 @@ describe('modules/network', () => {
             getSessionManager: () => new SessionManager()
         });
         const networking = new ServerNetworking(server);
+        // The server identity key is written to the data directory, so keep it out of the repository.
+        const dataDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'jsp-network-'));
+        vi.stubEnv('JSP_DIR', dataDirectory);
 
         try {
+            // Port 0: HTTP signaling binds an ephemeral TCP port, so nothing fixed is taken.
             networking.start('127.0.0.1', 0);
 
             expect(networking.getListener()).toBeUndefined();
             expect(networking.getServerName()?.getMotd()).toBe('test server');
+            expect(fs.existsSync(path.join(dataDirectory, 'nethernet-identity.pem'))).toBe(true);
         } finally {
             networking.kill();
+            vi.unstubAllEnvs();
+            fs.rmSync(dataDirectory, { recursive: true, force: true });
         }
     });
 
