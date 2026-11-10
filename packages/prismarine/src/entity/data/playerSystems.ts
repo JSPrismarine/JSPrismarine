@@ -82,6 +82,20 @@ export class PlayerSystems {
     }
 
     /**
+     * Builds a store player's components over an attribute table its caller keeps, such as the
+     * one `StorePlayer` saves, so the player has one set of components and the systems log and
+     * undo the same fields a save reads. Called before the entity's first tick, and before it
+     * enters the store when a record is applied, so the record's writes are not logged.
+     *
+     * @param entity - A store entity whose client owns its movement.
+     * @param attributes - The client's attribute table, where food, saturation and experience live.
+     * @returns The components, which replace any built for the entity before.
+     */
+    public attach(entity: DataEntity, attributes: Attributes): PlayerComponents {
+        return this.build(entity, attributes).survival.components;
+    }
+
+    /**
      * Runs before a store player's components tick. A player's air is the breath system's, so the
      * `minecraft:breathable` the shipped player declares keeps none, and its tick, which reads its
      * own air, does nothing. The component builds its air again whenever it initializes, such as
@@ -210,12 +224,12 @@ export class PlayerSystems {
     }
 
     private playerOf(entity: DataEntity): StorePlayer {
-        const known = this.players.get(entity);
-        if (known !== undefined) return known;
+        return this.players.get(entity) ?? this.build(entity, new Attributes(Attributes.getPlayerDefaults()));
+    }
 
-        const components = new PlayerComponents(
-            new Attributes(Attributes.getPlayerDefaults()),
-            (field, before, after) => this.ports.written(entity, field, before, after)
+    private build(entity: DataEntity, attributes: Attributes): StorePlayer {
+        const components = new PlayerComponents(attributes, (field, before, after) =>
+            this.ports.written(entity, field, before, after)
         );
         const health = () => entity.instance.attributes.get('health');
         const player: StorePlayer = {

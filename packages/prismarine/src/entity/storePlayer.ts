@@ -10,9 +10,10 @@
  * {@link PlayerComponents}, the {@link HumanInventory}, the game mode and the portal cooldown.
  *
  * Live players are still legacy `Player` objects until C4h moves them into the store, so nothing
- * builds one of these outside tests yet. Its writes are not logged: the runtime's inverse writer
- * refuses a field it does not know, so logging a component field of a store entity before C4h
- * gives the store a writer for it would stop the world on the first undo.
+ * builds one of these outside tests yet. Built with the runtime's player systems
+ * (`entity/data/playerSystems.ts`), its components are theirs: logged through the store, undone by
+ * the runtime's inverse writer, and run by the survival systems. Built without them, its component
+ * writes are not logged. Its inventory is not logged either way.
  */
 import { Gametype } from '@jsprismarine/minecraft';
 import { Attributes } from '@jsprismarine/protocol/wire/structures/Attribute';
@@ -27,6 +28,8 @@ import type { StoredSpawnPoint } from '../world/RespawnPoint';
 import type { DataEntity } from './data/DataEntity';
 import { EYE_HEIGHT } from './Human';
 import { PlayerComponents } from './playerComponents';
+import { setSaturation } from './playerHunger';
+import type { PlayerSystems } from './data/playerSystems';
 
 /** Who a store player is, as the login named them. */
 export interface StorePlayerIdentity {
@@ -50,18 +53,24 @@ export class StorePlayer implements PlayerRecordSource, PlayerRecordTarget {
     /** The platform chat id, which the login handler does not read yet and leaves empty. */
     public platformChatId = '';
 
-    private readonly components = new PlayerComponents(this.attributes, () => undefined);
+    private readonly components: PlayerComponents;
     private readonly inventory = new HumanInventory();
     private portalCooldown = 0;
 
     /**
      * @param entity - The `minecraft:player` entity in the store.
      * @param identity - Who the player is.
+     * @param systems - The player systems of the runtime the entity is in, which then hold its
+     *   components; left out, the components log nothing.
      */
     public constructor(
         public readonly entity: DataEntity,
-        private readonly identity: StorePlayerIdentity
-    ) {}
+        private readonly identity: StorePlayerIdentity,
+        systems?: Pick<PlayerSystems, 'attach'>
+    ) {
+        this.components =
+            systems?.attach(entity, this.attributes) ?? new PlayerComponents(this.attributes, () => undefined);
+    }
 
     /** The protocol identity the login carried. */
     public getUUID(): UUID {
@@ -151,7 +160,7 @@ export class StorePlayer implements PlayerRecordSource, PlayerRecordTarget {
 
     /** Writes saturation, which never exceeds food, as a live player's does. */
     public setSaturation(saturation: number): void {
-        this.components.set('vitals.saturation', Math.min(saturation, this.getFood()));
+        setSaturation(this.components, saturation);
     }
 
     /** The player's own spawn point, or undefined for the world spawn. */
