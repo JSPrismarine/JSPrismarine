@@ -34,6 +34,7 @@ import { NetworkWorldReplicator } from './NetworkWorldReplicator';
  * about its own departure - are exactly the ones that were fixed once already.
  */
 const fakeSession = (
+    runtimeId: bigint,
     codec: ProtocolCodec = Codec2193,
     compressionAlgorithm: PacketCompressionAlgorithm = PacketCompressionAlgorithm.ZLIB,
     compressionThreshold = 256
@@ -55,6 +56,7 @@ const fakeSession = (
         selfStateCalls,
         tracked,
         session: stub<PlayerSession>({
+            runtimeId,
             getConnection: () =>
                 stub<ClientConnection>({
                     codec,
@@ -77,14 +79,14 @@ const fakeSession = (
     };
 };
 
-/** A player-controlled entity, real enough for `instanceof Player` to hold. */
+/** A player-controlled entity and the session its world finds by its entity id. */
 const fakePlayer = (
     runtimeId: bigint,
     codec?: ProtocolCodec,
     compressionAlgorithm?: PacketCompressionAlgorithm,
     compressionThreshold?: number
 ) => {
-    const spy = fakeSession(codec, compressionAlgorithm, compressionThreshold);
+    const spy = fakeSession(runtimeId, codec, compressionAlgorithm, compressionThreshold);
     const player = stubOf(Player, {
         getRuntimeId: () => runtimeId,
         getNetworkSession: () => spy.session,
@@ -128,7 +130,8 @@ const replicatorOver = ({
 } = {}) => {
     const world = stub<World>({
         getName: () => 'test',
-        getPlayers: () => players,
+        getViewers: () => players.map((player) => player.getNetworkSession()),
+        viewerOf: (runtimeId) => players.find((player) => player.getRuntimeId() === runtimeId)?.getNetworkSession(),
         getEntities: () => entities,
         shownActors: () => entities
     });

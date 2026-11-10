@@ -4,7 +4,6 @@ import { describe, expect, it, vi } from 'vitest';
 import type { ProtocolCodec } from '@jsprismarine/protocol';
 
 import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
-import type Player from '../Player';
 import type Server from '../Server';
 import type { Config } from '../config/Config';
 import { stub } from '../testing/stub.test.helper';
@@ -24,7 +23,7 @@ import { readPacketId } from '@jsprismarine/protocol/NetworkPacket';
 import { PacketIdentifier } from '@jsprismarine/protocol';
 import { isInView } from '../world/Proximity';
 
-/** A player and the block updates the replicator batches for it. */
+/** Viewers' sessions and the block updates the replicator batches for each. */
 const replicatorFor = (
     viewers: readonly { readonly x: number; readonly z: number; readonly viewDistance: number }[],
     codec: ProtocolCodec | ((viewerIndex: number) => ProtocolCodec) = Codec2193,
@@ -45,17 +44,15 @@ const replicatorFor = (
             compressionThreshold: threshold,
             sendSharedBatch: async (content) => void batches[index]!.push(content)
         });
-        const session = stub<PlayerSession>({ getConnection: () => connection });
-        return stub<Player>({
-            getNetworkSession: () => session,
-            getPosition: () => new Position(viewer.x, 64, viewer.z, world),
-            isOnline: () => true,
-            viewDistance: viewer.viewDistance
+        return stub<PlayerSession>({
+            getConnection: () => connection,
+            getViewPosition: () => new Position(viewer.x, 64, viewer.z, world),
+            getViewDistance: () => viewer.viewDistance
         });
     });
     const visibleWorld = stub<World>({
         getName: () => 'test',
-        getPlayers: () => players
+        getViewers: () => players
     });
     const server = stub<Server>({
         getConfig: () =>
@@ -168,7 +165,7 @@ describe('NetworkWorldReplicator block changes', () => {
                 .filter(({ position }) =>
                     isInView({
                         event: position,
-                        viewer: players[index]!.getPosition(),
+                        viewer: players[index]!.getViewPosition(),
                         viewDistance: viewer.viewDistance
                     })
                 )

@@ -4,7 +4,6 @@ import type { ProtocolCodec } from '@jsprismarine/protocol';
 import type { LevelEvent, LevelSoundEvent } from '@jsprismarine/minecraft';
 import { LevelSoundEvent as SoundEvent } from '@jsprismarine/minecraft';
 import type { NBTTagCompound } from '@jsprismarine/nbt';
-import Player from '../Player';
 import type Server from '../Server';
 import type { Attribute } from '@jsprismarine/protocol/wire/structures/Attribute';
 import type { StatusEffect, StatusEffectChange } from '../entity/StatusEffect';
@@ -176,17 +175,19 @@ export class NetworkWorldReplicator implements WorldChangeSink {
      * picked its own collection and several of them reached across worlds.
      * @param {Vector3 | null} position - Where it happened; `null` means the whole world.
      * @param {AudienceOptions} [options] - Narrowing.
-     * @returns {Player[]} The recipients: online, in this world, near enough.
+     * @returns The recipients' sessions: online, in this world, near enough.
      */
-    public getViewers(position: Vector3 | null, options?: AudienceOptions): Player[] {
+    public getViewers(position: Vector3 | null, options?: AudienceOptions): PlayerSession[] {
         const excluded = options?.exclude;
-        const isExcluded = Array.isArray(excluded)
-            ? (player: Player) => excluded.includes(player)
-            : (player: Player) => player === excluded;
-
-        const candidates = excluded
-            ? this.world.getPlayers().filter((player) => !isExcluded(player))
-            : this.world.getPlayers();
+        const viewers = this.world.getViewers();
+        let candidates = viewers;
+        if (excluded !== undefined) {
+            // By entity id, which is what a session holds of its player.
+            const ids = new Set(
+                ('getRuntimeId' in excluded ? [excluded] : excluded).map((left) => left.getRuntimeId())
+            );
+            candidates = viewers.filter((session) => !ids.has(session.runtimeId));
+        }
 
         if (position === null || !this.server.getConfig().getProximityBroadcast()) return candidates;
 
@@ -200,11 +201,11 @@ export class NetworkWorldReplicator implements WorldChangeSink {
             return [];
         }
 
-        return candidates.filter((player) =>
+        return candidates.filter((session) =>
             isInView({
                 event: position,
-                viewer: player.getPosition(),
-                viewDistance: player.viewDistance,
+                viewer: session.getViewPosition(),
+                viewDistance: session.getViewDistance(),
                 radius: options?.radius
             })
         );
@@ -263,8 +264,8 @@ export class NetworkWorldReplicator implements WorldChangeSink {
         const changes = [...this.pendingBlocks.values()];
         this.pendingBlocks.clear();
 
-        const players = this.world.getPlayers();
-        if (players.length === 0) return;
+        const viewers = this.world.getViewers();
+        if (viewers.length === 0) return;
 
         const config = this.server.getConfig();
         const fullFlushFragments = config.getPacketFullFlushFragments?.() ?? false;
@@ -274,7 +275,7 @@ export class NetworkWorldReplicator implements WorldChangeSink {
         // one compression per protocol version serves every client who speaks it.
         if (!this.server.getConfig().getProximityBroadcast()) {
             await broadcastSharedBatches(
-                players.map((player) => player.getNetworkSession().getConnection()),
+                viewers.map((session) => session.getConnection()),
                 this.blockPackets(changes).map(({ packet }) => packet),
                 this.server.getConfig().getPacketCompressionLevel(),
                 (error) => this.server.getLogger().error(error),
@@ -302,17 +303,18 @@ export class NetworkWorldReplicator implements WorldChangeSink {
                 string,
                 {
                     readonly indices: number[];
-                    readonly players: Player[];
+                    readonly sessions: PlayerSession[];
                     readonly compressionAlgorithm: ClientConnection['compressionAlgorithm'];
                     readonly compressionThreshold: number;
                 }
             >
         >();
-        for (const player of players) {
-            const viewer = player.getPosition();
+        for (const session of viewers) {
+            const viewer = session.getViewPosition();
+            const viewDistance = session.getViewDistance();
             const centerX = toChunk(viewer.getX());
             const centerZ = toChunk(viewer.getZ());
-            const reach = effectiveViewDistance(player.viewDistance) + VIEW_MARGIN_CHUNKS;
+            const reach = effectiveViewDistance(viewDistance) + VIEW_MARGIN_CHUNKS;
             const bucketRadius = Math.ceil(reach);
             const reachSquared = reach * reach;
             const visible: { readonly order: number; readonly change: BlockChange }[] = [];
@@ -324,8 +326,7 @@ export class NetworkWorldReplicator implements WorldChangeSink {
                     if (bucket === undefined) continue;
 
                     for (const entry of bucket) {
-                        if (isInView({ event: entry.change.position, viewer, viewDistance: player.viewDistance }))
-                            visible.push(entry);
+                        if (isInView({ event: entry.change.position, viewer, viewDistance })) visible.push(entry);
                     }
                 }
             }
@@ -334,7 +335,7 @@ export class NetworkWorldReplicator implements WorldChangeSink {
             visible.sort((left, right) => left.order - right.order);
 
             const indices = visible.map(({ order }) => order);
-            const connection = player.getNetworkSession().getConnection();
+            const connection = session.getConnection();
             const codec = connection.codec;
             let groups = groupsByCodec.get(codec);
             if (groups === undefined) {
@@ -349,11 +350,11 @@ export class NetworkWorldReplicator implements WorldChangeSink {
             if (group === undefined)
                 groups.set(signature, {
                     indices,
-                    players: [player],
+                    sessions: [session],
                     compressionAlgorithm: connection.compressionAlgorithm,
                     compressionThreshold: connection.compressionThreshold
                 });
-            else group.players.push(player);
+            else group.sessions.push(session);
         }
 
         const compressionLevel = this.server.getConfig().getPacketCompressionLevel();
@@ -398,16 +399,13 @@ export class NetworkWorldReplicator implements WorldChangeSink {
                 if (batch instanceof Promise) {
                     const failedPacket = packets[0];
                     if (failedPacket === undefined) throw new Error('A block-change batch has no packet to report');
-                    for (const player of group.players) {
-                        sends.push(
-                            player.getNetworkSession().getConnection().sendSharedBatchAsync(batch, failedPacket)
-                        );
+                    for (const session of group.sessions) {
+                        sends.push(session.getConnection().sendSharedBatchAsync(batch, failedPacket));
                     }
                 } else {
-                    for (const player of group.players) {
+                    for (const session of group.sessions) {
                         sends.push(
-                            player
-                                .getNetworkSession()
+                            session
                                 .getConnection()
                                 .sendSharedBatch(batch.content, batch.packets, false, batch.packetBuffers)
                         );
@@ -518,7 +516,12 @@ export class NetworkWorldReplicator implements WorldChangeSink {
     }
 
     /** @inheritdoc */
-    public blockSound(position: Vector3, sound: LevelSoundEvent, blockRuntimeId: number, except?: Player): void {
+    public blockSound(
+        position: Vector3,
+        sound: LevelSoundEvent,
+        blockRuntimeId: number,
+        except?: Pick<ShownActor, 'getRuntimeId'>
+    ): void {
         const packet = new LevelSoundEventPacket();
         packet.sound = sound;
 
@@ -576,7 +579,7 @@ export class NetworkWorldReplicator implements WorldChangeSink {
         // Which mob is making it, so the client picks the zombie's grunt rather than a generic
         // thud. A player is deliberately the empty string: the client uses its own player sounds,
         // and naming `minecraft:player` here plays them twice.
-        packet.entityType = entity instanceof Player ? '' : entity.getType();
+        packet.entityType = this.world.viewerOf(entity.getRuntimeId()) === undefined ? entity.getType() : '';
         packet.entityUniqueId = entity.getRuntimeId();
         packet.isBabyMob = false;
         packet.disableRelativeVolume = false;
@@ -609,7 +612,8 @@ export class NetworkWorldReplicator implements WorldChangeSink {
             return packet;
         };
         const sends = [this.sendToTrackedEntity(entity, () => [packetForViewer()])];
-        if (entity instanceof Player) sends.push(entity.getNetworkSession().send(packetForViewer()));
+        const own = this.world.viewerOf(entity.getRuntimeId());
+        if (own !== undefined) sends.push(own.send(packetForViewer()));
         await Promise.all(sends);
     }
 
@@ -625,9 +629,8 @@ export class NetworkWorldReplicator implements WorldChangeSink {
             return [packet];
         };
         const sends = [this.sendToTrackedEntity(entity, packetsForCodec)];
-        if (entity instanceof Player) {
-            sends.push(entity.getNetworkSession().sendAttributesFor(entity, attributes));
-        }
+        const own = this.world.viewerOf(entity.getRuntimeId());
+        if (own !== undefined) sends.push(own.sendAttributesFor(entity, attributes));
         await Promise.all(sends);
     }
 
@@ -658,9 +661,8 @@ export class NetworkWorldReplicator implements WorldChangeSink {
             return packet;
         };
         const sends = [this.sendToTrackedEntity(entity, () => [packetForViewer()])];
-        if (entity instanceof Player) {
-            sends.push(entity.getNetworkSession().sendStatusEffect(entity, effect, change));
-        }
+        const own = this.world.viewerOf(entity.getRuntimeId());
+        if (own !== undefined) sends.push(own.sendStatusEffect(entity, effect, change));
         await Promise.all(sends);
     }
 
@@ -678,7 +680,8 @@ export class NetworkWorldReplicator implements WorldChangeSink {
             return [packet];
         };
         const sends = [this.sendToTrackedEntity(entity, packetsForCodec)];
-        if (entity instanceof Player) sends.push(entity.getNetworkSession().sendMetadataFor(entity));
+        const own = this.world.viewerOf(runtimeEntityId);
+        if (own !== undefined) sends.push(own.sendMetadataFor(entity));
         await Promise.all(sends);
     }
 
@@ -719,17 +722,17 @@ export class NetworkWorldReplicator implements WorldChangeSink {
             return packets;
         };
         const sends = [this.sendToTrackedEntity(entity, packetsForCodec)];
-        if (entity instanceof Player) sends.push(entity.getNetworkSession().sendEquipmentFor(entity));
+        const own = this.world.viewerOf(runtimeEntityId);
+        if (own !== undefined) sends.push(own.sendEquipmentFor(entity));
         await Promise.all(sends);
     }
 
     /** @inheritdoc */
     public async entityAdded(entity: ShownActor): Promise<void> {
-        if (entity instanceof Player) {
-            // Everything already here, shown to the arriving player. Itself excluded by the
-            // tracker, since a client is never sent a spawn for the entity it is controlling.
-            await entity.getNetworkSession().reconcileTrackedEntities(this.world.shownActors());
-        }
+        const runtimeId = entity.getRuntimeId();
+        // Everything already here, shown to the arriving player. Itself excluded by the
+        // tracker, since a client is never sent a spawn for the entity it is controlling.
+        await this.world.viewerOf(runtimeId)?.reconcileTrackedEntities(this.world.shownActors());
 
         // And the arriving entity offered to everyone already here. This used to return early
         // for a player, so an arriving player was shown the world but the world was never
@@ -737,9 +740,9 @@ export class NetworkWorldReplicator implements WorldChangeSink {
         // own across every player on the server.
         await Promise.all(
             this.world
-                .getPlayers()
-                .filter((player) => player !== entity)
-                .map(async (player) => player.getNetworkSession().considerEntity(entity))
+                .getViewers()
+                .filter((session) => session.runtimeId !== runtimeId)
+                .map(async (session) => session.considerEntity(entity))
         );
     }
 
@@ -748,7 +751,7 @@ export class NetworkWorldReplicator implements WorldChangeSink {
         // Through the tracker rather than `despawnFrom`, so only the clients that were
         // actually shown this entity are told to take it away, and so every client forgets it
         // either way - a stale id left behind would block it from ever being tracked again.
-        await Promise.all(this.world.getPlayers().map(async (player) => player.getNetworkSession().dropEntity(entity)));
+        await Promise.all(this.world.getViewers().map(async (session) => session.dropEntity(entity)));
     }
 
     /** @inheritdoc */
@@ -766,22 +769,18 @@ export class NetworkWorldReplicator implements WorldChangeSink {
     /** @inheritdoc */
     public async timeChanged(ticks: number): Promise<void> {
         // Try to send it at the same time to all
-        await Promise.all(this.world.getPlayers().map((player) => player.getNetworkSession().sendTime(ticks)));
+        await Promise.all(this.world.getViewers().map((session) => session.sendTime(ticks)));
     }
 
     /** @inheritdoc */
     public async gameRuleChanged(name: string, value: boolean | number, editable: boolean): Promise<void> {
         const rule = toNetworkGameRule(name, value, editable);
-        await Promise.all(
-            this.world.getPlayers().map(async (player) => player.getNetworkSession().sendGameRules([rule]))
-        );
+        await Promise.all(this.world.getViewers().map(async (session) => session.sendGameRules([rule])));
     }
 
     /** @inheritdoc */
     public async reconcile(entities: readonly ShownActor[]): Promise<void> {
-        await Promise.all(
-            this.world.getPlayers().map(async (player) => player.getNetworkSession().reconcileTrackedEntities(entities))
-        );
+        await Promise.all(this.world.getViewers().map(async (session) => session.reconcileTrackedEntities(entities)));
     }
 
     /**
@@ -797,12 +796,10 @@ export class NetworkWorldReplicator implements WorldChangeSink {
     ): Promise<void> {
         const runtimeId = entity.getRuntimeId();
         const playersByCodec = new Map<ProtocolCodec, ClientConnection[]>();
-        for (const player of this.world.getPlayers()) {
+        for (const session of this.world.getViewers()) {
             // By id, not by object: `tracks` answers yes for a client's own entity, and a player
             // in the entity store is shown through an actor that is not its session's `Player`.
-            if (player.getRuntimeId() === runtimeId) continue;
-            const session = player.getNetworkSession();
-            if (!session.tracks(runtimeId)) continue;
+            if (session.runtimeId === runtimeId || !session.tracks(runtimeId)) continue;
 
             const connection = session.getConnection();
             const group = playersByCodec.get(connection.codec);
@@ -826,12 +823,12 @@ export class NetworkWorldReplicator implements WorldChangeSink {
 
         const pendingMoves = [...this.pendingMoves.entries()];
         this.pendingMoves.clear();
-        const playersByCodec = new Map<ProtocolCodec, Player[]>();
-        for (const player of this.world.getPlayers()) {
-            const codec = player.getNetworkSession().getConnection().codec;
-            const players = playersByCodec.get(codec);
-            if (players === undefined) playersByCodec.set(codec, [player]);
-            else players.push(player);
+        const sessionsByCodec = new Map<ProtocolCodec, PlayerSession[]>();
+        for (const session of this.world.getViewers()) {
+            const codec = session.getConnection().codec;
+            const sessions = sessionsByCodec.get(codec);
+            if (sessions === undefined) sessionsByCodec.set(codec, [session]);
+            else sessions.push(session);
         }
 
         const compressionLevel = this.server.getConfig().getPacketCompressionLevel();
@@ -839,18 +836,16 @@ export class NetworkWorldReplicator implements WorldChangeSink {
         const fragmentCache = fullFlushFragments ? new FullFlushFragmentCache() : undefined;
         const sends: Promise<void>[] = [];
 
-        for (const [codec, players] of playersByCodec) {
+        for (const [codec, sessions] of sessionsByCodec) {
             // Resolve visibility once per viewer, then encode only the union. This keeps the
             // tracker checks linear in viewers × moved actors instead of rescanning viewers
-            // once for every moved actor. Keyed by the viewer's session, which is all the send
-            // below needs, so the map holds no player object.
+            // once for every moved actor.
             const visibleMovesBySession = new Map<PlayerSession, (typeof pendingMoves)[number][]>();
             const visibleRuntimeIds = new Set<number>();
-            for (const player of players) {
-                const session = player.getNetworkSession();
-                const viewerRuntimeId = player.getRuntimeId();
+            for (const session of sessions) {
                 const visibleMoves = pendingMoves.filter(
-                    ([, packet]) => packet.runtimeEntityId !== viewerRuntimeId && session.tracks(packet.runtimeEntityId)
+                    ([, packet]) =>
+                        packet.runtimeEntityId !== session.runtimeId && session.tracks(packet.runtimeEntityId)
                 );
                 if (visibleMoves.length === 0) continue;
                 visibleMovesBySession.set(session, visibleMoves);
@@ -958,21 +953,21 @@ export class NetworkWorldReplicator implements WorldChangeSink {
      *
      * The buffer is safe to share: `getBuffer()` returns a fresh copy on the write path,
      * RakNet only reads it, and fragmentation takes read-only slices of it.
-     * @param {Player[]} audience - Who receives it.
+     * @param audience - The sessions that receive it.
      * @param packet - The packet to send.
      */
-    private sendToAll<T extends NetworkPacket<unknown>>(audience: Player[], packet: T): void {
+    private sendToAll<T extends NetworkPacket<unknown>>(audience: PlayerSession[], packet: T): void {
         if (audience.length === 0) return;
 
         // One recipient is the common case for anything happening near a single player, and
         // the ordinary path already does exactly this.
         if (audience.length === 1) {
-            void audience[0]!.getNetworkSession().send(packet);
+            void audience[0]!.send(packet);
             return;
         }
 
         broadcastSharedBatches(
-            audience.map((player) => player.getNetworkSession().getConnection()),
+            audience.map((session) => session.getConnection()),
             [packet],
             this.server.getConfig().getPacketCompressionLevel(),
             (error) => this.server.getLogger().error(error)

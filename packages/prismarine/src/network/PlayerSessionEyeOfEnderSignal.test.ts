@@ -25,6 +25,8 @@ const thrownEye = () => {
     const replicator = new NetworkWorldReplicator(world, server);
     Object.assign(world, {
         getPlayers: () => [player],
+        getViewers: () => [player.getNetworkSession()],
+        viewerOf: (runtimeId: bigint) => (runtimeId === player.getRuntimeId() ? player.getNetworkSession() : undefined),
         entityRelocated: () => {},
         broadcastMove: async (actor: ShownActor, teleport?: boolean) => replicator.entityMoved(actor, teleport),
         showActor: async () => {},
