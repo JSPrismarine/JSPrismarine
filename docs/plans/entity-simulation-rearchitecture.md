@@ -137,7 +137,7 @@ As of 2026-11-10, at program head `646dd8a4f3`, rebased on `master` `9a2c1d5af5`
 | C1a component state on the instance, C1b one entity index, C1c the entity store with logged setters, spans and undo | Landed |
 | Replay determinism fixes (settle gaps, wall-clock chunk budget in the harness) | Landed |
 | C2 items and the eye of ender in the store | Done on `refactor/item-entities-to-store-v2`, not integrated |
-| C3 staged damage and death, the mirror deleted | Work in progress, not landed |
+| C3 staged damage and death, the mirror deleted | Done on `refactor/store-owned-mob-damage-v3`, not integrated. Damage, death and client display are the store's; the legacy bodies remain for non-network callers, see below |
 | C4c player components with logged setters, and an inventory that logs one entry per slot | Done on `refactor/player-components-logged`, not integrated |
 | C4b, C4d to C4h and everything in phases D to F | Not started |
 
@@ -231,6 +231,19 @@ C4c left these for later packages.
 - `Entity.restoreLoggedField` and `restoreLoggedSlot`, which `Human` and `Player` override, are how the adapter's inverse writer reaches a legacy player. C4h deletes them with the adapter. Test doubles built from `Player.prototype` without the constructor get their components from `withPlayerComponents` in `testing/playerDouble.test.helper.ts`, which C4h deletes with them.
 - `Player.getExperience` replaced six hand-built experience holders, so every experience write goes through the component.
 - The saved player record is unchanged: `PlayerPersistenceFormat.test.ts` passes byte for byte.
+
+C3 left these for later packages.
+
+- Every blow a store entity takes is a `DamageIntent` run by `DamagePipeline` (`entity/data/damagePipeline.ts`, `damageStages.ts`): a mob's bite, an area attack, a projectile, a blast, a player's swing, a status effect, a command, an item action, a component hazard and a dropped stack's fire, lava and cactus. The guards are `present`, `invulnerable`, `damage_resistant` (a dropped stack's item), `hit_grace`, `cannot_be_attacked`, `dragon`, `damage_sensor`, the `fireDamage` game rule and the before-hooks a host adds. The modifiers are the grace difference, armor, protection, resistance, absorption, the dragon's scaling and the sensor's multiplier, in that priority order, so the sensor still scales what armor left, as it did when the mirror handed the runtime the body's loss.
+- A blow from the legacy code keeps the rules the legacy pipeline gave a mob through `DamageSourceFacts`: the grace period, the mitigation and the shove. A mob's own attacks keep none. `legacyDamage.ts` turns a `DamageSource` into an intent and maps the legacy causes to Bedrock names, so a sensor sees a player's swing as `entity_attack`.
+- A veto appends one `action-rejected` occurrence and nothing else. The grace period is a runtime map, not logged and not saved, as the legacy body's was not. The sensing is memoized for one run in `DamageSensingSlot`, which the sensor guard, the multiplier and the commit share.
+- A death runs inside the commit of the blow, queued `minecraft:on_death` events first, where it waited for the entity's next tick before.
+- The plugin `entityDamage` event is a before-hook that can cancel a blow or change its amount, and `entityDeath` and the advancement triggers are raised from `EntityHostFacts.damageCommitted`, inside the blow, before a death removes the victim. The `gameplay.combat-advancements` parity family checks that timing. Slice 7 has to keep it when observers read the log.
+- Health is the store's alone. The comparison that handed a body's loss back to the runtime is gone, and a body reads its health from the store and heals through it.
+- Clients are shown store entities through `StoreActor`s (`entity/data/storeActors.ts`), one per store entity, which answer the network layer from store state through the structural `ShownActor` (`world/ShownActor.ts`). `StoreActors.sync` sends what changed since it last sent each entity, which is replication's work until slice 7 reads the log instead. Nothing in it is mob-specific; the eye of ender shows through it. Dropped stacks still show through C2's `ItemActorBody`, which the actors can take over.
+- The legacy bodies (`LiveBodies`) are still in each world's entity map, written silently and never announced, because the legacy code still reaches a mob through it: commands and selectors, legacy blasts and swings (`damageEntity`), interactions and trades, chunk saves and the replay digest (body NBT and attributes), portal travel, spawner counts, the dragon fight and riding. Moving those to store lookups deletes the bodies. Until then the proxy target "no mirror class" is not met; the health comparison is gone.
+- `damage` is synchronous for store entities. A legacy player's `Entity.damage` is still async, because its sends are awaited, and `live.ts` still starts it without awaiting for a mob's blow on a player. That goes with C4b and slice 7.
+- A player's death no longer awaits the respawn search. `onDeath` files it with `RespawnRequests` (`world/RespawnRequests.ts`), and the next input step awaits every search filed before it, in order, then applies `spawnPointLost` and sends `Respawn` and `DeathInfo`. Awaiting in the input step keeps the applying tick independent of host speed, but the search still loads chunks inside the tick, so its `IN_TICK_CHUNK_LOADS` entry moved to slice 9, where such loads become recorded inputs. `RespawnHandler` and `respawn` still search as they run.
 
 ### Phase C: the store
 
