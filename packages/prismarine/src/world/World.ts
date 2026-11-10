@@ -89,6 +89,11 @@ import type BaseProvider from './providers/BaseProvider';
 import type { ChunkSaveContext } from './providers/ChunkSaveContext';
 import { createChunkSaveContext } from './providers/ChunkSaveContext';
 import type { Level } from './Level';
+import type { EntityStore } from '../entity/data/EntityStore';
+import { legacyInverseWriter, logLegacyWrite } from '../entity/legacyAdapter';
+import type { SealedTick } from './changelog/ChangeLog';
+import type { ChangeLogCost } from './changelog/changeLogCost';
+import { changeLogCost } from './changelog/changeLogCost';
 
 export type { LevelData, StoredPlayerAttribute, WorldConfig, WorldPlayerData } from '../config/JsonConfigTypes';
 
@@ -616,6 +621,10 @@ export class World implements Service {
      * this is the ordinary case rather than a defensive one.
      */
     private closing = false;
+    /** Whether the world has reported that its entity store broke and it stopped ticking. */
+    private stopReported = false;
+    /** The store the legacy adapter's writer was registered with. */
+    private adaptedStore: EntityStore | undefined;
 
     /**
      * The start region work while it is running, so a shutdown can wait for it rather than
@@ -971,11 +980,104 @@ export class World implements Service {
     }
 
     /**
-     * Called every tick.
+     * Runs one tick of the world, between opening and sealing that tick of its change log
+     * ([ADR 0015](../../../../docs/adr/0015-a-tick-is-a-fixed-sequence-of-synchronous-phases.md)).
      *
-     * @param tick
+     * The ticker opens the log before the input step, so the inputs it applies land in this
+     * tick, and an update the ticker did not open for opens it here. A world whose entity store
+     * failed to undo a unit is no longer trusted, so it stops ticking and says so once.
+     *
+     * @param tick - The server tick.
      */
     public async update(tick: number): Promise<void> {
+        if (!this.hasEntityStore()) return this.tickWorld(tick);
+        const store = this.getEntityStore();
+        if (store.broken !== undefined) {
+            if (!this.stopReported) {
+                this.stopReported = true;
+                this.server
+                    .getLogger()
+                    .error(`World ${this.name} stopped ticking: its entity store failed to undo a unit`);
+                this.server.getLogger().error(store.broken);
+            }
+            return;
+        }
+        store.beginTick();
+        try {
+            await this.tickWorld(tick);
+        } finally {
+            store.sealTick();
+        }
+    }
+
+    /**
+     * Opens this tick of the world's change log, before the input step applies anything. Opening
+     * a tick that is already open does nothing.
+     */
+    public beginChangeTick(): void {
+        if (this.hasEntityStore()) this.getEntityStore().beginTick();
+    }
+
+    /**
+     * Seals the open tick of the world's change log, for a world the ticker opened and then did
+     * not update, such as a frozen one.
+     *
+     * @returns The sealed tick, or undefined when none was open.
+     */
+    public sealChangeTick(): SealedTick | undefined {
+        return this.hasEntityStore() ? this.getEntityStore().sealTick() : undefined;
+    }
+
+    /**
+     * The last sealed tick of the world's change log, until the next tick begins.
+     *
+     * @returns The tick, or undefined while one is open or before the first one sealed.
+     */
+    public lastChangeTick(): SealedTick | undefined {
+        return this.hasEntityStore() ? this.getEntityStore().lastSealed() : undefined;
+    }
+
+    /**
+     * Hears what each sealed tick of the world's change log cost, in entries and estimated bytes,
+     * which the replay scenarios report (non-gating).
+     * @returns A function that removes the listener.
+     */
+    public onChangeTickCost(listener: (cost: ChangeLogCost) => void): () => void {
+        return this.getEntityStore().onSealed((sealed) => listener(changeLogCost(sealed)));
+    }
+
+    /** Whether the server built an entity runtime, and so an entity store, for this world's dimension. */
+    public hasEntityStore(): boolean {
+        return this.server.hasEntityRuntime?.() ?? false;
+    }
+
+    /**
+     * The entity store of this world's dimension, which holds its change log. The first call
+     * registers the legacy adapter's writer, so the store can undo writes to legacy entities.
+     */
+    public getEntityStore(): EntityStore {
+        const store = this.dataEntities().runtime.store;
+        if (this.adaptedStore !== store) {
+            this.adaptedStore = store;
+            store.addInverseWriter(legacyInverseWriter(this));
+        }
+        return store;
+    }
+
+    /**
+     * Applies one input as a unit of the change log: when it throws, what it wrote is undone and
+     * the error is thrown on to the caller.
+     *
+     * @param apply - The input's handler.
+     */
+    public async runInput(apply: () => Promise<void>): Promise<void> {
+        if (!this.hasEntityStore()) return apply();
+        const outcome = await this.getEntityStore().unitAsync(apply);
+        if (outcome.failed) throw outcome.error;
+    }
+
+    /** The phases of one tick, which {@link World.update} runs inside an open log tick. */
+    private async tickWorld(tick: number): Promise<void> {
         // A tick already in flight when the shutdown starts would otherwise run on through
         // the save and past the provider's close, and plenty of what a tick does - a block
         // update, a mob looking at the ground ahead of it - loads a chunk.
@@ -1537,6 +1639,8 @@ export class World implements Service {
     private async enterChunk(index: number, chunk: Chunk): Promise<boolean> {
         const x = chunk.getX();
         const z = chunk.getZ();
+        // Named before its entities, which enter after it and leave before it.
+        if (this.hasEntityStore()) this.getEntityStore().chunk('enter', x, z);
         // The provider has completed generation or disk decoding; keep its mutable write fast path
         // out of the final retained form and pack each section before it enters the loaded world.
         this.measured('chunk-register', () => {
@@ -3246,6 +3350,7 @@ export class World implements Service {
         }
 
         this.systems.onChunkUnloaded(chunk.getX(), chunk.getZ());
+        if (this.hasEntityStore()) this.getEntityStore().chunk('leave', chunk.getX(), chunk.getZ());
         this.chunks.delete(index);
         this.loadedChunksRevision++;
         this.getPlayerChunkRefCounts().chunkUnloaded(chunk);
@@ -3740,10 +3845,19 @@ export class World implements Service {
      * @param {Entity} entity - The entity that moved.
      * @internal
      */
-    public entityRelocated(entity: Entity): void {
+    public entityRelocated(entity: Entity, before?: Position): void {
         if (this.entities.get(Number(entity.getRuntimeId())) !== entity) return;
         this.getEntityIndex().refileLegacy(entity);
         this.markEntityChunkChanged(entity);
+        if (before !== undefined && before.getWorld() === this) {
+            const after = entity.getPosition();
+            logLegacyWrite(
+                entity,
+                'position',
+                { x: before.getX(), y: before.getY(), z: before.getZ() },
+                { x: after.getX(), y: after.getY(), z: after.getZ() }
+            );
+        }
     }
     /**
      * Get all players in this world.

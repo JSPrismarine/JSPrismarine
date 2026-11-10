@@ -54,6 +54,7 @@ import type { PlayerSpawn } from './world/SpawnPlacement';
 import type { BlockMining } from './world/BlockMining';
 import CoordinateUtils from './world/CoordinateUtils';
 import { DEFAULT_VIEW_DISTANCE_CHUNKS } from './world/Proximity';
+import { logLegacyWrite } from './entity/legacyAdapter';
 
 /**
  * How much exhaustion buys one point of saturation, and then of food.
@@ -708,7 +709,9 @@ export default class Player extends Human {
         // progress does not carry over into it.
         if (event.getGamemode() !== this.gamemode) await this.stopMining();
 
+        const before = this.gamemode;
         this.gamemode = event.getGamemode();
+        logLegacyWrite(this, 'gamemode', before, this.gamemode);
         await this.getNetworkSession().sendGamemode();
 
         // Everyone in the world, this player included, caches each player's game type and

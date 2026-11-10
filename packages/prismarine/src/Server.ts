@@ -751,6 +751,15 @@ export default class Server extends EventEmitter {
     }
 
     /**
+     * Whether {@link Server.getEntityRuntime} can answer, which it can once the pack stack is
+     * built: it builds a dimension's runtime on first ask.
+     * @returns {boolean} Whether the content world exists.
+     */
+    public hasEntityRuntime(): boolean {
+        return this.contentWorld !== undefined;
+    }
+
+    /**
      * The data-driven entities of one dimension.
      *
      * Asking builds the dimension's content adapter if nothing has yet, so a world that
