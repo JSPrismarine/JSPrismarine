@@ -1,5 +1,7 @@
 import NetworkPacket from '../NetworkPacket';
 import { PacketIdentifier } from '../PacketIdentifier';
+import { serverboundLoadingScreenPacket } from '../wire/definitions/serverboundLoadingScreen';
+import { layoutAt } from '../wire/WireLayout';
 
 import type NetworkBinaryStream from '../NetworkBinaryStream';
 
@@ -32,14 +34,10 @@ export default class ServerboundLoadingScreenPacket extends NetworkPacket<Server
     }
 
     protected serializePayload(stream: NetworkBinaryStream, data: ServerboundLoadingScreen): void {
-        stream.writeVarInt(data.loadingScreenType);
-        stream.writeBoolean(data.loadingScreenId !== null);
-        if (data.loadingScreenId !== null) stream.writeUnsignedIntLE(data.loadingScreenId);
+        layoutAt(serverboundLoadingScreenPacket, this.codecProtocol).encode(stream, data);
     }
 
     protected deserializePayload(stream: NetworkBinaryStream): ServerboundLoadingScreen {
-        const loadingScreenType = stream.readVarInt();
-        const loadingScreenId = stream.readBoolean() ? stream.readUnsignedIntLE() : null;
-        return { loadingScreenType, loadingScreenId };
+        return layoutAt(serverboundLoadingScreenPacket, this.codecProtocol).decode(stream);
     }
 }

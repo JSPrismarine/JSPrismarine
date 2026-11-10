@@ -156,6 +156,9 @@ import { simulationTypePacket } from './simulationType';
 import { tickingAreasLoadStatusPacket } from './tickingAreasLoadStatus';
 import { toastRequestPacket } from './toastRequest';
 import { updateClientInputLocksPacket } from './updateClientInputLocks';
+import { animateEntityPacket } from './animateEntity';
+import { unlockedRecipesPacket } from './unlockedRecipes';
+import { serverboundLoadingScreenPacket } from './serverboundLoadingScreen';
 import type { PacketDefinition } from '../define';
 
 /** The declaratively defined packets, keyed by packet name. */
@@ -305,6 +308,9 @@ export const wireDefinitions: ReadonlyMap<string, PacketDefinition> = new Map(
         simulationTypePacket,
         tickingAreasLoadStatusPacket,
         toastRequestPacket,
-        updateClientInputLocksPacket
+        updateClientInputLocksPacket,
+        animateEntityPacket,
+        unlockedRecipesPacket,
+        serverboundLoadingScreenPacket
     ].map((definition) => [definition.name, definition])
 );

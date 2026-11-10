@@ -1,5 +1,7 @@
 import NetworkPacket from '../NetworkPacket';
 import { PacketIdentifier } from '../PacketIdentifier';
+import { animateEntityPacket } from '../wire/definitions/animateEntity';
+import { layoutAt } from '../wire/WireLayout';
 
 import type NetworkBinaryStream from '../NetworkBinaryStream';
 
@@ -36,27 +38,10 @@ export default class AnimateEntityPacket extends NetworkPacket<AnimateEntity> {
     }
 
     protected serializePayload(stream: NetworkBinaryStream, data: AnimateEntity): void {
-        stream.writeString(data.animation);
-        stream.writeString(data.nextState);
-        stream.writeString(data.stopExpression);
-        stream.writeIntLE(data.stopExpressionVersion);
-        stream.writeString(data.controller);
-        stream.writeFloatLE(data.blendOutTime);
-        stream.writeUnsignedVarInt(data.runtimeIds.length);
-        for (const runtimeId of data.runtimeIds) stream.writeUnsignedVarLong(runtimeId);
+        layoutAt(animateEntityPacket, this.codecProtocol).encode(stream, data);
     }
 
     protected deserializePayload(stream: NetworkBinaryStream): AnimateEntity {
-        const animation = stream.readString();
-        const nextState = stream.readString();
-        const stopExpression = stream.readString();
-        const stopExpressionVersion = stream.readIntLE();
-        const controller = stream.readString();
-        const blendOutTime = stream.readFloatLE();
-        const count = stream.readUnsignedVarInt();
-        const runtimeIds: bigint[] = [];
-        for (let index = 0; index < count; index++) runtimeIds.push(stream.readUnsignedVarLong());
-
-        return { animation, nextState, stopExpression, stopExpressionVersion, controller, blendOutTime, runtimeIds };
+        return layoutAt(animateEntityPacket, this.codecProtocol).decode(stream);
     }
 }
