@@ -139,6 +139,25 @@ describe('config', () => {
             expect(config.getUseRakNetWorker()).toBe(true);
         });
 
+        it('accepts RakNet and NetherNet clients and shows on the LAN by default, as BDS ships', () => {
+            expect(config.getEnableRakNet()).toBe(true);
+            expect(config.getEnableNetherNet()).toBe(true);
+            expect(config.getEnableLanVisibility()).toBe(true);
+        });
+
+        it('reads the transport and LAN visibility switches from config.json', async () => {
+            writeFileSync(
+                path.join(configDirectory, 'config.json'),
+                JSON.stringify({ 'enable-raknet': false, 'enable-nethernet': false, 'enable-lan-visibility': false })
+            );
+            const fromFile = new Config();
+            await fromFile.enable();
+
+            expect(fromFile.getEnableRakNet()).toBe(false);
+            expect(fromFile.getEnableNetherNet()).toBe(false);
+            expect(fromFile.getEnableLanVisibility()).toBe(false);
+        });
+
         it('should have the default packet compression level', () => {
             expect(config.getPacketCompressionLevel()).toBe(7);
         });

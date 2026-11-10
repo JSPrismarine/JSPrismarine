@@ -135,8 +135,14 @@ export interface ConfigFile {
     'entity-tracking-interval'?: number;
     /** Whether players must be signed in to Xbox Live. */
     'online-mode'?: boolean;
+    /** Whether to accept clients over RakNet, Bedrock's UDP transport before NetherNet. */
+    'enable-raknet'?: boolean;
     /** Whether RakNet UDP I/O and reliability updates run in a worker thread. */
     'use-raknet-worker'?: boolean;
+    /** Whether to accept clients over NetherNet, the WebRTC transport Bedrock Dedicated Server defaults to. */
+    'enable-nethernet'?: boolean;
+    /** Whether players on the local network see the server among their LAN games, as Bedrock Dedicated Server's `enable-lan-visibility`. */
+    'enable-lan-visibility'?: boolean;
     /** The zlib level for outgoing batches. @asType integer @minimum -1 @maximum 9 */
     'packet-compression-level'?: number;
     /** The batch compression algorithm advertised in `NetworkSettings`. */
@@ -197,7 +203,10 @@ export const CONFIG_KEY_ORDER = [
     'entity-tracking-hysteresis',
     'entity-tracking-interval',
     'online-mode',
+    'enable-raknet',
     'use-raknet-worker',
+    'enable-nethernet',
+    'enable-lan-visibility',
     'packet-compression-level',
     'packet-compression-algorithm',
     'packet-compression-threshold',

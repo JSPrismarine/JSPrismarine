@@ -73,7 +73,11 @@ const COMMENTS = {
     'entity-tracking-hysteresis': "Chunks past view distance before an entity leaves a player's screen.",
     'entity-tracking-interval': 'Ticks between entity visibility passes, at least 1.',
     'online-mode': 'Whether players must be signed in to Xbox Live.',
+    'enable-raknet': 'Whether to accept clients over RakNet, the UDP transport Bedrock used before NetherNet.',
     'use-raknet-worker': 'Whether RakNet networking runs in a worker thread.',
+    'enable-nethernet':
+        'Whether to accept clients over NetherNet, the WebRTC transport Bedrock Dedicated Server defaults to.',
+    'enable-lan-visibility': 'Whether players on the local network see the server among their LAN games.',
     'packet-compression-level': "The zlib level for outgoing batches, from -1 (zlib's default) to 9.",
     'packet-compression-algorithm':
         'The batch algorithm advertised to clients: zlib (default), snappy, or none. Other choices may use more bandwidth or differ in client support.',
@@ -124,7 +128,10 @@ const DEFAULTS = {
     'entity-tracking-hysteresis': 2,
     'entity-tracking-interval': 4,
     'online-mode': true,
+    'enable-raknet': true,
     'use-raknet-worker': true,
+    'enable-nethernet': true,
+    'enable-lan-visibility': true,
     'packet-compression-level': DEFAULT_PACKET_COMPRESSION_LEVEL,
     'packet-compression-algorithm': DEFAULT_PACKET_COMPRESSION_ALGORITHM,
     'packet-compression-threshold': DEFAULT_PACKET_COMPRESSION_THRESHOLD,
@@ -213,7 +220,10 @@ export class Config {
     private entityTrackingHysteresis: number = DEFAULTS['entity-tracking-hysteresis'];
     private entityTrackingInterval: number = DEFAULTS['entity-tracking-interval'];
     private onlineMode: boolean = DEFAULTS['online-mode'];
+    private enableRakNet: boolean = DEFAULTS['enable-raknet'];
     private useRakNetWorker: boolean = DEFAULTS['use-raknet-worker'];
+    private enableNetherNet: boolean = DEFAULTS['enable-nethernet'];
+    private enableLanVisibility: boolean = DEFAULTS['enable-lan-visibility'];
     private packetCompressionLevel: number = DEFAULTS['packet-compression-level'];
     private packetCompressionAlgorithm: ConfigFile['packet-compression-algorithm'] =
         DEFAULTS['packet-compression-algorithm'];
@@ -308,7 +318,10 @@ export class Config {
         this.entityTrackingHysteresis = read('entity-tracking-hysteresis', DEFAULTS['entity-tracking-hysteresis']);
         this.entityTrackingInterval = read('entity-tracking-interval', DEFAULTS['entity-tracking-interval']);
         this.onlineMode = read('online-mode', DEFAULTS['online-mode']);
+        this.enableRakNet = read('enable-raknet', DEFAULTS['enable-raknet']);
         this.useRakNetWorker = read('use-raknet-worker', DEFAULTS['use-raknet-worker']);
+        this.enableNetherNet = read('enable-nethernet', DEFAULTS['enable-nethernet']);
+        this.enableLanVisibility = read('enable-lan-visibility', DEFAULTS['enable-lan-visibility']);
         this.packetCompressionLevel = read('packet-compression-level', DEFAULTS['packet-compression-level']);
         this.packetCompressionAlgorithm = read(
             'packet-compression-algorithm',
@@ -595,9 +608,24 @@ export class Config {
         return this.onlineMode;
     }
 
+    /** Whether the server accepts clients over RakNet. */
+    public getEnableRakNet(): boolean {
+        return this.enableRakNet;
+    }
+
     /** Whether RakNet UDP I/O and reliability updates run outside the game thread. */
     public getUseRakNetWorker(): boolean {
         return this.useRakNetWorker;
+    }
+
+    /** Whether the server accepts clients over NetherNet. */
+    public getEnableNetherNet(): boolean {
+        return this.enableNetherNet;
+    }
+
+    /** Whether the server answers clients looking for games on the local network. */
+    public getEnableLanVisibility(): boolean {
+        return this.enableLanVisibility;
     }
 
     /**
