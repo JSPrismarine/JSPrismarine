@@ -142,6 +142,18 @@ priority is lowered or a control group is throttled, treat it as a diagnostic:
 A target written in milliseconds or chunks per second needs a deterministic proxy before work
 starts. When the plan has none, say so and propose one instead of benchmarking around it.
 
+## Running a test server
+
+Give a server you start for testing a flat world: set the world's `preset` to `minecraft:flat` in
+its `worlds.<name>` config entry ([dimensions](docs/data-driven/dimensions.md#the-config-shape)
+lists the keys). Flat chunks cost almost nothing to generate, so a startup, join or gameplay check
+does not wait on noise generation, and level ground keeps terrain out of what you are checking.
+
+Use `minecraft:normal` or another noise preset only when the work is about world generation or
+depends on it: noise and density functions, biomes, carvers, features, structures, surface rules,
+the generation pool and chunk scheduling, or behavior that needs real terrain, such as mob spawning
+by biome, `/locate`, or portals between dimensions.
+
 ## Tests and verification
 
 - Follow existing Vitest patterns and place unit tests beside the code they cover. Test observable
