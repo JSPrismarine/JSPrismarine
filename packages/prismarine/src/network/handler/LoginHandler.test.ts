@@ -266,7 +266,10 @@ describe('network', () => {
                     isOnline: () => true,
                     kick: async (reason) => void kicked.push(reason ?? '')
                 });
-                const existingSession = stub<PlayerSession>({ getPlayer: () => existing });
+                const existingSession = stub<PlayerSession>({
+                    getPlayer: () => existing,
+                    identity: { name: 'Steve', xuid: '2535400000000001', uuid: '00000000-0000-4000-8000-0000000000aa' }
+                });
                 const chainClaiming = (xuid: string, name: string) => ({
                     chain: [
                         `${segment({})}.${segment({ extraData: { XUID: xuid, identity: 'x', displayName: name } })}.sig`
