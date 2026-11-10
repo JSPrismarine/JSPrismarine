@@ -341,7 +341,7 @@ export class ServerNetworking implements Networking {
             );
         }
 
-        return new NetherNetTransport(nethernet, ids);
+        return new NetherNetTransport(nethernet, ids, undefined, logger);
     }
 
     /** Keeps the advertised player count at the number of live connections, whatever carries them. */

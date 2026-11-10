@@ -150,6 +150,41 @@ describe('network/transport/NetherNetTransport', () => {
             expect(frames).toStrictEqual([[batch('packets'), 1]]);
         });
 
+        it('keeps the messages a peer sends before it opens, and hands them on once it does', async () => {
+            // A client sends its first packet once its reliable channel opens, which can be before
+            // `nethernet` says the peer is open.
+            const source = new FakeNetherNetServer();
+            const transport = new NetherNetTransport(source, new ConnectionIds());
+            const frames: [Buffer, number][] = [];
+            transport.onFrame((payload, id) => void frames.push([payload, id]));
+
+            source.emit('encapsulated', Buffer.from('first'), 7n);
+            source.emit('encapsulated', Buffer.from('second'), 7n);
+            source.emit('openConnection', fakePeer(7n).peer);
+            source.emit('encapsulated', Buffer.from('third'), 7n);
+            await settle();
+
+            expect(frames).toStrictEqual([
+                [batch('first'), 1],
+                [batch('second'), 1],
+                [batch('third'), 1]
+            ]);
+        });
+
+        it('forgets the early messages of a peer that closes before it opens', async () => {
+            const source = new FakeNetherNetServer();
+            const transport = new NetherNetTransport(source, new ConnectionIds());
+            const frames: Buffer[] = [];
+            transport.onFrame((payload) => void frames.push(payload));
+
+            source.emit('encapsulated', Buffer.from('stale'), 7n);
+            source.emit('closeConnection', 7n, 'connecterror:15');
+            source.emit('openConnection', fakePeer(7n).peer);
+            await settle();
+
+            expect(frames).toStrictEqual([]);
+        });
+
         it('reports a close with the ID and address the peer opened with', async () => {
             const source = new FakeNetherNetServer();
             const transport = new NetherNetTransport(
