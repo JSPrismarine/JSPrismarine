@@ -100,6 +100,8 @@ export interface ConfigFile {
     'log-level'?: LogLevel;
     /** The port the server listens on: UDP for RakNet, TCP for NetherNet signaling. Bedrock clients look for 19132. @asType integer @minimum 0 @maximum 65535 */
     port?: number;
+    /** The UDP port RakNet listens on for IPv6 clients when `server-ip` is `0.0.0.0`. Bedrock clients look for 19133. @asType integer @minimum 0 @maximum 65535 */
+    'server-portv6'?: number;
     /** The address to listen on. `0.0.0.0` accepts connections on every interface. */
     'server-ip'?: string;
     /** Which entry of `worlds` players join. */
@@ -185,6 +187,7 @@ export const CONFIG_KEY_ORDER = [
     '$schema',
     'log-level',
     'port',
+    'server-portv6',
     'server-ip',
     'level-name',
     'worlds',

@@ -52,6 +52,8 @@ const DEFAULT_PACKET_COMPRESSION_THRESHOLD = 256;
 const COMMENTS = {
     'log-level': 'How much the console and the log file say: error, warn, info, verbose, debug or silly.',
     port: 'The port the server listens on: UDP for RakNet, TCP for NetherNet signaling. Bedrock clients look for 19132.',
+    'server-portv6':
+        'The UDP port RakNet listens on for IPv6 clients when server-ip is 0.0.0.0. Bedrock clients look for 19133.',
     'server-ip': 'The address to listen on. 0.0.0.0 accepts connections on every interface.',
     'level-name': 'Which entry of `worlds` players join.',
     worlds: 'Every world the server loads, by name, with its preset, provider and seed. Write the seed as a string; a 64-bit seed written as a number is rounded.',
@@ -111,6 +113,7 @@ const COMMENTS = {
 const DEFAULTS = {
     'log-level': isDev ? 'verbose' : 'info',
     port: 19132,
+    'server-portv6': 19133,
     'server-ip': '0.0.0.0',
     'level-name': 'world',
     'max-players': 20,
@@ -202,6 +205,7 @@ export class Config {
     private logLevel: LogLevel = DEFAULTS['log-level'];
 
     private port: number = DEFAULTS.port;
+    private portV6: number = DEFAULTS['server-portv6'];
     private serverIp: string = DEFAULTS['server-ip'];
     private levelName: string = DEFAULTS['level-name'];
     private worlds: Record<string, WorldData> = defaultWorlds();
@@ -297,6 +301,7 @@ export class Config {
         this.logLevel = read('log-level', DEFAULTS['log-level']);
         this.port = read('port', DEFAULTS.port);
         if (this.serverPortOverride !== undefined) this.port = this.serverPortOverride;
+        this.portV6 = read('server-portv6', DEFAULTS['server-portv6']);
         this.serverIp = read('server-ip', DEFAULTS['server-ip']);
         this.levelName = read('level-name', DEFAULTS['level-name']);
         this.worlds = read<Record<string, WorldData>>('worlds', this.worlds);
@@ -356,6 +361,17 @@ export class Config {
      */
     public getServerPort(): number {
         return this.port;
+    }
+
+    /**
+     * The UDP port RakNet listens on for IPv6 clients, as Bedrock Dedicated Server's
+     * `server-portv6`. Only a server bound to the IPv4 wildcard, `0.0.0.0`, also listens on
+     * IPv6: an operator who named one IPv4 interface asked for that interface alone.
+     * @returns The IPv6 port.
+     * @remarks The default port is `19133`.
+     */
+    public getServerPortV6(): number {
+        return this.portV6;
     }
 
     /**

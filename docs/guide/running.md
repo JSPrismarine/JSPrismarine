@@ -317,7 +317,7 @@ the server has been checked with retail Bedrock clients on Windows and Android.
 
 ### Every setting
 
-A fresh server writes these <!-- fact:config.count -->36<!-- /fact --> settings, each with the comment below
+A fresh server writes these <!-- fact:config.count -->37<!-- /fact --> settings, each with the comment below
 above it. The list comes from the code that writes the file, so it matches what your version writes.
 
 <!-- fact:config.table -->
@@ -325,6 +325,7 @@ above it. The list comes from the code that writes the file, so it matches what 
 | ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `log-level`                           | How much the console and the log file say: error, warn, info, verbose, debug or silly.                                                                                                             |
 | `port`                                | The port the server listens on: UDP for RakNet, TCP for NetherNet signaling. Bedrock clients look for 19132.                                                                                       |
+| `server-portv6`                       | The UDP port RakNet listens on for IPv6 clients when server-ip is 0.0.0.0. Bedrock clients look for 19133.                                                                                         |
 | `server-ip`                           | The address to listen on. 0.0.0.0 accepts connections on every interface.                                                                                                                          |
 | `level-name`                          | Which entry of `worlds` players join.                                                                                                                                                              |
 | `worlds`                              | Every world the server loads, by name, with its preset, provider and seed. Write the seed as a string; a 64-bit seed written as a number is rounded.                                               |
@@ -369,10 +370,14 @@ Bedrock clients reach the server over two transports, and it runs both unless `e
 | Transport | Ports                                                                                     | Used by                                                       |
 | --------- | ----------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
 | RakNet    | UDP `port`                                                                                | Clients that join over Bedrock's UDP transport                |
+| RakNet over IPv6 | UDP `server-portv6`, when `server-ip` is `0.0.0.0`                                  | Clients that reach the server over IPv6                       |
 | NetherNet | TCP `port` to set up the connection, then one UDP port per player that WebRTC picks        | Clients that join by address the way Bedrock Dedicated Server expects |
 | LAN       | UDP <!-- fact:nethernet.lanPort -->7551<!-- /fact -->, with `enable-lan-visibility` on      | Players on your local network, who see the server among their LAN games |
 
-A firewall in front of the server needs `port` open for both UDP and TCP. Only one program on a
+A firewall in front of the server needs `port` open for both UDP and TCP, and `server-portv6`
+open for UDP when IPv6 clients should reach it. A server bound to one IPv4 address through
+`server-ip` does not listen on IPv6 at all; when another program holds `server-portv6`, the server
+starts anyway and logs that IPv6 clients cannot join. Only one program on a
 machine can hold the LAN port; when another server or a game already holds it, the server starts
 anyway and logs that it is not visible on the local network.
 

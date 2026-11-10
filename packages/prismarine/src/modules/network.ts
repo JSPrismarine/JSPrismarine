@@ -23,6 +23,11 @@ import type Server from '../Server';
 import { withCwd } from '../utils/cwd';
 import { networkToken } from './tokens';
 
+/** The IPv4 bind address meaning every interface, which is what turns on the IPv6 listener too. */
+const IPV4_WILDCARD = '0.0.0.0';
+/** Every IPv6 interface, where the IPv6 listener binds. */
+const IPV6_WILDCARD = '::';
+
 /**
  * What the `prismarine:network` token resolves to: the server's network front
  * door. The listener binds when {@link Networking.start} is called — the bind
@@ -73,6 +78,8 @@ export interface Networking {
  */
 export class ServerNetworking implements Networking {
     private raknet: RakNetListenerLike | undefined;
+    /** The IPv6 RakNet listener beside {@link raknet}; set while a wildcard-bound server listens on IPv6. */
+    private raknetV6: RakNetListenerLike | undefined;
     private serverName: ServerName | undefined;
     private transport: Transport | undefined;
     private dispatcher: NetworkDispatcher<TransportConnection> | undefined;
@@ -100,7 +107,10 @@ export class ServerNetworking implements Networking {
         const serverName = this.serverName;
         this.transport = new MultiTransport((ids) => {
             const transports: Transport[] = [];
-            if (config.getEnableRakNet()) transports.push(this.startRakNet(address, port, serverName, ids));
+            if (config.getEnableRakNet()) {
+                transports.push(this.startRakNet(address, port, serverName, ids));
+                if (address === IPV4_WILDCARD) transports.push(this.startRakNetV6(serverName, ids));
+            }
             if (config.getEnableNetherNet()) transports.push(this.startNetherNet(address, port, serverName, ids));
             if (transports.length === 0) {
                 throw new Error('No transport is enabled: turn on enable-raknet or enable-nethernet in config.json');
@@ -172,19 +182,46 @@ export class ServerNetworking implements Networking {
 
     /** Drains worker events in queue order; socket mode already delivers on the event loop. */
     public pollInbound(): number {
-        return this.raknet instanceof WorkerServerSocket ? this.raknet.pollInbound() : 0;
+        let delivered = 0;
+        for (const raknet of [this.raknet, this.raknetV6]) {
+            if (raknet instanceof WorkerServerSocket) delivered += raknet.pollInbound();
+        }
+        return delivered;
     }
 
     /** Binds the RakNet listener, on a worker thread when the config says so. */
     private startRakNet(address: string, port: number, serverName: ServerName, ids: ConnectionIds): RakNetTransport {
-        const server = this.server;
-        const config = server.getConfig();
-        const raknet = config.getUseRakNetWorker()
-            ? new WorkerServerSocket(config.getMaxPlayers(), config.getOnlineMode(), serverName, server.getLogger())
-            : new RakNetListener(config.getMaxPlayers(), config.getOnlineMode(), serverName, server.getLogger());
+        const raknet = this.createRakNetListener(serverName);
         raknet.start(address, port);
         this.raknet = raknet;
-        return new RakNetTransport(raknet, server, ids);
+        return new RakNetTransport(raknet, this.server, ids);
+    }
+
+    /**
+     * Binds the second RakNet listener a wildcard-bound server runs, on every IPv6 interface and
+     * `server-portv6`, as Bedrock Dedicated Server does. A port another program holds costs IPv6
+     * clients their way in, with a warning, not the server.
+     */
+    private startRakNetV6(serverName: ServerName, ids: ConnectionIds): RakNetTransport {
+        const config = this.server.getConfig();
+        const logger = this.server.getLogger();
+        const port = config.getServerPortV6();
+        const raknet = this.createRakNetListener(serverName);
+        raknet.on('error', (error) =>
+            logger.warn(`IPv6 clients cannot join: UDP port ${port} is unavailable (${error.message})`)
+        );
+        raknet.start(IPV6_WILDCARD, port);
+        this.raknetV6 = raknet;
+        return new RakNetTransport(raknet, this.server, ids);
+    }
+
+    /** An unstarted RakNet listener on the shared server name, on a worker thread when the config says so. */
+    private createRakNetListener(serverName: ServerName): RakNetListenerLike {
+        const config = this.server.getConfig();
+        const logger = this.server.getLogger();
+        return config.getUseRakNetWorker()
+            ? new WorkerServerSocket(config.getMaxPlayers(), config.getOnlineMode(), serverName, logger)
+            : new RakNetListener(config.getMaxPlayers(), config.getOnlineMode(), serverName, logger);
     }
 
     /**

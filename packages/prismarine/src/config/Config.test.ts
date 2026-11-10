@@ -30,6 +30,10 @@ describe('config', () => {
             expect(config.getServerPort()).toBe(19132);
         });
 
+        it('should have the default IPv6 port', () => {
+            expect(config.getServerPortV6()).toBe(19133);
+        });
+
         it('should have the default server IP', () => {
             expect(config.getServerIp()).toBe('0.0.0.0');
         });
