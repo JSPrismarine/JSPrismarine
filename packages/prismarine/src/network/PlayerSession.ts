@@ -805,6 +805,9 @@ export default class PlayerSession {
             const compressionLevel = this.server.getConfig().getPacketCompressionLevel();
             const requestMode = this.usesSubChunkRequests();
             for (const { chunk, payload, revision } of chunksToSend) {
+                // A world change while an earlier chunk was compressing or sending: the rest are
+                // the old world's, and the client has already been told it is somewhere else.
+                if (epoch !== this.chunkEpoch) return;
                 const batch = await chunkBatchCache.getOrCreate(
                     chunk,
                     revision,
@@ -827,6 +830,7 @@ export default class PlayerSession {
                     this.connection.compressionThreshold,
                     requestMode ? 'request-mode' : 'uncached'
                 );
+                if (epoch !== this.chunkEpoch) return;
 
                 // Shared compression is safe; framing and encryption remain ordered per connection.
                 await this.connection.sendSharedCompressedBatchAsync(

@@ -583,4 +583,37 @@ describe('PlayerSession.changeWorld', () => {
         // The batch was the old world's chunk (0, 0). The new world's (0, 0) still has to be sent.
         expect(session['loadedChunks'].has(Chunk.packXZ(0, 0))).toBe(false);
     });
+
+    it("sends none of the old world's chunks still in the batch once the change is under way", async () => {
+        const { player, connection, sent } = fakePlayer();
+        const session = player.getNetworkSession();
+        let release = () => {};
+        let held = false;
+        connection.sendPacketsAsync = async (packets) => {
+            sent.push(...packets);
+            if (held) return;
+            held = true;
+            await new Promise<void>((resolve) => {
+                release = resolve;
+            });
+        };
+
+        await session.deliver(0, 0);
+        await session.deliver(1, 0);
+        const inFlight = session.flush();
+        await session.changeWorld(arrivalIn(worldOf(Dimensions.Nether)));
+        release();
+        await inFlight;
+
+        const change = sent.findIndex((packet) => packet instanceof ChangeDimensionPacket);
+        expect(change).toBeGreaterThan(-1);
+        const leaked = sent
+            .slice(change)
+            .filter(
+                (packet) =>
+                    packet instanceof LevelChunkPacket &&
+                    packet.getPacketData()?.dimension !== Dimensions.Nether.bedrockId
+            );
+        expect(leaked).toStrictEqual([]);
+    });
 });
