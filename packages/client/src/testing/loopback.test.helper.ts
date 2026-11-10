@@ -23,19 +23,17 @@ type Listener<A extends unknown[]> = (...args: A) => Promise<void> | void;
  * Clients and a server in one process, joined by in-memory pipes instead of sockets.
  *
  * The server end is a {@link Transport} handed to the `Server` constructor; each client end is an
- * {@link ITransport} handed to a `Client`. Nothing here reads a clock or sets a timer, and every
- * delivery to the server is tracked, so a harness can wait until the server has handled
- * everything the clients sent and then step the next tick by hand.
+ * {@link ITransport} handed to a `Client`. Nothing here reads a clock or sets a timer.
  *
- * Deliveries for one connection run one after another, connect first and close last, as
- * `RakNetTransport` orders them.
+ * Each delivery reaches the server's listeners at once, in the order the client made it, and is
+ * not waited on: the dispatcher keeps its own queue per connection, and a frame whose input waits
+ * for the next tick must not hold up the pipe. A harness asks the server, not the pipe, whether
+ * everything sent has been handled.
  */
 export class LoopbackNetwork {
     private readonly connectListeners: Listener<[TransportConnection]>[] = [];
     private readonly disconnectListeners: Listener<[ConnectionId, InetAddress, string]>[] = [];
     private readonly frameListeners: Listener<[Buffer, ConnectionId]>[] = [];
-    private readonly deliveries = new Map<ConnectionId, Promise<void>>();
-    private readonly inFlight = new Set<Promise<void>>();
     private readonly ends = new Map<ConnectionId, LoopbackClientEnd>();
     /** Numbers connections 1, 2, 3 as a fresh server's transports do, so a trace's IDs line up. */
     private readonly ids = new ConnectionIds();
@@ -62,16 +60,6 @@ export class LoopbackNetwork {
         return [...this.ends.keys()];
     }
 
-    /** Whether the server has handled every connect, frame and close delivered so far. */
-    public isIdle(): boolean {
-        return this.inFlight.size === 0;
-    }
-
-    /** Resolves once {@link LoopbackNetwork.isIdle} holds, including for deliveries made meanwhile. */
-    public async idle(): Promise<void> {
-        while (this.inFlight.size > 0) await Promise.allSettled([...this.inFlight]);
-    }
-
     /** @internal Admits a client end, as RakNet's `openConnection` does. */
     public open(end: LoopbackClientEnd): Promise<void> {
         const id = this.ids.allocate();
@@ -84,14 +72,15 @@ export class LoopbackNetwork {
             sendFrame: (payload) => end.receive(payload),
             close: (reason) => end.hangUp(reason ?? 'server disconnect')
         };
-        return this.deliver(id, this.connectListeners, (listener) => listener(connection));
+        // Awaited: a connection is admitted before the client sends its first frame.
+        return this.deliver(this.connectListeners, (listener) => listener(connection));
     }
 
     /** @internal Hands one frame a client sent to the server. */
     public frame(end: LoopbackClientEnd, payload: Buffer): void {
         const id = end.id;
         if (id === undefined) return;
-        void this.deliver(id, this.frameListeners, (listener) => listener(payload, id));
+        void this.deliver(this.frameListeners, (listener) => listener(payload, id));
     }
 
     /** @internal Forgets a client end, as RakNet's `closeConnection` does, whichever side hung up. */
@@ -99,23 +88,15 @@ export class LoopbackNetwork {
         const id = end.id;
         if (id === undefined || this.ends.get(id) !== end) return;
         this.ends.delete(id);
-        void this.deliver(id, this.disconnectListeners, (listener) => listener(id, end.address, reason));
+        void this.deliver(this.disconnectListeners, (listener) => listener(id, end.address, reason));
     }
 
-    private deliver<A extends unknown[]>(
-        id: ConnectionId,
+    /** Calls each listener now, in order, and settles once they all have. */
+    private async deliver<A extends unknown[]>(
         listeners: readonly Listener<A>[],
         call: (listener: Listener<A>) => Promise<void> | void
     ): Promise<void> {
-        const previous = this.deliveries.get(id) ?? Promise.resolve();
-        const current = previous.then(async () => {
-            for (const listener of listeners) await call(listener);
-        });
-        const tracked = current.catch(() => {});
-        this.deliveries.set(id, tracked);
-        this.inFlight.add(tracked);
-        void tracked.finally(() => this.inFlight.delete(tracked));
-        return current;
+        await Promise.all(listeners.map((listener) => call(listener)));
     }
 }
 

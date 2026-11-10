@@ -63,6 +63,7 @@ const recoverDebt = async (debtMs: number) => {
             }
             completedTick = activeTick;
         },
+        admitInputs: async () => 0,
         pollNetwork: () => 0,
         getWorlds: () => [],
         getChunkCompletionQueue: () => new ChunkCompletionQueue(),

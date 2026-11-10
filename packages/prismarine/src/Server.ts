@@ -275,6 +275,7 @@ export default class Server extends EventEmitter {
         this.commandManager = new CommandManager(this, onStopCommandComplete);
         this.ticker = new ServerTicker({
             emitTick: (event) => this.emit('tick', event),
+            admitInputs: () => this.networking.admitInputs(),
             pollNetwork: () => this.networking.pollInbound(),
             // The levels, not the worlds: a level advances its clock once and ticks each of its worlds.
             getWorlds: () => this.worldManager.getLevels(),
@@ -565,6 +566,11 @@ export default class Server extends EventEmitter {
         this.generationGovernor?.close();
 
         try {
+            // No tick will apply what is still held for the input step, so apply it here: a player
+            // whose connection closed during the last tick is torn down and saved like the rest,
+            // rather than left in its world with nobody to remove it.
+            await this.networking.admitInputs(Number.POSITIVE_INFINITY);
+
             // Kick all online players. `kickAllPlayers` would send the `KICKED` code, and a
             // client told the server shut down shows that code instead.
             await Promise.all(
