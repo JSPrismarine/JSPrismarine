@@ -129,7 +129,6 @@ export default class PlayerAuthInputHandler implements PacketHandler<PlayerAuthI
     private readonly requests = new ItemStackRequestHandler();
 
     public async handle(packet: PlayerAuthInputPacket, server: Server, session: PlayerSession): Promise<void> {
-        const player = session.getPlayer();
         const packetData = packet.getPacketData();
         if (packetData === null) return;
         const input = playerAuthInputFromProtocol(packetData, session.getConnection().codec.context);
@@ -138,7 +137,7 @@ export default class PlayerAuthInputHandler implements PacketHandler<PlayerAuthI
         if (reason !== null) {
             server
                 .getLogger()
-                .debug(`Dropped an input from ${player.getName()}: ${reason}`, 'PlayerAuthInputHandler/handle');
+                .debug(`Dropped an input from ${session.identity.name}: ${reason}`, 'PlayerAuthInputHandler/handle');
             return;
         }
 
@@ -153,7 +152,7 @@ export default class PlayerAuthInputHandler implements PacketHandler<PlayerAuthI
         // been sent yet, so acting on input would move a player the server is about to move.
         if (session.pendingDimensionChange() !== undefined || session.pendingCreditsArrival() !== undefined) return;
 
-        if (!player.isOnline()) return;
+        if (!session.isConnected()) return;
 
         await applyClientMovement(server, session, {
             position: input.position,
@@ -230,7 +229,7 @@ export default class PlayerAuthInputHandler implements PacketHandler<PlayerAuthI
         server
             .getLogger()
             .debug(
-                `Ignored the ${section} of an input from ${session.getPlayer().getName()}: the ${PlayerAuthInputData[flag]} flag is not set`,
+                `Ignored the ${section} of an input from ${session.identity.name}: the ${PlayerAuthInputData[flag]} flag is not set`,
                 'PlayerAuthInputHandler/handle'
             );
         return false;

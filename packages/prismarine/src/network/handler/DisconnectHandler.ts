@@ -30,7 +30,6 @@ export default class DisconnectHandler implements PacketHandler<DisconnectPacket
         const disconnect = packet.getPacketData();
         if (disconnect === null) throw new Error('DisconnectPacket has no payload');
 
-        const player = session.getPlayer();
         const name = DisconnectReason[disconnect.reason];
         const reason = name === undefined ? `${disconnect.reason}` : `${disconnect.reason} (${name})`;
         const message = disconnect.skipMessage ? '' : ` and message "${disconnect.message ?? ''}"`;
@@ -38,7 +37,7 @@ export default class DisconnectHandler implements PacketHandler<DisconnectPacket
         server
             .getLogger()
             .info(
-                `${player.getName()} (${player.getAddress().toToken()}) disconnected with reason ${reason}${message}`,
+                `${session.identity.name} (${session.getConnection().getAddress().toToken()}) disconnected with reason ${reason}${message}`,
                 'DisconnectHandler/handle'
             );
 
