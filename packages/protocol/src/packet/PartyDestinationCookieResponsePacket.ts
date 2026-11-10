@@ -1,5 +1,7 @@
 import NetworkPacket from '../NetworkPacket';
 import { PacketIdentifier } from '../PacketIdentifier';
+import { partyDestinationCookieResponsePacket } from '../wire/definitions/partyDestinationCookieResponse';
+import { layoutAt } from '../wire/WireLayout';
 
 import type NetworkBinaryStream from '../NetworkBinaryStream';
 
@@ -23,14 +25,10 @@ export default class PartyDestinationCookieResponsePacket extends NetworkPacket<
     }
 
     protected serializePayload(stream: NetworkBinaryStream, data: PartyDestinationCookieResponse): void {
-        stream.writeString(data.cookie);
-        stream.writeBoolean(data.accepted);
+        layoutAt(partyDestinationCookieResponsePacket, this.codecProtocol).encode(stream, data);
     }
 
     protected deserializePayload(stream: NetworkBinaryStream): PartyDestinationCookieResponse {
-        return {
-            cookie: stream.readString(),
-            accepted: stream.readBoolean()
-        };
+        return layoutAt(partyDestinationCookieResponsePacket, this.codecProtocol).decode(stream);
     }
 }

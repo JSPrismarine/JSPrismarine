@@ -1,3 +1,6 @@
+import { hurtArmorPacket } from '../wire/definitions/hurtArmor';
+import { layoutAt } from '../wire/WireLayout';
+
 import FieldNetworkPacket from '../FieldNetworkPacket';
 
 /**
@@ -34,15 +37,11 @@ export default class HurtArmorPacket extends FieldNetworkPacket {
 
     /** Reads the cause, the damage, and the affected slots. */
     public decodePayload(): void {
-        this.cause = this.readVarInt();
-        this.damage = this.readVarInt();
-        this.armorSlots = this.readUnsignedVarLong();
+        Object.assign(this, layoutAt(hurtArmorPacket, this.codecProtocol).decode(this));
     }
 
     /** Writes the cause, the damage, and the affected slots. */
     public encodePayload(): void {
-        this.writeVarInt(this.cause);
-        this.writeVarInt(this.damage);
-        this.writeUnsignedVarLong(this.armorSlots);
+        layoutAt(hurtArmorPacket, this.codecProtocol).encode(this, this);
     }
 }

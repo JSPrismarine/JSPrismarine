@@ -1,5 +1,7 @@
+import { packetViolationWarningPacket } from '../wire/definitions/packetViolationWarning';
+import { layoutAt } from '../wire/WireLayout';
+
 import FieldNetworkPacket from '../FieldNetworkPacket';
-import { NetworkUtil } from '../wire/networkUtil';
 
 /**
  * What the client objected to, as the Violation Type varint32 numbers it.
@@ -59,17 +61,11 @@ export default class PacketViolationWarningPacket extends FieldNetworkPacket {
 
     /** Writes the three ZigZag varints and the context string. */
     public encodePayload(): void {
-        this.writeVarInt(this.type);
-        this.writeVarInt(this.severity);
-        this.writeVarInt(this.packetId);
-        NetworkUtil.writeString(this, this.message);
+        layoutAt(packetViolationWarningPacket, this.codecProtocol).encode(this, this);
     }
 
     /** Reads the three ZigZag varints and the context string. */
     public decodePayload(): void {
-        this.type = this.readVarInt();
-        this.severity = this.readVarInt();
-        this.packetId = this.readVarInt();
-        this.message = NetworkUtil.readString(this);
+        Object.assign(this, layoutAt(packetViolationWarningPacket, this.codecProtocol).decode(this));
     }
 }

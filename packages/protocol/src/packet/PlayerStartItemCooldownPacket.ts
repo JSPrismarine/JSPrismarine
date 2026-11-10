@@ -1,5 +1,7 @@
 import NetworkPacket from '../NetworkPacket';
 import { PacketIdentifier } from '../PacketIdentifier';
+import { playerStartItemCooldownPacket } from '../wire/definitions/playerStartItemCooldown';
+import { layoutAt } from '../wire/WireLayout';
 
 import type NetworkBinaryStream from '../NetworkBinaryStream';
 
@@ -30,14 +32,10 @@ export default class PlayerStartItemCooldownPacket extends NetworkPacket<PlayerS
     }
 
     protected serializePayload(stream: NetworkBinaryStream, data: PlayerStartItemCooldown): void {
-        stream.writeString(data.itemCategory);
-        stream.writeVarInt(data.durationTicks);
+        layoutAt(playerStartItemCooldownPacket, this.codecProtocol).encode(stream, data);
     }
 
     protected deserializePayload(stream: NetworkBinaryStream): PlayerStartItemCooldown {
-        return {
-            itemCategory: stream.readString(),
-            durationTicks: stream.readVarInt()
-        };
+        return layoutAt(playerStartItemCooldownPacket, this.codecProtocol).decode(stream);
     }
 }

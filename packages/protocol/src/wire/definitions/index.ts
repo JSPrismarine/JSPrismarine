@@ -126,6 +126,21 @@ import { completedUsingItemPacket } from './completedUsingItem';
 import { createPhotoPacket } from './createPhoto';
 import { debugInfoPacket } from './debugInfo';
 import { editorNetworkPacket } from './editorNetwork';
+import { gameTestResultsPacket } from './gameTestResults';
+import { guiDataPickItemPacket } from './guiDataPickItem';
+import { hurtArmorPacket } from './hurtArmor';
+import { lessonProgressPacket } from './lessonProgress';
+import { mapCreateLockedCopyPacket } from './mapCreateLockedCopy';
+import { multiplayerSettingsPacket } from './multiplayerSettings';
+import { networkStackLatencyPacket } from './networkStackLatency';
+import { npcDialoguePacket } from './npcDialogue';
+import { npcRequestPacket } from './npcRequest';
+import { packetViolationWarningPacket } from './packetViolationWarning';
+import { partyDestinationCookieResponsePacket } from './partyDestinationCookieResponse';
+import { playerStartItemCooldownPacket } from './playerStartItemCooldown';
+import { playerToggleCrafterSlotRequestPacket } from './playerToggleCrafterSlotRequest';
+import { positionTrackingDBClientRequestPacket } from './positionTrackingDBClientRequest';
+import { removeVolumeEntityPacket } from './removeVolumeEntity';
 import type { PacketDefinition } from '../define';
 
 /** The declaratively defined packets, keyed by packet name. */
@@ -245,6 +260,21 @@ export const wireDefinitions: ReadonlyMap<string, PacketDefinition> = new Map(
         completedUsingItemPacket,
         createPhotoPacket,
         debugInfoPacket,
-        editorNetworkPacket
+        editorNetworkPacket,
+        gameTestResultsPacket,
+        guiDataPickItemPacket,
+        hurtArmorPacket,
+        lessonProgressPacket,
+        mapCreateLockedCopyPacket,
+        multiplayerSettingsPacket,
+        networkStackLatencyPacket,
+        npcDialoguePacket,
+        npcRequestPacket,
+        packetViolationWarningPacket,
+        partyDestinationCookieResponsePacket,
+        playerStartItemCooldownPacket,
+        playerToggleCrafterSlotRequestPacket,
+        positionTrackingDBClientRequestPacket,
+        removeVolumeEntityPacket
     ].map((definition) => [definition.name, definition])
 );

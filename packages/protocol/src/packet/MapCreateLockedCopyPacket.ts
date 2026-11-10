@@ -1,3 +1,6 @@
+import { mapCreateLockedCopyPacket } from '../wire/definitions/mapCreateLockedCopy';
+import { layoutAt } from '../wire/WireLayout';
+
 import FieldNetworkPacket from '../FieldNetworkPacket';
 
 /**
@@ -19,13 +22,11 @@ export default class MapCreateLockedCopyPacket extends FieldNetworkPacket {
 
     /** Reads both map ids. */
     public decodePayload(): void {
-        this.originalMapId = this.readVarLong();
-        this.newMapId = this.readVarLong();
+        Object.assign(this, layoutAt(mapCreateLockedCopyPacket, this.codecProtocol).decode(this));
     }
 
     /** Writes both map ids. */
     public encodePayload(): void {
-        this.writeVarLong(this.originalMapId);
-        this.writeVarLong(this.newMapId);
+        layoutAt(mapCreateLockedCopyPacket, this.codecProtocol).encode(this, this);
     }
 }

@@ -1,5 +1,7 @@
 import NetworkPacket from '../NetworkPacket';
 import { PacketIdentifier } from '../PacketIdentifier';
+import { npcDialoguePacket } from '../wire/definitions/npcDialogue';
+import { layoutAt } from '../wire/WireLayout';
 
 import type NetworkBinaryStream from '../NetworkBinaryStream';
 
@@ -47,22 +49,10 @@ export default class NpcDialoguePacket extends NetworkPacket<NpcDialogue> {
     }
 
     protected serializePayload(stream: NetworkBinaryStream, data: NpcDialogue): void {
-        stream.writeUnsignedLongLE(data.npcId);
-        stream.writeVarInt(data.actionType);
-        stream.writeString(data.dialogue);
-        stream.writeString(data.sceneName);
-        stream.writeString(data.npcName);
-        stream.writeString(data.actionJson);
+        layoutAt(npcDialoguePacket, this.codecProtocol).encode(stream, data);
     }
 
     protected deserializePayload(stream: NetworkBinaryStream): NpcDialogue {
-        return {
-            npcId: stream.readUnsignedLongLE(),
-            actionType: stream.readVarInt(),
-            dialogue: stream.readString(),
-            sceneName: stream.readString(),
-            npcName: stream.readString(),
-            actionJson: stream.readString()
-        };
+        return layoutAt(npcDialoguePacket, this.codecProtocol).decode(stream);
     }
 }

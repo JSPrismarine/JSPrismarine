@@ -1,5 +1,7 @@
 import NetworkPacket from '../NetworkPacket';
 import { PacketIdentifier } from '../PacketIdentifier';
+import { lessonProgressPacket } from '../wire/definitions/lessonProgress';
+import { layoutAt } from '../wire/WireLayout';
 
 import type NetworkBinaryStream from '../NetworkBinaryStream';
 
@@ -36,16 +38,10 @@ export default class LessonProgressPacket extends NetworkPacket<LessonProgress> 
     }
 
     protected serializePayload(stream: NetworkBinaryStream, data: LessonProgress): void {
-        stream.writeVarInt(data.action);
-        stream.writeVarInt(data.score);
-        stream.writeString(data.activityId);
+        layoutAt(lessonProgressPacket, this.codecProtocol).encode(stream, data);
     }
 
     protected deserializePayload(stream: NetworkBinaryStream): LessonProgress {
-        return {
-            action: stream.readVarInt(),
-            score: stream.readVarInt(),
-            activityId: stream.readString()
-        };
+        return layoutAt(lessonProgressPacket, this.codecProtocol).decode(stream);
     }
 }

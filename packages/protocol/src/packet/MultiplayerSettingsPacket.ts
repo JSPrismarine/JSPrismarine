@@ -1,3 +1,6 @@
+import { multiplayerSettingsPacket } from '../wire/definitions/multiplayerSettings';
+import { layoutAt } from '../wire/WireLayout';
+
 import FieldNetworkPacket from '../FieldNetworkPacket';
 
 /** What a `MultiplayerSettingsPacket` asks for, as the PacketType varint32 numbers it. */
@@ -24,11 +27,11 @@ export default class MultiplayerSettingsPacket extends FieldNetworkPacket {
 
     /** Reads PacketType as a varint32. */
     public decodePayload(): void {
-        this.packetType = this.readVarInt();
+        Object.assign(this, layoutAt(multiplayerSettingsPacket, this.codecProtocol).decode(this));
     }
 
     /** Writes PacketType as a varint32. */
     public encodePayload(): void {
-        this.writeVarInt(this.packetType);
+        layoutAt(multiplayerSettingsPacket, this.codecProtocol).encode(this, this);
     }
 }

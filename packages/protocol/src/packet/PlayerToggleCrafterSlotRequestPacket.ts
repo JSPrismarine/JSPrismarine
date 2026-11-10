@@ -1,3 +1,6 @@
+import { playerToggleCrafterSlotRequestPacket } from '../wire/definitions/playerToggleCrafterSlotRequest';
+import { layoutAt } from '../wire/WireLayout';
+
 import FieldNetworkPacket from '../FieldNetworkPacket';
 
 /**
@@ -20,19 +23,11 @@ export default class PlayerToggleCrafterSlotRequestPacket extends FieldNetworkPa
 
     /** Reads the position, slot, and flag. */
     public decodePayload(): void {
-        this.posX = this.readIntLE();
-        this.posY = this.readIntLE();
-        this.posZ = this.readIntLE();
-        this.slotIndex = this.readByte();
-        this.isDisabled = this.readBoolean();
+        Object.assign(this, layoutAt(playerToggleCrafterSlotRequestPacket, this.codecProtocol).decode(this));
     }
 
     /** Writes the position, slot, and flag. */
     public encodePayload(): void {
-        this.writeIntLE(this.posX);
-        this.writeIntLE(this.posY);
-        this.writeIntLE(this.posZ);
-        this.writeByte(this.slotIndex);
-        this.writeBoolean(this.isDisabled);
+        layoutAt(playerToggleCrafterSlotRequestPacket, this.codecProtocol).encode(this, this);
     }
 }
