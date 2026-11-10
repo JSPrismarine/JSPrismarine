@@ -35,6 +35,7 @@ import type PacketHandler from './PacketHandler';
 export default class ResourcePackClientResponseHandler implements PacketHandler<ResourcePackClientResponsePacket> {
     public static PacketName = 'ResourcePackClientResponsePacket';
     public readonly phases = ['resourcePacks'] as const;
+    public readonly lane = 'input';
 
     /**
      * The `Respawn` packets that end a join, as `[position, state, runtime id]`.

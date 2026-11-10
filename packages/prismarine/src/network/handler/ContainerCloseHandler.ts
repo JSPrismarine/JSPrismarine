@@ -17,6 +17,7 @@ import type PacketHandler from './PacketHandler';
 export default class ContainerCloseHandler implements PacketHandler<ContainerClosePacket> {
     public static PacketName = 'ContainerClosePacket';
     public readonly phases = ['play'] as const;
+    public readonly lane = 'input';
 
     /**
      * Closes the window on the server, answers the client, then empties the crafting grid.

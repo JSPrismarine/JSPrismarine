@@ -17,6 +17,7 @@ const isGametype = (value: number): value is Gametype => Gametype[value] !== und
 export default class SetPlayerGameTypeHandler implements PacketHandler<SetPlayerGameTypePacket> {
     public static PacketName = 'SetPlayerGameTypePacket';
     public readonly phases = ['play'] as const;
+    public readonly lane = 'input';
 
     /** Applies the requested game type, or resends the current one when the request is refused. */
     public async handle(packet: SetPlayerGameTypePacket, server: Server, session: PlayerSession): Promise<void> {

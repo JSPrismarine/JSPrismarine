@@ -21,6 +21,8 @@ import type PacketHandler from './PacketHandler';
 export default class ResourcePackChunkRequestHandler implements PacketHandler<ResourcePackChunkRequestPacket> {
     public static PacketName = 'ResourcePackChunkRequestPacket';
     public readonly phases = ['resourcePacks'] as const;
+    // Input: the kick tears the player down and announces the departure to everyone.
+    public readonly lane = 'input';
 
     /** Logs the requested pack and chunk, then disconnects the client. */
     public async handle(packet: ResourcePackChunkRequestPacket, server: Server, session: PlayerSession): Promise<void> {
