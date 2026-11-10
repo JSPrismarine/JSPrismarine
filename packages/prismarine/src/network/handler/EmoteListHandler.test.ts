@@ -1,21 +1,20 @@
 import { describe, expect, it } from 'vitest';
 
 import type { Logger } from '@jsprismarine/logger';
-import type Player from '../../Player';
 import type Server from '../../Server';
 import UUID from '@jsprismarine/protocol/wire/structures/UUID';
 import { stub } from '../../testing/stub.test.helper';
+import { STEVE } from '../../testing/steveIdentity.test.helper';
 import EmoteListPacket from '@jsprismarine/protocol/packet/EmoteListPacket';
 import type PlayerSession from '../PlayerSession';
 import EmoteListHandler from './EmoteListHandler';
 
 const setup = () => {
     const logged: string[] = [];
-    const player = stub<Player>({ getName: () => 'Steve', getRuntimeId: () => 7n });
     const server = stub<Server>({
         getLogger: () => stub<Logger>({ debug: (...message) => void logged.push(message[0] ?? '') })
     });
-    const session = stub<PlayerSession>({ getPlayer: () => player });
+    const session = stub<PlayerSession>({ runtimeId: 7n, identity: STEVE });
     return { logged, server, session };
 };
 

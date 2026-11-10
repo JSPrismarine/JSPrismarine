@@ -19,15 +19,14 @@ export default class SetActorLinkHandler implements PacketHandler<SetActorLinkPa
 
     /** Logs the two actors and the link type when the sender is one of them. */
     public handle(packet: SetActorLinkPacket, server: Server, session: PlayerSession): void {
-        const player = session.getPlayer();
         const { targetA, targetB, type } = packet.link;
-        const self = player.getRuntimeId();
+        const self = session.runtimeId;
 
         if (targetA !== self && targetB !== self) {
             server
                 .getLogger()
                 .verbose(
-                    `Dropped actor link type ${type} from ${player.getName()}: it joins ${targetA} and ${targetB}, neither of them the sender`,
+                    `Dropped actor link type ${type} from ${session.identity.name}: it joins ${targetA} and ${targetB}, neither of them the sender`,
                     'SetActorLinkHandler/handle'
                 );
             return;
@@ -36,7 +35,7 @@ export default class SetActorLinkHandler implements PacketHandler<SetActorLinkPa
         server
             .getLogger()
             .debug(
-                `${player.getName()} reported actor link type ${type} between ${targetA} and ${targetB}. Riding is not modeled`,
+                `${session.identity.name} reported actor link type ${type} between ${targetA} and ${targetB}. Riding is not modeled`,
                 'SetActorLinkHandler/handle'
             );
     }

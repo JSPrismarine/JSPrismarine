@@ -19,14 +19,12 @@ export default class EmoteListHandler implements PacketHandler<EmoteListPacket> 
      * for the sender.
      */
     public handle(packet: EmoteListPacket, server: Server, session: PlayerSession): void {
-        const player = session.getPlayer();
-
         // `Runtime id` names whose emotes these are, and a client only equips its own.
-        if (packet.runtimeId !== player.getRuntimeId()) {
+        if (packet.runtimeId !== session.runtimeId) {
             server
                 .getLogger()
                 .debug(
-                    `${player.getName()} sent an EmoteList for runtime id ${packet.runtimeId}, dropped`,
+                    `${session.identity.name} sent an EmoteList for runtime id ${packet.runtimeId}, dropped`,
                     'EmoteListHandler/handle'
                 );
         }

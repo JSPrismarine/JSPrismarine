@@ -49,12 +49,15 @@ const CONNECTION_IMPORTS: readonly RegExp[] = [
 
 /**
  * What a connection-lane handler may call on each object it is handed. Every `PlayerSession`
- * method listed was traced to state the session owns: `setClientCacheEnabled` and
+ * method listed was traced to state the session owns, and `identity` and `runtimeId` are fixed
+ * for the session: `setClientCacheEnabled` and
  * `handleClientCacheBlobStatus` touch only the session's blob cache.
  */
 const SERVER_MEMBERS: ReadonlySet<string> = new Set(['getLogger', 'getConfig']);
 const SESSION_MEMBERS: ReadonlySet<string> = new Set([
     'getPlayer',
+    'identity',
+    'runtimeId',
     'getConnection',
     'setClientCacheEnabled',
     'handleClientCacheBlobStatus'

@@ -32,13 +32,11 @@ export default class AnimateHandler implements PacketHandler<AnimatePacket> {
      * player make another swing.
      */
     public async handle(packet: AnimatePacket, server: Server, session: PlayerSession): Promise<void> {
-        const player = session.getPlayer();
-
-        if (packet.runtimeEntityId !== player.getRuntimeId()) {
+        if (packet.runtimeEntityId !== session.runtimeId) {
             server
                 .getLogger()
                 .debug(
-                    `Dropped animation ${packet.action} from ${player.getName()}: it names actor ${packet.runtimeEntityId}, not themselves`,
+                    `Dropped animation ${packet.action} from ${session.identity.name}: it names actor ${packet.runtimeEntityId}, not themselves`,
                     'AnimateHandler/handle'
                 );
             return;
@@ -48,14 +46,14 @@ export default class AnimateHandler implements PacketHandler<AnimatePacket> {
             server
                 .getLogger()
                 .debug(
-                    `Dropped animation ${packet.action} from ${player.getName()}: not one a client sends`,
+                    `Dropped animation ${packet.action} from ${session.identity.name}: not one a client sends`,
                     'AnimateHandler/handle'
                 );
             return;
         }
 
         const pk = new AnimatePacket();
-        pk.runtimeEntityId = player.getRuntimeId();
+        pk.runtimeEntityId = session.runtimeId;
         pk.action = packet.action;
         pk.data = packet.data;
         pk.swingSource = packet.swingSource;
@@ -64,11 +62,12 @@ export default class AnimateHandler implements PacketHandler<AnimatePacket> {
         // through the session manager, so an arm swing reached every player on the server -
         // across worlds, and at any distance.
         await Promise.all(
-            player
+            session
+                .getPlayer()
                 .getWorld()
                 .getPlayers()
-                .filter((otherPlayer) => otherPlayer !== player)
-                .filter((otherPlayer) => otherPlayer.getNetworkSession().tracks(player.getRuntimeId()))
+                .filter((otherPlayer) => otherPlayer.getRuntimeId() !== session.runtimeId)
+                .filter((otherPlayer) => otherPlayer.getNetworkSession().tracks(session.runtimeId))
                 .map(async (otherPlayer) => otherPlayer.getNetworkSession().send(pk))
         );
     }
