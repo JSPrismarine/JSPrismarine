@@ -16,6 +16,7 @@ import type PacketHandler from './PacketHandler';
 export default class SetLocalPlayerAsInitializedHandler implements PacketHandler<SetLocalPlayerAsInitializedPacket> {
     public static PacketName = 'SetLocalPlayerAsInitializedPacket';
     public readonly phases = ['play'] as const;
+    public readonly lane = 'input';
 
     /** Puts the player into its world and sends it the state the client throws away while spawning. */
     public async handle(

@@ -30,6 +30,8 @@ const NO_ACTOR_TYPES = new Set(['', ':']);
 export default class LevelSoundEventHandler implements PacketHandler<LevelSoundEventPacket> {
     public static PacketName = 'LevelSoundEventPacket';
     public readonly phases = ['play'] as const;
+    // Relays to the players near the sound, so it is an input though it writes nothing.
+    public readonly lane = 'input';
 
     /**
      * Broadcasts the sound from its own position when it is the sender's to make: attributed

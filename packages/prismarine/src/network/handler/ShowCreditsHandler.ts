@@ -15,6 +15,7 @@ import type PacketHandler from './PacketHandler';
 export default class ShowCreditsHandler implements PacketHandler<ShowCreditsPacket> {
     public static PacketName = 'ShowCreditsPacket';
     public readonly phases = ['play'] as const;
+    public readonly lane = 'input';
 
     /** Completes the held world change on `Finished`, and drops anything else. */
     public async handle(packet: ShowCreditsPacket, server: Server, session: PlayerSession): Promise<void> {

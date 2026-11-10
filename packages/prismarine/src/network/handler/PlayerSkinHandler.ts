@@ -86,6 +86,7 @@ const skinProblem = (skin: Skin): string | null => {
 export default class PlayerSkinHandler implements PacketHandler<PlayerSkinPacket> {
     public static PacketName = 'PlayerSkinPacket';
     public readonly phases = ['play'] as const;
+    public readonly lane = 'input';
 
     /**
      * Stores the new skin on the sender and relays it to every other player.

@@ -30,6 +30,8 @@ const REACH_SLACK = 1;
 export default class InteractHandler implements PacketHandler<InteractPacket> {
     public static PacketName = 'InteractPacket';
     public readonly phases = ['play'] as const;
+    // Input, not read: opening the inventory adds to the window table input handlers check.
+    public readonly lane = 'input';
 
     public async handle(packet: InteractPacket, server: Server, session: PlayerSession): Promise<void> {
         const player = session.getPlayer();
