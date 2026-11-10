@@ -2,6 +2,7 @@ import type { BoundComponent, Holder } from '@jsprismarine/content';
 import { HookTable, Instance } from '@jsprismarine/content';
 import type { MolangValue } from '@jsprismarine/molang';
 
+import type { AttributeWrite } from './attributes';
 import { Attributes } from './attributes';
 import type { ComponentStateWrite } from './componentState';
 import { ComponentStates } from './componentState';
@@ -44,7 +45,7 @@ import type {
 } from './hooks';
 import { FIRE_DAMAGE_CAUSES, FREEZING_DAMAGE_CAUSES } from './hooks';
 import { isRideableParams } from './riding';
-import type { PropertyDefinition, PropertyValue } from './properties';
+import type { PropertyDefinition, PropertyValue, PropertyValueWrite } from './properties';
 import { PropertyValues } from './properties';
 import type { TriggerComponentName } from './triggers';
 import { isTriggerParams } from './triggers';
@@ -159,6 +160,21 @@ export interface EntityEnvironment {
      */
     componentStateWritten?(entity: EntityInstance, write: ComponentStateWrite): void;
     /**
+     * Observes every change to an attribute, with its value before and after. Writing `before`
+     * back through {@link Attributes.restore} undoes the change exactly. Changes the constructor
+     * makes arrive here too, before it returns.
+     */
+    attributeWritten?(entity: EntityInstance, write: AttributeWrite): void;
+    /** Observes every property write that changed a value, with the value before and after. */
+    propertyWritten?(entity: EntityInstance, write: PropertyValueWrite): void;
+    /**
+     * Observes every change to the active component groups, after the component set has been
+     * rebuilt, so the attribute and component state writes the rebuild made arrive first.
+     * Passing `before` to {@link EntityInstance.restoreComponentGroups} undoes the change to the
+     * groups themselves.
+     */
+    componentGroupsWritten?(entity: EntityInstance, write: ComponentGroupsWrite): void;
+    /**
      * Builds the filter context for one evaluation. The entity fills in its
      * own facts (properties, components, type families, attributes) over
      * whatever this returns.
@@ -209,6 +225,18 @@ export interface EntityEnvironment {
     /** Java's path navigator and collision behavior, when the host has the pinned class dump. */
     javaNavigation?: JavaEntityNavigation;
 }
+
+/** One change to an entity's active component groups, as a host observes it. */
+export interface ComponentGroupsWrite {
+    /** The groups active before the change, in the order they became active. */
+    readonly before: readonly string[];
+    /** The groups active after the change, in the order they became active. */
+    readonly after: readonly string[];
+}
+
+/** Whether two group lists name the same groups in the same order. */
+const sameGroups = (left: readonly string[], right: readonly string[]): boolean =>
+    left.length === right.length && left.every((group, index) => right[index] === group);
 
 /** Options for one {@link EntityInstance}. */
 export interface EntityInstanceOptions {
@@ -269,14 +297,24 @@ export class EntityInstance extends Instance<EntityHooks, EntityState, EntityTyp
     public constructor(holder: Holder<EntityType>, options: EntityInstanceOptions = {}) {
         const type = holder.value();
         const environment = options.environment ?? {};
+        // The two stores are built before `this` exists, so their observers reach the entity
+        // through this binding, which is set before the first component initializes.
+        let self: EntityInstance | undefined;
         super(holder, {
-            attributes: new Attributes(javaAttributeBases(type.identifier, environment.javaStats)),
-            properties: new PropertyValues(type.entity.description.properties, (definition, source) =>
-                environment.propertyDefault?.(source, definition)
+            attributes: new Attributes(javaAttributeBases(type.identifier, environment.javaStats), (write) => {
+                if (self !== undefined) environment.attributeWritten?.(self, write);
+            }),
+            properties: new PropertyValues(
+                type.entity.description.properties,
+                (definition, source) => environment.propertyDefault?.(source, definition),
+                (write) => {
+                    if (self !== undefined) environment.propertyWritten?.(self, write);
+                }
             ),
             variables: new Map(),
             activeGroups: new Set()
         });
+        self = this;
         this.typeHolder = holder;
         this.environment = environment;
         this.identity = options.id ?? 0;
@@ -887,8 +925,11 @@ export class EntityInstance extends Instance<EntityHooks, EntityState, EntityTyp
 
     /** Applies one event's effects now, outside the tick loop. */
     public applyEffects(effects: EventEffects): void {
-        if (effects.removeGroups.length > 0 || effects.addGroups.length > 0)
+        if (effects.removeGroups.length > 0 || effects.addGroups.length > 0) {
+            const before = this.activeComponentGroups();
             this.rebuild(effects.removeGroups, effects.addGroups);
+            this.reportGroups(before);
+        }
 
         for (const write of effects.propertyWrites) {
             if (this.properties.set(write.name, write.value) === undefined)
@@ -987,11 +1028,42 @@ export class EntityInstance extends Instance<EntityHooks, EntityState, EntityTyp
             groups.delete(name);
             groups.add(name);
         }
+        this.recompute(added);
+    }
 
+    /**
+     * Sets the active component groups to exactly `groups`, in that order, and rebuilds the
+     * component set: a component that left runs `onRemove` and one that arrived runs
+     * `onInitialize`, as an event's group change does. No event runs.
+     *
+     * This is how a host undoes a {@link ComponentGroupsWrite}. The rebuild initializes the
+     * components that come back, so the host writes the attributes and component state it
+     * holds for the entity afterwards. A group the type does not declare is skipped.
+     *
+     * @param groups - The groups to make active, in the order they became active.
+     */
+    public restoreComponentGroups(groups: readonly string[]): void {
+        const before = this.activeComponentGroups();
+        if (sameGroups(before, groups)) return;
+        const active = this.state.activeGroups;
+        active.clear();
+        for (const group of groups) if (this.type.groups.has(group)) active.add(group);
+        this.recompute([]);
+        this.reportGroups(before);
+    }
+
+    /** Tells the environment the active groups changed, when they did. */
+    private reportGroups(before: readonly string[]): void {
+        const after = this.activeComponentGroups();
+        if (!sameGroups(before, after)) this.environment.componentGroupsWritten?.(this, { before, after });
+    }
+
+    /** Rebuilds the active component set from the active groups, re-initializing `added`. */
+    private recompute(added: readonly string[]): void {
         const before = this.active;
         const next = new Map<string, ActiveComponent>();
         for (const component of this.type.components) next.set(component.name, { component });
-        for (const group of groups) {
+        for (const group of this.state.activeGroups) {
             for (const component of this.type.groups.get(group)?.components ?? [])
                 next.set(component.name, { component, group });
         }

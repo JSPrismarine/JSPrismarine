@@ -176,6 +176,16 @@ export const coerce = (definition: PropertyDefinition, value: PropertyValue): Pr
     }
 };
 
+/** One change to a property value, as a host observes it. */
+export interface PropertyValueWrite {
+    /** The property that changed. */
+    readonly name: string;
+    /** The value before the change. */
+    readonly before: PropertyValue;
+    /** The value after the change. */
+    readonly after: PropertyValue;
+}
+
 /**
  * The live property values of one entity.
  *
@@ -188,10 +198,13 @@ export class PropertyValues {
     /**
      * @param definitions - The entity type's declared properties, by name.
      * @param resolveDefault - Evaluates a Molang default; returns undefined to fall back to the type's zero value.
+     * @param written - Called after every {@link PropertyValues.set} that changed a value. The
+     *   defaults the constructor writes are not reported.
      */
     public constructor(
         private readonly definitions: ReadonlyMap<string, PropertyDefinition>,
-        resolveDefault?: (definition: PropertyDefinition, source: string) => PropertyValue | undefined
+        resolveDefault?: (definition: PropertyDefinition, source: string) => PropertyValue | undefined,
+        private readonly written?: (write: PropertyValueWrite) => void
     ) {
         for (const definition of definitions.values()) {
             const declared =
@@ -233,7 +246,9 @@ export class PropertyValues {
         if (definition === undefined) return undefined;
         const stored = coerce(definition, value);
         if (stored === undefined) return undefined;
+        const before = this.values.get(name);
         this.values.set(name, stored);
+        if (before !== undefined && before !== stored) this.written?.({ name, before, after: stored });
         return stored;
     }
 }
