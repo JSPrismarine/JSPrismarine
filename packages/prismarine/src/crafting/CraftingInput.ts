@@ -1,4 +1,6 @@
 import type { Item } from '../item/Item';
+import type { SlotObserver, SlotValue } from '../inventory/slotLog';
+import { slotValueOfItem } from '../inventory/slotLog';
 import CraftingGrid from './CraftingGrid';
 
 /**
@@ -25,6 +27,12 @@ export class CraftingInput {
     private static readonly LARGE_OFFSET = 32;
 
     private readonly slots: Array<Item | null> = Array.from({ length: CraftingInput.SLOTS }, () => null);
+
+    /** Hears every slot write once {@link CraftingInput.observe} has been called. */
+    private observer: SlotObserver | null = null;
+
+    /** Each slot's value as the observer last heard it. */
+    private readonly logged: SlotValue[] = Array.from({ length: CraftingInput.SLOTS }, () => null);
 
     /**
      * Which grid the client last reached into.
@@ -77,6 +85,16 @@ export class CraftingInput {
         return index + offset;
     }
 
+    /**
+     * Reports every later write to a slot, with its value before and after, which is how what a
+     * player has put in the grid reaches the change log.
+     * @param {SlotObserver} observer - Hears each write.
+     */
+    public observe(observer: SlotObserver): void {
+        this.observer = observer;
+        for (const [slot, item] of this.slots.entries()) this.logged[slot] = slotValueOfItem(item);
+    }
+
     public get(slot: number): Item | null {
         return this.slots[slot] ?? null;
     }
@@ -90,10 +108,18 @@ export class CraftingInput {
         if (!Number.isInteger(slot) || slot < 0 || slot >= CraftingInput.SLOTS) return;
 
         this.slots[slot] = item;
+        this.written(slot);
     }
 
     public clear(): void {
-        this.slots.fill(null);
+        for (const [slot, item] of this.slots.entries()) if (item !== null) this.set(slot, null);
+    }
+
+    private written(slot: number): void {
+        if (this.observer === null) return;
+        const before = this.logged[slot] ?? null;
+        this.logged[slot] = slotValueOfItem(this.slots[slot] ?? null);
+        this.observer(slot, before, this.logged[slot] ?? null);
     }
 
     public isEmpty(): boolean {

@@ -1,4 +1,6 @@
 import ContainerEntry from './ContainerEntry';
+import type { SlotObserver, SlotValue } from './slotLog';
+import { slotValueOf } from './slotLog';
 import { Item } from '../item/Item';
 
 /** An empty slot holds air rather than nothing, so that every slot has a position. */
@@ -35,9 +37,31 @@ export default class Inventory {
      */
     private readonly content: Map<number, ContainerEntry> = new Map();
 
+    /** Hears every slot write once an owner that logs its slots has called {@link Inventory.observe}. */
+    private observer: SlotObserver | null = null;
+
+    /**
+     * Each slot's value as the observer last heard it, so a write reports the value the slot had
+     * when it was last logged and not one that a change to the stack in place has already moved.
+     */
+    private readonly logged: SlotValue[] = [];
+
     public constructor(slots = 0, items: ContainerEntry[] = []) {
         this.slots = slots;
         this.setItems(items);
+    }
+
+    /**
+     * Reports every later write to a slot, with the slot's value before and after it, which is
+     * how a player's inventory reaches the change log.
+     *
+     * Every write goes through {@link Inventory.setItem} or {@link Inventory.removeItem}. A stack
+     * changed in place is not a write: change a copy and set it.
+     * @param {SlotObserver} observer - Hears each write. It replaces any observer set before.
+     */
+    public observe(observer: SlotObserver): void {
+        this.observer = observer;
+        for (let slot = 0; slot < this.slots; slot++) this.logged[slot] = slotValueOf(this.getEntry(slot));
     }
 
     /**
@@ -101,6 +125,7 @@ export default class Inventory {
         }
 
         this.content.set(slot, item);
+        this.written(slot);
         return true;
     }
 
@@ -197,7 +222,17 @@ export default class Inventory {
         // inventory goes on the wire as a list whose position *is* the slot - so a container
         // one entry short moved every stack after the hole up by one.
         this.content.set(slot, new ContainerEntry({ item: Inventory.air() }));
+        this.written(slot);
         return item;
+    }
+
+    /** Tells the observer, if there is one, what a slot holds now. */
+    private written(slot: number): void {
+        if (this.observer === null) return;
+        const before = this.logged[slot] ?? null;
+        const after = slotValueOf(this.getEntry(slot));
+        this.logged[slot] = after;
+        this.observer(slot, before, after);
     }
 
     /**

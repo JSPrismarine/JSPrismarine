@@ -1,6 +1,10 @@
-import type ContainerEntry from './ContainerEntry';
+import ContainerEntry from './ContainerEntry';
 import Inventory from './Inventory';
+import type { PlayerContainer, SlotValue } from './slotLog';
+import { itemOfSlotValue, slotValueOfItem } from './slotLog';
 import type { Item } from '../item/Item';
+import type { ServerContent } from '../content/ServerContent';
+import type { PlainData } from '../world/changelog/PlainData';
 
 /** Slots the hotbar reaches, and so the range a hand slot may name. */
 const HOTBAR_SIZE = 9;
@@ -10,6 +14,14 @@ const ARMOR_SLOTS = 4;
 
 /** Three rows of nine, the same as a single chest. */
 const ENDER_CHEST_SLOTS = 27;
+
+/** Hears every write to what a player carries, which is how it reaches the change log. */
+export interface HumanInventoryObserver {
+    /** One slot of one container changed, from `before` to `after`. */
+    slot(container: PlayerContainer, slot: number, before: SlotValue, after: SlotValue): void;
+    /** The hand moved from one hotbar slot to another. */
+    handSlot(before: number, after: number): void;
+}
 
 export default class HumanInventory extends Inventory {
     /**
@@ -40,6 +52,12 @@ export default class HumanInventory extends Inventory {
      * in the creative menu and not dragged anywhere.
      */
     private cursor: Item | null = null;
+
+    /** Hears every write once {@link HumanInventory.observeCarried} has been called. */
+    private carriedObserver: HumanInventoryObserver | null = null;
+
+    /** The cursor's value as the observer last heard it. */
+    private loggedCursor: SlotValue = null;
 
     /**
      * What is being worn: helmet, chestplate, leggings, boots, in that order.
@@ -143,6 +161,62 @@ export default class HumanInventory extends Inventory {
 
     public setCursor(item: Item | null): void {
         this.cursor = item;
+        if (this.carriedObserver === null) return;
+        const before = this.loggedCursor;
+        this.loggedCursor = slotValueOfItem(item);
+        this.carriedObserver.slot('cursor', 0, before, this.loggedCursor);
+    }
+
+    /**
+     * Reports every later write to the main slots, the armor, the off hand, the ender chest, the
+     * cursor and the hand slot. A stack changed in place is not a write; see {@link Inventory.observe}.
+     * @param observer - Hears each write.
+     */
+    public observeCarried(observer: HumanInventoryObserver): void {
+        this.carriedObserver = observer;
+        this.loggedCursor = slotValueOfItem(this.cursor);
+        this.observe((slot, before, after) => observer.slot('inventory', slot, before, after));
+        this.armor.observe((slot, before, after) => observer.slot('armor', slot, before, after));
+        this.offhand.observe((slot, before, after) => observer.slot('offhand', slot, before, after));
+        this.enderChest.observe((slot, before, after) => observer.slot('ender_chest', slot, before, after));
+    }
+
+    /**
+     * Writes a logged value back into a slot, which is how the change log undoes a write. The
+     * write is reported like any other, and the store ignores it while it is undoing.
+     * @param container - The container the entry names. The crafting grid is not this inventory's.
+     * @param slot - The slot.
+     * @param value - The logged value to write back.
+     * @param content - The content build, which decides an item's maximum durability.
+     * @returns Whether this inventory has that container and slot.
+     */
+    public restoreSlot(container: PlayerContainer, slot: number, value: PlainData, content?: ServerContent): boolean {
+        const item = itemOfSlotValue(value, content);
+        if (container === 'cursor') {
+            if (slot !== 0) return false;
+            this.setCursor(item);
+            return true;
+        }
+        const target = this.containerNamed(container);
+        if (target === undefined || !Number.isInteger(slot) || slot < 0 || slot >= target.getSlotCount()) return false;
+        if (item === null) target.removeItem(slot);
+        else target.setItem(slot, new ContainerEntry({ item, count: item.getAmount() }));
+        return true;
+    }
+
+    private containerNamed(container: PlayerContainer): Inventory | undefined {
+        switch (container) {
+            case 'inventory':
+                return this;
+            case 'armor':
+                return this.armor;
+            case 'offhand':
+                return this.offhand;
+            case 'ender_chest':
+                return this.enderChest;
+            default:
+                return undefined;
+        }
     }
 
     /**
@@ -160,7 +234,9 @@ export default class HumanInventory extends Inventory {
     public setHandSlot(slot: number): void {
         if (!HumanInventory.isHotbarSlot(slot)) return;
 
+        const before = this.handSlot;
         this.handSlot = slot;
+        if (before !== slot) this.carriedObserver?.handSlot(before, slot);
     }
 
     /**
