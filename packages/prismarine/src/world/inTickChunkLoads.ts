@@ -24,12 +24,6 @@ export interface InTickChunkLoad {
  */
 export const IN_TICK_CHUNK_LOADS: readonly InTickChunkLoad[] = [
     {
-        path: 'legacy item entity ground probe',
-        file: 'entity/other/Item.ts',
-        call: 'await this.getWorld().getBlock(',
-        slice: 3
-    },
-    {
         path: 'player breath check',
         file: 'Player.ts',
         call: 'private async isHeadInWater()',
