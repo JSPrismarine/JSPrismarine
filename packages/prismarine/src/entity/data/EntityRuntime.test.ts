@@ -1644,6 +1644,21 @@ describe('EntityRuntime', () => {
             expect(strides.every((stride, index) => index === 0 || stride >= strides[index - 1]! - 1e-12)).toBe(true);
         });
 
+        it('turns a walker toward its waypoint without pitching its head at the ground', () => {
+            const { runtime } = moverRuntime();
+            const mover = runtime.spawn('jsprismarine:mover', GROUND);
+            if (mover === undefined) throw new Error('the fixture declares no mover');
+            mover.body.pitch = 0;
+            // A waypoint at the walker's feet, half a block ahead, as a path's next node is.
+            mover.body.moveTo({ x: GROUND.x + 2.5, y: GROUND.y, z: GROUND.z }, 1);
+
+            runtime.tick(1);
+
+            expect(mover.position.x).toBeGreaterThan(GROUND.x);
+            expect(mover.body.yaw).toBeCloseTo(-90, 6);
+            expect(mover.body.pitch).toBe(0);
+        });
+
         it('keeps a walk’s momentum when its goal stops and starts it again within the tick', () => {
             const { runtime } = moverRuntime();
             const mover = runtime.spawn('jsprismarine:mover', GROUND);
