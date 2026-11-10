@@ -10,6 +10,18 @@ export interface ScenarioContext {
     client: CinnabarClient;
     /** Starts another isolated cinnabar client connected to this suite's server. */
     createClient: (displayName: string) => Promise<CinnabarClient>;
+    /**
+     * Starts another isolated cinnabar client and connects it without waiting for the join, for a
+     * scenario about a join that may be refused or replaced. Two clients may share a name.
+     */
+    connectClient: (displayName: string) => Promise<CinnabarClient>;
+    /**
+     * Starts another isolated cinnabar client without connecting it, so a scenario can connect
+     * several at the same moment through {@link ScenarioContext.connect}.
+     */
+    launchClient: (displayName: string) => Promise<CinnabarClient>;
+    /** Connects a client from {@link ScenarioContext.launchClient} to this suite's server. */
+    connect: (client: CinnabarClient) => Promise<void>;
     /** The display name the client joined with, as the server sees it. */
     playerName: string;
     /** Milliseconds from connect until the client first reports that PlayerSpawn completed. */
