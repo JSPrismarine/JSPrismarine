@@ -49,6 +49,11 @@ export interface SpawnOptions {
     readonly invulnerable?: boolean;
     /** Entity-specific fields supplied by the spawn source, preserved across saves. */
     readonly data?: Readonly<Record<string, unknown>>;
+    /**
+     * Writes host state onto the entity before it enters the change log, so the state is part of
+     * the form it enters with. A dropped stack's contents are written this way.
+     */
+    readonly prepare?: (entity: DataEntity) => void;
 }
 
 /** The runtime as the AI projections read it. */

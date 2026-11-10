@@ -111,6 +111,17 @@ export interface EntityHostFacts {
      */
     takeItem?(id: number, count?: number): ContentItemDrop | undefined;
     /**
+     * Gives a dropped stack to a player: the inventory, the take animation and the advancement.
+     *
+     * @param playerId - The runtime id of the player taking it.
+     * @param itemId - The runtime id of the dropped stack, which the take animation names.
+     * @param item - The stack.
+     * @returns How many of the stack's items did not fit. Left out, nothing is ever taken.
+     */
+    givePlayerItem?(playerId: number, itemId: number, item: ContentItemDrop): number;
+    /** Tells clients that a dropped stack now holds `count` items, after a merge or a partial take. */
+    itemStackChanged?(itemId: number, count: number): void;
+    /**
      * Deals damage to something the entity index does not hold.
      *
      * A player is the case that matters: a zombie's `melee_attack` goal names

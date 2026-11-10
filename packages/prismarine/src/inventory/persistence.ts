@@ -14,6 +14,7 @@
  */
 import type { ItemDrop } from '@jsprismarine/block-behaviors';
 
+import { isRecord } from '../utils/isRecord';
 import ContainerEntry from './ContainerEntry';
 import type HumanInventory from './HumanInventory';
 import type Inventory from './Inventory';
@@ -51,6 +52,31 @@ export interface StoredItemStack {
      */
     readonly contents?: readonly (StoredItemStack | null)[];
 }
+
+/** Whether an unknown value, such as JSON read from actor NBT, has the shape of a stored stack. */
+export const isStoredItemStack = (value: unknown): value is StoredItemStack => {
+    if (!isRecord(value)) return false;
+    if (typeof value.name !== 'string' || typeof value.count !== 'number' || !Number.isInteger(value.count))
+        return false;
+    if (value.meta !== undefined && typeof value.meta !== 'number') return false;
+    if (value.damage !== undefined && typeof value.damage !== 'number') return false;
+    if (value.customName !== undefined && typeof value.customName !== 'string') return false;
+    if (
+        value.lore !== undefined &&
+        (!Array.isArray(value.lore) || !value.lore.every((line) => typeof line === 'string'))
+    )
+        return false;
+    if (value.enchantments !== undefined) {
+        if (!isRecord(value.enchantments)) return false;
+        if (!Object.values(value.enchantments).every((level) => typeof level === 'number')) return false;
+    }
+    if (value.contents !== undefined) {
+        if (!Array.isArray(value.contents) || !value.contents.every((slot) => slot === null || isStoredItemStack(slot)))
+            return false;
+    }
+
+    return value.name.length > 0 && value.count > 0;
+};
 
 /**
  * The same stack as a block behavior carries one.
