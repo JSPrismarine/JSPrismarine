@@ -2356,7 +2356,9 @@ export default class PlayerSession {
      */
     public async sendMove(player: Player, mode = PositionMode.Normal): Promise<void> {
         const position = player.getPosition();
-        if (player === this.player && mode === PositionMode.Teleport) {
+        // A teleport or a reset is a server move, which the client acknowledges before its own
+        // reports count again; see `acceptsClientPosition`.
+        if (player === this.player && (mode === PositionMode.Teleport || mode === PositionMode.Respawn)) {
             this.unacknowledgedTeleport = new Vector3(position.getX(), position.getY(), position.getZ());
         }
         const packet = new MovePlayerPacket({
