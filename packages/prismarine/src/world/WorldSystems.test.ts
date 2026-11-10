@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import type { BlockPosition } from '@jsprismarine/engine-systems';
 import { createTestWorld } from '@jsprismarine/engine-systems';
@@ -9,7 +9,7 @@ import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
 import Chunk from './chunk/Chunk';
 import { Dimensions, maxY } from './Dimension';
 import type { SystemBlock, WorldSystemsAccess, WorldSystemsOptions, WorldSystemsView } from './WorldSystems';
-import { LIGHT_BUDGET_PER_TICK, WorldSystems } from './WorldSystems';
+import { LIGHT_BUDGET_PER_TICK, SCHEDULED_TICK_BUDGET_PER_TICK, WorldSystems } from './WorldSystems';
 
 const AIR: SystemBlock = { name: 'minecraft:air', states: {}, runtimeId: BlockRuntimeIds.getByName('minecraft:air') };
 const STONE: SystemBlock = {
@@ -502,6 +502,47 @@ describe('world', () => {
         });
 
         describe('content block ticks', () => {
+            /** Clocks a host might report: none at all, and one that loses a second on every read. */
+            const clocks: ReadonlyArray<readonly [string, () => number]> = [
+                [
+                    'a clock that throws',
+                    () => {
+                        throw new Error('the world systems phase read the clock');
+                    }
+                ],
+                [
+                    'a clock a second slower on every read',
+                    (() => {
+                        let now = 0;
+                        return () => (now += 1000);
+                    })()
+                ]
+            ];
+
+            it.each(clocks)('runs the count budget and carries the rest under %s', (_name, clock) => {
+                const { systemsOf } = worldOf();
+                const handled: number[] = [];
+                const systems = systemsOf({
+                    blockTickHandlers: { 'minecraft:oak_leaves': (at) => void handled.push(at.x) }
+                });
+                const overflow = 3;
+                for (let x = 0; x < SCHEDULED_TICK_BUDGET_PER_TICK + overflow; x++) {
+                    systems.ticks.list('block').schedule({ x, y: 1, z: 0 }, 'minecraft:oak_leaves', 1);
+                }
+
+                const read = vi.spyOn(performance, 'now').mockImplementation(clock);
+                try {
+                    expect(systems.tick(1).scheduled).toBe(SCHEDULED_TICK_BUDGET_PER_TICK);
+                    expect(systems.tick(2).scheduled).toBe(overflow);
+                } finally {
+                    read.mockRestore();
+                }
+
+                // The ones the budget left run first on the next tick, in the order they had.
+                expect(handled.slice(-overflow)).toEqual([0, 1, 2].map((i) => SCHEDULED_TICK_BUDGET_PER_TICK + i));
+                expect(systems.ticks.list('block').count()).toBe(0);
+            });
+
             it('does not run a duplicate fluid tick after the block list advances the same liquid', () => {
                 const at = { x: 0, y: 1, z: 0 };
                 const { systemsOf } = worldOf();
