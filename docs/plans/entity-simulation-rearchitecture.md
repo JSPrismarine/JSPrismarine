@@ -160,6 +160,12 @@ The lane declarations of A3 put 35 handlers in the connection lane, 9 in the rea
 
 Slice 6 inherits a list of what stops an input-lane handler from being synchronous. Eight handlers load chunks or search for a position, among them `PlayerAction`, `InventoryTransaction`, `ItemStackRequest`, `Respawn` and `RequestChunkRadius`. Six reach the disk through `savePlayerData`, the operator file or the config. `Text`, `CommandRequest` and `SettingsCommand` call into commands and chat, which can do anything. Six read-lane handlers are write requests the server drops today, and each moves to the input lane when its write is implemented.
 
+B2 left three things for later slices to remove.
+
+- `world/TickContext.ts` uses `AsyncLocalStorage` to tell code inside a tick from code between ticks, because the tick still awaits. Slice 9 makes the tick synchronous, and a plain flag set by the ticker replaces it then.
+- Eight code paths still load a chunk from inside a tick. Each is admitted inline, recorded as `inline` and listed in `IN_TICK_CHUNK_LOADS`, and a test fails when one is removed without updating the list. Slices 3, 5, 6 and 9 remove them.
+- `World.disable` waits for an unload parked on admission, so calling it from inside a tick would never finish. Nothing does today. Slice 9 has to keep it that way or drain admissions first.
+
 ### Phase C: the store
 
 | Package | Slice | Depends on | Work                                                                                                                         |
