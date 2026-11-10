@@ -19,18 +19,32 @@ import { javaRandom } from '@jsprismarine/enchantments';
 import type { EnchantmentRegistry } from '@jsprismarine/enchantments';
 
 import { advancementEnchantedItem } from '../advancement/triggers';
-import type Player from '../Player';
+import type { AdvancementPlayer } from '../advancement/triggers';
+import type { AnnouncingWorld } from '../advancement/raise';
 import { spendExperienceLevels } from '../entity/Experience';
 import type { Item } from '../item/Item';
 import PlayerEnchantOptionsPacket from '@jsprismarine/protocol/packet/PlayerEnchantOptionsPacket';
 import type { EnchantmentInstance, ItemEnchantOption } from '@jsprismarine/protocol/packet/PlayerEnchantOptionsPacket';
 import { bedrockEnchantType } from './bedrockIds';
 import { bookshelfPowerAround } from './bookshelves';
-import type { BlockPosition } from './bookshelves';
+import type { BlockPosition, BookshelfWorld } from './bookshelves';
 import { randomOf } from '../utils/Random';
 import type { KeyedPlayerSource, PlayerKeySource } from '../keyedPlayer';
 import { keyedPlayerOf, playerKeyFrom } from '../keyedPlayer';
 import type Server from '../Server';
+
+/** Where the three rows go: the player's session. */
+interface EnchantOptionsRecipient {
+    getNetworkSession(): { send(packet: PlayerEnchantOptionsPacket): Promise<void> };
+}
+
+/**
+ * What the table reads of the player at it: the session the rows go to, the world its bookshelves
+ * stand in, the key its seed is kept under, and the experience a row costs.
+ */
+export interface EnchantingPlayer extends AdvancementPlayer, EnchantOptionsRecipient {
+    getWorld(): AnnouncingWorld & BookshelfWorld;
+}
 
 /** An enchanting table always shows three rows, even when some of them are empty. */
 export const ENCHANTING_SLOTS = 3;
@@ -186,7 +200,10 @@ export const enchantOptionsOf = (registry: EnchantmentRegistry, rows: readonly E
  * Sends the three rows to one player, or clears the table when there is
  * nothing to offer.
  */
-export const sendEnchantOptions = async (player: Player, options: readonly ItemEnchantOption[]): Promise<void> => {
+export const sendEnchantOptions = async (
+    player: EnchantOptionsRecipient,
+    options: readonly ItemEnchantOption[]
+): Promise<void> => {
     const packet = new PlayerEnchantOptionsPacket({ options: [...options] });
     await player.getNetworkSession().send(packet);
 };
@@ -203,7 +220,7 @@ export const sendEnchantOptions = async (player: Player, options: readonly ItemE
  * @param stack - What is in the table's input slot, or undefined to clear it.
  */
 export const showEnchantingTable = async (
-    player: Player,
+    player: EnchantingPlayer,
     stack: Item | undefined,
     at: BlockPosition
 ): Promise<void> => {
@@ -238,7 +255,7 @@ export interface EnchantingResult {
  */
 export const takeEnchantingRow = (
     registry: EnchantmentRegistry,
-    player: Player,
+    player: AdvancementPlayer,
     stack: Item,
     seed: number,
     bookshelfPower: number,

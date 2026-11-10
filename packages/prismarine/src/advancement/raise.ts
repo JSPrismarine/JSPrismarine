@@ -27,6 +27,11 @@ interface AnnouncementRecipient {
     sendMessage(message: string, type: TextPacketType, parameters: string[], needsTranslation: boolean): Promise<void>;
 }
 
+/** The world an announcement goes out to. */
+export interface AnnouncingWorld {
+    getPlayers(): readonly AnnouncementRecipient[];
+}
+
 /**
  * What a raise reads of the player who earned something: the key and the server its progress is
  * found by, the name an announcement carries, and the world whose players hear it.
@@ -35,7 +40,7 @@ export interface RaisingPlayer {
     getName(): string;
     getXUID(): string | null;
     getServer(): Server;
-    getWorld(): { getPlayers(): readonly AnnouncementRecipient[] };
+    getWorld(): AnnouncingWorld;
 }
 
 /**
