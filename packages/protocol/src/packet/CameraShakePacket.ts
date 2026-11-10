@@ -1,3 +1,6 @@
+import { cameraShakePacket } from '../wire/definitions/cameraShake';
+import { layoutAt } from '../wire/WireLayout';
+
 import FieldNetworkPacket from '../FieldNetworkPacket';
 
 /** How the camera moves while it shakes, as the Shake Type uint8 numbers it. */
@@ -37,17 +40,11 @@ export default class CameraShakePacket extends FieldNetworkPacket {
 
     /** Reads the intensity, the duration, the type, and the action. */
     public decodePayload(): void {
-        this.intensity = this.readFloatLE();
-        this.seconds = this.readFloatLE();
-        this.shakeType = this.readByte();
-        this.shakeAction = this.readByte();
+        Object.assign(this, layoutAt(cameraShakePacket, this.codecProtocol).decode(this));
     }
 
     /** Writes the intensity, the duration, the type, and the action. */
     public encodePayload(): void {
-        this.writeFloatLE(this.intensity);
-        this.writeFloatLE(this.seconds);
-        this.writeByte(this.shakeType);
-        this.writeByte(this.shakeAction);
+        layoutAt(cameraShakePacket, this.codecProtocol).encode(this, this);
     }
 }

@@ -1,5 +1,7 @@
+import { automationClientConnectPacket } from '../wire/definitions/automationClientConnect';
+import { layoutAt } from '../wire/WireLayout';
+
 import FieldNetworkPacket from '../FieldNetworkPacket';
-import { NetworkUtil } from '../wire/networkUtil';
 
 /**
  * Tells the client to open a websocket connection to the given address.
@@ -20,11 +22,11 @@ export default class AutomationClientConnectPacket extends FieldNetworkPacket {
 
     /** Reads the websocket address. */
     public decodePayload(): void {
-        this.websocketServerUri = NetworkUtil.readString(this);
+        Object.assign(this, layoutAt(automationClientConnectPacket, this.codecProtocol).decode(this));
     }
 
     /** Writes the websocket address. */
     public encodePayload(): void {
-        NetworkUtil.writeString(this, this.websocketServerUri);
+        layoutAt(automationClientConnectPacket, this.codecProtocol).encode(this, this);
     }
 }

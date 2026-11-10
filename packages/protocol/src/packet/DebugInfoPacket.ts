@@ -1,5 +1,7 @@
+import { debugInfoPacket } from '../wire/definitions/debugInfo';
+import { layoutAt } from '../wire/WireLayout';
+
 import FieldNetworkPacket from '../FieldNetworkPacket';
-import { NetworkUtil } from '../wire/networkUtil';
 
 /**
  * A blob of server debug text tied to an actor.
@@ -21,13 +23,11 @@ export default class DebugInfoPacket extends FieldNetworkPacket {
 
     /** Reads the actor id and the debug data. */
     public decodePayload(): void {
-        this.actorId = this.readVarLong();
-        this.data = NetworkUtil.readString(this);
+        Object.assign(this, layoutAt(debugInfoPacket, this.codecProtocol).decode(this));
     }
 
     /** Writes the actor id and the debug data. */
     public encodePayload(): void {
-        this.writeVarLong(this.actorId);
-        NetworkUtil.writeString(this, this.data);
+        layoutAt(debugInfoPacket, this.codecProtocol).encode(this, this);
     }
 }

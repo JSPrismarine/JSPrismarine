@@ -1,5 +1,7 @@
 import NetworkPacket from '../NetworkPacket';
 import { PacketIdentifier } from '../PacketIdentifier';
+import { codeBuilderSourcePacket } from '../wire/definitions/codeBuilderSource';
+import { layoutAt } from '../wire/WireLayout';
 
 import type NetworkBinaryStream from '../NetworkBinaryStream';
 
@@ -65,16 +67,10 @@ export default class CodeBuilderSourcePacket extends NetworkPacket<CodeBuilderSo
     }
 
     protected serializePayload(stream: NetworkBinaryStream, data: CodeBuilderSource): void {
-        stream.writeByte(data.operation);
-        stream.writeByte(data.category);
-        stream.writeByte(data.codeStatus);
+        layoutAt(codeBuilderSourcePacket, this.codecProtocol).encode(stream, data);
     }
 
     protected deserializePayload(stream: NetworkBinaryStream): CodeBuilderSource {
-        return {
-            operation: stream.readByte(),
-            category: stream.readByte(),
-            codeStatus: stream.readByte()
-        };
+        return layoutAt(codeBuilderSourcePacket, this.codecProtocol).decode(stream);
     }
 }

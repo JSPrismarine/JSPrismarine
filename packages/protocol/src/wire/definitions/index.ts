@@ -111,6 +111,21 @@ import { updateAttributesPacket } from './updateAttributes';
 import { updateSubChunkBlocksPacket } from './updateSubChunkBlocks';
 import { voxelShapesPacket } from './voxelShapes';
 
+import { actorPickRequestPacket } from './actorPickRequest';
+import { addBehaviorTreePacket } from './addBehaviorTree';
+import { agentActionEventPacket } from './agentActionEvent';
+import { agentAnimationPacket } from './agentAnimation';
+import { automationClientConnectPacket } from './automationClientConnect';
+import { cameraPacket } from './camera';
+import { cameraShakePacket } from './cameraShake';
+import { changeMobPropertyPacket } from './changeMobProperty';
+import { clientCameraAimAssistPacket } from './clientCameraAimAssist';
+import { codeBuilderPacket } from './codeBuilder';
+import { codeBuilderSourcePacket } from './codeBuilderSource';
+import { completedUsingItemPacket } from './completedUsingItem';
+import { createPhotoPacket } from './createPhoto';
+import { debugInfoPacket } from './debugInfo';
+import { editorNetworkPacket } from './editorNetwork';
 import type { PacketDefinition } from '../define';
 
 /** The declaratively defined packets, keyed by packet name. */
@@ -215,6 +230,21 @@ export const wireDefinitions: ReadonlyMap<string, PacketDefinition> = new Map(
         serverboundMatchmakingCancelPacket,
         serverboundRegisterAudioContentPacket,
         serverboundStonecutterSetRecipePacket,
-        setPassengerOfBlockPacket
+        setPassengerOfBlockPacket,
+        actorPickRequestPacket,
+        addBehaviorTreePacket,
+        agentActionEventPacket,
+        agentAnimationPacket,
+        automationClientConnectPacket,
+        cameraPacket,
+        cameraShakePacket,
+        changeMobPropertyPacket,
+        clientCameraAimAssistPacket,
+        codeBuilderPacket,
+        codeBuilderSourcePacket,
+        completedUsingItemPacket,
+        createPhotoPacket,
+        debugInfoPacket,
+        editorNetworkPacket
     ].map((definition) => [definition.name, definition])
 );

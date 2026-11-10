@@ -1,5 +1,7 @@
 import NetworkPacket from '../NetworkPacket';
 import { PacketIdentifier } from '../PacketIdentifier';
+import { agentAnimationPacket } from '../wire/definitions/agentAnimation';
+import { layoutAt } from '../wire/WireLayout';
 
 import type NetworkBinaryStream from '../NetworkBinaryStream';
 
@@ -29,14 +31,10 @@ export default class AgentAnimationPacket extends NetworkPacket<AgentAnimationDa
     }
 
     protected serializePayload(stream: NetworkBinaryStream, data: AgentAnimationData): void {
-        stream.writeByte(data.animation);
-        stream.writeUnsignedVarLong(data.runtimeId);
+        layoutAt(agentAnimationPacket, this.codecProtocol).encode(stream, data);
     }
 
     protected deserializePayload(stream: NetworkBinaryStream): AgentAnimationData {
-        return {
-            animation: stream.readByte(),
-            runtimeId: stream.readUnsignedVarLong()
-        };
+        return layoutAt(agentAnimationPacket, this.codecProtocol).decode(stream);
     }
 }
