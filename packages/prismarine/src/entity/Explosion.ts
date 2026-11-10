@@ -105,7 +105,10 @@ export const explode = async (world: World, at: Vector3, options: ExplosionOptio
             const entity = hit.entity.entity;
             if (!entity.isAlive()) return;
 
-            await entity.damage(hit.damage, new DamageSource({ cause: DamageCause.Explosion, attacker: source }));
+            const blow = new DamageSource({ cause: DamageCause.Explosion, attacker: source });
+            // A data-driven entity takes the blow through the entity store's damage pipeline.
+            if (world.dataEntities().damageEntity(entity, hit.damage, blow, 'explosion') === undefined)
+                await entity.damage(hit.damage, blow);
             shove(entity, hit.knockback);
         })
     );

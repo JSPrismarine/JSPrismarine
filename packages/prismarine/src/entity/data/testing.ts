@@ -36,7 +36,7 @@ import type { DataEntity } from './DataEntity';
 import { ITEM_COMPONENT } from './droppedItems';
 import { EntityRuntime } from './EntityRuntime';
 import { EYE_OF_ENDER_SIGNAL_COMPONENT } from './eyeOfEnderSignals';
-import type { ContentItemEntity, EntityHostFacts, EntityWorldFacts } from './host';
+import type { ContentItemEntity, DamageCommit, EntityHostFacts, EntityWorldFacts } from './host';
 
 /**
  * The blocks the entity fixture declares.
@@ -395,6 +395,12 @@ export class TestEntityWorld {
     /** Entities whose death animation the host was asked to announce. */
     public readonly deathAnimations: number[] = [];
 
+    /** Every damage commit the host heard, in order, as the advancement triggers hear them. */
+    public readonly commits: DamageCommit[] = [];
+
+    /** A synchronous host-side read a test can make while the host hears a commit. */
+    public onCommit: ((commit: DamageCommit) => void) | undefined;
+
     /** The players the host reports, which a test replaces between ticks. */
     public players: readonly ContentEntity[];
     /** Every dropped stack given to a player, in order, with the taker and the stack's id. */
@@ -543,6 +549,10 @@ export class TestEntityWorld {
             villagerRaidEffect: (id, effect) => this.villagerRaidEffects.push({ id, effect }),
             attackSound: (id) => this.attackSounds.push(id),
             startDeathAnimation: (id) => this.deathAnimations.push(id),
+            damageCommitted: (commit) => {
+                this.commits.push(commit);
+                this.onCommit?.(commit);
+            },
             mobEventActive: () => false
         };
     }

@@ -23,6 +23,8 @@
 import { legacy_item_aliases } from '@jsprismarine/bedrock-data';
 import { javaDyeColorIndexOf } from '@jsprismarine/mapping';
 import type {
+    DamageEvent,
+    DamageResult,
     EntityActuator,
     EntityAngerBroadcast,
     EntityBlockBreakEvent,
@@ -135,6 +137,12 @@ import type { CachedNavigationView } from './navigationView';
 import type { DataEntityRecord } from './persistence';
 import { applyDataEntityRecord, dataEntityRecordFrom, dataEntityRecordOf } from './persistence';
 import { EntityStore } from './EntityStore';
+import { DamagePipeline } from './damagePipeline';
+import type { DamageComputation, DamageCommitResult, DamageIntent, DamageOutcome, DamageRoute } from './damagePipeline';
+import { DamageSensingSlot, damageGuards, damageModifiers } from './damageStages';
+import { INVULNERABILITY_TICKS } from '../Damage';
+import type { HitGrace } from './damageStages';
+import { KNOCKBACK_LIFT, knockbackOf } from '../knockback';
 import {
     attributeIn,
     attributeNamed,
@@ -171,7 +179,6 @@ import { bedrockEntityIdentifierOf } from '../identifierMapping';
 import { DEFAULT_FUSE_TICKS, randomShortFuse } from '../fuse';
 import { isDay } from '../../world/DayCycle';
 import type { GameEventListener } from '../../world/GameEventListenerRegistry';
-import { DamageCause } from '../DamageCause';
 import { VOID_DAMAGE, VOID_DEPTH, VOID_INTERVAL } from '../Environment';
 import type { StatusEffectInput } from '../StatusEffect';
 import { mergeStatusEffect, normalizeStatusEffectId, removeStatusEffectFromMap } from '../StatusEffect';
@@ -418,8 +425,18 @@ export class EntityRuntime implements EntityScene {
      * of their state. See {@link EntityStore}.
      */
     public readonly store: EntityStore;
-    /** Lethal hits waiting for their queued `minecraft:on_death` events to apply. */
-    private readonly pendingDeaths = new Set<number>();
+    /** Entities whose death is running, which refuse every further blow until it ends. */
+    private readonly dying = new Set<number>();
+    /** The grace period after a hit, by entity, for the blows that keep one. */
+    private readonly hitGraces = new Map<number, HitGrace>();
+    /** The sensing of the damage run in progress, which the sensor guard and modifier share. */
+    private readonly damageSensing: DamageSensingSlot;
+    /**
+     * Every blow an entity in the store takes runs through this, as intent, guards, modifiers and
+     * commit ([ADR 0013](../../../../../docs/adr/0013-vetoable-actions-are-staged.md)). A host
+     * adds before-hooks to it.
+     */
+    public readonly damagePipeline: DamagePipeline;
     /**
      * Where every entity of the dimension stands, this runtime's and the world's legacy ones,
      * which is what makes a neighbor search cheaper than a scan. See ADR 0007.
@@ -591,6 +608,29 @@ export class EntityRuntime implements EntityScene {
                 return id;
             });
         this.store = new EntityStore((message) => this.report(message));
+        const damageReads = {
+            target: (id: number) => this.store.get(id),
+            dying: (id: number) => this.dying.has(id),
+            storeEntity: (id: number) => this.store.get(id),
+            isPlayer: (id: number) => this.host.playerById(id) !== undefined,
+            damagerView: (id: number) => this.mobById(id)?.view(),
+            gameRule: (rule: 'fireDamage') => rule === 'fireDamage' && ruleIsOn(this.world.level, FIRE_DAMAGE),
+            grace: (id: number) => this.hitGraces.get(id),
+            mitigation: (target: DataEntity, intent: DamageIntent) => this.host.damageMitigation?.(target, intent),
+            canAttack: (attacker: DataEntity, target: DataEntity) => canEntityAttack(attacker.instance, target.instance)
+        };
+        this.damageSensing = new DamageSensingSlot(damageReads);
+        this.damagePipeline = new DamagePipeline({
+            guards: damageGuards(damageReads, this.damageSensing),
+            modifiers: damageModifiers(damageReads, this.damageSensing),
+            commit: (intent, computation) => this.commitDamage(intent, computation),
+            reject: (intent, guard) =>
+                this.store.occurred({
+                    kind: 'occurrence',
+                    occurrence: 'action-rejected',
+                    data: { action: 'damage', entity: BigInt(intent.target), guard: guard.name }
+                })
+        });
         this.store.addInverseWriter((inverse) => this.writeInverse(inverse));
         this.droppedItems = new DroppedItems({
             spawn: (identifier, at, options) => this.spawn(identifier, at, options),
@@ -1127,6 +1167,7 @@ export class EntityRuntime implements EntityScene {
                 javaStats: content.entities.javaStats,
                 javaNavigation: javaEntityNavigation(reference, content.entities.javaNavigation),
                 remove: (removed, reason) => this.removeInstance(removed, reason),
+                damage: (hurt, event) => this.componentDamage(hurt, event),
                 transform: (from, request) => this.transform(from, request),
                 spawnEntity: (from, request) => this.spawnFromComponent(from, request),
                 route: (trigger, from) => this.route(trigger, from),
@@ -1235,7 +1276,8 @@ export class EntityRuntime implements EntityScene {
                 this.unloadedIdentities.delete(entity.persistentIdentity);
             }
         }
-        this.pendingDeaths.delete(id);
+        this.dying.delete(id);
+        this.hitGraces.delete(id);
         this.byInstance.delete(entity.instance);
         entity.body.onEquipmentChanged = undefined;
         this.index.remove(entity);
@@ -1384,17 +1426,7 @@ export class EntityRuntime implements EntityScene {
             this.eyesOfEnder.update(entity);
             return;
         }
-        if (this.pendingDeaths.delete(entity.id)) {
-            entity.instance.applyQueuedEvents();
-            if (entity.removed !== undefined) return;
-            if (!entity.instance.hasComponent('minecraft:behavior.dragondeath')) {
-                if (this.explodeOnDeath(entity)) return;
-                this.kill(entity);
-                return;
-            }
-            // The killing hit added the death-hold goal, so the hold begins this tick.
-            this.host.startDeathAnimation?.(entity.id);
-        }
+        this.tickHitGrace(entity.id);
         this.updateMedium(entity);
         this.tickTimers(entity.body);
         if (entity.runsGoals) this.resetNoActionTimeNearPlayers(entity);
@@ -1994,7 +2026,7 @@ export class EntityRuntime implements EntityScene {
                     return;
                 }
                 this.host.hurt(id, damage, cause, sourceId, params.deathMessageOverride);
-            } else this.hurt(target, sourceId, cause, damage);
+            } else this.hurt(target, sourceId, cause, damage, { route: 'area_attack' });
 
             if (params.playAttackSound) this.host.attackSound?.(entity.id);
             entity.instance.notifyAttack(view);
@@ -2082,14 +2114,14 @@ export class EntityRuntime implements EntityScene {
     }
 
     /**
-     * Takes health off one entity and remembers who took it.
+     * Takes health off one entity and remembers who took it, through the damage pipeline.
      *
      * The record is what `hurt_by_target`, `panic`, `play_dead` and the
      * wither's targeting read, so every path that deals damage goes through
-     * here rather than writing the attribute itself.
+     * the pipeline rather than writing the attribute itself.
      *
-     * @param options - Whether to send generic host hurt feedback. Disable it when the body
-     *   already emitted feedback or the actor should not receive mob-style feedback.
+     * @param options - The route the blow came by, and whether to send the hurt animation and
+     *   sound when it lands. Disable feedback when the actor should not receive mob-style feedback.
      * @returns Whether the data entity took damage.
      */
     public hurt(
@@ -2097,70 +2129,189 @@ export class EntityRuntime implements EntityScene {
         sourceId: number | undefined,
         cause: string,
         amount: number,
-        options: { readonly feedback?: boolean } = {}
+        options: { readonly feedback?: boolean; readonly route?: DamageRoute } = {}
     ): boolean {
-        if (this.pendingDeaths.has(entity.id)) return false;
-        // An invulnerable record refuses everything, as Java's invulnerable end crystals do
-        // through the respawn sequence.
-        if (entity.body.invulnerable) return false;
-        if (entity.instance.attributes.get('health') === undefined) return false;
-
-        if (sourceId !== undefined && ['entity_attack', 'entity_explosion', 'projectile'].includes(cause)) {
-            const attacker = this.store.get(sourceId);
-            if (attacker !== undefined && !canEntityAttack(attacker.instance, entity.instance)) return false;
-        }
-
-        let dealt = amount;
-        if (amount > 0 && entity.instance.families().includes('dragon')) {
-            const scaled = this.dragonDamageOf(entity, sourceId, cause, amount);
-            if (scaled === undefined) return false;
-            dealt = scaled;
-        }
-
-        const damager = sourceId === undefined ? undefined : this.mobById(sourceId)?.view();
-        const result = entity.instance.damage({ cause, amount: dealt, damager });
-        if (result.amount > 0) {
-            entity.body.damage.record(sourceId, cause, result.amount);
-            this.lastDamagedAt.set(entity, this.world.level.gameTime());
-            this.disablePiglinAdmirationAfterDamage(entity);
-            if (options.feedback !== false) this.host.hurtFeedback?.(entity.id);
-        }
-        if (result.died) {
-            const killer = sourceId === undefined ? undefined : this.mobById(sourceId)?.view();
-            if (killer !== undefined) this.notifyAttackTargetKilled(entity, killer);
-            if (entity.instance.queued().length > 0) this.pendingDeaths.add(entity.id);
-            else this.kill(entity);
-        }
-        return result.amount > 0;
+        const outcome = this.damage({
+            target: entity.id,
+            ...(sourceId === undefined ? {} : { attacker: sourceId }),
+            cause,
+            amount,
+            source: {
+                route: options.route ?? 'mob_attack',
+                ...(options.feedback === undefined ? {} : { feedback: options.feedback })
+            }
+        });
+        return outcome.committed && outcome.taken > 0;
     }
 
     /**
-     * Java's `EnderDragon.hurt` rules, which the Bedrock pack does not carry.
-     *
-     * A dying dragon ignores damage; a `/kill` lands whole, as Java's `EnderDragon.kill`
-     * override takes the dragon out regardless of its rules; otherwise a hit counts only
-     * when a player dealt it or an explosion caused it, which is Java's
-     * `#always_hurts_ender_dragons` tag; and with no head part on this server every hit
-     * is a body hit, which Java lands at a quarter of the amount plus the amount capped
-     * at one. Anything below Java's 0.01 floor is dropped.
-     *
-     * @returns The amount the dragon takes, or undefined when the hit does not count.
+     * Runs one damage intent through the pipeline: guards, modifiers, then the commit, in which a
+     * death runs too. Synchronous, so the blow and any death it caused have happened when this
+     * returns.
      */
-    private dragonDamageOf(
-        entity: DataEntity,
-        sourceId: number | undefined,
-        cause: string,
-        amount: number
-    ): number | undefined {
-        if (entity.instance.hasComponent('minecraft:behavior.dragondeath')) return undefined;
-        if (cause === DamageCause.SelfDestruct) return amount;
+    public damage(intent: DamageIntent): DamageOutcome {
+        this.damageSensing.clear();
+        return this.damagePipeline.run(intent);
+    }
 
-        const isExplosion = cause === 'entity_explosion' || cause === 'block_explosion';
-        const fromPlayer = sourceId !== undefined && this.host.playerById(sourceId) !== undefined;
-        if (!isExplosion && !fromPlayer) return undefined;
+    /**
+     * The commit stage: applies a computed blow through the logged setters.
+     *
+     * The order is the one the legacy damage pipeline and the runtime kept between them: the
+     * grace period, the hurt feedback and the shove, then the health with the sensor's events and
+     * the hurt triggers, then the damage record, then the host's observers, then the death.
+     */
+    private commitDamage(intent: DamageIntent, computation: DamageComputation): DamageCommitResult {
+        const sensing = this.damageSensing.of(intent);
+        const entity = this.store.get(intent.target);
+        if (entity === undefined) return { taken: 0, died: false };
+        const source = intent.source;
 
-        const scaled = amount / 4 + Math.min(amount, 1);
-        return scaled < 0.01 ? undefined : scaled;
+        let fresh = true;
+        if (source.graced === true) {
+            const grace = this.hitGraces.get(entity.id);
+            fresh = grace === undefined || grace.ticks <= 0 || source.bypassesGrace === true;
+            this.hitGraces.set(entity.id, {
+                ticks: fresh || grace === undefined ? INVULNERABILITY_TICKS : grace.ticks,
+                last: intent.amount
+            });
+        }
+
+        const absorbed = computation.modifiers.find((modifier) => modifier.name === 'absorption');
+        const absorption = entity.instance.attributes.get('absorption');
+        if (absorbed !== undefined && absorption !== undefined)
+            entity.instance.attributes.set('absorption', absorption.current + absorbed.value);
+
+        const taken = computation.amount;
+        if (fresh && taken > 0 && source.feedback !== false) this.host.hurtFeedback?.(entity.id);
+        if (fresh && source.knockback !== undefined) this.shove(entity, source.knockback);
+
+        const damager = intent.attacker === undefined ? undefined : this.mobById(intent.attacker)?.view();
+        const result = entity.instance.applyDamage(
+            { cause: intent.cause, amount: intent.amount, damager },
+            taken,
+            sensing?.events ?? []
+        );
+        if (result.amount > 0 && source.remembered !== false) {
+            entity.body.damage.record(intent.attacker, intent.cause, result.amount);
+            this.lastDamagedAt.set(entity, this.world.level.gameTime());
+            this.disablePiglinAdmirationAfterDamage(entity);
+        }
+        if (result.died) {
+            this.dying.add(entity.id);
+            if (damager !== undefined) this.notifyAttackTargetKilled(entity, damager);
+        }
+
+        const dealt = computation.modifiers.find((modifier) => modifier.name === 'hit_grace')?.amountAfter;
+        this.host.damageCommitted?.({
+            target: entity,
+            intent,
+            dealt: dealt ?? computation.guarded,
+            taken: result.amount,
+            died: result.died
+        });
+
+        if (result.died) this.die(entity);
+        return { taken: result.amount, died: result.died };
+    }
+
+    /**
+     * Gives health back to one entity, up to its maximum. A dead entity is not healed.
+     *
+     * @returns Whether any health was restored.
+     */
+    public heal(id: number, amount: number): boolean {
+        const entity = this.store.get(id);
+        const health = entity?.instance.attributes.get('health');
+        if (entity === undefined || health === undefined || amount <= 0) return false;
+        if (health.current <= 0 || health.current >= health.max) return false;
+
+        entity.instance.attributes.set('health', Math.min(health.max, health.current + amount));
+        return true;
+    }
+
+    /**
+     * Damage a component deals its own entity, such as drowning or `minecraft:hurt_on_condition`.
+     *
+     * Through the pipeline like every other blow, so a hazard that kills runs the death. It shows
+     * no hurt feedback and leaves no damage record, as before the pipeline owned it. An entity
+     * that is still being built is not in the store yet, and senses and applies the blow itself.
+     */
+    private componentDamage(instance: EntityInstance, event: DamageEvent): DamageResult {
+        const entity = this.byInstance.get(instance);
+        if (entity === undefined || !this.store.has(entity.id)) {
+            const sensing = instance.senseDamage(event);
+            return instance.applyDamage(event, sensing.amount, sensing.events);
+        }
+
+        const attacker = event.damager?.id?.();
+        const outcome = this.damage({
+            target: entity.id,
+            ...(typeof attacker === 'number' ? { attacker } : {}),
+            cause: event.cause,
+            amount: event.amount,
+            source: { route: 'component', feedback: false, remembered: false }
+        });
+        const health = instance.attributes.get('health')?.current;
+        return outcome.committed
+            ? { amount: outcome.taken, health, died: outcome.died, events: [] }
+            : { amount: 0, health, died: false, events: [] };
+    }
+
+    /**
+     * A death, inside the commit of the blow that caused it.
+     *
+     * The killing blow may have queued `minecraft:on_death` events, which apply first, because
+     * they decide what the death is: the dragon's starts its death hold and stays, a creeper's
+     * may explode it, and anything else leaves with its loot.
+     */
+    private die(entity: DataEntity): void {
+        if (entity.instance.queued().length > 0) {
+            entity.instance.applyQueuedEvents();
+            if (entity.removed !== undefined) return;
+            if (entity.instance.hasComponent('minecraft:behavior.dragondeath')) {
+                // The killing hit added the death-hold goal; the dragon stays until it ends.
+                this.dying.delete(entity.id);
+                this.host.startDeathAnimation?.(entity.id);
+                return;
+            }
+            if (this.explodeOnDeath(entity)) return;
+        }
+        this.kill(entity);
+    }
+
+    /** Counts one entity's grace period down, forgetting the last blow when it runs out. */
+    private tickHitGrace(id: number): void {
+        const grace = this.hitGraces.get(id);
+        if (grace === undefined) return;
+        if (grace.ticks <= 1) this.hitGraces.delete(id);
+        else this.hitGraces.set(id, { ticks: grace.ticks - 1, last: grace.last });
+    }
+
+    /**
+     * Shoves an entity away from where a blow came from.
+     *
+     * The damping first, because vanilla's rule is that each shove halves whatever motion the
+     * last one left before adding its own. The lift is vanilla's cap, and the runtime's gravity
+     * brings the entity back down.
+     */
+    private shove(entity: DataEntity, knockback: { readonly origin: EntityPosition; readonly levels: number }): void {
+        const shove = knockbackOf({
+            target: entity.position,
+            origin: knockback.origin,
+            resistance: entity.facts.knockbackResistance,
+            levels: knockback.levels,
+            tieBreak: entity.id % 8
+        });
+        if (shove === undefined) return;
+
+        const carried = entity.body.velocity;
+        entity.body.velocity = { x: carried.x * shove.damping, y: carried.y, z: carried.z * shove.damping };
+        entity.body.push({
+            x: shove.directionX * shove.strength,
+            y: KNOCKBACK_LIFT,
+            z: shove.directionZ * shove.strength
+        });
     }
 
     /** Notifies combat-regeneration components watching the target that just died. */
@@ -2420,7 +2571,7 @@ export class EntityRuntime implements EntityScene {
 
         const sourceId = isTnt ? (self.body.owner ?? self.id) : self.id;
         for (const hit of blast.hits) {
-            this.hurt(hit.entity, sourceId, 'entity_explosion', hit.damage);
+            this.hurt(hit.entity, sourceId, 'entity_explosion', hit.damage, { route: 'explosion' });
             hit.entity.body.push(hit.knockback);
         }
 
@@ -3011,7 +3162,7 @@ export class EntityRuntime implements EntityScene {
                     const health = entity.instance.attributes.get('health');
                     if (health !== undefined) entity.instance.attributes.set('health', health.current + healthAmount);
                 } else if (healthAmount < 0) {
-                    this.hurt(entity, owner, 'entity_attack', -healthAmount);
+                    this.hurt(entity, owner, 'entity_attack', -healthAmount, { route: 'interaction' });
                 }
             }
             return {
@@ -3517,7 +3668,7 @@ export class EntityRuntime implements EntityScene {
         this.world.effects.playSound(blockPositionOf(source.position), 'minecraft:entity.warden.sonic_boom');
 
         if (target !== undefined) {
-            if (!this.hurt(target, source.id, 'sonic_boom', WARDEN.sonicBoom.damage)) return;
+            if (!this.hurt(target, source.id, 'sonic_boom', WARDEN.sonicBoom.damage, { route: 'sonic_boom' })) return;
             const remaining = 1 - Math.min(1, Math.max(0, target.facts.knockbackResistance));
             target.body.push({ x: impulse.x * remaining, y: impulse.y * remaining, z: impulse.z * remaining });
             return;
@@ -3948,9 +4099,9 @@ export class EntityRuntime implements EntityScene {
 
         setCondition(body.conditions, 'on_fire', body.fireTicks > 0);
         if (ignited) instance.trigger('minecraft:on_ignite');
-        if (body.conditions.has('on_fire') && this.world.level.gameTime() % FIRE_DAMAGE_INTERVAL_TICKS === 0) {
-            if (ruleIsOn(this.world.level, FIRE_DAMAGE)) this.hurt(entity, undefined, 'fire_tick', FIRE_DAMAGE_AMOUNT);
-        }
+        // `fireDamage` is the pipeline's game-rule guard.
+        if (body.conditions.has('on_fire') && this.world.level.gameTime() % FIRE_DAMAGE_INTERVAL_TICKS === 0)
+            this.hurt(entity, undefined, 'fire_tick', FIRE_DAMAGE_AMOUNT, { route: 'fire' });
     }
 
     /**
@@ -3969,7 +4120,7 @@ export class EntityRuntime implements EntityScene {
             return;
         }
         if (this.world.level.gameTime() % VOID_INTERVAL !== 0) return;
-        this.hurt(entity, undefined, 'void', VOID_DAMAGE);
+        this.hurt(entity, undefined, 'void', VOID_DAMAGE, { route: 'void' });
     }
 
     /** Activates a newly spawned or restored fuse without spending its first tick. */
@@ -4289,7 +4440,8 @@ export class EntityRuntime implements EntityScene {
             }
 
             if (damage > 0) {
-                if (target instanceof DataEntity) this.hurt(target, projectile.body.owner, 'projectile', damage);
+                if (target instanceof DataEntity)
+                    this.hurt(target, projectile.body.owner, 'projectile', damage, { route: 'projectile' });
                 else if (this.host.hurtByProjectile !== undefined)
                     this.host.hurtByProjectile(target.id, damage, projectile.id, projectile.body.owner);
                 else this.host.hurt?.(target.id, damage, 'projectile', projectile.body.owner);

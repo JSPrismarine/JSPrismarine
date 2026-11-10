@@ -36,7 +36,13 @@ const thrownEye = () => {
     // never shown an entity with its own player's id.
     let nextId = 10_000;
     const fixture = entityFixture(undefined, {}, {}, () => (nextId += 1));
-    const bodies = new LiveBodies({ world: () => world, report: () => {}, hurt: () => false });
+    const bodies = new LiveBodies({
+        world: () => world,
+        report: () => {},
+        hurt: () => false,
+        written: () => {},
+        heal: () => false
+    });
     const eye = fixture.runtime.eyesOfEnder.launch(
         { x: 0.5, y: 64.9, z: 0.5 },
         { x: 100, y: 0, z: 0 },

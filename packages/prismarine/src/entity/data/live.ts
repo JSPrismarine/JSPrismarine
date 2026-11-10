@@ -50,8 +50,15 @@ import { EntityRuntime, PROJECTILE_EYE_HEIGHT_FRACTION } from './EntityRuntime';
 import { LiveBodies } from './liveBodies';
 import { tradeDisplayNameOf } from './trading';
 import type { DataEntityRecord } from './persistence';
+import EntityDamageEvent from '../../events/entity/EntityDamageEvent';
+import EntityDeathEvent from '../../events/entity/EntityDeathEvent';
+import { enchantmentProtection } from '../../enchantment/mitigation';
+import { viewableEquipmentOf, wornArmorOf } from '../equipment';
+import { PASS, VETO, replaceAmount } from './damagePipeline';
+import type { DamageOutcome, DamageRoute } from './damagePipeline';
+import { intentOfHealthWrite, intentOfLegacyBlow, legacySourceOfIntent, viewableDataEntity } from './legacyDamage';
 import type { Item } from '../../item/Item';
-import { advancementPickedUpItem } from '../../advancement/triggers';
+import { advancementDamage, advancementKill, advancementPickedUpItem } from '../../advancement/triggers';
 import { itemDropOf, itemOfDrop } from '../../inventory/persistence';
 import ContainerEntry from '../../inventory/ContainerEntry';
 import { TakeItemActorPacket } from '@jsprismarine/protocol';
@@ -273,6 +280,36 @@ const liveHost = (
     itemBodies: ItemBodies,
     runtime: () => EntityRuntime
 ): EntityHostFacts => ({
+    damageMitigation: (target, intent) => {
+        const world = options.liveWorld();
+        if (world === undefined) return undefined;
+        const content = world.getServer().getContent();
+        const equipment = viewableEquipmentOf(target.equipment, content);
+        const worn = wornArmorOf(equipment);
+        const enchantment =
+            intent.source.bypassesEnchantments === true
+                ? 0
+                : enchantmentProtection({
+                      content,
+                      victim: viewableDataEntity(target),
+                      equipment,
+                      source: legacySourceOfIntent(world, intent)
+                  });
+        return { ...worn, enchantmentProtection: enchantment };
+    },
+    damageCommitted: (commit) => {
+        const world = options.liveWorld();
+        const body = bodies.bodyOf(commit.target.id);
+        if (world === undefined || body === undefined) return;
+
+        // The order the legacy pipeline raised them in: the death, then the blow.
+        const source = legacySourceOfIntent(world, commit.intent);
+        if (commit.died) {
+            world.getServer().post(['entityDeath', new EntityDeathEvent(body, source)]);
+            advancementKill(body, source);
+        }
+        advancementDamage(body, source, commit.dealt, commit.taken, false);
+    },
     players: () => options.entities.players(),
     playerView: (id) => {
         const player = options.liveWorld()?.getEntity(BigInt(id));
@@ -476,8 +513,12 @@ export class LiveEntityRuntime {
         this.bodies = new LiveBodies({
             world: options.liveWorld,
             report: options.report,
-            hurt: (entity, sourceId, cause, amount) =>
-                this.runtime.hurt(entity, sourceId, cause, amount, { feedback: false })
+            hurt: (entity, amount, source, route) =>
+                this.landed(this.runtime.damage(intentOfLegacyBlow(entity, amount, source, route))),
+            written: (entity, taken, source) => {
+                this.runtime.damage(intentOfHealthWrite(entity, taken, source, 'legacy_body'));
+            },
+            heal: (entity, amount) => this.runtime.heal(entity.id, amount)
         });
         this.itemBodies = new ItemBodies({ world: options.liveWorld, report: options.report });
         this.runtime = new EntityRuntime({
@@ -505,6 +546,58 @@ export class LiveEntityRuntime {
                 return Number(Entity.runtimeIdCount);
             }
         });
+        // The plugin `entityDamage` event is a before-hook: a listener can cancel the blow or
+        // change its amount, and anything at or below zero cancels it. A blow the pack already
+        // turned aside is not offered, so its sensor event still fires.
+        this.runtime.damagePipeline.addBeforeHook('entityDamage', (intent) => {
+            if (intent.amount <= 0) return PASS;
+            const world = options.liveWorld();
+            const body = this.bodies.bodyOf(intent.target);
+            if (world === undefined || body === undefined) return PASS;
+
+            const event = new EntityDamageEvent(body, intent.amount, legacySourceOfIntent(world, intent));
+            world.getServer().post(['entityDamage', event]);
+            if (event.isCanceled()) return VETO;
+            return event.getAmount() === intent.amount ? PASS : replaceAmount(event.getAmount());
+        });
+    }
+
+    /** Whether a run of the pipeline took health off its target. */
+    private landed(outcome: DamageOutcome): boolean {
+        return outcome.committed && outcome.taken > 0;
+    }
+
+    /**
+     * Hurts a data-driven entity through the store's damage pipeline, for a caller that describes
+     * the blow with a legacy {@link DamageSource}, such as a player's swing or a legacy blast.
+     *
+     * @param target - The entity's client-facing body.
+     * @param route - Which path the blow came by.
+     * @returns Whether it took health off the entity, or undefined when the body is not a
+     *   data-driven entity's and the caller still owns the blow.
+     */
+    public damageEntity(target: Entity, amount: number, source: DamageSource, route: DamageRoute): boolean | undefined {
+        const id = this.bodies.entityIdOf(target);
+        const entity = id === undefined ? undefined : this.runtime.byId(id);
+        if (entity === undefined) return undefined;
+        if (amount <= 0) return false;
+        return this.landed(this.runtime.damage(intentOfLegacyBlow(entity, amount, source, route)));
+    }
+
+    /**
+     * Kills a data-driven entity through the store's damage pipeline, with a blow of its whole
+     * health that ignores armor and the grace period, which is what `/kill` deals.
+     *
+     * @returns Whether it died, or undefined when the body is not a data-driven entity's.
+     */
+    public killEntity(target: Entity, source: DamageSource, route: DamageRoute): boolean | undefined {
+        const id = this.bodies.entityIdOf(target);
+        const entity = id === undefined ? undefined : this.runtime.byId(id);
+        if (entity === undefined) return undefined;
+        const health = entity.instance.attributes.get('health')?.current;
+        if (health === undefined || health <= 0) return false;
+        const outcome = this.runtime.damage(intentOfHealthWrite(entity, health, source, route));
+        return outcome.committed && outcome.died;
     }
 
     /**

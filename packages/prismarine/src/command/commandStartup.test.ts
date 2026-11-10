@@ -246,10 +246,13 @@ describe('the command layer on a booted server', () => {
         await run('/summon minecraft:cow 6 70 6');
         const cow = world.getEntities().find((entity) => entity.getType() === 'minecraft:cow');
 
+        const id = cow === undefined ? undefined : Number(cow.getRuntimeId());
+
         await expect(run('/kill @e[type=cow]')).resolves.toBe(true);
-        // Dead, not gone: a mob leaves the world after its death animation, and
-        // this server is booted with ticking off so nothing advances it.
-        expect(cow?.isAlive()).toBe(false);
+        // Gone from the store inside the command, although this server is booted with ticking
+        // off: a death runs in the commit of the blow that caused it.
+        expect(id).toBeDefined();
+        expect(id === undefined ? undefined : world.dataEntities().runtime.byId(id)).toBeUndefined();
     });
 
     it('changes the time through /time', async () => {
