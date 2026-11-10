@@ -45,6 +45,31 @@ export interface AttributeSpec {
     min?: number;
 }
 
+/**
+ * One change to an attribute, as a host observes it.
+ *
+ * `null` stands for an attribute no component declares, so writing `before` back with
+ * {@link Attributes.restore} undoes the change exactly.
+ */
+export interface AttributeWrite {
+    /** The attribute that changed. */
+    readonly name: AttributeName;
+    /** The attribute before the change, or `null` when it was undeclared. */
+    readonly before: Attribute | null;
+    /** The attribute after the change, or `null` when the change removed it. */
+    readonly after: Attribute | null;
+}
+
+/** Whether two attribute values hold the same four numbers. */
+const sameAttribute = (left: Attribute | null, right: Attribute | null): boolean =>
+    left === right ||
+    (left !== null &&
+        right !== null &&
+        left.base === right.base &&
+        left.min === right.min &&
+        left.max === right.max &&
+        left.current === right.current);
+
 /** The live attributes of one entity. */
 export class Attributes {
     private readonly values = new Map<AttributeName, Attribute>();
@@ -54,8 +79,13 @@ export class Attributes {
      *   declares, which is how a stat Java Edition decides reaches an entity
      *   built from a Bedrock pack. An overridden attribute has no range: the
      *   base and the maximum are both the given value.
+     * @param written - Called after every change, with the attribute before and after it. A
+     *   write that leaves all four numbers as they were is not reported.
      */
-    public constructor(private readonly overrides: ReadonlyMap<AttributeName, number> = new Map()) {}
+    public constructor(
+        private readonly overrides: ReadonlyMap<AttributeName, number> = new Map(),
+        private readonly written?: (write: AttributeWrite) => void
+    ) {}
 
     /**
      * Declares an attribute and sets it to its base value.
@@ -69,7 +99,7 @@ export class Attributes {
         const max = Math.max(min, override ?? spec.max ?? spec.base);
         const base = Math.min(max, Math.max(min, override ?? spec.base));
         const attribute: Attribute = { base, min, max, current: base };
-        this.values.set(name, attribute);
+        this.put(name, attribute);
         return attribute;
     }
 
@@ -92,12 +122,28 @@ export class Attributes {
         const attribute = this.values.get(name);
         if (attribute === undefined) return undefined;
         const current = Math.min(attribute.max, Math.max(attribute.min, value));
-        this.values.set(name, { ...attribute, current });
+        this.put(name, { ...attribute, current });
         return current;
+    }
+
+    /**
+     * Puts an attribute back exactly as an {@link AttributeWrite} described it, bounds and all,
+     * or removes it for `null`. This is how a host undoes a change.
+     */
+    public restore(name: AttributeName, attribute: Attribute | null): void {
+        this.put(name, attribute);
     }
 
     /** Every declared attribute, in declaration order. */
     public names(): readonly AttributeName[] {
         return [...this.values.keys()];
+    }
+
+    /** The one write path, which reports each change. */
+    private put(name: AttributeName, attribute: Attribute | null): void {
+        const before = this.values.get(name) ?? null;
+        if (attribute === null) this.values.delete(name);
+        else this.values.set(name, attribute);
+        if (!sameAttribute(before, attribute)) this.written?.({ name, before, after: attribute });
     }
 }

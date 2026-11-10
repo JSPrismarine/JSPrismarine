@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
-import type { EntityEnvironment, EntityInstance } from './entityInstance';
+import type { AttributeWrite } from './attributes';
+import type { ComponentGroupsWrite, EntityEnvironment, EntityInstance } from './entityInstance';
+import type { PropertyValueWrite } from './properties';
 import { EntityTypes } from './entityTypes';
 import type { EntityPosition } from './hooks';
 
@@ -466,3 +468,116 @@ describe('environment sensors', () => {
         expect(entity.activeComponentGroups()).toEqual(['test:wet']);
     });
 });
+
+describe('state observers', () => {
+    /** An environment that records every attribute, property and group write, in order. */
+    const recording = () => {
+        const writes: { kind: string; write: unknown }[] = [];
+        const environment: EntityEnvironment = {
+            random: scripted(0, 0),
+            attributeWritten: (_entity, write) => writes.push({ kind: 'attribute', write }),
+            propertyWritten: (_entity, write) => writes.push({ kind: 'property', write }),
+            componentGroupsWritten: (_entity, write) => writes.push({ kind: 'groups', write })
+        };
+        return { writes, environment };
+    };
+
+    /** What an undo has to restore: groups, attributes and properties. */
+    const stateOf = (entity: EntityInstance) => ({
+        groups: entity.activeComponentGroups(),
+        attributes: entity.attributes.names().map((name) => [name, entity.attributes.get(name)]),
+        properties: entity.properties.names().map((name) => [name, entity.properties.get(name)])
+    });
+
+    it('reports an attribute change with its value before and after, and not a write that changes nothing', () => {
+        const { writes, environment } = recording();
+        const entity = spawn(environment);
+        writes.length = 0;
+
+        entity.attributes.set('health', 12);
+        entity.attributes.set('health', 12);
+
+        expect(writes).toEqual([
+            {
+                kind: 'attribute',
+                write: {
+                    name: 'health',
+                    before: { base: 20, min: 0, max: 20, current: 20 },
+                    after: { base: 20, min: 0, max: 20, current: 12 }
+                }
+            }
+        ]);
+    });
+
+    it('reports a property write that changed the value', () => {
+        const { writes, environment } = recording();
+        const entity = spawn(environment);
+        writes.length = 0;
+
+        entity.properties.set('minecraft:state', 'hostile_observed');
+        entity.properties.set('minecraft:state', 'hostile_observed');
+
+        expect(writes).toEqual([
+            {
+                kind: 'property',
+                write: { name: 'minecraft:state', before: 'neutral', after: 'hostile_observed' }
+            }
+        ]);
+    });
+
+    it('reports a group change after the attribute writes its rebuild made', () => {
+        const { writes, environment } = recording();
+        const entity = spawn(environment);
+        writes.length = 0;
+
+        entity.raise('minecraft:as_baby', 'self', 'test');
+        entity.applyQueuedEvents();
+
+        expect(writes.map(({ kind }) => kind).at(-1)).toBe('groups');
+        expect(writes.at(-1)?.write).toEqual({
+            before: ['minecraft:zombie_adult', 'minecraft:can_break_doors'],
+            after: ['minecraft:can_break_doors', 'minecraft:zombie_baby']
+        });
+        expect(writes.some(({ kind, write }) => kind === 'attribute' && isMovement(write))).toBe(true);
+    });
+
+    it('undoes a group change exactly from the reported before-values, newest first', () => {
+        const { writes, environment } = recording();
+        const entity = spawn(environment);
+        entity.attributes.set('health', 7);
+        const before = stateOf(entity);
+        writes.length = 0;
+
+        entity.raise('minecraft:as_baby', 'self', 'test');
+        entity.applyQueuedEvents();
+        entity.properties.set('minecraft:state', 'hostile_observed');
+        const recorded = [...writes].reverse();
+        expect(stateOf(entity)).not.toEqual(before);
+
+        for (const { kind, write } of recorded) {
+            if (kind === 'groups' && isGroupsWrite(write)) {
+                const attributes = entity.attributes
+                    .names()
+                    .map((name) => [name, entity.attributes.get(name)] as const);
+                entity.restoreComponentGroups(write.before);
+                for (const [name, attribute] of attributes) entity.attributes.restore(name, attribute ?? null);
+            } else if (kind === 'attribute' && isAttributeWrite(write))
+                entity.attributes.restore(write.name, write.before);
+            else if (kind === 'property' && isPropertyWrite(write)) entity.properties.set(write.name, write.before);
+        }
+
+        expect(stateOf(entity)).toEqual(before);
+    });
+});
+
+const isMovement = (write: unknown): boolean =>
+    typeof write === 'object' && write !== null && 'name' in write && write.name === 'movement';
+
+const isGroupsWrite = (write: unknown): write is ComponentGroupsWrite =>
+    typeof write === 'object' && write !== null && 'before' in write && Array.isArray(write.before);
+
+const isAttributeWrite = (write: unknown): write is AttributeWrite =>
+    typeof write === 'object' && write !== null && 'name' in write && 'before' in write && !Array.isArray(write.before);
+
+const isPropertyWrite = (write: unknown): write is PropertyValueWrite =>
+    typeof write === 'object' && write !== null && 'name' in write && 'before' in write;
