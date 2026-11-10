@@ -8,6 +8,7 @@ import type PlayerSession from '../network/PlayerSession';
 import { Position } from '../world/Position';
 import { logLegacyWrite } from './legacyAdapter';
 import type { World } from '../world/World';
+import type { PlainData } from '../world/changelog/PlainData';
 import { SyncedProperties } from '@jsprismarine/protocol/wire/structures/SyncedProperties';
 import type { Attribute } from '@jsprismarine/protocol/wire/structures/Attribute';
 import { AttributeIds, Attributes } from '@jsprismarine/protocol/wire/structures/Attribute';
@@ -1266,6 +1267,29 @@ export class Entity {
      */
     public restorePosition(position: Position): void {
         this.relocate(position);
+    }
+
+    /**
+     * Writes a logged value back to a field this entity logs besides its position and health,
+     * such as a player's food. Only the entity store's undo calls this, through the legacy adapter.
+     * @param {string} _field - The field an entry names.
+     * @param {PlainData} _value - The value to put back.
+     * @returns {boolean} Whether this entity logs a field of that name. A plain entity logs none.
+     */
+    public restoreLoggedField(_field: string, _value: PlainData): boolean {
+        return false;
+    }
+
+    /**
+     * Writes a logged value back to one slot of a container this entity carries, such as a
+     * player's armor. Only the entity store's undo calls this, through the legacy adapter.
+     * @param {string} _container - The container an entry names.
+     * @param {number} _slot - The slot.
+     * @param {PlainData} _value - The stack to put back, or null for an empty slot.
+     * @returns {boolean} Whether this entity has that slot. A plain entity carries no container.
+     */
+    public restoreLoggedSlot(_container: string, _slot: number, _value: PlainData): boolean {
+        return false;
     }
 
     /**
