@@ -47,6 +47,12 @@ export default class ClientSession extends EventEmitter {
      */
     private inbound: Promise<void> = Promise.resolve();
 
+    /** Batches received and not yet decoded and emitted. */
+    private pendingBatches = 0;
+
+    /** Sends still compressing, which have not reached the transport yet. */
+    private readonly pendingSends = new Set<Promise<void>>();
+
     public constructor(
         private readonly transport: ITransport,
         private readonly registry: ClientPacketRegistry,
@@ -55,8 +61,12 @@ export default class ClientSession extends EventEmitter {
         super();
 
         this.transport.on('batch', (payload) => {
+            this.pendingBatches++;
             // One failure must not poison the chain for every batch behind it.
-            this.inbound = this.inbound.then(() => this.handleBatch(payload)).catch(() => {});
+            this.inbound = this.inbound
+                .then(() => this.handleBatch(payload))
+                .catch(() => {})
+                .finally(() => this.pendingBatches--);
         });
     }
 
@@ -102,9 +112,31 @@ export default class ClientSession extends EventEmitter {
         const stream = new NetworkBinaryStream();
         const encoded = packet.serialize(stream);
 
-        const batch = await this.codec.encodeAsync([encoded]);
+        const sending = this.codec.encodeAsync([encoded]).then((batch) => {
+            this.transport.send(this.encryption?.encrypt(batch) ?? batch, priority);
+        });
+        this.pendingSends.add(sending);
+        try {
+            await sending;
+        } finally {
+            this.pendingSends.delete(sending);
+        }
+    }
 
-        this.transport.send(this.encryption?.encrypt(batch) ?? batch, priority);
+    /**
+     * Whether every batch received so far has been handled and every send has reached the
+     * transport. A harness that steps a server in the same process reads it to know the client
+     * has nothing left to say before it runs the next tick.
+     */
+    public isIdle(): boolean {
+        return this.pendingBatches === 0 && this.pendingSends.size === 0;
+    }
+
+    /** Resolves once {@link ClientSession.isIdle} holds, including for work that work started. */
+    public async settled(): Promise<void> {
+        while (!this.isIdle()) {
+            await Promise.allSettled([this.inbound, ...this.pendingSends]);
+        }
     }
 
     /** The handshake steps, which the server is blocking on and must not be held behind anything. */
