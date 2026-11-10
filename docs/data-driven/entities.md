@@ -634,7 +634,10 @@ actor, and the actor hands every effect back to the store: a blow goes through t
 pipeline, a shove onto the body, a tag or a status effect into the entity's state. A store entity
 is never a legacy `Entity` in the world's entity map. A dropped stack gets an `ItemActorBody` from
 `entity/data/itemBodies.ts` instead, which reads everything from the store entity and goes on the
-wire as an `AddItemActor`.
+wire as an `AddItemActor`. A player in the store gets a `StorePlayerActor` from
+`entity/data/storePlayers.ts`, which other clients are sent as an `AddPlayer` followed by its
+abilities and armor, at the height of its eyes, through the same code that shows a legacy player.
+Live players are still legacy players, so no store player reaches a client yet.
 
 The server opens one `EntityRuntime` per dimension as that dimension's content adapter is
 assembled, and `World.update` ticks it. Each tick, for each entity in order: the queued events
