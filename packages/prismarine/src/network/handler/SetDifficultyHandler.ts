@@ -16,6 +16,7 @@ import type PacketHandler from './PacketHandler';
 export default class SetDifficultyHandler implements PacketHandler<SetDifficultyPacket> {
     public static PacketName = 'SetDifficultyPacket';
     public readonly phases = ['play'] as const;
+    public readonly lane = 'connection';
 
     /** Logs the request and sends the configured difficulty back when the two differ. */
     public async handle(packet: SetDifficultyPacket, server: Server, session: PlayerSession): Promise<void> {

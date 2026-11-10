@@ -16,6 +16,7 @@ import type PacketHandler from './PacketHandler';
 export default class NetworkStackLatencyHandler implements PacketHandler<NetworkStackLatencyPacket> {
     public static PacketName = 'NetworkStackLatencyPacket';
     public readonly phases = ['resourcePacks', 'play'] as const;
+    public readonly lane = 'connection';
 
     /** Echoes the timestamp when the ping asked for an answer, and logs it either way. */
     public async handle(packet: NetworkStackLatencyPacket, server: Server, session: PlayerSession): Promise<void> {

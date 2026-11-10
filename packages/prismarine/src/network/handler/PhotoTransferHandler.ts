@@ -12,6 +12,7 @@ import type PacketHandler from './PacketHandler';
 export default class PhotoTransferHandler implements PacketHandler<PhotoTransferPacket> {
     public static PacketName = 'PhotoTransferPacket';
     public readonly phases = ['play'] as const;
+    public readonly lane = 'connection';
 
     /** Logs the photo name and how many bytes came with it. */
     public handle(packet: PhotoTransferPacket, server: Server, session: PlayerSession): void {

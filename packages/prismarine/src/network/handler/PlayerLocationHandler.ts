@@ -13,6 +13,7 @@ import type PacketHandler from './PacketHandler';
 export default class PlayerLocationHandler implements PacketHandler<PlayerLocationPacket> {
     public static PacketName = 'PlayerLocationPacket';
     public readonly phases = ['play'] as const;
+    public readonly lane = 'connection';
 
     /** Logs the target and whether it was a position or a hide. */
     public handle(packet: PlayerLocationPacket, server: Server, session: PlayerSession): void {

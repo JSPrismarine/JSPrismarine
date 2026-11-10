@@ -14,6 +14,7 @@ import type PacketHandler from './PacketHandler';
 export default class PositionTrackingDBClientRequestHandler implements PacketHandler<PositionTrackingDBClientRequestPacket> {
     public static PacketName = 'PositionTrackingDBClientRequestPacket';
     public readonly phases = ['play'] as const;
+    public readonly lane = 'connection';
 
     /**
      * Logs the tracking id the client asked about.
