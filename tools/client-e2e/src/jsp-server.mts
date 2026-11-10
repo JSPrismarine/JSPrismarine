@@ -320,6 +320,11 @@ export const startServer = async (
         'log-level': 'debug',
         'packet-compression-algorithm': options.compressionAlgorithm ?? 'snappy',
         'use-raknet-worker': options.raknetWorker ?? true,
+        // The natural-spawn suite leaves spawning on for its cows, and the flat world's surface
+        // sits below y 40, where a slime chunk spawns slimes in daylight. A slime killed the
+        // survival player while the scenario sprinted ticks. Every monster's spawn rule has a
+        // minimum difficulty above peaceful; the cow fixture has none.
+        ...(options.naturalCowSpawning === true ? { difficulty: 'peaceful' } : {}),
         'level-name': 'e2e',
         worlds: {
             e2e: {
