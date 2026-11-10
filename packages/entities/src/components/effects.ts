@@ -3,7 +3,7 @@
 import type { ComponentFactory } from '@jsprismarine/content';
 import { accepted, rejected } from '@jsprismarine/content';
 import type { Filter } from '@jsprismarine/packs';
-import type { EntityInstance } from '../entityInstance';
+import { defineComponentState, stateField } from '../componentState';
 import { evaluateFilter } from '../filters';
 import type { EntityHooks, EntityStatusEffect } from '../hooks';
 import { TICKS_PER_SECOND } from '../hooks';
@@ -39,9 +39,8 @@ export interface SpellEffectsParams {
     readonly removeEffects: readonly string[];
 }
 
-interface MobEffectState {
-    cooldownTicks: number;
-}
+/** Ticks until `minecraft:mob_effect` may apply its effect again. */
+const MOB_EFFECT_STATE = defineComponentState('minecraft:mob_effect', { cooldownTicks: stateField.number });
 
 const effectDurationTicksOf = (value: unknown): number | undefined => {
     if (value === 'infinite') return -1;
@@ -95,21 +94,19 @@ const mobEffectParamsOf = (
 /** `minecraft:mob_effect`, which applies an effect to matching nearby entities and players. */
 export const mobEffect: ComponentFactory<EntityHooks, MobEffectParams> = {
     name: 'minecraft:mob_effect',
-    hooks: ['onInitialize', 'onRemove', 'onTick'],
+    hooks: ['onInitialize', 'onTick'],
     schema: (value) => {
         const parsed = mobEffectParamsOf(value);
         return parsed.ok ? accepted(parsed.params) : rejected(parsed.message);
     },
     create: (params) => {
-        const states = new WeakMap<EntityInstance, MobEffectState>();
         return {
-            onInitialize: (entity) => states.set(entity, { cooldownTicks: 0 }),
-            onRemove: (entity) => states.delete(entity),
+            onInitialize: (entity) => entity.componentState.set(MOB_EFFECT_STATE, { cooldownTicks: 0 }),
             onTick: (entity) => {
-                const state = states.get(entity);
+                const state = entity.componentState.get(MOB_EFFECT_STATE);
                 if (state === undefined) return;
                 if (state.cooldownTicks > 0) {
-                    state.cooldownTicks -= 1;
+                    entity.componentState.set(MOB_EFFECT_STATE, { cooldownTicks: state.cooldownTicks - 1 });
                     return;
                 }
 
@@ -137,7 +134,8 @@ export const mobEffect: ComponentFactory<EntityHooks, MobEffectParams> = {
                             ambient: params.ambient
                         }) || applied;
                 }
-                if (applied && params.cooldownTicks > 0) state.cooldownTicks = params.cooldownTicks - 1;
+                if (applied && params.cooldownTicks > 0)
+                    entity.componentState.set(MOB_EFFECT_STATE, { cooldownTicks: params.cooldownTicks - 1 });
             }
         };
     }
