@@ -18,6 +18,9 @@ import ClientConnection from '../network/ClientConnection';
 import type { InboundPacketRecord, InboundPacketRecorder } from '../network/InboundPacketTrace';
 import type { OutboundPacketRecorder } from '../network/OutboundPacketTrace';
 import NetworkDispatcher from '../network/NetworkDispatcher';
+import { QueryResponder } from '../network/query/QueryResponder';
+import type { QueryStatus } from '../network/query/QueryResponder';
+import { QuerySocket } from '../network/query/QuerySocket';
 import { advertiseOnLan } from '../network/nethernet/advertiseOnLan';
 import { NETHERNET_IDENTITY_FILE } from '../network/nethernet/NetherNetDefaults';
 import { netherNetStatusOf } from '../network/nethernet/netherNetStatusOf';
@@ -95,6 +98,8 @@ export class ServerNetworking implements Networking {
     private stopLanAdvertisement: (() => void) | undefined;
     /** NetherNet's HTTP signaling on the game port's TCP side; set while NetherNet is on. */
     private signaling: HttpSignaling | undefined;
+    /** The query protocol's own socket; set while query answers on a port RakNet does not hold. */
+    private querySocket: QuerySocket | undefined;
     /** Every connection the transports have announced and not yet withdrawn. */
     private readonly liveConnections = new Set<ConnectionId>();
 
@@ -113,11 +118,13 @@ export class ServerNetworking implements Networking {
         this.serverName.ownPlayerCount();
 
         const serverName = this.serverName;
+        const rakNet: RakNetTransport[] = [];
         this.transport = new MultiTransport((ids) => {
             const transports: Transport[] = [];
             if (config.getEnableRakNet()) {
-                transports.push(this.startRakNet(address, port, serverName, ids));
-                if (address === IPV4_WILDCARD) transports.push(this.startRakNetV6(serverName, ids));
+                rakNet.push(this.startRakNet(address, port, serverName, ids));
+                if (address === IPV4_WILDCARD) rakNet.push(this.startRakNetV6(serverName, ids));
+                transports.push(...rakNet);
             }
             if (config.getEnableNetherNet()) transports.push(this.startNetherNet(address, port, serverName, ids));
             if (transports.length === 0) {
@@ -145,12 +152,9 @@ export class ServerNetworking implements Networking {
                     server.getPacketLogFilter(),
                     () => server.getConfig().getPacketCompressionLevel(),
                     () => server.getConfig().getPacketCompressionThreshold()
-                ),
-            query: {
-                enabled: () => server.getConfig().getEnableQuery(),
-                onRaw: (payload, address) => server.getQueryManager().onRaw(payload, address)
-            }
+                )
         });
+        if (config.getEnableQuery()) this.startQuery(address, port, serverName, rakNet);
 
         // After the dispatcher, so the count changes once a connection is registered or released.
         // Counted here rather than per transport: every transport advertises the same total.
@@ -175,6 +179,8 @@ export class ServerNetworking implements Networking {
         this.stopLanAdvertisement = undefined;
         this.signaling?.close();
         this.signaling = undefined;
+        this.querySocket?.close();
+        this.querySocket = undefined;
         this.transport?.close();
     }
 
@@ -221,6 +227,55 @@ export class ServerNetworking implements Networking {
         raknet.start(IPV6_WILDCARD, port);
         this.raknetV6 = raknet;
         return new RakNetTransport(raknet, this.server, ids);
+    }
+
+    /**
+     * Starts answering the query protocol. A `query-port` equal to `port` answers on the RakNet
+     * listeners beside the game, as Bedrock servers have always done, since query datagrams
+     * never look like RakNet's; with RakNet off, or on any other port, query gets a socket of its
+     * own. `enable-query` is read again per datagram, so a reload that turns it off silences it.
+     */
+    private startQuery(address: string, port: number, serverName: ServerName, rakNet: RakNetTransport[]): void {
+        const server = this.server;
+        const config = server.getConfig();
+        const status = (): QueryStatus => ({
+            motd: serverName.getMotd(),
+            version: serverName.getVersion(),
+            software: `JSPrismarine ${server.getVersion()}`,
+            map: config.getLevelName(),
+            onlinePlayers: serverName.getOnlinePlayerCount(),
+            maxPlayers: serverName.getMaxPlayerCount(),
+            hostPort: serverName.getPort(),
+            hostIp: address,
+            players: server
+                .getSessionManager()
+                .getAllPlayers()
+                .map((player) => player.getName())
+        });
+        const responder = new QueryResponder(() => status());
+        const answer = (datagram: Buffer, from: string, fromPort: number): Buffer | undefined =>
+            server.getConfig().getEnableQuery() ? responder.respond(datagram, from, fromPort) : undefined;
+
+        const shared = config.getQueryPort() === config.getServerPort();
+        if (shared && rakNet.length > 0) {
+            for (const transport of rakNet) {
+                transport.onRaw((datagram, from) => {
+                    const reply = answer(datagram, from.getAddress(), from.getPort());
+                    if (reply !== undefined) transport.sendRaw(reply, from);
+                });
+            }
+            return;
+        }
+
+        const querySocket = new QuerySocket(
+            { respond: (datagram, from, fromPort) => answer(datagram, from, fromPort) },
+            server.getLogger()
+        );
+        this.querySocket = querySocket;
+        const queryPort = shared ? port : config.getQueryPort();
+        void querySocket.start(address, queryPort).then((bound) => {
+            if (bound !== undefined) server.getLogger().info(`Answering query on UDP port ${bound}`);
+        });
     }
 
     /** An unstarted RakNet listener on the shared server name, on a worker thread when the config says so. */

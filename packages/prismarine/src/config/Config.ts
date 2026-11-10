@@ -88,7 +88,9 @@ const COMMENTS = {
     'packet-compression-threshold': 'The smallest batch body to compress, in bytes. 0 leaves every batch uncompressed.',
     'packet-full-flush-fragments':
         'Prototype: reuse independently compressed packet fragments. Requires retail client validation.',
-    'enable-query': 'Whether to answer the Minecraft and Source query protocols.',
+    'enable-query': 'Whether to answer the GameSpy4 query protocol that server lists and status tools use.',
+    'query-port':
+        'The UDP port the query protocol answers on. Set to the same value as port, query shares the RakNet socket with the game.',
     'enable-process-title': 'Whether to show the tick rate in the process title. Some terminals redraw slowly.',
     'enable-ticking': 'Whether the world ticks. Off is only useful for tests.',
     'log-excluded-packets': 'Packet class names kept out of the traffic log at the silly level.',
@@ -143,6 +145,8 @@ const DEFAULTS = {
     'packet-compression-threshold': DEFAULT_PACKET_COMPRESSION_THRESHOLD,
     'packet-full-flush-fragments': false,
     'enable-query': true,
+    // A fresh file writes the port it read, so query shares the game's socket; see Config.enable.
+    'query-port': 19132,
     'enable-process-title': true,
     'enable-ticking': true,
     'log-excluded-packets': [],
@@ -243,6 +247,9 @@ export class Config {
      */
     private enableQuery: boolean = DEFAULTS['enable-query'];
 
+    /** The UDP port the query protocol answers on; equal to {@link port} to share RakNet's socket. */
+    private queryPort: number = DEFAULTS['query-port'];
+
     /**
      * Controls if the process title should be updated.
      * @remarks this can cause performance issues in some terminals.
@@ -303,8 +310,8 @@ export class Config {
         const read = <T>(key: keyof typeof COMMENTS, defaults: T): T => config.get(key, defaults, COMMENTS[key]);
 
         this.logLevel = read('log-level', DEFAULTS['log-level']);
-        this.port = read('port', DEFAULTS.port);
-        if (this.serverPortOverride !== undefined) this.port = this.serverPortOverride;
+        const filePort = read('port', DEFAULTS.port);
+        this.port = this.serverPortOverride ?? filePort;
         this.portV6 = read('server-portv6', DEFAULTS['server-portv6']);
         this.serverIp = read('server-ip', DEFAULTS['server-ip']);
         this.levelName = read('level-name', DEFAULTS['level-name']);
@@ -343,6 +350,9 @@ export class Config {
         );
         this.packetFullFlushFragments = read('packet-full-flush-fragments', DEFAULTS['packet-full-flush-fragments']);
         this.enableQuery = read('enable-query', this.enableQuery);
+        // Defaults to the file's port, not an override's, so a run on another port leaves the
+        // file saying query shares the game's socket rather than naming the override.
+        this.queryPort = read('query-port', filePort);
         this.enableProcessTitle = read('enable-process-title', this.enableProcessTitle);
         this.enableTicking = read('enable-ticking', this.enableTicking);
         this.logExcludedPackets = read('log-excluded-packets', this.logExcludedPackets);
@@ -687,8 +697,19 @@ export class Config {
         return this.packetFullFlushFragments;
     }
 
-    public getEnableQuery() {
+    /** Whether the server answers the GameSpy4 query protocol. */
+    public getEnableQuery(): boolean {
         return this.enableQuery;
+    }
+
+    /**
+     * The UDP port the query protocol answers on, as Java Edition's `query.port`. When it is
+     * the same as {@link getServerPort}, query answers on the RakNet socket beside the game,
+     * which is what a fresh config does; any other port gets a socket of its own.
+     * @returns The query port.
+     */
+    public getQueryPort(): number {
+        return this.queryPort;
     }
 
     public getEnableProcessTitle() {

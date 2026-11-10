@@ -45,8 +45,7 @@ import { worldsModule } from './modules/worlds';
 import { ServerTicker, tickerModule } from './modules/ticker';
 import type { TickRecorder } from './profiling/TickRecorder';
 import type { TickControl } from './modules/ticker';
-import { bansToken, chatToken, permissionsToken, queryToken } from './modules/tokens';
-import type { QueryManager } from './query/QueryManager';
+import { bansToken, chatToken, permissionsToken } from './modules/tokens';
 import Timer from './utils/Timer';
 import { worldSeedOf } from './utils/Seed';
 import { attachProfiler, ServerProfiler } from './profiling/ServerProfiler';
@@ -638,16 +637,6 @@ export default class Server extends EventEmitter {
      */
     public getKernel(): Kernel {
         return this.kernel;
-    }
-
-    /**
-     * Returns the query manager.
-     * @returns {QueryManager} The query manager.
-     * @deprecated Resolve it through the kernel instead: `server.getKernel().get(queryToken)`,
-     * with `queryToken` from `@jsprismarine/prismarine/modules/tokens`.
-     */
-    public getQueryManager(): QueryManager {
-        return this.kernel.get(queryToken);
     }
 
     /**

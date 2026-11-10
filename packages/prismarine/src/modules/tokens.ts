@@ -6,7 +6,6 @@ import type { CommandManager } from '../command/CommandManager';
 import type { ServerContent } from '../content/ServerContent';
 import type PacketHandlerRegistry from '../network/PacketHandlerRegistry';
 import type { PermissionManager } from '../permission/PermissionManager';
-import type { QueryManager } from '../query/QueryManager';
 import type WorldManager from '../world/WorldManager';
 import type { Networking } from './network';
 import type { Ticker } from './ticker';
@@ -26,8 +25,6 @@ export const bansToken = createToken<BanManager>('prismarine:bans');
 export const permissionsToken = createToken<PermissionManager>('prismarine:permissions');
 /** The chat forwarder, provided by the `prismarine:social` module. */
 export const chatToken = createToken<ChatManager>('prismarine:chat');
-/** The query responder, provided by the `prismarine:social` module. */
-export const queryToken = createToken<QueryManager>('prismarine:query');
 /**
  * The tick loop's counters (tick number, TPS, tick duration), provided by the
  * `prismarine:ticker` module. Tick work is observed through the server's typed

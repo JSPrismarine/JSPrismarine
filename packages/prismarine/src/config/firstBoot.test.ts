@@ -67,6 +67,7 @@ describe('the config file a boot generates', () => {
         'packet-compression-threshold',
         'packet-full-flush-fragments',
         'enable-query',
+        'query-port',
         'enable-process-title',
         'enable-ticking',
         'log-excluded-packets',

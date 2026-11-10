@@ -159,8 +159,7 @@ const createReplayHarness = async (recorder?: InboundPacketRecorder) => {
                 phase: 'handshake',
                 decryptFrame: (frame: Buffer) => frame,
                 getPlayerSession: () => null
-            }),
-        query: { enabled: () => false, onRaw: async () => undefined }
+            })
     });
     await transport.admit(replayTransportConnection);
 
