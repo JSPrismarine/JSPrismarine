@@ -6,6 +6,7 @@ on:
     paths:
       - .github/labels.yml
       - .github/workflows/sync-labels.yml
+      - scripts/coderabbit-labels.mts
   schedule:
     - cron: '0 8 * * 1'
   workflow_dispatch:
@@ -22,9 +23,21 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
-          sparse-checkout: .github/labels.yml
+          persist-credentials: false
+
+      # The root package's dependencies hold the YAML parser the manifest script reads the
+      # catalog with.
+      - name: 📦 Install
+        uses: ./.github/common/install
+        with:
+          root-only: 'true'
+
+      # `.github/labels.yml` carries CodeRabbit's `ai_apply_when` beside each label's sync
+      # fields; the manifest drops it so the label sync reads the fields it knows.
+      - name: 🧽 Create the label sync manifest
+        run: node scripts/coderabbit-labels.mts --manifest "$RUNNER_TEMP/labels.yml"
 
       - uses: EndBug/label-sync@52074158190acb45f3077f9099fea818aa43f97a # v2.3.3
         with:
-          config-file: .github/labels.yml
+          config-file: ${{ runner.temp }}/labels.yml
           delete-other-labels: false
