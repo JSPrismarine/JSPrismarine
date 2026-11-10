@@ -105,7 +105,7 @@ export interface TickerServer {
     emitTick(event: TickEvent): Promise<void>;
     /** Delivers pending network records at this tick's fixed game-thread boundary. */
     pollNetwork(): number;
-    /** The worlds to update this tick, in parallel. */
+    /** The worlds to update this tick, in the order the ticker updates them, one after another. */
     getWorlds(): TickerWorld[];
     /** Runs `#minecraft:tick` and whatever `/schedule` put on this tick. */
     tickFunctions(): Promise<unknown>;
@@ -358,25 +358,29 @@ export class ServerTicker implements Ticker, TickControl {
                 const advancing = !this.frozen || this.stepsLeft > 0;
                 if (this.frozen && this.stepsLeft > 0) this.stepsLeft--;
 
-                // Update all worlds.
+                // One world after another, in the order `getWorlds` gives, never interleaved: a
+                // world's tick must not run between the awaits of another's. A world that throws
+                // is logged and costs only its own tick, and every update of this tick has
+                // settled before the next tick is scheduled.
                 phaseStartedAt = now();
                 try {
-                    await Promise.all(
-                        (advancing ? server.getWorlds() : []).map(async (world) => {
-                            const worldStartedAt = now();
-                            const endWorldProfile = startProfile?.(`World.update:${world.getName()}`);
-                            try {
-                                await world.update(event.getTick());
-                            } finally {
-                                endWorldProfile?.();
-                                const elapsedMs = now() - worldStartedAt;
-                                if (elapsedMs > slowestWorldMs) {
-                                    slowestWorldMs = elapsedMs;
-                                    slowestWorldName = world.getName();
-                                }
+                    for (const world of advancing ? server.getWorlds() : []) {
+                        const worldStartedAt = now();
+                        const endWorldProfile = startProfile?.(`World.update:${world.getName()}`);
+                        try {
+                            await world.update(event.getTick());
+                        } catch (error: unknown) {
+                            logger.error(`World ${world.getName()} failed tick ${event.getTick()}`);
+                            logger.error(error);
+                        } finally {
+                            endWorldProfile?.();
+                            const elapsedMs = now() - worldStartedAt;
+                            if (elapsedMs > slowestWorldMs) {
+                                slowestWorldMs = elapsedMs;
+                                slowestWorldName = world.getName();
                             }
-                        })
-                    );
+                        }
+                    }
                 } finally {
                     worldUpdatesMs = now() - phaseStartedAt;
                 }

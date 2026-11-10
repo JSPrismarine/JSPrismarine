@@ -180,6 +180,55 @@ describe('modules/ticker', () => {
         expect(order.at(-1)).toBe('deactivate');
     });
 
+    it('updates the worlds one after another in order, past one that throws, before the next tick', async () => {
+        const events: string[] = [];
+        const errors: unknown[] = [];
+        const failure = new Error('the overworld broke');
+        const world = (name: string, work: () => Promise<void>) => ({
+            getName: () => name,
+            update: async (tick: number) => {
+                events.push(`start ${name} ${tick}`);
+                try {
+                    await work();
+                } finally {
+                    events.push(`end ${name} ${tick}`);
+                }
+            }
+        });
+        const harness = buildHarness({
+            getWorlds: () => [
+                world('overworld', async () => {
+                    throw failure;
+                }),
+                // Longer than a tick's period: a loop that does not wait for it starts the next
+                // tick while this one is still running.
+                world('nether', () => new Promise((resolve) => setTimeout(resolve, TICK_MS * 2))),
+                world('the_end', async () => {})
+            ],
+            getLogger: () => ({
+                warn: () => {},
+                verbose: () => {},
+                error: (error: unknown) => void errors.push(error)
+            })
+        });
+        const handle = await startTestModule(tickerModule(harness.ticker));
+        try {
+            // Room for the first two ticks, each held for two periods by the Nether.
+            await vi.advanceTimersByTimeAsync(TICK_MS * 8);
+        } finally {
+            await handle.stop();
+        }
+
+        const ticks = [0, 1];
+        expect(events.slice(0, 12)).toEqual(
+            ticks.flatMap((tick) =>
+                ['overworld', 'nether', 'the_end'].flatMap((name) => [`start ${name} ${tick}`, `end ${name} ${tick}`])
+            )
+        );
+        expect(errors).toContain(failure);
+        expect(errors.some((error) => typeof error === 'string' && error.includes('overworld'))).toBe(true);
+    });
+
     it('records how late each tick started against its due time and how long its work took', async () => {
         let blockMs = 0;
         const harness = buildHarness({
