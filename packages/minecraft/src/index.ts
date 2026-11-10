@@ -11,9 +11,6 @@ import { DisconnectReason } from './DisconnectReason';
 import type { Experiment } from './Experiment';
 import { Generator } from './Generator';
 import { blockSchemas } from './generated/block-schemas';
-// The default protocol version's recipes. JSON cannot be re-exported the way the generated
-// enums are, so this names the version directly; it moves when `defaultProtocolVersion` does.
-import vanillaRecipes from './generated/v2193/recipes';
 import { ItemStackRequestActionType } from './generated/ItemStackRequestActionType';
 import { AbilityLayerFlag } from './generated/AbilityLayerFlag';
 import { ContainerUiId } from './generated/ContainerUiId';
@@ -46,8 +43,7 @@ import type { StackPack } from './StackPack';
  * The vanilla block state catalog: which properties each block has and which values they
  * accept. Not an ordered palette - runtime ids are hashes of a block's own name and state.
  */
-/** Every vanilla recipe, from Mojang's own files in a Bedrock Dedicated Server. */
-export { blockSchemas, vanillaRecipes };
+export { blockSchemas };
 
 export {
     BuildPlatform,

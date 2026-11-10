@@ -115,61 +115,11 @@
                 ],
                 "source": "snapshot/v2193/block-palette.json",
                 "target": "../src/generated/v2193/block-schemas.ts"
-            },
-            "recipes": {
-                "$comment": [
-                    "Mojang's own recipe files, from an unpacked Bedrock Dedicated Server of the version pinned",
-                    "above. Not a third party's processed dump: these agree with the item table the same server",
-                    "sends, which the dump they replaced did not - it disagreed with its own companion item map",
-                    "for 58% of the names it used, and the recipe for a plank was dropped for it.",
-                    "",
-                    "The server itself is the one input not in the repository: BDS is ~95 MB and Mojang's",
-                    "to distribute. `pnpm --filter @jsprismarine/bedrock-data run fetch:sources --protocol <n>`",
-                    "unpacks the pinned one into `node_modules/.cache/jsprismarine/bds/v<protocol>/unpacked`,",
-                    "which the generator reads by default. Set `BEDROCK_SERVER` to use a server from somewhere",
-                    "else, or `bedrockServer` here to pin a local path. The output is committed, so none of",
-                    "this is needed unless you are regenerating.",
-                    "",
-                    "`itemAliases` brings the legacy names those files still use up to the ones the item table",
-                    "knows - `reeds` for sugar cane, `sign` for an oak sign. Without it 52 recipes name something",
-                    "no item table can resolve and are dropped."
-                ],
-                "$source": [
-                    "The behavior pack directory, not one pack's recipes: BDS ships a 1.13 baseline in",
-                    "`vanilla` and a layer per release on top, and the game composes them. The generator",
-                    "reads `vanilla` and every `vanilla_<version>` up to the version pinned above, later",
-                    "layers winning. `chemistry` and `experimental_` are not layers and are excluded."
-                ],
-                "source": "behavior_packs",
-                "$itemAliases": [
-                    "pmmp/BedrockData at tag `bedrock-1.26.30`, vendored into bedrock-data because that",
-                    "repository was archived and the submodule it used to be now points elsewhere. The",
-                    "newer map covers `minecraft:chain`, which used to need an override beside it."
-                ],
-                "itemAliases": "../../bedrock-data/src/vendor/r16_to_current_item_map.json",
-                "$itemAliasOverrides": [
-                    "What the alias map above does not cover. Kept here rather than patched into the output,",
-                    "so regenerating cannot quietly lose it - and listed one by one, so a name that stops being",
-                    "needed is visible instead of hiding inside a rule."
-                ],
-                "itemAliasOverrides": {
-                    "minecraft:muttonCooked": "minecraft:cooked_mutton",
-                    "minecraft:muttonRaw": "minecraft:mutton"
-                },
-                "idAliases": {
-                    "$comment": [
-                        "Source recipe IDs used as public IDs in the game packet. These are renamed here",
-                        "so source updates keep the server's American spellings without changing item names."
-                    ],
-                    "crafting_table/minecraft:FireCharge_blaze_powder_coal_sulphur_recipeId": "crafting_table/minecraft:FireCharge_blaze_powder_coal_sulfur_recipeId",
-                    "crafting_table/minecraft:FireCharge_coal_sulphur_recipeId": "crafting_table/minecraft:FireCharge_coal_sulfur_recipeId"
-                },
-                "target": "../src/generated/v2193/recipes.json"
             }
         },
         "2225": {
             "$comment": [
-                "Minecraft 1.26.60, BDS 1.26.60.6. This entry has `schemas`, `source` and `recipes`, and",
+                "Minecraft 1.26.60, BDS 1.26.60.6. This entry has `schemas` and `source`, and",
                 "deliberately has no `blocks`: the block palette is captured from a Bedrock Dedicated",
                 "Server of this version and that capture does not reproduce run to run yet. The generators",
                 "skip a version that declares neither rather than writing an empty catalog, and",
@@ -224,33 +174,6 @@
                 "sha256": "9b293f41d51947868cb84035eea46cc371e53271c57fbb5400c52d4b8605eb70",
                 "minecraftVersion": "1.26.40",
                 "networkProtocolVersion": 2168
-            },
-            "recipes": {
-                "$comment": [
-                    "The same shape as 2193's, against the pinned 1.26.60.6 server. Only the target moves: the",
-                    "recipe files are Mojang's own, read out of the unpacked server for this protocol by",
-                    "`bedrockServerCachePath`, and the alias map and overrides are the item-name legacy those",
-                    "files still carry at either version.",
-                    "",
-                    "The output is 2193's recipe set exactly, differing only in the `minecraftVersion` header.",
-                    "That is a measured fact rather than a fallback: `vanilla_1.26.60` ships `structures` and a",
-                    "manifest and no recipe layer at all, so 1.26.60 revised no recipe."
-                ],
-                "source": "behavior_packs",
-                "itemAliases": "../../bedrock-data/src/vendor/r16_to_current_item_map.json",
-                "itemAliasOverrides": {
-                    "minecraft:muttonCooked": "minecraft:cooked_mutton",
-                    "minecraft:muttonRaw": "minecraft:mutton"
-                },
-                "idAliases": {
-                    "$comment": [
-                        "Source recipe IDs used as public IDs in the game packet. These are renamed here",
-                        "so source updates keep the server's American spellings without changing item names."
-                    ],
-                    "crafting_table/minecraft:FireCharge_blaze_powder_coal_sulphur_recipeId": "crafting_table/minecraft:FireCharge_blaze_powder_coal_sulfur_recipeId",
-                    "crafting_table/minecraft:FireCharge_coal_sulphur_recipeId": "crafting_table/minecraft:FireCharge_coal_sulfur_recipeId"
-                },
-                "target": "../src/generated/v2225/recipes.json"
             }
         }
     },
