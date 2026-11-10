@@ -5,9 +5,15 @@ name: Client E2E
 # Every job runs on GitHub's `ubuntu-latest`. The runner has no GPU, so the client draws through
 # Mesa's software Vulkan driver (lavapipe) into a hidden window on a virtual X display (Xvfb);
 # cinnabar accepts a CPU adapter when it is the only one. The client build is slow, so it runs
-# once per protocol pin in cinnabar-build, only for the pins protocol-matrix found no cache entry
-# for. When every pin is cached, no build job starts and client-e2e goes straight to the scenarios,
-# restoring that entry, so a run only boots the server, joins, and plays.
+# once per pin in cinnabar-build, only for the pins protocol-matrix found no cache entry for. When
+# every pin is cached, no build job starts and client-e2e goes straight to the scenarios, restoring
+# that entry, so a run only boots the server, joins, and plays.
+#
+# tools/client-e2e/cinnabar.json pins a client per protocol and transport. A NetherNet pin runs the
+# scenarios against a server with RakNet off, since Bedrock 1.26.60 joins over NetherNet only. Its
+# pin is a cinnabar development commit whose NetherNet support is unfinished, as is the server's,
+# so its build and e2e jobs may fail without failing the run. Drop `continue-on-error` from both
+# once a NetherNet run passes.
 #
 # The workflow runs on every push and pull request so the `✅ Client E2E` job always reports: it is
 # the one branch rules require. A change that touches no package code or dependencies (docs, the
@@ -131,7 +137,7 @@ jobs:
             actions: read
             contents: read
         outputs:
-            protocols: ${{ steps.matrix.outputs.protocols }}
+            pins: ${{ steps.matrix.outputs.pins }}
             build: ${{ steps.builds.outputs.build }}
             latest: ${{ steps.matrix.outputs.latest }}
             scenarios: ${{ steps.matrix.outputs.scenarios }}
@@ -139,45 +145,40 @@ jobs:
             # - uses: useblacksmith/checkout@v1
             - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
-            - name: Set matrix from BDS pins
+            # pin-matrix.mts is TypeScript, which the runner's own Node may not strip.
+            - name: 🏎️ Setup Node
+              uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+              with:
+                  node-version-file: '.nvmrc'
+
+            # One entry per cinnabar pin of a served protocol: { protocol, transport, commit, name },
+            # where `name` is what the pin's caches go by (v2225, v2225-nethernet).
+            - name: Set matrix from the cinnabar pins
               id: matrix
-              run: |
-                  # Keep the Node script single-quoted so shell interpolation cannot alter it.
-                  # shellcheck disable=SC2016
-                  node --input-type=module -e '
-                  import fs from "node:fs";
-                  const { bds } = JSON.parse(fs.readFileSync("packages/bedrock-data/sources.json", "utf8"));
-                  if (typeof bds !== "object" || bds === null || typeof bds.versions !== "object" || bds.versions === null) {
-                      throw new Error("packages/bedrock-data/sources.json has no bds.versions map");
-                  }
-                  const allProtocols = Object.keys(bds.versions).map(Number).sort((left, right) => left - right);
-                  if (allProtocols.length === 0 || allProtocols.some((protocol) => !Number.isSafeInteger(protocol) || protocol <= 0)) {
-                      throw new Error("BDS protocol pins must contain numeric protocol keys");
-                  }
-                  const latest = allProtocols.at(-1);
-                  const latestOnly = process.env.LATEST_ONLY === "true";
-                  const scenarios = process.env.SCENARIOS || "";
-                  const protocols = latestOnly ? [latest] : allProtocols;
-                  console.log(`protocols=${JSON.stringify(protocols)}`);
-                  console.log(`latest=${latest}`);
-                  console.log(`scenarios=${scenarios}`);
-                  ' >> "$GITHUB_OUTPUT"
               env:
                   LATEST_ONLY: ${{ inputs.latest_only }}
                   SCENARIOS: ${{ inputs.scenarios || needs.changes.outputs.scenarios || '' }}
+              run: |
+                  latest=()
+                  if [ "$LATEST_ONLY" = true ]; then latest=(--latest-only); fi
+                  pins="$(node tools/client-e2e/src/pin-matrix.mts "${latest[@]}")"
+                  echo "pins=$pins" >> "$GITHUB_OUTPUT"
+                  # The pin that keeps cinnabar's compiled dependencies: the newest protocol's first,
+                  # which is its RakNet pin when it has one.
+                  echo "latest=$(jq -r 'max_by(.protocol).protocol as $newest | map(select(.protocol == $newest))[0].name' <<< "$pins")" >> "$GITHUB_OUTPUT"
+                  echo "scenarios=$SCENARIOS" >> "$GITHUB_OUTPUT"
 
             # A run can restore entries saved on its own ref or on master. The key matches the one
             # cinnabar-build writes, whose `runner.os` is `Linux`.
-            - name: Find the protocols without a cached client build
+            - name: Find the pins without a cached client build
               id: builds
               env:
                   GH_TOKEN: ${{ github.token }}
-                  PROTOCOLS: ${{ steps.matrix.outputs.protocols }}
+                  PINS: ${{ steps.matrix.outputs.pins }}
               run: |
                   missing=()
-                  for protocol in $(jq -r '.[]' <<< "$PROTOCOLS"); do
-                      commit="$(jq -r --arg protocol "$protocol" '.versions[$protocol].commit' tools/client-e2e/cinnabar.json)"
-                      key="Linux-cinnabar-v${protocol}-${commit}"
+                  while read -r name commit; do
+                      key="Linux-cinnabar-${name}-${commit}"
                       found=false
                       for ref in "$GITHUB_REF" refs/heads/master; do
                           if gh api "repos/$GITHUB_REPOSITORY/actions/caches?ref=$ref&key=$key" |
@@ -186,19 +187,21 @@ jobs:
                               break
                           fi
                       done
-                      echo "protocol $protocol ($key): cached=$found"
-                      if [ "$found" = false ]; then missing+=("$protocol"); fi
-                  done
-                  echo "build=$(jq -cn '$ARGS.positional | map(tonumber)' --args "${missing[@]}")" >> "$GITHUB_OUTPUT"
+                      echo "$name ($key): cached=$found"
+                      if [ "$found" = false ]; then missing+=("$name"); fi
+                  done < <(jq -r '.[] | "\(.name) \(.commit)"' <<< "$PINS")
+                  echo "build=$(jq -c --args '$ARGS.positional as $missing | map(select(.name | IN($missing[])))' "${missing[@]}" <<< "$PINS")" >> "$GITHUB_OUTPUT"
 
     cinnabar-build:
-        name: 🔨 Build cinnabar client (protocol ${{ matrix.protocol }})
+        name: 🔨 Build cinnabar client (${{ matrix.pin.name }})
         needs: protocol-matrix
         if: ${{ needs.protocol-matrix.outputs.build != '[]' }}
+        # The NetherNet pin is a development commit of cinnabar; see the top of this file.
+        continue-on-error: ${{ matrix.pin.transport == 'nethernet' }}
         strategy:
             fail-fast: false
             matrix:
-                protocol: ${{ fromJSON(needs.protocol-matrix.outputs.build) }}
+                pin: ${{ fromJSON(needs.protocol-matrix.outputs.build) }}
         # runs-on: blacksmith-6vcpu-macos-latest
         runs-on: ubuntu-latest
         # A cold build on the four cores `ubuntu-latest` has takes longer than it did on six.
@@ -210,16 +213,16 @@ jobs:
         steps:
             - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
-            # One entry per protocol and pinned commit, so bumping one pin leaves the other cached.
-            # The compiled dependencies are keyed the same way in an entry of their own.
+            # One entry per pin and commit, so bumping one pin leaves the others cached. The
+            # compiled dependencies are keyed the same way in an entry of their own.
             - name: Resolve the cache key
               id: pin
               env:
-                  PROTOCOL: ${{ matrix.protocol }}
+                  NAME: ${{ matrix.pin.name }}
+                  COMMIT: ${{ matrix.pin.commit }}
               run: |
-                  commit="$(node -p 'JSON.parse(require("node:fs").readFileSync("tools/client-e2e/cinnabar.json", "utf8")).versions[process.env.PROTOCOL].commit')"
-                  echo "key=${RUNNER_OS}-cinnabar-v${PROTOCOL}-${commit}" >> "$GITHUB_OUTPUT"
-                  echo "deps-key=${RUNNER_OS}-cinnabar-deps-v${PROTOCOL}-${commit}" >> "$GITHUB_OUTPUT"
+                  echo "key=${RUNNER_OS}-cinnabar-${NAME}-${COMMIT}" >> "$GITHUB_OUTPUT"
+                  echo "deps-key=${RUNNER_OS}-cinnabar-deps-${NAME}-${COMMIT}" >> "$GITHUB_OUTPUT"
 
             # Only look the entry up: a hit means the build is done, and the e2e job downloads it.
             # protocol-matrix already found none, so this guards against a build saved since.
@@ -227,7 +230,7 @@ jobs:
               id: cinnabar-cache
               uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
               with:
-                  path: ${{ runner.temp }}/jsprismarine/cinnabar/v${{ matrix.protocol }}
+                  path: ${{ runner.temp }}/jsprismarine/cinnabar/${{ matrix.pin.name }}
                   key: ${{ steps.pin.outputs.key }}
                   lookup-only: true
 
@@ -237,10 +240,10 @@ jobs:
               if: ${{ steps.cinnabar-cache.outputs.cache-hit != 'true' }}
               uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
               with:
-                  path: ${{ runner.temp }}/jsprismarine/cinnabar/v${{ matrix.protocol }}
+                  path: ${{ runner.temp }}/jsprismarine/cinnabar/${{ matrix.pin.name }}
                   key: ${{ steps.pin.outputs.key }}
                   restore-keys: |
-                      ${{ runner.os }}-cinnabar-v${{ matrix.protocol }}-
+                      ${{ runner.os }}-cinnabar-${{ matrix.pin.name }}-
 
             # Cargo's intermediate directory from the closest earlier build: every third-party crate
             # compiled, which is most of a cold build. Cargo checks registry and git crates by hash,
@@ -254,7 +257,8 @@ jobs:
                   path: ${{ runner.temp }}/jsprismarine/cinnabar-deps
                   key: ${{ steps.pin.outputs.deps-key }}
                   restore-keys: |
-                      ${{ runner.os }}-cinnabar-deps-v${{ matrix.protocol }}-
+                      ${{ runner.os }}-cinnabar-deps-${{ matrix.pin.name }}-
+                      ${{ runner.os }}-cinnabar-deps-v${{ matrix.pin.protocol }}-
                       ${{ runner.os }}-cinnabar-deps-
 
             # A cache restores only to the path it was saved from, and the build directory's path
@@ -263,7 +267,7 @@ jobs:
               if: ${{ steps.cinnabar-cache.outputs.cache-hit != 'true' }}
               env:
                   DEPS: ${{ runner.temp }}/jsprismarine/cinnabar-deps
-                  BUILD: ${{ runner.temp }}/jsprismarine/cinnabar/v${{ matrix.protocol }}/build
+                  BUILD: ${{ runner.temp }}/jsprismarine/cinnabar/${{ matrix.pin.name }}/build
               run: |
                   if [ -d "$DEPS" ] && [ ! -e "$BUILD" ]; then
                       mkdir -p "$(dirname "$BUILD")"
@@ -306,11 +310,12 @@ jobs:
               if: ${{ steps.cinnabar-cache.outputs.cache-hit != 'true' }}
               run: |
                   set -o pipefail
-                  pnpm --filter @jsprismarine/client-e2e run ensure -- --protocol "$PROTOCOL" 2>&1 |
+                  pnpm --filter @jsprismarine/client-e2e run ensure -- --protocol "$PROTOCOL" --transport "$TRANSPORT" 2>&1 |
                       node .github/scripts/cargo-progress.mjs cinnabar
               env:
                   JSP_CINNABAR_CACHE_DIR: ${{ runner.temp }}/jsprismarine/cinnabar
-                  PROTOCOL: ${{ matrix.protocol }}
+                  PROTOCOL: ${{ matrix.pin.protocol }}
+                  TRANSPORT: ${{ matrix.pin.transport }}
                   # Incremental state only helps the next compile on the same machine, and it
                   # would grow the compiled dependencies' cache entry for nothing.
                   CARGO_INCREMENTAL: '0'
@@ -327,21 +332,21 @@ jobs:
               if: ${{ steps.cinnabar-cache.outputs.cache-hit != 'true' }}
               env:
                   DEPS: ${{ runner.temp }}/jsprismarine/cinnabar-deps
-                  BUILD: ${{ runner.temp }}/jsprismarine/cinnabar/v${{ matrix.protocol }}/build
+                  BUILD: ${{ runner.temp }}/jsprismarine/cinnabar/${{ matrix.pin.name }}/build
               run: |
                   rm -rf "$DEPS"
                   mv "$BUILD" "$DEPS"
                   du -sh "$DEPS"
 
             # Saved only when this pin had no entry of its own, so an exact hit is not uploaded again,
-            # and only for the latest protocol on master. An entry is 1.8 GB that only the next
+            # and only for the latest protocol's pin on master. An entry is 1.8 GB that only the next
             # build reads. Another protocol's build restores the latest one's, which holds most of
             # the same crates, and a pull request's copy would be visible to that pull request
             # alone while pushing master's entries out of the repository's 10 GB of cache.
             - name: Save the compiled dependencies
               if: >-
                   ${{ steps.cinnabar-cache.outputs.cache-hit != 'true' && steps.deps.outputs.cache-hit != 'true'
-                  && github.event_name != 'pull_request' && matrix.protocol == needs.protocol-matrix.outputs.latest }}
+                  && github.event_name != 'pull_request' && matrix.pin.name == needs.protocol-matrix.outputs.latest }}
               uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
               with:
                   path: ${{ runner.temp }}/jsprismarine/cinnabar-deps
@@ -354,7 +359,7 @@ jobs:
               if: ${{ steps.cinnabar-cache.outputs.cache-hit != 'true' }}
               uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
               with:
-                  path: ${{ runner.temp }}/jsprismarine/cinnabar/v${{ matrix.protocol }}
+                  path: ${{ runner.temp }}/jsprismarine/cinnabar/${{ matrix.pin.name }}
                   key: ${{ steps.pin.outputs.key }}
 
             # A bumped pin leaves its predecessor's build and compiled dependencies behind, and enough
@@ -365,33 +370,40 @@ jobs:
               if: ${{ github.ref == 'refs/heads/master' && github.event_name != 'pull_request' }}
               env:
                   GH_TOKEN: ${{ github.token }}
-                  PROTOCOL: ${{ matrix.protocol }}
+                  NAME: ${{ matrix.pin.name }}
                   KEY: ${{ steps.pin.outputs.key }}
-                  # Only the latest protocol keeps compiled dependencies, so another one deletes its own.
-                  DEPS_KEY: ${{ matrix.protocol == needs.protocol-matrix.outputs.latest && steps.pin.outputs.deps-key || 'none' }}
+                  # Only the latest protocol's pin keeps compiled dependencies, so another deletes its own.
+                  DEPS_KEY: ${{ matrix.pin.name == needs.protocol-matrix.outputs.latest && steps.pin.outputs.deps-key || 'none' }}
               run: |
+                  # The prefix of v2225 also starts v2225-nethernet's keys, so only a key that is the
+                  # prefix and a commit belongs to this pin.
                   prune() {
-                      gh cache list --repo "$GITHUB_REPOSITORY" --key "$1" --limit 100 --json id,key \
-                          --jq ".[] | select(.key != \"$2\") | .id" |
+                      gh cache list --repo "$GITHUB_REPOSITORY" --key "$1" --limit 100 --json id,key |
+                          jq -r --arg prefix "$1" --arg keep "$2" \
+                              '.[] | select(.key != $keep and (.key | ltrimstr($prefix) | test("^[0-9a-f]{40}$"))) | .id' |
                           while read -r id; do gh cache delete "$id" --repo "$GITHUB_REPOSITORY"; done
                   }
-                  prune "${RUNNER_OS}-cinnabar-v${PROTOCOL}-" "$KEY"
-                  prune "${RUNNER_OS}-cinnabar-deps-v${PROTOCOL}-" "$DEPS_KEY"
+                  prune "${RUNNER_OS}-cinnabar-${NAME}-" "$KEY"
+                  prune "${RUNNER_OS}-cinnabar-deps-${NAME}-" "$DEPS_KEY"
 
     # cinnabar-build still runs on a push that reuses the pull request's results: a pull request's
     # cache entries are invisible to master, so this is where a new pin's build reaches master.
     client-e2e:
-        name: 🎮 Client E2E (protocol ${{ matrix.protocol }})
+        # A NetherNet entry says it may fail, which is also how pr-job-results.mjs leaves it out.
+        name: >-
+            🎮 Client E2E (protocol ${{ matrix.pin.protocol }}${{ matrix.pin.transport == 'nethernet' && ', NetherNet, allowed to fail' || '' }})
         needs: [changes, protocol-matrix, cinnabar-build]
         # A skipped cinnabar-build means every pin was already cached.
         if: >-
             ${{ !cancelled() && needs.protocol-matrix.result == 'success'
             && (needs.cinnabar-build.result == 'success' || needs.cinnabar-build.result == 'skipped')
             && needs.changes.outputs.reused != 'true' }}
+        # The NetherNet pin is a development commit of cinnabar; see the top of this file.
+        continue-on-error: ${{ matrix.pin.transport == 'nethernet' }}
         strategy:
             fail-fast: false
             matrix:
-                protocol: ${{ fromJSON(needs.protocol-matrix.outputs.protocols) }}
+                pin: ${{ fromJSON(needs.protocol-matrix.outputs.pins) }}
         # runs-on: blacksmith-6vcpu-macos-latest
         runs-on: ubuntu-latest
         timeout-minutes: 60
@@ -451,21 +463,13 @@ jobs:
             - name: 🏭 Prepare the Java data
               run: pnpm --filter @jsprismarine/bedrock-data run ensure:worldgen
 
-            - name: Resolve the cache key
-              id: pin
-              env:
-                  PROTOCOL: ${{ matrix.protocol }}
-              run: |
-                  commit="$(node -p 'JSON.parse(require("node:fs").readFileSync("tools/client-e2e/cinnabar.json", "utf8")).versions[process.env.PROTOCOL].commit')"
-                  echo "key=${RUNNER_OS}-cinnabar-v${PROTOCOL}-${commit}" >> "$GITHUB_OUTPUT"
-
             # protocol-matrix found this entry or cinnabar-build saved it, so a miss is a workflow
             # bug, not a reason to compile.
             - name: Restore the cinnabar build
               uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
               with:
-                  path: ${{ runner.temp }}/jsprismarine/cinnabar/v${{ matrix.protocol }}
-                  key: ${{ steps.pin.outputs.key }}
+                  path: ${{ runner.temp }}/jsprismarine/cinnabar/${{ matrix.pin.name }}
+                  key: ${{ runner.os }}-cinnabar-${{ matrix.pin.name }}-${{ matrix.pin.commit }}
                   fail-on-cache-miss: true
 
             # A suite is one server and one client, and with no GPU the client renders on the CPU, so
@@ -487,7 +491,8 @@ jobs:
                   # run.mts calls ensureCinnabar too; it finds the restored build and compiles nothing.
                   JSP_CINNABAR_CACHE_DIR: ${{ runner.temp }}/jsprismarine/cinnabar
                   SCENARIOS: ${{ inputs.scenarios || needs.protocol-matrix.outputs.scenarios }}
-                  PROTOCOL: ${{ matrix.protocol }}
+                  PROTOCOL: ${{ matrix.pin.protocol }}
+                  TRANSPORT: ${{ matrix.pin.transport }}
                   SUITES: ${{ steps.size.outputs.suites }}
                   NODE_OPTIONS: --max-old-space-size=4096
                   # A client that panics before its control endpoint is up names only its log, so
@@ -500,7 +505,7 @@ jobs:
                   # warning and in the summary when it passes the second time.
                   # shellcheck disable=SC2086
                   xvfb-run --auto-servernum --server-args='-screen 0 1280x720x24' \
-                      pnpm run e2e:client -- --retry --artifacts "$RUNNER_TEMP/client-e2e" --protocol "$PROTOCOL" --concurrency "$SUITES" $SCENARIOS
+                      pnpm run e2e:client -- --retry --artifacts "$RUNNER_TEMP/client-e2e" --protocol "$PROTOCOL" --transport "$TRANSPORT" --concurrency "$SUITES" $SCENARIOS
 
             - name: 🔎 Verify client e2e coverage
               id: client-e2e-coverage
@@ -519,14 +524,14 @@ jobs:
                   # One flag for every protocol, so carryforward keeps one set of e2e coverage on
                   # commits this path-filtered workflow skips; the upload name tells them apart.
                   flags: client-e2e
-                  name: client-e2e-${{ matrix.protocol }}
+                  name: client-e2e-${{ matrix.pin.name }}
 
             # The push to master that merges this pull request skips this job and uploads it.
             - name: 📤 Keep the coverage for the merge
               if: ${{ !cancelled() && steps.client-e2e-coverage.outcome == 'success' && github.event_name == 'pull_request' && needs.protocol-matrix.outputs.scenarios == '' }}
               uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
               with:
-                  name: codecov-client-e2e-${{ matrix.protocol }}
+                  name: codecov-client-e2e-${{ matrix.pin.name }}
                   path: coverage/client-e2e/lcov.info
                   retention-days: 30
 
@@ -535,23 +540,23 @@ jobs:
             - name: 🔎 Show the client logs
               if: ${{ failure() }}
               run: |
-                  for log in "$RUNNER_TEMP"/jsprismarine/cinnabar/v"$PROTOCOL"/*/repo/.local/developer-control/logs/*.log; do
+                  for log in "$RUNNER_TEMP"/jsprismarine/cinnabar/"$NAME"/*/repo/.local/developer-control/logs/*.log; do
                       [ -f "$log" ] || continue
                       echo "::group::$(basename "$log")"
                       tail -n 80 "$log"
                       echo "::endgroup::"
                   done
               env:
-                  PROTOCOL: ${{ matrix.protocol }}
+                  NAME: ${{ matrix.pin.name }}
 
             - name: 📤 Upload evidence
               if: ${{ !cancelled() }}
               uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
               with:
-                  name: client-e2e-evidence-protocol-${{ matrix.protocol }}
+                  name: client-e2e-evidence-${{ matrix.pin.name }}
                   path: |
                       ${{ runner.temp }}/client-e2e
-                      ${{ runner.temp }}/jsprismarine/cinnabar/v${{ matrix.protocol }}/*/repo/.local/developer-control/logs
+                      ${{ runner.temp }}/jsprismarine/cinnabar/${{ matrix.pin.name }}/*/repo/.local/developer-control/logs
                   if-no-files-found: warn
 
     # The check branch rules require. A matrix job's name depends on its protocols, and a skipped
@@ -577,7 +582,8 @@ jobs:
                   fi
                   jq -r 'to_entries[] | "\(.key): \(.value.result)"' <<< "$NEEDS"
                   # cinnabar-build skips when every pin is cached, and client-e2e skips on a push that
-                  # reuses the merged pull request's passing runs.
+                  # reuses the merged pull request's passing runs. A failed NetherNet entry still
+                  # reports its job as a success here: both jobs set continue-on-error for it.
                   jq -e '(.changes.outputs.reused == "true") as $reused
                       | (.["protocol-matrix"].outputs.build == "[]") as $cached
                       | to_entries
