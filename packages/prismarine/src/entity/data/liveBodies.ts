@@ -83,6 +83,7 @@ class DataEntityBody extends GenericEntity {
             yaw?: number;
             headYaw?: number;
             attributes?: Attribute[];
+            runtimeId: bigint;
         },
         private readonly hurt: (amount: number, source: DamageSource) => boolean
     ) {
@@ -180,8 +181,8 @@ export interface LiveBodiesOptions {
 
 /** One live body per data-driven entity, kept in step with it. */
 export class LiveBodies {
+    /** Each body by its runtime id, which is its data entity's id as well. */
     private readonly bodies = new Map<number, Entity>();
-    private readonly idsByBody = new Map<Entity, number>();
     /** The health last written onto each body, which is how a legacy blow is noticed. */
     private readonly written = new Map<number, number>();
     /** The property values last sent for each body. */
@@ -212,9 +213,15 @@ export class LiveBodies {
         return this.bodies.get(id);
     }
 
-    /** The data entity id for a client-facing body, or undefined when it is not data-driven. */
+    /**
+     * The data entity id for a client-facing body, or undefined when it is not data-driven.
+     *
+     * A body carries its entity's id as its runtime id, so this is the runtime id of a body
+     * this runtime holds.
+     */
     public entityIdOf(body: Entity): number | undefined {
-        return this.idsByBody.get(body);
+        const id = Number(body.getRuntimeId());
+        return this.bodies.get(id) === body ? id : undefined;
     }
 
     /** How many bodies are in the world, which is what a test counts. */
@@ -239,6 +246,9 @@ export class LiveBodies {
             entity,
             {
                 identifier: entity.identifier,
+                // The entity's own id: the runtime draws it from the same counter as every
+                // other entity, so the mob has one id on the wire and in the runtime.
+                runtimeId: BigInt(entity.id),
                 position: Position.fromVector3(new Vector3(at.x, at.y, at.z), world),
                 yaw: entity.body.yaw,
                 headYaw: entity.body.yaw,
@@ -247,8 +257,7 @@ export class LiveBodies {
             },
             (amount, source) => {
                 const attacker = source.attacker;
-                const sourceId =
-                    attacker === null ? undefined : (this.idsByBody.get(attacker) ?? Number(attacker.getRuntimeId()));
+                const sourceId = attacker === null ? undefined : Number(attacker.getRuntimeId());
                 return this.options.hurt(entity, sourceId, source.cause, amount);
             }
         );
@@ -277,7 +286,6 @@ export class LiveBodies {
         this.actorMetadata.set(entity.id, actorMetadata);
 
         this.bodies.set(entity.id, body);
-        this.idsByBody.set(body, entity.id);
         this.synced.set(entity.id, body.getSyncedProperties());
         void world.addEntity(body).catch((error: unknown) => this.failed('add', error));
     }
@@ -292,7 +300,6 @@ export class LiveBodies {
         this.actorMetadata.delete(entity.id);
         this.owners.delete(entity.id);
         if (body === undefined) return;
-        this.idsByBody.delete(body);
 
         const world = this.options.world();
         if (world === undefined) return;
@@ -301,10 +308,9 @@ export class LiveBodies {
 
     /** Takes a body out of the indexes before its runtime entity is suspended for chunk unload. */
     public detach(body: Entity): number | undefined {
-        const id = this.idsByBody.get(body);
+        const id = this.entityIdOf(body);
         if (id === undefined) return undefined;
 
-        this.idsByBody.delete(body);
         this.bodies.delete(id);
         this.written.delete(id);
         this.synced.delete(id);
@@ -410,7 +416,6 @@ export class LiveBodies {
     /** Forgets every body, for a world that is closing. */
     public clear(): void {
         this.bodies.clear();
-        this.idsByBody.clear();
         this.written.clear();
         this.synced.clear();
         this.equipped.clear();
