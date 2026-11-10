@@ -1569,6 +1569,9 @@ importers:
       ts-json-schema-generator:
         specifier: 2.9.0
         version: 2.9.0
+      tsc-ts:
+        specifier: 0.1.5
+        version: 0.1.5(@scriptc/threads@0.4.12)
       tsx:
         specifier: 4.23.15
         version: 4.23.15
