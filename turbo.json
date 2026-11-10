@@ -2,6 +2,14 @@
     "$schema": "https://turborepo.org/schema.json",
     "ui": "stream",
     "globalDependencies": ["tsconfig.json", "tsconfig.build.json", "package.json", "vite.config.ts", ".env"],
+    "globalPassThroughEnv": [
+        "GITHUB_ACTIONS",
+        "GITHUB_ENV",
+        "JSP_LINT_ALL",
+        "JSP_SHARED_CACHE",
+        "npm_config_user_agent",
+        "VITEST_SHARD"
+    ],
     "tasks": {
         "build": {
             "dependsOn": ["^build"],
