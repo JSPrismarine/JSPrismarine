@@ -10,8 +10,9 @@
  *   over the wire. {@link carryOut} decides synchronously and parks the
  *   delivery on the queue `CommandManager.dispatchCommand` already awaits.
  * - **References against objects.** A command sees an `EntityRef`, seven
- *   fields and a stable id. {@link entityRefOf} makes one and
- *   {@link resolveEntity} finds the entity back.
+ *   fields and a stable id. {@link entityRefOf} makes one,
+ *   {@link resolveEntity} finds the entity back, and {@link playerSessionOf}
+ *   finds a player's session by the same id.
  * - **Java dimension ids against Bedrock's.** Java spells the Nether
  *   `minecraft:the_nether` and the client `minecraft:nether`. A world's
  *   `DimensionType` carries both, and {@link worldOf} accepts either through
@@ -20,12 +21,17 @@
 import { CommandSyntaxException } from '@jsprismarine/brigadier';
 import type { EntityRef, Vector3 as HostVector } from '@jsprismarine/commands';
 import { Vector3 } from '@jsprismarine/math';
+import type { PositionMode, TextPacketType } from '@jsprismarine/protocol';
 
 // Imported straight from their modules rather than through a barrel, for the
 // reason `CommandManager` states: `index.ts` exports `./world/` before
 // `Player`, so a barrel import lands in a half-initialized module.
 import Player from '../../Player';
 import type Server from '../../Server';
+import type { ExperienceHolder } from '../../entity/Experience';
+import type HumanInventory from '../../inventory/HumanInventory';
+import type PlayerSession from '../../network/PlayerSession';
+import type { StoredSpawnPoint } from '../../world/RespawnPoint';
 import type { WorldActor } from '../../world/WorldActor';
 import { dimensionByName } from '../../world/Dimension';
 import type { World } from '../../world/World';
@@ -112,6 +118,18 @@ export const loadedDimensions = (server: Server): readonly string[] => [
     ...new Set([...server.getWorldManager().getDefaultLevel().getStems().values()].map((stem) => stem.type))
 ];
 
+/** What {@link entityRefOf} reads of an entity. */
+export interface ReferencedEntity {
+    getRuntimeId(): bigint;
+    getType(): string;
+    getName(): string;
+    getPosition(): { getX(): number; getZ(): number };
+    getFeetY(): number;
+    readonly yaw: number;
+    readonly pitch: number;
+    getWorld(): World;
+}
+
 /**
  * The seven fields a command sees of an entity.
  *
@@ -119,11 +137,11 @@ export const loadedDimensions = (server: Server): readonly string[] => [
  * for as long as the entity lives, so {@link resolveEntity} can find the
  * entity back from a reference a command has been carrying across a fork.
  */
-export const entityRefOf = (entity: WorldActor): EntityRef => ({
+export const entityRefOf = (entity: ReferencedEntity): EntityRef => ({
     id: entity.getRuntimeId().toString(),
     type: entity.getType(),
     name: entity.getName(),
-    isPlayer: entity instanceof Player,
+    isPlayer: entity.getType() === 'minecraft:player',
     position: { x: entity.getPosition().getX(), y: entity.getFeetY(), z: entity.getPosition().getZ() },
     rotation: { yaw: entity.yaw, pitch: entity.pitch },
     dimension: dimensionIdOf(entity.getWorld())
@@ -151,11 +169,50 @@ export const resolveEntity = (server: Server, ref: EntityRef): WorldActor | unde
     return undefined;
 };
 
-/** The same, for the references a command resolved to players. */
-export const resolvePlayer = (server: Server, ref: EntityRef): Player | undefined => {
+/**
+ * The session of the player a reference names, found by the runtime id the reference carries.
+ *
+ * Players are still the legacy class, and this is the one place the command host asks for it.
+ * @returns The session, or undefined when the reference names anything but a player or the
+ *   player has since left.
+ */
+export const playerSessionOf = (server: Server, ref: EntityRef): PlayerSession | undefined => {
     const entity = resolveEntity(server, ref);
-    return entity instanceof Player ? entity : undefined;
+    return entity instanceof Player ? entity.getNetworkSession() : undefined;
 };
+
+/**
+ * What a command reads and changes of a player target: its game mode, inventory, experience,
+ * attributes, spawn point and position, and the session its changes are sent through.
+ */
+export interface CommandPlayer {
+    getRuntimeId(): bigint;
+    getName(): string;
+    getFormattedUsername(): string;
+    getWorld(): World;
+    readonly gamemode: number;
+    setGamemode(mode?: number): Promise<void>;
+    readonly attributes: { getValue(id: string): number };
+    setAttributeValue(name: string, value: number): boolean;
+    getExperience(): ExperienceHolder;
+    getInventory(): HumanInventory;
+    setSpawnPoint(spawn: StoredSpawnPoint | undefined): void;
+    setPlayerPosition(move: {
+        position: Vector3;
+        type?: PositionMode;
+        pitch?: number;
+        yaw?: number;
+        headYaw?: number;
+    }): Promise<void>;
+    setWorld(world: World): Promise<void>;
+    sendMessage(message: string, type?: TextPacketType): Promise<void>;
+    kick(reason?: string): Promise<void>;
+    getNetworkSession(): Pick<PlayerSession, 'send' | 'sendInventory' | 'sendAttributes' | 'changeWorld'>;
+}
+
+/** The same, for the references a command resolved to players: the player behind the session. */
+export const resolvePlayer = (server: Server, ref: EntityRef): CommandPlayer | undefined =>
+    playerSessionOf(server, ref)?.getPlayer();
 
 /** A host position as this server's vector. */
 export const vectorOf = (position: HostVector): Vector3 => new Vector3(position.x, position.y, position.z);
@@ -165,7 +222,7 @@ export const blockPositionOf = (position: HostVector): Vector3 =>
     new Vector3(Math.floor(position.x), Math.floor(position.y), Math.floor(position.z));
 
 /** The players a command's target list names, skipping the ones that have left. */
-export const playersOf = (server: Server, refs: readonly EntityRef[]): Player[] =>
+export const playersOf = (server: Server, refs: readonly EntityRef[]): CommandPlayer[] =>
     refs.flatMap((ref) => {
         const player = resolvePlayer(server, ref);
         return player === undefined ? [] : [player];

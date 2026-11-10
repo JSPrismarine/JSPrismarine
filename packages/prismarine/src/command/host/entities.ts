@@ -14,7 +14,6 @@ import { javaEntityTypeToBedrock } from '@jsprismarine/mapping';
 import { getGametypeId, getGametypeName } from '@jsprismarine/minecraft';
 import { PositionMode } from '@jsprismarine/protocol';
 
-import Player from '../../Player';
 import type Server from '../../Server';
 import { AttributeIds } from '@jsprismarine/protocol/wire/structures/Attribute';
 import { DamageCause } from '../../entity/DamageCause';
@@ -31,6 +30,7 @@ import type { World } from '../../world/World';
 import type { WorldActor } from '../../world/WorldActor';
 import type { Scoreboard } from './scoreboard';
 import { scoreFactOf } from './scoreboard';
+import type { CommandPlayer } from './support';
 import {
     carryOut,
     dimensionIdOf,
@@ -68,7 +68,7 @@ const attributeIdOf = (name: string): string | undefined =>
     ATTRIBUTE_IDS[name.includes(':') ? name : `minecraft:${name}`];
 
 /** The game mode a selector's `gamemode=` compares against, in Mojang's lower-case spelling. */
-const gameModeNameOf = (player: Player): string => getGametypeName(player.gamemode).toLowerCase();
+const gameModeNameOf = (player: CommandPlayer): string => getGametypeName(player.gamemode).toLowerCase();
 
 /**
  * A player's experience as the two attributes Bedrock carries it in.
@@ -78,7 +78,7 @@ const gameModeNameOf = (player: Player): string => getGametypeName(player.gamemo
  * counts points. {@link import('../../entity/Experience')} holds the curve
  * that converts between them.
  */
-const experienceOf = (player: Player): ExperienceHolder => player.getExperience();
+const experienceOf = (player: CommandPlayer): ExperienceHolder => player.getExperience();
 
 /** What `/xp query` answers, in the unit it was asked in. */
 const readExperience = (holder: ExperienceHolder, unit: 'points' | 'levels'): number => {
@@ -261,7 +261,7 @@ export const entityCommandHost = (server: Server, scoreboard: Scoreboard): Entit
 
             // A dead player is on the death screen, not an entity to clear away: taking it out of
             // the world leaves it out when it respawns, and no `@s` finds it again.
-            if (entity instanceof Player) return false;
+            if (resolvePlayer(server, ref) !== undefined) return false;
 
             return carryOut(entity.getWorld().removeEntity(entity), true);
         },
@@ -294,6 +294,7 @@ export const entityCommandHost = (server: Server, scoreboard: Scoreboard): Entit
         teleport: (ref, position, rotation, dimension) => {
             const entity = resolveEntity(server, ref);
             if (entity === undefined) return false;
+            const player = resolvePlayer(server, ref);
 
             // A thunk rather than a promise: `setPosition` starts the moment it is
             // called, and a cross-dimension move has to know its destination first.
@@ -302,8 +303,8 @@ export const entityCommandHost = (server: Server, scoreboard: Scoreboard): Entit
             // eyes, so it is raised here the way `changeWorld` raises its arrival; every
             // other entity's position is already its feet.
             const move = async () => {
-                if (entity instanceof Player) {
-                    return entity.setPlayerPosition({
+                if (player !== undefined) {
+                    return player.setPlayerPosition({
                         position: eyePositionAt(vectorOf(position)),
                         type: PositionMode.Teleport,
                         yaw: rotation.yaw,
@@ -335,12 +336,12 @@ export const entityCommandHost = (server: Server, scoreboard: Scoreboard): Entit
             // level has its stem and nobody has entered it yet, and the player
             // arrives at the requested position in one move rather than at the
             // world's spawn and then at the position.
-            if (entity instanceof Player && dimensionIdOf(entity.getWorld()) !== javaDimensionIdOf(dimension)) {
+            if (player !== undefined && dimensionIdOf(player.getWorld()) !== javaDimensionIdOf(dimension)) {
                 return carryOut(
                     worldFor(server, dimension).then(async (destination) =>
-                        entity.getWorld() === destination
+                        player.getWorld() === destination
                             ? move()
-                            : entity.getNetworkSession().changeWorld({
+                            : player.getNetworkSession().changeWorld({
                                   world: destination,
                                   position: vectorOf(position),
                                   yaw: rotation.yaw,
@@ -526,9 +527,8 @@ export const entityCommandHost = (server: Server, scoreboard: Scoreboard): Entit
             const entity = resolveEntity(server, ref);
             if (id === undefined || entity === undefined) return false;
             // A player logs the write through the component field the attribute is kept in.
-            return entity instanceof Player
-                ? entity.setAttributeValue(id, value)
-                : entity.attributes.setValue(id, value);
+            const player = resolvePlayer(server, ref);
+            return player !== undefined ? player.setAttributeValue(id, value) : entity.attributes.setValue(id, value);
         },
         getAttributeValue: (ref, attribute) =>
             applyAttribute(ref, attribute, (id, entity) => entity.attributes.getAttribute(id)?.getValue()),

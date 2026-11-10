@@ -18,7 +18,7 @@ import SetTitlePacket from '@jsprismarine/protocol/packet/SetTitlePacket';
 import TransferPacket from '@jsprismarine/protocol/packet/TransferPacket';
 import { TextPacketType } from '@jsprismarine/protocol';
 import { UnlockedRecipes, changeRecipes } from './recipes';
-import { carryOut, entityRefOf, playersOf, resolveEntity, resolvePlayer } from './support';
+import { carryOut, entityRefOf, playerSessionOf, playersOf, resolveEntity, resolvePlayer } from './support';
 
 /**
  * How the client renders each of the four message kinds a command sends.
@@ -119,11 +119,11 @@ export const serverSideCommandHost = (server: Server, onStopRequested: () => voi
     const unlocked = new UnlockedRecipes();
 
     const operator = (ref: EntityRef, op: boolean): boolean => {
-        const player = resolvePlayer(server, ref);
-        if (player === undefined) return false;
-        if (server.getPermissionManager().isOp(player.getUUID().toString()) === op) return false;
+        const identity = playerSessionOf(server, ref)?.identity;
+        if (identity === undefined) return false;
+        if (server.getPermissionManager().isOp(identity.uuid) === op) return false;
 
-        return carryOut(server.getPermissionManager().setOp(player.getName(), op), true);
+        return carryOut(server.getPermissionManager().setOp(identity.name, op), true);
     };
 
     return {
