@@ -19,7 +19,7 @@ describe('network/nethernet/HttpSignaling over a real WebRTC connection', () => 
             answerer: nethernet,
             status: () => '{}',
             sign: (answer) => new NetherNetIdentity(privateKey).sign(answer),
-            logger: stub<Logger>({ debug: () => {}, error: () => {} })
+            logger: stub<Logger>({ debug: () => {}, info: () => {}, warn: () => {}, error: () => {} })
         });
         const port = await signaling.listen(0, '127.0.0.1');
 

@@ -34,7 +34,7 @@ const signaling = async (outcome: { answer: string } | { error: string }) => {
         },
         status: () => joinStatusJson(STATUS),
         sign: (answer) => `${answer}a=identity:signed\r\n`,
-        logger: { debug: () => {}, error: () => {} }
+        logger: { debug: () => {}, info: () => {}, warn: () => {}, error: () => {} }
     });
     closers.push(() => server.close());
     return { host: '127.0.0.1', port: await server.listen(0, '127.0.0.1') };

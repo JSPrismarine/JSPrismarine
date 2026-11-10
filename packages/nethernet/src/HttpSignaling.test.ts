@@ -30,7 +30,7 @@ const start = async (answerer: NetherNetOfferAnswerer, answerTimeoutMs?: number)
         answerer,
         status: () => '{"name":"Test"}',
         sign: (answer) => `${answer}a=identity:signed\r\n`,
-        logger: { debug: () => {}, error: () => {} },
+        logger: { debug: () => {}, info: () => {}, warn: () => {}, error: () => {} },
         answerTimeoutMs
     });
     running.push(signaling);
@@ -112,7 +112,7 @@ describe('HttpSignaling', () => {
             answerer,
             status: () => '{}',
             sign: (answer) => answer,
-            logger: { debug: () => {}, error: (error) => void errors.push(error) }
+            logger: { debug: () => {}, info: () => {}, warn: () => {}, error: (error) => void errors.push(error) }
         });
         running.push(signaling);
         const port = await signaling.listen(0, '127.0.0.1');
