@@ -1,4 +1,4 @@
-# @jsprismarine/client-auth
+# @jsprismarine/auth
 
 The login identity a Minecraft: Bedrock Edition client presents: the JWT chain, the client
 data blob, and the key both are signed with.
@@ -8,7 +8,7 @@ Live in. A provider is chosen at the edge of the application; nothing in the cli
 imports one.
 
 ```typescript
-import { OfflineAuthProvider } from '@jsprismarine/client-auth';
+import { OfflineAuthProvider } from '@jsprismarine/auth';
 
 const auth = new OfflineAuthProvider({ displayName: 'Steve' });
 const credentials = await auth.createLoginCredentials({

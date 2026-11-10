@@ -3,7 +3,15 @@ import { isIPv4 } from 'node:net';
 import type { Module } from '@jsprismarine/kernel';
 import { RakNetListener, ServerName, WorkerServerSocket } from '@jsprismarine/raknet';
 import type { RakNetListenerLike } from '@jsprismarine/raknet';
-import { HttpSignaling, joinStatusJson, NETHERNET_LAN_PORT, NetherNetIdentity } from '@jsprismarine/nethernet';
+import {
+    constrainIcePorts,
+    HttpSignaling,
+    joinStatusJson,
+    NETHERNET_LAN_PORT,
+    NetherNetIdentity,
+    parseUdpPorts,
+    withMappedCandidates
+} from '@jsprismarine/nethernet';
 import { Server as NetherNetServer } from 'nethernet';
 
 import ClientConnection from '../network/ClientConnection';
@@ -241,6 +249,9 @@ export class ServerNetworking implements Networking {
         const logger = server.getLogger();
         // Discovery is IPv4 broadcast, so an IPv6 bind address leaves it on every interface.
         const nethernet = new NetherNetServer({ host: isIPv4(address) ? address : '0.0.0.0' });
+        // Read before anything binds, so a malformed setting stops the start instead of half of it.
+        const udpPorts = parseUdpPorts(config.getServerUdpPorts());
+        if (udpPorts.local !== undefined) constrainIcePorts(nethernet, udpPorts.local);
 
         // Kept in the server directory: a client joining over plain HTTP remembers the key and
         // asks the player again if it ever changes.
@@ -248,7 +259,7 @@ export class ServerNetworking implements Networking {
         this.signaling = new HttpSignaling({
             answerer: nethernet,
             status: () => joinStatusJson(netherNetStatusOf(serverName.getSnapshot(), config.getLevelName())),
-            sign: (answer) => identity.sign(answer),
+            sign: (answer) => identity.sign(withMappedCandidates(answer, udpPorts.mappings)),
             logger
         });
         this.signaling.listen(port, address).then(

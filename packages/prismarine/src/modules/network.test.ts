@@ -78,6 +78,7 @@ describe('modules/network', () => {
                     getEnableNetherNet: () => true,
                     // Off, so the test binds nothing: UDP 7551 is a fixed, shared port.
                     getEnableLanVisibility: () => false,
+                    getServerUdpPorts: () => '',
                     getLevelName: () => 'world'
                 }),
             getLogger: () => stub<Logger>({ info: () => {}, warn: () => {}, error: () => {} }),
@@ -103,6 +104,25 @@ describe('modules/network', () => {
             vi.unstubAllEnvs();
             fs.rmSync(dataDirectory, { recursive: true, force: true });
         }
+    });
+
+    it('refuses to start NetherNet with a malformed server-udp-ports, before anything binds', () => {
+        const server = stub<Server>({
+            getConfig: () =>
+                stub<Config>({
+                    getGamemode: () => 'survival',
+                    getMaxPlayers: () => 1,
+                    getMotd: () => 'test server',
+                    getEnableRakNet: () => false,
+                    getEnableNetherNet: () => true,
+                    getServerUdpPorts: () => 'ports'
+                }),
+            getLogger: () => stub<Logger>({ info: () => {}, warn: () => {}, error: () => {} })
+        });
+
+        expect(() => new ServerNetworking(server).start('127.0.0.1', 0)).toThrow(
+            'server-udp-ports: ports is neither a port range nor a mapping'
+        );
     });
 
     /** A server running RakNet alone, in socket mode, on the IPv6 port given. */

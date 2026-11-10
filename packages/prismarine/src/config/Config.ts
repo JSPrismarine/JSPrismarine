@@ -79,6 +79,8 @@ const COMMENTS = {
     'use-raknet-worker': 'Whether RakNet networking runs in a worker thread.',
     'enable-nethernet':
         'Whether to accept clients over NetherNet, the WebRTC transport Bedrock Dedicated Server defaults to.',
+    'server-udp-ports':
+        "UDP ports for NetherNet players, as Bedrock Dedicated Server's server-udp-ports: a range such as 49152-49200, and [ip:]external:internal mappings to advertise behind NAT. Empty lets the system pick.",
     'enable-lan-visibility': 'Whether players on the local network see the server among their LAN games.',
     'packet-compression-level': "The zlib level for outgoing batches, from -1 (zlib's default) to 9.",
     'packet-compression-algorithm':
@@ -134,6 +136,7 @@ const DEFAULTS = {
     'enable-raknet': true,
     'use-raknet-worker': true,
     'enable-nethernet': true,
+    'server-udp-ports': '',
     'enable-lan-visibility': true,
     'packet-compression-level': DEFAULT_PACKET_COMPRESSION_LEVEL,
     'packet-compression-algorithm': DEFAULT_PACKET_COMPRESSION_ALGORITHM,
@@ -227,6 +230,7 @@ export class Config {
     private enableRakNet: boolean = DEFAULTS['enable-raknet'];
     private useRakNetWorker: boolean = DEFAULTS['use-raknet-worker'];
     private enableNetherNet: boolean = DEFAULTS['enable-nethernet'];
+    private serverUdpPorts: string = DEFAULTS['server-udp-ports'];
     private enableLanVisibility: boolean = DEFAULTS['enable-lan-visibility'];
     private packetCompressionLevel: number = DEFAULTS['packet-compression-level'];
     private packetCompressionAlgorithm: ConfigFile['packet-compression-algorithm'] =
@@ -326,6 +330,7 @@ export class Config {
         this.enableRakNet = read('enable-raknet', DEFAULTS['enable-raknet']);
         this.useRakNetWorker = read('use-raknet-worker', DEFAULTS['use-raknet-worker']);
         this.enableNetherNet = read('enable-nethernet', DEFAULTS['enable-nethernet']);
+        this.serverUdpPorts = read('server-udp-ports', DEFAULTS['server-udp-ports']);
         this.enableLanVisibility = read('enable-lan-visibility', DEFAULTS['enable-lan-visibility']);
         this.packetCompressionLevel = read('packet-compression-level', DEFAULTS['packet-compression-level']);
         this.packetCompressionAlgorithm = read(
@@ -637,6 +642,11 @@ export class Config {
     /** Whether the server accepts clients over NetherNet. */
     public getEnableNetherNet(): boolean {
         return this.enableNetherNet;
+    }
+
+    /** The NetherNet UDP ports setting, unparsed, in Bedrock Dedicated Server's syntax. */
+    public getServerUdpPorts(): string {
+        return this.serverUdpPorts;
     }
 
     /** Whether the server answers clients looking for games on the local network. */
