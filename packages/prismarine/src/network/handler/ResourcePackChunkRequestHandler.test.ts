@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import type Player from '../../Player';
 import type Server from '../../Server';
+import { identityNamed } from '../../testing/sessionIdentity.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import type PlayerSession from '../PlayerSession';
 import ResourcePackChunkRequestPacket from '@jsprismarine/protocol/packet/ResourcePackChunkRequestPacket';
@@ -16,7 +17,10 @@ describe('ResourcePackChunkRequestHandler', () => {
         const server = stub<Server>({
             getLogger: () => stub<Logger>({ debug: (...message) => void logged.push(message[0] ?? '') })
         });
-        const session = stub<PlayerSession>({ getPlayer: () => stub<Player>({ getName: () => 'Steve', kick }) });
+        const session = stub<PlayerSession>({
+            identity: identityNamed('Steve'),
+            getPlayer: () => stub<Player>({ kick })
+        });
 
         return { logged, kick, server, session };
     };

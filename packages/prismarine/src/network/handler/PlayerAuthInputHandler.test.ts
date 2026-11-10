@@ -19,6 +19,7 @@ import type { Block } from '../../block/Block';
 import type { Config } from '../../config/Config';
 import type HumanInventory from '../../inventory/HumanInventory';
 import { Item } from '../../item/Item';
+import { identityNamed } from '../../testing/sessionIdentity.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import BlockPosition from '../../world/BlockPosition';
 import { Position } from '../../world/Position';
@@ -84,7 +85,10 @@ const fake = ({ serverAuthoritativeBreaking = false, changingDimension = false, 
         setMining: () => {}
     });
     const session = stub<PlayerSession>({
+        runtimeId: 1n,
+        identity: identityNamed('tester'),
         getPlayer: () => player,
+        isConnected: () => player.isOnline(),
         getConnection: () => stub<ReturnType<PlayerSession['getConnection']>>({ codec: Codec2193 }),
         sendMove: vi.fn(),
         recordInputTick: vi.fn(),

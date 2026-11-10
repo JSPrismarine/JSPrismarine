@@ -3,6 +3,7 @@ import type Server from '../../Server';
 import type PlayerSession from '../PlayerSession';
 import type ResourcePackChunkRequestPacket from '@jsprismarine/protocol/packet/ResourcePackChunkRequestPacket';
 import type PacketHandler from './PacketHandler';
+import type { KickedPlayer } from './playerPorts';
 
 /**
  * A request for one chunk of a resource pack the client is downloading.
@@ -26,12 +27,12 @@ export default class ResourcePackChunkRequestHandler implements PacketHandler<Re
 
     /** Logs the requested pack and chunk, then disconnects the client. */
     public async handle(packet: ResourcePackChunkRequestPacket, server: Server, session: PlayerSession): Promise<void> {
-        const player = session.getPlayer();
+        const player: KickedPlayer = session.getPlayer();
 
         server
             .getLogger()
             .debug(
-                `${player.getName()} requested chunk ${packet.chunk} of pack ${packet.resourceName}, which the server does not serve`,
+                `${session.identity.name} requested chunk ${packet.chunk} of pack ${packet.resourceName}, which the server does not serve`,
                 'ResourcePackChunkRequestHandler/handle'
             );
         await player.kick(

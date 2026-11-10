@@ -4,8 +4,8 @@ import { describe, expect, it, vi } from 'vitest';
 
 import type { Logger } from '@jsprismarine/logger';
 import type { InetAddress } from '@jsprismarine/raknet';
-import type Player from '../../Player';
 import type Server from '../../Server';
+import { identityNamed } from '../../testing/sessionIdentity.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import type ClientConnection from '../ClientConnection';
 import type PlayerSession from '../PlayerSession';
@@ -24,12 +24,12 @@ const harness = () => {
 
     const server = stub<Server>({ getLogger: () => stub<Logger>({ info }) });
     const session = stub<PlayerSession>({
-        getPlayer: () =>
-            stub<Player>({
-                getName: () => 'runner',
+        identity: identityNamed('runner'),
+        getConnection: () =>
+            stub<ClientConnection>({
+                forceDisconnect,
                 getAddress: () => stub<InetAddress>({ toToken: () => '127.0.0.1:19133' })
-            }),
-        getConnection: () => stub<ClientConnection>({ forceDisconnect })
+            })
     });
 
     return { info, forceDisconnect, server, session };
