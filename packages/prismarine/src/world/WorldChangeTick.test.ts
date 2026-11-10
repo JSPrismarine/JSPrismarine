@@ -1,4 +1,6 @@
 import type { Logger } from '@jsprismarine/logger';
+import { InetAddress } from '@jsprismarine/raknet';
+import UUID from '@jsprismarine/protocol/wire/structures/UUID';
 import { describe, expect, it } from 'vitest';
 
 import type { Config } from '../config/Config';
@@ -16,6 +18,9 @@ import type BaseProvider from './providers/BaseProvider';
 import { World } from './World';
 import { Position } from './Position';
 import { GenericEntity } from '../entity/GenericEntity';
+import ContainerEntry from '../inventory/ContainerEntry';
+import { Item } from '../item/Item';
+import Player from '../Player';
 
 /** A world whose dimension's entity runtime is the real one the entity fixture builds. */
 const worldWithStore = () => {
@@ -26,6 +31,7 @@ const worldWithStore = () => {
         bodies: stub<LiveBodies>({ entityIdOf: () => undefined }),
         tick: async (tick) => fixture.runtime.tick(tick),
         persist: () => {},
+        savedRecords: () => new Map(),
         onEntityRemoved: () => () => false,
         isInRide: () => false,
         restoreExisting: () => undefined
@@ -57,6 +63,39 @@ const worldWithStore = () => {
     });
     return { world, runtime: fixture.runtime, errors };
 };
+
+/** A player of the world, with no session: the change log needs only the entity. */
+const playerIn = (world: World): Player =>
+    new Player({
+        position: new Position(0.5, 65.62, 0.5, world),
+        address: new InetAddress('127.0.0.1', 19132),
+        identity: {
+            uuid: UUID.fromString('00000000-0000-4000-8000-000000000001'),
+            name: 'Logged',
+            xuid: '',
+            randomId: 0,
+            locale: 'en_US',
+            skin: null,
+            device: null
+        }
+    });
+
+const entry = (name: string, count = 1) => new ContainerEntry({ item: new Item({ name, count }) });
+
+/** One write to every container a player carries, and to the hand slot. */
+const PLAYER_SLOT_WRITES: readonly { readonly name: string; readonly write: (player: Player) => void }[] = [
+    { name: 'inventory', write: (player) => player.getInventory().setItem(4, entry('minecraft:stone', 12)) },
+    { name: 'armor', write: (player) => player.getInventory().getArmor().setItem(0, entry('minecraft:iron_helmet')) },
+    { name: 'offhand', write: (player) => player.getInventory().getOffhand().setItem(0, entry('minecraft:shield')) },
+    {
+        name: 'ender_chest',
+        write: (player) => player.getInventory().getEnderChest().setItem(3, entry('minecraft:diamond', 2))
+    },
+    { name: 'cursor', write: (player) => player.getInventory().setCursor(new Item({ name: 'minecraft:torch' })) },
+    { name: 'crafting', write: (player) => player.getCraftingInput().set(1, new Item({ name: 'minecraft:oak_log' })) },
+    { name: 'inventory.handSlot', write: (player) => player.getInventory().setHandSlot(5) },
+    { name: 'removal', write: (player) => player.getInventory().removeItem(0) }
+];
 
 describe('a world tick and its change log', () => {
     it('logs an input applied at the input step in the tick it belongs to', async () => {
@@ -169,5 +208,87 @@ describe('a world tick and its change log', () => {
                 after: health - 1
             }
         ]);
+    });
+
+    describe("a player's inventory", () => {
+        const playerWithItems = async () => {
+            const { world } = worldWithStore();
+            const player = playerIn(world);
+            await world.addEntity(player);
+            player.getInventory().setItem(0, entry('minecraft:bread', 3));
+            return { world, player };
+        };
+
+        it.each(PLAYER_SLOT_WRITES)(
+            'undoes a write to the $name, leaving the replay digest as it was',
+            async ({ write }) => {
+                const { world, player } = await playerWithItems();
+                const before = world.replayStateDigest();
+                world.beginChangeTick();
+
+                const outcome = await world.getEntityStore().unitAsync(async () => {
+                    write(player);
+                    throw new Error('planned');
+                });
+                world.sealChangeTick();
+
+                expect(outcome.failed).toBe(true);
+                expect(world.lastChangeTick()?.entries).toEqual([]);
+                expect(world.replayStateDigest()).toBe(before);
+
+                // The same write in a unit that finishes is one entry.
+                world.beginChangeTick();
+                write(player);
+                world.sealChangeTick();
+                expect(world.lastChangeTick()?.entries).toHaveLength(1);
+            }
+        );
+
+        it('logs one entry per slot written, with the value before it', async () => {
+            const { world, player } = await playerWithItems();
+            const id = player.getRuntimeId();
+            world.beginChangeTick();
+
+            player.getInventory().setItem(0, entry('minecraft:bread', 2));
+            player.getInventory().getArmor().setItem(3, entry('minecraft:iron_boots'));
+            player.getInventory().setHandSlot(2);
+            world.sealChangeTick();
+
+            expect(world.lastChangeTick()?.entries).toEqual([
+                {
+                    kind: 'field',
+                    field: 'inventory-slot',
+                    address: { entity: id, container: 'inventory', slot: 0 },
+                    before: { name: 'minecraft:bread', count: 3 },
+                    after: { name: 'minecraft:bread', count: 2 }
+                },
+                {
+                    kind: 'field',
+                    field: 'inventory-slot',
+                    address: { entity: id, container: 'armor', slot: 3 },
+                    before: null,
+                    after: { name: 'minecraft:iron_boots', count: 1 }
+                },
+                {
+                    kind: 'field',
+                    field: 'entity',
+                    address: { entity: id, field: 'inventory.handSlot' },
+                    before: 0,
+                    after: 2
+                }
+            ]);
+        });
+
+        it('logs nothing for a write that leaves a slot as it was', async () => {
+            const { world, player } = await playerWithItems();
+            world.beginChangeTick();
+
+            player.getInventory().setItem(0, entry('minecraft:bread', 3));
+            player.getInventory().setHandSlot(0);
+            player.getCraftingInput().clear();
+            world.sealChangeTick();
+
+            expect(world.lastChangeTick()?.entries).toEqual([]);
+        });
     });
 });
