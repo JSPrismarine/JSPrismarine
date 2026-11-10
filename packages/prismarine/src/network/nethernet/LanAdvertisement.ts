@@ -1,6 +1,5 @@
-import { getGametypeId } from '@jsprismarine/minecraft';
 import NetworkBinaryStream from '@jsprismarine/protocol/NetworkBinaryStream';
-import type { ServerNameSnapshot } from '@jsprismarine/raknet';
+import type { NetherNetStatus } from './NetherNetStatus';
 
 /** The advertisement layout Bedrock Dedicated Server 1.26.51 answers LAN discovery with. */
 export const LAN_ADVERTISEMENT_VERSION = 7;
@@ -12,16 +11,7 @@ const LAN_CONNECTION_TYPE = 4;
  * What a server tells a client looking for games on the local network, in the answer to a
  * NetherNet discovery request on UDP 7551. The client lists it among its LAN games.
  */
-export interface LanAdvertisement {
-    readonly motd: string;
-    readonly levelName: string;
-    readonly protocol: number;
-    /** The game version, such as `1.26.51`. */
-    readonly version: string;
-    readonly playerCount: number;
-    readonly maxPlayers: number;
-    /** The `Gametype` id: 0 survival, 1 creative, 2 adventure. */
-    readonly gameType: number;
+export interface LanAdvertisement extends NetherNetStatus {
     readonly editorWorld: boolean;
     readonly hardcore: boolean;
     /** Whether a client signed in to Xbox Live may join. */
@@ -34,25 +24,13 @@ export interface LanAdvertisement {
 }
 
 /**
- * The advertisement for a server, from the status every transport advertises.
- * @param status - The server name's snapshot: MOTD, version and player counts.
- * @param levelName - The level players join.
+ * The advertisement for a server.
+ * @param status - What every NetherNet client is told about the server.
  * @param onlineMode - Whether the server requires Xbox Live sign-in.
  * @param nonce - This server start's token.
  */
-export const lanAdvertisementOf = (
-    status: ServerNameSnapshot,
-    levelName: string,
-    onlineMode: boolean,
-    nonce: string
-): LanAdvertisement => ({
-    motd: status.motd,
-    levelName,
-    protocol: status.protocol,
-    version: status.version,
-    playerCount: status.onlinePlayers,
-    maxPlayers: status.maxPlayers,
-    gameType: getGametypeId(status.gamemode),
+export const lanAdvertisementOf = (status: NetherNetStatus, onlineMode: boolean, nonce: string): LanAdvertisement => ({
+    ...status,
     editorWorld: false,
     hardcore: false,
     acceptsOnlineAuth: true,
