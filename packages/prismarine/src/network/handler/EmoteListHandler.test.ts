@@ -4,7 +4,7 @@ import type { Logger } from '@jsprismarine/logger';
 import type Server from '../../Server';
 import UUID from '@jsprismarine/protocol/wire/structures/UUID';
 import { stub } from '../../testing/stub.test.helper';
-import { STEVE } from '../../testing/steveIdentity.test.helper';
+import { STEVE } from '../../testing/sessionIdentity.test.helper';
 import EmoteListPacket from '@jsprismarine/protocol/packet/EmoteListPacket';
 import type PlayerSession from '../PlayerSession';
 import EmoteListHandler from './EmoteListHandler';

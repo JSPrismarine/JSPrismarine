@@ -4,7 +4,7 @@ import type { Logger } from '@jsprismarine/logger';
 import type Server from '../../Server';
 import type { Config } from '../../config/Config';
 import { stub } from '../../testing/stub.test.helper';
-import { STEVE } from '../../testing/steveIdentity.test.helper';
+import { STEVE } from '../../testing/sessionIdentity.test.helper';
 import type PlayerSession from '../PlayerSession';
 import { RequestChunkRadiusPacket } from '@jsprismarine/protocol';
 import RequestChunkRadiusHandler from './RequestChunkRadiusHandler';

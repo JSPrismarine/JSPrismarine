@@ -4,7 +4,7 @@ import type { Logger } from '@jsprismarine/logger';
 import type Player from '../../Player';
 import type Server from '../../Server';
 import { stub } from '../../testing/stub.test.helper';
-import { STEVE } from '../../testing/steveIdentity.test.helper';
+import { STEVE } from '../../testing/sessionIdentity.test.helper';
 import type { World } from '../../world/World';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import AnimatePacket, { AnimateAction } from '@jsprismarine/protocol/packet/AnimatePacket';

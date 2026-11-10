@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import type Server from '../../Server';
 import { stub } from '../../testing/stub.test.helper';
-import { STEVE } from '../../testing/steveIdentity.test.helper';
+import { STEVE } from '../../testing/sessionIdentity.test.helper';
 import type PlayerSession from '../PlayerSession';
 import { ActorLinkType } from '@jsprismarine/protocol/wire/definitions/addActor';
 import type { ActorLink } from '@jsprismarine/protocol/wire/definitions/addActor';

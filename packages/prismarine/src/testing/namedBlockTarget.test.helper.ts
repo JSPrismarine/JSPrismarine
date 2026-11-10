@@ -1,7 +1,7 @@
 import type { StubMembers } from './stub.test.helper';
 import type Player from '../Player';
 import { sessionNearBlocks } from './blockTarget.test.helper';
-import { STEVE } from './steveIdentity.test.helper';
+import { STEVE } from './sessionIdentity.test.helper';
 
 /**
  * {@link sessionNearBlocks} whose session also holds Steve's identity, for handlers that name the

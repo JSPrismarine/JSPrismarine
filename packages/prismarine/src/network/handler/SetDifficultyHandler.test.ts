@@ -5,7 +5,7 @@ import type { Logger } from '@jsprismarine/logger';
 import type Server from '../../Server';
 import type { Config } from '../../config/Config';
 import { stub } from '../../testing/stub.test.helper';
-import { STEVE } from '../../testing/steveIdentity.test.helper';
+import { STEVE } from '../../testing/sessionIdentity.test.helper';
 import type ClientConnection from '../ClientConnection';
 import type PlayerSession from '../PlayerSession';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';

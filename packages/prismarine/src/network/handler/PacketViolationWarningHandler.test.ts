@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import type Server from '../../Server';
 import type { StubMembers } from '../../testing/stub.test.helper';
 import { stub } from '../../testing/stub.test.helper';
-import { STEVE } from '../../testing/steveIdentity.test.helper';
+import { STEVE } from '../../testing/sessionIdentity.test.helper';
 import { latestCodec } from '../codec/CodecRegistry';
 import type PlayerSession from '../PlayerSession';
 import PacketViolationWarningPacket, {
