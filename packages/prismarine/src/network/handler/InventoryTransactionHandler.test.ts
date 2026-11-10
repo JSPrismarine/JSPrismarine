@@ -64,6 +64,12 @@ afterAll(() => {
 const TICK = 400;
 
 /**
+ * Each fake player's runtime id. Distinct, as on a server, because per-player state such as the
+ * eye of ender echo is keyed by it and must not carry from one test's player to the next.
+ */
+let nextPlayerRuntimeId = 100n;
+
+/**
  * A player standing at (0, 64, 0) holding stone in hotbar slot 2, in a world that records
  * what it is asked to break and knows one entity, runtime id 42. The clicks passed on to
  * `useItemOnBlock` are read back from its mock, as what the hand held at each.
@@ -107,9 +113,10 @@ const fake = (
     inventory.setItem(2, new ContainerEntry({ item: held, count: 1 }));
     inventory.setHandSlot(2);
 
+    const runtimeId = nextPlayerRuntimeId++;
     const player = stub<Player>({
         isOnline: () => true,
-        getRuntimeId: () => 1n,
+        getRuntimeId: () => runtimeId,
         gamemode,
         getName: () => 'tester',
         getPosition: () => new Position(0, 64, 0, world),
@@ -453,6 +460,18 @@ describe('InventoryTransactionHandler', () => {
         await handle(transaction(TransactionType.USE_ITEM, useItem({ actionType: ItemUseActionType.USE })), world);
 
         expect(vi.mocked(useItemInAir)).not.toHaveBeenCalled();
+    });
+
+    it("throws another player's eye of ender in the tick somebody else used one on a block", async () => {
+        const clicker = fake(Gametype.SURVIVAL, new Item({ runtimeId: 2, name: 'minecraft:ender_eye' }));
+        const thrower = fake(Gametype.SURVIVAL, new Item({ runtimeId: 2, name: 'minecraft:ender_eye' }));
+        vi.mocked(useItemInAir).mockClear();
+
+        await handle(transaction(TransactionType.USE_ITEM, useItem()), clicker);
+        await handle(transaction(TransactionType.USE_ITEM, useItem({ actionType: ItemUseActionType.USE })), thrower);
+
+        expect(vi.mocked(useItemInAir)).toHaveBeenCalledTimes(1);
+        expect(vi.mocked(useItemInAir).mock.calls[0]?.[0].player).toBe(thrower.player);
     });
 
     it('swings at the entity the runtime id names, with the damage of the item the server holds', async () => {
