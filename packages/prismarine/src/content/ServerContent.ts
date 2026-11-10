@@ -54,6 +54,7 @@ import { advancementRewards } from '../advancement/rewards';
 import { unwiredWorldSource } from './world/unwired';
 import { contentWorldViews } from './world/views';
 import type { ContentWorldViews } from './world/views';
+import { withPlayerOverlay } from '../entity/playerOverlay';
 
 /** The resolved block domain. */
 export interface ServerContentBlocks {
@@ -354,7 +355,7 @@ export const buildServerContent = (options: ContentOptions = {}): ServerContent 
             [...definitions.entities.values()].map((definition) => ({
                 pack: definition.pack,
                 path: definition.path,
-                data: definition.data
+                data: withPlayerOverlay(definition.data)
             }))
         )
     );
