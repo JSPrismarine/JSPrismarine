@@ -41,14 +41,26 @@
 import type { TriggerName } from '@jsprismarine/advancements';
 import type { ItemStack as PredicateItemStack, Vec3 } from '@jsprismarine/predicates';
 
-import type Player from '../Player';
+import type Server from '../Server';
+import type HumanInventory from '../inventory/HumanInventory';
 import type { WorldActor } from '../world/WorldActor';
 import type { DamageSource } from '../entity/DamageSource';
 import type { Item } from '../item/Item';
 import { entityPredicateView, vec3Of } from '../entity/predicateView';
 import { lootDamageSource } from '../entity/mobLoot';
 import { raiseAdvancement } from './raise';
+import type { RaisingPlayer } from './raise';
 import { advancementSubject } from './subject';
+import type { AdvancementSubjectPlayer } from './subject';
+
+/**
+ * What a trigger reads of the player it is raised for: the view its conditions see, the progress
+ * it raises, and the main inventory an `inventory_changed` carries.
+ */
+export interface AdvancementPlayer extends AdvancementSubjectPlayer, RaisingPlayer {
+    getServer(): Server;
+    getInventory(): Pick<HumanInventory, 'getSlotCount' | 'getEntry'>;
+}
 
 /**
  * Whether any loaded criterion is listening for one trigger.
@@ -57,7 +69,7 @@ import { advancementSubject } from './subject';
  * equipment, position and attributes, which is work a stack that declares no
  * advancement for the trigger has no use for.
  */
-const listening = (player: Player, trigger: TriggerName): boolean =>
+const listening = (player: { getServer(): Server }, trigger: TriggerName): boolean =>
     player.getServer().getContent().advancements.listensFor(trigger);
 
 /** One entity as a trigger condition reads it, equipment included. */
@@ -68,7 +80,7 @@ const viewOf = (entity: WorldActor) =>
     });
 
 /** Every slot of a player's main inventory, with an empty slot as undefined. */
-const inventoryOf = (player: Player): readonly (PredicateItemStack | undefined)[] => {
+const inventoryOf = (player: AdvancementPlayer): readonly (PredicateItemStack | undefined)[] => {
     const inventory = player.getInventory();
     const slots: (PredicateItemStack | undefined)[] = [];
 
@@ -92,7 +104,7 @@ const inventoryOf = (player: Player): readonly (PredicateItemStack | undefined)[
  *   criterion is tested against. 1913 of the 1914 take that path, so leaving
  *   it out makes almost all of them unreachable.
  */
-export const advancementInventoryChanged = (player: Player, changed?: Item): void => {
+export const advancementInventoryChanged = (player: AdvancementPlayer, changed?: Item): void => {
     if (!listening(player, 'inventory_changed')) return;
 
     raiseAdvancement(player, 'inventory_changed', {
@@ -109,7 +121,7 @@ export const advancementInventoryChanged = (player: Player, changed?: Item): voi
  * raises both and a vanilla advancement may be listening for either.
  */
 export const advancementItemCrafted = (
-    player: Player,
+    player: AdvancementPlayer,
     recipe: string,
     ingredients: readonly Item[],
     result?: Item
@@ -211,7 +223,7 @@ export interface BlockUseEvent {
  * the handful the two editions name differently; translating the other way is
  * not something `@jsprismarine/mapping` does.
  */
-export const advancementPlacedBlock = (player: Player, event: BlockUseEvent): void => {
+export const advancementPlacedBlock = (player: AdvancementPlayer, event: BlockUseEvent): void => {
     if (!listening(player, 'placed_block')) return;
 
     raiseAdvancement(player, 'placed_block', {
@@ -229,7 +241,7 @@ export const advancementPlacedBlock = (player: Player, event: BlockUseEvent): vo
  * with no item condition at all - so the first thing a player eats opens that
  * branch of the tree.
  */
-export const advancementConsumedItem = (player: Player, item: Item): void => {
+export const advancementConsumedItem = (player: AdvancementPlayer, item: Item): void => {
     if (!listening(player, 'consume_item')) return;
 
     raiseAdvancement(player, 'consume_item', {
@@ -246,7 +258,12 @@ export const advancementConsumedItem = (player: Player, item: Item): void => {
  * @param delta - Durability lost, negative for a repair, which is Java's sign
  *   convention for the field of the same name.
  */
-export const advancementDurabilityChanged = (player: Player, item: Item, remaining: number, delta: number): void => {
+export const advancementDurabilityChanged = (
+    player: AdvancementPlayer,
+    item: Item,
+    remaining: number,
+    delta: number
+): void => {
     if (!listening(player, 'item_durability_changed')) return;
 
     raiseAdvancement(player, 'item_durability_changed', {
@@ -268,7 +285,11 @@ export const advancementDurabilityChanged = (player: Player, item: Item, remaini
  *
  * @param defaultUse - Whether the block's own behavior consumed the click.
  */
-export const advancementBlockUsed = (player: Player, event: Omit<BlockUseEvent, 'tool'>, defaultUse: boolean): void => {
+export const advancementBlockUsed = (
+    player: AdvancementPlayer,
+    event: Omit<BlockUseEvent, 'tool'>,
+    defaultUse: boolean
+): void => {
     const any = listening(player, 'any_block_use');
     const byDefault = defaultUse && listening(player, 'default_block_use');
     if (!any && !byDefault) return;
@@ -285,7 +306,7 @@ export const advancementBlockUsed = (player: Player, event: Omit<BlockUseEvent, 
  * reaches the conditions - which is the difference between this and
  * {@link advancementBlockUsed}, and the reason Java keeps them apart.
  */
-export const advancementItemUsedOnBlock = (player: Player, event: BlockUseEvent): void => {
+export const advancementItemUsedOnBlock = (player: AdvancementPlayer, event: BlockUseEvent): void => {
     if (!listening(player, 'item_used_on_block')) return;
 
     raiseAdvancement(player, 'item_used_on_block', {
@@ -297,7 +318,7 @@ export const advancementItemUsedOnBlock = (player: Player, event: BlockUseEvent)
 };
 
 /** An enchanting table gave a player an enchanted item, with what it cost. */
-export const advancementEnchantedItem = (player: Player, item: Item, levels: number): void => {
+export const advancementEnchantedItem = (player: AdvancementPlayer, item: Item, levels: number): void => {
     if (!listening(player, 'enchanted_item')) return;
 
     raiseAdvancement(player, 'enchanted_item', {
@@ -308,7 +329,7 @@ export const advancementEnchantedItem = (player: Player, item: Item, levels: num
 };
 
 /** A player picked a dropped stack up off the ground. */
-export const advancementPickedUpItem = (player: Player, item: Item, thrower?: WorldActor): void => {
+export const advancementPickedUpItem = (player: AdvancementPlayer, item: Item, thrower?: WorldActor): void => {
     if (listening(player, 'thrown_item_picked_up_by_player')) {
         raiseAdvancement(player, 'thrown_item_picked_up_by_player', {
             player: advancementSubject(player),
@@ -327,7 +348,7 @@ export const advancementPickedUpItem = (player: Player, item: Item, thrower?: Wo
  * location conditions are about where the player is standing rather than
  * about anything that happened, so there is nothing else to hang them on.
  */
-export const advancementPlayerTick = (player: Player): void => {
+export const advancementPlayerTick = (player: AdvancementPlayer): void => {
     const location = listening(player, 'location');
     const tick = listening(player, 'tick');
     if (!location && !tick) return;
@@ -338,14 +359,18 @@ export const advancementPlayerTick = (player: Player): void => {
 };
 
 /** A player moved between dimensions. */
-export const advancementChangedDimension = (player: Player, from: string, to: string): void => {
+export const advancementChangedDimension = (player: AdvancementPlayer, from: string, to: string): void => {
     if (from === to || !listening(player, 'changed_dimension')) return;
 
     raiseAdvancement(player, 'changed_dimension', { player: advancementSubject(player), from, to });
 };
 
-/** Whether an entity is a player, without importing the class into a type position that loops. */
-const isPlayer = (entity: WorldActor): entity is Player => entity.getType() === 'minecraft:player';
+/**
+ * Whether an entity is a player, by its type rather than its class, which would import the class
+ * into a module it loops through.
+ */
+const isPlayer = (entity: WorldActor): entity is WorldActor & AdvancementPlayer =>
+    entity.getType() === 'minecraft:player';
 
 /**
  * The blow as the damage source conditions read it.
