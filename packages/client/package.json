@@ -74,8 +74,10 @@
         "@jsprismarine/auth": "workspace:*",
         "@jsprismarine/logger": "workspace:*",
         "@jsprismarine/minecraft": "workspace:*",
+        "@jsprismarine/nethernet": "workspace:*",
         "@jsprismarine/protocol": "workspace:*",
         "@jsprismarine/raknet": "workspace:*",
+        "nethernet": "1.1.2",
         "yargs": "18.2.0"
     }
 }
