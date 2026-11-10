@@ -3,12 +3,14 @@ import { DisconnectReason } from '@jsprismarine/minecraft';
 import { Vector3 } from '@jsprismarine/math';
 import type { InetAddress } from '@jsprismarine/raknet';
 import { generateKeyPairSync, sign } from 'node:crypto';
-import { afterEach, assert, describe, expect, it, vi } from 'vitest';
+import { afterEach, assert, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type Player from '../../Player';
 import Codec2193 from '../codec/Codec2193';
+import UUID from '@jsprismarine/protocol/wire/structures/UUID';
 import type Server from '../../Server';
-import type SessionManager from '../../SessionManager';
+import SessionManager from '../../SessionManager';
+import type PlayerSession from '../PlayerSession';
 import type BanManager from '../../ban/BanManager';
 import type { Config } from '../../config/Config';
 import type { PermissionManager } from '../../permission/PermissionManager';
@@ -92,7 +94,10 @@ describe('network', () => {
     describe('handler', () => {
         describe('LoginHandler', () => {
             let onlineMode = false;
-            let findPlayer: (...args: unknown[]) => Player | null = () => null;
+            let sessions = new SessionManager();
+            beforeEach(() => {
+                sessions = new SessionManager();
+            });
 
             // `createConnectedPlayer` enables the session, which is what puts it in the
             // chunk rotation - the constructor no longer does it.
@@ -101,12 +106,7 @@ describe('network', () => {
             // A refusal says what it refused, so a handler that turns one down logs.
             const logger = (): Logger => stub<Logger>({ debug: () => {}, verbose: () => {}, warn: () => {} });
 
-            const sessionManager = (): SessionManager =>
-                stub<SessionManager>({
-                    getAllPlayers: () => [],
-                    findPlayer: (...args: unknown[]) => findPlayer(...args),
-                    getPlayerByExactName: () => null
-                });
+            const sessionManager = (): SessionManager => sessions;
 
             const world = (): World =>
                 stub<World>({
@@ -254,9 +254,15 @@ describe('network', () => {
                 };
 
                 const kicked: string[] = [];
+                // Steve, signed in on another connection.
                 const existing = stub<Player>({
+                    getName: () => 'Steve',
+                    getXUID: () => '2535400000000001',
+                    getUUID: () => UUID.fromString('00000000-0000-4000-8000-0000000000aa'),
+                    isOnline: () => true,
                     kick: async (reason) => void kicked.push(reason ?? '')
                 });
+                const existingSession = stub<PlayerSession>({ getPlayer: () => existing });
                 const chainClaiming = (xuid: string, name: string) => ({
                     chain: [
                         `${segment({})}.${segment({ extraData: { XUID: xuid, identity: 'x', displayName: name } })}.sig`
@@ -267,12 +273,11 @@ describe('network', () => {
                 const arrange = () => {
                     onlineMode = true;
                     kicked.length = 0;
-                    findPlayer = () => existing;
+                    sessions.add(99, stub<ClientConnection>({ getPlayerSession: () => existingSession }));
                     restore.push(useLoginKeys({ keyFor: async (kid) => (kid === 'k' ? issuer.publicKey : undefined) }));
                 };
                 afterEach(() => {
                     onlineMode = false;
-                    findPlayer = () => null;
                     for (const undo of restore.splice(0)) undo();
                 });
 
@@ -297,11 +302,6 @@ describe('network', () => {
 
                 it('takes the account from the token, not from the claims the client wrote', async () => {
                     arrange();
-                    const queries: unknown[] = [];
-                    findPlayer = (query) => {
-                        queries.push(query);
-                        return null;
-                    };
                     const { connection: held } = quiet();
 
                     await new LoginHandler().handle(
@@ -311,7 +311,8 @@ describe('network', () => {
                     );
                     await held.resumeLogin?.();
 
-                    expect(queries).toEqual([{ name: 'Steve', xuid: '2535400000000001' }]);
+                    // Notch and 999 match nobody; Steve, whom the token names, is replaced.
+                    expect(kicked).toEqual(['Logged in from another location']);
                 });
 
                 it("refuses a verified login on a connection that did not prove the login's key", async () => {
@@ -662,6 +663,144 @@ describe('network', () => {
                 expect(status.getPacketData()?.status).toBe(PlayStatus.LoginFailed_ServerOld);
                 expect(sent).toHaveLength(1);
                 expect(disconnect).toHaveBeenCalledWith('Outdated server!', false, DisconnectReason.OUTDATED_SERVER);
+            });
+
+            describe('a second login of the same account', () => {
+                /** A connection that keeps the session it is handed and records how it was let go. */
+                const liveConnection = (sessions: SessionManager, id: number) => {
+                    let session: PlayerSession | null = null;
+                    const disconnects: Array<DisconnectReason | undefined> = [];
+                    const connection: ClientConnection = stub<ClientConnection>({
+                        codec: Codec2193,
+                        phase: 'login',
+                        resumeLogin: null,
+                        transportCapabilities: plainCapabilities,
+                        getConnectionId: () => id,
+                        getAddress: () => stub<InetAddress>({ toToken: () => `token-${id}` }),
+                        sendDataPacket: async () => {},
+                        startEncryption: () => {},
+                        attachPlayerSession: (attached) => void (session = attached),
+                        getPlayerSession: () => session,
+                        closePlayerSession: async () => void (session = null),
+                        disconnect: async (_reason, _hide, code) => {
+                            disconnects.push(code);
+                            await connection.closePlayerSession();
+                        }
+                    });
+                    sessions.add(id, connection);
+                    return { connection, disconnects };
+                };
+
+                /**
+                 * A server whose player records are read only when the test lets them be, so a
+                 * login can be held part way through `Player.enable`.
+                 */
+                const holdingServer = () => {
+                    const sessions = new SessionManager();
+                    const held: Array<() => void> = [];
+                    let holding = false;
+                    const holdingWorld = stub<World>({
+                        ...world(),
+                        getPlayerData: async () => {
+                            if (holding) await new Promise<void>((release) => held.push(release));
+                            return { position: { x: 0, y: 0, z: 0, pitch: 0, yaw: 0, headYaw: 0 } };
+                        }
+                    });
+                    const holdingServer = stub<Server>({
+                        ...server,
+                        getSessionManager: () => sessions,
+                        getWorldManager: () => stub<WorldManager>({ getDefaultWorld: () => holdingWorld })
+                    });
+                    return {
+                        server: holdingServer,
+                        sessions,
+                        hold: () => void (holding = true),
+                        releaseAll: () => {
+                            holding = false;
+                            for (const release of held.splice(0)) release();
+                        }
+                    };
+                };
+
+                /** Lets every promise that can settle without a timer settle. */
+                const settle = () => new Promise((resolve) => setImmediate(resolve));
+
+                it('kicks the first login when it is still joining', async () => {
+                    const { server: joining, sessions, hold, releaseAll } = holdingServer();
+                    const first = liveConnection(sessions, 1);
+                    const second = liveConnection(sessions, 2);
+
+                    hold();
+                    const firstLogin = new LoginHandler().handle(loginPacket('runner'), joining, first.connection);
+                    await settle();
+                    // The first login is reading its record: it has a player, but not an online one.
+                    expect(first.connection.getPlayerSession()).not.toBeNull();
+                    expect(sessions.getAllPlayers()).toEqual([]);
+
+                    const secondLogin = new LoginHandler().handle(loginPacket('runner'), joining, second.connection);
+                    await settle();
+                    releaseAll();
+                    await Promise.all([firstLogin, secondLogin]);
+
+                    expect(first.disconnects).toEqual([DisconnectReason.LOGGED_IN_OTHER_LOCATION]);
+                    expect(second.disconnects).toEqual([]);
+                    expect(sessions.getAllPlayers().map((player) => player.getName())).toEqual(['runner']);
+                    expect(sessions.getAllPlayers()[0]).toBe(second.connection.getPlayerSession()?.getPlayer());
+                });
+
+                it('kicks the first login when it is waiting for the encryption handshake', async () => {
+                    const { server: joining, sessions } = holdingServer();
+                    const first = liveConnection(sessions, 1);
+                    const second = liveConnection(sessions, 2);
+                    const identityKey = generateKeyPairSync('ec', { namedCurve: 'secp384r1' })
+                        .publicKey.export({ type: 'spki', format: 'der' })
+                        .toString('base64');
+
+                    await new LoginHandler().handle(
+                        loginPacket('runner', IDENTITY, undefined, identityKey),
+                        joining,
+                        first.connection
+                    );
+                    expect(first.connection.phase).toBe('encryption');
+
+                    await new LoginHandler().handle(loginPacket('runner'), joining, second.connection);
+                    // The first client answering after it was replaced lets nobody in.
+                    await first.connection.resumeLogin?.();
+
+                    expect(first.disconnects).toEqual([DisconnectReason.LOGGED_IN_OTHER_LOCATION]);
+                    expect(first.connection.getPlayerSession()).toBeNull();
+                    expect(second.disconnects).toEqual([]);
+                    expect(sessions.getAllPlayers()).toHaveLength(1);
+                });
+
+                it('kicks a joined player who shares only the UUID', async () => {
+                    const { server: joining, sessions } = holdingServer();
+                    const first = liveConnection(sessions, 1);
+                    const second = liveConnection(sessions, 2);
+
+                    await new LoginHandler().handle(loginPacket('runner'), joining, first.connection);
+                    await new LoginHandler().handle(loginPacket('walker'), joining, second.connection);
+
+                    expect(first.disconnects).toEqual([DisconnectReason.LOGGED_IN_OTHER_LOCATION]);
+                    expect(second.disconnects).toEqual([]);
+                });
+
+                it('leaves a different offline player alone, though neither has an XUID', async () => {
+                    const { server: joining, sessions } = holdingServer();
+                    const first = liveConnection(sessions, 1);
+                    const second = liveConnection(sessions, 2);
+
+                    await new LoginHandler().handle(loginPacket('runner'), joining, first.connection);
+                    await new LoginHandler().handle(
+                        loginPacket('walker', '11111111-2222-3333-4444-555555555555'),
+                        joining,
+                        second.connection
+                    );
+
+                    expect(first.disconnects).toEqual([]);
+                    expect(second.disconnects).toEqual([]);
+                    expect(sessions.getAllPlayers()).toHaveLength(2);
+                });
             });
         });
     });
