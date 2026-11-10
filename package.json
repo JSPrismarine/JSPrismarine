@@ -48,7 +48,9 @@
         "release:unstable": "changeset publish --no-git-tag --tag unstable",
         "changeset": "changeset",
         "lint:american-filenames": "node scripts/check-american-filenames.mts",
-        "lint:custom": "concurrently --prefix '{name}' pnpm:lint:american-filenames pnpm:lint:packets pnpm:lint:wire-layouts pnpm:lint:jsdoc pnpm:lint:encoding pnpm:lint:docs-facts",
+        "lint:coderabbit-labels": "node scripts/coderabbit-labels.mts --check",
+        "labels:coderabbit": "node scripts/coderabbit-labels.mts",
+        "lint:custom": "concurrently --prefix '{name}' pnpm:lint:american-filenames pnpm:lint:packets pnpm:lint:wire-layouts pnpm:lint:jsdoc pnpm:lint:encoding pnpm:lint:docs-facts pnpm:lint:coderabbit-labels",
         "lint:packets": "node scripts/check-packet-codecs.mts",
         "lint:wire-layouts": "node scripts/check-wire-layouts.mts",
         "lint:biome": "node scripts/lint-changed.mts biome check",
@@ -118,7 +120,8 @@
         "turbo-ignore": "2.11.11",
         "typescript": "7.0.2",
         "vite": "8.3.8",
-        "vitest": "5.1.0"
+        "vitest": "5.1.0",
+        "yaml": "2.9.1"
     },
     "dependencies": {
         "@jsprismarine/bedrock-data": "workspace:*",
