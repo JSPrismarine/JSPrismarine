@@ -8,7 +8,7 @@
  * replication from the change log.
  */
 import type { Vector3 } from '@jsprismarine/math';
-import type { Attribute } from '@jsprismarine/protocol/wire/structures/Attribute';
+import type { Attributes } from '@jsprismarine/protocol/wire/structures/Attribute';
 import type { Metadata } from '@jsprismarine/protocol/wire/structures/Metadata';
 import type { SyncedProperties } from '@jsprismarine/protocol/wire/structures/SyncedProperties';
 
@@ -28,7 +28,8 @@ export interface ShownActor {
     /** The actor metadata a client is sent, flags and properties both. */
     readonly metadata: Metadata;
     getSyncedProperties(): SyncedProperties;
-    readonly attributes: { getAttributes(): Attribute[] };
+    /** The attributes a client is sent, with the ones changed since the last flush marked dirty. */
+    readonly attributes: Attributes;
     getEquipment(): ViewableEquipment;
     getStatusEffects(): readonly StatusEffect[];
     isOnGround(): boolean;

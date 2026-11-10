@@ -1200,7 +1200,7 @@ export class World implements Service {
         // cycle above has put bodies in the world since the list was taken.
         const endAttributesProfile = startProfile?.(`World.entityAttributes:${this.name}`);
         try {
-            await this.flushEntityAttributes(this.getEntities());
+            await this.flushEntityAttributes(this.shownActors());
         } finally {
             endAttributesProfile?.();
         }
@@ -3178,7 +3178,9 @@ export class World implements Service {
         this.markEntityChunkChanged(entity);
 
         // Reported once the maps hold it, so that whoever works out who should see what is
-        // looking at the world as it now is - the arrival included.
+        // looking at the world as it now is - the arrival included. A store entity's legacy
+        // body is not shown: its store actor is (`entity/data/storeActors.ts`).
+        if (live?.bodies.entityIdOf(entity) !== undefined) return;
         await this.changes.entityAdded(entity);
     }
 
@@ -3493,7 +3495,7 @@ export class World implements Service {
      * it here as well would send every one of those twice.
      * @param {Entity[]} entities - Everything in the world, from the top of the tick.
      */
-    private async flushEntityAttributes(entities: Entity[]): Promise<void> {
+    private async flushEntityAttributes(entities: readonly ShownActor[]): Promise<void> {
         const updates: Promise<void>[] = [];
         for (const entity of entities) {
             try {
@@ -3540,7 +3542,7 @@ export class World implements Service {
      * @param {Entity} entity - The entity that moved.
      * @param {boolean} teleport - Whether clients should snap instead of interpolate.
      */
-    public async broadcastMove(entity: Entity, teleport = false): Promise<void> {
+    public async broadcastMove(entity: ShownActor, teleport = false): Promise<void> {
         this.changes.entityMoved(entity, teleport);
     }
 
@@ -3664,7 +3666,28 @@ export class World implements Service {
      * holds that is missing from the set.
      */
     public shownActors(): ShownActor[] {
-        return this.getEntities();
+        const live = this.server.getEntityRuntime?.(this.dimension.name);
+        if (live === undefined) return this.getEntities();
+
+        const shown: ShownActor[] = this.getEntities().filter((entity) => live.bodies.entityIdOf(entity) === undefined);
+        for (const actor of live.actors.all()) shown.push(actor);
+        return shown;
+    }
+
+    /**
+     * Shows a store entity that just entered this world to the clients in range.
+     * @param actor - The store entity, as the network layer reads it.
+     */
+    public async showActor(actor: ShownActor): Promise<void> {
+        await this.changes.entityAdded(actor);
+    }
+
+    /**
+     * Takes a store entity that just left this world off every client that was shown it.
+     * @param actor - The store entity, as the network layer reads it.
+     */
+    public async hideActor(actor: ShownActor): Promise<void> {
+        await this.changes.entityRemoved(actor);
     }
 
     /**

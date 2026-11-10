@@ -48,6 +48,7 @@ import type { EntityItemInteraction } from './itemInteraction';
 import type { ContentItemEntity, EntityHostFacts, EntityWorldFacts } from './host';
 import { EntityRuntime, PROJECTILE_EYE_HEIGHT_FRACTION } from './EntityRuntime';
 import { LiveBodies } from './liveBodies';
+import { StoreActors } from './storeActors';
 import { tradeDisplayNameOf } from './trading';
 import type { DataEntityRecord } from './persistence';
 import EntityDamageEvent from '../../events/entity/EntityDamageEvent';
@@ -278,6 +279,7 @@ const liveHost = (
     options: LiveEntityOptions,
     bodies: LiveBodies,
     itemBodies: ItemBodies,
+    actors: StoreActors,
     runtime: () => EntityRuntime
 ): EntityHostFacts => ({
     damageMitigation: (target, intent) => {
@@ -398,7 +400,7 @@ const liveHost = (
     },
     attackSound: (id) => {
         const world = options.liveWorld();
-        const attacker = bodies.bodyOf(id);
+        const attacker = actors.actorOf(id);
         if (world === undefined || attacker === undefined) return;
         void world
             .sendActorSound(attacker, LevelSoundEvent.ATTACK)
@@ -431,7 +433,7 @@ const liveHost = (
     },
     hurtFeedback: (id) => {
         const world = options.liveWorld();
-        const target = bodies.bodyOf(id);
+        const target = actors.actorOf(id);
         if (world === undefined || target === undefined) return;
 
         void Promise.all([
@@ -441,7 +443,7 @@ const liveHost = (
     },
     startDeathAnimation: (id) => {
         const world = options.liveWorld();
-        const target = bodies.bodyOf(id);
+        const target = actors.actorOf(id);
         if (world === undefined || target === undefined) return;
 
         // `DRAGON_START_DEATH_ANIM` is the unverified Bedrock candidate for Java's dragon death
@@ -495,11 +497,17 @@ export class LiveEntityRuntime {
     /** The entities themselves, for the content adapter's three groups and for tests. */
     public readonly runtime: EntityRuntime;
 
-    /** The body each entity shows a client. */
+    /**
+     * The legacy body of each entity, which the legacy entity code still reaches it through.
+     * Clients are shown {@link LiveEntityRuntime.actors}, not these.
+     */
     public readonly bodies: LiveBodies;
 
     /** The body each dropped stack shows a client. */
     public readonly itemBodies: ItemBodies;
+
+    /** Each entity as the clients are shown it, read from the store. */
+    public readonly actors: StoreActors;
 
     private readonly options: LiveEntityOptions;
     /** The world the spawn rules read, which is not known until the adapter is assembled. */
@@ -510,6 +518,11 @@ export class LiveEntityRuntime {
 
     public constructor(options: LiveEntityOptions) {
         this.options = options;
+        this.actors = new StoreActors({
+            world: options.liveWorld,
+            report: options.report,
+            projected: (entity, projection) => this.bodies.project(entity, projection)
+        });
         this.bodies = new LiveBodies({
             world: options.liveWorld,
             report: options.report,
@@ -524,15 +537,23 @@ export class LiveEntityRuntime {
         this.runtime = new EntityRuntime({
             content: options.content,
             world: options.world,
-            host: liveHost(options, this.bodies, this.itemBodies, () => this.runtime),
+            host: liveHost(options, this.bodies, this.itemBodies, this.actors, () => this.runtime),
             report: options.report,
             onSpawn: (entity) => {
-                if (isDroppedItem(entity)) this.itemBodies.add(entity, this.runtime.droppedItems);
-                else this.bodies.add(entity, this.runtime.leashHolderIdOf(entity.id));
+                if (isDroppedItem(entity)) {
+                    this.itemBodies.add(entity, this.runtime.droppedItems);
+                    return;
+                }
+                const leashHolderId = this.runtime.leashHolderIdOf(entity.id);
+                this.bodies.add(entity);
+                this.actors.add(entity, leashHolderId);
             },
             onRemove: (entity, reason) => {
                 if (isDroppedItem(entity)) this.itemBodies.drop(entity);
-                else this.bodies.drop(entity);
+                else {
+                    this.actors.remove(entity);
+                    this.bodies.drop(entity);
+                }
                 for (const listener of this.removalListeners) listener(entity, reason);
             },
             gameEvents: {
@@ -647,7 +668,8 @@ export class LiveEntityRuntime {
         }
 
         this.runtime.tick(tick, shouldTick);
-        await Promise.all([...this.bodies.sync(this.runtime, shouldTick), ...this.itemBodies.sync()]);
+        this.bodies.sync(this.runtime);
+        await Promise.all([...this.actors.sync(this.runtime, shouldTick), ...this.itemBodies.sync()]);
     }
 
     /** The dropped stacks of this dimension. */
@@ -1105,6 +1127,7 @@ export class EntityRuntimes {
     public close(dimension: string): void {
         this.byDimension.get(dimension)?.bodies.clear();
         this.byDimension.get(dimension)?.itemBodies.clear();
+        this.byDimension.get(dimension)?.actors.clear();
         this.byDimension.delete(dimension);
     }
 

@@ -8,6 +8,7 @@ import { describe, expect, it } from 'vitest';
 import type { Config } from '../config/Config';
 import { entityFixture, FLOOR_Y } from '../entity/data/testing';
 import type { LiveBodies } from '../entity/data/liveBodies';
+import type { StoreActors } from '../entity/data/storeActors';
 import type { LiveEntityRuntime } from '../entity/data/live';
 import type Server from '../Server';
 import { testContent } from '../testing/entityServer';
@@ -31,6 +32,7 @@ const worldWithStore = () => {
     const live = stub<LiveEntityRuntime>({
         runtime: fixture.runtime,
         bodies: stub<LiveBodies>({ entityIdOf: () => undefined }),
+        actors: stub<StoreActors>({ all: () => [][Symbol.iterator]() }),
         tick: async (tick) => fixture.runtime.tick(tick),
         persist: () => {},
         savedRecords: () => new Map(),

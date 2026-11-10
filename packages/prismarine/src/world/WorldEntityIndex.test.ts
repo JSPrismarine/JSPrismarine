@@ -6,6 +6,7 @@ import Player from '../Player';
 import { entityFixture, FLOOR_Y } from '../entity/data/testing';
 import type { LiveEntityRuntime } from '../entity/data/live';
 import type { LiveBodies } from '../entity/data/liveBodies';
+import type { StoreActors } from '../entity/data/storeActors';
 import type { Entity } from '../entity/Entity';
 import { GenericEntity } from '../entity/GenericEntity';
 import type { DataEntity } from '../entity/data/DataEntity';
@@ -30,6 +31,7 @@ const indexedWorld = () => {
         runtime: fixture.runtime,
         bodies: stub<LiveBodies>({ entityIdOf: (entity) => bodies.get(entity) }),
         itemBodies: stub<ItemBodies>({ entityIdOf: (entity) => bodies.get(entity) }),
+        actors: stub<StoreActors>({ all: () => [][Symbol.iterator]() }),
         removeBody: () => false,
         restoreExisting: () => undefined
     });
