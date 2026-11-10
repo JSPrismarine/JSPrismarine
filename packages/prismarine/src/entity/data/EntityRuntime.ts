@@ -2114,7 +2114,7 @@ export class EntityRuntime implements EntityScene {
             : false;
     }
 
-    /** Adds an effect through the host, or updates an indexed body before it is mirrored. */
+    /** Adds an effect through the host, or to the entity being spawned before the host knows it. */
     private applyStatusEffectToId(
         source: EntityInstance,
         targetId: number,

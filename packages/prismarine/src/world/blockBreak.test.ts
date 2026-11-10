@@ -457,7 +457,12 @@ describe('breakBlockWithContent', () => {
 
         // The hook ran for its own sake as well: the experience an ore owes is the family's,
         // and no loot table carries it.
-        expect(spawned.some((entity) => entity.getType() === 'minecraft:xp_orb')).toBe(true);
+        expect(
+            world
+                .dataEntities()
+                .runtime.all()
+                .some((entity) => entity.identifier === 'minecraft:xp_orb')
+        ).toBe(true);
     });
 
     it('drops the seeds of a crop that is not grown', async () => {

@@ -3,7 +3,7 @@
  *
  * Component semantics belong to the data-driven entity runtime, while actor flags are a wire
  * representation. Keeping that translation here lets every entity use the same projection and
- * keeps the live-body mirror independent of individual component names.
+ * keeps the store actors independent of individual component names.
  */
 import { navigationProfile } from '@jsprismarine/entity-goals';
 import { isRecord } from '@jsprismarine/entities';

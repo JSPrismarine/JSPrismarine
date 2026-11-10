@@ -25,7 +25,6 @@ import type { LiveEntityRuntime } from '../entity/data/live';
 import { EntityRuntimes } from '../entity/data/live';
 import { serverWorldSource } from '../content/world/serverSource';
 import type { World } from '../world/World';
-import type { LiveBodies } from '../entity/data/liveBodies';
 import type { StoreActors } from '../entity/data/storeActors';
 import type Server from '../Server';
 import { ChunkCompletionQueue } from '../world/ChunkCompletionQueue';
@@ -49,9 +48,9 @@ export const testContent = (): ServerContent => (sharedContent ??= buildServerCo
 /**
  * A runtime that holds no entity and saves none.
  *
- * A `World` can ask it to tick, save, restore, or route a legacy body. Its body index claims
- * nothing, and an unknown legacy body stays with the world. A test about the data path builds a
- * real runtime and passes it.
+ * A `World` can ask it to tick, save, restore, or route a legacy body. It has no actors, and
+ * an unknown legacy body stays with the world. A test about the data path builds a real runtime
+ * and passes it.
  *
  * @returns {LiveEntityRuntime} The inert runtime.
  */
@@ -62,7 +61,6 @@ export const inertEntityRuntime = (): LiveEntityRuntime =>
         // fixture declares no entity, so every such question answers no.
         // A real index, empty, so a world double files its entities somewhere it can ask again.
         runtime: stub<EntityRuntime>({ content: () => testContent(), blockBroken: () => {}, index: new EntityIndex() }),
-        bodies: stub<LiveBodies>({ entityIdOf: () => undefined }),
         actors: stub<StoreActors>({ all: () => [][Symbol.iterator](), actorOf: () => undefined }),
         // Nothing it holds rides anything, so nothing is kept out of a portal.
         isInRide: () => false,

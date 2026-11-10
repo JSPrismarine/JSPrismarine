@@ -34,7 +34,6 @@ const worldWith = (
         dataEntities: () => ({
             persist: () => {},
             unload: () => false,
-            bodies: { entityIdOf: () => undefined },
             runtime: { index: new EntityIndex(), remove: () => {} }
         }),
         systems: { onChunkUnloaded: () => {} },

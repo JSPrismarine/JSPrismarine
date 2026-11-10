@@ -973,14 +973,23 @@ export class World implements Service {
                     );
                     return feet.distanceSquaredTo(center) <= range * range;
                 }),
-            countNearby: (identifier, range) =>
-                this.getActors().filter((entity) => {
+            // Walked in place rather than copied: a count needs no order.
+            countNearby: (identifier, range) => {
+                let count = 0;
+                for (const entity of this.entities.values()) {
                     const position = entity.getPosition();
-                    return (
+                    if (
                         entity.getType() === identifier &&
                         inBox(position.getX(), entity.getFeetY(), position.getZ(), range)
-                    );
-                }).length,
+                    )
+                        count += 1;
+                }
+                for (const actor of this.dataEntities().actors.all()) {
+                    const { x, y, z } = actor.entity.position;
+                    if (actor.entity.identifier === identifier && inBox(x, y, z, range)) count += 1;
+                }
+                return count;
+            },
             canSpawnAt: (x, y, z) =>
                 view.isPassable(x, y, z) && view.isPassable(x, y + 1, z) && view.isSolid(x, y - 1, z)
         };
@@ -1151,7 +1160,6 @@ export class World implements Service {
         const live = this.dataEntities();
         const tickingEntities: WorldActor[] = [];
         for (const entity of this.entities.values()) {
-            if (live.bodies.entityIdOf(entity) !== undefined) continue;
             if (!(entity instanceof Player)) {
                 const position = entity.getPosition();
                 if (!isPositionTicking(position.getX(), position.getZ())) continue;
@@ -1725,8 +1733,10 @@ export class World implements Service {
 
             // Before the restore, not after: providers without actor storage may keep a
             // lightweight entity snapshot, which the full actor record replaces on load.
-            const legacyEntity = this.getEntities().find((candidate) => this.isLegacyEntity(candidate, entity));
-            if (legacyEntity) await this.removeEntity(legacyEntity);
+            const legacyEntity = this.getActors().find((candidate) => this.isLegacyEntity(candidate, entity));
+            if (legacyEntity instanceof StoreActor)
+                this.dataEntities().runtime.remove(legacyEntity.entity.id, 'body removed');
+            else if (legacyEntity) await this.removeEntity(legacyEntity);
 
             if (this.restoreDataEntity(entity)) continue;
 
@@ -1760,7 +1770,7 @@ export class World implements Service {
         return live.restoreExisting(stored) !== undefined;
     }
 
-    private isLegacyEntity(candidate: Entity, stored: Entity): boolean {
+    private isLegacyEntity(candidate: WorldActor, stored: Entity): boolean {
         if (candidate.persistentNbt !== null || candidate.getType() !== stored.getType()) return false;
 
         const candidatePosition = candidate.getPosition();
@@ -1841,8 +1851,8 @@ export class World implements Service {
     /**
      * Tells everyone watching that an entity is holding or wearing something new.
      *
-     * Called from the one place equipment is written, `entity/data/liveBodies.ts`, which has
-     * already dropped the writes that changed nothing.
+     * Called from `entity/data/storeActors.ts`, which has already dropped the writes that
+     * changed nothing.
      * @param {Entity} entity - Whose equipment changed.
      */
     public entityEquipmentChanged(entity: ShownActor): void {
@@ -3152,20 +3162,14 @@ export class World implements Service {
     }
 
     /**
-     * Adds an entity body to the level.
-     * Generic bodies a data runtime can build are handed to it first; its replacement body
-     * re-enters here after the runtime has indexed it, so the replacement is added normally.
+     * Adds an entity to the level.
+     * A generic body whose type a loaded pack declares is handed to the store instead, which
+     * shows it through a store actor and never adds it to the world.
      * @param {Entity} entity - The entity to add.
      */
     public async addEntity(entity: Entity): Promise<void> {
         const live = this.server.getEntityRuntime?.(this.dimension.name);
-        if (
-            entity instanceof GenericEntity &&
-            live !== undefined &&
-            live.bodies.entityIdOf(entity) === undefined &&
-            this.restoreDataEntity(entity, live)
-        )
-            return;
+        if (entity instanceof GenericEntity && live !== undefined && this.restoreDataEntity(entity, live)) return;
 
         // The body of a stack that left another world's store, through a portal: this world's
         // store takes the stack in and gives it a body of its own.
@@ -3182,9 +3186,7 @@ export class World implements Service {
         this.markEntityChunkChanged(entity);
 
         // Reported once the maps hold it, so that whoever works out who should see what is
-        // looking at the world as it now is - the arrival included. A store entity's legacy
-        // body is not shown: its store actor is (`entity/data/storeActors.ts`).
-        if (live?.bodies.entityIdOf(entity) !== undefined) return;
+        // looking at the world as it now is - the arrival included.
         await this.changes.entityAdded(entity);
     }
 
@@ -3341,7 +3343,6 @@ export class World implements Service {
             live.runtime.remove(entity.id, 'chunk unload');
         const removals: Promise<void>[] = [];
         for (const entity of this.entitiesInChunk(chunk)) {
-            if (live.bodies.entityIdOf(entity) !== undefined) continue;
             if (live.unload(entity)) continue;
             removals.push(this.removeEntity(entity));
         }
@@ -3682,7 +3683,7 @@ export class World implements Service {
         const live = this.server.getEntityRuntime?.(this.dimension.name);
         if (live === undefined) return this.getEntities();
 
-        const shown: ShownActor[] = this.getEntities().filter((entity) => live.bodies.entityIdOf(entity) === undefined);
+        const shown: ShownActor[] = this.getEntities();
         for (const actor of live.actors.all()) shown.push(actor);
         return shown;
     }
@@ -3719,9 +3720,7 @@ export class World implements Service {
     public getActors(): WorldActor[] {
         const live = this.server.getEntityRuntime?.(this.dimension.name);
         const actors: WorldActor[] = [];
-        for (const entity of this.entities.values()) {
-            if (live?.bodies.entityIdOf(entity) === undefined) actors.push(entity);
-        }
+        for (const entity of this.entities.values()) actors.push(entity);
         if (live !== undefined) for (const actor of live.actors.all()) actors.push(actor);
         return actors.sort(byRuntimeId);
     }

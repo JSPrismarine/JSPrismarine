@@ -885,7 +885,8 @@ const buildOver = (
 };
 
 /** The identifiers of everything in the world, which is what a client would be sent. */
-const typesIn = (world: World): string[] => world.getEntities().map((entity) => entity.getType());
+/** The types of every entity a world holds, a store entity through its actor. */
+const typesIn = (world: World): string[] => world.getActors().map((entity) => entity.getType());
 
 describe('the data-driven entity runtime over a live world', () => {
     let world: World;
@@ -1993,22 +1994,39 @@ describe('the data-driven entity runtime over a live world', () => {
             expect(zombies.filter((zombie) => zombie.position.x > 4)).toHaveLength(24);
         });
 
-        it('shows a store entity to clients through its store actor, never its legacy body', async () => {
+        it('shows a store entity to clients through its store actor, with no legacy body in the world', async () => {
             const cow = live.runtime.spawn('minecraft:cow', { x: 0.5, y: GROUND_Y, z: 0.5 });
             if (cow === undefined) throw new Error('the fixture declares no minecraft:cow');
             await run(1);
             const actor = live.actors.actorOf(cow.id);
-            const body = live.bodies.bodyOf(cow.id);
-            if (actor === undefined || body === undefined) throw new Error('the cow has no actor or body');
+            if (actor === undefined) throw new Error('the cow has no actor');
 
-            const shown = world.shownActors();
-            expect(shown).toContain(actor);
-            expect(shown).not.toContain(body);
+            expect(world.shownActors()).toContain(actor);
+            // The target "no mirror class": nothing in the world's entity map stands in for it.
+            expect(world.getEntity(BigInt(cow.id))).toBeNull();
+            expect(world.getEntities().some((entity) => entity.getType() === 'minecraft:cow')).toBe(false);
+            expect(world.getActor(BigInt(cow.id))).toBe(actor);
 
             live.runtime.hurt(cow, undefined, 'entity_attack', 3);
             await run(1);
             expect(actor.attributes.getValue(AttributeIds.Health)).toBe(7);
             expect(actor.getRuntimeId()).toBe(BigInt(cow.id));
+        });
+
+        it('hands no health written onto an actor back to the store, which shows its own', async () => {
+            const cow = live.runtime.spawn('minecraft:cow', { x: 0.5, y: GROUND_Y, z: 0.5 });
+            if (cow === undefined) throw new Error('the fixture declares no minecraft:cow');
+            await run(1);
+            const actor = live.actors.actorOf(cow.id);
+            if (actor === undefined) throw new Error('the cow has no actor');
+
+            // The attribute a client is sent, written by hand: the health comparison read a
+            // body's lower health back as damage to the store.
+            actor.attributes.setValue(AttributeIds.Health, 2);
+            await run(1);
+
+            expect(cow.instance.attributes.get('health')?.current).toBe(10);
+            expect(actor.attributes.getValue(AttributeIds.Health)).toBe(10);
         });
 
         it('drops Java’s loot when a mob is killed, and takes its body away', async () => {
@@ -2483,10 +2501,10 @@ describe('the data-driven entity runtime over a live world', () => {
             expect(dustling?.body.pitch).toBe(0);
         });
 
-        it('gives the summoned mob a body the clients are sent, facing where it was told', () => {
+        it('gives the summoned mob an actor the clients are sent, facing where it was told', () => {
             const ref = summon('jsprismarine:dustling', { x: 2.5, y: GROUND_Y, z: 2.5 }, 90);
 
-            const body = world.getEntities().find((entity) => entity.getType() === 'jsprismarine:dustling');
+            const body = world.getActors().find((entity) => entity.getType() === 'jsprismarine:dustling');
             expect(body).toBeDefined();
             expect(ref?.id).toBe(body?.getRuntimeId().toString());
             expect(body?.getPosition().getX()).toBe(2.5);

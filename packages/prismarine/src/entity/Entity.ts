@@ -781,8 +781,7 @@ export class Entity {
         if (alive && !this.isAlive()) {
             // Recorded as the last damage source, so a kill written straight onto the health -
             // `/kill` - reaches whoever asks what did it with its real cause, the way a blow
-            // through `damage` already does. The data-entity mirror reads it to hand the kill
-            // to the runtime as what it was rather than as generic damage.
+            // through `damage` already does.
             const damageSource = DamageSource.of(source);
             this.lastDamageSource = damageSource;
             await this.onDeath(damageSource);
@@ -964,8 +963,8 @@ export class Entity {
     /**
      * What this entity is wearing and holding, by equipment slot.
      *
-     * Data-driven entities mirror equipment tables and interactions here. A `Human` overrides
-     * it from the armor container, the hand and the off hand.
+     * A `Human` overrides it from the armor container, the hand and the off hand. A store
+     * entity's actor answers from the store's equipment.
      */
     public getEquipment(): ViewableEquipment {
         return this.equipment;
