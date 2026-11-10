@@ -9,8 +9,8 @@
  * LevelDB provider that is the `player_server_<key>` record, and for the file
  * provider `worlds/<name>/playerdata/<key>.json`.
  *
- * The store is a map keyed by the player's key (`keyOfPlayer`: the XUID, or the
- * name without one) rather than a field on `Player`, so the advancement
+ * The store is a map keyed by the player's key (`playerKeyOf`: the XUID, or the
+ * name without one) rather than a field on the player, so the advancement
  * subsystem can be added and removed without the player class growing a member
  * for every subsystem that wants one. The entry lives from the load at join to
  * the save at leave. Keyed by the account rather than the entity runtime id
@@ -23,8 +23,8 @@
 import { PlayerAdvancements } from '@jsprismarine/advancements';
 import type { PlayerProgressJson } from '@jsprismarine/advancements';
 
-import type Player from '../Player';
-import { keyOfPlayer } from '../playerIdentity';
+import type { KeyedPlayerSource, PlayerKeySource } from '../keyedPlayer';
+import { keyedPlayerOf, playerKeyFrom } from '../keyedPlayer';
 import { isRecord } from '../utils/isRecord';
 
 const stores = new Map<string, PlayerAdvancements>();
@@ -36,8 +36,8 @@ const stores = new Map<string, PlayerAdvancements>();
  * caring whether the player's data has arrived; a player with none starts
  * from nothing, which is what a first join looks like anyway.
  */
-export const advancementsOf = (player: Player): PlayerAdvancements => {
-    const key = keyOfPlayer(player);
+export const advancementsOf = (player: PlayerKeySource): PlayerAdvancements => {
+    const key = playerKeyFrom(player);
     const held = stores.get(key);
     if (held) return held;
 
@@ -82,8 +82,8 @@ const readProgress = (stored: unknown): PlayerProgressJson => {
  * @param stored - The record off the player data, or undefined for a player
  *   who has none.
  */
-export const loadAdvancements = (player: Player, stored: unknown): void => {
-    stores.set(keyOfPlayer(player), PlayerAdvancements.fromJSON(readProgress(stored)));
+export const loadAdvancements = (player: PlayerKeySource, stored: unknown): void => {
+    stores.set(playerKeyFrom(player), PlayerAdvancements.fromJSON(readProgress(stored)));
 };
 
 /**
@@ -92,8 +92,8 @@ export const loadAdvancements = (player: Player, stored: unknown): void => {
  * Called after the progress has been saved. A player who comes back has it
  * read from the record again by {@link loadAdvancements}.
  */
-export const forgetAdvancements = (player: Player): void => {
-    stores.delete(keyOfPlayer(player));
+export const forgetAdvancements = (player: PlayerKeySource): void => {
+    stores.delete(playerKeyFrom(player));
 };
 
 /**
@@ -102,7 +102,8 @@ export const forgetAdvancements = (player: Player): void => {
  * The engine goes in so each entry carries its `done` flag, which is what a
  * reader that is not this server - a tool, a migration - has to go on.
  */
-export const storedAdvancements = (player: Player): PlayerProgressJson => {
-    const engine = player.getServer().getContent().advancements;
-    return advancementsOf(player).toJSON((id) => engine.get(id));
+export const storedAdvancements = (player: KeyedPlayerSource): PlayerProgressJson => {
+    const keyed = keyedPlayerOf(player);
+    const engine = keyed.server.getContent().advancements;
+    return advancementsOf(keyed).toJSON((id) => engine.get(id));
 };

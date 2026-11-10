@@ -16,16 +16,42 @@
  */
 import type { TriggerEvents, TriggerName } from '@jsprismarine/advancements';
 
-import type Player from '../Player';
+import type Server from '../Server';
 import { TextPacketType } from '@jsprismarine/protocol';
 import { advancementsOf } from './progress';
 import { isRecord } from '../utils/isRecord';
+import { keyedPlayerOf } from '../keyedPlayer';
 
-/** Raises one trigger for one player and announces whatever it completed. */
-export const raiseAdvancement = <K extends TriggerName>(player: Player, trigger: K, event: TriggerEvents[K]): void => {
-    const engine = player.getServer().getContent().advancements;
-    const completed = engine.raise(trigger, event, advancementsOf(player));
-    for (const id of completed) void announce(player, id);
+/** A player who hears an announcement. */
+interface AnnouncementRecipient {
+    sendMessage(message: string, type: TextPacketType, parameters: string[], needsTranslation: boolean): Promise<void>;
+}
+
+/**
+ * What a raise reads of the player who earned something: the key and the server its progress is
+ * found by, the name an announcement carries, and the world whose players hear it.
+ */
+export interface RaisingPlayer {
+    getName(): string;
+    getXUID(): string | null;
+    getServer(): Server;
+    getWorld(): { getPlayers(): readonly AnnouncementRecipient[] };
+}
+
+/**
+ * Raises one trigger for one player and announces whatever it completed.
+ * @param player - Who the event happened to.
+ * @param trigger - The trigger the event is.
+ * @param event - What the trigger's conditions read.
+ */
+export const raiseAdvancement = <K extends TriggerName>(
+    player: RaisingPlayer,
+    trigger: K,
+    event: TriggerEvents[K]
+): void => {
+    const keyed = keyedPlayerOf(player);
+    const completed = keyed.server.getContent().advancements.raise(trigger, event, advancementsOf(keyed));
+    for (const id of completed) void announce(player, keyed.server, id);
 };
 
 /**
@@ -40,8 +66,8 @@ export const raiseAdvancement = <K extends TriggerName>(player: Player, trigger:
  * neither. Teaching the client the real names needs a resource pack with those
  * keys in it, which is a different job from this one.
  */
-const announce = async (player: Player, id: string): Promise<void> => {
-    const advancement = player.getServer().getContent().advancements.get(id);
+const announce = async (player: RaisingPlayer, server: Server, id: string): Promise<void> => {
+    const advancement = server.getContent().advancements.get(id);
     const display = advancement?.display;
     if (display?.announceToChat === false || display === undefined) return;
 
