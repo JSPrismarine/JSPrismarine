@@ -24,12 +24,12 @@ import type { ConsoleSender } from '../../command/ConsoleSender';
 import { buildServerContent } from '../../content/ServerContent';
 import type { ServerContent } from '../../content/ServerContent';
 import { definitionOf, definitionsOf } from '../../content/ContentOptions';
-import { fixtureContentOptions, fixtureDefinitions } from '../../content/testing';
+import { builtInEntityDefinitions, fixtureContentOptions, fixtureDefinitions } from '../../content/testing';
 import { serverWorldSource } from '../../content/world/serverSource';
 import { EventEmitter } from '../../events/EventEmitter';
 import { EntityRuntimes } from '../../entity/data/live';
 import { Entity } from '../../entity/Entity';
-import { Item } from '../../entity/other/Item';
+import { GenericEntity } from '../../entity/GenericEntity';
 import type ClientConnection from '../../network/ClientConnection';
 import Codec2193 from '../../network/codec/Codec2193';
 import { createConnectedPlayer } from '../../network/createConnectedPlayer';
@@ -259,8 +259,12 @@ const portalAt = (world: World, minCorner: Vector3): PortalBlockRef => ({
     block: 'minecraft:portal'
 });
 
-const itemAt = (world: World, feet: Vector3): Item =>
-    new Item({ position: new Position(feet.getX(), feet.getY(), feet.getZ(), world) });
+/** A non-player body of the dropped-item type, which is all `resolve` and `touch` read. */
+const itemAt = (world: World, feet: Vector3): Entity =>
+    new GenericEntity({
+        identifier: 'minecraft:item',
+        position: new Position(feet.getX(), feet.getY(), feet.getZ(), world)
+    });
 
 /**
  * A written entity that is no player, for the tick-driven tests: its own update has no
@@ -570,25 +574,37 @@ describe('DimensionTravel.touch', () => {
 });
 
 describe('DimensionTravel.transfer', () => {
-    it('moves an item out of one world into the other at the arrival, on a 300 tick cooldown', async () => {
-        const scene = await buildScene();
-        const item = itemAt(scene.overworld, new Vector3(80.5, 64, 0.5));
-        await scene.overworld.addEntity(item);
+    it('moves a dropped stack out of one store into the other at the arrival, on a 300 tick cooldown', async () => {
+        const scene = await buildScene({ entities: new Map(builtInEntityDefinitions()) });
+        const from = scene.overworld.dataEntities();
+        const to = scene.nether.dataEntities();
+        const stack = from.dropItem(
+            { x: 80.5, y: 64, z: 0.5 },
+            { stack: { name: 'minecraft:stone', count: 3 }, age: 40, pickupDelay: 7 }
+        );
+        const body = stack === undefined ? undefined : from.itemBodies.bodyOf(stack.id);
+        if (stack === undefined || body === undefined) throw new Error('the scene declares no dropped item');
 
-        await scene.travel.transfer(item, {
+        await scene.travel.transfer(body, {
             world: scene.nether,
             position: new Vector3(10.5, 70, 0.5),
             yaw: 90,
             pitch: 0
         });
 
-        expect(item.getWorld()).toBe(scene.nether);
-        expect(item.getPosition().getX()).toBe(10.5);
-        expect(item.getPosition().getY()).toBe(70);
-        expect(item.yaw).toBe(90);
-        expect(item.getPortalCooldown()).toBe(300);
-        expect(scene.overworld.getEntities()).not.toContain(item);
-        expect(scene.nether.getEntities()).toContain(item);
+        expect(stack.removed).toBeDefined();
+        expect(from.runtime.byId(stack.id)).toBeUndefined();
+        expect(scene.overworld.getEntities()).not.toContain(body);
+        const [arrived] = to.runtime.all().filter((entity) => entity.identifier === 'minecraft:item');
+        const arrivedBody = arrived === undefined ? undefined : to.itemBodies.bodyOf(arrived.id);
+        expect(arrived?.position).toEqual({ x: 10.5, y: 70, z: 0.5 });
+        expect(arrivedBody?.savedItem()).toMatchObject({
+            stack: { name: 'minecraft:stone', count: 3 },
+            age: 40,
+            pickupDelay: 7
+        });
+        expect(arrivedBody?.getPortalCooldown()).toBe(300);
+        expect(scene.nether.getEntities()).toContain(arrivedBody);
 
         await scene.level.disable();
     }, 60_000);

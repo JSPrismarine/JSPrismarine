@@ -5,13 +5,14 @@ import { describe, expect, it } from 'vitest';
 import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
 import { BlockState } from '../block/state/BlockState';
 import type { Entity } from '../entity/Entity';
-import { Item as ItemEntity } from '../entity/other/Item';
+import { ItemActorBody as ItemEntity } from '../entity/data/itemBodies';
+import { itemViewOf } from '../entity/data/droppedItems';
 import { Item } from '../item/Item';
 import { NetworkWorldReplicator } from '../network/NetworkWorldReplicator';
 import AddItemActorPacket from '@jsprismarine/protocol/packet/AddItemActorPacket';
 import PlayerSession from '../network/PlayerSession';
 import BlockUpdateScheduler from './BlockUpdateScheduler';
-import { inertEntityRuntime, testContent } from '../testing/entityServer';
+import { liveTestEntities } from '../testing/entityServer';
 import { Dimensions } from './Dimension';
 import Chunk from './chunk/Chunk';
 import { World } from './World';
@@ -74,6 +75,7 @@ const fakeWorld = (initial: BlockState, { id = 1, dropName = initial.name } = {}
         getInventory: () => ({ getItemInHand: () => null }),
         getNetworkSession: () => session,
         getPosition: () => new Vector3(10, 64, -20),
+        getUUID: () => ({ toString: () => 'thrower' }),
         viewDistance: 10
     };
 
@@ -81,9 +83,10 @@ const fakeWorld = (initial: BlockState, { id = 1, dropName = initial.name } = {}
     // because the world keeps no public count of what it holds.
     const entities = new Map<bigint, Entity>();
 
-    // Whose index the world files its drops in.
-    const live = inertEntityRuntime();
-    const world: World = Object.assign(Object.create(World.prototype), {
+    // Where a drop becomes a store stack, and whose index the world files it in.
+    let world: World | undefined;
+    const live = liveTestEntities(() => world);
+    world = Object.assign(Object.create(World.prototype), {
         chunks: new Map([[Chunk.packXZ(0, 0), chunk]]),
         dimension: Dimensions.Overworld,
         entityChunkIndices: new Map(),
@@ -106,10 +109,11 @@ const fakeWorld = (initial: BlockState, { id = 1, dropName = initial.name } = {}
             // The two-block fixture, which covers neither the block broken here nor any
             // family, so the break falls through to the block's own drops - which is the
             // path these tests are about.
-            getContent: () => testContent(),
-            getEntityRuntime: () => live
+            getContent: () => live.content(),
+            getEntityRuntime: (dimension: string) => live.entityRuntime(dimension)
         }
     });
+    if (world === undefined) throw new Error('unreachable');
 
     world.attachChangeSink(new NetworkWorldReplicator(world, world.getServer()));
 
@@ -129,9 +133,10 @@ const emptyWorld = () => {
     // Counted, so a test can say how many rolls the drops took. Each is the middle of its range.
     let rolls = 0;
 
-    // Whose index the world files its drops in.
-    const live = inertEntityRuntime();
-    const world: World = Object.assign(Object.create(World.prototype), {
+    // Where a drop becomes a store stack, and whose index the world files it in.
+    let world: World | undefined;
+    const live = liveTestEntities(() => world);
+    world = Object.assign(Object.create(World.prototype), {
         name: 'flooded',
         dimension: Dimensions.Overworld,
         entities,
@@ -142,14 +147,15 @@ const emptyWorld = () => {
         changes: NULL_WORLD_CHANGE_SINK,
         server: {
             getLogger: () => ({ debug: () => {}, warn: (message: string) => void warnings.push(message) }),
-            getContent: () => testContent(),
-            getEntityRuntime: () => live,
+            getContent: () => live.content(),
+            getEntityRuntime: (dimension: string) => live.entityRuntime(dimension),
             getRandom: () => () => {
                 rolls += 1;
                 return 0.5;
             }
         }
     });
+    if (world === undefined) throw new Error('unreachable');
 
     return { world, entities, warnings, rolls: () => rolls };
 };
@@ -205,7 +211,8 @@ describe('world', () => {
             expect(dropped.getMotion().getX()).toBeCloseTo(-0.01);
             expect(dropped.getMotion().getY()).toBeCloseTo(0.1);
             expect(dropped.getMotion().getZ()).toBeCloseTo(0.3);
-            expect(dropped.getPickupDelay()).toBe(40);
+            expect(dropped.savedItem()?.pickupDelay).toBe(40);
+            expect(itemViewOf(dropped.getDriver())?.thrower).toBe('thrower');
         });
 
         it('drops nothing for a block whose drop has no item id, rather than air', async () => {

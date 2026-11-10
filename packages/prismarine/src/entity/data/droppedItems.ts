@@ -81,14 +81,24 @@ export interface ItemStart {
     readonly stack: StoredItemStack;
     /** Ticks it has already lain in the world. */
     readonly age?: number;
-    /** Ticks before a player may take it; the definition's `pickup_delay` when absent. */
+    /**
+     * Ticks before a player may take it; the definition's `thrown_pickup_delay` for a thrown
+     * stack and its `pickup_delay` for any other when absent.
+     */
     readonly pickupDelay?: number;
+    /** Whether a player threw it. */
+    readonly thrown?: boolean;
     /** Its speed in blocks per tick; still when absent. */
     readonly motion?: EntityPosition;
     /** The identity of the only player who may take it. */
     readonly owner?: string;
     /** The identity of the player who dropped it. */
     readonly thrower?: string;
+    /**
+     * Whether the position given is the one the item reports, as a saved record holds it, rather
+     * than where it lies.
+     */
+    readonly reported?: boolean;
 }
 
 /** One dropped stack's state, read back. */
@@ -237,13 +247,14 @@ export const startItem = (entity: DataEntity, start: ItemStart): void => {
         stateRecord({
             stack: start.stack,
             age: start.age ?? 0,
-            pickupDelay: start.pickupDelay ?? tuning.pickupDelay,
+            pickupDelay: start.pickupDelay ?? (start.thrown === true ? tuning.thrownPickupDelay : tuning.pickupDelay),
             owner: start.owner ?? null,
             thrower: start.thrower ?? null
         })
     );
     if (start.motion !== undefined) entity.body.velocity = start.motion;
     // Spawned where the stack lies, and reported above it, as BDS reports every item.
+    if (start.reported === true) return;
     const at = entity.position;
     entity.position = { x: at.x, y: at.y + tuning.positionOffset, z: at.z };
 };
@@ -316,6 +327,11 @@ export class DroppedItems {
             return undefined;
         }
         return entity;
+    }
+
+    /** Takes a stack out of the store, which a kill does. */
+    public remove(id: number, reason: string): void {
+        this.host.remove(id, reason);
     }
 
     /** Whether an entity is either no dropped stack or one with a stack, so it may enter the world. */

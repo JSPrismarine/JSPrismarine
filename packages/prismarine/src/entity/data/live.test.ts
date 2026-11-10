@@ -64,7 +64,10 @@ import { Entity } from '../Entity';
 import { GenericEntity } from '../GenericEntity';
 import { EntitySerializer } from '../EntitySerializer';
 import { MetadataFlag } from '@jsprismarine/protocol/wire/structures/Metadata';
-import { Item as ItemEntity } from '../other/Item';
+import { ItemActorBody as ItemEntity } from './itemBodies';
+import { itemViewOf } from './droppedItems';
+import type { DataEntity } from './DataEntity';
+import { builtInEntityDefinitions } from '../../content/testing';
 import { loose } from '../Archery';
 import type { OpenBlockContainer, OpenTrade } from '../../network/PlayerSession';
 import { dataEntityRecordIn } from './persistence';
@@ -832,7 +835,7 @@ const buildOver = (
         load: () => ({
             definitions: definitionsOf({
                 blocks: new Map(BLOCKS.map((id) => [id, overlayBlock(id)])),
-                entities: ENTITIES,
+                entities: new Map([...builtInEntityDefinitions(), ...ENTITIES]),
                 spawnRules: SPAWN_RULES,
                 tradeTables: TRADES,
                 lootTablesJava: LOOT
@@ -951,12 +954,9 @@ describe('the data-driven entity runtime over a live world', () => {
     });
 
     it('queries nearby dropped items by live spatial candidates and keeps exact nearest-first ties', async () => {
-        const addItem = async (x: number, y: number, z: number): Promise<ItemEntity> => {
-            const item = new ItemEntity({
-                position: new Position(x, y, z, world),
-                item: new ContainerEntry({ item: new Item({ name: 'minecraft:wheat' }), count: 1 })
-            });
-            await world.addEntity(item);
+        const addItem = async (x: number, y: number, z: number): Promise<DataEntity> => {
+            const item = live.dropItem({ x, y, z }, { stack: { name: 'minecraft:wheat', count: 1 }, reported: true });
+            if (item === undefined) throw new Error('the fixture declares no dropped item');
             return item;
         };
         const center = { x: 0.5, y: 64, z: 0.5 };
@@ -967,17 +967,13 @@ describe('the data-driven entity runtime over a live world', () => {
 
         const found = live.runtime.items(center, 2);
 
-        expect(found.map((item) => item.id)).toEqual([
-            Number(nearest.getRuntimeId()),
-            Number(firstTie.getRuntimeId()),
-            Number(secondTie.getRuntimeId())
-        ]);
+        expect(found.map((item) => item.id)).toEqual([nearest.id, firstTie.id, secondTie.id]);
         expect(found[0]?.position()).toEqual({ x: 0.5, y: 64, z: 0.5 });
 
-        await firstTie.setPosition({ position: new Vector3(32.5, 64.125, 0.5), teleport: true });
-        await world.removeEntity(secondTie);
+        firstTie.position = { x: 32.5, y: 64.125, z: 0.5 };
+        live.runtime.remove(secondTie.id, 'merged');
 
-        expect(live.runtime.items(center, 2).map((item) => item.id)).toEqual([Number(nearest.getRuntimeId())]);
+        expect(live.runtime.items(center, 2).map((item) => item.id)).toEqual([nearest.id]);
     });
 
     it('wires the entity subsystem’s two groups into the content world', () => {
@@ -2554,28 +2550,25 @@ describe('the data-driven entity runtime over a live world', () => {
             expect(second.live.bodies.size).toBe(1);
         });
 
-        it('leaves an actor the data path never wrote to the written classes', async () => {
-            const folder = mkdtempSync(join(tmpdir(), 'jsp-entity-legacy-'));
+        it('brings a dropped stack back into the store from its actor record', async () => {
+            const folder = mkdtempSync(join(tmpdir(), 'jsp-entity-item-'));
             folders.push(folder);
 
             const first = await session(folder);
-            // Added straight to the world, the way the legacy entity path does, so the
-            // saved actor carries no record of a data entity.
-            await first.world.addEntity(
-                new ItemEntity({
-                    position: new Position(2.5, GROUND_Y, 3.5, first.world),
-                    item: new ContainerEntry({ item: new Item({ name: 'minecraft:stone' }), count: 1 })
-                })
-            );
-
+            first.live.dropItem({ x: 2.5, y: GROUND_Y, z: 3.5 }, { stack: { name: 'minecraft:stone', count: 4 } });
             await first.world.saveChunks();
             await first.provider.disable();
 
             const second = await session(folder);
             await second.world.loadChunk(0, 0);
 
-            expect(second.live.runtime.all()).toEqual([]);
-            expect(typesIn(second.world)).toContain('minecraft:item');
+            const [stack] = second.live.runtime.all();
+            expect(stack?.identifier).toBe('minecraft:item');
+            expect(stack === undefined ? undefined : itemViewOf(stack)?.stack).toEqual({
+                name: 'minecraft:stone',
+                count: 4
+            });
+            expect(typesIn(second.world)).toEqual(['minecraft:item']);
         });
     });
 

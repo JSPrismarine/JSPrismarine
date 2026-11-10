@@ -22,6 +22,9 @@ import { fixtureContentOptions } from '../content/testing';
 import type { EntityRuntime } from '../entity/data/EntityRuntime';
 import { EntityIndex } from '../entity/data/entityIndex';
 import type { LiveEntityRuntime } from '../entity/data/live';
+import { EntityRuntimes } from '../entity/data/live';
+import { serverWorldSource } from '../content/world/serverSource';
+import type { World } from '../world/World';
 import type { LiveBodies } from '../entity/data/liveBodies';
 import type Server from '../Server';
 import { ChunkCompletionQueue } from '../world/ChunkCompletionQueue';
@@ -136,4 +139,49 @@ export const testEntityServer = (options: TestEntityServerOptions = {}): Server 
                 error: (...message) => void options.logged?.push(String(message[0]))
             })
     });
+};
+
+/** The fixture content wired to a live world, with the entity runtimes its build opened. */
+export interface LiveTestEntities {
+    /** The fixture build, built on first ask around the world. */
+    content(): ServerContent;
+    /** One dimension's runtime, which turns a drop into a store stack; inert when none opened. */
+    entityRuntime(dimension: string): LiveEntityRuntime;
+}
+
+/**
+ * The fixture content built around a live world, through real entity runtimes.
+ *
+ * A world whose server answers {@link inertEntityRuntime} drops nothing: a dropped stack is a
+ * store entity, and the inert runtime has no store. A test that drops something answers these
+ * two instead, read at call time because the world and the content each read the other.
+ *
+ * @param world - The live world of every dimension, read at call time.
+ * @returns {LiveTestEntities} The content and the runtimes.
+ */
+export const liveTestEntities = (world: () => World | undefined): LiveTestEntities => {
+    const entityRuntimes = new EntityRuntimes();
+    let built: ServerContent | undefined;
+    const content = (): ServerContent =>
+        (built ??= buildServerContent(
+            fixtureContentOptions({
+                world: serverWorldSource({
+                    worldFor: () => world(),
+                    content: () => {
+                        if (built === undefined) throw new Error('the content was read before it was built');
+                        return built;
+                    },
+                    seed: 0n,
+                    difficulty: () => Difficulty.NORMAL,
+                    entityRuntimes
+                })
+            })
+        ));
+    return {
+        content,
+        entityRuntime: (dimension) => {
+            content();
+            return entityRuntimes.at(dimension) ?? inertEntityRuntime();
+        }
+    };
 };

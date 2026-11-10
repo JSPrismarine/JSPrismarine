@@ -10,11 +10,12 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
 import { EntityRuntimes } from '../entity/data/live';
 import type { Entity } from '../entity/Entity';
-import { Item as ItemEntity } from '../entity/other/Item';
+import { ItemActorBody as ItemEntity } from '../entity/data/itemBodies';
 import ContainerEntry from '../inventory/ContainerEntry';
 import HumanInventory from '../inventory/HumanInventory';
 import Player from '../Player';
 import { definitionOf, definitionsOf } from '../content/ContentOptions';
+import { builtInEntityDefinitions } from '../content/testing';
 import { overlayPackPath } from '../content/packStack';
 import { buildServerContent } from '../content/ServerContent';
 import type { ContentPosition } from '../content/world/adapter';
@@ -211,7 +212,8 @@ const XP_ORB = {
 };
 
 const liveWorld = (
-    content: () => ServerContent | undefined
+    content: () => ServerContent | undefined,
+    entityRuntimes: EntityRuntimes
 ): { world: World; chunk: Chunk; spawned: Entity[]; entities: Map<number, Entity> } => {
     const chunk = new Chunk(0, 0);
     const spawned: Entity[] = [];
@@ -234,7 +236,9 @@ const liveWorld = (
         server: {
             getConfig: () => ({ getDifficulty: () => Difficulty.NORMAL, getProximityBroadcast: () => true }),
             getLogger: () => ({ debug: () => {}, error: () => {}, verbose: () => {}, warn: () => {} }),
-            getContent: content
+            getContent: content,
+            // The dimension's runtime the content build opened, where a drop becomes a store stack.
+            getEntityRuntime: (dimension: string) => entityRuntimes.at(dimension)
         }
     });
 
@@ -272,13 +276,16 @@ describe('breakBlockWithContent', () => {
         // sides reach for it through the same closure.
         let built: ServerContent | undefined;
         const entityRuntimes = new EntityRuntimes();
-        ({ world, chunk, spawned, entities } = liveWorld(() => built));
+        ({ world, chunk, spawned, entities } = liveWorld(() => built, entityRuntimes));
 
         content = buildServerContent({
             load: () => ({
                 definitions: definitionsOf({
                     blocks: new Map(BLOCKS.map((id) => [id, overlayBlock(id)])),
-                    entities: new Map([['minecraft:xp_orb', definitionOf('entities', 'minecraft:xp_orb', XP_ORB)]]),
+                    entities: new Map([
+                        ...builtInEntityDefinitions(),
+                        ['minecraft:xp_orb', definitionOf('entities', 'minecraft:xp_orb', XP_ORB)]
+                    ]),
                     lootTablesJava: new Map(
                         Object.entries(LOOT_TABLES).map(([id, table]) => [
                             id,

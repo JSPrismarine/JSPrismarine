@@ -5,15 +5,14 @@
  * body; see `data/EntityRuntime`. This file used to carry 111 classes beside it, one per
  * species, most with no behavior beyond a name and a `MOB_ID`.
  *
- * A dropped stack has no behavior-pack entity file, and `Human` is the player body. Projectiles
- * are generic actor bodies driven by their `minecraft:projectile` definitions. Falling blocks and
- * TNT both run through the data-driven runtime.
+ * `Human` is the player body. Dropped stacks, falling blocks and TNT run through the data-driven
+ * runtime, and projectiles are generic actor bodies driven by their `minecraft:projectile`
+ * definitions.
  */
 import type { SpawnableEntityClass } from './Entity';
 import Player from './Human';
-import { Item } from './other/Item';
 
-export { Item, Player };
+export { Player };
 
 /** @see {@link writtenEntities} */
 let index: ReadonlyMap<string, SpawnableEntityClass> | undefined;
@@ -26,4 +25,4 @@ let index: ReadonlyMap<string, SpawnableEntityClass> | undefined;
  * @returns {ReadonlyMap<string, SpawnableEntityClass>} The classes, keyed by `MOB_ID`.
  */
 export const writtenEntities = (): ReadonlyMap<string, SpawnableEntityClass> =>
-    (index ??= new Map([Item, Player].map((written) => [written.MOB_ID, written])));
+    (index ??= new Map([Player].map((written) => [written.MOB_ID, written])));

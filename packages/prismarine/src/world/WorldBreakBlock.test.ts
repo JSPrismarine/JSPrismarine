@@ -11,7 +11,8 @@ import { BatchCodec } from '@jsprismarine/protocol';
 import LevelSoundEventPacket from '@jsprismarine/protocol/packet/LevelSoundEventPacket';
 import UpdateBlockPacket, { UpdateBlockFlagsType } from '@jsprismarine/protocol/packet/UpdateBlockPacket';
 import BlockUpdateScheduler from './BlockUpdateScheduler';
-import { testContent } from '../testing/entityServer';
+import { liveTestEntities } from '../testing/entityServer';
+import { Dimensions } from './Dimension';
 import Chunk from './chunk/Chunk';
 import { World } from './World';
 import { fakeLevel } from '../testing/level';
@@ -78,8 +79,12 @@ const fakeWorld = (initial: BlockState, broken = fakeBlock(initial.name)) => {
     // Built on the real prototype, so that `breakBlock` and everything it reaches for -
     // `setBlockRuntimeId`, `dropContents`, `dropItem` - is the code under test rather than more of
     // the stand-in. Only what touches the disk, the network or a chunk is replaced.
+    // Where a drop becomes a store stack, whose body arrives through `addEntity` below.
+    let live: World | undefined;
+    const entities = liveTestEntities(() => live);
     const world: World = Object.assign(Object.create(World.prototype), {
         chunks: new Map([[Chunk.packXZ(0, 0), chunk]]),
+        dimension: Dimensions.Overworld,
         // Empty and never written, because `addEntity` below replaces the real one. It is
         // here because a world with no entity map is not a world: `dropContents` counts the
         // stacks already on the ground before it adds another.
@@ -119,9 +124,11 @@ const fakeWorld = (initial: BlockState, broken = fakeBlock(initial.name)) => {
             // The two-block fixture, which covers neither the block broken here nor any
             // family, so no `onBreak` runs and the block itself says what it drops - which is
             // the path these tests are about.
-            getContent: () => testContent()
+            getContent: () => entities.content(),
+            getEntityRuntime: (dimension: string) => entities.entityRuntime(dimension)
         }
     });
+    live = world;
 
     // The real replicator over the fake world, so that what a break puts on the wire - and to
     // whom - is still the code under test. The world itself no longer builds those packets.

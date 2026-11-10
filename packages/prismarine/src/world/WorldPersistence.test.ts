@@ -6,11 +6,11 @@ import { Vector3 } from '@jsprismarine/math';
 import type { Logger } from '@jsprismarine/logger';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { Item as ItemEntity } from '../entity/other/Item';
+import { ItemActorBody as ItemEntity } from '../entity/data/itemBodies';
 import { Item } from '../item/Item';
 import type Server from '../Server';
 import { stub } from '../testing/stub.test.helper';
-import { inertEntityRuntime, testContent } from '../testing/entityServer';
+import { liveTestEntities } from '../testing/entityServer';
 import Chunk from './chunk/Chunk';
 import { Dimensions } from './Dimension';
 import type { Generator } from './Generator';
@@ -29,7 +29,7 @@ const NEXT_DROP_COUNT = World.ITEM_ENTITY_LIMIT - LEGACY_ITEM_COUNT + 1;
 let scratch: string;
 let previousDirectory: string | undefined;
 
-const testServer = (warnings: string[]): Server =>
+const testServer = (warnings: string[], entities = liveTestEntities(() => undefined)): Server =>
     stub<Server>({
         getLogger: () =>
             stub<Logger>({
@@ -41,8 +41,8 @@ const testServer = (warnings: string[]): Server =>
             }),
         getConfig: () => stub({ getPreloadRadius: () => 0 }),
         getChunkCompletionQueue: () => new ChunkCompletionQueue(),
-        getContent: () => testContent(),
-        getEntityRuntime: () => inertEntityRuntime()
+        getContent: () => entities.content(),
+        getEntityRuntime: (dimension: string) => entities.entityRuntime(dimension)
     });
 
 const generator: Generator = {
@@ -301,13 +301,17 @@ describe('world persistence', () => {
         );
 
         const warnings: string[] = [];
-        const server = testServer(warnings);
+        let world: World | undefined;
+        const server = testServer(
+            warnings,
+            liveTestEntities(() => world)
+        );
         const provider = new LevelDB(folder, server);
         const level = testLevel({ name, path: folder, server, provider, generator });
         await level.enable();
 
         try {
-            const world = await level.world(OVERWORLD_STEM_ID);
+            world = await level.world(OVERWORLD_STEM_ID);
             await world.dropContents(
                 new Vector3(0, 64, 0),
                 Array.from(
