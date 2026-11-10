@@ -133,6 +133,7 @@ import { EyeOfEnderSignals, isEyeOfEnderSignal } from './eyeOfEnderSignals';
 import { itemDropOf } from '../../inventory/persistence';
 import { maxStackSizeOf, resistsDamageOf } from '../../item/Item';
 import { navigationViewOf } from './navigationView';
+import { DEFAULT_BLOCK_FRICTION, DRAG } from './travel';
 import type { CachedNavigationView } from './navigationView';
 import type { DataEntityRecord } from './persistence';
 import { applyDataEntityRecord, dataEntityRecordFrom, dataEntityRecordOf } from './persistence';
@@ -4717,7 +4718,10 @@ export class EntityRuntime implements EntityScene {
 
     /** Moves a body along its current waypoint using its active navigation rules. */
     private step(entity: DataEntity): void {
-        if (entity.instance.hasComponent('minecraft:projectile') || !entity.body.walking) return;
+        if (entity.instance.hasComponent('minecraft:projectile') || !entity.body.walking) {
+            entity.body.rest();
+            return;
+        }
 
         const navigation = this.navigation();
         const profile = navigationProfile(entity.instance);
@@ -4728,10 +4732,22 @@ export class EntityRuntime implements EntityScene {
         const climbs =
             (profile.kind === 'climb' && navigation.isClimbable?.(feet) === true) ||
             (profile.canClimbLadders === true && navigation.isLadder?.(feet) === true);
+        // `minecraft:movement.jump`, the slime's, waits a draw from `jump_delay` seconds between hops.
+        const hop = entity.instance.componentParams('minecraft:movement.jump');
+        const [shortest, longest]: unknown[] = isRecord(hop) && Array.isArray(hop.jumpDelay) ? hop.jumpDelay : [];
         entity.step({
             allowVertical: profile.canFly || profile.kind === 'fly' || profile.kind === 'hover' || swims || climbs,
             canJump: profile.canJump,
             stepHeight: profile.stepHeight,
+            groundFriction: this.groundFrictionAt(entity.position),
+            ...(typeof shortest === 'number' && typeof longest === 'number'
+                ? {
+                      nextHopDelay: () =>
+                          Math.round(
+                              (shortest + (longest - shortest) * this.world.random.nextFloat()) * TICKS_PER_SECOND
+                          )
+                  }
+                : {}),
             canOccupy(position: EntityPosition): boolean {
                 return (
                     !componentFacts.hasCollision ||
@@ -4898,14 +4914,8 @@ const PROJECTILE_SPEED = 1.6;
 /** Java's `LivingEntity` gravity, in blocks per tick per tick. */
 const GRAVITY = 0.08;
 
-/** Java's horizontal drag on an airborne entity, applied once a tick. */
-const DRAG = 0.91;
-
 /** Java's vertical air drag, applied after gravity once a tick. */
 const VERTICAL_AIR_DRAG = 0.98;
-
-/** Java's default slipperiness for a block the loaded world cannot resolve. */
-const DEFAULT_BLOCK_FRICTION = 0.6;
 
 /** The fire timeout sunlight maintains until an entity reaches shade, in ticks. */
 const DAYLIGHT_BURN_TICKS = 160;
