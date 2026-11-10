@@ -747,6 +747,17 @@ export class MobBody {
     }
 
     /**
+     * Turns the body toward a position on the horizontal plane and leaves the pitch alone, as
+     * Java's `MoveControl` turns a walker: where the head points is the look control's business.
+     */
+    private faceToward(position: EntityPosition): void {
+        const dx = position.x - this.position.x;
+        const dz = position.z - this.position.z;
+        if (dx === 0 && dz === 0) return;
+        this.yaw = (Math.atan2(dz, dx) * 180) / Math.PI - 90;
+    }
+
+    /**
      * Advances the walk by one tick.
      *
      * The step uses the entity's `minecraft:movement` on land and
@@ -814,7 +825,7 @@ export class MobBody {
                 if (this.hopWait > 0) {
                     this.hopWait -= 1;
                     this.rest();
-                    this.lookAt(destination);
+                    this.faceToward(destination);
                     return;
                 }
                 // This tick is the take-off, and it already travels as a tick on the ground.
@@ -846,7 +857,10 @@ export class MobBody {
 
             this.position = resolved;
         }
-        this.lookAt(destination);
+        // A walker on land turns toward its waypoint, which lies at its feet, and keeps the pitch
+        // its goal's look gave it: looking at the waypoint aimed it at the ground beside it.
+        if (options === undefined || options.allowVertical) this.lookAt(destination);
+        else this.faceToward(destination);
     }
 }
 
