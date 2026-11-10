@@ -56,6 +56,9 @@ import type { BlockMining } from './world/BlockMining';
 import CoordinateUtils from './world/CoordinateUtils';
 import { DEFAULT_VIEW_DISTANCE_CHUNKS } from './world/Proximity';
 import { logLegacyWrite } from './entity/legacyAdapter';
+import type { ExperienceHolder } from './entity/Experience';
+import { PlayerComponents } from './entity/playerComponents';
+import type { PlainData } from './world/changelog/PlainData';
 
 /**
  * How much exhaustion buys one point of saturation, and then of food.
@@ -183,13 +186,46 @@ export default class Player extends Human {
     public viewDistance = 0;
     public gamemode: Gametype = Gametype.WORLD_DEFAULT;
 
-    private onGround = false;
-    private flying = false;
-    private sneaking = false;
-    private sleeping = false;
+    /**
+     * Vitals, experience, abilities, movement flags, the spawn point and an item use in progress,
+     * each written through a setter the change log hears. The fields below read and write it.
+     */
+    private readonly components = new PlayerComponents(this.attributes, (field, before, after) =>
+        logLegacyWrite(this, field, before, after)
+    );
+
+    private get onGround(): boolean {
+        return this.components.get('movement.onGround');
+    }
+    private set onGround(onGround: boolean) {
+        this.components.set('movement.onGround', onGround);
+    }
+    private get flying(): boolean {
+        return this.components.get('abilities.flying');
+    }
+    private set flying(flying: boolean) {
+        this.components.set('abilities.flying', flying);
+    }
+    private get sneaking(): boolean {
+        return this.components.get('movement.sneaking');
+    }
+    private set sneaking(sneaking: boolean) {
+        this.components.set('movement.sneaking', sneaking);
+    }
+    private get sleeping(): boolean {
+        return this.components.get('movement.sleeping');
+    }
+    private set sleeping(sleeping: boolean) {
+        this.components.set('movement.sleeping', sleeping);
+    }
 
     /** Ticks spent with no breath left, counting towards the next lungful of damage. */
-    private drowningTicks = 0;
+    private get drowningTicks(): number {
+        return this.components.get('vitals.drowningTicks');
+    }
+    private set drowningTicks(ticks: number) {
+        this.components.set('vitals.drowningTicks', ticks);
+    }
 
     /** What the client was last told about the player's breath - see `syncBreath`. */
     private sentAir = MAX_AIR_TICKS;
@@ -247,7 +283,12 @@ export default class Player extends Human {
      * across a logout on the player record. See {@link Player.getRespawnPoint} for when a
      * stored point stops being used.
      */
-    private spawnPoint: StoredSpawnPoint | undefined;
+    private get spawnPoint(): StoredSpawnPoint | undefined {
+        return this.components.get('respawn.spawnPoint') ?? undefined;
+    }
+    private set spawnPoint(spawn: StoredSpawnPoint | undefined) {
+        this.components.set('respawn.spawnPoint', spawn ?? null);
+    }
 
     /**
      * Whether this player has watched the end credits, Java's `seenCredits` and Bedrock's
@@ -256,7 +297,12 @@ export default class Player extends Human {
      * Set when the credits start on a first exit through the End's portal and kept on the
      * player record, so every later exit transfers at once.
      */
-    private seenCredits = false;
+    private get seenCredits(): boolean {
+        return this.components.get('respawn.seenCredits');
+    }
+    private set seenCredits(seen: boolean) {
+        this.components.set('respawn.seenCredits', seen);
+    }
 
     public platformChatId = ''; // TODO: read this value from Login
     public device: Device | null = null;
@@ -989,6 +1035,19 @@ export default class Player extends Human {
         );
     }
 
+    /**
+     * This player's experience, as the level and the bar the client is sent, written through
+     * setters the change log hears.
+     */
+    public getExperience(): ExperienceHolder {
+        return this.components.experience();
+    }
+
+    /** Writes a logged component field back; any other field is a human's. */
+    public override restoreLoggedField(field: string, value: PlainData): boolean {
+        return this.components.restore(field, value) || super.restoreLoggedField(field, value);
+    }
+
     /** This player's own spawn point, or undefined when they come back at the world spawn. */
     public getSpawnPoint(): StoredSpawnPoint | undefined {
         return this.spawnPoint;
@@ -1240,7 +1299,7 @@ export default class Player extends Human {
      * @returns {number} The food level.
      */
     public getFood(): number {
-        return this.attributes.getValue(AttributeIds.PlayerHunger);
+        return this.components.get('vitals.food');
     }
 
     /**
@@ -1248,7 +1307,7 @@ export default class Player extends Human {
      * @param {number} food - The wanted food level.
      */
     public setFood(food: number): void {
-        this.attributes.setValue(AttributeIds.PlayerHunger, food);
+        this.components.set('vitals.food', food);
     }
 
     /**
@@ -1256,7 +1315,7 @@ export default class Player extends Human {
      * @returns {number} The saturation level.
      */
     public getSaturation(): number {
-        return this.attributes.getValue(AttributeIds.PlayerSaturation);
+        return this.components.get('vitals.saturation');
     }
 
     /**
@@ -1265,7 +1324,7 @@ export default class Player extends Human {
      * @param {number} saturation - The wanted saturation.
      */
     public setSaturation(saturation: number): void {
-        this.attributes.setValue(AttributeIds.PlayerSaturation, Math.min(saturation, this.getFood()));
+        this.components.set('vitals.saturation', Math.min(saturation, this.getFood()));
     }
 
     /**
@@ -1293,7 +1352,7 @@ export default class Player extends Human {
     public addExhaustion(amount: number): void {
         if (!this.consumesFood() || !this.isAlive() || amount <= 0) return;
 
-        let exhaustion = this.attributes.getValue(AttributeIds.PlayerExhaustion) + amount;
+        let exhaustion = this.components.get('vitals.exhaustion') + amount;
 
         while (exhaustion >= EXHAUSTION_PER_FOOD_POINT) {
             exhaustion -= EXHAUSTION_PER_FOOD_POINT;
@@ -1303,7 +1362,7 @@ export default class Player extends Human {
             else this.setFood(this.getFood() - 1);
         }
 
-        this.attributes.setValue(AttributeIds.PlayerExhaustion, exhaustion);
+        this.components.set('vitals.exhaustion', exhaustion);
     }
 
     /**
@@ -1400,7 +1459,12 @@ export default class Player extends Human {
      * `PlayerAuthInputPacket` reports, so it cannot know a fall's length except by adding up
      * what it is told.
      */
-    private fallDistance = 0;
+    private get fallDistance(): number {
+        return this.components.get('vitals.fallDistance');
+    }
+    private set fallDistance(distance: number) {
+        this.components.set('vitals.fallDistance', distance);
+    }
 
     /**
      * The meal the player has started, or null.
@@ -1446,7 +1510,12 @@ export default class Player extends Human {
      * Bedrock does not tell the server how long a bow was drawn for - it says "started" and later
      * "released", and the time between them is the charge. So it has to be measured here.
      */
-    private itemUseStartedAt: number | null = null;
+    private get itemUseStartedAt(): number | null {
+        return this.components.get('itemUse.startedAt');
+    }
+    private set itemUseStartedAt(tick: number | null) {
+        this.components.set('itemUse.startedAt', tick);
+    }
 
     /**
      * Notes that the player has started holding an item down.

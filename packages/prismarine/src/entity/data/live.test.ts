@@ -37,6 +37,7 @@ import HumanInventory from '../../inventory/HumanInventory';
 import { testEntityServer } from '../../testing/entityServer';
 import { fakeLevel } from '../../testing/level';
 import { stub } from '../../testing/stub.test.helper';
+import { withPlayerComponents } from '../../testing/playerDouble.test.helper';
 import { entityCommandHost } from '../../command/host/entities';
 import { Scoreboard } from '../../command/host/scoreboard';
 import type WorldManager from '../../world/WorldManager';
@@ -689,22 +690,24 @@ const flatChunk = (x: number, z: number): Chunk => {
 /** A player standing at a position, reserving its id from the server's shared counter. */
 const playerAt = (world: World, x: number, z: number): Player => {
     Entity.runtimeIdCount += 1n;
-    return Object.assign(Object.create(Player.prototype), {
-        position: new Position(x, GROUND_Y + EYE_HEIGHT, z, world),
-        pitch: 0,
-        yaw: 0,
-        headYaw: 0,
-        runtimeId: Entity.runtimeIdCount,
-        uuid: new UUID(0, 0, 0, Number(Entity.runtimeIdCount)),
-        // The world only hands out players it believes are still connected.
-        connected: true,
-        tags: new Set<string>(),
-        server: world.getServer(),
-        gamemode: Gametype.SURVIVAL,
-        statusEffects: new Map(),
-        metadata: { sprinting: false },
-        attributes: { getValue: () => 20, setValue: () => true, getAttribute: () => null }
-    });
+    return withPlayerComponents(
+        Object.assign(Object.create(Player.prototype), {
+            position: new Position(x, GROUND_Y + EYE_HEIGHT, z, world),
+            pitch: 0,
+            yaw: 0,
+            headYaw: 0,
+            runtimeId: Entity.runtimeIdCount,
+            uuid: new UUID(0, 0, 0, Number(Entity.runtimeIdCount)),
+            // The world only hands out players it believes are still connected.
+            connected: true,
+            tags: new Set<string>(),
+            server: world.getServer(),
+            gamemode: Gametype.SURVIVAL,
+            statusEffects: new Map(),
+            metadata: { sprinting: false },
+            attributes: { getValue: () => 20, setValue: () => true, getAttribute: () => null }
+        })
+    );
 };
 
 /** What the fixture records instead of putting it on a wire. */

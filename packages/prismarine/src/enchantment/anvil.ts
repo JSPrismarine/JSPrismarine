@@ -18,7 +18,6 @@ import { enchantmentsOf } from '@jsprismarine/enchantments';
 import type { ItemStack as PredicateItemStack } from '@jsprismarine/predicates';
 
 import type Player from '../Player';
-import { AttributeIds } from '@jsprismarine/protocol/wire/structures/Attribute';
 import { spendExperienceLevels } from '../entity/Experience';
 import type { Item } from '../item/Item';
 
@@ -112,12 +111,7 @@ export const takeFromAnvil = (
     // being refused, and it does not raise the prior work penalty.
     if (!unlimited && preview.cost >= ANVIL_LEVEL_CEILING && !preview.onlyRenaming) return undefined;
 
-    const holder = {
-        getLevel: () => player.attributes.getValue(AttributeIds.PlayerLevel),
-        getProgress: () => player.attributes.getValue(AttributeIds.PlayerExperience),
-        setLevel: (level: number) => player.attributes.setValue(AttributeIds.PlayerLevel, level),
-        setProgress: (progress: number) => player.attributes.setValue(AttributeIds.PlayerExperience, progress)
-    };
+    const holder = player.getExperience();
     if (!unlimited && preview.cost > 0 && !spendExperienceLevels(holder, preview.cost)) return undefined;
 
     return { stack: preview.stack, cost: preview.cost, materialCost: preview.materialCost };

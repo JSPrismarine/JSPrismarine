@@ -13,12 +13,13 @@
  *    `World.entityRelocated`, which refiles the entity in `EntityIndex` and logs the move here.
  * 3. to 5. Damage, effects, knockback and identity reach a legacy player by id through
  *    `EntityHostFacts` (`entity/data/host.ts` and `entity/data/live.ts`), unchanged.
- * 6. Change log entries for a legacy entity's position, health and a player's game mode and hand
- *    slot, through {@link logLegacyWrite}, one `inventory-slot` entry for each write to a slot a
- *    player carries, through {@link logLegacySlot}, and the writer that undoes them,
- *    {@link legacyInverseWriter}. A player's containers are the main inventory, the armor, the off
- *    hand, the ender chest, the cursor and the crafting grid, and each slot's value is the stack's
- *    saved form, so an undo restores what a save keeps.
+ * 6. Change log entries for a legacy entity's position, health and a player's game mode, hand
+ *    slot and component fields (`entity/playerComponents.ts`), through {@link logLegacyWrite}; one
+ *    `inventory-slot` entry for each write to a slot a player carries, through
+ *    {@link logLegacySlot}; and the writer that undoes them, {@link legacyInverseWriter}. A
+ *    player's containers are the main inventory, the armor, the off hand, the ender chest, the
+ *    cursor and the crafting grid, and each slot's value is the stack's saved form, so an undo
+ *    restores what a save keeps.
  * 7. Store entities shown to legacy sessions. The mirror in `entity/data/liveBodies.ts` does this
  *    until slice 4 deletes it.
  *
@@ -31,13 +32,14 @@ import { AttributeIds } from '@jsprismarine/protocol/wire/structures/Attribute';
 import type { EntityStore, InverseWriter } from './data/EntityStore';
 import type { Entity } from './Entity';
 import type { PlayerContainer, SlotValue } from '../inventory/slotLog';
+import type { PlayerComponentField } from './playerComponents';
 import { Position } from '../world/Position';
 import type { World } from '../world/World';
 import { isPlainRecord } from '../world/changelog/PlainData';
 import type { PlainData } from '../world/changelog/PlainData';
 
 /** The fields this adapter logs for a legacy entity. */
-export type LegacyField = 'position' | 'health' | 'gamemode' | 'inventory.handSlot';
+export type LegacyField = 'position' | 'health' | 'gamemode' | 'inventory.handSlot' | PlayerComponentField;
 
 /**
  * The store a write to a legacy entity is logged in, or undefined when it is not logged.

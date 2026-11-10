@@ -14,6 +14,7 @@ import { ItemActorBody } from '../entity/data/itemBodies';
 import type { ItemBodies } from '../entity/data/itemBodies';
 import { testEntityServer } from '../testing/entityServer';
 import { stub, stubOf } from '../testing/stub.test.helper';
+import { withPlayerComponents } from '../testing/playerDouble.test.helper';
 import Chunk from './chunk/Chunk';
 import { Dimensions } from './Dimension';
 import { Position } from './Position';
@@ -80,11 +81,13 @@ const droppedItem = (
 /** A player with no connection, which is all a position write needs. */
 const playerAt = async (world: World, x: number, z: number): Promise<Player> => {
     const runtimeId = nextLegacyId++;
-    const player = stubOf(Player, {
-        getRuntimeId: () => runtimeId,
-        getType: () => 'minecraft:player',
-        isOnline: () => true
-    });
+    const player = withPlayerComponents(
+        stubOf(Player, {
+            getRuntimeId: () => runtimeId,
+            getType: () => 'minecraft:player',
+            isOnline: () => true
+        })
+    );
     await player.setPlayerPosition({ position: new Position(x, Y, z, world), type: PositionMode.Teleport }, false);
     return player;
 };

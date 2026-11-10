@@ -13,7 +13,6 @@
  */
 import type { RewardHooks } from '@jsprismarine/advancements';
 
-import { AttributeIds } from '@jsprismarine/protocol/wire/structures/Attribute';
 import { addExperiencePoints } from '../entity/Experience';
 import { playerOfSubject } from './subject';
 
@@ -28,14 +27,6 @@ export const advancementRewards = (): RewardHooks => ({
         const player = playerOfSubject(subject);
         if (!player) return;
 
-        addExperiencePoints(
-            {
-                getLevel: () => player.attributes.getValue(AttributeIds.PlayerLevel),
-                getProgress: () => player.attributes.getValue(AttributeIds.PlayerExperience),
-                setLevel: (level) => player.attributes.setValue(AttributeIds.PlayerLevel, level),
-                setProgress: (progress) => player.attributes.setValue(AttributeIds.PlayerExperience, progress)
-            },
-            amount
-        );
+        addExperiencePoints(player.getExperience(), amount);
     }
 });

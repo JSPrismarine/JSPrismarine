@@ -34,6 +34,7 @@ import SetTitlePacket from '@jsprismarine/protocol/packet/SetTitlePacket';
 import type { PermissionManager } from '../../permission/PermissionManager';
 import type PlayerSession from '../../network/PlayerSession';
 import { stub, stubOf } from '../../testing/stub.test.helper';
+import { withPlayerComponents } from '../../testing/playerDouble.test.helper';
 import { LootRegistry, javaLootTables } from '@jsprismarine/loot';
 import { loadRecipes } from '@jsprismarine/recipes';
 import { RemoveObjectivePacket, SetDisplayObjectivePacket, SetScorePacket } from '@jsprismarine/protocol';
@@ -311,26 +312,28 @@ const playerAt = (fixture: Fixture, id: bigint, name: string, position: Vector3)
         sendAttributes: async () => {},
         changeWorld: vi.fn().mockResolvedValue(undefined)
     });
-    const player = stubOf(Player, {
-        getRuntimeId: () => id,
-        getType: () => 'minecraft:player',
-        getName: () => name,
-        getPosition: () => Position.fromVector3(position, fixture.world),
-        getFeetY: () => position.getY(),
-        getWorld: () => fixture.world,
-        isAlive: () => true,
-        gamemode: Gametype.SURVIVAL,
-        setGamemode: vi.fn().mockResolvedValue(undefined),
-        setPlayerPosition: vi.fn().mockResolvedValue(undefined),
-        kick: vi.fn().mockResolvedValue(undefined),
-        sendMessage: vi.fn().mockResolvedValue(undefined),
-        getInventory: () => inventory,
-        attributes: new Attributes(Attributes.getPlayerDefaults()),
-        getNetworkSession: () => session,
-        yaw: 0,
-        pitch: 0,
-        headYaw: 0
-    });
+    const player = withPlayerComponents(
+        stubOf(Player, {
+            getRuntimeId: () => id,
+            getType: () => 'minecraft:player',
+            getName: () => name,
+            getPosition: () => Position.fromVector3(position, fixture.world),
+            getFeetY: () => position.getY(),
+            getWorld: () => fixture.world,
+            isAlive: () => true,
+            gamemode: Gametype.SURVIVAL,
+            setGamemode: vi.fn().mockResolvedValue(undefined),
+            setPlayerPosition: vi.fn().mockResolvedValue(undefined),
+            kick: vi.fn().mockResolvedValue(undefined),
+            sendMessage: vi.fn().mockResolvedValue(undefined),
+            getInventory: () => inventory,
+            attributes: new Attributes(Attributes.getPlayerDefaults()),
+            getNetworkSession: () => session,
+            yaw: 0,
+            pitch: 0,
+            headYaw: 0
+        })
+    );
     Object.defineProperty(player, 'tags', { value: new Set<string>(), writable: false });
     fixture.entities.push(player);
     fixture.players.push(player);

@@ -6,6 +6,7 @@ import { PositionMode } from '@jsprismarine/protocol';
 import Player from './Player';
 import { DamageCause } from './entity/Entity';
 import { Position } from './world/Position';
+import { withPlayerComponents } from './testing/playerDouble.test.helper';
 
 /**
  * Fall damage.
@@ -31,9 +32,6 @@ const fallingPlayer = ({ gamemode = Gametype.SURVIVAL, landingOn = 'minecraft:st
 
     const player: Player = Object.assign(Object.create(Player.prototype), {
         gamemode,
-        flying,
-        onGround: false,
-        fallDistance: 0,
         // A real `Position`, because `Entity.setPosition` reads the world off the one it replaces.
         position: new Position(0, 100, 0, world),
         pitch: 0,
@@ -51,6 +49,8 @@ const fallingPlayer = ({ gamemode = Gametype.SURVIVAL, landingOn = 'minecraft:st
         addMovementExhaustion: () => {},
         consumesFood: () => false
     });
+    // After the components, which the fall bookkeeping reads and writes through.
+    Object.assign(withPlayerComponents(player), { flying, onGround: false, fallDistance: 0 });
 
     /** Walks the player down from one height to another, a block at a time, then lands. */
     const fall = async (from: number, to: number) => {
