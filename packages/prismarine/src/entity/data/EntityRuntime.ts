@@ -617,7 +617,10 @@ export class EntityRuntime implements EntityScene {
             gameRule: (rule: 'fireDamage') => rule === 'fireDamage' && ruleIsOn(this.world.level, FIRE_DAMAGE),
             grace: (id: number) => this.hitGraces.get(id),
             mitigation: (target: DataEntity, intent: DamageIntent) => this.host.damageMitigation?.(target, intent),
-            canAttack: (attacker: DataEntity, target: DataEntity) => canEntityAttack(attacker.instance, target.instance)
+            canAttack: (attacker: DataEntity, target: DataEntity) =>
+                canEntityAttack(attacker.instance, target.instance),
+            resists: (target: DataEntity, cause: string) =>
+                isDroppedItem(target) && this.droppedItems.resistsDamage(target, cause)
         };
         this.damageSensing = new DamageSensingSlot(damageReads);
         this.damagePipeline = new DamagePipeline({
@@ -649,6 +652,15 @@ export class EntityRuntime implements EntityScene {
             resists: (name, tag) => resistsDamageOf(name, tag, this.content()),
             maxCount: (name) => maxStackSizeOf(name, this.content()),
             remove: (id, reason) => this.remove(id, reason),
+            damage: (id, amount, cause) => {
+                const outcome = this.damage({
+                    target: id,
+                    cause,
+                    amount,
+                    source: { route: 'item', feedback: false, remembered: false }
+                });
+                return outcome.committed && outcome.taken > 0;
+            },
             give: (playerId, itemId, stack) =>
                 this.host.givePlayerItem?.(playerId, itemId, itemDropOf(stack)) ?? stack.count,
             stackChanged: (itemId, count) => this.host.itemStackChanged?.(itemId, count)
