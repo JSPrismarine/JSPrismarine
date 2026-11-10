@@ -57,7 +57,7 @@ export default class InteractHandler implements PacketHandler<InteractPacket> {
             }
 
             case InteractAction.NpcOpen: {
-                const target = player.getWorld().getEntity(packet.target);
+                const target = player.getWorld().getActor(packet.target);
                 if (target === null || !session.tracks(packet.target)) {
                     server
                         .getLogger()

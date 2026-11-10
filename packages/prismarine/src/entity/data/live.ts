@@ -765,7 +765,7 @@ export class LiveEntityRuntime {
      * @param shooter - The live entity that used the item.
      * @returns The spawned projectile, or undefined when its loaded definition is not a projectile.
      */
-    public launchProjectile(action: LaunchProjectileAction, shooter: Entity): DataEntity | undefined {
+    public launchProjectile(action: LaunchProjectileAction, shooter: WorldActor): DataEntity | undefined {
         const position = shooter.getPosition();
         const eyeOffset =
             shooter.getType() === 'minecraft:player' ? 0 : shooter.getBox().height * PROJECTILE_EYE_HEIGHT_FRACTION;
@@ -806,47 +806,47 @@ export class LiveEntityRuntime {
     /**
      * Whether this live body is a data-driven entity that accepts a name tag.
      *
-     * @param target - The client-facing body.
+     * @param target - The entity, a store entity through its actor.
      * @returns Whether its runtime entity accepts name tags.
      */
-    public canNameEntity(target: Entity): boolean {
-        const id = this.bodies.entityIdOf(target);
+    public canNameEntity(target: WorldActor): boolean {
+        const id = this.storeEntityOf(target)?.id;
         return id !== undefined && this.runtime.canNameEntity(id);
     }
 
     /**
      * Names a live body through its data-driven runtime entity.
      *
-     * @param target - The client-facing body.
+     * @param target - The entity, a store entity through its actor.
      * @param name - The custom name being assigned.
      * @returns Whether the runtime accepted the name tag.
      */
-    public nameEntity(target: Entity, name: string): boolean {
-        const id = this.bodies.entityIdOf(target);
+    public nameEntity(target: WorldActor, name: string): boolean {
+        const id = this.storeEntityOf(target)?.id;
         return id !== undefined && this.runtime.nameEntity(id, name);
     }
 
     /**
      * Whether this live body is a data-driven entity that accepts the requested dye.
      *
-     * @param target - The client-facing body.
+     * @param target - The entity, a store entity through its actor.
      * @param color - The dye color name.
      * @returns Whether the runtime entity accepts the dye.
      */
-    public canDyeEntity(target: Entity, color: string): boolean {
-        const id = this.bodies.entityIdOf(target);
+    public canDyeEntity(target: WorldActor, color: string): boolean {
+        const id = this.storeEntityOf(target)?.id;
         return id !== undefined && this.runtime.canDyeEntity(id, color);
     }
 
     /**
      * Applies a supported dye through the live data-driven entity runtime.
      *
-     * @param target - The client-facing body.
+     * @param target - The entity, a store entity through its actor.
      * @param color - The dye color name.
      * @returns Whether the runtime changed the color.
      */
-    public dyeEntity(target: Entity, color: string): boolean {
-        const id = this.bodies.entityIdOf(target);
+    public dyeEntity(target: WorldActor, color: string): boolean {
+        const id = this.storeEntityOf(target)?.id;
         return id !== undefined && this.runtime.dyeEntity(id, color);
     }
 
@@ -857,7 +857,7 @@ export class LiveEntityRuntime {
      * `Villager.mobInteract` leaves them. Everything else on a trader that has offers opens the
      * screen, and one that has none or is a baby does nothing.
      */
-    private openTradeScreen(id: number, trader: Entity, player: Entity, itemIdentifier: string): boolean {
+    private openTradeScreen(id: number, trader: WorldActor, player: WorldActor, itemIdentifier: string): boolean {
         if (!(player instanceof Player) || itemIdentifier.endsWith('_spawn_egg') || player.isSneaking()) return false;
         const entity = this.runtime.byId(id);
         if (entity === undefined) return false;
@@ -904,12 +904,12 @@ export class LiveEntityRuntime {
 
     /** Applies a held item to a data-driven entity and carries out its world, item, and animation effects. */
     public interactWithItem(
-        target: Entity,
-        player: Entity,
+        target: WorldActor,
+        player: WorldActor,
         itemIdentifier: string,
         heldItem?: ContentItemDrop
     ): EntityItemInteraction {
-        const id = this.bodies.entityIdOf(target);
+        const id = this.storeEntityOf(target)?.id;
         if (id === undefined) return { accepted: false };
 
         if (this.openTradeScreen(id, target, player, itemIdentifier))

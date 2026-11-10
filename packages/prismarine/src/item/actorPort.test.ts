@@ -67,7 +67,7 @@ const playerDouble = (recorded: Recorded): Player =>
 /** A world reduced to the entity lookup, the block read, the logger, and what a thrown eye needs. */
 const worldDouble = (player: Player, recorded: Recorded, target?: Entity): World =>
     ({
-        getEntity: (runtimeId: bigint) =>
+        getActor: (runtimeId: bigint) =>
             runtimeId === 7n ? (player as unknown as Entity) : runtimeId === 9n ? (target ?? null) : null,
         loadedBlockAt: () => ({ name: 'minecraft:air', states: {} }),
         getServer: () => ({
