@@ -13,9 +13,9 @@ import type { Vector3 } from '@jsprismarine/math';
 import SetSpawnPositionPacket, { SpawnPositionType } from '@jsprismarine/protocol/packet/SetSpawnPositionPacket';
 import { OVERWORLD_STEM_ID } from '@jsprismarine/worldgen';
 
-import type Player from '../Player';
 import { Dimensions, dimensionByName } from '../world/Dimension';
 import type { Level } from '../world/Level';
+import type { StoredSpawnPoint } from '../world/RespawnPoint';
 import type { World } from '../world/World';
 
 /**
@@ -59,13 +59,14 @@ export const overworldSpawnOf = async (world: World): Promise<Vector3> => {
 /**
  * The `SetSpawnPosition` for a player in a world, as a `PlayerRespawn` point.
  *
+ * @param player - Whose spawn point the packet carries, when it has one.
  * @param world - The world the player is in, whose level resolves the dimension of a spawn
  *   point of the player's own.
  * @param overworldSpawn - The level's Overworld spawn, from {@link overworldSpawnOf}, which
  *   answers for a player with no spawn point of their own.
  */
 export const playerSpawnPositionPacket = (
-    player: Player,
+    player: { getSpawnPoint(): StoredSpawnPoint | undefined },
     world: World,
     overworldSpawn: Vector3
 ): SetSpawnPositionPacket => {
