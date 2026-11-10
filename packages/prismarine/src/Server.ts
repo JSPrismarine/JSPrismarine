@@ -52,6 +52,7 @@ import { worldSeedOf } from './utils/Seed';
 import { attachProfiler, ServerProfiler } from './profiling/ServerProfiler';
 import { finishStartupPhase, startStartupPhase } from './profiling/startupPhase';
 import ChunkScheduler from './world/ChunkScheduler';
+import { RespawnRequests } from './world/RespawnRequests';
 import { ChunkCompletionQueue } from './world/ChunkCompletionQueue';
 import { GenerationGovernorDriver } from './world/GenerationGovernorDriver';
 import { DimensionTravel } from './world/portal/DimensionTravel';
@@ -135,6 +136,8 @@ export default class Server extends EventEmitter {
     });
     /** Budgets background chunk promotion and lighting independently from network sends. */
     private readonly chunkCompletionQueue: ChunkCompletionQueue;
+    /** Respawn searches deaths filed, whose answers the next input step applies. */
+    private readonly respawnRequests = new RespawnRequests((error) => this.logger.error(error));
     /**
      * The network's view of each world: who is watching it, and what they are told.
      *
@@ -290,7 +293,8 @@ export default class Server extends EventEmitter {
             // once, because the step cannot finish without it.
             admitInputs: async () =>
                 (await this.networking.admitInputs()) +
-                (await this.chunkCompletionQueue.admissions.admit(this.getTick())),
+                (await this.chunkCompletionQueue.admissions.admit(this.getTick())) +
+                (await this.respawnRequests.admit()),
             pollNetwork: () => this.networking.pollInbound(),
             // The levels, not the worlds: a level advances its clock once and ticks each of its worlds.
             getWorlds: () => this.worldManager.getLevels(),
@@ -898,6 +902,14 @@ export default class Server extends EventEmitter {
      */
     public getRaknet(): RakNetListenerLike | undefined {
         return this.networking.getListener();
+    }
+
+    /**
+     * The respawn searches deaths filed, whose answers the next input step applies.
+     * @returns {RespawnRequests} The requests.
+     */
+    public getRespawnRequests(): RespawnRequests {
+        return this.respawnRequests;
     }
 
     /**
