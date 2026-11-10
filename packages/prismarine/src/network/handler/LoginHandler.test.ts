@@ -13,6 +13,7 @@ import type BanManager from '../../ban/BanManager';
 import type { Config } from '../../config/Config';
 import type { PermissionManager } from '../../permission/PermissionManager';
 import { stub } from '../../testing/stub.test.helper';
+import { plainCapabilities } from '../../testing/manualTransport.test.helper';
 import type { ChunkScheduler } from '../../world/ChunkScheduler';
 import type { World } from '../../world/World';
 import type WorldManager from '../../world/WorldManager';
@@ -239,6 +240,7 @@ describe('network', () => {
                         getAddress: () => stub<InetAddress>({ toToken: () => 'token' }),
                         phase: 'login',
                         resumeLogin: null,
+                        transportCapabilities: plainCapabilities,
                         sendDataPacket: async () => {},
                         startEncryption: () => {},
                         attachPlayerSession: vi.fn(),
@@ -366,13 +368,14 @@ describe('network', () => {
                     .publicKey.export({ type: 'spki', format: 'der' })
                     .toString('base64');
 
-                const encrypting = () => {
+                const encrypting = (transportEncrypts = false) => {
                     const sent: string[] = [];
                     const started: EncryptionCodec[] = [];
                     const stubbed = stub<ClientConnection>({
                         codec: Codec2193,
                         phase: 'login',
                         resumeLogin: null,
+                        transportCapabilities: { ...plainCapabilities, encrypted: transportEncrypts },
                         getAddress: () => stub<InetAddress>({ toToken: () => 'token' }),
                         sendDataPacket: async (packet) => void sent.push(packet.constructor.name),
                         startEncryption: (codec) => void started.push(codec),
@@ -394,6 +397,22 @@ describe('network', () => {
 
                     expect(sent).toEqual([ServerToClientHandshakePacket.name]);
                     expect(started).toHaveLength(1);
+                    expect(held.phase).toBe('encryption');
+                    expect(held.attachPlayerSession).not.toHaveBeenCalled();
+                });
+
+                it('sends the handshake but leaves encryption off when the transport encrypts the wire', async () => {
+                    // Bedrock Dedicated Server over NetherNet: the handshake, then batches in the clear.
+                    const { connection: held, sent, started } = encrypting(true);
+
+                    await new LoginHandler().handle(
+                        loginPacket('runner', IDENTITY, undefined, identityKey),
+                        server,
+                        held
+                    );
+
+                    expect(sent).toEqual([ServerToClientHandshakePacket.name]);
+                    expect(started).toHaveLength(0);
                     expect(held.phase).toBe('encryption');
                     expect(held.attachPlayerSession).not.toHaveBeenCalled();
                 });
