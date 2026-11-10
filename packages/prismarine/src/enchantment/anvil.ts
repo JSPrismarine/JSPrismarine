@@ -17,8 +17,8 @@ import type { AnvilResult, EnchantmentRegistry } from '@jsprismarine/enchantment
 import { enchantmentsOf } from '@jsprismarine/enchantments';
 import type { ItemStack as PredicateItemStack } from '@jsprismarine/predicates';
 
-import type Player from '../Player';
 import { spendExperienceLevels } from '../entity/Experience';
+import type { ExperienceHolder } from '../entity/Experience';
 import type { Item } from '../item/Item';
 
 /** Levels at or above which the anvil refuses, unless the player has unlimited materials. */
@@ -100,7 +100,7 @@ export interface AnvilOutcome {
  */
 export const takeFromAnvil = (
     registry: EnchantmentRegistry,
-    player: Player,
+    player: { getExperience(): ExperienceHolder },
     attempt: AnvilAttempt
 ): AnvilOutcome | undefined => {
     const preview = anvilPreview(registry, attempt);
