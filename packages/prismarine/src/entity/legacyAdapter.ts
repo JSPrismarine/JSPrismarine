@@ -13,11 +13,12 @@
  *    `World.entityRelocated`, which refiles the entity in `EntityIndex` and logs the move here.
  * 3. to 5. Damage, effects, knockback and identity reach a legacy player by id through
  *    `EntityHostFacts` (`entity/data/host.ts` and `entity/data/live.ts`), unchanged.
- * 6. Change log entries for a legacy entity's position, health and a player's game mode, through
- *    {@link logLegacyWrite}, and the writer that undoes them, {@link legacyInverseWriter}.
- *    Inventory slots are not logged: a slot changes by mutating the `Item` in place, and
- *    `Inventory` does not know its owner, so the digest covers a player's inventory only through
- *    the snapshot `World.replayStateDigest` hashes.
+ * 6. Change log entries for a legacy entity's position, health and a player's game mode and hand
+ *    slot, through {@link logLegacyWrite}, one `inventory-slot` entry for each write to a slot a
+ *    player carries, through {@link logLegacySlot}, and the writer that undoes them,
+ *    {@link legacyInverseWriter}. A player's containers are the main inventory, the armor, the off
+ *    hand, the ender chest, the cursor and the crafting grid, and each slot's value is the stack's
+ *    saved form, so an undo restores what a save keeps.
  * 7. Store entities shown to legacy sessions. The mirror in `entity/data/liveBodies.ts` does this
  *    until slice 4 deletes it.
  *
@@ -27,21 +28,35 @@
 import { getGametypeId } from '@jsprismarine/minecraft';
 import { AttributeIds } from '@jsprismarine/protocol/wire/structures/Attribute';
 
-import type { InverseWriter } from './data/EntityStore';
+import type { EntityStore, InverseWriter } from './data/EntityStore';
 import type { Entity } from './Entity';
+import type { PlayerContainer, SlotValue } from '../inventory/slotLog';
 import { Position } from '../world/Position';
 import type { World } from '../world/World';
 import { isPlainRecord } from '../world/changelog/PlainData';
 import type { PlainData } from '../world/changelog/PlainData';
 
 /** The fields this adapter logs for a legacy entity. */
-export type LegacyField = 'position' | 'health' | 'gamemode';
+export type LegacyField = 'position' | 'health' | 'gamemode' | 'inventory.handSlot';
+
+/**
+ * The store a write to a legacy entity is logged in, or undefined when it is not logged.
+ *
+ * An entity the world does not hold, such as one still being built, and a data-driven mirror
+ * body are not logged.
+ */
+const legacyStoreOf = (entity: Entity): EntityStore | undefined => {
+    const world = entity.getWorld();
+    // A test's partial world double has no store to log into; a world without an entity runtime
+    // for its dimension has none either.
+    if (typeof world.getEntityStore !== 'function' || !world.hasEntityStore()) return undefined;
+    if (world.getEntity(entity.getRuntimeId()) !== entity) return undefined;
+    if (world.dataEntities().bodies.entityIdOf(entity) !== undefined) return undefined;
+    return world.getEntityStore();
+};
 
 /**
  * Logs one write to a legacy entity's state in the change log of the world it is in.
- *
- * An entity the world does not hold, such as one still being built, and a data-driven mirror
- * body are skipped.
  *
  * @param entity - The entity written to.
  * @param field - Which field.
@@ -49,13 +64,26 @@ export type LegacyField = 'position' | 'health' | 'gamemode';
  * @param after - Its value after the write.
  */
 export const logLegacyWrite = (entity: Entity, field: LegacyField, before: unknown, after: unknown): void => {
-    const world = entity.getWorld();
-    // A test's partial world double has no store to log into; a world without an entity runtime
-    // for its dimension has none either.
-    if (typeof world.getEntityStore !== 'function' || !world.hasEntityStore()) return;
-    if (world.getEntity(entity.getRuntimeId()) !== entity) return;
-    if (world.dataEntities().bodies.entityIdOf(entity) !== undefined) return;
-    world.getEntityStore().writtenLegacy(entity.getRuntimeId(), field, before, after);
+    legacyStoreOf(entity)?.writtenLegacy(entity.getRuntimeId(), field, before, after);
+};
+
+/**
+ * Logs one write to a slot a legacy player carries in the change log of the world it is in.
+ *
+ * @param entity - The player written to.
+ * @param container - The container the slot is in.
+ * @param slot - The slot.
+ * @param before - The slot's logged value before the write.
+ * @param after - Its logged value after the write.
+ */
+export const logLegacySlot = (
+    entity: Entity,
+    container: PlayerContainer,
+    slot: number,
+    before: SlotValue,
+    after: SlotValue
+): void => {
+    legacyStoreOf(entity)?.writtenSlot(entity.getRuntimeId(), container, slot, before, after);
 };
 
 /**
@@ -67,7 +95,12 @@ export const logLegacyWrite = (entity: Entity, field: LegacyField, before: unkno
 export const legacyInverseWriter =
     (world: World): InverseWriter =>
     (inverse) => {
-        if (inverse.kind !== 'field' || inverse.field !== 'entity') return false;
+        if (inverse.kind !== 'field') return false;
+        if (inverse.field === 'inventory-slot') {
+            const { entity, container, slot } = inverse.address;
+            return world.getEntity(entity)?.restoreLoggedSlot(container, slot, inverse.after) ?? false;
+        }
+        if (inverse.field !== 'entity') return false;
         const entity = world.getEntity(inverse.address.entity);
         if (entity === null) return false;
         const { field } = inverse.address;
@@ -86,7 +119,7 @@ export const legacyInverseWriter =
                 entity.gamemode = getGametypeId(numberIn(field, value));
                 return true;
         }
-        return false;
+        return entity.restoreLoggedField(field, value);
     };
 
 const numberIn = (field: string, value: PlainData): number => {

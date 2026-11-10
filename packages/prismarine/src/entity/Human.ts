@@ -1,7 +1,10 @@
 import CraftingInput from '../crafting/CraftingInput';
 import HumanInventory from '../inventory/HumanInventory';
+import { itemOfSlotValue, playerContainerNamed } from '../inventory/slotLog';
 import { Vector3 } from '@jsprismarine/math';
 import { Entity } from './Entity';
+import { logLegacySlot, logLegacyWrite } from './legacyAdapter';
+import type { PlainData } from '../world/changelog/PlainData';
 import type { Attribute } from '@jsprismarine/protocol/wire/structures/Attribute';
 import { Attributes } from '@jsprismarine/protocol/wire/structures/Attribute';
 import type { ViewableEquipment } from './predicateView';
@@ -30,6 +33,20 @@ export default class Human extends Entity {
 
     /** What is sitting in the crafting slots, whether the inventory's four or a table's nine. */
     protected readonly craftingInput = new CraftingInput();
+
+    /**
+     * A human's constructor. Every slot it carries, the hand slot and the crafting grid report
+     * their writes to the change log through the legacy adapter from here on.
+     * @param options - What {@link Entity} takes.
+     */
+    public constructor(options: ConstructorParameters<typeof Entity>[0]) {
+        super(options);
+        this.inventory.observeCarried({
+            slot: (container, slot, before, after) => logLegacySlot(this, container, slot, before, after),
+            handSlot: (before, after) => logLegacyWrite(this, 'inventory.handSlot', before, after)
+        });
+        this.craftingInput.observe((slot, before, after) => logLegacySlot(this, 'crafting', slot, before, after));
+    }
 
     /** A human has a food bar, experience and luck on top of what everything living has. */
     protected override getDefaultAttributes(): Attribute[] {
@@ -113,5 +130,24 @@ export default class Human extends Entity {
 
     public getCraftingInput(): CraftingInput {
         return this.craftingInput;
+    }
+
+    /** Writes a logged hand slot back; other fields are the entity's. */
+    public override restoreLoggedField(field: string, value: PlainData): boolean {
+        if (field !== 'inventory.handSlot') return super.restoreLoggedField(field, value);
+        if (typeof value !== 'number') throw new TypeError(`${field} cannot hold ${String(value)}`);
+        this.inventory.setHandSlot(value);
+        return true;
+    }
+
+    /** Writes a logged stack back into a slot of a container this human carries. */
+    public override restoreLoggedSlot(container: string, slot: number, value: PlainData): boolean {
+        const named = playerContainerNamed(container);
+        if (named === undefined) return false;
+        const content = this.getServer().getContent();
+        if (named !== 'crafting') return this.inventory.restoreSlot(named, slot, value, content);
+        if (!Number.isInteger(slot) || slot < 0 || slot >= CraftingInput.SLOTS) return false;
+        this.craftingInput.set(slot, itemOfSlotValue(value, content));
+        return true;
     }
 }
