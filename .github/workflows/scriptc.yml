@@ -9,10 +9,12 @@ env:
     GIT_CONFIG_KEY_0: init.defaultBranch
     GIT_CONFIG_VALUE_0: master
 
+# Once a day, not on every push to master: the build takes about half an hour of a runner that
+# the pushed commit's own checks then wait for, and its answer changes with a scriptc release or a
+# large server change, not commit by commit.
 on:
-    push:
-        branches:
-            - master
+    schedule:
+        - cron: '37 3 * * *'
     workflow_dispatch:
 
 concurrency:
