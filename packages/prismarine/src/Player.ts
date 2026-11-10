@@ -60,7 +60,8 @@ import {
     hungerOutcome,
     setSaturation
 } from './entity/playerHunger';
-import { breathe, refillBreath } from './entity/playerBreath';
+import { breathe } from './entity/playerBreath';
+import { diedVitals, respawnVitals } from './entity/playerRespawn';
 import { cushions, land, trackFall } from './entity/playerFall';
 import { beginMeal, cancelMeal, dueMeal } from './entity/playerMeal';
 import { consumeHeldItem } from './item/interaction';
@@ -197,14 +198,6 @@ export default class Player extends Human {
     }
     private set sleeping(sleeping: boolean) {
         this.components.set('movement.sleeping', sleeping);
-    }
-
-    /** Ticks spent with no breath left, counting towards the next lungful of damage. */
-    private get drowningTicks(): number {
-        return this.components.get('vitals.drowningTicks');
-    }
-    private set drowningTicks(ticks: number) {
-        this.components.set('vitals.drowningTicks', ticks);
     }
 
     /** What the client was last told about the player's breath - see `syncBreath`. */
@@ -905,7 +898,7 @@ export default class Player extends Human {
         // What the death commits comes before the first wait, so it lands inside the blow
         // that caused it: the counters, the death event and its advancement triggers, and the
         // respawn search filed below. The packets follow.
-        this.drowningTicks = 0;
+        diedVitals(this.survival);
         const stoppedMining = this.stopMining();
         const died = super.onDeath(source);
 
@@ -1083,21 +1076,15 @@ export default class Player extends Human {
             // Logged, so the revival is in the change log: the player's health and the
             // component fields the attributes hold come back here, and the entity never left.
             const health = this.getHealth();
-            this.components.reportingChanges(() => this.attributes.reset());
+            respawnVitals(this.survival);
             logLegacyWrite(this, 'health', health, this.getHealth());
-            refillBreath(this.survival);
             this.sentAir = this.metadata.air;
             this.sentBreathing = true;
 
-            // A fresh body is not running, crouching, flying or sleeping, and carries no leftover hurt.
-            // These survive a death because nothing resets them, and the client draws what it
-            // is told: still red, still lying down.
-            this.components.set('movement.sprinting', false);
+            // A fresh body carries no leftover hurt either, and the client draws what it is told:
+            // still red.
             this.metadata.setPropertyValue(MetadataFlag.HURT_TIME, FlagType.INT, 0);
             this.metadata.setPropertyValue(MetadataFlag.HURT_DIRECTION, FlagType.INT, 0);
-            this.sneaking = false;
-            this.sleeping = false;
-            this.flying = false;
 
             // Where the `ReadyToSpawn` put the client, and without a `MovePlayer`: a Bedrock
             // Dedicated Server sends none here, and the client is already there.
