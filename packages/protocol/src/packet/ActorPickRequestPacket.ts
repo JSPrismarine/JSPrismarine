@@ -1,3 +1,6 @@
+import { actorPickRequestPacket } from '../wire/definitions/actorPickRequest';
+import { layoutAt } from '../wire/WireLayout';
+
 import FieldNetworkPacket from '../FieldNetworkPacket';
 
 /**
@@ -20,15 +23,11 @@ export default class ActorPickRequestPacket extends FieldNetworkPacket {
 
     /** Reads the id, the slot count, and the data flag. */
     public decodePayload(): void {
-        this.actorId = this.readLongLE();
-        this.maxSlots = this.readByte();
-        this.withData = this.readBoolean();
+        Object.assign(this, layoutAt(actorPickRequestPacket, this.codecProtocol).decode(this));
     }
 
     /** Writes the id, the slot count, and the data flag. */
     public encodePayload(): void {
-        this.writeLongLE(this.actorId);
-        this.writeByte(this.maxSlots);
-        this.writeBoolean(this.withData);
+        layoutAt(actorPickRequestPacket, this.codecProtocol).encode(this, this);
     }
 }

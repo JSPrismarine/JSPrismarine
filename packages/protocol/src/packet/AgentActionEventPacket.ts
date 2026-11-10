@@ -1,5 +1,7 @@
 import NetworkPacket from '../NetworkPacket';
 import { PacketIdentifier } from '../PacketIdentifier';
+import { agentActionEventPacket } from '../wire/definitions/agentActionEvent';
+import { layoutAt } from '../wire/WireLayout';
 
 import type NetworkBinaryStream from '../NetworkBinaryStream';
 
@@ -58,16 +60,10 @@ export default class AgentActionEventPacket extends NetworkPacket<AgentActionEve
     }
 
     protected serializePayload(stream: NetworkBinaryStream, data: AgentActionEvent): void {
-        stream.writeString(data.requestId);
-        stream.writeIntLE(data.action);
-        stream.writeString(data.response);
+        layoutAt(agentActionEventPacket, this.codecProtocol).encode(stream, data);
     }
 
     protected deserializePayload(stream: NetworkBinaryStream): AgentActionEvent {
-        return {
-            requestId: stream.readString(),
-            action: stream.readIntLE(),
-            response: stream.readString()
-        };
+        return layoutAt(agentActionEventPacket, this.codecProtocol).decode(stream);
     }
 }

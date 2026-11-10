@@ -1,5 +1,7 @@
 import NetworkPacket from '../NetworkPacket';
 import { PacketIdentifier } from '../PacketIdentifier';
+import { changeMobPropertyPacket } from '../wire/definitions/changeMobProperty';
+import { layoutAt } from '../wire/WireLayout';
 
 import type NetworkBinaryStream from '../NetworkBinaryStream';
 
@@ -34,22 +36,10 @@ export default class ChangeMobPropertyPacket extends NetworkPacket<ChangeMobProp
     }
 
     protected serializePayload(stream: NetworkBinaryStream, data: ChangeMobProperty): void {
-        stream.writeVarLong(data.actorUniqueId);
-        stream.writeString(data.propertyName);
-        stream.writeBoolean(data.boolValue);
-        stream.writeString(data.stringValue);
-        stream.writeVarInt(data.intValue);
-        stream.writeFloatLE(data.floatValue);
+        layoutAt(changeMobPropertyPacket, this.codecProtocol).encode(stream, data);
     }
 
     protected deserializePayload(stream: NetworkBinaryStream): ChangeMobProperty {
-        return {
-            actorUniqueId: stream.readVarLong(),
-            propertyName: stream.readString(),
-            boolValue: stream.readBoolean(),
-            stringValue: stream.readString(),
-            intValue: stream.readVarInt(),
-            floatValue: stream.readFloatLE()
-        };
+        return layoutAt(changeMobPropertyPacket, this.codecProtocol).decode(stream);
     }
 }

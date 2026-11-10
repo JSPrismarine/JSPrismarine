@@ -1,5 +1,7 @@
 import NetworkPacket from '../NetworkPacket';
 import { PacketIdentifier } from '../PacketIdentifier';
+import { clientCameraAimAssistPacket } from '../wire/definitions/clientCameraAimAssist';
+import { layoutAt } from '../wire/WireLayout';
 
 import type NetworkBinaryStream from '../NetworkBinaryStream';
 
@@ -37,16 +39,10 @@ export default class ClientCameraAimAssistPacket extends NetworkPacket<ClientCam
     }
 
     protected serializePayload(stream: NetworkBinaryStream, data: ClientCameraAimAssist): void {
-        stream.writeString(data.cameraPresetId);
-        stream.writeByte(data.action);
-        stream.writeBoolean(data.allowAimAssist);
+        layoutAt(clientCameraAimAssistPacket, this.codecProtocol).encode(stream, data);
     }
 
     protected deserializePayload(stream: NetworkBinaryStream): ClientCameraAimAssist {
-        return {
-            cameraPresetId: stream.readString(),
-            action: stream.readByte(),
-            allowAimAssist: stream.readBoolean()
-        };
+        return layoutAt(clientCameraAimAssistPacket, this.codecProtocol).decode(stream);
     }
 }

@@ -1,3 +1,6 @@
+import { cameraPacket } from '../wire/definitions/camera';
+import { layoutAt } from '../wire/WireLayout';
+
 import FieldNetworkPacket from '../FieldNetworkPacket';
 
 /**
@@ -25,13 +28,11 @@ export default class CameraPacket extends FieldNetworkPacket {
 
     /** Reads both unique ids. */
     public decodePayload(): void {
-        this.cameraId = this.readVarLong();
-        this.targetPlayerId = this.readVarLong();
+        Object.assign(this, layoutAt(cameraPacket, this.codecProtocol).decode(this));
     }
 
     /** Writes both unique ids. */
     public encodePayload(): void {
-        this.writeVarLong(this.cameraId);
-        this.writeVarLong(this.targetPlayerId);
+        layoutAt(cameraPacket, this.codecProtocol).encode(this, this);
     }
 }

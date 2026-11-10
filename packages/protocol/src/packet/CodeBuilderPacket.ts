@@ -1,5 +1,7 @@
+import { codeBuilderPacket } from '../wire/definitions/codeBuilder';
+import { layoutAt } from '../wire/WireLayout';
+
 import FieldNetworkPacket from '../FieldNetworkPacket';
-import { NetworkUtil } from '../wire/networkUtil';
 
 /**
  * Where the Code Builder websocket server lives, and whether to open the app now.
@@ -20,13 +22,11 @@ export default class CodeBuilderPacket extends FieldNetworkPacket {
 
     /** Reads the url and the open flag. */
     public decodePayload(): void {
-        this.url = NetworkUtil.readString(this);
-        this.shouldOpenCodeBuilder = this.readBoolean();
+        Object.assign(this, layoutAt(codeBuilderPacket, this.codecProtocol).decode(this));
     }
 
     /** Writes the url and the open flag. */
     public encodePayload(): void {
-        NetworkUtil.writeString(this, this.url);
-        this.writeBoolean(this.shouldOpenCodeBuilder);
+        layoutAt(codeBuilderPacket, this.codecProtocol).encode(this, this);
     }
 }

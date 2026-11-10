@@ -1,5 +1,7 @@
 import NetworkPacket from '../NetworkPacket';
 import { PacketIdentifier } from '../PacketIdentifier';
+import { editorNetworkPacket } from '../wire/definitions/editorNetwork';
+import { layoutAt } from '../wire/WireLayout';
 
 import type NetworkBinaryStream from '../NetworkBinaryStream';
 
@@ -27,16 +29,10 @@ export default class EditorNetworkPacket extends NetworkPacket<EditorNetwork> {
     }
 
     protected serializePayload(stream: NetworkBinaryStream, data: EditorNetwork): void {
-        stream.writeBoolean(data.routeToManager);
-        stream.writeString(data.rawVariantName);
-        stream.writeString(data.rawVariantData);
+        layoutAt(editorNetworkPacket, this.codecProtocol).encode(stream, data);
     }
 
     protected deserializePayload(stream: NetworkBinaryStream): EditorNetwork {
-        return {
-            routeToManager: stream.readBoolean(),
-            rawVariantName: stream.readString(),
-            rawVariantData: stream.readString()
-        };
+        return layoutAt(editorNetworkPacket, this.codecProtocol).decode(stream);
     }
 }

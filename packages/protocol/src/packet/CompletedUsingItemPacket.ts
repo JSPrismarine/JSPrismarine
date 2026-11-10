@@ -1,3 +1,6 @@
+import { completedUsingItemPacket } from '../wire/definitions/completedUsingItem';
+import { layoutAt } from '../wire/WireLayout';
+
 import FieldNetworkPacket from '../FieldNetworkPacket';
 
 /**
@@ -47,13 +50,11 @@ export default class CompletedUsingItemPacket extends FieldNetworkPacket {
 
     /** Reads the item id and the use method. */
     public decodePayload(): void {
-        this.itemId = this.readShortLE();
-        this.itemUseMethod = this.readIntLE();
+        Object.assign(this, layoutAt(completedUsingItemPacket, this.codecProtocol).decode(this));
     }
 
     /** Writes the item id and the use method. */
     public encodePayload(): void {
-        this.writeShortLE(this.itemId);
-        this.writeIntLE(this.itemUseMethod);
+        layoutAt(completedUsingItemPacket, this.codecProtocol).encode(this, this);
     }
 }

@@ -1,5 +1,7 @@
 import NetworkPacket from '../NetworkPacket';
 import { PacketIdentifier } from '../PacketIdentifier';
+import { createPhotoPacket } from '../wire/definitions/createPhoto';
+import { layoutAt } from '../wire/WireLayout';
 
 import type NetworkBinaryStream from '../NetworkBinaryStream';
 
@@ -28,16 +30,10 @@ export default class CreatePhotoPacket extends NetworkPacket<CreatePhoto> {
     }
 
     protected serializePayload(stream: NetworkBinaryStream, data: CreatePhoto): void {
-        stream.writeUnsignedLongLE(data.rawId);
-        stream.writeString(data.photoName);
-        stream.writeString(data.photoItemName);
+        layoutAt(createPhotoPacket, this.codecProtocol).encode(stream, data);
     }
 
     protected deserializePayload(stream: NetworkBinaryStream): CreatePhoto {
-        return {
-            rawId: stream.readUnsignedLongLE(),
-            photoName: stream.readString(),
-            photoItemName: stream.readString()
-        };
+        return layoutAt(createPhotoPacket, this.codecProtocol).decode(stream);
     }
 }

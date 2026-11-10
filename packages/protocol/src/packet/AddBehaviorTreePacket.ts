@@ -1,5 +1,7 @@
 import NetworkPacket from '../NetworkPacket';
 import { PacketIdentifier } from '../PacketIdentifier';
+import { addBehaviorTreePacket } from '../wire/definitions/addBehaviorTree';
+import { layoutAt } from '../wire/WireLayout';
 
 import type NetworkBinaryStream from '../NetworkBinaryStream';
 
@@ -23,10 +25,10 @@ export default class AddBehaviorTreePacket extends NetworkPacket<AddBehaviorTree
     }
 
     protected serializePayload(stream: NetworkBinaryStream, data: AddBehaviorTree): void {
-        stream.writeString(data.behaviorTreeStructure);
+        layoutAt(addBehaviorTreePacket, this.codecProtocol).encode(stream, data);
     }
 
     protected deserializePayload(stream: NetworkBinaryStream): AddBehaviorTree {
-        return { behaviorTreeStructure: stream.readString() };
+        return layoutAt(addBehaviorTreePacket, this.codecProtocol).decode(stream);
     }
 }
