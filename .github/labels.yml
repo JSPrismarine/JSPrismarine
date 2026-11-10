@@ -1,3 +1,11 @@
+# The repository's GitHub label catalog. `.github/workflows/sync-labels.yml` creates and updates
+# these labels; it never deletes others.
+#
+# `ai_apply_when` is read by CodeRabbit alone and tells it when to apply a label to a pull request.
+# After editing this file, run `pnpm run labels:coderabbit` to regenerate its instructions in
+# `.coderabbit.yaml`. Leave `ai_apply_when` off a label a person or another bot manages. "Dependency"
+# starts the workflow that commits a changeset to the pull request, so CodeRabbit never applies it.
+
 - name: "Beginner"
   color: "fbca04"
   description: "Good issue for somewhat new contributors"
@@ -5,10 +13,12 @@
 - name: "Bug"
   color: "d73a4a"
   description: "Something not working as it should or even going terribly wrong"
+  ai_apply_when: "Fixes incorrect or broken behavior."
 
 - name: "Dependants"
   color: "4ADECD"
   description: "Issues and bugs for people leveraging us as dependency"
+  ai_apply_when: "Changes the public API or published behavior of an npm package that other projects consume."
 
 - name: "Dependency"
   color: "ededed"
@@ -17,14 +27,17 @@
 - name: "Developer Experience"
   color: "44E11C"
   description: "Things related to making our development easier"
+  ai_apply_when: "Changes to repository tooling, scripts, linting, test infrastructure, agent skills or the contributor workflow."
 
 - name: "DevOps"
   color: "ededed"
   description: "Deployments of websites, example servers etc"
+  ai_apply_when: "Changes to deployments, the docs site publish, the Docker image, release automation or executable packaging."
 
 - name: "Documentation"
   color: "0075ca"
   description: "Improvements, additions or issues  in our documentation"
+  ai_apply_when: "Documentation, guides, READMEs or generated references are a primary part of the change."
 
 - name: "Duplicate"
   color: "cfd3d7"
@@ -33,6 +46,7 @@
 - name: "Enhancement"
   color: "a2eeef"
   description: "New feature or request that aren’t blocking and would just be “nice to have”"
+  ai_apply_when: "Adds a user-facing feature, gameplay behavior or capability."
 
 - name: "Good First Issue"
   color: "7057ff"
@@ -52,22 +66,27 @@
 - name: "Low Priority"
   color: "f3ffaf"
   description: "There are more pressing blockers to deal with first"
+  ai_apply_when: "Use only when low priority is explicitly established; do not infer it from the diff."
 
 - name: "Nethernet"
   color: "ed1e1f"
   description: "Related to nethernet/webrtc"
+  ai_apply_when: "Changes to packages/nethernet/ or the NetherNet (WebRTC) transport."
 
 - name: "Networking"
   color: "315478"
   description: "Raknet and general networking features or issues"
+  ai_apply_when: "Changes to packages/raknet/, connection handling, sessions or other transport-level networking."
 
 - name: "Performance"
   color: "0E7F06"
   description: "Any issue or feature related to performance, no matter if it’s network, tick, etc"
+  ai_apply_when: "Changes made to reduce CPU, memory, allocations, network traffic or tick cost; pair with Bug when fixing a performance regression."
 
 - name: "Protocol"
   color: "CB2A7C"
   description: "Minecraft Bedrock Edition protocol changes and updates"
+  ai_apply_when: "Changes to packages/protocol/, packet wire layouts, or support for a Bedrock protocol version."
 
 - name: "Question"
   color: "d876e3"
@@ -80,6 +99,12 @@
 - name: "Security"
   color: "d93f0b"
   description: "Security or privacy issue"
+  ai_apply_when: "Fixes a vulnerability, unsafe input handling or authentication weakness, or hardens the server against one."
+
+- name: "Slop"
+  color: "ff0000"
+  description: "Low-effort AI-generated content, applied by CodeRabbit's slop detection"
+  ai_apply_when: "Managed by slop detection; do not suggest from style or wording alone."
 
 - name: "Stale"
   color: "BFD4F2"
@@ -88,6 +113,7 @@
 - name: "Tests"
   color: "7C64F0"
   description: "Testing related issues/PRs."
+  ai_apply_when: "Tests, fixtures, the parity suite or client e2e scenarios are a primary part of the change."
 
 - name: "Unconfirmed"
   color: "1FD145"
@@ -96,6 +122,7 @@
 - name: "Waiting On Author"
   color: "5319e7"
   description: "We need more information from the original author"
+  ai_apply_when: "Use only when the PR explicitly needs information or changes from its author."
 
 - name: "wontfix"
   color: "ffffff"
@@ -108,3 +135,4 @@
 - name: "⛔ PR Is Blocked"
   color: "B60205"
   description: "PR is blocked by something outside of the author's control, protected from stalebot"
+  ai_apply_when: "Use only when the PR is explicitly blocked by an unresolved decision or another change."

@@ -1,0 +1,420 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+# Merge repository-specific guidance with the organization's CodeRabbit defaults.
+inheritance: true
+early_access: true
+tone_instructions: >-
+    Be concise, technical, and direct. Report actionable issues introduced by the PR, supported by
+    concrete evidence. Explain impact and recommend a fix. Avoid speculation, conversational filler,
+    repetition, and style feedback already covered by CI.
+reviews:
+    profile: assertive
+    request_changes_workflow: true
+    allow_author_approval: false
+    high_level_summary_instructions: >-
+        Be concise and concrete. Summarize server and client-visible behavior, protocol and
+        published package API changes; for shared packages, identify affected dependents. Avoid
+        filler and restating the file list.
+    high_level_summary_in_walkthrough: false
+    auto_title_instructions: >-
+        Use a Conventional Commit title in the form `type(scope): imperative summary`, following
+        commitlint.config.mts. Choose a type (`build`, `chore`, `ci`, `docs`, `feat`, `fix`, `perf`,
+        `refactor`, `revert`, `style`, or `test`) and scope it to the affected package directory
+        under packages/ (such as `protocol`, `raknet`, or `bedrock-data`) or area (such as `ci`,
+        `deps`, `agents`, or `plans`). Mark breaking changes as `type(scope)!: summary`. Keep the
+        summary specific, lowercase, under 72 characters, and without a trailing period. Wrap file
+        names, member names, function calls, and command-line flags in backticks.
+    review_status: true
+    review_details: false
+    fail_commit_status: true
+    collapse_walkthrough: false
+    changed_files_summary: false
+    sequence_diagrams: false
+    estimate_code_review_effort: false
+    assess_linked_issues: true
+    related_issues: true
+    related_prs: true
+    suggested_labels: true
+    # Generated from .github/labels.yml by scripts/coderabbit-labels.mts.
+    labeling_instructions:
+        - label: Bug
+          instructions: Fixes incorrect or broken behavior.
+        - label: Dependants
+          instructions: Changes the public API or published behavior of an npm package that other projects consume.
+        - label: Developer Experience
+          instructions: Changes to repository tooling, scripts, linting, test infrastructure, agent skills or the
+            contributor workflow.
+        - label: DevOps
+          instructions: Changes to deployments, the docs site publish, the Docker image, release automation or executable packaging.
+        - label: Documentation
+          instructions: Documentation, guides, READMEs or generated references are a primary part of the change.
+        - label: Enhancement
+          instructions: Adds a user-facing feature, gameplay behavior or capability.
+        - label: Low Priority
+          instructions: Use only when low priority is explicitly established; do not infer it from the diff.
+        - label: Nethernet
+          instructions: Changes to packages/nethernet/ or the NetherNet (WebRTC) transport.
+        - label: Networking
+          instructions: Changes to packages/raknet/, connection handling, sessions or other transport-level networking.
+        - label: Performance
+          instructions: Changes made to reduce CPU, memory, allocations, network traffic or tick cost; pair with Bug when
+            fixing a performance regression.
+        - label: Protocol
+          instructions: Changes to packages/protocol/, packet wire layouts, or support for a Bedrock protocol version.
+        - label: Security
+          instructions: Fixes a vulnerability, unsafe input handling or authentication weakness, or hardens the server against one.
+        - label: Slop
+          instructions: Managed by slop detection; do not suggest from style or wording alone.
+        - label: Tests
+          instructions: Tests, fixtures, the parity suite or client e2e scenarios are a primary part of the change.
+        - label: Waiting On Author
+          instructions: Use only when the PR explicitly needs information or changes from its author.
+        - label: ⛔ PR Is Blocked
+          instructions: Use only when the PR is explicitly blocked by an unresolved decision or another change.
+    mutually_exclusive_groups:
+        # Choose at most one status label.
+        status:
+            - "⛔ PR Is Blocked"
+            - Waiting On Author
+    # CodeRabbit applies eligible labels using the catalog guidance.
+    auto_apply_labels: true
+    suggested_reviewers: false
+    auto_assign_reviewers: false
+    enable_prompt_for_ai_agents: false
+    in_progress_fortune: false
+    poem: false
+    # Ignore generated output, fetched data and local caches; review their sources instead.
+    path_filters:
+        - "!**/.cache/**"
+        - "!**/.turbo/**"
+        - "!**/node_modules/**"
+        - "!**/coverage/**"
+        - "!**/dist/**"
+        - "!packages/bedrock-data/src/generated/**"
+        - "!packages/bedrock-data/src/resources/**"
+        - "!pnpm-lock.yaml"
+    path_instructions:
+        - path: .github/common/**
+          instructions: >-
+              Review local composite actions as executable CI code. Check input validation, token
+              and permission scope, expression and shell injection, cache keys, pinned dependencies,
+              and failure propagation.
+        - path: .github/workflows/**
+          instructions: >-
+              Check permissions, expression and shell injection risks, untrusted PR events, secret
+              exposure, concurrency, job dependencies, and artifact handoffs. Actions are pinned to
+              commit digests; flag an unpinned one. Report an actual security or correctness problem
+              rather than generic preferences.
+        - path: .github/labels.yml
+          instructions: >-
+              The label catalog feeds the label sync workflow and, through ai_apply_when,
+              reviews.labeling_instructions in .coderabbit.yaml. Check that the generated block was
+              regenerated with scripts/coderabbit-labels.mts and that a renamed label is not still
+              named by a workflow, such as the Dependency label in pull-request.yml.
+        - path: .agents/skills/**
+          instructions: >-
+              Skills are instructions for coding agents. Check that each new skill has a relative
+              symlink at .claude/skills/<name>, that the description says when to use it, and that
+              commands and paths it names exist in the repository.
+        - path: .changeset/**
+          instructions: >-
+              Check each bump against docs/guide/versioning.md and the package's current version.
+              The summary is a release changelog entry: describe the change for a package consumer.
+        - path: docs/**
+          instructions: >-
+              Check claims against the code, pinned versions, and CI behavior. Values the code owns
+              belong in docs facts (`<!-- fact:name -->`) generated by tools/docs/facts.mts, not
+              typed in by hand. Dated research, plans and ADRs record values as they were when
+              written; do not ask to update them.
+        - path: packages/bedrock-data/**
+          instructions: >-
+              src/generated/ is output of utils/build.js and src/resources/ links to a pinned
+              CloudburstMC/Data download; changes belong in the generator or its inputs. Check the
+              pinned versions, the cache and fetch scripts, and the generated data's consumers.
+        - path: packages/parity/**
+          instructions: >-
+              The parity suite exercises public behavior through real data fixtures. Check that each
+              declared family has a test and a dashboard row, and that tests assert data-derived
+              relationships instead of exact inventory counts.
+        - path: packages/protocol/**
+          instructions: >-
+              Every packet with a payload must encode and decode. New or changed packets use a
+              declarative wire layout (docs/adr/0003-declarative-wire-layouts.md); a hand-written
+              body needs a listed reason. Check round-trip tests for new packets and changed wire
+              layouts, and compatibility with the supported Bedrock protocol versions.
+        - path: packages/raknet/**
+          instructions: >-
+              Check both wire directions of each packet, untrusted input from the network, bounds
+              on allocations and queues, retransmission and ordering, and session cleanup.
+        - path: packages/**
+          instructions: >-
+              Each published package is a product with a public API. Check exported API contracts,
+              transitive callers in dependent packages, and whether a releasable change has a
+              changeset. Bug fixes need a focused regression test, and client-visible fixes a client
+              e2e scenario. Flag tests that assert wall-clock durations outside the `performance`
+              tag. Flag `as` casts where narrowing, generics, or `satisfies` would carry the type.
+        - path: scripts/**
+          instructions: >-
+              Check input validation, subprocess arguments, quoting, temporary-file and cache
+              cleanup, error propagation, and the script's tests. Lint scripts run in CI through
+              `pnpm run lint:custom`; check that a new check is wired into it.
+        - path: tools/**
+          instructions: >-
+              tools/docs builds the documentation site and generates docs facts from the code; check
+              that generated values still read the code that owns them. tools/client-e2e drives a
+              real client; check that scenarios assert observable behavior.
+    slop_detection:
+        label: Slop
+        include_all_authors: false
+    auto_review:
+        enabled: true
+        auto_incremental_review: true
+        drafts: true
+        # Zero keeps reviews enabled for every update to an open pull request.
+        auto_pause_after_reviewed_commits: 0
+        # Skip work-in-progress and release pull request titles.
+        ignore_title_keywords:
+            - WIP
+            - "WIP:"
+            - "DRAFT:"
+            - DO NOT MERGE
+            - 🚀 Release packages
+        # Skip pull requests opened by bots: dependency updates, the release pull request and
+        # runner migrations. The names match exactly, so each bot is listed by its full login.
+        ignore_usernames:
+            - renovate[bot]
+            - dependabot[bot]
+            - github-actions[bot]
+            - blacksmith-sh[bot]
+    finishing_touches:
+        unit_tests:
+            enabled: false
+        docstrings:
+            enabled: false
+        simplify:
+            enabled: false
+    # Keep repository-specific checks advisory until their signal is proven.
+    pre_merge_checks:
+        docstrings:
+            mode: off
+        title:
+            mode: off
+        custom_checks:
+            - name: External compatibility
+              mode: warning
+              instructions: >-
+                  Apply only when the diff changes an externally observable contract: a published
+                  package's exported API, packet wire layouts or supported protocol versions,
+                  server configuration or world data on disk, commands or permissions, or release
+                  artifacts. Identify the previous and new behavior, affected callers or consumers,
+                  and whether the change is intentional, documented, and covered by a changeset with
+                  a matching bump. Pass as not applicable when no contract changes. Report only
+                  changes supported by the diff and repository docs.
+            - name: Packets encode and decode
+              mode: warning
+              instructions: >-
+                  Apply when the diff adds a packet or changes a packet's wire layout in
+                  packages/protocol or packages/raknet. Verify both wire directions are implemented
+                  (encodePayload/decodePayload, serializePayload/deserializePayload, or
+                  toBinary/fromBinary), the protocol packet uses a declarative wire layout or a
+                  recorded reason, and a round-trip test covers it. Pass as not applicable when no
+                  packet changes.
+            - name: Docs values come from the code
+              mode: warning
+              instructions: >-
+                  Apply when the diff changes Markdown outside docs/plans and docs/research, or the
+                  code that owns a value a page states. Verify that versions, defaults, counts,
+                  lists of names and tables the code owns are docs facts generated by
+                  tools/docs/facts.mts rather than typed by hand, and that `pnpm run docs:facts`
+                  output is committed. Pass as not applicable when no such value is affected.
+            - name: Generated data matches its sources
+              mode: warning
+              instructions: >-
+                  Apply when the diff touches packages/bedrock-data/utils/, its pinned inputs, or
+                  captures under packages/bedrock-data/src/jsp/. Verify the generated output was
+                  regenerated rather than edited by hand. Pass as not applicable otherwise.
+    # Enable analyzers used by this TypeScript monorepo; leave unrelated language tools disabled.
+    tools:
+        actionlint:
+            enabled: true
+        ast-grep:
+            enabled: false
+        biome:
+            enabled: true
+        blinter:
+            enabled: false
+        brakeman:
+            enabled: false
+        buf:
+            enabled: false
+        checkmake:
+            enabled: false
+        checkov:
+            enabled: false
+        circleci:
+            enabled: false
+        clang:
+            enabled: false
+        clippy:
+            enabled: false
+        cppcheck:
+            enabled: false
+        detekt:
+            enabled: false
+        dotenvLint:
+            enabled: false
+        emberTemplateLint:
+            enabled: false
+        eslint:
+            enabled: false
+        fbinfer:
+            enabled: false
+        flake8:
+            enabled: false
+        fortitudeLint:
+            enabled: false
+        github-checks:
+            enabled: true
+        gitleaks:
+            enabled: true
+        golangci-lint:
+            enabled: false
+        hadolint:
+            enabled: true
+        htmlhint:
+            enabled: false
+        languagetool:
+            enabled: false
+        luacheck:
+            enabled: false
+        markdownlint:
+            enabled: false
+        oasdiff:
+            enabled: false
+        opengrep:
+            enabled: true
+        osvScanner:
+            enabled: true
+        oxc:
+            enabled: false
+        phpcs:
+            enabled: false
+        phpmd:
+            enabled: false
+        phpstan:
+            enabled: false
+        pmd:
+            enabled: false
+        presidio:
+            enabled: false
+        prismaLint:
+            enabled: false
+        psscriptanalyzer:
+            enabled: false
+        pylint:
+            enabled: false
+        reactDoctor:
+            enabled: false
+        regal:
+            enabled: false
+        rubocop:
+            enabled: false
+        ruff:
+            enabled: false
+        semgrep:
+            enabled: false
+        shellcheck:
+            enabled: true
+        shopifyThemeCheck:
+            enabled: false
+        skillspector:
+            enabled: true
+        smartyLint:
+            enabled: false
+        sqlfluff:
+            enabled: false
+        squawk:
+            enabled: false
+        stylelint:
+            enabled: false
+        swiftlint:
+            enabled: false
+        tflint:
+            enabled: false
+        trivy:
+            enabled: false
+        trufflehog:
+            enabled: false
+        vale:
+            enabled: false
+        verilator:
+            enabled: false
+        yamllint:
+            enabled: false
+        zizmor:
+            enabled: true
+chat:
+    # Only reply when CodeRabbit is explicitly mentioned.
+    auto_reply: false
+    art: false
+    allow_non_org_members: true
+    integrations:
+        jira:
+            usage: disabled
+        linear:
+            usage: disabled
+knowledge_base:
+    code_guidelines:
+        filePatterns:
+            - AGENTS.md
+            - CONTRIBUTING.md
+            - files: docs/guide/versioning.md
+              applyTo: .changeset/**,packages/**/package.json
+            - files: docs/adr/0003-declarative-wire-layouts.md
+              applyTo: packages/protocol/**
+            - files: docs/data-driven/parity.md
+              applyTo: packages/parity/**
+            - files: docs/data-driven/data-pipeline.md
+              applyTo: packages/bedrock-data/**
+            - files: .agents/skills/jsdoc-typescript-docs/SKILL.md
+              applyTo: "**/*.ts,**/*.mts"
+            - files: .agents/skills/unslop/SKILL.md
+              applyTo: "**/*.md"
+            - files: .agents/skills/human-docs/SKILL.md
+              applyTo: docs/**,**/README.md,CONTRIBUTING.md
+            - files: .agents/skills/writing-for-agents/SKILL.md
+              applyTo: .agents/**,AGENTS.md
+    # Keep upstream context focused on sources this repository consumes.
+    linked_repositories:
+        - repository: CloudburstMC/Data
+          instructions: >-
+              Pinned Bedrock data download that packages/bedrock-data generates from. Consult when
+              reviewing generated data, palettes, or item and block mappings.
+        - repository: Mojang/bedrock-samples
+          instructions: >-
+              Vanilla Bedrock behavior and resource packs fetched by ensure:bedrock-pack. Consult
+              when reviewing entity, item, block, or loot behavior read from packs.
+        - repository: GeyserMC/mappings
+          instructions: >-
+              Java to Bedrock mappings. Consult when reviewing cross-edition translation in
+              packages/mapping or world generation parity.
+    learnings:
+        scope: local
+    issues:
+        scope: local
+    pull_requests:
+        scope: local
+    jira:
+        usage: disabled
+    linear:
+        usage: disabled
+    mcp:
+        usage: disabled
+    automatic_linking_mode: auto
+issue_enrichment:
+    planning:
+        auto_planning:
+            enabled: false
+    auto_enrich:
+        enabled: true
+    labeling:
+        auto_apply_labels: false
