@@ -115,7 +115,7 @@ const MAX_EXHAUSTING_STEP = 10;
  * How far a blow lifts a player off the ground.
  *
  * A flat number, where a mob's is applied on top of whatever the mob was already doing - see
- * `DataEntityBody.applyKnockback` in `entity/data/liveBodies.ts`, which damps the mob's own
+ * `StoreActor.applyKnockback` in `entity/data/storeActors.ts`, which damps the mob's own
  * velocity first. The server does not track a player's vertical velocity at all, since their
  * position arrives already integrated by their own client, so there is nothing here to damp.
  * Vanilla's value, which is what a mob gets from a standing start.

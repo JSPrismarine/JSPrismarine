@@ -4,8 +4,8 @@
  * One index, which ADR 0007 asks for. A position write refiles the entity
  * before the write returns, so a query later in the same tick sees it where it
  * moved to, and every query answers in ascending runtime id order. It serves
- * the data-driven mobs, whose `MobBody.onMove` refiles them, and the legacy
- * entities the world still holds - players, dropped items, the eye of ender -
+ * the store's entities, whose `MobBody.onMove` refiles them, and the legacy
+ * entities the world still holds - players and the bodies of dropped stacks -
  * which `Entity`'s one position setter refiles through the world.
  *
  * The runtime's one quadratic cost is the neighbor search: `goalWorld.mobs`
@@ -158,12 +158,12 @@ export class EntityIndex {
     private readonly filedItems = new Map<number, number>();
 
     /**
-     * The body each data entity shows clients, once the world holds it.
+     * The body of each dropped stack of the store, once the world holds it.
      *
-     * A body shares its data entity's runtime id, and its position is a copy
-     * the runtime writes after the entity moved. So it is attached to the data
-     * entity's entry rather than filed a second time, and a legacy query that
-     * reaches the entity answers with its body.
+     * A body shares its stack's runtime id, and its position is a copy the
+     * stack's body follows after the stack moved. So it is attached to the
+     * stack's entry rather than filed a second time, and a legacy query that
+     * reaches the stack answers with its body.
      */
     private readonly bodies = new Map<number, Entity>();
 

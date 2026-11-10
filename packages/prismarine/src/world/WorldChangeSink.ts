@@ -164,8 +164,8 @@ export interface WorldChangeSink {
      * Sent rather than recorded, which is the opposite of a `block-entity-set` and right
      * for the opposite reason. A batched flush earns its keep where many changes share a tick,
      * and equipment changes a handful of times in a mob's life: the guard that matters is the
-     * one in `entity/data/liveBodies.ts`, which drops a write whose bytes match what the body
-     * already carries, so an unchanged mob produces nothing to batch in the first place.
+     * one in `entity/data/storeActors.ts`, which drops a write whose bytes match what the actor
+     * last showed, so an unchanged mob produces nothing to batch in the first place.
      * @param {ShownActor} entity - Whose equipment changed.
      * @returns {Promise<void>} Resolves once it is on its way.
      */

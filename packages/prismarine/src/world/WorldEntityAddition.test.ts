@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 
 import type Server from '../Server';
 import type { LiveEntityRuntime } from '../entity/data/live';
-import type { LiveBodies } from '../entity/data/liveBodies';
 import type { StoreActors } from '../entity/data/storeActors';
 import type { Entity } from '../entity/Entity';
 import { GenericEntity } from '../entity/GenericEntity';
@@ -39,7 +38,6 @@ describe('World.addEntity', () => {
     it('offers an unclaimed generic body to the data runtime before keeping it in the world', async () => {
         const restored: Entity[] = [];
         const live = stub<LiveEntityRuntime>({
-            bodies: stub<LiveBodies>({ entityIdOf: () => undefined }),
             actors: stub<StoreActors>({ all: () => [][Symbol.iterator](), actorOf: () => undefined }),
             restoreExisting: (stored) => {
                 restored.push(stored);

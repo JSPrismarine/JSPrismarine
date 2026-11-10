@@ -2,7 +2,8 @@
  * A `Set` and a `Map` that report every change, for entity state held in a collection.
  *
  * A mob's tags and status effects are read and written through the standard collection methods
- * by code on both sides of the mirror, so the collection itself is where a change can be seen.
+ * by the store and by the legacy code through the store actors, so the collection itself is
+ * where a change can be seen.
  * Each mutation that changes the contents calls the observer with the contents before it, in
  * iteration order, and {@link ObservedSet.replace} and {@link ObservedMap.replace} write a saved
  * order back without reporting, which is how the entity store undoes a change.

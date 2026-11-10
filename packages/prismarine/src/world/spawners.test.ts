@@ -7,9 +7,9 @@ import { BlockEntityRegistry } from '../blockentity/BlockEntityRegistry';
 import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
 import type { EntityRuntime } from '../entity/data/EntityRuntime';
 import type { LiveEntityRuntime } from '../entity/data/live';
-import type { LiveBodies } from '../entity/data/liveBodies';
 import { StoreActor } from '../entity/data/storeActors';
 import type { StoreActors } from '../entity/data/storeActors';
+import type { DataEntity } from '../entity/data/DataEntity';
 import type Player from '../Player';
 import type Server from '../Server';
 import { stub, stubOf } from '../testing/stub.test.helper';
@@ -202,7 +202,6 @@ const worldWithSpawner = ({ playerAt, delay = 0 }: { playerAt: Vector3; delay?: 
         getEntityRuntime: () =>
             stub<LiveEntityRuntime>({
                 runtime,
-                bodies: stub<LiveBodies>({ entityIdOf: () => undefined }),
                 actors: stub<StoreActors>({ all: () => crowd[Symbol.iterator]() })
             }),
         getLogger: () => ({ debug: () => {} }) as never
@@ -282,10 +281,10 @@ describe('World', () => {
                 const position = new Vector3(6 + index * 0.1, 64, 6);
                 crowd.push(
                     stubOf(StoreActor, {
-                        getRuntimeId: () => BigInt(10 + index),
-                        getType: () => 'minecraft:zombie',
-                        getPosition: () => position,
-                        getFeetY: () => 64
+                        entity: stub<DataEntity>({
+                            identifier: 'minecraft:zombie',
+                            position: { x: position.getX(), y: position.getY(), z: position.getZ() }
+                        })
                     })
                 );
             }

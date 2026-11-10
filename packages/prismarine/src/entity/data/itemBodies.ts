@@ -5,9 +5,10 @@
  * Tracking, chunk membership, saves, selectors, explosions and portals still work on the legacy
  * `Entity` objects the world holds, so a store stack needs one to reach any of them. This is that
  * object, and it holds no state of its own: everything it reports, it reads from the store entity
- * behind it, and every effect on it goes back to the store. The data-driven mobs reach clients
- * through the mirror in `liveBodies.ts`, which slice 4 deletes; this path is kept apart from it so
- * the two can be replaced together by whatever encodes store entities for the legacy tracker.
+ * behind it, and every effect on it goes back to the store. Every other store entity reaches
+ * clients and the legacy code through its `StoreActor`. A stack keeps its body because it still
+ * reaches a portal through `Entity.update` and is shown as an `AddItemActor`; slice 9 turns
+ * travel into messages, and the actor can take the stack over then.
  */
 import { Vector3 } from '@jsprismarine/math';
 

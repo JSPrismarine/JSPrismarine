@@ -167,7 +167,7 @@ export class MobBody {
     /** The entity's dynamic string tags, shared with `/tag` and `has_tag` filters. */
     public readonly tags = new ObservedSet<string>();
 
-    /** The status effects mirrored by the client-facing entity body. */
+    /** The entity's active status effects, which its store actor shows clients. */
     public readonly statusEffects = new ObservedMap<string, StatusEffect>();
 
     /** Who the entity is fighting, by runtime id, or undefined when it is fighting nobody. */
@@ -295,7 +295,7 @@ export class MobBody {
     /**
      * How many times {@link MobBody.equipment} has been written.
      *
-     * Read by `liveBodies`, which mirrors equipment onto the client-visible body: comparing a
+     * Read by the entity's store actor before it rebuilds the equipment it shows: comparing a
      * counter is what keeps a tick that changed nothing from encoding five items per mob just
      * to find that out. Equipment changes a handful of times in a mob's life, so the steady
      * state is this number not moving.

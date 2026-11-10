@@ -129,7 +129,10 @@ interface Broadcasts {
  * writes, the light and the tick lists are the server's own rather than a stand-in. Only the
  * disk, the network and the server around it are replaced.
  */
-const liveWorld = (content: () => ServerContent): { world: World; chunk: Chunk; broadcasts: Broadcasts } => {
+const liveWorld = (
+    content: () => ServerContent,
+    runtimes: () => EntityRuntimes
+): { world: World; chunk: Chunk; broadcasts: Broadcasts } => {
     const chunk = new Chunk(0, 0);
     const broadcasts: Broadcasts = { sounds: [], particles: [] };
 
@@ -146,7 +149,9 @@ const liveWorld = (content: () => ServerContent): { world: World; chunk: Chunk; 
             getLogger: () => ({ debug: () => {}, error: () => {}, verbose: () => {}, warn: () => {} }),
             // An entity reads its hitbox off the built content, and a spawn is what half of
             // these tests are about, so the double answers the same build the world does.
-            getContent: content
+            getContent: content,
+            // The store entities the adapter spawns, which the world lists through their actors.
+            getEntityRuntime: (dimension: string) => runtimes().at(dimension)
         }
     });
 
@@ -219,7 +224,10 @@ describe('serverWorldSource', () => {
     beforeEach(() => {
         let built: ServerContent | undefined;
         entityRuntimes = new EntityRuntimes();
-        ({ world, chunk, broadcasts } = liveWorld(() => built!));
+        ({ world, chunk, broadcasts } = liveWorld(
+            () => built!,
+            () => entityRuntimes
+        ));
 
         content = buildServerContent({
             load: () => ({
@@ -386,15 +394,15 @@ describe('serverWorldSource', () => {
 
         const runtime = entityRuntimes.at(DIMENSION);
         const spawned = runtime?.runtime.byId(id);
-        const body = runtime?.bodies.bodyOf(id);
+        const body = runtime?.actors.actorOf(id);
         expect(spawned?.identifier).toBe('fixture:fuse_entity');
         expect(spawned?.spawnData).toEqual({ fuse: 80 });
         expect(spawned?.body.fuseTicks).toBe(80);
         expect(body?.getType()).toBe('fixture:fuse_entity');
         expect(body?.getPosition().getY()).toBe(64);
-        expect(world.getEntities()).toContain(body);
+        expect(world.getActors()).toContain(body);
 
-        if (runtime !== undefined) runtime.bodies.persist(runtime.runtime);
+        runtime?.persist();
         const saved =
             body?.persistentNbt === null || body?.persistentNbt === undefined
                 ? undefined
@@ -440,15 +448,15 @@ describe('serverWorldSource', () => {
         expect(items.placeEndCrystal?.(clearAbove)).toBe(true);
     });
 
-    it('forgets every runtime and its bodies on closeAll, which is what shutdown does', () => {
+    it('forgets every runtime and its actors on closeAll, which is what shutdown does', () => {
         const id = content.world.blockWorld.at(DIMENSION).spawnEntity({ x: 3, y: 64, z: 3 }, 'fixture:robot');
         const runtime = entityRuntimes.at(DIMENSION);
-        expect(runtime?.bodies.bodyOf(id)).toBeDefined();
+        expect(runtime?.actors.actorOf(id)).toBeDefined();
 
         entityRuntimes.closeAll();
 
         expect(entityRuntimes.at(DIMENSION)).toBeUndefined();
-        expect(runtime?.bodies.bodyOf(id)).toBeUndefined();
+        expect(runtime?.actors.actorOf(id)).toBeUndefined();
     });
 
     it('spawns a declared data entity with its source block payload', () => {
@@ -458,11 +466,11 @@ describe('serverWorldSource', () => {
 
         const runtime = entityRuntimes.at(DIMENSION);
         const spawned = runtime?.runtime.byId(id);
-        const body = runtime?.bodies.bodyOf(id);
+        const body = runtime?.actors.actorOf(id);
         expect(spawned?.identifier).toBe('fixture:block_entity');
         expect(spawned?.spawnData).toEqual({ block: 'minecraft:stone' });
         expect(body?.getType()).toBe('fixture:block_entity');
-        expect(world.getEntities()).toContain(body);
+        expect(world.getActors()).toContain(body);
     });
 
     it('spawns an identifier only a pack declares, with no class behind it', () => {

@@ -5,8 +5,9 @@
  * for the blocks, the clock and the random draws, and `EntityHostFacts` for
  * the things an entity index does not hold - players, item stacks on the
  * ground, and damage going out to either. This module supplies both from a
- * live {@link World}, gives every entity a body a client can see through
- * {@link LiveBodies}, and hands the whole thing to `World.tick` as one call.
+ * live {@link World}, shows every entity to clients and to the legacy world
+ * code through its {@link StoreActor}, and hands the whole thing to
+ * `World.tick` as one call.
  *
  * {@link EntityRuntimes} is the registry the two ends meet in. The content
  * world adapter builds one runtime per dimension while it assembles that
@@ -49,7 +50,6 @@ import type { DataEntity } from './DataEntity';
 import type { EntityItemInteraction } from './itemInteraction';
 import type { ContentItemEntity, EntityHostFacts, EntityWorldFacts } from './host';
 import { EntityRuntime, PROJECTILE_EYE_HEIGHT_FRACTION } from './EntityRuntime';
-import { LiveBodies } from './liveBodies';
 import { StoreActor, StoreActors } from './storeActors';
 import type { StoreActorBlows } from './storeActors';
 import { tradeDisplayNameOf } from './trading';
@@ -505,23 +505,20 @@ const liveHost = (
  *
  * The deep part of this module: a caller holds one of these and calls
  * {@link LiveEntityRuntime.tick} once a tick. Behind that are the runtime, the
- * spawn loop, the despawn pass and the bodies the clients are sent, and none
+ * spawn loop, the despawn pass and the actors the clients are shown, and none
  * of them has to be started, stopped or ordered by the caller.
  */
 export class LiveEntityRuntime {
     /** The entities themselves, for the content adapter's three groups and for tests. */
     public readonly runtime: EntityRuntime;
 
-    /**
-     * The legacy body of each entity, which the legacy entity code still reaches it through.
-     * Clients are shown {@link LiveEntityRuntime.actors}, not these.
-     */
-    public readonly bodies: LiveBodies;
-
     /** The body each dropped stack shows a client. */
     public readonly itemBodies: ItemBodies;
 
-    /** Each entity as the clients are shown it, read from the store. */
+    /**
+     * Each entity as the clients are shown it and the legacy world code reaches it, read from
+     * the store. A dropped stack has an item body instead.
+     */
     public readonly actors: StoreActors;
 
     private readonly options: LiveEntityOptions;
@@ -541,13 +538,7 @@ export class LiveEntityRuntime {
             },
             heal: (entity, amount) => this.runtime.heal(entity.id, amount)
         };
-        this.actors = new StoreActors({
-            world: options.liveWorld,
-            report: options.report,
-            blows,
-            projected: (entity, projection) => this.bodies.project(entity, projection)
-        });
-        this.bodies = new LiveBodies({ world: options.liveWorld, report: options.report, ...blows });
+        this.actors = new StoreActors({ world: options.liveWorld, report: options.report, blows });
         this.itemBodies = new ItemBodies({ world: options.liveWorld, report: options.report });
         this.runtime = new EntityRuntime({
             content: options.content,
@@ -559,16 +550,11 @@ export class LiveEntityRuntime {
                     this.itemBodies.add(entity, this.runtime.droppedItems);
                     return;
                 }
-                const leashHolderId = this.runtime.leashHolderIdOf(entity.id);
-                this.bodies.add(entity);
-                this.actors.add(entity, leashHolderId);
+                this.actors.add(entity, this.runtime.leashHolderIdOf(entity.id));
             },
             onRemove: (entity, reason) => {
                 if (isDroppedItem(entity)) this.itemBodies.drop(entity);
-                else {
-                    this.actors.remove(entity);
-                    this.bodies.drop(entity);
-                }
+                else this.actors.remove(entity);
                 for (const listener of this.removalListeners) listener(entity, reason);
             },
             gameEvents: {
@@ -602,8 +588,8 @@ export class LiveEntityRuntime {
 
     /** The store entity behind an actor of this runtime, or undefined for a legacy entity. */
     private storeEntityOf(target: WorldActor): DataEntity | undefined {
-        const id = target instanceof StoreActor ? target.entity.id : this.bodies.entityIdOf(target);
-        const entity = id === undefined ? undefined : this.runtime.byId(id);
+        if (!(target instanceof StoreActor)) return undefined;
+        const entity = this.runtime.byId(target.entity.id);
         return entity?.removed === undefined ? entity : undefined;
     }
 
@@ -681,7 +667,7 @@ export class LiveEntityRuntime {
     }
 
     /**
-     * Runs one server tick for eligible entities, then mirrors them to live bodies.
+     * Runs one server tick for eligible entities, then shows clients what changed.
      *
      * The spawn loop starts on the first tick because it reads the loaded spawn rules.
      *
@@ -695,7 +681,6 @@ export class LiveEntityRuntime {
         }
 
         this.runtime.tick(tick, shouldTick);
-        this.bodies.sync(this.runtime);
         await Promise.all([...this.actors.sync(this.runtime, shouldTick), ...this.itemBodies.sync()]);
     }
 
@@ -1010,10 +995,11 @@ export class LiveEntityRuntime {
     }
 
     /**
-     * Suspends a data-driven entity whose chunk is leaving memory.
+     * Suspends a dropped stack whose chunk is leaving memory, by its body.
      *
-     * The caller writes the entity's NBT to its chunk before calling this, so removing the
-     * runtime instance here does not make it a death or a despawn.
+     * The caller writes the stack's NBT to its chunk before calling this, so removing it from
+     * the store here does not make it a despawn. A chunk's other store entities leave through
+     * `World`, which finds them in the entity index.
      */
     public unload(body: Entity): boolean {
         if (!this.removeBody(body, 'chunk unload')) return false;
@@ -1025,18 +1011,17 @@ export class LiveEntityRuntime {
     }
 
     /**
-     * Removes a body's data entity when the world removes the body directly.
+     * Removes a dropped stack from the store when the world removes its body directly.
      *
      * Detaching first lets the runtime's removal callback run without asking the world to remove
-     * the same body recursively. This covers a provider's lightweight entity snapshot when a
-     * chunk actor record replaces it, and explicit world removals such as `/kill`.
+     * the same body recursively. This covers explicit world removals such as `/kill`.
      *
      * @param body - The body being removed from its world.
      * @param reason - Why the runtime entity is being removed.
      * @returns Whether this runtime owned the body.
      */
     public removeBody(body: Entity, reason = 'body removed'): boolean {
-        const id = this.bodies.detach(body) ?? this.itemBodies.detach(body);
+        const id = this.itemBodies.detach(body);
         if (id === undefined) return false;
 
         this.runtime.remove(id, reason);
@@ -1046,11 +1031,11 @@ export class LiveEntityRuntime {
     /**
      * Brings one saved entity back into the runtime.
      *
-     * The body built from the file is not the body that ends up in the world:
-     * the runtime makes its own, so that one entity is not driven by two
-     * systems. Everything the file carried that this server does not model,
-     * the actor's `UniqueID` first among them, moves onto the new body, so the
-     * next save addresses the same actor rather than writing a second one.
+     * The body built from the file never enters the world: the store entity
+     * is what does, shown through its actor. Everything the file carried that
+     * this server does not model, the actor's `UniqueID` first among them,
+     * moves onto the actor, so the next save addresses the same actor rather
+     * than writing a second one.
      *
      * @param stored - The body `EntitySerializer` built from the actor NBT.
      * @returns The entity, or undefined when no loaded pack declares its type,
@@ -1093,8 +1078,6 @@ export class LiveEntityRuntime {
             for (const tag of kept.tags) actor.addTag(tag);
             for (const effect of kept.statusEffects) actor.addStatusEffect(effect, false);
         }
-        const body = this.bodies.bodyOf(entity.id);
-        if (body !== undefined) body.persistentNbt = kept.persistentNbt;
     }
 
     /**
@@ -1194,7 +1177,6 @@ export class EntityRuntimes {
 
     /** Forgets one dimension's runtime, which is what closing its world does. */
     public close(dimension: string): void {
-        this.byDimension.get(dimension)?.bodies.clear();
         this.byDimension.get(dimension)?.itemBodies.clear();
         this.byDimension.get(dimension)?.actors.clear();
         this.byDimension.delete(dimension);
