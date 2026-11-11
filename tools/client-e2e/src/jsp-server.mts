@@ -62,6 +62,42 @@ const reserveFreeUdpPort = async (): Promise<number> => {
     }
 };
 
+/** Whether a UDP socket could bind the port on every interface right now. */
+const udpPortFree = (port: number): Promise<boolean> =>
+    new Promise((resolve) => {
+        const socket = dgram.createSocket('udp4');
+        socket.once('error', () => resolve(false));
+        socket.bind(port, '0.0.0.0', () => socket.close(() => resolve(true)));
+    });
+
+/** Reserves `count` consecutive ports, free for UDP and TCP, and returns the first. */
+const reserveConsecutivePorts = async (count: number): Promise<number> => {
+    for (;;) {
+        const start = await reserveFreeUdpPort();
+        const rest = Array.from({ length: count - 1 }, (_, index) => start + 1 + index);
+        let free = rest.every((port) => port <= 65_535 && !reservedUdpPorts.has(port));
+        for (const port of rest) free = free && (await udpPortFree(port)) && (await tcpPortFree(port));
+        if (free) {
+            for (const port of rest) reservedUdpPorts.add(port);
+            return start;
+        }
+        reservedUdpPorts.delete(start);
+    }
+};
+
+/**
+ * Where NetherNet's UDP goes, as `server-udp-ports` puts it:
+ *
+ * - `shared`: unset, so it is the server port, shared with RakNet.
+ * - `single`: one other port every player shares.
+ * - `range`: three other ports players are spread over.
+ * - `range-with-server-port`: three ports, the first of them the server port.
+ */
+export type UdpPortsLayout = 'shared' | 'single' | 'range' | 'range-with-server-port';
+
+/** Every {@link UdpPortsLayout}, as `--udp-ports` takes them. */
+export const UDP_PORTS_LAYOUTS: readonly UdpPortsLayout[] = ['shared', 'single', 'range', 'range-with-server-port'];
+
 /**
  * RakNet's unconnected ping and pong ids. `MessageIdentifiers` is an enum, which Node cannot
  * strip from TypeScript, so they are repeated here; `jsp-server.test.mts` holds them to it.
@@ -111,6 +147,8 @@ export const answersRakNetPing = (port: number): Promise<boolean> =>
  * @param options.profile - Enables Node DevTools and preserves the shutdown trace for inspection.
  * @param options.preloadRadius - Chunks around spawn to generate and keep resident before listening.
  * @param options.worldgenSpawn - Boots the normal Overworld at seed 1234 for spawn testing.
+ * @param options.udpPorts - Where NetherNet's UDP goes; see {@link UdpPortsLayout}.
+ * @param options.publicIp - The `server-public-ip` the server advertises.
  * @throws When the process exits or the readiness line does not appear in time.
  */
 export const startServer = async (
@@ -125,9 +163,23 @@ export const startServer = async (
         profile?: boolean;
         preloadRadius?: number;
         worldgenSpawn?: boolean;
+        udpPorts?: UdpPortsLayout;
+        publicIp?: string;
     } = {}
 ): Promise<JspServer> => {
-    const port = options.port ?? (await reserveFreeUdpPort());
+    const layout = options.udpPorts ?? 'shared';
+    // The range layouts pick the server port with the range, so the ports are consecutive.
+    const rangeStart =
+        options.port === undefined && layout === 'range-with-server-port'
+            ? await reserveConsecutivePorts(3)
+            : options.port === undefined && layout === 'range'
+              ? await reserveConsecutivePorts(4)
+              : undefined;
+    const port = options.port ?? rangeStart ?? (await reserveFreeUdpPort());
+    let udpPorts: string | undefined;
+    if (layout === 'single') udpPorts = String(await reserveFreeUdpPort());
+    if (layout === 'range') udpPorts = `${port + 1}-${port + 3}`;
+    if (layout === 'range-with-server-port') udpPorts = `${port}-${port + 2}`;
     if (options.port !== undefined) {
         if (!Number.isSafeInteger(port) || port < 1 || port > 65535) {
             throw new Error(`invalid UDP port: ${port}`);
@@ -367,6 +419,8 @@ export const startServer = async (
         // server-portv6 and server-udp-ports follow it, so each concurrent suite's server holds
         // its own numbers and nothing else.
         'server-port': port,
+        ...(udpPorts === undefined ? {} : { 'server-udp-ports': udpPorts }),
+        ...(options.publicIp === undefined ? {} : { 'server-public-ip': options.publicIp }),
         'online-mode': false,
         // Debug, so the transactions and moves the server drops on purpose, and which loading
         // screens the client opened and closed, show in the evidence log.
