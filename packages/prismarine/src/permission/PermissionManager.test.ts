@@ -276,6 +276,27 @@ describe('permission', () => {
             await expect(opManager.setOp('nobody', true)).rejects.toThrow();
         });
 
+        it('sends the command list once the operator change is made, so it lists what the player may now run', async () => {
+            const uuid = '00000000-0000-0000-0000-000000000008';
+            const opWhenListed: boolean[] = [];
+            const opManager: PermissionManager = new PermissionManager({
+                getLogger: () => logger,
+                getSessionManager: () => stub<SessionManager>({ findSession: () => session }),
+                post: () => 0
+            });
+            const session = stub<PlayerSession>({
+                identity: identityNamed('dave', uuid),
+                sendAvailableCommands: async () => void opWhenListed.push(opManager.isOp(uuid)),
+                announceSettings: async () => {}
+            });
+            await opManager.enable();
+
+            await opManager.setOp('dave', true);
+            await opManager.setOp('dave', false);
+
+            expect(opWhenListed).toEqual([true, false]);
+        });
+
         it('adds and removes one operator line and keeps the comments', async () => {
             const file = path.join(directory, 'ops.json');
             const aliceUuid = '00000000-0000-0000-0000-000000000005';
