@@ -4,6 +4,7 @@ import { PlayerNotFoundError } from '@jsprismarine/errors';
 import Console from '../Console';
 import type { Server, Service } from '../';
 import type { PlayerIdentity } from '../playerIdentity';
+import type PlayerSession from '../network/PlayerSession';
 import { parseConfigDocument } from '../config/ConfigDocument';
 import type { OpEntry, PlayerPermissions } from '../config/JsonConfigTypes';
 import { readJsonFile, removeListEntries, upsertListEntry, writeJsonFile } from '../config/JsonFile';
@@ -91,6 +92,8 @@ export class PermissionManager implements Service {
     private readonly permissions: Map<string, string[]> = new Map();
     private defaultPermissions: string[] = [];
     private defaultOperatorPermissions: string[] = [];
+    /** The last write of `ops.json` an operator change queued; see {@link PermissionManager.persistOp}. */
+    private opWrites: Promise<boolean> = Promise.resolve(true);
 
     /**
      * Create a new permission manager.
@@ -116,6 +119,8 @@ export class PermissionManager implements Service {
      * @group Lifecycle
      */
     public async disable(): Promise<void> {
+        // A change made just before the server stops still reaches the file.
+        await this.opWrites;
         this.ops.clear();
         this.permissions.clear();
         this.defaultPermissions = [];
@@ -266,6 +271,66 @@ export class PermissionManager implements Service {
     }
 
     /**
+     * Runs the `playerToggleOperator` event and, unless a listener cancels it, changes the
+     * operator list in memory.
+     *
+     * @returns Whether the list changed.
+     */
+    private toggleOp(target: PlayerSession, op: boolean): boolean {
+        const event = new playerToggleOperatorEvent(target, op);
+        this.server.post(['playerToggleOperator', event]);
+        if (event.isCanceled()) return false;
+
+        const { uuid } = target.identity;
+        if (op) this.ops.add(uuid);
+        else this.ops.delete(uuid);
+        return true;
+    }
+
+    /**
+     * Queues one player's line of `ops.json` behind the writes queued before it, so two changes
+     * never read and rewrite the file at the same time.
+     *
+     * @returns Whether the file was written. A failed write is logged, not thrown.
+     */
+    private persistOp(uuid: string, username: string, op: boolean): Promise<boolean> {
+        this.opWrites = this.opWrites
+            .then(async () => {
+                await this.writeOp(uuid, username, op);
+                return true;
+            })
+            .catch((error: unknown) => {
+                this.server.getLogger().error(`Failed to write ${OPS_FILE_NAME} for ${username}: ${error}`);
+                return false;
+            });
+        return this.opWrites;
+    }
+
+    /**
+     * Makes an online player an operator, or stops them being one, without waiting for anything
+     * ([ADR 0014](../../../../docs/adr/0014-handlers-share-a-shape-and-run-in-the-input-step.md)).
+     *
+     * The `playerToggleOperator` event runs and the list in memory changes before this returns,
+     * so an input-lane handler can call it. `ops.json` is written afterwards, off the tick,
+     * behind any write queued before it. A failed write is logged, and the change in memory
+     * stays.
+     *
+     * @param target - The player's session.
+     * @param op - Whether the player should be an operator.
+     * @returns The sends that tell the player's client its new commands and abilities, already
+     *   started, or `undefined` when a listener canceled the change.
+     */
+    public setOpNow(target: PlayerSession, op: boolean): Promise<void> | undefined {
+        if (!this.toggleOp(target, op)) return undefined;
+        void this.persistOp(target.identity.uuid, target.identity.name, op);
+        return (async () => {
+            // After the change, because the list holds only the commands the player may now run.
+            await target.sendAvailableCommands();
+            await target.announceSettings();
+        })();
+    }
+
+    /**
      * Set a player as an operator.
      *
      * @param {string} username - The player to set as an operator.
@@ -275,21 +340,12 @@ export class PermissionManager implements Service {
     public async setOp(username: string, op: boolean): Promise<boolean> {
         const target = this.server.getSessionManager().findSession({ name: username }); // TODO: by name not exact
         if (!target) throw new PlayerNotFoundError(username);
-        const event = new playerToggleOperatorEvent(target, op);
-        this.server.post(['playerToggleOperator', event]);
-        if (event.isCanceled()) return false;
-
-        const { uuid } = target.identity;
-        if (op) this.ops.add(uuid);
-        else this.ops.delete(uuid);
-
-        // After the change, because the list holds only the commands the player may now run.
-        await target.sendAvailableCommands();
+        if (!this.toggleOp(target, op)) return false;
 
         try {
             // Saved before the client is told anything, so a send that fails cannot leave the
             // change in memory alone, to be undone by the next restart.
-            await this.writeOp(uuid, username, op);
+            if (!(await this.persistOp(target.identity.uuid, username, op))) return false;
 
             // After the change, so the list the client gets is the one its new status allows.
             await target.sendAvailableCommands();
