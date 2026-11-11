@@ -68,7 +68,7 @@ describe('network', () => {
             });
 
             it('drops every type but Chat, which is the only one a client sends', async () => {
-                const { sent, dropped, handle, session } = fakeChat();
+                const { sent, dropped, handle } = fakeChat();
 
                 for (const type of [
                     TextPacketType.Raw,
@@ -87,7 +87,7 @@ describe('network', () => {
             });
 
             it('strips formatting codes and line breaks, which would forge a second speaker', async () => {
-                const { sent, handle, session } = fakeChat();
+                const { sent, handle } = fakeChat();
 
                 await handle(chatPacket('hi\n§cadmin§r: server is down'));
 
@@ -95,7 +95,7 @@ describe('network', () => {
             });
 
             it('cuts a message longer than a chat box can hold', async () => {
-                const { sent, handle, session } = fakeChat();
+                const { sent, handle } = fakeChat();
 
                 await handle(chatPacket('a'.repeat(5000)));
 
@@ -103,7 +103,7 @@ describe('network', () => {
             });
 
             it('says nothing for a message that is only whitespace', async () => {
-                const { sent, handle, session } = fakeChat();
+                const { sent, handle } = fakeChat();
 
                 await handle(chatPacket('   \n  '));
 
