@@ -3,9 +3,9 @@ import { Vector3 } from '@jsprismarine/math';
 import { PositionMode } from '@jsprismarine/protocol';
 import { describe, expect, it, vi } from 'vitest';
 
-import type Player from '../../Player';
 import type Server from '../../Server';
 import { identityNamed } from '../../testing/sessionIdentity.test.helper';
+import { stubPlayerPort } from '../../testing/playerPort.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import { Position } from '../../world/Position';
 import type { World } from '../../world/World';
@@ -22,13 +22,13 @@ import MovePlayerHandler, { applyClientMovement } from './MovePlayerHandler';
  */
 const fake = () => {
     const dropped: string[] = [];
-    const players: Player[] = [];
+    const players: ReturnType<World['getPlayers']> = [];
     const world = stub<World>({
         getPlayers: () => players,
         entityRelocated: () => {},
         broadcastMove: vi.fn(async () => {})
     });
-    const player = stub<Player>({
+    const player = stubPlayerPort({
         getName: () => 'tester',
         getRuntimeId: () => 7n,
         getPosition: () => new Position(0, 64, 0, world),
@@ -83,7 +83,7 @@ describe('MovePlayerHandler', () => {
             headYaw: 0,
             onGround: false
         };
-        const player = stub<Player>({
+        const player = stubPlayerPort({
             getName: () => 'tester',
             getRuntimeId: () => 7n,
             getPosition: () => pose.position,
@@ -165,7 +165,7 @@ describe('MovePlayerHandler', () => {
     it('does not send a second MovePlayer update to observers', async () => {
         const { player, players, session, server } = fake();
         const sendMove = vi.fn(async () => {});
-        const observer = stub<Player>({
+        const observer = stubPlayerPort({
             getNetworkSession: () =>
                 stub<PlayerSession>({
                     tracks: () => true,

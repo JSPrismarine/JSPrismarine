@@ -2,9 +2,9 @@ import { AbilityLayerFlag } from '@jsprismarine/minecraft';
 import { describe, expect, it } from 'vitest';
 
 import type { Logger } from '@jsprismarine/logger';
-import type Player from '../../Player';
 import type Server from '../../Server';
 import { identityNamed } from '../../testing/sessionIdentity.test.helper';
+import { stubPlayerPort } from '../../testing/playerPort.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import type PlayerSession from '../PlayerSession';
 import type { ShownPlayer } from '../../world/ShownPlayer';
@@ -21,7 +21,7 @@ const fakeSession = ({ flying = false, canFly = true }: { flying?: boolean; canF
     const resent: Array<ShownPlayer | undefined> = [];
     const logged: string[] = [];
     let isFlying = flying;
-    const player = stub<Player>({
+    const player = stubPlayerPort({
         getName: () => 'Steve',
         isFlying: () => isFlying,
         setFlying: async (value) => {
