@@ -1,8 +1,8 @@
 import type { Logger } from '@jsprismarine/logger';
 import { describe, expect, it, vi } from 'vitest';
 
-import type Server from '../../Server';
 import type SessionManager from '../../SessionManager';
+import { inputContext } from '../../testing/handlerContext.test.helper';
 import { identityNamed } from '../../testing/sessionIdentity.test.helper';
 import type { StorePlayer } from '../../entity/storePlayer';
 import { stub } from '../../testing/stub.test.helper';
@@ -79,20 +79,20 @@ const setUp = () => {
     });
     const playerList = new Map([[SENDER_UUID, loginEntry]]);
 
-    const server = stub<Server>({
-        getLogger: () => stub<Logger>({ debug }),
-        getSessionManager: () =>
-            stub<SessionManager>({
-                getSessions: () => [sender.session, alice.session, bob.session],
-                getPlayerList: () => playerList
-            })
+    const sessions = stub<SessionManager>({
+        getSessions: () => [sender.session, alice.session, bob.session],
+        getPlayerList: () => playerList
     });
     const session = stub<PlayerSession>({
         runtimeId: 7n,
         identity: identityNamed('runner', SENDER_UUID),
         getPlayer: () => sender.player
     });
-    return { sender, alice, bob, debug, server, session, playerList, loginEntry };
+    const { context, outputs, settled } = inputContext(session, {
+        log: stub<Logger>({ debug }),
+        services: { sessions }
+    });
+    return { sender, alice, bob, debug, context, outputs, settled, playerList, loginEntry };
 };
 
 /** The one packet a session was sent, typed for the assertions that follow. */
@@ -106,10 +106,13 @@ const sentPacket = (send: ReturnType<typeof vi.fn>): PlayerSkinPacket => {
 
 describe('PlayerSkinHandler', () => {
     it('stores the skin on the sender and relays a fresh packet to everyone else', async () => {
-        const { sender, alice, bob, debug, server, session } = setUp();
+        const { sender, alice, bob, debug, context, outputs, settled } = setUp();
         const packet = skinChange(SENDER_UUID);
 
-        await new PlayerSkinHandler().handle(packet, server, session);
+        new PlayerSkinHandler().handle(packet, context);
+        // The two relays go to the input step, which waits for them before the next input.
+        expect(outputs).toHaveLength(2);
+        await settled();
 
         expect(sender.player.skin).toBe(packet.skin);
         expect(sender.send).not.toHaveBeenCalled();
@@ -131,10 +134,11 @@ describe('PlayerSkinHandler', () => {
     });
 
     it('puts the new skin on the player list entry and keeps the rest of it', async () => {
-        const { server, session, playerList, loginEntry } = setUp();
+        const { context, settled, playerList, loginEntry } = setUp();
         const packet = skinChange(SENDER_UUID);
 
-        await new PlayerSkinHandler().handle(packet, server, session);
+        new PlayerSkinHandler().handle(packet, context);
+        await settled();
 
         const entry = playerList.get(SENDER_UUID);
         expect(entry).toBeDefined();
@@ -151,10 +155,11 @@ describe('PlayerSkinHandler', () => {
     it('drops a packet that names another player', async () => {
         // The relay names the UUID the client sent, so a client naming someone else's would
         // change that player's skin on every other screen.
-        const { sender, alice, bob, debug, server, session, playerList, loginEntry } = setUp();
+        const { sender, alice, bob, debug, context, settled, playerList, loginEntry } = setUp();
         const packet = skinChange('11111111-1111-4111-8111-111111111111');
 
-        await new PlayerSkinHandler().handle(packet, server, session);
+        new PlayerSkinHandler().handle(packet, context);
+        await settled();
 
         expect(sender.player.skin?.getId()).toBe('runner-old');
         expect(playerList.get(SENDER_UUID)).toBe(loginEntry);
@@ -195,10 +200,11 @@ describe('PlayerSkinHandler', () => {
             reason: 'not JSON'
         }
     ])('drops a skin with $problem', async ({ overrides, reason }) => {
-        const { sender, alice, bob, debug, server, session, playerList, loginEntry } = setUp();
+        const { sender, alice, bob, debug, context, settled, playerList, loginEntry } = setUp();
         const packet = skinChange(SENDER_UUID, classicSkin('bad-skin', overrides));
 
-        await new PlayerSkinHandler().handle(packet, server, session);
+        new PlayerSkinHandler().handle(packet, context);
+        await settled();
 
         expect(sender.player.skin?.getId()).toBe('runner-old');
         expect(playerList.get(SENDER_UUID)).toBe(loginEntry);
@@ -210,7 +216,7 @@ describe('PlayerSkinHandler', () => {
     });
 
     it('accepts a skin whose geometry is JSON', async () => {
-        const { sender, alice, server, session } = setUp();
+        const { sender, alice, context, settled } = setUp();
         const packet = skinChange(
             SENDER_UUID,
             classicSkin('geometry-skin', {
@@ -218,7 +224,8 @@ describe('PlayerSkinHandler', () => {
             })
         );
 
-        await new PlayerSkinHandler().handle(packet, server, session);
+        new PlayerSkinHandler().handle(packet, context);
+        await settled();
 
         expect(sender.player.skin).toBe(packet.skin);
         expect(alice.send).toHaveBeenCalledOnce();

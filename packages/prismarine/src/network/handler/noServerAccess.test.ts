@@ -35,13 +35,10 @@ const STILL_REACH_SERVER: ReadonlyMap<string, readonly string[]> = new Map([
     [
         'D2c relays and session inputs',
         [
-            'ActorEventHandler.ts',
             'ContainerCloseHandler.ts',
             'DisconnectHandler.ts',
-            'EmoteHandler.ts',
             'InteractHandler.ts',
             'LevelSoundEventHandler.ts',
-            'PlayerSkinHandler.ts',
             'RequestAbilityHandler.ts',
             'ResourcePackChunkRequestHandler.ts',
             'ServerboundLoadingScreenHandler.ts',
