@@ -1,7 +1,6 @@
-import type Server from '../../Server';
-import type PlayerSession from '../PlayerSession';
 import type PurchaseReceiptPacket from '@jsprismarine/protocol/packet/PurchaseReceiptPacket';
-import type PacketHandler from './PacketHandler';
+import type { SessionContext } from './HandlerContext';
+import type { ConnectionLaneHandler } from './SessionHandler';
 
 /**
  * The receipts a client sends for the store offers it owns.
@@ -10,21 +9,20 @@ import type PacketHandler from './PacketHandler';
  * has no store offers and no entitlements, so there is nothing to grant. Verifying a receipt
  * also needs a call to Mojang's marketplace, which only partnered servers can make.
  */
-export default class PurchaseReceiptHandler implements PacketHandler<PurchaseReceiptPacket> {
+export default class PurchaseReceiptHandler implements ConnectionLaneHandler<PurchaseReceiptPacket> {
     public static PacketName = 'PurchaseReceiptPacket';
+    public readonly takes = 'context';
     public readonly phases = ['play'] as const;
     public readonly lane = 'connection';
 
     /** Logs how many receipts arrived. */
-    public handle(packet: PurchaseReceiptPacket, server: Server, session: PlayerSession): void {
+    public handle(packet: PurchaseReceiptPacket, { session, log }: SessionContext): void {
         const data = packet.getPacketData();
         if (data === null) throw new Error('Cannot handle a PurchaseReceiptPacket without decoded data');
 
-        server
-            .getLogger()
-            .debug(
-                `${session.identity.name} sent ${data.purchaseReceipts.length} purchase receipts, which the server does not verify`,
-                'PurchaseReceiptHandler/handle'
-            );
+        log.debug(
+            `${session.identity.name} sent ${data.purchaseReceipts.length} purchase receipts, which the server does not verify`,
+            'PurchaseReceiptHandler/handle'
+        );
     }
 }

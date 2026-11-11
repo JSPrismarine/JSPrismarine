@@ -1,7 +1,6 @@
-import type Server from '../../Server';
-import type PlayerSession from '../PlayerSession';
 import type ResourcePacksReadyForValidationPacket from '@jsprismarine/protocol/packet/ResourcePacksReadyForValidationPacket';
-import type PacketHandler from './PacketHandler';
+import type { SessionContext } from './HandlerContext';
+import type { ConnectionLaneHandler } from './SessionHandler';
 
 /**
  * The client reporting that its resource packs have loaded.
@@ -11,18 +10,17 @@ import type PacketHandler from './PacketHandler';
  * `ResourcePackClientResponseHandler` starts the join from there. Recorded at debug level
  * so a join log shows the step happened.
  */
-export default class ResourcePacksReadyForValidationHandler implements PacketHandler<ResourcePacksReadyForValidationPacket> {
+export default class ResourcePacksReadyForValidationHandler implements ConnectionLaneHandler<ResourcePacksReadyForValidationPacket> {
     public static PacketName = 'ResourcePacksReadyForValidationPacket';
+    public readonly takes = 'context';
     public readonly phases = ['resourcePacks'] as const;
     public readonly lane = 'connection';
 
     /** Logs the report; the packet has no fields to check and needs no answer. */
-    public handle(_packet: ResourcePacksReadyForValidationPacket, server: Server, session: PlayerSession): void {
-        server
-            .getLogger()
-            .debug(
-                `${session.identity.name} finished loading its resource packs`,
-                'ResourcePacksReadyForValidationHandler/handle'
-            );
+    public handle(_packet: ResourcePacksReadyForValidationPacket, { session, log }: SessionContext): void {
+        log.debug(
+            `${session.identity.name} finished loading its resource packs`,
+            'ResourcePacksReadyForValidationHandler/handle'
+        );
     }
 }

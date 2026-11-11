@@ -1,8 +1,8 @@
 import type { Logger } from '@jsprismarine/logger';
 import { describe, expect, it } from 'vitest';
 
-import type Server from '../../Server';
 import type { StubMembers } from '../../testing/stub.test.helper';
+import { sessionContext } from '../../testing/handlerContext.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import { STEVE } from '../../testing/sessionIdentity.test.helper';
 import { latestCodec } from '../codec/CodecRegistry';
@@ -16,13 +16,11 @@ import PacketViolationWarningHandler from './PacketViolationWarningHandler';
 describe('PacketViolationWarningHandler', () => {
     const handleWith = (fields: StubMembers<PacketViolationWarningPacket>): string[] => {
         const logged: string[] = [];
-        const server = stub<Server>({
-            getLogger: () => stub<Logger>({ warn: (...message) => void logged.push(message[0] ?? '') })
-        });
+        const log = stub<Logger>({ warn: (...message) => void logged.push(message[0] ?? '') });
         const session = stub<PlayerSession>({ identity: STEVE });
         const packet = Object.assign(new PacketViolationWarningPacket(), fields);
 
-        new PacketViolationWarningHandler().handle(packet, server, session);
+        new PacketViolationWarningHandler().handle(packet, sessionContext(session, { log }));
         return logged;
     };
 

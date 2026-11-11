@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { Logger } from '@jsprismarine/logger';
-import type Server from '../../Server';
+import { sessionContext } from '../../testing/handlerContext.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import { STEVE } from '../../testing/sessionIdentity.test.helper';
 import type ClientConnection from '../ClientConnection';
@@ -13,26 +13,20 @@ import ResourcePacksReadyForValidationHandler from './ResourcePacksReadyForValid
 const fakeSession = () => {
     const logged: string[] = [];
     const sent: unknown[] = [];
-    const server = stub<Server>({
-        getLogger: () => stub<Logger>({ debug: (...message) => void logged.push(message[0] ?? '') })
-    });
+    const log = stub<Logger>({ debug: (...message) => void logged.push(message[0] ?? '') });
     const session = stub<PlayerSession>({
         identity: STEVE,
         getConnection: () => stub<ClientConnection>({ sendDataPacket: async (packet) => void sent.push(packet) })
     });
 
-    return { logged, sent, server, session };
+    return { logged, sent, context: sessionContext(session, { log }) };
 };
 
 describe('ResourcePacksReadyForValidationHandler', () => {
     it('logs the report and sends nothing back', () => {
-        const { logged, sent, server, session } = fakeSession();
+        const { logged, sent, context } = fakeSession();
 
-        new ResourcePacksReadyForValidationHandler().handle(
-            new ResourcePacksReadyForValidationPacket(),
-            server,
-            session
-        );
+        new ResourcePacksReadyForValidationHandler().handle(new ResourcePacksReadyForValidationPacket(), context);
 
         expect(logged).toEqual(['Steve finished loading its resource packs']);
         expect(sent).toEqual([]);

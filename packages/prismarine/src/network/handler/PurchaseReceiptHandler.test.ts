@@ -1,7 +1,7 @@
 import type { Logger } from '@jsprismarine/logger';
 import { describe, expect, it } from 'vitest';
 import * as Handlers from '../Handlers';
-import type Server from '../../Server';
+import { sessionContext } from '../../testing/handlerContext.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import { STEVE } from '../../testing/sessionIdentity.test.helper';
 import type PlayerSession from '../PlayerSession';
@@ -11,13 +11,11 @@ import PurchaseReceiptHandler from './PurchaseReceiptHandler';
 describe('PurchaseReceiptHandler', () => {
     it('logs how many receipts arrived', () => {
         const logged: string[] = [];
-        const server = stub<Server>({
-            getLogger: () => stub<Logger>({ debug: (...message) => void logged.push(message[0] ?? '') })
-        });
+        const log = stub<Logger>({ debug: (...message) => void logged.push(message[0] ?? '') });
         const session = stub<PlayerSession>({ identity: STEVE });
         const packet = new PurchaseReceiptPacket({ purchaseReceipts: ['a', 'b'] });
 
-        new PurchaseReceiptHandler().handle(packet, server, session);
+        new PurchaseReceiptHandler().handle(packet, sessionContext(session, { log }));
 
         expect(logged).toEqual(['Steve sent 2 purchase receipts, which the server does not verify']);
     });

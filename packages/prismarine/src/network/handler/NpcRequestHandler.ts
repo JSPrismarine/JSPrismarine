@@ -1,8 +1,7 @@
-import type Server from '../../Server';
-import type PlayerSession from '../PlayerSession';
 import type NpcRequestPacket from '@jsprismarine/protocol/packet/NpcRequestPacket';
 import { NpcRequestType } from '@jsprismarine/protocol/packet/NpcRequestPacket';
-import type PacketHandler from './PacketHandler';
+import type { SessionContext } from './HandlerContext';
+import type { ConnectionLaneHandler } from './SessionHandler';
 
 /**
  * What a player did with an NPC.
@@ -10,20 +9,19 @@ import type PacketHandler from './PacketHandler';
  * The request is recorded at debug level and dropped. Known gap: no actor carries the NPC
  * component, so there is no dialogue to show, no actions to store and no commands to run.
  */
-export default class NpcRequestHandler implements PacketHandler<NpcRequestPacket> {
+export default class NpcRequestHandler implements ConnectionLaneHandler<NpcRequestPacket> {
     public static PacketName = 'NpcRequestPacket';
+    public readonly takes = 'context';
     public readonly phases = ['play'] as const;
     public readonly lane = 'connection';
 
     /** Logs the request type and the NPC it names. */
-    public handle(packet: NpcRequestPacket, server: Server, session: PlayerSession): void {
+    public handle(packet: NpcRequestPacket, { session, log }: SessionContext): void {
         const requestType = NpcRequestType[packet.requestType] ?? packet.requestType;
 
-        server
-            .getLogger()
-            .debug(
-                `${session.identity.name} sent ${requestType} to NPC ${packet.npcRuntimeId}, which the server has no NPCs to apply`,
-                'NpcRequestHandler/handle'
-            );
+        log.debug(
+            `${session.identity.name} sent ${requestType} to NPC ${packet.npcRuntimeId}, which the server has no NPCs to apply`,
+            'NpcRequestHandler/handle'
+        );
     }
 }

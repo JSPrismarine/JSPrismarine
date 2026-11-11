@@ -1,7 +1,6 @@
-import type { PlayerSession } from '../../';
-import type Server from '../../Server';
 import type ServerSettingsRequestPacket from '@jsprismarine/protocol/packet/ServerSettingsRequestPacket';
-import type PacketHandler from './PacketHandler';
+import type { SessionContext } from './HandlerContext';
+import type { ConnectionLaneHandler } from './SessionHandler';
 
 /**
  * The client asking whether the server has a settings form to show it.
@@ -17,18 +16,17 @@ import type PacketHandler from './PacketHandler';
  * and never put anything in the tab.
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/server-settings-request-packet/
  */
-export default class ServerSettingsRequestHandler implements PacketHandler<ServerSettingsRequestPacket> {
+export default class ServerSettingsRequestHandler implements ConnectionLaneHandler<ServerSettingsRequestPacket> {
     public static PacketName = 'ServerSettingsRequestPacket';
+    public readonly takes = 'context';
     public readonly phases = ['play'] as const;
     public readonly lane = 'connection';
 
     /** Logs the request and sends nothing back. */
-    public handle(_packet: ServerSettingsRequestPacket, server: Server, session: PlayerSession): void {
-        server
-            .getLogger()
-            .debug(
-                `${session.identity.name} asked for the server settings form, which the server does not offer`,
-                'ServerSettingsRequestHandler/handle'
-            );
+    public handle(_packet: ServerSettingsRequestPacket, { session, log }: SessionContext): void {
+        log.debug(
+            `${session.identity.name} asked for the server settings form, which the server does not offer`,
+            'ServerSettingsRequestHandler/handle'
+        );
     }
 }
