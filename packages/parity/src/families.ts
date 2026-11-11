@@ -112,6 +112,11 @@ export const FAMILIES = {
     gameplayDatapack: 'gameplay.datapack',
     /** Java's game rules and villager professions, by whether the server runs them. */
     gameplayMechanics: 'gameplay.mechanics',
+    /**
+     * A block position a client's packet names, refused out of reach or in a chunk that is not
+     * loaded, and never loaded to answer it, in the order Java's packet listener checks.
+     */
+    gameplayBlockTargets: 'gameplay.block-targets',
 
     /** Every registered protocol version negotiates its own codec from a real first packet. */
     protocolNegotiation: 'protocol.negotiation',
