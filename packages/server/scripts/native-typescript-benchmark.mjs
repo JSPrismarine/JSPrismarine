@@ -55,7 +55,9 @@ for (let index = 0; index < samplesPerMode; index += 1) {
     const order = index % 2 === 0 ? ['tsx', 'native'] : ['native', 'tsx'];
     for (const mode of order) {
         const result =
-            mode === 'tsx' ? run('tsx', 'tsx') : run('node-type-stripping', './scripts/native-typescript-loader.mjs');
+            mode === 'tsx'
+                ? run('tsx', 'tsx')
+                : run('node-type-stripping', '../../scripts/native-typescript-loader.mjs');
         samples[mode].push(result);
     }
 }

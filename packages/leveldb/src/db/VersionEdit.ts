@@ -28,17 +28,19 @@ export interface VersionEdit {
     newFiles?: Array<[number, FileMetaData]>;
 }
 
-enum Tag {
-    Comparator = 1,
-    LogNumber = 2,
-    NextFileNumber = 3,
-    LastSequence = 4,
-    CompactPointer = 5,
-    DeletedFile = 6,
-    NewFile = 7,
+const Tag = {
+    Comparator: 1,
+    LogNumber: 2,
+    NextFileNumber: 3,
+    LastSequence: 4,
+    CompactPointer: 5,
+    DeletedFile: 6,
+    NewFile: 7,
     // 8 was a file-number tag that never shipped.
-    PreviousLogNumber = 9
-}
+    PreviousLogNumber: 9
+} as const;
+
+type Tag = (typeof Tag)[keyof typeof Tag];
 
 export const encodeVersionEdit = (edit: VersionEdit): Buffer => {
     const writer = new ByteWriter(256);

@@ -3,15 +3,18 @@
  * digits, and keep going once they need a seventh, so a plain integer parse is what reads them.
  */
 
-export enum FileKind {
-    Table = 'table',
-    Log = 'log',
-    Manifest = 'manifest',
-    Current = 'current',
-    Lock = 'lock',
-    Temp = 'temp',
-    Info = 'info'
-}
+export const FileKind = {
+    Table: 'table',
+    Log: 'log',
+    Manifest: 'manifest',
+    Current: 'current',
+    Lock: 'lock',
+    Temp: 'temp',
+    Info: 'info'
+} as const;
+
+/** One of the values of {@link FileKind}. */
+export type FileKind = (typeof FileKind)[keyof typeof FileKind];
 
 export interface ParsedFileName {
     kind: FileKind;

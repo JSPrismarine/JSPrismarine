@@ -15,13 +15,17 @@ import { CorruptionError } from '../Errors';
 export const LOG_BLOCK_SIZE = 32768;
 export const LOG_HEADER_SIZE = 7;
 
-export enum LogRecordType {
-    Zero = 0,
-    Full = 1,
-    First = 2,
-    Middle = 3,
-    Last = 4
-}
+/** Where a fragment sits in its record: the whole record, or its first, middle or last part. */
+export const LogRecordType = {
+    Zero: 0,
+    Full: 1,
+    First: 2,
+    Middle: 3,
+    Last: 4
+} as const;
+
+/** One of the values of {@link LogRecordType}. */
+export type LogRecordType = (typeof LogRecordType)[keyof typeof LogRecordType];
 
 /** Frames records into blocks. Emits the whole file; callers append the result. */
 export class LogWriter {

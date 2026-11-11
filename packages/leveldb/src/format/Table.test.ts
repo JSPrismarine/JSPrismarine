@@ -18,7 +18,10 @@ const key = (text: string) => Buffer.from(text);
 const sortedKeys = (count: number): Buffer[] =>
     Array.from({ length: count }, (_, i) => Buffer.from(`key:${String(i).padStart(8, '0')}`));
 
-const buildTable = (entries: Array<[Buffer, Buffer]>, compression = CompressionType.ZlibRaw): Buffer => {
+const buildTable = (
+    entries: Array<[Buffer, Buffer]>,
+    compression: CompressionType = CompressionType.ZlibRaw
+): Buffer => {
     const builder = new TableBuilder({ compression, blockSize: 512 });
     for (const [k, v] of entries) builder.add(k, v);
     return builder.finish();

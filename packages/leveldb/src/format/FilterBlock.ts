@@ -63,7 +63,10 @@ export class FilterBlockReader {
     private readonly baseLog2: number;
 
     /** Reads filter offsets and disables filtering if their layout is invalid. */
-    public constructor(private readonly data: Buffer) {
+    private readonly data: Buffer;
+
+    public constructor(data: Buffer) {
+        this.data = data;
         if (data.byteLength < 5) {
             this.valid = false;
             this.offsetsStart = 0;

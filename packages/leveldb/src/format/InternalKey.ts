@@ -10,10 +10,13 @@ import { compareBytewise, findShortSuccessor, findShortestSeparator } from '../u
  * no error, just old terrain.
  */
 
-export enum ValueType {
-    Deletion = 0,
-    Value = 1
-}
+export const ValueType = {
+    Deletion: 0,
+    Value: 1
+} as const;
+
+/** One of the values of {@link ValueType}. */
+export type ValueType = (typeof ValueType)[keyof typeof ValueType];
 
 /** Sorts before every real entry for a user key, so a seek lands on that key's newest version. */
 export const MAX_SEQUENCE = (1n << 56n) - 1n;

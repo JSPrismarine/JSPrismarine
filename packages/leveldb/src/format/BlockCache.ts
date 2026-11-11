@@ -43,7 +43,10 @@ export class BlockCache {
     private hits = 0;
     private misses = 0;
 
-    public constructor(private readonly byteBudget: number) {
+    private readonly byteBudget: number;
+
+    public constructor(byteBudget: number) {
+        this.byteBudget = byteBudget;
         if (!Number.isSafeInteger(byteBudget) || byteBudget < 0) {
             throw new RangeError(`Block cache size must be a non-negative safe integer: ${byteBudget}`);
         }
