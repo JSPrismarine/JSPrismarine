@@ -6,7 +6,7 @@ import { performance } from 'node:perf_hooks';
 
 import { NBTTagCompound, Types } from '@jsprismarine/nbt';
 import type { Logger } from '@jsprismarine/logger';
-import type { Entity } from '../src/entity/Entity';
+import type { StoreActor } from '../src/entity/data/storeActors';
 import { stub } from '../src/testing/stub.test.helper';
 import type Server from '../src/Server';
 import type { World } from '../src/world/World';
@@ -16,7 +16,7 @@ import { createChunkSaveContext } from '../src/world/providers/ChunkSaveContext'
 import LevelDB from '../src/world/providers/leveldb/LevelDB';
 import type { Position } from '../src/world/Position';
 
-const makeEntities = (count: number, chunkWidth: number): Entity[] => {
+const makeEntities = (count: number, chunkWidth: number): StoreActor[] => {
     const world = stub<World>({ getDimension: () => Dimensions.Overworld });
 
     return Array.from({ length: count }, (_unused, index) => {
@@ -30,7 +30,7 @@ const makeEntities = (count: number, chunkWidth: number): Entity[] => {
         const persistentNbt = new NBTTagCompound('');
         persistentNbt.addValue('UniqueID', new Types.LongVal(BigInt(index + 1)));
 
-        return stub<Entity>({
+        return stub<StoreActor>({
             getType: () => 'minecraft:cow',
             getPosition: () => position,
             getTags: () => [],
@@ -57,7 +57,7 @@ const run = async (chunkCount: number, entityCount: number): Promise<void> => {
         getName: () => 'world-save benchmark',
         getSeed: () => 1234n,
         getDimension: () => Dimensions.Overworld,
-        getEntities: () => entities
+        getActors: () => entities
     });
     const logger = stub<Logger>({ warn: () => undefined });
     const server = stub<Server>({ getLogger: () => logger });

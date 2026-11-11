@@ -5,7 +5,6 @@
  */
 import os from 'node:os';
 
-import type Player from '../src/Player';
 import type Server from '../src/Server';
 import type ClientConnection from '../src/network/ClientConnection';
 import type PlayerSession from '../src/network/PlayerSession';
@@ -13,6 +12,7 @@ import { BlockRuntimeIds } from '../src/block/state/BlockRuntimeIds';
 import { MobSpawner } from '../src/blockentity/BlockEntities';
 import { BlockEntityRegistry } from '../src/blockentity/BlockEntityRegistry';
 import { NBTTagCompound, Types } from '@jsprismarine/nbt';
+import type { StoreActors } from '../src/entity/data/storeActors';
 import { testContent } from '../src/testing/entityServer';
 import { stub } from '../src/testing/stub.test.helper';
 import Chunk from '../src/world/chunk/Chunk';
@@ -38,6 +38,9 @@ const chestAt = (x: number, z: number) => {
     root.addValue('z', new Types.NumberVal(z * 16 + 1));
     return BlockEntityRegistry.fromNBT(root);
 };
+
+/** What the world files in its player map. */
+type WorldPlayer = ReturnType<World['getPlayers']>[number];
 
 interface Output {
     digest: number;
@@ -81,7 +84,7 @@ const makeWorld = (legacyChunkScan: boolean, output: Output): World => {
         closing: false,
         level: { getTicks: () => 1 },
         server: stub<Server>({ getContent: () => content }),
-        players: new Map<number, Player>(),
+        players: new Map<number, WorldPlayer>(),
         chunks,
         loading: new Map(),
         systems,
@@ -92,7 +95,12 @@ const makeWorld = (legacyChunkScan: boolean, output: Output): World => {
         touchPortals: async () => {},
         getDragonFight: () => undefined,
         getRaidManager: () => undefined,
-        dataEntities: () => ({ tick: async () => {}, persist: () => {}, unload: () => false }),
+        dataEntities: () => ({
+            tick: async () => {},
+            persist: () => {},
+            unload: () => false,
+            actors: stub<StoreActors>({ all: () => [][Symbol.iterator]() })
+        }),
         flushEntityAttributes: async () => {},
         updateTracking: async () => {},
         flushMovement: async () => {},
@@ -102,12 +110,13 @@ const makeWorld = (legacyChunkScan: boolean, output: Output): World => {
     world = target;
     world['players'].set(
         1,
-        stub<Player>({
+        stub<WorldPlayer>({
             viewDistance: CHUNK_RADIUS,
             isOnline: () => true,
             getPosition: () => new Position(0, 64, 0, world),
             getNetworkSession: () =>
                 stub<PlayerSession>({
+                    getViewDistance: () => CHUNK_RADIUS,
                     getConnection: () => stub<ClientConnection>({ flushOutboundPackets: async () => {} })
                 })
         })

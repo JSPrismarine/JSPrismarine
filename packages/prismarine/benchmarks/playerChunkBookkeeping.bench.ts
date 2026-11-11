@@ -6,7 +6,6 @@
  */
 import os from 'node:os';
 
-import type Player from '../src/Player';
 import type Server from '../src/Server';
 import { stub } from '../src/testing/stub.test.helper';
 import type { Config } from '../src/config/Config';
@@ -15,6 +14,10 @@ import { World } from '../src/world/World';
 import type { Position as PositionType } from '../src/world/Position';
 import { sessionFor } from '../src/testing/playerSession.test.helper';
 import type ClientConnection from '../src/network/ClientConnection';
+import type PlayerSession from '../src/network/PlayerSession';
+
+/** What the world files in its player map. */
+type WorldPlayer = ReturnType<World['getPlayers']>[number];
 
 const PLAYER_COUNT = 20;
 const VIEW_DISTANCE = 32;
@@ -89,7 +92,7 @@ const synchronizeLegacy = (
 };
 
 const states = new Map<number, PlayerState>();
-const players = new Map<number, Player>();
+const players = new Map<number, WorldPlayer>();
 const world = Object.assign(Object.create(World.prototype), { players, chunks: new Map() }) as World;
 
 for (let index = 0; index < PLAYER_COUNT; index++) {
@@ -102,8 +105,9 @@ for (let index = 0; index < PLAYER_COUNT; index++) {
     states.set(state.id, state);
     players.set(
         state.id,
-        stub<Player>({
+        stub<WorldPlayer>({
             viewDistance: state.viewDistance,
+            getNetworkSession: () => stub<PlayerSession>({ getViewDistance: () => state.viewDistance }),
             getPosition: () => stub<PositionType>({ getX: () => state.x * 16, getZ: () => state.z * 16 })
         })
     );
