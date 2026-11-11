@@ -30,10 +30,7 @@ import { survivalReaches } from './entity/survivalPlayer';
 import PlayerSetGamemodeEvent from './events/player/PlayerSetGamemodeEvent';
 import PlayerToggleFlightEvent from './events/player/PlayerToggleFlightEvent';
 import PlayerToggleSprintEvent from './events/player/PlayerToggleSprintEvent';
-import { PlayerRespawnState } from '@jsprismarine/minecraft';
-import DeathInfoPacket from '@jsprismarine/protocol/packet/DeathInfoPacket';
 import type PlayerSession from './network/PlayerSession';
-import type { ChunkCoord } from '@jsprismarine/protocol/packet/NetworkChunkPublisherUpdatePacket';
 import { PositionMode, TextPacketType } from '@jsprismarine/protocol';
 import { loadAdvancements } from './advancement/progress';
 import { advancementPlayerTick } from './advancement/triggers';
@@ -55,8 +52,6 @@ import { keyOfPlayer } from './playerIdentity';
 import type { PlayerSpawn } from './world/SpawnPlacement';
 import type { BlockMining } from './world/BlockMining';
 import { blockMiningOf, playerMiningOf } from './world/BlockMining';
-import CoordinateUtils from './world/CoordinateUtils';
-import { DEFAULT_VIEW_DISTANCE_CHUNKS } from './world/Proximity';
 import type { ExperienceHolder } from './entity/Experience';
 import type { PlayerComponents } from './entity/playerComponents';
 import { addFood, setSaturation } from './entity/playerHunger';
@@ -193,18 +188,11 @@ export default class Player {
     }
 
     /**
-     * Where this player was placed on joining, when they had no saved position.
-     *
-     * Kept for the join packets: a Bedrock Dedicated Server reports the requested spot in
-     * `StartGame` and the final one in the `Respawn` that releases the client.
-     */
-    private joinSpawn: PlayerSpawn | null = null;
-
-    /**
-     * Where this player was placed on joining, or null when they came back to a saved position.
+     * Where this player was placed on joining, or null when they came back to a saved position;
+     * see {@link PlayerSession.getJoinSpawn}.
      */
     public getJoinSpawn(): PlayerSpawn | null {
-        return this.joinSpawn;
+        return this.getNetworkSession().getJoinSpawn();
     }
 
     /** The block this player is mining, whose cracks are animated every tick; null when none. */
@@ -401,11 +389,11 @@ export default class Player {
         const recorded = recordedPosition(playerData);
         let position: Vector3;
         if (recorded) {
-            this.joinSpawn = null;
+            this.getNetworkSession().setJoinSpawn(null);
             position = Vector3.fromObject(recorded);
         } else {
             const placed = await this.getWorld().placePlayerSpawn();
-            this.joinSpawn = placed;
+            this.getNetworkSession().setJoinSpawn(placed);
             position = eyePositionAt(placed.position);
         }
 
@@ -503,38 +491,9 @@ export default class Player {
         chat.leave(this.chatRecipient);
     }
 
-    /**
-     * Used to match vanilla behavior, will send chunks
-     * with an initial view radius of DEFAULT_VIEW_DISTANCE_CHUNKS.
-     */
+    /** Queues the chunks around this player that a join starts with; see {@link PlayerSession.sendInitialSpawnChunks}. */
     public async sendInitialSpawnChunks(): Promise<void> {
-        const minX = CoordinateUtils.fromBlockToChunk(this.getPosition().getX()) - DEFAULT_VIEW_DISTANCE_CHUNKS;
-        const minZ = CoordinateUtils.fromBlockToChunk(this.getPosition().getZ()) - DEFAULT_VIEW_DISTANCE_CHUNKS;
-        const maxX = CoordinateUtils.fromBlockToChunk(this.getPosition().getX()) + DEFAULT_VIEW_DISTANCE_CHUNKS;
-        const maxZ = CoordinateUtils.fromBlockToChunk(this.getPosition().getZ()) + DEFAULT_VIEW_DISTANCE_CHUNKS;
-
-        const savedChunks: ChunkCoord[] = [];
-        for (let chunkX = minX; chunkX <= maxX; ++chunkX) {
-            for (let chunkZ = minZ; chunkZ <= maxZ; ++chunkZ) {
-                // TODO: vanilla does not send all of them, but in a range
-                // for example it does send them from x => [-3; 3] and z => [-3; 2]
-                savedChunks.push({ x: chunkX, z: chunkZ });
-            }
-        }
-
-        // One update to open the window the client will accept chunks in. It lists nothing:
-        // `saved_chunks` describes chunks already sent, and at this point none have been.
-        // PlayerSession re-sends this every tick that carries chunks, keeping it centered on
-        // the player as they move.
-        await this.getNetworkSession().sendNetworkChunkPublisher(DEFAULT_VIEW_DISTANCE_CHUNKS, []);
-
-        // Queued, not sent: the player joins immediately and the world fills in around them
-        // from the middle outwards, instead of everyone waiting while 81 chunks are built.
-        this.getNetworkSession().queueChunks(
-            CoordinateUtils.fromBlockToChunk(this.getPosition().getX()),
-            CoordinateUtils.fromBlockToChunk(this.getPosition().getZ()),
-            savedChunks.map((coord): [number, number] => [coord.x, coord.z])
-        );
+        await this.getNetworkSession().sendInitialSpawnChunks();
     }
 
     /**
@@ -624,51 +583,16 @@ export default class Player {
     }
 
     /**
-     * Sends this player's gamemode, adventure settings and abilities where each belongs.
-     *
-     * The two halves have different audiences, and sending both to everyone was a bug.
-     * `UpdateAdventureSettingsPacket` carries no target actor - it describes the client
-     * receiving it and nothing else - so pushing one player's settings to every session made
-     * a single spectator set `worldImmutable` on everybody else's client. It goes to this
-     * player alone. `UpdateAbilitiesPacket` does carry `targetActorUniqueId`, so it is
-     * genuinely about this player and belongs with everyone who can see them.
+     * Sends this player's gamemode, adventure settings and abilities where each belongs; see
+     * {@link PlayerSession.announceSettings}.
      */
     public async sendSettings(): Promise<void> {
-        await this.getNetworkSession().sendGamemode();
-        await this.getNetworkSession().sendSettings();
-
-        // Explicitly, because the fan-out below leaves this player out: its own client needs
-        // the abilities too, and this is the one copy it gets.
-        await this.getNetworkSession().sendAbilities(this.getBody());
-
-        await Promise.all(
-            this.getServer()
-                .getSessionManager()
-                .getAllPlayers()
-                .filter((target) => target !== this)
-                .map(async (target) => target.getNetworkSession().sendAbilities(this.getBody()))
-        );
+        await this.getNetworkSession().announceSettings();
     }
 
-    /**
-     * Finishes bringing this player into the game: position, gamemode, inventory, settings.
-     * @remarks Named apart from {@link StorePlayerActor.spawnTo} on purpose. This used to be called
-     * `sendSpawn`, overriding the entity method of that name with a different signature and
-     * an unrelated meaning - one is "put me into the world", the other is "show me to
-     * somebody". Adding a player to a world therefore ran this by accident.
-     */
+    /** Finishes bringing this player into the game; see {@link PlayerSession.completeSpawn}. */
     public async completeSpawn(): Promise<void> {
-        const actor = this.getActor();
-        if (actor !== undefined) await this.getWorld().broadcastMove(actor);
-        await this.setGamemode();
-        await this.getNetworkSession().sendInventory();
-        await this.sendSettings();
-
-        // Sent again here, not only during the join sequence: the client throws away the
-        // local player it had while it is spawning, taking health, hunger and breath with it.
-        await this.getNetworkSession().sendAttributes();
-        await this.getNetworkSession().sendMetadata();
-        await this.getNetworkSession().sendStatusEffects(this.getBody());
+        await this.getNetworkSession().completeSpawn();
     }
 
     /**
@@ -708,35 +632,9 @@ export default class Player {
 
         // A logged component field, which the store's player systems and the actor read.
         this.runtime().setPlayerGamemode(this.store, event.getGamemode());
-        await this.getNetworkSession().sendGamemode();
-
-        // Everyone in the world, this player included, caches each player's game type and
-        // permission flags, so the docs have the server follow an accepted change with
-        // `UpdatePlayerGameTypePacket` to every client. `StoreActors.sync` does not notice a game
-        // mode, so this is the send.
-        await Promise.all(
-            this.getWorld()
-                .getPlayers()
-                .map(async (player) => player.getNetworkSession().sendGameTypeFor(this.getBody()))
-        );
-
+        await this.getNetworkSession().sendGameTypeChange();
         if (!mayFlyIn(this.gamemode)) await this.setFlying(false);
-
-        await this.sendSettings();
-        await this.getNetworkSession().sendGamemode();
-        // Whether the player may fly is in its metadata, which the actor writes from the game mode
-        // and sends to the player and everyone who sees them.
-        const actor = this.getActor();
-        if (actor === undefined) await this.getNetworkSession().sendMetadata();
-        else {
-            actor.showPlayerState();
-            await this.getWorld().sendActorMetadata(actor);
-        }
-
-        // The abilities are read off the gamemode, so they are stale the moment it changes -
-        // and they were never re-sent. Among them is `INSTABUILD`, which is what tells the
-        // client it may help itself from the creative menu.
-        await this.getNetworkSession().sendAbilities();
+        await this.getNetworkSession().sendAbilityChange();
     }
 
     /**
@@ -982,27 +880,20 @@ export default class Player {
         // The bare translation key, as with the join and leave messages: the client renders
         // it in its own language. Which key it is depends on whether anybody is to blame - see
         // `DeathMessages`.
-        const { key, parameters } = deathMessage(actor, source);
+        const message = deathMessage(actor, source);
+        const { key, parameters } = message;
 
         // Where they will come back. The client will not offer the respawn button until it
         // knows, which is why a death screen that never became a respawn screen was stuck on
         // "Respawning". The search may load chunks or build a dimension, so the death files it
-        // before its first wait and the next input step sends the answer
-        // (`world/RespawnRequests.ts`), unless the player came back or left before then. The
-        // death screen's own copy of the cause follows it, as PocketMine's `DeathPacketHandler`
-        // sends it after the `Respawn`; `DeathInfo` takes the key without the `%` the chat
-        // packet wants.
-        const deathInfo = new DeathInfoPacket({ cause: key.replace(/^%/, ''), messages: parameters });
+        // before its first wait and the next input step sends the death screen
+        // (`world/RespawnRequests.ts`), unless the player came back or left before then.
         this.getServer()
             .getRespawnRequests()
             .request(this.getWorld().getLevel().getRespawnSearch().find(this.respawnRequest()), async (answer) => {
                 if (this.isAlive() || !this.isOnline()) return;
                 await this.forgetLostSpawnPoint(answer);
-                await this.getNetworkSession().sendRespawn(
-                    Vector3.fromObject(answer.announced),
-                    PlayerRespawnState.SEARCHING_FOR_SPAWN
-                );
-                await this.getNetworkSession().getConnection().sendDataPacket(deathInfo);
+                await this.getNetworkSession().sendDeathScreen(Vector3.fromObject(answer.announced), message);
             });
 
         this.showOwnHealth();
