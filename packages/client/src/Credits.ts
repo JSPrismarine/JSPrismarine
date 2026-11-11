@@ -1,10 +1,8 @@
 import { CreditsState, NetworkPacket, PacketIdentifier, layoutAt, showCreditsPacket } from '@jsprismarine/protocol';
 import { EventEmitter } from 'node:events';
-import { isPacket } from './net/ClientPacketRegistry';
 
-import type { Logger } from '@jsprismarine/logger';
 import type { NetworkBinaryStream, ShowCreditsPayload } from '@jsprismarine/protocol';
-import type { DecodedPacket } from './net/ClientPacketRegistry';
+import type { ClientPacketHandler } from './net/ClientHandler';
 import type ClientSession from './net/ClientSession';
 
 /**
@@ -44,37 +42,35 @@ export class ShowCreditsPacket extends NetworkPacket<ShowCreditsPayload> {
  */
 export default class Credits extends EventEmitter {
     /**
+     * Registers the answer on the session, for the life of the session.
+     * @param session - The session whose `ShowCredits` this answers.
      * @param runtimeEntityId - Returns the runtime id `StartGame` assigned, for the answer.
      */
     public constructor(
-        private readonly session: ClientSession,
-        private readonly logger: Logger,
+        session: ClientSession,
         private readonly runtimeEntityId: () => bigint
     ) {
         super();
-        this.session.on('packet', this.onPacket);
+        session.registerHandler(ShowCreditsPacket, this.showCredits);
     }
 
-    private readonly onPacket = (packet: DecodedPacket): void => {
-        if (!isPacket(packet, PacketIdentifier.SHOW_CREDITS)) return;
-        void this.session.track(this.dispatch(packet.data)).catch((error: unknown) => {
-            this.logger.warn(
-                `Client/Credits: ${error instanceof Error ? error.message : String(error)}`,
-                'Client/Credits/dispatch'
+    /**
+     * Answers `ShowCredits Start` with `Finished`, in either phase, as it did when it listened
+     * to every packet the session read.
+     */
+    private readonly showCredits: ClientPacketHandler<ShowCreditsPayload> = {
+        phases: ['login', 'play'],
+        handle: async (credits, { session, log }) => {
+            // A server-bound `Finished` echoed back, or anything else: not the start of anything.
+            if (credits.creditsState !== CreditsState.Start) return;
+            this.emit('start', credits);
+
+            await session.send(
+                new ShowCreditsPacket({ playerRuntimeId: this.runtimeEntityId(), creditsState: CreditsState.Finished })
             );
-        });
+
+            log.debug('Client/Credits: answered the end credits');
+            this.emit('finished', credits);
+        }
     };
-
-    private async dispatch(credits: ShowCreditsPayload): Promise<void> {
-        // A server-bound `Finished` echoed back, or anything else: not the start of anything.
-        if (credits.creditsState !== CreditsState.Start) return;
-        this.emit('start', credits);
-
-        await this.session.send(
-            new ShowCreditsPacket({ playerRuntimeId: this.runtimeEntityId(), creditsState: CreditsState.Finished })
-        );
-
-        this.logger.debug('Client/Credits: answered the end credits');
-        this.emit('finished', credits);
-    }
 }

@@ -191,7 +191,7 @@ export default class Client extends EventEmitter {
         // Answers the server's `ShowCredits Start`, which arrives once per save on the first
         // exit through the End's portal; the `ChangeDimension` it releases goes through the
         // responder above.
-        this.credits = new Credits(this.session, this.logger, () => this.startGame?.runtimeEntityId ?? 0n);
+        this.credits = new Credits(this.session, () => this.startGame?.runtimeEntityId ?? 0n);
         this.credits.on('finished', (credits: ShowCreditsPayload) => this.emit('credits', credits));
     }
 
