@@ -7,9 +7,15 @@
     --jsp-radius-control: 10px;
     --jsp-gap: 10px;
     --jsp-shadow-offset: 4px;
+    /* Forest on accent is 4.46:1, under AA for body text; deep is 5.40:1. */
+    --jsp-on-accent: var(--jsp-deep);
+    /* The smallest mono label the site sets. */
+    --jsp-label-size: 12px;
+    /* Touch targets on phones. */
+    --jsp-target: 44px;
     --jsp-term-text: color-mix(in srgb, var(--jsp-cream) 85%, var(--jsp-mint));
     --jsp-term-bar: color-mix(in srgb, var(--jsp-ink) 85%, var(--jsp-accent));
-    --jsp-term-muted: color-mix(in srgb, var(--jsp-ink) 45%, var(--jsp-mint));
+    --jsp-term-muted: color-mix(in srgb, var(--jsp-ink) 30%, var(--jsp-mint));
     --jsp-track: color-mix(in srgb, var(--jsp-forest) 70%, var(--jsp-accent));
 
     --vp-font-family-base: 'Bricolage Grotesque', 'Helvetica Neue', Arial, sans-serif;
@@ -21,11 +27,35 @@
     --vp-c-brand-soft: color-mix(in srgb, var(--jsp-accent) 14%, transparent);
 
     --vp-button-brand-bg: var(--jsp-accent);
-    --vp-button-brand-text: var(--jsp-forest);
+    --vp-button-brand-text: var(--jsp-on-accent);
     --vp-button-brand-hover-bg: var(--jsp-mint);
-    --vp-button-brand-hover-text: var(--jsp-forest);
+    --vp-button-brand-hover-text: var(--jsp-on-accent);
     --vp-c-bg: color-mix(in srgb, var(--jsp-cream) 25%, #fff);
     --vp-c-bg-alt: color-mix(in srgb, var(--jsp-cream) 55%, #fff);
+
+    /* Code blocks sit on the terminal's ink surface in both modes; codeTheme.ts colors the tokens. */
+    --vp-code-block-bg: var(--jsp-ink);
+    --vp-code-block-color: var(--jsp-term-text);
+    --vp-code-block-divider-color: var(--jsp-term-bar);
+    --vp-code-lang-color: var(--jsp-term-muted);
+    --vp-code-line-highlight-color: color-mix(in srgb, var(--jsp-accent) 16%, transparent);
+    --vp-code-line-number-color: var(--jsp-term-muted);
+    --vp-code-copy-code-bg: var(--jsp-term-bar);
+    --vp-code-copy-code-border-color: var(--jsp-term-bar);
+    --vp-code-copy-code-hover-bg: var(--jsp-term-bar);
+    --vp-code-copy-code-hover-border-color: var(--jsp-accent);
+    --vp-code-copy-code-active-text: var(--jsp-accent);
+    --vp-code-tab-bg: var(--jsp-term-bar);
+    --vp-code-tab-divider: var(--jsp-ink);
+    --vp-code-tab-text-color: var(--jsp-term-muted);
+    --vp-code-tab-hover-text-color: var(--jsp-term-text);
+    --vp-code-tab-active-text-color: var(--jsp-cream);
+    --vp-code-tab-active-bar-color: var(--jsp-accent);
+
+    /* Text is ink, not VitePress's cool gray. Each step stays at 4.5:1 or better on the page and the sidebar. */
+    --vp-c-text-1: var(--jsp-ink);
+    --vp-c-text-2: color-mix(in srgb, var(--jsp-ink) 74%, transparent);
+    --vp-c-text-3: color-mix(in srgb, var(--jsp-ink) 62%, transparent);
 }
 
 .dark {
@@ -36,6 +66,10 @@
     --vp-c-bg: color-mix(in srgb, var(--jsp-ink) 70%, #000);
     --vp-c-bg-alt: var(--jsp-ink);
     --vp-c-bg-soft: color-mix(in srgb, var(--jsp-ink) 80%, var(--jsp-forest));
+
+    --vp-c-text-1: var(--jsp-cream);
+    --vp-c-text-2: color-mix(in srgb, var(--jsp-cream) 74%, transparent);
+    --vp-c-text-3: color-mix(in srgb, var(--jsp-cream) 62%, transparent);
 }
 
 /* Heavy, tight headlines; body copy keeps the default tracking. */
@@ -63,10 +97,14 @@
     gap: 8px;
 }
 
-/* A visible focus ring on every brand control, in both themes. */
-:is(.brand-button, .audience-tabs button, .audience-tabs a, .copy-button):focus-visible {
+/*
+ * A focus ring on every control, in both themes. Signal on the light page is only 2.3:1, so an ink band
+ * fills the gap between the control and the ring; the pair reads on cream, forest, ink and signal alike.
+ */
+:focus-visible {
     outline: 3px solid var(--jsp-signal);
     outline-offset: 2px;
+    box-shadow: 0 0 0 2px var(--jsp-ink);
 }
 
 /* Doc pages: flat blocks with hard edges, matching the landing page. */
@@ -128,6 +166,61 @@
     border-color: var(--jsp-accent);
 }
 
+/* The language label is a mono label like any other, so it keeps the label floor. */
+.vp-doc div[class*='language-'] > span.lang {
+    font-size: var(--jsp-label-size);
+}
+
+/* Touch screens have no hover, so the copy button stays visible there. */
+@media (hover: none) {
+    .vp-doc div[class*='language-'] > button.copy {
+        opacity: 1;
+    }
+}
+
+/* Dark surfaces sit close together, so code blocks and tables get a hairline edge instead of a lighter fill. */
+.dark .vp-doc div[class*='language-'],
+.dark .vp-doc table {
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--jsp-accent) 22%, transparent);
+}
+
+/* On phones, code wraps instead of running off the screen edge with no sign that it scrolls. */
+@media (max-width: 640px) {
+    .vp-doc div[class*='language-'] pre {
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+    }
+
+    /* A table's first column keeps room for its label, and code in cells wraps so the table fits the screen. */
+    .vp-doc td:first-child {
+        min-width: 9em;
+    }
+
+    .vp-doc table td > code {
+        white-space: normal;
+        overflow-wrap: anywhere;
+    }
+
+    /* The Pages and On this page bar under the header. */
+    .VPLocalNav :is(.menu, .VPLocalNavOutlineDropdown > button) {
+        min-height: var(--jsp-target);
+    }
+}
+
+/* Long outline entries wrap instead of ending in an ellipsis. */
+.VPDocOutlineItem .outline-link {
+    overflow: visible;
+    padding-left: 0.75em;
+    text-indent: -0.75em;
+    text-overflow: clip;
+    white-space: normal;
+}
+
+/* Pages with `pageClass: is-wide` and no sidebar use the full layout width for their grids. */
+.is-wide .VPDoc:not(.has-sidebar) :is(.container, .content, .content-container) {
+    max-width: 1152px;
+}
+
 /* Long identifiers and URLs in prose wrap instead of widening the page on phones. */
 .vp-doc {
     overflow-wrap: break-word;
@@ -172,4 +265,28 @@
 
 .VPLastUpdated time {
     margin-left: 0.5em;
+}
+
+/* The footer: a row of site links above the license line. */
+.VPFooter .message {
+    font-weight: 700;
+    color: var(--vp-c-text-1);
+}
+
+.VPFooter .message a {
+    display: inline-block;
+    padding: 6px 2px;
+    text-decoration: none;
+}
+
+.VPFooter .message a:hover {
+    text-decoration: underline;
+    text-decoration-thickness: 2px;
+    text-underline-offset: 3px;
+}
+
+/* The landing page ends on its own closing panel, so the home layout's bottom padding only adds a gap. */
+.VPHome:has(.landing) {
+    padding-bottom: 0;
+    margin-bottom: 0;
 }

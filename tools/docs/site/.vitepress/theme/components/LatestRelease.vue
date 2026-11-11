@@ -37,7 +37,6 @@ withDefaults(defineProps<{ release: Release; limit?: number }>(), { limit: 3 });
     font: 700 12px var(--vp-font-family-mono);
     text-transform: uppercase;
     letter-spacing: 0.12em;
-    opacity: 0.75;
 }
 
 .latest-release__version {
@@ -55,7 +54,6 @@ withDefaults(defineProps<{ release: Release; limit?: number }>(), { limit: 3 });
 .latest-release__version time {
     font: 13px var(--vp-font-family-mono);
     letter-spacing: 0;
-    opacity: 0.75;
 }
 
 .latest-release ul {

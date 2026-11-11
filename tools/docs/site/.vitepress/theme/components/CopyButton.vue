@@ -28,8 +28,9 @@ async function copy() {
 
 <style scoped>
 .copy-button {
-    padding: 4px 10px;
-    font: 700 11px var(--vp-font-family-mono);
+    min-height: 30px;
+    padding: 6px 12px;
+    font: 700 var(--jsp-label-size) var(--vp-font-family-mono);
     color: var(--jsp-ink);
     text-transform: uppercase;
     letter-spacing: 0.08em;

@@ -106,7 +106,7 @@ function toggle(key: string) {
 
 .release__kind {
     padding: 3px 10px;
-    font: 700 11px var(--vp-font-family-mono);
+    font: 700 var(--jsp-label-size) var(--vp-font-family-mono);
     text-transform: uppercase;
     letter-spacing: 0.08em;
     border-radius: 99px;
@@ -118,7 +118,7 @@ function toggle(key: string) {
 }
 
 .release__kind.is-minor {
-    color: var(--jsp-forest);
+    color: var(--jsp-on-accent);
     background: var(--jsp-accent);
 }
 
@@ -134,7 +134,7 @@ function toggle(key: string) {
 
 .release__group h3 span {
     margin-left: 6px;
-    opacity: 0.6;
+    color: var(--vp-c-text-2);
 }
 
 .release__group h3 {

@@ -42,7 +42,7 @@ withDefaults(defineProps<{ title?: string }>(), { title: 'jsprismarine' });
 
 .terminal__bar span {
     margin-left: auto;
-    font-size: 11px;
+    font-size: var(--jsp-label-size);
     color: var(--jsp-term-muted);
 }
 

@@ -157,12 +157,6 @@ function toggle(login: string) {
     color: var(--vp-c-brand-1);
 }
 
-.contributors__toggle:focus-visible,
-.contributors__profile:focus-visible {
-    outline: 2px solid var(--vp-c-brand-1);
-    outline-offset: 2px;
-}
-
 .contributors__chevron {
     width: 5px;
     height: 5px;

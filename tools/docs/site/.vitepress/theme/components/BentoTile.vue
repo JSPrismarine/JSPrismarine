@@ -14,9 +14,7 @@ withDefaults(defineProps<{ tone?: 'accent' | 'signal' | 'deep' | 'forest'; span?
 .bento-tile {
     display: flex;
     flex-direction: column;
-    gap: 24px;
-    justify-content: space-between;
-    min-height: 190px;
+    gap: 20px;
     padding: 22px;
     container-type: inline-size;
     color: var(--jsp-cream);
@@ -24,7 +22,7 @@ withDefaults(defineProps<{ tone?: 'accent' | 'signal' | 'deep' | 'forest'; span?
 }
 
 .is-accent {
-    color: var(--jsp-forest);
+    color: var(--jsp-on-accent);
     background: var(--jsp-accent);
 }
 
@@ -66,8 +64,17 @@ withDefaults(defineProps<{ tone?: 'accent' | 'signal' | 'deep' | 'forest'; span?
 }
 
 .bento-tile :deep(.bento-caption) {
-    max-width: 30ch;
+    max-width: 34ch;
+    margin: 0;
     font-size: 15px;
+}
+
+/*
+ * A tile's last block sits on its bottom edge, so the space falls between blocks. A caption under a figure
+ * stays with it, so figures and their captions line up across a row.
+ */
+.bento-tile > :deep(:last-child:not(:first-child, .bento-figure + *)) {
+    margin-top: auto;
 }
 
 .bento-tile :deep(.bento-caption b) {

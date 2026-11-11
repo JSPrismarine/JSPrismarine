@@ -574,7 +574,7 @@ progress::-moz-progress-bar {
 }
 
 .group-option.active {
-    color: var(--jsp-forest);
+    color: var(--jsp-on-accent);
     background: var(--jsp-accent);
 }
 
@@ -585,7 +585,7 @@ progress::-moz-progress-bar {
 }
 
 .group-option-count {
-    font: 11px var(--vp-font-family-mono);
+    font: var(--jsp-label-size) var(--vp-font-family-mono);
     font-variant-numeric: tabular-nums;
     opacity: 0.75;
 }
@@ -643,7 +643,7 @@ progress::-moz-progress-bar {
 }
 
 .status-filters button.active {
-    color: var(--jsp-forest);
+    color: var(--jsp-on-accent);
     background: var(--jsp-accent);
     border-color: var(--jsp-accent);
 }
@@ -866,7 +866,7 @@ progress::-moz-progress-bar {
 
 .status-badge {
     padding: 3px 10px;
-    font: 700 10px var(--vp-font-family-mono);
+    font: 700 var(--jsp-label-size) var(--vp-font-family-mono);
     color: var(--vp-c-text-2);
     text-transform: uppercase;
     letter-spacing: 0.08em;
@@ -918,16 +918,6 @@ progress::-moz-progress-bar {
     text-decoration: underline;
 }
 
-button:focus-visible,
-input:focus-visible,
-.family > summary:focus-visible,
-.file-link:focus-visible,
-.reference-link:focus-visible,
-.tracker-eyebrow a:focus-visible {
-    outline: 3px solid var(--jsp-signal);
-    outline-offset: 2px;
-}
-
 .visually-hidden {
     position: absolute;
     width: 1px;
@@ -963,6 +953,14 @@ input:focus-visible,
 @media (prefers-reduced-motion: reduce) {
     .family-title::before {
         transition: none;
+    }
+}
+
+@media (max-width: 640px) {
+    .status-filters button,
+    .expand-toggle,
+    .case-more button {
+        min-height: var(--jsp-target);
     }
 }
 </style>

@@ -10,6 +10,7 @@ import { isStagedPage, pageSource, sourceUpdatedAt } from '../../sections.mts';
 import { colorSwatchPlugin, colorSwatchTransformer } from './colorSwatches.ts';
 import { sidebar } from './sidebar.mts';
 import { prismSvg } from './theme/prism.ts';
+import { codeTheme } from './theme/codeTheme.ts';
 import { palette, paletteCss } from './theme/tokens.ts';
 
 const repositoryUrl = manifest.repository.url.replace(/^git\+/, '').replace(/\.git$/, '');
@@ -85,6 +86,8 @@ export default defineConfig({
         // Shiki ships no grammar for mcfunction or Molang, so their fences fall
         // back to plain text; register the local ones.
         languages: [mcfunction, molang],
+        // Code sits on the terminal's ink surface in both color modes.
+        theme: { light: codeTheme, dark: codeTheme },
         codeTransformers: [colorSwatchTransformer],
         config(md) {
             md.use(colorSwatchPlugin);
@@ -103,7 +106,11 @@ export default defineConfig({
     },
     themeConfig: {
         megaMenus,
-        sidebar: { ...sidebar, '/api/': typedocSidebar },
+        // Every API entry is a package in the one scope, so the sidebar names packages without it.
+        sidebar: {
+            ...sidebar,
+            '/api/': typedocSidebar.map((entry) => ({ ...entry, text: entry.text.replace(/^@[^/]+\//, '') }))
+        },
         socialLinks: [
             { icon: 'github', link: repositoryUrl },
             ...(discordInvite ? [{ icon: 'discord', link: discordInvite }] : [])
@@ -112,6 +119,20 @@ export default defineConfig({
         // one Menu button.
         sidebarMenuLabel: 'Pages',
         lastUpdated: { text: 'Updated', formatOptions: { dateStyle: 'medium' } },
-        footer: { message: `Released under the ${manifest.license} license.` }
+        // VitePress renders the footer message as HTML, so site paths carry the deploy base themselves.
+        footer: {
+            message: [
+                ['Guides', `${base}guide/`],
+                ['Parity', `${base}parity`],
+                ['Packages', `${base}packages`],
+                ['Releases', `${base}releases`],
+                ['Brand kit', `${base}brand-kit`],
+                ['GitHub', repositoryUrl],
+                ...(discordInvite ? [['Discord', discordInvite]] : [])
+            ]
+                .map(([text, href]) => `<a href="${href}">${text}</a>`)
+                .join(' · '),
+            copyright: `Released under the ${manifest.license} license.`
+        }
     }
 });

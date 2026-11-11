@@ -8,11 +8,14 @@ export const tickerItems = ['Play it', 'Host it', 'Build on it', 'Fix it'];
  * docs build instead of leaving a stale name on the page.
  */
 export function requirePackages(project: ProjectData, names: readonly string[]): PublishedPackage[] {
-    return names.map((name) => {
-        const found = project.packages.find((published) => published.name === name);
-        if (!found) throw new Error(`The landing page names ${name}, which is not a published package.`);
-        return found;
-    });
+    return names.map((name) => requirePackage(project, name));
+}
+
+/** Looks up one package the page names; see {@link requirePackages}. */
+export function requirePackage(project: ProjectData, name: string): PublishedPackage {
+    const found = project.packages.find((published) => published.name === name);
+    if (!found) throw new Error(`The landing page names ${name}, which is not a published package.`);
+    return found;
 }
 
 /** Packages the landing page features. Their descriptions and versions come from the repository. */
@@ -28,6 +31,14 @@ export function minecraftRange(project: ProjectData) {
     const versions = project.protocols.toReversed().flatMap(({ minecraft }) => minecraft);
     const [oldest, newest] = [versions[0], versions.at(-1)];
     return oldest === newest ? oldest : `${oldest} to ${newest}`;
+}
+
+const osNames = { linux: 'Linux', darwin: 'macOS', windows: 'Windows' } as const;
+
+/** The operating systems the release builds cover, in release order, joined for prose: `Linux, macOS or Windows`. */
+export function platformList(project: ProjectData, conjunction: 'or' | 'and' = 'or') {
+    const names = [...new Set(project.executables.map(({ os }) => osNames[os]))];
+    return names.length < 2 ? (names[0] ?? '') : `${names.slice(0, -1).join(', ')} ${conjunction} ${names.at(-1)}`;
 }
 
 /** The executable the landing page shows in commands: the first Linux build the release ships. */
@@ -61,7 +72,7 @@ export function buildAudiences(project: ProjectData): Audience[] {
             id: 'host',
             tab: 'I host',
             title: 'One file. Any box.',
-            pitch: `Download the prebuilt server for Linux, macOS or Windows and run it. Its runtime and data are inside, so there is no Node.js, pnpm or Java to install.`,
+            pitch: `Download the prebuilt server for ${platformList(project)} and run it. Its runtime and data are inside, so there is no Node.js, pnpm or Java to install.`,
             code: `chmod +x ${exampleExecutable(project)}\n./${exampleExecutable(project)}`,
             copyable: true,
             links: [

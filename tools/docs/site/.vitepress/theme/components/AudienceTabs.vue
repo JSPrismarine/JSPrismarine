@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { withBase } from 'vitepress';
-import { ref, useId, useTemplateRef } from 'vue';
+import { onBeforeUnmount, onMounted, ref, useId, useTemplateRef } from 'vue';
 
 import CopyButton from './CopyButton.vue';
 
@@ -17,10 +17,31 @@ export interface Audience {
     links: { text: string; hint: string; href: string }[];
 }
 
-const props = defineProps<{ audiences: Audience[] }>();
+const props = defineProps<{
+    audiences: Audience[];
+    /**
+     * Gives each tab a stable id, `<anchor>-<audience id>`, so a link such as `#start-host` scrolls to the
+     * tab and selects it. Without it, ids are generated and links cannot target a tab.
+     */
+    anchor?: string;
+}>();
 const active = ref(0);
 /** Prefixes element ids so two tab sets on one page do not collide. */
 const uid = useId();
+const tabId = (audience: Audience) => (props.anchor ? `${props.anchor}-${audience.id}` : `${uid}-tab-${audience.id}`);
+
+/** Selects the tab the URL fragment names, if any. */
+function selectFromHash() {
+    const index = props.audiences.findIndex((audience) => `#${tabId(audience)}` === window.location.hash);
+    if (index !== -1) active.value = index;
+}
+
+onMounted(() => {
+    if (!props.anchor) return;
+    selectFromHash();
+    window.addEventListener('hashchange', selectFromHash);
+});
+onBeforeUnmount(() => window.removeEventListener('hashchange', selectFromHash));
 const tabs = useTemplateRef<HTMLButtonElement[]>('tabs');
 
 /** Arrow keys, Home and End move between tabs and select them, as the WAI-ARIA tabs pattern describes. */
@@ -39,7 +60,7 @@ function onKeydown(event: KeyboardEvent) {
         <div class="audience-tabs__list" role="tablist" @keydown="onKeydown">
             <button
                 v-for="(audience, index) in audiences"
-                :id="`${uid}-tab-${audience.id}`"
+                :id="tabId(audience)"
                 ref="tabs"
                 :key="audience.id"
                 type="button"
@@ -59,7 +80,7 @@ function onKeydown(event: KeyboardEvent) {
             :key="audience.id"
             class="audience-tabs__panel"
             role="tabpanel"
-            :aria-labelledby="`${uid}-tab-${audience.id}`"
+            :aria-labelledby="tabId(audience)"
         >
             <div class="audience-tabs__pitch">
                 <h3>{{ audience.title }}</h3>
@@ -91,9 +112,10 @@ function onKeydown(event: KeyboardEvent) {
 }
 
 .audience-tabs__list button {
-    padding: 10px 16px;
+    min-height: var(--jsp-target);
+    padding: 10px 18px;
     font: inherit;
-    font-size: 14px;
+    font-size: 15px;
     font-weight: 700;
     color: inherit;
     cursor: pointer;
@@ -178,7 +200,7 @@ function onKeydown(event: KeyboardEvent) {
 }
 
 .audience-tabs__links a:hover {
-    color: var(--jsp-forest);
+    color: var(--jsp-on-accent);
     background: var(--jsp-accent);
     border-color: var(--jsp-accent);
 }
@@ -191,6 +213,16 @@ function onKeydown(event: KeyboardEvent) {
 }
 
 @media (max-width: 640px) {
+    /* Two even rows instead of a ragged wrap that leaves the last tab alone. */
+    .audience-tabs__list {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .audience-tabs__list button {
+        padding-inline: 10px;
+    }
+
     .audience-tabs__panel {
         grid-template-columns: minmax(0, 1fr);
     }

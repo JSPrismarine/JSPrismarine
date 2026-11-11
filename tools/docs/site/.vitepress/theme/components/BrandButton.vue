@@ -20,8 +20,8 @@ const target = computed(() => (/^[a-z]+:/i.test(props.href) ? props.href : withB
 <style scoped>
 .brand-button {
     display: inline-block;
-    padding: 12px 20px;
-    font-size: 16px;
+    padding: 13px 22px;
+    font-size: 17px;
     font-weight: 800;
     line-height: 1.2;
     text-decoration: none;
@@ -44,7 +44,7 @@ const target = computed(() => (/^[a-z]+:/i.test(props.href) ? props.href : withB
 }
 
 .is-primary {
-    color: var(--jsp-forest);
+    color: var(--jsp-on-accent);
     background: var(--jsp-accent);
     border-color: var(--jsp-accent);
     box-shadow: var(--jsp-shadow-offset) var(--jsp-shadow-offset) 0 var(--jsp-ink);
@@ -52,6 +52,12 @@ const target = computed(() => (/^[a-z]+:/i.test(props.href) ? props.href : withB
 
 .is-primary:hover {
     box-shadow: 1px 1px 0 var(--jsp-ink);
+}
+
+.is-primary:focus-visible {
+    box-shadow:
+        var(--jsp-shadow-offset) var(--jsp-shadow-offset) 0 var(--jsp-ink),
+        0 0 0 2px var(--jsp-ink);
 }
 
 .is-outline {

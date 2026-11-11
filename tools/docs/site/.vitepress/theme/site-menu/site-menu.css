@@ -177,11 +177,10 @@
 .site-panel__foot kbd,
 .site-search__keys kbd {
     padding: 0 5px;
-    font: 10px var(--vp-font-family-mono);
+    font: var(--jsp-label-size) var(--vp-font-family-mono);
     border: 1.5px solid currentColor;
     border-bottom-width: 3px;
     border-radius: 5px;
-    opacity: 0.6;
 }
 
 .site-nav__magnifier,
@@ -240,7 +239,7 @@
     position: fixed;
     inset: var(--site-menu-top) 0 0 0;
     z-index: calc(var(--site-menu-z) - 1);
-    background: color-mix(in srgb, var(--jsp-ink) 40%, transparent);
+    background: color-mix(in srgb, var(--jsp-ink) 60%, transparent);
 }
 
 .site-panel__inner {
@@ -316,7 +315,7 @@
 .site-panel__heading {
     padding: 0 10px;
     margin: 4px 0;
-    font: 700 11px/20px var(--vp-font-family-mono);
+    font: 700 var(--jsp-label-size)/20px var(--vp-font-family-mono);
     color: var(--jsp-accent);
     text-transform: uppercase;
     letter-spacing: 0.12em;
@@ -395,7 +394,7 @@
 .site-panel__crumb,
 .site-search__crumb,
 .site-search__meta {
-    font: 11px var(--vp-font-family-mono);
+    font: var(--jsp-label-size) var(--vp-font-family-mono);
     color: var(--site-menu-muted);
 }
 
@@ -421,7 +420,7 @@
     max-width: var(--vp-layout-max-width);
     padding: 10px 32px;
     margin: 0 auto;
-    font: 11px var(--vp-font-family-mono);
+    font: var(--jsp-label-size) var(--vp-font-family-mono);
     color: var(--site-menu-muted);
     border-top: 1px solid var(--site-menu-line);
 }
@@ -488,15 +487,15 @@
 .site-search__scope {
     flex: none;
     padding: 2px 9px;
-    font: 700 10px var(--vp-font-family-mono);
-    color: var(--jsp-forest);
+    font: 700 var(--jsp-label-size) var(--vp-font-family-mono);
+    color: var(--jsp-on-accent);
     background: var(--jsp-accent);
     border-radius: 99px;
 }
 
 .site-search__status {
     flex: none;
-    font: 11px var(--vp-font-family-mono);
+    font: var(--jsp-label-size) var(--vp-font-family-mono);
     color: var(--site-menu-muted);
 }
 
@@ -529,7 +528,7 @@
     justify-content: space-between;
     padding: 0 10px;
     margin-bottom: 4px;
-    font: 700 10px var(--vp-font-family-mono);
+    font: 700 var(--jsp-label-size) var(--vp-font-family-mono);
     color: var(--jsp-accent);
     text-transform: uppercase;
     letter-spacing: 0.14em;
@@ -563,7 +562,7 @@
 .site-search__kind {
     min-width: 34px;
     padding: 1px 5px;
-    font: 700 9px var(--vp-font-family-mono);
+    font: 700 var(--jsp-label-size) var(--vp-font-family-mono);
     color: var(--jsp-mint);
     text-align: center;
     letter-spacing: 0.08em;
@@ -587,12 +586,12 @@
 
 .site-search__title small {
     margin-left: 8px;
-    font-size: 11px;
+    font-size: var(--jsp-label-size);
     color: var(--site-menu-muted);
 }
 
 .site-search__go {
-    font: 11px var(--vp-font-family-mono);
+    font: var(--jsp-label-size) var(--vp-font-family-mono);
     color: var(--site-menu-muted);
 }
 
@@ -635,7 +634,7 @@
 
 .site-search__scopes button {
     padding: 2px 9px;
-    font: 10px var(--vp-font-family-mono);
+    font: var(--jsp-label-size) var(--vp-font-family-mono);
     color: var(--site-menu-text);
     cursor: pointer;
     border: 1.5px solid var(--site-menu-line);
@@ -729,7 +728,7 @@
 }
 
 .site-menu-open .site-phone__menu {
-    color: var(--jsp-forest);
+    color: var(--jsp-on-accent);
     background: var(--jsp-accent);
     border-color: var(--jsp-accent);
     box-shadow: none;
@@ -828,7 +827,10 @@
 }
 
 .site-sheet__foot > * {
-    padding: 6px 12px;
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--jsp-target);
+    padding: 6px 14px;
     font: 12px var(--vp-font-family-mono);
     color: var(--site-menu-text);
     text-decoration: none;

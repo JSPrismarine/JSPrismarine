@@ -143,7 +143,22 @@ The filterable package grid on the [packages page](./packages).
 <CopyButton text="pnpm run dev" />
 ```
 
+### Code
+
+Fenced code uses the ink surface and the brand syntax colors in both modes.
+
+```ts
+import { palette } from './tokens.ts';
+
+// Keywords, strings, names and comments each take a brand color.
+export const accent = palette.accent.hex;
+export const names = Object.keys(palette).slice(0, 3);
+```
+
 ### Ticker
+
+It stops on hover and has a Pause button. Under reduced motion it does not move, and the button is
+hidden.
 
 <Ticker :items="['Play it', 'Host it', 'Build on it', 'Fix it']" />
 

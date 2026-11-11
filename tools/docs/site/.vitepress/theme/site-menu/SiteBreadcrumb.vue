@@ -28,7 +28,12 @@ const crumbs = computed(() => {
 </script>
 
 <template>
-    <nav v-if="crumbs.section && crumbs.title" class="site-crumb" aria-label="Breadcrumb">
+    <!-- A section's own overview page, titled like the section, would read "Guides / Guides". -->
+    <nav
+        v-if="crumbs.section && crumbs.title && crumbs.title !== crumbs.section.text"
+        class="site-crumb"
+        aria-label="Breadcrumb"
+    >
         <ol>
             <li>
                 <a v-if="crumbs.overview" :href="withBase(crumbs.overview)">{{ crumbs.section.text }}</a>
