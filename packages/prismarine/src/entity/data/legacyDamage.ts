@@ -1,12 +1,11 @@
 /**
  * The seam between the legacy {@link DamageSource} and the store's {@link DamageIntent}.
  *
- * A player's sword, a legacy blast, a command and a status effect still describe a blow with a
+ * A player's sword, a blast, a command and a status effect still describe a blow with a
  * `DamageSource`, which names entity objects. The store's pipeline takes plain data addressed by
  * runtime id. This turns one into the other in both directions: a legacy blow on a data-driven
  * entity becomes an intent, and a committed intent becomes the `DamageSource` the plugin events
- * and the advancement triggers still take. Players move into the store in slice 5, and this goes
- * with the legacy classes.
+ * and the advancement triggers still take. It stays until they read the intent.
  */
 import type { World } from '../../world/World';
 import type { ViewableEntity } from '../predicateView';

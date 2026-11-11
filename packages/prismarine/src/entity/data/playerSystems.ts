@@ -221,8 +221,8 @@ export class PlayerSystems {
 
     /**
      * Sets the block a store player is mining, whose cracks the systems animate every tick until
-     * it breaks or the player stops. The start of the cracks is the caller's, as
-     * `World.startBlockCracking` sends it for a legacy player.
+     * it breaks or the player stops. The start of the cracks is the caller's: `PlayerActionHandler`
+     * sends it through `World.startBlockCracking`.
      *
      * @param entity - The player.
      * @param mining - The block, or null when the player stopped or broke it.
