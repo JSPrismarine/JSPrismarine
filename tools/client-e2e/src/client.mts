@@ -284,6 +284,12 @@ export class CinnabarClient {
     /** Where the controller writes the launched client's output, once a client has launched. */
     private logFile: string | undefined;
 
+    /** Everything the launched client has written so far, or an empty string before it launched. */
+    output(): string {
+        if (this.logFile === undefined || !fs.existsSync(this.logFile)) return '';
+        return fs.readFileSync(this.logFile, 'utf8');
+    }
+
     /** Copies the client's log to `destination`, so it outlives the controller's directory. */
     keepLog(destination: string): void {
         if (this.logFile === undefined || !fs.existsSync(this.logFile)) return;

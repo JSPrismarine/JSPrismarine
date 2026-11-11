@@ -128,6 +128,17 @@ session can drive the client directly: launch, join a local server, send input, 
 and capture screenshots or recordings. The [client-e2e skill](../../.agents/skills/client-e2e/SKILL.md)
 holds the workflow and its rules.
 
+## NetherNet's UDP ports
+
+`--udp-ports` picks where NetherNet's UDP goes, so one transport's run covers each layout
+`server-udp-ports` has: `shared` (the default: unset, on the server port beside RakNet), `single`
+(one other port), `range` (three other ports) and `range-with-server-port` (three ports starting at
+the server port). `--public-ip <address>` sets `server-public-ip`.
+
+```bash
+pnpm run e2e:client -- --protocol 2225 --transport nethernet --udp-ports range-with-server-port
+```
+
 ## Adding a scenario
 
 Add a file under `src/scenarios/` exporting a `Scenario` (see `src/scenario.mts`) and register it
