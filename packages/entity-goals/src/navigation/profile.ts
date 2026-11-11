@@ -11,6 +11,16 @@ import { isRecord } from '../params';
  * is, how high it steps and how far it drops.
  */
 
+/**
+ * What the profile reads of an entity: its active components and the Java navigator its type
+ * pins. A live `EntityInstance` is one; so is a component set built from a type and its active
+ * groups, which is how a reader without the live entity projects the same profile.
+ */
+export type NavigationSource = Pick<
+    EntityInstance,
+    'componentSetToken' | 'componentParams' | 'hasComponent' | 'javaNavigation'
+>;
+
 /** The seven `minecraft:navigation.*` flavors vanilla declares. */
 export const NAVIGATION_KINDS = ['walk', 'generic', 'float', 'hover', 'climb', 'fly', 'swim'] as const;
 
@@ -112,21 +122,21 @@ const avoidedBlocks = (value: unknown): readonly string[] => {
 };
 
 /** How tall an entity is, from `minecraft:collision_box`, rounded up to whole blocks. */
-const heightOf = (entity: EntityInstance): number => {
+const heightOf = (entity: NavigationSource): number => {
     const box = entity.componentParams('minecraft:collision_box');
     const height = isRecord(box) && typeof box.height === 'number' ? box.height : 1.8;
     return Math.max(1, Math.ceil(height));
 };
 
 /** How high the entity steps, from `minecraft:variable_max_auto_step`. */
-const stepHeightOf = (entity: EntityInstance, canJump: boolean): number => {
+const stepHeightOf = (entity: NavigationSource, canJump: boolean): number => {
     const step = entity.componentParams('minecraft:variable_max_auto_step');
     if (isRecord(step) && typeof step.base_value === 'number') return step.base_value;
     return canJump ? 1 : 0.5625;
 };
 
 /** Adds entity abilities declared separately from the navigation component. */
-const withEntityAbilities = (entity: EntityInstance, profile: NavigationProfile): NavigationProfile => ({
+const withEntityAbilities = (entity: NavigationSource, profile: NavigationProfile): NavigationProfile => ({
     ...profile,
     canFly: profile.canFly || entity.hasComponent('minecraft:can_fly'),
     canClimbLadders: entity.hasComponent('minecraft:can_climb'),
@@ -138,7 +148,7 @@ interface CachedNavigationProfile {
     readonly profile: NavigationProfile;
 }
 
-const navigationProfiles = new WeakMap<EntityInstance, CachedNavigationProfile>();
+const navigationProfiles = new WeakMap<NavigationSource, CachedNavigationProfile>();
 
 /**
  * Builds the path finder's rules from the entity's active navigation
@@ -147,7 +157,7 @@ const navigationProfiles = new WeakMap<EntityInstance, CachedNavigationProfile>(
  * @returns The profile of the first `minecraft:navigation.*` the entity has
  *   active, or {@link defaultNavigationProfile} when it has none.
  */
-export const navigationProfile = (entity: EntityInstance): NavigationProfile => {
+export const navigationProfile = (entity: NavigationSource): NavigationProfile => {
     const componentToken = entity.componentSetToken;
     const cached = navigationProfiles.get(entity);
     if (cached?.componentToken === componentToken) return cached.profile;
@@ -158,7 +168,7 @@ export const navigationProfile = (entity: EntityInstance): NavigationProfile => 
 };
 
 /** Builds the profile once for one active component map. */
-const buildNavigationProfile = (entity: EntityInstance): NavigationProfile => {
+const buildNavigationProfile = (entity: NavigationSource): NavigationProfile => {
     for (const kind of NAVIGATION_KINDS) {
         const body = entity.componentParams(`minecraft:navigation.${kind}`);
         if (!isRecord(body)) continue;
@@ -203,7 +213,7 @@ const buildNavigationProfile = (entity: EntityInstance): NavigationProfile => {
 };
 
 /** Lets the pinned Java navigator decide which media its path can enter and hold. */
-const withJavaNavigation = (entity: EntityInstance, profile: NavigationProfile): NavigationProfile => {
+const withJavaNavigation = (entity: NavigationSource, profile: NavigationProfile): NavigationProfile => {
     const java = entity.javaNavigation;
     if (java === undefined) return profile;
 
