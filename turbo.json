@@ -6,6 +6,7 @@
         "GITHUB_ACTIONS",
         "GITHUB_ENV",
         "JSP_LINT_ALL",
+        "JSP_LINT_BASE",
         "JSP_SHARED_CACHE",
         "npm_config_user_agent",
         "VITEST_SHARD"

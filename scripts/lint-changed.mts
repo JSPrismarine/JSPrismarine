@@ -3,11 +3,13 @@
  *
  * node scripts/lint-changed.mts prettier --check
  * JSP_LINT_ALL=1 node scripts/lint-changed.mts biome check   # every file
+ * JSP_LINT_BASE=HEAD node scripts/lint-changed.mts biome check # uncommitted files only
  *
  * A changed file is one that differs from the merge base with the default branch: committed on this
  * branch, staged, unstaged or untracked. The command gets those paths in place of `.`, or nothing
  * runs when there are none. A change to a formatter's own configuration or version restyles every
  * file, so it runs the command on everything, as `JSP_LINT_ALL=1` does. The lint workflow sets it.
+ * `JSP_LINT_BASE` names another commit to compare against; the agent lint gate sets it to `HEAD`.
  */
 import { execFileSync, spawnSync } from 'node:child_process';
 import fs from 'node:fs';
@@ -75,7 +77,7 @@ const mergeBase = (root: string): string | undefined => {
 
 /** The changed files, or `undefined` when Git cannot say, which runs the command on everything. */
 const changedFiles = (root: string): string[] | undefined => {
-    const base = mergeBase(root);
+    const base = process.env.JSP_LINT_BASE || mergeBase(root);
     if (base === undefined) return undefined;
     return [
         ...nul(git(root, ['diff', '-z', '--name-only', '--no-renames', base])),
