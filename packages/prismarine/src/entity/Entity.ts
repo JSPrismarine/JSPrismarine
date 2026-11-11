@@ -15,6 +15,7 @@ import { AttributeIds, Attributes } from '@jsprismarine/protocol/wire/structures
 import { INVULNERABILITY_TICKS, reduceDamage } from './Damage';
 import { DamageCause } from './DamageCause';
 import { DamageSource } from './DamageSource';
+import { entityIds } from './entityIds';
 import EntityDamageEvent from '../events/entity/EntityDamageEvent';
 import EntityDeathEvent from '../events/entity/EntityDeathEvent';
 import { advancementDamage, advancementKill } from '../advancement/triggers';
@@ -95,12 +96,6 @@ export class Entity {
      * {@link Entity.getType} read the static `MOB_ID` the subclass set. Emits nothing.
      */
     declare ['constructor']: typeof Entity;
-
-    /**
-     * The global runtime id counter.
-     * @internal
-     */
-    public static runtimeIdCount = 0n;
 
     /**
      * The entity's namespace ID.
@@ -256,21 +251,13 @@ export class Entity {
         headYaw?: number;
         attributes?: Attribute[];
         /**
-         * An id already drawn from {@link Entity.runtimeIdCount}, for a body whose entity was
+         * An id already drawn from {@link entityIds}, for a body whose entity was
          * given its id elsewhere: a data-driven mob's runtime draws from the same counter, and
          * its body takes that id so the mob has one id rather than two.
          */
         runtimeId?: bigint;
     }) {
-        if (runtimeId === undefined) {
-            // Hot world and tracking indexes use Number(runtimeId), so refuse the first id that
-            // cannot be represented exactly as a JavaScript number.
-            if (Entity.runtimeIdCount >= BigInt(Number.MAX_SAFE_INTEGER)) {
-                throw new RangeError('Entity runtime id counter exceeded Number.MAX_SAFE_INTEGER');
-            }
-            Entity.runtimeIdCount += 1n;
-        }
-        this.runtimeId = runtimeId ?? Entity.runtimeIdCount;
+        this.runtimeId = runtimeId ?? BigInt(entityIds.next());
         this.position = position;
         this.server = position.getWorld().getServer();
         this.attributes = new Attributes(attributes ?? this.getDefaultAttributes());

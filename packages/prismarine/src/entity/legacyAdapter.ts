@@ -6,9 +6,9 @@
  * where the store meets them, and slice 5 deletes it with the legacy classes. It provides, as the
  * player spike's list numbers them (`docs/research/player-entity-spike.md`):
  *
- * 1. One id counter. Store ids and legacy runtime ids are both drawn from `Entity.runtimeIdCount`
- *    (`LiveEntityRuntime` passes it as `EntityRuntimeOptions.nextId`), so a goal's target id
- *    means one entity.
+ * 1. One id counter. Store ids and legacy runtime ids are both drawn from `entityIds`
+ *    (`entity/entityIds.ts`; `LiveEntityRuntime` passes it as `EntityRuntimeOptions.nextId`), so
+ *    a goal's target id means one entity.
  * 2. Legacy entities in the one index. `Entity.relocate` reports every legacy position write to
  *    `World.entityRelocated`, which refiles the entity in `EntityIndex` and logs the move here.
  * 3. to 5. Damage, effects, knockback and identity reach a legacy player by id through
