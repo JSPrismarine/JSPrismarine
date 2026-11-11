@@ -227,6 +227,9 @@ slice when it lands on the branch.
     NAT or a firewall. `constrainIcePorts` gives werift the range (`nethernet` 1.1.2 has no option
     for it), and `withMappedCandidates` adds a server-reflexive candidate for each mapped host
     candidate in the answer. Werift takes a port per player, so a single local port is refused.
+    - Corrected 2026-11-11: [webrtc-backend.md](webrtc-backend.md) slice 9 replaced this. NetherNet
+      runs on libdatachannel, a single port serves every player, and the setting and
+      `server-public-ip` follow Bedrock Dedicated Server 1.26.70.24.
 16. [x] **Hill climb online mode.** What it took, on 2026-11-10:
     - Online BDS still accepts a self-signed offer identity; it refuses the login with
       `NOT_AUTHENTICATED` until the Login packet carries an Xbox Live chain.
