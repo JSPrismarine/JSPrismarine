@@ -86,12 +86,6 @@ export type PlayerComponentValues = {
     'movement.sneaking': boolean;
     /** Whether the client reported the player asleep in a bed. */
     'movement.sleeping': boolean;
-    /**
-     * Whether the client reported a legacy player on the ground. A store player's ground is its
-     * body's `on_ground` condition, which `EntityRuntime.applyClientMovement` writes, and nothing
-     * reads or writes this field for one. It goes with the legacy `Player`.
-     */
-    'movement.onGround': boolean;
     /** Whether the player is sprinting. */
     'movement.sprinting': boolean;
     /** Absorption, the extra hearts spent before health. */
@@ -138,7 +132,6 @@ const initialState = () => ({
     'abilities.gamemode': Gametype.SURVIVAL,
     'movement.sneaking': false,
     'movement.sleeping': false,
-    'movement.onGround': false,
     'respawn.spawnPoint': null,
     'respawn.seenCredits': false,
     'itemUse.startedAt': null,
@@ -270,7 +263,6 @@ const FIELDS: { readonly [F in PlayerComponentField]: FieldDescriptor<PlayerComp
     'abilities.gamemode': own('abilities.gamemode', gamemodeIn),
     'movement.sneaking': own('movement.sneaking', booleanField('movement.sneaking')),
     'movement.sleeping': own('movement.sleeping', booleanField('movement.sleeping')),
-    'movement.onGround': own('movement.onGround', booleanField('movement.onGround')),
     'movement.sprinting': metadataFlag(
         (metadata) => metadata.sprinting,
         (metadata, sprinting) => metadata.setSprinting(sprinting),

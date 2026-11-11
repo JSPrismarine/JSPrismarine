@@ -217,15 +217,14 @@ describe('a store player', () => {
             expect(healthOf(player)).toBe(20);
         });
 
-        it("reads the ground from the body's on_ground condition, and leaves the legacy field alone", () => {
+        it("reads the ground from the body's on_ground condition, which is no component field", () => {
             const fixture = storePlayerFixture();
             const { player, components } = standingPlayer(fixture);
 
-            const entries = logged(fixture.runtime, () => report(fixture, player, { y: FLOOR_Y + 1 }, true));
+            logged(fixture.runtime, () => report(fixture, player, { y: FLOOR_Y + 1 }, true));
 
             expect(player.body.conditions.has('on_ground')).toBe(true);
-            expect(components.get('movement.onGround')).toBe(false);
-            expect(fieldsOf(entries, 'movement.onGround')).toHaveLength(0);
+            expect(Object.keys(components.snapshot())).not.toContain('movement.onGround');
         });
 
         it('charges a walk on the ground in exhaustion, and a long jump as a teleport not at all', () => {
