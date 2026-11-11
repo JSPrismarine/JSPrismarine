@@ -490,6 +490,9 @@ export default class Server extends EventEmitter {
      */
     public async bootstrap(serverIp?: string, port?: number): Promise<void> {
         await this.remoteConsole?.enable();
+        // The world does not tick before every transport listens, as it did not when the
+        // listeners bound without being waited for.
+        this.ticker.hold();
         await this.enable();
         // Shut down while it was starting: there is nothing to listen for.
         if (this.lifecycle.isStopping()) return;
@@ -498,6 +501,7 @@ export default class Server extends EventEmitter {
         const bindPort = port ?? this.config.getServerPort();
 
         await this.networking.start(bindAddress, bindPort);
+        this.ticker.release();
 
         this.logger.info(`JSPrismarine is now listening on port §b${bindPort}`);
         this.remoteConsole?.markRunning();

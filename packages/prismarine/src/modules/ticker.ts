@@ -197,6 +197,8 @@ export class ServerTicker implements Ticker, TickControl {
     private sprintLeft = 0;
     /** Set when the period changes, so the next deadline counts from the moment it did. */
     private rebaseSchedule = false;
+    /** While set, `start()` waits for {@link ServerTicker.release}; see {@link ServerTicker.hold}. */
+    private held = false;
 
     /** The most recent ticks' duration, lateness and phases, for profiles and benchmarks. */
     public readonly recorder = new TickRecorder();
@@ -269,8 +271,31 @@ export class ServerTicker implements Ticker, TickControl {
         return sprinting;
     }
 
+    /**
+     * Keeps the loop from starting until {@link ServerTicker.release}. The server holds it while
+     * it starts, so no tick runs before every transport listens.
+     */
+    public hold(): void {
+        this.held = true;
+    }
+
+    /** Lets the loop start, and starts it if a `start()` was held back. */
+    public release(): void {
+        if (!this.held) return;
+        this.held = false;
+        if (this.startRequested) this.start();
+    }
+
+    /** Whether a `start()` came while the loop was held. */
+    private startRequested = false;
+
     /** Starts the loop; a no-op when ticking is disabled or the loop already runs. */
     public start(): void {
+        if (this.held) {
+            this.startRequested = true;
+            return;
+        }
+        this.startRequested = false;
         if (this.running || !this.server.isTickingEnabled()) return;
         this.running = true;
         this.server.getChunkCompletionQueue().activate();
@@ -529,6 +554,7 @@ export class ServerTicker implements Ticker, TickControl {
 
     /** Stops the loop: clears the pending timer and stops a tick in flight from rescheduling. */
     public stop(): void {
+        this.startRequested = false;
         this.running = false;
         this.cancelPendingTick?.();
         this.cancelPendingTick = undefined;
