@@ -3,10 +3,8 @@
  *
  * {@link playerRecordFrom} builds the record from a player and {@link applyPlayerRecord} puts a
  * record back into one. Both read and write through structural ports, so the record has one home
- * whichever object holds the player: a live `Player` satisfies the ports today, and a store
- * player (`entity/storePlayer.ts`) satisfies them over its store entity. Slice 5 of the entity
- * and tick re-architecture moves live players into the store, and the record does not change
- * when it does.
+ * whichever object holds the player: a store player (`entity/storePlayer.ts`) satisfies the
+ * ports over its store entity.
  *
  * Plain data out, as ADR 0011 asks of anything that leaves a world: the record shares no object
  * with the player it was built from, so a save cut under ADR 0018 can build it at one tick
@@ -29,7 +27,7 @@ import type { KeyedPlayer } from '../keyedPlayer';
 import type { DimensionType } from './Dimension';
 import type { StoredSpawnPoint } from './RespawnPoint';
 
-/** What a record reads off a player. A live `Player` has every member. */
+/** What a record reads off a player. A store player has every member. */
 export interface PlayerRecordSource {
     getUUID(): { toString(): string };
     getName(): string;

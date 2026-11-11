@@ -3,9 +3,8 @@
  * ([ADR 0012](../../../../docs/adr/0012-the-change-log-is-the-history.md)).
  *
  * [ADR 0008](../../../../docs/adr/0008-one-entity-model.md) makes a player an entity with
- * components for vitals, inventory, game mode and abilities. Until the player moves into the
- * entity store (slice 5 of the entity and tick re-architecture), `Player` holds one
- * {@link PlayerComponents} and reports each write through the legacy adapter, and the store's
+ * components for vitals, inventory, game mode and abilities. A store player holds one
+ * {@link PlayerComponents} and reports each write to the entity store's log, and the store's
  * undo writes a logged value back through {@link PlayerComponents.restore}.
  *
  * A field is named `<component>.<field>` in the log. Food, saturation, exhaustion, experience
@@ -14,9 +13,7 @@
  * reads and writes them there and keeps no second copy. Health and the inventory are logged on
  * their own paths.
  *
- * The game mode is `abilities.gamemode`. A legacy `Player` keeps its own in `Player.gamemode`,
- * which the legacy adapter logs as `gamemode`, and never writes this field, so the field is the
- * store player's until the legacy class goes.
+ * The game mode is `abilities.gamemode`, which the store player reads and writes.
  */
 import { Gametype, getGametypeId } from '@jsprismarine/minecraft';
 import { AttributeIds } from '@jsprismarine/protocol/wire/structures/Attribute';

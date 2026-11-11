@@ -90,11 +90,10 @@ const displayNameOf = (entity: WorldActor): string => {
 };
 
 /**
- * Whether an entity is a person rather than a mob, without importing `Player`.
+ * Whether an entity is a person rather than a mob.
  *
- * By identifier and not by `instanceof`, because `Player` imports this module and importing it
- * back would close a runtime cycle - the very thing the barrel rules in `biome.json.js` are
- * there to prevent.
+ * By identifier, which every actor answers whatever holds it, so this module imports no class
+ * that imports it back.
  * @param {WorldActor} entity - The entity to test.
  * @returns {boolean} `true` for a player.
  */

@@ -2,10 +2,10 @@
  * The player systems of the entity store: hunger, breath, falls, meals and mining, run over every
  * store entity whose client owns its movement (ADR 0008).
  *
- * The rules are the ones a legacy `Player` runs (`entity/survivalPlayer.ts` lists their files),
- * so each lives once. This module holds a store player's {@link PlayerComponents}, logs every
- * write through the store, and runs the rules from the entity pass, reading only loaded chunks: a
- * player whose block is in a chunk that is not loaded waits for it and loads nothing. A rule that
+ * The rules are the survival rules `entity/survivalPlayer.ts` lists, so each lives once. This
+ * module holds a store player's {@link PlayerComponents}, logs every write through the store, and
+ * runs the rules from the entity pass, reading only loaded chunks: a player whose block is in a
+ * chunk that is not loaded waits for it and loads nothing. A rule that
  * hurts a player runs the blow through the store's damage pipeline (ADR 0013), with the facts the
  * legacy damage path gives the same cause.
  *

@@ -4,11 +4,10 @@
  *
  * [ADR 0008](../../../../docs/adr/0008-one-entity-model.md) makes a player an entity with
  * components for vitals, inventory, game mode and abilities. The entity holds the position, the
- * look and the health. {@link StorePlayer} holds the rest in the objects a live `Player` holds
- * them in, so the saved record (`world/playerRecord.ts`) is projected from either one the same
- * way: the client's attribute table, which carries food, saturation and experience, the
- * {@link PlayerComponents}, which carry the game mode, the {@link HumanInventory}, the crafting
- * grid and the portal cooldown.
+ * look and the health. {@link StorePlayer} holds the rest in objects of its own, and the saved
+ * record (`world/playerRecord.ts`) is projected from them: the client's attribute table, which
+ * carries food, saturation and experience, the {@link PlayerComponents}, which carry the game
+ * mode, the {@link HumanInventory}, the crafting grid and the portal cooldown.
  *
  * A store player outlives its entity. It is filed by the id drawn at its login, and from the login
  * to its first entry into a store, and between the two stores of a dimension change, it is in
@@ -18,8 +17,7 @@
  * the two: the player's writes are then logged in that store and undone by its runtime, and the
  * runtime's player systems run its survival. `leaveStore` detaches them again.
  *
- * Every live player is one: a `Player` holds its store player from the login on and keeps no
- * entity state of its own.
+ * Every live player is one: the session holds its store player from the login on.
  */
 import type { Gametype } from '@jsprismarine/minecraft';
 import { AttributeIds, Attributes } from '@jsprismarine/protocol/wire/structures/Attribute';

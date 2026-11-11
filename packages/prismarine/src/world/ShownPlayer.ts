@@ -1,11 +1,10 @@
 /**
  * What the network layer reads of a player to show it to another client.
  *
- * A legacy {@link import('../Player').default} satisfies this as it is. A player in the entity
- * store satisfies it through `entity/data/storePlayerActor.ts`, which answers the entity's
- * position, rotation and metadata from the store and the rest from the player's profile. The
- * `AddPlayer` exchange, the abilities, the armor and the player list entry are built from this,
- * so both kinds of player go on the wire through the same code. Slice 7 of the entity and tick
+ * A player in the entity store satisfies this through `StorePlayerActor`
+ * (`entity/data/storePlayers.ts`), which answers the entity's position, rotation and metadata
+ * from the store and the rest from the player's profile. The `AddPlayer` exchange, the
+ * abilities, the armor and the player list entry are built from this. Slice 7 of the entity and tick
  * re-architecture replaces these reads with replication from the change log.
  */
 import type { Gametype } from '@jsprismarine/minecraft';

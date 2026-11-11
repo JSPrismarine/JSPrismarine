@@ -1,12 +1,12 @@
 /**
  * Where a player who died comes back, asked and answered as plain data.
  *
- * The question used to be answered inside `Player`, which built other dimensions and read their
- * blocks from inside `onDeath`, and so from inside `damage`. The search belongs to the level,
- * because it reads worlds the player is not in: a bed in another dimension of the player's level,
- * and the default level's Overworld spawn. {@link RespawnSearch} holds every world read the
- * search makes, chunk loads and dimension builds included, and its request and answer hold no
- * world or entity object, so the request can be sent from a tick and the answer admitted as an
+ * The question used to be answered inside the player's death, which built other dimensions and
+ * read their blocks from inside `onDeath`, and so from inside `damage`. The search belongs to
+ * the level, because it reads worlds the player is not in: a bed in another dimension of the
+ * player's level, and the default level's Overworld spawn. {@link RespawnSearch} holds every
+ * world read the search makes, chunk loads and dimension builds included, and its request and
+ * answer hold no world or entity object, so the request can be sent from a tick and the answer admitted as an
  * input of a later one under ADR 0009 and ADR 0011.
  */
 import { Vector3 } from '@jsprismarine/math';

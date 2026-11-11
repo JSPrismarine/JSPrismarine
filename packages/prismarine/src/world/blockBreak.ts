@@ -70,8 +70,8 @@ export interface BreakWorld {
 /**
  * Who broke a block, which is the three things a break reads off a player.
  *
- * Named structurally rather than as `Player` so this module depends on the hand and the
- * position rather than on the class; a `Player` satisfies it.
+ * Named structurally so this module depends on the hand and the position rather than on
+ * the class that holds them; a player satisfies it.
  */
 export interface Breaker {
     /** The mode they are in, because creative takes a block away and leaves nothing behind. */
