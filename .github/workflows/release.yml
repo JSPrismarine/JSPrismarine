@@ -138,171 +138,36 @@ jobs:
                   pnpm --filter @jsprismarine/prismarine run build
                   pnpm run release:unstable
 
-    aot-data:
-        name: 🗃️ Prepare executable data
+    executables:
+        name: 🗃️ Build standalone executables
         needs: release
         if: ${{ always() && (github.event_name == 'workflow_dispatch' || (needs.release.result == 'success' && needs.release.outputs.published == 'true')) }}
-        # runs-on: blacksmith-2vcpu-ubuntu-2404
-        runs-on: ubuntu-latest
         permissions:
             contents: read
-        steps:
-            - name: 🕶️ Checkout repository
-              # uses: useblacksmith/checkout@v1
-              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-              with:
-                  ref: ${{ github.event_name == 'workflow_dispatch' && format('@jsprismarine/server@{0}', inputs.recover-version) || github.sha }}
-
-            - name: 📦 Install
-              uses: ./.github/common/install
-
-            - name: ☕ Setup JDK
-              uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6
-              with:
-                  distribution: temurin
-                  java-version: '25'
-
-            - name: ⬇️ Fetch the Java server jar
-              run: pnpm run fetch:java-server
-
-            - name: 🏭 Generate Java data
-              run: pnpm --filter @jsprismarine/bedrock-data run datagen:java
-
-            - name: 🚚 Upload executable data
-              uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-              with:
-                  name: executable-java-data
-                  path: |
-                      node_modules/.cache/jsprismarine/java-reports/
-                      node_modules/.cache/jsprismarine/java-structures/
-                      node_modules/.cache/jsprismarine/vanilla-datapack/
-                  if-no-files-found: error
-
-    aot-build:
-        name: 🗃️ Build standalone executables (${{ matrix.group }})
-        needs: [release, aot-data]
-        if: ${{ always() && needs.aot-data.result == 'success' }}
-        strategy:
-            matrix:
-                include:
-                    # - runner: blacksmith-2vcpu-ubuntu-2404
-                    - runner: ubuntu-latest
-                      group: linux
-                      targets: >-
-                          bun-linux-x64
-                          bun-linux-arm64
-                          bun-linux-x64-musl
-                          bun-linux-arm64-musl
-                    # - runner: blacksmith-6vcpu-macos-latest
-                    - runner: macos-latest
-                      group: macos
-                      targets: >-
-                          bun-darwin-x64
-                          bun-darwin-arm64
-                    # - runner: blacksmith-2vcpu-windows-2025
-                    - runner: windows-latest
-                      group: windows-x64
-                      targets: bun-windows-x64
-        runs-on: ${{ matrix.runner }}
-        permissions:
-            contents: read
-        env:
-            BUILD_TYPE: release
-            RELEASE_VERSION: ${{ inputs.recover-version || needs.release.outputs.shared_version }}
-        steps:
-            - name: 🕶️ Checkout repository
-              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-              with:
-                  ref: ${{ github.event_name == 'workflow_dispatch' && format('@jsprismarine/server@{0}', inputs.recover-version) || github.sha }}
-
+        uses: ./.github/workflows/executables.yml
+        secrets: inherit
+        with:
+            build-type: release
+            version: ${{ inputs.recover-version || needs.release.outputs.shared_version }}
             # A recovery builds the release's own source with the build scripts of the ref it was
             # started from, since the scripts of the tag are the ones that failed.
-            - name: 🩹 Use the recovery ref's build scripts
-              if: ${{ github.event_name == 'workflow_dispatch' }}
-              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-              with:
-                  ref: ${{ github.sha }}
-                  path: recovery-tooling
-                  sparse-checkout: .github/scripts
-
-            - name: 🩹 Copy the build scripts over the tag's
-              if: ${{ github.event_name == 'workflow_dispatch' }}
-              shell: bash
-              run: cp -R recovery-tooling/.github/scripts/. .github/scripts/
-
-            - name: 📦 Install
-              uses: ./.github/common/install
-              with:
-                  # build-aot.mjs compiles for other platforms than the runner's.
-                  all-architectures: true
-
-            - name: 📥 Download executable data
-              if: runner.os != 'Windows'
-              uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
-              with:
-                  name: executable-java-data
-                  path: node_modules/.cache/jsprismarine
-
-            - name: 📥 Download executable data archive
-              if: runner.os == 'Windows'
-              uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
-              with:
-                  name: executable-java-data
-                  path: ${{ runner.temp }}/executable-java-data
-                  skip-decompress: true
-
-            - name: 📦 Extract executable data
-              if: runner.os == 'Windows'
-              shell: pwsh
-              run: |
-                  $archiveDirectory = Join-Path $env:RUNNER_TEMP 'executable-java-data'
-                  $downloadedArchive = Get-ChildItem -LiteralPath $archiveDirectory -File | Select-Object -First 1
-                  if ($null -eq $downloadedArchive) {
-                      throw 'The executable data archive was not downloaded.'
-                  }
-                  $archivePath = Join-Path $env:RUNNER_TEMP 'executable-java-data.zip'
-                  Move-Item -LiteralPath $downloadedArchive.FullName -Destination $archivePath -Force
-                  Expand-Archive -LiteralPath $archivePath -DestinationPath 'node_modules/.cache/jsprismarine' -Force
-
-            # Keep installation and the lockfile on pnpm; Bun only compiles the executables.
-            - name: 🐰 Setup Bun
-              uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
-              with:
-                  bun-version: canary
-
-            - name: 🏷️ Set build metadata
-              run: node .github/scripts/set-build-metadata.mjs
-
-            - name: 🗃️ Compile executables
-              env:
-                  BUILD_TARGETS: ${{ matrix.targets }}
-              shell: bash
-              run: |
-                  mkdir -p dist
-                  for target in $BUILD_TARGETS; do
-                      output="dist/prismarine-${target#bun-}"
-                      node .github/scripts/build-aot.mjs "$target" "$output"
-                      # Runs the target this runner can execute; a missing worker fails only at start.
-                      node .github/scripts/smoke-executable.mjs "$target" "$output"
-                      if [[ "$target" == bun-darwin-* ]]; then
-                          architecture="${target##*-}"
-                          node .github/scripts/package-macos-app.mjs "$output" "$architecture"
-                      fi
-                  done
-
-            - name: 🚚 Upload executable artifacts
-              uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-              with:
-                  name: prismarine-${{ matrix.group }}
-                  path: |
-                      dist/prismarine-*
-                      dist/JSPrismarine-*.app.zip
-                  if-no-files-found: error
+            ref: ${{ github.event_name == 'workflow_dispatch' && format('@jsprismarine/server@{0}', inputs.recover-version) || github.sha }}
+            recovery: ${{ github.event_name == 'workflow_dispatch' }}
+            # scripts/recover-release.mjs reads the targets from this list.
+            targets: >-
+                [
+                    "bun-linux-x64",
+                    "bun-linux-arm64",
+                    "bun-linux-x64-musl",
+                    "bun-linux-arm64-musl",
+                    "bun-darwin-arm64",
+                    "bun-windows-x64"
+                ]
 
     aot-release:
         name: 📦 Publish standalone executables
-        needs: [release, aot-build]
-        if: ${{ always() && needs.aot-build.result == 'success' }}
+        needs: [release, executables]
+        if: ${{ always() && needs.executables.result == 'success' }}
         runs-on: ubuntu-latest
         permissions:
             contents: write

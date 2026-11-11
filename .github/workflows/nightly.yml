@@ -8,6 +8,7 @@ on:
             - master
         paths:
             - '.github/workflows/nightly.yml'
+            - '.github/workflows/executables.yml'
             - '.github/common/**'
             - '.github/scripts/**'
             - 'packages/**'
@@ -28,6 +29,7 @@ on:
         # The same paths as the push.
         paths:
             - '.github/workflows/nightly.yml'
+            - '.github/workflows/executables.yml'
             - '.github/common/**'
             - '.github/scripts/**'
             - 'packages/**'
@@ -95,161 +97,26 @@ jobs:
                   BUILD_VERSION: ${{ steps.metadata.outputs.BUILD_VERSION }}
               run: .github/scripts/nightly-release-due.sh
 
-    # The builds need it, and skipping it skips them and the release.
-    aot-data:
-        name: 🗃️ Prepare executable data
+    # Skipping it skips the release.
+    executables:
+        name: 🚚 Build nightly executables
         needs: nightly-version
         if: ${{ needs.nightly-version.outputs.build == 'true' }}
         concurrency:
-            group: nightly-data-${{ github.event.pull_request.number || github.ref }}
+            group: nightly-build-${{ github.event.pull_request.number || github.ref }}
             cancel-in-progress: false
-        # runs-on: blacksmith-2vcpu-ubuntu-2404
-        runs-on: ubuntu-latest
         permissions:
             contents: read
-        steps:
-            # - uses: useblacksmith/checkout@v1
-            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-
-            - name: 📦 Install
-              uses: ./.github/common/install
-
-            - name: ☕ Setup JDK
-              uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6
-              with:
-                  distribution: temurin
-                  java-version: '25'
-
-            - name: ⬇️ Fetch the Java server jar
-              run: pnpm run fetch:java-server
-
-            - name: 🏭 Generate Java data
-              run: pnpm --filter @jsprismarine/bedrock-data run datagen:java
-
-            - name: 🚚 Upload executable data
-              uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-              with:
-                  name: executable-java-data
-                  path: |
-                      node_modules/.cache/jsprismarine/java-reports/
-                      node_modules/.cache/jsprismarine/java-structures/
-                      node_modules/.cache/jsprismarine/vanilla-datapack/
-                  if-no-files-found: error
-
-    nightly:
-        name: 🚚 Build nightly executable (${{ matrix.platform }})
-        needs: [nightly-version, aot-data]
-        strategy:
-            matrix:
-                include:
-                    # - runner: blacksmith-2vcpu-ubuntu-2404
-                    - runner: ubuntu-latest
-                      platform: linux-x64
-                      target: bun-linux-x64
-                      output: dist/prismarine-linux-x64
-                      architecture: ''
-                    # - runner: blacksmith-6vcpu-macos-latest
-                    - runner: macos-latest
-                      platform: macos-arm64
-                      target: bun-darwin-arm64
-                      output: dist/prismarine-darwin-arm64
-                      architecture: arm64
-                    # - runner: blacksmith-2vcpu-windows-2025
-                    - runner: windows-latest
-                      platform: windows-x64
-                      target: bun-windows-x64
-                      output: dist/prismarine-windows-x64
-                      architecture: ''
-        runs-on: ${{ matrix.runner }}
-        concurrency:
-            group: nightly-build-${{ github.event.pull_request.number || github.ref }}-${{ matrix.platform }}
-            cancel-in-progress: false
-        env:
-            BUILD_TYPE: nightly
-            BUILD_VERSION: ${{ needs.nightly-version.outputs.version }}
-        steps:
-            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-
-            - name: 📦 Install
-              uses: ./.github/common/install
-              with:
-                  # build-aot.mjs compiles for other platforms than the runner's.
-                  all-architectures: true
-
-            - name: 🔨 Build packages
-              run: pnpm run build
-
-            - name: 📥 Download executable data
-              if: runner.os != 'Windows'
-              uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
-              with:
-                  name: executable-java-data
-                  path: node_modules/.cache/jsprismarine
-
-            - name: 📥 Download executable data archive
-              if: runner.os == 'Windows'
-              uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
-              with:
-                  name: executable-java-data
-                  path: ${{ runner.temp }}/executable-java-data
-                  skip-decompress: true
-
-            - name: 📦 Extract executable data
-              if: runner.os == 'Windows'
-              shell: pwsh
-              run: |
-                  $archiveDirectory = Join-Path $env:RUNNER_TEMP 'executable-java-data'
-                  $downloadedArchive = Get-ChildItem -LiteralPath $archiveDirectory -File | Select-Object -First 1
-                  if ($null -eq $downloadedArchive) {
-                      throw 'The executable data archive was not downloaded.'
-                  }
-                  $archivePath = Join-Path $env:RUNNER_TEMP 'executable-java-data.zip'
-                  Move-Item -LiteralPath $downloadedArchive.FullName -Destination $archivePath -Force
-                  Expand-Archive -LiteralPath $archivePath -DestinationPath 'node_modules/.cache/jsprismarine' -Force
-
-            # Keep installation and the lockfile on pnpm; Bun only compiles the executable.
-            - name: 🐰 Setup Bun
-              uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
-              with:
-                  bun-version: canary
-
-            - name: 🏷️ Set build metadata
-              run: node .github/scripts/set-build-metadata.mjs
-
-            - name: 🗃️ Compile executable
-              env:
-                  BUILD_TARGET: ${{ matrix.target }}
-                  BUILD_OUTPUT: ${{ matrix.output }}
-              shell: bash
-              run: node .github/scripts/build-aot.mjs "$BUILD_TARGET" "$BUILD_OUTPUT"
-
-            # A worker the compile did not embed fails only when the binary first starts it.
-            - name: 🔥 Start and stop the executable
-              env:
-                  BUILD_TARGET: ${{ matrix.target }}
-                  BUILD_OUTPUT: ${{ matrix.output }}
-              shell: bash
-              run: node .github/scripts/smoke-executable.mjs "$BUILD_TARGET" "$BUILD_OUTPUT"
-
-            - name: 🍎 Package macOS app
-              if: ${{ matrix.architecture != '' }}
-              env:
-                  BUILD_ARCHITECTURE: ${{ matrix.architecture }}
-                  BUILD_OUTPUT: ${{ matrix.output }}
-              run: node .github/scripts/package-macos-app.mjs "$BUILD_OUTPUT" "$BUILD_ARCHITECTURE"
-
-            - name: 🚚 Publish artifact
-              uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-              with:
-                  name: prismarine-${{ matrix.platform }}
-                  path: |
-                      dist/prismarine-*
-                      dist/JSPrismarine-*.app.zip
-                  if-no-files-found: error
+        uses: ./.github/workflows/executables.yml
+        secrets: inherit
+        with:
+            build-type: nightly
+            version: ${{ needs.nightly-version.outputs.version }}
+            targets: '["bun-linux-x64", "bun-darwin-arm64", "bun-windows-x64"]'
 
     nightly-release:
         name: 🌙 Publish nightly release
-        needs: [nightly-version, nightly]
+        needs: [nightly-version, executables]
         if: github.event_name == 'push'
         runs-on: ubuntu-latest
         concurrency:

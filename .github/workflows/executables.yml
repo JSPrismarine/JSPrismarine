@@ -1,0 +1,216 @@
+name: Executables
+
+# Builds the standalone executables for the nightly and release workflows: the Java data they
+# embed, then one job per target that compiles, starts and stops the executable, and uploads it as
+# the artifact `prismarine-<target>`. The caller publishes the artifacts.
+on:
+    workflow_call:
+        inputs:
+            build-type:
+                description: '`nightly` or `release`, as set-build-metadata.mjs takes it.'
+                required: true
+                type: string
+            version:
+                description: 'The version the executables report.'
+                required: true
+                type: string
+            targets:
+                description: 'The Bun targets to build, as a JSON array, such as ["bun-linux-x64"].'
+                required: true
+                type: string
+            ref:
+                description: 'The commit to build. Defaults to the commit the caller runs on.'
+                required: false
+                type: string
+                default: ''
+            recovery:
+                description: >-
+                    Build `ref` with the build scripts of the commit the caller runs on, since the
+                    scripts of a release being recovered are the ones that failed.
+                required: false
+                type: boolean
+                default: false
+
+env:
+    GIT_CONFIG_COUNT: '1'
+    GIT_CONFIG_KEY_0: init.defaultBranch
+    GIT_CONFIG_VALUE_0: master
+    TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+    TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
+
+permissions:
+    contents: read
+
+jobs:
+    data:
+        name: 🗃️ Prepare executable data
+        # runs-on: blacksmith-2vcpu-ubuntu-2404
+        runs-on: ubuntu-latest
+        steps:
+            - name: 🕶️ Checkout repository
+              # uses: useblacksmith/checkout@v1
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+              with:
+                  ref: ${{ inputs.ref || github.sha }}
+
+            - name: 📦 Install
+              uses: ./.github/common/install
+
+            - name: ☕ Setup JDK
+              uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6
+              with:
+                  distribution: temurin
+                  java-version: '25'
+
+            - name: ⬇️ Fetch the Java server jar
+              run: pnpm run fetch:java-server
+
+            - name: 🏭 Generate Java data
+              run: pnpm --filter @jsprismarine/bedrock-data run datagen:java
+
+            - name: 🚚 Upload executable data
+              uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+              with:
+                  name: executable-java-data
+                  path: |
+                      node_modules/.cache/jsprismarine/java-reports/
+                      node_modules/.cache/jsprismarine/java-structures/
+                      node_modules/.cache/jsprismarine/vanilla-datapack/
+                  if-no-files-found: error
+
+    build:
+        name: 🚚 Build executable (${{ matrix.target }})
+        needs: data
+        strategy:
+            matrix:
+                target: ${{ fromJSON(inputs.targets) }}
+        # `--aot` compiles only for the platform it runs on, so every target runs on a runner of
+        # its own. A musl target compiles in an Alpine container on the runner of its architecture.
+        # Blacksmith equivalents: blacksmith-2vcpu-ubuntu-2404, blacksmith-6vcpu-macos-latest and
+        # blacksmith-2vcpu-windows-2025.
+        runs-on: >-
+            ${{ fromJSON('{
+                "bun-linux-x64": "ubuntu-latest",
+                "bun-linux-arm64": "ubuntu-24.04-arm",
+                "bun-linux-x64-musl": "ubuntu-latest",
+                "bun-linux-arm64-musl": "ubuntu-24.04-arm",
+                "bun-darwin-arm64": "macos-latest",
+                "bun-windows-x64": "windows-latest"
+            }')[matrix.target] }}
+        env:
+            BUILD_TYPE: ${{ inputs.build-type }}
+            # set-build-metadata.mjs reads the nightly's version from one and the release's from the other.
+            BUILD_VERSION: ${{ inputs.version }}
+            RELEASE_VERSION: ${{ inputs.version }}
+            BUILD_TARGET: ${{ matrix.target }}
+            MUSL: ${{ endsWith(matrix.target, '-musl') }}
+        steps:
+            - name: 🕶️ Checkout repository
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+              with:
+                  ref: ${{ inputs.ref || github.sha }}
+
+            - name: 🩹 Use the recovery ref's build scripts
+              if: ${{ inputs.recovery }}
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+              with:
+                  ref: ${{ github.sha }}
+                  path: recovery-tooling
+                  sparse-checkout: .github/scripts
+
+            - name: 🩹 Copy the build scripts over the tag's
+              if: ${{ inputs.recovery }}
+              shell: bash
+              run: cp -R recovery-tooling/.github/scripts/. .github/scripts/
+
+            - name: 📦 Install
+              uses: ./.github/common/install
+              with:
+                  # A musl target embeds the musl native packages, which a glibc runner skips.
+                  all-architectures: ${{ env.MUSL }}
+
+            - name: 🔨 Build packages
+              run: pnpm run build
+
+            - name: 📥 Download executable data
+              if: runner.os != 'Windows'
+              uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+              with:
+                  name: executable-java-data
+                  path: node_modules/.cache/jsprismarine
+
+            - name: 📥 Download executable data archive
+              if: runner.os == 'Windows'
+              uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+              with:
+                  name: executable-java-data
+                  path: ${{ runner.temp }}/executable-java-data
+                  skip-decompress: true
+
+            - name: 📦 Extract executable data
+              if: runner.os == 'Windows'
+              shell: pwsh
+              run: |
+                  $archiveDirectory = Join-Path $env:RUNNER_TEMP 'executable-java-data'
+                  $downloadedArchive = Get-ChildItem -LiteralPath $archiveDirectory -File | Select-Object -First 1
+                  if ($null -eq $downloadedArchive) {
+                      throw 'The executable data archive was not downloaded.'
+                  }
+                  $archivePath = Join-Path $env:RUNNER_TEMP 'executable-java-data.zip'
+                  Move-Item -LiteralPath $downloadedArchive.FullName -Destination $archivePath -Force
+                  Expand-Archive -LiteralPath $archivePath -DestinationPath 'node_modules/.cache/jsprismarine' -Force
+
+            # Keep installation and the lockfile on pnpm; Bun only compiles the executable.
+            - name: 🐰 Setup Bun
+              if: ${{ env.MUSL != 'true' }}
+              uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+              with:
+                  bun-version: canary
+
+            - name: 🏷️ Set build metadata
+              run: node .github/scripts/set-build-metadata.mjs
+
+            # A worker the compile did not embed fails only when the binary first starts it, so
+            # every executable is started and stopped on the platform it was built for.
+            - name: 🗃️ Compile executable
+              if: ${{ env.MUSL != 'true' }}
+              shell: bash
+              run: |
+                  mkdir -p dist
+                  output="dist/prismarine-${BUILD_TARGET#bun-}"
+                  node .github/scripts/build-aot.mjs "$BUILD_TARGET" "$output"
+                  node .github/scripts/smoke-executable.mjs "$BUILD_TARGET" "$output"
+                  if [[ "$BUILD_TARGET" == bun-darwin-* ]]; then
+                      node .github/scripts/package-macos-app.mjs "$output" "${BUILD_TARGET##*-}"
+                  fi
+
+            # The checkout and its install are mounted at the same path, so pnpm's links resolve.
+            - name: 🗃️ Compile musl executable
+              if: ${{ env.MUSL == 'true' }}
+              shell: bash
+              run: |
+                  node_version="$(cat .nvmrc)"
+                  docker run --rm -v "$PWD:$PWD" -w "$PWD" \
+                      -e BUILD_TIME -e BUILD_GIT_HASH -e BUILD_VERSION -e BUILD_FLAVOR -e BUILD_TYPE -e BUILD_TARGET \
+                      "node:${node_version%.x}-alpine" sh -euc '
+                          # Bun's musl build needs the C++ runtime; build-base is there in case `--aot` links with the system toolchain.
+                          apk add --no-cache libstdc++ libgcc build-base
+                          arch="$(uname -m)"
+                          if [ "$arch" = x86_64 ]; then arch=x64; fi
+                          wget -qO /tmp/bun.zip "https://github.com/oven-sh/bun/releases/download/canary/bun-linux-${arch}-musl.zip"
+                          unzip -q /tmp/bun.zip -d /tmp
+                          export PATH="/tmp/bun-linux-${arch}-musl:$PATH"
+                          mkdir -p dist
+                          output="dist/prismarine-${BUILD_TARGET#bun-}"
+                          node .github/scripts/build-aot.mjs "$BUILD_TARGET" "$output"
+                          node .github/scripts/smoke-executable.mjs "$BUILD_TARGET" "$output"
+                      '
+
+            - name: 🚚 Upload executable
+              uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+              with:
+                  name: prismarine-${{ matrix.target }}
+                  path: |
+                      dist/prismarine-*
+                      dist/JSPrismarine-*.app.zip
+                  if-no-files-found: error
