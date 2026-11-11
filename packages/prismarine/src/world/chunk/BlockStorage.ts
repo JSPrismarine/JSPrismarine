@@ -63,6 +63,26 @@ const packIndices = (indices: ArrayLike<number>, bitsPerBlock: number): Uint32Ar
  */
 const MAX_PALETTE_SIZE = 65536;
 
+/**
+ * Writes a network storage's palette. A zero-bit storage is one runtime id with no count before
+ * it: the client takes a count there for the id, and every byte after it, the next layer and
+ * the block entities included, is then misread. Every other width writes the count first.
+ * @param stream - Where the storage is being written.
+ * @param bitsPerBlock - The storage's index width.
+ * @param palette - The runtime ids; a zero-bit storage writes only the first.
+ * @throws {RangeError} When a zero-bit storage has no runtime id.
+ */
+const writeNetworkPalette = (stream: BinaryStream, bitsPerBlock: number, palette: readonly number[]): void => {
+    if (bitsPerBlock === 0) {
+        const [runtimeId] = palette;
+        if (runtimeId === undefined) throw new RangeError('A zero-bit storage needs its runtime id');
+        stream.writeVarInt(runtimeId);
+        return;
+    }
+    stream.writeVarInt(palette.length);
+    for (const runtimeId of palette) stream.writeVarInt(runtimeId);
+};
+
 export default class BlockStorage {
     /**
      * Counts every block write and storage swap in this process. A chunk whose last block
@@ -424,8 +444,7 @@ export default class BlockStorage {
             const networkStorage = (this.packedNetworkStorage ??= this.packNetworkStorage());
             stream.writeByte((networkStorage.bitsPerBlock << 1) | 1);
             for (const word of networkStorage.words) stream.writeIntLE(word | 0);
-            stream.writeVarInt(networkStorage.palette.length);
-            for (const runtimeId of networkStorage.palette) stream.writeVarInt(runtimeId);
+            writeNetworkPalette(stream, networkStorage.bitsPerBlock, networkStorage.palette);
             return;
         }
 
@@ -457,8 +476,7 @@ export default class BlockStorage {
             case 0:
                 // Zero-bit storage has one palette entry and no packed words.
                 stream.writeByte(1);
-                stream.writeVarInt(compactPalette.length);
-                for (const runtimeId of compactPalette) stream.writeVarInt(runtimeId);
+                writeNetworkPalette(stream, 0, compactPalette);
                 return;
             case 1:
             case 2:
@@ -541,6 +559,9 @@ export default class BlockStorage {
 
     public static networkDeserialize(stream: BinaryStream): BlockStorage {
         const bitsPerBlock = stream.readByte() >> 1;
+        // A zero-bit storage is its one runtime id, with no words and no palette count.
+        if (bitsPerBlock === 0) return new BlockStorage({ palette: [stream.readVarInt()] });
+
         const blocksPerWord = Math.floor(32 / bitsPerBlock);
         const wordsPerChunk = Math.ceil(4096 / blocksPerWord);
 

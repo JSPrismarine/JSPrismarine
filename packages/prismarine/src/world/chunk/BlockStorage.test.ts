@@ -147,6 +147,37 @@ describe('world', () => {
             }
         });
 
+        it('writes a zero-bit network storage as its header and one runtime id, with no palette count', () => {
+            // A count there is what the client then reads as the runtime id, and every byte after
+            // it is misread: a uniform sub chunk made the whole SubChunkPacket a bad packet.
+            const water = BlockRuntimeIds.getByName('minecraft:water');
+            const storage = new BlockStorage({ palette: [water] });
+            const written = new BinaryStream();
+            storage.networkSerialize(written);
+
+            const expected = new BinaryStream();
+            expected.writeByte(1);
+            expected.writeVarInt(water);
+            expect(written.getBuffer()).toStrictEqual(expected.getBuffer());
+        });
+
+        it('reads the storage after a zero-bit one from where the zero-bit one ends', () => {
+            const water = BlockRuntimeIds.getByName('minecraft:water');
+            const mixed = new BlockStorage({ palette: [air()] });
+            mixed.setBlock(3, 4, 5, stone());
+            const stream = new BinaryStream();
+            new BlockStorage({ palette: [water] }).networkSerialize(stream);
+            mixed.networkSerialize(stream);
+
+            const reader = new BinaryStream(stream.getBuffer());
+            const first = BlockStorage.networkDeserialize(reader);
+            const second = BlockStorage.networkDeserialize(reader);
+
+            expect(first.getRuntimeId(15, 15, 15)).toBe(water);
+            expect([second.getRuntimeId(3, 4, 5), second.getRuntimeId(0, 0, 0)]).toStrictEqual([stone(), air()]);
+            expect(reader.getReadIndex()).toBe(stream.getBuffer().byteLength);
+        });
+
         it('round trips every supported palette bit width in network and persistent storage', () => {
             const paletteSizes = [1, 2, 3, 5, 9, 17, 33, 65, 257];
             const runtimeId = stone();
