@@ -520,34 +520,54 @@
     text-decoration-thickness: 1px;
 }
 
-/* Package names in a table stay whole, and every area's table shares one first column width. */
+/* Package names in a table stay whole. */
 .vp-doc td:first-child > a {
     white-space: nowrap;
 }
 
-/* Package names are identifiers, so the API index and the API sidebar set them in mono. */
-.api-index .vp-doc td:first-child > a,
+/* The API index lists names only, as a grid of mono links per area: Packages is where they are described. */
+.api-index .vp-doc h2 + p + ul {
+    display: grid;
+    /* Two columns even on a phone: most names are short. */
+    grid-template-columns: repeat(auto-fill, minmax(min(150px, 100%), 1fr));
+    gap: 6px;
+    padding: 0;
+    list-style: none;
+}
+
+.api-index .vp-doc h2 + p + ul li {
+    margin: 0;
+}
+
+.api-index .vp-doc h2 + p + ul a {
+    display: flex;
+    align-items: center;
+    min-height: var(--jsp-target);
+    padding: 0 14px;
+    font: 700 15px var(--vp-font-family-mono);
+    color: var(--vp-c-text-1);
+    text-decoration: none;
+    background: var(--vp-c-bg-soft);
+    border: 1px solid var(--vp-c-divider);
+    border-radius: var(--jsp-radius-control);
+}
+
+.api-index .vp-doc h2 + p + ul a:hover {
+    border-color: var(--vp-c-text-1);
+}
+
+/* A link card carries an arrow, so the tiles read as links. */
+.api-index .vp-doc h2 + p + ul a::after {
+    margin-left: auto;
+    padding-left: 8px;
+    color: var(--vp-c-text-2);
+    content: '→' / '';
+}
+
+/* Package names are identifiers, so the API sidebar sets them in mono. */
 .VPSidebarItem a[href*='/api/@'] > .text {
     font-family: var(--vp-font-family-mono);
     font-size: 0.9em;
-}
-
-/* In the index, the name is the row's key, so it outweighs the description beside it. */
-.api-index .vp-doc td:first-child > a {
-    font-size: 15px;
-    font-weight: 700;
-}
-
-@media (min-width: 641px) {
-    .api-index .vp-doc table {
-        display: table;
-        width: 100%;
-        table-layout: fixed;
-    }
-
-    .api-index .vp-doc :is(th, td):first-child {
-        width: 13rem;
-    }
 }
 
 /* The theme switch gets an edge, so it reads as a control beside the outlined Search. */

@@ -154,8 +154,11 @@ scrolling off the screen edge, and a two-column table stacks each row as its nam
   them and its data-table rows otherwise, and say which with a unit word, so each tile agrees with
   the behavior score the home page shows. On phones the group tiles become one-line rows, so the cases
   follow within a screen.
-- The package directory and the API reference sidebar group packages by the areas in
-  `packageAreas.ts`; the docs build fails when a published package has no area.
+- The package directory, the API reference index and its sidebar group packages by the areas in
+  `packageAreas.ts`; the docs build fails when a published package has no area. The directory is
+  where packages are described; the API index lists their names only, as a grid of links, so the two
+  pages do different jobs. When every package shares one npm scope, the directory names it once above
+  the cards instead of on each.
 - Menu and search previews end on a whole sentence where one fits.
 - The header's controls (Search, and on phones the Menu button) are controls, not primary actions:
   an edge and no offset shadow.

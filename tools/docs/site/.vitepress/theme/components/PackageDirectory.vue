@@ -14,6 +14,12 @@ const sharedVersion = computed(() => {
     return versions.size === 1 ? [...versions][0] : undefined;
 });
 
+/** The npm scope every package shares, when they share one; the count line names it once for all cards. */
+const scope = computed(() => {
+    const scopes = new Set(props.packages.map(({ name }) => name.slice(0, name.indexOf('/'))));
+    return scopes.size === 1 ? [...scopes][0] : undefined;
+});
+
 const areas = computed(() => groupPackages(props.packages));
 
 const shown = computed(() => {
@@ -42,7 +48,7 @@ const shownAreas = computed(() => {
                 shown.length === packages.length
                     ? `${packages.length} packages`
                     : `${shown.length} of ${packages.length}`
-            }}{{ sharedVersion ? `, all at ${sharedVersion}` : '' }}
+            }}{{ scope ? ` under ${scope}` : '' }}{{ sharedVersion ? `, all at ${sharedVersion}` : '' }}
         </p>
         <nav class="package-directory__areas" aria-label="Package areas">
             <a v-for="area in shownAreas" :key="area.id" :href="`#${area.id}`"
@@ -60,7 +66,7 @@ const shownAreas = computed(() => {
                         <!-- The name opens the API reference; README and npm follow as quieter links. -->
                         <h3>
                             <a :href="withBase(`/api/${pkg.name}/`)"
-                                ><span class="package-card__scope">{{
+                                ><span class="package-card__scope" :class="{ 'is-shared': scope }">{{
                                     pkg.name.slice(0, pkg.name.indexOf('/') + 1)
                                 }}</span
                                 >{{ pkg.name.slice(pkg.name.indexOf('/') + 1) }}</a
@@ -140,6 +146,16 @@ const shownAreas = computed(() => {
     gap: 10px;
     align-items: baseline;
     justify-content: space-between;
+}
+
+/* A scope every card shares is named once above the cards; screen readers still hear the full name. */
+.package-card__scope.is-shared {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
 }
 
 .package-card__scope {

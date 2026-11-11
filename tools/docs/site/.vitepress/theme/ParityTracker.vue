@@ -152,8 +152,11 @@ const percentage = trackerProgressPercent;
         <header class="tracker-hero">
             <p class="tracker-eyebrow">
                 <i></i>Parity tracker · generated
-                <time :datetime="tracker.generatedAt">{{ tracker.generatedAt.slice(0, 10) }}</time> · commit
-                <a :href="commitUrl">{{ sourceRevision.slice(0, 7) }}</a>
+                <time :datetime="tracker.generatedAt">{{ tracker.generatedAt.slice(0, 10) }}</time>
+                <!-- A snapshot without a commit (a local build) names the branch, not a fake commit. -->
+                <template v-if="sourceRevision !== 'master'">
+                    · commit <a :href="commitUrl">{{ sourceRevision.slice(0, 7) }}</a></template
+                ><template v-else> · from <a :href="commitUrl.replace('/commit/', '/tree/')">master</a></template>
             </p>
             <h1>How close to vanilla.</h1>
             <div class="overview-score">
@@ -637,7 +640,7 @@ progress::-moz-progress-bar {
 /* Section headings match every doc page's h2: display type under the short solid bar. */
 .tracker-section-title {
     padding: 0;
-    margin: 32px 4px 6px;
+    margin: 32px 0 6px;
     font-size: 28px;
     font-weight: 800;
     line-height: 1.15;

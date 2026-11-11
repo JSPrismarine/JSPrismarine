@@ -1,7 +1,8 @@
 /**
- * Writes the API reference's index page after TypeDoc: the intro from `api-readme.md`, then one table
- * per package area, in the order and grouping `packageAreas.ts` gives the package directory, so the
- * index, its sidebar and the Packages page sort packages the same way.
+ * Writes the API reference's index page after TypeDoc: the intro from `api-readme.md`, then one list of
+ * package names per package area, in the order and grouping `packageAreas.ts` gives the package
+ * directory, so the index, its sidebar and the Packages page sort packages the same way. The index
+ * holds names only: the Packages page is where each package is described.
  */
 
 import { readFileSync, writeFileSync } from 'node:fs';
@@ -13,18 +14,11 @@ import { groupPackages } from './site/.vitepress/theme/packageAreas.ts';
 
 const packageDirectory = path.dirname(fileURLToPath(import.meta.url));
 const intro = readFileSync(path.join(packageDirectory, 'api-readme.md'), 'utf8').trim();
-/** A table cell: one line, with the characters that would end the cell escaped. */
-const cell = (text: string) => text.replaceAll('|', '\\|').replace(/\s+/g, ' ').trim();
 
 const { packages } = loadProject();
 const sections = groupPackages(packages).map((area) => {
-    const rows = area.packages.map((pkg) => {
-        const name = pkg.name.slice(pkg.name.indexOf('/') + 1);
-        return `| [${name}](${pkg.name}/index.md) | ${cell(pkg.description)} |`;
-    });
-    return [`## ${area.title}`, '', area.description, '', '| Package | Description |', '| --- | --- |', ...rows].join(
-        '\n'
-    );
+    const links = area.packages.map((pkg) => `- [${pkg.name.slice(pkg.name.indexOf('/') + 1)}](${pkg.name}/index.md)`);
+    return [`## ${area.title}`, '', area.description, '', ...links].join('\n');
 });
 
 const scope = packages[0]?.name.split('/')[0] ?? '';
