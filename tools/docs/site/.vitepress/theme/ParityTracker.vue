@@ -9,7 +9,6 @@ import {
     trackerProgressTotal
 } from '../../../../../packages/parity/src/dashboard/trackerProgress.ts';
 import { groupProgress, useTrackerSnapshot } from './parity';
-import SiteBreadcrumb from './site-menu/SiteBreadcrumb.vue';
 
 const statuses = [
     { id: 'all', label: 'Any status' },
@@ -149,9 +148,7 @@ const percentage = trackerProgressPercent;
 </script>
 
 <template>
-    <main v-if="tracker" class="tracker">
-        <!-- A full-width page has no doc chrome, so the tracker places the breadcrumb itself. -->
-        <SiteBreadcrumb class="tracker-crumb" />
+    <div v-if="tracker" class="tracker">
         <header class="tracker-hero">
             <p class="tracker-eyebrow">
                 <i></i>Parity tracker · generated
@@ -305,11 +302,12 @@ const percentage = trackerProgressPercent;
                 <summary>
                     <span class="family-title">
                         <span class="family-name">{{ family.id }}</span>
-                        <span class="family-count">{{ family.matchCount.toLocaleString() }} matching cases</span>
+                        <span class="family-count">{{ family.matchCount.toLocaleString() }} cases</span>
                     </span>
                     <span class="family-progress">
                         <span :class="{ 'is-gap': family.passed * 2 < trackerProgressTotal(family) }"
-                            >{{ family.passed }}/{{ trackerProgressTotal(family) }} ·
+                            >{{ family.passed.toLocaleString() }} of
+                            {{ trackerProgressTotal(family).toLocaleString() }} checks pass ·
                             {{ percentage(family.passed, trackerProgressTotal(family)) }}%</span
                         >
                         <progress
@@ -374,7 +372,7 @@ const percentage = trackerProgressPercent;
                 </ul>
             </details>
         </section>
-    </main>
+    </div>
     <p v-else-if="loadError" class="tracker tracker-message">
         Could not load the parity tracker data. Refresh to try again.
     </p>
@@ -393,9 +391,6 @@ const percentage = trackerProgressPercent;
     display: grid;
     grid-template-columns: minmax(0, 1fr);
     gap: var(--jsp-gap);
-    max-width: 1200px;
-    padding: 10px 16px 64px;
-    margin: 0 auto;
     color: var(--vp-c-text-1);
 }
 
@@ -1094,10 +1089,6 @@ progress::-moz-progress-bar {
         min-height: var(--jsp-target);
     }
 }
-.tracker-crumb {
-    margin: 4px 4px 10px;
-}
-
 .results-actions {
     display: flex;
     flex-wrap: wrap;

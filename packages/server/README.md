@@ -11,7 +11,7 @@ the plain console, where each stdin line is a command and each log record is a s
 `--no-tui` or `JSP_NO_TUI=1` forces the plain console, `--headless` attaches no console at all,
 and `--watch` restarts the server when workspace source or loaded content pack data changes
 (`pnpm run dev` passes it). The flags and keys are documented in
-[Running JSPrismarine](https://github.com/JSPrismarine/JSPrismarine/blob/master/docs/guide/running.md#4-console).
+[Running JSPrismarine](https://github.com/JSPrismarine/JSPrismarine/blob/master/docs/guide/running.md#console).
 
 ## Native TypeScript loader prototype
 

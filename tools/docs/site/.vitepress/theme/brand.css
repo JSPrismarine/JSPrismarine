@@ -111,7 +111,8 @@
     border-top: 0;
 }
 
-.vp-doc h2::before {
+/* A component's own headings (`vp-raw`) keep their own design. */
+.vp-doc h2:not(.vp-raw *)::before {
     display: block;
     width: 40px;
     height: 5px;
@@ -408,6 +409,24 @@
     text-decoration: underline;
     text-decoration-thickness: 2px;
     text-underline-offset: 3px;
+}
+
+/* Doc pages end on the same footer as the landing page. VitePress hides it beside a sidebar, so it
+   takes the content column's offset instead, as VPContent does. */
+.VPFooter.has-sidebar {
+    display: block;
+}
+
+@media (min-width: 960px) {
+    .VPFooter.has-sidebar {
+        padding-left: var(--vp-sidebar-width);
+    }
+}
+
+@media (min-width: 1440px) {
+    .VPFooter.has-sidebar {
+        padding-left: calc((100vw - var(--vp-layout-max-width)) / 2 + var(--vp-sidebar-width));
+    }
 }
 
 /* The landing page ends on its own closing panel, so the home layout's bottom padding only adds a gap. */

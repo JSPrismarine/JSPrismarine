@@ -337,8 +337,9 @@
 }
 
 .site-panel__heading {
-    padding: 0 10px;
-    margin: 4px 0;
+    /* Padding, not margin: a column break drops the margin, which would set one column's label higher. */
+    padding: 4px 10px;
+    margin: 0;
     font: 700 var(--jsp-label-size)/20px var(--vp-font-family-mono);
     color: var(--jsp-accent);
     text-transform: uppercase;

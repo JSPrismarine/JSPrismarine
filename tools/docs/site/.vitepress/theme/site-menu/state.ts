@@ -82,14 +82,33 @@ export function useSiteMenu() {
     /** Whether a link points into the page being read, section links included. */
     const isOnCurrent = (link: string) => normalizeRoute(withBase(link)) === current.value;
 
-    /** Whether a menu lists the page being read. */
-    const holdsCurrent = (entry: MegaMenu) =>
-        [entry.featured?.link, ...entry.sections.flatMap((section) => section.items.map(({ link }) => link))].some(
-            (link) => link !== undefined && isOnCurrent(link)
-        );
+    /** Every page a menu links, its featured link first. */
+    const menuLinks = (entry: MegaMenu) => [
+        entry.featured?.link,
+        ...entry.sections.flatMap((section) => section.items.map(({ link }) => link))
+    ];
 
-    /** The menu that holds the page being read; a page in two menus belongs to the first. */
-    const currentMenu = computed(() => menus.value.find((entry) => !entry.link && holdsCurrent(entry))?.text);
+    /** Whether a menu lists the page being read. */
+    const holdsCurrent = (entry: MegaMenu) => menuLinks(entry).some((link) => link !== undefined && isOnCurrent(link));
+
+    /** Whether a menu lists pages under the folder whose index page is being read. */
+    const holdsSection = (entry: MegaMenu) =>
+        current.value !== '/' &&
+        current.value.endsWith('/') &&
+        menuLinks(entry).some((link) => link !== undefined && normalizeRoute(withBase(link)).startsWith(current.value));
+
+    /**
+     * The menu that holds the page being read; a page in two menus belongs to the first. A section's
+     * index page belongs to the first menu that lists pages in its folder, so it counts as current
+     * even when no menu links it.
+     */
+    const currentMenu = computed(
+        () =>
+            (
+                menus.value.find((entry) => !entry.link && holdsCurrent(entry)) ??
+                menus.value.find((entry) => !entry.link && holdsSection(entry))
+            )?.text
+    );
 
     const repository = computed(
         () => theme.value.socialLinks?.find((social) => social.icon === 'github')?.link ?? 'https://github.com'

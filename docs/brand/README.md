@@ -110,7 +110,8 @@ ink.
 - On phones, controls are at least `--jsp-target` tall, the WCAG touch target size.
 - Motion is short and mechanical. Honor `prefers-reduced-motion` by stopping tickers and cursors.
   Anything that moves on its own also stops on hover and has a Pause button, for readers who have not
-  set reduced motion.
+  set reduced motion. With a mouse, the button shows on hover, on keyboard focus and while paused;
+  touch screens always show it.
 
 ## Code
 
@@ -123,13 +124,17 @@ scrolling off the screen edge, and a two-column table stacks each row as its nam
 
 ## Doc pages
 
-- Every doc page shares one column and one nav position. Root pages with no docs folder (packages,
-  releases, the brand kit) take their menu section's link groups as a sidebar.
+- Every doc page shares one column and one nav position, the parity tracker included. Root pages
+  with no docs folder (packages, parity, releases, the brand kit) take their menu section's link
+  groups as a sidebar. A section whose overview is a card page takes its sidebar from that page's
+  groups, so the sidebar lists every page the overview offers, and the build fails on a page in the
+  folder that the overview leaves out.
+- Every page ends on the site footer, doc pages beside a sidebar included.
 - Each second-level section opens on a short solid bar. Overview pages whose sections are lists of
   links set those sections as cards (`sectionCards.ts`).
 - Release notes lead each change with its first sentence in bold. Inline code in them is mono and
   colored without a chip.
-- The parity tracker carries the site breadcrumb, and its rows and group tiles mark anything under
+- The parity tracker's rows and group tiles mark anything under
   half passing with a signal square. Its status chips differ by shape as well as color, and only
   defects and failures are filled signal. Group tiles count the behavior checks when a group has
   them and its data-table rows otherwise, and say which with a unit word, so each tile agrees with
@@ -168,7 +173,8 @@ The site has one menu, in `tools/docs/site/.vitepress/theme/site-menu/`, drawn f
   search, where the keys earn their place, shows a hint row. Shortcut labels follow the platform: ⌘
   on Apple, Ctrl elsewhere, and `/` works on layouts that need Shift for it.
 - **It knows where you are.** The current section carries the accent bar, the current page is
-  highlighted, and a breadcrumb above the page names both.
+  highlighted, and a breadcrumb above the page names both. A section's index page counts as current
+  in the first menu that lists pages in its folder, even when no menu links the index itself.
 
 ## Voice
 

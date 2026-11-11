@@ -18,7 +18,7 @@ There are two ways to run JSPrismarine:
   See [Run from source](#run-from-source), and [Extending JSPrismarine](extending.md) for what an
   add-on or a plugin can do.
 
-The [console](#4-console) and [configuration](#5-configuration) work the same either way.
+The [console](#console) and [configuration](#configuration) work the same either way.
 
 ## Run the prebuilt server
 
@@ -67,7 +67,7 @@ Dedicated Server `behavior_packs` folder.
 
 The server then creates `config.json`, its player lists and `worlds/` in the same folder and starts
 listening on port <!-- fact:server.port -->19132<!-- /fact -->. Players add it in Minecraft under **Servers → Add Server** with your
-machine's address. In a terminal, it opens the [terminal UI](#4-console); under a service manager,
+machine's address. In a terminal, it opens the [terminal UI](#console); under a service manager,
 in Docker or with `--no-tui`, it uses the plain line console.
 
 To update, replace the executable with the newer one and start it again. Your `config.json`,
@@ -84,7 +84,7 @@ a checkout.
 
 *   1.1 Node.js <!-- fact:node.minimum -->`26.4.0`<!-- /fact --> or newer and pnpm <!-- fact:pnpm.minimum -->`12`<!-- /fact --> or newer. The terminal UI loads `node:ffi` by default on
     Node 26.9 or newer. Node versions 26.4 through 26.8 require `--experimental-ffi`. If Node cannot
-    load `node:ffi`, the server uses the plain line console (see [Console](#4-console)).
+    load `node:ffi`, the server uses the plain line console (see [Console](#console)).
 
 pnpm is the only supported package manager. Installs with npm or yarn fail
 with a message pointing back to pnpm, and repository tooling runs one-off
@@ -158,7 +158,7 @@ the server process or its workers. Editing a source file rebuilds that package, 
 when its `dist` output or content pack data changes. The first restart a few seconds after start-up is
 the watch builds writing their initial output. The watch builds log to
 `node_modules/.cache/jsprismarine-dev-build.log` so they stay out of the terminal UI. It opens the
-terminal UI described in the [Console](#4-console) section when it can, and falls back to the plain
+terminal UI described in the [Console](#console) section when it can, and falls back to the plain
 line console otherwise.
 
 #### Building the server yourself
@@ -245,7 +245,53 @@ phases, and event-loop delay. A forced process exit cannot save the trace.
 The macOS app opens Terminal so the server can use its interactive console. Its config, world, and
 log files are stored in `~/JSPrismarine`.
 
-### 4. Console
+### 4. How the development server works
+
+`pnpm run dev` runs the server from TypeScript source with `--watch`. No build step is needed:
+every `@jsprismarine/*` package resolves straight to its `src/`, so an edit in any package takes
+effect on the next restart.
+
+The host process watches workspace package sources and data files under every directory in the
+resolved content stack: the vanilla Bedrock pack, `packages/blocks/vanilla_overlay/`,
+`packages/entities/vanilla_overlay/`, the Java vanilla datapack, and packs configured through
+`content-world-packs` or `content-datapacks`.
+Explicit `JSP_VANILLA_BEHAVIOR_PACK` and `JSP_VANILLA_DATAPACK` paths are included in that stack.
+Pack JSON, `pack.mcmeta`, `.mcfunction`, and `.brarchive` changes share one debounce, so a batch of
+edits causes one graceful server restart and rebuilds the registries from disk. Content registries
+are built at startup and use positional IDs, so changing them in place would leave running clients
+and entities with stale data. Because the console lives in the host and the server is a child
+process, the console keeps working across restarts. If the server crashes while you are mid-edit,
+the host stays up and starts the server again on your next change.
+Changing the `bedrock-data` resources or its generator regenerates the data before the restart.
+
+#### Dropping packets to find a bad one
+
+When a client leaves during the join without a `Disconnect` or
+`PacketViolationWarning`, the server log alone does not say which packet it
+choked on. Set `JSP_DEBUG_DROP_PACKETS` to a comma-separated list of packet
+class names and the server never sends those, logging a warning for each one
+it withholds:
+
+```bash
+    $ JSP_DEBUG_DROP_PACKETS=LevelChunkPacket,CraftingDataPacket pnpm run dev
+```
+
+Drop one type at a time and watch whether the client's behavior changes. A
+batch of several packets is dropped whole when any packet in it is named.
+
+Once a packet type is implicated, `JSP_DEBUG_DUMP_PACKETS` takes the same
+kind of list and writes each named packet's encoded bytes, header included,
+to a file of its own under `JSP_DEBUG_DUMP_DIR` (default: a
+`jsprismarine-packets` directory in the system temp directory). That is the
+exact byte sequence the client was given, ready to decode against the
+protocol documentation. A packet can be dumped and dropped at the same time.
+
+The variables are read when a connection is made, so they can also go in
+`packages/server/.env.development.local`, which the server loads at startup.
+Remove them when done; a server with packets missing is not one players can
+use.
+
+## Console
 
 The `prismarine` entry point picks one of two console modes at startup.
 
@@ -279,7 +325,7 @@ The remaining flags:
     read from it. Use it when a wrapper owns the terminal and only the log file matters.
 *   `--no-tui` forces the plain line console even on an interactive terminal.
 
-#### Keys in the terminal UI
+### Keys in the terminal UI
 
 Press `?` on an empty input line to open the help overlay, which lists every binding. The ones
 you'll need first:
@@ -296,7 +342,7 @@ you'll need first:
 | `?` | Help overlay, on an empty line |
 | `Esc` | Close an overlay or cancel a search |
 
-### 5. Configuration
+## Configuration
 
 New servers keep their settings in `config.json` in the working directory
 (`jsp/` during development). The server creates it on first start, with every
@@ -316,7 +362,7 @@ still need into `config.json` (where `//` comments are allowed).
 `packet-full-flush-fragments` is an opt-in compression prototype. It stays off by default until
 the server has been checked with retail Bedrock clients on Windows and Android.
 
-#### Every setting
+### Every setting
 
 A fresh server writes these <!-- fact:config.count -->39<!-- /fact --> settings, each with the comment below
 above it. The list comes from the code that writes the file, so it matches what your version writes.
@@ -365,7 +411,7 @@ above it. The list comes from the code that writes the file, so it matches what 
 | `content-datapacks`                   | Java datapack directories this world loads, after the vanilla one.                                                                                                                                     |
 <!-- /fact -->
 
-#### Networking
+### Networking
 
 Bedrock clients reach the server over two transports, and it runs both unless `enable-raknet` or
 `enable-nethernet` turns one off:
@@ -393,7 +439,7 @@ The first time NetherNet starts, the server writes its identity key to
 Clients remember the key, and one that meets a different key asks the player to trust the server
 again, so keep the file with your worlds when you move or rebuild the server.
 
-#### Query
+### Query
 
 With `enable-query` on, which is the default, the server answers the GameSpy4 query protocol
 that server lists and status tools use to read its MOTD, world, player count and player names. A
@@ -405,7 +451,7 @@ RakNet socket beside the game, so a firewall needs nothing more. Any other port 
 its own, bound to `server-ip`; when another program holds that port, the server starts anyway and
 logs that query is unavailable.
 
-#### Worlds
+### Worlds
 
 Each entry under `worlds` is one world: its `seed`, the `provider` that stores it on disk and
 the `preset` that says which dimensions it has and how each one generates. The server loads
@@ -486,7 +532,7 @@ key, so an editor flags them, but the server still reads both: `Overworld` is
 to the file, so you only see the message and the editor's marks until the next start. Any other
 `generator` name stops the server with an error, as it did before.
 
-#### World seeds
+### World seeds
 
 Write a world's `seed` as a string, as the examples above do.
 
@@ -534,49 +580,3 @@ The schemas allow comments and trailing commas in editors that support JSONC.
 A file that does not parse stops the server with an error naming the file
 rather than being replaced by the defaults, so a typo costs a restart, not
 the config.
-
-### 6. How the development server works
-
-`pnpm run dev` runs the server from TypeScript source with `--watch`. No build step is needed:
-every `@jsprismarine/*` package resolves straight to its `src/`, so an edit in any package takes
-effect on the next restart.
-
-The host process watches workspace package sources and data files under every directory in the
-resolved content stack: the vanilla Bedrock pack, `packages/blocks/vanilla_overlay/`,
-`packages/entities/vanilla_overlay/`, the Java vanilla datapack, and packs configured through
-`content-world-packs` or `content-datapacks`.
-Explicit `JSP_VANILLA_BEHAVIOR_PACK` and `JSP_VANILLA_DATAPACK` paths are included in that stack.
-Pack JSON, `pack.mcmeta`, `.mcfunction`, and `.brarchive` changes share one debounce, so a batch of
-edits causes one graceful server restart and rebuilds the registries from disk. Content registries
-are built at startup and use positional IDs, so changing them in place would leave running clients
-and entities with stale data. Because the console lives in the host and the server is a child
-process, the console keeps working across restarts. If the server crashes while you are mid-edit,
-the host stays up and starts the server again on your next change.
-Changing the `bedrock-data` resources or its generator regenerates the data before the restart.
-
-#### Dropping packets to find a bad one
-
-When a client leaves during the join without a `Disconnect` or
-`PacketViolationWarning`, the server log alone does not say which packet it
-choked on. Set `JSP_DEBUG_DROP_PACKETS` to a comma-separated list of packet
-class names and the server never sends those, logging a warning for each one
-it withholds:
-
-```bash
-    $ JSP_DEBUG_DROP_PACKETS=LevelChunkPacket,CraftingDataPacket pnpm run dev
-```
-
-Drop one type at a time and watch whether the client's behavior changes. A
-batch of several packets is dropped whole when any packet in it is named.
-
-Once a packet type is implicated, `JSP_DEBUG_DUMP_PACKETS` takes the same
-kind of list and writes each named packet's encoded bytes, header included,
-to a file of its own under `JSP_DEBUG_DUMP_DIR` (default: a
-`jsprismarine-packets` directory in the system temp directory). That is the
-exact byte sequence the client was given, ready to decode against the
-protocol documentation. A packet can be dumped and dropped at the same time.
-
-The variables are read when a connection is made, so they can also go in
-`packages/server/.env.development.local`, which the server loads at startup.
-Remove them when done; a server with packets missing is not one players can
-use.
