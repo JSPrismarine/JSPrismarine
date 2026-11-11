@@ -1,19 +1,34 @@
 import { OfflineAuthProvider } from '@jsprismarine/auth';
 import { Logger } from '@jsprismarine/logger';
 import { Gametype } from '@jsprismarine/minecraft';
-import { PacketIdentifier, PlayStatus, PlayerActionType, PositionMode } from '@jsprismarine/protocol';
+import {
+    ChangeDimensionPacket,
+    LevelChunkPacket,
+    NetworkBinaryStream,
+    PacketIdentifier,
+    PlayStatus,
+    PlayerActionPacket,
+    PlayerActionType,
+    PositionMode,
+    ServerboundLoadingScreenPacket,
+    ServerboundLoadingScreenPacketType
+} from '@jsprismarine/protocol';
 import { Config, Server } from '@jsprismarine/prismarine';
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
+import type { ChangeDimensionPayload } from '@jsprismarine/protocol';
 import type { PlayerSession } from '@jsprismarine/prismarine';
 import type { DecodedPacket } from './net/ClientPacketRegistry';
 import type { PendingDimensionChange } from './DimensionChange';
 
 import Client from './Client';
-import { isPacket } from './net/ClientPacketRegistry';
+import DimensionChange from './DimensionChange';
+import ClientPacketRegistry, { isPacket } from './net/ClientPacketRegistry';
+import ClientSession from './net/ClientSession';
+import { FakeTransport } from './testing/fakeTransport.test.helper';
 
 /**
  * A portal trip observed on the wire: a real server with a flat Overworld and a flat Nether,
@@ -238,4 +253,86 @@ describe('traveling through a nether portal on a real server', () => {
         expect(received.filter((p) => p.id === PacketIdentifier.CHANGE_DIMENSION)).toHaveLength(1);
         expect(player.getWorld().getDimension().bedrockId).toBe(NETHER);
     }, 90_000);
+});
+
+describe('DimensionChange on its own session', () => {
+    const RUNTIME_ID = 5n;
+    const SCREEN = 9;
+
+    /** A `ChangeDimension` payload, decoded from its wire form because the client has no `Vector3` of its own. */
+    const changeTo = (dimension: number, loadingScreenId: number | null): ChangeDimensionPayload => {
+        const stream = new NetworkBinaryStream();
+        stream.writeUnsignedVarInt(PacketIdentifier.CHANGE_DIMENSION);
+        stream.writeVarInt(dimension);
+        for (const axis of [8, 64, 8]) stream.writeFloatLE(axis);
+        stream.writeBoolean(false);
+        stream.writeBoolean(loadingScreenId !== null);
+        if (loadingScreenId !== null) stream.writeUnsignedIntLE(loadingScreenId);
+        return new ChangeDimensionPacket().deserialize(new NetworkBinaryStream(stream.getBuffer()));
+    };
+    const chunkIn = (dimension: number) =>
+        new LevelChunkPacket({
+            chunkX: 0,
+            chunkZ: 0,
+            dimension,
+            subChunkCount: 0,
+            clientSubChunkRequestsEnabled: false,
+            cached: false,
+            blobHashes: [],
+            payload: Buffer.alloc(0)
+        });
+
+    const newDimensionChange = () => {
+        const transport = new FakeTransport();
+        const registry = new ClientPacketRegistry();
+        registry.registerAll([ChangeDimensionPacket, LevelChunkPacket]);
+        const session = new ClientSession(transport, registry, new Logger('error'));
+        const dimensionChange = new DimensionChange(session, () => RUNTIME_ID);
+        const ended: PendingDimensionChange[] = [];
+        dimensionChange.on('end', (change: PendingDimensionChange) => ended.push(change));
+        /** What was sent, as the id and the payload of each packet the change sends. */
+        const sent = async () =>
+            (await transport.sentPackets()).map((packet) => {
+                const stream = new NetworkBinaryStream(packet);
+                return ClientPacketRegistry.readPacketId(packet) === PacketIdentifier.PLAYER_ACTION
+                    ? new PlayerActionPacket().deserialize(stream)
+                    : new ServerboundLoadingScreenPacket().deserialize(stream);
+            });
+        return { transport, session, dimensionChange, ended, sent };
+    };
+
+    it('opens the screen on the change and closes it on the first chunk of the new dimension', async () => {
+        const { transport, session, dimensionChange, ended, sent } = newDimensionChange();
+
+        await transport.deliver(new ChangeDimensionPacket(changeTo(NETHER, SCREEN)));
+        await session.settled();
+        expect(dimensionChange.getPending()).toMatchObject({ dimension: NETHER, loadingScreenId: SCREEN });
+
+        // A chunk of the dimension being left closes nothing; the Nether's first one does, and
+        // the one after it finds no change left to close.
+        await transport.deliver(chunkIn(0), chunkIn(NETHER), chunkIn(NETHER));
+        await session.settled();
+
+        expect(await sent()).toEqual([
+            { loadingScreenType: ServerboundLoadingScreenPacketType.StartLoadingScreen, loadingScreenId: SCREEN },
+            expect.objectContaining({ runtimeEntityId: RUNTIME_ID, action: PlayerActionType.ChangeDimensionAck }),
+            { loadingScreenType: ServerboundLoadingScreenPacketType.EndLoadingScreen, loadingScreenId: SCREEN }
+        ]);
+        expect(ended).toHaveLength(1);
+        expect(dimensionChange.getPending()).toBeNull();
+    });
+
+    it('sends no screen start for a change without an id, and still closes it', async () => {
+        const { transport, session, ended, sent } = newDimensionChange();
+        session.setPhase('play');
+
+        await transport.deliver(new ChangeDimensionPacket(changeTo(NETHER, null)), chunkIn(NETHER));
+        await session.settled();
+
+        expect((await sent()).map((packet) => ('action' in packet ? 'ack' : packet.loadingScreenType))).toEqual([
+            'ack',
+            ServerboundLoadingScreenPacketType.EndLoadingScreen
+        ]);
+        expect(ended).toHaveLength(1);
+    });
 });
