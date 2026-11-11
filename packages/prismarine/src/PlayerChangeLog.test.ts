@@ -15,35 +15,33 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { DamageCause } from './entity/DamageCause';
 
-import type { LiveEntityRuntime } from './entity/data/live';
-import { EntityStore } from './entity/data/EntityStore';
-import { legacyInverseWriter } from './entity/legacyAdapter';
 import { fakePlayer } from './testing/fakePlayer.test.helper';
-import { stub } from './testing/stub.test.helper';
 import type { ChangeEntry } from './world/changelog/ChangeEntry';
 
-/** A fake player whose world logs into a real store, as a world with an entity runtime does. */
+/** A fake player in a real store, whose log is the one its writes reach. */
 const loggedPlayer = () => {
     const fixture = fakePlayer();
-    const { player, world } = fixture;
+    const { player, live } = fixture;
     player.gamemode = Gametype.SURVIVAL;
-    const store = new EntityStore();
-    Object.assign(world, {
-        hasEntityStore: () => true,
-        getEntityStore: () => store,
-        // The body, as a world holds it: the log keeps only writes to the entity the world holds.
-        getEntity: (id: bigint) => (id === player.getRuntimeId() ? player.getBody() : null),
-        dataEntities: () => stub<LiveEntityRuntime>({})
-    });
-    store.addInverseWriter(legacyInverseWriter(world));
+    const { store } = live.runtime;
 
-    /** Runs one tick of the player inside one tick of the log, and returns what it appended. */
+    /**
+     * Runs one tick of the player, its own part and then the store's entity pass, inside one tick
+     * of the log, and returns what it appended.
+     */
     const tick = async (tick: number, between?: () => Promise<void>): Promise<readonly ChangeEntry[]> => {
         store.beginTick();
         await between?.();
         await player.update(tick);
+        live.runtime.tick(tick);
         return store.sealTick()?.entries ?? [];
     };
+
+    // The store clears the breath the shipped `minecraft:breathable` keeps on a player's first
+    // tick, which appends one component entry; the cases below start after it.
+    store.beginTick();
+    live.runtime.tick(0);
+    store.sealTick();
 
     return { ...fixture, store, tick };
 };
@@ -76,9 +74,11 @@ describe("a player's change log", () => {
             });
             const fields = fieldsOf(entries);
             expect(new Set(fields).size).toBe(fields.length);
-            // This world double files no positions, so walking leaves only what the steps cost.
-            expect(fields.every((field) => field === 'entity:vitals.exhaustion')).toBe(true);
-            exhausting += fields.length;
+            // Walking writes where the player is and what the step cost, and nothing else.
+            expect(fields.every((field) => field === 'entity:position' || field === 'entity:vitals.exhaustion')).toBe(
+                true
+            );
+            exhausting += fields.filter((field) => field === 'entity:vitals.exhaustion').length;
         }
         expect(exhausting).toBe(40);
     });
@@ -88,7 +88,7 @@ describe("a player's movement belongs to its client", () => {
     it('logs a shove as one impulse occurrence and asks the client to take it', async () => {
         const { player, sent, tick } = loggedPlayer();
 
-        const entries = await tick(1, async () => player.getBody().applyKnockback(1, 0, 0.4));
+        const entries = await tick(1, async () => player.getActor()?.applyKnockback(1, 0, 0.4));
 
         expect(fieldsOf(entries)).toEqual(['occurrence']);
         expect(entries[0]).toMatchObject({
@@ -133,14 +133,14 @@ describe("a player's death keeps the entity", () => {
         const id = player.getRuntimeId();
 
         const death = await tick(1, async () => void (await player.damage(50, DamageCause.Generic)));
-        expect(fieldsOf(death)).toContain('entity:health');
+        expect(fieldsOf(death)).toContain('entity:attribute:health');
         expect(fieldsOf(death)).not.toContain('membership');
 
         const respawn = await tick(2, async () => {
             await respawnRequests.admit();
             await player.respawn();
         });
-        expect(fieldsOf(respawn)).toContain('entity:health');
+        expect(fieldsOf(respawn)).toContain('entity:attribute:health');
         expect(fieldsOf(respawn)).not.toContain('membership');
 
         expect(player.isAlive()).toBe(true);

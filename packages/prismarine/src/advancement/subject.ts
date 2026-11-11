@@ -30,7 +30,7 @@ export interface AdvancementSubjectPlayer extends ViewableEntity {
     getServer(): Server;
     readonly attributes: { getValue(id: string): number };
     readonly gamemode: number;
-    readonly metadata: { readonly sprinting: boolean };
+    isSprinting(): boolean;
     getFood(): number;
     getSaturation(): number;
     isSneaking(): boolean;
@@ -57,7 +57,7 @@ export const advancementSubject = (player: AdvancementSubjectPlayer): EntityView
             gameMode: getGametypeName(player.gamemode),
             food: { level: player.getFood(), saturation: player.getSaturation() },
             sneaking: player.isSneaking(),
-            sprinting: player.metadata.sprinting,
+            sprinting: player.isSprinting(),
             flying: player.isFlying()
         }
     });

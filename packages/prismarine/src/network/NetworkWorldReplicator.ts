@@ -721,10 +721,9 @@ export class NetworkWorldReplicator implements WorldChangeSink {
             }
             return packets;
         };
-        const sends = [this.sendToTrackedEntity(entity, packetsForCodec)];
-        const own = this.world.viewerOf(runtimeEntityId);
-        if (own !== undefined) sends.push(own.sendEquipmentFor(entity));
-        await Promise.all(sends);
+        // The viewers only. A player's own client keeps its inventory itself, and a held item
+        // named at hotbar slot zero would move its selection there.
+        await this.sendToTrackedEntity(entity, packetsForCodec);
     }
 
     /** @inheritdoc */

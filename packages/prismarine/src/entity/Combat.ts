@@ -6,15 +6,13 @@ import type { WorldActor } from '../world/WorldActor';
 import { AttributeIds } from '@jsprismarine/protocol/wire/structures/Attribute';
 import { DamageCause } from './DamageCause';
 import { DamageSource } from './DamageSource';
-import type { Entity } from './Entity';
 import { PLAYER_IDENTIFIER } from './playerOverlay';
 
 /**
  * One entity hitting another.
  *
- * Free functions rather than a method, because both sides of a fight need the same code and they
- * live in different places: a `Player` is a `Human`, and a mob is a `GenericEntity` body the
- * data-driven runtime drives. Their only common ancestor is `Entity`, which has no business
+ * Free functions rather than a method, because both sides of a fight need the same code: a
+ * player and a mob are each a store entity shown through its actor, and an actor has no business
  * knowing what a weapon is. Putting it here also keeps it out of the packet handler, where it
  * would only ever have served players.
  *
@@ -73,7 +71,7 @@ export interface MeleeOptions {
  * player standing on a cow and a player standing beside one are both within reach of it, which is
  * what a player would expect and what a center-to-center check gets wrong for anything tall.
  * @param {Vector3} from - Where the blow comes from; for a player, their eyes.
- * @param {Entity} target - Who is being reached for.
+ * @param {WorldActor} target - Who is being reached for.
  * @returns {number} Blocks to the nearest point of the target's body; zero if inside it.
  */
 export const distanceToBody = (from: Vector3, target: WorldActor): number => {
@@ -98,11 +96,11 @@ export const distanceToBody = (from: Vector3, target: WorldActor): number => {
  * A dead target is refused here rather than left to `Entity.damage`, because a mob keeps its
  * place in the world for a second while its death animation plays and would otherwise be a
  * punchbag for that second.
- * @param {Entity} attacker - Who is swinging.
- * @param {Entity} target - Who at.
+ * @param {WorldActor} attacker - Who is swinging.
+ * @param {WorldActor} target - Who at.
  * @returns {boolean} `true` if the blow is permitted.
  */
-export const canHarm = (attacker: Entity, target: WorldActor): boolean => {
+export const canHarm = (attacker: WorldActor, target: WorldActor): boolean => {
     if (attacker === target || !target.isAlive()) return false;
 
     // A fight cannot cross worlds, and the runtime id a client names is only unique within one.
@@ -123,8 +121,8 @@ export const canHarm = (attacker: Entity, target: WorldActor): boolean => {
  * Returns `false` for every way a swing can fail to land - out of reach, refused by the rules,
  * absorbed by the target's grace period, canceled by a listener - and the caller wants that,
  * because a swing that did not land costs no hunger and wears out no weapon.
- * @param {Entity} attacker - Who is swinging.
- * @param {Entity} target - Who at.
+ * @param {WorldActor} attacker - Who is swinging.
+ * @param {WorldActor} target - Who at.
  * @param {MeleeOptions} [options] - What the caller knows about this particular blow.
  * @returns {Promise<boolean>} `true` if the target actually took damage.
  * @example
@@ -133,7 +131,7 @@ export const canHarm = (attacker: Entity, target: WorldActor): boolean => {
  * ```
  */
 export const meleeAttack = async (
-    attacker: Entity,
+    attacker: WorldActor,
     target: WorldActor,
     options: MeleeOptions = {}
 ): Promise<boolean> => {

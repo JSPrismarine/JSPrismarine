@@ -365,6 +365,20 @@ describe('a store player shown to other clients', () => {
         }
     });
 
+    it('takes one update a tick, whichever actor it is updated through', () => {
+        const { spawn, actors } = fixture();
+        const { entity, actor } = spawn(identityOf('Steve'));
+        expect(actor.claimUpdate(1)).toBe(true);
+
+        // A dimension change mid-tick gives the player a new actor in a world ticked later.
+        actors.remove(entity);
+        actors.add(entity);
+        const arrived = actors.actorOf(entity.id);
+        expect(arrived).not.toBe(actor);
+        expect(arrived?.claimUpdate(1)).toBe(false);
+        expect(arrived?.claimUpdate(2)).toBe(true);
+    });
+
     it('is shown as a plain actor when no store player is filed for it', () => {
         const { store, actors } = fixture();
         const entity = store.runtime.spawn(PLAYER_IDENTIFIER, FEET);

@@ -33,8 +33,9 @@ import { WorldSystems } from '../world/WorldSystems';
 import { NULL_WORLD_CHANGE_SINK } from '../world/WorldChangeSink';
 import { contentRedstoneUpdateHandlers } from '../world/redstoneUpdates';
 import type Player from '../Player';
+import { Position } from '../world/Position';
 import { fakeLevel } from '../testing/level';
-import { playerOnPrototype } from '../testing/playerDouble.test.helper';
+import { playerOnPrototype } from '../testing/storePlayer.test.helper';
 
 /** One call to the session's container opener, as the harness records it. */
 interface OpenedContainer {
@@ -300,21 +301,15 @@ const playerHolding = (
     };
 
     const runtimeId = nextPlayerRuntimeId++;
-    // What entity code reads of the player's body, which a click hands it as the source.
-    const body = {
-        runtimeId,
+    // What entity code reads of the player and of its actor, which a click hands it as the source.
+    const entity = {
         getWorld: () => world,
         getServer: () => world.getServer(),
         getPosition: () => new Vector3(1.5, 65, 1.5),
         getFeetY: () => 65 - 1.62,
         getBox: () => ({ width: 0.6, height: 1.8 }),
         getStatusEffects: () => [],
-        getEquipment: () => ({}),
-        pitch: rotation.pitch,
-        yaw: rotation.yaw,
-        headYaw: rotation.yaw,
-        attributes: new Attributes(Attributes.getPlayerDefaults()),
-        metadata: { sprinting: false }
+        getEquipment: () => ({})
     };
     const player: Player = Object.assign(
         playerOnPrototype(
@@ -329,9 +324,21 @@ const playerHolding = (
                 getFood: () => 20,
                 isOnGround: () => true,
                 isSneaking: () => sneaking,
-                gamemode
+                isSprinting: () => false,
+                gamemode,
+                pitch: rotation.pitch,
+                yaw: rotation.yaw,
+                headYaw: rotation.yaw,
+                attributes: new Attributes(Attributes.getPlayerDefaults()),
+                getWorld: entity.getWorld,
+                getPosition: () => Position.fromVector3(entity.getPosition(), world),
+                getServer: entity.getServer,
+                getFeetY: entity.getFeetY,
+                getBox: entity.getBox,
+                getStatusEffects: entity.getStatusEffects,
+                getEquipment: entity.getEquipment
             },
-            body
+            { runtimeId, actor: entity }
         ),
         // The session double counts what it is sent, which a real session does not.
         { getNetworkSession: () => session }

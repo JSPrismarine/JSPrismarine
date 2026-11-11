@@ -1,6 +1,7 @@
 import { Vector3 } from '@jsprismarine/math';
 import type { EntityPosition } from '@jsprismarine/entities';
-import { ActorEvent, DisconnectReason, Gametype } from '@jsprismarine/minecraft';
+import type { Gametype } from '@jsprismarine/minecraft';
+import { ActorEvent, DisconnectReason } from '@jsprismarine/minecraft';
 import type { InetAddress } from '@jsprismarine/raknet';
 import assert from 'node:assert';
 import { Chat, ChatType } from './chat/Chat';
@@ -8,15 +9,22 @@ import type { ChatRecipient } from './chat/ChatManager';
 import { AttributeIds } from '@jsprismarine/protocol/wire/structures/Attribute';
 import type { DamageSource } from './entity/DamageSource';
 import { deathMessage } from './entity/DeathMessages';
-import { DamageCause } from './entity/Entity';
+import { DamageCause } from './entity/DamageCause';
 import type { EntityPositionOptions } from './entity/Entity';
+import type { DataEntity } from './entity/data/DataEntity';
+import { boxOf } from './entity/data/facts';
 import type { EntityBox } from './entity/data/facts';
-import type { StatusEffect } from './entity/StatusEffect';
+import type { LiveEntityRuntime } from './entity/data/live';
+import { DetachedPlayerView, moveStorePlayer, StorePlayerActor } from './entity/data/storePlayers';
+import { entityIds } from './entity/entityIds';
+import type { StatusEffect, StatusEffectInput } from './entity/StatusEffect';
 import type { ViewableEquipment } from './entity/predicateView';
-import { isAllowed, VOID_DAMAGE, VOID_DEPTH, VOID_INTERVAL } from './entity/Environment';
-import { LegacyPlayerBody } from './entity/LegacyPlayerBody';
-import { eyePositionAt } from './entity/playerEyes';
-import { FlagType, MAX_AIR_TICKS, MetadataFlag } from '@jsprismarine/protocol/wire/structures/Metadata';
+import { EYE_HEIGHT, eyePositionAt } from './entity/playerEyes';
+import { mayFlyIn } from './entity/playerComponents';
+import { PLAYER_IDENTIFIER } from './entity/playerOverlay';
+import { PORTAL_COOLDOWN_TICKS } from './entity/PortalContact';
+import { StorePlayer } from './entity/storePlayer';
+import { survivalReaches } from './entity/survivalPlayer';
 import PlayerSetGamemodeEvent from './events/player/PlayerSetGamemodeEvent';
 import PlayerToggleFlightEvent from './events/player/PlayerToggleFlightEvent';
 import PlayerToggleSprintEvent from './events/player/PlayerToggleSprintEvent';
@@ -33,8 +41,8 @@ import Timer from './utils/Timer';
 import type UUID from '@jsprismarine/protocol/wire/structures/UUID';
 import type Skin from '@jsprismarine/protocol/wire/structures/skin/Skin';
 import type { World } from './world/';
-import { GameRules } from './world/GameRuleManager';
-import type { Position } from './world/Position';
+import { Position } from './world/Position';
+import type { ShownPlayer } from './world/ShownPlayer';
 import { requestedSpawnPosition } from './world/SpawnPlacement';
 import type { respawnPoint } from './world/SpawnPlacement';
 import type { StoredSpawnPoint } from './world/RespawnPoint';
@@ -47,23 +55,9 @@ import type { BlockMining } from './world/BlockMining';
 import { blockMiningOf, playerMiningOf } from './world/BlockMining';
 import CoordinateUtils from './world/CoordinateUtils';
 import { DEFAULT_VIEW_DISTANCE_CHUNKS } from './world/Proximity';
-import { logLegacyImpulse, logLegacyWrite } from './entity/legacyAdapter';
 import type { ExperienceHolder } from './entity/Experience';
 import type { PlayerComponents } from './entity/playerComponents';
-import type { SurvivalPlayer } from './entity/survivalPlayer';
-import {
-    addExhaustion,
-    addFood,
-    addJumpExhaustion,
-    addMovementExhaustion,
-    hungerOutcome,
-    setSaturation
-} from './entity/playerHunger';
-import { breathe } from './entity/playerBreath';
-import { diedVitals, respawnVitals } from './entity/playerRespawn';
-import { cushions, land, trackFall } from './entity/playerFall';
-import { beginMeal, cancelMeal, dueMeal } from './entity/playerMeal';
-import { consumeHeldItem } from './item/interaction';
+import { addFood, setSaturation } from './entity/playerHunger';
 import type { PlainRecord } from './world/changelog/PlainData';
 import type Server from './Server';
 import type HumanInventory from './inventory/HumanInventory';
@@ -73,9 +67,6 @@ import type { Attributes } from '@jsprismarine/protocol/wire/structures/Attribut
 
 /** How often the two per-player triggers are checked, which is Java's one second. */
 const ADVANCEMENT_CHECK_TICKS = 20;
-
-/** Breath is only reported to the client in steps of this many ticks - see `syncBreath`. */
-const AIR_SYNC_STEP = 10;
 
 /**
  * Everything the login handshake said about who is connecting.
@@ -104,10 +95,20 @@ export default class Player {
     private readonly address: InetAddress;
 
     /**
-     * The entity this player stands in its world as, which the world, the entity index and the
-     * replicator hold in the player's place. See {@link LegacyPlayerBody}.
+     * This player as a store entity: the `minecraft:player` entity while it is in a store, and
+     * everything the store does not model yet beside it, from the inventory to the identity. The
+     * player keeps no entity state of its own. See {@link StorePlayer}.
      */
-    private readonly body: LegacyPlayerBody;
+    private readonly store: StorePlayer;
+
+    /** The world this player is in, or is about to enter: its store holds the player's entity. */
+    private world: World;
+
+    /** The server, which a player keeps whichever of its worlds it is in. */
+    private readonly server: Server;
+
+    /** What the player's own client is shown while the player is in no store. */
+    private readonly detached: DetachedPlayerView;
 
     /**
      * The client this player speaks through, or null before one has been attached.
@@ -120,16 +121,6 @@ export default class Player {
     private networkSession: PlayerSession | null = null;
 
     /**
-     * The identity the client logged in with.
-     *
-     * Kept parsed rather than as the string it arrived as: every use of it is a network
-     * write, and the login handler is the one place that has the raw form to begin with.
-     * It lives here and not on `Entity` because only a client-controlled entity has one -
-     * the random uuid every mob used to be handed was read by nothing.
-     */
-    private readonly uuid: UUID;
-
-    /**
      * Timer used for various metrics.
      */
     private timer: Timer;
@@ -138,50 +129,59 @@ export default class Player {
     /** This player as the chat fan-out reaches them, held so `disable` leaves with the same object. */
     private readonly chatRecipient: ChatRecipient;
 
-    public xuid = '';
     public randomId = 0;
 
     public locale = '';
-    public skin: Skin | null = null;
 
     public viewDistance = 0;
-    public gamemode: Gametype = Gametype.WORLD_DEFAULT;
+
+    /** The XUID the login carried, or an empty string when it carried none. */
+    public get xuid(): string {
+        return this.store.getXUID() ?? '';
+    }
+
+    /** The skin the login carried, which a skin change replaces. */
+    public get skin(): Skin | null {
+        return this.store.skin;
+    }
+    public set skin(skin: Skin | null) {
+        this.store.skin = skin;
+    }
+
+    /** The device the login named, or null when it said nothing. */
+    public get device(): Device | null {
+        return this.store.device;
+    }
+    public set device(device: Device | null) {
+        this.store.device = device;
+    }
+
+    /** The platform chat id, which the login handler does not read yet and leaves empty. */
+    public get platformChatId(): string {
+        return this.store.platformChatId;
+    }
+
+    /** The game mode, a logged component field of the store player that its systems read. */
+    public get gamemode(): Gametype {
+        return this.store.gamemode;
+    }
+    public set gamemode(gamemode: Gametype) {
+        this.store.gamemode = gamemode;
+    }
 
     /**
      * Vitals, experience, abilities, movement flags, the spawn point and an item use in progress,
-     * each written through a setter the change log hears. The body keeps them; the fields below
-     * read and write them.
+     * each written through a setter the change log hears. The store player keeps them.
      */
     private get components(): PlayerComponents {
-        return this.body.getComponents();
+        return this.store.getComponents();
     }
 
-    /** This player as the survival rules read it, which the store's player systems also run. */
-    private get survival(): SurvivalPlayer {
-        return this.body.getSurvival();
-    }
-
-    private get server(): Server {
-        return this.body.getServer();
-    }
-
-    private get onGround(): boolean {
-        return this.components.get('movement.onGround');
-    }
-    private set onGround(onGround: boolean) {
-        this.components.set('movement.onGround', onGround);
-    }
     private get flying(): boolean {
         return this.components.get('abilities.flying');
     }
     private set flying(flying: boolean) {
         this.components.set('abilities.flying', flying);
-    }
-    private get sneaking(): boolean {
-        return this.components.get('movement.sneaking');
-    }
-    private set sneaking(sneaking: boolean) {
-        this.components.set('movement.sneaking', sneaking);
     }
     private get sleeping(): boolean {
         return this.components.get('movement.sleeping');
@@ -189,10 +189,6 @@ export default class Player {
     private set sleeping(sleeping: boolean) {
         this.components.set('movement.sleeping', sleeping);
     }
-
-    /** What the client was last told about the player's breath - see `syncBreath`. */
-    private sentAir = MAX_AIR_TICKS;
-    private sentBreathing = true;
 
     /**
      * Where this player was placed on joining, when they had no saved position.
@@ -224,18 +220,22 @@ export default class Player {
     }
 
     /**
-     * Sets what this player is mining.
+     * Sets what this player is mining, whose cracks the player systems animate every tick.
      * @param {BlockMining | null} mining - The block, or null when the player stopped or broke it.
      */
     public setMining(mining: BlockMining | null): void {
-        this.mining = mining;
+        const placed = this.placed();
+        const value = mining === null ? null : playerMiningOf(mining);
+        if (placed === undefined) this.components.set('mining.block', value);
+        else placed.live.runtime.playerSystems.setMining(placed.entity, value);
     }
 
     /**
      * Stops the cracks on the block this player was mining, if any, and forgets it.
      *
-     * For whatever ends the mining without the client saying so: a disconnect, a death, a
-     * change of game mode or of world. Left alone, the cracks would go out every tick for good.
+     * For whatever ends the mining without the client saying so: a disconnect, a change of game
+     * mode or of world. A death is the player systems', inside the blow. Left alone, the cracks
+     * would go out every tick for good.
      */
     public async stopMining(): Promise<void> {
         const mining = this.mining;
@@ -273,9 +273,6 @@ export default class Player {
         this.components.set('respawn.seenCredits', seen);
     }
 
-    public platformChatId = ''; // TODO: read this value from Login
-    public device: Device | null = null;
-
     /**
      * Player's constructor.
      *
@@ -283,9 +280,10 @@ export default class Player {
      * listener is registered and nothing server-wide is told this player exists. A player
      * that is constructed and then rejected - by online-mode or by a ban - therefore leaves
      * nothing behind, which is what the chat listener and the chunk scheduler entry used to
-     * do when both were claimed here and released only in {@link Player.disable}.
+     * do when both were claimed here and released only in {@link Player.disable}. Its store
+     * player draws its entity id here, and enters a store only at `SetLocalPlayerAsInitialized`.
      * @param {object} options - The player options.
-     * @param {Position} options.position - Where the player is, and in which world.
+     * @param {Position} options.position - Where the player's eyes are, and in which world.
      * @param {InetAddress} options.address - The address the client connected from.
      * @param {PlayerIdentity} options.identity - Who the login handshake said this is.
      */
@@ -298,18 +296,23 @@ export default class Player {
         address: InetAddress;
         identity: PlayerIdentity;
     }) {
-        this.body = new LegacyPlayerBody(this, { position });
+        this.store = new StorePlayer(entityIds.next(), {
+            uuid: identity.uuid,
+            name: identity.name,
+            xuid: identity.xuid
+        });
+        this.store.skin = identity.skin;
+        this.store.device = identity.device;
+        this.store.standAt({ x: position.getX(), y: position.getY() - EYE_HEIGHT, z: position.getZ() });
+        this.world = position.getWorld();
+        this.server = this.world.getServer();
+        this.detached = new DetachedPlayerView(this.store, { box: () => this.getBox(), isOp: () => this.isOp() });
 
         this.timer = new Timer();
 
         this.address = address;
-        this.uuid = identity.uuid;
-        this.xuid = identity.xuid;
         this.randomId = identity.randomId;
         this.locale = identity.locale;
-        this.skin = identity.skin;
-        this.device = identity.device;
-        this.body.setName(identity.name);
 
         // Built once and kept, because the fan-out only lets the recipient that joined leave.
         this.chatRecipient = {
@@ -318,6 +321,24 @@ export default class Player {
             isOp: () => this.isOp(),
             receive: async (delivery) => this.getNetworkSession().sendMessage(delivery)
         };
+    }
+
+    /**
+     * The store player this player is: its entity while it is in a store, and the rest beside it.
+     */
+    public getStorePlayer(): StorePlayer {
+        return this.store;
+    }
+
+    /**
+     * The player's entity and its runtime while the entity is in the store of the player's world,
+     * or undefined from the login to its spawn and between two worlds.
+     */
+    private placed(): { readonly live: LiveEntityRuntime; readonly entity: DataEntity } | undefined {
+        const { entity } = this.store;
+        if (entity === undefined) return undefined;
+        const live = this.world.dataEntities();
+        return live.runtime.store.get(entity.id) === entity ? { live, entity } : undefined;
     }
 
     /**
@@ -349,7 +370,7 @@ export default class Player {
         // nothing has been told where this player is yet. The level builds the world when its
         // stem is lazy and nobody has been there since the boot.
         const record = await lastPlayerRecord(this, this.getWorld().getLevel());
-        if (record.world !== this.getWorld()) this.body.restorePosition(this.getPosition().withWorld(record.world));
+        this.world = record.world;
 
         const playerData = record.data;
 
@@ -358,7 +379,13 @@ export default class Player {
         loadAdvancements(this, playerData.advancements);
         enchantmentSeedOf(this, playerData.enchantmentSeed);
 
-        applyPlayerRecord(this, playerData, this.server.getConfig().getGamemode(), this.server.getContent());
+        // Onto the store player while it is in no store, so the load logs nothing.
+        applyPlayerRecord(
+            this.store,
+            playerData,
+            this.getServer().getConfig().getGamemode(),
+            this.getServer().getContent()
+        );
 
         // A returning player goes back where they were; a new one is placed the way BDS
         // places them, which may not be the spawn point itself.
@@ -391,10 +418,10 @@ export default class Player {
         // player whose join failed part way through would otherwise stay in the fan-out for the
         // life of the process, because the connection has no session to reach `disable` through
         // until the join completes.
-        this.server.getChatManager().join(this.chatRecipient);
+        this.getServer().getChatManager().join(this.chatRecipient);
 
         // Finally mark the player as connected.
-        this.server.getLogger().debug(`(Complete player creation took ${this.timer.stop()} ms)`);
+        this.getServer().getLogger().debug(`(Complete player creation took ${this.timer.stop()} ms)`);
         this.connected = true;
     }
 
@@ -405,7 +432,7 @@ export default class Player {
      * @param health - The health to hold.
      */
     public restoreHealth(health: number): void {
-        this.attributes.setValue(AttributeIds.Health, health);
+        this.store.restoreHealth(health);
     }
 
     /**
@@ -441,6 +468,7 @@ export default class Player {
         // player on a server with online mode off.
         await this.getWorld().savePlayerData(this);
         await this.getWorld().removePlayer(this);
+        this.getServer().getStorePlayers().delete(this.store.id);
 
         // `removePlayer` above already told everyone who could see this player to take them
         // away, world-scoped and only the clients that actually had them. The loop that used
@@ -450,10 +478,10 @@ export default class Player {
 
         // Announce disconnection. The leaving player is still in the fan-out here, as it was
         // still subscribed when this went through the event alone.
-        const chat = this.server.getChatManager();
+        const chat = this.getServer().getChatManager();
         await chat.send(
             new Chat({
-                sender: this.server.getConsoleSender(),
+                sender: this.getServer().getConsoleSender(),
                 // The bare translation key, for the reason given in ResourcePackClientResponseHandler.
                 message: `%multiplayer.player.left`,
                 parameters: [this.getName()],
@@ -524,40 +552,30 @@ export default class Player {
     }
 
     /**
-     * Runs one tick of this player: its body's, as an entity, and then its own.
+     * Runs one tick of this player while it is in a store: its actor's, as an entity, and then
+     * its own; see {@link StorePlayerActor.update}.
      * @param tick - The current world-tick.
      */
     public async update(tick: number): Promise<void> {
-        await this.body.update(tick);
+        const actor = this.getActor();
+        if (actor === undefined) await this.updatePlayer(tick);
+        else await actor.update(tick);
     }
 
     /**
-     * This player's own part of a tick, which its body runs after the entity's part: the session,
-     * the vitals, a meal, the void, the mining cracks, the attribute sync and the triggers.
+     * This player's own part of a tick, which its actor runs after the entity's part: the
+     * session, the attribute sync and the triggers. Breath, hunger, a meal, the void and the
+     * mining cracks are the store's, in its entity pass.
      * @param tick - The current world-tick.
      * @internal
      */
     public async updatePlayer(tick: number): Promise<void> {
         await this.getNetworkSession().update(tick);
 
-        await this.updateVitals(tick);
-        this.tickConsuming();
-        await this.updateVoid(tick);
-
-        // With server-authoritative block breaking the server animates the cracks itself, every
-        // tick, where a client left to it would report each swing instead. The world answers
-        // false once the block is no longer the one being mined.
-        const mining = this.components.get('mining.block');
-        if (
-            mining !== null &&
-            !(await this.getWorld().updateBlockCracking(blockMiningOf(mining))) &&
-            this.components.get('mining.block') === mining
-        ) {
-            this.mining = null;
-        }
-
         // Anything that moved an attribute this tick - hunger, most of the time - goes out
-        // here, as a single packet holding just what changed.
+        // here, as a single packet holding just what changed. The health is the entity's, so it
+        // is copied into the client's table first.
+        this.showOwnHealth();
         await this.getNetworkSession().syncAttributes();
 
         // Every second, which is Java's own period for this pair. The
@@ -593,7 +611,7 @@ export default class Player {
      */
     public async kick(reason = 'unknown reason', code: DisconnectReason = DisconnectReason.KICKED): Promise<void> {
         await this.getNetworkSession().getConnection().disconnect(reason, false, code);
-        this.server.getLogger().verbose(`Player with id §b${this.getRuntimeId()}§r was kicked: ${reason}`);
+        this.getServer().getLogger().verbose(`Player with id §b${this.getRuntimeId()}§r was kicked: ${reason}`);
     }
 
     /**
@@ -612,26 +630,27 @@ export default class Player {
 
         // Explicitly, because the fan-out below leaves this player out: its own client needs
         // the abilities too, and this is the one copy it gets.
-        await this.getNetworkSession().sendAbilities(this.body);
+        await this.getNetworkSession().sendAbilities(this.getBody());
 
         await Promise.all(
-            this.server
+            this.getServer()
                 .getSessionManager()
                 .getAllPlayers()
                 .filter((target) => target !== this)
-                .map(async (target) => target.getNetworkSession().sendAbilities(this.body))
+                .map(async (target) => target.getNetworkSession().sendAbilities(this.getBody()))
         );
     }
 
     /**
      * Finishes bringing this player into the game: position, gamemode, inventory, settings.
-     * @remarks Named apart from {@link LegacyPlayerBody.spawnTo} on purpose. This used to be called
+     * @remarks Named apart from {@link StorePlayerActor.spawnTo} on purpose. This used to be called
      * `sendSpawn`, overriding the entity method of that name with a different signature and
      * an unrelated meaning - one is "put me into the world", the other is "show me to
      * somebody". Adding a player to a world therefore ran this by accident.
      */
     public async completeSpawn(): Promise<void> {
-        await this.getWorld().broadcastMove(this.body);
+        const actor = this.getActor();
+        if (actor !== undefined) await this.getWorld().broadcastMove(actor);
         await this.setGamemode();
         await this.getNetworkSession().sendInventory();
         await this.sendSettings();
@@ -640,7 +659,7 @@ export default class Player {
         // local player it had while it is spawning, taking health, hunger and breath with it.
         await this.getNetworkSession().sendAttributes();
         await this.getNetworkSession().sendMetadata();
-        await this.getNetworkSession().sendStatusEffects(this.body);
+        await this.getNetworkSession().sendStatusEffects(this.getBody());
     }
 
     /**
@@ -671,37 +690,39 @@ export default class Player {
         mode ??= this.gamemode;
 
         const event = new PlayerSetGamemodeEvent(this, mode);
-        this.server.post(['playerSetGamemode', event]);
+        this.getServer().post(['playerSetGamemode', event]);
         if (event.isCanceled()) return;
 
         // A new game mode changes how, or whether, the player breaks blocks, so the mining in
         // progress does not carry over into it.
         if (event.getGamemode() !== this.gamemode) await this.stopMining();
 
-        const before = this.gamemode;
+        // A logged component field, which the store's player systems and the actor read.
         this.gamemode = event.getGamemode();
-        logLegacyWrite(this.body, 'gamemode', before, this.gamemode);
         await this.getNetworkSession().sendGamemode();
 
         // Everyone in the world, this player included, caches each player's game type and
         // permission flags, so the docs have the server follow an accepted change with
-        // `UpdatePlayerGameTypePacket` to every client.
+        // `UpdatePlayerGameTypePacket` to every client. `StoreActors.sync` does not notice a game
+        // mode, so this is the send.
         await Promise.all(
             this.getWorld()
                 .getPlayers()
-                .map(async (player) => player.getNetworkSession().sendGameTypeFor(this.body))
+                .map(async (player) => player.getNetworkSession().sendGameTypeFor(this.getBody()))
         );
 
-        if (this.gamemode === Gametype.CREATIVE || this.gamemode === Gametype.SPECTATOR) {
-            this.metadata.setCanFly(true);
-        } else {
-            this.metadata.setCanFly(false);
-            await this.setFlying(false);
-        }
+        if (!mayFlyIn(this.gamemode)) await this.setFlying(false);
 
         await this.sendSettings();
         await this.getNetworkSession().sendGamemode();
-        await this.getNetworkSession().sendMetadata();
+        // Whether the player may fly is in its metadata, which the actor writes from the game mode
+        // and sends to the player and everyone who sees them.
+        const actor = this.getActor();
+        if (actor === undefined) await this.getNetworkSession().sendMetadata();
+        else {
+            actor.showPlayerState();
+            await this.getWorld().sendActorMetadata(actor);
+        }
 
         // The abilities are read off the gamemode, so they are stale the moment it changes -
         // and they were never re-sent. Among them is `INSTABUILD`, which is what tells the
@@ -710,106 +731,112 @@ export default class Player {
     }
 
     /**
-     * The entity this player stands in its world as. Entity code is handed the body in the
-     * player's place: a blow's attacker, the world's entity map, the index and the replicator.
+     * The player's actor while its entity is in the store of its world: what entity code is handed
+     * in the player's place, such as a blow's attacker, the portal touch and the entity events.
+     * Undefined from the login to the spawn and between two worlds, when nothing can reach the
+     * player.
      */
-    public getBody(): LegacyPlayerBody {
-        return this.body;
+    public getActor(): StorePlayerActor | undefined {
+        const placed = this.placed();
+        const actor = placed?.live.actors.actorOf(placed.entity.id);
+        return actor instanceof StorePlayerActor ? actor : undefined;
+    }
+
+    /**
+     * The player as clients are shown it: its actor while it is in a store, and otherwise what
+     * its own client is shown of it before its spawn and between two worlds.
+     */
+    public getBody(): ShownPlayer {
+        return this.getActor() ?? this.detached;
     }
 
     /** The id of this player's entity, which its session and every entity query know it by. */
     public getRuntimeId(): bigint {
-        return this.body.getRuntimeId();
+        return BigInt(this.store.id);
     }
 
     /** The type of this player's entity, `minecraft:player`. */
     public getType(): string {
-        return this.body.getType();
+        return PLAYER_IDENTIFIER;
     }
 
     /** Where this player is, which is their eyes, as the client reports it. */
     public getPosition(): Position {
-        return this.body.getPosition();
+        return Position.fromVector3(this.store.getPosition(), this.world);
     }
 
     /** The world this player is in. */
     public getWorld(): World {
-        return this.body.getWorld();
+        return this.world;
     }
 
     /** The server this player is on. */
     public getServer(): Server {
-        return this.body.getServer();
+        return this.server;
     }
 
     /** What this player carries. */
     public getInventory(): HumanInventory {
-        return this.body.getInventory();
+        return this.store.getInventory();
     }
 
     /** What is sitting in this player's crafting slots. */
     public getCraftingInput(): CraftingInput {
-        return this.body.getCraftingInput();
+        return this.store.getCraftingInput();
     }
 
     /** This player's entity metadata, which their own client and every viewer are sent. */
     public get metadata(): Metadata {
-        return this.body.metadata;
+        return this.getBody().metadata;
     }
 
-    /** This player's attributes: health, food, experience and the rest. */
+    /** The client's attribute table: food, experience and the rest, and a copy of the health. */
     public get attributes(): Attributes {
-        return this.body.attributes;
+        return this.store.attributes;
     }
 
     public get pitch(): number {
-        return this.body.pitch;
-    }
-    public set pitch(pitch: number) {
-        this.body.pitch = pitch;
+        return this.store.pitch;
     }
 
     public get yaw(): number {
-        return this.body.yaw;
-    }
-    public set yaw(yaw: number) {
-        this.body.yaw = yaw;
+        return this.store.yaw;
     }
 
     public get headYaw(): number {
-        return this.body.headYaw;
-    }
-    public set headYaw(headYaw: number) {
-        this.body.headYaw = headYaw;
+        return this.store.headYaw;
     }
 
     /** The box the player's body takes up, from the type's collision box. */
     public getBox(): EntityBox {
-        return this.body.getBox();
+        return boxOf(this.getServer().getContent().entities.registry, PLAYER_IDENTIFIER);
     }
 
     /** The player's health, in half-hearts. */
     public getHealth(): number {
-        return this.body.getHealth();
+        return this.store.getHealth();
     }
 
     /** The player's maximum health. */
     public getMaxHealth(): number {
-        return this.body.getMaxHealth();
+        return this.store.getMaxHealth();
     }
 
     /** Whether the player is alive. */
     public isAlive(): boolean {
-        return this.body.isAlive();
+        return this.getHealth() > 0;
     }
 
     /**
-     * Sets the player's health, dying when it reaches zero; see `Entity.setHealth`.
+     * Sets the player's health. A lower health in a store is a blow for the difference through
+     * the store's damage pipeline, and a higher one a heal; in no store it is written as it is.
      * @param health - The health to hold.
      * @param source - What did it, when the health went down.
      */
     public async setHealth(health: number, source?: DamageCause | DamageSource): Promise<void> {
-        await this.body.setHealth(health, source);
+        const actor = this.getActor();
+        if (actor === undefined) this.store.restoreHealth(health);
+        else await actor.setHealth(health, source);
     }
 
     /**
@@ -818,60 +845,60 @@ export default class Player {
      * @returns Whether any health was restored.
      */
     public async heal(amount: number): Promise<boolean> {
-        return this.body.heal(amount);
+        return (await this.getActor()?.heal(amount)) ?? false;
     }
 
     /** The bottom of the player's body, the eye height below what they report. */
     public getFeetY(): number {
-        return this.body.getFeetY();
+        return this.getPosition().getY() - EYE_HEIGHT;
     }
 
     /** What this player wears and holds. */
     public getEquipment(): ViewableEquipment {
-        return this.body.getEquipment();
+        return this.store.getInventory().getEquipment();
     }
 
     /** The `/tag` tags this player carries, in the order they were added. */
     public getTags(): readonly string[] {
-        return this.body.getTags();
+        return this.getActor()?.getTags() ?? this.store.heldEntity.tags;
     }
 
     /** The status effects on this player. */
     public getStatusEffects(): readonly StatusEffect[] {
-        return this.body.getStatusEffects();
+        return this.getActor()?.getStatusEffects() ?? this.store.heldEntity.statusEffects;
     }
 
     /** One status effect on this player, or undefined. */
     public getStatusEffect(identifier: string): StatusEffect | undefined {
-        return this.body.getStatusEffect(identifier);
+        return this.getActor()?.getStatusEffect(identifier);
     }
 
-    /** Gives this player a status effect; see `Entity.addStatusEffect`. */
-    public addStatusEffect(...effect: Parameters<LegacyPlayerBody['addStatusEffect']>): boolean {
-        return this.body.addStatusEffect(...effect);
+    /** Gives this player a status effect, which only a player in a store can take. */
+    public addStatusEffect(input: StatusEffectInput, notify = true): boolean {
+        return this.getActor()?.addStatusEffect(input, notify) ?? false;
     }
 
-    /** Takes a status effect off this player; see `Entity.removeStatusEffect`. */
-    public removeStatusEffect(...effect: Parameters<LegacyPlayerBody['removeStatusEffect']>): boolean {
-        return this.body.removeStatusEffect(...effect);
+    /** Takes a status effect off this player. */
+    public removeStatusEffect(identifier: string, notify = true): boolean {
+        return this.getActor()?.removeStatusEffect(identifier, notify) ?? false;
     }
 
     /** Ticks left before this player takes a portal again. */
     public getPortalCooldown(): number {
-        return this.body.getPortalCooldown();
+        return this.store.getPortalCooldown();
     }
 
     /**
      * Holds this player off portals for a while, by default for a dimension change's cooldown.
      * @param ticks - How long.
      */
-    public setPortalCooldown(ticks?: number): void {
-        this.body.setPortalCooldown(ticks);
+    public setPortalCooldown(ticks: number = PORTAL_COOLDOWN_TICKS.player): void {
+        this.store.setPortalCooldown(ticks);
     }
 
     /** How far above the feet the position this player reports is. */
     public getEyeHeight(): number {
-        return this.body.getEyeHeight();
+        return EYE_HEIGHT;
     }
 
     public getNetworkSession(): PlayerSession {
@@ -884,7 +911,7 @@ export default class Player {
     }
 
     public getName(): string {
-        return this.metadata.nameTag;
+        return this.store.getName();
     }
 
     public getFormattedUsername(): string {
@@ -905,7 +932,7 @@ export default class Player {
      * @returns {string | null} XUID of the player or null if not available
      */
     public getXUID(): string | null {
-        return this.xuid || null;
+        return this.store.getXUID();
     }
 
     /**
@@ -917,7 +944,7 @@ export default class Player {
      * ```
      */
     public getUUID(): UUID {
-        return this.uuid;
+        return this.store.getUUID();
     }
 
     /**
@@ -925,137 +952,39 @@ export default class Player {
      * @returns `true` if this player is an operator otherwise `false`.
      */
     public isOp(): boolean {
-        return this.server.getPermissionManager().isOp(this.getUUID().toString());
+        return this.getServer().getPermissionManager().isOp(this.getUUID().toString());
     }
 
     /**
-     * Everything that happens to a player just because time passed: breath, then hunger.
-     *
-     * Runs before the tick's attribute sync, so a point of food lost here is a point of food
-     * the client hears about this tick rather than next.
-     * @param {number} tick - The current world-tick.
-     */
-    private async updateVitals(tick: number): Promise<void> {
-        if (!this.connected || !this.isVulnerable() || !this.isAlive()) return;
-
-        await this.updateBreath();
-        await this.updateHunger(tick);
-    }
-
-    /**
-     * Hurts a player who has fallen out of the world.
-     *
-     * Java's `checkBelowWorld`: {@link VOID_DEPTH} blocks under the dimension's floor, four
-     * half-hearts every {@link VOID_INTERVAL} ticks, which is the half-second cadence the
-     * grace period leaves. Outside {@link Player.updateVitals} on purpose, because that gate
-     * is {@link Player.isVulnerable} and the void is the one thing that reaches a creative
-     * player; `damage` is what keeps it off a spectator.
-     * @param {number} tick - The current world-tick.
-     */
-    private async updateVoid(tick: number): Promise<void> {
-        if (!this.connected || !this.isAlive() || tick % VOID_INTERVAL !== 0) return;
-        if (this.getFeetY() >= this.getWorld().getDimension().minY - VOID_DEPTH) return;
-
-        await this.damage(VOID_DAMAGE, DamageCause.Void);
-    }
-
-    /**
-     * Fills or empties the player's lungs, and drowns them once they are empty - see
-     * {@link breathe}.
-     *
-     * The position a client reports is its eye position, so the block the player is recorded at
-     * *is* the block their head is in. Nothing here adds an eye height on top. Only a loaded
-     * chunk is read: a player whose head is in one that is not loaded waits for it.
-     */
-    private async updateBreath(): Promise<void> {
-        const position = this.getPosition();
-        const head = this.getWorld().loadedBlockAt(
-            Math.floor(position.getX()),
-            Math.floor(position.getY()),
-            Math.floor(position.getZ())
-        );
-        const drowning = breathe(this.survival, head?.name, isAllowed(this.getWorld(), DamageCause.Drowning));
-        if (drowning !== undefined) await this.damage(drowning, DamageCause.Drowning);
-
-        await this.syncBreath();
-    }
-
-    /**
-     * Sends the breath state, but only when it is worth a packet.
-     *
-     * Air moves every single tick underwater, and the bubble bar is ten bubbles over fifteen
-     * seconds - so telling the client about every one of those 300 values would be 290
-     * packets that change nothing on screen. A tenth of a second's worth is finer than the
-     * bar can show.
-     */
-    private async syncBreath(): Promise<void> {
-        const air = this.metadata.air;
-        const breathing = this.metadata.breathing;
-
-        const step = (ticks: number) => Math.floor(ticks / AIR_SYNC_STEP);
-        const worthSending =
-            breathing !== this.sentBreathing ||
-            step(air) !== step(this.sentAir) ||
-            // Empty and full are worth reporting exactly, whatever step they fall in.
-            ((air === 0 || air === this.metadata.maxAir) && air !== this.sentAir);
-
-        if (!worthSending) return;
-
-        this.sentAir = air;
-        this.sentBreathing = breathing;
-        await this.getNetworkSession().sendMetadata();
-    }
-
-    /**
-     * The slow half of hunger: starving when the bar is empty, healing when it is nearly full.
-     * Both run on vanilla's four-second clock - see {@link hungerOutcome}.
-     * @param {number} tick - The current world-tick.
-     */
-    private async updateHunger(tick: number): Promise<void> {
-        const [regenerates] = this.getWorld().getGameRuleManager()?.getGameRule(GameRules.NaturalRegeneration) ?? [
-            true
-        ];
-        const outcome = hungerOutcome(this.survival, tick, Boolean(regenerates));
-        if (outcome?.kind === 'starve') await this.damage(outcome.amount, DamageCause.Starvation);
-        else if (outcome?.kind === 'regenerate') {
-            await this.heal(outcome.amount);
-            addExhaustion(this.survival, outcome.exhaustion);
-        }
-    }
-
-    /**
-     * What happens when the player runs out of health.
+     * What happens when the player runs out of health, which the store's damage pipeline calls
+     * inside the blow that killed them, after the player systems ended the drowning and the
+     * mining and after the `entityDeath` event and the kill triggers.
      *
      * The client puts up its own death screen as soon as health reaches zero, so the work
-     * here is telling everyone else and waiting: the player stays dead until they ask to
-     * come back, which arrives as a `RESPAWN` player action.
+     * here is telling everyone else and waiting: the player stays dead, in the store, until
+     * they ask to come back, which arrives as a `RESPAWN` player action.
      * @param {DamageSource} source - What killed them, and who is answerable for it.
-     * @param dieAsEntity - The entity's part of the death, `Entity.onDeath` on the body, which
-     *   posts `entityDeath` and raises the kill triggers.
      * @internal
      */
-    public async die(source: DamageSource, dieAsEntity: () => Promise<void>): Promise<void> {
-        // What the death commits comes before the first wait, so it lands inside the blow
-        // that caused it: the counters, the death event and its advancement triggers, and the
-        // respawn search filed below. The packets follow.
-        diedVitals(this.survival);
-        const stoppedMining = this.stopMining();
-        const died = dieAsEntity();
+    public async die(source: DamageSource): Promise<void> {
+        const actor = this.getActor();
+        if (actor === undefined) return;
 
         // The bare translation key, as with the join and leave messages: the client renders
         // it in its own language. Which key it is depends on whether anybody is to blame - see
         // `DeathMessages`.
-        const { key, parameters } = deathMessage(this.body, source);
+        const { key, parameters } = deathMessage(actor, source);
 
         // Where they will come back. The client will not offer the respawn button until it
         // knows, which is why a death screen that never became a respawn screen was stuck on
         // "Respawning". The search may load chunks or build a dimension, so the death files it
-        // and the next input step sends the answer (`world/RespawnRequests.ts`), unless the
-        // player came back or left before then. The death screen's own copy of the cause
-        // follows it, as PocketMine's `DeathPacketHandler` sends it after the `Respawn`;
-        // `DeathInfo` takes the key without the `%` the chat packet wants.
+        // before its first wait and the next input step sends the answer
+        // (`world/RespawnRequests.ts`), unless the player came back or left before then. The
+        // death screen's own copy of the cause follows it, as PocketMine's `DeathPacketHandler`
+        // sends it after the `Respawn`; `DeathInfo` takes the key without the `%` the chat
+        // packet wants.
         const deathInfo = new DeathInfoPacket({ cause: key.replace(/^%/, ''), messages: parameters });
-        this.server
+        this.getServer()
             .getRespawnRequests()
             .request(this.getWorld().getLevel().getRespawnSearch().find(this.respawnRequest()), async (answer) => {
                 if (this.isAlive() || !this.isOnline()) return;
@@ -1067,20 +996,29 @@ export default class Player {
                 await this.getNetworkSession().getConnection().sendDataPacket(deathInfo);
             });
 
-        await stoppedMining;
-        await died;
+        this.showOwnHealth();
         await this.getNetworkSession().sendAttributes();
-        await this.getWorld().sendActorEvent(this.body, ActorEvent.DEATH_ANIMATION);
+        await this.getWorld().sendActorEvent(actor, ActorEvent.DEATH_ANIMATION);
 
-        await this.server.getChatManager().send(
-            new Chat({
-                sender: this.server.getConsoleSender(),
-                message: key,
-                parameters,
-                needsTranslation: true,
-                type: ChatType.TRANSLATION
-            })
-        );
+        await this.getServer()
+            .getChatManager()
+            .send(
+                new Chat({
+                    sender: this.getServer().getConsoleSender(),
+                    message: key,
+                    parameters,
+                    needsTranslation: true,
+                    type: ChatType.TRANSLATION
+                })
+            );
+    }
+
+    /**
+     * Copies the entity's health into the client's attribute table, which the player's own
+     * client is sent, so a change goes out with the next attribute sync.
+     */
+    private showOwnHealth(): void {
+        this.store.attributes.setValue(AttributeIds.Health, this.getHealth());
     }
 
     /**
@@ -1091,14 +1029,16 @@ export default class Player {
         return this.components.experience();
     }
 
-    /** This player's component fields as plain data, which the replay digest hashes. */
+    /** This player's component fields as plain data. */
     public componentSnapshot(): PlainRecord {
         return this.components.snapshot();
     }
 
     /** Sets an attribute, through the component field it is kept in when it has one, so the write is logged. */
     public setAttributeValue(name: string, value: number): boolean {
-        return this.body.setAttributeValue(name, value);
+        const before = this.attributes.getValue(name);
+        if (!this.components.setAttribute(name, value)) return this.attributes.setValue(name, value);
+        return this.attributes.getValue(name) !== before;
     }
 
     /** This player's own spawn point, or undefined when they come back at the world spawn. */
@@ -1158,7 +1098,7 @@ export default class Player {
             world:
                 answer.spawn === 'own'
                     ? await level.world(answer.dimension)
-                    : this.server.getWorldManager().getDefaultWorld(),
+                    : this.getServer().getWorldManager().getDefaultWorld(),
             announced: Vector3.fromObject(answer.announced),
             block: Vector3.fromObject(answer.block),
             eyes: Vector3.fromObject(answer.eyes)
@@ -1206,18 +1146,14 @@ export default class Player {
         // keeps everything. The answer still goes out: the client repeats the request once a
         // second until it gets one, and silence is what leaves it on the death screen.
         if (!this.isAlive()) {
-            // Logged, so the revival is in the change log: the player's health and the
-            // component fields the attributes hold come back here, and the entity never left.
-            const health = this.getHealth();
-            respawnVitals(this.survival);
-            logLegacyWrite(this.body, 'health', health, this.getHealth());
-            this.sentAir = this.metadata.air;
-            this.sentBreathing = true;
-
-            // A fresh body carries no leftover hurt either, and the client draws what it is told:
-            // still red.
-            this.metadata.setPropertyValue(MetadataFlag.HURT_TIME, FlagType.INT, 0);
-            this.metadata.setPropertyValue(MetadataFlag.HURT_DIRECTION, FlagType.INT, 0);
+            // The entity never left the store: the revival brings it back with the same id at
+            // full health, and the player systems reset the attributes, the lungs and the movement
+            // flags. Each write is logged.
+            const placed = this.placed();
+            if (placed !== undefined) placed.live.runtime.revive(placed.entity.id);
+            this.showOwnHealth();
+            // Full lungs and no sprint, in the metadata the respawned client is sent.
+            this.getActor()?.showPlayerState();
 
             // Where the `ReadyToSpawn` put the client, and without a `MovePlayer`: a Bedrock
             // Dedicated Server sends none here, and the client is already there.
@@ -1232,26 +1168,26 @@ export default class Player {
     }
 
     /**
-     * Hurt the player - unless the world cannot touch them; see {@link LegacyPlayerBody.damage}.
+     * Hurts the player through the store's damage pipeline, whose `game_mode` guard keeps a
+     * creative or spectator player out of reach. A player in no store cannot be hurt.
      * @param {number} amount - Half-hearts of damage.
      * @param {DamageCause | DamageSource} [source=DamageCause.Generic] - What did it, and who.
      * @returns {Promise<boolean>} `true` if any damage was actually taken.
      */
     public async damage(amount: number, source: DamageCause | DamageSource = DamageCause.Generic): Promise<boolean> {
-        return this.body.damage(amount, source);
+        return (await this.getActor()?.damage(amount, source)) ?? false;
     }
 
     /**
      * Asks the client to apply a world-space impulse, including nonstandard vertical lift.
      *
-     * Logged as an `impulse` occurrence and not as a velocity: the client owns a player's
-     * movement (ADR 0008), so the shove is something replication sends, and the player's state
-     * is unchanged until the client reports where it took them.
+     * The client owns a player's movement (ADR 0008), so the store logs the shove as an `impulse`
+     * occurrence and sends it to the client, and the player's state is unchanged until the client
+     * reports where it took them.
      */
     public applyImpulse(impulse: EntityPosition): void {
         if (!this.connected) return;
-        logLegacyImpulse(this.body, impulse);
-        void this.getNetworkSession().sendMotion(new Vector3(impulse.x, impulse.y, impulse.z));
+        this.getActor()?.applyImpulse(impulse);
     }
 
     /**
@@ -1262,7 +1198,7 @@ export default class Player {
      * @returns {boolean} `true` if the player can be harmed.
      */
     public isVulnerable(): boolean {
-        return this.gamemode === Gametype.SURVIVAL || this.gamemode === Gametype.ADVENTURE;
+        return survivalReaches(this.gamemode);
     }
 
     /**
@@ -1319,7 +1255,7 @@ export default class Player {
     }
 
     /**
-     * Make the player hungrier.
+     * Make the player hungrier, through the store's player systems.
      *
      * Exhaustion is a counter, not something the player has: every four points spend one
      * point of saturation, or - once saturation is gone - one point of food. Everything that
@@ -1331,7 +1267,8 @@ export default class Player {
      * ```
      */
     public addExhaustion(amount: number): void {
-        addExhaustion(this.survival, amount);
+        const placed = this.placed();
+        placed?.live.runtime.playerSystems.exhaust(placed.entity, amount);
     }
 
     /**
@@ -1339,18 +1276,26 @@ export default class Player {
      * vanilla, at four times the cost of a standing jump.
      */
     public addJumpExhaustion(): void {
-        addJumpExhaustion(this.survival);
+        const placed = this.placed();
+        placed?.live.runtime.playerSystems.jumped(placed.entity);
+    }
+
+    /** Whether the client last reported the player sprinting. */
+    public isSprinting(): boolean {
+        return this.components.get('movement.sprinting');
     }
 
     public async setSprinting(sprinting: boolean): Promise<void> {
-        if (sprinting === this.metadata.sprinting) return;
+        if (sprinting === this.isSprinting()) return;
 
         const event = new PlayerToggleSprintEvent(this, sprinting);
-        this.server.post(['playerToggleSprint', event]);
+        this.getServer().post(['playerToggleSprint', event]);
         if (event.isCanceled()) return;
 
-        this.components.set('movement.sprinting', event.getIsSprinting());
-        await this.getNetworkSession().sendMetadata();
+        // `StoreActors.sync` shows the change to the player and its viewers.
+        const placed = this.placed();
+        if (placed === undefined) this.components.set('movement.sprinting', event.getIsSprinting());
+        else placed.live.runtime.playerSystems.setSprinting(placed.entity, event.getIsSprinting());
     }
 
     public isFlying(): boolean {
@@ -1359,14 +1304,14 @@ export default class Player {
     public async setFlying(flying: boolean): Promise<void> {
         if (flying === this.isFlying()) return;
 
-        if (!this.metadata.canFly) {
+        if (!mayFlyIn(this.gamemode)) {
             this.flying = false;
             await this.sendSettings();
             return;
         }
 
         const event = new PlayerToggleFlightEvent(this, flying);
-        this.server.post(['playerToggleFlight', event]);
+        this.getServer().post(['playerToggleFlight', event]);
         if (event.isCanceled()) return;
 
         this.flying = event.getIsFlying();
@@ -1374,11 +1319,13 @@ export default class Player {
     }
 
     public isSneaking(): boolean {
-        return this.sneaking;
+        return this.components.get('movement.sneaking');
     }
-    public async setSneaking(val: boolean): Promise<void> {
-        if (val === this.sneaking) return;
-        this.sneaking = val;
+    public async setSneaking(sneaking: boolean): Promise<void> {
+        if (sneaking === this.isSneaking()) return;
+        const placed = this.placed();
+        if (placed === undefined) this.components.set('movement.sneaking', sneaking);
+        else placed.live.runtime.playerSystems.setSneaking(placed.entity, sneaking);
     }
 
     /** Whether the client has reported this player asleep in a bed. */
@@ -1391,66 +1338,44 @@ export default class Player {
         this.sleeping = sleeping;
     }
 
+    /** Whether the client last reported the player on the ground: its body's `on_ground` condition. */
     public isOnGround(): boolean {
-        return this.onGround;
-    }
-    public async setOnGround(val: boolean): Promise<void> {
-        if (val === this.onGround) return;
-        this.onGround = val;
-
-        // Landing is the moment the fall is paid for, and the only one: the distance has been
-        // accumulating on the way down and is worth nothing until it stops.
-        if (val) await this.land();
+        return this.store.isOnGround();
     }
 
     /**
-     * How far the player has fallen since they were last supported.
-     *
-     * Accumulated from their own position reports. The protocol calls its movement server
-     * authoritative, but this server does not simulate it: it takes the position each
-     * `PlayerAuthInputPacket` reports, so it cannot know a fall's length except by adding up
-     * what it is told.
+     * Records whether the client reports the player on the ground, as a move to where the player
+     * already is: the store pays for a fall the moment it lands.
      */
-    private get fallDistance(): number {
-        return this.components.get('vitals.fallDistance');
-    }
-    private set fallDistance(distance: number) {
-        this.components.set('vitals.fallDistance', distance);
+    public async setOnGround(onGround: boolean): Promise<void> {
+        const placed = this.placed();
+        if (placed === undefined || onGround === this.isOnGround()) return;
+        const { entity } = placed;
+        moveStorePlayer(placed.live.runtime, this.store, {
+            position: { ...entity.position },
+            yaw: entity.body.yaw,
+            pitch: entity.body.pitch,
+            onGround,
+            headYaw: this.store.headYaw
+        });
     }
 
     /**
-     * Notes that the player has started eating or drinking what is in their hand - see
-     * {@link beginMeal}. The meal finishes itself in {@link Player.update} once its time is up.
-     * @param {number} tick - The server tick it began on.
+     * Notes that the player has started eating or drinking what is in their hand. The player
+     * systems count the meal out on the store's tick and finish it once its time is up.
+     * @param {number} _tick - The server tick it began on, which the store's own tick replaces.
      * @param {number} ticks - How long the meal takes.
      */
-    public beginConsuming(tick: number, ticks: number): void {
-        beginMeal(this.components, tick, ticks, this.getInventory().getItemInHand().getName());
+    public beginConsuming(_tick: number, ticks: number): void {
+        const placed = this.placed();
+        placed?.live.runtime.playerSystems.beginMeal(placed.entity, ticks);
     }
 
     /** Forgets an unfinished meal, as letting go of the button or putting the item away does. */
     public cancelConsuming(): void {
-        cancelMeal(this.components);
-    }
-
-    /**
-     * Finishes the meal once its time is up, unless another item is in hand by then: the item in
-     * hand runs `onConsume`, which feeds the player, applies its effects and hands back what the
-     * meal leaves.
-     */
-    private tickConsuming(): void {
-        const item = dueMeal(this.components, this.server.getTick(), this.getInventory().getItemInHand().getName());
-        if (item === undefined) return;
-
-        try {
-            consumeHeldItem({
-                content: this.server.getContent(),
-                actors: this.server.getContentWorld().actorsAt(this.getWorld().getDimension().name),
-                player: this
-            });
-        } catch (error: unknown) {
-            this.server.getLogger().error(error);
-        }
+        const placed = this.placed();
+        if (placed === undefined) this.components.set('consumption.meal', null);
+        else placed.live.runtime.playerSystems.cancelMeal(placed.entity);
     }
 
     /**
@@ -1495,33 +1420,7 @@ export default class Player {
      * @returns {number} Blocks fallen so far, or zero.
      */
     public getFallDistance(): number {
-        return this.fallDistance;
-    }
-
-    /**
-     * Ends the fall in progress, and hurts the player for it if it was far enough - see
-     * {@link land}.
-     */
-    private async land(): Promise<void> {
-        const damage = land(this.survival, isAllowed(this.getWorld(), DamageCause.Fall), () =>
-            this.isStandingInSomethingSoft()
-        );
-        if (damage !== undefined) await this.damage(damage, DamageCause.Fall);
-    }
-
-    /**
-     * Whether the block the player's feet are in, or the one under it, breaks the fall - see
-     * {@link cushions}. Read from loaded chunks only: the position a client reports is its eye
-     * position, so the feet are {@link Human.getFeetY} below it.
-     */
-    private isStandingInSomethingSoft(): boolean {
-        const position = this.getPosition();
-        const x = Math.floor(position.getX());
-        const y = Math.floor(this.getFeetY());
-        const z = Math.floor(position.getZ());
-        const world = this.getWorld();
-
-        return cushions(world.loadedBlockAt(x, y, z)?.name, world.loadedBlockAt(x, y - 1, z)?.name);
+        return this.components.get('vitals.fallDistance');
     }
 
     /**
@@ -1567,36 +1466,39 @@ export default class Player {
         },
         broadcast = true
     ): Promise<void> {
-        const previous = this.getPosition();
-
-        // The body broadcasts synchronously from this call. Store the reported rotation before
-        // that broadcast builds the queued MoveActorAbsolute packet for observers.
-        await this.body.moveBody({
-            position,
-            pitch,
-            yaw,
-            headYaw,
-            teleport: type === PositionMode.Teleport || type === PositionMode.Respawn
-        });
-
-        // A reset or a teleport is not the player walking, so it costs nothing - and it must not
-        // count as a fall either, or arriving anywhere below where you left would hurt.
-        if (type === PositionMode.Normal) {
-            addMovementExhaustion(
-                this.survival,
-                { x: previous.getX(), z: previous.getZ() },
-                { x: position.getX(), z: position.getZ() },
-                this.isFlying()
-            );
-            trackFall(this.survival, previous.getY(), position.getY(), {
-                onGround: this.onGround,
-                flying: this.isFlying()
+        const feet = { x: position.getX(), y: position.getY() - EYE_HEIGHT, z: position.getZ() };
+        const placed = this.placed();
+        if (placed === undefined) {
+            // In no store: the player holds where it is, and a position in another world is the
+            // world it enters next, as a dimension change places it before its arrival.
+            if (position instanceof Position) this.world = position.getWorld();
+            this.store.placeAt({ x: feet.x, y: position.getY(), z: feet.z, yaw, pitch, headYaw });
+        } else if (type === PositionMode.Normal) {
+            // The client's own move, which the store charges for and adds to the fall in progress.
+            moveStorePlayer(placed.live.runtime, this.store, {
+                position: feet,
+                yaw,
+                pitch,
+                onGround: this.isOnGround(),
+                headYaw
             });
         } else {
-            this.fallDistance = 0;
+            // A reset or a teleport is not the player walking, so it costs nothing - and it must not
+            // count as a fall either, or arriving anywhere below where you left would hurt.
+            const { body } = placed.entity;
+            body.yaw = yaw;
+            body.pitch = pitch;
+            this.store.headYaw = headYaw;
+            placed.live.runtime.teleportPlayer(placed.entity.id, feet);
         }
 
+        // Every move goes to the clients that see the player, a head turn included, which the
+        // actor's own pose comparison leaves out.
+        const actor = this.getActor();
+        if (actor !== undefined)
+            await this.getWorld().broadcastMove(actor, type === PositionMode.Teleport || type === PositionMode.Respawn);
+
         if (!broadcast) return;
-        await this.getNetworkSession().sendMove(this.body, type);
+        await this.getNetworkSession().sendMove(this.getBody(), type);
     }
 }

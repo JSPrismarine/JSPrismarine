@@ -20,7 +20,7 @@ import { buildContentTags } from '../content/tags';
 import { openContainerContents } from '../inventory/containerStore';
 import { EYE_HEIGHT } from '../entity/playerEyes';
 import { stub } from '../testing/stub.test.helper';
-import { playerOnPrototype } from '../testing/playerDouble.test.helper';
+import { playerOnPrototype } from '../testing/storePlayer.test.helper';
 import type Player from '../Player';
 import type { World } from '../world/World';
 import { Position } from '../world/Position';

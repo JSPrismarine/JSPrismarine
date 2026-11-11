@@ -20,6 +20,7 @@ import { readContentSettings } from './content/settings';
 import { serverWorldSource } from './content/world/serverSource';
 import { EntityRuntimes } from './entity/data/live';
 import type { LiveEntityRuntime } from './entity/data/live';
+import type { StorePlayers } from './entity/data/storePlayers';
 import type { ServerWorldHandle } from './content/world/serverSource';
 import { CommandManager } from './command/CommandManager';
 import { EventEmitter } from './events/EventEmitter';
@@ -776,6 +777,16 @@ export default class Server extends EventEmitter {
         const runtime = this.entityRuntimes.at(dimension);
         if (!runtime) throw new Error(`no entity runtime was built for ${dimension}`);
         return runtime;
+    }
+
+    /**
+     * The server's store players, by entity id, which every dimension's entity runtime shows and
+     * runs. A player is filed when its entity first enters a store and forgotten when it leaves the
+     * server.
+     * @returns {StorePlayers} The store players.
+     */
+    public getStorePlayers(): StorePlayers {
+        return this.entityRuntimes.players;
     }
 
     /**

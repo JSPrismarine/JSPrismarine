@@ -5,7 +5,7 @@ import { Gametype } from '@jsprismarine/minecraft';
 import { EYE_HEIGHT } from './playerEyes';
 import type { ContentLookup } from '../content/world/views';
 import { stub } from '../testing/stub.test.helper';
-import { playerOnPrototype } from '../testing/playerDouble.test.helper';
+import { playerOnPrototype } from '../testing/storePlayer.test.helper';
 import { Position } from '../world/Position';
 import type { World } from '../world/World';
 import { worldEntityAccess } from './worldContentAdapter';
@@ -16,8 +16,8 @@ describe('the live entity content adapter', () => {
         const position = new Position(2.5, 64 + EYE_HEIGHT, -1.5, world);
         const player = playerOnPrototype(
             { gamemode: Gametype.CREATIVE },
-            // The body, which is what the adapter reads the id, the position and the tags off.
-            { runtimeId: 7n, getPosition: () => position, getTags: () => [] }
+            // The actor, which is what the adapter reads the id, the position and the tags off.
+            { runtimeId: 7n, actor: { getPosition: () => position, getFeetY: () => 64, getTags: () => [] } }
         );
         Object.assign(world, { getPlayers: () => [player] });
         const access = worldEntityAccess({

@@ -54,7 +54,7 @@ import { advancementRewards } from '../advancement/rewards';
 import { unwiredWorldSource } from './world/unwired';
 import { contentWorldViews } from './world/views';
 import type { ContentWorldViews } from './world/views';
-import { withPlayerOverlay } from '../entity/playerOverlay';
+import { FALLBACK_PLAYER_FILE, PLAYER_IDENTIFIER, withPlayerOverlay } from '../entity/playerOverlay';
 
 /** The resolved block domain. */
 export interface ServerContentBlocks {
@@ -350,9 +350,13 @@ export const buildServerContent = (options: ContentOptions = {}): ServerContent 
         components: entityComponents,
         tagLookup: (identifier) => bedrockEntityTypeTagsFor(tags, identifier)
     });
+    // A stack that declares no player still gets one, since every live player is an entity.
+    const playerFallback = definitions.entities.has(PLAYER_IDENTIFIER)
+        ? []
+        : [{ pack: 'jsprismarine:player', path: 'entities/player.json', data: FALLBACK_PLAYER_FILE }];
     diagnostics.push(
         ...entityTypes.load(
-            [...definitions.entities.values()].map((definition) => ({
+            [...definitions.entities.values(), ...playerFallback].map((definition) => ({
                 pack: definition.pack,
                 path: definition.path,
                 data: withPlayerOverlay(definition.data)

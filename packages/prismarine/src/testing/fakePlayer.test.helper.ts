@@ -25,7 +25,8 @@ import type WorldManager from '../world/WorldManager';
 import Chunk from '../world/chunk/Chunk';
 import { Dimensions } from '../world/DimensionType';
 import { RespawnRequests } from '../world/RespawnRequests';
-import { testContent } from './entityServer';
+import { enterStore, leaveStore } from '../entity/data/storePlayers';
+import { liveTestEntities } from './entityServer';
 import { fakeLevel } from './level';
 import { sessionsWith } from './playerSession.test.helper';
 import { stub } from './stub.test.helper';
@@ -50,9 +51,12 @@ export interface FakePlayerOptions {
  * A player with just enough of a server, world and connection around it to move, tick and
  * change world.
  *
- * The world is either dry or entirely water, which is all the block detail breath needs. Its
- * chunks are empty Overworld chunks, enough for the session's chunk batching to run. It is the
- * Overworld of a level that also holds `worlds`, and the server's default world.
+ * The player is a store player whose entity is in a real entity runtime of the fixture content,
+ * the world's `live`, as a spawned player's is: blows, moves, its meal and its death go through
+ * the store. The world is either dry or entirely water, which is what the world's own block reads
+ * answer; the runtime reads the fixture's empty world. Its chunks are empty Overworld chunks,
+ * enough for the session's chunk batching to run. It is the Overworld of a level that also holds
+ * `worlds`, and the server's default world.
  */
 export const fakePlayer = ({ underwater = false, worlds: others = [], name = 'Tester' }: FakePlayerOptions = {}) => {
     const sent: any[] = [];
@@ -73,6 +77,10 @@ export const fakePlayer = ({ underwater = false, worlds: others = [], name = 'Te
     const roster: string[] = [];
     const disconnects: Parameters<ClientConnection['disconnect']>[] = [];
     const isOp = vi.fn(() => false);
+    // Read at call time: the content and the runtime are built around the world below.
+    const entities = liveTestEntities(() => world);
+    /** The world's tick, which the store's level clock reads; a test moves it. */
+    const clock = { ticks: 0 };
 
     const server: Server = stub<Server>({
         on: () => server,
@@ -97,7 +105,9 @@ export const fakePlayer = ({ underwater = false, worlds: others = [], name = 'Te
         getWorldManager: () => stub<WorldManager>({ getDefaultWorld: () => world }),
         // No pack stack, so there are no advancements to raise and no
         // enchantment definitions to run.
-        getContent: () => testContent(),
+        getContent: () => entities.content(),
+        getEntityRuntime: (dimension) => entities.entityRuntime(dimension),
+        getStorePlayers: () => entities.players,
         getConfig: () =>
             stub<Config>({
                 getGamemode: () => 'survival',
@@ -123,7 +133,32 @@ export const fakePlayer = ({ underwater = false, worlds: others = [], name = 'Te
         getDimension: () => Dimensions.Overworld,
         entityRelocated: () => {},
         broadcastMove: async () => {},
-        removePlayer: async () => void roster.push('remove'),
+        dataEntities: () => entities.entityRuntime(Dimensions.Overworld.name),
+        getTicks: () => clock.ticks,
+        // No chunk is loaded for the store, so its systems read no block.
+        getLoadedChunk: () => null,
+        loadedBlockRuntimeIdAt: () => undefined,
+        getBlockWriteVersion: () => 0,
+        getActor: (runtimeId) =>
+            entities.entityRuntime(Dimensions.Overworld.name).actors.actorOf(Number(runtimeId)) ?? null,
+        viewerOf: (runtimeId) => (runtimeId === player.getRuntimeId() ? player.getNetworkSession() : undefined),
+        getViewers: () => [player.getNetworkSession()],
+        showActor: async () => {},
+        hideActor: async () => {},
+        // The player's own copy, which is the one a test of a single player reads.
+        sendActorMetadata: async (actor) => {
+            if (actor.getRuntimeId() === player.getRuntimeId()) await player.getNetworkSession().sendMetadataFor(actor);
+        },
+        storeEntityChunkChanged: () => {},
+        // Out of the store, as a real world takes a leaving player's entity out of its store.
+        removePlayer: async (leaving) => {
+            roster.push('remove');
+            leaveStore(
+                entities.entityRuntime(Dimensions.Overworld.name).runtime,
+                leaving.getStorePlayer(),
+                'left_world'
+            );
+        },
         addPlayer: async () => void roster.push('add'),
         getPlayers: () => [],
         getSpawnPosition: async () => new Vector3(0, 64, 0),
@@ -133,7 +168,8 @@ export const fakePlayer = ({ underwater = false, worlds: others = [], name = 'Te
             position: new Vector3(0.5, 65, 0.5),
             relocated: false
         }),
-        getGameRuleManager: () => stub<GameRuleManager>({ getGameRule: () => [true, true] }),
+        getGameRuleManager: () =>
+            stub<GameRuleManager>({ getGameRule: () => [true, true], findGameRule: () => [true, true] }),
         getBlock: async () => stub<Block>({ getName: () => blockName, isSolid: () => false }),
         getBlockState: async () => new BlockState(blockName),
         loadedBlockAt: () => ({ name: blockName, states: {} }),
@@ -197,10 +233,17 @@ export const fakePlayer = ({ underwater = false, worlds: others = [], name = 'Te
     // `update` does nothing for a player who never finished joining.
     player['connected'] = true;
 
+    // Spawned, as `SetLocalPlayerAsInitialized` spawns a joined player, without the roster entry
+    // `addPlayer` makes.
+    const live = entities.entityRuntime(Dimensions.Overworld.name);
+    enterStore(live.runtime, entities.players, player.getStorePlayer());
+
     return {
         player,
         server,
         world,
+        live,
+        clock,
         level,
         connection,
         sent,

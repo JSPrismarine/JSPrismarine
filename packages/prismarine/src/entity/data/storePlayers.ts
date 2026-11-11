@@ -17,13 +17,18 @@
  * again and keeps what the next store needs, so a dimension change is a leave and an enter with
  * the same id.
  *
- * No live player is a store entity yet. C4h's H-B2 builds one at the login and enters it. Slice 7
- * then replaces the comparisons in `sync` with replication from the change log.
+ * Every live player is a store player, built at the login and entered at
+ * `SetLocalPlayerAsInitialized` (`World.addPlayer`). Before that, and between the two stores of a
+ * dimension change, it is in no store, and its own client is shown it through a
+ * {@link DetachedPlayerView}. Slice 7 replaces the comparisons in `sync` with replication from the
+ * change log.
  */
 import type { EntityPosition } from '@jsprismarine/entities';
 import { Gametype } from '@jsprismarine/minecraft';
-import type { Vector3 } from '@jsprismarine/math';
+import { Vector3 } from '@jsprismarine/math';
 import { Attributes } from '@jsprismarine/protocol/wire/structures/Attribute';
+import type { Metadata } from '@jsprismarine/protocol/wire/structures/Metadata';
+import { SyncedProperties } from '@jsprismarine/protocol/wire/structures/SyncedProperties';
 import type Skin from '@jsprismarine/protocol/wire/structures/skin/Skin';
 import type UUID from '@jsprismarine/protocol/wire/structures/UUID';
 
@@ -37,9 +42,11 @@ import { sameEquipmentItems } from '../equipment';
 import { breathWorthSending } from '../playerBreath';
 import type { ShownBreath } from '../playerBreath';
 import { mayFlyIn } from '../playerComponents';
-import { clientOwnsMovement } from '../playerOverlay';
+import { clientOwnsMovement, PLAYER_IDENTIFIER } from '../playerOverlay';
 import { PORTAL_COOLDOWN_TICKS, PORTAL_TRANSITION_TICKS } from '../PortalContact';
 import type { StatusEffect } from '../StatusEffect';
+import type { ViewableEquipment } from '../predicateView';
+import type { EntityBox } from './facts';
 import { StorePlayer } from '../storePlayer';
 import type { StorePlayerIdentity } from '../storePlayer';
 import type { DataEntity } from './DataEntity';
@@ -237,6 +244,11 @@ export class StorePlayerActor extends StoreActor implements ShownPlayer {
         return { air: components.get('vitals.air'), breathing: components.get('vitals.breathing') };
     }
 
+    /** Claims the player's one update of a tick, which an actor in another world shares. */
+    public override claimUpdate(tick: number): boolean {
+        return this.player.claimUpdate(tick);
+    }
+
     /**
      * The entity's part of the tick, then the player's own: its session, its attribute sync and
      * its triggers, which `Player.updatePlayer` runs for the player the session speaks for.
@@ -352,6 +364,140 @@ export class StorePlayerActor extends StoreActor implements ShownPlayer {
     /** Whether the permission service lists the player as an operator, as `Player.isOp` asks it. */
     public isOp(): boolean {
         return this.getServer().getPermissionManager().isOp(this.getUUID().toString());
+    }
+
+    /** @inheritdoc */
+    public isFlying(): boolean {
+        return this.player.isFlying();
+    }
+}
+
+/**
+ * A store player in no store, as its own client is shown it: from the login to
+ * `SetLocalPlayerAsInitialized`, and between the two stores of a dimension change. Its position,
+ * look and status effects are what the player holds of its entity, its metadata the components'
+ * own, and nobody else is shown it, because no world holds it.
+ */
+export class DetachedPlayerView implements ShownPlayer {
+    /**
+     * @param player - The store player.
+     * @param facts - What the view cannot read off the player: the type's box, which the metadata
+     *   carries, and whether the permission service lists the player as an operator.
+     */
+    public constructor(
+        public readonly player: StorePlayer,
+        private readonly facts: { box(): EntityBox; isOp(): boolean }
+    ) {}
+
+    /** @inheritdoc */
+    public getRuntimeId(): bigint {
+        return BigInt(this.player.id);
+    }
+
+    /** @inheritdoc */
+    public getType(): string {
+        return PLAYER_IDENTIFIER;
+    }
+
+    /** @inheritdoc */
+    public getPosition(): Vector3 {
+        return this.player.getPosition();
+    }
+
+    /** A body in no store does not move. */
+    public getVelocity(): Vector3 {
+        return new Vector3(0, 0, 0);
+    }
+
+    public get pitch(): number {
+        return this.player.pitch;
+    }
+
+    public get yaw(): number {
+        return this.player.yaw;
+    }
+
+    public get headYaw(): number {
+        return this.player.headYaw;
+    }
+
+    /** The components' metadata, with the player's box and whether its game mode lets it fly. */
+    public get metadata(): Metadata {
+        const { metadata } = this.player;
+        const { width, height } = this.facts.box();
+        metadata.setBoundingBox(width, height);
+        metadata.setCanFly(mayFlyIn(this.player.gamemode));
+        return metadata;
+    }
+
+    /** None, as a player's type declares none. */
+    public getSyncedProperties(): SyncedProperties {
+        return new SyncedProperties();
+    }
+
+    /** The client's attribute table. */
+    public get attributes(): Attributes {
+        return this.player.attributes;
+    }
+
+    /** @inheritdoc */
+    public getEquipment(): ViewableEquipment {
+        return this.player.getInventory().getEquipment();
+    }
+
+    /** @inheritdoc */
+    public getStatusEffects(): readonly StatusEffect[] {
+        return this.player.heldEntity.statusEffects;
+    }
+
+    /** @inheritdoc */
+    public isOnGround(): boolean {
+        return this.player.isOnGround();
+    }
+
+    /** @inheritdoc */
+    public getTrackingRange(): number {
+        return PLAYER_TRACKING_RANGE_CHUNKS;
+    }
+
+    /** A player appears to other clients as a player, which a world shows only once it holds it. */
+    public async spawnTo(session: PlayerSession): Promise<void> {
+        await session.sendAddPlayer(this);
+    }
+
+    /** @inheritdoc */
+    public getUUID(): UUID {
+        return this.player.getUUID();
+    }
+
+    /** @inheritdoc */
+    public getName(): string {
+        return this.player.getName();
+    }
+
+    public get xuid(): string {
+        return this.player.getXUID() ?? '';
+    }
+
+    public get platformChatId(): string {
+        return this.player.platformChatId;
+    }
+
+    public get device(): Device | null {
+        return this.player.device;
+    }
+
+    public get skin(): Skin | null {
+        return this.player.skin;
+    }
+
+    public get gamemode(): Gametype {
+        return this.player.gamemode;
+    }
+
+    /** @inheritdoc */
+    public isOp(): boolean {
+        return this.facts.isOp();
     }
 
     /** @inheritdoc */

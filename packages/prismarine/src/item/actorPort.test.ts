@@ -4,7 +4,10 @@ import { describe, expect, it } from 'vitest';
 
 import ContainerEntry from '../inventory/ContainerEntry';
 import HumanInventory from '../inventory/HumanInventory';
-import Player from '../Player';
+import type Player from '../Player';
+import type Server from '../Server';
+import { playerOnPrototype } from '../testing/storePlayer.test.helper';
+import { Position } from '../world/Position';
 import { Item } from './Item';
 import { contentStackOf } from './contentStack';
 import { testContent } from '../testing/entityServer';
@@ -46,30 +49,41 @@ const recording = (): Recorded => ({
     eyes: []
 });
 
-/** A player reduced to what the port reads and writes, over the real prototype. */
-const playerDouble = (recorded: Recorded): Player =>
-    Object.assign(Object.create(Player.prototype), {
+/** A player reduced to what the port reads and writes, over a store player, with its actor. */
+const playerDouble = (recorded: Recorded): Player => {
+    const entity = {
         getPosition: () => new Vector3(1.5, 65, 1.5),
         // A player reports its eyes; the body starts 1.62 below and stands 1.8 tall.
         getFeetY: () => 65 - 1.62,
         getBox: () => ({ width: 0.6, height: 1.8 }),
-        getFallDistance: () => 3,
-        getFood: () => 11,
-        getStatusEffects: () => [],
-        isOnGround: () => true,
-        gamemode: Gametype.SURVIVAL,
-        addFood: (nutrition: number, saturation: number) => void recorded.fed.push({ nutrition, saturation }),
-        // The two advancement triggers the port raises read these. With no content built there
-        // is nothing listening, which is what `enabled` checks first.
-        getInventory: () => new HumanInventory(),
-        getServer: () => ({ getContent: () => testContent() })
-    });
+        getStatusEffects: () => []
+    };
+    const player = playerOnPrototype(
+        {
+            getFeetY: entity.getFeetY,
+            getBox: entity.getBox,
+            getStatusEffects: entity.getStatusEffects,
+            getPosition: () => Position.fromVector3(entity.getPosition(), stub<World>()),
+            getFallDistance: () => 3,
+            getFood: () => 11,
+            isOnGround: () => true,
+            addFood: (nutrition: number, saturation: number) => void recorded.fed.push({ nutrition, saturation }),
+            // The two advancement triggers the port raises read these. With no content built there
+            // is nothing listening, which is what `enabled` checks first.
+            getInventory: () => new HumanInventory(),
+            getServer: () => stub<Server>({ getContent: () => testContent() })
+        },
+        { runtimeId: 7n, actor: entity }
+    );
+    player.gamemode = Gametype.SURVIVAL;
+    return player;
+};
 
 /** A world reduced to the entity lookup, the block read, the logger, and what a thrown eye needs. */
 const worldDouble = (player: Player, recorded: Recorded, target?: Entity): World =>
     ({
         getActor: (runtimeId: bigint) =>
-            runtimeId === 7n ? (player as unknown as Entity) : runtimeId === 9n ? (target ?? null) : null,
+            runtimeId === 7n ? (player.getActor() ?? null) : runtimeId === 9n ? (target ?? null) : null,
         // The player's session, which is how the port tells a player from any other entity.
         viewerOf: (runtimeId: bigint) =>
             runtimeId === 7n ? stub<PlayerSession>({ getPlayer: () => player }) : undefined,
@@ -173,12 +187,15 @@ describe('the item actor port', () => {
     it('moves an entity item into an empty selected hand', () => {
         const recorded = recording();
         const inventory = new HumanInventory();
-        const player = Object.assign(Object.create(Player.prototype), {
-            getPosition: () => new Vector3(1.5, 65, 1.5),
-            gamemode: Gametype.SURVIVAL,
-            getInventory: () => inventory,
-            getServer: () => ({ getContent: () => testContent() })
-        });
+        const player = playerOnPrototype(
+            {
+                getPosition: () => Position.fromVector3(new Vector3(1.5, 65, 1.5), stub<World>()),
+                gamemode: Gametype.SURVIVAL,
+                getInventory: () => inventory,
+                getServer: () => stub<Server>({ getContent: () => testContent() })
+            },
+            { runtimeId: 7n, actor: { getPosition: () => new Vector3(1.5, 65, 1.5) } }
+        );
         const target = stub<Entity>();
         const offered: { itemIdentifier: string; heldItem: ContentItemDrop }[] = [];
         const port = createItemActorPort({
@@ -215,10 +232,10 @@ describe('the item actor port', () => {
         inventory.setItem(0, new ContainerEntry({ item: pickaxe }));
         const written: number[] = [];
         inventory.observeCarried({ slot: (_container, slot) => void written.push(slot), handSlot: () => {} });
-        const player = Object.assign(Object.create(Player.prototype), {
-            getInventory: () => inventory,
-            getServer: () => ({ getContent: () => testContent() })
-        });
+        const player = playerOnPrototype(
+            { getInventory: () => inventory, getServer: () => stub<Server>({ getContent: () => testContent() }) },
+            { runtimeId: 7n, actor: {} }
+        );
         const port = createItemActorPort({
             world: () => worldDouble(player, recorded),
             entities: entityAccess(),

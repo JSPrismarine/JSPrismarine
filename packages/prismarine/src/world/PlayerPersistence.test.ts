@@ -38,7 +38,7 @@ import LevelDB from './providers/leveldb/LevelDB';
 import type Server from '../Server';
 import type WorldManager from './WorldManager';
 import type { World } from './World';
-import { inertEntityRuntime, testContent } from '../testing/entityServer';
+import { liveTestEntities } from '../testing/entityServer';
 import { OVERWORLD_STEM_ID } from '@jsprismarine/worldgen';
 import type { Level } from './Level';
 import { testLevel } from '../testing/level';
@@ -56,8 +56,13 @@ const BOX_SLOT = 8;
 let scratch: string;
 let previousDirectory: string | undefined;
 
-const testServer = (): Server => {
+/**
+ * A server double over real entity runtimes, which hold the players `World.addPlayer` enters.
+ * @param world - The world the runtimes' actors show their entities in, read at call time.
+ */
+const testServer = (world: () => World | undefined = () => undefined): Server => {
     const sessions = sessionsWith();
+    const entities = liveTestEntities(world);
     const server: Server = stub<Server>({
         getSessionManager: () => sessions,
         getChatManager: () => chat,
@@ -71,8 +76,9 @@ const testServer = (): Server => {
             stub<Logger>({ info: () => {}, warn: () => {}, error: () => {}, debug: () => {}, verbose: () => {} }),
         getChunkScheduler: () => stub<ChunkScheduler>({ add: () => {}, remove: () => {} }),
         getPermissionManager: () => stub<PermissionManager>({ getPermissions: async () => [] }),
-        getContent: () => testContent(),
-        getEntityRuntime: () => inertEntityRuntime(),
+        getContent: () => entities.content(),
+        getEntityRuntime: (dimension) => entities.entityRuntime(dimension),
+        getStorePlayers: () => entities.players,
         getChunkCompletionQueue: () => new ChunkCompletionQueue(),
         getConfig: () =>
             stub<Config>({
@@ -114,12 +120,14 @@ const digestWithInsertionOrder = async (
     chunkOrder: Array<[number, number]>,
     reverseEntityInsertion: boolean
 ): Promise<string> => {
-    const server = testServer();
+    let opened: World | undefined;
+    const server = testServer(() => opened);
     const level = buildLevel(server, name);
     await level.enable();
 
     try {
         const world = await level.world(OVERWORLD_STEM_ID);
+        opened = world;
         for (const [x, z] of chunkOrder) await world.loadChunk(x, z);
 
         const first = buildPlayer(world, server, UUID.fromString('00000000-0000-4000-8000-000000000001'));
@@ -181,10 +189,12 @@ const pickaxe = (): Item => {
 
 /** Logs a player out of a world and brings a fresh one back into it. */
 const logOutAndIn = async () => {
-    const server = testServer();
+    let opened: World | undefined;
+    const server = testServer(() => opened);
     const level = buildLevel(server);
     await level.enable();
     const world = await level.world(OVERWORLD_STEM_ID);
+    opened = world;
     const uuid = UUID.fromRandom();
     const leaving = buildPlayer(world, server, uuid);
     const inventory = leaving.getInventory();
@@ -222,6 +232,7 @@ const logOutAndIn = async () => {
     const reopened = buildLevel(server);
     await reopened.enable();
     const back = await reopened.world(OVERWORLD_STEM_ID);
+    opened = back;
 
     const returning = buildPlayer(back, server, uuid);
     await returning.enable();

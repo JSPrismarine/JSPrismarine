@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import type Server from '../../Server';
 import { EYE_HEIGHT } from '../../entity/playerEyes';
 import { stub } from '../../testing/stub.test.helper';
-import { playerOnPrototype } from '../../testing/playerDouble.test.helper';
+import { playerOnPrototype } from '../../testing/storePlayer.test.helper';
 import { Dimensions } from '../../world/Dimension';
 import type { Level } from '../../world/Level';
 import { Position } from '../../world/Position';

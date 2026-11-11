@@ -9,6 +9,7 @@ import { describe, expect, it } from 'vitest';
 import type { Config } from '../config/Config';
 import { entityFixture, FLOOR_Y } from '../entity/data/testing';
 import type { StoreActors } from '../entity/data/storeActors';
+import { StorePlayers } from '../entity/data/storePlayers';
 import type { LiveEntityRuntime } from '../entity/data/live';
 import type Server from '../Server';
 import { testContent } from '../testing/entityServer';
@@ -28,6 +29,7 @@ import Player from '../Player';
 /** A world whose dimension's entity runtime is the real one the entity fixture builds. */
 const worldWithStore = () => {
     const fixture = entityFixture();
+    const players = new StorePlayers();
     const errors: unknown[] = [];
     const live = stub<LiveEntityRuntime>({
         runtime: fixture.runtime,
@@ -51,6 +53,7 @@ const worldWithStore = () => {
         getConfig: () => stub<Config>({ getEntityTrackingInterval: () => 20 }),
         getContent: () => testContent(),
         getEntityRuntime: () => live,
+        getStorePlayers: () => players,
         hasEntityRuntime: () => true
     });
     const provider = stub<BaseProvider>({
@@ -124,9 +127,7 @@ const PLAYER_COMPONENT_WRITES: readonly {
     },
     {
         field: 'vitals.fallDistance',
-        write: (player) => {
-            player['fallDistance'] = 2.5;
-        },
+        write: (player) => player['components'].set('vitals.fallDistance', 2.5),
         read: (player) => player.getFallDistance()
     },
     {
@@ -148,7 +149,6 @@ const PLAYER_COMPONENT_WRITES: readonly {
     },
     { field: 'movement.sneaking', write: (player) => player.setSneaking(true), read: (player) => player.isSneaking() },
     { field: 'movement.sleeping', write: (player) => player.setSleeping(true), read: (player) => player.isSleeping() },
-    { field: 'movement.onGround', write: (player) => player.setOnGround(true), read: (player) => player.isOnGround() },
     {
         field: 'respawn.spawnPoint',
         write: (player) => player.setSpawnPoint({ x: 3, y: 64, z: -2, dimension: 'minecraft:overworld', forced: true }),
@@ -167,18 +167,18 @@ const PLAYER_COMPONENT_WRITES: readonly {
     {
         field: 'vitals.air',
         write: (player) => player['components'].set('vitals.air', 120),
-        read: (player) => player.metadata.air
+        read: (player) => player['components'].get('vitals.air')
     },
     {
         field: 'vitals.breathing',
         write: (player) => player['components'].set('vitals.breathing', false),
-        read: (player) => player.metadata.breathing
+        read: (player) => player['components'].get('vitals.breathing')
     },
     {
         field: 'movement.sprinting',
         // `setSprinting` raises a plugin event, which this world's server double has no bus for.
         write: (player) => player['components'].set('movement.sprinting', true),
-        read: (player) => player.metadata.sprinting
+        read: (player) => player.isSprinting()
     },
     {
         field: 'mining.block',

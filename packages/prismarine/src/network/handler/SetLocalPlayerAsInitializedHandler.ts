@@ -38,7 +38,7 @@ export default class SetLocalPlayerAsInitializedHandler implements PacketHandler
         // puts anybody in, but reading it off the player is what keeps the two in step.
         const world = player.getWorld();
 
-        if (world.getEntity(session.runtimeId) !== null) {
+        if (world.getActor(session.runtimeId) !== null) {
             server
                 .getLogger()
                 .debug(

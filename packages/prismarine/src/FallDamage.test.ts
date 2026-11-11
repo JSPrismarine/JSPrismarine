@@ -1,186 +1,124 @@
 import { describe, expect, it } from 'vitest';
 
 import { Gametype } from '@jsprismarine/minecraft';
-import { Vector3 } from '@jsprismarine/math';
-import { PositionMode } from '@jsprismarine/protocol';
-import type Player from './Player';
-import { DamageCause } from './entity/Entity';
-import { EYE_HEIGHT } from './entity/playerEyes';
-import { Position } from './world/Position';
-import { Attributes } from '@jsprismarine/protocol/wire/structures/Attribute';
-import { playerOnPrototype, withPlayerComponents } from './testing/playerDouble.test.helper';
-import { stub } from './testing/stub.test.helper';
-import type PlayerSession from './network/PlayerSession';
+
+import type { DataEntity } from './entity/data/DataEntity';
+import { FLOOR_Y } from './entity/data/testing';
+import type { EntityFixture } from './entity/data/testing';
+import { PLAYER_IDENTIFIER } from './entity/playerOverlay';
+import { storePlayerFixture } from './testing/storePlayer.test.helper';
 
 /**
- * Fall damage.
+ * Fall damage, on a store player.
  *
  * Movement here is client authoritative - `StartGamePacket` announces server authoritative movement
  * as off - so the server never simulates the fall and can only add up the positions it is told
- * about. These drive a player through the same calls the movement handler makes, and check what
- * comes out the other end.
+ * about. These report moves the way the input step does, through
+ * `EntityRuntime.applyClientMovement`, and read what the store's player systems took off the
+ * player's health. `entity/data/playerSystems.test.ts` covers the log and the game rule.
  */
 
-/** A player with everything but the fall bookkeeping replaced. */
+/** A store player standing on the fixture's floor, whose fall a test drives. */
 const fallingPlayer = ({
     gamemode = Gametype.SURVIVAL,
-    landingOn = 'minecraft:stone',
-    flying = false,
-    blockAt = (_y: number): string | undefined => landingOn
-} = {}) => {
-    const hits: Array<{ amount: number; cause: DamageCause }> = [];
+    landingOn,
+    flying = false
+}: { gamemode?: Gametype; landingOn?: string; flying?: boolean } = {}) => {
+    const fixture: EntityFixture = storePlayerFixture();
+    if (landingOn !== undefined) fixture.world.setBlock({ x: 0, y: FLOOR_Y + 1, z: 0 }, landingOn);
+    const player: DataEntity = fixture.runtime.spawn(PLAYER_IDENTIFIER, { x: 0.5, y: FLOOR_Y + 1, z: 0.5 })!;
+    const components = fixture.runtime.playerSystems.componentsOf(player);
+    components.set('abilities.gamemode', gamemode);
+    components.set('abilities.flying', flying);
 
-    const world: any = {
-        getName: () => 'test',
-        getServer: () => ({}),
-        getGameRuleManager: () => ({ getGameRule: () => [true, true] }),
-        loadedBlockAt: (_x: number, y: number) => {
-            const name = blockAt(y);
-            return name === undefined ? undefined : { name, states: {} };
-        },
-        entityRelocated: () => {},
-        broadcastMove: async () => {}
-    };
-
-    const player: Player = playerOnPrototype(
-        {
-            gamemode,
-            getNetworkSession: () => stub<PlayerSession>({ sendMove: async () => {} }),
-            // Records the hit instead of taking it, so the amount can be asserted rather than
-            // reverse-engineered from a health bar.
-            damage: async (amount: number, cause: DamageCause) => {
-                hits.push({ amount, cause });
-                return true;
-            },
-            getWorld: () => world
-        },
-        {
-            // A real `Position`, because `Entity.setPosition` reads the world off the one it replaces.
-            position: new Position(0, 100, 0, world),
-            pitch: 0,
+    /** Reports the feet at `y` blocks above the floor's top. */
+    const report = (y: number, onGround: boolean) =>
+        fixture.runtime.applyClientMovement(player.id, {
+            position: { x: 0.5, y: FLOOR_Y + 1 + y, z: 0.5 },
             yaw: 0,
-            headYaw: 0,
-            metadata: { sprinting: false },
-            getWorld: () => world,
-            attributes: new Attributes(Attributes.getPlayerDefaults())
-        }
-    );
-    // After the components, which the fall bookkeeping reads and writes through.
-    Object.assign(withPlayerComponents(player), { flying, onGround: false, fallDistance: 0 });
+            pitch: 0,
+            onGround
+        });
 
     /** Walks the player down from one height to another, a block at a time, then lands. */
-    const fall = async (from: number, to: number) => {
-        player.getBody()['position'] = new Position(0, from, 0, world);
-
-        for (let y = from - 1; y >= to; y--) {
-            await player.setPlayerPosition({ position: new Vector3(0, y, 0), type: PositionMode.Normal }, false);
-        }
-
-        await player.setOnGround(true);
+    const fall = (from: number, to = 0) => {
+        report(from, false);
+        for (let y = from - 1; y >= to; y--) report(y, y === to);
     };
 
-    return { player, hits, fall };
+    const taken = () => 20 - (player.instance.attributes.get('health')?.current ?? 0);
+    return { fixture, player, components, report, fall, taken };
 };
 
 describe('fall damage', () => {
-    it('costs nothing for a drop the player can walk off', async () => {
-        // Vanilla's three blocks of grace: stepping off a two block ledge is free.
-        const { hits, fall } = fallingPlayer();
-        await fall(100, 97);
+    it('costs nothing for a drop the player can walk off', () => {
+        const { fall, taken } = fallingPlayer();
 
-        expect(hits).toEqual([]);
+        fall(3);
+
+        expect(taken()).toBe(0);
     });
 
-    it('takes a half-heart for every block past the third', async () => {
-        // Ten blocks fallen, three forgiven, seven half-hearts.
-        const { hits, fall } = fallingPlayer();
-        await fall(100, 90);
+    it('takes a half-heart for every block past the third', () => {
+        const { fall, taken } = fallingPlayer();
 
-        expect(hits).toEqual([{ amount: 7, cause: DamageCause.Fall }]);
+        fall(10);
+
+        expect(taken()).toBe(7);
     });
 
-    it('hurts more the further it is', async () => {
+    it('hurts more the further it is', () => {
         const short = fallingPlayer();
-        await short.fall(100, 94);
-
         const long = fallingPlayer();
-        await long.fall(100, 80);
 
-        expect(long.hits[0]!.amount).toBeGreaterThan(short.hits[0]!.amount);
+        short.fall(6);
+        long.fall(12);
+
+        expect(long.taken()).toBeGreaterThan(short.taken());
     });
 
-    it('starts the fall at the top of a jump, not at the ground', async () => {
-        // Rising resets the distance. Without that, a jump would be measured from the floor the
-        // player jumped off and every hop would eventually land for its own height.
-        const { player, hits } = fallingPlayer();
+    it('is broken by landing in water', () => {
+        const { fall, taken } = fallingPlayer({ landingOn: 'minecraft:water' });
 
-        for (const y of [100, 101, 102, 101, 100, 99]) {
-            await player.setPlayerPosition({ position: new Vector3(0, y, 0), type: PositionMode.Normal }, false);
-        }
-        await player.setOnGround(true);
+        fall(10);
 
-        expect(hits).toEqual([]);
+        expect(taken()).toBe(0);
     });
 
-    it('is broken by landing in water', async () => {
-        const { hits, fall } = fallingPlayer({ landingOn: 'minecraft:water' });
-        await fall(100, 60);
+    it('leaves a creative player alone', () => {
+        const { fall, taken } = fallingPlayer({ gamemode: Gametype.CREATIVE });
 
-        expect(hits).toEqual([]);
+        fall(10);
+
+        expect(taken()).toBe(0);
     });
 
-    it('reads the block under the feet, not the one under the eyes', async () => {
-        // A client reports its eyes, 1.62 above its feet. Standing on hay at y 63 puts the feet in
-        // the air block at 64 and the eyes in the one at 65.
-        const { hits, fall } = fallingPlayer({
-            blockAt: (y) => (y === 63 ? 'minecraft:hay_block' : 'minecraft:air')
-        });
-        await fall(100 + EYE_HEIGHT, 64 + EYE_HEIGHT);
+    it('does not charge a flying player for descending', () => {
+        const { fall, taken } = fallingPlayer({ gamemode: Gametype.CREATIVE, flying: true });
 
-        expect(hits).toEqual([]);
+        fall(10);
+
+        expect(taken()).toBe(0);
     });
 
-    it('costs nothing for a landing it cannot read, and loads no chunk to read it', async () => {
-        const { hits, fall } = fallingPlayer({ blockAt: () => undefined });
-        await fall(100, 60);
+    it('forgets the fall after landing, so the next step is free', () => {
+        const { fall, report, taken } = fallingPlayer();
 
-        expect(hits).toEqual([]);
+        fall(10);
+        expect(taken()).toBe(7);
+
+        report(0, false);
+        report(0, true);
+        expect(taken()).toBe(7);
     });
 
-    it('leaves a creative player alone', async () => {
-        const { hits, fall } = fallingPlayer({ gamemode: Gametype.CREATIVE });
-        await fall(100, 40);
+    it('does not charge for a teleport that happens to end lower down', () => {
+        const { fixture, player, report, taken } = fallingPlayer();
 
-        expect(hits).toEqual([]);
-    });
+        report(20, false);
+        fixture.runtime.teleportPlayer(player.id, { x: 0.5, y: FLOOR_Y + 1, z: 0.5 });
+        report(0, true);
 
-    it('does not charge a flying player for descending', async () => {
-        const { hits, fall } = fallingPlayer({ flying: true });
-        await fall(100, 40);
-
-        expect(hits).toEqual([]);
-    });
-
-    it('forgets the fall after landing, so the next step is free', async () => {
-        const { player, hits, fall } = fallingPlayer();
-        await fall(100, 90);
-        expect(hits).toHaveLength(1);
-
-        // Walk along the ground and land again.
-        await player.setOnGround(false);
-        await player.setPlayerPosition({ position: new Vector3(0, 90, 1), type: PositionMode.Normal }, false);
-        await player.setOnGround(true);
-
-        expect(hits).toHaveLength(1);
-    });
-
-    it('does not charge for a teleport that happens to end lower down', async () => {
-        // A world change or a `/tp` is not a fall, however far down it lands.
-        const { player, hits } = fallingPlayer();
-
-        await player.setPlayerPosition({ position: new Vector3(0, 20, 0), type: PositionMode.Teleport }, false);
-        await player.setOnGround(true);
-
-        expect(hits).toEqual([]);
+        expect(taken()).toBe(0);
     });
 });

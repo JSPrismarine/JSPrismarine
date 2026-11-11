@@ -1,6 +1,6 @@
 import { Vector3 } from '@jsprismarine/math';
 import { LevelSoundEvent } from '@jsprismarine/minecraft';
-import type { Entity } from './Entity';
+import type { WorldActor } from '../world/WorldActor';
 
 /**
  * Loosing an arrow from a bow.
@@ -65,11 +65,11 @@ export const lookVector = (yaw: number, pitch: number): Vector3 => {
  *
  * The shot starts at the shooter's own position, which for a player is already their eyes - so
  * nothing has to be added on top, and adding an eye height would put the arrow above their head.
- * @param {Entity} shooter - Who drew the bow.
+ * @param {WorldActor} shooter - Who drew the bow.
  * @param {number} ticks - How long they drew it for.
  * @returns {Promise<boolean>} `false` if the draw was too short to be worth loosing.
  */
-export const loose = async (shooter: Entity, ticks: number): Promise<boolean> => {
+export const loose = async (shooter: WorldActor, ticks: number): Promise<boolean> => {
     const power = drawPower(ticks);
     if (power < MIN_POWER) return false;
 

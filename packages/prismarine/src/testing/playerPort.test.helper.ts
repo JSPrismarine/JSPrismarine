@@ -1,5 +1,5 @@
 import type Player from '../Player';
-import type { LegacyPlayerBody } from '../entity/LegacyPlayerBody';
+import type { StorePlayerActor } from '../entity/data/storePlayers';
 import type { StubMembers } from './stub.test.helper';
 import { stub } from './stub.test.helper';
 
@@ -14,13 +14,14 @@ import { stub } from './stub.test.helper';
  * the handler reads. The package that moves live players into the store retypes `getPlayer()`,
  * and the callers of this helper then change in one file.
  *
- * The double's body answers the same members, because a handler hands the player's body to what
- * shows it, such as a move broadcast, and the session shows its own player through its body.
+ * The double's actor and body answer the same members, because a handler hands the player's actor
+ * to what shows it, such as a move broadcast, and the session shows its own player through its
+ * body.
  *
  * @param port - The members the handler reads. Anything else is absent on the double.
  * @returns A double that satisfies the session's `getPlayer()` and holds only those members.
  */
 export const stubPlayerPort = <Port extends StubMembers<Player>>(port: Port): Player => {
-    const body: LegacyPlayerBody = Object.assign(Object.create(Object.prototype), port);
-    return stub<Player>({ ...port, getBody: () => body });
+    const actor = stub<StorePlayerActor>(port);
+    return stub<Player>({ ...port, getBody: () => actor, getActor: () => actor });
 };

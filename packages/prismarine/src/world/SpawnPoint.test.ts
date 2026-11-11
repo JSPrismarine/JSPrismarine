@@ -31,6 +31,7 @@ import { buildServerContent } from '../content/ServerContent';
 import type { ServerContent } from '../content/ServerContent';
 import type { ServerWorldHandle } from '../content/world/serverSource';
 import { serverWorldSource } from '../content/world/serverSource';
+import { EntityRuntimes } from '../entity/data/live';
 import { useItemOnBlock } from '../item/interaction';
 import type ClientConnection from '../network/ClientConnection';
 import { createConnectedPlayer } from '../network/createConnectedPlayer';
@@ -118,6 +119,7 @@ const buildScene = async (name: string) => {
     let content: ServerContent | undefined;
 
     const sessions = sessionsWith();
+    const entityRuntimes = new EntityRuntimes();
 
     const server: Server = stub<Server>({
         getSessionManager: () => sessions,
@@ -137,7 +139,9 @@ const buildScene = async (name: string) => {
             if (content === undefined) throw new Error('the content was read before it was built');
             return content;
         },
-        getEntityRuntime: () => inertEntityRuntime(),
+        // The runtimes the content build opens, which hold the players `addPlayer` enters.
+        getEntityRuntime: (dimension: string) => entityRuntimes.at(dimension) ?? inertEntityRuntime(),
+        getStorePlayers: () => entityRuntimes.players,
         getWorldManager: () =>
             stub<WorldManager>({
                 getLevels: () => (level === undefined ? [] : [level]),
@@ -177,7 +181,8 @@ const buildScene = async (name: string) => {
             return content;
         },
         seed: 1234n,
-        difficulty: () => 2
+        difficulty: () => 2,
+        entityRuntimes
     });
 
     content = buildServerContent({

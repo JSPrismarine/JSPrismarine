@@ -39,7 +39,6 @@ import { AttributeIds } from '@jsprismarine/protocol/wire/structures/Attribute';
 import { portalRuleOf } from '../portal/rules';
 import { createEngineWorld } from '../EngineWorld';
 import type { Generator } from '../Generator';
-import { Position } from '../Position';
 import { World } from '../World';
 import { NULL_WORLD_CHANGE_SINK } from '../WorldChangeSink';
 import { WorldSystems } from '../WorldSystems';
@@ -285,9 +284,10 @@ const buildOver = (world: World, runtimes: EntityRuntimes): { source: ServerWorl
 };
 
 /** A connected player standing in the End world, with its captured packets. */
-const enterArena = (world: World, players: Map<bigint, Player>, x: number, y: number, z: number) => {
+const enterArena = (players: Map<bigint, Player>, x: number, y: number, z: number) => {
     const fixture = fakePlayer();
-    Object.assign(fixture.player.getBody(), { position: new Position(x, y, z, world) });
+    // Its eyes there, as a client reports them.
+    fixture.player.getStorePlayer().placeAt({ x, y, z, yaw: 0, pitch: 0, headYaw: 0 });
     players.set(fixture.player.getRuntimeId(), fixture.player);
     return fixture;
 };
@@ -340,7 +340,7 @@ describe('the dragon fight over a live End world', () => {
 
     describe('scanning', () => {
         it('scans once on the first populated tick: the inactive podium appears and is recorded', async () => {
-            enterArena(world, players, 0, 70, 0);
+            enterArena(players, 0, 70, 0);
             const fight = freshFight();
 
             await run(fight, 1);
@@ -367,7 +367,7 @@ describe('the dragon fight over a live End world', () => {
         });
 
         it('adopts an existing podium instead of placing one, reading its activity', async () => {
-            enterArena(world, players, 0, 70, 0);
+            enterArena(players, 0, 70, 0);
             const first = freshFight();
             await run(first, 1);
             // Activate the ring by hand, as a dragon death will in a later slice, and let go
@@ -385,7 +385,7 @@ describe('the dragon fight over a live End world', () => {
         });
 
         it('does not rescan a saved state', async () => {
-            enterArena(world, players, 0, 70, 0);
+            enterArena(players, 0, 70, 0);
             const fight = freshFight({ ...killedState(), dragonKilled: true });
 
             await run(fight, 25);
@@ -405,7 +405,7 @@ describe('the dragon fight over a live End world', () => {
 
     describe('the dragon', () => {
         it('spawns one dragon at (0, 128, 0) on a fresh fight and keeps its reference', async () => {
-            enterArena(world, players, 0, 70, 0);
+            enterArena(players, 0, 70, 0);
             const fight = freshFight();
 
             await run(fight, 40);
@@ -418,7 +418,7 @@ describe('the dragon fight over a live End world', () => {
         });
 
         it('does not respawn the dragon of a killed-and-saved fight', async () => {
-            enterArena(world, players, 0, 70, 0);
+            enterArena(players, 0, 70, 0);
             const fight = freshFight(killedState());
 
             await run(fight, 40);
@@ -427,7 +427,7 @@ describe('the dragon fight over a live End world', () => {
         });
 
         it('learns of the dragon dying through the removal hook and goes killed', async () => {
-            const { sent } = enterArena(world, players, 0, 70, 0);
+            const { sent } = enterArena(players, 0, 70, 0);
             const fight = freshFight();
             await run(fight, 1);
             const dragon = dragons()[0]!;
@@ -444,7 +444,7 @@ describe('the dragon fight over a live End world', () => {
         });
 
         it('heals one point per ten ticks while a crystal is within 32 blocks', async () => {
-            enterArena(world, players, 0, 70, 0);
+            enterArena(players, 0, 70, 0);
             const fight = freshFight();
             await run(fight, 1);
             const dragon = dragons()[0]!;
@@ -457,7 +457,7 @@ describe('the dragon fight over a live End world', () => {
         });
 
         it('does not heal from a crystal further than 32 blocks away', async () => {
-            enterArena(world, players, 0, 70, 0);
+            enterArena(players, 0, 70, 0);
             const fight = freshFight();
             await run(fight, 1);
             const dragon = dragons()[0]!;
@@ -472,7 +472,7 @@ describe('the dragon fight over a live End world', () => {
 
     describe('the boss bar', () => {
         it('shows a pink dragon bar to a player in the arena and its percent follows the health', async () => {
-            const near = enterArena(world, players, 0, 70, 0);
+            const near = enterArena(players, 0, 70, 0);
             const fight = freshFight();
 
             await run(fight, 1);
@@ -493,8 +493,8 @@ describe('the dragon fight over a live End world', () => {
         });
 
         it('never shows the bar to a player outside the 192 radius', async () => {
-            const near = enterArena(world, players, 0, 70, 0);
-            const far = enterArena(world, players, 400, 70, 0);
+            const near = enterArena(players, 0, 70, 0);
+            const far = enterArena(players, 400, 70, 0);
             const fight = freshFight();
 
             await run(fight, 25);
@@ -504,11 +504,11 @@ describe('the dragon fight over a live End world', () => {
         });
 
         it('adds a player entering the End mid-fight and removes one leaving it', async () => {
-            enterArena(world, players, 0, 70, 0);
+            enterArena(players, 0, 70, 0);
             const fight = freshFight();
             await run(fight, 5);
 
-            const arriving = enterArena(world, players, 10, 70, 10);
+            const arriving = enterArena(players, 10, 70, 10);
             await run(fight, 20);
             expect(bossEvents(arriving.sent).map((event) => event.eventType)).toContain(BossEventUpdateType.Add);
 
@@ -520,7 +520,7 @@ describe('the dragon fight over a live End world', () => {
         });
 
         it('shows no bar while the fight is saved as killed', async () => {
-            const near = enterArena(world, players, 0, 70, 0);
+            const near = enterArena(players, 0, 70, 0);
             const fight = freshFight(killedState());
 
             await run(fight, 25);
@@ -579,7 +579,7 @@ describe('the dragon fight over a live End world', () => {
                 .map((orb) => orb.spawnData?.['value']);
 
         it('opens the portal, drops the egg and spends a gateway on the first kill', async () => {
-            const { player } = enterArena(world, players, 0, 70, 0);
+            const { player } = enterArena(players, 0, 70, 0);
             const fight = freshFight();
             await run(fight, 1);
 
@@ -602,7 +602,7 @@ describe('the dragon fight over a live End world', () => {
         });
 
         it('fills the ring with the block the travel rules carry a player out with', async () => {
-            const { player } = enterArena(world, players, 0, 70, 0);
+            const { player } = enterArena(players, 0, 70, 0);
             const fight = freshFight();
             await run(fight, 1);
 
@@ -615,7 +615,7 @@ describe('the dragon fight over a live End world', () => {
         });
 
         it('pays the first kill 12000 points, as orbs and directly to the killer', async () => {
-            const { player } = enterArena(world, players, 0, 70, 0);
+            const { player } = enterArena(players, 0, 70, 0);
             const fight = freshFight();
             await run(fight, 1);
 
@@ -630,7 +630,7 @@ describe('the dragon fight over a live End world', () => {
         });
 
         it('pays 500, spends the next gateway and places no egg on a repeat kill', async () => {
-            const { player } = enterArena(world, players, 0, 70, 0);
+            const { player } = enterArena(players, 0, 70, 0);
             const fight = freshFight({ ...killedState(), dragonKilled: false });
             await run(fight, 1);
 
@@ -649,7 +649,7 @@ describe('the dragon fight over a live End world', () => {
         });
 
         it('pays the orbs but no direct award when no player dealt the killing blow', async () => {
-            const { player } = enterArena(world, players, 0, 70, 0);
+            const { player } = enterArena(players, 0, 70, 0);
             const fight = freshFight();
             await run(fight, 1);
             const dragon = dragons()[0]!;
@@ -683,7 +683,7 @@ describe('the dragon fight over a live End world', () => {
         };
 
         it('requires four edge crystals and runs the complete saved stage timeline', async () => {
-            enterArena(world, players, 0, 70, 0);
+            enterArena(players, 0, 70, 0);
             const fight = freshFight(killedState());
             const firstThree = [addRespawnCrystal(3, 0), addRespawnCrystal(-3, 0), addRespawnCrystal(0, 3)].filter(
                 (crystal) => crystal !== undefined
@@ -745,7 +745,7 @@ describe('the dragon fight over a live End world', () => {
         });
 
         it('aborts when one of the four driving crystals dies and restores the active podium', async () => {
-            enterArena(world, players, 0, 70, 0);
+            enterArena(players, 0, 70, 0);
             const fight = freshFight(killedState());
             const crystals = addFourRespawnCrystals();
             expect(fight.tryRespawn()).toBe(true);
@@ -762,7 +762,7 @@ describe('the dragon fight over a live End world', () => {
         });
 
         it('aborts a saved sequence when a driving crystal is missing after reload', async () => {
-            enterArena(world, players, 0, 70, 0);
+            enterArena(players, 0, 70, 0);
             const fight = freshFight(killedState());
             const crystals = addFourRespawnCrystals();
             expect(fight.tryRespawn()).toBe(true);
@@ -840,7 +840,7 @@ describe('the dragon fight over a live End world', () => {
         };
 
         it('keeps ticking and opens the portal when the dragon dies outside a tick', async () => {
-            enterArena(world, players, 0, 70, 0);
+            enterArena(players, 0, 70, 0);
             await ticker.advance();
             const dragon = dragons()[0]!;
 

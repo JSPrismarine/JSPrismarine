@@ -49,7 +49,7 @@ import type { EntityItemInteraction } from './itemInteraction';
 import type { ContentItemEntity, EntityHostFacts, EntityWorldFacts } from './host';
 import { EntityRuntime, PROJECTILE_EYE_HEIGHT_FRACTION } from './EntityRuntime';
 import { INERT_ACTOR, InertActor, StoreActor, StoreActors } from './storeActors';
-import { StorePlayers } from './storePlayers';
+import { StorePlayerActor, StorePlayers } from './storePlayers';
 import { storePlayerHostFacts } from './playerHostFacts';
 import { consumeHeldItem } from '../../item/interaction';
 import { clientOwnsMovement } from '../playerOverlay';
@@ -365,6 +365,15 @@ const liveHost = (
             advancementKill(victim, source);
         }
         advancementDamage(victim, source, commit.dealt, commit.taken, false);
+
+        // A player's death is also its session's: the death message, the respawn search and the
+        // death screen. What it commits it commits before its first wait, inside this blow.
+        if (commit.died && victim instanceof StorePlayerActor)
+            void world
+                .viewerOf(victim.getRuntimeId())
+                ?.getPlayer()
+                .die(source)
+                .catch((error: unknown) => options.report(String(error)));
     },
     players: () => options.entities.players(),
     playerView: (id) => {
@@ -573,8 +582,8 @@ export class LiveEntityRuntime {
     private readonly failedPlayers = new Set<number>();
 
     /**
-     * @param players - The server's store players, whose actors show them as players; empty
-     *   until package C4h puts live players into the store.
+     * @param players - The server's store players, whose actors show them as players and whose
+     *   inventories answer the host's meal and armor facts.
      */
     public constructor(options: LiveEntityOptions, players = new StorePlayers()) {
         this.options = options;
