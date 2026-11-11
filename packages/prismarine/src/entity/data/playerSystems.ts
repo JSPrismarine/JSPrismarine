@@ -32,6 +32,7 @@ import { beginMeal, cancelMeal, dueMeal } from '../playerMeal';
 import { mineTick, stopCracking } from '../playerMining';
 import { diedVitals, respawnVitals } from '../playerRespawn';
 import type { MiningEvent } from '../playerMining';
+import { survivalReaches } from '../survivalPlayer';
 import type { SurvivalPlayer } from '../survivalPlayer';
 import type { DamageIntent, DamageOutcome } from './damagePipeline';
 import type { DataEntity } from './DataEntity';
@@ -307,9 +308,7 @@ export class PlayerSystems {
         const player: StorePlayer = {
             survival: {
                 components,
-                // Game mode is not a store component yet, so every store player is in survival
-                // until C4h moves the live player's game mode onto the entity.
-                vulnerable: () => true,
+                vulnerable: () => survivalReaches(components.get('abilities.gamemode')),
                 alive: () => (health()?.current ?? 0) > 0 && !this.ports.dying(entity.id),
                 health: () => health()?.current ?? 0,
                 maxHealth: () => health()?.max ?? 0

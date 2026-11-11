@@ -9,7 +9,13 @@
  * A rule that hurts or heals returns what to do instead of doing it, because a legacy player's
  * damage still waits on its packets and a store player's runs through the store's pipeline.
  */
+import { Gametype } from '@jsprismarine/minecraft';
+
 import type { PlayerComponents } from './playerComponents';
+
+/** Whether hunger, breath and falls reach a player in a game mode, which they do in survival and adventure. */
+export const survivalReaches = (gamemode: Gametype): boolean =>
+    gamemode === Gametype.SURVIVAL || gamemode === Gametype.ADVENTURE;
 
 /** What a survival rule reads of a player besides its components. */
 export interface SurvivalPlayer {

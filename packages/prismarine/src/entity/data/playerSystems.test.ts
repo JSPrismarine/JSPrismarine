@@ -4,7 +4,7 @@
  * Asserted as health, component values and change log entries.
  */
 import { AIR_STATE } from '@jsprismarine/entities';
-import { LevelEvent } from '@jsprismarine/minecraft';
+import { Gametype, LevelEvent } from '@jsprismarine/minecraft';
 import { describe, expect, it } from 'vitest';
 
 import { PLAYER_IDENTIFIER } from '../playerOverlay';
@@ -432,6 +432,39 @@ describe('a store player', () => {
             expect(components.get('movement.sprinting')).toBe(false);
             expect(fieldsOf(revival, 'vitals.food')).toHaveLength(1);
             expect(revival.filter((entry) => entry.kind === 'membership')).toHaveLength(0);
+        });
+    });
+
+    describe('game mode', () => {
+        it('spares a creative player hunger, breath and falls, and logs and undoes the change', () => {
+            const fixture = storePlayerFixture();
+            const { player, components } = standingPlayer(fixture);
+            components.set('vitals.food', 0);
+
+            const change = logged(fixture.runtime, () => components.set('abilities.gamemode', Gametype.CREATIVE));
+            expect(fieldsOf(change, 'abilities.gamemode')).toHaveLength(1);
+            ticks(fixture, 80);
+            expect(dropFrom(fixture, player, 10)).toBeDefined();
+            expect(healthOf(player)).toBe(20);
+
+            fixture.runtime.store.beginTick();
+            fixture.runtime.store.unit(() => {
+                components.set('abilities.gamemode', Gametype.SURVIVAL);
+                throw new Error('undo it');
+            });
+            fixture.runtime.store.sealTick();
+            expect(components.get('abilities.gamemode')).toBe(Gametype.CREATIVE);
+        });
+
+        it('reaches a player in adventure as in survival', () => {
+            const fixture = storePlayerFixture();
+            const { player, components } = standingPlayer(fixture);
+            components.set('abilities.gamemode', Gametype.ADVENTURE);
+            components.set('vitals.food', 0);
+
+            ticks(fixture, 1, 80);
+
+            expect(healthOf(player)).toBe(19);
         });
     });
 

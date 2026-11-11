@@ -11,9 +11,14 @@
  * A field is named `<component>.<field>` in the log. Food, saturation, exhaustion, experience
  * and the player's other attributes stay in the attributes, and air, breathing and sprinting in
  * the actor metadata, because the client is sent both and a save reads them, so a component
- * reads and writes them there and keeps no second copy. Health, game mode and the inventory are
- * logged on their own paths.
+ * reads and writes them there and keeps no second copy. Health and the inventory are logged on
+ * their own paths.
+ *
+ * The game mode is `abilities.gamemode`. A legacy `Player` keeps its own in `Player.gamemode`,
+ * which the legacy adapter logs as `gamemode`, and never writes this field, so the field is the
+ * store player's until the legacy class goes.
  */
+import { Gametype, getGametypeId } from '@jsprismarine/minecraft';
 import { AttributeIds } from '@jsprismarine/protocol/wire/structures/Attribute';
 import type { Attributes } from '@jsprismarine/protocol/wire/structures/Attribute';
 import { Metadata } from '@jsprismarine/protocol/wire/structures/Metadata';
@@ -75,6 +80,8 @@ export type PlayerComponentValues = {
     'experience.progress': number;
     /** Whether the player is flying, which only a creative or spectator player may. */
     'abilities.flying': boolean;
+    /** The game mode, which decides whether hunger, breath and falls reach the player. */
+    'abilities.gamemode': Gametype;
     /** Whether the client reported the player sneaking. */
     'movement.sneaking': boolean;
     /** Whether the client reported the player asleep in a bed. */
@@ -111,6 +118,10 @@ export type PlayerComponentValues = {
     'consumption.meal': PlayerMeal | null;
 };
 
+/** Whether a player in a game mode may fly, which a creative or spectator player may. */
+export const mayFlyIn = (gamemode: Gametype): boolean =>
+    gamemode === Gametype.CREATIVE || gamemode === Gametype.SPECTATOR;
+
 /** The name of one logged component field. */
 export type PlayerComponentField = keyof PlayerComponentValues;
 
@@ -119,6 +130,8 @@ const initialState = () => ({
     'vitals.drowningTicks': 0,
     'vitals.fallDistance': 0,
     'abilities.flying': false,
+    // A player is in survival until a saved record or the world's default game mode says otherwise.
+    'abilities.gamemode': Gametype.SURVIVAL,
     'movement.sneaking': false,
     'movement.sleeping': false,
     'movement.onGround': false,
@@ -199,6 +212,8 @@ const spawnPointIn = (value: PlainData): StoredSpawnPoint | null => {
     throw new TypeError(`respawn.spawnPoint cannot hold ${JSON.stringify(value)}`);
 };
 
+const gamemodeIn = (value: PlainData): Gametype => getGametypeId(numberField('abilities.gamemode')(value));
+
 const startedAtIn = (value: PlainData): number | null => optionalNumberField('itemUse.startedAt')(value) ?? null;
 
 const miningIn = (value: PlainData): PlayerMining | null => {
@@ -248,6 +263,7 @@ const FIELDS: { readonly [F in PlayerComponentField]: FieldDescriptor<PlayerComp
     'experience.level': attribute(AttributeIds.PlayerLevel, 'experience.level'),
     'experience.progress': attribute(AttributeIds.PlayerExperience, 'experience.progress'),
     'abilities.flying': own('abilities.flying', booleanField('abilities.flying')),
+    'abilities.gamemode': own('abilities.gamemode', gamemodeIn),
     'movement.sneaking': own('movement.sneaking', booleanField('movement.sneaking')),
     'movement.sleeping': own('movement.sleeping', booleanField('movement.sleeping')),
     'movement.onGround': own('movement.onGround', booleanField('movement.onGround')),
