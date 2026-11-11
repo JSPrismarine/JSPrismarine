@@ -235,6 +235,8 @@ export function toPacketCompressionThreshold(raw: unknown): number {
 
 export class Config {
     private configBuilder!: ConfigBuilder;
+    /** The last file write a setter queued; see {@link Config.writeLater}. */
+    private writes: Promise<void> = Promise.resolve();
 
     private readonly serverPortOverride: number | undefined;
 
@@ -416,10 +418,43 @@ export class Config {
     }
 
     /**
-     * On disable hook.
+     * On disable hook. Waits for the file writes setters queued, so a change made just before
+     * the server stops still reaches the file.
      * @group Lifecycle
      */
-    public async disable(): Promise<void> {}
+    public async disable(): Promise<void> {
+        await this.writes;
+    }
+
+    /**
+     * Writes one key to the config file on a later turn of the event loop, behind the writes
+     * queued before it. A setter called from an input-lane handler changes memory at once and
+     * leaves the file to after the input step
+     * ([ADR 0014](../../../../docs/adr/0014-handlers-share-a-shape-and-run-in-the-input-step.md)).
+     * The file is read and rewritten in one synchronous step when the write runs, so a key
+     * another setter writes in between is not lost.
+     *
+     * @returns Settles once the key is in the file.
+     * @throws Error, through the promise, when the file could not be read or written. The writes
+     *   queued after it still run.
+     */
+    private writeLater(key: keyof ConfigFile, value: unknown): Promise<void> {
+        const written = this.writes.then(
+            () =>
+                new Promise<void>((resolve, reject) => {
+                    setImmediate(() => {
+                        try {
+                            if (this.configBuilder.set(key, value)) resolve();
+                            else reject(new Error(`Could not write ${key} to ${this.configBuilder.getPath()}`));
+                        } catch (error: unknown) {
+                            reject(error);
+                        }
+                    });
+                })
+        );
+        this.writes = written.catch(() => undefined);
+        return written;
+    }
 
     public getLogLevel(): LogLevel {
         return this.logLevel;
@@ -512,12 +547,17 @@ export class Config {
     /**
      * Set the default gamemode.
      *
+     * The value changes at once. The file is written afterwards, off the tick, so an input-lane
+     * handler can call this.
+     *
      * @param gamemode - the gamemode
      * @param commit - whether to write the value to the server config file
+     * @returns Settles once the value is in the file, and at once when `commit` is false.
+     * @throws Error, through the promise, when the file could not be written.
      */
-    public setGamemode(gamemode: number, commit = false) {
+    public setGamemode(gamemode: number, commit = false): Promise<void> {
         this.gamemode = getGametypeName(gamemode);
-        if (commit) this.configBuilder.set('gamemode', this.gamemode);
+        return commit ? this.writeLater('gamemode', this.gamemode) : Promise.resolve();
     }
 
     /**

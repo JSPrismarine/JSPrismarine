@@ -398,6 +398,34 @@ describe('config', () => {
             expect(config.getGamemode().toLowerCase()).toBe('creative');
         });
 
+        it('changes the default gamemode at once and writes it to the file afterwards', async () => {
+            const file = path.join(configDirectory, 'config.json');
+            const before = readFileSync(file, 'utf8');
+
+            const written = config.setGamemode(Gametype.CREATIVE, true);
+
+            expect(config.getGamemode()).toBe('Creative');
+            expect(readFileSync(file, 'utf8')).toBe(before);
+
+            // A key another setter writes before the queued one runs is kept.
+            config.setMotd('Written first', true);
+            await written;
+
+            const reopened = new Config();
+            await reopened.enable();
+            expect(reopened.getGamemode()).toBe('Creative');
+            expect(reopened.getMotd()).toBe('Written first');
+        });
+
+        it('finishes a queued write before it is disabled', async () => {
+            void config.setGamemode(Gametype.ADVENTURE, true);
+            await config.disable();
+
+            const reopened = new Config();
+            await reopened.enable();
+            expect(reopened.getGamemode()).toBe('Adventure');
+        });
+
         it('should set the MOTD', () => {
             config.setMotd('Welcome to my server!');
             expect(config.getMotd()).toBe('Welcome to my server!');

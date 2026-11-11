@@ -2,9 +2,8 @@ import { PlayerPermissionLevel } from '@jsprismarine/minecraft';
 import { describe, expect, it } from 'vitest';
 
 import type { Logger } from '@jsprismarine/logger';
-import type Server from '../../Server';
-import type SessionManager from '../../SessionManager';
-import type { PermissionManager } from '../../permission/PermissionManager';
+import type { HandlerServices } from './HandlerContext';
+import { inputContext } from '../../testing/handlerContext.test.helper';
 import { identityNamed, STEVE } from '../../testing/sessionIdentity.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import type PlayerSession from '../PlayerSession';
@@ -33,24 +32,33 @@ const fakeSession = ({ op = true }: { op?: boolean } = {}) => {
         resent,
         logged,
         target,
-        server: stub<Server>({
-            getLogger: () => stub<Logger>({ debug: (...message) => void logged.push(message[0] ?? '') }),
-            getSessionManager: () =>
-                stub<SessionManager>({ sessionOf: (id) => (id === targetSession.runtimeId ? targetSession : null) }),
-            getPermissionManager: () =>
-                stub<PermissionManager>({
-                    isOp: (uuid) => op && uuid === STEVE.uuid,
-                    setOp: async (name, value) => {
-                        opChanges.push([name, value]);
-                        return true;
-                    }
-                })
-        }),
+        log: stub<Logger>({ debug: (...message) => void logged.push(message[0] ?? '') }),
+        services: {
+            sessions: stub<HandlerServices['sessions']>({
+                sessionOf: (id) => (id === targetSession.runtimeId ? targetSession : null)
+            }),
+            permissions: stub<HandlerServices['permissions']>({
+                isOp: (uuid) => op && uuid === STEVE.uuid,
+                setOpNow: (session, value) => {
+                    opChanges.push([session.identity.name, value]);
+                    return Promise.resolve();
+                }
+            })
+        },
         session: stub<PlayerSession>({
             identity: STEVE,
             sendAbilities: async (player) => void resent.push(player)
         })
     };
+};
+
+/** Runs one request as the input step would, and returns what the handler handed the step. */
+const handle = async (fake: ReturnType<typeof fakeSession>, packet: RequestPermissionsPacket) => {
+    const { context, outputs, deferred, settled } = inputContext(fake.session, fake);
+    const returned = new RequestPermissionsHandler().handle(packet, context);
+    const handed = { returned, outputs: outputs.length, deferred: deferred.length };
+    await settled();
+    return handed;
 };
 
 const request = (level: PlayerPermissionLevel, target = 7n, customPermissionFlags = 0) =>
@@ -62,19 +70,45 @@ const request = (level: PlayerPermissionLevel, target = 7n, customPermissionFlag
 
 describe('RequestPermissionsHandler', () => {
     it('makes the target an operator when an operator asks', async () => {
-        const { opChanges, resent, server, session } = fakeSession();
+        const fake = fakeSession();
+        const { opChanges, resent } = fake;
 
-        await new RequestPermissionsHandler().handle(request(PlayerPermissionLevel.OPERATOR), server, session);
+        await handle(fake, request(PlayerPermissionLevel.OPERATOR));
 
         expect(opChanges).toEqual([['Alex', true]]);
         expect(resent).toEqual([]);
     });
 
-    it('removes the target from the op list for Member and Visitor', async () => {
-        const { opChanges, server, session } = fakeSession();
+    it('changes the op list before it returns and hands the sends to the step', () => {
+        const fake = fakeSession();
+        const { context, outputs, deferred } = inputContext(fake.session, fake);
 
-        await new RequestPermissionsHandler().handle(request(PlayerPermissionLevel.MEMBER), server, session);
-        await new RequestPermissionsHandler().handle(request(PlayerPermissionLevel.VISITOR), server, session);
+        const returned = new RequestPermissionsHandler().handle(request(PlayerPermissionLevel.OPERATOR), context);
+
+        expect(returned).toBeUndefined();
+        expect(fake.opChanges).toEqual([['Alex', true]]);
+        expect(outputs).toHaveLength(1);
+        expect(deferred).toHaveLength(0);
+    });
+
+    it('sends nothing when a listener cancels the change', async () => {
+        const fake = fakeSession();
+        const permissions = stub<HandlerServices['permissions']>({ isOp: () => true, setOpNow: () => undefined });
+
+        const handed = await handle(
+            { ...fake, services: { ...fake.services, permissions } },
+            request(PlayerPermissionLevel.OPERATOR)
+        );
+
+        expect(handed).toEqual({ returned: undefined, outputs: 0, deferred: 0 });
+    });
+
+    it('removes the target from the op list for Member and Visitor', async () => {
+        const fake = fakeSession();
+        const { opChanges } = fake;
+
+        await handle(fake, request(PlayerPermissionLevel.MEMBER));
+        await handle(fake, request(PlayerPermissionLevel.VISITOR));
 
         expect(opChanges).toEqual([
             ['Alex', false],
@@ -83,9 +117,10 @@ describe('RequestPermissionsHandler', () => {
     });
 
     it('refuses a non-operator by resending their own abilities', async () => {
-        const { opChanges, resent, logged, server, session } = fakeSession({ op: false });
+        const fake = fakeSession({ op: false });
+        const { opChanges, resent, logged } = fake;
 
-        await new RequestPermissionsHandler().handle(request(PlayerPermissionLevel.OPERATOR), server, session);
+        await handle(fake, request(PlayerPermissionLevel.OPERATOR));
 
         expect(opChanges).toEqual([]);
         expect(resent).toEqual([undefined]);
@@ -93,9 +128,10 @@ describe('RequestPermissionsHandler', () => {
     });
 
     it('resends the target abilities for a Custom level it cannot model', async () => {
-        const { opChanges, resent, logged, target, server, session } = fakeSession();
+        const fake = fakeSession();
+        const { opChanges, resent, logged, target } = fake;
 
-        await new RequestPermissionsHandler().handle(request(PlayerPermissionLevel.CUSTOM, 7n, 0xff), server, session);
+        await handle(fake, request(PlayerPermissionLevel.CUSTOM, 7n, 0xff));
 
         expect(opChanges).toEqual([]);
         expect(resent).toEqual([target]);
@@ -105,9 +141,10 @@ describe('RequestPermissionsHandler', () => {
     });
 
     it('logs and does nothing for a target who is not online', async () => {
-        const { opChanges, resent, logged, server, session } = fakeSession();
+        const fake = fakeSession();
+        const { opChanges, resent, logged } = fake;
 
-        await new RequestPermissionsHandler().handle(request(PlayerPermissionLevel.OPERATOR, 99n), server, session);
+        await handle(fake, request(PlayerPermissionLevel.OPERATOR, 99n));
 
         expect(opChanges).toEqual([]);
         expect(resent).toEqual([]);

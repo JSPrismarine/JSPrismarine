@@ -1,10 +1,10 @@
 import type { Gametype, GametypeName } from '@jsprismarine/minecraft';
 import { getGametypeId, getGametypeName } from '@jsprismarine/minecraft';
 
-import type Server from '../../Server';
 import type PlayerSession from '../PlayerSession';
 import SetDefaultGameTypePacket from '@jsprismarine/protocol/packet/SetDefaultGameTypePacket';
-import type PacketHandler from './PacketHandler';
+import type { HandlerConfig, InputContext } from './HandlerContext';
+import type { InputLaneHandler } from './SessionHandler';
 
 /**
  * The name the config stores for a default, or null when it has none for the value.
@@ -21,6 +21,13 @@ const nameOfDefault = (gamemode: Gametype): GametypeName | null => {
     }
 };
 
+/** Tells one client the default the server holds. */
+const sendDefault = async (config: Pick<HandlerConfig, 'getGamemode'>, session: PlayerSession): Promise<void> => {
+    const reply = new SetDefaultGameTypePacket();
+    reply.gamemode = getGametypeId(config.getGamemode());
+    await session.getConnection().sendDataPacket(reply);
+};
+
 /**
  * Applies the default game type a client picked from the world settings screen.
  *
@@ -29,42 +36,43 @@ const nameOfDefault = (gamemode: Gametype): GametypeName | null => {
  * its screen to the value it asked for. An accepted one is written to the config, applied to
  * every player, and then sent to every client, which is what the docs describe.
  */
-export default class SetDefaultGameTypeHandler implements PacketHandler<SetDefaultGameTypePacket> {
+export default class SetDefaultGameTypeHandler implements InputLaneHandler<SetDefaultGameTypePacket> {
     public static PacketName = 'SetDefaultGameTypePacket';
+    public readonly takes = 'context';
     public readonly phases = ['play'] as const;
     public readonly lane = 'input';
 
-    /** Sets the configured default and moves every player onto it, when the sender may. */
-    public async handle(packet: SetDefaultGameTypePacket, server: Server, session: PlayerSession): Promise<void> {
-        if (!server.getPermissionManager().isOp(session.identity.uuid)) {
-            server
-                .getLogger()
-                .warn(`Player ${session.identity.name} tried to change default gamemode without proper permissions.`);
-            await this.sendDefault(server, session);
+    /**
+     * Sets the configured default and moves every player onto it, when the sender may.
+     *
+     * The default changes in memory at once, and the config file is written off the tick.
+     */
+    public handle(packet: SetDefaultGameTypePacket, { session, log, config, services, step }: InputContext): undefined {
+        if (!services.permissions.isOp(session.identity.uuid)) {
+            log.warn(`Player ${session.identity.name} tried to change default gamemode without proper permissions.`);
+            step.output(sendDefault(config, session));
             return;
         }
 
         if (nameOfDefault(packet.gamemode) === null) {
-            server
-                .getLogger()
-                .debug(
-                    `${session.identity.name} asked for default game type ${packet.gamemode}, which a server cannot hold`,
-                    'SetDefaultGameTypeHandler/handle'
-                );
-            await this.sendDefault(server, session);
+            log.debug(
+                `${session.identity.name} asked for default game type ${packet.gamemode}, which a server cannot hold`,
+                'SetDefaultGameTypeHandler/handle'
+            );
+            step.output(sendDefault(config, session));
             return;
         }
 
-        server.getConfig().setGamemode(packet.gamemode, true);
-        const sessions = server.getSessionManager().getSessions();
-        await Promise.all(sessions.map(async (target) => target.setGamemode(packet.gamemode)));
-        await Promise.all(sessions.map(async (target) => this.sendDefault(server, target)));
-    }
-
-    /** Tells one client the default the server holds. */
-    private async sendDefault(server: Server, session: PlayerSession): Promise<void> {
-        const reply = new SetDefaultGameTypePacket();
-        reply.gamemode = getGametypeId(server.getConfig().getGamemode());
-        await session.getConnection().sendDataPacket(reply);
+        services.defaults.setGamemode(packet.gamemode, true).catch((error: unknown) => {
+            log.error(`Could not save the default game type ${packet.gamemode}: ${error}`);
+        });
+        const sessions = services.sessions.getSessions();
+        // `PlayerSession.setGamemode` waits for its sends and for the mining it stops, and it
+        // writes players in every world, not only the sender's. Slice 9, where a change to
+        // another world travels as a message, removes the wait.
+        step.defer(async () => {
+            await Promise.all(sessions.map(async (target) => target.setGamemode(packet.gamemode)));
+            await Promise.all(sessions.map(async (target) => sendDefault(config, target)));
+        });
     }
 }

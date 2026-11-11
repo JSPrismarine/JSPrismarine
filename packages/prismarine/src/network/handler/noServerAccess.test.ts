@@ -46,16 +46,7 @@ const STILL_REACH_SERVER: ReadonlyMap<string, readonly string[]> = new Map([
             'workstation.ts'
         ]
     ],
-    [
-        'D2e commands, chat and permissions',
-        [
-            'CommandRequestHandler.ts',
-            'RequestPermissionsHandler.ts',
-            'SetDefaultGameTypeHandler.ts',
-            'SettingsCommandHandler.ts',
-            'TextHandler.ts'
-        ]
-    ],
+    ['D2e commands, chat and permissions', ['CommandRequestHandler.ts', 'SettingsCommandHandler.ts', 'TextHandler.ts']],
     [
         'D2f the join',
         [
