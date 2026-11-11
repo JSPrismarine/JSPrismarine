@@ -15,6 +15,7 @@ import type { EntityPositionOptions } from './entity/Entity';
 import type { DataEntity } from './entity/data/DataEntity';
 import { boxOf } from './entity/data/facts';
 import type { EntityBox } from './entity/data/facts';
+import type { EntityRuntime } from './entity/data/EntityRuntime';
 import type { LiveEntityRuntime } from './entity/data/live';
 import { DetachedPlayerView, moveStorePlayer, StorePlayerActor } from './entity/data/storePlayers';
 import { entityIds } from './entity/entityIds';
@@ -225,10 +226,7 @@ export default class Player {
      * @param {BlockMining | null} mining - The block, or null when the player stopped or broke it.
      */
     public setMining(mining: BlockMining | null): void {
-        const placed = this.placed();
-        const value = mining === null ? null : playerMiningOf(mining);
-        if (placed === undefined) this.components.set('mining.block', value);
-        else placed.live.runtime.playerSystems.setMining(placed.entity, value);
+        this.runtime().setPlayerMining(this.store, mining === null ? null : playerMiningOf(mining));
     }
 
     /**
@@ -337,10 +335,19 @@ export default class Player {
      * or undefined from the login to its spawn and between two worlds.
      */
     private placed(): { readonly live: LiveEntityRuntime; readonly entity: DataEntity } | undefined {
-        const { entity } = this.store;
-        if (entity === undefined) return undefined;
+        if (this.store.entity === undefined) return undefined;
         const live = this.world.dataEntities();
-        return live.runtime.store.get(entity.id) === entity ? { live, entity } : undefined;
+        const entity = live.runtime.entityOfPlayer(this.store);
+        return entity === undefined ? undefined : { live, entity };
+    }
+
+    /**
+     * The entity runtime of the player's world, whose player inputs write what the client reports:
+     * through its player systems while the player is in its store, and onto the store player's
+     * components while it is in none.
+     */
+    private runtime(): EntityRuntime {
+        return this.world.dataEntities().runtime;
     }
 
     /**
@@ -700,7 +707,7 @@ export default class Player {
         if (event.getGamemode() !== this.gamemode) await this.stopMining();
 
         // A logged component field, which the store's player systems and the actor read.
-        this.gamemode = event.getGamemode();
+        this.runtime().setPlayerGamemode(this.store, event.getGamemode());
         await this.getNetworkSession().sendGamemode();
 
         // Everyone in the world, this player included, caches each player's game type and
@@ -1151,8 +1158,7 @@ export default class Player {
             // The entity never left the store: the revival brings it back with the same id at
             // full health, and the player systems reset the attributes, the lungs and the movement
             // flags. Each write is logged.
-            const placed = this.placed();
-            if (placed !== undefined) placed.live.runtime.revive(placed.entity.id);
+            this.runtime().revivePlayer(this.store);
             this.showOwnHealth();
             // Full lungs and no sprint, in the metadata the respawned client is sent.
             this.getActor()?.showPlayerState();
@@ -1269,8 +1275,7 @@ export default class Player {
      * ```
      */
     public addExhaustion(amount: number): void {
-        const placed = this.placed();
-        placed?.live.runtime.playerSystems.exhaust(placed.entity, amount);
+        this.runtime().exhaustPlayer(this.store, amount);
     }
 
     /**
@@ -1278,8 +1283,7 @@ export default class Player {
      * vanilla, at four times the cost of a standing jump.
      */
     public addJumpExhaustion(): void {
-        const placed = this.placed();
-        placed?.live.runtime.playerSystems.jumped(placed.entity);
+        this.runtime().playerJumped(this.store);
     }
 
     /** Whether the client last reported the player sprinting. */
@@ -1295,9 +1299,7 @@ export default class Player {
         if (event.isCanceled()) return;
 
         // `StoreActors.sync` shows the change to the player and its viewers.
-        const placed = this.placed();
-        if (placed === undefined) this.components.set('movement.sprinting', event.getIsSprinting());
-        else placed.live.runtime.playerSystems.setSprinting(placed.entity, event.getIsSprinting());
+        this.runtime().setPlayerSprinting(this.store, event.getIsSprinting());
     }
 
     public isFlying(): boolean {
@@ -1307,7 +1309,7 @@ export default class Player {
         if (flying === this.isFlying()) return;
 
         if (!mayFlyIn(this.gamemode)) {
-            this.flying = false;
+            this.runtime().setPlayerFlying(this.store, false);
             await this.sendSettings();
             return;
         }
@@ -1316,7 +1318,7 @@ export default class Player {
         this.getServer().post(['playerToggleFlight', event]);
         if (event.isCanceled()) return;
 
-        this.flying = event.getIsFlying();
+        this.runtime().setPlayerFlying(this.store, event.getIsFlying());
         await this.sendSettings();
     }
 
@@ -1325,9 +1327,7 @@ export default class Player {
     }
     public async setSneaking(sneaking: boolean): Promise<void> {
         if (sneaking === this.isSneaking()) return;
-        const placed = this.placed();
-        if (placed === undefined) this.components.set('movement.sneaking', sneaking);
-        else placed.live.runtime.playerSystems.setSneaking(placed.entity, sneaking);
+        this.runtime().setPlayerSneaking(this.store, sneaking);
     }
 
     /** Whether the client has reported this player asleep in a bed. */
@@ -1369,15 +1369,12 @@ export default class Player {
      * @param {number} ticks - How long the meal takes.
      */
     public beginConsuming(_tick: number, ticks: number): void {
-        const placed = this.placed();
-        placed?.live.runtime.playerSystems.beginMeal(placed.entity, ticks);
+        this.runtime().beginPlayerMeal(this.store, ticks);
     }
 
     /** Forgets an unfinished meal, as letting go of the button or putting the item away does. */
     public cancelConsuming(): void {
-        const placed = this.placed();
-        if (placed === undefined) this.components.set('consumption.meal', null);
-        else placed.live.runtime.playerSystems.cancelMeal(placed.entity);
+        this.runtime().cancelPlayerMeal(this.store);
     }
 
     /**

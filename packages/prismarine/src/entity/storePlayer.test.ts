@@ -3,6 +3,7 @@
  * held while it is in no store, logs nothing then, and once attached logs every component, hand
  * slot and carried slot write, which the runtime undoes. Asserted as state and change log entries.
  */
+import { Gametype } from '@jsprismarine/minecraft';
 import { describe, expect, it } from 'vitest';
 
 import ContainerEntry from '../inventory/ContainerEntry';
@@ -171,6 +172,72 @@ describe('a store player', () => {
             });
 
             expect(entries).toEqual([]);
+        });
+    });
+
+    describe("through the runtime's player inputs", () => {
+        const mining = { x: 1, y: FLOOR_Y, z: 0, face: 1, runtimeId: 7, progressPerTick: 0.1 };
+
+        it('logs each input in the store it is in, as one entry for its field', () => {
+            const fixture = storePlayerFixture();
+            const { player } = enteredStorePlayer(fixture);
+            const { runtime } = fixture;
+
+            const entries = logged(runtime, () => {
+                runtime.setPlayerMining(player, mining);
+                runtime.setPlayerSprinting(player, true);
+                runtime.setPlayerSneaking(player, true);
+                runtime.setPlayerGamemode(player, Gametype.CREATIVE);
+                runtime.setPlayerFlying(player, true);
+            });
+
+            for (const field of [
+                'mining.block',
+                'movement.sprinting',
+                'movement.sneaking',
+                'abilities.gamemode',
+                'abilities.flying'
+            ])
+                expect(fieldsOf(entries, field)).toHaveLength(1);
+            expect(player.gamemode).toBe(Gametype.CREATIVE);
+            expect(player.isFlying()).toBe(true);
+        });
+
+        it('writes onto the components and logs nothing while it is in no store', () => {
+            const fixture = storePlayerFixture();
+            const player = loggedInStorePlayer(fixture);
+            const { runtime } = fixture;
+
+            const entries = logged(runtime, () => {
+                runtime.setPlayerMining(player, mining);
+                runtime.setPlayerSprinting(player, true);
+                runtime.setPlayerGamemode(player, Gametype.CREATIVE);
+                runtime.cancelPlayerMeal(player);
+                runtime.exhaustPlayer(player, 40);
+                expect(runtime.beginPlayerMeal(player, 32)).toBe(false);
+                expect(runtime.revivePlayer(player)).toBe(false);
+            });
+
+            expect(entries).toEqual([]);
+            expect(player.getComponents().get('mining.block')).toEqual(mining);
+            expect(player.getComponents().get('movement.sprinting')).toBe(true);
+            expect(player.gamemode).toBe(Gametype.CREATIVE);
+            expect(player.getFood()).toBe(20);
+        });
+
+        it('writes a player in another store through its components, which that store logs', () => {
+            const overworld = storePlayerFixture();
+            const nether = storePlayerFixture();
+            const { player, entity } = enteredStorePlayer(overworld);
+
+            expect(nether.runtime.entityOfPlayer(player)).toBeUndefined();
+            expect(overworld.runtime.entityOfPlayer(player)).toBe(entity);
+
+            const entries = logged(overworld.runtime, () => nether.runtime.setPlayerSprinting(player, true));
+
+            // The components are the player's own wherever they are written from, so the store
+            // its entity is in hears the write.
+            expect(fieldsOf(entries, 'movement.sprinting')).toHaveLength(1);
         });
     });
 });
