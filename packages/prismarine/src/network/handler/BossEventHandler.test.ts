@@ -26,7 +26,7 @@ describe('BossEventHandler', () => {
             overlay: BossBarOverlay.Notched10
         });
         await bar.setPercent(0.5);
-        await bar.addPlayer(player);
+        await bar.addPlayer(player.getNetworkSession());
         sent.length = 0;
 
         await new BossEventHandler().handle(query(42n), server, player.getNetworkSession());
@@ -44,7 +44,7 @@ describe('BossEventHandler', () => {
     it('leaves a Query about an actor with no bar for that player unanswered', async () => {
         const { player, server, sent } = fakePlayer();
         const bar = new BossBar({ actorUniqueId: 42n, name: 'Ender Dragon' });
-        await bar.addPlayer(player);
+        await bar.addPlayer(player.getNetworkSession());
         sent.length = 0;
 
         await new BossEventHandler().handle(query(7n), server, player.getNetworkSession());
@@ -55,7 +55,7 @@ describe('BossEventHandler', () => {
     it('ignores a serverbound event that is not a Query', async () => {
         const { player, server, sent } = fakePlayer();
         const bar = new BossBar({ actorUniqueId: 42n, name: 'Ender Dragon' });
-        await bar.addPlayer(player);
+        await bar.addPlayer(player.getNetworkSession());
         sent.length = 0;
 
         await new BossEventHandler().handle(query(42n, BossEventUpdateType.Remove), server, player.getNetworkSession());
