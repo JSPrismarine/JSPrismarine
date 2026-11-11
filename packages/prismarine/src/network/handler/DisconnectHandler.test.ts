@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import type { Logger } from '@jsprismarine/logger';
 import type { InetAddress } from '@jsprismarine/raknet';
-import type Server from '../../Server';
+import { sessionContext } from '../../testing/handlerContext.test.helper';
 import { identityNamed } from '../../testing/sessionIdentity.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import type ClientConnection from '../ClientConnection';
@@ -22,7 +22,6 @@ const harness = () => {
     const info = vi.fn();
     const forceDisconnect = vi.fn();
 
-    const server = stub<Server>({ getLogger: () => stub<Logger>({ info }) });
     const session = stub<PlayerSession>({
         identity: identityNamed('runner'),
         getConnection: () =>
@@ -32,7 +31,7 @@ const harness = () => {
             })
     });
 
-    return { info, forceDisconnect, server, session };
+    return { info, forceDisconnect, context: sessionContext(session, { log: stub<Logger>({ info }) }) };
 };
 
 const goodbye = (reason: number, message?: string): DisconnectPacket =>
@@ -43,14 +42,10 @@ const goodbye = (reason: number, message?: string): DisconnectPacket =>
     );
 
 describe('DisconnectHandler', () => {
-    it('logs the reason by number and name, and the message, with who sent them', async () => {
-        const { info, server, session } = harness();
+    it('logs the reason by number and name, and the message, with who sent them', () => {
+        const { info, context } = harness();
 
-        await new DisconnectHandler().handle(
-            goodbye(DisconnectReason.UNRECOVERABLE_ERROR, 'Disconnected'),
-            server,
-            session
-        );
+        new DisconnectHandler().handle(goodbye(DisconnectReason.UNRECOVERABLE_ERROR, 'Disconnected'), context);
 
         expect(info).toHaveBeenCalledOnce();
         const [line] = info.mock.calls[0]!;
@@ -60,36 +55,32 @@ describe('DisconnectHandler', () => {
         expect(line).toContain('"Disconnected"');
     });
 
-    it('logs a goodbye that carries no message without inventing one', async () => {
-        const { info, server, session } = harness();
+    it('logs a goodbye that carries no message without inventing one', () => {
+        const { info, context } = harness();
 
-        await new DisconnectHandler().handle(goodbye(DisconnectReason.UNKNOWN), server, session);
+        new DisconnectHandler().handle(goodbye(DisconnectReason.UNKNOWN), context);
 
         const [line] = info.mock.calls[0]!;
         expect(line).toContain('reason 0 (UNKNOWN)');
         expect(line).not.toContain('message');
     });
 
-    it('logs a reason the enum does not list as its bare number', async () => {
+    it('logs a reason the enum does not list as its bare number', () => {
         // A newer client may send a member added after protocol 2193.
-        const { info, server, session } = harness();
+        const { info, context } = harness();
 
-        await new DisconnectHandler().handle(goodbye(150), server, session);
+        new DisconnectHandler().handle(goodbye(150), context);
 
         const [line] = info.mock.calls[0]!;
         expect(line).toMatch(/reason 150$/);
     });
 
-    it('hangs up on RakNet after logging', async () => {
+    it('hangs up on RakNet after logging', () => {
         // The goodbye, not the teardown: the RakNet close that follows is what releases the
         // player, and it does so once, through the same path a timeout takes.
-        const { forceDisconnect, server, session } = harness();
+        const { forceDisconnect, context } = harness();
 
-        await new DisconnectHandler().handle(
-            goodbye(DisconnectReason.UNRECOVERABLE_ERROR, 'Disconnected'),
-            server,
-            session
-        );
+        new DisconnectHandler().handle(goodbye(DisconnectReason.UNRECOVERABLE_ERROR, 'Disconnected'), context);
 
         expect(forceDisconnect).toHaveBeenCalledOnce();
     });

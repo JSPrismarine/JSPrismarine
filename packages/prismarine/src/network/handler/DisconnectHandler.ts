@@ -1,8 +1,7 @@
 import { DisconnectReason } from '@jsprismarine/minecraft';
 import type { DisconnectPacket } from '@jsprismarine/protocol';
-import type Server from '../../Server';
-import type PlayerSession from '../PlayerSession';
-import type PacketHandler from './PacketHandler';
+import type { SessionContext } from './HandlerContext';
+import type { ConnectionLaneHandler } from './SessionHandler';
 
 /**
  * The client saying goodbye, and why.
@@ -14,11 +13,14 @@ import type PacketHandler from './PacketHandler';
  * follows reaches `ClientConnection.closePlayerSession`, which is the one teardown path,
  * and running it here first would make that close look like a client that never spawned.
  */
-export default class DisconnectHandler implements PacketHandler<DisconnectPacket> {
+export default class DisconnectHandler implements ConnectionLaneHandler<DisconnectPacket> {
     public static PacketName = 'DisconnectPacket';
+    public readonly takes = 'context';
     public readonly phases = ['resourcePacks', 'play'] as const;
-    // Input, not connection: closing the session removes the player and tells everyone else.
-    public readonly lane = 'input';
+    // Connection, not input: this only hangs up. The dispatcher holds the removal of the player
+    // that the closed transport causes as an input of its own, behind this client's earlier
+    // inputs, and that removal is what tells everyone else.
+    public readonly lane = 'connection';
 
     /**
      * Logs the reason the client gave at info level, then starts the RakNet goodbye.
@@ -26,7 +28,7 @@ export default class DisconnectHandler implements PacketHandler<DisconnectPacket
      * The reason is logged as its number and, when the number is a `DisconnectReason` member,
      * its name. A bare number out of 150 members says little to whoever reads the log.
      */
-    public async handle(packet: DisconnectPacket, server: Server, session: PlayerSession): Promise<void> {
+    public handle(packet: DisconnectPacket, { session, log }: SessionContext): void {
         const disconnect = packet.getPacketData();
         if (disconnect === null) throw new Error('DisconnectPacket has no payload');
 
@@ -34,12 +36,10 @@ export default class DisconnectHandler implements PacketHandler<DisconnectPacket
         const reason = name === undefined ? `${disconnect.reason}` : `${disconnect.reason} (${name})`;
         const message = disconnect.skipMessage ? '' : ` and message "${disconnect.message ?? ''}"`;
 
-        server
-            .getLogger()
-            .info(
-                `${session.identity.name} (${session.getConnection().getAddress().toToken()}) disconnected with reason ${reason}${message}`,
-                'DisconnectHandler/handle'
-            );
+        log.info(
+            `${session.identity.name} (${session.getConnection().getAddress().toToken()}) disconnected with reason ${reason}${message}`,
+            'DisconnectHandler/handle'
+        );
 
         session.getConnection().forceDisconnect();
     }
