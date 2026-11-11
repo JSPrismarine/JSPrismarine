@@ -86,6 +86,9 @@ Progress (2026-10-30):
   `Player` and `Entity` classes are gone. `PlayerSession` is the player's handle for plugins and
   server code: it holds the connection, the world, the permissions and the operations that post
   player events, and `getPlayer()` returns the store player.
+- Slice 6 of that plan started with D1: packet handlers have one shape, defined in
+  `@jsprismarine/protocol` for the server and the client, and a handler in it takes a narrow
+  context instead of the `Server`. Four handlers use it; D2 moves the rest.
 - Accepted deviation: `ServerName` advertises only the newest supported version rather than every
   registered codec version. This matches what a Bedrock Dedicated Server of that version
   advertises; as the constructor comment in `packages/raknet/src/utils/ServerName.ts` records,
