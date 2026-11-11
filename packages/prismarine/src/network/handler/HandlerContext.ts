@@ -85,6 +85,17 @@ export interface InputStep {
      * @param send - The send, already started.
      */
     output(send: Promise<void>): void;
+    /**
+     * Hands the step work that still has to wait, such as a world change that loads chunks or a
+     * command, which later slices turn into messages and loaded-chunk reads. The step runs each
+     * piece after the handler returns, in the order handed over, each as a unit of its own, and
+     * finishes them before the next input, so the order of effects is the one an awaiting handler
+     * had. A piece that throws undoes its own writes and not the handler's, and the pieces after
+     * it do not run. Name the slice that removes the wait beside each call.
+     *
+     * @param work - Starts the work once the handler's unit is closed.
+     */
+    defer(work: () => Promise<void>): void;
 }
 
 /** What an input-lane handler is handed. */

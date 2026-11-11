@@ -128,6 +128,68 @@ describe('network/handlerContexts', () => {
         expect(order).toEqual(['unit:open', 'handle at 12', 'unit:close', 'sent', 'settled']);
     });
 
+    it('runs deferred work after the unit, each piece a unit of its own, before it settles', async () => {
+        const order: string[] = [];
+        const contexts = HandlerContexts.of(stub<ContextSource>({ getTick: () => 0 }));
+        const session = stub<PlayerSession>({
+            identity: STEVE,
+            getWorld: () =>
+                stub<World>({
+                    runInputNow: (apply) => {
+                        order.push('unit');
+                        apply();
+                    },
+                    runInput: async (apply) => {
+                        order.push('deferred unit');
+                        await apply();
+                    }
+                })
+        });
+
+        await contexts.run(
+            inputHandler(({ step }) => {
+                step.defer(async () => {
+                    order.push('first');
+                    step.defer(async () => void order.push('third'));
+                });
+                step.defer(async () => void order.push('second'));
+                order.push('handled');
+            }),
+            'packet',
+            session
+        );
+
+        expect(order).toEqual([
+            'unit',
+            'handled',
+            'deferred unit',
+            'first',
+            'deferred unit',
+            'second',
+            'deferred unit',
+            'third'
+        ]);
+    });
+
+    it('stops at a deferred piece that throws, and passes its error on', async () => {
+        const order: string[] = [];
+        const contexts = HandlerContexts.of(stub<ContextSource>({ getTick: () => 0 }));
+
+        await expect(
+            contexts.run(
+                inputHandler(({ step }) => {
+                    step.defer(async () => {
+                        throw new Error('the world change failed');
+                    });
+                    step.defer(async () => void order.push('after'));
+                }),
+                'packet',
+                stub<PlayerSession>({ identity: STEVE })
+            )
+        ).rejects.toThrow('the world change failed');
+        expect(order).toEqual([]);
+    });
+
     it('reports a failed output as the input failing', async () => {
         const contexts = HandlerContexts.of(stub<ContextSource>({ getTick: () => 0 }));
 
