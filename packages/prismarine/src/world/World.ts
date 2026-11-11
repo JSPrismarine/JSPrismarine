@@ -29,7 +29,7 @@ import { dataEntityRecordIn } from '../entity/data/persistence';
 import EntitySerializer from '../entity/EntitySerializer';
 import { ITEM_ENTITY } from '../entity/data/droppedItems';
 import { StoreActor } from '../entity/data/storeActors';
-import { enterStore, leaveStore } from '../entity/data/storePlayers';
+import { enterStore, leaveStore, StorePlayerActor } from '../entity/data/storePlayers';
 import { storedItemActorOf } from '../entity/EntitySerializer';
 import type { StoredActor } from '../entity/EntitySerializer';
 import type { Entity } from '../entity/Entity';
@@ -3820,8 +3820,8 @@ export class World implements Service {
                 )
             );
 
-            const player = this.players.get(Number(entity.getRuntimeId()));
-            if (player !== undefined) {
+            if (entity instanceof StorePlayerActor) {
+                const { player } = entity;
                 const inventory = player.getInventory();
                 const containers = [inventory, inventory.getArmor(), inventory.getOffhand(), inventory.getEnderChest()];
                 const stackCounts = containers.map((container) =>
@@ -3843,7 +3843,7 @@ export class World implements Service {
                         inventory: storedInventory(inventory),
                         cursor: cursor === null ? null : storedItem(cursor),
                         stackCounts,
-                        components: player.componentSnapshot()
+                        components: player.getComponents().snapshot()
                     })
                 );
             }
