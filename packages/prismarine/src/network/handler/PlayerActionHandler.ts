@@ -169,9 +169,9 @@ export default class PlayerActionHandler implements PacketHandler<PlayerActionPa
                         blockPosition,
                         blockFace,
                         tool,
-                        mining === null ? null : blockMiningOf(mining)
+                        blockMiningOf(mining)
                     );
-                    inputs.setPlayerMining(player, started === null ? null : playerMiningOf(started));
+                    inputs.setPlayerMining(player, playerMiningOf(started));
                     return;
                 }
 
