@@ -2401,6 +2401,8 @@ describe('the data-driven entity runtime over a live world', () => {
                     getStatusEffect: () => undefined,
                     getNetworkSession: () =>
                         stub<PlayerSession>({
+                            runtimeId: player.getRuntimeId(),
+                            getPlayer: () => player,
                             openTradeWindow: async (trade: OpenTrade) => {
                                 opened.push(trade);
                                 return stub<OpenBlockContainer>({});
