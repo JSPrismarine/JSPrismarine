@@ -150,11 +150,12 @@ const percentage = trackerProgressPercent;
                     >
                 </div>
             </div>
+            <!-- The bar shows the headline figure, gameplay behavior, not the all-comparisons rate under it. -->
             <progress
                 class="overall-progress"
-                :value="tracker.passed"
-                :max="Math.max(trackerProgressTotal(tracker), 1)"
-                :aria-label="`${tracker.passed} of ${trackerProgressTotal(tracker)} tracked comparisons passing`"
+                :value="behavior.passed"
+                :max="Math.max(behavior.tracked, 1)"
+                :aria-label="`${behavior.passed} of ${behavior.tracked} tracked behavior comparisons passing`"
             />
             <ul class="overview-counts" aria-label="Comparisons by status">
                 <li class="status-count passed">
@@ -178,7 +179,8 @@ const percentage = trackerProgressPercent;
             </ul>
         </header>
 
-        <div class="tracker-notes">
+        <details class="tracker-notes">
+            <summary>How the tracker counts</summary>
             <p>
                 Cases include Java or Bedrock comparisons and explicit not-measured behavior inventories. A passing data
                 row does not claim runtime behavior parity. Reviewed differences include clickable references; search by
@@ -191,7 +193,7 @@ const percentage = trackerProgressPercent;
                 comparisons, including not-measured, deferred, and known-defect rows; intentional differences are
                 excluded. A block, item or entity no scenario reached is not measured, not passing.
             </p>
-        </div>
+        </details>
 
         <h2 class="tracker-section-title">Behavior groups</h2>
         <section class="group-picker" aria-label="Filter by family group">
@@ -205,11 +207,16 @@ const percentage = trackerProgressPercent;
                 @click="selectedGroup(group.id)"
             >
                 <span class="group-option-name">{{ group.label }}</span>
-                <span class="group-option-count">{{
-                    group.id === 'all'
-                        ? `${tracker?.cases.length.toLocaleString() ?? 0} cases`
-                        : `${group.passed}/${group.tracked} · ${percentage(group.passed, group.tracked)}%`
-                }}</span>
+                <span v-if="group.id === 'all'" class="group-option-count"
+                    >{{ tracker?.cases.length.toLocaleString() ?? 0 }} cases</span
+                >
+                <!-- The percentage leads and the count follows on its own line, so no tile wraps mid-figure. -->
+                <span v-else class="group-option-count">
+                    <b :class="{ 'is-gap': group.passed * 2 < group.tracked }"
+                        >{{ percentage(group.passed, group.tracked) }}%</b
+                    >
+                    <span>{{ group.passed }}/{{ group.tracked }}</span>
+                </span>
                 <progress
                     v-if="group.id !== 'all'"
                     :value="group.passed"
@@ -370,7 +377,7 @@ const percentage = trackerProgressPercent;
     gap: 6px;
     align-items: center;
     margin: 0;
-    font: 700 12px var(--vp-font-family-mono);
+    font: 700 var(--jsp-label-size) var(--vp-font-family-mono);
     color: var(--jsp-accent);
     text-transform: uppercase;
     letter-spacing: 0.12em;
@@ -484,7 +491,7 @@ progress::-moz-progress-bar {
     align-items: center;
     padding: 4px 12px 4px 10px;
     margin: 0;
-    font: 12px var(--vp-font-family-mono);
+    font: var(--jsp-label-size) var(--vp-font-family-mono);
     color: var(--jsp-cream);
     border: 1.5px solid var(--jsp-track);
     border-radius: 99px;
@@ -525,23 +532,66 @@ progress::-moz-progress-bar {
 }
 
 .tracker-notes {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(min(320px, 100%), 1fr));
-    gap: 8px 32px;
-    padding: 16px 4px 8px;
-    font-size: 14px;
+    padding: 0 4px;
+    font-size: 16px;
     line-height: 1.6;
     color: var(--vp-c-text-2);
 }
 
+.tracker-notes {
+    margin-top: 12px;
+    border-block: 1px solid var(--vp-c-divider);
+}
+
+.tracker-notes summary {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    min-height: var(--jsp-target);
+    font-weight: 800;
+    color: var(--vp-c-text-1);
+    list-style: none;
+    cursor: pointer;
+}
+
+.tracker-notes summary::-webkit-details-marker {
+    display: none;
+}
+
+/* The same chevron the menu uses: a turned corner that points down when open. */
+.tracker-notes summary::before {
+    width: 7px;
+    height: 7px;
+    content: '';
+    border-right: 2px solid currentColor;
+    border-bottom: 2px solid currentColor;
+    transform: rotate(-45deg);
+    transition: transform 0.12s;
+}
+
+.tracker-notes[open] summary::before {
+    transform: rotate(45deg);
+}
+
+.tracker-notes[open] {
+    padding-bottom: 16px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .tracker-notes summary::before {
+        transition: none;
+    }
+}
+
 .tracker-notes p {
-    margin: 0;
+    max-width: 70ch;
+    margin: 8px 0 0;
 }
 
 .tracker-section-title {
     padding: 0;
     margin: 24px 4px 4px;
-    font: 700 12px var(--vp-font-family-mono);
+    font: 700 var(--jsp-label-size) var(--vp-font-family-mono);
     color: var(--vp-c-text-2);
     text-transform: uppercase;
     letter-spacing: 0.12em;
@@ -557,8 +607,8 @@ progress::-moz-progress-bar {
 
 .group-option {
     display: grid;
+    grid-template-rows: auto auto 1fr;
     gap: 6px;
-    align-content: start;
     min-width: 0;
     padding: 14px;
     color: var(--vp-c-text-1);
@@ -587,10 +637,38 @@ progress::-moz-progress-bar {
 .group-option-count {
     font: var(--jsp-label-size) var(--vp-font-family-mono);
     font-variant-numeric: tabular-nums;
-    opacity: 0.75;
+    color: var(--vp-c-text-2);
+}
+
+.group-option-count b {
+    display: block;
+    font: 800 18px var(--vp-font-family-base);
+    letter-spacing: -0.02em;
+    color: var(--vp-c-text-1);
+}
+
+/* A group under half passing carries a signal square: the open gaps stand out from the finished groups. */
+.group-option-count b.is-gap::before {
+    display: inline-block;
+    width: 9px;
+    height: 9px;
+    margin-right: 6px;
+    vertical-align: 2px;
+    content: '';
+    background: var(--jsp-signal);
+}
+
+.group-option.active .group-option-count b {
+    color: inherit;
+}
+
+.group-option.active .group-option-count {
+    color: inherit;
 }
 
 .group-option progress {
+    /* The bar sits on the tile's bottom edge, so bars line up across a row even when a count wraps. */
+    align-self: end;
     height: 6px;
 }
 
@@ -675,7 +753,7 @@ progress::-moz-progress-bar {
     align-items: center;
     justify-content: space-between;
     padding: 4px 4px 10px;
-    font: 12px var(--vp-font-family-mono);
+    font: var(--jsp-label-size) var(--vp-font-family-mono);
     color: var(--tracker-muted);
 }
 
@@ -741,7 +819,7 @@ progress::-moz-progress-bar {
 }
 
 .family-count {
-    font: 12px var(--vp-font-family-mono);
+    font: var(--jsp-label-size) var(--vp-font-family-mono);
     color: var(--tracker-muted);
 }
 
@@ -749,19 +827,20 @@ progress::-moz-progress-bar {
     display: grid;
     gap: 6px;
     justify-items: end;
-    font: 12px var(--vp-font-family-mono);
+    font: var(--jsp-label-size) var(--vp-font-family-mono);
     font-variant-numeric: tabular-nums;
     color: var(--tracker-muted);
 }
 
+/* The track is a flat ink tint, so a partial bar reads against the row and not as a stray line. */
 .family-progress progress {
-    width: 140px;
+    width: 160px;
     height: 6px;
-    background: var(--vp-c-bg);
+    background: color-mix(in srgb, var(--vp-c-text-1) 14%, transparent);
 }
 
 .family-progress progress::-webkit-progress-bar {
-    background: var(--vp-c-bg);
+    background: color-mix(in srgb, var(--vp-c-text-1) 14%, transparent);
 }
 
 .cases {
@@ -907,7 +986,7 @@ progress::-moz-progress-bar {
 .file-link {
     max-width: 170px;
     overflow: hidden;
-    font: 12px var(--vp-font-family-mono);
+    font: var(--jsp-label-size) var(--vp-font-family-mono);
     color: var(--vp-c-brand-1);
     text-decoration: none;
     text-overflow: ellipsis;

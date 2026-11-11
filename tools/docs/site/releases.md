@@ -1,7 +1,7 @@
 ---
 title: Releases
 description: What changed in each JSPrismarine release.
-outline: false
+outline: [2, 2]
 ---
 
 <script setup>

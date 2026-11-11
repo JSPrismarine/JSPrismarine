@@ -9,14 +9,16 @@
     --jsp-shadow-offset: 4px;
     /* Forest on accent is 4.46:1, under AA for body text; deep is 5.40:1. */
     --jsp-on-accent: var(--jsp-deep);
-    /* The smallest mono label the site sets. */
-    --jsp-label-size: 12px;
+    /* The smallest mono label the site sets. JetBrains Mono reads small, so the floor sits above 12px. */
+    --jsp-label-size: 13px;
     /* Touch targets on phones. */
     --jsp-target: 44px;
     --jsp-term-text: color-mix(in srgb, var(--jsp-cream) 85%, var(--jsp-mint));
     --jsp-term-bar: color-mix(in srgb, var(--jsp-ink) 85%, var(--jsp-accent));
     --jsp-term-muted: color-mix(in srgb, var(--jsp-ink) 30%, var(--jsp-mint));
     --jsp-track: color-mix(in srgb, var(--jsp-forest) 70%, var(--jsp-accent));
+    /* The hairline that separates dark surfaces close in value. */
+    --jsp-dark-edge: color-mix(in srgb, var(--jsp-accent) 30%, transparent);
 
     --vp-font-family-base: 'Bricolage Grotesque', 'Helvetica Neue', Arial, sans-serif;
     --vp-font-family-mono: 'JetBrains Mono', ui-monospace, Menlo, monospace;
@@ -32,6 +34,12 @@
     --vp-button-brand-hover-text: var(--jsp-on-accent);
     --vp-c-bg: color-mix(in srgb, var(--jsp-cream) 25%, #fff);
     --vp-c-bg-alt: color-mix(in srgb, var(--jsp-cream) 55%, #fff);
+    /* Soft panels, rules and code chips are cream and ink, not VitePress's neutral gray. */
+    --vp-c-bg-soft: color-mix(in srgb, var(--jsp-cream) 60%, #fff);
+    --vp-c-divider: color-mix(in srgb, var(--jsp-ink) 13%, transparent);
+    --vp-c-gutter: color-mix(in srgb, var(--jsp-ink) 13%, transparent);
+    --vp-c-border: color-mix(in srgb, var(--jsp-ink) 28%, transparent);
+    --vp-c-default-soft: color-mix(in srgb, var(--jsp-cream) 80%, transparent);
 
     /* Code blocks sit on the terminal's ink surface in both modes; codeTheme.ts colors the tokens. */
     --vp-code-block-bg: var(--jsp-ink);
@@ -66,6 +74,14 @@
     --vp-c-bg: color-mix(in srgb, var(--jsp-ink) 70%, #000);
     --vp-c-bg-alt: var(--jsp-ink);
     --vp-c-bg-soft: color-mix(in srgb, var(--jsp-ink) 80%, var(--jsp-forest));
+    --vp-c-divider: color-mix(in srgb, var(--jsp-cream) 14%, transparent);
+    --vp-c-gutter: color-mix(in srgb, var(--jsp-cream) 10%, transparent);
+    --vp-c-border: color-mix(in srgb, var(--jsp-cream) 28%, transparent);
+    --vp-c-default-soft: color-mix(in srgb, var(--jsp-forest) 55%, transparent);
+    /* Inline code reads mint on its forest chip; accent there is too faint. */
+    --vp-code-color: var(--jsp-mint);
+    /* The page is near ink, so dark code blocks step up one shade, still in the ink family. */
+    --vp-code-block-bg: color-mix(in srgb, var(--jsp-ink) 82%, var(--jsp-forest));
 
     --vp-c-text-1: var(--jsp-cream);
     --vp-c-text-2: color-mix(in srgb, var(--jsp-cream) 74%, transparent);
@@ -81,11 +97,25 @@
 }
 
 .vp-doc h1 {
+    font-size: clamp(36px, 5vw, 52px);
+    line-height: 1;
     letter-spacing: -0.05em;
 }
 
+/* Each section opens on a short solid bar, so a long page keeps the brand's blocks between its walls of text. */
 .vp-doc h2 {
+    padding-top: 0;
+    margin-top: 56px;
     border-top: 0;
+}
+
+.vp-doc h2::before {
+    display: block;
+    width: 40px;
+    height: 5px;
+    margin-bottom: 18px;
+    content: '';
+    background: var(--vp-c-brand-1);
 }
 
 .VPNavBarTitle .title {
@@ -129,7 +159,7 @@
 }
 
 .vp-doc th {
-    font: 700 12px var(--vp-font-family-mono);
+    font: 700 var(--jsp-label-size) var(--vp-font-family-mono);
     text-transform: uppercase;
     letter-spacing: 0.08em;
 }
@@ -142,10 +172,17 @@
 .vp-doc kbd,
 .not-found kbd {
     padding: 1px 6px;
-    font: 12px var(--vp-font-family-mono);
+    font: var(--jsp-label-size) var(--vp-font-family-mono);
     border: 1.5px solid var(--vp-c-divider);
     border-bottom-width: 3px;
     border-radius: 6px;
+}
+
+/* The nav starts at the same x on every page: without a sidebar, the title cell keeps the sidebar's width. */
+@media (min-width: 960px) {
+    .VPNavBar:not(.has-sidebar) .title {
+        min-width: calc(var(--vp-sidebar-width) - 32px);
+    }
 }
 
 /* The current sidebar entry gets a solid bar, not just a color change. */
@@ -166,12 +203,33 @@
     border-color: var(--jsp-accent);
 }
 
-/* The language label is a mono label like any other, so it keeps the label floor. */
+/*
+ * The language label is a mono label like any other, so it keeps the label floor. The copy button now
+ * shows at rest, so the label sits beside it rather than under it, and stays visible on hover.
+ */
 .vp-doc div[class*='language-'] > span.lang {
+    top: 20px;
+    right: 64px;
     font-size: var(--jsp-label-size);
+    line-height: 1;
 }
 
-/* Touch screens have no hover, so the copy button stays visible there. */
+.vp-doc div[class*='language-']:is(:hover, :focus-within) > button.copy + span.lang {
+    opacity: 1;
+}
+
+/* The copy button shows at rest, so a reader sees a command can be copied before pointing at it. */
+.vp-doc div[class*='language-'] > button.copy {
+    border-color: color-mix(in srgb, var(--jsp-mint) 35%, transparent);
+    opacity: 0.85;
+}
+
+.vp-doc div[class*='language-']:hover > button.copy,
+.vp-doc div[class*='language-'] > button.copy:focus-visible {
+    opacity: 1;
+}
+
+/* Touch screens have no hover, so the copy button is at full strength there. */
 @media (hover: none) {
     .vp-doc div[class*='language-'] > button.copy {
         opacity: 1;
@@ -181,7 +239,12 @@
 /* Dark surfaces sit close together, so code blocks and tables get a hairline edge instead of a lighter fill. */
 .dark .vp-doc div[class*='language-'],
 .dark .vp-doc table {
-    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--jsp-accent) 22%, transparent);
+    box-shadow: inset 0 0 0 1px var(--jsp-dark-edge);
+}
+
+/* The dark sidebar is close to the page too, so it gets the same edge. */
+.dark .VPSidebar {
+    box-shadow: inset -1px 0 0 var(--jsp-dark-edge);
 }
 
 /* On phones, code wraps instead of running off the screen edge with no sign that it scrolls. */
@@ -191,19 +254,58 @@
         overflow-wrap: anywhere;
     }
 
+    /* Wrapped lines keep clear of the copy button and the label in the block's top corner. */
+    .vp-doc div[class*='language-'] pre code {
+        padding-right: 112px;
+    }
+
     /* A table's first column keeps room for its label, and code in cells wraps so the table fits the screen. */
     .vp-doc td:first-child {
         min-width: 9em;
     }
 
+    /* Break at the hyphens a file name already has, never inside a word. */
     .vp-doc table td > code {
         white-space: normal;
-        overflow-wrap: anywhere;
+        overflow-wrap: break-word;
     }
 
     /* The Pages and On this page bar under the header. */
     .VPLocalNav :is(.menu, .VPLocalNavOutlineDropdown > button) {
         min-height: var(--jsp-target);
+        font-size: 14px;
+        color: var(--vp-c-text-1);
+    }
+
+    /*
+     * A two-column table (a name and what goes with it) stacks on a phone: each row becomes the name
+     * over its value, so neither column is squeezed. Wider tables keep scrolling sideways.
+     */
+    .vp-doc table:has(tr > :nth-child(2):last-child):not(:has(tr > :nth-child(3))),
+    .vp-doc table:has(tr > :nth-child(2):last-child):not(:has(tr > :nth-child(3))) :is(tbody, tr, td) {
+        display: block;
+    }
+
+    .vp-doc table:has(tr > :nth-child(2):last-child):not(:has(tr > :nth-child(3))) thead {
+        display: none;
+    }
+
+    .vp-doc table:has(tr > :nth-child(2):last-child):not(:has(tr > :nth-child(3))) td {
+        min-width: 0;
+        border: 0;
+    }
+
+    .vp-doc table:has(tr > :nth-child(2):last-child):not(:has(tr > :nth-child(3))) td:first-child {
+        padding-bottom: 2px;
+        font-weight: 700;
+    }
+
+    .vp-doc table:has(tr > :nth-child(2):last-child):not(:has(tr > :nth-child(3))) td + td {
+        padding-top: 0;
+    }
+
+    .vp-doc table:has(tr > :nth-child(2):last-child):not(:has(tr > :nth-child(3))) tr {
+        border-bottom: 1px solid var(--vp-c-divider);
     }
 }
 
@@ -216,9 +318,13 @@
     white-space: normal;
 }
 
-/* Pages with `pageClass: is-wide` and no sidebar use the full layout width for their grids. */
+/* Pages with `pageClass: is-wide` use the full content width for their grids. */
 .is-wide .VPDoc:not(.has-sidebar) :is(.container, .content, .content-container) {
     max-width: 1152px;
+}
+
+.is-wide .VPDoc.has-sidebar .content-container {
+    max-width: 960px;
 }
 
 /* Long identifiers and URLs in prose wrap instead of widening the page on phones. */
@@ -259,7 +365,7 @@
 
 /* The source's last commit date, set in mono beside the edit link. */
 .VPLastUpdated {
-    font: 12px var(--vp-font-family-mono) !important;
+    font: var(--jsp-label-size) var(--vp-font-family-mono) !important;
     color: var(--vp-c-text-2) !important;
 }
 
@@ -273,9 +379,18 @@
     color: var(--vp-c-text-1);
 }
 
+/* VitePress wraps the message in a bdi; the links lay out inside it. */
+.VPFooter .message bdi {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 20px;
+    justify-content: center;
+}
+
 .VPFooter .message a {
-    display: inline-block;
-    padding: 6px 2px;
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--jsp-target);
     text-decoration: none;
 }
 
@@ -289,4 +404,57 @@
 .VPHome:has(.landing) {
     padding-bottom: 0;
     margin-bottom: 0;
+}
+
+/*
+ * Top-level sidebar entries read alike whether or not they have pages under them. VitePress wraps a run
+ * of childless top-level links in an untitled group, so those links sit one level down; this matches them
+ * to the collapsible entries around them.
+ */
+.VPSidebarItem.level-0.is-link > .item .text,
+.VPSidebarItem.level-0:not(:has(> .item)) > .items > li > .level-1 > .item .text {
+    font-weight: 600;
+    color: var(--vp-c-text-1);
+}
+
+.VPSidebarItem.level-0:not(:has(> .item)) {
+    padding-bottom: 10px;
+}
+
+/* Overview pages set their sections as cards: see sectionCards.ts. */
+.vp-doc .doc-cards {
+    display: grid;
+    align-items: start;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+    gap: var(--jsp-gap);
+    margin-top: 32px;
+}
+
+.vp-doc .doc-card {
+    padding: 22px 22px 8px;
+    background: var(--vp-c-bg-soft);
+    border-radius: var(--jsp-radius-panel);
+    box-shadow: inset 0 0 0 1px var(--vp-c-divider);
+}
+
+.vp-doc .doc-card h2 {
+    margin-top: 0;
+}
+
+.vp-doc .doc-card ul {
+    padding-left: 0;
+    list-style: none;
+}
+
+.vp-doc .doc-card li + li {
+    padding-top: 8px;
+    margin-top: 8px;
+    border-top: 1px solid var(--vp-c-divider);
+}
+
+/* Two top-level links in one untitled group read as two rows, with the rule other rows have. */
+.VPSidebarItem.level-0:not(:has(> .item)) > .items > li + li {
+    padding-top: 10px;
+    margin-top: 10px;
+    border-top: 1px solid var(--vp-c-divider);
 }

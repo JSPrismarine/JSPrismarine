@@ -54,6 +54,7 @@ const preview = computed(() => {
             <span class="site-panel__featured-title">{{ section.featured.text }}</span>
             <span class="site-panel__featured-text">{{ section.featured.description }}</span>
             <code v-if="section.featured.command" class="site-panel__command">{{ section.featured.command }}</code>
+            <span class="site-panel__open" aria-hidden="true">Open</span>
         </a>
 
         <div class="site-panel__groups">

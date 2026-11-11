@@ -30,9 +30,10 @@ function toggle(key: string) {
 
 <template>
     <div class="release-notes">
-        <article v-for="release in releases" :id="anchor(release.version)" :key="release.version" class="release">
+        <article v-for="release in releases" :key="release.version" class="release">
             <header class="release__header">
-                <h2>
+                <!-- The id sits on the heading, so the page outline lists each release. -->
+                <h2 :id="anchor(release.version)">
                     <a :href="`#${anchor(release.version)}`">v{{ release.version }}</a>
                 </h2>
                 <span class="release__kind" :class="`is-${release.kind}`">{{ release.kind }}</span>
@@ -139,15 +140,15 @@ function toggle(key: string) {
 
 .release__group h3 {
     margin: 24px 0 8px;
-    font: 700 12px var(--vp-font-family-mono);
-    color: var(--vp-c-text-2);
+    font: 700 var(--jsp-label-size) var(--vp-font-family-mono);
+    color: var(--vp-c-text-1);
     text-transform: uppercase;
     letter-spacing: 0.12em;
 }
 
 .release__group ul {
     display: grid;
-    gap: 12px;
+    gap: 14px;
     padding: 0;
     margin: 0;
     list-style: none;
@@ -160,9 +161,29 @@ function toggle(key: string) {
     margin: 0;
 }
 
+/* A rule between changes gives a long release a line to scan down. */
+.release__group li + li {
+    padding-top: 14px;
+    border-top: 1px solid var(--vp-c-divider);
+}
+
 .release__text {
     min-width: 0;
     overflow-wrap: anywhere;
+}
+
+/* Release notes name many identifiers; mono and color mark them without a chip on every one. */
+.release__text :deep(:not(pre) > code) {
+    padding: 0;
+    font-size: 0.9em;
+    color: var(--vp-code-color);
+    background: none;
+}
+
+/* A paragraph that breaks or removes something carries a signal rule, so upgraders find it first. */
+.release__text :deep(.release__breaking) {
+    padding-left: 12px;
+    border-left: 3px solid var(--jsp-signal);
 }
 
 .release__text :deep(p) {
@@ -170,7 +191,7 @@ function toggle(key: string) {
 }
 
 .release__commit {
-    font: 12px var(--vp-font-family-mono);
+    font: var(--jsp-label-size) var(--vp-font-family-mono);
     color: var(--vp-c-text-2);
 }
 

@@ -48,10 +48,24 @@ const startCommand = `chmod +x ${executable}\n./${executable}`;
                     <BrandButton href="/guide/running#run-the-prebuilt-server">Run a server</BrandButton>
                     <BrandButton href="/guide/" variant="outline">Read the docs</BrandButton>
                 </div>
-                <p class="landing__meta">
-                    {{ project.executables.length }} builds for {{ platformList(project, 'and') }}. No Node.js to
-                    install.
-                </p>
+                <dl class="landing__facts">
+                    <div>
+                        <dt>builds, no Node.js needed</dt>
+                        <dd>{{ project.executables.length }}</dd>
+                    </div>
+                    <div>
+                        <dt>protocol versions</dt>
+                        <dd>{{ project.protocols.length }}</dd>
+                    </div>
+                    <div>
+                        <dt>packages on npm</dt>
+                        <dd>{{ project.packages.length }}</dd>
+                    </div>
+                    <div>
+                        <dt>open source license</dt>
+                        <dd>{{ project.license }}</dd>
+                    </div>
+                </dl>
                 <nav class="landing__jump" aria-label="Start where you are">
                     <span aria-hidden="true">Start as</span>
                     <a v-for="audience in audiences" :key="audience.id" :href="`#start-${audience.id}`">{{
@@ -91,7 +105,7 @@ const startCommand = `chmod +x ${executable}\n./${executable}`;
         </section>
 
         <BentoGrid>
-            <BentoTile tone="accent">
+            <BentoTile tone="accent" class="landing__stat">
                 <div class="bento-figure">1</div>
                 <p class="bento-caption">
                     <b>Executable</b>One file for {{ platformList(project) }}, with its runtime and data inside. Each
@@ -99,10 +113,11 @@ const startCommand = `chmod +x ${executable}\n./${executable}`;
                     <a :href="project.releasesUrl">Download</a>
                 </p>
             </BentoTile>
-            <BentoTile tone="signal">
+            <BentoTile tone="signal" class="landing__stat">
                 <div class="bento-figure">{{ project.packages.length }}</div>
                 <p class="bento-caption">
                     <b>Published packages</b>Protocol, transport, world and server, each on npm.
+                    <a :href="withBase('/packages')">Browse them</a>
                 </p>
             </BentoTile>
             <BentoTile tone="deep" :span="2">
@@ -146,6 +161,10 @@ const startCommand = `chmod +x ${executable}\n./${executable}`;
                     <BrandButton :href="project.releasesUrl">Download v{{ project.version }}</BrandButton>
                     <BrandButton href="/guide/running" variant="outline">Read the guide</BrandButton>
                 </div>
+                <p class="landing__also">
+                    Here to play? <a :href="withBase('/guide/joining')">Join a server</a>. Here to change it?
+                    <a :href="withBase('/contributing')">Contribute</a>.
+                </p>
             </div>
             <div class="landing__command">
                 <pre>{{ startCommand }}</pre>
@@ -169,13 +188,13 @@ const startCommand = `chmod +x ${executable}\n./${executable}`;
 
 .landing__hero {
     display: grid;
+    /* The mark stands beside the headline, and the console runs beside the copy. */
     grid-template-areas:
-        'eyebrow eyebrow'
-        'title title'
-        'copy prism'
-        'stage prism';
-    grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
-    column-gap: clamp(20px, 4vw, 48px);
+        'eyebrow eyebrow prism'
+        'title title prism'
+        'copy stage stage';
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.8fr) minmax(0, 0.5fr);
+    column-gap: clamp(20px, 3vw, 40px);
     padding: clamp(16px, 3vw, 32px);
     overflow: hidden;
     background: var(--jsp-forest);
@@ -185,7 +204,7 @@ const startCommand = `chmod +x ${executable}\n./${executable}`;
 .landing__eyebrow {
     grid-area: eyebrow;
     margin: 0;
-    font: 700 12px var(--vp-font-family-mono);
+    font: 700 var(--jsp-label-size) var(--vp-font-family-mono);
     color: var(--jsp-mint);
     text-transform: uppercase;
     letter-spacing: 0.12em;
@@ -239,21 +258,51 @@ const startCommand = `chmod +x ${executable}\n./${executable}`;
     margin: 26px 0 14px;
 }
 
-.landing__meta {
-    margin: 0 0 28px;
-    font: 12px/1.5 var(--vp-font-family-mono);
+/* Facts the repository records, so the first screen shows evidence and not only claims. */
+.landing__facts {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px 20px;
+    margin: 4px 0 24px;
+}
+
+.landing__facts div {
+    /* The figure leads and the label follows, whatever the markup order, so figures share a top line. */
+    display: grid;
+    grid-template-areas: 'figure' 'label';
+    align-content: start;
+    gap: 4px;
+    padding-top: 10px;
+    border-top: 2px solid color-mix(in srgb, var(--jsp-mint) 35%, transparent);
+}
+
+.landing__facts dd {
+    grid-area: figure;
+    margin: 0;
+    font-size: 26px;
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: -0.03em;
+    color: var(--jsp-cream);
+}
+
+.landing__facts dt {
+    grid-area: label;
+    font: var(--jsp-label-size) / 1.4 var(--vp-font-family-mono);
     color: var(--jsp-mint);
 }
 
 .landing__jump {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
+    gap: 6px;
     align-items: center;
-    margin: -14px 0 28px;
+    margin: 0 0 8px;
 }
 
 .landing__jump span {
+    /* The label takes its own line, so the four links share one row. */
+    flex-basis: 100%;
     margin-right: 4px;
     font: 700 var(--jsp-label-size) var(--vp-font-family-mono);
     color: var(--jsp-mint);
@@ -265,8 +314,8 @@ const startCommand = `chmod +x ${executable}\n./${executable}`;
     display: inline-flex;
     align-items: center;
     min-height: 40px;
-    padding: 0 16px;
-    font-size: 15px;
+    padding: 0 13px;
+    font-size: 14px;
     font-weight: 700;
     color: var(--jsp-cream);
     text-decoration: none;
@@ -293,15 +342,20 @@ const startCommand = `chmod +x ${executable}\n./${executable}`;
     min-width: 0;
 }
 
+.landing__stage {
+    align-self: end;
+    margin-bottom: 24px;
+}
+
 .landing__stage :deep(.terminal) {
     box-shadow: var(--jsp-shadow-offset) var(--jsp-shadow-offset) 0 var(--jsp-deep);
 }
 
 .landing__prism {
     grid-area: prism;
-    align-self: center;
-    justify-self: center;
-    width: min(100%, 420px);
+    align-self: end;
+    justify-self: end;
+    width: min(100%, 300px);
     height: auto;
 }
 
@@ -310,6 +364,13 @@ const startCommand = `chmod +x ${executable}\n./${executable}`;
     color: var(--jsp-ink);
     background: var(--jsp-cream);
     border-radius: var(--jsp-radius-panel);
+}
+
+/* A cream slab would be the brightest thing on a dark page, so the panel turns deep and its text cream. */
+.dark .landing__paths {
+    color: var(--jsp-cream);
+    /* A filled deep block like its neighbors, so it reads as a panel; forest cards and ink code sit on it. */
+    background: var(--jsp-deep);
 }
 
 .landing__paths h2 {
@@ -321,6 +382,19 @@ const startCommand = `chmod +x ${executable}\n./${executable}`;
     letter-spacing: -0.04em;
     color: inherit;
     border: 0;
+}
+
+/* A figure tile sets its number beside its caption, so the pair fills the tile instead of leaving a gap. */
+.landing .landing__stat {
+    flex-direction: row;
+    gap: clamp(16px, 3vw, 32px);
+    align-items: flex-end;
+    min-height: 0;
+}
+
+.landing .landing__stat :deep(.bento-figure) {
+    flex: none;
+    font-size: clamp(72px, 10vw, 128px);
 }
 
 .landing__packages {
@@ -340,7 +414,7 @@ const startCommand = `chmod +x ${executable}\n./${executable}`;
     display: block;
     overflow-wrap: anywhere;
     padding: 4px 8px;
-    font: 12px var(--vp-font-family-mono);
+    font: var(--jsp-label-size) var(--vp-font-family-mono);
     color: var(--jsp-mint);
     text-decoration: none;
     border: 1.5px solid var(--jsp-accent);
@@ -399,6 +473,19 @@ const startCommand = `chmod +x ${executable}\n./${executable}`;
     margin-bottom: 0;
 }
 
+.landing__close .landing__also {
+    margin-top: 20px;
+    font-size: 15px;
+}
+
+.landing__also a {
+    font-weight: 800;
+    color: var(--jsp-cream);
+    text-decoration: underline;
+    text-decoration-thickness: 2px;
+    text-underline-offset: 3px;
+}
+
 .landing__command {
     position: relative;
     min-width: 0;
@@ -421,6 +508,14 @@ const startCommand = `chmod +x ${executable}\n./${executable}`;
     bottom: 14px;
 }
 
+@media (max-width: 640px) {
+    /* Both calls to action take the full width, so neither reads as the smaller one by accident. */
+    .landing__cta :deep(.brand-button) {
+        flex: 1 1 100%;
+        text-align: center;
+    }
+}
+
 @media (max-width: 760px) {
     .landing__hero {
         grid-template-areas:
@@ -431,10 +526,27 @@ const startCommand = `chmod +x ${executable}\n./${executable}`;
         grid-template-columns: minmax(0, 1fr);
     }
 
-    /* The audience tabs follow the hero directly on a phone, so the shortcut row would only repeat them. */
-    .landing__prism,
-    .landing__jump {
+    .landing__stage {
+        margin-bottom: 0;
+    }
+
+    .landing__prism {
         display: none;
+    }
+
+    /* On a phone the audience links take two even rows of full-size targets, above the terminal. */
+    .landing__jump {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .landing__jump span {
+        grid-column: 1 / -1;
+    }
+
+    .landing__jump a {
+        justify-content: center;
+        min-height: var(--jsp-target);
     }
 
     .landing__close {

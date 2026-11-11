@@ -7,6 +7,12 @@ import type { PublishedPackage } from '../../../project.data.mts';
 const props = defineProps<{ packages: PublishedPackage[]; repositoryUrl: string }>();
 const query = ref('');
 
+/** The version every package shares, when they all ship at one; cards then leave it out. */
+const sharedVersion = computed(() => {
+    const versions = new Set(props.packages.map(({ version }) => version));
+    return versions.size === 1 ? [...versions][0] : undefined;
+});
+
 const shown = computed(() => {
     const term = query.value.trim().toLowerCase();
     if (!term) return props.packages;
@@ -25,20 +31,17 @@ const shown = computed(() => {
                 shown.length === packages.length
                     ? `${packages.length} packages`
                     : `${shown.length} of ${packages.length}`
-            }}
+            }}{{ sharedVersion ? `, all at ${sharedVersion}` : '' }}
         </p>
         <ul class="package-directory__grid">
             <li v-for="pkg in shown" :key="pkg.name" class="package-card">
                 <div class="package-card__head">
-                    <h3>{{ pkg.name.slice(pkg.name.indexOf('/') + 1) }}</h3>
-                    <span class="package-card__version">{{ pkg.version }}</span>
+                    <h3>
+                        <span class="package-card__scope">{{ pkg.name.slice(0, pkg.name.indexOf('/') + 1) }}</span
+                        >{{ pkg.name.slice(pkg.name.indexOf('/') + 1) }}
+                    </h3>
+                    <span v-if="!sharedVersion" class="package-card__version">{{ pkg.version }}</span>
                 </div>
-                <!-- Break after the scope, never inside a name. -->
-                <code
-                    >{{ pkg.name.slice(0, pkg.name.indexOf('/') + 1) }}<wbr />{{
-                        pkg.name.slice(pkg.name.indexOf('/') + 1)
-                    }}</code
-                >
                 <p>{{ pkg.description }}</p>
                 <nav :aria-label="`${pkg.name} links`">
                     <a :href="withBase(`/api/${pkg.name}/`)">API</a>
@@ -55,8 +58,8 @@ const shown = computed(() => {
 .package-directory__search {
     display: grid;
     gap: 6px;
-    max-width: 420px;
-    font: 700 12px var(--vp-font-family-mono);
+    max-width: 640px;
+    font: 700 var(--jsp-label-size) var(--vp-font-family-mono);
     color: var(--vp-c-text-2);
     text-transform: uppercase;
     letter-spacing: 0.1em;
@@ -79,7 +82,7 @@ const shown = computed(() => {
 }
 
 .package-directory__count {
-    font: 12px var(--vp-font-family-mono);
+    font: var(--jsp-label-size) var(--vp-font-family-mono);
     color: var(--vp-c-text-2);
 }
 
@@ -110,6 +113,14 @@ const shown = computed(() => {
     gap: 10px;
     align-items: baseline;
     justify-content: space-between;
+}
+
+.package-card__scope {
+    display: block;
+    margin-bottom: 2px;
+    font: var(--jsp-label-size) var(--vp-font-family-mono);
+    letter-spacing: 0;
+    color: var(--vp-c-text-2);
 }
 
 .package-card__version {
@@ -151,9 +162,9 @@ const shown = computed(() => {
 .package-card nav a {
     display: inline-flex;
     align-items: center;
-    min-height: 30px;
-    padding: 4px 12px;
-    font: 700 12px var(--vp-font-family-mono);
+    min-height: 34px;
+    padding: 4px 14px;
+    font: 700 var(--jsp-label-size) var(--vp-font-family-mono);
     color: var(--vp-c-text-1);
     text-decoration: none;
     border: 1.5px solid var(--vp-c-divider);
@@ -170,5 +181,8 @@ const shown = computed(() => {
     .package-card nav a {
         min-height: var(--jsp-target);
     }
+}
+.package-directory__search input::placeholder {
+    color: var(--vp-c-text-2);
 }
 </style>

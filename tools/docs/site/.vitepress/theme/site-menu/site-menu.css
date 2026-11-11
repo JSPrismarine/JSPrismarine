@@ -137,12 +137,10 @@
     color: var(--vp-c-text-1);
     cursor: pointer;
     background: var(--vp-c-bg);
-    border: 2px solid var(--vp-c-text-1);
+    /* A control, not a primary action, so it has an edge and no offset shadow that could read as a focus state. */
+    border: 1.5px solid var(--vp-c-border);
     border-radius: var(--jsp-radius-control);
-    box-shadow: 3px 3px 0 var(--vp-c-text-1);
-    transition:
-        transform 0.08s,
-        box-shadow 0.08s;
+    transition: border-color 0.12s;
 }
 
 /* Where the bar is tight, Search is its icon alone; the button keeps its name for screen readers. */
@@ -168,8 +166,7 @@
 }
 
 .site-nav__search:hover {
-    transform: translate(2px, 2px);
-    box-shadow: 1px 1px 0 var(--vp-c-text-1);
+    border-color: var(--vp-c-text-1);
 }
 
 .site-nav__search kbd,
@@ -239,7 +236,7 @@
     position: fixed;
     inset: var(--site-menu-top) 0 0 0;
     z-index: calc(var(--site-menu-z) - 1);
-    background: color-mix(in srgb, var(--jsp-ink) 60%, transparent);
+    background: color-mix(in srgb, var(--jsp-ink) 82%, transparent);
 }
 
 .site-panel__inner {
@@ -259,9 +256,9 @@
 }
 
 .site-panel__featured {
-    display: grid;
+    display: flex;
+    flex-direction: column;
     gap: 6px;
-    align-content: start;
     padding: 16px;
     text-decoration: none;
     background: var(--site-menu-raised);
@@ -271,6 +268,27 @@
 
 .site-panel__featured:hover {
     background: color-mix(in srgb, var(--jsp-forest) 85%, var(--jsp-accent));
+}
+
+/* The featured tile ends on an action, so its lower half reads as the button it is. */
+.site-panel__open {
+    align-self: start;
+    display: inline-flex;
+    align-items: center;
+    min-height: 34px;
+    padding: 0 14px;
+    margin-top: auto;
+    font: 700 var(--jsp-label-size) var(--vp-font-family-mono);
+    color: var(--jsp-on-accent);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    background: var(--jsp-accent);
+    border-radius: 99px;
+}
+
+.site-panel__open::after {
+    margin-left: 8px;
+    content: '→';
 }
 
 .site-panel__featured-title {
@@ -292,7 +310,7 @@
     max-width: 100%;
     padding: 3px 10px;
     margin-top: 8px;
-    font: 12px var(--vp-font-family-mono);
+    font: var(--jsp-label-size) var(--vp-font-family-mono);
     color: var(--jsp-cream);
     overflow-wrap: anywhere;
     background: var(--jsp-ink);
@@ -404,7 +422,7 @@
     gap: 2px;
     padding: 0 0 0 10px;
     margin: 0;
-    font: 12px/1.5 var(--vp-font-family-mono);
+    font: var(--jsp-label-size)/1.5 var(--vp-font-family-mono);
     color: var(--site-menu-muted);
     list-style: none;
     border-left: 2px solid var(--site-menu-line);
@@ -598,7 +616,7 @@
 .site-search__usage {
     display: block;
     padding: 6px 10px;
-    font: 12px var(--vp-font-family-mono);
+    font: var(--jsp-label-size) var(--vp-font-family-mono);
     color: var(--jsp-cream);
     overflow-wrap: anywhere;
     background: color-mix(in srgb, var(--jsp-ink) 80%, var(--jsp-deep));
@@ -831,7 +849,7 @@
     align-items: center;
     min-height: var(--jsp-target);
     padding: 6px 14px;
-    font: 12px var(--vp-font-family-mono);
+    font: var(--jsp-label-size) var(--vp-font-family-mono);
     color: var(--site-menu-text);
     text-decoration: none;
     cursor: pointer;
@@ -847,7 +865,7 @@
     gap: 6px;
     padding: 0;
     margin: 0 0 14px;
-    font: 12px var(--vp-font-family-mono);
+    font: var(--jsp-label-size) var(--vp-font-family-mono);
     color: var(--vp-c-text-2);
     list-style: none;
 }

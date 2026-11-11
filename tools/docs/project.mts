@@ -13,6 +13,7 @@ const packagesDir = path.join(repoRoot, 'packages');
 interface Manifest {
     description?: string;
     engines?: Record<string, string>;
+    license?: string;
     name: string;
     private?: boolean;
     repository?: { url: string };
@@ -47,6 +48,8 @@ export interface ProjectData {
     /** The port a fresh server listens on. */
     defaultPort: number;
     engines: { node: string; pnpm: string };
+    /** The SPDX license the workspace is released under, such as `MPL-2.0`. */
+    license: string;
     /** The executables each release ships, from the Bun targets the release build compiles. */
     executables: Executable[];
     /** The GitHub releases that carry those executables. */
@@ -176,6 +179,7 @@ export function loadProject(): ProjectData {
         netherNetIdentityFile,
         defaultPort: Number(port),
         engines: { node: root.engines?.node ?? '', pnpm: root.engines?.pnpm ?? '' },
+        license: root.license ?? '',
         packages,
         protocols,
         repositoryUrl,

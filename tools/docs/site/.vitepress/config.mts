@@ -10,6 +10,7 @@ import { isStagedPage, pageSource, sourceUpdatedAt } from '../../sections.mts';
 import { colorSwatchPlugin, colorSwatchTransformer } from './colorSwatches.ts';
 import { sidebar } from './sidebar.mts';
 import { prismSvg } from './theme/prism.ts';
+import { sectionCardsPlugin } from './sectionCards.ts';
 import { codeTheme } from './theme/codeTheme.ts';
 import { palette, paletteCss } from './theme/tokens.ts';
 
@@ -24,6 +25,16 @@ const base = `${new URL(siteUrl).pathname}${previewPath ? `${previewPath}/` : ''
 const discordInvite = /\]\((https:\/\/discord\.gg\/[\w-]+)\)/.exec(
     readFileSync(new URL('../../../../README.md', import.meta.url), 'utf8')
 )?.[1];
+
+/** A mega menu section's link groups as a sidebar, for root pages that have no docs folder of their own. */
+function menuSidebar(section: string) {
+    const menu = megaMenus.find(({ text }) => text === section);
+    if (!menu) throw new Error(`The site menu has no ${section} section for a page sidebar.`);
+    return menu.sections.map((group) => ({
+        text: group.text,
+        items: group.items.map(({ text, link }) => ({ text, link }))
+    }));
+}
 
 export default defineConfig({
     lang: 'en-US',
@@ -91,6 +102,7 @@ export default defineConfig({
         codeTransformers: [colorSwatchTransformer],
         config(md) {
             md.use(colorSwatchPlugin);
+            md.use(sectionCardsPlugin);
             // The staged docs are written for GitHub. Vue would compile their `{{` and bare `<tag>` text as
             // template syntax, so these pages render as literal markdown.
             const render = md.render.bind(md);
@@ -109,6 +121,10 @@ export default defineConfig({
         // Every API entry is a package in the one scope, so the sidebar names packages without it.
         sidebar: {
             ...sidebar,
+            // Root pages take their menu section's groups as a sidebar, so every doc page shares one column.
+            '/packages': menuSidebar('Build'),
+            '/releases': menuSidebar('Project'),
+            '/brand-kit': menuSidebar('Project'),
             '/api/': typedocSidebar.map((entry) => ({ ...entry, text: entry.text.replace(/^@[^/]+\//, '') }))
         },
         socialLinks: [
@@ -131,7 +147,7 @@ export default defineConfig({
                 ...(discordInvite ? [['Discord', discordInvite]] : [])
             ]
                 .map(([text, href]) => `<a href="${href}">${text}</a>`)
-                .join(' · '),
+                .join(''),
             copyright: `Released under the ${manifest.license} license.`
         }
     }

@@ -1,6 +1,7 @@
 {
     "$schema": "https://typedoc.org/schema.json",
-    "name": "JSPrismarine",
+    "name": "API reference",
+    "indexFormat": "table",
     "plugin": [
         "typedoc-plugin-markdown",
         "typedoc-vitepress-theme",
@@ -12,7 +13,8 @@
     "tsconfig": "../../tsconfig.json",
     "out": "./site/api",
     "docsRoot": "./site",
-    "readme": "none",
+    "readme": "./api-readme.md",
+    "mergeReadme": true,
     "membersWithOwnFile": ["Class"],
     "router": "member",
     "excludeExternals": true,

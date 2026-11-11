@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { withBase } from 'vitepress';
-import { onBeforeUnmount, onMounted, ref, useId, useTemplateRef } from 'vue';
+import { nextTick, onBeforeUnmount, onMounted, ref, useId, useTemplateRef } from 'vue';
 
 import CopyButton from './CopyButton.vue';
 
@@ -20,20 +20,24 @@ export interface Audience {
 const props = defineProps<{
     audiences: Audience[];
     /**
-     * Gives each tab a stable id, `<anchor>-<audience id>`, so a link such as `#start-host` scrolls to the
-     * tab and selects it. Without it, ids are generated and links cannot target a tab.
+     * Gives each panel a stable id, `<anchor>-<audience id>`, so a link such as `#start-host` scrolls to
+     * that audience and selects its tab. Without it, ids are generated and links cannot target one.
      */
     anchor?: string;
 }>();
 const active = ref(0);
 /** Prefixes element ids so two tab sets on one page do not collide. */
 const uid = useId();
-const tabId = (audience: Audience) => (props.anchor ? `${props.anchor}-${audience.id}` : `${uid}-tab-${audience.id}`);
+const panelId = (audience: Audience) =>
+    props.anchor ? `${props.anchor}-${audience.id}` : `${uid}-panel-${audience.id}`;
+const tabId = (audience: Audience) => `${panelId(audience)}-tab`;
 
-/** Selects the tab the URL fragment names, if any. */
+/** Selects the audience the URL fragment names, if any, and scrolls to it once it is shown. */
 function selectFromHash() {
-    const index = props.audiences.findIndex((audience) => `#${tabId(audience)}` === window.location.hash);
-    if (index !== -1) active.value = index;
+    const index = props.audiences.findIndex((audience) => `#${panelId(audience)}` === window.location.hash);
+    if (index === -1) return;
+    active.value = index;
+    void nextTick(() => document.getElementById(window.location.hash.slice(1))?.scrollIntoView());
 }
 
 onMounted(() => {
@@ -41,7 +45,9 @@ onMounted(() => {
     selectFromHash();
     window.addEventListener('hashchange', selectFromHash);
 });
-onBeforeUnmount(() => window.removeEventListener('hashchange', selectFromHash));
+onBeforeUnmount(() => {
+    window.removeEventListener('hashchange', selectFromHash);
+});
 const tabs = useTemplateRef<HTMLButtonElement[]>('tabs');
 
 /** Arrow keys, Home and End move between tabs and select them, as the WAI-ARIA tabs pattern describes. */
@@ -67,16 +73,18 @@ function onKeydown(event: KeyboardEvent) {
                 role="tab"
                 :tabindex="index === active ? 0 : -1"
                 :aria-selected="index === active"
-                :aria-controls="`${uid}-panel-${audience.id}`"
+                :aria-controls="panelId(audience)"
                 @click="active = index"
             >
-                {{ audience.tab }}
+                <span class="audience-tabs__tab">{{ audience.tab }}</span>
+                <!-- Each tab names what its audience gets, so all four read at a glance before any click. -->
+                <span class="audience-tabs__hint">{{ audience.title }}</span>
             </button>
         </div>
         <div
             v-for="(audience, index) in audiences"
             v-show="index === active"
-            :id="`${uid}-panel-${audience.id}`"
+            :id="panelId(audience)"
             :key="audience.id"
             class="audience-tabs__panel"
             role="tabpanel"
@@ -105,29 +113,62 @@ function onKeydown(event: KeyboardEvent) {
 
 <style scoped>
 .audience-tabs__list {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    margin: 22px 0;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: var(--jsp-gap);
+    margin: 22px 0 var(--jsp-gap);
 }
 
+/* A tab is a card: the audience in mono caps, then what it gets. */
 .audience-tabs__list button {
+    display: grid;
+    gap: 4px;
+    align-content: start;
     min-height: var(--jsp-target);
-    padding: 10px 18px;
+    padding: 14px 16px;
     font: inherit;
-    font-size: 15px;
-    font-weight: 700;
     color: inherit;
+    text-align: left;
     cursor: pointer;
     background: transparent;
     border: 2px solid currentColor;
-    border-radius: 99px;
+    border-radius: var(--jsp-radius-control);
+}
+
+.audience-tabs__list button:hover {
+    background: color-mix(in srgb, currentColor 8%, transparent);
+}
+
+.audience-tabs__tab {
+    font: 700 var(--jsp-label-size) var(--vp-font-family-mono);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+
+.audience-tabs__hint {
+    font-size: 17px;
+    font-weight: 800;
+    line-height: 1.15;
+    letter-spacing: -0.02em;
 }
 
 .audience-tabs__list button[aria-selected='true'] {
     color: var(--jsp-cream);
     background: var(--jsp-ink);
     border-color: var(--jsp-ink);
+}
+
+/* Forest cards on a dark panel need an edge to stay separate blocks. */
+.dark .audience-tabs__pitch,
+.dark .audience-tabs__code {
+    box-shadow: inset 0 0 0 1px var(--jsp-dark-edge);
+}
+
+/* On a dark panel an ink tab would vanish, so the selected tab takes the accent. */
+.dark .audience-tabs__list button[aria-selected='true'] {
+    color: var(--jsp-on-accent);
+    background: var(--jsp-accent);
+    border-color: var(--jsp-accent);
 }
 
 .audience-tabs__panel {
@@ -208,7 +249,7 @@ function onKeydown(event: KeyboardEvent) {
 .audience-tabs__links span {
     display: block;
     margin-top: 2px;
-    font: 400 12px var(--vp-font-family-mono);
+    font: 400 var(--jsp-label-size) var(--vp-font-family-mono);
     opacity: 0.7;
 }
 
@@ -220,7 +261,20 @@ function onKeydown(event: KeyboardEvent) {
     }
 
     .audience-tabs__list button {
-        padding-inline: 10px;
+        align-content: center;
+        padding: 10px;
+        text-align: center;
+    }
+
+    /* On a phone a tab is its audience alone, in sentence case so it fits; the panel below carries the title. */
+    .audience-tabs__hint {
+        display: none;
+    }
+
+    .audience-tabs__tab {
+        font: 700 15px var(--vp-font-family-base);
+        text-transform: none;
+        letter-spacing: 0;
     }
 
     .audience-tabs__panel {

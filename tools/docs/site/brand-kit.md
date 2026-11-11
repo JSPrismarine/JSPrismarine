@@ -169,13 +169,16 @@ hidden.
 <style>
 .kit-swatches {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    /* Four across in the content column: seven colors sit as four and three, not three, three and one. */
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 128px), 1fr));
     gap: var(--jsp-gap);
     margin: 16px 0;
 }
 
 .kit-swatch {
     display: grid;
+    /* Rows stack from the top, so a long description cannot push its label out of line. */
+    align-content: start;
     gap: 2px;
     font-size: 13px;
     line-height: 1.4;
@@ -193,9 +196,19 @@ hidden.
     justify-self: start;
 }
 
+/* Ink swatches and tiles are close to the dark page, so they take the dark hairline there. */
+.dark .kit-swatch__chip {
+    border-color: var(--jsp-dark-edge);
+}
+
+.dark .kit-tile.is-ink {
+    box-shadow: inset 0 0 0 1px var(--jsp-dark-edge);
+}
+
 .kit-row {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    /* Three columns or one, never two with an orphaned third tile. */
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, max(160px, calc((100% - 2 * var(--jsp-gap)) / 3))), 1fr));
     gap: var(--jsp-gap);
     margin: 16px 0;
 }

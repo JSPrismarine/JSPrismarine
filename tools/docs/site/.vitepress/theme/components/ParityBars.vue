@@ -53,7 +53,7 @@ const groups = computed(() =>
     display: grid;
     gap: 7px;
     min-height: 120px;
-    font: 12px var(--vp-font-family-mono);
+    font: var(--jsp-label-size) var(--vp-font-family-mono);
 }
 
 .parity-bars__score {

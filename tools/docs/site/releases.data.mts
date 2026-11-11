@@ -125,7 +125,7 @@ async function load(): Promise<ReleaseData> {
                 const commit = COMMIT.exec(bullet);
                 const pull = PULL.exec(bullet);
                 release[kind].push({
-                    html: md.render(description),
+                    html: markChange(md.render(description)),
                     summary: firstSentence(description),
                     commit: commit ? { sha: commit[1], url: commit[2] } : undefined,
                     pullRequest: pull ? { number: Number(pull[1]), url: pull[2] } : undefined
@@ -145,6 +145,16 @@ async function load(): Promise<ReleaseData> {
 
 declare const data: ReleaseData;
 export { data };
+
+/**
+ * Marks up a rendered change for scanning: its opening sentence becomes a lead-in, when that sentence
+ * is plain text, and the paragraphs that break or remove something get a class the notes set apart.
+ */
+function markChange(html: string) {
+    return html
+        .replace(/^<p>([^<]+?[.!?])(?=\s|<\/p>)/, '<p><strong class="release__lead">$1</strong>')
+        .replace(/<p>(?=(?:Breaking|Removed)\b)/g, '<p class="release__breaking">');
+}
 
 export default {
     watch: ['../../../packages/prismarine/CHANGELOG.md'],

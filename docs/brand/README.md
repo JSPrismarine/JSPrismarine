@@ -55,9 +55,12 @@ Rules:
   surfaces apart: a 1px hairline edge where two surfaces are close in value (code blocks and tables in
   dark mode, soft cards on the light page), and the flat ink scrim behind the open menu.
 - Blocks that touch differ in surface. The ticker is ink on the light page and `--jsp-deep` on the
-  dark one, so it never merges with the accent tile above it.
-- Signal orange marks small things: a prompt, a cursor, the core of the mark, a focus ring. A page
-  may also use it for one solid block. It is never a link color and never a body text color.
+  dark one, so it never merges with the accent tile above it. In dark mode a panel that holds cards is
+  `--jsp-deep` and its cards are forest, so page, panel and card are three distinct levels.
+- Signal orange marks small things: a prompt, a cursor, the core of the mark, a focus ring, the rule
+  beside a change that breaks or removes something, and the square beside a parity group under half
+  passing. A page may also use it for one solid block. It is never a link color and never a body text
+  color.
 - Text on `--jsp-accent` is `--jsp-deep`, through `--jsp-on-accent`. Forest on accent misses AA for
   body text, so forest stays on accent only in display type such as the hero's highlighted word. Text
   on `--jsp-signal` is `--jsp-ink`.
@@ -111,15 +114,30 @@ ink.
 Code blocks sit on the terminal's ink surface in light and dark mode alike, so a command in the docs
 looks like the console it runs in. `codeTheme.ts` builds the syntax theme from `tokens.ts`: comments
 in the terminal's muted mint, keywords in accent, strings in mint, numbers and constants in signal,
-names in cream. Every token color keeps AA against ink. On phones, code wraps instead of scrolling off
-the screen edge, and the copy button stays visible where there is no hover.
+names in cream. Every token color keeps AA against ink. The copy button shows at rest, beside the
+language label, and at full strength where there is no hover. On phones, code wraps instead of
+scrolling off the screen edge, and a two-column table stacks each row as its name over its value.
+
+## Doc pages
+
+- Every doc page shares one column and one nav position. Root pages with no docs folder (packages,
+  releases, the brand kit) take their menu section's link groups as a sidebar.
+- Each second-level section opens on a short solid bar. Overview pages whose sections are lists of
+  links set those sections as cards (`sectionCards.ts`).
+- Release notes lead each change with its first sentence in bold. Inline code in them is mono and
+  colored without a chip.
+- The header's Search is a control, not a primary action: an edge and no offset shadow.
 
 ## The landing page
 
-- The hero says what JSPrismarine is in plain words beside the headline, and offers one link per
-  audience into the tabs below it (`#start-play`, `#start-host` and so on).
-- The page ends on a call to action with a command to copy, not on decoration. The footer under it
-  links the main sections.
+- The hero says what JSPrismarine is in plain words beside the headline, shows facts the repository
+  records (builds, protocol versions, packages, license), and offers one link per audience into the
+  tabs below it (`#start-play`, `#start-host` and so on).
+- Each audience tab is a card that names the audience and what it gets, so all four read before any
+  click; one panel shows at a time.
+- The solid accent and signal figure tiles stay: they carry the page's character.
+- The page ends on a call to action with a command to copy, plus a line for players and contributors,
+  not on decoration. The footer under it links the main sections.
 
 ## The menu
 
@@ -156,7 +174,7 @@ pages such as `tools/docs/site/index.md` and `tools/docs/site/brand-kit.md`.
 | `PrismMark`              | The mark as inline SVG, at any size.                              |
 | `BrandButton`            | Primary, outline (on dark) and secondary (on the page) buttons.   |
 | `TerminalWindow`         | A server console frame. Each `t-line` span in the slot is a line. |
-| `AudienceTabs`           | Keyboard-navigable tabs with a pitch, a snippet and links each. `anchor` gives each tab a linkable id. |
+| `AudienceTabs`           | Keyboard-navigable tab cards with a pitch, a snippet and links each. `anchor` gives each panel a linkable id. |
 | `BentoGrid`, `BentoTile` | Solid color tiles for short claims or figures.                    |
 | `ParityBars`             | The behavior parity score and bars, counted as the tracker counts. |
 | `CopyButton`             | Copies a command to the clipboard.                                |

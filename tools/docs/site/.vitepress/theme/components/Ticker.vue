@@ -45,6 +45,7 @@ const paused = ref(false);
 /* The dark page is nearly ink, so the band takes the deep surface there to stay a distinct block. */
 .dark .ticker {
     background: var(--jsp-deep);
+    box-shadow: inset 0 0 0 1.5px var(--jsp-dark-edge);
 }
 
 .ticker:is(:hover, .is-paused) .ticker__track {
