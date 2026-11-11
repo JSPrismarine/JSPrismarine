@@ -54,4 +54,14 @@ export const sharedLibraryName = (platform: NodeJS.Platform = process.platform):
  * @returns The file name.
  */
 export const staticLibraryName = (platform: NodeJS.Platform = process.platform): string =>
-    platform === 'win32' ? 'jsp_native_network.lib' : 'libjsp_native_network.a';
+    platform === 'win32' ? 'libjsp_native_network.lib' : 'libjsp_native_network.a';
+
+/**
+ * The operating system a platform key is for.
+ * @param key - A key from {@link platformKey}, such as `linux-x64-gnu`.
+ * @returns The operating system, as `process.platform` names it.
+ */
+export const operatingSystemOf = (key: string): NodeJS.Platform => {
+    const os = key.slice(0, key.indexOf('-'));
+    return os === 'win32' || os === 'darwin' || os === 'android' ? os : 'linux';
+};

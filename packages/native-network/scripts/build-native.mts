@@ -28,6 +28,7 @@ import { fileURLToPath } from 'node:url';
 import { gzipSync } from 'node:zlib';
 import { parseArgs } from 'node:util';
 
+import { nativeSourceHash } from '../src/nativeHash.ts';
 import { platformKey, sharedLibraryName, staticLibraryName } from '../src/platform.ts';
 
 const packageDir = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -188,7 +189,8 @@ run(
         String(cpus().length),
         '--target',
         'jsp_native_network',
-        'jsp_native_network_static'
+        'jsp_native_network_static',
+        'datachannel-static'
     ],
     packageDir
 );
@@ -215,8 +217,40 @@ copyFileSync(findBuilt([sharedLibraryName(), 'jsp_native_network.dll']), shared)
 if (process.platform !== 'win32' && process.platform !== 'darwin' && !values.debug) {
     run('strip', ['--strip-unneeded', shared], out);
 }
+// The scriptc build links one archive, so the C layer's archive and every one it depends on are
+// merged into it.
 const archive = join(out, staticLibraryName());
-copyFileSync(findBuilt(['libjsp_native_network_static.a', 'jsp_native_network_static.lib']), archive);
+const findArchive = (stem: string): string => {
+    const names = process.platform === 'win32' ? [`${stem}.lib`] : [`lib${stem}.a`];
+    const stack = [buildDir];
+    while (stack.length > 0) {
+        const dir = stack.pop()!;
+        for (const entry of readdirSync(dir, { withFileTypes: true })) {
+            const path = join(dir, entry.name);
+            if (entry.isDirectory()) stack.push(path);
+            else if (names.includes(entry.name)) return path;
+        }
+    }
+    throw new Error(`No ${names.join(' or ')} under ${buildDir}`);
+};
+const archives = [
+    findBuilt(['libjsp_native_network_static.a', 'jsp_native_network_static.lib']),
+    ...['datachannel-static', 'juice-static', 'usrsctp'].map(findArchive),
+    ...(tls === 'mbedtls'
+        ? ['mbedtls', 'mbedx509', 'mbedcrypto'].map(findArchive)
+        : ['libssl.a', 'libcrypto.a'].map((name) => join(cacheDir, `openssl-install-${treeKey}`, 'lib', name)))
+];
+rmSync(archive, { force: true });
+if (process.platform === 'win32') {
+    run('lib.exe', ['/NOLOGO', `/OUT:${archive}`, ...archives], out);
+} else if (process.platform === 'darwin') {
+    run('libtool', ['-static', '-o', archive, ...archives], out);
+} else {
+    const script = join(buildDir, 'merge.mri');
+    writeFileSync(script, `CREATE ${archive}\n${archives.map((path) => `ADDLIB ${path}`).join('\n')}\nSAVE\nEND\n`);
+    const merged = spawnSync('ar', ['-M'], { input: readFileSync(script), stdio: ['pipe', 'inherit', 'inherit'] });
+    if (merged.status !== 0) throw new Error(`ar -M exited with ${merged.status}`);
+}
 
 const describe = (file: string) => ({
     file: file.slice(out.length + 1),
@@ -226,6 +260,7 @@ const describe = (file: string) => ({
 });
 const report = {
     platform: key,
+    sourceHash: nativeSourceHash(packageDir),
     tls,
     buildType,
     sources: Object.fromEntries(pinned.map((source) => [source.name, source.version])),

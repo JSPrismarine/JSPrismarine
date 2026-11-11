@@ -113,6 +113,7 @@
         "scriptc": "0.4.12",
         "ts-mockito": "2.6.1",
         "tsc-ts": "0.1.5",
+        "tsx": "4.23.15",
         "turbo": "2.11.11",
         "turbo-ignore": "2.11.11",
         "typescript": "7.0.2",

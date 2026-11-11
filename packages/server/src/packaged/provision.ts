@@ -26,17 +26,20 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 
+import { provideEmbeddedLibrary } from '@jsprismarine/native-network';
 import { readZip } from '@jsprismarine/packs';
 
 import { decodeDataBundle } from './dataBundle';
-import { EMBEDDED_DATA_BUNDLE, EMBEDDED_DATA_MANIFEST, hasEmbeddedData } from './embeddedData';
+import { EMBEDDED_DATA_BUNDLE, EMBEDDED_DATA_MANIFEST, EMBEDDED_NATIVE_LIBRARY, hasEmbeddedData } from './embeddedData';
 
 /** The SEA asset keys `scripts/package-sea.mts` writes. */
 export const SEA_ASSETS = {
     /** The gzipped data bundle, in the `dataBundle.ts` format. */
     bundle: 'data-bundle',
     /** The JSON manifest describing the bundle and the pinned BDS download. */
-    manifest: 'data-manifest'
+    manifest: 'data-manifest',
+    /** The native networking library for the executable's platform, when it has a build. */
+    nativeLibrary: 'native-network-library'
 } as const;
 
 /**
@@ -51,6 +54,8 @@ type PackagedAssets = {
     readonly manifest: string;
     /** Reads the gzipped data bundle. Deferred so a warm directory never decodes it. */
     readonly bundle: () => Uint8Array;
+    /** Reads the native networking library, or undefined when the executable carries none. */
+    readonly nativeLibrary: () => Uint8Array | undefined;
 };
 
 /** The assets this build carries, or undefined when it is not a packaged executable. */
@@ -58,7 +63,9 @@ const packagedAssets = (): PackagedAssets | undefined => {
     if (hasEmbeddedData()) {
         return {
             manifest: EMBEDDED_DATA_MANIFEST,
-            bundle: () => Buffer.from(EMBEDDED_DATA_BUNDLE, 'base64')
+            bundle: () => Buffer.from(EMBEDDED_DATA_BUNDLE, 'base64'),
+            nativeLibrary: () =>
+                EMBEDDED_NATIVE_LIBRARY.length > 0 ? Buffer.from(EMBEDDED_NATIVE_LIBRARY, 'base64') : undefined
         };
     }
 
@@ -70,7 +77,14 @@ const packagedAssets = (): PackagedAssets | undefined => {
         if (!sea.isSea()) return undefined;
         return {
             manifest: sea.getAsset(SEA_ASSETS.manifest, 'utf8'),
-            bundle: () => new Uint8Array(sea.getAsset(SEA_ASSETS.bundle))
+            bundle: () => new Uint8Array(sea.getAsset(SEA_ASSETS.bundle)),
+            nativeLibrary: () => {
+                try {
+                    return new Uint8Array(sea.getAsset(SEA_ASSETS.nativeLibrary));
+                } catch {
+                    return undefined;
+                }
+            }
         };
     } catch {
         return undefined;
@@ -223,4 +237,8 @@ export const provisionPackagedData = async (
 
     extractBundle(modulesRoot, manifest, assets, log);
     await provisionBehaviorPacks(modulesRoot, manifest, log);
+    const nativeLibrary = assets.nativeLibrary();
+    if (nativeLibrary !== undefined) {
+        provideEmbeddedLibrary(nativeLibrary, path.join(modulesRoot, '.cache', 'jsprismarine'));
+    }
 };
