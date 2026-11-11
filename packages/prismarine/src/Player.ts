@@ -5,6 +5,7 @@ import { ActorEvent, DisconnectReason } from '@jsprismarine/minecraft';
 import type { InetAddress } from '@jsprismarine/raknet';
 import assert from 'node:assert';
 import { Chat, ChatType } from './chat/Chat';
+import { chatRecipientOf } from './chat/ChatManager';
 import type { ChatRecipient } from './chat/ChatManager';
 import { AttributeIds } from '@jsprismarine/protocol/wire/structures/Attribute';
 import type { DamageSource } from './entity/DamageSource';
@@ -315,12 +316,13 @@ export default class Player {
         this.locale = identity.locale;
 
         // Built once and kept, because the fan-out only lets the recipient that joined leave.
-        this.chatRecipient = {
-            key: keyOfPlayer(this),
-            getName: () => this.getName(),
-            isOp: () => this.isOp(),
-            receive: async (delivery) => this.getNetworkSession().sendMessage(delivery)
-        };
+        this.chatRecipient = chatRecipientOf(
+            {
+                runtimeId: this.getRuntimeId(),
+                identity: { name: identity.name, xuid: identity.xuid, uuid: identity.uuid.toString() }
+            },
+            this.server
+        );
     }
 
     /**

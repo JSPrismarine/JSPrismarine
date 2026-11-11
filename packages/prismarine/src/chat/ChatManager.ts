@@ -3,6 +3,8 @@ import type { Chat } from './Chat';
 import type { CommandExecutor } from '../command/CommandExecutor';
 import ChatEvent from '../events/chat/ChatEvent';
 import type { EventEmitter } from '../events/EventEmitter';
+import type { PlayerIdentity } from '../playerIdentity';
+import { playerKeyOf } from '../playerIdentity';
 
 /** One chat line as a player's client receives it: the fields of a `Text` packet. */
 export interface ChatDelivery {
@@ -32,6 +34,41 @@ export interface ChatRecipient {
     /** Sends one line to the player's client. */
     receive(delivery: ChatDelivery): Promise<void>;
 }
+
+/** The session registry, as a recipient finds its player's client in it. */
+export interface ChatSessions {
+    /** The client of the online player with this entity id, or null when no online player has it. */
+    sessionOf(id: bigint): { sendMessage(delivery: ChatDelivery): Promise<void> } | null;
+}
+
+/** What a recipient built by {@link chatRecipientOf} reads of the server. */
+export interface ChatRecipientServer {
+    getSessionManager(): ChatSessions;
+    getPermissionManager(): { isOp(uuid: string): boolean };
+}
+
+/**
+ * A connected player as the chat fan-out reaches them, built from who they are.
+ *
+ * The key and the name come from the identity and the operator check from the permission list.
+ * Each line goes to the session the registry finds under the player's entity id, so the
+ * recipient holds neither the player nor its client, and a line for a player who has left
+ * reaches nobody.
+ * @param player - The player's entity id and identity, as its session holds them.
+ * @param player.runtimeId - The entity id the registry finds the session by.
+ * @param player.identity - The name, XUID and UUID the login named.
+ * @param server - The session registry and the permission list.
+ * @returns The recipient, to join once and leave with.
+ */
+export const chatRecipientOf = (
+    { runtimeId, identity }: { readonly runtimeId: bigint; readonly identity: PlayerIdentity },
+    server: ChatRecipientServer
+): ChatRecipient => ({
+    key: playerKeyOf(identity),
+    getName: () => identity.name,
+    isOp: () => server.getPermissionManager().isOp(identity.uuid),
+    receive: async (delivery) => server.getSessionManager().sessionOf(runtimeId)?.sendMessage(delivery)
+});
 
 /** The part of the server's event bus chat uses. */
 export type ChatBus = Pick<EventEmitter, 'on' | 'removeListener' | 'emit'>;
