@@ -423,7 +423,8 @@ Bedrock clients reach the server over two transports, and it runs both unless `e
 | LAN       | UDP <!-- fact:nethernet.lanPort -->7551<!-- /fact -->, with `enable-lan-visibility` on      | Players on your local network, who see the server among their LAN games |
 
 A firewall in front of the server needs `port` open for both UDP and TCP, and `server-portv6`
-open for UDP when IPv6 clients should reach it. A server bound to one IPv4 address through
+open for UDP when IPv6 clients should reach it. `server-portv6` may equal `port`: the IPv6 listener
+takes IPv6 traffic only, so the two share the number. A server bound to one IPv4 address through
 `server-ip` does not listen on IPv6 at all.
 
 Every transport that is on must be able to listen. When another program holds `port`,
