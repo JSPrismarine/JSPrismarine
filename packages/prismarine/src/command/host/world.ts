@@ -28,7 +28,16 @@ import SetSpawnPositionPacket, { SpawnPositionType } from '@jsprismarine/protoco
 import SpawnParticleEffectPacket from '@jsprismarine/protocol/packet/SpawnParticleEffectPacket';
 import StopSoundPacket from '@jsprismarine/protocol/packet/StopSoundPacket';
 import type { World } from '../../world/World';
-import { blockPositionOf, carryOut, loadedDimensions, playersOf, unsupported, worldOf } from './support';
+import {
+    blockPositionOf,
+    carryOut,
+    loadedDimensions,
+    playersOf,
+    resolveTarget,
+    sessionsOf,
+    unsupported,
+    worldOf
+} from './support';
 import assert from 'node:assert';
 
 /**
@@ -152,9 +161,9 @@ export const worldCommandHost = (server: Server): WorldCommandHost => {
     };
 
     const soundTo = (listeners: readonly EntityRef[], build: () => PlaySoundPacket | StopSoundPacket): number => {
-        const players = playersOf(server, listeners);
-        for (const player of players) carryOut(player.getNetworkSession().send(build()), 0);
-        return players.length;
+        const sessions = sessionsOf(server, listeners);
+        for (const session of sessions) carryOut(session.send(build()), 0);
+        return sessions.length;
     };
 
     return {
@@ -336,8 +345,9 @@ export const worldCommandHost = (server: Server): WorldCommandHost => {
         },
 
         setSpawnPoint: (target, dimension, position, _angle) => {
-            const [player] = playersOf(server, [target]);
-            if (player === undefined) return false;
+            const resolved = resolveTarget(server, target);
+            if (resolved === undefined) return false;
+            const { player, session } = resolved;
 
             const at = blockPositionOf(position);
             // Forced, which is what Java's `/spawnpoint` sets: the point is used whatever is
@@ -358,7 +368,7 @@ export const worldCommandHost = (server: Server): WorldCommandHost => {
                 blockPosition
             });
 
-            return carryOut(player.getNetworkSession().send(packet), true);
+            return carryOut(session.send(packet), true);
         },
         // Structures and biomes come from the generator's own search, which lays placements
         // and the climate sampler out against the bare noise without building a chunk. A point

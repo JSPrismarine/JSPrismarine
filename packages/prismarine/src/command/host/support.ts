@@ -21,7 +21,7 @@
 import { CommandSyntaxException } from '@jsprismarine/brigadier';
 import type { EntityRef, Vector3 as HostVector } from '@jsprismarine/commands';
 import { Vector3 } from '@jsprismarine/math';
-import type { PositionMode, TextPacketType } from '@jsprismarine/protocol';
+import type { PositionMode } from '@jsprismarine/protocol';
 
 import type Server from '../../Server';
 import type { ExperienceHolder } from '../../entity/Experience';
@@ -179,8 +179,19 @@ export const playerSessionOf = (server: Server, ref: EntityRef): PlayerSession |
 };
 
 /**
+ * The sessions of the players a command's target list names, skipping the ones that have left.
+ * A verb that only sends to its targets reads these.
+ */
+export const sessionsOf = (server: Server, refs: readonly EntityRef[]): PlayerSession[] =>
+    refs.flatMap((ref) => {
+        const session = playerSessionOf(server, ref);
+        return session === undefined ? [] : [session];
+    });
+
+/**
  * What a command reads and changes of a player target: its game mode, inventory, experience,
- * attributes, spawn point and position, and the session its changes are sent through.
+ * attributes, spawn point and position. What it sends goes through the player's session; see
+ * {@link resolveTarget}.
  */
 export interface CommandPlayer {
     getRuntimeId(): bigint;
@@ -202,14 +213,27 @@ export interface CommandPlayer {
         headYaw?: number;
     }): Promise<void>;
     setWorld(world: World): Promise<void>;
-    sendMessage(message: string, type?: TextPacketType): Promise<void>;
-    kick(reason?: string): Promise<void>;
-    getNetworkSession(): Pick<PlayerSession, 'send' | 'sendInventory' | 'sendAttributes' | 'changeWorld'>;
 }
 
-/** The same, for the references a command resolved to players: the player behind the session. */
+/** A player target a command changes and then tells: the session and the player behind it. */
+export interface CommandTarget {
+    readonly session: PlayerSession;
+    readonly player: CommandPlayer;
+}
+
+/**
+ * The session a reference names and the player behind it.
+ * @returns The target, or undefined when the reference names anything but a player or the
+ *   player has since left.
+ */
+export const resolveTarget = (server: Server, ref: EntityRef): CommandTarget | undefined => {
+    const session = playerSessionOf(server, ref);
+    return session === undefined ? undefined : { session, player: session.getPlayer() };
+};
+
+/** The same, for a verb that sends nothing of its own: the player behind the session. */
 export const resolvePlayer = (server: Server, ref: EntityRef): CommandPlayer | undefined =>
-    playerSessionOf(server, ref)?.getPlayer();
+    resolveTarget(server, ref)?.player;
 
 /** A host position as this server's vector. */
 export const vectorOf = (position: HostVector): Vector3 => new Vector3(position.x, position.y, position.z);

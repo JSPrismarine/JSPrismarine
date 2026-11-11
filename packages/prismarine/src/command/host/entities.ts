@@ -39,6 +39,7 @@ import {
     refuse,
     resolveEntity,
     resolvePlayer,
+    resolveTarget,
     unsupported,
     vectorOf,
     worldFor,
@@ -297,7 +298,8 @@ export const entityCommandHost = (server: Server, scoreboard: Scoreboard): Entit
         teleport: (ref, position, rotation, dimension) => {
             const entity = resolveEntity(server, ref);
             if (entity === undefined) return false;
-            const player = resolvePlayer(server, ref);
+            const target = resolveTarget(server, ref);
+            const player = target?.player;
 
             // A thunk rather than a promise: `setPosition` starts the moment it is
             // called, and a cross-dimension move has to know its destination first.
@@ -339,12 +341,12 @@ export const entityCommandHost = (server: Server, scoreboard: Scoreboard): Entit
             // level has its stem and nobody has entered it yet, and the player
             // arrives at the requested position in one move rather than at the
             // world's spawn and then at the position.
-            if (player !== undefined && dimensionIdOf(player.getWorld()) !== javaDimensionIdOf(dimension)) {
+            if (target !== undefined && dimensionIdOf(target.player.getWorld()) !== javaDimensionIdOf(dimension)) {
                 return carryOut(
                     worldFor(server, dimension).then(async (destination) =>
-                        player.getWorld() === destination
+                        target.player.getWorld() === destination
                             ? move()
-                            : player.getNetworkSession().changeWorld({
+                            : target.session.changeWorld({
                                   world: destination,
                                   position: vectorOf(position),
                                   yaw: rotation.yaw,
@@ -371,8 +373,9 @@ export const entityCommandHost = (server: Server, scoreboard: Scoreboard): Entit
         },
 
         giveItem: (ref, identifier, count) => {
-            const player = resolvePlayer(server, ref);
-            if (player === undefined) return 0;
+            const target = resolveTarget(server, ref);
+            if (target === undefined) return 0;
+            const { player, session } = target;
 
             const item = itemFromContent(
                 identifier.includes(':') ? identifier : `minecraft:${identifier}`,
@@ -384,12 +387,13 @@ export const entityCommandHost = (server: Server, scoreboard: Scoreboard): Entit
             const given = count - leftover;
             if (given === 0) return 0;
 
-            return carryOut(player.getNetworkSession().sendInventory(), given);
+            return carryOut(session.sendInventory(), given);
         },
 
         clearItems: (ref, identifier, _data, maxCount) => {
-            const player = resolvePlayer(server, ref);
-            if (player === undefined) return 0;
+            const target = resolveTarget(server, ref);
+            if (target === undefined) return 0;
+            const { player, session } = target;
 
             const wanted =
                 identifier === undefined
@@ -417,7 +421,7 @@ export const entityCommandHost = (server: Server, scoreboard: Scoreboard): Entit
             }
 
             if (removed === 0) return 0;
-            return carryOut(player.getNetworkSession().sendInventory(), removed);
+            return carryOut(session.sendInventory(), removed);
         },
 
         countItems: (ref, identifier, _data) => {
@@ -465,8 +469,9 @@ export const entityCommandHost = (server: Server, scoreboard: Scoreboard): Entit
         },
 
         enchant: (ref, enchantment, level) => {
-            const player = resolvePlayer(server, ref);
-            if (player === undefined) return false;
+            const target = resolveTarget(server, ref);
+            if (target === undefined) return false;
+            const { player, session } = target;
 
             const inventory = player.getInventory();
             const held = inventory.getItemInHand();
@@ -491,12 +496,13 @@ export const entityCommandHost = (server: Server, scoreboard: Scoreboard): Entit
 
             const enchanted = held.withEnchantments(new Map([...held.getEnchantments(), [id, level]]));
             inventory.setItemInHand(new ContainerEntry({ item: enchanted, count: held.getAmount() }));
-            return carryOut(player.getNetworkSession().sendInventory(), true);
+            return carryOut(session.sendInventory(), true);
         },
 
         changeExperience: (ref, amount, unit, mode) => {
-            const player = resolvePlayer(server, ref);
-            if (player === undefined) return 0;
+            const target = resolveTarget(server, ref);
+            if (target === undefined) return 0;
+            const { player, session } = target;
 
             const holder = experienceOf(player);
             if (unit === 'levels') {
@@ -511,7 +517,7 @@ export const entityCommandHost = (server: Server, scoreboard: Scoreboard): Entit
                 addExperiencePoints(holder, amount);
             }
 
-            return carryOut(player.getNetworkSession().sendAttributes(), readExperience(holder, unit));
+            return carryOut(session.sendAttributes(), readExperience(holder, unit));
         },
 
         queryExperience: (ref, unit) => {
