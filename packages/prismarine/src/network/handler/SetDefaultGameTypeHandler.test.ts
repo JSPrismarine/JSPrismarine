@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest';
 import type Server from '../../Server';
 import type SessionManager from '../../SessionManager';
 import type { Config } from '../../config/Config';
+import type { PermissionManager } from '../../permission/PermissionManager';
 import { identityNamed } from '../../testing/sessionIdentity.test.helper';
 import { stubPlayerPort } from '../../testing/playerPort.test.helper';
 import { stub } from '../../testing/stub.test.helper';
@@ -26,24 +27,24 @@ const fakeServer = ({ op }: { op: boolean }) => {
     const sent = new Map<string, NetworkPacket[]>();
     let configured = 'Survival';
 
-    const fakePlayer = (name: string, isOp: boolean) => {
+    const ops = new Set<string>();
+    const fakePlayer = (name: string, uuid: string, isOp: boolean) => {
         const packets: NetworkPacket[] = [];
         sent.set(name, packets);
         const session = stub<PlayerSession>({
             getConnection: () => stub<ClientConnection>({ sendDataPacket: async (packet) => void packets.push(packet) })
         });
         const player = stubPlayerPort({
-            getName: () => name,
-            isOp: () => isOp,
             setGamemode: async (mode) => void applied.push([name, mode]),
             getNetworkSession: () => session
         });
-        Object.assign(session, { identity: identityNamed(name), getPlayer: () => player });
+        if (isOp) ops.add(uuid);
+        Object.assign(session, { identity: identityNamed(name, uuid), getPlayer: () => player });
         return { player, session };
     };
 
-    const requester = fakePlayer('Steve', op);
-    const other = fakePlayer('Alex', false);
+    const requester = fakePlayer('Steve', '00000000-0000-0000-0000-000000000001', op);
+    const other = fakePlayer('Alex', '00000000-0000-0000-0000-000000000002', false);
 
     const server = stub<Server>({
         getLogger: () =>
@@ -59,7 +60,8 @@ const fakeServer = ({ op }: { op: boolean }) => {
                     configured = Gametype[gamemode] ?? configured;
                 }
             }),
-        getSessionManager: () => stub<SessionManager>({ getAllPlayers: () => [requester.player, other.player] })
+        getSessionManager: () => stub<SessionManager>({ getAllPlayers: () => [requester.player, other.player] }),
+        getPermissionManager: () => stub<PermissionManager>({ isOp: (uuid) => ops.has(uuid) })
     });
 
     return { logged, applied, committed, sent, server, session: requester.session };
