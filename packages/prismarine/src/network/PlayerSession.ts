@@ -30,6 +30,7 @@ import { tradeOffersPayload } from './tradeOffers';
 import type { StatusEffect, StatusEffectChange } from '../entity/StatusEffect';
 import { bedrockMobEffectId } from '../entity/StatusEffect';
 import type { Metadata } from '@jsprismarine/protocol/wire/structures/Metadata';
+import type { DeathMessage } from '../entity/DeathMessages';
 import { eyePositionAt } from '../entity/playerEyes';
 import type { ItemActor } from '../entity/data/itemActor';
 import type ContainerEntry from '../inventory/ContainerEntry';
@@ -45,7 +46,8 @@ import type { World } from '../world/World';
 import type { WorldActor } from '../world/WorldActor';
 import CoordinateUtils from '../world/CoordinateUtils';
 import { chunkViewArea, offsetsIn } from '../world/ChunkViewArea';
-import { effectiveViewDistance, toChunk } from '../world/Proximity';
+import { DEFAULT_VIEW_DISTANCE_CHUNKS, effectiveViewDistance, toChunk } from '../world/Proximity';
+import type { PlayerSpawn } from '../world/SpawnPlacement';
 import { dimensionByBedrockId, maxSubChunk, minSubChunk } from '../world/Dimension';
 import Chunk from '../world/chunk/Chunk';
 import type ClientConnection from './ClientConnection';
@@ -94,6 +96,7 @@ import { playerListEntryOf } from './playerListEntry';
 import RemoveActorPacket from '@jsprismarine/protocol/packet/RemoveActorPacket';
 import { PlayerRespawnState } from '@jsprismarine/minecraft';
 import RespawnPacket from '@jsprismarine/protocol/packet/RespawnPacket';
+import DeathInfoPacket from '@jsprismarine/protocol/packet/DeathInfoPacket';
 import ActorEventPacket, { ActorEvent } from '@jsprismarine/protocol/packet/ActorEventPacket';
 import SetActorDataPacket from '@jsprismarine/protocol/packet/SetActorDataPacket';
 import SetActorMotionPacket from '@jsprismarine/protocol/packet/SetActorMotionPacket';
@@ -293,8 +296,6 @@ interface OwnPlayer extends Pick<ShownPlayer, 'getPosition' | 'gamemode' | 'attr
     getWorld(): World;
     getInventory(): HumanInventory;
     getHealth(): number;
-    /** Queues the chunks around the player that a join or a world change starts with. */
-    sendInitialSpawnChunks(): Promise<void>;
 }
 
 export default class PlayerSession {
@@ -357,6 +358,14 @@ export default class PlayerSession {
      * first `RequestChunkRadius`. See {@link PlayerSession.setViewDistance}.
      */
     private viewDistance = 0;
+
+    /**
+     * Where the player was placed on joining, or null when they came back to a saved position.
+     *
+     * Kept for the join packets: a Bedrock Dedicated Server reports the requested spot in
+     * `StartGame` and the final one in the `Respawn` that releases the client.
+     */
+    private joinSpawn: PlayerSpawn | null = null;
 
     /** Set while the spawn chunks are still draining - see {@link PlayerSession.announceSpawnIfReady}. */
     private spawnChunksPending = false;
@@ -1010,6 +1019,34 @@ export default class PlayerSession {
             showNameTags: true
         });
         await this.connection.sendDataPacket(packet);
+    }
+
+    /**
+     * Sends this session's player's game mode, adventure settings and abilities where each
+     * belongs.
+     *
+     * The two halves have different audiences, and sending both to everyone was a bug.
+     * `UpdateAdventureSettingsPacket` carries no target actor - it describes the client
+     * receiving it and nothing else - so pushing one player's settings to every session made
+     * a single spectator set `worldImmutable` on everybody else's client. It goes to this
+     * client alone. `UpdateAbilitiesPacket` does carry `targetActorUniqueId`, so it is
+     * genuinely about this player and belongs with everyone who can see them.
+     */
+    public async announceSettings(): Promise<void> {
+        await this.sendGamemode();
+        await this.sendSettings();
+
+        // Explicitly, because the fan-out below leaves this client out: it needs its own
+        // player's abilities too, and this is the one copy it gets.
+        await this.sendAbilities(this.shown());
+
+        await Promise.all(
+            this.server
+                .getSessionManager()
+                .getSessions()
+                .filter((session) => session !== this)
+                .map(async (session) => session.sendAbilities(this.shown()))
+        );
     }
 
     /**
@@ -1748,6 +1785,47 @@ export default class PlayerSession {
     }
 
     /**
+     * The first sends of a game mode change: this client's own game type, and the game type every
+     * client in the world caches for this player. `StoreActors.sync` does not notice a game mode,
+     * so these are the sends. {@link PlayerSession.sendAbilityChange} follows them.
+     */
+    public async sendGameTypeChange(): Promise<void> {
+        await this.sendGamemode();
+
+        // Everyone in the world, this player included, caches each player's game type and
+        // permission flags, so the docs have the server follow an accepted change with
+        // `UpdatePlayerGameTypePacket` to every client.
+        await Promise.all(
+            this.getWorld()
+                .getViewers()
+                .map(async (session) => session.sendGameTypeFor(this.shown()))
+        );
+    }
+
+    /**
+     * The last sends of a game mode change, which read off the new game mode: the settings, the
+     * game type again, whether the player may fly, which is in its metadata, and its abilities.
+     */
+    public async sendAbilityChange(): Promise<void> {
+        await this.announceSettings();
+        await this.sendGamemode();
+
+        // Whether the player may fly is in its metadata, which the actor writes from the game mode
+        // and sends to the player and everyone who sees them.
+        const actor = this.getPlayer().getActor();
+        if (actor === undefined) await this.sendMetadata();
+        else {
+            actor.showPlayerState();
+            await this.getWorld().sendActorMetadata(actor);
+        }
+
+        // The abilities are read off the gamemode, so they are stale the moment it changes -
+        // and they were never re-sent. Among them is `INSTABUILD`, which is what tells the
+        // client it may help itself from the creative menu.
+        await this.sendAbilities();
+    }
+
+    /**
      * Tells this client that game rules changed.
      * @param {GameRule[]} rules - The rules that changed, spelled as the client spells them.
      */
@@ -1838,6 +1916,82 @@ export default class PlayerSession {
     }
 
     /**
+     * Where the player was placed on joining, or null when they came back to a saved position.
+     */
+    public getJoinSpawn(): PlayerSpawn | null {
+        return this.joinSpawn;
+    }
+
+    /**
+     * Records where the join placed the player, which the join packets report.
+     * @param spawn - The placement, or null for a player who came back to a saved position.
+     */
+    public setJoinSpawn(spawn: PlayerSpawn | null): void {
+        this.joinSpawn = spawn;
+    }
+
+    /**
+     * Opens the window the client accepts chunks in and queues the chunks around the player, with
+     * an initial view radius of {@link DEFAULT_VIEW_DISTANCE_CHUNKS}, as a join and a world change
+     * start.
+     */
+    public async sendInitialSpawnChunks(): Promise<void> {
+        const position = this.own().getPosition();
+        const centerX = CoordinateUtils.fromBlockToChunk(position.getX());
+        const centerZ = CoordinateUtils.fromBlockToChunk(position.getZ());
+        const minX = centerX - DEFAULT_VIEW_DISTANCE_CHUNKS;
+        const minZ = centerZ - DEFAULT_VIEW_DISTANCE_CHUNKS;
+        const maxX = centerX + DEFAULT_VIEW_DISTANCE_CHUNKS;
+        const maxZ = centerZ + DEFAULT_VIEW_DISTANCE_CHUNKS;
+
+        const savedChunks: ChunkCoord[] = [];
+        for (let chunkX = minX; chunkX <= maxX; ++chunkX) {
+            for (let chunkZ = minZ; chunkZ <= maxZ; ++chunkZ) {
+                // TODO: vanilla does not send all of them, but in a range
+                // for example it does send them from x => [-3; 3] and z => [-3; 2]
+                savedChunks.push({ x: chunkX, z: chunkZ });
+            }
+        }
+
+        // One update to open the window the client will accept chunks in. It lists nothing:
+        // `saved_chunks` describes chunks already sent, and at this point none have been.
+        // The session re-sends this every tick that carries chunks, keeping it centered on
+        // the player as they move.
+        await this.sendNetworkChunkPublisher(DEFAULT_VIEW_DISTANCE_CHUNKS, []);
+
+        // Queued, not sent: the player joins immediately and the world fills in around them
+        // from the middle outwards, instead of everyone waiting while 81 chunks are built.
+        this.queueChunks(
+            centerX,
+            centerZ,
+            savedChunks.map((coord): [number, number] => [coord.x, coord.z])
+        );
+    }
+
+    /**
+     * Finishes bringing this session's player into the game: position, gamemode, inventory,
+     * settings, and the attributes, metadata and status effects the spawning client threw away.
+     * @remarks Named apart from `StorePlayerActor.spawnTo` on purpose. This used to be called
+     * `sendSpawn`, overriding the entity method of that name with a different signature and
+     * an unrelated meaning - one is "put me into the world", the other is "show me to
+     * somebody". Adding a player to a world therefore ran this by accident.
+     */
+    public async completeSpawn(): Promise<void> {
+        const player = this.getPlayer();
+        const actor = player.getActor();
+        if (actor !== undefined) await player.getWorld().broadcastMove(actor);
+        await player.setGamemode();
+        await this.sendInventory();
+        await this.announceSettings();
+
+        // Sent again here, not only during the join sequence: the client throws away the
+        // local player it had while it is spawning, taking health, hunger and breath with it.
+        await this.sendAttributes();
+        await this.sendMetadata();
+        await this.sendStatusEffects(this.shown());
+    }
+
+    /**
      * Set the client's maximum view distance.
      *
      * @param distance - The view distance
@@ -1863,7 +2017,7 @@ export default class PlayerSession {
 
         this.spawnChunksSent = true;
         this.spawnChunksPending = true;
-        await this.own().sendInitialSpawnChunks();
+        await this.sendInitialSpawnChunks();
 
         // Nothing queued - there is no flush coming that would do it, so announce here.
         await this.announceSpawnIfReady();
@@ -2126,7 +2280,7 @@ export default class PlayerSession {
             })
         );
 
-        await player.sendInitialSpawnChunks();
+        await this.sendInitialSpawnChunks();
         await this.sendPlayStatus(PlayStatus.PlayerSpawn);
     }
 
@@ -2393,6 +2547,22 @@ export default class PlayerSession {
             runtimeEntityId: 0n
         });
         await this.connection.sendDataPacket(packet);
+    }
+
+    /**
+     * The death screen's half of a death, once the respawn search has answered: where the player
+     * will come back, which the client waits for before it offers the respawn button, and then
+     * the screen's own copy of the cause, as PocketMine's `DeathPacketHandler` sends it after the
+     * `Respawn`.
+     * @param announced - Where the player will reappear.
+     * @param cause - The death message, as the chat line has it. `DeathInfo` takes the key without
+     *   the `%` the chat packet wants.
+     */
+    public async sendDeathScreen(announced: Vector3, { key, parameters }: DeathMessage): Promise<void> {
+        await this.sendRespawn(announced, PlayerRespawnState.SEARCHING_FOR_SPAWN);
+        await this.connection.sendDataPacket(
+            new DeathInfoPacket({ cause: key.replace(/^%/, ''), messages: parameters })
+        );
     }
 
     /**

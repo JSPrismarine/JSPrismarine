@@ -11,6 +11,10 @@ import UpdateAbilitiesPacket, {
     AbilityLayerFlag,
     AbilityLayerType
 } from '@jsprismarine/protocol/packet/UpdateAbilitiesPacket';
+import SetPlayerGameTypePacket from '@jsprismarine/protocol/packet/SetPlayerGameTypePacket';
+import UpdateAdventureSettingsPacket from '@jsprismarine/protocol/packet/UpdateAdventureSettingsPacket';
+import type Server from '../Server';
+import type SessionManager from '../SessionManager';
 import PlayerSession from './PlayerSession';
 import { sessionPlayerFields } from '../testing/playerSession.test.helper';
 
@@ -135,5 +139,28 @@ describe('PlayerSession.sendAbilities', () => {
             flagsHash: EVERY_ABILITY,
             valuesHash: (1 << 8) | (1 << 9) | (1 << 10) | (1 << 17)
         });
+    });
+});
+
+describe('PlayerSession.announceSettings', () => {
+    it('sends the adventure settings to its own client alone and the abilities to every client', async () => {
+        const own = sessionFor(playerIn({ gamemode: Gametype.SPECTATOR }));
+        const other = sessionFor(stubPlayerPort({ gamemode: Gametype.SURVIVAL, getRuntimeId: () => 8n }));
+        const server = stub<Server>({
+            getSessionManager: () => stub<SessionManager>({ getSessions: () => [own.session, other.session] })
+        });
+        Object.assign(own.session, { server });
+
+        await own.session.announceSettings();
+
+        expect(own.sent.map((packet) => packet.constructor)).toEqual([
+            SetPlayerGameTypePacket,
+            UpdateAdventureSettingsPacket,
+            UpdateAbilitiesPacket
+        ]);
+        expect(other.sent.map((packet) => packet.constructor)).toEqual([UpdateAbilitiesPacket]);
+        const [abilities] = other.sent;
+        if (!(abilities instanceof UpdateAbilitiesPacket)) throw new Error('expected UpdateAbilitiesPacket');
+        expect(abilities.targetActorUniqueId).toBe(7n);
     });
 });

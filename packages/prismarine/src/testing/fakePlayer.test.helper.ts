@@ -119,7 +119,7 @@ export const fakePlayer = ({ underwater = false, worlds: others = [], name = 'Te
             })
     });
 
-    const sessions = sessionsWith({ getPlayerList: () => new Map(), getAllPlayers: () => [] });
+    const sessions = sessionsWith({ getPlayerList: () => new Map(), getAllPlayers: () => [], getSessions: () => [] });
     const chat = new ChatManager(server);
     // The searches a death files, which a test admits as the input step would.
     const respawnRequests = new RespawnRequests((error) => void logged.push(String(error)));
