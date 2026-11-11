@@ -1431,8 +1431,11 @@ export class EntityRuntime implements EntityScene {
         this.interest.resetBlockCache();
         if (this.navigationView?.persistsAcrossTicks !== true) this.navigationView?.invalidateBlockCache();
         const allEntities = this.all();
+        // A player ticks wherever it stands, as the world's legacy loop and actor update let it.
         const entities =
-            shouldTick === undefined ? allEntities : allEntities.filter((entity) => shouldTick(entity.position));
+            shouldTick === undefined
+                ? allEntities
+                : allEntities.filter((entity) => clientOwnsMovement(entity.identifier) || shouldTick(entity.position));
         for (const entity of entities) {
             if (entity.removed !== undefined || this.store.isSkipped(entity.id)) continue;
             if (this.store.broken !== undefined) break;

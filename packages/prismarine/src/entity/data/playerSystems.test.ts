@@ -434,4 +434,25 @@ describe('a store player', () => {
             expect(revival.filter((entry) => entry.kind === 'membership')).toHaveLength(0);
         });
     });
+
+    describe('the entity pass', () => {
+        it('ticks a player outside the ticking chunks, where a mob waits', () => {
+            const fixture = storePlayerFixture();
+            const { player, components } = standingPlayer(fixture);
+            const cow = fixture.runtime.spawn('minecraft:cow', { x: 4.5, y: FLOOR_Y + 1, z: 0.5 })!;
+            components.set('vitals.food', 0);
+            const ticked: number[] = [];
+
+            logged(fixture.runtime, () =>
+                fixture.runtime.tick(80, (position) => {
+                    ticked.push(position.x);
+                    return false;
+                })
+            );
+
+            expect(healthOf(player)).toBe(19);
+            expect(ticked).toContain(cow.position.x);
+            expect(ticked).not.toContain(player.position.x);
+        });
+    });
 });
