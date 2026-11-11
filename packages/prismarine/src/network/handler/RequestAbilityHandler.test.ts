@@ -4,16 +4,16 @@ import { describe, expect, it } from 'vitest';
 import type { Logger } from '@jsprismarine/logger';
 import type Server from '../../Server';
 import { identityNamed } from '../../testing/sessionIdentity.test.helper';
+import { stubPlayerPort } from '../../testing/playerPort.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import type PlayerSession from '../PlayerSession';
 import type { ShownPlayer } from '../../world/ShownPlayer';
 import RequestAbilityPacket, { RequestAbilityValueType } from '@jsprismarine/protocol/packet/RequestAbilityPacket';
 import RequestAbilityHandler from './RequestAbilityHandler';
-import { storePlayerPort } from './storePlayerPort.test.helper';
 
 /**
  * The client expects an `UpdateAbilitiesPacket` after every request: the new state when the
- * change went through, the old one when it did not. `Player.setFlying` sends the former
+ * change went through, the old one when it did not. `PlayerSession.setFlying` sends the former
  * itself, so the handler only has to send the latter.
  */
 const fakeSession = ({ flying = false, canFly = true }: { flying?: boolean; canFly?: boolean } = {}) => {
@@ -21,15 +21,7 @@ const fakeSession = ({ flying = false, canFly = true }: { flying?: boolean; canF
     const resent: Array<ShownPlayer | undefined> = [];
     const logged: string[] = [];
     let isFlying = flying;
-    const player = storePlayerPort(
-        { isFlying: () => isFlying },
-        {
-            setFlying: async (value) => {
-                requested.push(value);
-                if (canFly) isFlying = value;
-            }
-        }
-    );
+    const player = stubPlayerPort({ isFlying: () => isFlying });
 
     return {
         requested,
@@ -41,6 +33,10 @@ const fakeSession = ({ flying = false, canFly = true }: { flying?: boolean; canF
         session: stub<PlayerSession>({
             identity: identityNamed('Steve'),
             getPlayer: () => player,
+            setFlying: async (value: boolean) => {
+                requested.push(value);
+                if (canFly) isFlying = value;
+            },
             sendAbilities: async (target) => void resent.push(target)
         })
     };

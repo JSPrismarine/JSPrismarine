@@ -16,12 +16,11 @@ export * from './world/';
 import * as Events from './events/Events';
 
 import Console from './Console';
-import Player from './Player';
 import Server from './Server';
 import { Chat } from './chat/Chat';
 import { ConfigBuilder } from './config/ConfigBuilder';
 import PlayerSession from './network/PlayerSession';
 import BaseProvider from './world/providers/BaseProvider';
 
-export { BaseProvider, Chat, ConfigBuilder, Console, Events, Player, PlayerSession, Server };
+export { BaseProvider, Chat, ConfigBuilder, Console, Events, PlayerSession, Server };
 export type { ServerReplayRandomState } from './Server';

@@ -1,10 +1,9 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { buildServerContent } from '../content/ServerContent';
 import { definitionOf, definitionsOf } from '../content/ContentOptions';
 import type { ServerContent } from '../content/ServerContent';
 import { fixtureBlockPalette, fixtureItemDefinitions } from '../content/testing';
-import type Player from '../Player';
 import type Server from '../Server';
 import type PlayerSession from '../network/PlayerSession';
 import type { World } from '../world/World';
@@ -15,7 +14,7 @@ import PlayerEnchantOptionsPacket, { EnchantType } from '@jsprismarine/protocol/
 import { fakePlayer } from '../testing/fakePlayer.test.helper';
 import { stub } from '../testing/stub.test.helper';
 import { experienceIn } from '../testing/storePlayer.test.helper';
-import { keyOfPlayer } from '../playerIdentity';
+import { playerKeyOf } from '../playerIdentity';
 import { bookshelfPowerAround } from './bookshelves';
 import {
     enchantingRows,
@@ -113,8 +112,7 @@ const content = (): ServerContent =>
 const worldOf = (blocks: ReadonlyMap<string, string> = new Map()) =>
     stub<World>({
         getBlockState: async (x: number, y: number, z: number) =>
-            ({ name: blocks.get(`${x},${y},${z}`) ?? 'minecraft:air' }) as never,
-        getPlayers: () => []
+            ({ name: blocks.get(`${x},${y},${z}`) ?? 'minecraft:air' }) as never
     });
 
 /** Each scene's player runtime id. Distinct from each other and from
@@ -126,13 +124,15 @@ const scene = (built: ServerContent, world = worldOf(), random: () => number = (
     const attributes = new Attributes(Attributes.getPlayerDefaults());
 
     const runtimeId = nextRuntimeId++;
-    const player: Player = stub<Player>({
+    // Its own name, because per-player services are keyed by the name of a player with no XUID.
+    const name = `tester-${runtimeId}`;
+    const server = stub<Server>({ getContent: () => built, getRandom: () => random });
+    const player: PlayerSession = stub<PlayerSession>({
         getType: () => 'minecraft:player',
         getRuntimeId: () => runtimeId,
-        // Its own name, because per-player services are keyed by the name of a player with no XUID.
-        getName: () => `tester-${runtimeId}`,
-        getXUID: () => null,
-        getServer: () => stub<Server>({ getContent: () => built, getRandom: () => random }),
+        getName: () => name,
+        keyed: () => ({ key: playerKeyOf({ name, xuid: '' }), server }),
+        getServer: () => server,
         getWorld: () => world,
         getPosition: () => ({ getX: () => 0, getY: () => 64, getZ: () => 0 }) as never,
         getEquipment: () => ({}),
@@ -146,7 +146,7 @@ const scene = (built: ServerContent, world = worldOf(), random: () => number = (
         isFlying: () => false,
         getFood: () => 20,
         getSaturation: () => 5,
-        getNetworkSession: () => stub<PlayerSession>({ send: async (packet: NetworkPacket) => void sent.push(packet) })
+        send: async (packet: NetworkPacket) => void sent.push(packet)
     });
 
     attributes.setValue(AttributeIds.PlayerLevel, 30);
@@ -160,8 +160,8 @@ describe('the enchanting table', () => {
         const draws = [0.25, 0.75];
         const { player } = scene(content(), worldOf(), () => draws.shift() ?? 0);
 
-        expect(enchantmentSeedOf(player)).toBe(Math.floor(0.25 * 0x7fffffff));
-        expect(rerollEnchantmentSeed(player)).toBe(Math.floor(0.75 * 0x7fffffff));
+        expect(enchantmentSeedOf(player.keyed())).toBe(Math.floor(0.25 * 0x7fffffff));
+        expect(rerollEnchantmentSeed(player.keyed())).toBe(Math.floor(0.75 * 0x7fffffff));
         expect(draws).toEqual([]);
     });
 
@@ -169,34 +169,38 @@ describe('the enchanting table', () => {
         const first = scene(content()).player;
         const second = scene(content()).player;
 
-        enchantmentSeedOf(first, 1234);
-        enchantmentSeedOf(second, 5678);
+        enchantmentSeedOf(first.keyed(), 1234);
+        enchantmentSeedOf(second.keyed(), 5678);
 
-        expect(enchantmentSeedOf(first)).toBe(1234);
-        expect(enchantmentSeedOf(second)).toBe(5678);
+        expect(enchantmentSeedOf(first.keyed())).toBe(1234);
+        expect(enchantmentSeedOf(second.keyed())).toBe(5678);
     });
 
     it('keeps the seed under the key the player is saved by', () => {
         const { player } = scene(content());
-        const keyed = { key: keyOfPlayer(player), server: player.getServer() };
+        const keyed = { key: player.getName(), server: player.getServer() };
 
         enchantmentSeedOf(keyed, 4321);
 
-        expect(enchantmentSeedOf(player)).toBe(4321);
-        expect(rerollEnchantmentSeed(keyed)).toBe(enchantmentSeedOf(player));
+        expect(enchantmentSeedOf(player.keyed())).toBe(4321);
+        expect(rerollEnchantmentSeed(keyed)).toBe(enchantmentSeedOf(player.keyed()));
     });
 
     it("lets go of a player's seed when its session is torn down, so a rejoin reads the record", async () => {
         // A name of its own: test files share a module instance (`isolate: false`), so another
         // file's `Tester` may already hold a seed under the default name.
-        const { player } = fakePlayer({ name: 'SeedReleaseTester' });
-        enchantmentSeedOf(player, 1234);
+        const { session, world } = fakePlayer({ name: 'SeedReleaseTester' });
+        enchantmentSeedOf(session.keyed(), 1234);
+        // Read while the record is saved, which is when the save needs it.
+        let saved: number | undefined;
+        vi.spyOn(world, 'savePlayerData').mockImplementation(
+            async () => void (saved = enchantmentSeedOf(session.keyed()))
+        );
 
-        await player.disable();
-        expect(enchantmentSeedOf(player, 99)).toBe(1234);
+        await session.leave();
 
-        player.getNetworkSession().disable();
-        expect(enchantmentSeedOf(player, 99)).toBe(99);
+        expect(saved).toBe(1234);
+        expect(enchantmentSeedOf(session.keyed(), 99)).toBe(99);
     });
 
     it('offers the same three rows for the same seed, which is what keeps them still', () => {
@@ -256,7 +260,7 @@ describe('the enchanting table', () => {
         it('puts the drawn enchantments on the stack and charges the levels', () => {
             const { player, attributes } = scene(content());
             const registry = content().enchantments;
-            const seed = enchantmentSeedOf(player, 1234);
+            const seed = enchantmentSeedOf(player.keyed(), 1234);
             const rows = enchantingRows(registry, pickaxe(), seed, 15);
             const row = rows.findIndex((entry) => entry.picks.length > 0);
 
@@ -273,17 +277,17 @@ describe('the enchanting table', () => {
         it('rerolls the seed, so the next item is a fresh draw', () => {
             const { player } = scene(content());
             const registry = content().enchantments;
-            const seed = enchantmentSeedOf(player, 1234);
+            const seed = enchantmentSeedOf(player.keyed(), 1234);
             const row = enchantingRows(registry, pickaxe(), seed, 15).findIndex((entry) => entry.picks.length > 0);
 
             takeEnchantingRow(registry, player, pickaxe(), seed, 15, row);
-            expect(enchantmentSeedOf(player)).not.toBe(seed);
+            expect(enchantmentSeedOf(player.keyed())).not.toBe(seed);
         });
 
         it('refuses a player who cannot pay, and charges them nothing', () => {
             const { player, attributes } = scene(content());
             const registry = content().enchantments;
-            const seed = enchantmentSeedOf(player, 1234);
+            const seed = enchantmentSeedOf(player.keyed(), 1234);
             const row = enchantingRows(registry, pickaxe(), seed, 15).findIndex((entry) => entry.picks.length > 0);
             attributes.setValue(AttributeIds.PlayerLevel, 0);
 
@@ -303,7 +307,7 @@ describe('the enchanting table', () => {
     describe('sending the table to the client', () => {
         it('sends real options for an enchantable stack', async () => {
             const { player, sent } = scene(content());
-            rerollEnchantmentSeed(player);
+            rerollEnchantmentSeed(player.keyed());
 
             await showEnchantingTable(player, pickaxe(), { x: 0, y: 64, z: 0 });
 

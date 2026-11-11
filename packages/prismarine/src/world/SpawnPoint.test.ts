@@ -1,14 +1,14 @@
 /**
  * A player setting their own spawn point and coming back at it, through a real world.
  *
- * Nothing modeled a per-player spawn before this: `Player.getRespawnPoint` answered with the
+ * Nothing modeled a per-player spawn before this: the respawn point answered with the
  * world spawn for everybody, a bed set nothing, and `/spawnpoint` was one of the commands the
  * registry left out because there was nothing behind it.
  *
  * So the three paths that set one are driven here against a real `World` and a real LevelDB: the
  * click on the bed goes through `useItemOnBlock`, the command goes through the server's own
  * `WorldCommandHost`, and the record goes out through `savePlayerData` and back in through
- * `Player.enable`.
+ * `PlayerSession.join`.
  */
 import fs from 'node:fs';
 import os from 'node:os';
@@ -34,10 +34,9 @@ import { serverWorldSource } from '../content/world/serverSource';
 import { EntityRuntimes } from '../entity/data/live';
 import { useItemOnBlock } from '../item/interaction';
 import type ClientConnection from '../network/ClientConnection';
-import { createConnectedPlayer } from '../network/createConnectedPlayer';
-import { sessionsWith } from '../testing/playerSession.test.helper';
+import { connectedSession, sessionsWith } from '../testing/playerSession.test.helper';
 import type { PermissionManager } from '../permission/PermissionManager';
-import Player from '../Player';
+import type PlayerSession from '../network/PlayerSession';
 import type Server from '../Server';
 import { stub } from '../testing/stub.test.helper';
 import UUID from '@jsprismarine/protocol/wire/structures/UUID';
@@ -45,7 +44,6 @@ import type { ChunkScheduler } from './ChunkScheduler';
 import Chunk from './chunk/Chunk';
 import { Dimensions } from './Dimension';
 import type { Generator } from './Generator';
-import { Position } from './Position';
 import LevelDB from './providers/leveldb/LevelDB';
 import type { World } from './World';
 import type WorldManager from './WorldManager';
@@ -212,21 +210,7 @@ const buildScene = async (name: string) => {
 };
 
 /** A player standing beside the bed, wired to a session that sends nowhere. */
-const buildPlayer = (world: World, server: Server, uuid: UUID): Player => {
-    const player = new Player({
-        position: new Position(BED.x + 0.5, BED.y, BED.z + 2.5, world),
-        address: new InetAddress('127.0.0.1', 19132),
-        identity: {
-            uuid,
-            name: 'Sleeper',
-            xuid: '',
-            randomId: 0,
-            locale: 'en_US',
-            skin: null,
-            device: null
-        }
-    });
-
+const buildPlayer = (world: World, server: Server, uuid: UUID): PlayerSession => {
     const connection = stub<ClientConnection>({
         getAddress: () => new InetAddress('127.0.0.1', 19132),
         sendDataPacket: async () => {},
@@ -234,13 +218,19 @@ const buildPlayer = (world: World, server: Server, uuid: UUID): Player => {
         closePlayerSession: async () => {},
         disconnect: async () => {}
     });
-
-    createConnectedPlayer({ server, connection, player });
-    return player;
+    return connectedSession({
+        server,
+        connection,
+        world,
+        eyes: new Vector3(BED.x + 0.5, BED.y, BED.z + 2.5),
+        name: 'Sleeper',
+        uuid,
+        joined: false
+    });
 };
 
 /** One right click on the top of a block, through the real interaction path. */
-const clickOn = (scene: Awaited<ReturnType<typeof buildScene>>, player: Player, at: typeof BED) =>
+const clickOn = (scene: Awaited<ReturnType<typeof buildScene>>, player: PlayerSession, at: typeof BED) =>
     useItemOnBlock({
         content: scene.content,
         actors: scene.contentWorld.actorsAt('minecraft:overworld'),
@@ -336,13 +326,13 @@ describe('a player with a spawn point of their own', () => {
         leaving.blocks.setBlock(BED, 'minecraft:bed');
         clickOn(leaving, player, BED);
 
-        await leaving.world.savePlayerData(player);
+        await leaving.world.savePlayerData(player.getPlayer());
         await leaving.world.save();
         await leaving.level.disable();
 
         const returning = await buildScene('persist');
         const back = buildPlayer(returning.world, returning.server, uuid);
-        await back.enable();
+        await back.join();
 
         expect(back.getSpawnPoint()).toEqual({ ...BED, dimension: 'minecraft:overworld' });
 

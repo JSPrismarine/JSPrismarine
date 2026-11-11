@@ -18,7 +18,7 @@ import {
 import type { EnchantingPlayer } from '../../enchantment/enchantingTable';
 import { takeFromAnvil } from '../../enchantment/anvil';
 import type { Item } from '../../item/Item';
-import type { KeyedPlayerSource } from '../../keyedPlayer';
+import type { KeyedPlayerHolder } from '../../keyedPlayer';
 import type { OpenBlockContainer } from '../PlayerSession';
 
 /** The slot the item being worked on sits in. */
@@ -62,7 +62,7 @@ export const workstationContainerId = (open: OpenBlockContainer, slot: number): 
  * The player at a workstation: who is shown the enchanting table's rows, whose seed draws them,
  * who is told of an enchanting, and whose experience a craft spends.
  */
-export type WorkstationPlayer = EnchantingPlayer & KeyedPlayerSource & Parameters<typeof takeFromAnvil>[1];
+export type WorkstationPlayer = EnchantingPlayer & KeyedPlayerHolder & Parameters<typeof takeFromAnvil>[1];
 
 /** What a workstation craft produced, and what it cost. */
 export interface WorkstationCraft {
@@ -94,7 +94,7 @@ export const refreshEnchantOptions = async (player: WorkstationPlayer, open: Ope
         z: open.position.getZ()
     });
 
-    const rows = enchantingRows(registry, stack, enchantmentSeedOf(player), open.bookshelfPower);
+    const rows = enchantingRows(registry, stack, enchantmentSeedOf(player.keyed()), open.bookshelfPower);
     await sendEnchantOptions(player, enchantOptionsOf(registry, rows));
 };
 
@@ -123,7 +123,14 @@ export const takeEnchantOption = (
     if (stack === null || stack === undefined) return undefined;
     if (!Number.isInteger(row) || row < 0) return undefined;
 
-    const result = takeEnchantingRow(registry, player, stack, enchantmentSeedOf(player), open.bookshelfPower, row);
+    const result = takeEnchantingRow(
+        registry,
+        player,
+        stack,
+        enchantmentSeedOf(player.keyed()),
+        open.bookshelfPower,
+        row
+    );
     if (result === undefined) return undefined;
 
     open.inputs[WORKSTATION_ITEM] = null;

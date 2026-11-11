@@ -1,7 +1,6 @@
 import { createRecipeBook } from '@jsprismarine/recipes';
 import type { CookingRecipe, RecipeInput } from '@jsprismarine/recipes';
 import { NBTTagCompound, Types } from '@jsprismarine/nbt';
-import type Player from '../Player';
 import type PlayerSession from '../network/PlayerSession';
 import { vanillaItemDefinitions } from '@jsprismarine/items';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -82,7 +81,7 @@ const tickWorld = (entity: Furnace, blockIdentifier: string) => {
     chunk.setBlockRuntimeId(8, 64, 8, blockRuntimeId);
     chunk.setBlockEntity(entity);
     const chunks = new Map([[Chunk.packXZ(0, 0), chunk]]);
-    const players = new Map<number, Player>();
+    const players = new Map<number, PlayerSession>();
     const world: World = Object.assign(Object.create(World.prototype), {
         chunks,
         players,
@@ -92,13 +91,13 @@ const tickWorld = (entity: Furnace, blockIdentifier: string) => {
         systems: { onBlockChanged: () => {} },
         server: { getContent: () => content, getLogger: () => ({ error: vi.fn() }) }
     });
-    const session = stub<PlayerSession>({ getOpenBlockContainer: () => undefined, getViewDistance: () => 10 });
     players.set(
         1,
-        stub<Player>({
-            isOnline: () => true,
-            getPosition: () => new Position(8, 64, 8, world),
-            getNetworkSession: () => session
+        stub<PlayerSession>({
+            isConnected: () => true,
+            getViewPosition: () => new Position(8, 64, 8, world),
+            getOpenBlockContainer: () => undefined,
+            getViewDistance: () => 10
         })
     );
 

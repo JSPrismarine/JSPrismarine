@@ -49,7 +49,6 @@ export default class TextHandler implements PacketHandler<TextPacket> {
      * and none of them is bounded by anything a real client does.
      */
     public async handle(packet: TextPacket, server: Server, session: PlayerSession): Promise<void> {
-        const player = session.getPlayer();
         const text = packet.getPacketData();
 
         if (text === null) {
@@ -76,7 +75,7 @@ export default class TextHandler implements PacketHandler<TextPacket> {
             .slice(0, MAX_MESSAGE_LENGTH);
         if (message.length === 0) return;
 
-        const chat = new Chat({ sender: player, message, type: ChatType.CHAT });
+        const chat = new Chat({ sender: session, message, type: ChatType.CHAT });
         await server.getChatManager().send(chat);
     }
 }

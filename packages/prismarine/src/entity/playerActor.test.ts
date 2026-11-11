@@ -3,21 +3,25 @@
  * player's actor, and every identity check entity code makes compares actors. These cases are the
  * comparisons that used to be made against the player itself.
  */
-import { InetAddress } from '@jsprismarine/raknet';
 import UUID from '@jsprismarine/protocol/wire/structures/UUID';
 import { describe, expect, it } from 'vitest';
 
-import Player from '../Player';
 import type Server from '../Server';
+import type { Config } from '../config/Config';
+import type ClientConnection from '../network/ClientConnection';
+import type PlayerSession from '../network/PlayerSession';
+import { sessionFor } from '../testing/playerSession.test.helper';
 import { liveTestEntities } from '../testing/entityServer';
 import { stub } from '../testing/stub.test.helper';
 import { Dimensions } from '../world/Dimension';
 import type GameRuleManager from '../world/GameRuleManager';
-import { Position } from '../world/Position';
 import { World } from '../world/World';
 import { NULL_WORLD_CHANGE_SINK } from '../world/WorldChangeSink';
 import { canHarm } from './Combat';
 import type { StorePlayerActor } from './data/storePlayers';
+import { entityIds } from './entityIds';
+import { EYE_HEIGHT } from './playerEyes';
+import { StorePlayer } from './storePlayer';
 import { DamageSource } from './DamageSource';
 import { deathMessage } from './DeathMessages';
 
@@ -37,7 +41,8 @@ const emptyWorld = (): World => {
         server: stub<Server>({
             getEntityRuntime: () => live,
             getStorePlayers: () => entities.players,
-            getContent: () => entities.content()
+            getContent: () => entities.content(),
+            getConfig: () => stub<Config>({ getEntityTrackingHysteresis: () => 2, getProximityBroadcast: () => true })
         })
     });
     created.attachChangeSink(NULL_WORLD_CHANGE_SINK);
@@ -45,28 +50,40 @@ const emptyWorld = (): World => {
     return created;
 };
 
-/** A constructed player, named so two of them can be told apart, in `world`'s store. */
-const playerIn = async (world: World, name: string): Promise<{ player: Player; actor: StorePlayerActor }> => {
-    const player = new Player({
-        position: new Position(0.5, 65.62, 0.5, world),
-        address: new InetAddress('127.0.0.1', 19132),
-        identity: { uuid: UUID.fromRandom(), name, xuid: '', randomId: 0, locale: 'en_US', skin: null, device: null }
+/** A store player as a login builds one, and the session that speaks for it, in `world`. */
+const joining = (world: World, name: string): { player: StorePlayer; session: PlayerSession } => {
+    const player = new StorePlayer(entityIds.next(), { uuid: UUID.fromRandom(), name, xuid: '' });
+    player.standAt({ x: 0.5, y: 65.62 - EYE_HEIGHT, z: 0.5 });
+    world.getServer().getStorePlayers().add(player);
+    const session = sessionFor(world.getServer(), stub<ClientConnection>(), player, {
+        runtimeId: player.getRuntimeId(),
+        identity: { name, xuid: '', uuid: player.getUUID().toString() },
+        world
     });
-    await world.addPlayer(player);
-    const actor = player.getActor();
+    return { player, session };
+};
+
+/** A player, named so two of them can be told apart, in `world`'s store. */
+const playerIn = async (
+    world: World,
+    name: string
+): Promise<{ player: StorePlayer; session: PlayerSession; actor: StorePlayerActor }> => {
+    const { player, session } = joining(world, name);
+    await world.addPlayer(session);
+    const actor = session.getActor();
     if (actor === undefined) throw new Error(`${name} has no actor`);
-    return { player, actor };
+    return { player, session, actor };
 };
 
 describe("a player's actor", () => {
     it('is what the world answers for the player id, and leads back to the store player', async () => {
         const world = emptyWorld();
-        const { player, actor } = await playerIn(world, 'Steve');
+        const { player, session, actor } = await playerIn(world, 'Steve');
 
         expect(world.getActor(player.getRuntimeId())).toBe(actor);
         expect(actor.getRuntimeId()).toBe(player.getRuntimeId());
-        expect(actor.player).toBe(player.getStorePlayer());
-        expect(player.getBody()).toBe(actor);
+        expect(actor.player).toBe(player);
+        expect(session.shown()).toBe(actor);
     });
 
     it('cannot hit itself through the entity the world answers for its id', async () => {
@@ -93,24 +110,11 @@ describe("a player's actor", () => {
 
     it('is not there before the player enters its world, so nothing can target or see it', async () => {
         const world = emptyWorld();
-        const player = new Player({
-            position: new Position(0.5, 65.62, 0.5, world),
-            address: new InetAddress('127.0.0.1', 19132),
-            identity: {
-                uuid: UUID.fromRandom(),
-                name: 'Joining',
-                xuid: '',
-                randomId: 0,
-                locale: 'en_US',
-                skin: null,
-                device: null
-            }
-        });
+        const { player, session } = joining(world, 'Joining');
 
-        expect(player.getActor()).toBeUndefined();
+        expect(session.getActor()).toBeUndefined();
         expect(world.getActor(player.getRuntimeId())).toBeNull();
         expect(world.shownActors()).toEqual([]);
-        expect(await player.damage(5)).toBe(false);
         expect(player.getHealth()).toBe(20);
     });
 });

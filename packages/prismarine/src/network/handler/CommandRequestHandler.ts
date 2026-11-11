@@ -23,7 +23,6 @@ export default class CommandRequestHandler implements PacketHandler<CommandReque
 
     /** Dispatches the command as the player who sent it and answers with its outcome. */
     public async handle(packet: CommandRequestPacket, server: Server, session: PlayerSession): Promise<void> {
-        const player = session.getPlayer();
         const request = packet.getPacketData();
         if (request === null) throw new Error('CommandRequestPacket has no decoded payload');
         const origin = request.commandOriginData;
@@ -38,7 +37,7 @@ export default class CommandRequestHandler implements PacketHandler<CommandReque
             return;
         }
 
-        const ran = await server.getCommandManager().dispatchCommand(player, player, request.commandName);
+        const ran = await server.getCommandManager().dispatchCommand(session, session, request.commandName);
 
         const output = new CommandOutputPacket({
             originData: origin,

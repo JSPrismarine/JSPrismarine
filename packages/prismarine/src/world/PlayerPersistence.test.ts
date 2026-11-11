@@ -4,7 +4,7 @@
  * Nothing persisted a player's items before `WorldPlayerData.inventory` existed, so this is
  * the regression test for the whole chain: `World.savePlayerData` collects what the player is
  * carrying, the LevelDB provider writes it as Bedrock item NBT under `player_server_<key>`,
- * and `Player.enable` puts it back. No mock provider, because a mock would have round-tripped
+ * and `PlayerSession.join` puts it back. No mock provider, because a mock would have round-tripped
  * the record as a JavaScript object and said nothing about the NBT it has to survive.
  */
 import fs from 'node:fs';
@@ -23,10 +23,9 @@ import type { Logger } from '@jsprismarine/logger';
 import { AttributeIds } from '@jsprismarine/protocol/wire/structures/Attribute';
 import { Item } from '../item/Item';
 import type ClientConnection from '../network/ClientConnection';
-import { createConnectedPlayer } from '../network/createConnectedPlayer';
-import { sessionsWith } from '../testing/playerSession.test.helper';
+import { connectedSession, sessionsWith } from '../testing/playerSession.test.helper';
 import type { PermissionManager } from '../permission/PermissionManager';
-import Player from '../Player';
+import type PlayerSession from '../network/PlayerSession';
 import { stub } from '../testing/stub.test.helper';
 import UUID from '@jsprismarine/protocol/wire/structures/UUID';
 import type { ChunkScheduler } from './ChunkScheduler';
@@ -147,24 +146,12 @@ const digestWithInsertionOrder = async (
     }
 };
 
-/** A player of a fixed identity, so the second one reads the first one's record. */
-const buildPlayer = (world: World, server: Server, uuid: UUID): Player => {
-    const player = new Player({
-        position: new Position(0.5, 65, 0.5, world),
-        address: new InetAddress('127.0.0.1', 19132),
-        identity: {
-            uuid,
-            name: 'Tester',
-            // Deliberately empty: an offline player has no XUID, and the save used to be
-            // skipped entirely for one.
-            xuid: '',
-            randomId: 0,
-            locale: 'en_US',
-            skin: null,
-            device: null
-        }
-    });
-
+/**
+ * A player of a fixed identity, so the second one reads the first one's record. Its name is the
+ * same, and it has no XUID: an offline player has none, and the save used to be skipped entirely
+ * for one.
+ */
+const buildPlayer = (world: World, server: Server, uuid: UUID): PlayerSession => {
     const connection = stub<ClientConnection>({
         getAddress: () => new InetAddress('127.0.0.1', 19132),
         sendDataPacket: async () => {},
@@ -172,9 +159,15 @@ const buildPlayer = (world: World, server: Server, uuid: UUID): Player => {
         closePlayerSession: async () => {},
         disconnect: async () => {}
     });
-
-    createConnectedPlayer({ server, connection, player });
-    return player;
+    return connectedSession({
+        server,
+        connection,
+        world,
+        eyes: new Vector3(0.5, 65, 0.5),
+        name: 'Tester',
+        uuid,
+        joined: false
+    });
 };
 
 /** The pickaxe the test follows: enchanted, damaged, renamed and given a lore line. */
@@ -217,14 +210,14 @@ const logOutAndIn = async () => {
     );
 
     leaving.attributes.setValue(AttributeIds.Health, 11);
-    leaving.setFood(13);
-    leaving.setSaturation(4);
+    leaving.getPlayer().setFood(13);
+    leaving.getPlayer().setSaturation(4);
     leaving.attributes.setValue(AttributeIds.PlayerLevel, 27);
     leaving.attributes.setValue(AttributeIds.PlayerExperience, 0.5);
-    leaving.setSeenCredits(true);
+    leaving.getPlayer().setSeenCredits(true);
     await leaving.setPlayerPosition({ position: new Vector3(12.5, 70, -8.5) }, false);
 
-    await world.savePlayerData(leaving);
+    await world.savePlayerData(leaving.getPlayer());
 
     // A fresh process would reopen the database; a second level over the same folder is the
     // same thing without the process.
@@ -235,7 +228,7 @@ const logOutAndIn = async () => {
     opened = back;
 
     const returning = buildPlayer(back, server, uuid);
-    await returning.enable();
+    await returning.join();
     await back.addPlayer(returning);
 
     const returningInventory = returning.getInventory();
@@ -283,7 +276,7 @@ const logOutAndIn = async () => {
 };
 
 describe('a player logging out and back in', () => {
-    let returning: Player;
+    let returning: PlayerSession;
     let digests: Awaited<ReturnType<typeof logOutAndIn>>['digests'];
 
     beforeAll(async () => {
@@ -382,7 +375,7 @@ describe('a player logging out and back in', () => {
         try {
             const world = await level.world(OVERWORLD_STEM_ID);
             const player = buildPlayer(world, server, UUID.fromString('00000000-0000-4000-8000-000000000003'));
-            const getPlayers = vi.spyOn(world, 'getPlayers').mockReturnValue([player]);
+            const getViewers = vi.spyOn(world, 'getViewers').mockReturnValue([player]);
 
             const failure = new Error('player write failed');
             const writePlayerData = vi.spyOn(level.getProvider(), 'writePlayerData').mockRejectedValue(failure);
@@ -390,7 +383,7 @@ describe('a player logging out and back in', () => {
                 await expect(level.captureReplayInitialState()).rejects.toBe(failure);
             } finally {
                 writePlayerData.mockRestore();
-                getPlayers.mockRestore();
+                getViewers.mockRestore();
             }
         } finally {
             await level.disable();
@@ -441,15 +434,15 @@ describe('a player logging out and back in', () => {
     });
 
     it('keeps health, food, saturation and experience', () => {
-        expect(returning.getHealth()).toBe(11);
-        expect(returning.getFood()).toBe(13);
-        expect(returning.getSaturation()).toBe(4);
+        expect(returning.getPlayer().getHealth()).toBe(11);
+        expect(returning.getPlayer().getFood()).toBe(13);
+        expect(returning.getPlayer().getSaturation()).toBe(4);
         expect(returning.attributes.getValue(AttributeIds.PlayerLevel)).toBe(27);
         expect(returning.attributes.getValue(AttributeIds.PlayerExperience)).toBeCloseTo(0.5, 5);
     });
 
     it('keeps that the end credits were seen', () => {
-        expect(returning.hasSeenCredits()).toBe(true);
+        expect(returning.getPlayer().hasSeenCredits()).toBe(true);
     });
 
     it('comes back where it left, rather than at the spawn point', () => {

@@ -20,8 +20,8 @@ import { buildContentTags } from '../content/tags';
 import { openContainerContents } from '../inventory/containerStore';
 import { EYE_HEIGHT } from '../entity/playerEyes';
 import { stub } from '../testing/stub.test.helper';
-import { playerOnPrototype } from '../testing/storePlayer.test.helper';
-import type Player from '../Player';
+import { sessionOnPrototype } from '../testing/storePlayer.test.helper';
+import type PlayerSession from '../network/PlayerSession';
 import type { World } from '../world/World';
 import { Position } from '../world/Position';
 import type { CommandExecutor } from './CommandExecutor';
@@ -220,7 +220,7 @@ describe('the command layer on a booted server', () => {
     });
 
     it('uses a player’s feet when /summon has no coordinates', async () => {
-        const player = playerOnPrototype({
+        const player = sessionOnPrototype({
             getRuntimeId: () => 99n,
             getType: () => 'minecraft:player',
             getName: () => 'TestPlayer',
@@ -678,7 +678,7 @@ describe('the command layer on a server with packs of its own', () => {
      */
     const contentsOf = (at: readonly [number, number, number], identifier: string) =>
         openContainerContents(
-            stub<Player>({ getServer: () => server, getWorld: () => world }),
+            stub<PlayerSession>({ getServer: () => server, getWorld: () => world }),
             { x: at[0], y: at[1], z: at[2] },
             identifier
         );

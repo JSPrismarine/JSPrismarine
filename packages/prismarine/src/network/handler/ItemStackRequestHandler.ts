@@ -34,7 +34,6 @@ import type { ItemStackRequest, ItemStackRequestSlotInfo } from '@jsprismarine/p
 import { ContainerUiId, ItemStackRequestActionType } from '@jsprismarine/protocol';
 import type { OpenBlockContainer } from '../PlayerSession';
 import type PacketHandler from './PacketHandler';
-import { storePlayerOf } from './playerPorts';
 import { selectTrade } from './tradeScreen';
 import {
     refreshEnchantOptions,
@@ -48,9 +47,9 @@ import {
 import type { WorkstationPlayer } from './workstation';
 
 /**
- * The player as a request's steps hand it on: to the workstations, the craft's advancement and the
- * block's own slots, which each take a legacy player until their packages take something
- * narrower. What the steps read and move of the player is its store player's.
+ * The player as a request's steps hand it on, through its session: to the workstations, the
+ * craft's advancement and the block's own slots. What the steps read and move of the player is
+ * its store player's.
  */
 type RequestingPlayer = WorkstationPlayer & ContainerViewer;
 
@@ -332,7 +331,7 @@ export default class ItemStackRequestHandler implements PacketHandler<ItemStackR
      * answered the same way, once the request has been rolled back.
      */
     public async handle(packet: ItemStackRequestPacket, server: Server, session: PlayerSession): Promise<void> {
-        const player = storePlayerOf(session);
+        const player = session.getPlayer();
         const inventory = player.getInventory();
 
         // What the client actually asked for, by name: what a client sends for a given gesture
@@ -363,21 +362,13 @@ export default class ItemStackRequestHandler implements PacketHandler<ItemStackR
 
         const response = new ItemStackResponsePacket();
         response.responses = packet.requests.map((request) =>
-            this.apply(
-                request,
-                server,
-                session.getPlayer(),
-                inventory,
-                craftingInput,
-                itemDataForProtocol(packet.codecProtocol),
-                {
-                    session,
-                    changed: workstationChanged,
-                    containerChanged,
-                    drops,
-                    after
-                }
-            )
+            this.apply(request, server, session, inventory, craftingInput, itemDataForProtocol(packet.codecProtocol), {
+                session,
+                changed: workstationChanged,
+                containerChanged,
+                drops,
+                after
+            })
         );
 
         await session.send(response);
@@ -389,7 +380,7 @@ export default class ItemStackRequestHandler implements PacketHandler<ItemStackR
         // says it has to be called for: the three rows are a function of the stack.
         const open = session.getOpenBlockContainer();
         if (open !== undefined && open.screen === WindowTypes.ENCHANTMENT && workstationChanged.size > 0) {
-            await refreshEnchantOptions(session.getPlayer(), open);
+            await refreshEnchantOptions(session, open);
         }
 
         // Everyone else standing at the same chest. Their client holds its own copy of the
@@ -423,7 +414,7 @@ export default class ItemStackRequestHandler implements PacketHandler<ItemStackR
 
         // Which block the slots belong to, rather than which block was clicked: either half of a
         // double chest opens the same 54 slots, so the two have to compare as one container.
-        const changed = containerAnchorOf(session.getPlayer(), blockPositionOf(open.position), open.identifier);
+        const changed = containerAnchorOf(session, blockPositionOf(open.position), open.identifier);
 
         for (const other of session.getWorld().getViewers()) {
             if (other.runtimeId === session.runtimeId) continue;
@@ -432,10 +423,10 @@ export default class ItemStackRequestHandler implements PacketHandler<ItemStackR
             if (theirs === undefined) continue;
 
             const at = blockPositionOf(theirs.position);
-            const anchor = containerAnchorOf(other.getPlayer(), at, theirs.identifier);
+            const anchor = containerAnchorOf(other, at, theirs.identifier);
             if (anchor.x !== changed.x || anchor.y !== changed.y || anchor.z !== changed.z) continue;
 
-            const held = openContainerSlots(other.getPlayer(), at, theirs.identifier);
+            const held = openContainerSlots(other, at, theirs.identifier);
             if (held === undefined) continue;
 
             for (const slot of slots) {
@@ -759,7 +750,7 @@ export default class ItemStackRequestHandler implements PacketHandler<ItemStackR
                             if (unpaid()) return deny('a trade began before the last one was paid for');
 
                             const trade = selectTrade(
-                                storePlayerOf(context.session),
+                                context.session.getPlayer(),
                                 open,
                                 action.recipeNetId ?? 0,
                                 server.getContent()

@@ -2,7 +2,6 @@ import { EntityIndex } from '../entity/data/entityIndex';
 import { EntityStore } from '../entity/data/EntityStore';
 import { describe, expect, it, vi } from 'vitest';
 
-import type Player from '../Player';
 import { fakeLevel } from '../testing/level';
 import type PlayerSession from '../network/PlayerSession';
 import { stub } from '../testing/stub.test.helper';
@@ -18,7 +17,7 @@ import { World } from './World';
  * prototype so the unload path and the portal index are the code under test.
  */
 const worldWith = (chunks: readonly Chunk[]): World => {
-    const players = new Map<bigint, Player>();
+    const players = new Map<bigint, PlayerSession>();
     const world: World = Object.assign(Object.create(World.prototype), {
         chunks: new Map(chunks.map((chunk) => [Chunk.packXZ(chunk.getX(), chunk.getZ()), chunk])),
         players,
@@ -62,9 +61,9 @@ describe('world portal index', () => {
         const world = worldWith([near, far]);
         world['players'].set(
             1,
-            stub<Player>({
-                getNetworkSession: () => stub<PlayerSession>({ getViewDistance: () => 4 }),
-                getPosition: () => new Position(8, 64, 8, world)
+            stub<PlayerSession>({
+                getViewDistance: () => 4,
+                getViewPosition: () => new Position(8, 64, 8, world)
             })
         );
         expect(world.getPortalIndex().size).toBe(4);

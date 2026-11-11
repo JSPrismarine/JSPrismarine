@@ -21,11 +21,11 @@ import { AttributeIds, Attributes } from '@jsprismarine/protocol/wire/structures
 import ContainerEntry from '../../inventory/ContainerEntry';
 import HumanInventory from '../../inventory/HumanInventory';
 import { Item } from '../../item/Item';
-import type { StorePlayer } from '../../entity/storePlayer';
 import { stubPlayerPort } from '../../testing/playerPort.test.helper';
 import type Server from '../../Server';
 import { enchantingRows, enchantmentSeedOf } from '../../enchantment/enchantingTable';
 import { stub } from '../../testing/stub.test.helper';
+import { playerKeyOf } from '../../playerIdentity';
 import { experienceIn } from '../../testing/storePlayer.test.helper';
 import type { World } from '../../world/World';
 import type { Logger } from '@jsprismarine/logger';
@@ -139,22 +139,23 @@ const scene = (open: OpenBlockContainer) => {
     });
 
     const runtimeId = nextRuntimeId++;
-    const player = stubPlayerPort({
+    const name = `tester-${runtimeId}`;
+    // The player as the request's steps read it, through its session.
+    const player: PlayerSession = stub<PlayerSession>({
         getType: () => 'minecraft:player',
         // Its own name, because per-player services are keyed by the name of a player with no XUID.
-        getName: () => `tester-${runtimeId}`,
-        getXUID: () => null,
+        getName: () => name,
+        keyed: () => ({ key: playerKeyOf({ name, xuid: '' }), server }),
         getRuntimeId: () => runtimeId,
         getServer: () => server,
         getWorld: () =>
             stub<World>({
                 getBlockState: async () => ({ name: 'minecraft:bookshelf' }) as never,
-                getPlayers: () => []
+                getViewers: () => []
             }),
         getPosition: () => ({ getX: () => 0, getY: () => 64, getZ: () => 0 }) as never,
         getEquipment: () => ({}),
         getInventory: () => inventory,
-        getCraftingInput: () => new CraftingInput(),
         attributes,
         getExperience: () => experienceIn(attributes),
         isSprinting: () => false,
@@ -163,24 +164,18 @@ const scene = (open: OpenBlockContainer) => {
         isFlying: () => false,
         getFood: () => 20,
         getSaturation: () => 5,
-        getNetworkSession: () => session,
         // What the request's steps move.
-        getStorePlayer: () =>
-            stub<StorePlayer>({ getInventory: () => inventory, getCraftingInput: () => new CraftingInput() })
-    });
-
-    const session: PlayerSession = stub<PlayerSession>({
-        getPlayer: () => player,
-        getWorld: () => stub<World>({ getViewers: () => [] }),
+        getPlayer: () => stubPlayerPort({ getInventory: () => inventory, getCraftingInput: () => new CraftingInput() }),
         getOpenBlockContainer: () => open,
         send: async (packet: NetworkPacket) => void sent.push(packet)
     });
+    const session = player;
 
     attributes.setValue(AttributeIds.PlayerLevel, 30);
 
     // Pinned, because an unseeded player draws one at random and which of the three rows has
     // anything in it is a function of the seed.
-    const seed = enchantmentSeedOf(player, 1234);
+    const seed = enchantmentSeedOf(player.keyed(), 1234);
 
     const run = async (requests: ItemStackRequest[]) => {
         await new ItemStackRequestHandler().handle(

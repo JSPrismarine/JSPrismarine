@@ -7,7 +7,6 @@ import { PLAYER_IDENTIFIER } from '../../entity/playerOverlay';
 import { SOUND_RADIUS } from '../../world/Proximity';
 import type LevelSoundEventPacket from '@jsprismarine/protocol/packet/LevelSoundEventPacket';
 import type PacketHandler from './PacketHandler';
-import { storePlayerOf } from './playerPorts';
 
 /**
  * How far from the sender a client-sent sound may claim to have happened.
@@ -68,7 +67,7 @@ export default class LevelSoundEventHandler implements PacketHandler<LevelSoundE
             return;
         }
 
-        const distance = storePlayerOf(session).getPosition().distanceTo(position);
+        const distance = session.getPlayer().getPosition().distanceTo(position);
         if (!Number.isFinite(distance) || distance > MAX_SOUND_DISTANCE) {
             drop(`reported ${distance.toFixed(1)} away`);
             return;

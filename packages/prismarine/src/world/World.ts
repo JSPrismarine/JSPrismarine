@@ -18,7 +18,6 @@ import Timer from '../utils/Timer';
 import UUID from '@jsprismarine/protocol/wire/structures/UUID';
 import { randomOf } from '../utils/Random';
 import type { Random } from '../utils/Random';
-import type Player from '../Player';
 import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
 import { BlockStateSchemas } from '../block/state/BlockStateSchema';
 import type { BlockState } from '../block/state/BlockState';
@@ -246,11 +245,8 @@ const LIGHT_GUARD_CHUNKS = 1;
  */
 const BODY_SHRINK = 1e-6;
 
-/** What a player's chunk coverage reads: where it stands and how far its client sees. */
-interface CoveringPlayer {
-    getPosition(): Vector3;
-    getNetworkSession(): Pick<PlayerSession, 'getViewDistance'>;
-}
+/** What a player's chunk coverage reads of its session: where it stands and how far its client sees. */
+type CoveringPlayer = Pick<PlayerSession, 'getViewPosition' | 'getViewDistance'>;
 
 interface PlayerChunkCoverage {
     readonly x: number;
@@ -284,11 +280,11 @@ class PlayerChunkRefCounts {
     public synchronize(players: ReadonlyMap<number, CoveringPlayer>): void {
         let changed = false;
         for (const [runtimeId, player] of players) {
-            const position = player.getPosition();
+            const position = player.getViewPosition();
             const coverage = {
                 x: CoordinateUtils.fromBlockToChunk(position.getX()),
                 z: CoordinateUtils.fromBlockToChunk(position.getZ()),
-                viewDistance: Math.floor(Math.max(SIMULATION_DISTANCE, player.getNetworkSession().getViewDistance()))
+                viewDistance: Math.floor(Math.max(SIMULATION_DISTANCE, player.getViewDistance()))
             };
             const previous = this.players.get(runtimeId);
             if (
@@ -546,12 +542,13 @@ export class World implements Service {
     private gameEventListenerRegistry: GameEventListenerRegistry | undefined;
 
     /**
-     * The subset of `entities` that are player-controlled, kept alongside it.
+     * The sessions of the players in this world, by entity id, from {@link World.addPlayer} to
+     * {@link World.removePlayer}.
      *
-     * `getPlayers()` is called on essentially every broadcast, and deriving it meant walking
-     * every entity in the world each time. Holding the players separately makes that a read.
+     * `getViewers()` is called on essentially every broadcast, so it reads this map rather than
+     * walking the world's entities.
      */
-    private readonly players: Map<number, Player> = new Map();
+    private readonly players: Map<number, PlayerSession> = new Map();
     private readonly chunks: Map<number, Chunk> = new Map();
     private blockWriteVersion = World.nextBlockWriteVersion++;
     private playerChunkRefCounts: PlayerChunkRefCounts | undefined;
@@ -2625,27 +2622,27 @@ export class World implements Service {
     private raidHost(): RaidHost {
         const livePlayers = () =>
             this.getViewers()
-                .map((session) => session.getPlayer())
-                .filter((player) => player.gamemode !== Gametype.SPECTATOR)
-                .map((player) => ({
-                    id: Number(player.getRuntimeId()),
-                    position: {
-                        x: player.getPosition().getX(),
-                        y: player.getPosition().getY(),
-                        z: player.getPosition().getZ()
-                    },
-                    get badOmenLevel() {
-                        const omen = player.getStatusEffect('minecraft:bad_omen');
-                        return omen === undefined ? 0 : omen.amplifier + 1;
-                    },
-                    clearBadOmen: () => void player.removeStatusEffect('minecraft:bad_omen'),
-                    grantHero: (amplifier: number, ticks: number) =>
-                        void player.addStatusEffect({
-                            id: 'minecraft:village_hero',
-                            amplifier,
-                            durationTicks: ticks
-                        })
-                }));
+                .filter((session) => session.getPlayer().gamemode !== Gametype.SPECTATOR)
+                .map((session) => {
+                    const position = session.getViewPosition();
+                    // The status effects are the entity's, so they are read through its actor.
+                    const actor = () => session.getActor();
+                    return {
+                        id: Number(session.runtimeId),
+                        position: { x: position.getX(), y: position.getY(), z: position.getZ() },
+                        get badOmenLevel() {
+                            const omen = actor()?.getStatusEffect('minecraft:bad_omen');
+                            return omen === undefined ? 0 : omen.amplifier + 1;
+                        },
+                        clearBadOmen: () => void actor()?.removeStatusEffect('minecraft:bad_omen'),
+                        grantHero: (amplifier: number, ticks: number) =>
+                            void actor()?.addStatusEffect({
+                                id: 'minecraft:village_hero',
+                                amplifier,
+                                durationTicks: ticks
+                            })
+                    };
+                });
         return {
             difficulty: () => this.server.getConfig().getDifficulty(),
             random: () => this.server.getRandom()(),
@@ -3181,15 +3178,12 @@ export class World implements Service {
      *
      * The one way a player enters a world, on its join and on its arrival from another. Until it
      * runs, nothing in the world can target or see the player.
-     * @param player - The player.
+     * @param session - The player's session.
      */
-    public async addPlayer(player: Player): Promise<void> {
-        this.players.set(Number(player.getRuntimeId()), player);
-        if (
-            enterStore(this.dataEntities().runtime, this.server.getStorePlayers(), player.getStorePlayer()) ===
-            undefined
-        )
-            this.server.getLogger().warn(`The content declares no player, so ${player.getName()} has no entity`);
+    public async addPlayer(session: PlayerSession): Promise<void> {
+        this.players.set(Number(session.runtimeId), session);
+        if (enterStore(this.dataEntities().runtime, this.server.getStorePlayers(), session.getPlayer()) === undefined)
+            this.server.getLogger().warn(`The content declares no player, so ${session.identity.name} has no entity`);
     }
 
     /**
@@ -3197,11 +3191,11 @@ export class World implements Service {
      * player map first, so a leaving player is not among the clients told it left, and then its
      * entity out of this world's store, which takes it off every client that was shown it. The
      * store player keeps what its next entity needs.
-     * @param player - The player.
+     * @param session - The player's session.
      */
-    public async removePlayer(player: Player): Promise<void> {
-        this.players.delete(Number(player.getRuntimeId()));
-        leaveStore(this.dataEntities().runtime, player.getStorePlayer(), 'left_world');
+    public async removePlayer(session: PlayerSession): Promise<void> {
+        this.players.delete(Number(session.runtimeId));
+        leaveStore(this.dataEntities().runtime, session.getPlayer(), 'left_world');
     }
 
     /**
@@ -3926,20 +3920,11 @@ export class World implements Service {
         }
     }
     /**
-     * Get all players in this world.
-     * @returns {Player[]} the players.
-     */
-    public getPlayers(): Player[] {
-        return Array.from(this.players.values()).filter((player) => player.isOnline());
-    }
-
-    /**
-     * The clients that see this world: the sessions of its online players, as
-     * {@link World.getPlayers} lists them.
+     * The clients that see this world: the sessions of its online players.
      * @returns The sessions.
      */
     public getViewers(): PlayerSession[] {
-        return this.getPlayers().map((player) => player.getNetworkSession());
+        return Array.from(this.players.values()).filter((session) => session.isConnected());
     }
 
     /**
@@ -3948,7 +3933,7 @@ export class World implements Service {
      * @returns The session, or undefined when no player in this world has the id.
      */
     public viewerOf(runtimeId: bigint): PlayerSession | undefined {
-        return this.players.get(Number(runtimeId))?.getNetworkSession();
+        return this.players.get(Number(runtimeId));
     }
 
     /**

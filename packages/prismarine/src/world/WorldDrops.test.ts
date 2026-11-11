@@ -67,7 +67,10 @@ const fakeWorld = (initial: BlockState, { id = 1, dropName = initial.name } = {}
             }
         },
         considerEntity: async (entity: any) => entity.spawnTo(session),
-        sendAddItemActor: PlayerSession.prototype.sendAddItemActor
+        sendAddItemActor: PlayerSession.prototype.sendAddItemActor,
+        // Where the player stands and how far it sees, which the drop's audience is chosen by.
+        getViewPosition: () => new Vector3(10, 64, -20),
+        getViewDistance: () => 10
     };
 
     const player: any = {
@@ -97,7 +100,7 @@ const fakeWorld = (initial: BlockState, { id = 1, dropName = initial.name } = {}
         players: new Map(),
         getChunkAt: async () => chunk,
         getBlock: async () => block,
-        getPlayers: () => [player],
+        getViewers: () => [session],
         getEntities: () => [],
         getActors: () => [],
         sendWorldEvent: async () => {},

@@ -32,10 +32,10 @@ import { World } from '../world/World';
 import { WorldSystems } from '../world/WorldSystems';
 import { NULL_WORLD_CHANGE_SINK } from '../world/WorldChangeSink';
 import { contentRedstoneUpdateHandlers } from '../world/redstoneUpdates';
-import type Player from '../Player';
+import type PlayerSession from '../network/PlayerSession';
 import { Position } from '../world/Position';
 import { fakeLevel } from '../testing/level';
-import { playerOnPrototype } from '../testing/storePlayer.test.helper';
+import { sessionOnPrototype } from '../testing/storePlayer.test.helper';
 
 /** One call to the session's container opener, as the harness records it. */
 interface OpenedContainer {
@@ -251,7 +251,7 @@ const installWorldSystems = (
  * A player reduced to what {@link useItemOnBlock} and {@link useItemInAir} read off one.
  *
  * Built as the members the path calls over the real prototype rather than constructed, because
- * a `Player` is a network session and this is a test about what a click does to the world. The
+ * a `PlayerSession` is a network session and this is a test about what a click does to the world. The
  * session answers `getPlayer`, which is how the actor port finds the player and reads its game
  * mode. The inventory is a real one with the stack in hotbar slot 0, because a placement takes
  * from it.
@@ -268,7 +268,7 @@ const playerHolding = (
     sneaking = false,
     gamemode: Gametype = Gametype.SURVIVAL,
     rotation: { pitch: number; yaw: number } = { pitch: 0, yaw: 0 }
-): Player => {
+): PlayerSession => {
     const item = typeof holding === 'string' ? new Item({ runtimeId: 1, name: holding, meta: 0, count: 1 }) : holding;
     const inventory = new HumanInventory();
     inventory.setItem(0, new ContainerEntry({ item, count: item.count }));
@@ -295,9 +295,7 @@ const playerHolding = (
             openWindow = opened;
             return openWindow;
         },
-        send: async () => {},
-        // The actor port finds a player through its session, which is how it reads the game mode.
-        getPlayer: (): Player => player
+        send: async () => {}
     };
 
     const runtimeId = nextPlayerRuntimeId++;
@@ -311,13 +309,12 @@ const playerHolding = (
         getStatusEffects: () => [],
         getEquipment: () => ({})
     };
-    const player: Player = Object.assign(
-        playerOnPrototype(
+    const player: PlayerSession = Object.assign(
+        sessionOnPrototype(
             {
                 getInventory: () => inventory,
                 // Its own name, because per-player services are keyed by the name of a player with no XUID.
                 getName: () => `tester-${runtimeId}`,
-                getXUID: () => null,
                 isFlying: () => false,
                 getSaturation: () => 5,
                 getFallDistance: () => 0,
@@ -328,7 +325,6 @@ const playerHolding = (
                 gamemode,
                 pitch: rotation.pitch,
                 yaw: rotation.yaw,
-                headYaw: rotation.yaw,
                 attributes: new Attributes(Attributes.getPlayerDefaults()),
                 getWorld: entity.getWorld,
                 getPosition: () => Position.fromVector3(entity.getPosition(), world),
@@ -341,13 +337,26 @@ const playerHolding = (
             { runtimeId, actor: entity }
         ),
         // The session double counts what it is sent, which a real session does not.
-        { getNetworkSession: () => session }
+        {
+            sendInventory: session.sendInventory,
+            getOpenBlockContainer: session.getOpenBlockContainer,
+            openBlockContainer: session.openBlockContainer,
+            send: session.send
+        }
     );
+    sends.set(player, session);
     return player;
 };
 
-/** The inventory sends {@link playerHolding}'s session counted, which the double alone carries. */
-const sessionOf = (player: Player) => player.getNetworkSession() as unknown as { inventoriesSent: number };
+/** What each {@link playerHolding} session was sent, which the double alone counts. */
+const sends = new WeakMap<PlayerSession, { inventoriesSent: number; opened: OpenedContainer[] }>();
+
+/** The inventory sends {@link playerHolding}'s session counted. */
+const sessionOf = (player: PlayerSession) => {
+    const counted = sends.get(player);
+    if (counted === undefined) throw new Error('not a playerHolding session');
+    return counted;
+};
 
 /** Writes a block straight into the chunk, which is the ground the click then acts on. */
 const place = (chunk: Chunk, at: ContentPosition, identifier: string, states: Record<string, unknown> = {}): void => {
@@ -418,7 +427,7 @@ describe('useItemOnBlock', () => {
     });
 
     /** The click, as the path takes it. */
-    const click = (player: Player, at: ContentPosition, face = 1, rotation?: { pitch: number; yaw: number }) =>
+    const click = (player: PlayerSession, at: ContentPosition, face = 1, rotation?: { pitch: number; yaw: number }) =>
         useItemOnBlock({
             content,
             actors: handle.actorsAt(DIMENSION),
@@ -557,7 +566,7 @@ describe('useItemOnBlock', () => {
         // The open is sent rather than awaited, so the click can be answered now.
         await Promise.resolve();
 
-        const session = player.getNetworkSession() as unknown as { opened: OpenedContainer[] };
+        const session = sessionOf(player);
         expect(session.opened).toHaveLength(1);
         expect(session.opened[0]!.identifier).toBe('minecraft:chest');
         expect(session.opened[0]!.at).toEqual(new Vector3(4, 64, 4));
@@ -581,7 +590,7 @@ describe('useItemOnBlock', () => {
         expect(click(player, { x: 6, y: 64, z: 6 })).toBe('handled');
         await Promise.resolve();
 
-        const session = player.getNetworkSession() as unknown as { opened: OpenedContainer[] };
+        const session = sessionOf(player);
         const shown = session.opened[0]!.contents.filter((entry) => entry.toItemStack().getName() !== 'minecraft:air');
         // Three bread, over as many slots as Java's own split put them in: a chest with 27
         // free slots and one stack of more than one gets the stack spread rather than piled.
@@ -598,9 +607,9 @@ describe('useItemOnBlock', () => {
     });
 
     /** Whether a player earned one of the fixture's advancements. */
-    const earned = (player: Player, id: string): boolean => {
+    const earned = (player: PlayerSession, id: string): boolean => {
         const advancement = content.advancements.get(id);
-        return advancement !== undefined && advancementsOf(player).isDone(advancement);
+        return advancement !== undefined && advancementsOf(player.keyed()).isDone(advancement);
     };
 
     it('raises the block-use triggers when the block took the click', () => {
@@ -637,7 +646,7 @@ describe('useItemOnBlock', () => {
         click(player, { x: 8, y: 64, z: 8 });
         await Promise.resolve();
 
-        expect((player.getNetworkSession() as unknown as { opened: OpenedContainer[] }).opened).toHaveLength(0);
+        expect(sessionOf(player).opened).toHaveLength(0);
     });
 
     it('declines a click nothing wants with an item that places no block, and sends nothing', () => {

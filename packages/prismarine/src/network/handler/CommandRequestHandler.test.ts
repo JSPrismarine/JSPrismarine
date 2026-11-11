@@ -4,7 +4,6 @@ import { describe, expect, it } from 'vitest';
 import type Server from '../../Server';
 import type { CommandManager } from '../../command/CommandManager';
 import { identityNamed } from '../../testing/sessionIdentity.test.helper';
-import { stubPlayerPort } from '../../testing/playerPort.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import UUID from '@jsprismarine/protocol/wire/structures/UUID';
 import type PlayerSession from '../PlayerSession';
@@ -30,7 +29,6 @@ const run = async (packet: CommandRequestPacket, ran: boolean) => {
     const dispatched: { sender: unknown; target: unknown; input: string }[] = [];
     const sent: NetworkPacket[] = [];
     const logged: string[] = [];
-    const player = stubPlayerPort({ getName: () => 'Steve' });
     const server = stub<Server>({
         getLogger: () => stub<Logger>({ debug: (...message) => void logged.push(message[0] ?? '') }),
         getCommandManager: () =>
@@ -43,13 +41,12 @@ const run = async (packet: CommandRequestPacket, ran: boolean) => {
     });
     const session = stub<PlayerSession>({
         identity: identityNamed('Steve'),
-        getPlayer: () => player,
         send: async (packet) => void sent.push(packet)
     });
 
     await new CommandRequestHandler().handle(packet, server, session);
 
-    return { dispatched, sent, logged, player };
+    return { dispatched, sent, logged, session };
 };
 
 describe('CommandRequestHandler', () => {
@@ -57,9 +54,10 @@ describe('CommandRequestHandler', () => {
         const requestOrigin = origin(CommandOriginType.Player);
         const packet = request('/say hi', requestOrigin);
 
-        const { dispatched, sent, player } = await run(packet, true);
+        const { dispatched, sent, session } = await run(packet, true);
 
-        expect(dispatched).toEqual([{ sender: player, target: player, input: '/say hi' }]);
+        // The session answers for the player: it has the name and takes the reply.
+        expect(dispatched).toEqual([{ sender: session, target: session, input: '/say hi' }]);
         expect(sent).toHaveLength(1);
         const [reply] = sent;
         expect(reply).toBeInstanceOf(CommandOutputPacket);

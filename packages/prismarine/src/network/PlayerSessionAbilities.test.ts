@@ -1,7 +1,7 @@
 import { CommandPermissionLevel, Gametype, PlayerPermissionLevel } from '@jsprismarine/minecraft';
 import { describe, expect, it } from 'vitest';
 
-import type { SessionPlayer } from './sessionPlayers';
+import type { ShownPlayer } from '../world/ShownPlayer';
 import type { Metadata } from '@jsprismarine/protocol/wire/structures/Metadata';
 import { stub } from '../testing/stub.test.helper';
 import { stubPlayerPort } from '../testing/playerPort.test.helper';
@@ -30,15 +30,16 @@ const floatLE = (value: number): Buffer => {
     return bytes;
 };
 
-/** A session whose connection records what goes out, speaking for `player`. */
-const sessionFor = (player: SessionPlayer) => {
+/** A session whose connection records what goes out, showing its player as `player`. */
+const sessionFor = (player: ShownPlayer) => {
     const sent: NetworkPacket[] = [];
     const connection = stub<ClientConnection>({
         sendDataPacket: async (packet) => void sent.push(packet)
     });
     const session: PlayerSession = Object.assign(Object.create(PlayerSession.prototype), {
         connection,
-        ...sessionPlayerFields(player, player.getRuntimeId())
+        ...sessionPlayerFields(stubPlayerPort({ gamemode: player.gamemode }), player.getRuntimeId()),
+        shown: () => player
     });
     return { session, sent };
 };
@@ -54,7 +55,7 @@ const playerIn = ({
     flying?: boolean;
     canFly?: boolean;
 }) =>
-    stubPlayerPort({
+    stub<ShownPlayer>({
         gamemode,
         getRuntimeId: () => 7n,
         isOp: () => op,
@@ -145,7 +146,7 @@ describe('PlayerSession.sendAbilities', () => {
 describe('PlayerSession.announceSettings', () => {
     it('sends the adventure settings to its own client alone and the abilities to every client', async () => {
         const own = sessionFor(playerIn({ gamemode: Gametype.SPECTATOR }));
-        const other = sessionFor(stubPlayerPort({ gamemode: Gametype.SURVIVAL, getRuntimeId: () => 8n }));
+        const other = sessionFor(stub<ShownPlayer>({ gamemode: Gametype.SURVIVAL, getRuntimeId: () => 8n }));
         const server = stub<Server>({
             getSessionManager: () => stub<SessionManager>({ getSessions: () => [own.session, other.session] })
         });

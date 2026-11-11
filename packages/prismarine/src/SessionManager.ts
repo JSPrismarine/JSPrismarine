@@ -1,6 +1,5 @@
 import type ClientConnection from './network/ClientConnection';
 import type PlayerSession from './network/PlayerSession';
-import { LegacyPlayers } from './network/sessionPlayers';
 import type { SessionPlayer } from './network/sessionPlayers';
 import type { ConnectionId } from './network/transport/ConnectionId';
 import type { PlayerListEntry } from '@jsprismarine/protocol/wire/structures/PlayerListEntry';
@@ -24,12 +23,11 @@ export interface ReplacedLogin {
 export default class SessionManager {
     private readonly connections: Map<ConnectionId, ClientConnection> = new Map();
     private readonly playerList: Map<string, PlayerListEntry> = new Map();
-    private readonly legacyPlayers = new LegacyPlayers();
 
     /**
      * The account each logging-in or live connection holds, so that a login can find the other
      * connection holding the same one whatever phase it is in. `getAllPlayers` sees only players
-     * who finished `Player.enable`, which is what let two live players share one account.
+     * who finished `PlayerSession.join`, which is what let two live players share one account.
      */
     private readonly claims: Map<ClientConnection, LoginClaim> = new Map();
 
@@ -118,31 +116,22 @@ export default class SessionManager {
     }
 
     /**
-     * Every player that has a session, by entity id, from the moment its session is built until
-     * the session is disabled. Sessions find their players here.
-     */
-    public getLegacyPlayers(): LegacyPlayers {
-        return this.legacyPlayers;
-    }
-
-    /**
      * Every player on the server, in any world.
      *
-     * Online only, the same test `World.getPlayers` applies. A connection has a session from
+     * Online only, the same test `World.getViewers` applies. A connection has a session from
      * the moment it authenticates, well before the client is ready to be sent anything, and
      * without this the login handshake was among the recipients of every broadcast.
-     * @returns {SessionPlayer[]} The online players.
+     * @returns {SessionPlayer[]} The online players' store players, in the order of
+     *   {@link SessionManager.getSessions}.
      */
     public getAllPlayers(): SessionPlayer[] {
-        return Array.from(this.connections.values())
-            .map((conn) => conn.getPlayerSession()?.getPlayer())
-            .filter((player): player is SessionPlayer => Boolean(player?.isOnline()));
+        return this.getSessions().map((session) => session.getPlayer());
     }
 
     /**
      * The sessions of every online player on the server, in any world: the sessions of the
      * players {@link SessionManager.getAllPlayers} lists, in the same order. A session is
-     * online while {@link PlayerSession.isConnected} says so, which is its player's own test.
+     * online while {@link PlayerSession.isConnected} says so.
      * @returns The sessions.
      */
     public getSessions(): PlayerSession[] {

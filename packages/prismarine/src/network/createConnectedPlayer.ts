@@ -1,48 +1,56 @@
-import type Player from '../Player';
 import type Server from '../Server';
+import type { StorePlayer } from '../entity/storePlayer';
+import type { PlayerIdentity } from '../playerIdentity';
+import type { World } from '../world/World';
 import type ClientConnection from './ClientConnection';
 import PlayerSession from './PlayerSession';
-import { sessionPlayerRefOf } from './sessionPlayers';
 
 /**
- * Joins a player to the connection it speaks through.
+ * Joins a login's store player to the connection it speaks through.
  *
- * The one place that knows both halves. Neither the `Player` nor the `PlayerSession` builds
- * the other: the player used to construct its own session and hand it a half-built `this`,
- * which made the two modules import each other at runtime and left the connection merely
- * adopting whatever the player had already made. Composition belongs outside both.
- *
- * The pair is live when this returns - the session is in the chunk rotation and the
- * connection will route packets to it - but the player has not joined yet. That is
- * {@link Player.enable}, and if it fails the caller tears the pair down through
- * {@link ClientConnection.closePlayerSession}.
+ * The one place that knows both halves: the store player is filed in the server's directory by
+ * its entity id, and the session built to speak for it holds that id. The pair is live when this
+ * returns - the session is in the chunk rotation and the connection will route packets to it -
+ * but the player has not joined yet. That is {@link PlayerSession.join}, and if it fails the
+ * caller tears the pair down through {@link ClientConnection.closePlayerSession}.
  * @param {object} options - The pieces to join.
  * @param {Server} options.server - The server both belong to.
  * @param {ClientConnection} options.connection - The connection that will own the session.
- * @param {Player} options.player - The player, freshly constructed and inert.
- * @returns {PlayerSession} The session, already attached to both sides.
+ * @param {StorePlayer} options.player - The store player the login built, in no store yet.
+ * @param {PlayerIdentity} options.identity - Who logged in, which the session holds.
+ * @param {World} options.world - The world the login puts the player in.
+ * @returns {PlayerSession} The session, already attached to the connection.
  * @example
  * ```typescript
- * const session = createConnectedPlayer({ server, connection, player });
- * await player.enable();
+ * const session = createConnectedPlayer({ server, connection, player, identity, world });
+ * await session.join();
  * ```
  */
 export const createConnectedPlayer = ({
     server,
     connection,
-    player
+    player,
+    identity,
+    world
 }: {
     server: Server;
     connection: ClientConnection;
-    player: Player;
+    player: StorePlayer;
+    identity: PlayerIdentity;
+    world: World;
 }): PlayerSession => {
     // Filed by id before the session exists, because the session holds the id and not the
     // player. `PlayerSession.disable` forgets it.
-    const players = server.getSessionManager().getLegacyPlayers();
+    const players = server.getStorePlayers();
     players.add(player);
-    const session = new PlayerSession(server, connection, sessionPlayerRefOf(player), players);
+    const session = new PlayerSession(
+        server,
+        connection,
+        { runtimeId: player.getRuntimeId(), identity },
+        players,
+        world
+    );
 
-    player.attachNetworkSession(session);
     connection.attachPlayerSession(session);
     session.enable();
 

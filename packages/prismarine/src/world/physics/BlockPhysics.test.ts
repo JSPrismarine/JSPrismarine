@@ -75,7 +75,6 @@ class TestWorld {
         getLoadedChunk: (cx, cz) => this.getLoadedChunk(cx, cz),
         getBlockUpdates: () => this.updates,
         dataEntities: () => this.live,
-        getPlayers: () => [],
         getServer: () =>
             stub<Server>({
                 // No pack stack, so a destroyed block falls back to the shipped schema.

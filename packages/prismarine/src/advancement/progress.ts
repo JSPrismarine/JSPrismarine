@@ -23,8 +23,8 @@
 import { PlayerAdvancements } from '@jsprismarine/advancements';
 import type { PlayerProgressJson } from '@jsprismarine/advancements';
 
-import type { KeyedPlayerSource, PlayerKeySource } from '../keyedPlayer';
-import { keyedPlayerOf, playerKeyFrom } from '../keyedPlayer';
+import type { KeyedPlayer, PlayerKeySource } from '../keyedPlayer';
+import { playerKeyFrom } from '../keyedPlayer';
 import { isRecord } from '../utils/isRecord';
 
 const stores = new Map<string, PlayerAdvancements>();
@@ -102,8 +102,7 @@ export const forgetAdvancements = (player: PlayerKeySource): void => {
  * The engine goes in so each entry carries its `done` flag, which is what a
  * reader that is not this server - a tool, a migration - has to go on.
  */
-export const storedAdvancements = (player: KeyedPlayerSource): PlayerProgressJson => {
-    const keyed = keyedPlayerOf(player);
+export const storedAdvancements = (keyed: KeyedPlayer): PlayerProgressJson => {
     const engine = keyed.server.getContent().advancements;
     return advancementsOf(keyed).toJSON((id) => engine.get(id));
 };

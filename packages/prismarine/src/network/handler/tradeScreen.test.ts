@@ -24,7 +24,6 @@ import type Server from '../../Server';
 import { stubPlayerPort } from '../../testing/playerPort.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import { PlayerComponents } from '../../entity/playerComponents';
-import type { StorePlayer } from '../../entity/storePlayer';
 import type { World } from '../../world/World';
 import type { Entity } from '../../entity/Entity';
 import type { Logger } from '@jsprismarine/logger';
@@ -119,32 +118,27 @@ const scene = () => {
         }
     };
 
+    // What the request's steps move, and the components the trade pays experience into.
     const player = stubPlayerPort({
+        getInventory: () => inventory,
+        getCraftingInput: () => craftingInput,
+        getComponents: () => new PlayerComponents(attributes, () => {})
+    });
+
+    const redraws: number[] = [];
+    // The player as the request's steps hand it on, through its session.
+    const session: PlayerSession = stub<PlayerSession>({
         getType: () => 'minecraft:player',
         getName: () => 'tester',
         getServer: () => server,
-        getWorld: () => stub<World>({ getPlayers: () => [] }),
         getPosition: () => ({ getX: () => 0, getY: () => 64, getZ: () => 0 }) as never,
         getEquipment: () => ({}),
         getInventory: () => inventory,
-        getCraftingInput: () => craftingInput,
         attributes,
         isSprinting: () => false,
         gamemode: 0,
         isSneaking: () => false,
         isFlying: () => false,
-        getNetworkSession: () => session,
-        // What the request's steps move, and the components the trade pays experience into.
-        getStorePlayer: () =>
-            stub<StorePlayer>({
-                getInventory: () => inventory,
-                getCraftingInput: () => craftingInput,
-                getComponents: () => new PlayerComponents(attributes, () => {})
-            })
-    });
-
-    const redraws: number[] = [];
-    const session: PlayerSession = stub<PlayerSession>({
         getPlayer: () => player,
         getWorld: () => stub<World>({ getViewers: () => [] }),
         getOpenBlockContainer: () => open,

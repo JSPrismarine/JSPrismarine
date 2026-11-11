@@ -383,8 +383,8 @@ export class ServerNetworking implements Networking {
             hostIp: address,
             players: server
                 .getSessionManager()
-                .getAllPlayers()
-                .map((player) => player.getName())
+                .getSessions()
+                .map((session) => session.identity.name)
         });
         const responder = new QueryResponder(() => status());
         const answer = (datagram: Buffer, from: string, fromPort: number): Buffer | undefined =>

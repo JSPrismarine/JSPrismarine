@@ -7,7 +7,6 @@ import type SessionManager from '../../SessionManager';
 import type { Config } from '../../config/Config';
 import type { PermissionManager } from '../../permission/PermissionManager';
 import { identityNamed } from '../../testing/sessionIdentity.test.helper';
-import { stubPlayerPort } from '../../testing/playerPort.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import type ClientConnection from '../ClientConnection';
 import { latestCodec } from '../codec/CodecRegistry';
@@ -32,15 +31,13 @@ const fakeServer = ({ op }: { op: boolean }) => {
         const packets: NetworkPacket[] = [];
         sent.set(name, packets);
         const session = stub<PlayerSession>({
-            getConnection: () => stub<ClientConnection>({ sendDataPacket: async (packet) => void packets.push(packet) })
-        });
-        const player = stubPlayerPort({
-            setGamemode: async (mode) => void applied.push([name, mode]),
-            getNetworkSession: () => session
+            identity: identityNamed(name, uuid),
+            getConnection: () =>
+                stub<ClientConnection>({ sendDataPacket: async (packet) => void packets.push(packet) }),
+            setGamemode: async (mode?: Gametype) => void applied.push([name, mode])
         });
         if (isOp) ops.add(uuid);
-        Object.assign(session, { identity: identityNamed(name, uuid), getPlayer: () => player });
-        return { player, session };
+        return { player: session, session };
     };
 
     const requester = fakePlayer('Steve', '00000000-0000-0000-0000-000000000001', op);
@@ -60,7 +57,7 @@ const fakeServer = ({ op }: { op: boolean }) => {
                     configured = Gametype[gamemode] ?? configured;
                 }
             }),
-        getSessionManager: () => stub<SessionManager>({ getAllPlayers: () => [requester.player, other.player] }),
+        getSessionManager: () => stub<SessionManager>({ getSessions: () => [requester.session, other.session] }),
         getPermissionManager: () => stub<PermissionManager>({ isOp: (uuid) => ops.has(uuid) })
     });
 

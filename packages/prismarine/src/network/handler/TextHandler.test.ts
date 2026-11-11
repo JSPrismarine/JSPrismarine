@@ -29,14 +29,14 @@ describe('network', () => {
     describe('handler', () => {
         describe('TextHandler', () => {
             it('relays a chat under the sender, with the message as typed', async () => {
-                const { sent, player, server, session } = fakeChat();
+                const { sent, server, session } = fakeChat();
 
                 await new TextHandler().handle(chatPacket('hello world'), server, session);
 
                 expect(sent).toHaveLength(1);
                 expect(sent[0]?.getMessage()).toBe('hello world');
                 expect(sent[0]?.getType()).toBe(ChatType.CHAT);
-                expect(sent[0]?.getSender()).toBe(player);
+                expect(sent[0]?.getSender()).toBe(session);
             });
 
             it('takes the sender from the session, not from the name the packet carries', async () => {
@@ -50,10 +50,10 @@ describe('network', () => {
                     filtered: ''
                 });
 
-                const { sent, player, server, session } = fakeChat();
+                const { sent, server, session } = fakeChat();
                 await new TextHandler().handle(pk, server, session);
 
-                expect(sent[0]?.getSender()).toBe(player);
+                expect(sent[0]?.getSender()).toBe(session);
             });
 
             it('drops every type but Chat, which is the only one a client sends', async () => {

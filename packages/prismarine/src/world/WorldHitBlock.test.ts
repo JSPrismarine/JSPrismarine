@@ -2,7 +2,7 @@ import { LevelEvent, LevelSoundEvent } from '@jsprismarine/minecraft';
 import { Vector3 } from '@jsprismarine/math';
 import { describe, expect, it } from 'vitest';
 
-import type Player from '../Player';
+import type PlayerSession from '../network/PlayerSession';
 import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
 import { BlockState } from '../block/state/BlockState';
 import { stub } from '../testing/stub.test.helper';
@@ -16,13 +16,13 @@ import { World } from './World';
  * silent right up until it gave way.
  */
 const fakeWorld = (state: BlockState) => {
-    const sounds: Array<{ sound: LevelSoundEvent; data: number; except?: Player }> = [];
+    const sounds: Array<{ sound: LevelSoundEvent; data: number; except?: PlayerSession }> = [];
     const effects: Array<{ event: LevelEvent; data: number }> = [];
 
     const world: World = Object.assign(Object.create(World.prototype), {
         getBlockState: async () => state,
         changes: {
-            blockSound: (_position: Vector3, sound: LevelSoundEvent, data: number, except?: Player) =>
+            blockSound: (_position: Vector3, sound: LevelSoundEvent, data: number, except?: PlayerSession) =>
                 sounds.push({ sound, data, except }),
             worldEffect: (_position: Vector3 | null, event: LevelEvent, data: number) => effects.push({ event, data })
         }
@@ -49,7 +49,7 @@ describe('world', () => {
 
         it('leaves the striker out of the sound, as their client plays its own hits', async () => {
             const { world, sounds } = fakeWorld(new BlockState('minecraft:stone'));
-            const striker = stub<Player>();
+            const striker = stub<PlayerSession>();
 
             await world.hitBlock(new Vector3(10, 64, -20), 1, striker);
 

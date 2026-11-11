@@ -18,6 +18,7 @@ import ContainerEntry from '../../inventory/ContainerEntry';
 import HumanInventory from '../../inventory/HumanInventory';
 import { Item } from '../../item/Item';
 import { identityNamed } from '../../testing/sessionIdentity.test.helper';
+import { stubPlayerPort } from '../../testing/playerPort.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import BlockPosition from '../../world/BlockPosition';
 import { Dimensions } from '../../world/Dimension';
@@ -42,7 +43,7 @@ import {
 } from '@jsprismarine/protocol';
 import Codec2193 from '../codec/Codec2193';
 import InventoryTransactionHandler, { rejectionReason } from './InventoryTransactionHandler';
-import { storePlayerPort } from './storePlayerPort.test.helper';
+import type { StorePlayerActor } from '../../entity/data/storePlayers';
 import * as interaction from '../../item/interaction';
 import { useItemInAir, useItemOnBlock } from '../../item/interaction';
 import type { InteractionResult } from '../../item/interaction';
@@ -120,28 +121,22 @@ const fake = (
     const runtimeId = nextPlayerRuntimeId++;
     // Standing still on the ground, so a swing is no critical and carries no sprint.
     const components = new PlayerComponents(new Attributes(Attributes.getPlayerDefaults()), () => {});
-    const player = storePlayerPort(
-        {
-            gamemode,
-            getPosition: () => new Position(0, 64, 0, world),
-            getInventory: () => inventory,
-            isOnGround: () => true,
-            isFlying: () => false,
-            getComponents: () => components
-        },
-        {
-            // What the content path reads of the player who clicked.
-            isOnline: () => true,
-            getRuntimeId: () => runtimeId,
-            getWorld: () => world,
-            getInventory: () => inventory,
-            beginItemUse: (tick) => void itemUse.push(`begin ${tick}`),
-            takeItemUseTicks: (tick) => {
-                itemUse.push(`take ${tick}`);
-                return 15;
-            }
+    const player = stubPlayerPort({
+        gamemode,
+        getRuntimeId: () => runtimeId,
+        getPosition: () => new Position(0, 64, 0, world),
+        getInventory: () => inventory,
+        isOnGround: () => true,
+        isFlying: () => false,
+        getComponents: () => components,
+        beginItemUse: (tick) => void itemUse.push(`begin ${tick}`),
+        takeItemUseTicks: (tick) => {
+            itemUse.push(`take ${tick}`);
+            return 15;
         }
-    );
+    });
+    // What entity code is handed in the player's place: a swing's attacker, an arrow's shooter.
+    const actor = stub<StorePlayerActor>({ getRuntimeId: () => runtimeId });
     // The runtime that takes the player's inputs.
     const inputs = stub<EntityRuntime>({
         exhaustPlayer: (_player, amount) => {
@@ -180,8 +175,13 @@ const fake = (
         runtimeId,
         identity: identityNamed('tester'),
         getPlayer: () => player,
+        getActor: () => actor,
         getWorld: () => world,
-        isConnected: () => player.isOnline(),
+        inputs: () => inputs,
+        // What the content path reads of the player who clicked.
+        getRuntimeId: () => runtimeId,
+        getInventory: () => inventory,
+        isConnected: () => true,
         getConnection: () => stub<ReturnType<PlayerSession['getConnection']>>({ codec: Codec2193 }),
         sendContainerSlot: async (windowId, containerId, slot, item) =>
             void inventorySyncs.push([windowId, containerId, slot, item])
@@ -191,7 +191,7 @@ const fake = (
         get clicked() {
             return vi
                 .mocked(useItemOnBlock)
-                .mock.calls.filter(([interaction]) => interaction.player === player)
+                .mock.calls.filter(([interaction]) => interaction.player === session)
                 .map(([{ player: clicker, position, face }]) => {
                     const held = clicker.getInventory().getItemInHand().getName();
                     return `${held} at ${position.x},${position.y},${position.z} face ${face}`;
@@ -207,6 +207,7 @@ const fake = (
         exhaustion: () => exhaustion,
         zombie,
         player,
+        actor,
         inventory,
         server,
         session
@@ -453,7 +454,7 @@ describe('InventoryTransactionHandler', () => {
         await handle(transaction(TransactionType.USE_ITEM, useItem({ actionType: ItemUseActionType.USE })), world);
 
         expect(vi.mocked(useItemInAir)).toHaveBeenCalledTimes(1);
-        expect(vi.mocked(useItemInAir).mock.calls[0]?.[0].player).toBe(world.player);
+        expect(vi.mocked(useItemInAir).mock.calls[0]?.[0].player).toBe(world.session);
         expect(world.logged).toEqual([]);
     });
 
@@ -490,7 +491,7 @@ describe('InventoryTransactionHandler', () => {
         await handle(transaction(TransactionType.USE_ITEM, useItem({ actionType: ItemUseActionType.USE })), thrower);
 
         expect(vi.mocked(useItemInAir)).toHaveBeenCalledTimes(1);
-        expect(vi.mocked(useItemInAir).mock.calls[0]?.[0].player).toBe(thrower.player);
+        expect(vi.mocked(useItemInAir).mock.calls[0]?.[0].player).toBe(thrower.session);
     });
 
     it('swings at the entity the runtime id names, with the damage of the item the server holds', async () => {
@@ -501,7 +502,7 @@ describe('InventoryTransactionHandler', () => {
 
         expect(vi.mocked(meleeAttack)).toHaveBeenCalledTimes(1);
         const [attacker, target, options] = vi.mocked(meleeAttack).mock.calls[0]!;
-        expect(attacker).toBe(world.player.getBody());
+        expect(attacker).toBe(world.actor);
         expect(target).toBe(world.zombie);
         expect(options).toMatchObject({ reach: 3, damage: 1, critical: false, knockbackLevels: 0 });
         expect(world.exhaustion()).toBeCloseTo(0.1);
@@ -557,7 +558,7 @@ describe('InventoryTransactionHandler', () => {
         await handle(transaction(TransactionType.RELEASE_ITEM, releaseItem()), withStone);
 
         expect(vi.mocked(loose)).toHaveBeenCalledTimes(1);
-        expect(vi.mocked(loose)).toHaveBeenCalledWith(withBow.player.getBody(), 15);
+        expect(vi.mocked(loose)).toHaveBeenCalledWith(withBow.actor, 15);
         // The clock is taken either way, so a release with nothing to fire still ends the use.
         expect(withStone.itemUse).toEqual([`take ${TICK}`]);
     });

@@ -21,7 +21,7 @@ import type { ChangeEntry } from './world/changelog/ChangeEntry';
 /** A fake player in a real store, whose log is the one its writes reach. */
 const loggedPlayer = () => {
     const fixture = fakePlayer();
-    const { player, live } = fixture;
+    const { session, player, live } = fixture;
     player.gamemode = Gametype.SURVIVAL;
     const { store } = live.runtime;
 
@@ -32,7 +32,7 @@ const loggedPlayer = () => {
     const tick = async (tick: number, between?: () => Promise<void>): Promise<readonly ChangeEntry[]> => {
         store.beginTick();
         await between?.();
-        await player.update(tick);
+        await session.getActor()?.update(tick);
         live.runtime.tick(tick);
         return store.sealTick()?.entries ?? [];
     };
@@ -64,13 +64,13 @@ describe("a player's change log", () => {
     });
 
     it('appends at most one entry per field a walking player changes in a tick', async () => {
-        const { player, tick } = loggedPlayer();
+        const { session, player, tick } = loggedPlayer();
         let exhausting = 0;
 
         for (let at = 1; at <= 40; at++) {
             const entries = await tick(at, async () => {
                 const position = player.getPosition();
-                await player.setPlayerPosition({ position: new Vector3(position.getX() + 0.2, 64, 0) }, false);
+                await session.setPlayerPosition({ position: new Vector3(position.getX() + 0.2, 64, 0) }, false);
             });
             const fields = fieldsOf(entries);
             expect(new Set(fields).size).toBe(fields.length);
@@ -86,9 +86,9 @@ describe("a player's change log", () => {
 
 describe("a player's movement belongs to its client", () => {
     it('logs a shove as one impulse occurrence and asks the client to take it', async () => {
-        const { player, sent, tick } = loggedPlayer();
+        const { session, player, sent, tick } = loggedPlayer();
 
-        const entries = await tick(1, async () => player.getActor()?.applyKnockback(1, 0, 0.4));
+        const entries = await tick(1, async () => session.getActor()?.applyKnockback(1, 0, 0.4));
 
         expect(fieldsOf(entries)).toEqual(['occurrence']);
         expect(entries[0]).toMatchObject({
@@ -100,10 +100,9 @@ describe("a player's movement belongs to its client", () => {
     });
 
     it("moves a player the server moves as a teleport, and drops the client's stale reports", async () => {
-        const { player, sent } = loggedPlayer();
-        const session = player.getNetworkSession();
+        const { session, sent } = loggedPlayer();
 
-        await player.setPosition({ position: new Vector3(20, 70, 0) });
+        await session.setPlayerPosition({ position: new Vector3(20, 70, 0), type: PositionMode.Teleport });
 
         const moves = sent.filter((packet) => packet instanceof MovePlayerPacket);
         expect(moves.map((packet) => packet.getPacketData()?.mode)).toEqual([PositionMode.Teleport]);
@@ -114,36 +113,36 @@ describe("a player's movement belongs to its client", () => {
 
 describe("a player's death keeps the entity", () => {
     it('commits a blow before the damage promise first waits', async () => {
-        const { player, server } = loggedPlayer();
+        const { session, player, server } = loggedPlayer();
         const posted = vi.spyOn(server, 'post');
 
-        const landing = player.damage(5, DamageCause.Generic);
+        const landing = session.getActor()?.damage(5, DamageCause.Generic);
         expect(player.getHealth()).toBe(15);
         await landing;
 
-        const deathly = player.damage(50, DamageCause.Generic);
-        expect(player.isAlive()).toBe(false);
+        const deathly = session.getActor()?.damage(50, DamageCause.Generic);
+        expect(player.getHealth() > 0).toBe(false);
         expect(posted.mock.calls.map(([[name]]) => name)).toContain('entityDeath');
         expect(server.getRespawnRequests().size).toBe(1);
         await deathly;
     });
 
     it('keeps its runtime id and appends no membership entry through death and respawn', async () => {
-        const { player, roster, respawnRequests, tick } = loggedPlayer();
+        const { session, player, roster, respawnRequests, tick } = loggedPlayer();
         const id = player.getRuntimeId();
 
-        const death = await tick(1, async () => void (await player.damage(50, DamageCause.Generic)));
+        const death = await tick(1, async () => void (await session.getActor()?.damage(50, DamageCause.Generic)));
         expect(fieldsOf(death)).toContain('entity:attribute:health');
         expect(fieldsOf(death)).not.toContain('membership');
 
         const respawn = await tick(2, async () => {
             await respawnRequests.admit();
-            await player.respawn();
+            await session.respawn();
         });
         expect(fieldsOf(respawn)).toContain('entity:attribute:health');
         expect(fieldsOf(respawn)).not.toContain('membership');
 
-        expect(player.isAlive()).toBe(true);
+        expect(player.getHealth() > 0).toBe(true);
         expect(player.getRuntimeId()).toBe(id);
         expect(roster).toEqual([]);
     });

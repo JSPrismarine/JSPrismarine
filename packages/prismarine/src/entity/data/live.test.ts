@@ -17,7 +17,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { EYE_HEIGHT } from '../../entity/playerEyes';
 import type { RaidRecord } from '../../world/raid/RaidManager';
-import type Player from '../../Player';
 import type Server from '../../Server';
 import type { Config } from '../../config/Config';
 import { definitionOf, definitionsOf } from '../../content/ContentOptions';
@@ -36,9 +35,8 @@ import ContainerEntry from '../../inventory/ContainerEntry';
 import HumanInventory from '../../inventory/HumanInventory';
 import { testEntityServer } from '../../testing/entityServer';
 import { fakeLevel } from '../../testing/level';
-import { identityNamed } from '../../testing/sessionIdentity.test.helper';
 import { stub } from '../../testing/stub.test.helper';
-import { playerOnPrototype } from '../../testing/storePlayer.test.helper';
+import { sessionOnPrototype } from '../../testing/storePlayer.test.helper';
 import { moveStorePlayer } from './storePlayers';
 import { PLAYER_IDENTIFIER } from '../playerOverlay';
 import { entityCommandHost } from '../../command/host/entities';
@@ -709,16 +707,21 @@ const flatChunk = (x: number, z: number): Chunk => {
  * A player standing at a position, reserving its id from the server's shared counter, over a
  * store player that `World.addPlayer` enters into the world's store.
  */
-const playerAt = (world: World, x: number, z: number, uuid?: string): Player => {
+const playerAt = (world: World, x: number, z: number, uuid?: string): PlayerSession => {
     const id = entityIds.next();
     const identity = uuid === undefined ? new UUID(0, 0, 0, id) : UUID.fromString(uuid);
-    const player = playerOnPrototype(
-        { getUUID: () => identity, getServer: () => world.getServer() },
-        { runtimeId: BigInt(id), position: new Position(x, GROUND_Y + EYE_HEIGHT, z, world) }
+    const player = sessionOnPrototype(
+        {
+            getServer: () => world.getServer(),
+            tracks: () => false,
+            send: async () => {},
+            sendInventory: async () => {},
+            getConnection: () => stub<ReturnType<PlayerSession['getConnection']>>({ codec: Codec2193 })
+        },
+        { runtimeId: BigInt(id), uuid: identity, position: new Position(x, GROUND_Y + EYE_HEIGHT, z, world) }
     );
-    player.gamemode = Gametype.SURVIVAL;
-    // The world only hands out players it believes are still connected.
-    return Object.assign(player, { connected: true });
+    player.getPlayer().gamemode = Gametype.SURVIVAL;
+    return player;
 };
 
 /** What the fixture records instead of putting it on a wire. */
@@ -912,28 +915,16 @@ describe('the data-driven entity runtime over a live world', () => {
     const startAtNight = (): void => world.setTicks(13_000);
 
     /** Puts a player in the world, which is what the spawner spawns around. */
-    const addPlayer = (x: number, z: number, uuid?: string): Player => {
+    const addPlayer = (x: number, z: number, uuid?: string): PlayerSession => {
         const player = playerAt(world, x, z, uuid);
-        // The session a joined player has, which the world finds it by.
-        Object.assign(player, {
-            networkSession: stub<PlayerSession>({
-                runtimeId: player.getRuntimeId(),
-                identity: identityNamed(player.getName(), player.getUUID().toString()),
-                getPlayer: () => player,
-                isConnected: () => player.isOnline(),
-                tracks: () => false,
-                send: async () => {},
-                sendInventory: async () => {}
-            })
-        });
-        // Into the player map and the store, as a spawn puts a joined player: `getPlayers` reads
+        // Into the player map and the store, as a spawn puts a joined player: `getViewers` reads
         // the one, and a blow finds whoever it landed on through the other.
         void world.addPlayer(player);
         return player;
     };
 
     /** Uses the player's held item on an entity through its real inventory transaction path. */
-    const useHeldItemOnEntity = async (player: Player, targetRuntimeId: bigint): Promise<void> => {
+    const useHeldItemOnEntity = async (player: PlayerSession, targetRuntimeId: bigint): Promise<void> => {
         const server = player.getServer();
         Object.assign(server, { getContentWorld: () => worldSource });
         const position = player.getPosition();
@@ -958,29 +949,19 @@ describe('the data-driven entity runtime over a live world', () => {
             )
         );
 
-        await new InventoryTransactionHandler().handle(
-            packet,
-            server,
-            stub<PlayerSession>({
-                runtimeId: player.getRuntimeId(),
-                identity: identityNamed(player.getName()),
-                getPlayer: () => player,
-                isConnected: () => player.isOnline(),
-                getConnection: () => stub<ReturnType<PlayerSession['getConnection']>>({ codec: Codec2193 })
-            })
-        );
+        await new InventoryTransactionHandler().handle(packet, server, player);
     };
 
     it('keeps a live player out of chunk saves, chunk changes and the despawn cycle', async () => {
         const player = addPlayer(2, 2);
-        const entity = player.getStorePlayer().entity;
+        const entity = player.getPlayer().entity;
         if (entity === undefined) throw new Error('the player has no entity');
         const chunk = world.getLoadedChunk(1, 0);
         if (chunk === null) throw new Error('the fixture has no chunk at 1, 0');
         chunk.markSaved();
 
         // Walked into another chunk, which a mob's crossing would mark for the next save.
-        moveStorePlayer(live.runtime, player.getStorePlayer(), {
+        moveStorePlayer(live.runtime, player.getPlayer(), {
             position: { x: 20.5, y: GROUND_Y, z: 2.5 },
             yaw: 0,
             pitch: 0,
@@ -1285,7 +1266,7 @@ describe('the data-driven entity runtime over a live world', () => {
     it('gives a transformed interaction item to a creative player without consuming the held item', () => {
         const player = addPlayer(2, 2);
         Object.assign(player.getActor()!, { inventory: new HumanInventory() });
-        player.gamemode = Gametype.CREATIVE;
+        player.getPlayer().gamemode = Gametype.CREATIVE;
         player
             .getInventory()
             .setItemInHand(new ContainerEntry({ item: new Item({ name: 'minecraft:bucket' }), count: 1 }));
@@ -1843,18 +1824,18 @@ describe('the data-driven entity runtime over a live world', () => {
 
         it('keeps creative players out of zombie combat targets across game-mode changes', async () => {
             const player = addPlayer(1, 0);
-            player.gamemode = Gametype.CREATIVE;
+            player.getPlayer().gamemode = Gametype.CREATIVE;
             const zombie = live.runtime.spawn('minecraft:zombie', { x: 0.5, y: GROUND_Y, z: 0.5 });
             if (zombie === undefined) throw new Error('the fixture declares no minecraft:zombie');
 
             await run(20);
             expect(zombie.target).toBeUndefined();
 
-            player.gamemode = Gametype.SURVIVAL;
+            player.getPlayer().gamemode = Gametype.SURVIVAL;
             await run(20);
             expect(zombie.target).toBe(Number(player.getRuntimeId()));
 
-            player.gamemode = Gametype.CREATIVE;
+            player.getPlayer().gamemode = Gametype.CREATIVE;
             await run(20);
             const playerView = live.runtime.mobById(Number(player.getRuntimeId()));
             if (playerView === undefined) throw new Error('the live runtime cannot see its player');
@@ -1864,7 +1845,7 @@ describe('the data-driven entity runtime over a live world', () => {
 
         it('drops a piglin combat target when its player switches to creative', async () => {
             const player = addPlayer(12, 0);
-            player.gamemode = Gametype.SURVIVAL;
+            player.getPlayer().gamemode = Gametype.SURVIVAL;
             const piglin = live.runtime.spawn('minecraft:piglin', { x: 0.5, y: GROUND_Y, z: 0.5 });
             if (piglin?.brain === undefined) throw new Error('the fixture declares no brain for minecraft:piglin');
 
@@ -1883,7 +1864,7 @@ describe('the data-driven entity runtime over a live world', () => {
                 )
             ).toBe(true);
 
-            player.gamemode = Gametype.CREATIVE;
+            player.getPlayer().gamemode = Gametype.CREATIVE;
             expect(await runUntil(() => piglin.brain?.getMemory(MemoryModuleTypes.ATTACK_TARGET) === undefined)).toBe(
                 true
             );
@@ -1891,7 +1872,7 @@ describe('the data-driven entity runtime over a live world', () => {
 
         it('keeps a warden from targeting a creative player through its entity sensor', async () => {
             const player = addPlayer(1, 0);
-            player.gamemode = Gametype.CREATIVE;
+            player.getPlayer().gamemode = Gametype.CREATIVE;
             const warden = live.runtime.spawn('minecraft:warden', { x: 0.5, y: GROUND_Y, z: 0.5 });
             if (warden?.brain === undefined) throw new Error('the fixture declares no brain for minecraft:warden');
 
@@ -1911,7 +1892,7 @@ describe('the data-driven entity runtime over a live world', () => {
             expect(await runUntil(seesPlayer)).toBe(true);
             expect(warden.brain.getMemory(MemoryModuleTypes.NEAREST_ATTACKABLE)).toBeUndefined();
 
-            player.gamemode = Gametype.SURVIVAL;
+            player.getPlayer().gamemode = Gametype.SURVIVAL;
             expect(
                 await runUntil(
                     () =>
@@ -1920,7 +1901,7 @@ describe('the data-driven entity runtime over a live world', () => {
                 )
             ).toBe(true);
 
-            player.gamemode = Gametype.CREATIVE;
+            player.getPlayer().gamemode = Gametype.CREATIVE;
             expect(
                 await runUntil(
                     () => seesPlayer() && warden.brain?.getMemory(MemoryModuleTypes.NEAREST_ATTACKABLE) === undefined
@@ -1940,7 +1921,7 @@ describe('the data-driven entity runtime over a live world', () => {
             expect(zombie.target).toBe(Number(player.getRuntimeId()));
             expect(zombie.position.x).toBeGreaterThan(4);
             // The bite is a blow on the player's store entity, through the store's pipeline.
-            expect(player.getHealth()).toBeLessThan(20);
+            expect(player.getPlayer().getHealth()).toBeLessThan(20);
         });
 
         it('moves overlapping zombies out of a crowd instead of piling up', async () => {
@@ -1985,7 +1966,7 @@ describe('the data-driven entity runtime over a live world', () => {
 
         it('keeps two overlapping zombie groups moving toward their shared survival target', async () => {
             const player = addPlayer(12, 0);
-            player.gamemode = Gametype.SURVIVAL;
+            player.getPlayer().gamemode = Gametype.SURVIVAL;
             const groups = [0.5, 4.5].map((x) =>
                 Array.from({ length: 12 }, () => {
                     const zombie = live.runtime.spawn('minecraft:zombie', { x, y: GROUND_Y, z: 0.5 });
@@ -2006,7 +1987,7 @@ describe('the data-driven entity runtime over a live world', () => {
 
         it('keeps two same-position zombie groups moving toward one survival target', async () => {
             const player = addPlayer(12, 0);
-            player.gamemode = Gametype.SURVIVAL;
+            player.getPlayer().gamemode = Gametype.SURVIVAL;
             const groups = Array.from({ length: 2 }, () =>
                 Array.from({ length: 12 }, () => {
                     const zombie = live.runtime.spawn('minecraft:zombie', { x: 0.5, y: GROUND_Y, z: 0.5 });
@@ -2410,18 +2391,12 @@ describe('the data-driven entity runtime over a live world', () => {
                 const player = addPlayer(x, z);
                 const opened: OpenTrade[] = [];
                 Object.assign(player.getActor()!, { inventory: new HumanInventory() });
+                Object.assign(player.getPlayer(), { isSneaking: () => sneaking });
                 Object.assign(player, {
-                    isSneaking: () => sneaking,
-                    getStatusEffect: () => undefined,
-                    getNetworkSession: () =>
-                        stub<PlayerSession>({
-                            runtimeId: player.getRuntimeId(),
-                            getPlayer: () => player,
-                            openTradeWindow: async (trade: OpenTrade) => {
-                                opened.push(trade);
-                                return stub<OpenBlockContainer>({});
-                            }
-                        })
+                    openTradeWindow: async (trade: OpenTrade) => {
+                        opened.push(trade);
+                        return stub<OpenBlockContainer>({});
+                    }
                 });
                 return { player, opened };
             };
@@ -3008,7 +2983,7 @@ describe('the data-driven entity runtime over a live world', () => {
                 async () => {
                     useVanillaContent();
                     const player = addPlayer(14, 1);
-                    player.gamemode = Gametype.SURVIVAL;
+                    player.getPlayer().gamemode = Gametype.SURVIVAL;
                     const positions = [0.5, 5.5].flatMap((originX) =>
                         Array.from({ length: 15 }, (_, index) => ({
                             x: originX + (index % 5) * 0.32,
@@ -3632,7 +3607,7 @@ describe('the data-driven entity runtime over a live world', () => {
                     useVanillaContent();
 
                     const player = addPlayer(18, 0);
-                    player.gamemode = Gametype.SURVIVAL;
+                    player.getPlayer().gamemode = Gametype.SURVIVAL;
                     Object.assign(player.getActor()!, { inventory: new HumanInventory() });
                     player
                         .getInventory()
@@ -3670,7 +3645,7 @@ describe('the data-driven entity runtime over a live world', () => {
                     startAtNight();
 
                     const player = addPlayer(18, 0);
-                    player.gamemode = Gametype.SURVIVAL;
+                    player.getPlayer().gamemode = Gametype.SURVIVAL;
                     Object.assign(player.getActor()!, { inventory: new HumanInventory() });
                     player
                         .getInventory()

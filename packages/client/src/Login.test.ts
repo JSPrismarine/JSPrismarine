@@ -183,8 +183,8 @@ describe('logging into a real server', () => {
 
         const player = server!
             .getSessionManager()
-            .getAllPlayers()
-            .find((candidate: any) => candidate.getName() === 'KickTester');
+            .getSessions()
+            .find((candidate) => candidate.getName() === 'KickTester');
         expect(player).toBeDefined();
 
         const before = server!.getRaknet()!.getSessions().length;
@@ -214,9 +214,9 @@ describe('logging into a real server', () => {
 
         const player = server!
             .getSessionManager()
-            .getAllPlayers()
-            .find((candidate: any) => candidate.getName() === 'RaceTester');
-        const connection = player!.getNetworkSession().getConnection();
+            .getSessions()
+            .find((candidate) => candidate.getName() === 'RaceTester');
+        const connection = player!.getConnection();
         const address = connection.getAddress();
         const id = connection.getConnectionId();
         expect(server!.getSessionManager().has(id)).toBe(true);

@@ -218,8 +218,7 @@ export const createItemActorPort = (options: ItemActorPortOptions): ServerItemAc
      * The player a source names, found through its session in the same world, or undefined for
      * any other entity. This is the one place the port asks for it.
      */
-    const playerOf = (source: ItemSource): ItemPlayer | undefined =>
-        world()?.viewerOf(BigInt(source.runtimeId))?.getPlayer();
+    const playerOf = (source: ItemSource): ItemPlayer | undefined => world()?.viewerOf(BigInt(source.runtimeId));
 
     const useItemOnEntity = (source: ItemSource): boolean => {
         const player = playerOf(source);

@@ -1,7 +1,7 @@
 import { OfflineAuthProvider } from '@jsprismarine/auth';
 import { Logger } from '@jsprismarine/logger';
 import { Config, Server } from '@jsprismarine/prismarine';
-import type { Player } from '@jsprismarine/prismarine';
+import type { PlayerSession } from '@jsprismarine/prismarine';
 import { networkToken } from '@jsprismarine/prismarine/modules/tokens';
 import { MovePlayerPacket, PacketIdentifier, PositionMode } from '@jsprismarine/protocol';
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
@@ -141,7 +141,7 @@ describe('a server teleport of a client that keeps reporting its old position', 
 
         const startGame = client.getStartGame();
         if (startGame === null) throw new Error('The client did not receive StartGame');
-        const player: Player | undefined = server.getSessionManager().getAllPlayers()[0];
+        const player: PlayerSession | undefined = server.getSessionManager().getSessions()[0];
         if (player === undefined) throw new Error('The player did not join');
 
         let reported = { x: startGame.position.x, y: startGame.position.y, z: startGame.position.z };

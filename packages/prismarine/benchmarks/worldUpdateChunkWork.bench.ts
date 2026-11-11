@@ -39,8 +39,8 @@ const chestAt = (x: number, z: number) => {
     return BlockEntityRegistry.fromNBT(root);
 };
 
-/** What the world files in its player map. */
-type WorldPlayer = ReturnType<World['getPlayers']>[number];
+/** What the world files in its player map: each player's session. */
+type WorldPlayer = PlayerSession;
 
 interface Output {
     digest: number;
@@ -111,14 +111,10 @@ const makeWorld = (legacyChunkScan: boolean, output: Output): World => {
     world['players'].set(
         1,
         stub<WorldPlayer>({
-            viewDistance: CHUNK_RADIUS,
-            isOnline: () => true,
-            getPosition: () => new Position(0, 64, 0, world),
-            getNetworkSession: () =>
-                stub<PlayerSession>({
-                    getViewDistance: () => CHUNK_RADIUS,
-                    getConnection: () => stub<ClientConnection>({ flushOutboundPackets: async () => {} })
-                })
+            isConnected: () => true,
+            getViewPosition: () => new Position(0, 64, 0, world),
+            getViewDistance: () => CHUNK_RADIUS,
+            getConnection: () => stub<ClientConnection>({ flushOutboundPackets: async () => {} })
         })
     );
 

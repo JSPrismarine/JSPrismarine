@@ -4,7 +4,6 @@ import { Gametype } from '@jsprismarine/minecraft';
 import type Server from '../../Server';
 import type { PermissionManager } from '../../permission/PermissionManager';
 import { canExecute } from '../../permission/PermissionManager';
-import { stubPlayerPort } from '../../testing/playerPort.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import type PlayerSession from '../PlayerSession';
 import SetPlayerGameTypePacket from '@jsprismarine/protocol/packet/SetPlayerGameTypePacket';
@@ -18,18 +17,14 @@ import SetPlayerGameTypeHandler from './SetPlayerGameTypeHandler';
 const fakeSession = (permissions: string[]) => {
     const applied: Gametype[] = [];
     const resent: Array<Gametype | undefined> = [];
-    const player = stubPlayerPort({
-        isOp: () => false,
-        getPermissions: () => permissions,
-        setGamemode: async (mode) => void applied.push(mode ?? Gametype.SURVIVAL)
-    });
-
     return {
         applied,
         resent,
         server: stub<Server>({ getPermissionManager: () => stub<PermissionManager>({ can: canExecute }) }),
         session: stub<PlayerSession>({
-            getPlayer: () => player,
+            isOp: () => false,
+            getPermissions: () => permissions,
+            setGamemode: async (mode?: Gametype) => void applied.push(mode ?? Gametype.SURVIVAL),
             sendGamemode: async (gamemode) => void resent.push(gamemode)
         })
     };

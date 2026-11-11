@@ -5,7 +5,6 @@ import type Server from '../../Server';
 import HumanInventory from '../../inventory/HumanInventory';
 import type MobEquipmentPacket from '@jsprismarine/protocol/packet/MobEquipmentPacket';
 import type PacketHandler from './PacketHandler';
-import { storePlayerOf } from './playerPorts';
 
 /**
  * A client reporting which hotbar slot it holds.
@@ -58,6 +57,6 @@ export default class MobEquipmentHandler implements PacketHandler<MobEquipmentPa
 
         // The players that see the sender are shown the stack now in its hand by
         // `StoreActors.sync`, which reads the inventory each tick, with the armor and the off hand.
-        storePlayerOf(session).getInventory().setHandSlot(data.hotbarSlot);
+        session.getPlayer().getInventory().setHandSlot(data.hotbarSlot);
     }
 }

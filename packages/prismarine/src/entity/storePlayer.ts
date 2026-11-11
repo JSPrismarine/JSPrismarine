@@ -39,10 +39,13 @@ import type { StatusEffect } from './StatusEffect';
 import type { DataEntity } from './data/DataEntity';
 import type { DataEntityRecord } from './data/persistence';
 import type { PlayerLog, PlayerSystems } from './data/playerSystems';
+import type { ExperienceHolder } from './Experience';
+import type { ViewableEquipment } from './predicateView';
 import { EYE_HEIGHT } from './playerEyes';
+import { PLAYER_IDENTIFIER } from './playerOverlay';
 import { portalCooldownOf } from './PortalContact';
 import { PlayerComponents } from './playerComponents';
-import { setSaturation } from './playerHunger';
+import { addFood, setSaturation } from './playerHunger';
 
 /** Who a store player is, as the login named them. */
 export interface StorePlayerIdentity {
@@ -193,6 +196,16 @@ export class StorePlayer implements PlayerRecordSource, PlayerRecordTarget {
         return true;
     }
 
+    /** The entity id as the wire carries it, which every entity query knows the player by. */
+    public getRuntimeId(): bigint {
+        return BigInt(this.id);
+    }
+
+    /** The type of the player's entity, `minecraft:player`. */
+    public getType(): string {
+        return PLAYER_IDENTIFIER;
+    }
+
     /** The game mode, a logged component field the survival systems read. */
     public get gamemode(): Gametype {
         return this.components.get('abilities.gamemode');
@@ -247,6 +260,11 @@ export class StorePlayer implements PlayerRecordSource, PlayerRecordTarget {
         this.attached.position = position;
     }
 
+    /** The bottom of the player's body, the eye height below what it reports. */
+    public getFeetY(): number {
+        return (this.attached?.position ?? this.held.position).y;
+    }
+
     /** Puts the player's feet at a position, keeping the look. */
     public standAt(feet: EntityPosition): void {
         if (this.attached === undefined) this.held = { ...this.held, position: { ...feet } };
@@ -271,9 +289,83 @@ export class StorePlayer implements PlayerRecordSource, PlayerRecordTarget {
         return this.craftingInput;
     }
 
+    /** What the player wears and holds. */
+    public getEquipment(): ViewableEquipment {
+        return this.inventory.getEquipment();
+    }
+
     /** The player's logged component state, which the survival rules write through. */
     public getComponents(): PlayerComponents {
         return this.components;
+    }
+
+    /** The `/tag` tags the player carries, the entity's while it is in a store. */
+    public getTags(): readonly string[] {
+        return this.attached === undefined ? this.held.tags : [...this.attached.body.tags];
+    }
+
+    /** The status effects on the player, the entity's while it is in a store. */
+    public getStatusEffects(): readonly StatusEffect[] {
+        return this.attached === undefined ? this.held.statusEffects : [...this.attached.body.statusEffects.values()];
+    }
+
+    /** Whether the client last reported the player sprinting. */
+    public isSprinting(): boolean {
+        return this.components.get('movement.sprinting');
+    }
+
+    /** Whether the client last reported the player sneaking. */
+    public isSneaking(): boolean {
+        return this.components.get('movement.sneaking');
+    }
+
+    /** Whether the client has reported the player asleep in a bed. */
+    public isSleeping(): boolean {
+        return this.components.get('movement.sleeping');
+    }
+
+    /**
+     * How far the player has fallen since it was last supported. A blow struck while this is
+     * above zero is a critical: a player rising through a jump is not falling.
+     */
+    public getFallDistance(): number {
+        return this.components.get('vitals.fallDistance');
+    }
+
+    /** The experience, as the level and the bar the client is sent, written through logged setters. */
+    public getExperience(): ExperienceHolder {
+        return this.components.experience();
+    }
+
+    /**
+     * Sets an attribute, through the component field it is kept in when it has one, so the write
+     * is logged.
+     * @returns Whether the value changed.
+     */
+    public setAttributeValue(name: string, value: number): boolean {
+        const before = this.attributes.getValue(name);
+        if (!this.components.setAttribute(name, value)) return this.attributes.setValue(name, value);
+        return this.attributes.getValue(name) !== before;
+    }
+
+    /**
+     * Notes that the player started holding an item down. Bedrock says only "started" and later
+     * "released", so the charge of a bow is the time between them, measured here.
+     * @param tick - The server tick it began on.
+     */
+    public beginItemUse(tick: number): void {
+        this.components.set('itemUse.startedAt', tick);
+    }
+
+    /**
+     * How long the current use has lasted, in ticks, and forgets it.
+     * @param tick - The server tick it ended on.
+     * @returns Ticks held, or zero if nothing was being held.
+     */
+    public takeItemUseTicks(tick: number): number {
+        const started = this.components.get('itemUse.startedAt');
+        this.components.set('itemUse.startedAt', null);
+        return started === null ? 0 : Math.max(0, tick - started);
     }
 
     /** The health, the entity's while the player is in a store. */
@@ -326,6 +418,11 @@ export class StorePlayer implements PlayerRecordSource, PlayerRecordTarget {
     /** Writes saturation, which never exceeds food, as a live player's does. */
     public setSaturation(saturation: number): void {
         setSaturation(this.components, saturation);
+    }
+
+    /** Feeds the player, as eating does. */
+    public addFood(food: number, saturation = 0): void {
+        addFood(this.components, food, saturation);
     }
 
     /** The player's own spawn point, or undefined for the world spawn. */

@@ -14,7 +14,6 @@ import { Gametype } from '@jsprismarine/minecraft';
 import { InetAddress } from '@jsprismarine/raknet';
 import ChangeDimensionPacket from '@jsprismarine/protocol/packet/ChangeDimensionPacket';
 import ShowCreditsPacket, { CreditsState } from '@jsprismarine/protocol/packet/ShowCreditsPacket';
-import UUID from '@jsprismarine/protocol/wire/structures/UUID';
 import type { DimensionTypeDefinition, LevelStem } from '@jsprismarine/worldgen';
 import { OVERWORLD_STEM_ID } from '@jsprismarine/worldgen';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
@@ -37,10 +36,9 @@ import EntitySerializer from '../../entity/EntitySerializer';
 import { savedActorNbt } from '../../testing/savedActor.test.helper';
 import type ClientConnection from '../../network/ClientConnection';
 import Codec2193 from '../../network/codec/Codec2193';
-import { createConnectedPlayer } from '../../network/createConnectedPlayer';
-import { sessionsWith } from '../../testing/playerSession.test.helper';
+import type PlayerSession from '../../network/PlayerSession';
+import { connectedSession, sessionsWith } from '../../testing/playerSession.test.helper';
 import type { PermissionManager } from '../../permission/PermissionManager';
-import Player from '../../Player';
 import type Server from '../../Server';
 import { TEST_GENERATOR_KIND } from '../../testing/level';
 import { stub } from '../../testing/stub.test.helper';
@@ -228,20 +226,7 @@ const buildScene = async ({ entities }: SceneOptions = {}) => {
 };
 
 /** A survival player standing at a feet position, whose session records what it sends into `sent`. */
-const playerAt = (server: Server, world: World, feet: Vector3, sent: unknown[] = []): Player => {
-    const player = new Player({
-        position: new Position(feet.getX(), feet.getY() + 1.62, feet.getZ(), world),
-        address: new InetAddress('127.0.0.1', 19132),
-        identity: {
-            uuid: UUID.fromRandom(),
-            name: 'Traveler',
-            xuid: '',
-            randomId: 0,
-            locale: 'en_US',
-            skin: null,
-            device: null
-        }
-    });
+const playerAt = (server: Server, world: World, feet: Vector3, sent: unknown[] = []): PlayerSession => {
     const connection = stub<ClientConnection>({
         codec: Codec2193,
         getAddress: () => new InetAddress('127.0.0.1', 19132),
@@ -253,10 +238,13 @@ const playerAt = (server: Server, world: World, feet: Vector3, sent: unknown[] =
         closePlayerSession: async () => {},
         disconnect: async () => {}
     });
-    createConnectedPlayer({ server, connection, player });
-    // `update` does nothing for a player who never finished joining.
-    player['connected'] = true;
-    return player;
+    return connectedSession({
+        server,
+        connection,
+        world,
+        eyes: new Vector3(feet.getX(), feet.getY() + 1.62, feet.getZ()),
+        name: 'Traveler'
+    });
 };
 
 /** The portal block reference of a lit portal's lowest block at `minCorner`. */
@@ -558,7 +546,7 @@ describe('DimensionTravel.touch', () => {
             pitch: 0
         });
         // Past the 10 tick cooldown, with the screen never closed.
-        player.setPortalCooldown(0);
+        player.getPlayer().setPortalCooldown(0);
 
         await scene.travel.touch(player.getActor()!, portalAt(scene.nether, new Vector3(12, 70, 0)));
 
@@ -669,10 +657,10 @@ describe('DimensionTravel.transfer', () => {
         expect(player.getWorld()).toBe(scene.nether);
         // The arrival is feet, like a mob's; a player stores their eyes, so the two differ.
         expect(player.getFeetY()).toBeCloseTo(70);
-        expect(player.getPortalCooldown()).toBe(10);
-        expect(player.getNetworkSession().pendingDimensionChange()?.arrival.world).toBe(scene.nether);
-        expect(scene.overworld.getPlayers()).not.toContain(player);
-        expect(scene.nether.getPlayers()).toContain(player);
+        expect(player.getPlayer().getPortalCooldown()).toBe(10);
+        expect(player.pendingDimensionChange()?.arrival.world).toBe(scene.nether);
+        expect(scene.overworld.getViewers()).not.toContain(player);
+        expect(scene.nether.getViewers()).toContain(player);
 
         await scene.level.disable();
     }, 60_000);
@@ -691,9 +679,9 @@ describe('DimensionTravel.transfer', () => {
         });
 
         expect(player.getWorld()).toBe(scene.overworld);
-        expect(player.getPortalCooldown()).toBe(0);
-        expect(player.getNetworkSession().pendingDimensionChange()).toBeUndefined();
-        expect(scene.overworld.getPlayers()).toContain(player);
+        expect(player.getPlayer().getPortalCooldown()).toBe(0);
+        expect(player.pendingDimensionChange()).toBeUndefined();
+        expect(scene.overworld.getViewers()).toContain(player);
 
         await scene.level.disable();
     }, 60_000);
@@ -701,7 +689,7 @@ describe('DimensionTravel.transfer', () => {
 
 describe('DimensionTravel.transfer out of the End', () => {
     /** The End-exit arrival of `player`, resolved from an exit portal block under them. */
-    const exitArrival = async (scene: Awaited<ReturnType<typeof buildScene>>, player: Player) => {
+    const exitArrival = async (scene: Awaited<ReturnType<typeof buildScene>>, player: PlayerSession) => {
         const arrival = await scene.travel.resolve(player.getActor()!, {
             world: scene.end,
             position: new Vector3(0, 60, 0),
@@ -726,10 +714,10 @@ describe('DimensionTravel.transfer out of the End', () => {
         expect(credits[0]!.creditsState).toBe(CreditsState.Start);
         expect(credits[0]!.playerRuntimeId).toBe(player.getRuntimeId());
         expect(sent.some((packet) => packet instanceof ChangeDimensionPacket)).toBe(false);
-        expect(player.hasSeenCredits()).toBe(true);
+        expect(player.getPlayer().hasSeenCredits()).toBe(true);
         expect(player.getWorld()).toBe(scene.end);
-        expect(player.getNetworkSession().pendingCreditsArrival()).toBe(arrival);
-        expect(player.getNetworkSession().pendingDimensionChange()).toBeUndefined();
+        expect(player.pendingCreditsArrival()).toBe(arrival);
+        expect(player.pendingDimensionChange()).toBeUndefined();
 
         await scene.level.disable();
     }, 60_000);
@@ -742,15 +730,15 @@ describe('DimensionTravel.transfer out of the End', () => {
         await scene.travel.transfer(player.getActor()!, await exitArrival(scene, player));
         sent.length = 0;
 
-        expect(await player.getNetworkSession().completeCredits()).toBe(true);
+        expect(await player.completeCredits()).toBe(true);
 
         const change = sent.find((packet): packet is ChangeDimensionPacket => packet instanceof ChangeDimensionPacket);
         expect(change?.getPacketData()?.respawn).toBe(true);
         expect(player.getWorld()).toBe(scene.overworld);
         expect(player.getFeetY()).toBeCloseTo(WORLD_SPAWN.getY());
-        expect(player.getNetworkSession().pendingCreditsArrival()).toBeUndefined();
+        expect(player.pendingCreditsArrival()).toBeUndefined();
         // Settled by the respawn exchange, not by a loading screen the client closes.
-        expect(player.getNetworkSession().pendingDimensionChange()).toBeUndefined();
+        expect(player.pendingDimensionChange()).toBeUndefined();
 
         await scene.level.disable();
     }, 60_000);
@@ -760,7 +748,7 @@ describe('DimensionTravel.transfer out of the End', () => {
         const sent: unknown[] = [];
         const player = playerAt(scene.server, scene.end, new Vector3(0.5, 60, 0.5), sent);
         await scene.end.addPlayer(player);
-        player.setSeenCredits(true);
+        player.getPlayer().setSeenCredits(true);
         const arrival = await exitArrival(scene, player);
         sent.length = 0;
 
@@ -768,8 +756,8 @@ describe('DimensionTravel.transfer out of the End', () => {
 
         expect(sent.some((packet) => packet instanceof ShowCreditsPacket)).toBe(false);
         expect(player.getWorld()).toBe(scene.overworld);
-        expect(player.getNetworkSession().pendingCreditsArrival()).toBeUndefined();
-        expect(player.getNetworkSession().pendingDimensionChange()?.arrival.world).toBe(scene.overworld);
+        expect(player.pendingCreditsArrival()).toBeUndefined();
+        expect(player.pendingDimensionChange()?.arrival.world).toBe(scene.overworld);
 
         await scene.level.disable();
     }, 60_000);
@@ -877,8 +865,8 @@ describe('DimensionTravel through the tick', () => {
         await tickInPortal(scene.travel, player.getActor()!, portal, 80);
 
         expect(player.getWorld()).toBe(scene.nether);
-        expect(player.getPortalCooldown()).toBe(10);
-        expect(player.getNetworkSession().pendingDimensionChange()?.arrival.world).toBe(scene.nether);
+        expect(player.getPlayer().getPortalCooldown()).toBe(10);
+        expect(player.pendingDimensionChange()?.arrival.world).toBe(scene.nether);
         // Bedrock creates the portal for a player: the trip built one to arrive in.
         expect(scene.nether.getPortalIndex().size).toBe(6);
 
@@ -960,16 +948,16 @@ describe('DimensionTravel through the tick', () => {
         const scene = await buildScene();
         await lightPortal(scene.overworld, new Vector3(80, 64, 0), 'x');
         const bot = playerAt(scene.server, scene.overworld, new Vector3(80.5, 64, 0.5));
-        bot.gamemode = Gametype.CREATIVE;
+        bot.getPlayer().gamemode = Gametype.CREATIVE;
         await scene.overworld.addPlayer(bot);
 
         // Creative goes through on the first contact tick, into the portal the trip builds.
         await scene.overworld.update(1);
         expect(bot.getWorld()).toBe(scene.nether);
-        const pending = bot.getNetworkSession().pendingDimensionChange();
+        const pending = bot.pendingDimensionChange();
         expect(pending).toBeDefined();
         // The client closes its loading screen with the bot still standing in the portal.
-        expect(await bot.getNetworkSession().completeDimensionChange(pending!.loadingScreenId)).toBe(true);
+        expect(await bot.completeDimensionChange(pending!.loadingScreenId)).toBe(true);
         expect(bot.getFeetY()).toBeCloseTo(70);
 
         const changes: unknown[] = [];
@@ -994,8 +982,8 @@ describe('DimensionTravel through the tick', () => {
         for (let tick = 1; tick <= 80; tick += 1) await scene.overworld.update(tick);
 
         expect(bot.getWorld()).toBe(scene.nether);
-        expect(scene.overworld.getPlayers()).not.toContain(bot);
-        expect(scene.nether.getPlayers()).toContain(bot);
+        expect(scene.overworld.getViewers()).not.toContain(bot);
+        expect(scene.nether.getViewers()).toContain(bot);
 
         await scene.level.disable();
     }, 60_000);
@@ -1006,7 +994,7 @@ describe('DimensionTravel through the tick', () => {
         const bot = playerAt(scene.server, scene.overworld, new Vector3(80.5, 64, 0.5));
         await scene.overworld.addPlayer(bot);
         for (let tick = 1; tick <= 80; tick += 1) await scene.overworld.update(tick);
-        const pending = bot.getNetworkSession().pendingDimensionChange();
+        const pending = bot.pendingDimensionChange();
         expect(pending?.arrival.world).toBe(scene.nether);
         expect(scene.nether.getPortalIndex().has({ x: 9, y: 70, z: 0 })).toBe(true);
         const entered: WorldActor[] = [];
@@ -1022,10 +1010,10 @@ describe('DimensionTravel through the tick', () => {
         // holds it while `isChangingDimension`.
         expect(entered).toEqual([]);
         expect(bot.getWorld()).toBe(scene.nether);
-        expect(bot.getPortalCooldown()).toBe(10);
+        expect(bot.getPlayer().getPortalCooldown()).toBe(10);
         expect(bot.getActor()!.portalContact()).toBeUndefined();
-        expect(bot.getNetworkSession().pendingDimensionChange()).toBe(pending);
-        expect(scene.nether.getPlayers()).toContain(bot);
+        expect(bot.pendingDimensionChange()).toBe(pending);
+        expect(scene.nether.getViewers()).toContain(bot);
 
         await scene.level.disable();
     }, 60_000);

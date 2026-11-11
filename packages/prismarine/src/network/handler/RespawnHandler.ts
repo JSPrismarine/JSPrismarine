@@ -3,7 +3,6 @@ import type PlayerSession from '../PlayerSession';
 import type RespawnPacket from '@jsprismarine/protocol/packet/RespawnPacket';
 import { PlayerRespawnState } from '@jsprismarine/minecraft';
 import type PacketHandler from './PacketHandler';
-import { storePlayerOf } from './playerPorts';
 
 /**
  * The client's half of the respawn exchange.
@@ -35,7 +34,7 @@ export default class RespawnHandler implements PacketHandler<RespawnPacket> {
     public readonly lane = 'input';
 
     public async handle(packet: RespawnPacket, server: Server, session: PlayerSession): Promise<void> {
-        const player = storePlayerOf(session);
+        const player = session.getPlayer();
         const data = packet.getPacketData();
         if (data === null) throw new Error('Cannot handle RespawnPacket without decoded data');
 
@@ -55,7 +54,7 @@ export default class RespawnHandler implements PacketHandler<RespawnPacket> {
             // Where the player comes back: the spawn block and the eyes above it, in the world
             // the spawn is in. `Player.getRespawnPoint` asks the level's search and clears a
             // spawn point that no longer holds.
-            const point = await session.getPlayer().getRespawnPoint();
+            const point = await session.getRespawnPoint();
             // The dead body moves world first, facing as it fell; `Player.respawn` then stands
             // it at the eyes once the client's `Respawn` action arrives, as in one world.
             if (point.world !== session.getWorld()) {

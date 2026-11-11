@@ -15,9 +15,10 @@ import type { Position as PositionType } from '../src/world/Position';
 import { sessionFor } from '../src/testing/playerSession.test.helper';
 import type ClientConnection from '../src/network/ClientConnection';
 import type PlayerSession from '../src/network/PlayerSession';
+import type { SessionPlayer } from '../src/network/sessionPlayers';
 
-/** What the world files in its player map. */
-type WorldPlayer = ReturnType<World['getPlayers']>[number];
+/** What the world files in its player map: each player's session. */
+type WorldPlayer = PlayerSession;
 
 const PLAYER_COUNT = 20;
 const VIEW_DISTANCE = 32;
@@ -106,9 +107,8 @@ for (let index = 0; index < PLAYER_COUNT; index++) {
     players.set(
         state.id,
         stub<WorldPlayer>({
-            viewDistance: state.viewDistance,
-            getNetworkSession: () => stub<PlayerSession>({ getViewDistance: () => state.viewDistance }),
-            getPosition: () => stub<PositionType>({ getX: () => state.x * 16, getZ: () => state.z * 16 })
+            getViewDistance: () => state.viewDistance,
+            getViewPosition: () => stub<PositionType>({ getX: () => state.x * 16, getZ: () => state.z * 16 })
         })
     );
 }
@@ -175,7 +175,12 @@ const server = stub<Server>({ getConfig: () => config });
 const sessions = Array.from(states.values(), (state) => {
     const player = players.get(state.id);
     if (player === undefined) throw new Error('Benchmark player session lost its player');
-    return sessionFor(server, stub<ClientConnection>(), player);
+    // The session reads where its player stands off the store player.
+    return sessionFor(
+        server,
+        stub<ClientConnection>(),
+        stub<SessionPlayer>({ getPosition: () => player.getViewPosition() })
+    );
 });
 
 const queueSamples: number[] = [];

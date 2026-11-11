@@ -14,7 +14,6 @@ import type { ShownActor } from './ShownActor';
 import { ItemActor as ItemEntity } from '../entity/data/itemActor';
 import ContainerEntry from '../inventory/ContainerEntry';
 import HumanInventory from '../inventory/HumanInventory';
-import type Player from '../Player';
 import { definitionOf, definitionsOf } from '../content/ContentOptions';
 import { builtInEntityDefinitions } from '../content/testing';
 import { overlayPackPath } from '../content/packStack';
@@ -32,9 +31,8 @@ import { WorldSystems } from './WorldSystems';
 import { NULL_WORLD_CHANGE_SINK } from './WorldChangeSink';
 import { Position } from './Position';
 import { fakeLevel } from '../testing/level';
-import { stub } from '../testing/stub.test.helper';
 import type PlayerSession from '../network/PlayerSession';
-import { playerOnPrototype } from '../testing/storePlayer.test.helper';
+import { sessionOnPrototype } from '../testing/storePlayer.test.helper';
 
 /** The blocks this fixture declares, which are also the whole of its palette. */
 const BLOCKS = [
@@ -224,14 +222,14 @@ const liveWorld = (
     chunk: Chunk;
     spawned: ShownActor[];
     entities: Map<number, Entity>;
-    players: Map<number, Player>;
+    players: Map<number, PlayerSession>;
 } => {
     const chunk = new Chunk(0, 0);
     const spawned: ShownActor[] = [];
     // Where the item actor port finds the breaking player by the world's numeric runtime ID key.
     const entities = new Map<number, Entity>();
     // Where the world finds the breaking player's session by the same key.
-    const players = new Map<number, Player>();
+    const players = new Map<number, PlayerSession>();
 
     const world: World = Object.assign(Object.create(World.prototype), {
         chunks: new Map([[Chunk.packXZ(0, 0), chunk]]),
@@ -281,7 +279,7 @@ describe('breakBlockWithContent', () => {
     let world: World;
     let chunk: Chunk;
     let spawned: ShownActor[];
-    let players: Map<number, Player>;
+    let players: Map<number, PlayerSession>;
     let content: ServerContent;
 
     beforeEach(() => {
@@ -347,11 +345,11 @@ describe('breakBlockWithContent', () => {
      * needs a network session before it exists at all, so only what the break and the port read
      * is filled in.
      */
-    const player = (held: Item | null = null, gamemode = Gametype.SURVIVAL): Player => {
+    const player = (held: Item | null = null, gamemode = Gametype.SURVIVAL): PlayerSession => {
         const inventory = new HumanInventory();
         if (held !== null) inventory.setItemInHand(new ContainerEntry({ item: held, count: held.getAmount() }));
 
-        const breaker: Player = playerOnPrototype(
+        const breaker: PlayerSession = sessionOnPrototype(
             {
                 gamemode,
                 getRuntimeId: () => PLAYER_ID,
@@ -362,8 +360,7 @@ describe('breakBlockWithContent', () => {
                 // The break reads the tool off the inventory.
                 getInventory: () => inventory,
                 getStatusEffects: () => [],
-                getPosition: () => Position.fromVector3(new Vector3(3, 64, 3), world),
-                getNetworkSession: () => stub<PlayerSession>({ getPlayer: () => breaker })
+                getPosition: () => Position.fromVector3(new Vector3(3, 64, 3), world)
             },
             {
                 runtimeId: PLAYER_ID,

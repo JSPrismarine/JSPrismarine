@@ -23,7 +23,9 @@ import { PlayerComponents } from '../../entity/playerComponents';
 import type HumanInventory from '../../inventory/HumanInventory';
 import { Item } from '../../item/Item';
 import { identityNamed } from '../../testing/sessionIdentity.test.helper';
+import { stubPlayerPort } from '../../testing/playerPort.test.helper';
 import { stub } from '../../testing/stub.test.helper';
+import type { ShownPlayer } from '../../world/ShownPlayer';
 import BlockPosition from '../../world/BlockPosition';
 import { Position } from '../../world/Position';
 import type { World } from '../../world/World';
@@ -34,7 +36,6 @@ import type { ServerAuthInputItemUse, ServerPlayerAuthInput } from '../PlayerAut
 import { playerAuthInputFromProtocol, playerAuthInputToProtocol } from '../PlayerAuthInputAdapter';
 import InventoryTransactionHandler from './InventoryTransactionHandler';
 import PlayerAuthInputHandler, { rejectionReason } from './PlayerAuthInputHandler';
-import { storePlayerPort } from './storePlayerPort.test.helper';
 
 /**
  * A session whose player records what is done to it, and a server that posts nothing.
@@ -47,7 +48,7 @@ const fake = ({ serverAuthoritativeBreaking = false, changingDimension = false, 
     const calls: string[] = [];
     const logged: string[] = [];
     const world = stub<World>({
-        getPlayers: () => [],
+        getViewers: () => [],
         entityRelocated: () => {},
         broadcastMove: vi.fn(async () => {}),
         hitBlock: async (position, face) =>
@@ -64,31 +65,16 @@ const fake = ({ serverAuthoritativeBreaking = false, changingDimension = false, 
     });
     let groundState = false;
     const components = new PlayerComponents(new Attributes(Attributes.getPlayerDefaults()), () => {});
-    const player = storePlayerPort(
-        {
-            gamemode: Gametype.SURVIVAL,
-            getPosition: () => new Position(0, 64, 0, world),
-            isOnGround: () => groundState,
-            // The crack animation reads the held item, so the break time is the
-            // tool's rather than a fist's.
-            getInventory: () => stub<HumanInventory>({ getItemInHand: () => Item.air() }),
-            getComponents: () => components
-        },
-        {
-            isOnline: () => true,
-            // The move event reads where the player was from the player.
-            getPosition: () => new Position(0, 64, 0, world),
-            setPlayerPosition: vi.fn(
-                async ({ position }: { position: Vector3 }) =>
-                    void calls.push(`move ${position.getX()},${position.getY()},${position.getZ()}`)
-            ),
-            setOnGround: vi.fn(async (onGround: boolean) => {
-                groundState = onGround;
-                calls.push(`ground ${onGround}`);
-            }),
-            setSprinting: async (sprinting) => void calls.push(`sprint ${sprinting}`)
-        }
-    );
+    const player = stubPlayerPort({
+        gamemode: Gametype.SURVIVAL,
+        getPosition: () => new Position(0, 64, 0, world),
+        isOnGround: () => groundState,
+        // The crack animation reads the held item, so the break time is the
+        // tool's rather than a fist's.
+        getInventory: () => stub<HumanInventory>({ getItemInHand: () => Item.air() }),
+        getComponents: () => components
+    });
+    let joined = true;
     // The runtime that takes the player's inputs.
     const inputs = stub<EntityRuntime>({
         setPlayerMining: () => {},
@@ -101,7 +87,20 @@ const fake = ({ serverAuthoritativeBreaking = false, changingDimension = false, 
         identity: identityNamed('tester'),
         getPlayer: () => player,
         getWorld: () => world,
-        isConnected: () => player.isOnline(),
+        inputs: () => inputs,
+        isConnected: () => joined,
+        // The move event reads where the player was from the session.
+        getViewPosition: () => new Position(0, 64, 0, world),
+        shown: () => stub<ShownPlayer>({}),
+        setPlayerPosition: vi.fn(
+            async ({ position }: { position: Vector3 }) =>
+                void calls.push(`move ${position.getX()},${position.getY()},${position.getZ()}`)
+        ),
+        setOnGround: vi.fn((onGround: boolean) => {
+            groundState = onGround;
+            calls.push(`ground ${onGround}`);
+        }),
+        setSprinting: async (sprinting: boolean) => void calls.push(`sprint ${sprinting}`),
         getConnection: () => stub<ReturnType<PlayerSession['getConnection']>>({ codec: Codec2193 }),
         sendMove: vi.fn(),
         recordInputTick: vi.fn(),
@@ -117,7 +116,16 @@ const fake = ({ serverAuthoritativeBreaking = false, changingDimension = false, 
             stub<Logger>({ verbose: () => {}, debug: (...message) => void logged.push(String(message[0] ?? '')) })
     });
 
-    return { calls, logged, player, session, server };
+    return {
+        calls,
+        logged,
+        player,
+        session,
+        server,
+        leave: () => {
+            joined = false;
+        }
+    };
 };
 
 const input = (configure: (input: ServerPlayerAuthInput) => void = () => {}): PlayerAuthInputPacket => {
@@ -180,19 +188,19 @@ const blockPlacement = (): ServerAuthInputItemUse => ({
 
 describe('PlayerAuthInputHandler', () => {
     it('moves the player to where the input says they are', async () => {
-        const { calls, player, session, server } = fake();
+        const { calls, session, server } = fake();
 
         await new PlayerAuthInputHandler().handle(input(), server, session);
 
         expect(calls[0]).toBe('move 3,70,-4');
-        expect(player.setPlayerPosition).toHaveBeenCalledWith(
+        expect(session.setPlayerPosition).toHaveBeenCalledWith(
             { position: new Vector3(3, 70, -4), pitch: 5, yaw: 90, headYaw: 85 },
             false
         );
     });
 
     it('passes the interaction rotation to the embedded item use without changing movement rotation', async () => {
-        const { player, session, server } = fake();
+        const { session, server } = fake();
         const handleTransaction = vi.spyOn(InventoryTransactionHandler.prototype, 'handle').mockResolvedValue();
 
         try {
@@ -206,7 +214,7 @@ describe('PlayerAuthInputHandler', () => {
                 session
             );
 
-            expect(player.setPlayerPosition).toHaveBeenCalledWith(
+            expect(session.setPlayerPosition).toHaveBeenCalledWith(
                 { position: new Vector3(3, 70, -4), pitch: 5, yaw: 90, headYaw: 85 },
                 false
             );
@@ -340,21 +348,21 @@ describe('PlayerAuthInputHandler', () => {
     it('ignores where an input says the player is until the client has handled a teleport', async () => {
         // A client goes on sending its old position until it applies the teleport. Taking it
         // would move the player back on the server while the client stands at the target.
-        const { player, session, server } = fake({ awaitingTeleport: true });
+        const { session, server } = fake({ awaitingTeleport: true });
 
         await new PlayerAuthInputHandler().handle(input(), server, session);
-        expect(player.setPlayerPosition).not.toHaveBeenCalled();
+        expect(session.setPlayerPosition).not.toHaveBeenCalled();
 
         await new PlayerAuthInputHandler().handle(
             input((packet) => packet.inputData.add(PlayerAuthInputData.HANDLED_TELEPORT)),
             server,
             session
         );
-        expect(player.setPlayerPosition).toHaveBeenCalledOnce();
+        expect(session.setPlayerPosition).toHaveBeenCalledOnce();
     });
 
     it('drops the whole input while a dimension change is pending, after recording its tick', async () => {
-        const { calls, session, server, player } = fake({ changingDimension: true });
+        const { calls, session, server } = fake({ changingDimension: true });
 
         await new PlayerAuthInputHandler().handle(
             input((packet) => {
@@ -366,13 +374,13 @@ describe('PlayerAuthInputHandler', () => {
         );
 
         expect(session.recordInputTick).toHaveBeenCalledWith(12n);
-        expect(player.setPlayerPosition).not.toHaveBeenCalled();
+        expect(session.setPlayerPosition).not.toHaveBeenCalled();
         expect(calls).toEqual([]);
     });
 
     it('does nothing for a player who has not finished joining', async () => {
-        const { calls, player, session, server } = fake();
-        player.isOnline = () => false;
+        const { calls, session, server, leave } = fake();
+        leave();
 
         await new PlayerAuthInputHandler().handle(input(), server, session);
 
@@ -394,8 +402,8 @@ describe('PlayerAuthInputHandler', () => {
     });
 
     it('records the tick of an input from a player who has not finished joining', async () => {
-        const { player, session, server } = fake();
-        player.isOnline = () => false;
+        const { session, server, leave } = fake();
+        leave();
 
         await new PlayerAuthInputHandler().handle(
             input((packet) => {

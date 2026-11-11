@@ -17,7 +17,6 @@ import type { ServerContent } from '../content/ServerContent';
 import { fixtureContentOptions, fixtureDefinitions } from '../content/testing';
 import { serverWorldSource } from '../content/world/serverSource';
 import type { Config } from '../config/Config';
-import type Player from '../Player';
 import type ClientConnection from '../network/ClientConnection';
 import type PlayerSession from '../network/PlayerSession';
 import type Server from '../Server';
@@ -207,11 +206,11 @@ const standInPlayer = (world: World): void => {
         // This fixture checks random ticks, so a world tick has no outbound session queue to drain.
         flushOutboundPackets: async () => {}
     });
-    const session = stub<PlayerSession>({ getConnection: () => connection, getViewDistance: () => 8 });
-    const player = stub<Player>({
-        isOnline: () => true,
-        getPosition: () => new Position(0, GROUND + 1, 0, world),
-        getNetworkSession: () => session
+    const player = stub<PlayerSession>({
+        isConnected: () => true,
+        getViewPosition: () => new Position(0, GROUND + 1, 0, world),
+        getConnection: () => connection,
+        getViewDistance: () => 8
     });
     world['players'].set(1, player);
 };

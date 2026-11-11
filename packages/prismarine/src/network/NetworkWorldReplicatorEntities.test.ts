@@ -1,11 +1,11 @@
 import type { Logger } from '@jsprismarine/logger';
 import { describe, expect, it, vi } from 'vitest';
 
-import type { SessionPlayer } from './sessionPlayers';
 import type Server from '../Server';
 import type { Config } from '../config/Config';
-import { stub } from '../testing/stub.test.helper';
-import { playerOnPrototype } from '../testing/storePlayer.test.helper';
+import { stub, stubOf } from '../testing/stub.test.helper';
+import { StorePlayerActor } from '../entity/data/storePlayers';
+import { PLAYER_IDENTIFIER } from '../entity/playerOverlay';
 import type { ShownActor } from '../world/ShownActor';
 import type { World } from '../world/World';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
@@ -80,7 +80,7 @@ const fakeSession = (
     };
 };
 
-/** A player-controlled entity and the session its world finds by its entity id. */
+/** A player's session, whose actor is the player-controlled entity its world finds by its entity id. */
 const fakePlayer = (
     runtimeId: bigint,
     codec?: ProtocolCodec,
@@ -88,23 +88,22 @@ const fakePlayer = (
     compressionThreshold?: number
 ) => {
     const spy = fakeSession(runtimeId, codec, compressionAlgorithm, compressionThreshold);
-    const player = playerOnPrototype(
-        {
-            getNetworkSession: () => spy.session,
-            isOnGround: () => false,
-            isOnline: () => true
-        },
-        {
-            runtimeId,
-            actor: {
-                getPosition: () => new Position(1, 64, 1, stub<World>()),
-                isOnGround: () => false,
-                metadata: new Metadata(false),
-                getSyncedProperties: () => new SyncedProperties(),
-                getEquipment: () => ({})
-            }
-        }
-    );
+    const actor = stubOf(StorePlayerActor, {
+        getRuntimeId: () => runtimeId,
+        getType: () => PLAYER_IDENTIFIER,
+        getPosition: () => new Position(1, 64, 1, stub<World>()),
+        isOnGround: () => false,
+        getSyncedProperties: () => new SyncedProperties(),
+        getEquipment: () => ({})
+    });
+    // Own properties, which shadow the prototype's accessors of these names.
+    Object.defineProperties(actor, {
+        pitch: { value: 0 },
+        yaw: { value: 0 },
+        headYaw: { value: 0 },
+        metadata: { value: new Metadata(false) }
+    });
+    const player = Object.assign(spy.session, { getActor: () => actor, isConnected: () => true });
 
     return { player, spy };
 };
@@ -128,15 +127,15 @@ const replicatorOver = ({
     proximity = true,
     fullFlushFragments = false
 }: {
-    players?: SessionPlayer[];
+    players?: PlayerSession[];
     entities?: ShownActor[];
     proximity?: boolean;
     fullFlushFragments?: boolean;
 } = {}) => {
     const world = stub<World>({
         getName: () => 'test',
-        getViewers: () => players.map((player) => player.getNetworkSession()),
-        viewerOf: (runtimeId) => players.find((player) => player.getRuntimeId() === runtimeId)?.getNetworkSession(),
+        getViewers: () => players,
+        viewerOf: (runtimeId) => players.find((player) => player.runtimeId === runtimeId),
         shownActors: () => entities
     });
 

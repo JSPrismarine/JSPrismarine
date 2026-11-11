@@ -158,10 +158,12 @@ describe('network', () => {
                 getLoadedChunk: (x, z) => (x === 1 && z === 2 ? chunk : x === 2 && z === 2 ? secondChunk : null)
             });
             const playerWithWorld = stub<SessionPlayer>({
-                getPosition: () => stub<Position>({ getX: () => 0, getZ: () => 0 }),
-                getWorld: () => world
+                getPosition: () => stub<Position>({ getX: () => 0, getZ: () => 0 })
             });
-            const residentSession = sessionFor(server, stub<ClientConnection>({ codec: Codec2225 }), playerWithWorld);
+            const residentSession = sessionFor(server, stub<ClientConnection>({ codec: Codec2225 }), playerWithWorld, {
+                world,
+                joined: true
+            });
             const payloadBytes = chunk.networkSerialize().byteLength;
 
             expect(residentSession.tryDeliverLoaded(1, 2)).toEqual({ kind: 'queued', queuedBytes: payloadBytes });
@@ -180,10 +182,11 @@ describe('network', () => {
             chunk.setBlockRuntimeId(1, 70, 2, BlockRuntimeIds.getByName('minecraft:stone'));
             const world = stub<World>({ getLoadedChunk: () => chunk });
             const cachePlayer = stub<SessionPlayer>({
-                getPosition: () => stub<Position>({ getX: () => 0, getZ: () => 0 }),
-                getWorld: () => world
+                getPosition: () => stub<Position>({ getX: () => 0, getZ: () => 0 })
             });
-            const cacheSession = sessionFor(server, stub<ClientConnection>({ codec: Codec2225 }), cachePlayer);
+            const cacheSession = sessionFor(server, stub<ClientConnection>({ codec: Codec2225 }), cachePlayer, {
+                world
+            });
             const payload = chunk.networkSerializeRequestSkeleton();
             cacheSession.setClientCacheEnabled(true);
 
@@ -219,9 +222,7 @@ describe('network', () => {
                 chunk.setBlockRuntimeId(1, 70, 2, BlockRuntimeIds.getByName('minecraft:stone'));
                 const world = stub<World>({ getLoadedChunk: () => chunk });
                 const playerWithWorld = stub<SessionPlayer>({
-                    getPosition: () => new Position(0, 64, 0, world),
-                    getWorld: () => world,
-                    isOnline: () => true
+                    getPosition: () => new Position(0, 64, 0, world)
                 });
                 const sentBatches: NetworkPacket<unknown>[][] = [];
                 const connection = stub<ClientConnection>({
@@ -229,7 +230,7 @@ describe('network', () => {
                     sendDataPacket: async () => {},
                     sendSharedCompressedBatchAsync: async (_content, packets) => void sentBatches.push([...packets])
                 });
-                const cacheSession = sessionFor(server, connection, playerWithWorld);
+                const cacheSession = sessionFor(server, connection, playerWithWorld, { world, joined: true });
                 cacheSession.setClientCacheEnabled(true);
                 const skeleton = chunk.networkSerializeRequestSkeleton();
                 cacheSession.tryDeliverLoaded(1, 2);
@@ -282,16 +283,13 @@ describe('network', () => {
                 getDimension: () => Dimensions.Overworld,
                 getLoadedChunk: (x, z) => (x === 1 && z === 2 ? chunk : null)
             });
-            const playerWithWorld = stub<SessionPlayer>({
-                getWorld: () => world,
-                isOnline: () => true,
-                getName: () => 'tester'
-            });
+            const playerWithWorld = stub<SessionPlayer>({});
             const sentPackets: NetworkPacket<unknown>[] = [];
             const sessionWithResponses = sessionFor(
                 server,
                 stub<ClientConnection>({ sendDataPacket: async (packet) => void sentPackets.push(packet) }),
-                playerWithWorld
+                playerWithWorld,
+                { world, joined: true }
             );
             const request = new SubChunkRequestPacket();
             request.dimensionType = 0;
@@ -351,10 +349,7 @@ describe('network', () => {
                 }
             });
             const playerWithWorld = stub<SessionPlayer>({
-                getPosition: () => new Position(0, 64, 0, world),
-                getWorld: () => world,
-                getName: () => 'tester',
-                isOnline: () => true
+                getPosition: () => new Position(0, 64, 0, world)
             });
             const sent: NetworkPacket<unknown>[] = [];
             const connection = stub<ClientConnection>({
@@ -362,7 +357,7 @@ describe('network', () => {
                 sendDataPacket: async (packet) => void sent.push(packet),
                 sendSharedCompressedBatchAsync: async () => {}
             });
-            const announced = sessionFor(server, connection, playerWithWorld);
+            const announced = sessionFor(server, connection, playerWithWorld, { world, joined: true });
             announced.tryDeliverLoaded(1, 2);
             await announced.flush();
             resident = null;
@@ -393,12 +388,13 @@ describe('network', () => {
                 getDimension: () => Dimensions.Overworld,
                 getLoadedChunk: () => chunk
             });
-            const playerWithWorld = stub<SessionPlayer>({ getWorld: () => world, isOnline: () => true });
+            const playerWithWorld = stub<SessionPlayer>({});
             const sentPackets: NetworkPacket<unknown>[] = [];
             const cacheSession = sessionFor(
                 server,
                 stub<ClientConnection>({ sendDataPacket: async (packet) => void sentPackets.push(packet) }),
-                playerWithWorld
+                playerWithWorld,
+                { world, joined: true }
             );
             cacheSession.setClientCacheEnabled(true);
             const request = new SubChunkRequestPacket();

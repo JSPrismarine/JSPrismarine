@@ -1,5 +1,4 @@
 import type { Logger } from '@jsprismarine/logger';
-import { InetAddress } from '@jsprismarine/raknet';
 import UUID from '@jsprismarine/protocol/wire/structures/UUID';
 import { Gametype } from '@jsprismarine/minecraft';
 import { Vector3 } from '@jsprismarine/math';
@@ -24,7 +23,9 @@ import { Position } from './Position';
 import { GenericEntity } from '../testing/genericEntity.test.helper';
 import ContainerEntry from '../inventory/ContainerEntry';
 import { Item } from '../item/Item';
-import Player from '../Player';
+import type PlayerSession from '../network/PlayerSession';
+import { sessionOnPrototype } from '../testing/storePlayer.test.helper';
+import { blockMiningOf, playerMiningOf } from './BlockMining';
 
 /** A world whose dimension's entity runtime is the real one the entity fixture builds. */
 const worldWithStore = () => {
@@ -70,121 +71,156 @@ const worldWithStore = () => {
     return { world, runtime: fixture.runtime, errors };
 };
 
-/** A player of the world, with no session: the change log needs only the entity. */
-const playerIn = (world: World): Player =>
-    new Player({
-        position: new Position(0.5, 65.62, 0.5, world),
-        address: new InetAddress('127.0.0.1', 19132),
-        identity: {
+/** A player of the world and its session, which sends nowhere: the change log needs only the entity. */
+const playerIn = (world: World): PlayerSession =>
+    sessionOnPrototype(
+        { getName: () => 'Logged' },
+        {
             uuid: UUID.fromString('00000000-0000-4000-8000-000000000001'),
-            name: 'Logged',
-            xuid: '',
-            randomId: 0,
-            locale: 'en_US',
-            skin: null,
-            device: null
+            position: new Position(0.5, 65.62, 0.5, world)
         }
-    });
+    );
 
 const entry = (name: string, count = 1) => new ContainerEntry({ item: new Item({ name, count }) });
 
 /** One write to every container a player carries, and to the hand slot. */
-const PLAYER_SLOT_WRITES: readonly { readonly name: string; readonly write: (player: Player) => void }[] = [
-    { name: 'inventory', write: (player) => player.getInventory().setItem(4, entry('minecraft:stone', 12)) },
-    { name: 'armor', write: (player) => player.getInventory().getArmor().setItem(0, entry('minecraft:iron_helmet')) },
-    { name: 'offhand', write: (player) => player.getInventory().getOffhand().setItem(0, entry('minecraft:shield')) },
+const PLAYER_SLOT_WRITES: readonly { readonly name: string; readonly write: (player: PlayerSession) => void }[] = [
+    {
+        name: 'inventory',
+        write: (player) => player.getPlayer().getInventory().setItem(4, entry('minecraft:stone', 12))
+    },
+    {
+        name: 'armor',
+        write: (player) => player.getPlayer().getInventory().getArmor().setItem(0, entry('minecraft:iron_helmet'))
+    },
+    {
+        name: 'offhand',
+        write: (player) => player.getPlayer().getInventory().getOffhand().setItem(0, entry('minecraft:shield'))
+    },
     {
         name: 'ender_chest',
-        write: (player) => player.getInventory().getEnderChest().setItem(3, entry('minecraft:diamond', 2))
+        write: (player) => player.getPlayer().getInventory().getEnderChest().setItem(3, entry('minecraft:diamond', 2))
     },
-    { name: 'cursor', write: (player) => player.getInventory().setCursor(new Item({ name: 'minecraft:torch' })) },
-    { name: 'crafting', write: (player) => player.getCraftingInput().set(1, new Item({ name: 'minecraft:oak_log' })) },
-    { name: 'inventory.handSlot', write: (player) => player.getInventory().setHandSlot(5) },
-    { name: 'removal', write: (player) => player.getInventory().removeItem(0) }
+    {
+        name: 'cursor',
+        write: (player) =>
+            player
+                .getPlayer()
+                .getInventory()
+                .setCursor(new Item({ name: 'minecraft:torch' }))
+    },
+    {
+        name: 'crafting',
+        write: (player) =>
+            player
+                .getPlayer()
+                .getCraftingInput()
+                .set(1, new Item({ name: 'minecraft:oak_log' }))
+    },
+    { name: 'inventory.handSlot', write: (player) => player.getPlayer().getInventory().setHandSlot(5) },
+    { name: 'removal', write: (player) => player.getPlayer().getInventory().removeItem(0) }
 ];
 
 /** One write to each component field of a player, with what reads it back. */
 const PLAYER_COMPONENT_WRITES: readonly {
     readonly field: string;
-    readonly write: (player: Player) => void | Promise<void>;
-    readonly read: (player: Player) => unknown;
+    readonly write: (player: PlayerSession) => void | Promise<void>;
+    readonly read: (player: PlayerSession) => unknown;
 }[] = [
-    { field: 'vitals.food', write: (player) => player.setFood(12), read: (player) => player.getFood() },
+    {
+        field: 'vitals.food',
+        write: (player) => player.getPlayer().setFood(12),
+        read: (player) => player.getPlayer().getFood()
+    },
     {
         field: 'vitals.saturation',
-        write: (player) => player.setSaturation(2),
-        read: (player) => player.getSaturation()
+        write: (player) => player.getPlayer().setSaturation(2),
+        read: (player) => player.getPlayer().getSaturation()
     },
     {
         field: 'vitals.exhaustion',
-        write: (player) => player.addExhaustion(1.5),
-        read: (player) => player.attributes.getValue(AttributeIds.PlayerExhaustion)
+        write: (player) => player.inputs().exhaustPlayer(player.getPlayer(), 1.5),
+        read: (player) => player.getPlayer().attributes.getValue(AttributeIds.PlayerExhaustion)
     },
     {
         field: 'vitals.drowningTicks',
-        write: (player) => player['components'].set('vitals.drowningTicks', 5),
-        read: (player) => player['components'].get('vitals.drowningTicks')
+        write: (player) => player.getPlayer().getComponents().set('vitals.drowningTicks', 5),
+        read: (player) => player.getPlayer().getComponents().get('vitals.drowningTicks')
     },
     {
         field: 'vitals.fallDistance',
-        write: (player) => player['components'].set('vitals.fallDistance', 2.5),
-        read: (player) => player.getFallDistance()
+        write: (player) => player.getPlayer().getComponents().set('vitals.fallDistance', 2.5),
+        read: (player) => player.getPlayer().getFallDistance()
     },
     {
         field: 'experience.level',
-        write: (player) => player.getExperience().setLevel(3),
-        read: (player) => player.getExperience().getLevel()
+        write: (player) => player.getPlayer().getExperience().setLevel(3),
+        read: (player) => player.getPlayer().getExperience().getLevel()
     },
     {
         field: 'experience.progress',
-        write: (player) => player.getExperience().setProgress(0.5),
-        read: (player) => player.getExperience().getProgress()
+        write: (player) => player.getPlayer().getExperience().setProgress(0.5),
+        read: (player) => player.getPlayer().getExperience().getProgress()
     },
     {
         field: 'abilities.flying',
         write: (player) => {
-            player['flying'] = true;
+            player.getPlayer().restoreFlying(true);
         },
-        read: (player) => player.isFlying()
+        read: (player) => player.getPlayer().isFlying()
     },
-    { field: 'movement.sneaking', write: (player) => player.setSneaking(true), read: (player) => player.isSneaking() },
-    { field: 'movement.sleeping', write: (player) => player.setSleeping(true), read: (player) => player.isSleeping() },
+    {
+        field: 'movement.sneaking',
+        write: (player) => player.inputs().setPlayerSneaking(player.getPlayer(), true),
+        read: (player) => player.isSneaking()
+    },
+    {
+        field: 'movement.sleeping',
+        write: (player) => player.getPlayer().getComponents().set('movement.sleeping', true),
+        read: (player) => player.getPlayer().isSleeping()
+    },
     {
         field: 'respawn.spawnPoint',
-        write: (player) => player.setSpawnPoint({ x: 3, y: 64, z: -2, dimension: 'minecraft:overworld', forced: true }),
-        read: (player) => player.getSpawnPoint()
+        write: (player) =>
+            player.getPlayer().setSpawnPoint({ x: 3, y: 64, z: -2, dimension: 'minecraft:overworld', forced: true }),
+        read: (player) => player.getPlayer().getSpawnPoint()
     },
     {
         field: 'respawn.seenCredits',
-        write: (player) => player.setSeenCredits(true),
-        read: (player) => player.hasSeenCredits()
+        write: (player) => player.getPlayer().setSeenCredits(true),
+        read: (player) => player.getPlayer().hasSeenCredits()
     },
     {
         field: 'itemUse.startedAt',
-        write: (player) => player.beginItemUse(40),
-        read: (player) => player['itemUseStartedAt']
+        write: (player) => player.getPlayer().beginItemUse(40),
+        read: (player) => player.getPlayer().getComponents().get('itemUse.startedAt')
     },
     {
         field: 'vitals.air',
-        write: (player) => player['components'].set('vitals.air', 120),
-        read: (player) => player['components'].get('vitals.air')
+        write: (player) => player.getPlayer().getComponents().set('vitals.air', 120),
+        read: (player) => player.getPlayer().getComponents().get('vitals.air')
     },
     {
         field: 'vitals.breathing',
-        write: (player) => player['components'].set('vitals.breathing', false),
-        read: (player) => player['components'].get('vitals.breathing')
+        write: (player) => player.getPlayer().getComponents().set('vitals.breathing', false),
+        read: (player) => player.getPlayer().getComponents().get('vitals.breathing')
     },
     {
         field: 'movement.sprinting',
         // `setSprinting` raises a plugin event, which this world's server double has no bus for.
-        write: (player) => player['components'].set('movement.sprinting', true),
-        read: (player) => player.isSprinting()
+        write: (player) => player.getPlayer().getComponents().set('movement.sprinting', true),
+        read: (player) => player.getPlayer().isSprinting()
     },
     {
         field: 'mining.block',
         write: (player) =>
-            player.setMining({ position: new Vector3(1, 64, 2), face: 1, runtimeId: 7, progressPerTick: 900 }),
-        read: (player) => player.getMining()
+            player
+                .inputs()
+                .setPlayerMining(
+                    player.getPlayer(),
+                    playerMiningOf({ position: new Vector3(1, 64, 2), face: 1, runtimeId: 7, progressPerTick: 900 })
+                ),
+        read: (player) => blockMiningOf(player.getPlayer().getComponents().get('mining.block'))
     },
     ...(
         [
@@ -199,8 +235,8 @@ const PLAYER_COMPONENT_WRITES: readonly {
         ] as const
     ).map(([field, attribute, value]) => ({
         field,
-        write: (player: Player) => void player.setAttributeValue(attribute, value),
-        read: (player: Player) => player.attributes.getValue(attribute)
+        write: (player: PlayerSession) => void player.getPlayer().setAttributeValue(attribute, value),
+        read: (player: PlayerSession) => player.getPlayer().attributes.getValue(attribute)
     }))
 ];
 
@@ -322,7 +358,7 @@ describe('a world tick and its change log', () => {
             const { world } = worldWithStore();
             const player = playerIn(world);
             await world.addPlayer(player);
-            player.getInventory().setItem(0, entry('minecraft:bread', 3));
+            player.getPlayer().getInventory().setItem(0, entry('minecraft:bread', 3));
             return { world, player };
         };
 
@@ -356,9 +392,9 @@ describe('a world tick and its change log', () => {
             const id = player.getRuntimeId();
             world.beginChangeTick();
 
-            player.getInventory().setItem(0, entry('minecraft:bread', 2));
-            player.getInventory().getArmor().setItem(3, entry('minecraft:iron_boots'));
-            player.getInventory().setHandSlot(2);
+            player.getPlayer().getInventory().setItem(0, entry('minecraft:bread', 2));
+            player.getPlayer().getInventory().getArmor().setItem(3, entry('minecraft:iron_boots'));
+            player.getPlayer().getInventory().setHandSlot(2);
             world.sealChangeTick();
 
             expect(world.lastChangeTick()?.entries).toEqual([
@@ -390,9 +426,9 @@ describe('a world tick and its change log', () => {
             const { world, player } = await playerWithItems();
             world.beginChangeTick();
 
-            player.getInventory().setItem(0, entry('minecraft:bread', 3));
-            player.getInventory().setHandSlot(0);
-            player.getCraftingInput().clear();
+            player.getPlayer().getInventory().setItem(0, entry('minecraft:bread', 3));
+            player.getPlayer().getInventory().setHandSlot(0);
+            player.getPlayer().getCraftingInput().clear();
             world.sealChangeTick();
 
             expect(world.lastChangeTick()?.entries).toEqual([]);
@@ -403,7 +439,7 @@ describe('a world tick and its change log', () => {
         const survivalPlayer = async () => {
             const { world } = worldWithStore();
             const player = playerIn(world);
-            player.gamemode = Gametype.SURVIVAL;
+            player.getPlayer().gamemode = Gametype.SURVIVAL;
             await world.addPlayer(player);
             return { world, player };
         };
@@ -444,8 +480,8 @@ describe('a world tick and its change log', () => {
             const { world, player } = await survivalPlayer();
             world.beginChangeTick();
 
-            player.setFood(40);
-            player.setFood(25);
+            player.getPlayer().setFood(40);
+            player.getPlayer().setFood(25);
             world.sealChangeTick();
 
             // Food is already full, and its attribute keeps it at 20, so neither write changed it.

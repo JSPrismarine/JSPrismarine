@@ -58,7 +58,6 @@ const worldOf = (dimension: DimensionType, roster: string[] = [], level?: Level)
         removePlayer: async () => void roster.push('remove'),
         entityRelocated: () => {},
         broadcastMove: async () => {},
-        getPlayers: () => [],
         getSpawnPosition: async () => new Vector3(8, 70, 8),
         getChunk: async (x, z) => new Chunk(x, z, new Map(), dimension)
     });
@@ -117,14 +116,14 @@ const screenClosed = (id: number) =>
 
 describe('PlayerSession.changeWorld', () => {
     it('saves the record to the world being left, then moves the roster, before any packet', async () => {
-        const { player, roster, sent } = fakePlayer();
+        const { session, player, roster, sent } = fakePlayer();
         const target = worldOf(Dimensions.Nether, roster);
         sent.length = 0;
 
-        await player.getNetworkSession().changeWorld(arrivalIn(target));
+        await session.changeWorld(arrivalIn(target));
 
         expect(roster).toEqual(['save', 'remove', 'add']);
-        expect(player.getWorld()).toBe(target);
+        expect(session.getWorld()).toBe(target);
         expect(player.getPosition().getX()).toBe(100.5);
         expect(player.getPosition().getZ()).toBe(-20.5);
         expect(player.yaw).toBe(90);
@@ -132,13 +131,12 @@ describe('PlayerSession.changeWorld', () => {
     });
 
     it('sends the change in the order the client expects, with the arrival chunks queued', async () => {
-        const { player, sent } = fakePlayer();
-        const session = player.getNetworkSession();
+        const { session, player, sent } = fakePlayer();
         const mobId = player.getRuntimeId() + 1_000_000n;
         await session.considerEntity(
             stub<ShownActor>({
                 getRuntimeId: () => mobId,
-                getPosition: () => new Position(4, 64, 4, player.getWorld()),
+                getPosition: () => new Position(4, 64, 4, session.getWorld()),
                 getTrackingRange: () => 8,
                 spawnTo: async () => {}
             })
@@ -174,8 +172,7 @@ describe('PlayerSession.changeWorld', () => {
     });
 
     it('sends one ChangeDimension carrying the target Bedrock id and the pending screen id', async () => {
-        const { player, sent } = fakePlayer();
-        const session = player.getNetworkSession();
+        const { session, sent } = fakePlayer();
 
         await session.changeWorld(arrivalIn(worldOf(Dimensions.Nether)));
 
@@ -186,7 +183,7 @@ describe('PlayerSession.changeWorld', () => {
         expect(data?.respawn).toBe(false);
         expect(data?.position).toEqual({ x: 100.5, y: 70 + EYE_HEIGHT, z: -20.5 });
         expect(data?.loadingScreenId).toBe(session.pendingDimensionChange()?.loadingScreenId);
-        expect(session.pendingDimensionChange()?.arrival.world).toBe(player.getWorld());
+        expect(session.pendingDimensionChange()?.arrival.world).toBe(session.getWorld());
     });
 
     it('stands the player with their feet at the arrival, and sends the eyes above it to the client', async () => {
@@ -194,8 +191,7 @@ describe('PlayerSession.changeWorld', () => {
         // spawn block. The player's own position is their eyes, as the client reports it, so
         // the arrival is raised once and the packet and the closing teleport carry the same
         // eyes. Written straight in, the feet would sink 1.62 blocks into the arrival floor.
-        const { player, sent, level } = fakePlayer();
-        const session = player.getNetworkSession();
+        const { session, player, sent, level } = fakePlayer();
 
         await session.changeWorld(arrivalIn(worldOf(Dimensions.Nether, [], level)));
 
@@ -212,8 +208,7 @@ describe('PlayerSession.changeWorld', () => {
     });
 
     it('detours through another dimension only when the two worlds share a Bedrock id', async () => {
-        const { player, sent } = fakePlayer();
-        const session = player.getNetworkSession();
+        const { session, sent } = fakePlayer();
 
         await session.changeWorld(arrivalIn(worldOf(Dimensions.Overworld)));
 
@@ -231,8 +226,7 @@ describe('PlayerSession.changeWorld', () => {
     });
 
     it('refuses a portal change while the first is still pending, leaving every roster alone', async () => {
-        const { player, roster, sent, logged, level } = fakePlayer();
-        const session = player.getNetworkSession();
+        const { session, roster, sent, logged, level } = fakePlayer();
         const first = worldOf(Dimensions.Nether, roster, level);
         const second = worldOf(Dimensions.TheEnd, roster, level);
 
@@ -246,34 +240,32 @@ describe('PlayerSession.changeWorld', () => {
 
         expect(roster).toEqual(['save', 'remove', 'add']);
         expect(sent).toHaveLength(0);
-        expect(player.getWorld()).toBe(first);
+        expect(session.getWorld()).toBe(first);
         expect(session.pendingDimensionChange()).toBe(pending);
         expect(logged.at(-1)).toContain('pending');
 
         // Nothing was held, so closing the screen leaves the player where the first change put them.
         await session.completeDimensionChange(pending!.loadingScreenId);
-        expect(player.getWorld()).toBe(first);
+        expect(session.getWorld()).toBe(first);
     });
 
     it('holds a second change made while the first is pending and carries it out once it closes', async () => {
-        const { player, roster, level } = fakePlayer();
-        const session = player.getNetworkSession();
+        const { session, roster, level } = fakePlayer();
         const first = worldOf(Dimensions.Nether, roster, level);
         const second = worldOf(Dimensions.TheEnd, roster, level);
 
         await session.changeWorld(arrivalIn(first));
         await session.changeWorld(arrivalIn(second));
-        expect(player.getWorld()).toBe(first);
+        expect(session.getWorld()).toBe(first);
 
         await session.completeDimensionChange(session.pendingDimensionChange()!.loadingScreenId);
 
-        expect(player.getWorld()).toBe(second);
+        expect(session.getWorld()).toBe(second);
         expect(session.pendingDimensionChange()?.arrival.world).toBe(second);
     });
 
     it('finishes a change the client never closes, and carries out the move held behind it', async () => {
-        const { player, roster, level, logged } = fakePlayer();
-        const session = player.getNetworkSession();
+        const { session, roster, level, logged } = fakePlayer();
         const first = worldOf(Dimensions.Nether, roster, level);
         const second = worldOf(Dimensions.TheEnd, roster, level);
 
@@ -285,33 +277,32 @@ describe('PlayerSession.changeWorld', () => {
 
         await session.update(1200);
         expect(logged.some((line) => line.includes('never closed loading screen'))).toBe(true);
-        expect(player.getWorld()).toBe(second);
+        expect(session.getWorld()).toBe(second);
         expect(session.pendingDimensionChange()?.arrival.world).toBe(second);
     });
 
     it('sends a change to a custom dimension id announced to the client', async () => {
-        const { player, roster, sent } = fakePlayer();
-        const session = player.getNetworkSession();
+        const { session, roster, sent } = fakePlayer();
         const sky = dimensionTypeOf(Dimensions.Overworld.java, 'mypack:sky', FIRST_CUSTOM_DIMENSION_ID);
         sent.length = 0;
 
         await session.changeWorld(arrivalIn(worldOf(sky, roster)));
 
         expect(roster).toEqual(['save', 'remove', 'add']);
-        expect(player.getWorld().getDimension()).toMatchObject({
+        expect(session.getWorld().getDimension()).toMatchObject({
             id: 'mypack:sky',
             bedrockId: FIRST_CUSTOM_DIMENSION_ID
         });
         expect(sent.find((packet) => packet instanceof ChangeDimensionPacket)?.getPacketData()?.dimension).toBe(
             FIRST_CUSTOM_DIMENSION_ID
         );
-        expect(session.pendingDimensionChange()?.arrival.world).toBe(player.getWorld());
+        expect(session.pendingDimensionChange()?.arrival.world).toBe(session.getWorld());
     });
 
     it('passes a respawn through to the client', async () => {
-        const { player, sent } = fakePlayer();
+        const { session, player, sent } = fakePlayer();
 
-        await player.getNetworkSession().changeWorld(arrivalIn(worldOf(Dimensions.Nether), { respawn: true }));
+        await session.changeWorld(arrivalIn(worldOf(Dimensions.Nether), { respawn: true }));
 
         const change = sent.find((p) => p instanceof ChangeDimensionPacket);
         expect(change?.getPacketData()?.respawn).toBe(true);
@@ -321,8 +312,7 @@ describe('PlayerSession.changeWorld', () => {
     });
 
     it('sends the arrival chunks with the target dimension id', async () => {
-        const { player, sent } = fakePlayer();
-        const session = player.getNetworkSession();
+        const { session, sent } = fakePlayer();
 
         await session.changeWorld(arrivalIn(worldOf(Dimensions.Nether)));
         await session.deliver(6, -2);
@@ -334,7 +324,7 @@ describe('PlayerSession.changeWorld', () => {
     });
 
     /** Delivers everything queued, the way the scheduler would, and reports how many columns went. */
-    const drain = async (session: ReturnType<ReturnType<typeof fakePlayer>['player']['getNetworkSession']>) => {
+    const drain = async (session: ReturnType<typeof fakePlayer>['session']) => {
         let delivered = 0;
         for (let next = session.sender.next(); next !== null; next = session.sender.next()) {
             await session.deliver(next.x, next.z);
@@ -345,8 +335,7 @@ describe('PlayerSession.changeWorld', () => {
     };
 
     it('holds the arrival columns until the client opens the change screen, then sends each once', async () => {
-        const { player, server, sent } = fakePlayer();
-        const session = player.getNetworkSession();
+        const { session, server, sent } = fakePlayer();
         const screens = new ServerboundLoadingScreenHandler();
         const levelChunks = () => sent.filter((p) => p instanceof LevelChunkPacket);
 
@@ -368,8 +357,7 @@ describe('PlayerSession.changeWorld', () => {
     });
 
     it('sends the held columns after forty ticks to a client that never opens the screen', async () => {
-        const { player, sent } = fakePlayer();
-        const session = player.getNetworkSession();
+        const { session, sent } = fakePlayer();
         const levelChunks = () => sent.filter((p) => p instanceof LevelChunkPacket).length;
 
         await session.changeWorld(arrivalIn(worldOf(Dimensions.Nether)));
@@ -383,8 +371,7 @@ describe('PlayerSession.changeWorld', () => {
     });
 
     it('drops the client input until the screen it was given closes, and ignores another id', async () => {
-        const { player, server, sent, logged, level } = fakePlayer();
-        const session = player.getNetworkSession();
+        const { session, player, server, sent, logged, level } = fakePlayer();
         const inputs = new PlayerAuthInputHandler();
         const screens = new ServerboundLoadingScreenHandler();
 
@@ -417,8 +404,7 @@ describe('PlayerSession.changeWorld', () => {
     });
 
     it('finishes the change with a teleport to the arrival, the attributes, the inventory and the spawn', async () => {
-        const { player, sent, level } = fakePlayer();
-        const session = player.getNetworkSession();
+        const { session, sent, level } = fakePlayer();
 
         await session.changeWorld(arrivalIn(worldOf(Dimensions.Nether, [], level)));
         const id = session.pendingDimensionChange()!.loadingScreenId;
@@ -455,8 +441,7 @@ describe('PlayerSession.changeWorld', () => {
     });
 
     it('rolls the credits once and holds the arrival instead of changing world', async () => {
-        const { player, sent, logged } = fakePlayer();
-        const session = player.getNetworkSession();
+        const { session, player, sent, logged } = fakePlayer();
         const arrival = arrivalIn(worldOf(Dimensions.Nether));
         sent.length = 0;
 
@@ -478,8 +463,7 @@ describe('PlayerSession.changeWorld', () => {
     });
 
     it('drops the client input while the credits roll, as a pending change does', async () => {
-        const { player, server } = fakePlayer();
-        const session = player.getNetworkSession();
+        const { session, player, server } = fakePlayer();
         const inputs = new PlayerAuthInputHandler();
         await session.startCredits(arrivalIn(worldOf(Dimensions.Nether)));
 
@@ -489,8 +473,7 @@ describe('PlayerSession.changeWorld', () => {
     });
 
     it('finishes the held arrival as a respawn change when the credits are over', async () => {
-        const { player, sent } = fakePlayer();
-        const session = player.getNetworkSession();
+        const { session, sent } = fakePlayer();
         await session.startCredits(arrivalIn(worldOf(Dimensions.Nether)));
         sent.length = 0;
 
@@ -517,8 +500,7 @@ describe('PlayerSession.changeWorld', () => {
     });
 
     it('does not hold later moves behind a death respawn, which the client closes no screen for', async () => {
-        const { player } = fakePlayer();
-        const session = player.getNetworkSession();
+        const { session } = fakePlayer();
 
         await session.changeWorld({
             ...arrivalIn(worldOf(Dimensions.Nether)),
@@ -528,54 +510,50 @@ describe('PlayerSession.changeWorld', () => {
         expect(session.pendingDimensionChange()).toBeUndefined();
 
         await session.changeWorld(arrivalIn(worldOf(Dimensions.Overworld)));
-        expect(session.pendingDimensionChange()?.arrival.world).toBe(player.getWorld());
+        expect(session.pendingDimensionChange()?.arrival.world).toBe(session.getWorld());
     });
 
     it('holds a change made while the player is dead, sending the client nothing', async () => {
-        const { player, sent, roster, level, logged } = fakePlayer();
-        const session = player.getNetworkSession();
-        const home = player.getWorld();
-        await player.setHealth(0);
+        const { session, sent, roster, level, logged } = fakePlayer();
+        const home = session.getWorld();
+        await session.getActor()?.setHealth(0);
         sent.length = 0;
 
         await session.changeWorld(arrivalIn(worldOf(Dimensions.Nether, roster, level)));
 
-        expect(player.getWorld()).toBe(home);
+        expect(session.getWorld()).toBe(home);
         expect(session.pendingDimensionChange()).toBeUndefined();
         expect(sent.some((packet) => packet instanceof ChangeDimensionPacket)).toBe(false);
         expect(logged.some((line) => line.includes('they are dead'))).toBe(true);
     });
 
     it('carries out the change held over a death once the player respawns', async () => {
-        const { player, sent, roster, level } = fakePlayer();
-        const session = player.getNetworkSession();
+        const { session, player, sent, roster, level } = fakePlayer();
         const nether = worldOf(Dimensions.Nether, roster, level);
-        await player.setHealth(0);
+        await session.getActor()?.setHealth(0);
         await session.changeWorld(arrivalIn(nether));
 
-        await player.respawn();
+        await session.respawn();
 
-        expect(player.isAlive()).toBe(true);
-        expect(player.getWorld()).toBe(nether);
+        expect(player.getHealth() > 0).toBe(true);
+        expect(session.getWorld()).toBe(nether);
         expect(session.pendingDimensionChange()?.arrival.world).toBe(nether);
         expect(sent.filter((packet) => packet instanceof ChangeDimensionPacket)).toHaveLength(1);
     });
 
     it('still sends the respawn change of a dead player', async () => {
-        const { player, sent } = fakePlayer();
-        const session = player.getNetworkSession();
+        const { session, sent } = fakePlayer();
         const nether = worldOf(Dimensions.Nether);
-        await player.setHealth(0);
+        await session.getActor()?.setHealth(0);
 
         await session.changeWorld({ ...arrivalIn(nether), respawn: true, closesLoadingScreen: false });
 
-        expect(player.getWorld()).toBe(nether);
+        expect(session.getWorld()).toBe(nether);
         expect(sent.some((packet) => packet instanceof ChangeDimensionPacket)).toBe(true);
     });
 
     it('does not record a batch that was on the wire during the change as loaded', async () => {
-        const { player, connection, sent } = fakePlayer();
-        const session = player.getNetworkSession();
+        const { session, connection, sent } = fakePlayer();
         let release = () => {};
         connection.sendPacketsAsync = async (packets) => {
             sent.push(...packets);
@@ -595,8 +573,7 @@ describe('PlayerSession.changeWorld', () => {
     });
 
     it("sends none of the old world's chunks still in the batch once the change is under way", async () => {
-        const { player, connection, sent } = fakePlayer();
-        const session = player.getNetworkSession();
+        const { session, connection, sent } = fakePlayer();
         let release = () => {};
         let held = false;
         connection.sendPacketsAsync = async (packets) => {

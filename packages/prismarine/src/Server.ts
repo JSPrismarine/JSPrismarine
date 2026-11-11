@@ -595,8 +595,8 @@ export default class Server extends EventEmitter {
             // client told the server shut down shows that code instead.
             await Promise.all(
                 this.sessionManager
-                    .getAllPlayers()
-                    .map((player) => player.kick('Server closed.', DisconnectReason.SHUTDOWN))
+                    .getSessions()
+                    .map((session) => session.kick('Server closed.', DisconnectReason.SHUTDOWN))
             );
 
             // Disable all managers.
@@ -641,13 +641,13 @@ export default class Server extends EventEmitter {
      * @param dataPacket - The packet to send.
      */
     public async broadcastPacket<T extends NetworkPacket<unknown>>(dataPacket: T): Promise<void> {
-        const audience = this.sessionManager.getAllPlayers();
+        const audience = this.sessionManager.getSessions();
         if (audience.length === 0) return;
 
         // Compressed once per protocol codec rather than once per player: within a codec the
         // bytes are identical, across codecs a changed packet layout is not.
         broadcastSharedBatches(
-            audience.map((onlinePlayer) => onlinePlayer.getNetworkSession().getConnection()),
+            audience.map((session) => session.getConnection()),
             dataPacket,
             this.config.getPacketCompressionLevel(),
             (error) => this.logger.error(error)

@@ -1,4 +1,4 @@
-import type { PlayerEventSubject } from './PlayerEvent';
+import type PlayerSession from '../../network/PlayerSession';
 import type { Arrival } from '../../network/PlayerSession';
 import type { World } from '../../world/World';
 import PlayerEvent from './PlayerEvent';
@@ -16,8 +16,8 @@ export default class PlayerChangeDimensionEvent extends PlayerEvent {
     private readonly to: World;
     private readonly arrival: Arrival;
 
-    public constructor(subject: PlayerEventSubject, from: World, to: World, arrival: Arrival) {
-        super(subject);
+    public constructor(session: PlayerSession, from: World, to: World, arrival: Arrival) {
+        super(session);
         this.from = from;
         this.to = to;
         this.arrival = arrival;

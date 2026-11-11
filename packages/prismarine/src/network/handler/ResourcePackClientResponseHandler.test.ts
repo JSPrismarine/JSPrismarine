@@ -102,12 +102,10 @@ const harness = ({
         getName: () => 'runner',
         getUUID: () => UUID.fromRandom(),
         getRuntimeId: () => 1n,
-        getWorld: () => world,
         getPosition: () => new Position(0, 64, 0, world),
         gamemode: Gametype.SURVIVAL,
         pitch: 0,
         yaw: 0,
-        getJoinSpawn: () => joinSpawn,
         getSpawnPoint: () => spawnPoint
     });
 
@@ -130,7 +128,13 @@ const harness = ({
         identity: identityNamed('runner'),
         getPlayer: () => player,
         getWorld: () => world,
+        // What `StartGame` reads of the joining player, through its session.
         getJoinSpawn: () => joinSpawn,
+        getRuntimeId: () => 1n,
+        getPosition: () => new Position(0, 64, 0, world),
+        gamemode: Gametype.SURVIVAL,
+        pitch: 0,
+        yaw: 0,
         announceSettings: record('Settings'),
         kick,
         getConnection: () => connection,

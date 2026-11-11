@@ -1,6 +1,5 @@
 import type { Vector3 } from '@jsprismarine/math';
 import type PlayerSession from '../../network/PlayerSession';
-import type { PlayerEventSubject } from './PlayerEvent';
 import { PositionMode } from '@jsprismarine/protocol';
 import PlayerEvent from './PlayerEvent';
 
@@ -13,19 +12,14 @@ export default class PlayerMoveEvent extends PlayerEvent {
     private readonly mode: PositionMode;
 
     /**
-     * @param subject - The player that moves, as its session, or the player itself, which is
-     *   where the move starts from.
+     * @param session - The session of the player the event is about.
      * @param to - Where it moves to.
      * @param mode - How the client is told.
      */
-    public constructor(
-        subject: PlayerSession | (PlayerEventSubject & { getPosition(): Vector3 }),
-        to: Vector3,
-        mode: PositionMode = PositionMode.Normal
-    ) {
-        super(subject);
+    public constructor(session: PlayerSession, to: Vector3, mode: PositionMode = PositionMode.Normal) {
+        super(session);
 
-        this.from = ('getPosition' in subject ? subject : subject.getPlayer()).getPosition();
+        this.from = session.getViewPosition();
         this.to = to;
         this.mode = mode;
     }

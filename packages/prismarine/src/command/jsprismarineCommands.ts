@@ -150,8 +150,7 @@ const ban = async (server: Server, target: string, reason?: string): Promise<str
         .getSessionManager()
         .getSessions()
         .find(({ identity }) => identity.name === target);
-    // Read before the kick, which forgets the session's player.
-    const name = session ? session.getPlayer().getFormattedUsername() : target;
+    const name = session ? session.getFormattedUsername() : target;
     if (session) {
         try {
             await session.kick(

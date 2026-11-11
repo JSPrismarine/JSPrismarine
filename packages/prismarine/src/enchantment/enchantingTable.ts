@@ -29,14 +29,13 @@ import { bedrockEnchantType } from './bedrockIds';
 import { bookshelfPowerAround } from './bookshelves';
 import type { BlockPosition, BookshelfWorld } from './bookshelves';
 import { randomOf } from '../utils/Random';
-import type { KeyedPlayerSource, PlayerKeySource } from '../keyedPlayer';
-import { keyedPlayerOf, playerKeyFrom } from '../keyedPlayer';
+import type { KeyedPlayer, PlayerKeySource } from '../keyedPlayer';
+import { playerKeyFrom } from '../keyedPlayer';
 import type Server from '../Server';
+import type PlayerSession from '../network/PlayerSession';
 
 /** Where the three rows go: the player's session. */
-interface EnchantOptionsRecipient {
-    getNetworkSession(): { send(packet: PlayerEnchantOptionsPacket): Promise<void> };
-}
+type EnchantOptionsRecipient = Pick<PlayerSession, 'send'>;
 
 /**
  * What the table reads of the player at it: the session the rows go to, the world its bookshelves
@@ -78,8 +77,7 @@ const freshSeed = (server: Server): number => {
  * @param stored - The seed off the player data record, used the first time
  *   this player is asked.
  */
-export const enchantmentSeedOf = (player: KeyedPlayerSource, stored?: number): number => {
-    const { key, server } = keyedPlayerOf(player);
+export const enchantmentSeedOf = ({ key, server }: KeyedPlayer, stored?: number): number => {
     const held = seeds.get(key);
     if (held !== undefined) return held;
 
@@ -89,8 +87,7 @@ export const enchantmentSeedOf = (player: KeyedPlayerSource, stored?: number): n
 };
 
 /** Draws a new seed, which is what Java does the moment something is enchanted. */
-export const rerollEnchantmentSeed = (player: KeyedPlayerSource): number => {
-    const { key, server } = keyedPlayerOf(player);
+export const rerollEnchantmentSeed = ({ key, server }: KeyedPlayer): number => {
     const seed = freshSeed(server);
     seeds.set(key, seed);
     return seed;
@@ -205,7 +202,7 @@ export const sendEnchantOptions = async (
     options: readonly ItemEnchantOption[]
 ): Promise<void> => {
     const packet = new PlayerEnchantOptionsPacket({ options: [...options] });
-    await player.getNetworkSession().send(packet);
+    await player.send(packet);
 };
 
 /**
@@ -231,7 +228,7 @@ export const showEnchantingTable = async (
     }
 
     const power = await bookshelfPowerAround(player.getWorld(), at);
-    const rows = enchantingRows(registry, stack, enchantmentSeedOf(player), power);
+    const rows = enchantingRows(registry, stack, enchantmentSeedOf(player.keyed()), power);
     await sendEnchantOptions(player, enchantOptionsOf(registry, rows));
 };
 
@@ -272,7 +269,7 @@ export const takeEnchantingRow = (
     for (const pick of chosen.picks) levels.set(pick.enchantment, pick.level);
 
     const enchanted = stack.withEnchantments(levels);
-    rerollEnchantmentSeed(player);
+    rerollEnchantmentSeed(player.keyed());
     advancementEnchantedItem(player, enchanted, chosen.cost);
 
     return { stack: enchanted, cost: chosen.cost };

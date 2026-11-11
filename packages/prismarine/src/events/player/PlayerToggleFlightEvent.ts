@@ -1,5 +1,5 @@
 import PlayerEvent from './PlayerEvent';
-import type { PlayerEventSubject } from './PlayerEvent';
+import type PlayerSession from '../../network/PlayerSession';
 
 /**
  * Fired as the player toggle flying
@@ -7,8 +7,8 @@ import type { PlayerEventSubject } from './PlayerEvent';
 export default class PlayerToggleFlightEvent extends PlayerEvent {
     private readonly flying: boolean;
 
-    public constructor(subject: PlayerEventSubject, flying: boolean) {
-        super(subject);
+    public constructor(session: PlayerSession, flying: boolean) {
+        super(session);
         this.flying = flying;
     }
 

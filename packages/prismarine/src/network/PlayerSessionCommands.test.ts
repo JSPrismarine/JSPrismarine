@@ -57,19 +57,17 @@ const commandsSentTo = async ({
     const commandManager = new CommandManager(server);
     await commandManager.enable();
 
-    const player = stub<SessionPlayer>({
-        getName: () => 'Steve',
-        getServer: () => server,
-        isOp: () => op,
-        getPermissions: () => permissions
-    });
+    const player = stub<SessionPlayer>({ getName: () => 'Steve' });
     const connection = stub<ClientConnection>({
         sendDataPacket: async (packet) => {
             sent.push(packet);
         }
     });
 
-    const session = sessionFor(server, connection, player, { identity: identityNamed('Steve') });
+    const session = Object.assign(sessionFor(server, connection, player, { identity: identityNamed('Steve') }), {
+        isOp: () => op,
+        getPermissions: () => permissions
+    });
     sessions.push(session);
 
     await session.sendAvailableCommands();
@@ -171,18 +169,16 @@ describe('PlayerSession', () => {
             const commandManager = new CommandManager(server);
             await commandManager.enable();
             const cachedCommands = commandManager.getVanillaCommandList();
-            const player = stub<SessionPlayer>({
-                getName: () => 'Steve',
-                getServer: () => server,
-                isOp: () => false,
-                getPermissions: () => permissions
-            });
+            const player = stub<SessionPlayer>({ getName: () => 'Steve' });
             const connection = stub<ClientConnection>({
                 sendDataPacket: async (packet) => {
                     sent.push(packet);
                 }
             });
-            const session = sessionFor(server, connection, player, { identity: identityNamed('Steve') });
+            const session = Object.assign(
+                sessionFor(server, connection, player, { identity: identityNamed('Steve') }),
+                { isOp: () => false, getPermissions: () => permissions }
+            );
             sessions.push(session);
 
             await session.sendAvailableCommands();

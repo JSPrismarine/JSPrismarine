@@ -377,7 +377,7 @@ export const advancementChangedDimension = (player: AdvancementPlayer, from: str
  */
 const listeningPlayer = (entity: WorldActor, trigger: TriggerName): AdvancementPlayer | undefined =>
     entity.getType() === 'minecraft:player' && listening(entity, trigger)
-        ? entity.getWorld().viewerOf(entity.getRuntimeId())?.getPlayer()
+        ? entity.getWorld().viewerOf(entity.getRuntimeId())
         : undefined;
 
 /**

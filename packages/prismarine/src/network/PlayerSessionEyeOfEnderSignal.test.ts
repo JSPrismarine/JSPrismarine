@@ -21,12 +21,11 @@ import { NetworkWorldReplicator } from './NetworkWorldReplicator';
  */
 const thrownEye = () => {
     const fake = fakePlayer();
-    const { player, world, server, sent } = fake;
+    const { session, player, world, server, sent } = fake;
     const replicator = new NetworkWorldReplicator(world, server);
     Object.assign(world, {
-        getPlayers: () => [player],
-        getViewers: () => [player.getNetworkSession()],
-        viewerOf: (runtimeId: bigint) => (runtimeId === player.getRuntimeId() ? player.getNetworkSession() : undefined),
+        getViewers: () => [session],
+        viewerOf: (runtimeId: bigint) => (runtimeId === player.getRuntimeId() ? session : undefined),
         entityRelocated: () => {},
         broadcastMove: async (actor: ShownActor, teleport?: boolean) => replicator.entityMoved(actor, teleport),
         showActor: async () => {},
@@ -36,7 +35,7 @@ const thrownEye = () => {
     });
     // The fake player joins with no chunks requested, and a client that sees no chunks is
     // shown no entities.
-    player.getNetworkSession()['viewDistance'] = 8;
+    session['viewDistance'] = 8;
 
     // Ids clear of the fake players', which the server's counter draws from one; a client is
     // never shown an entity with its own player's id.
@@ -57,7 +56,7 @@ const thrownEye = () => {
     const actor = actors.actorOf(eye.id);
     if (actor === undefined) throw new Error('the eye has no store actor');
 
-    return { player, sent, replicator, fixture, actors, eye, actor };
+    return { session, player, sent, replicator, fixture, actors, eye, actor };
 };
 
 /** Runs ticks the way the world does: the store's tick, the actors' sync, then one movement flush. */
@@ -73,10 +72,10 @@ const tick = async ({ fixture, actors, replicator }: ReturnType<typeof thrownEye
 
 describe('PlayerSession and an eye of ender signal', () => {
     it('shows the client the eye as an eye_of_ender_signal actor where it was thrown', async () => {
-        const { player, sent, actor } = thrownEye();
+        const { session, sent, actor } = thrownEye();
         sent.length = 0;
 
-        await player.getNetworkSession().considerEntity(actor);
+        await session.considerEntity(actor);
 
         const added = sent.filter((p) => p instanceof AddActorPacket);
         expect(added).toHaveLength(1);
@@ -85,13 +84,13 @@ describe('PlayerSession and an eye of ender signal', () => {
         expect(added[0]?.position.getX()).toBe(0.5);
         expect(added[0]?.position.getY()).toBe(64.9);
         expect(added[0]?.position.getZ()).toBe(0.5);
-        expect(player.getNetworkSession().tracks(actor.getRuntimeId())).toBe(true);
+        expect(session.tracks(actor.getRuntimeId())).toBe(true);
     });
 
     it('moves the eye on the client once it sets off, to where the store has it', async () => {
         const thrown = thrownEye();
-        const { player, sent, eye, actor } = thrown;
-        await player.getNetworkSession().considerEntity(actor);
+        const { session, sent, eye, actor } = thrown;
+        await session.considerEntity(actor);
         sent.length = 0;
 
         await tick(thrown, 3);
@@ -110,8 +109,8 @@ describe('PlayerSession and an eye of ender signal', () => {
     });
 
     it('sends a named sound with the volume and pitch it was played at', async () => {
-        const { player, sent, replicator, actor } = thrownEye();
-        await player.getNetworkSession().considerEntity(actor);
+        const { session, sent, replicator, actor } = thrownEye();
+        await session.considerEntity(actor);
         sent.length = 0;
 
         // The thrown eye's bow: half volume and a low pitch, which is what tells a player an
@@ -127,8 +126,8 @@ describe('PlayerSession and an eye of ender signal', () => {
 
     it('leaves the world with its break sound after eighty ticks', async () => {
         const thrown = thrownEye();
-        const { player, sent, fixture, actors, eye, actor } = thrown;
-        await player.getNetworkSession().considerEntity(actor);
+        const { session, sent, fixture, actors, eye, actor } = thrown;
+        await session.considerEntity(actor);
         sent.length = 0;
 
         await tick(thrown, 81);
@@ -138,7 +137,7 @@ describe('PlayerSession and an eye of ender signal', () => {
         await Promise.resolve();
 
         expect(sent.filter((p) => p instanceof RemoveActorPacket)).toHaveLength(1);
-        expect(player.getNetworkSession().tracks(actor.getRuntimeId())).toBe(false);
+        expect(session.tracks(actor.getRuntimeId())).toBe(false);
         // Named, not an actor `DEATH` sound: the client's sound tables have no entry for the
         // eye, so `DEATH` fell back to the player's hurt sound.
         expect(fixture.world.sounds).toEqual(['block.itemframe.break']);

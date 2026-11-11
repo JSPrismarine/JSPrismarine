@@ -19,7 +19,7 @@ import type PlayerSession from '../network/PlayerSession';
  */
 export const applyInput = async (session: PlayerSession, apply: () => Promise<void> | void): Promise<void> => {
     // Read through optional calls: a dispatcher test hands handlers a partial session.
-    const world = session.getPlayer?.()?.getWorld?.();
+    const world = session.getWorld?.();
     if (world === undefined) return apply();
     return world.runInput(async () => apply());
 };

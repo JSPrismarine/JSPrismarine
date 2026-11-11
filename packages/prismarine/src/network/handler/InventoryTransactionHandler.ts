@@ -30,7 +30,6 @@ import {
 import { MAX_BLOCK_TARGET_DISTANCE } from './BlockTarget';
 import { EyeOfEnderEcho } from './eyeOfEnderEcho';
 import type PacketHandler from './PacketHandler';
-import { playerInputsOf, storePlayerOf } from './playerPorts';
 
 /**
  * What sprinting is worth in knockback levels.
@@ -259,7 +258,7 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
         interactionRotation?: InteractionRotation
     ): Promise<void> {
         if (!connection.isConnected()) return;
-        const player = storePlayerOf(connection);
+        const player = connection.getPlayer();
         if (player.gamemode === Gametype.SPECTATOR) return; // Spectators pass through the world without touching it.
 
         const packetData = packet.getPacketData();
@@ -324,7 +323,7 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
         server: Server,
         session: PlayerSession
     ): Promise<void> {
-        const player = storePlayerOf(session);
+        const player = session.getPlayer();
         if (transaction.transactionType === TransactionType.NORMAL && transaction.inventoryActions.length === 2) {
             const container = transaction.inventoryActions.find(
                 (action) => action.sourceType === InventorySourceType.CONTAINER
@@ -425,8 +424,8 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
         ) {
             // Entity interactions and targeted item uses both enter the content path. The latter
             // includes spawn eggs; the item's `onUse` reads the clicked entity through `targetOf`.
-            // The legacy player, because the content rules take one.
-            contentUseOnEntity(server, session.getPlayer(), data);
+            // The content rules take the session, which answers for the player and its client.
+            contentUseOnEntity(server, session, data);
             return;
         }
 
@@ -444,9 +443,9 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
         }
 
         // A player whose entity is in no store yet cannot reach anything.
-        const attacker = session.getPlayer().getActor();
+        const attacker = session.getActor();
         if (attacker === undefined) return;
-        const player = storePlayerOf(session);
+        const player = session.getPlayer();
         const components = player.getComponents();
         const landed = await meleeAttack(attacker, target, {
             reach: player.gamemode === Gametype.CREATIVE ? CREATIVE_REACH : SURVIVAL_REACH,
@@ -464,7 +463,7 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
 
         // Only a swing that connected costs anything. A miss is free, which is why the hunger is
         // charged here rather than before the attempt.
-        if (landed) playerInputsOf(session).exhaustPlayer(player, EXHAUSTION.attacking);
+        if (landed) session.inputs().exhaustPlayer(player, EXHAUSTION.attacking);
     }
 
     /**
@@ -474,11 +473,11 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
      * itself once the item's `consume_seconds` have passed.
      */
     private startMeal(server: Server, session: PlayerSession): void {
-        const player = storePlayerOf(session);
+        const player = session.getPlayer();
         const ticks = consumeTicksOf(server.getContent(), player);
         if (ticks === undefined) return;
 
-        playerInputsOf(session).beginPlayerMeal(player, ticks);
+        session.inputs().beginPlayerMeal(player, ticks);
     }
 
     /**
@@ -494,16 +493,16 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
      * what is in a player's hand is worse than one that has not got round to the accounting.
      */
     private async handleReleaseItem(data: ReleaseItemData, server: Server, session: PlayerSession): Promise<void> {
-        const player = storePlayerOf(session);
+        const player = session.getPlayer();
         // Letting go of the button ends a meal that has not finished.
-        playerInputsOf(session).cancelPlayerMeal(player);
-        // The draw's clock, which `Player` keeps.
-        const drawn = session.getPlayer().takeItemUseTicks(server.getTick());
+        session.inputs().cancelPlayerMeal(player);
+        // The draw's clock, which the store player keeps.
+        const drawn = player.takeItemUseTicks(server.getTick());
 
         if (data.actionType !== ItemReleaseActionType.RELEASE) return;
         if (player.getInventory().getItemInHand().getName() !== BOW) return;
 
-        const shooter = session.getPlayer().getActor();
+        const shooter = session.getActor();
         if (shooter !== undefined) await loose(shooter, drawn);
     }
 
@@ -522,8 +521,8 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
         session: PlayerSession,
         interactionRotation?: InteractionRotation
     ): Promise<void> {
-        // The content rules and the block break take the legacy player, `session.getPlayer()`.
-        const player = storePlayerOf(session);
+        // The content rules take the session, and the block break the store player.
+        const player = session.getPlayer();
         switch (data.actionType) {
             case ItemUseActionType.PLACE:
             case ItemUseActionType.DESTROY: {
@@ -545,7 +544,7 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
                     if (player.getInventory().getItemInHand().getName() === ENDER_EYE) {
                         eyeEcho.usedOnBlock(session.runtimeId, server.getTick());
                     }
-                    contentUse(server, session.getPlayer(), data, interactionRotation);
+                    contentUse(server, session, data, interactionRotation);
                     return;
                 }
 
@@ -587,7 +586,7 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
 
                 // The item's own `onUse`, which is how an eye of ender or a snowball leaves the
                 // hand. Eating is not here: it ends in a release the content has no path for yet.
-                if (contentUseInAir(server, session.getPlayer()) === 'handled') this.startMeal(server, session);
+                if (contentUseInAir(server, session) === 'handled') this.startMeal(server, session);
                 return;
 
             // A swing at nothing. Hitting an entity arrives as `USE_ITEM_ON_ENTITY` instead,

@@ -31,8 +31,7 @@ const trackingSession = ({ viewDistance = 10, spawnFails = false, reconciling = 
 
     const player: any = {
         getRuntimeId: () => 1n,
-        getPosition: () => ({ getX: () => 8, getY: () => 64, getZ: () => 8 }),
-        isOnline: () => true
+        getPosition: () => ({ getX: () => 8, getY: () => 64, getZ: () => 8 })
     };
 
     const session: PlayerSession = Object.assign(Object.create(PlayerSession.prototype), {
@@ -40,7 +39,9 @@ const trackingSession = ({ viewDistance = 10, spawnFails = false, reconciling = 
         ...sessionPlayerFields(player, 1n),
         entityTracker: new EntityTracker({ hysteresis: 2, enabled: true }),
         viewDistance,
-        reconciling
+        reconciling,
+        // A player that finished joining.
+        joined: true
     });
 
     /** An entity that records the spawn instead of building a packet for it. */

@@ -54,19 +54,19 @@ import type { EnchantingPlayer } from '../enchantment/enchantingTable';
 import type { ContainerViewer } from '../inventory/containerStore';
 
 /**
- * What a click reads and changes of the player who made it: the hand and the inventory, the world
- * a placement and a hook act on, the body a placement must not overlap, the view, the spawn point a
- * bed moves, and the session that is told the outcome.
+ * What a click reads and changes of the player who made it, through its session: the hand and the
+ * inventory, the world a placement and a hook act on, the body a placement must not overlap, the
+ * view, the spawn point a bed moves, and the sends that tell it the outcome.
  */
-export interface InteractingPlayer extends EnchantingPlayer, ContainerViewer {
+export interface InteractingPlayer
+    extends
+        EnchantingPlayer,
+        ContainerViewer,
+        Pick<PlayerSession, 'send' | 'sendInventory' | 'sendMessage' | 'getOpenBlockContainer' | 'openBlockContainer'> {
     getRuntimeId(): bigint;
     getServer(): Server;
     getWorld(): World;
     getInventory(): HumanInventory;
-    getNetworkSession(): Pick<
-        PlayerSession,
-        'send' | 'sendInventory' | 'sendMessage' | 'getOpenBlockContainer' | 'openBlockContainer'
-    >;
     getFeetY(): number;
     getBox(): EntityBox;
     readonly yaw: number;
@@ -371,10 +371,7 @@ const putBackStack = (player: InteractingPlayer, stack: ItemStack | undefined): 
 
 /** Sends a player their inventory, without holding up the click that changed it. */
 const resendInventory = (player: InteractingPlayer): void => {
-    void player
-        .getNetworkSession()
-        .sendInventory()
-        .catch((error: unknown) => player.getServer().getLogger().error(error));
+    void player.sendInventory().catch((error: unknown) => player.getServer().getLogger().error(error));
 };
 
 /**
@@ -434,7 +431,7 @@ const openContainer = (interaction: BlockInteraction, block: HookBlock): boolean
     // Read through the same module the request path writes through, so the slots a player is
     // shown and the slots they can then move a stack through are one list in one order.
     const contents = container.slots === 0 ? [] : openContainerContents(player, interaction.position, block.identifier);
-    const session = player.getNetworkSession();
+    const session = player;
     // Repeated interaction packets can arrive before the client closes this container.
     const current = session.getOpenBlockContainer();
     const alreadyOpen =
@@ -504,7 +501,6 @@ const claimRespawnBlock = (interaction: BlockInteraction, block: HookBlock): boo
     if (!moved) return true;
 
     void player
-        .getNetworkSession()
         .sendMessage({ message: 'tile.bed.respawnSet', type: TextPacketType.Translate, needsTranslation: true })
         .catch((error: unknown) => player.getServer().getLogger().error(error));
 

@@ -7,13 +7,11 @@ import { Logger } from '@jsprismarine/logger';
 import pkg from '../../package.json' with { type: 'json' };
 import Console from '../Console';
 import { parseConfigDocument } from '../config/ConfigDocument';
-import type Player from '../Player';
 import type SessionManager from '../SessionManager';
 import type PlayerToggleOperatorEvent from '../events/player/PlayerToggleOperatorEvent';
 import type PlayerSession from '../network/PlayerSession';
 import { fakePlayer } from '../testing/fakePlayer.test.helper';
 import { stub } from '../testing/stub.test.helper';
-import UUID from '@jsprismarine/protocol/wire/structures/UUID';
 import { canExecute, PermissionManager } from './PermissionManager';
 import type { PermissionManagerServer } from './PermissionManager';
 import { identityNamed } from '../testing/sessionIdentity.test.helper';
@@ -161,24 +159,22 @@ describe('permission', () => {
             await manager.enable();
 
             let grants: string[] = [];
-            const owner = stub<Player>({
+            const owner = stub<PlayerSession>({
                 getName: () => 'Filfat',
-                getUUID: () => UUID.fromString(FILFAT_UUID),
                 isOp: () => false,
                 getPermissions: () => grants
             });
-            grants = await manager.getPermissions(owner);
+            grants = await manager.getPermissions({ uuid: FILFAT_UUID });
 
             expect(manager.can(owner).execute('minecraft.command.op')).toBe(true);
 
             let otherGrants: string[] = [];
-            const sameNameWithAnotherUuid = stub<Player>({
+            const sameNameWithAnotherUuid = stub<PlayerSession>({
                 getName: () => 'filfat',
-                getUUID: () => UUID.fromString('00000000-0000-0000-0000-000000000001'),
                 isOp: () => false,
                 getPermissions: () => otherGrants
             });
-            otherGrants = await manager.getPermissions(sameNameWithAnotherUuid);
+            otherGrants = await manager.getPermissions({ uuid: '00000000-0000-0000-0000-000000000001' });
 
             expect(manager.can(sameNameWithAnotherUuid).execute('minecraft.command.op')).toBe(false);
         });
@@ -191,8 +187,7 @@ describe('permission', () => {
 
             const other = identityNamed('Other', '00000000-0000-0000-0000-000000000004');
             manager.setPermissions(other, ['namespace.scope.action']);
-            const player = stub<Player>({ getUUID: () => UUID.fromString(other.uuid) });
-            expect(await manager.getPermissions(player)).toContain('namespace.scope.action');
+            expect(await manager.getPermissions({ uuid: other.uuid })).toContain('namespace.scope.action');
         });
 
         it('loads commented permission and operator entries by UUID', async () => {
@@ -224,13 +219,12 @@ describe('permission', () => {
 
             const playerWithPermission = async (name: string, uuid: string) => {
                 let grants: string[] = [];
-                const player = stub<Player>({
+                const player = stub<PlayerSession>({
                     getName: () => name,
-                    getUUID: () => UUID.fromString(uuid),
                     isOp: () => manager.isOp(uuid),
                     getPermissions: () => grants
                 });
-                grants = await manager.getPermissions(player);
+                grants = await manager.getPermissions({ uuid });
                 return player;
             };
             const renamedPlayer = await playerWithPermission('renamed-alice', permissionUuid);

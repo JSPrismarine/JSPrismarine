@@ -13,7 +13,6 @@ import { Vector3 } from '@jsprismarine/math';
 import type { GeneratorDefinition, LevelStem } from '@jsprismarine/worldgen';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type Player from '../../Player';
 import type { Server } from '../../';
 import type { Config } from '../../config/Config';
 import { definitionsOf, definitionOf } from '../../content/ContentOptions';
@@ -34,7 +33,7 @@ import SetTitlePacket from '@jsprismarine/protocol/packet/SetTitlePacket';
 import type { PermissionManager } from '../../permission/PermissionManager';
 import type PlayerSession from '../../network/PlayerSession';
 import { stub, stubOf } from '../../testing/stub.test.helper';
-import { playerOnPrototype } from '../../testing/storePlayer.test.helper';
+import { sessionOnPrototype } from '../../testing/storePlayer.test.helper';
 import { LootRegistry, javaLootTables } from '@jsprismarine/loot';
 import { loadRecipes } from '@jsprismarine/recipes';
 import { RemoveObjectivePacket, SetDisplayObjectivePacket, SetScorePacket } from '@jsprismarine/protocol';
@@ -52,7 +51,7 @@ import type { WorldActor } from '../../world/WorldActor';
 import { collectAsyncCommands } from '../deferred';
 import { buildVanillaCommands } from '../vanillaCommands';
 import { serverCommandHost } from './serverCommandHost';
-import { identityNamed } from '../../testing/sessionIdentity.test.helper';
+import UUID from '@jsprismarine/protocol/wire/structures/UUID';
 
 /** One block position's contents, keyed as `x,y,z`. */
 type BlockTable = Map<string, { name: string; states: Record<string, string | number | boolean> }>;
@@ -67,12 +66,12 @@ interface Fixture {
     readonly blocks: BlockTable;
     readonly rules: Map<string, GameRuleEntry>;
     readonly entities: WorldActor[];
-    readonly players: Player[];
+    readonly players: PlayerSession[];
     readonly sent: unknown[];
     readonly feedback: string[];
     readonly errors: string[];
     /** Runs one command line as the console and answers what it returned. */
-    run(line: string, as?: Player): Promise<number>;
+    run(line: string, as?: PlayerSession): Promise<number>;
     /** Everything `World.dropContents` was asked to put on the ground. */
     readonly dropped: { position: Vector3; contents: unknown[] }[];
     /** Puts a content build behind the server, which is what `/loot` reads. */
@@ -90,7 +89,7 @@ const buildFixture = (): Fixture => {
         ['randomTickSpeed', [3, true]]
     ]);
     const entities: WorldActor[] = [];
-    const players: Player[] = [];
+    const players: PlayerSession[] = [];
     const dropped: { position: Vector3; contents: unknown[] }[] = [];
     let weather: 'clear' | 'rain' | 'thunder' = 'clear';
     const sent: unknown[] = [];
@@ -124,9 +123,8 @@ const buildFixture = (): Fixture => {
         getEntities: () => entities.filter((entity) => entity instanceof Entity),
         getActors: () => entities,
         getActor: (runtimeId: bigint) => entities.find((entity) => entity.getRuntimeId() === runtimeId) ?? null,
-        getPlayers: () => players,
-        viewerOf: (runtimeId: bigint) =>
-            players.find((player) => player.getRuntimeId() === runtimeId)?.getNetworkSession(),
+        getViewers: () => players,
+        viewerOf: (runtimeId: bigint) => players.find((player) => player.getRuntimeId() === runtimeId),
         getTicks: () => ticks,
         setTicks: (value: number) => {
             ticks = value;
@@ -199,7 +197,7 @@ const buildFixture = (): Fixture => {
                     return nether;
                 }
             }),
-        getSessionManager: () => stub({ getSessions: () => players.map((player) => player.getNetworkSession()) }),
+        getSessionManager: () => stub({ getSessions: () => players }),
         getPermissionManager: () =>
             stub<PermissionManager>({
                 isOp: () => false,
@@ -235,7 +233,7 @@ const buildFixture = (): Fixture => {
     const registry = buildVanillaCommands({ entityTypes: ['minecraft:tnt', 'minecraft:allay'] });
     const host = serverCommandHost(server);
 
-    const sourceFor = (as?: Player): CommandSource =>
+    const sourceFor = (as?: PlayerSession): CommandSource =>
         createCommandSource({
             host,
             ...(as === undefined ? {} : { entity: refOf(as) }),
@@ -244,7 +242,7 @@ const buildFixture = (): Fixture => {
             onError: (message) => errors.push(message)
         });
 
-    const refOf = (player: Player) => ({
+    const refOf = (player: PlayerSession) => ({
         id: player.getRuntimeId().toString(),
         type: 'minecraft:player',
         name: player.getName(),
@@ -310,36 +308,31 @@ const mobAt = (fixture: Fixture, id: bigint, type: string, position: Vector3): E
     return entity;
 };
 
-const playerAt = (fixture: Fixture, id: bigint, name: string, position: Vector3): Player => {
+const playerAt = (fixture: Fixture, id: bigint, name: string, position: Vector3): PlayerSession => {
     const inventory = new HumanInventory();
-    // One session per player, so a test can read back what the player's session was told. The
-    // command host reaches a target's state through its session.
-    const session: PlayerSession = stub<PlayerSession>({
-        identity: identityNamed(name, `00000000-0000-0000-0000-${id.toString().padStart(12, '0')}`),
-        getPlayer: () => player,
-        send: async (packet: unknown) => {
-            fixture.sent.push(packet);
-        },
-        sendInventory: async () => {},
-        sendAttributes: async () => {},
-        sendMessage: vi.fn().mockResolvedValue(undefined),
-        kick: vi.fn().mockResolvedValue(undefined),
-        changeWorld: vi.fn().mockResolvedValue(undefined)
-    });
     const tags = new Set<string>();
-    const player = playerOnPrototype(
+    const player = sessionOnPrototype(
         {
             getName: () => name,
             gamemode: Gametype.SURVIVAL,
             setGamemode: vi.fn().mockResolvedValue(undefined),
             setPlayerPosition: vi.fn().mockResolvedValue(undefined),
             getInventory: () => inventory,
-            getNetworkSession: () => session,
             getWorld: () => fixture.world,
+            // One session per player, so a test can read back what the player's session was told.
+            send: async (packet: unknown) => {
+                fixture.sent.push(packet);
+            },
+            sendInventory: async () => {},
+            sendAttributes: async () => {},
+            sendMessage: vi.fn().mockResolvedValue(undefined),
+            kick: vi.fn().mockResolvedValue(undefined),
+            changeWorld: vi.fn().mockResolvedValue(undefined),
             getPosition: () => Position.fromVector3(position, fixture.world)
         },
         {
             runtimeId: id,
+            uuid: UUID.fromString(`00000000-0000-0000-0000-${id.toString().padStart(12, '0')}`),
             // What a selector and a reference read of the player's actor.
             actor: {
                 getPosition: () => Position.fromVector3(position, fixture.world),
@@ -500,7 +493,7 @@ describe('the server command host', () => {
 
             // The world change carries the position, so the player does not land at the
             // Nether's spawn first, and `setPlayerPosition` is not run in the world being left.
-            expect(player.getNetworkSession().changeWorld).toHaveBeenCalledWith({
+            expect(player.changeWorld).toHaveBeenCalledWith({
                 world: fixture.nether,
                 position: new Vector3(10, 70, 10),
                 yaw: 0,
@@ -514,7 +507,7 @@ describe('the server command host', () => {
 
             await expect(fixture.run('execute in minecraft:the_nether run tp @a 10 70 10')).resolves.toBe(1);
 
-            expect(player.getNetworkSession().changeWorld).toHaveBeenCalledWith(
+            expect(player.changeWorld).toHaveBeenCalledWith(
                 expect.objectContaining({ world: fixture.nether, position: new Vector3(10, 70, 10) })
             );
         });
@@ -618,7 +611,7 @@ describe('the server command host', () => {
                 const { player, source } = await hurtWith('damage @e[type=pig] 4 minecraft:fire by @s');
 
                 // The player's body, which is the entity a blow names.
-                expect((source as DamageSource).attacker).toBe(player.getBody());
+                expect((source as DamageSource).attacker).toBe(player.shown());
             });
         });
     });
@@ -920,7 +913,7 @@ describe('the server command host', () => {
                 const player = playerAt(fixture, 1n, 'Steve', new Vector3(0, 64, 0));
 
                 await expect(fixture.run('execute if score @a kills matches 1.. run say hi')).resolves.toBe(0);
-                expect(player.getNetworkSession().sendMessage).not.toHaveBeenCalled();
+                expect(player.sendMessage).not.toHaveBeenCalled();
                 expect(fixture.errors).toEqual([]);
             });
 
@@ -930,7 +923,7 @@ describe('the server command host', () => {
                 await fixture.run('scoreboard players set Steve kills 3');
 
                 await expect(fixture.run('execute if score @a kills matches 1.. run say hi')).resolves.toBe(1);
-                expect(player.getNetworkSession().sendMessage).toHaveBeenCalled();
+                expect(player.sendMessage).toHaveBeenCalled();
             });
         });
 
@@ -1007,8 +1000,8 @@ describe('the server command host', () => {
             await fixture.run('scoreboard players set Steve kills 9');
 
             await expect(fixture.run('tag @a[scores={kills=5..}] add veteran')).resolves.toBe(1);
-            expect([...fixture.players[0]!.getTags()]).toEqual(['veteran']);
-            expect([...fixture.players[1]!.getTags()]).toEqual([]);
+            expect([...fixture.players[0]!.getActor()!.getTags()]).toEqual(['veteran']);
+            expect([...fixture.players[1]!.getActor()!.getTags()]).toEqual([]);
         });
     });
 

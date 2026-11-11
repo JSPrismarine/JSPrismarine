@@ -6,7 +6,6 @@ import type Server from '../../Server';
 import type SessionManager from '../../SessionManager';
 import type { PermissionManager } from '../../permission/PermissionManager';
 import { identityNamed, STEVE } from '../../testing/sessionIdentity.test.helper';
-import { stubPlayerPort } from '../../testing/playerPort.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import type PlayerSession from '../PlayerSession';
 import type { ShownPlayer } from '../../world/ShownPlayer';
@@ -22,11 +21,11 @@ const fakeSession = ({ op = true }: { op?: boolean } = {}) => {
     const opChanges: Array<[string, boolean]> = [];
     const resent: Array<ShownPlayer | undefined> = [];
     const logged: string[] = [];
-    const target = stubPlayerPort({});
+    const target = stub<ShownPlayer>({});
     const targetSession = stub<PlayerSession>({
         runtimeId: 7n,
         identity: identityNamed('Alex'),
-        getPlayer: () => target
+        shown: () => target
     });
 
     return {
@@ -99,7 +98,7 @@ describe('RequestPermissionsHandler', () => {
         await new RequestPermissionsHandler().handle(request(PlayerPermissionLevel.CUSTOM, 7n, 0xff), server, session);
 
         expect(opChanges).toEqual([]);
-        expect(resent).toEqual([target.getBody()]);
+        expect(resent).toEqual([target]);
         expect(logged).toEqual([
             'Steve asked to set Alex to permission level CUSTOM (custom flags 0xff). Only Member and Operator are modeled, so the current abilities were sent back'
         ]);

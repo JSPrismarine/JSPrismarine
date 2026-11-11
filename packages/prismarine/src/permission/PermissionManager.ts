@@ -35,17 +35,8 @@ const OPS_FILE_NAME = 'ops.json';
  */
 export type PermissionSubject = Console | { isOp(): boolean; getPermissions(): string[] };
 
-/**
- * Whose permissions to read or set: the identity a login carries, or anything that answers
- * `getUUID`, such as a player. Permissions and operators are filed by UUID. `Player.enable` reads
- * its permissions with the second form; package H-D of the entity and tick re-architecture drops
- * it once that passes the identity.
- */
-export type PermissionHolder = Pick<PlayerIdentity, 'uuid'> | { getUUID(): { toString(): string } };
-
-/** The UUID permissions are filed under. */
-const permissionKeyOf = (holder: PermissionHolder): string =>
-    'getUUID' in holder ? holder.getUUID().toString() : holder.uuid;
+/** Whose permissions to read or set: the identity a login carries. Permissions and operators are filed by UUID. */
+export type PermissionHolder = Pick<PlayerIdentity, 'uuid'>;
 
 /**
  * Build a permission check for an executer. The console always passes; operators and holders
@@ -146,11 +137,11 @@ export class PermissionManager implements Service {
      * Built on every call rather than cached, so revoking operator status or replacing a
      * player's grants takes effect on the player's next command.
      *
-     * @param player - The identity, or the player, to get permissions for.
+     * @param player - The identity to get permissions for.
      * @returns The player's current permissions.
      */
     public permissionsOf(player: PermissionHolder): string[] {
-        const uuid = permissionKeyOf(player);
+        const uuid = player.uuid;
         return [
             ...this.defaultPermissions,
             ...(this.permissions.get(uuid) ?? []),
@@ -160,7 +151,7 @@ export class PermissionManager implements Service {
 
     /**
      * Get a player's permissions.
-     * @param {PermissionHolder} player - The identity, or the player, to get permissions for.
+     * @param {PermissionHolder} player - The identity to get permissions for.
      * @returns {Promise<string[]>} A promise that resolves with the player's permissions.
      * @see {@link PermissionManager.permissionsOf} for the synchronous form.
      */
@@ -174,11 +165,11 @@ export class PermissionManager implements Service {
      * @remarks
      * This will not be saved to the permissions.json file.
      *
-     * @param {PermissionHolder} player - The identity, or the player, to set permissions for.
+     * @param {PermissionHolder} player - The identity to set permissions for.
      * @param {string[]} [permissions=[]] - The permissions to set.
      */
     public setPermissions(player: PermissionHolder, permissions: string[] = []) {
-        this.permissions.set(permissionKeyOf(player), permissions);
+        this.permissions.set(player.uuid, permissions);
     }
 
     private async parsePermissions(): Promise<void> {

@@ -3,38 +3,20 @@ import type { PlayerIdentity } from '../../playerIdentity';
 import { Event } from '../Event';
 
 /**
- * Who a player event is about: the player's session, or anything that answers for it.
- *
- * The second form is for code that still holds the player object; package H-D of the entity and
- * tick re-architecture passes the session everywhere and drops it.
- */
-export type PlayerEventSubject = PlayerSession | { getNetworkSession(): PlayerSession };
-
-/**
- * The session a subject names.
- * @param subject - The session, or what answers for it.
- * @returns The session.
- */
-const sessionOfSubject = (subject: PlayerEventSubject): PlayerSession =>
-    'getNetworkSession' in subject ? subject.getNetworkSession() : subject;
-
-/**
  * An event about one player.
  *
  * It names the player by its runtime id and the identity it logged in with, which stay right once
  * the player has left, and hands a listener that acts on the player its session.
  */
 export default class PlayerEvent extends Event {
-    private readonly subject: PlayerEventSubject;
-    /** Found through the subject the first time a listener asks for it. */
-    private session: PlayerSession | undefined;
+    private readonly session: PlayerSession;
 
     /**
-     * @param subject - The player the event is about, as its session.
+     * @param session - The session of the player the event is about.
      */
-    public constructor(subject: PlayerEventSubject) {
+    public constructor(session: PlayerSession) {
         super();
-        this.subject = subject;
+        this.session = session;
     }
 
     /**
@@ -60,7 +42,6 @@ export default class PlayerEvent extends Event {
      * @returns The session.
      */
     public getSession(): PlayerSession {
-        this.session ??= sessionOfSubject(this.subject);
         return this.session;
     }
 }

@@ -4,7 +4,7 @@ import type { LevelStem } from '@jsprismarine/worldgen';
 import { OVERWORLD_STEM_ID } from '@jsprismarine/worldgen';
 import { describe, expect, it } from 'vitest';
 
-import type { SessionPlayer } from './sessionPlayers';
+import type PlayerSession from './PlayerSession';
 import type Server from '../Server';
 import type { Config } from '../config/Config';
 import { fakeLevel, TEST_GENERATOR_KIND } from '../testing/level';
@@ -72,7 +72,7 @@ const startGameFor = (world: World) =>
                 }),
             getTick: () => 0
         }),
-        player: stub<SessionPlayer>({
+        player: stub<PlayerSession>({
             getRuntimeId: () => 1n,
             getJoinSpawn: () => null,
             getPosition: () => new Position(0, 64, 0, world),
