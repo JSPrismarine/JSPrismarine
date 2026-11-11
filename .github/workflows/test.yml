@@ -137,10 +137,6 @@ jobs:
         # runs-on: blacksmith-2vcpu-ubuntu-2404
         runs-on: ubuntu-latest
         timeout-minutes: 15
-        # GitHub draws a progress bar on a job that names an environment, so each shard shows how
-        # far along it is. `unit-tests` is that and nothing more: it holds no secrets, and a
-        # protection rule added to it would hold up every shard.
-        environment: unit-tests
         strategy:
             fail-fast: false
             matrix:
@@ -209,8 +205,6 @@ jobs:
             contents: read
             # The coverage comment.
             pull-requests: write
-            # Removing the deployments the shards' progress bars leave behind.
-            deployments: write
         steps:
             # - uses: useblacksmith/checkout@v1
             - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -238,21 +232,6 @@ jobs:
               run: |
                   echo "A unit test shard ended with ${{ needs.tests-shard.result }}."
                   exit 1
-
-            # Each shard names the `unit-tests` environment for its progress bar, which records a
-            # deployment. Nothing is deployed, so this run's deployments go once the shards are
-            # done; GitHub deletes one only after it is marked inactive. A fork's token cannot
-            # write deployments, which leaves them in place rather than failing the job.
-            - name: 🧹 Remove the progress bar deployments
-              if: ${{ always() }}
-              continue-on-error: true
-              env:
-                  GH_TOKEN: ${{ github.token }}
-              run: |
-                  for id in $(gh api "repos/${{ github.repository }}/deployments?environment=unit-tests&sha=${{ github.sha }}&per_page=100" --jq '.[].id'); do
-                      gh api --method POST "repos/${{ github.repository }}/deployments/$id/statuses" -f state=inactive > /dev/null
-                      gh api --method DELETE "repos/${{ github.repository }}/deployments/$id"
-                  done
 
             - name: 🦺 Report Coverage to GitHub
               if: ${{ !cancelled() }}
@@ -457,8 +436,6 @@ jobs:
         # runs-on: blacksmith-2vcpu-ubuntu-2404
         runs-on: ubuntu-latest
         timeout-minutes: 30
-        # A progress bar per shard, as `unit-tests` draws for the unit shards. It holds no secrets.
-        environment: real-data-tests
         strategy:
             fail-fast: false
             matrix:
@@ -524,8 +501,6 @@ jobs:
         timeout-minutes: 15
         permissions:
             contents: read
-            # Removing the deployments the shards' progress bars leave behind.
-            deployments: write
         steps:
             # - uses: useblacksmith/checkout@v1
             - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -551,17 +526,6 @@ jobs:
               run: |
                   echo "The real data was ${{ needs.real-data-setup.result }} and the shards ended with ${{ needs.real-data-shard.result }}."
                   exit 1
-
-            - name: 🧹 Remove the progress bar deployments
-              if: ${{ always() }}
-              continue-on-error: true
-              env:
-                  GH_TOKEN: ${{ github.token }}
-              run: |
-                  for id in $(gh api "repos/${{ github.repository }}/deployments?environment=real-data-tests&sha=${{ github.sha }}&per_page=100" --jq '.[].id'); do
-                      gh api --method POST "repos/${{ github.repository }}/deployments/$id/statuses" -f state=inactive > /dev/null
-                      gh api --method DELETE "repos/${{ github.repository }}/deployments/$id"
-                  done
 
             - name: 🦺 Codecov Coverage Reports
               if: ${{ !cancelled() }}
