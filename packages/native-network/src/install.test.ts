@@ -105,6 +105,20 @@ describe('installing the native library', () => {
         expect(requests).toHaveLength(0);
     });
 
+    it('joins a base URL that ends in slashes to the file name with one', async () => {
+        const { requests, fetchImpl } = network();
+
+        await installBuild({
+            packageDir: publishedPackage(),
+            platform: PLATFORM,
+            manifest: { ...manifest, baseUrl: `${manifest.baseUrl}${'/'.repeat(10_000)}` },
+            env: {},
+            fetch: fetchImpl
+        });
+
+        expect(requests).toStrictEqual([`${manifest.baseUrl}/${manifest.platforms[PLATFORM]!.shared.file}`]);
+    });
+
     it('reads from a directory a mirror or a test names, and skips when told to', async () => {
         const packageDir = publishedPackage();
         const mirror = publishedPackage();
