@@ -297,6 +297,84 @@ describe('permission', () => {
             expect(opWhenListed).toEqual([true, false]);
         });
 
+        describe('setOpNow', () => {
+            /** A manager that keeps the events it posts, and cancels each when `cancel` is set. */
+            const managerOf = (cancel = false) => {
+                const posted: PlayerToggleOperatorEvent[] = [];
+                const opManager = new PermissionManager({
+                    getLogger: () => logger,
+                    getSessionManager: () => stub<SessionManager>(),
+                    post: (entry) => {
+                        if (entry[0] !== 'playerToggleOperator') return 0;
+                        if (cancel) entry[1].preventDefault();
+                        return posted.push(entry[1]);
+                    }
+                });
+                return { opManager, posted };
+            };
+            const online = (name: string, uuid: string, sent: string[] = []) =>
+                stub<PlayerSession>({
+                    identity: identityNamed(name, uuid),
+                    sendAvailableCommands: async () => void sent.push(`${name} commands`),
+                    announceSettings: async () => void sent.push(`${name} settings`)
+                });
+            const opsFile = () => plain(readFileSync(path.join(directory, 'ops.json'), 'utf8'));
+
+            it('changes the list before it returns and writes the file afterwards', async () => {
+                const uuid = '00000000-0000-0000-0000-000000000009';
+                const sent: string[] = [];
+                const erin = online('erin', uuid, sent);
+                const { opManager, posted } = managerOf();
+                await opManager.enable();
+
+                const told = opManager.setOpNow(erin, true);
+
+                expect(opManager.isOp(uuid)).toBe(true);
+                expect(posted.map((event) => [event.getSession(), event.getOperator()])).toEqual([[erin, true]]);
+                expect(opsFile()).toEqual([]);
+
+                await told;
+                await opManager.disable();
+                expect(sent).toEqual(['erin commands', 'erin settings']);
+                expect(opsFile()).toEqual([{ name: 'erin', uuid, level: 4 }]);
+            });
+
+            it('writes every change made in a row, in order, without losing one', async () => {
+                const frankUuid = '00000000-0000-0000-0000-00000000000a';
+                const gwenUuid = '00000000-0000-0000-0000-00000000000b';
+                const frank = online('frank', frankUuid);
+                const gwen = online('gwen', gwenUuid);
+                const { opManager } = managerOf();
+                await opManager.enable();
+
+                const told = [
+                    opManager.setOpNow(frank, true),
+                    opManager.setOpNow(gwen, true),
+                    opManager.setOpNow(frank, false)
+                ];
+                await Promise.all(told);
+                await opManager.disable();
+
+                expect(opsFile()).toEqual([{ name: 'gwen', uuid: gwenUuid, level: 4 }]);
+            });
+
+            it('changes nothing and tells nobody when a listener cancels', async () => {
+                const uuid = '00000000-0000-0000-0000-00000000000c';
+                const sent: string[] = [];
+                const hal = online('hal', uuid, sent);
+                const { opManager, posted } = managerOf(true);
+                await opManager.enable();
+
+                expect(opManager.setOpNow(hal, true)).toBeUndefined();
+
+                await opManager.disable();
+                expect(posted).toHaveLength(1);
+                expect(sent).toEqual([]);
+                expect(opManager.isOp(uuid)).toBe(false);
+                expect(opsFile()).toEqual([]);
+            });
+        });
+
         it('adds and removes one operator line and keeps the comments', async () => {
             const file = path.join(directory, 'ops.json');
             const aliceUuid = '00000000-0000-0000-0000-000000000005';
