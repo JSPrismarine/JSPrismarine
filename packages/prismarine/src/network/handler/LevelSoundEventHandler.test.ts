@@ -9,12 +9,12 @@ import { Position } from '../../world/Position';
 import type { World } from '../../world/World';
 import type { StubMembers } from '../../testing/stub.test.helper';
 import { identityNamed } from '../../testing/sessionIdentity.test.helper';
-import { stubPlayerPort } from '../../testing/playerPort.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import type PlayerSession from '../PlayerSession';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import LevelSoundEventPacket from '@jsprismarine/protocol/packet/LevelSoundEventPacket';
 import LevelSoundEventHandler from './LevelSoundEventHandler';
+import { storePlayerPort } from './storePlayerPort.test.helper';
 
 const SENDER_ID = 7n;
 
@@ -22,13 +22,7 @@ const SENDER_ID = 7n;
 const fakeSession = () => {
     const played: { position: Vector3; packet: NetworkPacket }[] = [];
     const world = stub<World>({});
-    const player = stubPlayerPort({
-        getName: () => 'tester',
-        getRuntimeId: () => SENDER_ID,
-        getType: () => 'minecraft:player',
-        getPosition: () => new Position(0, 64, 0, world),
-        getWorld: () => world
-    });
+    const player = storePlayerPort({ getPosition: () => new Position(0, 64, 0, world) });
 
     const replicator = stub<NetworkWorldReplicator>({
         sendAround: (position, packet) => void played.push({ position, packet })
@@ -43,7 +37,8 @@ const fakeSession = () => {
         session: stub<PlayerSession>({
             runtimeId: SENDER_ID,
             identity: identityNamed('tester'),
-            getPlayer: () => player
+            getPlayer: () => player,
+            getWorld: () => world
         })
     };
 };

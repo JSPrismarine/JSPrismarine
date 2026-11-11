@@ -4,7 +4,6 @@ import type ActorEventPacket from '@jsprismarine/protocol/packet/ActorEventPacke
 import { ActorEvent } from '@jsprismarine/protocol/packet/ActorEventPacket';
 import type { ShownActor } from '../../world/ShownActor';
 import type PacketHandler from './PacketHandler';
-import type { PlacedPlayer } from './playerPorts';
 
 /**
  * The events a vanilla client reports about its own player.
@@ -33,7 +32,7 @@ export default class ActorEventHandler implements PacketHandler<ActorEventPacket
 
     /** Relays an allowed event about the sender to the players tracking it, and drops the rest. */
     public async handle(packet: ActorEventPacket, server: Server, session: PlayerSession): Promise<void> {
-        const player: (ShownActor & Pick<PlacedPlayer, 'getWorld'>) | undefined = session.getPlayer().getActor();
+        const player: ShownActor | undefined = session.getPlayer().getActor();
         const logger = server.getLogger();
         // Nobody sees a player whose entity is in no store, so there is nobody to relay to.
         if (player === undefined) return;
@@ -54,6 +53,6 @@ export default class ActorEventHandler implements PacketHandler<ActorEventPacket
             return;
         }
 
-        await player.getWorld().sendActorEvent(player, packet.event, packet.data);
+        await session.getWorld().sendActorEvent(player, packet.event, packet.data);
     }
 }

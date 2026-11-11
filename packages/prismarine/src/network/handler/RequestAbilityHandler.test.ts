@@ -4,12 +4,12 @@ import { describe, expect, it } from 'vitest';
 import type { Logger } from '@jsprismarine/logger';
 import type Server from '../../Server';
 import { identityNamed } from '../../testing/sessionIdentity.test.helper';
-import { stubPlayerPort } from '../../testing/playerPort.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import type PlayerSession from '../PlayerSession';
 import type { ShownPlayer } from '../../world/ShownPlayer';
 import RequestAbilityPacket, { RequestAbilityValueType } from '@jsprismarine/protocol/packet/RequestAbilityPacket';
 import RequestAbilityHandler from './RequestAbilityHandler';
+import { storePlayerPort } from './storePlayerPort.test.helper';
 
 /**
  * The client expects an `UpdateAbilitiesPacket` after every request: the new state when the
@@ -21,14 +21,15 @@ const fakeSession = ({ flying = false, canFly = true }: { flying?: boolean; canF
     const resent: Array<ShownPlayer | undefined> = [];
     const logged: string[] = [];
     let isFlying = flying;
-    const player = stubPlayerPort({
-        getName: () => 'Steve',
-        isFlying: () => isFlying,
-        setFlying: async (value) => {
-            requested.push(value);
-            if (canFly) isFlying = value;
+    const player = storePlayerPort(
+        { isFlying: () => isFlying },
+        {
+            setFlying: async (value) => {
+                requested.push(value);
+                if (canFly) isFlying = value;
+            }
         }
-    });
+    );
 
     return {
         requested,

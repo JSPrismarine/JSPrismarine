@@ -13,13 +13,14 @@ import ActorEventHandler from './ActorEventHandler';
 const setup = () => {
     const sendActorEvent = vi.fn<World['sendActorEvent']>(async () => {});
     const verbose = vi.fn();
-    const player = stubPlayerPort({
-        getName: () => 'runner',
-        getRuntimeId: () => 7n,
+    const player = stubPlayerPort({ getRuntimeId: () => 7n });
+    const server = stub<Server>({ getLogger: () => stub<Logger>({ verbose }) });
+    const session = stub<PlayerSession>({
+        runtimeId: 7n,
+        identity: identityNamed('runner'),
+        getPlayer: () => player,
         getWorld: () => stub<World>({ sendActorEvent })
     });
-    const server = stub<Server>({ getLogger: () => stub<Logger>({ verbose }) });
-    const session = stub<PlayerSession>({ runtimeId: 7n, identity: identityNamed('runner'), getPlayer: () => player });
 
     return { sendActorEvent, verbose, player, server, session };
 };

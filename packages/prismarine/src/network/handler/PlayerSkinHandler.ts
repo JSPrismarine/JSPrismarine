@@ -4,6 +4,7 @@ import type SkinImage from '@jsprismarine/protocol/wire/structures/skin/SkinImag
 import type PlayerSession from '../PlayerSession';
 import PlayerSkinPacket from '@jsprismarine/protocol/packet/PlayerSkinPacket';
 import type PacketHandler from './PacketHandler';
+import { storePlayerOf } from './playerPorts';
 
 /** The largest `Width` or `Height` the `SkinImage` schema allows. */
 const MAX_IMAGE_SIDE = 4096;
@@ -69,14 +70,6 @@ const skinProblem = (skin: Skin): string | null => {
 };
 
 /**
- * A player as a skin change sees it: the skin other clients are shown, which
- * {@link import('../../world/ShownPlayer').ShownPlayer.skin} reads.
- */
-interface ReskinnedPlayer {
-    skin: Skin | null;
-}
-
-/**
  * A client changing its skin mid-session.
  *
  * The skin is stored on the player and on the player's list entry, so the player list shows it
@@ -120,8 +113,8 @@ export default class PlayerSkinHandler implements PacketHandler<PlayerSkinPacket
             return;
         }
 
-        const player: ReskinnedPlayer = session.getPlayer();
-        player.skin = packet.skin;
+        // The skin other clients are shown, which the store player's actor reads.
+        storePlayerOf(session).skin = packet.skin;
 
         // The entry the session manager sends to whoever joins later was built at login.
         const playerList = server.getSessionManager().getPlayerList();
@@ -136,9 +129,9 @@ export default class PlayerSkinHandler implements PacketHandler<PlayerSkinPacket
 
         const others = server
             .getSessionManager()
-            .getAllPlayers()
-            .filter((other) => other.getRuntimeId() !== session.runtimeId);
-        await Promise.all(others.map((other) => other.getNetworkSession().send(relay)));
+            .getSessions()
+            .filter((other) => other.runtimeId !== session.runtimeId);
+        await Promise.all(others.map((other) => other.send(relay)));
 
         logger.debug(
             `§b${identity.name}§r changed skin to §b${packet.skin.getId()}§r, relayed to ${others.length} player(s)`,
