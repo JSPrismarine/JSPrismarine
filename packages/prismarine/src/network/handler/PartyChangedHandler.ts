@@ -1,8 +1,7 @@
-import type Server from '../../Server';
-import type PlayerSession from '../PlayerSession';
 import type PartyChangedPacket from '@jsprismarine/protocol/packet/PartyChangedPacket';
 import { MAX_PARTY_ID_LENGTH } from '@jsprismarine/protocol/structure/PlayerPartyInfo';
-import type PacketHandler from './PacketHandler';
+import type { SessionContext } from './HandlerContext';
+import type { ConnectionLaneHandler } from './SessionHandler';
 
 /**
  * The client reporting a platform party change.
@@ -12,24 +11,23 @@ import type PacketHandler from './PacketHandler';
  * and dropped too. Known gap: the id is not kept, so nothing here can tell which players
  * arrived together.
  */
-export default class PartyChangedHandler implements PacketHandler<PartyChangedPacket> {
+export default class PartyChangedHandler implements ConnectionLaneHandler<PartyChangedPacket> {
     public static PacketName = 'PartyChangedPacket';
+    public readonly takes = 'context';
     public readonly phases = ['play'] as const;
     public readonly lane = 'connection';
 
     /** Checks the id length, then logs whether the player joined, leads or left a party. */
-    public handle(packet: PartyChangedPacket, server: Server, session: PlayerSession): void {
+    public handle(packet: PartyChangedPacket, { session, log }: SessionContext): void {
         const name = session.identity.name;
         const partyInfo = packet.getPacketData()?.partyInfo;
         if (partyInfo === undefined) throw new Error('Cannot handle a PartyChangedPacket without decoded data');
 
         if (partyInfo.partyId.length > MAX_PARTY_ID_LENGTH) {
-            server
-                .getLogger()
-                .verbose(
-                    `Dropped a party change from ${name}: the party id is ${partyInfo.partyId.length} characters, more than the ${MAX_PARTY_ID_LENGTH} allowed`,
-                    'PartyChangedHandler/handle'
-                );
+            log.verbose(
+                `Dropped a party change from ${name}: the party id is ${partyInfo.partyId.length} characters, more than the ${MAX_PARTY_ID_LENGTH} allowed`,
+                'PartyChangedHandler/handle'
+            );
             return;
         }
 
@@ -38,6 +36,6 @@ export default class PartyChangedHandler implements PacketHandler<PartyChangedPa
                 ? 'left its party'
                 : `is in party ${partyInfo.partyId}${partyInfo.isPartyLeader ? ' as its leader' : ''}`;
 
-        server.getLogger().debug(`${name} ${change}. Parties are not tracked`, 'PartyChangedHandler/handle');
+        log.debug(`${name} ${change}. Parties are not tracked`, 'PartyChangedHandler/handle');
     }
 }

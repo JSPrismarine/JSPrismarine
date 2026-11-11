@@ -22,15 +22,6 @@ const STILL_REACH_SERVER: ReadonlyMap<string, readonly string[]> = new Map([
     [
         'D2a connection lane',
         [
-            'NpcRequestHandler.ts',
-            'PacketViolationWarningHandler.ts',
-            'PartyChangedHandler.ts',
-            'PhotoTransferHandler.ts',
-            'PlayerLocationHandler.ts',
-            'PositionTrackingDBClientRequestHandler.ts',
-            'PurchaseReceiptHandler.ts',
-            'ResourcePacksReadyForValidationHandler.ts',
-            'ServerSettingsRequestHandler.ts',
             'ServerboundDiagnosticsHandler.ts',
             'ServerboundPackSettingChangeHandler.ts',
             'SetActorLinkHandler.ts',
