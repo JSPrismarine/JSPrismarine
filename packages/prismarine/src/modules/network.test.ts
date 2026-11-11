@@ -8,6 +8,15 @@ import { describe, expect, it, vi } from 'vitest';
 
 import type { Logger } from '@jsprismarine/logger';
 import { startTestModule } from '@jsprismarine/kernel/testing';
+import {
+    exchangeOffer,
+    loadNativeDriver,
+    NetherNetClient,
+    SignalStructure,
+    SignalType,
+    verifySelfSignedIdentity
+} from '@jsprismarine/nethernet';
+import type { Connection } from '@jsprismarine/nethernet';
 import { UnconnectedPing } from '@jsprismarine/raknet';
 import type { Config } from '../config/Config';
 import SessionManager from '../SessionManager';
@@ -17,6 +26,9 @@ import type Server from '../Server';
 import type { Networking } from './network';
 import { ServerNetworking, networkModule } from './network';
 import { networkToken } from './tokens';
+
+/** The native WebRTC stack, or undefined on a machine with no build of it. */
+const driver = await loadNativeDriver().catch(() => undefined);
 
 describe('modules/network', () => {
     it('provides the networking the server constructed under the network token', async () => {
@@ -472,6 +484,86 @@ describe('modules/network', () => {
             ).rejects.toThrow('Replay connection 1 is not connected');
         } finally {
             networking.kill();
+        }
+    });
+
+    /** A server running RakNet and NetherNet with NetherNet's UDP on the game port. */
+    const sharedPortServer = (port: number, worker: boolean) =>
+        stub<Server>({
+            getConfig: () =>
+                stub<Config>({
+                    getGamemode: () => 'survival',
+                    getMaxPlayers: () => 2,
+                    getMotd: () => 'shared server',
+                    getOnlineMode: () => false,
+                    getEnableRakNet: () => true,
+                    getEnableNetherNet: () => true,
+                    getUseRakNetWorker: () => worker,
+                    getEnableQuery: () => false,
+                    getEnableLanVisibility: () => false,
+                    getServerPortV6: () => port,
+                    getServerUdpPorts: () => String(port),
+                    getServerPublicIp: () => '',
+                    getLevelName: () => 'world'
+                }),
+            getLogger: () =>
+                stub<Logger>({
+                    debug: () => {},
+                    error: () => {},
+                    info: () => {},
+                    silly: () => {},
+                    verbose: () => {},
+                    warn: () => {}
+                }),
+            getPacketHandlerRegistry: () => stub<ReturnType<Server['getPacketHandlerRegistry']>>({}),
+            getPacketLogFilter: () => new PacketLogFilter(),
+            getSessionManager: () => new SessionManager(),
+            // The joined NetherNet client reaches the dispatcher, which announces it.
+            emit: async () => {}
+        });
+
+    it.skipIf(driver === undefined).each([
+        ['socket', false],
+        ['worker', true]
+    ])('shares the game port between RakNet and NetherNet, in %s mode', async (_mode, worker) => {
+        const port = await portFreeOnBothFamilies();
+        const networking = new ServerNetworking(sharedPortServer(port, worker));
+        const dataDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'jsp-network-'));
+        vi.stubEnv('JSP_DIR', dataDirectory);
+        try {
+            await networking.start('0.0.0.0', port);
+
+            // RakNet on both families of the one port.
+            expect((await pingOnce('127.0.0.1', port))[0]).toBe(0x1c);
+            expect((await pingOnce('::1', port))[0]).toBe(0x1c);
+
+            // And a NetherNet client joining by address, its media on the same port.
+            const client: NetherNetClient = new NetherNetClient({
+                driver: driver!,
+                signal: (signal) => {
+                    if (signal.type !== SignalType.ConnectRequest) return;
+                    void exchangeOffer(
+                        { host: '127.0.0.1', port },
+                        client.networkId,
+                        signal.data,
+                        AbortSignal.timeout(10_000)
+                    ).then(async (answer) => {
+                        const { description } = await verifySelfSignedIdentity(answer);
+                        client.handleSignal(
+                            new SignalStructure(SignalType.ConnectResponse, client.connectionId, description)
+                        );
+                    });
+                }
+            });
+            const connected = once(client, 'connected') as Promise<[Connection]>;
+            await client.connect();
+            const [connection] = await connected;
+            expect(connection.peer.remoteAddress()?.port).toBe(port);
+            client.close();
+        } finally {
+            networking.kill();
+            vi.unstubAllEnvs();
+            fs.rmSync(dataDirectory, { recursive: true, force: true });
         }
     });
 });

@@ -1,7 +1,14 @@
 import { isIPv4 } from 'node:net';
 
 import type { Module } from '@jsprismarine/kernel';
-import { RakNetListener, ServerName, WorkerServerSocket } from '@jsprismarine/raknet';
+import { NativeNetwork, SharedPort } from '@jsprismarine/native-network';
+import {
+    allocateDatagramRings,
+    RakNetListener,
+    RingDatagramSource,
+    ServerName,
+    WorkerServerSocket
+} from '@jsprismarine/raknet';
 import type { RakNetListenerLike } from '@jsprismarine/raknet';
 import {
     HttpSignaling,
@@ -14,7 +21,7 @@ import {
     PortAllocator,
     withMappedCandidates
 } from '@jsprismarine/nethernet';
-import type { UdpPorts, WebRtcDriver } from '@jsprismarine/nethernet';
+import type { PortRange, UdpPorts, WebRtcDriver } from '@jsprismarine/nethernet';
 
 import ClientConnection from '../network/ClientConnection';
 import type { InboundPacketRecord, InboundPacketRecorder } from '../network/InboundPacketTrace';
@@ -105,6 +112,8 @@ export class ServerNetworking implements Networking {
     private signaling: HttpSignaling | undefined;
     /** The query protocol's own socket; set while query answers on a port RakNet does not hold. */
     private querySocket: QuerySocket | undefined;
+    /** The ports RakNet shares with NetherNet, which the native library owns; see ADR 0008. */
+    private sharedPorts: SharedPort[] = [];
     /** Every connection the transports have announced and not yet withdrawn. */
     private readonly liveConnections = new Set<ConnectionId>();
 
@@ -129,14 +138,23 @@ export class ServerNetworking implements Networking {
         // Read before anything binds, so a malformed setting stops the start instead of half of it.
         const udpPorts =
             driver === undefined ? undefined : parseUdpPorts(config.getServerUdpPorts(), config.getServerPublicIp());
+        // A RakNet port inside NetherNet's range is shared: the native library owns the socket and
+        // hands RakNet its datagrams (ADR 0008). Opened before anything binds, so a taken port
+        // stops the start here.
+        const shared =
+            driver !== undefined && udpPorts?.local !== undefined && config.getEnableRakNet()
+                ? await this.openSharedPorts(address, port, udpPorts.local)
+                : new Map<number, SharedPort>();
         const rakNet: RakNetTransport[] = [];
         // One per transport that binds, settled once it listens or cannot.
         const listening: Promise<void>[] = [];
         this.transport = new MultiTransport((ids) => {
             const transports: Transport[] = [];
             if (config.getEnableRakNet()) {
-                rakNet.push(this.startRakNet(address, port, serverName, ids, listening));
-                if (address === IPV4_WILDCARD) rakNet.push(this.startRakNetV6(serverName, ids, listening));
+                rakNet.push(this.startRakNet(address, port, serverName, ids, listening, shared.get(port)));
+                if (address === IPV4_WILDCARD) {
+                    rakNet.push(this.startRakNetV6(serverName, ids, listening, shared.get(config.getServerPortV6())));
+                }
                 transports.push(...rakNet);
             }
             if (driver !== undefined && udpPorts !== undefined) {
@@ -200,6 +218,8 @@ export class ServerNetworking implements Networking {
 
     /** Closes every transport that was started. */
     public kill(): void {
+        for (const port of this.sharedPorts) port.close();
+        this.sharedPorts = [];
         this.stopLanAdvertisement?.();
         this.stopLanAdvertisement = undefined;
         this.signaling?.close();
@@ -234,9 +254,10 @@ export class ServerNetworking implements Networking {
         port: number,
         serverName: ServerName,
         ids: ConnectionIds,
-        listening: Promise<void>[]
+        listening: Promise<void>[],
+        shared?: SharedPort
     ): RakNetTransport {
-        const raknet = this.createRakNetListener(serverName);
+        const raknet = this.createRakNetListener(serverName, shared === undefined ? undefined : { shared, family: 4 });
         listening.push(rakNetListening(raknet, `RakNet cannot listen on UDP port ${port}`));
         raknet.start(address, port);
         this.raknet = raknet;
@@ -248,9 +269,14 @@ export class ServerNetworking implements Networking {
      * `server-portv6`, as Bedrock Dedicated Server does. A port another program holds stops the
      * start, as it does for the IPv4 listener.
      */
-    private startRakNetV6(serverName: ServerName, ids: ConnectionIds, listening: Promise<void>[]): RakNetTransport {
+    private startRakNetV6(
+        serverName: ServerName,
+        ids: ConnectionIds,
+        listening: Promise<void>[],
+        shared?: SharedPort
+    ): RakNetTransport {
         const port = this.server.getConfig().getServerPortV6();
-        const raknet = this.createRakNetListener(serverName);
+        const raknet = this.createRakNetListener(serverName, shared === undefined ? undefined : { shared, family: 6 });
         listening.push(rakNetListening(raknet, `RakNet cannot listen for IPv6 clients on UDP port ${port}`));
         raknet.start(IPV6_WILDCARD, port);
         this.raknetV6 = raknet;
@@ -306,13 +332,80 @@ export class ServerNetworking implements Networking {
         });
     }
 
-    /** An unstarted RakNet listener on the shared server name, on a worker thread when the config says so. */
-    private createRakNetListener(serverName: ServerName): RakNetListenerLike {
+    /**
+     * An unstarted RakNet listener on the shared server name, on a worker thread when the config
+     * says so, and reading a port it shares with NetherNet through rings when given one.
+     */
+    private createRakNetListener(
+        serverName: ServerName,
+        sharing?: { readonly shared: SharedPort; readonly family: 4 | 6 }
+    ): RakNetListenerLike {
         const config = this.server.getConfig();
         const logger = this.server.getLogger();
-        return config.getUseRakNetWorker()
-            ? new WorkerServerSocket(config.getMaxPlayers(), config.getOnlineMode(), serverName, logger)
-            : new RakNetListener(config.getMaxPlayers(), config.getOnlineMode(), serverName, logger);
+        const ringed =
+            sharing === undefined
+                ? undefined
+                : (() => {
+                      const rings = allocateDatagramRings();
+                      const attach = (wakePort: number) => sharing.shared.attach(sharing.family, rings, wakePort);
+                      return { rings, family: sharing.family, port: sharing.shared.port, attach };
+                  })();
+        if (config.getUseRakNetWorker()) {
+            return new WorkerServerSocket(
+                config.getMaxPlayers(),
+                config.getOnlineMode(),
+                serverName,
+                logger,
+                {},
+                undefined,
+                ringed
+            );
+        }
+        const source =
+            ringed === undefined
+                ? undefined
+                : new RingDatagramSource(ringed.rings, ringed.family, ringed.port, ringed.attach);
+        return new RakNetListener(
+            config.getMaxPlayers(),
+            config.getOnlineMode(),
+            serverName,
+            logger,
+            {},
+            'copy',
+            undefined,
+            source
+        );
+    }
+
+    /**
+     * Opens the native library's shared port for each RakNet port NetherNet's local range covers:
+     * `port`, and `server-portv6` when the server listens on IPv6 too. One port serves both when
+     * the two are equal, since the mux socket is dual-stack.
+     * @throws {Error} When a port cannot be bound, naming it.
+     */
+    private async openSharedPorts(address: string, port: number, local: PortRange): Promise<Map<number, SharedPort>> {
+        const network = await NativeNetwork.load();
+        const wildcard = address === IPV4_WILDCARD;
+        const portV6 = wildcard ? this.server.getConfig().getServerPortV6() : port;
+        const wanted = new Set(
+            [port, ...(wildcard ? [portV6] : [])].filter(
+                (candidate) => candidate >= local.start && candidate <= local.end
+            )
+        );
+        const opened = new Map<number, SharedPort>();
+        for (const candidate of wanted) {
+            try {
+                opened.set(candidate, SharedPort.open(network, candidate, wildcard ? '' : address));
+            } catch (error: unknown) {
+                for (const shared of opened.values()) shared.close();
+                throw new Error(`RakNet and NetherNet cannot share UDP port ${candidate}: ${errorMessage(error)}`, {
+                    cause: error
+                });
+            }
+            this.server.getLogger().info(`RakNet and NetherNet share UDP port ${candidate}`);
+        }
+        this.sharedPorts = [...opened.values()];
+        return opened;
     }
 
     /**
