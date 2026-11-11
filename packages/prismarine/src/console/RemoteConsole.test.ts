@@ -11,10 +11,11 @@ import type { Chat } from '../chat/Chat';
 import { ChatType } from '../chat/Chat';
 import type { Config } from '../config/Config';
 import type { TickControl } from '../modules/ticker';
-import type Player from '../Player';
+import type PlayerSession from '../network/PlayerSession';
 import { EventEmitter } from '../events/EventEmitter';
 import ChatEvent from '../events/chat/ChatEvent';
 import type SessionManager from '../SessionManager';
+import { identityNamed } from '../testing/sessionIdentity.test.helper';
 import { stub } from '../testing/stub.test.helper';
 import { RemoteConsole } from './RemoteConsole';
 import type { FlushableLink } from './RemoteLogTransport';
@@ -46,9 +47,9 @@ const fakeServer = (overrides: { dispatchCommand?: () => Promise<boolean>; playe
         getCommandManager: () => stub<CommandManager>({ dispatchCommand, getVanillaCommands: () => commands }),
         getSessionManager: () =>
             stub<SessionManager>({
-                getAllPlayers: () =>
+                getSessions: () =>
                     Array.from({ length: players }, (_, index) =>
-                        stub<Player>({ getName: () => `player-${index + 1}` })
+                        stub<PlayerSession>({ identity: identityNamed(`player-${index + 1}`) })
                     )
             }),
         getConfig: () => stub<Config>({ getMaxPlayers: () => 20 }),

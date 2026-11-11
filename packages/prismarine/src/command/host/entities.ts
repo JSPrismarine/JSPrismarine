@@ -209,8 +209,8 @@ export const entityCommandHost = (server: Server, scoreboard: Scoreboard): Entit
         base === '@a' || base === '@p' || base === '@r'
             ? server
                   .getSessionManager()
-                  .getAllPlayers()
-                  .flatMap((player) => player.getActor() ?? [])
+                  .getSessions()
+                  .flatMap((session) => session.getPlayer().getActor() ?? [])
             : worldOf(server, dimension).getActors();
 
     const applyAttribute = (

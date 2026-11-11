@@ -137,7 +137,11 @@ export const serverSideCommandHost = (server: Server, onStopRequested: () => voi
             return carryOut(player.kick(reason), true);
         },
 
-        listPlayers: () => server.getSessionManager().getAllPlayers().map(entityRefOf),
+        listPlayers: () =>
+            server
+                .getSessionManager()
+                .getSessions()
+                .map((session) => entityRefOf(session.getPlayer())),
 
         // Kept alive on purpose: the process exiting from inside a command
         // would take the dispatch's own feedback with it.

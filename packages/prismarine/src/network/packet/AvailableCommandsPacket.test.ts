@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest';
 import type Player from '../../Player';
 import type Server from '../../Server';
 import type SessionManager from '../../SessionManager';
+import type PlayerSession from '../../network/PlayerSession';
 import { CommandManager } from '../../command/CommandManager';
 import type { Config } from '../../config/Config';
 import type { PermissionManager } from '../../permission/PermissionManager';
@@ -12,6 +13,7 @@ import { stub } from '../../testing/stub.test.helper';
 import type ClientConnection from '../ClientConnection';
 import { NetworkUtil } from '../NetworkUtil';
 import { sessionFor } from '../../testing/playerSession.test.helper';
+import { identityNamed } from '../../testing/sessionIdentity.test.helper';
 import { CommandChainedSubcommand } from '@jsprismarine/protocol/wire/structures/CommandChainedSubcommand';
 import CommandData from '@jsprismarine/protocol/wire/structures/CommandData';
 import { CommandEnum } from '@jsprismarine/protocol/wire/structures/CommandEnum';
@@ -405,14 +407,14 @@ describe('AvailableCommandsPacket', () => {
 
     it("sends the server's default command set in a form a 2193 reader decodes to the end", async () => {
         const sent: NetworkPacket[] = [];
-        const players: Player[] = [];
+        const sessions: PlayerSession[] = [];
         const logger = stub<Logger>({ verbose() {}, debug() {}, info() {}, warn() {}, error() {} });
         const server = stub<Server>({
             emit: async () => {},
             getLogger: () => logger,
             // No pack stack, so the command layer offers the commands a server without one has.
             getContent: () => testContent(),
-            getSessionManager: () => stub<SessionManager>({ getAllPlayers: () => players }),
+            getSessionManager: () => stub<SessionManager>({ getSessions: () => sessions }),
             getPermissionManager: () =>
                 stub<PermissionManager>({
                     can: () => ({ execute: () => true, not: () => ({ execute: () => false }) })
@@ -430,14 +432,16 @@ describe('AvailableCommandsPacket', () => {
         await commandManager.enable();
 
         const player = stub<Player>({ getName: () => 'Steve', getServer: () => server, isOp: () => false });
-        players.push(player);
         const connection = stub<ClientConnection>({
             sendDataPacket: async (packet) => {
                 sent.push(packet);
             }
         });
 
-        await sessionFor(server, connection, player).sendAvailableCommands();
+        const session = sessionFor(server, connection, player, { identity: identityNamed('Steve') });
+        sessions.push(session);
+
+        await session.sendAvailableCommands();
 
         const [packet] = sent;
         expect(packet).toBeInstanceOf(AvailableCommandsPacket);

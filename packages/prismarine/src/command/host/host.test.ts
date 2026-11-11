@@ -199,7 +199,7 @@ const buildFixture = (): Fixture => {
                     return nether;
                 }
             }),
-        getSessionManager: () => stub({ getAllPlayers: () => players }),
+        getSessionManager: () => stub({ getSessions: () => players.map((player) => player.getNetworkSession()) }),
         getPermissionManager: () =>
             stub<PermissionManager>({
                 isOp: () => false,

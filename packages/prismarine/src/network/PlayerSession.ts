@@ -1882,8 +1882,8 @@ export default class PlayerSession {
         players.name = PLAYER_SOFT_ENUM;
         players.values = this.server
             .getSessionManager()
-            .getAllPlayers()
-            .map((player) => player.getName());
+            .getSessions()
+            .map(({ identity }) => identity.name);
         pk.softEnums = [players];
 
         const player = this.getPlayer();

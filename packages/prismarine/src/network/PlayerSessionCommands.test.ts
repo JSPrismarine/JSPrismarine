@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest';
 import type Player from '../Player';
 import type Server from '../Server';
 import type SessionManager from '../SessionManager';
+import type PlayerSession from './PlayerSession';
 import { CommandManager } from '../command/CommandManager';
 import { UNWIRED_COMMANDS } from '../command/vanillaCommands';
 import type { Config } from '../config/Config';
@@ -13,6 +14,7 @@ import { canExecute } from '../permission/PermissionManager';
 import { stub } from '../testing/stub.test.helper';
 import type ClientConnection from './ClientConnection';
 import { sessionFor } from '../testing/playerSession.test.helper';
+import { identityNamed } from '../testing/sessionIdentity.test.helper';
 import AvailableCommandsPacket from '@jsprismarine/protocol/packet/AvailableCommandsPacket';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import { CommandParameterType } from '@jsprismarine/protocol/wire/structures/CommandParameter';
@@ -30,14 +32,14 @@ const commandsSentTo = async ({
     permissions = DEFAULT_PERMISSIONS
 }: { op?: boolean; permissions?: string[] } = {}) => {
     const sent: NetworkPacket[] = [];
-    const players: Player[] = [];
+    const sessions: PlayerSession[] = [];
     const logger = stub<Logger>({ verbose() {}, debug() {}, info() {}, warn() {}, error() {} });
     const server = stub<Server>({
         emit: async () => {},
         getLogger: () => logger,
         // No pack stack, so the command layer offers the commands a server without one has.
         getContent: () => testContent(),
-        getSessionManager: () => stub<SessionManager>({ getAllPlayers: () => players }),
+        getSessionManager: () => stub<SessionManager>({ getSessions: () => sessions }),
         getPermissionManager: () =>
             stub<PermissionManager>({
                 can: canExecute,
@@ -61,14 +63,16 @@ const commandsSentTo = async ({
         isOp: () => op,
         getPermissions: () => permissions
     });
-    players.push(player);
     const connection = stub<ClientConnection>({
         sendDataPacket: async (packet) => {
             sent.push(packet);
         }
     });
 
-    await sessionFor(server, connection, player).sendAvailableCommands();
+    const session = sessionFor(server, connection, player, { identity: identityNamed('Steve') });
+    sessions.push(session);
+
+    await session.sendAvailableCommands();
 
     const [packet] = sent;
     if (!(packet instanceof AvailableCommandsPacket)) throw new Error('No AvailableCommandsPacket was sent');
@@ -148,13 +152,13 @@ describe('PlayerSession', () => {
         it('filters the shared cached tree using each senders current permissions', async () => {
             const sent: NetworkPacket[] = [];
             let permissions = [...DEFAULT_PERMISSIONS];
-            const players: Player[] = [];
+            const sessions: PlayerSession[] = [];
             const logger = stub<Logger>({ verbose() {}, debug() {}, info() {}, warn() {}, error() {} });
             const server = stub<Server>({
                 emit: async () => {},
                 getLogger: () => logger,
                 getContent: () => testContent(),
-                getSessionManager: () => stub<SessionManager>({ getAllPlayers: () => players }),
+                getSessionManager: () => stub<SessionManager>({ getSessions: () => sessions }),
                 getPermissionManager: () => stub<PermissionManager>({ can: canExecute }),
                 getCommandManager: () => commandManager,
                 getConfig: () =>
@@ -173,13 +177,13 @@ describe('PlayerSession', () => {
                 isOp: () => false,
                 getPermissions: () => permissions
             });
-            players.push(player);
             const connection = stub<ClientConnection>({
                 sendDataPacket: async (packet) => {
                     sent.push(packet);
                 }
             });
-            const session = sessionFor(server, connection, player);
+            const session = sessionFor(server, connection, player, { identity: identityNamed('Steve') });
+            sessions.push(session);
 
             await session.sendAvailableCommands();
             permissions = ['minecraft.command.stop'];

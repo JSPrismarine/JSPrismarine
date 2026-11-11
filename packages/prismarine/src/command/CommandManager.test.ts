@@ -38,7 +38,7 @@ describe('command', () => {
                 error: () => {}
             }),
             getSessionManager: () => ({
-                getAllPlayers: () => []
+                getSessions: () => []
             }),
             // No content build, which is what decides whether the commands
             // whose subsystem is the pack stack are registered at all.
@@ -246,26 +246,27 @@ describe('command', () => {
                         getWorld: () => world
                     }
                 };
+                // The command host and the operator change read who the target is off its session.
+                const targetSession = stub<ReturnType<Player['getNetworkSession']>>({
+                    identity: identityNamed('Target', targetUuid),
+                    getPlayer: () => target,
+                    sendAvailableCommands: async () => {},
+                    announceSettings: async () => {}
+                });
                 const target: Player = playerOnPrototype(
                     {
                         getName: () => 'Target',
                         getUUID: () => UUID.fromString(targetUuid),
-                        // The command host reads who the target is off its session.
-                        getNetworkSession: () =>
-                            stub<ReturnType<Player['getNetworkSession']>>({
-                                identity: identityNamed('Target', targetUuid),
-                                sendAvailableCommands: async () => {}
-                            }),
-                        getServer: () => server,
-                        sendSettings: async () => {}
+                        getNetworkSession: () => targetSession,
+                        getServer: () => server
                     },
                     body
                 );
                 const sessionManager: SessionManager = stub<SessionManager>({
                     // Both, and agreeing: a vanilla command resolves its targets through the
                     // player list where a legacy one looked the name up directly.
-                    getAllPlayers: () => [target],
-                    getPlayerByExactName: (name) => (name === 'Target' ? target : null)
+                    getSessions: () => [target.getNetworkSession()],
+                    findSession: ({ name }) => (name === 'Target' ? target.getNetworkSession() : null)
                 });
                 const permissionManager = new PermissionManager({
                     getLogger: () => logger,
