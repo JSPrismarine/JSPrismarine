@@ -11,9 +11,10 @@ import {
     NetherNetIdentity,
     NetherNetServer,
     parseUdpPorts,
+    PortAllocator,
     withMappedCandidates
 } from '@jsprismarine/nethernet';
-import type { WebRtcDriver } from '@jsprismarine/nethernet';
+import type { UdpPorts, WebRtcDriver } from '@jsprismarine/nethernet';
 
 import ClientConnection from '../network/ClientConnection';
 import type { InboundPacketRecord, InboundPacketRecorder } from '../network/InboundPacketTrace';
@@ -125,6 +126,9 @@ export class ServerNetworking implements Networking {
         // Loaded before anything binds: with no WebRTC stack, NetherNet cannot start, and nothing
         // else should have started either.
         const driver = config.getEnableNetherNet() ? await this.loadWebRtcDriver() : undefined;
+        // Read before anything binds, so a malformed setting stops the start instead of half of it.
+        const udpPorts =
+            driver === undefined ? undefined : parseUdpPorts(config.getServerUdpPorts(), config.getServerPublicIp());
         const rakNet: RakNetTransport[] = [];
         // One per transport that binds, settled once it listens or cannot.
         const listening: Promise<void>[] = [];
@@ -135,8 +139,8 @@ export class ServerNetworking implements Networking {
                 if (address === IPV4_WILDCARD) rakNet.push(this.startRakNetV6(serverName, ids, listening));
                 transports.push(...rakNet);
             }
-            if (driver !== undefined) {
-                transports.push(this.startNetherNet(driver, address, port, serverName, ids, listening));
+            if (driver !== undefined && udpPorts !== undefined) {
+                transports.push(this.startNetherNet(driver, udpPorts, address, port, serverName, ids, listening));
             }
             if (transports.length === 0) {
                 throw new Error('No transport is enabled: turn on enable-raknet or enable-nethernet in config.json');
@@ -320,6 +324,7 @@ export class ServerNetworking implements Networking {
      */
     private startNetherNet(
         driver: WebRtcDriver,
+        udpPorts: UdpPorts,
         address: string,
         port: number,
         serverName: ServerName,
@@ -329,15 +334,21 @@ export class ServerNetworking implements Networking {
         const server = this.server;
         const config = server.getConfig();
         const logger = server.getLogger();
-        // Read before anything binds, so a malformed setting stops the start instead of half of it.
-        const udpPorts = parseUdpPorts(config.getServerUdpPorts());
-        const local = udpPorts.local;
+        for (const warning of udpPorts.warnings) logger.warn(warning);
+        const ports = udpPorts.local === undefined ? undefined : new PortAllocator(udpPorts.local);
+        const wildcard = address === IPV4_WILDCARD || address === IPV6_WILDCARD;
         const nethernet = new NetherNetServer({
             driver,
             // Discovery is IPv4 broadcast, so an IPv6 bind address leaves it on every interface.
             host: isIPv4(address) ? address : '0.0.0.0',
-            peerConfig: () => (local === undefined ? {} : { portRangeBegin: local.start, portRangeEnd: local.end })
+            peerConfig: () => (wildcard ? {} : { bindAddress: address }),
+            ...(ports === undefined ? {} : { ports })
         });
+        if (ports !== undefined) {
+            logger.info(
+                `NetherNet players use UDP ${ports.range.start === ports.range.end ? `port ${ports.range.start}` : `ports ${ports.range.start}-${ports.range.end}`}`
+            );
+        }
 
         // Kept in the server directory: a client joining over plain HTTP remembers the key and
         // asks the player again if it ever changes.
@@ -345,7 +356,7 @@ export class ServerNetworking implements Networking {
         this.signaling = new HttpSignaling({
             answerer: nethernet,
             status: () => joinStatusJson(netherNetStatusOf(serverName.getSnapshot(), config.getLevelName())),
-            sign: (answer) => identity.sign(withMappedCandidates(answer, udpPorts.mappings)),
+            sign: (answer) => identity.sign(withMappedCandidates(answer, udpPorts.mappings, udpPorts.publicIp)),
             logger
         });
         listening.push(

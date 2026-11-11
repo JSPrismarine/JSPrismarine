@@ -35,7 +35,9 @@ export {
     withSessionAttribute
 } from './sdp';
 export { describeCandidates, tracePeerConnection } from './tracePeerConnection';
-export { parseUdpPorts, withMappedCandidates } from './udpPorts';
+export { fewestPeers, PortAllocator } from './PortAllocator';
+export type { PortLoad, PortSelectionStrategy } from './PortAllocator';
+export { parsePublicIp, parseUdpPorts, UdpPortsError, withMappedCandidates } from './udpPorts';
 export type { PortMapping, PortRange, UdpPorts } from './udpPorts';
 export type { SdpFingerprint } from './sdp';
 export { candidateAddress } from './WebRtcDriver';

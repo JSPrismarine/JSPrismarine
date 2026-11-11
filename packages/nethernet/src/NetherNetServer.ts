@@ -2,6 +2,7 @@ import dgram from 'node:dgram';
 import { EventEmitter } from 'node:events';
 
 import { Connection } from './Connection';
+import type { PortAllocator } from './PortAllocator';
 import { NETHERNET_LAN_PORT } from './NetherNetDefaults';
 import { DiscoveryPacketType, decodeDiscoveryPacket, encodeDiscoveryPacket } from './protocol/Discovery';
 import type { DiscoveryPacket } from './protocol/Discovery';
@@ -28,8 +29,13 @@ export interface NetherNetServerOptions {
     /** The LAN discovery port; NetherNet's fixed 7551 when absent, which a test cannot share. */
     readonly lanPort?: number;
     readonly acceptTimeoutMs?: number;
-    /** The configuration of the peer for a new offer, such as its mux port. */
+    /** The configuration of the peer for a new offer, such as its bind address. */
     readonly peerConfig?: (connectionId: bigint) => PeerConfig;
+    /**
+     * The local UDP ports peers share, one mux port each; the system picks a port per peer when
+     * absent.
+     */
+    readonly ports?: PortAllocator;
 }
 
 /**
@@ -45,6 +51,8 @@ export class NetherNetServer extends EventEmitter {
     /** Every connection by the ID its client picked, opened or still negotiating. */
     public readonly connections = new Map<bigint, Connection>();
     private readonly acceptTimeouts = new Map<bigint, NodeJS.Timeout>();
+    /** The mux port each connection was given. */
+    private readonly portOf = new Map<bigint, number>();
     private readonly acceptTimeoutMs: number;
     private socket: dgram.Socket | undefined;
     private advertisement: Buffer | undefined;
@@ -79,15 +87,23 @@ export class NetherNetServer extends EventEmitter {
         };
 
         let connection: Connection;
+        const port = this.options.ports?.acquire();
         try {
+            const config = this.options.peerConfig?.(signal.connectionId) ?? {};
             connection = new Connection(
                 signal.connectionId,
-                this.options.driver.createPeer(this.options.peerConfig?.(signal.connectionId))
+                this.options.driver.createPeer(
+                    port === undefined
+                        ? config
+                        : { ...config, enableIceUdpMux: true, portRangeBegin: port, portRangeEnd: port }
+                )
             );
         } catch {
+            if (port !== undefined) this.options.ports?.release(port);
             fail(ErrorCode.FailedToCreatePeerConnection, 'peerfailed');
             return;
         }
+        if (port !== undefined) this.portOf.set(signal.connectionId, port);
         this.connections.set(signal.connectionId, connection);
         connection.on('message', (message: Buffer) => this.emit('encapsulated', message, signal.connectionId));
         connection.once('close', (reason: string) => this.forget(connection, reason));
@@ -285,6 +301,11 @@ export class NetherNetServer extends EventEmitter {
         if (this.connections.get(connection.id) !== connection) return;
         this.clearAcceptTimeout(connection.id);
         this.connections.delete(connection.id);
+        const port = this.portOf.get(connection.id);
+        if (port !== undefined) {
+            this.portOf.delete(connection.id);
+            this.options.ports?.release(port);
+        }
         this.emit('closeConnection', connection.id, reason);
     }
 }

@@ -151,6 +151,19 @@ describe('config', () => {
             expect(config.getServerUdpPorts()).toBe('');
         });
 
+        it('advertises no public address unless config.json names one, and writes none to a fresh file', async () => {
+            expect(config.getServerPublicIp()).toBe('');
+            expect(readFileSync(path.join(configDirectory, 'config.json'), 'utf8')).not.toContain('"server-public-ip"');
+
+            writeFileSync(
+                path.join(configDirectory, 'config.json'),
+                JSON.stringify({ 'server-public-ip': '203.0.113.7' })
+            );
+            const fromFile = new Config();
+            await fromFile.enable();
+            expect(fromFile.getServerPublicIp()).toBe('203.0.113.7');
+        });
+
         it('reads the transport and LAN visibility switches from config.json', async () => {
             writeFileSync(
                 path.join(configDirectory, 'config.json'),

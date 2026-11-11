@@ -82,6 +82,7 @@ describe('modules/network', () => {
                     // Off, so the test binds nothing: UDP 7551 is a fixed, shared port.
                     getEnableLanVisibility: () => false,
                     getServerUdpPorts: () => '',
+                    getServerPublicIp: () => '',
                     getLevelName: () => 'world'
                 }),
             getLogger: () => stub<Logger>({ info: () => {}, warn: () => {}, error: () => {} }),
@@ -119,13 +120,14 @@ describe('modules/network', () => {
                     getMotd: () => 'test server',
                     getEnableRakNet: () => false,
                     getEnableNetherNet: () => true,
-                    getServerUdpPorts: () => 'ports'
+                    getServerUdpPorts: () => 'ports',
+                    getServerPublicIp: () => ''
                 }),
             getLogger: () => stub<Logger>({ info: () => {}, warn: () => {}, error: () => {} })
         });
 
         await expect(new ServerNetworking(server).start('127.0.0.1', 0)).rejects.toThrow(
-            'server-udp-ports: ports is neither a port range nor a mapping'
+            'server-udp-ports: Invalid Port. Port must be in the range [ 1, 65535 ]'
         );
     });
 

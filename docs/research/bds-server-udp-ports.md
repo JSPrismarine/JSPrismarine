@@ -137,10 +137,29 @@ Sampled with `ss -ulpn` ten times a second while our own bots joined over Nether
 - The server held UDP 7551 with `enable-lan-visibility=false` in every run.
 - One sample of the range run showed port 19620 alone, before 19621 appeared, so ports are opened as players arrive.
 
+## What the answer advertises
+
+Added 2026-11-11. Each row is one start of 1.26.70.24 with `server-port=19610`, and the candidates of
+its answer to a real offer posted to `POST /v1/join/{networkId}`. The host has the IPv4 interface
+addresses 51.81.203.68 and 100.124.62.36, and the IPv6 address fd7a:115c:a1e0::5f35:3e25. (Run.)
+
+| Setting | Candidates in the answer |
+| --- | --- |
+| unset | A host candidate on 19610 for each interface address |
+| `19620` | A host candidate on 19620 for each interface address |
+| `19620-19621` | A host candidate on 19620 for each interface address |
+| `29489:19620` | For each interface address, a host candidate on 19620 and a server-reflexive one at the same address on 29489, with `raddr` and `rport` naming the host |
+| `29489-29490:19620-19621` | The same as `29489:19620`: the answer's port was 19620 |
+| `203.0.113.9:29489:19620` | For each IPv4 address, a host candidate on 19620 and a server-reflexive one at 203.0.113.9 on 29489; for the IPv6 address, the host candidate only |
+| `server-public-ip=203.0.113.7`, or `[2001:db8::1]` | No answer to read: with `server-public-ip` set, BDS opened no TCP listener, logged `Signed in to signaling service successfully`, and signaled through Microsoft's service instead |
+
+A server-reflexive candidate keeps its host's priority with the type preference 100 in place of 126:
+host `2122194687` (0x7E7DFFFF) and reflexive `1685987071` (0x647DFFFF).
+
 ## Not checked
 
 - How BDS picks a port for a player within a range, beyond that both ports of a two-port range were used by six players.
-- What a client receives for a mapping: the candidates in the answer for `public:local` and `server-public-ip`.
+- The candidates for `server-public-ip` itself, which BDS does not serve over HTTP signaling. The IP prefix, which BDS treats as the same setting, shows what it advertises.
 - The 1.26.63.1 binary. Only its comment was read.
 - A retail client. Our bots stop at the login.
 
