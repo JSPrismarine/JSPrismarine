@@ -27,6 +27,7 @@ import type { PlayerRecordSource, PlayerRecordTarget, RecordedPosition } from '.
 import type { StoredSpawnPoint } from '../world/RespawnPoint';
 import type { DataEntity } from './data/DataEntity';
 import { EYE_HEIGHT } from './playerEyes';
+import { portalCooldownOf } from './PortalContact';
 import { PlayerComponents } from './playerComponents';
 import { setSaturation } from './playerHunger';
 import type { PlayerSystems } from './data/playerSystems';
@@ -190,6 +191,6 @@ export class StorePlayer implements PlayerRecordSource, PlayerRecordTarget {
 
     /** Starts the portal cooldown, in whole ticks and never below zero, as a live player's. */
     public setPortalCooldown(ticks: number): void {
-        this.portalCooldown = Math.max(0, Math.floor(ticks));
+        this.portalCooldown = portalCooldownOf(ticks);
     }
 }
