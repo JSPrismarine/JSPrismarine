@@ -29,7 +29,6 @@ import type { InputLaneHandler } from './SessionHandler';
  */
 export default class RespawnHandler implements InputLaneHandler<RespawnPacket> {
     public static PacketName = 'RespawnPacket';
-    public readonly takes = 'context';
     public readonly phases = ['play'] as const;
     public readonly lane = 'input';
 

@@ -12,7 +12,6 @@ import type { ConnectionLaneHandler } from './SessionHandler';
  */
 export default class ResourcePacksReadyForValidationHandler implements ConnectionLaneHandler<ResourcePacksReadyForValidationPacket> {
     public static PacketName = 'ResourcePacksReadyForValidationPacket';
-    public readonly takes = 'context';
     public readonly phases = ['resourcePacks'] as const;
     public readonly lane = 'connection';
 

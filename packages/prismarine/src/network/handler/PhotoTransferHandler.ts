@@ -10,7 +10,6 @@ import type { ConnectionLaneHandler } from './SessionHandler';
  */
 export default class PhotoTransferHandler implements ConnectionLaneHandler<PhotoTransferPacket> {
     public static PacketName = 'PhotoTransferPacket';
-    public readonly takes = 'context';
     public readonly phases = ['play'] as const;
     public readonly lane = 'connection';
 

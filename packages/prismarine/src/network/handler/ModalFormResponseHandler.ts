@@ -14,7 +14,6 @@ import type { ConnectionLaneHandler } from './SessionHandler';
  */
 export default class ModalFormResponseHandler implements ConnectionLaneHandler<ModalFormResponsePacket> {
     public static PacketName = 'ModalFormResponsePacket';
-    public readonly takes = 'context';
     public readonly phases = ['play'] as const;
     public readonly lane = 'connection';
 

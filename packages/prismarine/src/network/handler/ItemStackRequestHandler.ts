@@ -328,7 +328,6 @@ const bedrockRecipeResult = (
 
 export default class ItemStackRequestHandler implements InputLaneHandler<ItemStackRequestPacket> {
     public static PacketName = 'ItemStackRequestPacket';
-    public readonly takes = 'context';
     public readonly phases = ['play'] as const;
     public readonly lane = 'input';
 

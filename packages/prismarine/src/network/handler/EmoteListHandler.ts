@@ -10,7 +10,6 @@ import type { ConnectionLaneHandler } from './SessionHandler';
  */
 export default class EmoteListHandler implements ConnectionLaneHandler<EmoteListPacket> {
     public static PacketName = 'EmoteListPacket';
-    public readonly takes = 'context';
     public readonly phases = ['play'] as const;
     public readonly lane = 'connection';
 

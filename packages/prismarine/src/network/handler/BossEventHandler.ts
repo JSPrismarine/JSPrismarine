@@ -14,7 +14,6 @@ import type { ReadLaneHandler } from './SessionHandler';
  */
 export default class BossEventHandler implements ReadLaneHandler<BossEventPacket> {
     public static PacketName = 'BossEventPacket';
-    public readonly takes = 'context';
     public readonly phases = ['play'] as const;
     public readonly lane = 'read';
 

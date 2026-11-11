@@ -10,7 +10,6 @@ import type { ConnectionLaneHandler } from './SessionHandler';
  */
 export default class ServerboundDiagnosticsHandler implements ConnectionLaneHandler<ServerboundDiagnosticsPacket> {
     public static PacketName = 'ServerboundDiagnosticsPacket';
-    public readonly takes = 'context';
     public readonly phases = ['resourcePacks', 'play'] as const;
     public readonly lane = 'connection';
 

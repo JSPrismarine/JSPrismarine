@@ -15,7 +15,6 @@ import type { InputLaneHandler } from './SessionHandler';
  */
 export default class ServerboundLoadingScreenHandler implements InputLaneHandler<ServerboundLoadingScreenPacket> {
     public static PacketName = 'ServerboundLoadingScreenPacket';
-    public readonly takes = 'context';
     public readonly phases = ['play'] as const;
     public readonly lane = 'input';
 

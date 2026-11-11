@@ -12,7 +12,6 @@ import type { ConnectionLaneHandler } from './SessionHandler';
  */
 export default class MultiplayerSettingsHandler implements ConnectionLaneHandler<MultiplayerSettingsPacket> {
     public static PacketName = 'MultiplayerSettingsPacket';
-    public readonly takes = 'context';
     public readonly phases = ['play'] as const;
     public readonly lane = 'connection';
 

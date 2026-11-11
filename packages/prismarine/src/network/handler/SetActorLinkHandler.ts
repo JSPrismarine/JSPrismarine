@@ -13,7 +13,6 @@ import type { ConnectionLaneHandler } from './SessionHandler';
  */
 export default class SetActorLinkHandler implements ConnectionLaneHandler<SetActorLinkPacket> {
     public static PacketName = 'SetActorLinkPacket';
-    public readonly takes = 'context';
     public readonly phases = ['play'] as const;
     public readonly lane = 'connection';
 

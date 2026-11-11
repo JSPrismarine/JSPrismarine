@@ -16,7 +16,6 @@ import type { InputLaneHandler } from './SessionHandler';
  */
 export default class RequestPermissionsHandler implements InputLaneHandler<RequestPermissionsPacket> {
     public static PacketName = 'RequestPermissionsPacket';
-    public readonly takes = 'context';
     public readonly phases = ['play'] as const;
     public readonly lane = 'input';
 

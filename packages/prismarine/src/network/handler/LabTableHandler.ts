@@ -18,7 +18,6 @@ const LAB_TABLES: ReadonlySet<string> = new Set(['minecraft:lab_table']);
  */
 export default class LabTableHandler implements ReadLaneHandler<LabTablePacket> {
     public static PacketName = 'LabTablePacket';
-    public readonly takes = 'context';
     public readonly phases = ['play'] as const;
     public readonly lane = 'read';
 

@@ -247,7 +247,6 @@ export const rejectionReason = (transaction: ServerInventoryTransaction): string
  */
 export default class InventoryTransactionHandler implements InputLaneHandler<InventoryTransactionPacket> {
     public static PacketName = 'InventoryTransactionPacket';
-    public readonly takes = 'context';
     public readonly phases = ['play'] as const;
     public readonly lane = 'input';
 

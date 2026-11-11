@@ -17,7 +17,9 @@ import TextPacket from '@jsprismarine/protocol/packet/TextPacket';
 import { PacketLogFilter } from './PacketLogFilter';
 import type PacketHandlerRegistry from './PacketHandlerRegistry';
 import type PlayerSession from './PlayerSession';
-import type { SessionHandler } from './handler/SessionHandler';
+import type { World } from '../world/World';
+import type { InputContext } from './handler/HandlerContext';
+import type { InputLaneHandler, SessionHandler } from './handler/SessionHandler';
 import { STEVE } from '../testing/sessionIdentity.test.helper';
 import type { InboundPacketRecorder } from './InboundPacketTrace';
 import { InboundPacketTrace } from './InboundPacketTrace';
@@ -156,6 +158,8 @@ const compressedFrameOf = (packet: TextPacket) => {
 };
 
 /** Wires a dispatcher over typed doubles; each test picks the registry and connections. */
+type DoubleContext = InputContext & { readonly connection?: ClientConnection };
+
 const makeDispatcher = (options?: {
     codec?: ProtocolCodec;
     recorder?: InboundPacketRecorder;
@@ -175,10 +179,10 @@ const makeDispatcher = (options?: {
     handler?: {
         phases: readonly SessionPhase[];
         /**
-         * Handed the server and the session in the play phases, and the connection's context
-         * before a session exists.
+         * Handed the session's context in the play phases, and the connection's context before
+         * a session exists. An input-lane double is awaited through the step's outputs.
          */
-        handle: (packet: unknown, given: unknown, target: unknown) => Promise<void>;
+        handle: (packet: unknown, context: DoubleContext) => Promise<void>;
     };
     /** A handler in the shared shape, registered for every packet in place of `handler`. */
     contextHandler?: SessionHandler<unknown>;
@@ -193,11 +197,20 @@ const makeDispatcher = (options?: {
             if (options?.contextHandler) return options.contextHandler;
             if (!options?.handler) throw new Error('no handler registered');
             // Every double here runs in the handshake phase, before a session exists.
-            return {
-                lane: options.lanes?.[name] ?? 'connection',
-                ...options.handler,
-                phases: options.phasesOf?.[name] ?? options.handler.phases
-            };
+            const lane = options.lanes?.[name] ?? 'connection';
+            const phases = options.phasesOf?.[name] ?? options.handler.phases;
+            const { handle } = options.handler;
+            if (lane === 'input') {
+                return {
+                    lane,
+                    phases,
+                    handle: (packet, context) => {
+                        context.step.output(handle(packet, context));
+                        return undefined;
+                    }
+                } satisfies InputLaneHandler<unknown>;
+            }
+            return lane === 'read' ? { lane, phases, handle } : { lane, phases, handle };
         }
     });
     const built: ClientConnection[] = [];
@@ -349,15 +362,11 @@ describe('network', () => {
 
         it('hands a handshake-phase handler the context of its connection, and not the server', async () => {
             const targets: unknown[] = [];
-            const extra: unknown[] = [];
             const { transport, built } = makeDispatcher({
                 handler: {
                     phases: ['handshake'],
-                    handle: async (_packet, context, target) => {
-                        extra.push(target);
-                        if (typeof context === 'object' && context !== null && 'connection' in context) {
-                            targets.push(context.connection);
-                        }
+                    handle: async (_packet, context) => {
+                        if ('connection' in context) targets.push(context.connection);
                     }
                 }
             });
@@ -366,7 +375,6 @@ describe('network', () => {
             await transport.emitFrame(frameOf(message('login')), 1);
 
             expect(targets).toStrictEqual([built[0]]);
-            expect(extra).toStrictEqual([undefined]);
         });
 
         it('records accepted packet bytes with global order, connection order, and the tick they ran in', async () => {
@@ -716,7 +724,7 @@ describe('network', () => {
             const { transport, built, lines } = makeDispatcher({
                 handler: {
                     phases: ['handshake'],
-                    handle: async (_packet, _server, target) => void targets.push(target)
+                    handle: async (_packet, context) => void targets.push(context.session)
                 }
             });
             await transport.emitConnect(fakeConnection(1).connection);
@@ -751,7 +759,7 @@ describe('network', () => {
             const targets: unknown[] = [];
             const { transport, built } = makeDispatcher({
                 recorder: trace,
-                handler: { phases: ['play'], handle: async (_packet, _server, target) => void targets.push(target) }
+                handler: { phases: ['play'], handle: async (_packet, context) => void targets.push(context.session) }
             });
             await transport.emitConnect(fakeConnection(1).connection);
             built[0]!.phase = 'play';
@@ -836,7 +844,7 @@ describe('network', () => {
         it('drops a play packet that arrives before login has completed', async () => {
             const targets: unknown[] = [];
             const { transport, lines } = makeDispatcher({
-                handler: { phases: ['play'], handle: async (_packet, _server, target) => void targets.push(target) }
+                handler: { phases: ['play'], handle: async (_packet, context) => void targets.push(context.session) }
             });
             await transport.emitConnect(fakeConnection(1).connection);
 
@@ -853,7 +861,7 @@ describe('network', () => {
         it('drops a session packet whose connection has no session yet', async () => {
             const targets: unknown[] = [];
             const { transport, built, lines } = makeDispatcher({
-                handler: { phases: ['play'], handle: async (_packet, _server, target) => void targets.push(target) }
+                handler: { phases: ['play'], handle: async (_packet, context) => void targets.push(context.session) }
             });
             await transport.emitConnect(fakeConnection(1).connection);
             built[0]!.phase = 'play';
@@ -884,6 +892,13 @@ describe('network', () => {
     });
 
     describe('NetworkDispatcher input lane', () => {
+        /** A dispatcher whose connections have a session, as a handler in the shared shape needs. */
+        const makeSessionDispatcher = (options?: Parameters<typeof makeDispatcher>[0]) =>
+            makeDispatcher({
+                session: { session: stub<PlayerSession>({ identity: STEVE }), phase: 'play' },
+                ...options
+            });
+
         const cacheStatus = () => {
             const packet = new ClientCacheStatusPacket();
             packet.enabled = true;
@@ -919,11 +934,11 @@ describe('network', () => {
         it('never runs an input-lane handler inside a world update, and a read-lane one on arrival', async () => {
             const order: string[] = [];
             let tick = 0;
-            const { transport, dispatcher } = makeDispatcher({
+            const { transport, dispatcher } = makeSessionDispatcher({
                 tick: () => tick,
                 lanes: { TextPacket: 'input', ClientCacheStatusPacket: 'read' },
                 handler: {
-                    phases: ['handshake'],
+                    phases: ['play'],
                     handle: async (packet) => {
                         order.push(nameOf(packet));
                     }
@@ -967,11 +982,10 @@ describe('network', () => {
 
         it('applies a handler that takes a context in the input step, with the session and its tick', async () => {
             const seen: string[] = [];
-            const { transport, dispatcher } = makeDispatcher({
+            const { transport, dispatcher } = makeSessionDispatcher({
                 tick: () => 5,
                 session: { session: stub<PlayerSession>({ identity: STEVE }), phase: 'play' },
                 contextHandler: {
-                    takes: 'context',
                     lane: 'input',
                     phases: ['play'],
                     handle: (_packet, { session, step }) => {
@@ -990,10 +1004,10 @@ describe('network', () => {
 
         it('applies every input a connection sent before a step in that step, and a later read after it', async () => {
             const order: string[] = [];
-            const { transport, dispatcher } = makeDispatcher({
+            const { transport, dispatcher } = makeSessionDispatcher({
                 lanes: { TextPacket: 'input', ClientCacheStatusPacket: 'read' },
                 handler: {
-                    phases: ['handshake'],
+                    phases: ['play'],
                     handle: async (packet) => {
                         order.push(nameOf(packet));
                     }
@@ -1022,10 +1036,10 @@ describe('network', () => {
 
         it('applies the inputs of one batch in one step, in batch order', async () => {
             const order: string[] = [];
-            const { transport, dispatcher } = makeDispatcher({
+            const { transport, dispatcher } = makeSessionDispatcher({
                 lanes: { TextPacket: 'input' },
                 handler: {
-                    phases: ['handshake'],
+                    phases: ['play'],
                     handle: async (packet) => {
                         order.push(nameOf(packet));
                     }
@@ -1043,10 +1057,10 @@ describe('network', () => {
 
         it('keeps no more than one tick of backlog for a client that sends an input and a read every tick', async () => {
             const order: string[] = [];
-            const { transport, dispatcher } = makeDispatcher({
+            const { transport, dispatcher } = makeSessionDispatcher({
                 lanes: { TextPacket: 'input', ClientCacheStatusPacket: 'read' },
                 handler: {
-                    phases: ['handshake'],
+                    phases: ['play'],
                     handle: async (packet) => {
                         order.push(nameOf(packet));
                     }
@@ -1069,10 +1083,10 @@ describe('network', () => {
 
         it('runs reads from a connection with no held input on arrival, in arrival order', async () => {
             const order: string[] = [];
-            const { transport, dispatcher } = makeDispatcher({
+            const { transport, dispatcher } = makeSessionDispatcher({
                 lanes: { TextPacket: 'read' },
                 handler: {
-                    phases: ['handshake'],
+                    phases: ['play'],
                     handle: async (packet) => {
                         order.push(nameOf(packet));
                     }
@@ -1094,10 +1108,10 @@ describe('network', () => {
             const order: string[] = [];
             let releaseRead!: () => void;
             const readGate = new Promise<void>((resolve) => (releaseRead = resolve));
-            const { transport, dispatcher } = makeDispatcher({
+            const { transport, dispatcher } = makeSessionDispatcher({
                 lanes: { TextPacket: 'input', ClientCacheStatusPacket: 'read' },
                 handler: {
-                    phases: ['handshake'],
+                    phases: ['play'],
                     handle: async (packet) => {
                         const name = nameOf(packet);
                         order.push(`${name}:start`);
@@ -1143,11 +1157,11 @@ describe('network', () => {
 
         it('gates a packet behind a held input on the phase that input leaves the connection in', async () => {
             const order: string[] = [];
-            const { transport, built, dispatcher } = makeDispatcher({
+            const { transport, built, dispatcher } = makeSessionDispatcher({
                 lanes: { TextPacket: 'input', ClientCacheStatusPacket: 'read' },
                 phasesOf: { ClientCacheStatusPacket: ['play'] },
                 handler: {
-                    phases: ['handshake'],
+                    phases: ['play'],
                     handle: async (packet) => {
                         order.push(nameOf(packet));
                         // Like the resource pack response that starts the game.
@@ -1168,10 +1182,10 @@ describe('network', () => {
         it('admits at most its budget of inputs in a step, whatever the backlog, and the rest in order after', async () => {
             for (const backlog of [5, 50]) {
                 const handled: string[] = [];
-                const { transport, dispatcher } = makeDispatcher({
+                const { transport, dispatcher } = makeSessionDispatcher({
                     lanes: { TextPacket: 'input' },
                     handler: {
-                        phases: ['handshake'],
+                        phases: ['play'],
                         handle: async (packet) => {
                             handled.push(nameOf(packet));
                         }
@@ -1198,11 +1212,11 @@ describe('network', () => {
         it('stamps a captured input with the tick whose input step applied it', async () => {
             const trace = new InboundPacketTrace();
             let tick = 10;
-            const { transport, dispatcher } = makeDispatcher({
+            const { transport, dispatcher } = makeSessionDispatcher({
                 recorder: trace,
                 tick: () => tick,
                 lanes: { TextPacket: 'input' },
-                handler: { phases: ['handshake'], handle: async () => {} }
+                handler: { phases: ['play'], handle: async () => {} }
             });
             await transport.emitConnect(fakeConnection(1).connection);
 
@@ -1222,12 +1236,12 @@ describe('network', () => {
             const capturedAt: Array<[string, number]> = [];
             let tick = 20;
             const handler = (applied: Array<[string, number]>) => ({
-                phases: ['handshake'] as const,
+                phases: ['play'] as const,
                 handle: async (packet: unknown) => {
                     applied.push([nameOf(packet), tick]);
                 }
             });
-            const live = makeDispatcher({
+            const live = makeSessionDispatcher({
                 recorder: trace,
                 tick: () => tick,
                 lanes: { TextPacket: 'input', ClientCacheStatusPacket: 'read' },
@@ -1249,11 +1263,11 @@ describe('network', () => {
             // Replay: each record is offered before its tick runs, and applied in that tick.
             let replayTick = 30;
             const replayedAt: Array<[string, number]> = [];
-            const replay = makeDispatcher({
+            const replay = makeSessionDispatcher({
                 tick: () => replayTick,
                 lanes: { TextPacket: 'input', ClientCacheStatusPacket: 'read' },
                 handler: {
-                    phases: ['handshake'],
+                    phases: ['play'],
                     handle: async (packet: unknown) => {
                         replayedAt.push([nameOf(packet), replayTick]);
                     }
@@ -1284,11 +1298,11 @@ describe('network', () => {
         it('rejects a replayed input whose input step runs in another tick than its record', async () => {
             const trace = new InboundPacketTrace();
             let tick = 4;
-            const live = makeDispatcher({
+            const live = makeSessionDispatcher({
                 recorder: trace,
                 tick: () => tick,
                 lanes: { TextPacket: 'input' },
-                handler: { phases: ['handshake'], handle: async () => {} }
+                handler: { phases: ['play'], handle: async () => {} }
             });
             await live.transport.emitConnect(fakeConnection(1).connection);
             const arrival = live.transport.emitFrame(frameOf(message('move')), 1);
@@ -1296,10 +1310,10 @@ describe('network', () => {
             await live.dispatcher.admitInputs();
             await arrival;
 
-            const replay = makeDispatcher({
+            const replay = makeSessionDispatcher({
                 tick: () => tick,
                 lanes: { TextPacket: 'input' },
-                handler: { phases: ['handshake'], handle: async () => {} }
+                handler: { phases: ['play'], handle: async () => {} }
             });
             await replay.transport.emitConnect(fakeConnection(1).connection);
             const replayed = replay.dispatcher.replayInboundRecord(trace.records()[0]!);
@@ -1312,11 +1326,19 @@ describe('network', () => {
 
         it("applies a player's removal by a closed transport at the next input step, after its inputs", async () => {
             const order: string[] = [];
-            const { transport, dispatcher } = makeDispatcher({
+            const { transport, dispatcher } = makeSessionDispatcher({
+                // The removal reads whether the player is in its world, and an input runs in a unit of it.
+                session: {
+                    session: stub<PlayerSession>({
+                        identity: STEVE,
+                        getWorld: () => stub<World>({ viewerOf: () => undefined, runInputNow: (apply) => apply() })
+                    }),
+                    phase: 'play'
+                },
                 lanes: { TextPacket: 'input' },
                 onClosePlayerSession: () => void order.push('removed'),
                 handler: {
-                    phases: ['handshake'],
+                    phases: ['play'],
                     handle: async (packet) => {
                         order.push(nameOf(packet));
                     }

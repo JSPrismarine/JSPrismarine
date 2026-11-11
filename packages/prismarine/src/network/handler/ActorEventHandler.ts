@@ -25,7 +25,6 @@ const CLIENT_EVENTS: ReadonlySet<ActorEvent> = new Set([ActorEvent.FEED]);
  */
 export default class ActorEventHandler implements InputLaneHandler<ActorEventPacket> {
     public static PacketName = 'ActorEventPacket';
-    public readonly takes = 'context';
     public readonly phases = ['play'] as const;
     // Relays to the players that see the sender, so it is an input though it writes nothing.
     public readonly lane = 'input';

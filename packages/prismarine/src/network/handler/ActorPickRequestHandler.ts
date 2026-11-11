@@ -10,7 +10,6 @@ import type { ConnectionLaneHandler } from './SessionHandler';
  */
 export default class ActorPickRequestHandler implements ConnectionLaneHandler<ActorPickRequestPacket> {
     public static PacketName = 'ActorPickRequestPacket';
-    public readonly takes = 'context';
     public readonly phases = ['play'] as const;
     public readonly lane = 'connection';
 

@@ -10,7 +10,6 @@ import type { ConnectionLaneHandler } from './SessionHandler';
  */
 export default class ServerboundPackSettingChangeHandler implements ConnectionLaneHandler<ServerboundPackSettingChangePacket> {
     public static PacketName = 'ServerboundPackSettingChangePacket';
-    public readonly takes = 'context';
     public readonly phases = ['play'] as const;
     public readonly lane = 'connection';
 

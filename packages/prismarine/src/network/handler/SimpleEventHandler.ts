@@ -12,7 +12,6 @@ import type { ConnectionLaneHandler } from './SessionHandler';
  */
 export default class SimpleEventHandler implements ConnectionLaneHandler<SimpleEventPacket> {
     public static PacketName = 'SimpleEventPacket';
-    public readonly takes = 'context';
     public readonly phases = ['play'] as const;
     public readonly lane = 'connection';
 

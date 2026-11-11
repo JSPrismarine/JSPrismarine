@@ -11,7 +11,6 @@ import type { ConnectionLaneHandler } from './SessionHandler';
  */
 export default class CommandBlockUpdateHandler implements ConnectionLaneHandler<CommandBlockUpdatePacket> {
     public static PacketName = 'CommandBlockUpdatePacket';
-    public readonly takes = 'context';
     public readonly phases = ['play'] as const;
     public readonly lane = 'connection';
 

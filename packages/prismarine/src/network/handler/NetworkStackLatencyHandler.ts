@@ -14,7 +14,6 @@ import type { ConnectionLaneHandler } from './SessionHandler';
  */
 export default class NetworkStackLatencyHandler implements ConnectionLaneHandler<NetworkStackLatencyPacket> {
     public static PacketName = 'NetworkStackLatencyPacket';
-    public readonly takes = 'context';
     public readonly phases = ['resourcePacks', 'play'] as const;
     public readonly lane = 'connection';
 

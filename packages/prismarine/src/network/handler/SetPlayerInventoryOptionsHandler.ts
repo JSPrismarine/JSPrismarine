@@ -17,7 +17,6 @@ import type { ConnectionLaneHandler } from './SessionHandler';
  */
 export default class SetPlayerInventoryOptionsHandler implements ConnectionLaneHandler<SetPlayerInventoryOptionsPacket> {
     public static PacketName = 'SetPlayerInventoryOptionsPacket';
-    public readonly takes = 'context';
     public readonly phases = ['play'] as const;
     public readonly lane = 'connection';
 

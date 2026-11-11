@@ -11,7 +11,6 @@ import type { ConnectionLaneHandler } from './SessionHandler';
  */
 export default class MapInfoRequestHandler implements ConnectionLaneHandler<MapInfoRequestPacket> {
     public static PacketName = 'MapInfoRequestPacket';
-    public readonly takes = 'context';
     public readonly phases = ['play'] as const;
     public readonly lane = 'connection';
 

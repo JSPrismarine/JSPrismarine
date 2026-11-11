@@ -11,7 +11,6 @@ import type { ConnectionLaneHandler } from './SessionHandler';
  */
 export default class PurchaseReceiptHandler implements ConnectionLaneHandler<PurchaseReceiptPacket> {
     public static PacketName = 'PurchaseReceiptPacket';
-    public readonly takes = 'context';
     public readonly phases = ['play'] as const;
     public readonly lane = 'connection';
 

@@ -17,7 +17,6 @@ import type { InputLaneHandler } from './SessionHandler';
  */
 export default class MobEquipmentHandler implements InputLaneHandler<MobEquipmentPacket> {
     public static PacketName = 'MobEquipmentPacket';
-    public readonly takes = 'context';
     public readonly phases = ['play'] as const;
     public readonly lane = 'input';
 

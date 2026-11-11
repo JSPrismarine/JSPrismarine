@@ -14,7 +14,6 @@ import type { InputLaneHandler } from './SessionHandler';
  */
 export default class RequestChunkRadiusHandler implements InputLaneHandler<RequestChunkRadiusPacket> {
     public static PacketName = 'RequestChunkRadiusPacket';
-    public readonly takes = 'context';
     public readonly phases = ['play'] as const;
     // Input: it sets the player's view distance, which decides the chunks the world keeps loaded.
     public readonly lane = 'input';
