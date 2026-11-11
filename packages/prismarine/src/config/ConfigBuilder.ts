@@ -176,6 +176,20 @@ export class ConfigBuilder {
     }
 
     /**
+     * Renames a top-level key in the file, keeping its value, position and comments.
+     *
+     * @param key - the key the file has
+     * @param to - its new name
+     * @returns true if the key was there to rename
+     */
+    public rename(key: string, to: string): boolean {
+        const document = this.read();
+        if (!document.rename(key, to)) return false;
+        this.write(document);
+        return true;
+    }
+
+    /**
      * Delete a config value, and the comment above it.
      *
      * @param key - the config key

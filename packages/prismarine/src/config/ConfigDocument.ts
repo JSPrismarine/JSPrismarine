@@ -52,6 +52,14 @@ export interface ConfigDocument {
      */
     delete(path: ConfigPath): boolean;
 
+    /**
+     * Renames a top-level key in place, keeping its value, its position and the comments around
+     * it.
+     *
+     * @returns Whether the key was there to rename.
+     */
+    rename(key: string, to: string): boolean;
+
     /** The file content, ending in a newline. */
     toString(): string;
 }
@@ -287,6 +295,14 @@ class JsonConfigDocument implements ConfigDocument {
         }
 
         this.text = this.text.slice(0, start) + this.text.slice(end);
+        return true;
+    }
+
+    public rename(key: string, to: string): boolean {
+        const property = this.node([key])?.parent;
+        const name = property?.type === 'property' ? property.children?.[0] : undefined;
+        if (name === undefined) return false;
+        this.text = this.text.slice(0, name.offset) + JSON.stringify(to) + this.text.slice(name.offset + name.length);
         return true;
     }
 
