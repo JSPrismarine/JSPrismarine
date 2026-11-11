@@ -1,20 +1,6 @@
-import { NetworkBinaryStream, PacketIdentifier, v2193 } from '@jsprismarine/protocol';
+import { NetworkBinaryStream, v2193 } from '@jsprismarine/protocol';
 
-import type {
-    ChangeDimensionPayload,
-    Disconnect,
-    LevelChunk,
-    MovePlayer,
-    NetworkChunkPublisherUpdatePayload,
-    NetworkPacket,
-    NetworkSettings,
-    PlayStatusData,
-    PlayerActionData,
-    ServerToClientHandshake,
-    ShowCreditsPayload,
-    StartGame,
-    Text
-} from '@jsprismarine/protocol';
+import type { NetworkPacket } from '@jsprismarine/protocol';
 import type { ClientContext, ClientPacketHandler, ClientPhase } from './ClientHandler';
 
 /** A packet class that can be built with no arguments, i.e. for decoding into. */
@@ -42,40 +28,6 @@ interface BoundHandler {
      */
     readonly run: (packet: object, context: ClientContext) => void | Promise<void>;
 }
-
-/**
- * The decoded payload each clientbound packet id carries, for the ids the client reads.
- *
- * This is a promise about registration, not something the registry enforces: `isPacket`
- * narrows on the id alone, so it is only right while each id here is registered to the
- * packet class whose data type is listed. `Client` registers that set. It is for code that
- * watches the session's `packet` event; a handler registered with
- * {@link ClientPacketRegistry.registerHandler} gets its payload typed by its packet class.
- */
-export interface ClientboundPacketData {
-    [PacketIdentifier.NETWORK_SETTINGS]: NetworkSettings;
-    [PacketIdentifier.SERVER_TO_CLIENT_HANDSHAKE]: ServerToClientHandshake;
-    [PacketIdentifier.PLAY_STATUS]: PlayStatusData;
-    [PacketIdentifier.START_GAME]: StartGame;
-    [PacketIdentifier.DISCONNECT]: Disconnect;
-    [PacketIdentifier.TEXT]: Text;
-    [PacketIdentifier.CHANGE_DIMENSION]: ChangeDimensionPayload;
-    [PacketIdentifier.NETWORK_CHUNK_PUBLISHER_UPDATE]: NetworkChunkPublisherUpdatePayload;
-    [PacketIdentifier.PLAYER_ACTION]: PlayerActionData;
-    [PacketIdentifier.LEVEL_CHUNK]: LevelChunk;
-    [PacketIdentifier.MOVE_PLAYER]: MovePlayer;
-    [PacketIdentifier.SHOW_CREDITS]: ShowCreditsPayload;
-}
-
-/**
- * Narrows a decoded packet to the data type its id is registered with.
- *
- * Checks the id only; see `ClientboundPacketData` for why that is enough.
- */
-export const isPacket = <K extends keyof ClientboundPacketData>(
-    packet: DecodedPacket,
-    id: K
-): packet is DecodedPacket & { readonly id: K; readonly data: ClientboundPacketData[K] } => packet.id === id;
 
 /**
  * Which packet class decodes which id, and which handlers answer each packet.
