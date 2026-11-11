@@ -1,15 +1,17 @@
 import { EventEmitter } from 'node:events';
 
 import {
-    adaptPeerConnections,
     exchangeOffer,
+    loadNativeDriver,
+    NetherNetClient,
     NetherNetIdentity,
     probeJoin,
+    SignalStructure,
+    SignalType,
     verifySelfSignedIdentity
 } from '@jsprismarine/nethernet';
-import type { SignalingAddress } from '@jsprismarine/nethernet';
+import type { SignalingAddress, WebRtcDriver } from '@jsprismarine/nethernet';
 import { BATCH_PACKET_ID } from '@jsprismarine/protocol';
-import { Client as NetherNetClient, SignalStructure, SignalType } from 'nethernet';
 import type { ITransport, TransportEvents, TransportStats } from './ITransport';
 
 /** How long a join may take, signaling and WebRTC together, unless the caller says otherwise. */
@@ -28,12 +30,14 @@ export interface NetherNetTransportOptions {
      * default, and when the function resolves to undefined.
      */
     readonly identity?: NetherNetIdentity | (() => Promise<NetherNetIdentity | undefined>);
+    /** The WebRTC stack to join over; the native library when absent. */
+    readonly driver?: WebRtcDriver;
 }
 
 /**
  * The network transport for servers that speak NetherNet, joined by address as the game does:
  * probe `GET /v1/join`, post a signed offer, check the identity on the answer, then carry
- * batches over the WebRTC data channel `nethernet` negotiates.
+ * batches over the WebRTC data channel it negotiates.
  *
  * NetherNet's wire leaves out the `0xFE` batch id, so it is put back on what arrives and taken
  * off what leaves: the session above sees batches in the form RakNet carries them. DTLS encrypts
@@ -73,10 +77,7 @@ export default class NetherNetTransport extends EventEmitter implements ITranspo
 
         const chosen = this.options.identity;
         const identity = (typeof chosen === 'function' ? await chosen() : chosen) ?? NetherNetIdentity.client();
-        // The server's network ID is not known when joining by address; signals carry the client's.
-        const client = new NetherNetClient(0n, this.options.host);
-        adaptPeerConnections(client);
-        this.client = client;
+        const driver = this.options.driver ?? (await loadNativeDriver());
 
         await new Promise<void>((resolve, reject) => {
             let settled = false;
@@ -85,44 +86,49 @@ export default class NetherNetTransport extends EventEmitter implements ITranspo
             const fail = (error: Error) => {
                 if (settled) return;
                 settled = true;
-                clearTimeout(timer);
                 reject(error);
                 client.close();
             };
-            const timer = setTimeout(
-                () => fail(new Error(`NetherNet connection did not open within ${timeoutMs} ms`)),
-                timeoutMs
-            );
 
             // Trickle ICE is off for HTTP signaling: the offer already lists every candidate.
-            client.signalHandler = (signal) => {
-                if (signal.type !== SignalType.ConnectRequest) return;
-                this.signal(client, identity, signal.data, deadline).catch((error: unknown) =>
-                    fail(error instanceof Error ? error : new Error(String(error)))
-                );
-            };
+            const client: NetherNetClient = new NetherNetClient({
+                driver,
+                timeoutMs,
+                signal: (signal) => {
+                    if (signal.type !== SignalType.ConnectRequest) return;
+                    this.signal(client, identity, signal.data, deadline).catch((error: unknown) =>
+                        fail(error instanceof Error ? error : new Error(String(error)))
+                    );
+                }
+            });
+            this.client = client;
             client.on('connected', () => {
                 if (settled) return;
                 settled = true;
-                clearTimeout(timer);
                 this.connected = true;
                 resolve();
             });
-            client.on('error', fail);
-            client.on('encapsulated', (data) => {
+            client.on('encapsulated', (data: Buffer) => {
                 const frame = Buffer.allocUnsafe(data.byteLength + 1);
                 frame[0] = BATCH_PACKET_ID;
-                Buffer.from(data).copy(frame, 1);
+                data.copy(frame, 1);
                 this.bytesReceived += frame.byteLength;
                 this.packetsReceived++;
                 this.emit('batch', frame);
             });
-            client.on('disconnect', (_connectionId, reason) => {
-                if (!this.connected) fail(new Error(`NetherNet connection failed: ${reason}`));
-                else this.finish(reason);
+            client.on('disconnect', (reason: string) => {
+                if (!this.connected) {
+                    fail(
+                        new Error(
+                            reason === 'connecterror:14'
+                                ? `NetherNet connection did not open within ${timeoutMs} ms`
+                                : `NetherNet connection failed: ${reason}`
+                        )
+                    );
+                } else this.finish(reason);
             });
 
-            client.connect();
+            client.connect().catch((error: unknown) => fail(error instanceof Error ? error : new Error(String(error))));
         });
     }
 
@@ -135,9 +141,7 @@ export default class NetherNetTransport extends EventEmitter implements ITranspo
     ): Promise<void> {
         const answer = await exchangeOffer(this.address, client.networkId, await identity.sign(offer), deadline);
         const { description } = await verifySelfSignedIdentity(answer);
-        client.handleSignal(
-            new SignalStructure(SignalType.ConnectResponse, client.connectionId, description, client.serverNetworkId)
-        );
+        client.handleSignal(new SignalStructure(SignalType.ConnectResponse, client.connectionId, description));
     }
 
     /**

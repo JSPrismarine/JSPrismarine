@@ -4,16 +4,16 @@ import type { Module } from '@jsprismarine/kernel';
 import { RakNetListener, ServerName, WorkerServerSocket } from '@jsprismarine/raknet';
 import type { RakNetListenerLike } from '@jsprismarine/raknet';
 import {
-    adaptPeerConnections,
-    constrainIcePorts,
     HttpSignaling,
     joinStatusJson,
+    loadNativeDriver,
     NETHERNET_LAN_PORT,
     NetherNetIdentity,
+    NetherNetServer,
     parseUdpPorts,
     withMappedCandidates
 } from '@jsprismarine/nethernet';
-import { Server as NetherNetServer } from 'nethernet';
+import type { WebRtcDriver } from '@jsprismarine/nethernet';
 
 import ClientConnection from '../network/ClientConnection';
 import type { InboundPacketRecord, InboundPacketRecorder } from '../network/InboundPacketTrace';
@@ -122,6 +122,9 @@ export class ServerNetworking implements Networking {
         this.serverName.ownPlayerCount();
 
         const serverName = this.serverName;
+        // Loaded before anything binds: with no WebRTC stack, NetherNet cannot start, and nothing
+        // else should have started either.
+        const driver = config.getEnableNetherNet() ? await this.loadWebRtcDriver() : undefined;
         const rakNet: RakNetTransport[] = [];
         // One per transport that binds, settled once it listens or cannot.
         const listening: Promise<void>[] = [];
@@ -132,8 +135,8 @@ export class ServerNetworking implements Networking {
                 if (address === IPV4_WILDCARD) rakNet.push(this.startRakNetV6(serverName, ids, listening));
                 transports.push(...rakNet);
             }
-            if (config.getEnableNetherNet()) {
-                transports.push(this.startNetherNet(address, port, serverName, ids, listening));
+            if (driver !== undefined) {
+                transports.push(this.startNetherNet(driver, address, port, serverName, ids, listening));
             }
             if (transports.length === 0) {
                 throw new Error('No transport is enabled: turn on enable-raknet or enable-nethernet in config.json');
@@ -309,13 +312,14 @@ export class ServerNetworking implements Networking {
     }
 
     /**
-     * Starts the `nethernet` server and the two ways offers reach it. HTTP signaling on the game
+     * Starts the NetherNet server and the two ways offers reach it. HTTP signaling on the game
      * port's TCP side serves clients joining by address, and a TCP port another program holds
      * stops the start. With LAN visibility on, UDP 7551 serves clients on the local network,
      * which discover the server and send their offers there; that port being taken costs the
      * LAN its view of the server, with a warning, not the start.
      */
     private startNetherNet(
+        driver: WebRtcDriver,
         address: string,
         port: number,
         serverName: ServerName,
@@ -325,12 +329,15 @@ export class ServerNetworking implements Networking {
         const server = this.server;
         const config = server.getConfig();
         const logger = server.getLogger();
-        // Discovery is IPv4 broadcast, so an IPv6 bind address leaves it on every interface.
-        const nethernet = new NetherNetServer({ host: isIPv4(address) ? address : '0.0.0.0' });
-        adaptPeerConnections(nethernet);
         // Read before anything binds, so a malformed setting stops the start instead of half of it.
         const udpPorts = parseUdpPorts(config.getServerUdpPorts());
-        if (udpPorts.local !== undefined) constrainIcePorts(nethernet, udpPorts.local);
+        const local = udpPorts.local;
+        const nethernet = new NetherNetServer({
+            driver,
+            // Discovery is IPv4 broadcast, so an IPv6 bind address leaves it on every interface.
+            host: isIPv4(address) ? address : '0.0.0.0',
+            peerConfig: () => (local === undefined ? {} : { portRangeBegin: local.start, portRangeEnd: local.end })
+        });
 
         // Kept in the server directory: a client joining over plain HTTP remembers the key and
         // asks the player again if it ever changes.
@@ -372,6 +379,21 @@ export class ServerNetworking implements Networking {
         }
 
         return new NetherNetTransport(nethernet, ids, undefined, logger);
+    }
+
+    /**
+     * Loads the WebRTC stack NetherNet runs on.
+     * @throws {Error} When it cannot load, naming the platform, the cause, and `enable-nethernet`.
+     */
+    private async loadWebRtcDriver(): Promise<WebRtcDriver> {
+        try {
+            return await loadNativeDriver();
+        } catch (error: unknown) {
+            throw new Error(
+                `NetherNet cannot start: ${errorMessage(error).replace(/\.?$/, '.')} Set "enable-nethernet": false in config.json to run on RakNet alone.`,
+                { cause: error }
+            );
+        }
     }
 
     /** Keeps the advertised player count at the number of live connections, whatever carries them. */

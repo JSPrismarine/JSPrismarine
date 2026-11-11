@@ -78,7 +78,6 @@
         "@jsprismarine/protocol": "workspace:*",
         "@jsprismarine/raknet": "workspace:*",
         "jose": "6.2.17",
-        "nethernet": "1.1.2",
         "yargs": "18.2.0"
     }
 }

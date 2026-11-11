@@ -4,7 +4,7 @@ import type { ServerName } from '@jsprismarine/raknet';
 import { encodeLanAdvertisement, lanAdvertisementOf } from '@jsprismarine/nethernet';
 import { netherNetStatusOf } from './netherNetStatusOf';
 
-/** Where the advertisement goes: `nethernet`'s `Server`, which answers discovery requests with it. */
+/** Where the advertisement goes: the NetherNet server, which answers discovery requests with it. */
 export interface LanAdvertisementTarget {
     setAdvertisement(buffer: Buffer): void;
 }
@@ -15,7 +15,7 @@ export const lanNonce = (): string => randomBytes(8).readBigUInt64BE().toString(
 /**
  * Keeps the LAN advertisement in step with the server name: sets it now and again whenever the
  * MOTD, version or player counts change.
- * @param target - The `nethernet` server answering discovery.
+ * @param target - The NetherNet server answering discovery.
  * @param serverName - The status every transport advertises.
  * @param levelName - The level players join.
  * @param onlineMode - Whether the server requires Xbox Live sign-in.

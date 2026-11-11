@@ -1,4 +1,4 @@
-import { isRecord } from './isRecord';
+import type { DriverPeer } from './WebRtcDriver';
 
 /** The candidates a description lists, as `address:port type`, for a log line. */
 export const describeCandidates = (description: string): string[] =>
@@ -7,42 +7,21 @@ export const describeCandidates = (description: string): string[] =>
             `${address}:${port} ${type}${protocol?.toLowerCase() === 'udp' ? '' : ` ${protocol}`}`
     );
 
-/** A candidate as an SDP line; werift's own candidate strings leave out the `candidate:` prefix. */
-const candidateLine = (candidate: unknown): string => {
-    const text = String(candidate);
-    return text.startsWith('candidate:') ? `a=${text}` : `a=candidate:${text}`;
-};
-
-/** Subscribes to one of werift's events, if the object has it. */
-const subscribe = (owner: Record<string, unknown>, name: string, listener: (state: unknown) => void): void => {
-    const event = owner[name];
-    if (isRecord(event) && typeof event.subscribe === 'function') event.subscribe(listener);
-};
-
 /**
- * Reports a peer connection's ICE and connection states as they change, and the candidate pair
- * ICE settles on: where a join that never finishes stopped. A pair that never connects usually
- * means the server's UDP ports are not reachable from the client, as behind a firewall that opens
- * only the game port.
- *
- * Werift, `nethernet`'s default backend, exposes these as events; with another backend this
- * reports nothing.
- * @param rtcConnection - The peer connection `nethernet` built.
+ * Reports a peer's connection states as they change, and the addresses ICE settles on: where a
+ * join that never finishes stopped. A peer that never connects usually means the server's UDP
+ * ports are not reachable from the client, as behind a firewall that opens only the game port.
+ * @param peer - The peer.
  * @param log - Where each change goes, as one line.
  */
-export const tracePeerConnection = (rtcConnection: unknown, log: (line: string) => void): void => {
-    if (!isRecord(rtcConnection)) return;
-    subscribe(rtcConnection, 'iceConnectionStateChange', (state) => {
-        log(`ICE ${String(state)}`);
-        if (state !== 'connected' && state !== 'completed') return;
-        const transports = rtcConnection.iceTransports;
-        const ice: unknown = Array.isArray(transports) ? transports[0] : undefined;
-        if (!isRecord(ice) || typeof ice.getSelectedCandidatePair !== 'function') return;
-        const pair: unknown = ice.getSelectedCandidatePair();
-        if (!isRecord(pair) || !isRecord(pair.local) || !isRecord(pair.remote)) return;
-        const [local] = describeCandidates(candidateLine(pair.local.candidate));
-        const [remote] = describeCandidates(candidateLine(pair.remote.candidate));
-        log(`ICE pair ${local ?? '?'} <-> ${remote ?? '?'}`);
+export const tracePeerConnection = (peer: DriverPeer, log: (line: string) => void): void => {
+    peer.onStateChange((state) => {
+        log(`connection ${state}`);
+        if (state !== 'connected') return;
+        const local = peer.localAddress();
+        const remote = peer.remoteAddress();
+        log(
+            `ICE pair ${local === undefined ? '?' : `${local.address}:${local.port}`} <-> ${remote === undefined ? '?' : `${remote.address}:${remote.port}`}`
+        );
     });
-    subscribe(rtcConnection, 'connectionStateChange', (state) => log(`connection ${String(state)}`));
 };
