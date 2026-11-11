@@ -12,9 +12,13 @@
  * as a mob's does, at most one move a tick. Removal from the store hides the player from every
  * client that was shown it, which covers a leave and a dimension change.
  *
- * No live player is a store entity yet. Package C4h of the entity and tick re-architecture
- * spawns one with {@link spawnStorePlayer}. Slice 7 then replaces the comparisons in `sync` with
- * replication from the change log.
+ * A store player outlives its entity (`entity/storePlayer.ts`): {@link enterStore} gives it an
+ * entity in a store under the id it was filed by, and {@link leaveStore} takes the entity out
+ * again and keeps what the next store needs, so a dimension change is a leave and an enter with
+ * the same id.
+ *
+ * No live player is a store entity yet. C4h's H-B2 builds one at the login and enters it. Slice 7
+ * then replaces the comparisons in `sync` with replication from the change log.
  */
 import type { EntityPosition } from '@jsprismarine/entities';
 import type { Gametype } from '@jsprismarine/minecraft';
@@ -29,11 +33,12 @@ import type { ShownPlayer } from '../../world/ShownPlayer';
 import { PLAYER_TRACKING_RANGE_CHUNKS } from '../../world/ShownPlayer';
 import type { World } from '../../world/World';
 import { sameEquipmentItems } from '../equipment';
-import { clientOwnsMovement, PLAYER_IDENTIFIER } from '../playerOverlay';
+import { clientOwnsMovement } from '../playerOverlay';
 import { StorePlayer } from '../storePlayer';
 import type { StorePlayerIdentity } from '../storePlayer';
 import type { DataEntity } from './DataEntity';
 import type { EntityRuntime } from './EntityRuntime';
+import { dataEntityRecordOf } from './persistence';
 import { StoreActor } from './storeActors';
 import type { StoreActorBlows } from './storeActors';
 
@@ -51,9 +56,9 @@ export class StorePlayers {
         return this.byId.get(id);
     }
 
-    /** Files a store player under its entity's id, which its actor is built from. */
+    /** Files a store player under its id, which every entity of the player is given. */
     public add(player: StorePlayer): void {
-        this.byId.set(player.entity.id, player);
+        this.byId.set(player.id, player);
     }
 
     /** Forgets a player that left the server. @returns Whether it was filed. */
@@ -68,17 +73,63 @@ export class StorePlayers {
     public actorOf(entity: DataEntity, world: World, blows: StoreActorBlows): StorePlayerActor | undefined {
         if (!clientOwnsMovement(entity.identifier)) return undefined;
         const player = this.byId.get(entity.id);
-        return player === undefined ? undefined : new StorePlayerActor(player, world, blows);
+        return player?.entity === entity ? new StorePlayerActor(player, entity, world, blows) : undefined;
     }
 }
 
 /**
- * Puts a player into the store and files it.
+ * Gives a store player an entity in a store, under the player's id, and files the player.
  *
- * The player is filed and filled before the entity is announced, so the clients in range are
- * sent a player's `AddPlayer` with its skin, game mode and equipment from the start. The name
- * is also the entity's name tag, as a legacy player's name is its metadata's, so it enters the
- * change log with the entity.
+ * The player's first entity is spawned; a later one, after a dimension change, is restored from
+ * the record its last entity left with. Either way the player is attached before the entity is
+ * announced, so the clients in range are sent a player's `AddPlayer` with its skin, game mode and
+ * equipment from the start, and what the player held is part of the form the entity enters the
+ * change log with. The name is also the entity's name tag, as a legacy player's name is its
+ * metadata's.
+ *
+ * @returns The entity, or undefined when the content declares no player; the player is then in
+ *   no store and not filed.
+ */
+export const enterStore = (
+    runtime: EntityRuntime,
+    players: StorePlayers,
+    player: StorePlayer
+): DataEntity | undefined => {
+    players.add(player);
+    const { position, yaw, pitch, record } = player.heldEntity;
+    const prepare = (entity: DataEntity): void => {
+        entity.body.nameTag = player.getName();
+        player.attach(entity, runtime.playerSystems);
+    };
+    const entity =
+        record === undefined
+            ? runtime.spawnPlayer(player.id, position, { yaw, pitch, prepare })
+            : runtime.restore({ ...record, yaw, pitch }, position, player.id, prepare);
+    if (entity === undefined) players.delete(player.id);
+    return entity;
+};
+
+/**
+ * Takes a store player's entity out of its store and keeps what the next store needs: the
+ * position, the look, the health, and the entity's record, tags and status effects. The player
+ * stays filed, because it is the same player in the next store; `StorePlayers.delete` forgets it
+ * once it leaves the server.
+ *
+ * @param reason - Why the entity left, as `EntityRuntime.remove` takes it.
+ * @returns Whether the player had an entity in `runtime`'s store.
+ */
+export const leaveStore = (runtime: EntityRuntime, player: StorePlayer, reason: string): boolean => {
+    const { entity } = player;
+    if (entity === undefined || runtime.store.get(entity.id) !== entity) return false;
+    player.detach(dataEntityRecordOf(entity, runtime.poolOf(entity.id), runtime.leashHolderIdentityOf(entity.id)));
+    runtime.remove(entity.id, reason);
+    return true;
+};
+
+/**
+ * Builds a store player under an id from the runtime's pool, fills it, and enters it into the
+ * store, which is a login and a first spawn in one call.
+ *
  * @param at - Where the player's feet are. A client reports its eyes, `EYE_HEIGHT` higher.
  * @param fill - Writes the player's parts before it is shown, such as a saved record or the
  *   skin the login carried.
@@ -91,16 +142,10 @@ export const spawnStorePlayer = (
     identity: StorePlayerIdentity,
     fill?: (player: StorePlayer) => void
 ): StorePlayer | undefined => {
-    let spawned: StorePlayer | undefined;
-    runtime.spawn(PLAYER_IDENTIFIER, at, {
-        prepare: (entity) => {
-            entity.body.nameTag = identity.name;
-            spawned = new StorePlayer(entity, identity);
-            fill?.(spawned);
-            players.add(spawned);
-        }
-    });
-    return spawned;
+    const player = new StorePlayer(runtime.nextEntityId(), identity);
+    player.standAt(at);
+    fill?.(player);
+    return enterStore(runtime, players, player) === undefined ? undefined : player;
 };
 
 /**
@@ -117,13 +162,17 @@ export class StorePlayerActor extends StoreActor implements ShownPlayer {
      */
     public override readonly attributes = new Attributes([]);
 
+    /**
+     * @param player - The store player behind the actor.
+     * @param entity - The player's entity in this actor's store.
+     */
     public constructor(
-        /** The store player behind the actor. */
         public readonly player: StorePlayer,
+        entity: DataEntity,
         world: World,
         blows: StoreActorBlows
     ) {
-        super(player.entity, world, undefined, blows);
+        super(entity, world, undefined, blows);
     }
 
     /** Where the player's eyes are, which is where a client draws a player and where a legacy player is. */

@@ -7,30 +7,43 @@
  * look and the health. {@link StorePlayer} holds the rest in the objects a live `Player` holds
  * them in, so the saved record (`world/playerRecord.ts`) is projected from either one the same
  * way: the client's attribute table, which carries food, saturation and experience, the
- * {@link PlayerComponents}, the {@link HumanInventory}, the game mode and the portal cooldown.
+ * {@link PlayerComponents}, which carry the game mode, the {@link HumanInventory}, the crafting
+ * grid and the portal cooldown.
  *
- * Live players are still legacy `Player` objects until C4h moves them into the store, so nothing
- * builds one of these outside tests yet. Built with the runtime's player systems
- * (`entity/data/playerSystems.ts`), its components are theirs: logged through the store, undone by
- * the runtime's inverse writer, and run by the survival systems. Built without them, its component
- * writes are not logged. Its inventory is not logged either way.
+ * A store player outlives its entity. It is filed by the id drawn at its login, and from the login
+ * to its first entry into a store, and between the two stores of a dimension change, it is in
+ * none: it holds the position, the look and the health itself, and the entity's record once it
+ * has had one, and it logs nothing ([ADR 0011](../../../../docs/adr/0011-a-world-exchanges-only-plain-data.md)).
+ * Its entity enters a store through `enterStore` (`entity/data/storePlayers.ts`), which attaches
+ * the two: the player's writes are then logged in that store and undone by its runtime, and the
+ * runtime's player systems run its survival. `leaveStore` detaches them again.
+ *
+ * Live players are still legacy `Player` objects until C4h's H-B2 moves them into the store, so
+ * nothing builds one of these outside tests yet.
  */
 import type { Gametype } from '@jsprismarine/minecraft';
-import { Attributes } from '@jsprismarine/protocol/wire/structures/Attribute';
+import { AttributeIds, Attributes } from '@jsprismarine/protocol/wire/structures/Attribute';
 import type UUID from '@jsprismarine/protocol/wire/structures/UUID';
 import type Skin from '@jsprismarine/protocol/wire/structures/skin/Skin';
 import { Vector3 } from '@jsprismarine/math';
+import type { EntityPosition } from '@jsprismarine/entities';
 
+import type { ServerContent } from '../content/ServerContent';
+import CraftingInput from '../crafting/CraftingInput';
 import HumanInventory from '../inventory/HumanInventory';
+import { itemOfSlotValue, playerContainerNamed } from '../inventory/slotLog';
 import type Device from '../utils/Device';
+import type { PlainData } from '../world/changelog/PlainData';
 import type { PlayerRecordSource, PlayerRecordTarget, RecordedPosition } from '../world/playerRecord';
 import type { StoredSpawnPoint } from '../world/RespawnPoint';
+import type { StatusEffect } from './StatusEffect';
 import type { DataEntity } from './data/DataEntity';
+import type { DataEntityRecord } from './data/persistence';
+import type { PlayerLog, PlayerSystems } from './data/playerSystems';
 import { EYE_HEIGHT } from './playerEyes';
 import { portalCooldownOf } from './PortalContact';
 import { PlayerComponents } from './playerComponents';
 import { setSaturation } from './playerHunger';
-import type { PlayerSystems } from './data/playerSystems';
 
 /** Who a store player is, as the login named them. */
 export interface StorePlayerIdentity {
@@ -40,9 +53,27 @@ export interface StorePlayerIdentity {
     readonly xuid: string;
 }
 
-/** A store player entity and its player parts. */
+/** What a store player keeps of its entity while it is in no store. */
+export interface HeldEntity {
+    /** Where the feet are. */
+    readonly position: EntityPosition;
+    readonly yaw: number;
+    readonly pitch: number;
+    /**
+     * The entity as it left its last store, which the next store restores, or undefined before
+     * its first entry, when the next store spawns it.
+     */
+    readonly record: DataEntityRecord | undefined;
+    readonly tags: readonly string[];
+    readonly statusEffects: readonly StatusEffect[];
+}
+
+/** A store player, with its entity while one is in a store. */
 export class StorePlayer implements PlayerRecordSource, PlayerRecordTarget {
-    /** The client's attribute table. Its health entry is not read: health is the entity's. */
+    /**
+     * The client's attribute table. While the player is in a store its health entry is not read,
+     * because health is the entity's; while it is in none, the entry holds it.
+     */
     public readonly attributes = new Attributes(Attributes.getPlayerDefaults());
     /** Where the head looks, which the client reports apart from the body's yaw. */
     public headYaw = 0;
@@ -53,23 +84,103 @@ export class StorePlayer implements PlayerRecordSource, PlayerRecordTarget {
     /** The platform chat id, which the login handler does not read yet and leaves empty. */
     public platformChatId = '';
 
-    private readonly components: PlayerComponents;
+    private readonly components = new PlayerComponents(this.attributes, (field, before, after) =>
+        this.log?.field(field, before, after)
+    );
     private readonly inventory = new HumanInventory();
+    private readonly craftingInput = new CraftingInput();
     private portalCooldown = 0;
+    private attached: DataEntity | undefined;
+    /** Where writes are logged while the entity is in a store. */
+    private log: PlayerLog | undefined;
+    private held: HeldEntity = {
+        position: { x: 0, y: 0, z: 0 },
+        yaw: 0,
+        pitch: 0,
+        record: undefined,
+        tags: [],
+        statusEffects: []
+    };
 
     /**
-     * @param entity - The `minecraft:player` entity in the store.
+     * @param id - The entity id drawn at the login, which every entity of this player is given.
      * @param identity - Who the player is.
-     * @param systems - The player systems of the runtime the entity is in, which then hold its
-     *   components; left out, the components log nothing.
      */
     public constructor(
-        public readonly entity: DataEntity,
-        private readonly identity: StorePlayerIdentity,
-        systems?: Pick<PlayerSystems, 'attach'>
+        public readonly id: number,
+        private readonly identity: StorePlayerIdentity
     ) {
-        this.components =
-            systems?.attach(entity, this.attributes) ?? new PlayerComponents(this.attributes, () => undefined);
+        this.inventory.observeCarried({
+            slot: (container, slot, before, after) => this.log?.slot(container, slot, before, after),
+            handSlot: (before, after) => this.log?.field('inventory.handSlot', before, after)
+        });
+        this.craftingInput.observe((slot, before, after) => this.log?.slot('crafting', slot, before, after));
+    }
+
+    /** The `minecraft:player` entity while the player is in a store, or undefined while it is in none. */
+    public get entity(): DataEntity | undefined {
+        return this.attached;
+    }
+
+    /** What the player keeps of its entity while it is in no store, which its next entry starts from. */
+    public get heldEntity(): HeldEntity {
+        return this.held;
+    }
+
+    /**
+     * Takes an entity that is entering a store as this player's, before it enters: the position,
+     * the look, the health, the tags and the status effects the player held are written onto it,
+     * and from now on the player's writes are logged there and the store's systems run it.
+     *
+     * @param entity - The entity, built with this player's id and not yet entered.
+     * @param systems - The player systems of the entity's runtime; left out, nothing is logged.
+     * @throws {Error} When the entity has another id, or the player already has an entity.
+     */
+    public attach(entity: DataEntity, systems?: Pick<PlayerSystems, 'attach'>): void {
+        if (entity.id !== this.id) throw new Error(`store player ${this.id} cannot take entity ${entity.id}`);
+        if (this.attached !== undefined) throw new Error(`store player ${this.id} is already in a store`);
+        const { position, yaw, pitch, tags, statusEffects } = this.held;
+        const health = this.attributes.getValue(AttributeIds.Health);
+        entity.position = position;
+        entity.body.yaw = yaw;
+        entity.body.pitch = pitch;
+        // Only an entity that has been in a store before has tags and effects of its own to carry.
+        if (this.held.record !== undefined) {
+            entity.body.tags.replace(tags);
+            entity.body.statusEffects.replace(statusEffects.map((effect) => [effect.id, effect]));
+        }
+        this.attached = entity;
+        this.restoreHealth(health);
+        this.log = systems?.attach(entity, {
+            components: this.components,
+            restoreField: (field, value) => this.restoreField(field, value),
+            restoreSlot: (container, slot, value, content) => this.restoreSlot(container, slot, value, content)
+        });
+    }
+
+    /**
+     * Lets go of the entity before it leaves its store, keeping what the next store needs: the
+     * position, the look, the health, and the entity's record, tags and status effects.
+     *
+     * @param record - The entity's record as it is now, which the next store restores.
+     * @returns Whether the player had an entity.
+     */
+    public detach(record: DataEntityRecord): boolean {
+        const entity = this.attached;
+        if (entity === undefined) return false;
+        const health = this.getHealth();
+        this.held = {
+            position: { ...entity.position },
+            yaw: entity.body.yaw,
+            pitch: entity.body.pitch,
+            record,
+            tags: [...entity.body.tags],
+            statusEffects: [...entity.body.statusEffects.values()].map((effect) => ({ ...effect }))
+        };
+        this.log = undefined;
+        this.attached = undefined;
+        this.attributes.setValue(AttributeIds.Health, health);
+        return true;
     }
 
     /** The game mode, a logged component field the survival systems read. */
@@ -96,29 +207,40 @@ export class StorePlayer implements PlayerRecordSource, PlayerRecordTarget {
         return this.identity.xuid || null;
     }
 
-    /** The eye, {@link EYE_HEIGHT} above the entity's feet, which is what a player reports. */
+    /** The eye, {@link EYE_HEIGHT} above the feet, which is what a player reports. */
     public getPosition(): Vector3 {
-        const { x, y, z } = this.entity.position;
+        const { x, y, z } = this.attached?.position ?? this.held.position;
         return new Vector3(x, y + EYE_HEIGHT, z);
     }
 
     public get pitch(): number {
-        return this.entity.body.pitch;
+        return this.attached?.body.pitch ?? this.held.pitch;
     }
 
     public get yaw(): number {
-        return this.entity.body.yaw;
+        return this.attached?.body.yaw ?? this.held.yaw;
     }
 
     /**
-     * Puts the entity where a record says the player's eyes were.
+     * Puts the player where a record says its eyes were.
      * @param recorded - The eye position and the look.
      */
     public placeAt(recorded: RecordedPosition): void {
-        this.entity.body.yaw = recorded.yaw;
-        this.entity.body.pitch = recorded.pitch;
+        const position = { x: recorded.x, y: recorded.y - EYE_HEIGHT, z: recorded.z };
         this.headYaw = recorded.headYaw;
-        this.entity.position = { x: recorded.x, y: recorded.y - EYE_HEIGHT, z: recorded.z };
+        if (this.attached === undefined) {
+            this.held = { ...this.held, position, yaw: recorded.yaw, pitch: recorded.pitch };
+            return;
+        }
+        this.attached.body.yaw = recorded.yaw;
+        this.attached.body.pitch = recorded.pitch;
+        this.attached.position = position;
+    }
+
+    /** Puts the player's feet at a position, keeping the look. */
+    public standAt(feet: EntityPosition): void {
+        if (this.attached === undefined) this.held = { ...this.held, position: { ...feet } };
+        else this.attached.position = feet;
     }
 
     /** Everything the player carries. */
@@ -126,20 +248,36 @@ export class StorePlayer implements PlayerRecordSource, PlayerRecordTarget {
         return this.inventory;
     }
 
-    /** The entity's health. */
+    /** What is sitting in the crafting slots, whether the inventory's four or a table's nine. */
+    public getCraftingInput(): CraftingInput {
+        return this.craftingInput;
+    }
+
+    /** The player's logged component state, which the survival rules write through. */
+    public getComponents(): PlayerComponents {
+        return this.components;
+    }
+
+    /** The health, the entity's while the player is in a store. */
     public getHealth(): number {
-        return this.entity.instance.attributes.get('health')?.current ?? 0;
+        if (this.attached === undefined) return this.attributes.getValue(AttributeIds.Health);
+        return this.attached.instance.attributes.get('health')?.current ?? 0;
     }
 
-    /** The most health the entity can have, which its type decides. */
+    /** The most health the player can have, which the entity's type decides while it is in a store. */
     public getMaxHealth(): number {
-        return this.entity.instance.attributes.get('health')?.max ?? 0;
+        if (this.attached === undefined) return this.attributes.getAttribute(AttributeIds.Health)?.getMax() ?? 0;
+        return this.attached.instance.attributes.get('health')?.max ?? 0;
     }
 
-    /** Writes the entity's health, held to its maximum. */
+    /** Writes the health, held to its maximum. */
     public restoreHealth(health: number): void {
-        const current = this.entity.instance.attributes.get('health');
-        if (current !== undefined) this.entity.instance.attributes.set('health', Math.min(current.max, health));
+        if (this.attached === undefined) {
+            this.attributes.setValue(AttributeIds.Health, health);
+            return;
+        }
+        const current = this.attached.instance.attributes.get('health');
+        if (current !== undefined) this.attached.instance.attributes.set('health', Math.min(current.max, health));
     }
 
     /** Whether the player is flying. */
@@ -200,5 +338,23 @@ export class StorePlayer implements PlayerRecordSource, PlayerRecordTarget {
     /** Starts the portal cooldown, in whole ticks and never below zero, as a live player's. */
     public setPortalCooldown(ticks: number): void {
         this.portalCooldown = portalCooldownOf(ticks);
+    }
+
+    /** Writes a logged hand slot back, the one field the player keeps beside its components. */
+    private restoreField(field: string, value: PlainData): boolean {
+        if (field !== 'inventory.handSlot') return false;
+        if (typeof value !== 'number') throw new TypeError(`${field} cannot hold ${String(value)}`);
+        this.inventory.setHandSlot(value);
+        return true;
+    }
+
+    /** Writes a logged stack back into a slot of a container the player carries. */
+    private restoreSlot(container: string, slot: number, value: PlainData, content: ServerContent): boolean {
+        const named = playerContainerNamed(container);
+        if (named === undefined) return false;
+        if (named !== 'crafting') return this.inventory.restoreSlot(named, slot, value, content);
+        if (!Number.isInteger(slot) || slot < 0 || slot >= CraftingInput.SLOTS) return false;
+        this.craftingInput.set(slot, itemOfSlotValue(value, content));
+        return true;
     }
 }

@@ -9,8 +9,10 @@
  * hurts a player runs the blow through the store's damage pipeline (ADR 0013), with the facts the
  * legacy damage path gives the same cause.
  *
- * No live player is a store entity until C4h, so this runs in tests only. C4e and C4f can move
- * the components onto the entity unchanged.
+ * A store player (`entity/storePlayer.ts`) outlives its entity: it holds its components and its
+ * inventory from the login on, and hands them to the systems of each store its entity enters
+ * through {@link PlayerSystems.attach}, which logs their writes there and undoes them. No live
+ * player is a store entity until C4h's H-B2, so this runs in tests only.
  */
 import { AIR_STATE } from '@jsprismarine/entities';
 import { Attributes } from '@jsprismarine/protocol/wire/structures/Attribute';
@@ -18,6 +20,8 @@ import { Attributes } from '@jsprismarine/protocol/wire/structures/Attribute';
 import type { EntityPosition } from '@jsprismarine/entities';
 
 import type { ContentBlock, ContentLevelFacts, ContentPosition } from '../../content/world/adapter';
+import type { ServerContent } from '../../content/ServerContent';
+import type { PlayerContainer, SlotValue } from '../../inventory/slotLog';
 import { DROWNING_DAMAGE, FALL_DAMAGE, NATURAL_REGENERATION, ruleIsOn } from '../../content/world/gameRules';
 import type { PlainData } from '../../world/changelog/PlainData';
 import { DamageCause } from '../DamageCause';
@@ -42,6 +46,19 @@ import { bedrockCauseOf } from './legacyDamage';
 export interface PlayerSystemsPorts {
     /** Logs one write to a store player's state, as `EntityStore.written` does. */
     written(entity: DataEntity, field: string, before: unknown, after: unknown): void;
+    /**
+     * Logs one write to a slot a store player carries, as `EntityStore.writtenSlot` does, once
+     * the entity has entered the store.
+     */
+    writtenSlot(
+        entity: DataEntity,
+        container: PlayerContainer,
+        slot: number,
+        before: SlotValue,
+        after: SlotValue
+    ): void;
+    /** The built content, which decides an item's maximum durability when a slot is undone. */
+    content(): ServerContent;
     /** The level, for its game rules. */
     readonly level: ContentLevelFacts;
     /** The block at a position, or undefined when its chunk is not loaded. */
@@ -69,9 +86,39 @@ const blockOf = ({ x, y, z }: EntityPosition): ContentPosition => ({
     z: Math.floor(z)
 });
 
+/**
+ * What a store player hands the systems when its entity enters a store: its components, and the
+ * writers that put back what it keeps beside them.
+ */
+export interface PlayerParts {
+    /** The player's components, which the systems run and log from now on. */
+    readonly components: PlayerComponents;
+    /**
+     * Writes a logged field the player keeps beside its components back without logging it, such
+     * as `inventory.handSlot`.
+     * @returns Whether the player keeps `field`.
+     */
+    restoreField(field: string, value: PlainData): boolean;
+    /**
+     * Writes a logged slot back without logging it.
+     * @returns Whether the player carries that container and slot.
+     */
+    restoreSlot(container: string, slot: number, value: PlainData, content: ServerContent): boolean;
+}
+
+/** Where a store player's writes are logged while its entity is in the store. */
+export interface PlayerLog {
+    /** Logs a write to a component field, or a field kept beside them such as the hand slot. */
+    field(field: string, before: unknown, after: unknown): void;
+    /** Logs a write to one slot the player carries. */
+    slot(container: PlayerContainer, slot: number, before: SlotValue, after: SlotValue): void;
+}
+
 /** One store player's state beside its entity. */
 interface StorePlayer {
     readonly survival: SurvivalPlayer;
+    /** The player's own writers, or undefined for an entity no store player attached to. */
+    readonly parts: PlayerParts | undefined;
 }
 
 /** The player systems of one store, and the component state of its players. */
@@ -91,17 +138,20 @@ export class PlayerSystems {
     }
 
     /**
-     * Builds a store player's components over an attribute table its caller keeps, such as the
-     * one `StorePlayer` saves, so the player has one set of components and the systems log and
-     * undo the same fields a save reads. Called before the entity's first tick, and before it
-     * enters the store when a record is applied, so the record's writes are not logged.
+     * Takes a store player's parts for its entity, so the player has one set of components and
+     * the systems run, log and undo the same fields a save reads. Called before the entity enters
+     * the store, so what the player brings is part of the form it enters with and is not logged.
      *
      * @param entity - A store entity whose client owns its movement.
-     * @param attributes - The client's attribute table, where food, saturation and experience live.
-     * @returns The components, which replace any built for the entity before.
+     * @param parts - The player's components and writers, which replace any built for the entity.
+     * @returns Where the player logs its writes while the entity is in this store.
      */
-    public attach(entity: DataEntity, attributes: Attributes): PlayerComponents {
-        return this.build(entity, attributes).survival.components;
+    public attach(entity: DataEntity, parts: PlayerParts): PlayerLog {
+        this.register(entity, parts.components, parts);
+        return {
+            field: (field, before, after) => this.ports.written(entity, field, before, after),
+            slot: (container, slot, before, after) => this.ports.writtenSlot(entity, container, slot, before, after)
+        };
     }
 
     /**
@@ -231,13 +281,23 @@ export class PlayerSystems {
     }
 
     /**
-     * Writes a logged component field of a store player back, without logging it, for the store's
-     * undo.
+     * Writes a logged field of a store player back, without logging it, for the store's undo: a
+     * component field, or one the player keeps beside them.
      *
-     * @returns Whether `field` names a player component field.
+     * @returns Whether `field` names a field of the player.
      */
     public restore(entity: DataEntity, field: string, value: PlainData): boolean {
-        return this.playerOf(entity).survival.components.restore(field, value);
+        const { survival, parts } = this.playerOf(entity);
+        return survival.components.restore(field, value) || (parts?.restoreField(field, value) ?? false);
+    }
+
+    /**
+     * Writes a logged slot of a store player back, without logging it, for the store's undo.
+     *
+     * @returns Whether the entity's player carries that container and slot.
+     */
+    public restoreSlot(entity: DataEntity, container: string, slot: number, value: PlainData): boolean {
+        return this.players.get(entity)?.parts?.restoreSlot(container, slot, value, this.ports.content()) ?? false;
     }
 
     /** Breath, read at the block the player's eyes are in, which a store player's feet are {@link EYE_HEIGHT} below. */
@@ -296,14 +356,24 @@ export class PlayerSystems {
         });
     }
 
+    /**
+     * The entity's player, built the first time with fresh components for an entity no store
+     * player attached to, such as one a test or a command spawned.
+     */
     private playerOf(entity: DataEntity): StorePlayer {
-        return this.players.get(entity) ?? this.build(entity, new Attributes(Attributes.getPlayerDefaults()));
+        return (
+            this.players.get(entity) ??
+            this.register(
+                entity,
+                new PlayerComponents(new Attributes(Attributes.getPlayerDefaults()), (field, before, after) =>
+                    this.ports.written(entity, field, before, after)
+                ),
+                undefined
+            )
+        );
     }
 
-    private build(entity: DataEntity, attributes: Attributes): StorePlayer {
-        const components = new PlayerComponents(attributes, (field, before, after) =>
-            this.ports.written(entity, field, before, after)
-        );
+    private register(entity: DataEntity, components: PlayerComponents, parts: PlayerParts | undefined): StorePlayer {
         const health = () => entity.instance.attributes.get('health');
         const player: StorePlayer = {
             survival: {
@@ -312,7 +382,8 @@ export class PlayerSystems {
                 alive: () => (health()?.current ?? 0) > 0 && !this.ports.dying(entity.id),
                 health: () => health()?.current ?? 0,
                 maxHealth: () => health()?.max ?? 0
-            }
+            },
+            parts
         };
         this.players.set(entity, player);
         return player;

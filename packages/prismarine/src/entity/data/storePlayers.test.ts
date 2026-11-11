@@ -125,11 +125,12 @@ const fixture = () => {
             spawned.skin = stub<Skin>({});
             fill?.(spawned);
         });
-        if (player === undefined) throw new Error('the fixture declares no player');
-        actors.add(player.entity);
-        const actor = actors.actorOf(player.entity.id);
+        const entity = player?.entity;
+        if (player === undefined || entity === undefined) throw new Error('the fixture declares no player');
+        actors.add(entity);
+        const actor = actors.actorOf(entity.id);
         if (!(actor instanceof StorePlayerActor)) throw new Error('the player was given no player actor');
-        return { player, entity: player.entity, actor };
+        return { player, entity, actor };
     };
 
     /** One world tick's sends: what changed in the store, then the movement flush. */

@@ -184,7 +184,7 @@ import type { GameEventListener } from '../../world/GameEventListenerRegistry';
 import { VOID_DAMAGE, VOID_DEPTH, VOID_INTERVAL } from '../Environment';
 import type { StatusEffectInput } from '../StatusEffect';
 import { mergeStatusEffect, normalizeStatusEffectId, removeStatusEffectFromMap } from '../StatusEffect';
-import { clientOwnsMovement } from '../playerOverlay';
+import { clientOwnsMovement, PLAYER_IDENTIFIER } from '../playerOverlay';
 
 /** The interval between projectile samples, small enough not to skip a target. */
 const PROJECTILE_SWEEP_STEP = 0.25;
@@ -689,6 +689,10 @@ export class EntityRuntime implements EntityScene {
         });
         this.playerSystems = new PlayerSystems({
             written: (entity, field, before, after) => this.store.written(entity, field, before, after),
+            writtenSlot: (entity, container, slot, before, after) => {
+                if (this.store.hasEntered(entity)) this.store.writtenSlot(entity.id, container, slot, before, after);
+            },
+            content: () => this.content(),
             level: this.world.level,
             blockAt: (at) => this.world.blocks.get(at),
             runtimeIdAt: (at) => this.world.blocks.runtimeIdAt?.(at),
@@ -835,7 +839,29 @@ export class EntityRuntime implements EntityScene {
      * @returns The entity, or undefined when the content declares no such type.
      */
     public spawn(identifier: string, at: EntityPosition, options: SpawnOptions = {}): DataEntity | undefined {
-        const entity = this.create(identifier, at, options);
+        return this.spawnWithId(identifier, at, options);
+    }
+
+    /**
+     * Spawns a store player's entity under the id the player was filed under at its login, which
+     * {@link EntityRuntime.nextEntityId} or the server's pool drew. Otherwise {@link EntityRuntime.spawn}.
+     */
+    public spawnPlayer(id: number, at: EntityPosition, options: SpawnOptions = {}): DataEntity | undefined {
+        return this.spawnWithId(PLAYER_IDENTIFIER, at, options, id);
+    }
+
+    /** Draws a runtime id from the pool this runtime's entities draw from, for a player not yet in a store. */
+    public nextEntityId(): number {
+        return this.drawId();
+    }
+
+    private spawnWithId(
+        identifier: string,
+        at: EntityPosition,
+        options: SpawnOptions,
+        id?: number
+    ): DataEntity | undefined {
+        const entity = this.create(identifier, at, options, undefined, false, id);
         if (entity === undefined) return undefined;
         options.prepare?.(entity);
         if (
@@ -875,12 +901,19 @@ export class EntityRuntime implements EntityScene {
      *
      * @param at - Where the saved body stood, which the record does not carry
      *   because the actor compound already does.
-     * @param id - The runtime id to give it, which only undoing a removal passes; a restore from
-     *   a save draws a new one.
+     * @param id - The runtime id to give it, which undoing a removal and a store player entering
+     *   another store pass; a restore from a save draws a new one.
+     * @param prepare - Writes host state onto the entity before it enters the change log, as
+     *   `SpawnOptions.prepare` does for a spawn.
      * @returns The entity, or undefined when no loaded pack declares its type,
      *   in which case the caller restores the saved body the way it always did.
      */
-    public restore(record: DataEntityRecord, at: EntityPosition, id?: number): DataEntity | undefined {
+    public restore(
+        record: DataEntityRecord,
+        at: EntityPosition,
+        id?: number,
+        prepare?: (entity: DataEntity) => void
+    ): DataEntity | undefined {
         const entity = this.create(
             record.identifier,
             at,
@@ -910,6 +943,7 @@ export class EntityRuntime implements EntityScene {
         entity.body.containerCapacity = this.containerCapacityOf(entity.instance);
         this.syncGameEventListener(entity);
         this.startFuse(entity);
+        prepare?.(entity);
         this.store.enter(entity, this.savedFormOf(entity));
         this.onSpawn(entity);
         return entity;
@@ -978,6 +1012,12 @@ export class EntityRuntime implements EntityScene {
                 this.remove(id, 'undone');
             } else this.reenter(inverse.saved);
             return true;
+        }
+        if (inverse.field === 'inventory-slot') {
+            const { entity: id, container, slot } = inverse.address;
+            const entity = this.store.get(Number(id));
+            if (entity === undefined || !clientOwnsMovement(entity.identifier)) return false;
+            return this.playerSystems.restoreSlot(entity, container, slot, inverse.after);
         }
         if (inverse.field !== 'entity') return false;
         const id = Number(inverse.address.entity);

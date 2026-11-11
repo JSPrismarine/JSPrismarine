@@ -12,6 +12,7 @@ import { fieldsOf, logged, storePlayerFixture } from '../../testing/storePlayer.
 import UUID from '@jsprismarine/protocol/wire/structures/UUID';
 
 import { StorePlayer } from '../storePlayer';
+import { enterStore, StorePlayers } from './storePlayers';
 import type { DataEntity } from './DataEntity';
 import type { EntityFixture } from './testing';
 import { FLOOR_Y, TestEntityWorld } from './testing';
@@ -305,12 +306,13 @@ describe('a store player', () => {
     describe('as a StorePlayer', () => {
         it('shares one set of components with the systems, logged and run by them', () => {
             const fixture = storePlayerFixture();
-            const entity = fixture.runtime.spawn(PLAYER_IDENTIFIER, { x: 0.5, y: FLOOR_Y + 1, z: 0.5 })!;
-            const player = new StorePlayer(
-                entity,
-                { uuid: UUID.fromRandom(), name: 'Steve', xuid: '' },
-                fixture.runtime.playerSystems
-            );
+            const player = new StorePlayer(fixture.runtime.nextEntityId(), {
+                uuid: UUID.fromRandom(),
+                name: 'Steve',
+                xuid: ''
+            });
+            player.standAt({ x: 0.5, y: FLOOR_Y + 1, z: 0.5 });
+            const entity = enterStore(fixture.runtime, new StorePlayers(), player)!;
 
             const entries = logged(fixture.runtime, () => {
                 player.setFood(0);
