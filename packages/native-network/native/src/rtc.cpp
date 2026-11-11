@@ -23,8 +23,9 @@ namespace {
 int32_t queueOf(void *pointer) { return static_cast<int32_t>(reinterpret_cast<intptr_t>(pointer)); }
 void *pointerFor(int32_t queue) { return reinterpret_cast<void *>(static_cast<intptr_t>(queue)); }
 
-std::mutex liveMutex;
-std::map<int, int32_t> livePeers; // peer connection -> queue
+// Never destroyed, as the event queues are not: a callback can arrive while the process exits.
+std::mutex &liveMutex = *new std::mutex;
+std::map<int, int32_t> &livePeers = *new std::map<int, int32_t>; // peer connection -> queue
 
 size_t length(const char *text) { return text == nullptr ? 0 : std::strlen(text); }
 

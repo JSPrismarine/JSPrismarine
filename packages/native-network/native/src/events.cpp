@@ -25,8 +25,10 @@ struct Queue {
 	uint16_t port = 0;
 };
 
-std::mutex queuesMutex;
-std::map<int32_t, std::shared_ptr<Queue>> queues;
+// Never destroyed: libdatachannel's threads can call in while the process exits, after static
+// destructors would have run, so these outlive everything rather than race it.
+std::mutex &queuesMutex = *new std::mutex;
+std::map<int32_t, std::shared_ptr<Queue>> &queues = *new std::map<int32_t, std::shared_ptr<Queue>>;
 int32_t nextQueue = 1;
 int32_t logQueue = 0;
 
