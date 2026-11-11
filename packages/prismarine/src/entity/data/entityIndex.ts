@@ -38,6 +38,7 @@ import type { DataEntity } from './DataEntity';
 import { squaredDistance } from './DataEntity';
 import { ITEM_ENTITY } from './droppedItems';
 import { byRuntimeId } from '../../world/WorldActor';
+import { clientOwnsMovement } from '../playerOverlay';
 
 /**
  * How wide one cell is, as the shift that divides a coordinate by it.
@@ -168,7 +169,8 @@ export class EntityIndex {
     private readonly bodies = new Map<number, Entity>();
 
     /**
-     * Hears each chunk a store entity other than a dropped stack enters, leaves or moves within.
+     * Hears each chunk a store entity other than a dropped stack or a player enters, leaves or
+     * moves within.
      * A cell is sixteen blocks wide and aligned to the chunks, so the cell an entity is filed
      * under is the chunk it stands in. The world marks the chunk changed, so a save writes the
      * chunk an entity left as well as the one it entered, and a chunk does not leave the world
@@ -411,7 +413,7 @@ export class EntityIndex {
         const now = cellKeyOf(entity.position);
         if (now === was) {
             this.refreshFamilies(entity);
-            this.reportCell(was);
+            this.reportCell(entity, was);
             return;
         }
 
@@ -653,13 +655,16 @@ export class EntityIndex {
         const cell = this.cells.get(key);
         if (cell === undefined) this.cells.set(key, [entity]);
         else cell.push(entity);
-        this.reportCell(key);
+        this.reportCell(entity, key);
     }
 
-    /** Tells the listener which chunk an entity entered or left, which is the cell it names. */
-    private reportCell(key: number): void {
+    /**
+     * Tells the listener which chunk an entity entered or left, which is the cell it names. A
+     * player is no part of a chunk's save, so its moves change no chunk.
+     */
+    private reportCell(entity: DataEntity, key: number): void {
         const listener = this.chunkChanged;
-        if (listener === undefined) return;
+        if (listener === undefined || clientOwnsMovement(entity.identifier)) return;
         const signed = (cell: number): number => (cell >= KEY_SPAN / 2 ? cell - KEY_SPAN : cell);
         listener(signed(Math.floor(key / KEY_SPAN)), signed(key % KEY_SPAN));
     }
@@ -762,7 +767,7 @@ export class EntityIndex {
         const at = cell.indexOf(entity);
         if (at !== -1) cell.splice(at, 1);
         if (cell.length === 0) this.cells.delete(key);
-        this.reportCell(key);
+        this.reportCell(entity, key);
     }
 }
 

@@ -39,6 +39,8 @@ import { fakeLevel } from '../../testing/level';
 import { identityNamed } from '../../testing/sessionIdentity.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import { playerOnPrototype } from '../../testing/storePlayer.test.helper';
+import { moveStorePlayer } from './storePlayers';
+import { PLAYER_IDENTIFIER } from '../playerOverlay';
 import { entityCommandHost } from '../../command/host/entities';
 import { Scoreboard } from '../../command/host/scoreboard';
 import type WorldManager from '../../world/WorldManager';
@@ -968,6 +970,30 @@ describe('the data-driven entity runtime over a live world', () => {
             })
         );
     };
+
+    it('keeps a live player out of chunk saves, chunk changes and the despawn cycle', async () => {
+        const player = addPlayer(2, 2);
+        const entity = player.getStorePlayer().entity;
+        if (entity === undefined) throw new Error('the player has no entity');
+        const chunk = world.getLoadedChunk(1, 0);
+        if (chunk === null) throw new Error('the fixture has no chunk at 1, 0');
+        chunk.markSaved();
+
+        // Walked into another chunk, which a mob's crossing would mark for the next save.
+        moveStorePlayer(live.runtime, player.getStorePlayer(), {
+            position: { x: 20.5, y: GROUND_Y, z: 2.5 },
+            yaw: 0,
+            pitch: 0,
+            onGround: true,
+            headYaw: 0
+        });
+        expect(chunk.getHasChanged()).toBe(false);
+        expect([...live.savedRecords().keys()].map((actor) => actor.getType())).not.toContain(PLAYER_IDENTIFIER);
+
+        await run(400);
+        expect(live.runtime.byId(entity.id)).toBe(entity);
+        expect(entity.removed).toBeUndefined();
+    });
 
     it('reuses the live player filter view while reading current player state', () => {
         const player = addPlayer(0, 0);
