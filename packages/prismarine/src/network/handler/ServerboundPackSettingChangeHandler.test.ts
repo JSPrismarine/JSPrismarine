@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { Logger } from '@jsprismarine/logger';
-import type Server from '../../Server';
+import { sessionContext } from '../../testing/handlerContext.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import { STEVE } from '../../testing/sessionIdentity.test.helper';
 import UUID from '@jsprismarine/protocol/wire/structures/UUID';
@@ -12,9 +12,7 @@ import ServerboundPackSettingChangeHandler from './ServerboundPackSettingChangeH
 describe('ServerboundPackSettingChangeHandler', () => {
     it('logs the pack, setting, and value', () => {
         const logged: string[] = [];
-        const server = stub<Server>({
-            getLogger: () => stub<Logger>({ debug: (...message) => void logged.push(message[0] ?? '') })
-        });
+        const log = stub<Logger>({ debug: (...message) => void logged.push(message[0] ?? '') });
         const session = stub<PlayerSession>({ identity: STEVE });
         const packId = UUID.fromString('12345678-1234-1234-1234-123456789abc');
         const packet = new ServerboundPackSettingChangePacket({
@@ -23,7 +21,7 @@ describe('ServerboundPackSettingChangeHandler', () => {
             packSettingValue: ['near', 'far']
         });
 
-        new ServerboundPackSettingChangeHandler().handle(packet, server, session);
+        new ServerboundPackSettingChangeHandler().handle(packet, sessionContext(session, { log }));
 
         expect(logged).toEqual([
             `Steve set fog of pack ${packId.toString()} to ["near","far"], which the server does not store`

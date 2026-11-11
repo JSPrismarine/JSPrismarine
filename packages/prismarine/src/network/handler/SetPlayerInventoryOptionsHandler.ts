@@ -1,7 +1,6 @@
-import type { PlayerSession } from '../../';
-import type Server from '../../Server';
 import type SetPlayerInventoryOptionsPacket from '@jsprismarine/protocol/packet/SetPlayerInventoryOptionsPacket';
-import type PacketHandler from './PacketHandler';
+import type { SessionContext } from './HandlerContext';
+import type { ConnectionLaneHandler } from './SessionHandler';
 
 /**
  * Takes the player's inventory screen layout.
@@ -16,13 +15,14 @@ import type PacketHandler from './PacketHandler';
  * on `WorldPlayerData` and matching reads and writes in `World.savePlayerData`, which is the
  * only place player state is persisted.
  */
-export default class SetPlayerInventoryOptionsHandler implements PacketHandler<SetPlayerInventoryOptionsPacket> {
+export default class SetPlayerInventoryOptionsHandler implements ConnectionLaneHandler<SetPlayerInventoryOptionsPacket> {
     public static PacketName = 'SetPlayerInventoryOptionsPacket';
+    public readonly takes = 'context';
     public readonly phases = ['play'] as const;
     public readonly lane = 'connection';
 
     /** Accepts the packet without acting on it; see the class comment. */
-    public handle(_packet: SetPlayerInventoryOptionsPacket, _server: Server, _session: PlayerSession): void {
+    public handle(_packet: SetPlayerInventoryOptionsPacket, _context: SessionContext): void {
         // Nothing to apply: the layout is the client's own preference.
     }
 }

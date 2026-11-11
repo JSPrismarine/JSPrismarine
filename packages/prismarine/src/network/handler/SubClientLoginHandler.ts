@@ -1,7 +1,6 @@
-import type Server from '../../Server';
-import type PlayerSession from '../PlayerSession';
 import type SubClientLoginPacket from '@jsprismarine/protocol/packet/SubClientLoginPacket';
-import type PacketHandler from './PacketHandler';
+import type { SessionContext } from './HandlerContext';
+import type { ConnectionLaneHandler } from './SessionHandler';
 
 /**
  * A second player trying to join through the connection of one that is already in.
@@ -13,18 +12,17 @@ import type PacketHandler from './PacketHandler';
  * would also need the header's sender sub-client id, which `NetworkPacket` reads but does not
  * expose. The client stays on the split screen waiting screen until the player backs out of it.
  */
-export default class SubClientLoginHandler implements PacketHandler<SubClientLoginPacket> {
+export default class SubClientLoginHandler implements ConnectionLaneHandler<SubClientLoginPacket> {
     public static PacketName = 'SubClientLoginPacket';
+    public readonly takes = 'context';
     public readonly phases = ['play'] as const;
     public readonly lane = 'connection';
 
     /** Logs the refusal against the player who already holds the connection. */
-    public handle(_packet: SubClientLoginPacket, server: Server, session: PlayerSession): void {
-        server
-            .getLogger()
-            .debug(
-                `${session.identity.name} tried to add a split screen player, which the server does not support`,
-                'SubClientLoginHandler/handle'
-            );
+    public handle(_packet: SubClientLoginPacket, { session, log }: SessionContext): void {
+        log.debug(
+            `${session.identity.name} tried to add a split screen player, which the server does not support`,
+            'SubClientLoginHandler/handle'
+        );
     }
 }

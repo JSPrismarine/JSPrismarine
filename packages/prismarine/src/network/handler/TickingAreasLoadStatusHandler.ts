@@ -1,7 +1,6 @@
-import type Server from '../../Server';
-import type PlayerSession from '../PlayerSession';
 import type TickingAreasLoadStatusPacket from '@jsprismarine/protocol/packet/TickingAreasLoadStatusPacket';
-import type PacketHandler from './PacketHandler';
+import type { SessionContext } from './HandlerContext';
+import type { ConnectionLaneHandler } from './SessionHandler';
 
 /**
  * The client saying whether it is still waiting for ticking areas to preload.
@@ -10,14 +9,11 @@ import type PacketHandler from './PacketHandler';
  * waiting for. Handled all the same - a registered packet with no handler is an error per
  * packet rather than a warning per packet.
  */
-export default class TickingAreasLoadStatusHandler implements PacketHandler<TickingAreasLoadStatusPacket> {
+export default class TickingAreasLoadStatusHandler implements ConnectionLaneHandler<TickingAreasLoadStatusPacket> {
     public static PacketName = 'TickingAreasLoadStatusPacket';
+    public readonly takes = 'context';
     public readonly phases = ['play'] as const;
     public readonly lane = 'connection';
 
-    public async handle(
-        _packet: TickingAreasLoadStatusPacket,
-        _server: Server,
-        _session: PlayerSession
-    ): Promise<void> {}
+    public async handle(_packet: TickingAreasLoadStatusPacket, _context: SessionContext): Promise<void> {}
 }

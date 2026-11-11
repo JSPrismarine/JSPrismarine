@@ -1,7 +1,6 @@
-import type Server from '../../Server';
-import type PlayerSession from '../PlayerSession';
 import type ServerboundDiagnosticsPacket from '@jsprismarine/protocol/packet/ServerboundDiagnosticsPacket';
-import type PacketHandler from './PacketHandler';
+import type { SessionContext } from './HandlerContext';
+import type { ConnectionLaneHandler } from './SessionHandler';
 
 /**
  * Client performance telemetry.
@@ -9,18 +8,17 @@ import type PacketHandler from './PacketHandler';
  * The server keeps no telemetry store, so the sample is summarized at debug level and dropped.
  * Nothing is sent back; the client keeps sending every 500 ms while its profiler is on.
  */
-export default class ServerboundDiagnosticsHandler implements PacketHandler<ServerboundDiagnosticsPacket> {
+export default class ServerboundDiagnosticsHandler implements ConnectionLaneHandler<ServerboundDiagnosticsPacket> {
     public static PacketName = 'ServerboundDiagnosticsPacket';
+    public readonly takes = 'context';
     public readonly phases = ['resourcePacks', 'play'] as const;
     public readonly lane = 'connection';
 
     /** Logs the frame rate and tick times from the sample. */
-    public handle(packet: ServerboundDiagnosticsPacket, server: Server, session: PlayerSession): void {
-        server
-            .getLogger()
-            .debug(
-                `${session.identity.name} reports ${packet.avgFps.toFixed(1)} fps, ${packet.avgClientSimTickTimeMs.toFixed(2)} ms client tick, ${packet.avgServerSimTickTimeMs.toFixed(2)} ms server tick, ${packet.memoryCategoryValues.length} memory categories`,
-                'ServerboundDiagnosticsHandler/handle'
-            );
+    public handle(packet: ServerboundDiagnosticsPacket, { session, log }: SessionContext): void {
+        log.debug(
+            `${session.identity.name} reports ${packet.avgFps.toFixed(1)} fps, ${packet.avgClientSimTickTimeMs.toFixed(2)} ms client tick, ${packet.avgServerSimTickTimeMs.toFixed(2)} ms server tick, ${packet.memoryCategoryValues.length} memory categories`,
+            'ServerboundDiagnosticsHandler/handle'
+        );
     }
 }
