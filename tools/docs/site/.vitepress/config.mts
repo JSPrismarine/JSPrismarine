@@ -5,6 +5,7 @@ import manifest from '../../../../package.json' with { type: 'json' };
 import mcfunction from './mcfunction.tmLanguage.json';
 import molang from './molang.tmLanguage.json';
 import typedocSidebar from '../api/typedoc-sidebar.json';
+import { footerHtml } from './footer.mts';
 import { megaMenus } from './menus.mts';
 import { isStagedPage, pageSource, sourceUpdatedAt } from '../../sections.mts';
 import { colorSwatchPlugin, colorSwatchTransformer } from './colorSwatches.ts';
@@ -160,18 +161,17 @@ export default defineConfig({
         lastUpdated: { text: 'Updated', formatOptions: { dateStyle: 'medium' } },
         // VitePress renders the footer message as HTML, so site paths carry the deploy base themselves.
         footer: {
-            message: [
-                ['Guides', `${base}guide/`],
-                ['Parity', `${base}parity`],
-                ['Packages', `${base}packages`],
-                ['Releases', `${base}releases`],
-                ['Brand kit', `${base}brand-kit`],
-                ['GitHub', repositoryUrl],
-                ...(discordInvite ? [['Discord', discordInvite]] : [])
-            ]
-                .map(([text, href]) => `<a href="${href}">${text}</a>`)
-                .join(''),
-            copyright: `Released under the ${manifest.license} license.`
+            message: footerHtml({
+                base,
+                project: [
+                    { text: 'Parity tracker', href: '/parity' },
+                    { text: 'Packages', href: '/packages' },
+                    { text: 'Releases', href: '/releases' },
+                    { text: 'Brand kit', href: '/brand-kit' },
+                    { text: 'GitHub', href: repositoryUrl },
+                    ...(discordInvite ? [{ text: 'Discord', href: discordInvite }] : [])
+                ]
+            })
         }
     }
 });

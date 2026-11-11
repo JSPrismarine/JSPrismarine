@@ -403,31 +403,97 @@
     margin-left: 0.5em;
 }
 
-/* The footer: a row of site links above the license line. */
+/* The footer: the mark, wordmark and version beside one link column per audience and a Project
+   column, built by `footer.mts` from the guide overview. */
 .VPFooter .message {
-    font-weight: 700;
+    margin: 0;
     color: var(--vp-c-text-1);
+    text-align: left;
 }
 
-/* VitePress wraps the message in a bdi; the links lay out inside it. */
-.VPFooter .message bdi {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0 20px;
-    justify-content: center;
+.VPFooter .site-footer {
+    display: grid;
+    grid-template-columns: max-content minmax(0, 1fr);
+    gap: 32px;
+    align-items: start;
+    padding: 12px 0 8px;
 }
 
-.VPFooter .message a {
+.VPFooter .message .site-footer__brand {
     display: inline-flex;
+    gap: 10px;
     align-items: center;
-    min-height: var(--jsp-target);
+    font-size: 20px;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    color: var(--vp-c-text-1);
     text-decoration: none;
 }
 
-.VPFooter .message a:hover {
+.VPFooter .site-footer__brand svg {
+    width: 28px;
+    height: 28px;
+}
+
+.VPFooter .site-footer__version {
+    max-width: 22ch;
+    margin: 10px 0 0;
+    font: var(--jsp-label-size) / 1.5 var(--vp-font-family-mono);
+    color: var(--vp-c-text-2);
+}
+
+.VPFooter .site-footer__columns {
+    display: grid;
+    /* One row of columns: four audiences and Project. */
+    grid-auto-columns: minmax(0, 1fr);
+    grid-auto-flow: column;
+    gap: 24px;
+}
+
+.VPFooter .site-footer__heading {
+    margin: 0 0 6px;
+    font: 700 var(--jsp-label-size) var(--vp-font-family-mono);
+    color: var(--vp-c-text-2);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+
+.VPFooter .message .site-footer__column a {
+    display: flex;
+    align-items: center;
+    min-height: 30px;
+    padding: 3px 0;
+    font-size: 14px;
+    font-weight: 700;
+    line-height: 1.3;
+    text-decoration: none;
+}
+
+.VPFooter .site-footer__column a:hover {
     text-decoration: underline;
     text-decoration-thickness: 2px;
     text-underline-offset: 3px;
+}
+
+/* Below a tablet the brand sits above the columns, and the columns fall to two. */
+@media (max-width: 860px) {
+    .VPFooter .site-footer {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 8px;
+    }
+
+    .VPFooter .site-footer__identity {
+        margin-bottom: 16px;
+    }
+
+    .VPFooter .site-footer__columns {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        grid-auto-flow: row;
+    }
+
+    .VPFooter .message .site-footer__column a {
+        min-height: var(--jsp-target);
+    }
 }
 
 /* Doc pages end on the same footer as the landing page. VitePress hides it beside a sidebar, so it
@@ -439,13 +505,13 @@
 
 @media (min-width: 960px) {
     .VPFooter.has-sidebar {
-        padding-left: var(--vp-sidebar-width);
+        padding-left: calc(var(--vp-sidebar-width) + 32px);
     }
 }
 
 @media (min-width: 1440px) {
     .VPFooter.has-sidebar {
-        padding-left: calc((100vw - var(--vp-layout-max-width)) / 2 + var(--vp-sidebar-width));
+        padding-left: calc((100vw - var(--vp-layout-max-width)) / 2 + var(--vp-sidebar-width) + 32px);
     }
 }
 

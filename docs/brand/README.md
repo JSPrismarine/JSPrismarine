@@ -140,7 +140,9 @@ scrolling off the screen edge, and a two-column table stacks each row as its nam
   groups as a sidebar. A section whose overview is a card page takes its sidebar from that page's
   groups, so the sidebar lists every page the overview offers, and the build fails on a page in the
   folder that the overview leaves out.
-- Every page ends on the site footer, doc pages beside a sidebar included.
+- Every page ends on the site footer, doc pages beside a sidebar included. The footer carries the
+  mark, the wordmark, the server version and the license, beside one link column per audience from
+  the guide overview and a Project column (`footer.mts`), so it routes the way the menu does.
 - Each second-level section opens on a short solid bar over a display heading; a component's own
   headings (`vp-raw`) draw the same pair themselves, as the parity tracker's do.
   Overview pages whose sections are lists of links set those sections as cards (`sectionCards.ts`),
@@ -173,7 +175,7 @@ scrolling off the screen edge, and a two-column table stacks each row as its nam
 - The solid accent and signal figure tiles stay: they carry the page's character. Each shows a figure
   the hero does not.
 - The page ends on a call to action with a command to copy, plus a line for players and contributors,
-  not on decoration. The footer under it links the main sections.
+  not on decoration. The footer under it routes by audience.
 
 ## The menu
 
