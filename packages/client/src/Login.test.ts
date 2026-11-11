@@ -104,11 +104,10 @@ describe('logging into a real server', () => {
         expect(players.map((player: any) => player.getName())).toContain('NetherNetTester');
     }, 40_000);
 
-    // libdatachannel sends from its own sockets, which `conditionLink` does not reach; the client
-    // relay of docs/plans/webrtc-backend.md slice 7 puts Node.js sockets back in the path.
-    it.skip('spawns over NetherNet across a long, lossy path', async () => {
+    it('spawns over NetherNet across a long, lossy path', async () => {
         // A lossy path makes retransmission timers fire after gap acks, which once stopped a
-        // WebRTC stack from sending for good. Each datagram is held and each may be dropped.
+        // WebRTC stack from sending for good. The client joins through its relay, whose Node.js
+        // sockets carry each datagram both ways, so each is held and each may be dropped.
         const random = new Random(90);
         const link = conditionLink({ latencyMs: 50, loss: 0.02, random: () => random.next() });
         try {

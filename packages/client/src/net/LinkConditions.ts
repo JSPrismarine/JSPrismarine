@@ -103,3 +103,10 @@ export const conditionLink = ({ latencyMs = 0, loss = 0, random = Math.random }:
     active = link;
     return link;
 };
+
+/**
+ * Whether this process sends over a conditioned link right now. NetherNet's client reads it to
+ * put its relay in the path, since WebRTC's own sockets are out of the link's reach.
+ * @returns True between {@link conditionLink} and the link's `restore`.
+ */
+export const isLinkConditioned = (): boolean => active !== undefined;
