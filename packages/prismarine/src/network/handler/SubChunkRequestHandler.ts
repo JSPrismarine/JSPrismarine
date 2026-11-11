@@ -5,7 +5,6 @@ import type { ReadLaneHandler } from './SessionHandler';
 /** Answers the sub chunks a request-mode LevelChunk told the client to fetch. */
 export default class SubChunkRequestHandler implements ReadLaneHandler<SubChunkRequestPacket> {
     public static PacketName = 'SubChunkRequestPacket';
-    public readonly takes = 'context';
     public readonly phases = ['play'] as const;
     public readonly lane = 'read';
 

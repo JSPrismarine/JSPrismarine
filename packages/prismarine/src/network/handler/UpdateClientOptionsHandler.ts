@@ -11,7 +11,6 @@ import type { ConnectionLaneHandler } from './SessionHandler';
  */
 export default class UpdateClientOptionsHandler implements ConnectionLaneHandler<UpdateClientOptionsPacket> {
     public static PacketName = 'UpdateClientOptionsPacket';
-    public readonly takes = 'context';
     public readonly phases = ['resourcePacks', 'play'] as const;
     public readonly lane = 'connection';
 

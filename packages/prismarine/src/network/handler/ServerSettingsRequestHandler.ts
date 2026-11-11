@@ -18,7 +18,6 @@ import type { ConnectionLaneHandler } from './SessionHandler';
  */
 export default class ServerSettingsRequestHandler implements ConnectionLaneHandler<ServerSettingsRequestPacket> {
     public static PacketName = 'ServerSettingsRequestPacket';
-    public readonly takes = 'context';
     public readonly phases = ['play'] as const;
     public readonly lane = 'connection';
 

@@ -45,7 +45,6 @@ const bookEditRejection = (player: Pick<StorePlayer, 'getInventory'>, data: Book
  */
 export default class BookEditHandler implements ReadLaneHandler<BookEditPacket> {
     public static PacketName = 'BookEditPacket';
-    public readonly takes = 'context';
     public readonly phases = ['play'] as const;
     public readonly lane = 'read';
 

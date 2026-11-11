@@ -18,7 +18,6 @@ const CLIENT_ACTIONS: ReadonlySet<number> = new Set([
 /** Relays a client's animation to the players in its world that have it on screen. */
 export default class AnimateHandler implements InputLaneHandler<AnimatePacket> {
     public static PacketName = 'AnimatePacket';
-    public readonly takes = 'context';
     public readonly phases = ['play'] as const;
     // Relays to the players that see the sender, so it is an input though it writes nothing.
     public readonly lane = 'input';

@@ -58,7 +58,6 @@ const INPUT_ONLY_ACTIONS: ReadonlySet<number> = new Set([
  */
 export default class PlayerActionHandler implements InputLaneHandler<PlayerActionPacket> {
     public static PacketName = 'PlayerActionPacket';
-    public readonly takes = 'context';
     public readonly phases = ['play'] as const;
     public readonly lane = 'input';
 

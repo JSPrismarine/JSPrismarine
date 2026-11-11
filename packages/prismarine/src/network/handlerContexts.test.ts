@@ -39,14 +39,12 @@ const sessionInWorld = (order: string[]) => {
 };
 
 const readHandler = (handle: (context: SessionContext) => Promise<void> | void): ReadLaneHandler<string> => ({
-    takes: 'context',
     lane: 'read',
     phases: ['play'],
     handle: (_packet, context) => handle(context)
 });
 
 const inputHandler = (handle: (context: InputContext) => void): InputLaneHandler<string> => ({
-    takes: 'context',
     lane: 'input',
     phases: ['play'],
     handle: (_packet, context) => {

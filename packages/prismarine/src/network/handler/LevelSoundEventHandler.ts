@@ -29,7 +29,6 @@ const NO_ACTOR_TYPES = new Set(['', ':']);
 /** Relays a sound a client reported to the other players near where it happened. */
 export default class LevelSoundEventHandler implements InputLaneHandler<LevelSoundEventPacket> {
     public static PacketName = 'LevelSoundEventPacket';
-    public readonly takes = 'context';
     public readonly phases = ['play'] as const;
     // Relays to the players near the sound, so it is an input though it writes nothing.
     public readonly lane = 'input';

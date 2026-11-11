@@ -14,7 +14,6 @@ import type { ConnectionLaneHandler } from './SessionHandler';
  */
 export default class SubClientLoginHandler implements ConnectionLaneHandler<SubClientLoginPacket> {
     public static PacketName = 'SubClientLoginPacket';
-    public readonly takes = 'context';
     public readonly phases = ['play'] as const;
     public readonly lane = 'connection';
 

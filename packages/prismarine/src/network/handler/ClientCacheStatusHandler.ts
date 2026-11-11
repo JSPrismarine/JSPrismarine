@@ -5,7 +5,6 @@ import type { ConnectionLaneHandler } from './SessionHandler';
 /** The client saying whether it can keep a blob cache. */
 export default class ClientCacheStatusHandler implements ConnectionLaneHandler<ClientCacheStatusPacket> {
     public static PacketName = 'ClientCacheStatusPacket';
-    public readonly takes = 'context';
     public readonly phases = ['resourcePacks', 'play'] as const;
     public readonly lane = 'connection';
 

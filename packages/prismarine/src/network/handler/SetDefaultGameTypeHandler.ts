@@ -38,7 +38,6 @@ const sendDefault = async (config: Pick<HandlerConfig, 'getGamemode'>, session: 
  */
 export default class SetDefaultGameTypeHandler implements InputLaneHandler<SetDefaultGameTypePacket> {
     public static PacketName = 'SetDefaultGameTypePacket';
-    public readonly takes = 'context';
     public readonly phases = ['play'] as const;
     public readonly lane = 'input';
 

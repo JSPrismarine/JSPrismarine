@@ -11,7 +11,6 @@ import type { ConnectionLaneHandler } from './SessionHandler';
  */
 export default class PlayerLocationHandler implements ConnectionLaneHandler<PlayerLocationPacket> {
     public static PacketName = 'PlayerLocationPacket';
-    public readonly takes = 'context';
     public readonly phases = ['play'] as const;
     public readonly lane = 'connection';
 

@@ -34,7 +34,6 @@ import type { InputLaneHandler } from './SessionHandler';
  */
 export default class ResourcePackClientResponseHandler implements InputLaneHandler<ResourcePackClientResponsePacket> {
     public static PacketName = 'ResourcePackClientResponsePacket';
-    public readonly takes = 'context';
     public readonly phases = ['resourcePacks'] as const;
     public readonly lane = 'input';
 

@@ -17,7 +17,6 @@ const ANVILS: ReadonlySet<string> = new Set(['minecraft:anvil', 'minecraft:chipp
  */
 export default class AnvilDamageHandler implements ReadLaneHandler<AnvilDamagePacket> {
     public static PacketName = 'AnvilDamagePacket';
-    public readonly takes = 'context';
     public readonly phases = ['play'] as const;
     public readonly lane = 'read';
 

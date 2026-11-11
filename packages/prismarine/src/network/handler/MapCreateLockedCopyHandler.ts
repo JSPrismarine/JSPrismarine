@@ -10,7 +10,6 @@ import type { ConnectionLaneHandler } from './SessionHandler';
  */
 export default class MapCreateLockedCopyHandler implements ConnectionLaneHandler<MapCreateLockedCopyPacket> {
     public static PacketName = 'MapCreateLockedCopyPacket';
-    public readonly takes = 'context';
     public readonly phases = ['play'] as const;
     public readonly lane = 'connection';
 

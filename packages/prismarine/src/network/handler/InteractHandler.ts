@@ -28,7 +28,6 @@ const REACH_SLACK = 1;
  */
 export default class InteractHandler implements InputLaneHandler<InteractPacket> {
     public static PacketName = 'InteractPacket';
-    public readonly takes = 'context';
     public readonly phases = ['play'] as const;
     // Input, not read: opening the inventory adds to the window table input handlers check.
     public readonly lane = 'input';

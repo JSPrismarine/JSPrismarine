@@ -11,7 +11,6 @@ import type { ConnectionLaneHandler } from './SessionHandler';
  */
 export default class BlockPickRequestHandler implements ConnectionLaneHandler<BlockPickRequestPacket> {
     public static PacketName = 'BlockPickRequestPacket';
-    public readonly takes = 'context';
     public readonly phases = ['play'] as const;
     public readonly lane = 'connection';
 

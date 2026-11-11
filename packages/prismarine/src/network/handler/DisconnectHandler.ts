@@ -15,7 +15,6 @@ import type { ConnectionLaneHandler } from './SessionHandler';
  */
 export default class DisconnectHandler implements ConnectionLaneHandler<DisconnectPacket> {
     public static PacketName = 'DisconnectPacket';
-    public readonly takes = 'context';
     public readonly phases = ['resourcePacks', 'play'] as const;
     // Connection, not input: this only hangs up. The dispatcher holds the removal of the player
     // that the closed transport causes as an input of its own, behind this client's earlier

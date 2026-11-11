@@ -16,7 +16,6 @@ const EMOTE_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$
  */
 export default class EmoteHandler implements InputLaneHandler<EmotePacket> {
     public static PacketName = 'EmotePacket';
-    public readonly takes = 'context';
     public readonly phases = ['play'] as const;
     // Relays to the players that see the sender, so it is an input though it writes nothing.
     public readonly lane = 'input';

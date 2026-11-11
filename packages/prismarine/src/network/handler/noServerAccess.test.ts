@@ -5,20 +5,8 @@ import type { ImportDeclaration, Node } from 'tsc-ts/api';
 import { getTextOfNode, parseSourceFile, SyntaxKind, walkPreorder } from 'tsc-ts/api';
 import { describe, expect, it } from 'vitest';
 
-import { reportProgress } from '../../../../../.test/reportProgress';
-
 const here = fileURLToPath(new URL('.', import.meta.url));
 const src = resolve(here, '../..');
-
-/**
- * The handler modules that still reach `Server`, by importing it or by calling `getServer()` on
- * something they hold, grouped by the D2 package that moves them to a context
- * (`docs/plans/entity-simulation-rearchitecture.md`, phase D). The slice 6 target "No `Server`
- * import in a handler" gates once the list is empty. The test fails when a module that is not
- * listed reaches `Server`, and when a listed one no longer does, so a package deletes its lines
- * as it converts its files and the list only shrinks.
- */
-const STILL_REACH_SERVER: ReadonlyMap<string, readonly string[]> = new Map([['D2 close', ['PacketHandler.ts']]]);
 
 const isImport = (node: Node): node is ImportDeclaration => node.kind === SyntaxKind.ImportDeclaration;
 
@@ -71,22 +59,14 @@ const callsGetServer = (file: string, text = readFileSync(file, 'utf8')): boolea
 };
 
 describe('network/handler', () => {
-    it('reaches Server only from the modules D2 has yet to move to a context', () => {
+    it('reaches Server from no module', () => {
+        // The slice 6 target "No `Server` import in a handler"
+        // (docs/plans/entity-simulation-rearchitecture.md, phase D).
         const modules = handlerModules();
         const importing = modules.filter((name) => importsServer(join(here, name)) || callsGetServer(join(here, name)));
-        const listed = [...STILL_REACH_SERVER.values()].flat().sort();
 
-        expect(importing).toStrictEqual(listed);
-
-        reportProgress(
-            `${modules.length - importing.length} of ${modules.length} handler modules reach no Server`,
-            'Handlers without Server'
-        );
-    });
-
-    it('lists each module once', () => {
-        const listed = [...STILL_REACH_SERVER.values()].flat();
-        expect(new Set(listed).size).toBe(listed.length);
+        expect(importing).toStrictEqual([]);
+        expect(modules.length).toBeGreaterThan(0);
     });
 
     it('finds each way a module can reach Server', () => {

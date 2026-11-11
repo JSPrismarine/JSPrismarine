@@ -11,7 +11,6 @@ import type { ConnectionLaneHandler } from './SessionHandler';
  */
 export default class NpcRequestHandler implements ConnectionLaneHandler<NpcRequestPacket> {
     public static PacketName = 'NpcRequestPacket';
-    public readonly takes = 'context';
     public readonly phases = ['play'] as const;
     public readonly lane = 'connection';
 

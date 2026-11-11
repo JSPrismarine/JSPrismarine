@@ -13,7 +13,6 @@ import type { InputLaneHandler } from './SessionHandler';
  */
 export default class ShowCreditsHandler implements InputLaneHandler<ShowCreditsPacket> {
     public static PacketName = 'ShowCreditsPacket';
-    public readonly takes = 'context';
     public readonly phases = ['play'] as const;
     public readonly lane = 'input';
 

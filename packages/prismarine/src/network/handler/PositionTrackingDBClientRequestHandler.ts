@@ -12,7 +12,6 @@ import type { ConnectionLaneHandler } from './SessionHandler';
  */
 export default class PositionTrackingDBClientRequestHandler implements ConnectionLaneHandler<PositionTrackingDBClientRequestPacket> {
     public static PacketName = 'PositionTrackingDBClientRequestPacket';
-    public readonly takes = 'context';
     public readonly phases = ['play'] as const;
     public readonly lane = 'connection';
 

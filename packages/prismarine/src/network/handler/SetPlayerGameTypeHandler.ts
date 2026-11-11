@@ -22,7 +22,6 @@ interface GamemodePlayer {
  */
 export default class SetPlayerGameTypeHandler implements InputLaneHandler<SetPlayerGameTypePacket> {
     public static PacketName = 'SetPlayerGameTypePacket';
-    public readonly takes = 'context';
     public readonly phases = ['play'] as const;
     public readonly lane = 'input';
 

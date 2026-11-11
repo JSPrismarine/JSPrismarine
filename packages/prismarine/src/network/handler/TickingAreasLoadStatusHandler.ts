@@ -11,7 +11,6 @@ import type { ConnectionLaneHandler } from './SessionHandler';
  */
 export default class TickingAreasLoadStatusHandler implements ConnectionLaneHandler<TickingAreasLoadStatusPacket> {
     public static PacketName = 'TickingAreasLoadStatusPacket';
-    public readonly takes = 'context';
     public readonly phases = ['play'] as const;
     public readonly lane = 'connection';
 

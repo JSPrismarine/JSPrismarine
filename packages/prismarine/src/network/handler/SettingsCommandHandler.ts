@@ -12,7 +12,6 @@ import type { InputLaneHandler } from './SessionHandler';
  */
 export default class SettingsCommandHandler implements InputLaneHandler<SettingsCommandPacket> {
     public static PacketName = 'SettingsCommandPacket';
-    public readonly takes = 'context';
     public readonly phases = ['play'] as const;
     public readonly lane = 'input';
 

@@ -18,7 +18,6 @@ const STRUCTURE_BLOCKS: ReadonlySet<string> = new Set(['minecraft:structure_bloc
  */
 export default class StructureTemplateDataRequestHandler implements ReadLaneHandler<StructureTemplateDataRequestPacket> {
     public static PacketName = 'StructureTemplateDataRequestPacket';
-    public readonly takes = 'context';
     public readonly phases = ['play'] as const;
     public readonly lane = 'read';
 

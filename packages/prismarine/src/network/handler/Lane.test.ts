@@ -42,7 +42,6 @@ const isVariableDeclaration = (node: Node): node is VariableDeclaration => node.
 const CONNECTION_IMPORTS: readonly RegExp[] = [
     /^@jsprismarine\/protocol(\/|$)/,
     /^@jsprismarine\/minecraft$/,
-    /^\.\.\/\.\.\/Server$/,
     /^\.\.\/PlayerSession$/,
     /^\.\.\/ClientConnection$/,
     /^\.\.\/codec\/CodecRegistry$/,
@@ -50,12 +49,11 @@ const CONNECTION_IMPORTS: readonly RegExp[] = [
 ];
 
 /**
- * What a connection-lane handler may call on each object it is handed. Every `PlayerSession`
- * method listed was traced to state the session owns, and `identity` and `runtimeId` are fixed
- * for the session: `setClientCacheEnabled` and
- * `handleClientCacheBlobStatus` touch only the session's blob cache.
+ * What a connection-lane handler may call on its session. Every `PlayerSession` method listed
+ * was traced to state the session owns, and `identity` and `runtimeId` are fixed for the
+ * session: `setClientCacheEnabled` and `handleClientCacheBlobStatus` touch only the session's
+ * blob cache.
  */
-const SERVER_MEMBERS: ReadonlySet<string> = new Set(['getLogger', 'getConfig']);
 const SESSION_MEMBERS: ReadonlySet<string> = new Set([
     'getPlayer',
     'identity',
@@ -101,7 +99,7 @@ const CONTEXT_TYPES: ReadonlyMap<string, readonly [member: string, kind: string]
 ]);
 
 /**
- * The parameter kind a `Server`, `PlayerSession` or `ClientConnection` annotation names. A
+ * The parameter kind a `PlayerSession` or `ClientConnection` annotation names. A
  * context parameter is its context type, and the `session` or `connection` destructured from one
  * a `PlayerSession` or a `ClientConnection`.
  */
@@ -123,7 +121,7 @@ const parameterKinds = (root: Node): Map<string, string> => {
             });
             return;
         }
-        if (type === 'Server' || type === 'PlayerSession' || type === 'ClientConnection') {
+        if (type === 'PlayerSession' || type === 'ClientConnection') {
             kinds.set(node.name.text, type);
         }
         if (held !== undefined) kinds.set(node.name.text, type);
@@ -156,7 +154,7 @@ const readsIdentity = (node: Node): boolean => {
 
 /**
  * Every way a handler module reaches world or entity state that the syntax shows: an import
- * outside {@link CONNECTION_IMPORTS}, a call on its `Server`, `PlayerSession` or
+ * outside {@link CONNECTION_IMPORTS}, a call on its `PlayerSession` or
  * `ClientConnection` outside the allowed members, or a use of the player beyond its identity.
  */
 const worldAccess = (file: string): string[] => {
@@ -180,7 +178,6 @@ const worldAccess = (file: string): string[] => {
         const kind = receiverKind(node, kinds);
         if (member === null || kind === undefined) return;
 
-        if (kind === 'Server' && !SERVER_MEMBERS.has(member)) found.push(`calls server.${member}`);
         if (kind === 'PlayerSession' && !SESSION_MEMBERS.has(member)) found.push(`calls session.${member}`);
         if (kind === 'ClientConnection' && CONNECTION_WORLD_MEMBERS.has(member)) {
             found.push(`calls connection.${member}`);

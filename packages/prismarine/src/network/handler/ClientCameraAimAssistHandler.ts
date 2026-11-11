@@ -10,7 +10,6 @@ import type { ConnectionLaneHandler } from './SessionHandler';
  */
 export default class ClientCameraAimAssistHandler implements ConnectionLaneHandler<ClientCameraAimAssistPacket> {
     public static PacketName = 'ClientCameraAimAssistPacket';
-    public readonly takes = 'context';
     public readonly phases = ['play'] as const;
     public readonly lane = 'connection';
 

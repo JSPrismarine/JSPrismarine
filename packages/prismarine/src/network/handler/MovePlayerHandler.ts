@@ -121,7 +121,6 @@ export const applyClientMovement = (
  */
 export default class MovePlayerHandler implements InputLaneHandler<MovePlayerPacket> {
     public static PacketName = 'MovePlayerPacket';
-    public readonly takes = 'context';
     public readonly phases = ['play'] as const;
     public readonly lane = 'input';
 

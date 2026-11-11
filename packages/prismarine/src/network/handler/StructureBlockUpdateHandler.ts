@@ -17,7 +17,6 @@ const STRUCTURE_BLOCKS: ReadonlySet<string> = new Set(['minecraft:structure_bloc
  */
 export default class StructureBlockUpdateHandler implements ReadLaneHandler<StructureBlockUpdatePacket> {
     public static PacketName = 'StructureBlockUpdatePacket';
-    public readonly takes = 'context';
     public readonly phases = ['play'] as const;
     public readonly lane = 'read';
 

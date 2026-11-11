@@ -84,7 +84,6 @@ const skinProblem = (skin: Skin): string | null => {
  */
 export default class PlayerSkinHandler implements InputLaneHandler<PlayerSkinPacket> {
     public static PacketName = 'PlayerSkinPacket';
-    public readonly takes = 'context';
     public readonly phases = ['play'] as const;
     public readonly lane = 'input';
 

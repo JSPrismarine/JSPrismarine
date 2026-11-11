@@ -20,7 +20,6 @@ const CRAFTER_SLOTS = 9;
  */
 export default class PlayerToggleCrafterSlotRequestHandler implements ReadLaneHandler<PlayerToggleCrafterSlotRequestPacket> {
     public static PacketName = 'PlayerToggleCrafterSlotRequestPacket';
-    public readonly takes = 'context';
     public readonly phases = ['play'] as const;
     public readonly lane = 'read';
 

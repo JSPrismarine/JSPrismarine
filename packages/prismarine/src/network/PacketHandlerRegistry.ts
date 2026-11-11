@@ -1,24 +1,14 @@
 import * as Handlers from './Handlers';
 
-import type { PlayerSession } from '../';
 import type Server from '../Server';
 import Timer from '../utils/Timer';
-import type PacketHandler from './handler/PacketHandler';
 import type { ConnectionHandler } from './handler/ConnectionContext';
 import { strictestLane } from '@jsprismarine/protocol/handler/Lane';
-import { HandlerContexts } from './handlerContexts';
+import type { InputContext, SessionContext } from './handler/HandlerContext';
 import type { SessionHandler } from './handler/SessionHandler';
-import { takesContext } from './handler/SessionHandler';
 
-/**
- * Handler kind stored by the server; phases determine which one receives a packet. A session
- * handler takes either a context ({@link SessionHandler}) or, until every handler has moved to the
- * shared shape, the whole server ({@link PacketHandler}).
- */
-export type RegisteredHandler = PacketHandler<any> | ConnectionHandler<any> | SessionHandler<any>;
-
-/** A handler of a player session, in either shape. */
-export type RegisteredSessionHandler = PacketHandler<any> | SessionHandler<any>;
+/** Handler kind stored by the server; phases determine which one receives a packet. */
+export type RegisteredHandler = ConnectionHandler<any> | SessionHandler<any>;
 
 /** Server-owned dispatch handlers, keyed by protocol packet name. */
 export default class PacketHandlerRegistry {
@@ -62,31 +52,37 @@ export default class PacketHandlerRegistry {
     /**
      * Merge two handlers so a plugin can extend server behavior without replacing it.
      *
-     * Either handler can take a context or the whole server. The merged handler takes the server,
-     * which is enough to build the context of one that takes a context, and waits for each part:
-     * it runs as one asynchronous input, as handlers that take the server do.
-     * @param handler - The first handler, which runs first and determines the phases. The merged
-     * handler takes the stricter of the two handlers' lanes.
+     * The merged handler runs in the first handler's phases and in the stricter of the two lanes,
+     * so it takes that lane's context, which every part can be handed. An input-lane merge returns
+     * nothing to wait for: a part that returns a promise has it handed to the step's outputs.
+     * @param handler - The first handler, which runs first and determines the phases.
      * @param handler2 - The handler that runs after the first one.
      * @returns A handler that invokes both handlers in order.
      */
-    public appendHandler(handler: RegisteredSessionHandler, handler2: RegisteredSessionHandler): PacketHandler<any> {
-        const run = async (part: RegisteredSessionHandler, packet: any, server: Server, session: PlayerSession) => {
-            if (takesContext(part)) await HandlerContexts.of(server).run(part, packet, session);
-            else await part.handle(packet, server, session);
+    public appendHandler(handler: SessionHandler<any>, handler2: SessionHandler<any>): SessionHandler<any> {
+        const parts = [handler, handler2];
+        const phases = handler.phases;
+        const lane = strictestLane(handler.lane, handler2.lane);
+
+        if (lane === 'input') {
+            return {
+                lane,
+                phases,
+                handle: (packet: any, context: InputContext) => {
+                    for (const part of parts) {
+                        const result = part.handle(packet, context);
+                        if (result instanceof Promise) context.step.output(result);
+                    }
+                    return undefined;
+                }
+            };
+        }
+
+        // Neither part is in the input lane, or the merge would be, so each takes a session context.
+        const handle = async (packet: any, context: SessionContext) => {
+            for (const part of parts) if (part.lane !== 'input') await part.handle(packet, context);
         };
-        return new (class Handler {
-            /** The merged handler runs in the first handler's phases. */
-            public readonly phases = handler.phases;
-
-            /** The merged handler obeys both handlers' lanes. */
-            public readonly lane = strictestLane(handler.lane, handler2.lane);
-
-            public async handle(packet: any, server: Server, session: PlayerSession) {
-                await run(handler, packet, server, session);
-                await run(handler2, packet, server, session);
-            }
-        })();
+        return lane === 'read' ? { lane, phases, handle } : { lane, phases, handle };
     }
 
     /** Remove a handler registration. */

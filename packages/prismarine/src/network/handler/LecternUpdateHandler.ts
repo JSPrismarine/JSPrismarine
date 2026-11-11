@@ -17,7 +17,6 @@ const LECTERNS: ReadonlySet<string> = new Set(['minecraft:lectern']);
  */
 export default class LecternUpdateHandler implements ReadLaneHandler<LecternUpdatePacket> {
     public static PacketName = 'LecternUpdatePacket';
-    public readonly takes = 'context';
     public readonly phases = ['play'] as const;
     public readonly lane = 'read';
 

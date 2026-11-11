@@ -123,7 +123,6 @@ export const rejectionReason = (input: ReturnType<typeof playerAuthInputFromProt
  */
 export default class PlayerAuthInputHandler implements InputLaneHandler<PlayerAuthInputPacket> {
     public static PacketName = 'PlayerAuthInputPacket';
-    public readonly takes = 'context';
     public readonly phases = ['play'] as const;
     public readonly lane = 'input';
 

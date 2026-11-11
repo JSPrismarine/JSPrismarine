@@ -16,7 +16,6 @@ import type { InputLaneHandler } from './SessionHandler';
  */
 export default class ContainerCloseHandler implements InputLaneHandler<ContainerClosePacket> {
     public static PacketName = 'ContainerClosePacket';
-    public readonly takes = 'context';
     public readonly phases = ['play'] as const;
     public readonly lane = 'input';
 

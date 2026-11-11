@@ -21,7 +21,6 @@ import type { ConnectionLaneHandler } from './SessionHandler';
  */
 export default class SetPlayerFurnaceOptionsHandler implements ConnectionLaneHandler<SetPlayerFurnaceOptionsPacket> {
     public static PacketName = 'SetPlayerFurnaceOptionsPacket';
-    public readonly takes = 'context';
     public readonly phases = ['play'] as const;
     public readonly lane = 'connection';
 

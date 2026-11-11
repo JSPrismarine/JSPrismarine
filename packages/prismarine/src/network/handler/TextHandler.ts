@@ -38,7 +38,6 @@ const isTypeable = (character: string): boolean => {
  */
 export default class TextHandler implements InputLaneHandler<TextPacket> {
     public static PacketName = 'TextPacket';
-    public readonly takes = 'context';
     public readonly phases = ['play'] as const;
     public readonly lane = 'input';
 

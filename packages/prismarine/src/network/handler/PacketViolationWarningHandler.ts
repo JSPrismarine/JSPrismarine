@@ -21,7 +21,6 @@ const packetNameOf = (id: number): string | null =>
  */
 export default class PacketViolationWarningHandler implements ConnectionLaneHandler<PacketViolationWarningPacket> {
     public static PacketName = 'PacketViolationWarningPacket';
-    public readonly takes = 'context';
     public readonly phases = ['resourcePacks', 'play'] as const;
     public readonly lane = 'connection';
 

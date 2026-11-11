@@ -19,7 +19,6 @@ import type { InputLaneHandler } from './SessionHandler';
  */
 export default class ResourcePackChunkRequestHandler implements InputLaneHandler<ResourcePackChunkRequestPacket> {
     public static PacketName = 'ResourcePackChunkRequestPacket';
-    public readonly takes = 'context';
     public readonly phases = ['resourcePacks'] as const;
     // Input: the kick tears the player down and announces the departure to everyone.
     public readonly lane = 'input';
