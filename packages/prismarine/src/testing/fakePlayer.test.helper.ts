@@ -5,7 +5,6 @@ import UUID from '@jsprismarine/protocol/wire/structures/UUID';
 import { PacketCompressionAlgorithm } from '@jsprismarine/minecraft';
 import { vi } from 'vitest';
 
-import Player from '../Player';
 import type Server from '../Server';
 import type { Block } from '../block/Block';
 import { BlockState } from '../block/state/BlockState';
@@ -19,13 +18,16 @@ import type { PermissionManager } from '../permission/PermissionManager';
 import type { BlockMining } from '../world/BlockMining';
 import type { ChunkScheduler } from '../world/ChunkScheduler';
 import type GameRuleManager from '../world/GameRuleManager';
-import { Position } from '../world/Position';
 import type { World } from '../world/World';
 import type WorldManager from '../world/WorldManager';
 import Chunk from '../world/chunk/Chunk';
 import { Dimensions } from '../world/DimensionType';
 import { RespawnRequests } from '../world/RespawnRequests';
 import { enterStore, leaveStore } from '../entity/data/storePlayers';
+import { entityIds } from '../entity/entityIds';
+import { EYE_HEIGHT } from '../entity/playerEyes';
+import { StorePlayer } from '../entity/storePlayer';
+import type PlayerSession from '../network/PlayerSession';
 import { liveTestEntities } from './entityServer';
 import { fakeLevel } from './level';
 import { sessionsWith } from './playerSession.test.helper';
@@ -48,8 +50,8 @@ export interface FakePlayerOptions {
 }
 
 /**
- * A player with just enough of a server, world and connection around it to move, tick and
- * change world.
+ * A player's session with just enough of a server, world and connection around it to move, tick
+ * and change world, and the store player it speaks for.
  *
  * The player is a store player whose entity is in a real entity runtime of the fixture content,
  * the world's `live`, as a spawned player's is: blows, moves, its meal and its death go through
@@ -125,7 +127,7 @@ export const fakePlayer = ({ underwater = false, worlds: others = [], name = 'Te
     const respawnRequests = new RespawnRequests((error) => void logged.push(String(error)));
 
     const blockName = underwater ? 'minecraft:water' : 'minecraft:air';
-    const world = stub<World>({
+    const world: World = stub<World>({
         getName: () => 'test',
         getServer: () => server,
         getLevel: () => level,
@@ -141,26 +143,21 @@ export const fakePlayer = ({ underwater = false, worlds: others = [], name = 'Te
         getBlockWriteVersion: () => 0,
         getActor: (runtimeId) =>
             entities.entityRuntime(Dimensions.Overworld.name).actors.actorOf(Number(runtimeId)) ?? null,
-        viewerOf: (runtimeId) => (runtimeId === player.getRuntimeId() ? player.getNetworkSession() : undefined),
-        getViewers: () => [player.getNetworkSession()],
+        viewerOf: (runtimeId) => (runtimeId === player.getRuntimeId() ? session : undefined),
+        getViewers: () => [session],
         showActor: async () => {},
         hideActor: async () => {},
         // The player's own copy, which is the one a test of a single player reads.
         sendActorMetadata: async (actor) => {
-            if (actor.getRuntimeId() === player.getRuntimeId()) await player.getNetworkSession().sendMetadataFor(actor);
+            if (actor.getRuntimeId() === player.getRuntimeId()) await session.sendMetadataFor(actor);
         },
         storeEntityChunkChanged: () => {},
         // Out of the store, as a real world takes a leaving player's entity out of its store.
         removePlayer: async (leaving) => {
             roster.push('remove');
-            leaveStore(
-                entities.entityRuntime(Dimensions.Overworld.name).runtime,
-                leaving.getStorePlayer(),
-                'left_world'
-            );
+            leaveStore(entities.entityRuntime(Dimensions.Overworld.name).runtime, leaving.getPlayer(), 'left_world');
         },
         addPlayer: async () => void roster.push('add'),
-        getPlayers: () => [],
         getSpawnPosition: async () => new Vector3(0, 64, 0),
         getKnownSpawnPosition: () => new Vector3(0, 64, 0),
         // Feet one block above the stored spawn, centered, as a Bedrock server places them.
@@ -215,31 +212,27 @@ export const fakePlayer = ({ underwater = false, worlds: others = [], name = 'Te
         disconnect: async (...args) => void disconnects.push(args)
     });
 
-    const player = new Player({
-        position: new Position(0, 64, 0, world),
-        address: new InetAddress('127.0.0.1', 19132),
-        identity: {
-            uuid: UUID.fromRandom(),
-            name,
-            xuid: '',
-            randomId: 0,
-            locale: 'en_US',
-            skin: null,
-            device: null
-        }
+    const player = new StorePlayer(entityIds.next(), { uuid: UUID.fromRandom(), name, xuid: '' });
+    player.standAt({ x: 0, y: 64 - EYE_HEIGHT, z: 0 });
+
+    const session: PlayerSession = createConnectedPlayer({
+        server,
+        connection,
+        player,
+        identity: { name, xuid: '', uuid: player.getUUID().toString() },
+        world
     });
 
-    createConnectedPlayer({ server, connection, player });
-
     // `update` does nothing for a player who never finished joining.
-    player['connected'] = true;
+    session['joined'] = true;
 
     // Spawned, as `SetLocalPlayerAsInitialized` spawns a joined player, without the roster entry
     // `addPlayer` makes.
     const live = entities.entityRuntime(Dimensions.Overworld.name);
-    enterStore(live.runtime, entities.players, player.getStorePlayer());
+    enterStore(live.runtime, entities.players, player);
 
     return {
+        session,
         player,
         server,
         world,

@@ -6,6 +6,7 @@ import { identityNamed } from '../../testing/sessionIdentity.test.helper';
 import { stubPlayerPort } from '../../testing/playerPort.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import type { World } from '../../world/World';
+import type { StorePlayerActor } from '../../entity/data/storePlayers';
 import type PlayerSession from '../PlayerSession';
 import ActorEventPacket, { ActorEvent } from '@jsprismarine/protocol/packet/ActorEventPacket';
 import ActorEventHandler from './ActorEventHandler';
@@ -14,15 +15,17 @@ const setup = () => {
     const sendActorEvent = vi.fn<World['sendActorEvent']>(async () => {});
     const verbose = vi.fn();
     const player = stubPlayerPort({ getRuntimeId: () => 7n });
+    const actor = stub<StorePlayerActor>({ getRuntimeId: () => 7n });
     const server = stub<Server>({ getLogger: () => stub<Logger>({ verbose }) });
     const session = stub<PlayerSession>({
         runtimeId: 7n,
         identity: identityNamed('runner'),
         getPlayer: () => player,
+        getActor: () => actor,
         getWorld: () => stub<World>({ sendActorEvent })
     });
 
-    return { sendActorEvent, verbose, player, server, session };
+    return { sendActorEvent, verbose, player, actor, server, session };
 };
 
 const event = (runtimeEntityId: bigint, kind: ActorEvent, data = 0) =>
@@ -30,11 +33,11 @@ const event = (runtimeEntityId: bigint, kind: ActorEvent, data = 0) =>
 
 describe('ActorEventHandler', () => {
     it('relays a FEED about the sender to the players watching it', async () => {
-        const { sendActorEvent, verbose, player, server, session } = setup();
+        const { sendActorEvent, verbose, actor, server, session } = setup();
 
         await new ActorEventHandler().handle(event(7n, ActorEvent.FEED, 260), server, session);
 
-        expect(sendActorEvent).toHaveBeenCalledExactlyOnceWith(player.getBody(), ActorEvent.FEED, 260);
+        expect(sendActorEvent).toHaveBeenCalledExactlyOnceWith(actor, ActorEvent.FEED, 260);
         expect(verbose).not.toHaveBeenCalled();
     });
 

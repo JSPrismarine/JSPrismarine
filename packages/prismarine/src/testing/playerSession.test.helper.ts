@@ -1,9 +1,16 @@
+import type { Vector3 } from '@jsprismarine/math';
+import UUID from '@jsprismarine/protocol/wire/structures/UUID';
+
 import type Server from '../Server';
+import { entityIds } from '../entity/entityIds';
+import { EYE_HEIGHT } from '../entity/playerEyes';
+import { StorePlayer } from '../entity/storePlayer';
+import { createConnectedPlayer } from '../network/createConnectedPlayer';
 import type ClientConnection from '../network/ClientConnection';
 import PlayerSession from '../network/PlayerSession';
 import type SessionManager from '../SessionManager';
-import { LegacyPlayers } from '../network/sessionPlayers';
 import type { SessionPlayer, SessionPlayerRef, SessionPlayers } from '../network/sessionPlayers';
+import type { World } from '../world/World';
 import type { StubMembers } from './stub.test.helper';
 import { stub } from './stub.test.helper';
 import type { PlayerIdentity } from '../playerIdentity';
@@ -36,29 +43,71 @@ export const sessionPlayerFields = <P>(
  * @param server - The server double.
  * @param connection - The connection double.
  * @param player - The player double the session speaks for.
- * @param ref - The id and identity the session holds, where the test reads them.
+ * @param ref - The id and identity the session holds, where the test reads them; the world the
+ *   session puts its player in, an empty double by default; and whether the player has joined.
  * @returns The session.
  */
 export const sessionFor = (
     server: Server,
     connection: ClientConnection,
     player: SessionPlayer,
-    ref: Partial<SessionPlayerRef> = {}
-): PlayerSession =>
-    new PlayerSession(
+    ref: Partial<SessionPlayerRef> & { readonly world?: World; readonly joined?: boolean } = {}
+): PlayerSession => {
+    const session = new PlayerSession(
         server,
         connection,
         { runtimeId: ref.runtimeId ?? -1n, identity: ref.identity ?? TESTER },
-        sessionPlayerFields(player).players
+        sessionPlayerFields(player).players,
+        ref.world ?? stub<World>()
     );
+    // As `PlayerSession.join` leaves a player that finished joining.
+    if (ref.joined === true) session['joined'] = true;
+    return session;
+};
 
 /**
- * A session manager double with a real player directory, which `createConnectedPlayer` files
- * the player in and the session finds it in.
- * @param members - Any other members the test needs.
- * @returns The double, which answers with the same directory every time.
+ * A session manager double.
+ * @param members - The members the test needs.
+ * @returns The double.
  */
-export const sessionsWith = (members: StubMembers<SessionManager> = {}): SessionManager => {
-    const players = new LegacyPlayers();
-    return stub<SessionManager>({ getLegacyPlayers: () => players, ...members });
+export const sessionsWith = (members: StubMembers<SessionManager> = {}): SessionManager =>
+    stub<SessionManager>(members);
+
+/**
+ * A store player as a login builds one and the session `createConnectedPlayer` joins it to, with
+ * the player filed in the server's directory.
+ * @param options - What the test builds the pair from.
+ * @param options.server - The server double, which answers `getStorePlayers`.
+ * @param options.connection - The connection double the session speaks through.
+ * @param options.world - The world the login puts the player in.
+ * @param options.eyes - Where the player's eyes are.
+ * @param options.name - The player's name, `Steve` by default.
+ * @param options.uuid - The login's UUID, a random one by default.
+ * @param options.joined - Whether the player has finished joining, as `PlayerSession.join` leaves
+ *   it; true by default.
+ * @returns The session; its `getPlayer()` is the store player.
+ */
+export const connectedSession = ({
+    server,
+    connection,
+    world,
+    eyes,
+    name = 'Steve',
+    uuid = UUID.fromRandom(),
+    joined = true
+}: {
+    server: Server;
+    connection: ClientConnection;
+    world: World;
+    eyes: Vector3;
+    name?: string;
+    uuid?: UUID;
+    joined?: boolean;
+}): PlayerSession => {
+    const player = new StorePlayer(entityIds.next(), { uuid, name, xuid: '' });
+    player.standAt({ x: eyes.getX(), y: eyes.getY() - EYE_HEIGHT, z: eyes.getZ() });
+    const identity = { name, xuid: '', uuid: player.getUUID().toString() };
+    const session = createConnectedPlayer({ server, connection, player, identity, world });
+    if (joined) session['joined'] = true;
+    return session;
 };

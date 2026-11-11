@@ -101,13 +101,15 @@ export class StorePlayers {
  * metadata's.
  *
  * @returns The entity, or undefined when the content declares no player; the player is then in
- *   no store and not filed.
+ *   no store, and filed only if it was before.
  */
 export const enterStore = (
     runtime: EntityRuntime,
     players: StorePlayers,
     player: StorePlayer
 ): DataEntity | undefined => {
+    // A live player is filed from its login on, and stays filed if this fails.
+    const filed = players.of(player.id) === player;
     players.add(player);
     const { position, yaw, pitch, record } = player.heldEntity;
     const prepare = (entity: DataEntity): void => {
@@ -118,7 +120,7 @@ export const enterStore = (
         record === undefined
             ? runtime.spawnPlayer(player.id, position, { yaw, pitch, prepare })
             : runtime.restore({ ...record, yaw, pitch }, position, player.id, prepare);
-    if (entity === undefined) players.delete(player.id);
+    if (entity === undefined && !filed) players.delete(player.id);
     return entity;
 };
 
@@ -255,7 +257,7 @@ export class StorePlayerActor extends StoreActor implements ShownPlayer {
      */
     public override async update(tick: number): Promise<void> {
         await super.update(tick);
-        await this.getWorld().viewerOf(this.getRuntimeId())?.getPlayer().updatePlayer(tick);
+        await this.getWorld().viewerOf(this.getRuntimeId())?.updatePlayer(tick);
     }
 
     /** A status effect's tick, and what the hunger and saturation effects do to the components. */

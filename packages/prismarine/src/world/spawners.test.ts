@@ -12,7 +12,6 @@ import type { StoreActors } from '../entity/data/storeActors';
 import type { DataEntity } from '../entity/data/DataEntity';
 import type Server from '../Server';
 import { stub, stubOf } from '../testing/stub.test.helper';
-import { stubPlayerPort } from '../testing/playerPort.test.helper';
 import type PlayerSession from '../network/PlayerSession';
 import { EYE_HEIGHT } from '../entity/playerEyes';
 import Chunk from './chunk/Chunk';
@@ -219,14 +218,7 @@ const worldWithSpawner = ({ playerAt, delay = 0 }: { playerAt: Vector3; delay?: 
     });
     const eyes = () => new Position(playerAt.getX(), playerAt.getY() + EYE_HEIGHT, playerAt.getZ(), world);
     // The spawner measures from where the player's client sees the world from, its eyes.
-    const player = stubPlayerPort({
-        isOnline: () => true,
-        getType: () => 'minecraft:player',
-        getPosition: eyes,
-        getFeetY: () => playerAt.getY(),
-        getRuntimeId: () => 1n,
-        getNetworkSession: () => stub<PlayerSession>({ getViewPosition: eyes })
-    });
+    const player = stub<PlayerSession>({ isConnected: () => true, getViewPosition: eyes });
     world['players'].set(1, player);
 
     const written: WorldChange[] = [];

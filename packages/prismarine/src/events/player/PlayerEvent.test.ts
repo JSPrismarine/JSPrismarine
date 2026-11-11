@@ -9,8 +9,8 @@ import { InetAddress } from '@jsprismarine/raknet';
 
 describe('player events', () => {
     it('name the player by its runtime id and login identity', () => {
-        const { player } = fakePlayer({ name: 'EventTester' });
-        const event = new PlayerSetGamemodeEvent(player, 1);
+        const { session, player } = fakePlayer({ name: 'EventTester' });
+        const event = new PlayerSetGamemodeEvent(session, 1);
 
         expect(event.getRuntimeId()).toBe(player.getRuntimeId());
         expect(event.getIdentity()).toEqual({
@@ -22,11 +22,10 @@ describe('player events', () => {
     });
 
     it('hand a listener the session, beside what each one reports', () => {
-        const { player } = fakePlayer();
-        const session = player.getNetworkSession();
+        const { session, player } = fakePlayer();
         const to = new Vector3(1, 2, 3);
         const move = new PlayerMoveEvent(session, to);
-        const disconnect = new PlayerDisconnectEvent(player, new InetAddress('127.0.0.1', 19132));
+        const disconnect = new PlayerDisconnectEvent(session, new InetAddress('127.0.0.1', 19132));
 
         expect(move.getSession()).toBe(session);
         expect(move.getFrom()).toEqual(player.getPosition());

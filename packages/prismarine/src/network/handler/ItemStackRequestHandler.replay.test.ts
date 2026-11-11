@@ -9,6 +9,7 @@ import { fixtureRecipeContent } from '../../content/testing';
 import ContainerEntry from '../../inventory/ContainerEntry';
 import HumanInventory from '../../inventory/HumanInventory';
 import { Item } from '../../item/Item';
+import { stubPlayerPort } from '../../testing/playerPort.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import type { World } from '../../world/World';
 import type PlayerSession from '../PlayerSession';
@@ -17,7 +18,6 @@ import ItemStackRequestPacket from '@jsprismarine/protocol/packet/ItemStackReque
 import ItemStackResponsePacket from '@jsprismarine/protocol/packet/ItemStackResponsePacket';
 import type { ItemStackResponse } from '@jsprismarine/protocol/packet/ItemStackResponsePacket';
 import ItemStackRequestHandler from './ItemStackRequestHandler';
-import { storePlayerPort } from './storePlayerPort.test.helper';
 
 /**
  * A session on a Bedrock Dedicated Server 1.26.52.3, recorded through the proxy with the
@@ -171,11 +171,8 @@ const replay = async () => {
     const world = stub<World>({ dropContents: async () => {}, dropFromPlayer: async () => {} });
     const session = stub<PlayerSession>({
         getOpenBlockContainer: () => undefined,
-        getPlayer: () =>
-            storePlayerPort(
-                { getInventory: () => inventory, getCraftingInput: () => craftingInput },
-                { getServer: () => server }
-            ),
+        getPlayer: () => stubPlayerPort({ getInventory: () => inventory, getCraftingInput: () => craftingInput }),
+        getServer: () => server,
         getWorld: () => world,
         send: async (packet) => void sent.push(packet)
     });

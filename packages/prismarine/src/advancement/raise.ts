@@ -20,26 +20,29 @@ import type Server from '../Server';
 import { TextPacketType } from '@jsprismarine/protocol';
 import { advancementsOf } from './progress';
 import { isRecord } from '../utils/isRecord';
-import { keyedPlayerOf } from '../keyedPlayer';
+import type { KeyedPlayerHolder } from '../keyedPlayer';
 
-/** A player who hears an announcement. */
+/** A player who hears an announcement: its session. */
 interface AnnouncementRecipient {
-    sendMessage(message: string, type: TextPacketType, parameters: string[], needsTranslation: boolean): Promise<void>;
+    sendMessage(delivery: {
+        message: string;
+        type: TextPacketType;
+        parameters: string[];
+        needsTranslation: boolean;
+    }): Promise<void>;
 }
 
 /** The world an announcement goes out to. */
 export interface AnnouncingWorld {
-    getPlayers(): readonly AnnouncementRecipient[];
+    getViewers(): readonly AnnouncementRecipient[];
 }
 
 /**
  * What a raise reads of the player who earned something: the key and the server its progress is
  * found by, the name an announcement carries, and the world whose players hear it.
  */
-export interface RaisingPlayer {
+export interface RaisingPlayer extends KeyedPlayerHolder {
     getName(): string;
-    getXUID(): string | null;
-    getServer(): Server;
     getWorld(): AnnouncingWorld;
 }
 
@@ -54,7 +57,7 @@ export const raiseAdvancement = <K extends TriggerName>(
     trigger: K,
     event: TriggerEvents[K]
 ): void => {
-    const keyed = keyedPlayerOf(player);
+    const keyed = player.keyed();
     const completed = keyed.server.getContent().advancements.raise(trigger, event, advancementsOf(keyed));
     for (const id of completed) void announce(player, keyed.server, id);
 };
@@ -81,9 +84,14 @@ const announce = async (player: RaisingPlayer, server: Server, id: string): Prom
     await Promise.all(
         player
             .getWorld()
-            .getPlayers()
+            .getViewers()
             .map((recipient) =>
-                recipient.sendMessage('chat.type.achievement', TextPacketType.Translate, [player.getName(), name], true)
+                recipient.sendMessage({
+                    message: 'chat.type.achievement',
+                    type: TextPacketType.Translate,
+                    parameters: [player.getName(), name],
+                    needsTranslation: true
+                })
             )
     );
 };

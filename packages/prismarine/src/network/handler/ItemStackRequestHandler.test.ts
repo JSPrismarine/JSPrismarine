@@ -19,6 +19,7 @@ import CraftingInput from '../../crafting/CraftingInput';
 import type CreativeInventory from '../../inventory/CreativeInventory';
 import HumanInventory from '../../inventory/HumanInventory';
 import { Item } from '../../item/Item';
+import { stubPlayerPort } from '../../testing/playerPort.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import type PlayerSession from '../PlayerSession';
 import type { OpenBlockContainer } from '../PlayerSession';
@@ -31,7 +32,6 @@ import ItemStackResponsePacket, {
 } from '@jsprismarine/protocol/packet/ItemStackResponsePacket';
 import type { ItemStackRequest, ItemStackRequestSlotInfo } from '@jsprismarine/protocol';
 import { ContainerUiId, ItemStackRequestActionType } from '@jsprismarine/protocol';
-import { storePlayerPort } from './storePlayerPort.test.helper';
 import ItemStackRequestHandler from './ItemStackRequestHandler';
 import { testContent } from '../../testing/entityServer';
 
@@ -134,15 +134,13 @@ const run = async (
     options: { open?: OpenBlockContainer; world?: World } = {}
 ) => {
     const sent: NetworkPacket[] = [];
-    const player = storePlayerPort(
-        { getInventory: () => inventory, getCraftingInput: () => craftingInput },
-        // A finished craft raises `recipe_crafted`, which asks the
-        // server whether any content is loaded. These doubles load none.
-        { getServer: () => server }
-    );
+    const player = stubPlayerPort({ getInventory: () => inventory, getCraftingInput: () => craftingInput });
     const session = stub<PlayerSession>({
         getOpenBlockContainer: () => options.open,
         getPlayer: () => player,
+        // A finished craft raises `recipe_crafted`, which asks the
+        // server whether any content is loaded. These doubles load none.
+        getServer: () => server,
         getWorld: () => options.world ?? stub<World>(),
         send: async (packet) => void sent.push(packet)
     });

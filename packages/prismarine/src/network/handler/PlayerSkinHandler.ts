@@ -4,7 +4,6 @@ import type SkinImage from '@jsprismarine/protocol/wire/structures/skin/SkinImag
 import type PlayerSession from '../PlayerSession';
 import PlayerSkinPacket from '@jsprismarine/protocol/packet/PlayerSkinPacket';
 import type PacketHandler from './PacketHandler';
-import { storePlayerOf } from './playerPorts';
 
 /** The largest `Width` or `Height` the `SkinImage` schema allows. */
 const MAX_IMAGE_SIDE = 4096;
@@ -114,7 +113,7 @@ export default class PlayerSkinHandler implements PacketHandler<PlayerSkinPacket
         }
 
         // The skin other clients are shown, which the store player's actor reads.
-        storePlayerOf(session).skin = packet.skin;
+        session.getPlayer().skin = packet.skin;
 
         // The entry the session manager sends to whoever joins later was built at login.
         const playerList = server.getSessionManager().getPlayerList();

@@ -50,19 +50,8 @@ const moverBody = stub<StorePlayerActor>({
 const mover = stub<SessionPlayer>({
     getName: () => 'moving-player',
     getRuntimeId: () => 42n,
-    getBody: () => moverBody,
-    getActor: () => moverBody,
     getPosition: () => pose.position,
-    getWorld: () => world,
-    isOnGround: () => pose.onGround,
-    setPlayerPosition: async ({ position, pitch, yaw, headYaw }) => {
-        pose.position = new Position(position.getX(), position.getY(), position.getZ(), world);
-        pose.pitch = pitch ?? pose.pitch;
-        pose.yaw = yaw ?? pose.yaw;
-        pose.headYaw = headYaw ?? pose.headYaw;
-        await world.broadcastMove(moverBody);
-    },
-    setOnGround: async (onGround) => void (pose.onGround = onGround)
+    isOnGround: () => pose.onGround
 });
 // Replication reads live player angles; static stub fields would hide the updated pose.
 for (const shown of [mover, moverBody]) {
@@ -88,6 +77,18 @@ const connection = stub<ClientConnection>({
 });
 const moverSession = stub<PlayerSession>({
     getPlayer: () => mover,
+    getActor: () => moverBody,
+    shown: () => moverBody,
+    getWorld: () => world,
+    getViewPosition: () => pose.position,
+    setPlayerPosition: async ({ position, pitch, yaw, headYaw }) => {
+        pose.position = new Position(position.getX(), position.getY(), position.getZ(), world);
+        pose.pitch = pitch ?? pose.pitch;
+        pose.yaw = yaw ?? pose.yaw;
+        pose.headYaw = headYaw ?? pose.headYaw;
+        await world.broadcastMove(moverBody);
+    },
+    setOnGround: (onGround) => void (pose.onGround = onGround),
     tracks: () => false,
     getConnection: () => connection
 });
@@ -95,7 +96,6 @@ const observerSession = stub<PlayerSession>({
     tracks: (runtimeId: bigint) => runtimeId === mover.getRuntimeId(),
     getConnection: () => connection
 });
-Object.assign(mover, { getNetworkSession: () => moverSession });
 sessions.push(moverSession, observerSession);
 
 const config = stub<Config>({

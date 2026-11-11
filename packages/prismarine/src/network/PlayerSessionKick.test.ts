@@ -9,17 +9,17 @@ describe('PlayerSession', () => {
             const bySession = fakePlayer();
             const byPlayer = fakePlayer();
 
-            await bySession.player.getNetworkSession().kick('Too much lag', DisconnectReason.SHUTDOWN);
-            await byPlayer.player.kick('Too much lag', DisconnectReason.SHUTDOWN);
+            await bySession.session.kick('Too much lag', DisconnectReason.SHUTDOWN);
+            await byPlayer.session.kick('Too much lag', DisconnectReason.SHUTDOWN);
 
             expect(bySession.disconnects).toEqual([['Too much lag', false, DisconnectReason.SHUTDOWN]]);
             expect(bySession.disconnects).toEqual(byPlayer.disconnects);
         });
 
         it('says it was kicked for no reason in particular unless told one', async () => {
-            const { player, disconnects } = fakePlayer();
+            const { session, disconnects } = fakePlayer();
 
-            await player.getNetworkSession().kick();
+            await session.kick();
 
             expect(disconnects).toEqual([['unknown reason', false, DisconnectReason.KICKED]]);
         });
@@ -27,25 +27,24 @@ describe('PlayerSession', () => {
 
     describe('getWorld', () => {
         it("answers the world the session's player is in", () => {
-            const { player, world } = fakePlayer();
+            const { session, world } = fakePlayer();
 
-            expect(player.getNetworkSession().getWorld()).toBe(world);
+            expect(session.getWorld()).toBe(world);
         });
 
-        it('throws once the session has forgotten its player', () => {
-            const { player } = fakePlayer();
-            const session = player.getNetworkSession();
+        it('still answers the world once the session has forgotten its player', () => {
+            const { session, world } = fakePlayer();
 
             session.disable();
 
-            expect(() => session.getWorld()).toThrow(/has left/);
+            expect(session.getWorld()).toBe(world);
+            expect(() => session.getPlayer()).toThrow(/has left/);
         });
     });
 
     describe('leave', () => {
         it('takes the player off the server and then disables itself', async () => {
-            const { player, roster } = fakePlayer();
-            const session = player.getNetworkSession();
+            const { session, roster } = fakePlayer();
             await session.leave();
 
             expect(roster).toEqual(['save', 'remove']);
@@ -54,9 +53,8 @@ describe('PlayerSession', () => {
         });
 
         it("disables itself even when the player's leave fails", async () => {
-            const { player } = fakePlayer();
-            const session = player.getNetworkSession();
-            vi.spyOn(player, 'disable').mockRejectedValue(new Error('world unavailable'));
+            const { session, world } = fakePlayer();
+            vi.spyOn(world, 'savePlayerData').mockRejectedValue(new Error('world unavailable'));
 
             await expect(session.leave()).rejects.toThrow('world unavailable');
 

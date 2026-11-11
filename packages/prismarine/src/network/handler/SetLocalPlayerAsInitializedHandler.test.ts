@@ -6,6 +6,7 @@ import type Server from '../../Server';
 import { identityNamed } from '../../testing/sessionIdentity.test.helper';
 import { stubPlayerPort } from '../../testing/playerPort.test.helper';
 import { stub } from '../../testing/stub.test.helper';
+import type { StorePlayerActor } from '../../entity/data/storePlayers';
 import type { World } from '../../world/World';
 import type PlayerSession from '../PlayerSession';
 import { SetLocalPlayerAsInitializedPacket } from '@jsprismarine/protocol';
@@ -39,6 +40,8 @@ const fakeSession = () => {
             runtimeId: 7n,
             identity: identityNamed('Steve'),
             getPlayer: () => player,
+            getActor: () => stub<StorePlayerActor>({ getRuntimeId: () => 7n }),
+            getRuntimeId: () => 7n,
             getWorld: () => world,
             completeSpawn
         })

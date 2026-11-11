@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import type Server from '../../Server';
 import { EYE_HEIGHT } from '../../entity/playerEyes';
 import { stub } from '../../testing/stub.test.helper';
-import { playerOnPrototype } from '../../testing/storePlayer.test.helper';
+import { sessionOnPrototype } from '../../testing/storePlayer.test.helper';
 import { Dimensions } from '../../world/Dimension';
 import type { Level } from '../../world/Level';
 import { Position } from '../../world/Position';
@@ -15,7 +15,7 @@ import { dimensionIdOf, entityRefOf, javaDimensionIdOf, loadedDimensions, worldO
 describe('command entity references', () => {
     it('uses a player’s feet as the command position', () => {
         const world = stub<World>({ getDimension: () => Dimensions.Overworld });
-        const player = playerOnPrototype({
+        const player = sessionOnPrototype({
             getRuntimeId: () => 1n,
             getType: () => 'minecraft:player',
             getName: () => 'TestPlayer',

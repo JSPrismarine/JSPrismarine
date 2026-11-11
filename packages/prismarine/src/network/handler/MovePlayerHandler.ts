@@ -5,7 +5,6 @@ import type Server from '../../Server';
 import PlayerMoveEvent from '../../events/player/PlayerMoveEvent';
 import type MovePlayerPacket from '@jsprismarine/protocol/packet/MovePlayerPacket';
 import type PacketHandler from './PacketHandler';
-import { storePlayerOf } from './playerPorts';
 
 /** Where a client says its player is, and which way it is facing. */
 export interface ClientMovement {
@@ -42,10 +41,8 @@ export const applyClientMovement = async (
     session: PlayerSession,
     movement: ClientMovement
 ): Promise<void> => {
-    // What the move is compared with. The move event, the reset of a canceled move, the move and
-    // the broadcast take `session.getPlayer()`: the event takes a legacy player, the reset and the
-    // broadcast its body, and the player keeps its pose writes.
-    const player = storePlayerOf(session);
+    // What the move is compared with: the store player's pose. The session moves it.
+    const player = session.getPlayer();
 
     // A report from before a teleport the client has not handled yet would undo the teleport.
     if (session.holdsMovementForTeleport(movement.position, movement.handledTeleport ?? false)) {
@@ -59,11 +56,11 @@ export const applyClientMovement = async (
     }
 
     // Keep the per-input plugin event cadence stable; unchanged poses only skip state and network work.
-    const event = new PlayerMoveEvent(session.getPlayer(), movement.position, movement.mode ?? PositionMode.Normal);
+    const event = new PlayerMoveEvent(session, movement.position, movement.mode ?? PositionMode.Normal);
     server.post(['playerMove', event]);
     if (event.isCanceled()) {
         // Since we're canceling the event, we should reset the player's position.
-        await session.sendMove(session.getPlayer().getBody(), PositionMode.Respawn);
+        await session.sendMove(session.shown(), PositionMode.Respawn);
         return;
     }
 
@@ -82,7 +79,7 @@ export const applyClientMovement = async (
     if (!positionChanged && !rotationChanged && !groundChanged) return;
 
     if (positionChanged || rotationChanged) {
-        await session.getPlayer().setPlayerPosition(
+        await session.setPlayerPosition(
             {
                 position: movement.position,
                 pitch: movement.pitch,
@@ -93,12 +90,12 @@ export const applyClientMovement = async (
         );
     }
 
-    if (groundChanged) await session.getPlayer().setOnGround(movement.onGround);
+    if (groundChanged) session.setOnGround(movement.onGround);
 
     if (groundChanged) {
         // Position queues a snapshot before landing logic updates the on-ground bit. Replacing
         // that entry gives observers the final pose and ground state in the one tick update.
-        await session.getWorld().broadcastMove(session.getPlayer().getBody());
+        await session.getWorld().broadcastMove(session.shown());
     }
 };
 

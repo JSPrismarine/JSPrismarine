@@ -11,7 +11,6 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
 import { GenericBlockEntity } from '../blockentity/GenericBlockEntity';
 import { GenericEntity } from '../testing/genericEntity.test.helper';
-import type Player from '../Player';
 import type { Config } from '../config/Config';
 import type Server from '../Server';
 import type PlayerSession from '../network/PlayerSession';
@@ -295,10 +294,10 @@ describe('the autosave a tick starts', () => {
         if (!(players instanceof Map)) throw new Error('World player map is unavailable');
         players.set(
             1n,
-            stub<Player>({
-                getNetworkSession: () => stub<PlayerSession>({ getViewDistance: () => 10 }),
-                isOnline: () => false,
-                getPosition: () => new Position(0, 64, 0, world)
+            stub<PlayerSession>({
+                getViewDistance: () => 10,
+                isConnected: () => false,
+                getViewPosition: () => new Position(0, 64, 0, world)
             })
         );
 

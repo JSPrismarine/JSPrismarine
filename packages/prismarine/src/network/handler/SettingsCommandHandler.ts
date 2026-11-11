@@ -18,9 +18,8 @@ export default class SettingsCommandHandler implements PacketHandler<SettingsCom
 
     /** Dispatches the command line as the player who sent it. */
     public async handle(packet: SettingsCommandPacket, server: Server, session: PlayerSession): Promise<void> {
-        const player = session.getPlayer();
         const data = packet.getPacketData();
         if (data === null) throw new Error('Cannot handle a SettingsCommandPacket without decoded data');
-        await server.getCommandManager().dispatchCommand(player, player, data.command);
+        await server.getCommandManager().dispatchCommand(session, session, data.command);
     }
 }

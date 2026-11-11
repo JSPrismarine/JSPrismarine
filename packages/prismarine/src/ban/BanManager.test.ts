@@ -50,10 +50,10 @@ describe('ban', () => {
 
                 await banManager.enable();
 
-                expect(banManager.isBanned({ getName: () => 'player1' })).toBe('reason1');
+                expect(banManager.isBanned({ name: 'player1' })).toBe('reason1');
                 // A ban with no reason still reads as banned.
-                expect(banManager.isBanned({ getName: () => 'player2' })).not.toBe(false);
-                expect(banManager.isBanned({ getName: () => 'player3' })).toBe(false);
+                expect(banManager.isBanned({ name: 'player2' })).not.toBe(false);
+                expect(banManager.isBanned({ name: 'player3' })).toBe(false);
                 // A login's identity, before any player exists.
                 expect(banManager.isBanned({ name: 'player1' })).toBe('reason1');
                 expect(banManager.isBanned({ name: 'player3' })).toBe(false);
@@ -72,7 +72,7 @@ describe('ban', () => {
 
                 await banManager.enable();
 
-                expect(banManager.isBanned({ getName: () => 'player1' })).toBe('r');
+                expect(banManager.isBanned({ name: 'player1' })).toBe('r');
                 expect(banManager['banned'].size).toBe(1);
             });
 
@@ -102,7 +102,7 @@ describe('ban', () => {
                 await banManager.setBanned('player3', 'alts');
 
                 const text = readFileSync(file, 'utf8');
-                expect(banManager.isBanned({ getName: () => 'player3' })).toBe('alts');
+                expect(banManager.isBanned({ name: 'player3' })).toBe('alts');
                 expect(text).toContain('// Griefed spawn twice; appeal denied.');
                 expect(text).toContain('{ "name": "player1", "reason": "reason1" },');
                 expect(parseConfigDocument(text).get([])).toStrictEqual([
@@ -143,7 +143,7 @@ describe('ban', () => {
                 await banManager.setUnbanned('player2');
 
                 const text = readFileSync(file, 'utf8');
-                expect(banManager.isBanned({ getName: () => 'player2' })).toBe(false);
+                expect(banManager.isBanned({ name: 'player2' })).toBe(false);
                 expect(text).toContain('// Griefed spawn twice; appeal denied.');
                 expect(parseConfigDocument(text).get([])).toStrictEqual([{ name: 'player1', reason: 'reason1' }]);
             });
@@ -152,13 +152,13 @@ describe('ban', () => {
         describe('isBanned', () => {
             it('should return the reason if player is banned', () => {
                 banManager['banned'].set('player1', { reason: 'reason1' });
-                const player = { getName: vi.fn(() => 'player1') };
+                const player = { name: 'player1' };
                 const result = banManager.isBanned(player);
                 expect(result).toBe('reason1');
             });
 
             it('should return false if player is not banned', () => {
-                const player = { getName: vi.fn(() => 'player1') };
+                const player = { name: 'player1' };
                 const result = banManager.isBanned(player);
                 expect(result).toBe(false);
             });

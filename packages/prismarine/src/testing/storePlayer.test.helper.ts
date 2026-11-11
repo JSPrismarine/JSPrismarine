@@ -2,7 +2,7 @@ import type { EntityPosition } from '@jsprismarine/entities';
 import type { Attributes } from '@jsprismarine/protocol/wire/structures/Attribute';
 import UUID from '@jsprismarine/protocol/wire/structures/UUID';
 
-import Player from '../Player';
+import PlayerSession from '../network/PlayerSession';
 import { entityIds } from '../entity/entityIds';
 import { PlayerComponents } from '../entity/playerComponents';
 import { EYE_HEIGHT } from '../entity/playerEyes';
@@ -76,38 +76,49 @@ export const fieldsOf = (entries: readonly ChangeEntry[], field: string): readon
     entries.filter((entry) => entry.kind === 'field' && entry.field === 'entity' && entry.address.field === field);
 
 /**
- * A player double built from `Player.prototype` without its constructor, over a real
+ * A session double built from `PlayerSession.prototype` without its constructor, over a real
  * {@link StorePlayer} in no store, which holds the inventory, the components and the attribute
- * table a constructed player reads. Its writes reach no change log.
+ * table the session reads. Its writes reach no change log, and it counts as joined.
  *
- * @param members - What the player answers, as `stubOf` takes it, each set on the double itself so
- *   it shadows the prototype's accessor or method of that name.
+ * @param members - What the session answers, as `stubOf` takes it, each set on the double itself
+ *   so it shadows the prototype's accessor or method of that name.
  * @param placed - The entity id the store player is filed by, from the shared pool unless given;
+ *   its UUID, a random one unless given;
  *   where its eyes are, which also names its world; and, for a test that hands the player to
- *   entity code, what its actor answers. The actor is a `StorePlayerActor` double the player
- *   answers `getActor` and `getBody` with, which reports the player's id and type, faces north and whose `player` is the store player.
- * @returns The player.
+ *   entity code, what its actor answers. The actor is a `StorePlayerActor` double the session
+ *   answers `getActor` and `shown` with, which reports the player's id and type, faces north and
+ *   whose `player` is the store player.
+ * @returns The session, and the store player it speaks for.
  */
-export const playerOnPrototype = (
-    members: StubMembers<Player> = {},
+export const sessionOnPrototype = (
+    members: StubMembers<PlayerSession> = {},
     placed: {
         readonly runtimeId?: bigint;
+        readonly uuid?: UUID;
         readonly position?: Position;
         readonly actor?: StubMembers<StorePlayerActor>;
     } = {}
-): Player => {
+): PlayerSession => {
     // The double's own name and identity, when it answers them, so its actor agrees.
+    const uuid = placed.uuid ?? UUID.fromRandom();
+    const name = members.getName?.() ?? 'Steve';
     const store = new StorePlayer(placed.runtimeId === undefined ? entityIds.next() : Number(placed.runtimeId), {
-        uuid: members.getUUID?.() ?? UUID.fromRandom(),
-        name: members.getName?.() ?? 'Steve',
+        uuid,
+        name,
         xuid: ''
     });
-    const player: Player = Object.create(Player.prototype);
-    Object.defineProperty(player, 'store', { value: store });
+    const session: PlayerSession = Object.create(PlayerSession.prototype);
+    definedOn(session, {
+        runtimeId: BigInt(store.id),
+        identity: { name, xuid: '', uuid: uuid.toString() },
+        players: { of: () => store, delete: () => true },
+        permissions: [],
+        joined: true
+    });
     const { position } = placed;
     if (position !== undefined) {
         store.standAt({ x: position.getX(), y: position.getY() - EYE_HEIGHT, z: position.getZ() });
-        Object.defineProperty(player, 'world', { value: position.getWorld(), writable: true });
+        definedOn(session, { world: position.getWorld() });
     }
     if (placed.actor !== undefined) {
         const actor: StorePlayerActor = Object.create(StorePlayerActor.prototype);
@@ -120,11 +131,10 @@ export const playerOnPrototype = (
             headYaw: 0,
             ...placed.actor
         });
-        Object.defineProperty(player, 'getActor', { value: () => actor, writable: true });
-        Object.defineProperty(player, 'getBody', { value: () => actor, writable: true });
+        definedOn(session, { getActor: () => actor, shown: () => actor });
     }
-    definedOn(player, members);
-    return player;
+    definedOn(session, members);
+    return session;
 };
 
 /** Sets each member on a double as its own property, so it shadows the prototype's accessor of that name. */

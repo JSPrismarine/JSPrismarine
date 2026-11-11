@@ -47,7 +47,10 @@ import ItemStackRequestPacket from '@jsprismarine/protocol/packet/ItemStackReque
 import type { ItemStackRequest } from '@jsprismarine/protocol';
 import { ItemStackRequestActionType } from '@jsprismarine/protocol';
 import type { PermissionManager } from '../permission/PermissionManager';
-import Player from '../Player';
+import type PlayerSession from '../network/PlayerSession';
+import { entityIds } from '../entity/entityIds';
+import { EYE_HEIGHT } from '../entity/playerEyes';
+import { StorePlayer } from '../entity/storePlayer';
 import type Server from '../Server';
 import { stub } from '../testing/stub.test.helper';
 import UUID from '@jsprismarine/protocol/wire/structures/UUID';
@@ -56,7 +59,6 @@ import Chunk from '../world/chunk/Chunk';
 import type { DimensionTravel } from '../world/portal/DimensionTravel';
 import { Dimensions } from '../world/Dimension';
 import type { Generator } from '../world/Generator';
-import { Position } from '../world/Position';
 import LevelDB from '../world/providers/leveldb/LevelDB';
 import type { World } from '../world/World';
 import ContainerEntry from './ContainerEntry';
@@ -282,20 +284,9 @@ const containerDataSent = (): ContainerSetDataPacket[] =>
         .filter(({ name }) => name === 'ContainerSetDataPacket')
         .map(({ packet }) => packet as ContainerSetDataPacket);
 
-const buildPlayer = (world: World, server: Server, name: string): Player => {
-    const player = new Player({
-        position: new Position(CHEST.x + 0.5, CHEST.y, CHEST.z + 2.5, world),
-        address: new InetAddress('127.0.0.1', 19132),
-        identity: {
-            uuid: UUID.fromRandom(),
-            name,
-            xuid: '',
-            randomId: 0,
-            locale: 'en_US',
-            skin: null,
-            device: null
-        }
-    });
+const buildPlayer = (world: World, server: Server, name: string): PlayerSession => {
+    const player = new StorePlayer(entityIds.next(), { uuid: UUID.fromRandom(), name, xuid: '' });
+    player.standAt({ x: CHEST.x + 0.5, y: CHEST.y - EYE_HEIGHT, z: CHEST.z + 2.5 });
 
     const connection = stub<ClientConnection>({
         codec: Codec2193,
@@ -310,8 +301,13 @@ const buildPlayer = (world: World, server: Server, name: string): Player => {
         disconnect: async () => {}
     });
 
-    createConnectedPlayer({ server, connection, player });
-    return player;
+    return createConnectedPlayer({
+        server,
+        connection,
+        player,
+        identity: { name, xuid: '', uuid: player.getUUID().toString() },
+        world
+    });
 };
 
 /** One slot, as an `ItemStackRequest` names one. */
@@ -335,11 +331,11 @@ const move = (
 });
 
 /** Runs requests through the real handler and answers with the result of the first one. */
-const apply = async (server: Server, player: Player, requests: ItemStackRequest[]) => {
+const apply = async (server: Server, player: PlayerSession, requests: ItemStackRequest[]) => {
     await new ItemStackRequestHandler().handle(
         Object.assign(new ItemStackRequestPacket(), { requests }),
         server,
-        player.getNetworkSession()
+        player
     );
 };
 
@@ -373,13 +369,11 @@ describe('a block container a player can put things in', () => {
             .getInventory()
             .setItem(HELD_SLOT, new ContainerEntry({ item: new Item({ name: 'minecraft:diamond', count: 12 }) }));
 
-        const opened = await player
-            .getNetworkSession()
-            .openBlockContainer(
-                new Vector3(CHEST.x, CHEST.y, CHEST.z),
-                'minecraft:chest',
-                openContainerContents(player, CHEST, 'minecraft:chest')
-            );
+        const opened = await player.openBlockContainer(
+            new Vector3(CHEST.x, CHEST.y, CHEST.z),
+            'minecraft:chest',
+            openContainerContents(player, CHEST, 'minecraft:chest')
+        );
         expect(opened?.screen).toBe(WindowTypes.CONTAINER);
 
         await apply(server, player, [
@@ -430,13 +424,11 @@ describe('a block container a player can put things in', () => {
             .getInventory()
             .setItem(HELD_SLOT, new ContainerEntry({ item: new Item({ name: 'minecraft:coal', count: 8 }) }));
 
-        await player
-            .getNetworkSession()
-            .openBlockContainer(
-                new Vector3(FURNACE.x, FURNACE.y, FURNACE.z),
-                'minecraft:furnace',
-                openContainerContents(player, FURNACE, 'minecraft:furnace')
-            );
+        await player.openBlockContainer(
+            new Vector3(FURNACE.x, FURNACE.y, FURNACE.z),
+            'minecraft:furnace',
+            openContainerContents(player, FURNACE, 'minecraft:furnace')
+        );
 
         // The output slot is what the smelt produced, so vanilla refuses anything put on it.
         await apply(server, player, [
@@ -510,7 +502,7 @@ describe('a block container a player can put things in', () => {
         const player = buildPlayer(world, server, 'Smelter');
         await world.addPlayer(player);
         // The progress goes to the world's online players, which is what a joined player is.
-        await player.enable();
+        await player.join();
 
         blocks.setBlock(FURNACE, 'minecraft:furnace');
         blocks.setBlockData(FURNACE, {
@@ -522,13 +514,11 @@ describe('a block container a player can put things in', () => {
             capacity: 3
         });
 
-        await player
-            .getNetworkSession()
-            .openBlockContainer(
-                new Vector3(FURNACE.x, FURNACE.y, FURNACE.z),
-                'minecraft:furnace',
-                openContainerContents(player, FURNACE, 'minecraft:furnace')
-            );
+        await player.openBlockContainer(
+            new Vector3(FURNACE.x, FURNACE.y, FURNACE.z),
+            'minecraft:furnace',
+            openContainerContents(player, FURNACE, 'minecraft:furnace')
+        );
 
         sentPackets.length = 0;
         for (let tick = 1; tick <= 40; tick++) {
@@ -537,7 +527,7 @@ describe('a block container a player can put things in', () => {
         }
 
         const data = containerDataSent();
-        const windowId = player.getNetworkSession().getOpenBlockContainer()?.windowId;
+        const windowId = player.getOpenBlockContainer()?.windowId;
         expect(data.every((packet) => packet.containerId === windowId)).toBe(true);
 
         // Property 0 is the cook ticks the arrow is drawn from, and it has to move.
@@ -560,19 +550,17 @@ describe('a block container a player can put things in', () => {
         const { server, world, level, blocks } = scene;
         const player = buildPlayer(world, server, 'Smelter');
         await world.addPlayer(player);
-        await player.enable();
+        await player.join();
 
         // Nothing to cook, so no counter moves and the screen needs no packet at all.
         blocks.setBlock(FURNACE, 'minecraft:furnace');
         blocks.setBlockData(FURNACE, { items: [undefined, undefined, undefined], capacity: 3 });
 
-        await player
-            .getNetworkSession()
-            .openBlockContainer(
-                new Vector3(FURNACE.x, FURNACE.y, FURNACE.z),
-                'minecraft:furnace',
-                openContainerContents(player, FURNACE, 'minecraft:furnace')
-            );
+        await player.openBlockContainer(
+            new Vector3(FURNACE.x, FURNACE.y, FURNACE.z),
+            'minecraft:furnace',
+            openContainerContents(player, FURNACE, 'minecraft:furnace')
+        );
 
         // The first tick after an open primes the screen with the state it has been told
         // nothing about, whatever that state is.
@@ -645,13 +633,11 @@ describe('a block container a player can put things in', () => {
         const contents = openContainerContents(player, CHEST_PARTNER, 'minecraft:chest');
         expect(contents).toHaveLength(54);
 
-        await player
-            .getNetworkSession()
-            .openBlockContainer(
-                new Vector3(CHEST_PARTNER.x, CHEST_PARTNER.y, CHEST_PARTNER.z),
-                'minecraft:chest',
-                contents
-            );
+        await player.openBlockContainer(
+            new Vector3(CHEST_PARTNER.x, CHEST_PARTNER.y, CHEST_PARTNER.z),
+            'minecraft:chest',
+            contents
+        );
 
         // Slot 30 is the seventh slot of the second half, which is the chest with the higher x.
         await apply(server, player, [
@@ -678,13 +664,11 @@ describe('a block container a player can put things in', () => {
             .getInventory()
             .setItem(HELD_SLOT, new ContainerEntry({ item: new Item({ name: 'minecraft:diamond', count: 7 }) }));
 
-        await player
-            .getNetworkSession()
-            .openBlockContainer(
-                new Vector3(CHEST.x, CHEST.y, CHEST.z),
-                'minecraft:chest',
-                openContainerContents(player, CHEST, 'minecraft:chest')
-            );
+        await player.openBlockContainer(
+            new Vector3(CHEST.x, CHEST.y, CHEST.z),
+            'minecraft:chest',
+            openContainerContents(player, CHEST, 'minecraft:chest')
+        );
         await apply(server, player, [
             move(
                 at(ContainerUiId.COMBINED_HOTBAR_AND_INVENTORY, HELD_SLOT),
@@ -721,13 +705,11 @@ describe('a block container a player can put things in', () => {
             .setItem(HELD_SLOT, new ContainerEntry({ item: new Item({ name: 'minecraft:diamond', count: 5 }) }));
 
         for (const player of [first, second]) {
-            await player
-                .getNetworkSession()
-                .openBlockContainer(
-                    new Vector3(CHEST.x, CHEST.y, CHEST.z),
-                    'minecraft:ender_chest',
-                    openContainerContents(player, CHEST, 'minecraft:ender_chest')
-                );
+            await player.openBlockContainer(
+                new Vector3(CHEST.x, CHEST.y, CHEST.z),
+                'minecraft:ender_chest',
+                openContainerContents(player, CHEST, 'minecraft:ender_chest')
+            );
         }
 
         await apply(server, first, [
@@ -758,13 +740,11 @@ describe('a block container a player can put things in', () => {
         });
         player.getInventory().setItem(HELD_SLOT, new ContainerEntry({ item: pickaxe, count: 1 }));
 
-        await player
-            .getNetworkSession()
-            .openBlockContainer(
-                new Vector3(CHEST.x, CHEST.y, CHEST.z),
-                'minecraft:black_shulker_box',
-                openContainerContents(player, CHEST, 'minecraft:black_shulker_box')
-            );
+        await player.openBlockContainer(
+            new Vector3(CHEST.x, CHEST.y, CHEST.z),
+            'minecraft:black_shulker_box',
+            openContainerContents(player, CHEST, 'minecraft:black_shulker_box')
+        );
         await apply(server, player, [
             move(
                 at(ContainerUiId.COMBINED_HOTBAR_AND_INVENTORY, HELD_SLOT),
@@ -803,13 +783,11 @@ describe('a block container a player can put things in', () => {
         pickaxe.durability = pickaxe.getMaxDurability() - 57;
         player.getInventory().setItem(HELD_SLOT, new ContainerEntry({ item: pickaxe, count: 1 }));
 
-        await player
-            .getNetworkSession()
-            .openBlockContainer(
-                new Vector3(CHEST.x, CHEST.y, CHEST.z),
-                'minecraft:chest',
-                openContainerContents(player, CHEST, 'minecraft:chest')
-            );
+        await player.openBlockContainer(
+            new Vector3(CHEST.x, CHEST.y, CHEST.z),
+            'minecraft:chest',
+            openContainerContents(player, CHEST, 'minecraft:chest')
+        );
         await apply(server, player, [
             move(
                 at(ContainerUiId.COMBINED_HOTBAR_AND_INVENTORY, HELD_SLOT),
@@ -846,13 +824,11 @@ describe('a block container a player can put things in', () => {
         // the only reading of the record that proves nothing was lost on the way.
         const reopened = await buildScene('metadata');
         const second = buildPlayer(reopened.world, reopened.server, 'Enchanter');
-        await second
-            .getNetworkSession()
-            .openBlockContainer(
-                new Vector3(CHEST.x, CHEST.y, CHEST.z),
-                'minecraft:chest',
-                openContainerContents(second, CHEST, 'minecraft:chest')
-            );
+        await second.openBlockContainer(
+            new Vector3(CHEST.x, CHEST.y, CHEST.z),
+            'minecraft:chest',
+            openContainerContents(second, CHEST, 'minecraft:chest')
+        );
         await apply(reopened.server, second, [
             move(at(ContainerUiId.LEVEL_ENTITY_CONTAINER, 5), at(ContainerUiId.COMBINED_HOTBAR_AND_INVENTORY, 2), 1)
         ]);
@@ -880,13 +856,11 @@ describe('a block container a player can put things in', () => {
         });
         player.getInventory().setItem(HELD_SLOT, new ContainerEntry({ item: sword, count: 1 }));
 
-        await player
-            .getNetworkSession()
-            .openBlockContainer(
-                new Vector3(CHEST.x, CHEST.y, CHEST.z),
-                'minecraft:chest',
-                openContainerContents(player, CHEST, 'minecraft:chest')
-            );
+        await player.openBlockContainer(
+            new Vector3(CHEST.x, CHEST.y, CHEST.z),
+            'minecraft:chest',
+            openContainerContents(player, CHEST, 'minecraft:chest')
+        );
         await apply(server, player, [
             move(
                 at(ContainerUiId.COMBINED_HOTBAR_AND_INVENTORY, HELD_SLOT),
@@ -923,13 +897,11 @@ describe('a block container a player can put things in', () => {
             .setItem(HELD_SLOT, new ContainerEntry({ item: new Item({ name: 'minecraft:diamond', count: 2 }) }));
 
         for (const player of [first, second]) {
-            await player
-                .getNetworkSession()
-                .openBlockContainer(
-                    new Vector3(CHEST.x, CHEST.y, CHEST.z),
-                    'minecraft:chest',
-                    openContainerContents(player, CHEST, 'minecraft:chest')
-                );
+            await player.openBlockContainer(
+                new Vector3(CHEST.x, CHEST.y, CHEST.z),
+                'minecraft:chest',
+                openContainerContents(player, CHEST, 'minecraft:chest')
+            );
         }
 
         await apply(server, first, [

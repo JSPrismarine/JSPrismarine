@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import type Player from '../Player';
+import type PlayerSession from '../network/PlayerSession';
 import { fakePlayer } from '../testing/fakePlayer.test.helper';
 import ContainerEntry from '../inventory/ContainerEntry';
 import { Item } from '../item/Item';
@@ -18,17 +18,17 @@ const item = (name: string) => new Item({ name });
  * though the player were naked. A player is a store player, whose blows run the store's damage
  * pipeline with the armor its inventory holds.
  */
-const scene = () => ({ wearer: () => fakePlayer().player });
+const scene = () => ({ wearer: () => fakePlayer().session });
 
 /** Puts a piece on, in the slot the client numbers it. */
-const wear = (player: Player, slot: number, piece: Item) =>
+const wear = (player: PlayerSession, slot: number, piece: Item) =>
     player
         .getInventory()
         .getArmor()
         .setItem(slot, new ContainerEntry({ item: piece, count: 1 }));
 
 /** The armor points and toughness a player's inventory gives it. */
-const armorOf = (player: Player) => ({
+const armorOf = (player: PlayerSession) => ({
     points: player.getInventory().getArmorDefensePoints(),
     toughness: player.getInventory().getArmorToughness()
 });
@@ -79,10 +79,10 @@ describe('armor', () => {
             const armored = stage.wearer();
             wear(armored, 1, item('minecraft:iron_chestplate'));
 
-            await bare.damage(10);
-            await armored.damage(10);
+            await bare.getActor()?.damage(10);
+            await armored.getActor()?.damage(10);
 
-            expect(armored.getHealth()).toBeGreaterThan(bare.getHealth());
+            expect(armored.getPlayer().getHealth()).toBeGreaterThan(bare.getPlayer().getHealth());
         });
 
         it('does nothing against drowning, which is not a blow', async () => {
@@ -90,10 +90,10 @@ describe('armor', () => {
             const armored = stage.wearer();
             wear(armored, 1, item('minecraft:iron_chestplate'));
 
-            await bare.damage(6, DamageCause.Drowning);
-            await armored.damage(6, DamageCause.Drowning);
+            await bare.getActor()?.damage(6, DamageCause.Drowning);
+            await armored.getActor()?.damage(6, DamageCause.Drowning);
 
-            expect(armored.getHealth()).toBe(bare.getHealth());
+            expect(armored.getPlayer().getHealth()).toBe(bare.getPlayer().getHealth());
         });
 
         it('protects less as the blow gets harder, which is what toughness softens', async () => {
@@ -102,11 +102,11 @@ describe('armor', () => {
             wear(soft, 1, item('minecraft:iron_chestplate'));
             wear(hard, 1, item('minecraft:iron_chestplate'));
 
-            await soft.damage(4);
-            await hard.damage(16);
+            await soft.getActor()?.damage(4);
+            await hard.getActor()?.damage(16);
 
-            const softFraction = (20 - soft.getHealth()) / 4;
-            const hardFraction = (20 - hard.getHealth()) / 16;
+            const softFraction = (20 - soft.getPlayer().getHealth()) / 4;
+            const hardFraction = (20 - hard.getPlayer().getHealth()) / 16;
 
             expect(hardFraction).toBeGreaterThan(softFraction);
         });

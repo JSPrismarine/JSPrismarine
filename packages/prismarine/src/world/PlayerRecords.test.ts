@@ -2,7 +2,7 @@ import type { Logger } from '@jsprismarine/logger';
 import type { LevelStem } from '@jsprismarine/worldgen';
 import { describe, expect, it } from 'vitest';
 
-import type Player from '../Player';
+import type { SessionPlayer } from '../network/sessionPlayers';
 import type Server from '../Server';
 import { stub } from '../testing/stub.test.helper';
 import type { DimensionType } from './Dimension';
@@ -19,7 +19,8 @@ const worldOf = (dimension: DimensionType, data: Partial<WorldPlayerData> = {}):
         getPlayerData: async () => data
     });
 
-const playerIn = (world: World): Player => stub<Player>({ getWorld: () => world });
+/** A player with no XUID, keyed by its name. */
+const player = stub<SessionPlayer>({ getName: () => 'Steve', getXUID: () => null });
 
 /**
  * A level whose stems are the given worlds' dimensions, building each world on the first
@@ -51,7 +52,7 @@ describe('where a returning player left off', () => {
         const nether = worldOf(Dimensions.Nether, { gamemode: 'survival' });
         const { level, warnings, built } = levelOf([overworld, nether]);
 
-        const found = await lastPlayerRecord(playerIn(overworld), level);
+        const found = await lastPlayerRecord(player, overworld, level);
 
         expect(found.world).toBe(nether);
         expect(found.dimension).toBe('minecraft:the_nether');
@@ -69,7 +70,7 @@ describe('where a returning player left off', () => {
         const nether = worldOf(Dimensions.Nether, { gamemode: 'creative' });
         const { level, built } = levelOf([overworld, nether]);
 
-        const found = await lastPlayerRecord(playerIn(overworld), level);
+        const found = await lastPlayerRecord(player, overworld, level);
 
         expect(found.world).toBe(overworld);
         expect(found.dimension).toBeUndefined();
@@ -81,7 +82,7 @@ describe('where a returning player left off', () => {
         const overworld = worldOf(Dimensions.Overworld, { gamemode: 'adventure', dimension: 'minecraft:the_end' });
         const { level, warnings, built } = levelOf([overworld]);
 
-        const found = await lastPlayerRecord(playerIn(overworld), level);
+        const found = await lastPlayerRecord(player, overworld, level);
 
         expect(found.world).toBe(overworld);
         expect(found.dimension).toBe('minecraft:the_end');

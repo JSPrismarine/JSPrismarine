@@ -6,7 +6,6 @@ import { BookEditAction } from '@jsprismarine/protocol/packet/BookEditPacket';
 import type { BookEdit } from '@jsprismarine/protocol/packet/BookEditPacket';
 import type PacketHandler from './PacketHandler';
 import type { StorePlayer } from '../../entity/storePlayer';
-import { storePlayerOf } from './playerPorts';
 
 /** The only item a book edit can apply to. Signing turns it into a written book. */
 const WRITABLE_BOOK = 'minecraft:writable_book';
@@ -54,7 +53,7 @@ export default class BookEditHandler implements PacketHandler<BookEditPacket> {
     public handle(packet: BookEditPacket, server: Server, session: PlayerSession): void {
         const data = packet.getPacketData();
 
-        const rejection = data === null ? 'it carries no operation' : bookEditRejection(storePlayerOf(session), data);
+        const rejection = data === null ? 'it carries no operation' : bookEditRejection(session.getPlayer(), data);
         if (rejection !== null) {
             server
                 .getLogger()

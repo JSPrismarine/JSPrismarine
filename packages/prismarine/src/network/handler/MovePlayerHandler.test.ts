@@ -15,7 +15,8 @@ import MovePlayerPacket from '@jsprismarine/protocol/packet/MovePlayerPacket';
 
 import type { MovePlayer } from '@jsprismarine/protocol/packet/MovePlayerPacket';
 import MovePlayerHandler, { applyClientMovement } from './MovePlayerHandler';
-import { storePlayerPort } from './storePlayerPort.test.helper';
+import type { ShownActor } from '../../world/ShownActor';
+import type { ShownPlayer } from '../../world/ShownPlayer';
 
 /**
  * At protocol 2193 `MovePlayerPacket` is client-bound. The bot harness still sends it, so
@@ -24,23 +25,24 @@ import { storePlayerPort } from './storePlayerPort.test.helper';
  */
 const fake = () => {
     const dropped: string[] = [];
-    const players: ReturnType<World['getPlayers']> = [];
+    const players: PlayerSession[] = [];
     const world = stub<World>({
-        getPlayers: () => players,
+        getViewers: () => players,
         entityRelocated: () => {},
         broadcastMove: vi.fn(async () => {})
     });
     const position = new Position(0, 64, 0, world);
-    const player = storePlayerPort(
-        { getPosition: () => position, isOnGround: () => false },
-        // The move event reads where the player was from the player.
-        { getPosition: () => position, setPlayerPosition: vi.fn(async () => {}), setOnGround: vi.fn(async () => {}) }
-    );
+    const player = stubPlayerPort({ getPosition: () => position, isOnGround: () => false });
     const session = stub<PlayerSession>({
         runtimeId: 7n,
         identity: identityNamed('tester'),
         getPlayer: () => player,
         getWorld: () => world,
+        // The move event reads where the player was from the session.
+        getViewPosition: () => position,
+        shown: () => stub<ShownPlayer>({}),
+        setPlayerPosition: vi.fn(async () => {}),
+        setOnGround: vi.fn(),
         sendMove: vi.fn(async () => {}),
         recordInputTick: vi.fn(),
         holdsMovementForTeleport: () => false
@@ -72,7 +74,7 @@ const move = (configure: (data: MovePlayer) => void = () => {}): MovePlayerPacke
 describe('MovePlayerHandler', () => {
     it('keeps posting movement events but queues movement only for changed poses', async () => {
         const world = stub<World>({
-            getPlayers: () => [],
+            getViewers: () => [],
             entityRelocated: () => {},
             broadcastMove: vi.fn(async () => {})
         });
@@ -89,23 +91,22 @@ describe('MovePlayerHandler', () => {
             yaw: { get: () => pose.yaw },
             headYaw: { get: () => pose.headYaw }
         });
-        const player = stubPlayerPort({
-            getStorePlayer: () => store,
-            getPosition: () => pose.position,
-            setPlayerPosition: vi.fn(async ({ position, pitch, yaw, headYaw }) => {
-                pose.position = new Position(position.getX(), position.getY(), position.getZ(), world);
-                pose.pitch = pitch;
-                pose.yaw = yaw;
-                pose.headYaw = headYaw;
-                await world.broadcastMove(player.getBody());
-            }),
-            setOnGround: vi.fn(async (onGround: boolean) => void (pose.onGround = onGround))
-        });
+        const actor = stub<ShownActor>({});
         const session = stub<PlayerSession>({
             runtimeId: 7n,
             identity: identityNamed('tester'),
-            getPlayer: () => player,
+            getPlayer: () => store,
             getWorld: () => world,
+            getViewPosition: () => pose.position,
+            shown: () => stub<ShownPlayer>({}),
+            setPlayerPosition: vi.fn(async ({ position, pitch, yaw, headYaw }) => {
+                pose.position = new Position(position.getX(), position.getY(), position.getZ(), world);
+                pose.pitch = pitch ?? pose.pitch;
+                pose.yaw = yaw ?? pose.yaw;
+                pose.headYaw = headYaw ?? pose.headYaw;
+                await world.broadcastMove(actor);
+            }),
+            setOnGround: vi.fn((onGround: boolean) => void (pose.onGround = onGround)),
             holdsMovementForTeleport: () => false
         });
         let events = 0;
@@ -124,27 +125,27 @@ describe('MovePlayerHandler', () => {
         await applyClientMovement(server, session, { ...movement, yaw: 91, onGround: false });
 
         expect(events).toBe(4);
-        expect(player.setPlayerPosition).toHaveBeenCalledTimes(2);
-        expect(player.setOnGround).toHaveBeenCalledTimes(2);
+        expect(session.setPlayerPosition).toHaveBeenCalledTimes(2);
+        expect(session.setOnGround).toHaveBeenCalledTimes(2);
         // Position plus landing queues twice; the tick replicator coalesces both into the final pose.
         expect(world.broadcastMove).toHaveBeenCalledTimes(4);
     });
 
     it('moves the player for a normal move of their own runtime id', async () => {
-        const { dropped, player, session, server } = fake();
+        const { dropped, session, server } = fake();
 
         await new MovePlayerHandler().handle(move(), server, session);
 
-        expect(player.setPlayerPosition).toHaveBeenCalledWith(
+        expect(session.setPlayerPosition).toHaveBeenCalledWith(
             { position: new Vector3(3, 70, -4), pitch: 5, yaw: 90, headYaw: 85 },
             false
         );
-        expect(player.setOnGround).toHaveBeenCalledWith(true);
+        expect(session.setOnGround).toHaveBeenCalledWith(true);
         expect(dropped).toEqual([]);
     });
 
     it('drops a move the session says was sent before an unacknowledged teleport', async () => {
-        const { dropped, player, session, server } = fake();
+        const { dropped, session, server } = fake();
         session.holdsMovementForTeleport = vi.fn(() => true);
         let events = 0;
         server.post = () => ++events;
@@ -152,23 +153,17 @@ describe('MovePlayerHandler', () => {
         await new MovePlayerHandler().handle(move(), server, session);
 
         expect(session.holdsMovementForTeleport).toHaveBeenCalledWith(new Vector3(3, 70, -4), false);
-        expect(player.setPlayerPosition).not.toHaveBeenCalled();
+        expect(session.setPlayerPosition).not.toHaveBeenCalled();
         expect(events).toBe(0);
         expect(dropped).toHaveLength(1);
         expect(dropped[0]).toContain('Dropped a position from tester sent before its teleport');
     });
 
     it('does not send a second MovePlayer update to observers', async () => {
-        const { player, players, session, server } = fake();
+        const { players, session, server } = fake();
         const sendMove = vi.fn(async () => {});
-        const observer = stubPlayerPort({
-            getNetworkSession: () =>
-                stub<PlayerSession>({
-                    tracks: () => true,
-                    sendMove
-                })
-        });
-        players.push(player, observer);
+        const observer = stub<PlayerSession>({ tracks: () => true, sendMove });
+        players.push(session, observer);
 
         await new MovePlayerHandler().handle(move(), server, session);
 
@@ -176,7 +171,7 @@ describe('MovePlayerHandler', () => {
     });
 
     it('accepts the head-only mode the docs allow for a player in a vehicle', async () => {
-        const { player, session, server } = fake();
+        const { session, server } = fake();
 
         await new MovePlayerHandler().handle(
             move((packet) => {
@@ -186,15 +181,15 @@ describe('MovePlayerHandler', () => {
             session
         );
 
-        expect(player.setPlayerPosition).toHaveBeenCalled();
+        expect(session.setPlayerPosition).toHaveBeenCalled();
     });
 
     it('records the packet tick as the input tick before the move is applied', async () => {
         // So a reset sent for this very move carries the tick the client can rewind to.
         const order: string[] = [];
-        const { player, session, server } = fake();
+        const { session, server } = fake();
         session.recordInputTick = vi.fn(() => void order.push('tick'));
-        player.setPlayerPosition = vi.fn(async () => void order.push('move'));
+        session.setPlayerPosition = vi.fn(async () => void order.push('move'));
 
         await new MovePlayerHandler().handle(move(), server, session);
 
@@ -204,7 +199,7 @@ describe('MovePlayerHandler', () => {
 
     it('drops a move for another runtime id', async () => {
         // "If server-bound, this is always the id of the sending player."
-        const { dropped, player, session, server } = fake();
+        const { dropped, session, server } = fake();
 
         await new MovePlayerHandler().handle(
             move((packet) => {
@@ -214,7 +209,7 @@ describe('MovePlayerHandler', () => {
             session
         );
 
-        expect(player.setPlayerPosition).not.toHaveBeenCalled();
+        expect(session.setPlayerPosition).not.toHaveBeenCalled();
         expect(session.recordInputTick).not.toHaveBeenCalled();
         expect(dropped).toHaveLength(1);
     });
@@ -222,7 +217,7 @@ describe('MovePlayerHandler', () => {
     it.each([PositionMode.Teleport, PositionMode.Respawn])('drops a move in server-only mode %i', async (mode) => {
         // Respawn and Teleport are the server's modes. A client sending one is asking to be
         // put somewhere without walking there, and its Teleport Data is never read.
-        const { dropped, player, session, server } = fake();
+        const { dropped, session, server } = fake();
 
         await new MovePlayerHandler().handle(
             move((packet) => {
@@ -234,7 +229,7 @@ describe('MovePlayerHandler', () => {
             session
         );
 
-        expect(player.setPlayerPosition).not.toHaveBeenCalled();
+        expect(session.setPlayerPosition).not.toHaveBeenCalled();
         expect(dropped).toHaveLength(1);
     });
 });

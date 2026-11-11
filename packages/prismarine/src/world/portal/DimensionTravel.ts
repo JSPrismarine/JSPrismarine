@@ -24,6 +24,7 @@ import type { DataEntityRecord } from '../../entity/data/persistence';
 import { ItemActor } from '../../entity/data/itemActor';
 import { InertActor, StoreActor } from '../../entity/data/storeActors';
 import { PLAYER_IDENTIFIER } from '../../entity/playerOverlay';
+import { PORTAL_COOLDOWN_TICKS } from '../../entity/PortalContact';
 import EntityPortalEnterEvent from '../../events/entity/EntityPortalEnterEvent';
 import PlayerChangeDimensionEvent from '../../events/player/PlayerChangeDimensionEvent';
 import type PlayerSession from '../../network/PlayerSession';
@@ -161,11 +162,11 @@ export class DimensionTravel {
 
         if (session !== undefined) {
             const player = session.getPlayer();
-            const event = new PlayerChangeDimensionEvent(player, from, arrival.world, arrival);
+            const event = new PlayerChangeDimensionEvent(session, from, arrival.world, arrival);
             await this.server.emit('playerChangeDimension', event);
             if (event.isCanceled()) return;
 
-            player.setPortalCooldown();
+            player.setPortalCooldown(PORTAL_COOLDOWN_TICKS.player);
 
             // Java's `EndPortalBlock.entityInside`: a first exit through the End's portal
             // rolls the credits and holds the change until the client reports them over. The
@@ -382,7 +383,7 @@ export class DimensionTravel {
     private async leaveEnd(entity: WorldActor, level: Level, targetId: string): Promise<PortalArrival | undefined> {
         const session = sessionOf(entity);
         if (session !== undefined) {
-            const respawn = await session.getPlayer().getRespawnPoint();
+            const respawn = await session.getRespawnPoint();
             return {
                 world: respawn.world,
                 position: respawn.block,

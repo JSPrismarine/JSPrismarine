@@ -18,7 +18,6 @@ import type ClientConnection from '../ClientConnection';
 import type { ProtocolCodec } from '@jsprismarine/protocol';
 import type PlayerSession from '../PlayerSession';
 import MobEquipmentHandler from './MobEquipmentHandler';
-import { storePlayerPort } from './storePlayerPort.test.helper';
 
 const protocolContext: ProtocolContext = { protocolVersion: 2193 };
 const protocolCodec = stub<ProtocolCodec>({ protocolVersion: 2193, context: protocolContext });
@@ -31,8 +30,8 @@ const fakeWorld = () => {
     const toSender: NetworkPacket[] = [];
     const toWatcher: NetworkPacket[] = [];
     const toBystander: NetworkPacket[] = [];
-    const players: ReturnType<World['getPlayers']> = [];
-    const world = stub<World>({ getPlayers: () => players });
+    const players: PlayerSession[] = [];
+    const world = stub<World>({ getViewers: () => players });
 
     const inventory = new HumanInventory();
     inventory.setItem(
@@ -41,44 +40,29 @@ const fakeWorld = () => {
     );
 
     const connection = stub<ClientConnection>({ codec: protocolCodec });
+    const sender = stubPlayerPort({ getInventory: () => inventory });
     const senderSession = stub<PlayerSession>({
         runtimeId: 7n,
         identity: identityNamed('runner'),
         tracks: () => true,
         send: async (packet) => void toSender.push(packet),
         getPlayer: () => sender,
+        getWorld: () => world,
         getConnection: () => connection
     });
-    const sender = storePlayerPort(
-        { getInventory: () => inventory },
-        {
-            getName: () => 'runner',
-            getRuntimeId: () => 7n,
-            getWorld: () => world,
-            getNetworkSession: () => senderSession
-        }
-    );
-    const watcher = stubPlayerPort({
-        getRuntimeId: () => 8n,
-        getWorld: () => world,
-        getNetworkSession: () =>
-            stub<PlayerSession>({
-                tracks: () => true,
-                send: async (packet) => void toWatcher.push(packet),
-                getConnection: () => connection
-            })
+    const watcher = stub<PlayerSession>({
+        runtimeId: 8n,
+        tracks: () => true,
+        send: async (packet) => void toWatcher.push(packet),
+        getConnection: () => connection
     });
-    const bystander = stubPlayerPort({
-        getRuntimeId: () => 9n,
-        getWorld: () => world,
-        getNetworkSession: () =>
-            stub<PlayerSession>({
-                tracks: () => false,
-                send: async (packet) => void toBystander.push(packet),
-                getConnection: () => connection
-            })
+    const bystander = stub<PlayerSession>({
+        runtimeId: 9n,
+        tracks: () => false,
+        send: async (packet) => void toBystander.push(packet),
+        getConnection: () => connection
     });
-    players.push(sender, watcher, bystander);
+    players.push(senderSession, watcher, bystander);
 
     const debug = vi.fn();
     const server = stub<Server>({ getLogger: () => stub<Logger>({ debug }) });

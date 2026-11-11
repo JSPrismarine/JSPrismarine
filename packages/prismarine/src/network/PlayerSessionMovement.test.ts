@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 
 import { stub } from '../testing/stub.test.helper';
 import { stubPlayerPort } from '../testing/playerPort.test.helper';
+import type { ShownActor } from '../world/ShownActor';
 import { Position } from '../world/Position';
 import type { World } from '../world/World';
 import MovePlayerPacket from '@jsprismarine/protocol/packet/MovePlayerPacket';
@@ -23,8 +24,9 @@ import type { MovePlayer } from '@jsprismarine/protocol/packet/MovePlayerPacket'
 /** The world a position has to name; nothing on this path reads it back out. */
 const nowhere = stub<World>();
 
+/** A player as a client is shown it. */
 const playerAt = (runtimeId: bigint) =>
-    stubPlayerPort({
+    stub<ShownActor>({
         getRuntimeId: () => runtimeId,
         getPosition: () => new Position(1, 64, 1, nowhere),
         pitch: 10,
@@ -41,7 +43,7 @@ const movementSession = () => {
         connection: {
             sendDataPacket: async (packet: MovePlayerPacket | SetActorMotionPacket) => void sent.push(packet)
         },
-        ...sessionPlayerFields(player, 1n),
+        ...sessionPlayerFields(stubPlayerPort({}), 1n),
         // A teleport notes the server tick it went out on.
         server: { getTick: () => 0 },
         lastInputTick: 0n
@@ -60,7 +62,7 @@ describe('network', () => {
         it('sends a zero tick before the client has sent any input', async () => {
             const { session, sent, player } = movementSession();
 
-            await session.sendMove(player.getBody(), PositionMode.Teleport);
+            await session.sendMove(player, PositionMode.Teleport);
 
             expect(moveData(sent)?.tick).toBe(0n);
         });
@@ -69,7 +71,7 @@ describe('network', () => {
             const { session, sent, player } = movementSession();
 
             session.recordInputTick(42n);
-            await session.sendMove(player.getBody(), PositionMode.Respawn);
+            await session.sendMove(player, PositionMode.Respawn);
 
             expect(moveData(sent)?.runtimeEntityId).toBe(1n);
             expect(moveData(sent)?.tick).toBe(42n);
@@ -79,7 +81,7 @@ describe('network', () => {
             const { session, sent } = movementSession();
 
             session.recordInputTick(42n);
-            await session.sendMove(playerAt(2n).getBody(), PositionMode.Normal);
+            await session.sendMove(playerAt(2n), PositionMode.Normal);
 
             expect(moveData(sent)?.runtimeEntityId).toBe(2n);
             expect(moveData(sent)?.tick).toBe(0n);
@@ -88,7 +90,7 @@ describe('network', () => {
         it('fills a teleport with an unknown cause and leaves the riding id at zero', async () => {
             const { session, sent, player } = movementSession();
 
-            await session.sendMove(player.getBody(), PositionMode.Teleport);
+            await session.sendMove(player, PositionMode.Teleport);
 
             expect(moveData(sent)).toMatchObject({
                 mode: PositionMode.Teleport,

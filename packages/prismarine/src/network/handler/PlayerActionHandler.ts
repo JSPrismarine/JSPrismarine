@@ -8,7 +8,6 @@ import type PlayerActionPacket from '@jsprismarine/protocol/packet/PlayerActionP
 import { MAX_BLOCK_TARGET_DISTANCE } from './BlockTarget';
 import { blockMiningOf, playerMiningOf } from '../../world/BlockMining';
 import type PacketHandler from './PacketHandler';
-import { playerInputsOf, storePlayerOf } from './playerPorts';
 
 /**
  * The actions whose block position is read, so the one the client sends has to be checked.
@@ -107,11 +106,10 @@ export default class PlayerActionHandler implements PacketHandler<PlayerActionPa
         session: PlayerSession
     ): Promise<void> {
         // The state an action reads, and the runtime that takes the inputs. Hitting and breaking
-        // a block take `session.getPlayer()`, since the world takes a legacy player as the one who
-        // struck, and a sprint, a flight toggle and a respawn go through the player, which posts
-        // their events and orders the respawn's parts.
-        const player = storePlayerOf(session);
-        const inputs = playerInputsOf(session);
+        // a block take the store player as the one who struck, and a sprint, a flight toggle and a
+        // respawn go through the session, which posts their events and orders the respawn's parts.
+        const player = session.getPlayer();
+        const inputs = session.inputs();
         const world = session.getWorld();
 
         if (BLOCK_ACTIONS.has(action)) {
@@ -271,7 +269,7 @@ export default class PlayerActionHandler implements PacketHandler<PlayerActionPa
             }
 
             case PlayerActionType.Respawn: {
-                await session.getPlayer().respawn();
+                await session.respawn();
                 return;
             }
 
@@ -281,11 +279,11 @@ export default class PlayerActionHandler implements PacketHandler<PlayerActionPa
             }
 
             case PlayerActionType.StartSprinting: {
-                await session.getPlayer().setSprinting(true);
+                await session.setSprinting(true);
                 return;
             }
             case PlayerActionType.StopSprinting: {
-                await session.getPlayer().setSprinting(false);
+                await session.setSprinting(false);
                 return;
             }
 
@@ -311,11 +309,11 @@ export default class PlayerActionHandler implements PacketHandler<PlayerActionPa
             // toggle. `setFlying` sends one either way: the new abilities when the player may
             // fly, the old ones when they may not.
             case PlayerActionType.StartFlying: {
-                await session.getPlayer().setFlying(true);
+                await session.setFlying(true);
                 return;
             }
             case PlayerActionType.StopFlying: {
-                await session.getPlayer().setFlying(false);
+                await session.setFlying(false);
                 return;
             }
 

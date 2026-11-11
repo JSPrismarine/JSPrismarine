@@ -47,7 +47,6 @@ const worldOf = (dimension: DimensionType): World =>
         addPlayer: async () => {},
         broadcastMove: async () => {},
         entityRelocated: () => {},
-        getPlayers: () => [],
         getSpawnPosition: async () => new Position(8, 70, 8, target()),
         getChunk: async (x, z) => new Chunk(x, z, new Map(), dimension)
     });
@@ -64,13 +63,12 @@ const target = (dimension: DimensionType = Dimensions.Nether): World => {
  */
 const captureSequence = async (dimension: DimensionType = Dimensions.Nether): Promise<NetworkPacket<unknown>[]> => {
     destination = undefined;
-    const { player, sent } = fakePlayer();
-    const session = player.getNetworkSession();
+    const { session, player, sent } = fakePlayer();
     // A tracked mob in the world being left, so the change has an actor to remove.
     await session.considerEntity(
         stub<ShownActor>({
             getRuntimeId: () => player.getRuntimeId() + 1_000_000n,
-            getPosition: () => new Position(4, 64, 4, player.getWorld()),
+            getPosition: () => new Position(4, 64, 4, session.getWorld()),
             getTrackingRange: () => 8,
             spawnTo: async () => {}
         })

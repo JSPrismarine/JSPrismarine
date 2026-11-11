@@ -648,7 +648,7 @@ const replayOn = async (
             ? live.inbound.records().find((record) => record.sequence === 0)?.connectionId
             : captured.movement[0]?.connectionId;
         if (moverConnectionId === undefined) throw new Error('Replay session has no mover connection id');
-        const mover = live.world.getPlayers().find((player) => player.getName() === 'ReplayMover');
+        const mover = live.world.getViewers().find((session) => session.getName() === 'ReplayMover');
         if (mover === undefined) throw new Error('Replay mover is missing from the world');
         let moveEvents = 0;
         const moveTicks: number[] = [];

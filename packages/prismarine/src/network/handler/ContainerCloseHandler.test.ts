@@ -17,7 +17,7 @@ import type PlayerSession from '../PlayerSession';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import ContainerClosePacket from '@jsprismarine/protocol/packet/ContainerClosePacket';
 import ContainerCloseHandler from './ContainerCloseHandler';
-import { storePlayerPort } from './storePlayerPort.test.helper';
+import { stubPlayerPort } from '../../testing/playerPort.test.helper';
 
 const planks = (count: number) => new Item({ runtimeId: 5, name: 'minecraft:oak_planks', count });
 
@@ -63,7 +63,7 @@ const run = async ({
         getConnection: () => stub<ClientConnection>({ sendDataPacket: async (packet) => void sent.push(packet) }),
         getWorld: () => world,
         getPlayer: () =>
-            storePlayerPort({
+            stubPlayerPort({
                 getInventory: () => inventory,
                 getCraftingInput: () => craftingInput,
                 getPosition: () => new Position(1, 2, 3, world)

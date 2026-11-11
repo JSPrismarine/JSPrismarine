@@ -31,7 +31,7 @@ export default class SetPlayerGameTypeHandler implements PacketHandler<SetPlayer
         const data = packet.getPacketData();
         if (data === null) throw new Error('Cannot handle SetPlayerGameTypePacket without decoded data');
 
-        const player: GamemodePlayer = session.getPlayer();
+        const player: GamemodePlayer = session;
         const allowed = server.getPermissionManager().can(player).execute('minecraft.command.gamemode');
         if (!allowed || !isGametype(data.gametype)) {
             await session.sendGamemode();

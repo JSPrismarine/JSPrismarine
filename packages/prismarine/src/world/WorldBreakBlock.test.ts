@@ -99,13 +99,7 @@ const fakeWorld = (initial: BlockState, broken = fakeBlock(initial.name)) => {
         // view distance and the tighter radius a sound carries. A position and a view distance
         // are needed at all now that block updates and sounds are addressed to whoever is near
         // enough rather than to every player in the world.
-        getPlayers: () => [
-            {
-                getNetworkSession: () => session,
-                getPosition: () => new Vector3(10, 64, -20),
-                viewDistance: 10
-            }
-        ],
+        getViewers: () => [session],
         sendWorldEvent: async (position: Vector3 | null, event: LevelEvent, data: number) => {
             events.push({ position, event, data });
         },

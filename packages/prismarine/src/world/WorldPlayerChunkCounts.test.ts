@@ -2,7 +2,6 @@ import { EntityIndex } from '../entity/data/entityIndex';
 import { EntityStore } from '../entity/data/EntityStore';
 import { describe, expect, it, vi } from 'vitest';
 
-import type Player from '../Player';
 import type PlayerSession from '../network/PlayerSession';
 import { stub } from '../testing/stub.test.helper';
 import Chunk from './chunk/Chunk';
@@ -20,7 +19,7 @@ const worldWith = (
     unloadable = false,
     writeChunk: (chunk: Chunk) => Promise<void> = async () => {}
 ): World => {
-    const players = new Map<number, Player>();
+    const players = new Map<number, PlayerSession>();
     const chunks = new Map(chunkPositions.map(([x, z]) => [Chunk.packXZ(x, z), new Chunk(x, z)]));
 
     const world: World = Object.assign(Object.create(World.prototype), {
@@ -47,13 +46,13 @@ const worldWith = (
 };
 
 /** A player double whose session answers the view distance `radius` reads. */
-const playerViewing = (position: () => Position, radius: () => number): Player =>
-    stub<Player>({
-        getPosition: position,
-        getNetworkSession: () => stub<PlayerSession>({ getViewDistance: radius })
+const playerViewing = (position: () => Position, radius: () => number): PlayerSession =>
+    stub<PlayerSession>({
+        getViewPosition: position,
+        getViewDistance: radius
     });
 
-const playerAt = (world: World, chunkX: number, chunkZ: number): Player =>
+const playerAt = (world: World, chunkX: number, chunkZ: number): PlayerSession =>
     playerViewing(
         () => new Position(chunkX * 16, 64, chunkZ * 16, world),
         () => 10
@@ -140,7 +139,7 @@ describe('world player chunk counts', () => {
         };
         const randomCoordinate = (): number => Math.floor(random() * 37) - 18;
         const randomViewDistance = (): number => Math.floor(random() * 17);
-        const makePlayer = (state: { x: number; z: number; viewDistance: number }): Player =>
+        const makePlayer = (state: { x: number; z: number; viewDistance: number }): PlayerSession =>
             playerViewing(
                 () => new Position(state.x * 16, 64, state.z * 16, world),
                 () => state.viewDistance

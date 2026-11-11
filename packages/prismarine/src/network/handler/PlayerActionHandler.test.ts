@@ -19,10 +19,10 @@ import BlockPosition from '../../world/BlockPosition';
 import { Position } from '../../world/Position';
 import type { World } from '../../world/World';
 import { identityNamed } from '../../testing/sessionIdentity.test.helper';
+import { stubPlayerPort } from '../../testing/playerPort.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import type PlayerSession from '../PlayerSession';
 import PlayerActionHandler from './PlayerActionHandler';
-import { storePlayerPort } from './storePlayerPort.test.helper';
 
 const SELF = 7n;
 
@@ -85,22 +85,12 @@ const fakeSession = (gamemode: Gametype, { serverAuthoritativeBreaking = false }
         }
     });
 
-    const player = storePlayerPort(
-        {
-            gamemode,
-            getPosition: () => new Position(0, 0, 0, world),
-            getInventory: () => stub<HumanInventory>({ getItemInHand: () => PICKAXE }),
-            getComponents: () => components
-        },
-        {
-            setSprinting: async (value) => {
-                sprinting.push(value);
-            },
-            setFlying: async (value) => {
-                flying.push(value);
-            }
-        }
-    );
+    const player = stubPlayerPort({
+        gamemode,
+        getPosition: () => new Position(0, 0, 0, world),
+        getInventory: () => stub<HumanInventory>({ getItemInHand: () => PICKAXE }),
+        getComponents: () => components
+    });
     // The runtime's answer for a player in no store: each input lands on the components.
     const inputs = stub<EntityRuntime>({
         setPlayerMining: (_player, mining) => components.set('mining.block', mining),
@@ -136,7 +126,14 @@ const fakeSession = (gamemode: Gametype, { serverAuthoritativeBreaking = false }
             runtimeId: SELF,
             identity: identityNamed('tester'),
             getPlayer: () => player,
-            getWorld: () => world
+            getWorld: () => world,
+            inputs: () => inputs,
+            setSprinting: async (value: boolean) => {
+                sprinting.push(value);
+            },
+            setFlying: async (value: boolean) => {
+                flying.push(value);
+            }
         })
     };
 };

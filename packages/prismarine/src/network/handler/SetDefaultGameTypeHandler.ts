@@ -56,9 +56,9 @@ export default class SetDefaultGameTypeHandler implements PacketHandler<SetDefau
         }
 
         server.getConfig().setGamemode(packet.gamemode, true);
-        const players = server.getSessionManager().getAllPlayers();
-        await Promise.all(players.map(async (target) => target.setGamemode(packet.gamemode)));
-        await Promise.all(players.map(async (target) => this.sendDefault(server, target.getNetworkSession())));
+        const sessions = server.getSessionManager().getSessions();
+        await Promise.all(sessions.map(async (target) => target.setGamemode(packet.gamemode)));
+        await Promise.all(sessions.map(async (target) => this.sendDefault(server, target)));
     }
 
     /** Tells one client the default the server holds. */

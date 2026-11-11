@@ -1,5 +1,5 @@
 import PlayerEvent from './PlayerEvent';
-import type { PlayerEventSubject } from './PlayerEvent';
+import type PlayerSession from '../../network/PlayerSession';
 
 /**
  * Fired as the player's gamemode is changed
@@ -7,8 +7,8 @@ import type { PlayerEventSubject } from './PlayerEvent';
 export default class PlayerSetGamemodeEvent extends PlayerEvent {
     private readonly gamemode: number;
 
-    public constructor(subject: PlayerEventSubject, gamemode: number) {
-        super(subject);
+    public constructor(session: PlayerSession, gamemode: number) {
+        super(session);
         this.gamemode = gamemode;
     }
 

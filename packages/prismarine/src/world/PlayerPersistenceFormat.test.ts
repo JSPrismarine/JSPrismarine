@@ -39,20 +39,19 @@ import { enteredStorePlayer } from '../testing/storePlayer.test.helper';
 import ContainerEntry from '../inventory/ContainerEntry';
 import { Item } from '../item/Item';
 import type ClientConnection from '../network/ClientConnection';
-import { createConnectedPlayer } from '../network/createConnectedPlayer';
-import { sessionsWith } from '../testing/playerSession.test.helper';
+import { connectedSession, sessionsWith } from '../testing/playerSession.test.helper';
 import type { PermissionManager } from '../permission/PermissionManager';
-import Player from '../Player';
+import type PlayerSession from '../network/PlayerSession';
 import type Server from '../Server';
 import { inertEntityRuntime, testContent } from '../testing/entityServer';
 import { testLevel } from '../testing/level';
 import { stub } from '../testing/stub.test.helper';
+import { StorePlayers } from '../entity/data/storePlayers';
 import Chunk from './chunk/Chunk';
 import { ChunkCompletionQueue } from './ChunkCompletionQueue';
 import type { ChunkScheduler } from './ChunkScheduler';
 import { Dimensions } from './Dimension';
 import type { Level } from './Level';
-import { Position } from './Position';
 import LevelDB from './providers/leveldb/LevelDB';
 import { encodePlayerServerKey } from './providers/leveldb/LevelDBKeys';
 import type { World } from './World';
@@ -78,7 +77,7 @@ let scratch: string;
 let previousDirectory: string | undefined;
 
 /** Every player a test built, released after it so no per-player state carries into the next. */
-const built: Player[] = [];
+const built: PlayerSession[] = [];
 
 beforeEach(() => {
     previousDirectory = process.env.JSP_DIR;
@@ -89,7 +88,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-    for (const player of built.splice(0)) player.getNetworkSession().disable();
+    for (const session of built.splice(0)) session.disable();
     vi.useRealTimers();
     if (previousDirectory === undefined) delete process.env.JSP_DIR;
     else process.env.JSP_DIR = previousDirectory;
@@ -98,8 +97,10 @@ afterEach(() => {
 
 const testServer = (): Server => {
     const sessions = sessionsWith();
+    const storePlayers = new StorePlayers();
     const server: Server = stub<Server>({
         getSessionManager: () => sessions,
+        getStorePlayers: () => storePlayers,
         getChatManager: () => chat,
         getWorldManager: () => stub<WorldManager>({}),
         on: () => server,
@@ -144,12 +145,7 @@ const buildLevel = (server: Server, folder: string, fileRecords = false): Level 
     });
 };
 
-const buildPlayer = (world: World, server: Server): Player => {
-    const player = new Player({
-        position: new Position(0.5, 65, 0.5, world),
-        address: new InetAddress('127.0.0.1', 19132),
-        identity: { uuid: IDENTITY, name: NAME, xuid: '', randomId: 0, locale: 'en_US', skin: null, device: null }
-    });
+const buildPlayer = (world: World, server: Server): PlayerSession => {
     const connection = stub<ClientConnection>({
         getAddress: () => new InetAddress('127.0.0.1', 19132),
         sendDataPacket: async () => {},
@@ -157,13 +153,22 @@ const buildPlayer = (world: World, server: Server): Player => {
         closePlayerSession: async () => {},
         disconnect: async () => {}
     });
-    createConnectedPlayer({ server, connection, player });
-    built.push(player);
-    return player;
+    const session = connectedSession({
+        server,
+        connection,
+        world,
+        eyes: new Vector3(0.5, 65, 0.5),
+        name: NAME,
+        uuid: IDENTITY,
+        joined: false
+    });
+    built.push(session);
+    return session;
 };
 
 /** The player state both fixtures hold. */
-const giveState = async (player: Player): Promise<void> => {
+const giveState = async (session: PlayerSession): Promise<void> => {
+    const player = session.getPlayer();
     const inventory = player.getInventory();
     const pickaxe = new Item({ name: 'minecraft:diamond_pickaxe', count: 1 })
         .withEnchantments({ 'minecraft:efficiency': 4 })
@@ -183,10 +188,12 @@ const giveState = async (player: Player): Promise<void> => {
     player.setSeenCredits(true);
     player.setPortalCooldown(40);
     player.setSpawnPoint({ x: 3, y: 64, z: -7, dimension: 'minecraft:overworld', forced: true });
-    loadAdvancements(player, { 'minecraft:story/root': { criteria: { crafting_table: '2026-11-10' }, done: true } });
-    enchantmentSeedOf(player, 987_654);
+    loadAdvancements(session.keyed(), {
+        'minecraft:story/root': { criteria: { crafting_table: '2026-11-10' }, done: true }
+    });
+    enchantmentSeedOf(session.keyed(), 987_654);
     // The record keeps the eye position, 1.62 above the feet, as it always has.
-    await player.setPlayerPosition(
+    await session.setPlayerPosition(
         { position: new Vector3(12.5, 71.62, -8.5), pitch: 10, yaw: 20, headYaw: 30 },
         false
     );
@@ -199,9 +206,9 @@ const writeRecord = async (fileRecords: boolean): Promise<Buffer> => {
     const level = buildLevel(server, folder, fileRecords);
     await level.enable();
     const world = await level.world(OVERWORLD_STEM_ID);
-    const player = buildPlayer(world, server);
-    await giveState(player);
-    await world.savePlayerData(player);
+    const session = buildPlayer(world, server);
+    await giveState(session);
+    await world.savePlayerData(session.getPlayer());
     await level.disable();
 
     if (fileRecords) return fs.readFileSync(path.join(folder, 'playerdata', `${KEY}.json`));
@@ -216,7 +223,7 @@ const writeRecord = async (fileRecords: boolean): Promise<Buffer> => {
 };
 
 /** Puts a fixture where a save keeps it, then logs the player in from it. */
-const loadRecord = async (fileRecords: boolean): Promise<Player> => {
+const loadRecord = async (fileRecords: boolean): Promise<PlayerSession> => {
     const server = testServer();
     const folder = path.join(scratch, fileRecords ? 'file-in' : 'leveldb-in');
     if (fileRecords) {
@@ -237,10 +244,10 @@ const loadRecord = async (fileRecords: boolean): Promise<Player> => {
     const level = buildLevel(server, folder, fileRecords);
     await level.enable();
     const world = await level.world(OVERWORLD_STEM_ID);
-    const player = buildPlayer(world, server);
-    await player.enable();
+    const session = buildPlayer(world, server);
+    await session.join();
     await level.disable();
-    return player;
+    return session;
 };
 
 describe.each([
@@ -258,7 +265,8 @@ describe.each([
     });
 
     it('loads a record written before the persistence service', async () => {
-        const player = await loadRecord(fileRecords);
+        const session = await loadRecord(fileRecords);
+        const player = session.getPlayer();
         const inventory = player.getInventory();
 
         expect(inventory.getHandSlotIndex()).toBe(3);
@@ -272,8 +280,8 @@ describe.each([
         expect(player.hasSeenCredits()).toBe(true);
         expect(player.getPortalCooldown()).toBe(40);
         expect(player.getSpawnPoint()).toEqual({ x: 3, y: 64, z: -7, dimension: 'minecraft:overworld', forced: true });
-        expect(enchantmentSeedOf(player)).toBe(987_654);
-        expect(advancementsOf(player).toJSON(() => undefined)).toHaveProperty(['minecraft:story/root']);
+        expect(enchantmentSeedOf(session.keyed())).toBe(987_654);
+        expect(advancementsOf(session.keyed()).toJSON(() => undefined)).toHaveProperty(['minecraft:story/root']);
         // Back at the eye position the record holds, not 1.62 below or above it.
         expect([player.getPosition().getX(), player.getPosition().getY(), player.getPosition().getZ()]).toEqual([
             12.5, 71.62, -8.5

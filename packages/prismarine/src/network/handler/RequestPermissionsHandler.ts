@@ -61,7 +61,7 @@ export default class RequestPermissionsHandler implements PacketHandler<RequestP
                         `${name} asked to set ${target.identity.name} to permission level ${level} (custom flags 0x${packet.customPermissionFlags.toString(16)}). Only Member and Operator are modeled, so the current abilities were sent back`,
                         'RequestPermissionsHandler/handle'
                     );
-                await session.sendAbilities(target.getPlayer().getBody());
+                await session.sendAbilities(target.shown());
         }
     }
 }

@@ -42,7 +42,7 @@ const sessionFor = (server: Server, codec: ProtocolCodec = Codec2193) => {
             sent.push(...encoded.packets);
         }
     });
-    const player = stub<SessionPlayer>({ getServer: () => server, getName: () => 'runner' });
+    const player = stub<SessionPlayer>({ getName: () => 'runner' });
     const session: PlayerSession = Object.assign(Object.create(PlayerSession.prototype), {
         connection,
         ...sessionPlayerFields(player),

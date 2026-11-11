@@ -2,10 +2,11 @@ import { DisconnectReason } from '@jsprismarine/minecraft';
 import { PlayStatus, PlayStatusPacket } from '@jsprismarine/protocol';
 import ServerToClientHandshakePacket from '@jsprismarine/protocol/packet/ServerToClientHandshakePacket';
 import { sessionEncryption } from '../SessionEncryption';
-import Player from '../../Player';
 import type Server from '../../Server';
 import UUID from '@jsprismarine/protocol/wire/structures/UUID';
-import { Position } from '../../world/Position';
+import { entityIds } from '../../entity/entityIds';
+import { EYE_HEIGHT } from '../../entity/playerEyes';
+import { StorePlayer } from '../../entity/storePlayer';
 import type ClientConnection from '../ClientConnection';
 import { createConnectedPlayer } from '../createConnectedPlayer';
 import type LoginPacket from '@jsprismarine/protocol/packet/LoginPacket';
@@ -98,7 +99,7 @@ export default class LoginHandler implements ConnectionPacketHandler<LoginPacket
         // The client renders this status as "server full", so the player learns why without
         // the server building a player it would only tear down again. The disconnect that
         // follows carries `ServerFull` and hangs up.
-        if (server.getSessionManager().getAllPlayers().length >= server.getConfig().getMaxPlayers()) {
+        if (server.getSessionManager().getSessions().length >= server.getConfig().getMaxPlayers()) {
             await connection.sendDataPacket(
                 new PlayStatusPacket({ status: PlayStatus.LoginFailed_ServerFullSubClient }),
                 true
@@ -226,7 +227,7 @@ export default class LoginHandler implements ConnectionPacketHandler<LoginPacket
             return;
         }
 
-        const reason = server.getBanManager().isBanned({ getName: () => identity.displayName });
+        const reason = server.getBanManager().isBanned({ name: identity.displayName });
         if (reason !== false) {
             await connection.disconnect(
                 `You have been banned${reason ? ` for reason: ${reason}` : ''}!`,
@@ -260,19 +261,16 @@ export default class LoginHandler implements ConnectionPacketHandler<LoginPacket
         // allowed. An entity has to be given somewhere to be, so there is no longer a moment
         // where one exists at the origin waiting to be told where it really is.
         const world = server.getWorldManager().getDefaultWorld();
-        const player = new Player({
-            position: Position.fromVector3(await world.getSpawnPosition(), world),
-            address: connection.getAddress(),
-            identity: {
-                uuid: UUID.fromString(identity.identity),
-                name: identity.displayName,
-                xuid: identity.xuid,
-                randomId: identity.clientRandomId,
-                locale: identity.languageCode,
-                skin: identity.skin,
-                device: identity.device
-            }
-        });
+        const spawn = await world.getSpawnPosition();
+        // The entity id is drawn here, and the store player enters a store only at
+        // `SetLocalPlayerAsInitialized`. Built inert: nothing server-wide hears of it until it is
+        // filed below, so a login rejected before then leaves nothing behind.
+        const uuid = UUID.fromString(identity.identity);
+        const player = new StorePlayer(entityIds.next(), { uuid, name: identity.displayName, xuid: identity.xuid });
+        player.skin = identity.skin;
+        player.device = identity.device;
+        // The spawn is where the eyes go, as a client reports its position.
+        player.standAt({ x: spawn.getX(), y: spawn.getY() - EYE_HEIGHT, z: spawn.getZ() });
 
         // A login of the same account after this one took it while the spawn was read. That one
         // waits for this join to settle and then disconnects this connection, which has no
@@ -283,13 +281,19 @@ export default class LoginHandler implements ConnectionPacketHandler<LoginPacket
         // pair if the join itself fails - otherwise the session would keep its place in the
         // chunk rotation with nothing on the other end of it.
         //
-        // `enable` sends nothing. Until the client has `PlayStatus(LoginSuccess)` below it is
+        // `join` sends nothing. Until the client has `PlayStatus(LoginSuccess)` below it is
         // still logging in, and a retail client handed a game packet in that state drops the
         // connection with `InitialConnection-90`. Nothing but PlayStatus and ResourcePacksInfo
         // leaves here; the rest waits for `ResourcePackClientResponseHandler`.
-        const session = createConnectedPlayer({ server, connection, player });
+        const session = createConnectedPlayer({
+            server,
+            connection,
+            player,
+            identity: accountOf(identity),
+            world
+        });
         try {
-            await player.enable();
+            await session.join();
         } catch (error: unknown) {
             await connection.closePlayerSession();
             throw error;

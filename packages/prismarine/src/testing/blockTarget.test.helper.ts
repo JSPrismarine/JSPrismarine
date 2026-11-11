@@ -1,8 +1,8 @@
 import type { Logger } from '@jsprismarine/logger';
 import { Vector3 } from '@jsprismarine/math';
-import type Player from '../Player';
 import type Server from '../Server';
 import { BlockState } from '../block/state/BlockState';
+import type { StorePlayer } from '../entity/storePlayer';
 import type PlayerSession from '../network/PlayerSession';
 import { Position } from '../world/Position';
 import type { World } from '../world/World';
@@ -27,7 +27,7 @@ export interface LoggedLines {
  * @param blocks - Block names by `"x,y,z"` position inside the origin chunk.
  * @param player - Members to add to or replace on the player, such as an inventory.
  */
-export const sessionNearBlocks = (blocks: Record<string, string>, player: StubMembers<Player> = {}) => {
+export const sessionNearBlocks = (blocks: Record<string, string>, player: StubMembers<StorePlayer> = {}) => {
     const logged: LoggedLines = { debug: [], verbose: [] };
 
     const chunk = stub<Chunk>({
@@ -37,10 +37,9 @@ export const sessionNearBlocks = (blocks: Record<string, string>, player: StubMe
         }
     });
     const world = stub<World>({ getLoadedChunk: (cx, cz) => (cx === 0 && cz === 0 ? chunk : null) });
-    const steve = stub<Player>({
+    const steve = stub<StorePlayer>({
         getName: () => 'Steve',
         getPosition: () => new Position(0, 0, 0, world),
-        getWorld: () => world,
         ...player
     });
     const server = stub<Server>({
@@ -50,7 +49,7 @@ export const sessionNearBlocks = (blocks: Record<string, string>, player: StubMe
                 verbose: (...message) => void logged.verbose.push(message[0] ?? '')
             })
     });
-    const session = stub<PlayerSession>({ getPlayer: () => steve });
+    const session = stub<PlayerSession>({ getPlayer: () => steve, getWorld: () => world });
 
     return { logged, player: steve, server, session };
 };

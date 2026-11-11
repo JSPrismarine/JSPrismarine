@@ -11,7 +11,7 @@ import type { World } from '../../world/World';
 import type PlayerSession from '../PlayerSession';
 import InteractPacket, { InteractAction } from '@jsprismarine/protocol/packet/InteractPacket';
 import InteractHandler from './InteractHandler';
-import { storePlayerPort } from './storePlayerPort.test.helper';
+import { stubPlayerPort } from '../../testing/playerPort.test.helper';
 
 const SELF = 7n;
 const NPC = 20n;
@@ -34,7 +34,7 @@ const fakeSession = (options: { npcDistance?: number; tracked?: boolean } = {}) 
                 ? stub<Entity>({ getPosition: () => new Position(options.npcDistance ?? 0, 0, 0, world) })
                 : null
     });
-    const player = storePlayerPort({
+    const player = stubPlayerPort({
         gamemode: Gametype.SURVIVAL,
         getPosition: () => new Position(0, 0, 0, world)
     });

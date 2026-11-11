@@ -4,11 +4,10 @@ import { Gametype } from '@jsprismarine/minecraft';
 
 import { EYE_HEIGHT } from './playerEyes';
 import type { ContentLookup } from '../content/world/views';
-import type PlayerSession from '../network/PlayerSession';
 import { savedActorNbt } from '../testing/savedActor.test.helper';
 import { storeWorld } from '../testing/storeWorld.test.helper';
 import { stub } from '../testing/stub.test.helper';
-import { playerOnPrototype } from '../testing/storePlayer.test.helper';
+import { sessionOnPrototype } from '../testing/storePlayer.test.helper';
 import { Position } from '../world/Position';
 import type { World } from '../world/World';
 import EntitySerializer from './EntitySerializer';
@@ -39,23 +38,24 @@ describe('the live entity content adapter', () => {
     it('reports player mode and feet-level position', () => {
         const world = stub<World>();
         const position = new Position(2.5, 64 + EYE_HEIGHT, -1.5, world);
-        const player = playerOnPrototype(
-            { gamemode: Gametype.CREATIVE },
+        const player = sessionOnPrototype(
+            {},
             // The actor, which is what the adapter reads the id, the position and the tags off.
             { runtimeId: 7n, actor: { getPosition: () => position, getFeetY: () => 64, getTags: () => [] } }
         );
-        Object.assign(world, { getViewers: () => [stub<PlayerSession>({ getPlayer: () => player })] });
+        player.getPlayer().gamemode = Gametype.CREATIVE;
+        Object.assign(world, { getViewers: () => [player] });
         const access = worldEntityAccess({ world: () => world, content: noContent });
 
         expect(access.players()).toMatchObject([
             { creative: true, spectator: false, position: { x: 2.5, y: 64, z: -1.5 } }
         ]);
 
-        player.gamemode = Gametype.SURVIVAL;
+        player.getPlayer().gamemode = Gametype.SURVIVAL;
 
         expect(access.players()).toMatchObject([{ creative: false, spectator: false }]);
 
-        player.gamemode = Gametype.SPECTATOR;
+        player.getPlayer().gamemode = Gametype.SPECTATOR;
 
         expect(access.players()).toMatchObject([{ creative: false, spectator: true }]);
     });

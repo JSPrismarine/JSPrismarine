@@ -41,7 +41,7 @@ export default class SetLocalPlayerAsInitializedHandler implements PacketHandler
 
         // Into the world only now: this is the client saying it has a player to show, so
         // this is when everyone else gets an `AddPlayer` for it.
-        await world.addPlayer(session.getPlayer());
+        await world.addPlayer(session);
 
         // The one place `completeSpawn` runs. The join burst in `ResourcePackClientResponseHandler`
         // already sent the gamemode, settings, abilities, attributes, metadata and inventory,

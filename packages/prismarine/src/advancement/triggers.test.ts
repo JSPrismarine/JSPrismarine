@@ -4,7 +4,6 @@ import { buildServerContent } from '../content/ServerContent';
 import { definitionOf, definitionsOf } from '../content/ContentOptions';
 import type { ServerContent } from '../content/ServerContent';
 import { fixtureBlockPalette, fixtureItemDefinitions } from '../content/testing';
-import type Player from '../Player';
 import type Server from '../Server';
 import type { World } from '../world/World';
 import type PlayerSession from '../network/PlayerSession';
@@ -19,7 +18,7 @@ import type { ContentEntityAccess } from '../content/world/adapter';
 import { unwiredWorld } from '../content/world/unwired';
 import { testContent } from '../testing/entityServer';
 import { stub } from '../testing/stub.test.helper';
-import { playerOnPrototype } from '../testing/storePlayer.test.helper';
+import { sessionOnPrototype } from '../testing/storePlayer.test.helper';
 import { advancementsOf, loadAdvancements, storedAdvancements } from './progress';
 import {
     advancementBlockUsed,
@@ -255,16 +254,16 @@ const scene = () => {
 
     const server = stub<Server>({ getContent: () => built });
     const world = stub<World>({
-        getPlayers: () => [player],
+        getViewers: () => [player],
         getActor: (id: bigint) => (id === runtimeId ? (player.getActor() ?? null) : null),
         // The player's session, which is how the item actor port finds the player.
-        viewerOf: (id: bigint) => (id === runtimeId ? stub<PlayerSession>({ getPlayer: () => player }) : undefined),
+        viewerOf: (id: bigint) => (id === runtimeId ? player : undefined),
         loadedBlockAt: () => ({ name: 'minecraft:air', states: {} }) as never,
         getServer: () => server
     });
 
     const position = () => ({ getX: () => 0, getY: () => 64, getZ: () => 0 }) as never;
-    const player: Player = playerOnPrototype(
+    const player: PlayerSession = sessionOnPrototype(
         {
             getRuntimeId: () => runtimeId,
             getType: () => 'minecraft:player',
@@ -283,8 +282,9 @@ const scene = () => {
             getFood: () => 20,
             getSaturation: () => 5,
             addFood: () => {},
-            sendMessage: async (message: string, _type?: number, parameters: string[] = []) => {
-                announced.push({ key: message, parameters });
+            sendMessage: async (delivery) => {
+                if (typeof delivery !== 'string')
+                    announced.push({ key: delivery.message, parameters: delivery.parameters ?? [] });
             }
         },
         {
@@ -317,9 +317,9 @@ const mob = (type: string): Entity =>
         getServer: () => stub<Server>({ getContent: () => testContent() })
     });
 
-const done = (player: Player, id: string): boolean => {
+const done = (player: PlayerSession, id: string): boolean => {
     const advancement = player.getServer().getContent().advancements.get(id);
-    return advancement !== undefined && advancementsOf(player).isDone(advancement);
+    return advancement !== undefined && advancementsOf(player.keyed()).isDone(advancement);
 };
 
 describe('earning vanilla advancements by playing', () => {
@@ -486,7 +486,7 @@ describe('advancement progress across a save and a load', () => {
         first.inventory.setItem(0, new ContainerEntry({ item: cobblestone, count: 1 }));
         advancementPickedUpItem(first.player, cobblestone);
 
-        const stored = storedAdvancements(first.player);
+        const stored = storedAdvancements(first.player.keyed());
         expect(stored['minecraft:story/mine_stone']).toEqual({
             criteria: { get_stone: expect.any(String) },
             done: true
@@ -494,7 +494,7 @@ describe('advancement progress across a save and a load', () => {
 
         const second = scene();
         expect(done(second.player, 'minecraft:story/mine_stone')).toBe(false);
-        loadAdvancements(second.player, stored);
+        loadAdvancements(second.player.keyed(), stored);
         expect(done(second.player, 'minecraft:story/mine_stone')).toBe(true);
     });
 
@@ -506,7 +506,7 @@ describe('advancement progress across a save and a load', () => {
 
         const second = scene();
         second.inventory.setItem(0, new ContainerEntry({ item: cobblestone, count: 1 }));
-        loadAdvancements(second.player, storedAdvancements(first.player));
+        loadAdvancements(second.player.keyed(), storedAdvancements(first.player.keyed()));
 
         advancementPickedUpItem(second.player, cobblestone);
         expect(second.announced).toEqual([]);
@@ -515,14 +515,14 @@ describe('advancement progress across a save and a load', () => {
     it('starts a player with no stored record from nothing', () => {
         const { player } = scene();
 
-        loadAdvancements(player, undefined);
-        expect(storedAdvancements(player)).toEqual({});
+        loadAdvancements(player.keyed(), undefined);
+        expect(storedAdvancements(player.keyed())).toEqual({});
     });
 
     it('drops a broken entry and keeps the rest, rather than failing the login', () => {
         const { player } = scene();
 
-        loadAdvancements(player, {
+        loadAdvancements(player.keyed(), {
             'minecraft:story/mine_stone': { criteria: { get_stone: '2026-10-25T09:14:02.511Z' }, done: true },
             'minecraft:story/root': { criteria: 'not an object' },
             'minecraft:nonsense': 7

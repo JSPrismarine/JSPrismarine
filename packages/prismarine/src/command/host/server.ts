@@ -141,7 +141,7 @@ export const serverSideCommandHost = (server: Server, onStopRequested: () => voi
             server
                 .getSessionManager()
                 .getSessions()
-                .map((session) => entityRefOf(session.getPlayer())),
+                .map((session) => entityRefOf(session)),
 
         // Kept alive on purpose: the process exiting from inside a command
         // would take the dispatch's own feedback with it.

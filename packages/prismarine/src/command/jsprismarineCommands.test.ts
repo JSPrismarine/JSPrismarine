@@ -3,7 +3,6 @@ import { CommandRegistry, createCommandSource, testCommandHost } from '@jsprisma
 import { CommandPermissionLevel } from '@jsprismarine/minecraft';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { SessionPlayer } from '../network/sessionPlayers';
 import type Server from '../Server';
 import type SessionManager from '../SessionManager';
 import type BanManager from '../ban/BanManager';
@@ -28,7 +27,7 @@ describe("this server's own commands", () => {
 
         const target = stub<PlayerSession>({
             identity: identityNamed('testPlayer'),
-            getPlayer: () => stub<SessionPlayer>({ getFormattedUsername: () => 'testPlayer' }),
+            getFormattedUsername: () => 'testPlayer',
             kick
         });
         const server = stub<Server>({

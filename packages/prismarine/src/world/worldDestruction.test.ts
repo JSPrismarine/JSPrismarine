@@ -18,9 +18,9 @@ import { buildServerContent } from '../content/ServerContent';
 import { serverWorldSource } from '../content/world/serverSource';
 import { builtInEntityDefinitions } from '../content/testing';
 import { EntityRuntimes } from '../entity/data/live';
+import type { StorePlayerActor } from '../entity/data/storePlayers';
 import { inertEntityRuntime } from '../testing/entityServer';
 import { stub } from '../testing/stub.test.helper';
-import { stubPlayerPort } from '../testing/playerPort.test.helper';
 import type { ContentPosition } from '../content/world/adapter';
 import type PlayerSession from '../network/PlayerSession';
 import type { ShownActor } from './ShownActor';
@@ -246,14 +246,14 @@ const liveWorld = (
         // The content adapter reads the same player fields as it does for a live player.
         getViewers: () => [
             stub<PlayerSession>({
-                getPlayer: () =>
-                    stubPlayerPort({
+                gamemode: Gametype.SURVIVAL,
+                getActor: () =>
+                    stub<StorePlayerActor>({
                         getPosition: () => new Position(8, 64, 8, world),
                         getRuntimeId: () => 1n,
                         getType: () => 'minecraft:player',
                         getFeetY: () => 64,
-                        getTags: () => [],
-                        gamemode: Gametype.SURVIVAL
+                        getTags: () => []
                     })
             })
         ],

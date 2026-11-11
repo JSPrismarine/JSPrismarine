@@ -19,7 +19,7 @@ import type { ServerWorldHandle } from '../../content/world/serverSource';
 import type { DataEntity } from '../../entity/data/DataEntity';
 import { EntityRuntimes } from '../../entity/data/live';
 import type { LiveEntityRuntime } from '../../entity/data/live';
-import type Player from '../../Player';
+import type PlayerSession from '../../network/PlayerSession';
 import type Server from '../../Server';
 import type { Config } from '../../config/Config';
 import { Difficulty } from '@jsprismarine/minecraft';
@@ -167,7 +167,7 @@ interface LiveEndWorldOptions {
 /** A `World` reduced to what the fight touches, built on the real prototype over real chunks. */
 const liveEndWorld = ({ unloaded = [], readChunk, completionQueue }: LiveEndWorldOptions = {}): {
     world: World;
-    players: Map<bigint, Player>;
+    players: Map<bigint, PlayerSession>;
     runtimes: EntityRuntimes;
     hold(content: ServerContent): void;
 } => {
@@ -185,7 +185,7 @@ const liveEndWorld = ({ unloaded = [], readChunk, completionQueue }: LiveEndWorl
     }
     for (const [x, z] of unloaded) chunks.delete(Chunk.packXZ(x, z));
 
-    const players = new Map<bigint, Player>();
+    const players = new Map<bigint, PlayerSession>();
     const runtimes = new EntityRuntimes();
     const server: Server = Object.assign(
         stub<Server>({
@@ -284,11 +284,11 @@ const buildOver = (world: World, runtimes: EntityRuntimes): { source: ServerWorl
 };
 
 /** A connected player standing in the End world, with its captured packets. */
-const enterArena = (players: Map<bigint, Player>, x: number, y: number, z: number) => {
+const enterArena = (players: Map<bigint, PlayerSession>, x: number, y: number, z: number) => {
     const fixture = fakePlayer();
     // Its eyes there, as a client reports them.
-    fixture.player.getStorePlayer().placeAt({ x, y, z, yaw: 0, pitch: 0, headYaw: 0 });
-    players.set(fixture.player.getRuntimeId(), fixture.player);
+    fixture.player.placeAt({ x, y, z, yaw: 0, pitch: 0, headYaw: 0 });
+    players.set(fixture.player.getRuntimeId(), fixture.session);
     return fixture;
 };
 
@@ -300,7 +300,7 @@ const blockNameAt = (world: World, x: number, y: number, z: number): string | un
 
 describe('the dragon fight over a live End world', () => {
     let world: World;
-    let players: Map<bigint, Player>;
+    let players: Map<bigint, PlayerSession>;
     let live: LiveEntityRuntime;
 
     /** Builds the fixture, and the content over it, as each test starts. */

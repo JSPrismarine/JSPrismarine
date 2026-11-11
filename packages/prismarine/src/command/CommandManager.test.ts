@@ -8,11 +8,11 @@ import type { Server } from '../';
 import type { ChatManager } from '../chat/ChatManager';
 import type { ServerContent } from '../content/ServerContent';
 import Console from '../Console';
-import type Player from '../Player';
+import type PlayerSession from '../network/PlayerSession';
 import { PermissionManager } from '../permission/PermissionManager';
 import type SessionManager from '../SessionManager';
 import { stub } from '../testing/stub.test.helper';
-import { playerOnPrototype } from '../testing/storePlayer.test.helper';
+import { sessionOnPrototype } from '../testing/storePlayer.test.helper';
 import UUID from '@jsprismarine/protocol/wire/structures/UUID';
 import type GameRuleManager from '../world/GameRuleManager';
 import type { GameRuleEntry } from '../world/GameRuleManager';
@@ -25,7 +25,6 @@ import { testContent } from '../testing/entityServer';
 import type { ConsoleSender } from './ConsoleSender';
 import { CommandManager, commandPermissionOf } from './CommandManager';
 import { JSPRISMARINE_COMMAND_PERMISSIONS } from './jsprismarineCommands';
-import { identityNamed } from '../testing/sessionIdentity.test.helper';
 
 describe('command', () => {
     describe('CommandManager', () => {
@@ -128,7 +127,7 @@ describe('command', () => {
 
             // Prototype-only: a real player needs a live connection, and a refused command
             // returns before anything would reach for one.
-            const player = playerOnPrototype();
+            const player = sessionOnPrototype();
             const sendMessage = vi.spyOn(player, 'sendMessage').mockResolvedValue();
 
             await expect(commandManager.dispatchCommand(player, player, '/help')).resolves.toBe(false);
@@ -247,26 +246,20 @@ describe('command', () => {
                     }
                 };
                 // The command host and the operator change read who the target is off its session.
-                const targetSession = stub<ReturnType<Player['getNetworkSession']>>({
-                    identity: identityNamed('Target', targetUuid),
-                    getPlayer: () => target,
-                    sendAvailableCommands: async () => {},
-                    announceSettings: async () => {}
-                });
-                const target: Player = playerOnPrototype(
+                const target: PlayerSession = sessionOnPrototype(
                     {
                         getName: () => 'Target',
-                        getUUID: () => UUID.fromString(targetUuid),
-                        getNetworkSession: () => targetSession,
+                        sendAvailableCommands: async () => {},
+                        announceSettings: async () => {},
                         getServer: () => server
                     },
-                    body
+                    { ...body, uuid: UUID.fromString(targetUuid) }
                 );
                 const sessionManager: SessionManager = stub<SessionManager>({
                     // Both, and agreeing: a vanilla command resolves its targets through the
                     // player list where a legacy one looked the name up directly.
-                    getSessions: () => [target.getNetworkSession()],
-                    findSession: ({ name }) => (name === 'Target' ? target.getNetworkSession() : null)
+                    getSessions: () => [target],
+                    findSession: ({ name }) => (name === 'Target' ? target : null)
                 });
                 const permissionManager = new PermissionManager({
                     getLogger: () => logger,
@@ -286,8 +279,7 @@ describe('command', () => {
                     getActors: () => [target.getActor()!],
                     getActor: (runtimeId: bigint) =>
                         runtimeId === target.getRuntimeId() ? (target.getActor() ?? null) : null,
-                    viewerOf: (runtimeId: bigint) =>
-                        runtimeId === target.getRuntimeId() ? target.getNetworkSession() : undefined
+                    viewerOf: (runtimeId: bigint) => (runtimeId === target.getRuntimeId() ? target : undefined)
                 });
                 const server: Server = stub<Server>({
                     // Empty registries rather than no content: `enable` builds the vanilla
@@ -322,28 +314,23 @@ describe('command', () => {
                             ]
                         })
                 });
-                const permissionOwner = stub<Player>({
-                    getName: () => 'Filfat',
-                    getUUID: () => UUID.fromString(ownerUuid),
-                    isOp: () => false,
-                    getPermissions: () => []
-                });
-
                 await permissionManager.enable();
-                const grants = await permissionManager.getPermissions(permissionOwner);
-                const owner = playerOnPrototype({
-                    getName: () => 'Filfat',
-                    getUUID: () => UUID.fromString(ownerUuid),
-                    getRuntimeId: () => 1n,
-                    getPermissions: () => grants,
-                    isOp: () => permissionManager.isOp(ownerUuid),
-                    getType: () => 'minecraft:player',
-                    getFeetY: () => 64,
-                    getPosition: () => new Position(0, 64, 0, world),
-                    getWorld: () => world,
-                    getServer: () => server,
-                    sendMessage: async () => {}
-                });
+                const grants = await permissionManager.getPermissions({ uuid: ownerUuid });
+                const owner = sessionOnPrototype(
+                    {
+                        getName: () => 'Filfat',
+                        getRuntimeId: () => 1n,
+                        getPermissions: () => grants,
+                        isOp: () => permissionManager.isOp(ownerUuid),
+                        getType: () => 'minecraft:player',
+                        getFeetY: () => 64,
+                        getPosition: () => new Position(0, 64, 0, world),
+                        getWorld: () => world,
+                        getServer: () => server,
+                        sendMessage: async () => {}
+                    },
+                    { uuid: UUID.fromString(ownerUuid) }
+                );
                 const commandManager = new CommandManager(server);
                 await commandManager.enable();
 

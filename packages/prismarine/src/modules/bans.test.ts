@@ -32,8 +32,8 @@ describe('modules/bans', () => {
         const handle = await startTestModule(bansModule({ getLogger: () => logger }));
         try {
             const bans = handle.get(bansToken);
-            expect(bans.isBanned({ getName: () => 'player1' })).toBe('griefing');
-            expect(bans.isBanned({ getName: () => 'someone-else' })).toBe(false);
+            expect(bans.isBanned({ name: 'player1' })).toBe('griefing');
+            expect(bans.isBanned({ name: 'someone-else' })).toBe(false);
         } finally {
             await handle.stop();
         }
@@ -46,6 +46,6 @@ describe('modules/bans', () => {
         const bans = handle.get(bansToken);
         await handle.stop();
 
-        expect(bans.isBanned({ getName: () => 'player1' })).toBe(false);
+        expect(bans.isBanned({ name: 'player1' })).toBe(false);
     });
 });

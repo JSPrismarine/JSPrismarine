@@ -431,14 +431,16 @@ describe('AvailableCommandsPacket', () => {
         const commandManager = new CommandManager(server);
         await commandManager.enable();
 
-        const player = stub<SessionPlayer>({ getName: () => 'Steve', getServer: () => server, isOp: () => false });
+        const player = stub<SessionPlayer>({ getName: () => 'Steve' });
         const connection = stub<ClientConnection>({
             sendDataPacket: async (packet) => {
                 sent.push(packet);
             }
         });
 
-        const session = sessionFor(server, connection, player, { identity: identityNamed('Steve') });
+        const session = Object.assign(sessionFor(server, connection, player, { identity: identityNamed('Steve') }), {
+            isOp: () => false
+        });
         sessions.push(session);
 
         await session.sendAvailableCommands();

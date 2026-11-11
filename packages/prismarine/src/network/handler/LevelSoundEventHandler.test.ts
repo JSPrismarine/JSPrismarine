@@ -14,7 +14,7 @@ import type PlayerSession from '../PlayerSession';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import LevelSoundEventPacket from '@jsprismarine/protocol/packet/LevelSoundEventPacket';
 import LevelSoundEventHandler from './LevelSoundEventHandler';
-import { storePlayerPort } from './storePlayerPort.test.helper';
+import { stubPlayerPort } from '../../testing/playerPort.test.helper';
 
 const SENDER_ID = 7n;
 
@@ -22,7 +22,7 @@ const SENDER_ID = 7n;
 const fakeSession = () => {
     const played: { position: Vector3; packet: NetworkPacket }[] = [];
     const world = stub<World>({});
-    const player = storePlayerPort({ getPosition: () => new Position(0, 64, 0, world) });
+    const player = stubPlayerPort({ getPosition: () => new Position(0, 64, 0, world) });
 
     const replicator = stub<NetworkWorldReplicator>({
         sendAround: (position, packet) => void played.push({ position, packet })

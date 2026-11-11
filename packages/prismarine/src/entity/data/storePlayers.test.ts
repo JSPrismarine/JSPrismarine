@@ -78,7 +78,7 @@ const fixture = () => {
         nextId = Number(id);
     };
     const viewers = [fakePlayer({ name: 'Alex' }), fakePlayer({ name: 'Sam' })];
-    for (const viewer of viewers) viewer.player.getNetworkSession()['viewDistance'] = 4;
+    for (const viewer of viewers) viewer.session['viewDistance'] = 4;
 
     const server = stub<Server>({
         getContent: () => store.content,
@@ -96,10 +96,8 @@ const fixture = () => {
     const world: World = stub<World>({
         getName: () => 'test',
         getServer: () => server,
-        getPlayers: () => viewers.map((viewer) => viewer.player),
-        getViewers: () => viewers.map((viewer) => viewer.player.getNetworkSession()),
-        viewerOf: (runtimeId) =>
-            viewers.find((viewer) => viewer.player.getRuntimeId() === runtimeId)?.player.getNetworkSession(),
+        getViewers: () => viewers.map((viewer) => viewer.session),
+        viewerOf: (runtimeId) => viewers.find((viewer) => viewer.player.getRuntimeId() === runtimeId)?.session,
         shownActors: () => [...actors.all()],
         showActor: async (actor) => replicator.entityAdded(actor),
         hideActor: async (actor) => replicator.entityRemoved(actor),
@@ -198,7 +196,7 @@ describe('a store player shown to other clients', () => {
         // What a legacy player is shown with, in the same order, from the same code.
         const legacy = fakePlayer({ name: 'Legacy' });
         const before = alex!.sent.length;
-        await alex!.player.getNetworkSession().sendAddPlayer(legacy.player.getBody());
+        await alex!.session.sendAddPlayer(legacy.session.shown());
         const names = (packets: readonly NetworkPacket<unknown>[]) => packets.map((packet) => packet.getName());
         expect(names(alex!.sent.slice(0, before))).toEqual(names(alex!.sent.slice(before)));
     });
@@ -213,8 +211,7 @@ describe('a store player shown to other clients', () => {
         const ownId = BigInt(entity.id);
         await settle();
         // The periodic pass, which hands every viewer every actor.
-        for (const viewer of viewers)
-            await viewer.player.getNetworkSession().reconcileTrackedEntities([...actors.all()]);
+        for (const viewer of viewers) await viewer.session.reconcileTrackedEntities([...actors.all()]);
 
         store.runtime.applyClientMovement(entity.id, {
             position: { x: 3.5, y: FEET.y, z: 0.5 },
@@ -360,7 +357,7 @@ describe('a store player shown to other clients', () => {
         await settle();
         for (const viewer of viewers) {
             expect(ofType(viewer.sent, RemoveActorPacket, actor.getRuntimeId())).toHaveLength(1);
-            expect(viewer.player.getNetworkSession().tracks(actor.getRuntimeId())).toBe(false);
+            expect(viewer.session.tracks(actor.getRuntimeId())).toBe(false);
             expect(ofType(viewer.sent, AddPlayerPacket)).toHaveLength(1);
         }
     });

@@ -228,7 +228,7 @@ export interface CommandTarget {
  */
 export const resolveTarget = (server: Server, ref: EntityRef): CommandTarget | undefined => {
     const session = playerSessionOf(server, ref);
-    return session === undefined ? undefined : { session, player: session.getPlayer() };
+    return session === undefined ? undefined : { session, player: session };
 };
 
 /** The same, for a verb that sends nothing of its own: the player behind the session. */

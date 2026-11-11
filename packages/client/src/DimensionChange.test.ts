@@ -8,7 +8,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
-import type { Player } from '@jsprismarine/prismarine';
+import type { PlayerSession } from '@jsprismarine/prismarine';
 import type { DecodedPacket } from './net/ClientPacketRegistry';
 import type { PendingDimensionChange } from './DimensionChange';
 
@@ -98,10 +98,10 @@ const newClient = (displayName: string) => {
     return client;
 };
 
-const playerNamed = (name: string): Player => {
+const playerNamed = (name: string): PlayerSession => {
     const player = server!
         .getSessionManager()
-        .getAllPlayers()
+        .getSessions()
         .find((candidate) => candidate.getName() === name);
     if (player === undefined) throw new Error(`${name} is not online`);
     return player;

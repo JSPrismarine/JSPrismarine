@@ -255,7 +255,7 @@ export default class ResourcePackClientResponseHandler implements PacketHandler<
                 `§b${identity.name}§f is attempting to join with id §b${identity.uuid}§f (§b${session.runtimeId}§f) from ${address.getAddress()}:${address.getPort()}`
             );
 
-        const spawnEvent = new PlayerSpawnEvent(session.getPlayer());
+        const spawnEvent = new PlayerSpawnEvent(session);
         server.post(['playerSpawn', spawnEvent]);
         if (spawnEvent.isCanceled()) return;
 
@@ -280,7 +280,7 @@ export default class ResourcePackClientResponseHandler implements PacketHandler<
             new StartGamePacket(
                 createStartGameData({
                     server,
-                    player: session.getPlayer(),
+                    player: session,
                     world,
                     worldSpawnPosition: worldSpawnPos,
                     serverVersion: connection.codec.minecraftVersions.at(-1) ?? '',

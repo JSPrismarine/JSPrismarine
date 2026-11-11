@@ -171,7 +171,7 @@ describe('contentRandomTickHandlers', () => {
         // why nobody's crops grow while they are logged off - and why an idle server is free.
         place(chunk, 0, SOIL_Y, 0, 'minecraft:farmland', { moisturized_amount: 7 });
 
-        expect(world.getPlayers()).toEqual([]);
+        expect(world.getViewers()).toEqual([]);
         expect(world.randomTickChunks()).toEqual([]);
     });
 
@@ -183,9 +183,9 @@ describe('contentRandomTickHandlers', () => {
                 [
                     1n,
                     {
-                        isOnline: () => true,
-                        getPosition: () => new Vector3(8, 0, 8),
-                        getNetworkSession: () => ({ getViewDistance: () => 0 })
+                        isConnected: () => true,
+                        getViewPosition: () => new Vector3(8, 0, 8),
+                        getViewDistance: () => 0
                     }
                 ]
             ])

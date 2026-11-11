@@ -23,8 +23,9 @@ export interface PlayerRecord {
 /**
  * The record for one player, and the world its dimension names.
  *
- * @param player - Whose record to read; its current world is where the record is read from and
- *   the fallback when the record names no dimension.
+ * @param player - Whose record to read.
+ * @param here - The player's current world, where the record is read from and the fallback when
+ *   the record names no dimension.
  * @param level - The level the record belongs to, which builds the dimension's world when it
  *   has a stem for it and the world is not loaded yet.
  * @returns The record and the world holding its dimension, falling back to the player's own
@@ -33,10 +34,10 @@ export interface PlayerRecord {
  *   one they left.
  */
 export const lastPlayerRecord = async (
-    player: Parameters<typeof keyOfPlayer>[0] & { getWorld(): World },
-    level: Level
+    player: Parameters<typeof keyOfPlayer>[0],
+    here: World,
+    level: Level = here.getLevel()
 ): Promise<PlayerRecord> => {
-    const here = player.getWorld();
     const data = await here.getPlayerData(player);
     const dimension = data.dimension;
     if (dimension === undefined) return { world: here, data, dimension };

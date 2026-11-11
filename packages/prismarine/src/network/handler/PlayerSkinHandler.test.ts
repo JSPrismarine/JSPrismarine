@@ -5,7 +5,6 @@ import type Server from '../../Server';
 import type SessionManager from '../../SessionManager';
 import { identityNamed } from '../../testing/sessionIdentity.test.helper';
 import type { StorePlayer } from '../../entity/storePlayer';
-import { stubPlayerPort } from '../../testing/playerPort.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import UUID from '@jsprismarine/protocol/wire/structures/UUID';
 import Skin from '@jsprismarine/protocol/wire/structures/skin/Skin';
@@ -91,7 +90,7 @@ const setUp = () => {
     const session = stub<PlayerSession>({
         runtimeId: 7n,
         identity: identityNamed('runner', SENDER_UUID),
-        getPlayer: () => stubPlayerPort({ getStorePlayer: () => sender.player })
+        getPlayer: () => sender.player
     });
     return { sender, alice, bob, debug, server, session, playerList, loginEntry };
 };

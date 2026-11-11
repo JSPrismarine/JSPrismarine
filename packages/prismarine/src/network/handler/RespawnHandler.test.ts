@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 
 import type Server from '../../Server';
 import { identityNamed } from '../../testing/sessionIdentity.test.helper';
+import { stubPlayerPort } from '../../testing/playerPort.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import { Position } from '../../world/Position';
 import type { World } from '../../world/World';
@@ -12,7 +13,6 @@ import type PlayerSession from '../PlayerSession';
 import { PlayerRespawnState } from '@jsprismarine/minecraft';
 import RespawnPacket from '@jsprismarine/protocol/packet/RespawnPacket';
 import RespawnHandler from './RespawnHandler';
-import { storePlayerPort } from './storePlayerPort.test.helper';
 
 /**
  * The respawn exchange, and the order its three states go in.
@@ -44,17 +44,18 @@ const fakeSession = ({ alive = true, spawnWorld }: { alive?: boolean; spawnWorld
             sendInventory: async () => void done.push({ what: 'inventory' }),
             getWorld: () => world,
             getPlayer: () =>
-                storePlayerPort(
-                    { getHealth: () => (alive ? 20 : 0), getPosition: () => standingAt, yaw: 90, pitch: -5 },
-                    {
-                        getRespawnPoint: async () => ({
-                            world: spawnWorld ?? world,
-                            announced: new Vector3(100.5, 71.62, 100.5),
-                            block: new Vector3(100, 70, 100),
-                            eyes: new Vector3(100, 71.62, 100)
-                        })
-                    }
-                )
+                stubPlayerPort({
+                    getHealth: () => (alive ? 20 : 0),
+                    getPosition: () => standingAt,
+                    yaw: 90,
+                    pitch: -5
+                }),
+            getRespawnPoint: async () => ({
+                world: spawnWorld ?? world,
+                announced: new Vector3(100.5, 71.62, 100.5),
+                block: new Vector3(100, 70, 100),
+                eyes: new Vector3(100, 71.62, 100)
+            })
         }),
         server: stub<Server>({
             getLogger: () => stub<Logger>({ debug: (...message: string[]) => void dropped.push(message.join(' ')) })

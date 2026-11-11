@@ -1,5 +1,5 @@
 import PlayerEvent from './PlayerEvent';
-import type { PlayerEventSubject } from './PlayerEvent';
+import type PlayerSession from '../../network/PlayerSession';
 
 /**
  * Fired as a player's operator status is changed
@@ -7,8 +7,8 @@ import type { PlayerEventSubject } from './PlayerEvent';
 export default class playerToggleOperatorEvent extends PlayerEvent {
     private readonly operator: boolean;
 
-    public constructor(subject: PlayerEventSubject, operator: boolean) {
-        super(subject);
+    public constructor(session: PlayerSession, operator: boolean) {
+        super(session);
         this.operator = operator;
     }
 

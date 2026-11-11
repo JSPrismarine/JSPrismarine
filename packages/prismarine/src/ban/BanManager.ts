@@ -22,16 +22,8 @@ const isBannedPlayerEntry = (value: unknown): value is BannedPlayerEntry =>
  */
 export type BanManagerServer = Pick<Server, 'getLogger'>;
 
-/**
- * The part of a player a ban check reads. Bans are keyed by name only, so this is the name of the
- * identity a login carries, or anything that answers `getName`, such as a player. `LoginHandler`
- * passes the second form with the login's display name; package H-D of the entity and tick
- * re-architecture drops it once that passes the identity.
- */
-export type BanSubject = Pick<PlayerIdentity, 'name'> | { getName(): string };
-
-/** The name a ban check looks up. */
-const bannedNameOf = (subject: BanSubject): string => ('getName' in subject ? subject.getName() : subject.name);
+/** The part of a player a ban check reads. Bans are keyed by name only: the name of the identity a login carries. */
+export type BanSubject = Pick<PlayerIdentity, 'name'>;
 
 const FILE_NAME = 'banned-players.json';
 
@@ -117,7 +109,7 @@ export default class BanManager {
      * @returns {string | boolean} Reason if banned, false if not banned.
      */
     public isBanned(player: BanSubject): string | boolean {
-        const name = bannedNameOf(player);
+        const name = player.name;
         if (this.banned.has(name)) {
             return this.banned.get(name)?.reason || true;
         }

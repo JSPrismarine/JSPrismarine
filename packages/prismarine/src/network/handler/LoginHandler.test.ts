@@ -15,6 +15,7 @@ import type { Config } from '../../config/Config';
 import type { PermissionManager } from '../../permission/PermissionManager';
 import { stubPlayerPort } from '../../testing/playerPort.test.helper';
 import { stub } from '../../testing/stub.test.helper';
+import { StorePlayers } from '../../entity/data/storePlayers';
 import { plainCapabilities } from '../../testing/manualTransport.test.helper';
 import type { ChunkScheduler } from '../../world/ChunkScheduler';
 import type { World } from '../../world/World';
@@ -112,7 +113,6 @@ describe('network', () => {
             const world = (): World =>
                 stub<World>({
                     addEntity: async () => {},
-                    getPlayers: () => [],
                     // The handler resolves where the player starts before building one,
                     // now that an entity has to be given somewhere to be.
                     getSpawnPosition: async () => new Vector3(0, 64, 0),
@@ -142,6 +142,8 @@ describe('network', () => {
 
             const banManager = (): BanManager => stub<BanManager>({ isBanned: () => false });
 
+            // Where `createConnectedPlayer` files each login's store player.
+            const storePlayers = new StorePlayers();
             const server: Server = stub<Server>({
                 getChatManager: () => chat,
                 getChunkScheduler: chunkScheduler,
@@ -149,6 +151,7 @@ describe('network', () => {
                 getContent: () => testContent(),
                 getLogger: logger,
                 getSessionManager: sessionManager,
+                getStorePlayers: () => storePlayers,
                 getWorldManager: () => stub<WorldManager>({ getDefaultWorld: world }),
                 getConfig: config,
                 getPermissionManager: permissionManager,
@@ -267,6 +270,7 @@ describe('network', () => {
                 });
                 const existingSession = stub<PlayerSession>({
                     getPlayer: () => existing,
+                    isConnected: () => true,
                     kick: async (reason) => void kicked.push(reason ?? ''),
                     identity: { name: 'Steve', xuid: '2535400000000001', uuid: '00000000-0000-4000-8000-0000000000aa' }
                 });
@@ -628,7 +632,7 @@ describe('network', () => {
                 const fullServer = stub<Server>({
                     ...server,
                     getSessionManager: () =>
-                        stub<SessionManager>({ getAllPlayers: () => [stubPlayerPort({}), stubPlayerPort({})] }),
+                        stub<SessionManager>({ getSessions: () => [stub<PlayerSession>(), stub<PlayerSession>()] }),
                     getConfig: () => stub<Config>({ getMaxPlayers: () => 2 })
                 });
                 const disconnect = vi.fn();

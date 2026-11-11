@@ -132,16 +132,15 @@ export const worldEntityAccess = (options: WorldEntityAccessOptions): ContentEnt
                 .getViewers()
                 // A player whose entity is in no store yet is not there to be found.
                 .flatMap((session) => {
-                    const player = session.getPlayer();
-                    const actor = player.getActor();
+                    const actor = session.getActor();
                     return actor === undefined
                         ? []
                         : [
                               {
                                   ...contentEntityOf(actor),
                                   identifier: PLAYER_IDENTIFIER,
-                                  creative: player.gamemode === Gametype.CREATIVE,
-                                  spectator: player.gamemode === Gametype.SPECTATOR
+                                  creative: session.gamemode === Gametype.CREATIVE,
+                                  spectator: session.gamemode === Gametype.SPECTATOR
                               }
                           ];
                 }),

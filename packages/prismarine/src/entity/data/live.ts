@@ -282,7 +282,7 @@ const givePlayerItem = (
     const item = itemOfDrop(drop, options.content());
     if (world === undefined || session === undefined || item === null) return drop.count;
     // The live player, for the inventory the store does not hold yet.
-    const taker = session.getPlayer();
+    const taker = session;
 
     const entry = new ContainerEntry({ item, count: item.getAmount() });
     const left = taker.getInventory().addItem(entry);
@@ -318,7 +318,7 @@ const finishMeal = (options: LiveEntityOptions, playerId: number): void => {
         consumeHeldItem({
             content: options.content(),
             actors: world.getServer().getContentWorld().actorsAt(options.dimension),
-            player: session.getPlayer()
+            player: session
         });
     } catch (error: unknown) {
         options.report(`a meal could not finish: ${String(error)}`);
@@ -371,8 +371,7 @@ const liveHost = (
         if (commit.died && victim instanceof StorePlayerActor)
             void world
                 .viewerOf(victim.getRuntimeId())
-                ?.getPlayer()
-                .die(source)
+                ?.die(source)
                 .catch((error: unknown) => options.report(String(error)));
     },
     players: () => options.entities.players(),
@@ -936,7 +935,7 @@ export class LiveEntityRuntime {
                 source: merchant,
                 ...(title === undefined ? {} : { title }),
                 context: () => {
-                    const hero = player.getStatusEffect('minecraft:village_hero');
+                    const hero = session.getActor()?.getStatusEffect('minecraft:village_hero');
                     return {
                         ...this.runtime.curedFacts(id, playerId),
                         ...(hero === undefined ? {} : { heroOfTheVillage: hero.amplifier + 1 })
