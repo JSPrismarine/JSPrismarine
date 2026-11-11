@@ -25,6 +25,7 @@ import { stubPlayerPort } from '../../testing/playerPort.test.helper';
 import type Server from '../../Server';
 import { enchantingRows, enchantmentSeedOf } from '../../enchantment/enchantingTable';
 import { stub } from '../../testing/stub.test.helper';
+import { serverInputContext } from '../../testing/serverInputContext.test.helper';
 import { playerKeyOf } from '../../playerIdentity';
 import { experienceIn } from '../../testing/storePlayer.test.helper';
 import type { World } from '../../world/World';
@@ -179,11 +180,9 @@ const scene = (open: OpenBlockContainer) => {
     const seed = enchantmentSeedOf(player.keyed(), 1234);
 
     const run = async (requests: ItemStackRequest[]) => {
-        await new ItemStackRequestHandler().handle(
-            Object.assign(new ItemStackRequestPacket(), { requests }),
-            server,
-            session
-        );
+        const { context, settled } = serverInputContext(server, session);
+        new ItemStackRequestHandler().handle(Object.assign(new ItemStackRequestPacket(), { requests }), context);
+        await settled();
 
         const response = sent.find((packet): packet is ItemStackResponsePacket => {
             return packet instanceof ItemStackResponsePacket;

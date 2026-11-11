@@ -5,9 +5,6 @@ import type { Vector3 } from '@jsprismarine/math';
 import { describe, expect, it } from 'vitest';
 
 import type { Logger } from '@jsprismarine/logger';
-import type Server from '../../Server';
-import type { Block } from '../../block/Block';
-import type { Config } from '../../config/Config';
 import type HumanInventory from '../../inventory/HumanInventory';
 import { Item } from '../../item/Item';
 import type { EntityRuntime } from '../../entity/data/EntityRuntime';
@@ -18,6 +15,8 @@ import { blockMiningOf } from '../../world/BlockMining';
 import BlockPosition from '../../world/BlockPosition';
 import { Position } from '../../world/Position';
 import type { World } from '../../world/World';
+import type Chunk from '../../world/chunk/Chunk';
+import { inputContext } from '../../testing/handlerContext.test.helper';
 import { identityNamed } from '../../testing/sessionIdentity.test.helper';
 import { stubPlayerPort } from '../../testing/playerPort.test.helper';
 import { stub } from '../../testing/stub.test.helper';
@@ -37,7 +36,7 @@ const PICKAXE = new Item({ name: 'minecraft:iron_pickaxe' });
  * as a call that was made rather than as terrain that appeared. Every log line is kept too,
  * so an action the handler should have taken quietly shows up as a line.
  */
-const fakeSession = (gamemode: Gametype, { serverAuthoritativeBreaking = false } = {}) => {
+const fakeSession = (gamemode: Gametype, { serverAuthoritativeBreaking = false, chunksLoaded = true } = {}) => {
     const broken: BlockPosition[] = [];
     const hit: BlockPosition[] = [];
     /** Whom each hit named as its striker, who is left out of the sound. */
@@ -71,7 +70,10 @@ const fakeSession = (gamemode: Gametype, { serverAuthoritativeBreaking = false }
             strikers.push(striker);
         },
         resendBlock: (x, y, z) => void resent.push(new BlockPosition(x, y, z)),
-        getBlock: async () => stub<Block>({ getBreakTime: () => 1 }),
+        // Every chunk near the player is loaded unless the test says otherwise, and every
+        // block in it is stone.
+        getLoadedChunk: () => (chunksLoaded ? stub<Chunk>({}) : null),
+        loadedBlockAt: () => ({ name: 'minecraft:stone', states: {} }),
         sendWorldEvent: async (where: Vector3 | null) => {
             if (where) cracking.push(`event ${at(where)}`);
         },
@@ -116,10 +118,8 @@ const fakeSession = (gamemode: Gametype, { serverAuthoritativeBreaking = false }
         tools,
         state,
         player,
-        server: stub<Server>({
-            getLogger: () => logger,
-            getConfig: () => stub<Config>({ getServerAuthoritativeBlockBreaking: () => serverAuthoritativeBreaking })
-        }),
+        log: logger,
+        config: { getServerAuthoritativeBlockBreaking: () => serverAuthoritativeBreaking },
         components,
         jumps,
         session: stub<PlayerSession>({
@@ -138,6 +138,22 @@ const fakeSession = (gamemode: Gametype, { serverAuthoritativeBreaking = false }
     };
 };
 
+type Scene = ReturnType<typeof fakeSession>;
+
+/** Applies one action as the input step does: the handler, then what it deferred and sent. */
+const act = async ({ session, log, config }: Scene, action: number, position: BlockPosition, face: number) => {
+    const { context, settled } = inputContext(session, { log, config });
+    new PlayerActionHandler().handleAction(action, position, face, context);
+    await settled();
+};
+
+/** Applies one standalone packet as the input step does. */
+const handle = async ({ session, log, config }: Scene, received: PlayerActionPacket) => {
+    const { context, settled } = inputContext(session, { log, config });
+    new PlayerActionHandler().handle(received, context);
+    await settled();
+};
+
 const FAR_AWAY = new BlockPosition(5_000_000, 64, 5_000_000);
 const NOWHERE = new BlockPosition(0, 0, 0);
 
@@ -154,77 +170,116 @@ const packet = (runtimeEntityId: bigint, action: PlayerActionType, blockPosition
 describe('PlayerActionHandler', () => {
     describe('handleAction', () => {
         it('breaks the block for a creative player within reach', async () => {
-            const { broken, server, session } = fakeSession(Gametype.CREATIVE);
+            const scene = fakeSession(Gametype.CREATIVE);
+            const { broken } = scene;
 
-            await new PlayerActionHandler().handleAction(
-                PlayerActionType.CreativeDestroyBlock,
-                new BlockPosition(1, 2, 0),
-                0,
-                server,
-                session
-            );
+            await act(scene, PlayerActionType.CreativeDestroyBlock, new BlockPosition(1, 2, 0), 0);
 
             expect(broken).toEqual([new BlockPosition(1, 2, 0)]);
         });
 
         it('refuses a creative break from a player who is not in creative', async () => {
-            const { broken, server, session } = fakeSession(Gametype.SURVIVAL);
+            const scene = fakeSession(Gametype.SURVIVAL);
+            const { broken } = scene;
 
-            await new PlayerActionHandler().handleAction(
-                PlayerActionType.CreativeDestroyBlock,
-                new BlockPosition(1, 2, 0),
-                0,
-                server,
-                session
-            );
+            await act(scene, PlayerActionType.CreativeDestroyBlock, new BlockPosition(1, 2, 0), 0);
 
             expect(broken).toEqual([]);
         });
 
         it('refuses a block action aimed far outside the player reach', async () => {
-            const { broken, hit, server, session } = fakeSession(Gametype.CREATIVE);
-            const handler = new PlayerActionHandler();
+            const scene = fakeSession(Gametype.CREATIVE);
+            const { broken, hit } = scene;
 
-            await handler.handleAction(PlayerActionType.CreativeDestroyBlock, FAR_AWAY, 0, server, session);
-            await handler.handleAction(PlayerActionType.CrackBlock, FAR_AWAY, 0, server, session);
+            await act(scene, PlayerActionType.CreativeDestroyBlock, FAR_AWAY, 0);
+            await act(scene, PlayerActionType.CrackBlock, FAR_AWAY, 0);
 
             expect(broken).toEqual([]);
             expect(hit).toEqual([]);
         });
 
-        it('refuses every block action from a spectator', async () => {
-            const { broken, hit, server, session } = fakeSession(Gametype.SPECTATOR);
-            const handler = new PlayerActionHandler();
+        it('refuses a block action in a chunk that is not loaded, and reads no block for it', async () => {
+            // The input step cannot wait for a chunk, and a client cannot act on terrain it was
+            // never sent.
+            const scene = fakeSession(Gametype.CREATIVE, { chunksLoaded: false });
             const nearby = new BlockPosition(1, 0, 0);
 
-            await handler.handleAction(PlayerActionType.CreativeDestroyBlock, nearby, 0, server, session);
-            await handler.handleAction(PlayerActionType.CrackBlock, nearby, 0, server, session);
+            await act(scene, PlayerActionType.CreativeDestroyBlock, nearby, 0);
+            await act(scene, PlayerActionType.CrackBlock, nearby, 0);
+            await act(scene, PlayerActionType.StartDestroyBlock, nearby, 0);
+
+            expect(scene.broken).toEqual([]);
+            expect(scene.hit).toEqual([]);
+            expect(scene.cracking).toEqual([]);
+            expect(scene.logged).toHaveLength(3);
+        });
+
+        it('defers a break, which still waits on the world, and writes nothing before the step runs it', async () => {
+            const scene = fakeSession(Gametype.CREATIVE);
+            const { context, deferred, settled } = inputContext(scene.session, scene);
+
+            new PlayerActionHandler().handleAction(
+                PlayerActionType.CreativeDestroyBlock,
+                new BlockPosition(1, 2, 0),
+                0,
+                context
+            );
+
+            expect(deferred).toHaveLength(1);
+            expect(scene.broken).toEqual([]);
+            await settled();
+            expect(scene.broken).toEqual([new BlockPosition(1, 2, 0)]);
+        });
+
+        it('takes a jump, a sneak and a sprint in the handler, with nothing deferred', () => {
+            const scene = fakeSession(Gametype.SURVIVAL);
+            const { context, deferred } = inputContext(scene.session, scene);
+            const handler = new PlayerActionHandler();
+
+            handler.handleAction(PlayerActionType.StartJump, NOWHERE, 0, context);
+            handler.handleAction(PlayerActionType.StartSneaking, NOWHERE, 0, context);
+            handler.handleAction(PlayerActionType.StartSprinting, NOWHERE, 0, context);
+
+            expect(scene.jumps).toEqual([1]);
+            expect(scene.components.get('movement.sneaking')).toBe(true);
+            expect(scene.sprinting).toEqual([true]);
+            expect(deferred).toHaveLength(0);
+        });
+
+        it('refuses every block action from a spectator', async () => {
+            const scene = fakeSession(Gametype.SPECTATOR);
+            const { broken, hit } = scene;
+            const nearby = new BlockPosition(1, 0, 0);
+
+            await act(scene, PlayerActionType.CreativeDestroyBlock, nearby, 0);
+            await act(scene, PlayerActionType.CrackBlock, nearby, 0);
 
             expect(broken).toEqual([]);
             expect(hit).toEqual([]);
         });
 
         it('still takes an action that carries no block, which arrives at the origin', async () => {
-            const { sprinting, server, session } = fakeSession(Gametype.SURVIVAL);
+            const scene = fakeSession(Gametype.SURVIVAL);
+            const { sprinting } = scene;
 
-            await new PlayerActionHandler().handleAction(PlayerActionType.StartSprinting, NOWHERE, 0, server, session);
+            await act(scene, PlayerActionType.StartSprinting, NOWHERE, 0);
 
             expect(sprinting).toEqual([true]);
         });
 
         it('toggles flight for the flying pair', async () => {
-            const { flying, server, session } = fakeSession(Gametype.CREATIVE);
-            const handler = new PlayerActionHandler();
+            const scene = fakeSession(Gametype.CREATIVE);
+            const { flying } = scene;
 
-            await handler.handleAction(PlayerActionType.StartFlying, NOWHERE, 0, server, session);
-            await handler.handleAction(PlayerActionType.StopFlying, NOWHERE, 0, server, session);
+            await act(scene, PlayerActionType.StartFlying, NOWHERE, 0);
+            await act(scene, PlayerActionType.StopFlying, NOWHERE, 0);
 
             expect(flying).toEqual([true, false]);
         });
 
         it('accepts the actions the docs still send standalone without logging anything', async () => {
-            const { logged, server, session } = fakeSession(Gametype.SURVIVAL);
-            const handler = new PlayerActionHandler();
+            const scene = fakeSession(Gametype.SURVIVAL);
+            const { logged } = scene;
 
             for (const action of [
                 PlayerActionType.ChangeDimensionAck,
@@ -236,16 +291,17 @@ describe('PlayerActionHandler', () => {
                 PlayerActionType.StopSpinAttack,
                 PlayerActionType.MissedSwing
             ]) {
-                await handler.handleAction(action, NOWHERE, 0, server, session);
+                await act(scene, action, NOWHERE, 0);
             }
 
             expect(logged).toEqual([]);
         });
 
         it('logs an action number outside the enum and does not throw', async () => {
-            const { logged, server, session } = fakeSession(Gametype.SURVIVAL);
+            const scene = fakeSession(Gametype.SURVIVAL);
+            const { logged } = scene;
 
-            await new PlayerActionHandler().handleAction(99, NOWHERE, 0, server, session);
+            await act(scene, 99, NOWHERE, 0);
 
             expect(logged).toEqual(['Dropped action 99 from tester: not one a client sends']);
         });
@@ -253,18 +309,20 @@ describe('PlayerActionHandler', () => {
 
     describe('handle', () => {
         it('acts on a packet that names the sender', async () => {
-            const { flying, logged, server, session } = fakeSession(Gametype.CREATIVE);
+            const scene = fakeSession(Gametype.CREATIVE);
+            const { flying, logged } = scene;
 
-            await new PlayerActionHandler().handle(packet(SELF, PlayerActionType.StartFlying), server, session);
+            await handle(scene, packet(SELF, PlayerActionType.StartFlying));
 
             expect(flying).toEqual([true]);
             expect(logged).toEqual([]);
         });
 
         it('drops a packet whose runtime id is not the sender', async () => {
-            const { flying, logged, server, session } = fakeSession(Gametype.CREATIVE);
+            const scene = fakeSession(Gametype.CREATIVE);
+            const { flying, logged } = scene;
 
-            await new PlayerActionHandler().handle(packet(8n, PlayerActionType.StartFlying), server, session);
+            await handle(scene, packet(8n, PlayerActionType.StartFlying));
 
             expect(flying).toEqual([]);
             expect(logged).toEqual([
@@ -273,15 +331,12 @@ describe('PlayerActionHandler', () => {
         });
 
         it('ignores a block action that belongs in the input packet', async () => {
-            const { hit, logged, server, session } = fakeSession(Gametype.SURVIVAL);
+            const scene = fakeSession(Gametype.SURVIVAL);
+            const { hit, logged } = scene;
             const nearby = new BlockPosition(1, 0, 0);
 
-            await new PlayerActionHandler().handle(
-                packet(SELF, PlayerActionType.StartDestroyBlock, nearby),
-                server,
-                session
-            );
-            await new PlayerActionHandler().handle(packet(SELF, PlayerActionType.CrackBlock, nearby), server, session);
+            await handle(scene, packet(SELF, PlayerActionType.StartDestroyBlock, nearby));
+            await handle(scene, packet(SELF, PlayerActionType.CrackBlock, nearby));
 
             expect(hit).toEqual([]);
             expect(logged).toEqual([
@@ -291,13 +346,10 @@ describe('PlayerActionHandler', () => {
         });
 
         it('still takes a creative break from the standalone packet', async () => {
-            const { broken, server, session } = fakeSession(Gametype.CREATIVE);
+            const scene = fakeSession(Gametype.CREATIVE);
+            const { broken } = scene;
 
-            await new PlayerActionHandler().handle(
-                packet(SELF, PlayerActionType.CreativeDestroyBlock, new BlockPosition(1, 2, 0)),
-                server,
-                session
-            );
+            await handle(scene, packet(SELF, PlayerActionType.CreativeDestroyBlock, new BlockPosition(1, 2, 0)));
 
             expect(broken).toEqual([new BlockPosition(1, 2, 0)]);
         });
@@ -309,11 +361,11 @@ describe('PlayerActionHandler', () => {
             fakeSession(gamemode, { serverAuthoritativeBreaking: true });
 
         it('breaks the block a survival player predicts gave way', async () => {
-            const { broken, state, server, session } = serverTimed();
-            const handler = new PlayerActionHandler();
+            const scene = serverTimed();
+            const { broken, state } = scene;
 
-            await handler.handleAction(PlayerActionType.ContinueDestroyBlock, near(2), 5, server, session);
-            await handler.handleAction(PlayerActionType.PredictDestroyBlock, near(2), 5, server, session);
+            await act(scene, PlayerActionType.ContinueDestroyBlock, near(2), 5);
+            await act(scene, PlayerActionType.PredictDestroyBlock, near(2), 5);
 
             expect(broken).toEqual([near(2)]);
             // Nothing is being mined any more, so the cracks stop being animated.
@@ -321,45 +373,30 @@ describe('PlayerActionHandler', () => {
         });
 
         it('breaks nothing for an adventure player, and puts the block back on their screen', async () => {
-            const { broken, resent, server, session } = serverTimed(Gametype.ADVENTURE);
+            const scene = serverTimed(Gametype.ADVENTURE);
+            const { broken, resent } = scene;
 
-            await new PlayerActionHandler().handleAction(
-                PlayerActionType.PredictDestroyBlock,
-                near(2),
-                5,
-                server,
-                session
-            );
+            await act(scene, PlayerActionType.PredictDestroyBlock, near(2), 5);
 
             expect(broken).toEqual([]);
             expect(resent).toEqual([near(2)]);
         });
 
         it('refuses a predicted break out of reach', async () => {
-            const { broken, server, session } = serverTimed();
+            const scene = serverTimed();
+            const { broken } = scene;
 
-            await new PlayerActionHandler().handleAction(
-                PlayerActionType.PredictDestroyBlock,
-                FAR_AWAY,
-                5,
-                server,
-                session
-            );
+            await act(scene, PlayerActionType.PredictDestroyBlock, FAR_AWAY, 5);
 
             expect(broken).toEqual([]);
         });
 
         it('starts the cracks for the tool in hand and remembers the block, without a hit sound', async () => {
             // The client sounds its own hits while it predicts a break; BDS sends none.
-            const { hit, cracking, tools, state, server, session } = serverTimed();
+            const scene = serverTimed();
+            const { hit, cracking, tools, state } = scene;
 
-            await new PlayerActionHandler().handleAction(
-                PlayerActionType.StartDestroyBlock,
-                near(2),
-                1,
-                server,
-                session
-            );
+            await act(scene, PlayerActionType.StartDestroyBlock, near(2), 1);
 
             expect(cracking).toEqual(['start 2,1,0 (none)']);
             expect(tools).toEqual([PICKAXE]);
@@ -368,46 +405,42 @@ describe('PlayerActionHandler', () => {
         });
 
         it('starts no cracks in creative, where a block breaks at once', async () => {
-            const { cracking, state, server, session } = serverTimed(Gametype.CREATIVE);
+            const scene = serverTimed(Gametype.CREATIVE);
+            const { cracking, state } = scene;
 
-            await new PlayerActionHandler().handleAction(
-                PlayerActionType.StartDestroyBlock,
-                near(2),
-                1,
-                server,
-                session
-            );
+            await act(scene, PlayerActionType.StartDestroyBlock, near(2), 1);
 
             expect(cracking).toEqual([]);
             expect(state.mining).toBeNull();
         });
 
         it('moves the cracks along when the player drags onto the next block', async () => {
-            const { cracking, state, server, session } = serverTimed();
-            const handler = new PlayerActionHandler();
+            const scene = serverTimed();
+            const { cracking, state } = scene;
 
-            await handler.handleAction(PlayerActionType.StartDestroyBlock, near(2), 1, server, session);
-            await handler.handleAction(PlayerActionType.ContinueDestroyBlock, near(3), 1, server, session);
+            await act(scene, PlayerActionType.StartDestroyBlock, near(2), 1);
+            await act(scene, PlayerActionType.ContinueDestroyBlock, near(3), 1);
 
             expect(cracking).toEqual(['start 2,1,0 (none)', 'start 3,1,0 (2,1,0)']);
             expect(state.mining).toMatchObject({ position: near(3) });
         });
 
         it('stops the cracks when the player lets go', async () => {
-            const { cracking, state, server, session } = serverTimed();
-            const handler = new PlayerActionHandler();
+            const scene = serverTimed();
+            const { cracking, state } = scene;
 
-            await handler.handleAction(PlayerActionType.StartDestroyBlock, near(2), 1, server, session);
-            await handler.handleAction(PlayerActionType.AbortDestroyBlock, near(2), 1, server, session);
+            await act(scene, PlayerActionType.StartDestroyBlock, near(2), 1);
+            await act(scene, PlayerActionType.AbortDestroyBlock, near(2), 1);
 
             expect(cracking).toEqual(['start 2,1,0 (none)', 'stop 2,1,0']);
             expect(state.mining).toBeNull();
         });
 
         it('leaves the player out of the sound of each swing', async () => {
-            const { hit, strikers, player, server, session } = serverTimed();
+            const scene = serverTimed();
+            const { hit, strikers, player } = scene;
 
-            await new PlayerActionHandler().handleAction(PlayerActionType.CrackBlock, near(2), 1, server, session);
+            await act(scene, PlayerActionType.CrackBlock, near(2), 1);
 
             expect(hit).toEqual([near(2)]);
             expect(strikers).toEqual([player]);
@@ -418,15 +451,10 @@ describe('PlayerActionHandler', () => {
         const near = (x: number) => new BlockPosition(x, 1, 0);
 
         it('starts the crack animation once, with a hit, and leaves the ticking to the client', async () => {
-            const { hit, strikers, player, cracking, state, server, session } = fakeSession(Gametype.SURVIVAL);
+            const scene = fakeSession(Gametype.SURVIVAL);
+            const { hit, strikers, player, cracking, state } = scene;
 
-            await new PlayerActionHandler().handleAction(
-                PlayerActionType.StartDestroyBlock,
-                near(2),
-                1,
-                server,
-                session
-            );
+            await act(scene, PlayerActionType.StartDestroyBlock, near(2), 1);
 
             // Heard by everyone near but the player, whose client plays its own hits.
             expect(hit).toEqual([near(2)]);
@@ -436,15 +464,10 @@ describe('PlayerActionHandler', () => {
         });
 
         it('breaks nothing on a predicted break, which only a server-timed client sends', async () => {
-            const { broken, server, session } = fakeSession(Gametype.SURVIVAL);
+            const scene = fakeSession(Gametype.SURVIVAL);
+            const { broken } = scene;
 
-            await new PlayerActionHandler().handleAction(
-                PlayerActionType.PredictDestroyBlock,
-                near(2),
-                5,
-                server,
-                session
-            );
+            await act(scene, PlayerActionType.PredictDestroyBlock, near(2), 5);
 
             expect(broken).toEqual([]);
         });

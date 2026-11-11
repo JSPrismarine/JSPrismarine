@@ -11,6 +11,7 @@ import type PlayerSession from '../src/network/PlayerSession';
 import Codec2193 from '../src/network/codec/Codec2193';
 import { NetworkWorldReplicator } from '../src/network/NetworkWorldReplicator';
 import { applyClientMovement } from '../src/network/handler/MovePlayerHandler';
+import type { MovementContext } from '../src/network/handler/MovePlayerHandler';
 import { stub } from '../src/testing/stub.test.helper';
 import { Position } from '../src/world/Position';
 import type { World } from '../src/world/World';
@@ -114,6 +115,20 @@ const server = stub<Server>({
 });
 replicator = new NetworkWorldReplicator(world, server);
 const session = stub<PlayerSession>({ getPlayer: () => mover, acceptsClientPosition: () => true });
+/** The sends one movement hands its input step, awaited before the next as the step does. */
+const outputs: Promise<void>[] = [];
+const context: MovementContext = {
+    session,
+    log: server.getLogger(),
+    services: { events: { post: () => 0, emit: async () => {} } },
+    step: {
+        tick: 0,
+        output: (send) => void outputs.push(send),
+        defer: () => {
+            throw new Error('a movement defers nothing');
+        }
+    }
+};
 const movement = {
     position: new Vector3(124.25, 68, -91.75),
     pitch: 3.5,
@@ -124,7 +139,8 @@ const movement = {
 
 const started = performance.now();
 for (let iteration = 0; iteration < ITERATIONS; iteration++) {
-    await applyClientMovement(server, session, movement);
+    applyClientMovement(context, movement);
+    await Promise.all(outputs.splice(0));
     await replicator.flushMovement();
 }
 const microsecondsPerTick = ((performance.now() - started) * 1000) / ITERATIONS;
@@ -133,7 +149,8 @@ if (packets.length !== 0 || frames.length !== 0) {
     throw new Error(`Idle input sent ${packets.length} observer packets in ${frames.length} frames`);
 }
 
-await applyClientMovement(server, session, { ...movement, position: new Vector3(125.25, 68, -91.75) });
+applyClientMovement(context, { ...movement, position: new Vector3(125.25, 68, -91.75) });
+await Promise.all(outputs.splice(0));
 await replicator.flushMovement();
 const changedPose = observerPackets();
 if (changedPose.length !== 1 || changedPose[0] !== 'MoveActorAbsolutePacket') {

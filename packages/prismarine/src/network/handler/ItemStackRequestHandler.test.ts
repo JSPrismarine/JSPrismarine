@@ -21,6 +21,7 @@ import HumanInventory from '../../inventory/HumanInventory';
 import { Item } from '../../item/Item';
 import { stubPlayerPort } from '../../testing/playerPort.test.helper';
 import { stub } from '../../testing/stub.test.helper';
+import { serverInputContext } from '../../testing/serverInputContext.test.helper';
 import type PlayerSession from '../PlayerSession';
 import type { OpenBlockContainer } from '../PlayerSession';
 import type { World } from '../../world/World';
@@ -145,11 +146,9 @@ const run = async (
         send: async (packet) => void sent.push(packet)
     });
 
-    await new ItemStackRequestHandler().handle(
-        Object.assign(new ItemStackRequestPacket(), { requests }),
-        server,
-        session
-    );
+    const { context, settled } = serverInputContext(server, session);
+    new ItemStackRequestHandler().handle(Object.assign(new ItemStackRequestPacket(), { requests }), context);
+    await settled();
 
     const response = sent.find((pk): pk is ItemStackResponsePacket => pk instanceof ItemStackResponsePacket);
     if (!response) throw new Error('no ItemStackResponsePacket was sent');

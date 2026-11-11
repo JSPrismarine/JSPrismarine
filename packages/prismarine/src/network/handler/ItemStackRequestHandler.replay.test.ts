@@ -11,6 +11,7 @@ import HumanInventory from '../../inventory/HumanInventory';
 import { Item } from '../../item/Item';
 import { stubPlayerPort } from '../../testing/playerPort.test.helper';
 import { stub } from '../../testing/stub.test.helper';
+import { serverInputContext } from '../../testing/serverInputContext.test.helper';
 import type { World } from '../../world/World';
 import type PlayerSession from '../PlayerSession';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
@@ -194,7 +195,9 @@ const replay = async () => {
                     if (action.recipeNetId !== undefined) action.recipeNetId = netIds.get(action.recipeNetId);
                 }
             }
-            await new ItemStackRequestHandler().handle(packet, server, session);
+            const { context, settled } = serverInputContext(server, session);
+            new ItemStackRequestHandler().handle(packet, context);
+            await settled();
         }
     }
 

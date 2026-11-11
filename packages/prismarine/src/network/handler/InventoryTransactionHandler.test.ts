@@ -4,8 +4,6 @@ import { ContainerUiId, Gametype } from '@jsprismarine/minecraft';
 import { Attributes } from '@jsprismarine/protocol/wire/structures/Attribute';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
-import type Server from '../../Server';
-import type { Config } from '../../config/Config';
 import type { EntityRuntime } from '../../entity/data/EntityRuntime';
 import type { LiveEntityRuntime } from '../../entity/data/live';
 import { PlayerComponents } from '../../entity/playerComponents';
@@ -17,6 +15,7 @@ import type { StoreActor } from '../../entity/data/storeActors';
 import ContainerEntry from '../../inventory/ContainerEntry';
 import HumanInventory from '../../inventory/HumanInventory';
 import { Item } from '../../item/Item';
+import { inputContext } from '../../testing/handlerContext.test.helper';
 import { identityNamed } from '../../testing/sessionIdentity.test.helper';
 import { stubPlayerPort } from '../../testing/playerPort.test.helper';
 import { stub } from '../../testing/stub.test.helper';
@@ -24,6 +23,7 @@ import BlockPosition from '../../world/BlockPosition';
 import { Dimensions } from '../../world/Dimension';
 import { Position } from '../../world/Position';
 import type { World } from '../../world/World';
+import type Chunk from '../../world/chunk/Chunk';
 import type PlayerSession from '../PlayerSession';
 import type {
     ReleaseItemData,
@@ -103,6 +103,8 @@ const fake = (
             return true;
         },
         getActor: (runtimeId) => (runtimeId === 42n ? zombie : null),
+        // Every chunk is loaded but those past x 1000, so a break there finds none.
+        getLoadedChunk: (cx) => (cx < 1000 >> 4 ? stub<Chunk>({}) : null),
         getDimension: () => Dimensions.Overworld,
         dropFromPlayer: async (_player, contents) => {
             for (const content of contents) if (content instanceof Item) dropped.push(content);
@@ -147,14 +149,15 @@ const fake = (
     });
     Object.assign(world, { dataEntities: () => stub<LiveEntityRuntime>({ runtime: inputs }) });
 
-    const server = stub<Server>({
-        getTick: () => TICK,
-        getConfig: () => stub<Config>({ getServerAuthoritativeBlockBreaking: () => serverAuthoritativeBreaking }),
-        // The two-block fixture. Nothing here reads it, since the click itself is recorded
-        // rather than run, but the handler hands it on.
-        getContent: () => testContent(),
-        getContentWorld: () =>
-            stub<ServerWorldHandle>({
+    // What the handler's context is built from: the tick, the setting, the content and the log.
+    const parts = {
+        tick: TICK,
+        config: { getServerAuthoritativeBlockBreaking: () => serverAuthoritativeBreaking },
+        services: {
+            // The two-block fixture. Nothing here reads it, since the click itself is recorded
+            // rather than run, but the handler hands it on.
+            content: testContent(),
+            contentWorld: stub<ServerWorldHandle>({
                 actorsAt: () =>
                     stub<ServerItemActorPort>({
                         duringInteraction: (_source, _target, body) => body(),
@@ -163,14 +166,14 @@ const fake = (
                             return true;
                         }
                     })
-            }),
-        getLogger: () =>
-            stub<Logger>({
-                debug: (...message) => void logged.push(`debug: ${String(message[0] ?? '')}`),
-                verbose: (...message) => void logged.push(`verbose: ${String(message[0] ?? '')}`),
-                error: (...message) => void logged.push(`error: ${String(message[0] ?? '')}`)
             })
-    });
+        },
+        log: stub<Logger>({
+            debug: (...message) => void logged.push(`debug: ${String(message[0] ?? '')}`),
+            verbose: (...message) => void logged.push(`verbose: ${String(message[0] ?? '')}`),
+            error: (...message) => void logged.push(`error: ${String(message[0] ?? '')}`)
+        })
+    };
     const session = stub<PlayerSession>({
         runtimeId,
         identity: identityNamed('tester'),
@@ -209,7 +212,7 @@ const fake = (
         player,
         actor,
         inventory,
-        server,
+        parts,
         session
     };
 };
@@ -265,14 +268,17 @@ const transaction = (
     hand: HandSlot.MAINHAND
 });
 
-const handle = async (transaction: ServerInventoryTransaction, world: ReturnType<typeof fake>) =>
+/** Applies one transaction as the input step does: the handler, then what it deferred and sent. */
+const handle = async (transaction: ServerInventoryTransaction, world: ReturnType<typeof fake>): Promise<void> => {
+    const { context, settled } = inputContext(world.session, world.parts);
     new InventoryTransactionHandler().handle(
         new InventoryTransactionPacket(
             inventoryTransactionToProtocol(transaction, world.session.getConnection().codec.context)
         ),
-        world.server,
-        world.session
+        context
     );
+    await settled();
+};
 
 describe('InventoryTransactionHandler', () => {
     describe('rejectionReason', () => {
@@ -411,6 +417,28 @@ describe('InventoryTransactionHandler', () => {
         expect(world.broken).toEqual([new BlockPosition(0, 62, 0)]);
     });
 
+    it('breaks nothing in a chunk that is not loaded, which the input step cannot wait for', async () => {
+        const world = fake(Gametype.SURVIVAL);
+        world.player.getPosition = () => new Position(1003, 64, 0, world.session.getWorld());
+
+        await handle(
+            transaction(
+                TransactionType.USE_ITEM,
+                useItem({
+                    actionType: ItemUseActionType.DESTROY,
+                    blockFace: 255,
+                    blockPosition: new BlockPosition(1003, 62, 0)
+                })
+            ),
+            world
+        );
+
+        expect(world.broken).toEqual([]);
+        expect(world.logged).toEqual([
+            'verbose: Dropped a block break transaction from tester in a chunk that is not loaded'
+        ]);
+    });
+
     it('breaks nothing on a transaction when the server times breaks', async () => {
         // The client reports a break as `PREDICT_DESTROY_BLOCK` in that mode. A transaction
         // saying a block broke skipped the mining the server is timing.
@@ -505,6 +533,28 @@ describe('InventoryTransactionHandler', () => {
         expect(attacker).toBe(world.actor);
         expect(target).toBe(world.zombie);
         expect(options).toMatchObject({ reach: 3, damage: 1, critical: false, knockbackLevels: 0 });
+        expect(world.exhaustion()).toBeCloseTo(0.1);
+    });
+
+    it('defers the swing, whose landing is known only once its sounds are sent', async () => {
+        const world = fake();
+        vi.mocked(meleeAttack).mockClear();
+        const { context, deferred, settled } = inputContext(world.session, world.parts);
+
+        new InventoryTransactionHandler().handle(
+            new InventoryTransactionPacket(
+                inventoryTransactionToProtocol(
+                    transaction(TransactionType.USE_ITEM_ON_ENTITY, useItemOnEntity()),
+                    world.session.getConnection().codec.context
+                )
+            ),
+            context
+        );
+
+        expect(deferred).toHaveLength(1);
+        expect(vi.mocked(meleeAttack)).not.toHaveBeenCalled();
+        await settled();
+        expect(vi.mocked(meleeAttack)).toHaveBeenCalledTimes(1);
         expect(world.exhaustion()).toBeCloseTo(0.1);
     });
 

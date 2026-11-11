@@ -1,13 +1,13 @@
 import { Gametype, LevelEvent } from '@jsprismarine/minecraft';
 
-import type { PlayerSession } from '../../';
-import type Server from '../../Server';
+import { blockFromContent } from '../../block/Block';
 import BlockPosition from '../../world/BlockPosition';
 import { PlayerActionType } from '@jsprismarine/protocol';
 import type PlayerActionPacket from '@jsprismarine/protocol/packet/PlayerActionPacket';
 import { MAX_BLOCK_TARGET_DISTANCE } from './BlockTarget';
 import { blockMiningOf, playerMiningOf } from '../../world/BlockMining';
-import type PacketHandler from './PacketHandler';
+import type { InputContext } from './HandlerContext';
+import type { InputLaneHandler } from './SessionHandler';
 
 /**
  * The actions whose block position is read, so the one the client sends has to be checked.
@@ -56,55 +56,55 @@ const INPUT_ONLY_ACTIONS: ReadonlySet<number> = new Set([
  * {@link handle} checks what only the standalone packet carries: `Player Runtime ID` has to be
  * the sender's, and a block action that belongs in the input is ignored. Neither throws.
  */
-export default class PlayerActionHandler implements PacketHandler<PlayerActionPacket> {
+export default class PlayerActionHandler implements InputLaneHandler<PlayerActionPacket> {
     public static PacketName = 'PlayerActionPacket';
+    public readonly takes = 'context';
     public readonly phases = ['play'] as const;
     public readonly lane = 'input';
 
-    public async handle(packet: PlayerActionPacket, server: Server, session: PlayerSession): Promise<void> {
+    public handle(packet: PlayerActionPacket, context: InputContext): undefined {
+        const { session, log } = context;
         const data = packet.getPacketData();
 
         if (data === null) return;
 
         if (data.runtimeEntityId !== session.runtimeId) {
-            server
-                .getLogger()
-                .debug(
-                    `Dropped action ${data.action} from ${session.identity.name}: it names runtime id ${data.runtimeEntityId}, not their own`,
-                    'PlayerActionHandler/handle'
-                );
+            log.debug(
+                `Dropped action ${data.action} from ${session.identity.name}: it names runtime id ${data.runtimeEntityId}, not their own`,
+                'PlayerActionHandler/handle'
+            );
             return;
         }
 
         if (INPUT_ONLY_ACTIONS.has(data.action)) {
-            server
-                .getLogger()
-                .debug(
-                    `Ignored action ${data.action} from ${session.identity.name}: block actions arrive in PlayerAuthInputPacket`,
-                    'PlayerActionHandler/handle'
-                );
+            log.debug(
+                `Ignored action ${data.action} from ${session.identity.name}: block actions arrive in PlayerAuthInputPacket`,
+                'PlayerActionHandler/handle'
+            );
             return;
         }
 
         const blockPosition = new BlockPosition(data.blockPosition.x, data.blockPosition.y, data.blockPosition.z);
-        await this.handleAction(data.action, blockPosition, data.blockFace, server, session);
+        this.handleAction(data.action, blockPosition, data.blockFace, context);
     }
 
     /**
      * Acts on one action.
+     *
+     * Synchronous, as the input step needs. A block it acts on has to be in a loaded chunk, and
+     * the world's calls that still wait before they write or tell anyone, such as a break, go
+     * to `step.defer`, each beside the slice that removes the wait.
      * @param {number} action - a {@link PlayerActionType}.
      * @param {BlockPosition} blockPosition - the block it concerns, or the origin for those that concern none.
      * @param {number} blockFace - the face of that block.
-     * @param {Server} server - the server.
-     * @param {PlayerSession} session - who did it.
+     * @param {InputContext} context - who did it, and the input step that applies it.
      */
-    public async handleAction(
+    public handleAction(
         action: number,
         blockPosition: BlockPosition,
         blockFace: number,
-        server: Server,
-        session: PlayerSession
-    ): Promise<void> {
+        { session, log, config, services, step }: InputContext
+    ): undefined {
         // The state an action reads, and the runtime that takes the inputs. Hitting and breaking
         // a block take the store player as the one who struck, and a sprint, a flight toggle and a
         // respawn go through the session, which posts their events and orders the respawn's parts.
@@ -124,12 +124,21 @@ export default class PlayerActionHandler implements PacketHandler<PlayerActionPa
             // the map, one crafted packet per chunk.
             const distance = player.getPosition().distanceTo(blockPosition);
             if (!Number.isFinite(distance) || distance > MAX_BLOCK_TARGET_DISTANCE) {
-                server
-                    .getLogger()
-                    .verbose(
-                        `Dropped action ${action} from ${session.identity.name} on a block ${distance.toFixed(1)} away`,
-                        'PlayerActionHandler/handleAction'
-                    );
+                log.verbose(
+                    `Dropped action ${action} from ${session.identity.name} on a block ${distance.toFixed(1)} away`,
+                    'PlayerActionHandler/handleAction'
+                );
+                return;
+            }
+
+            // And only in a chunk the world already holds, as ADR 0014 has an input do: the
+            // input step cannot wait for a chunk to load, and a block nobody can see is not one
+            // a client can be acting on.
+            if (world.getLoadedChunk(blockPosition.getX() >> 4, blockPosition.getZ() >> 4) === null) {
+                log.verbose(
+                    `Dropped action ${action} from ${session.identity.name} on a block in a chunk that is not loaded`,
+                    'PlayerActionHandler/handleAction'
+                );
                 return;
             }
         }
@@ -161,46 +170,60 @@ export default class PlayerActionHandler implements PacketHandler<PlayerActionPa
                 // and left Efficiency with nothing to speed up.
                 const tool = player.getInventory().getItemInHand();
 
-                if (server.getConfig().getServerAuthoritativeBlockBreaking()) {
-                    const mining = player.getComponents().get('mining.block');
-                    const started = await world.startBlockCracking(
-                        blockPosition,
-                        blockFace,
-                        tool,
-                        blockMiningOf(mining)
-                    );
-                    inputs.setPlayerMining(player, playerMiningOf(started));
+                if (config.getServerAuthoritativeBlockBreaking()) {
+                    // Deferred until the D2 close (slice 6) gives the world a loaded-chunk
+                    // `startBlockCracking`: it reads the block through `getBlockState`, which waits.
+                    step.defer(async () => {
+                        const mining = player.getComponents().get('mining.block');
+                        const started = await world.startBlockCracking(
+                            blockPosition,
+                            blockFace,
+                            tool,
+                            blockMiningOf(mining)
+                        );
+                        inputs.setPlayerMining(player, playerMiningOf(started));
+                    });
                     return;
                 }
 
-                // The only action here that needs the block. Reading it up front, as this
-                // used to, meant every jump, sprint and sneak - which carry no block position
-                // and so ask for (0, 0, 0) - loaded, and on a fresh world generated, the
-                // chunk at the origin.
-                const block = await world.getBlock(blockPosition.getX(), blockPosition.getY(), blockPosition.getZ());
-
-                // The first swing, heard by everyone near but the player, whose client plays
-                // its own. The rest arrive as `CRACK_BLOCK`.
-                await world.hitBlock(blockPosition, blockFace, session.getPlayer());
-
-                const breakTime = Math.ceil(block.getBreakTime(tool, server) * 20);
+                // The only action here that needs the block, read from its loaded chunk. Reading
+                // it up front, as this used to, meant every jump, sprint and sneak - which carry
+                // no block position and so ask for (0, 0, 0) - loaded, and on a fresh world
+                // generated, the chunk at the origin.
+                const x = blockPosition.getX();
+                const y = blockPosition.getY();
+                const z = blockPosition.getZ();
+                const state = world.loadedBlockAt(x, y, z);
+                if (state === undefined) return;
+                const block = blockFromContent(state.name, services.content, state.states);
+                if (block === null) throw new Error(`No block named ${state.name}, held at ${x} ${y} ${z}`);
 
                 // A block that gives way instantly has no progress to animate, and the
                 // 65535/0 the client would be handed is not a number this packet can carry.
-                if (breakTime <= 0) return;
+                const breakTime = Math.ceil(block.getBreakTime(tool) * 20);
 
-                // The client is told how much progress a tick is worth, not how long the
-                // block takes, so this is only ever as right as `getBreakTime` is.
-                await world.sendWorldEvent(
-                    blockPosition,
-                    LevelEvent.START_BLOCK_CRACKING,
-                    Math.floor(65535 / breakTime)
-                );
+                // Deferred until the D2 close (slice 6) gives the world a loaded-chunk
+                // `hitBlock`, which reads the block through `getBlockState` and waits.
+                step.defer(async () => {
+                    // The first swing, heard by everyone near but the player, whose client
+                    // plays its own. The rest arrive as `CRACK_BLOCK`.
+                    await world.hitBlock(blockPosition, blockFace, session.getPlayer());
+                    if (breakTime <= 0) return;
+
+                    // The client is told how much progress a tick is worth, not how long the
+                    // block takes, so this is only ever as right as `getBreakTime` is.
+                    await world.sendWorldEvent(
+                        blockPosition,
+                        LevelEvent.START_BLOCK_CRACKING,
+                        Math.floor(65535 / breakTime)
+                    );
+                });
                 return;
             }
 
             case PlayerActionType.AbortDestroyBlock: {
-                await world.stopBlockCracking(blockPosition);
+                // The world queues the stop before it returns.
+                step.output(world.stopBlockCracking(blockPosition));
                 inputs.setPlayerMining(player, null);
                 return;
             }
@@ -216,7 +239,7 @@ export default class PlayerActionHandler implements PacketHandler<PlayerActionPa
             // haste, efficiency, underwater and off-ground modifiers would need measuring
             // against BDS first, or the check would refuse breaks a real client times right.
             case PlayerActionType.PredictDestroyBlock: {
-                if (!server.getConfig().getServerAuthoritativeBlockBreaking()) return;
+                if (!config.getServerAuthoritativeBlockBreaking()) return;
 
                 inputs.setPlayerMining(player, null);
 
@@ -227,7 +250,9 @@ export default class PlayerActionHandler implements PacketHandler<PlayerActionPa
                     return;
                 }
 
-                await world.breakBlock(blockPosition, session.getPlayer());
+                // Deferred until slice 9: a break writes through `setBlockByName`, which may
+                // still load a chunk, and drops what the block yields after it.
+                step.defer(async () => void (await world.breakBlock(blockPosition, session.getPlayer())));
                 return;
             }
 
@@ -240,16 +265,15 @@ export default class PlayerActionHandler implements PacketHandler<PlayerActionPa
                 // action breaks the block outright: no break time, no tool, and none of the
                 // `InventoryTransaction` accounting the survival route goes through.
                 if (player.gamemode !== Gametype.CREATIVE) {
-                    server
-                        .getLogger()
-                        .verbose(
-                            `Dropped a creative break from ${session.identity.name}, who is not in creative`,
-                            'PlayerActionHandler/handleAction'
-                        );
+                    log.verbose(
+                        `Dropped a creative break from ${session.identity.name}, who is not in creative`,
+                        'PlayerActionHandler/handleAction'
+                    );
                     return;
                 }
 
-                await world.breakBlock(blockPosition, session.getPlayer());
+                // Deferred until slice 9, as the predicted break above.
+                step.defer(async () => void (await world.breakBlock(blockPosition, session.getPlayer())));
                 return;
             }
 
@@ -264,12 +288,15 @@ export default class PlayerActionHandler implements PacketHandler<PlayerActionPa
             // Every swing after the first. The client sends one per punch for as long as the
             // button is held, and each is a hit to be heard - this is the sound of digging.
             case PlayerActionType.CrackBlock: {
-                await world.hitBlock(blockPosition, blockFace, session.getPlayer());
+                // Deferred until the D2 close (slice 6), as the first swing's `hitBlock`.
+                step.defer(async () => world.hitBlock(blockPosition, blockFace, session.getPlayer()));
                 return;
             }
 
             case PlayerActionType.Respawn: {
-                await session.respawn();
+                // Deferred until slice 9: the respawn asks the respawn search where to stand
+                // the player, which may load chunks.
+                step.defer(async () => session.respawn());
                 return;
             }
 
@@ -278,12 +305,13 @@ export default class PlayerActionHandler implements PacketHandler<PlayerActionPa
                 return;
             }
 
+            // `setSprinting` waits for nothing; it is asynchronous only by its signature.
             case PlayerActionType.StartSprinting: {
-                await session.setSprinting(true);
+                step.output(session.setSprinting(true));
                 return;
             }
             case PlayerActionType.StopSprinting: {
-                await session.setSprinting(false);
+                step.output(session.setSprinting(false));
                 return;
             }
 
@@ -307,13 +335,13 @@ export default class PlayerActionHandler implements PacketHandler<PlayerActionPa
 
             // The docs expect an `UpdateAbilitiesPacket` back, accepting or refusing the
             // toggle. `setFlying` sends one either way: the new abilities when the player may
-            // fly, the old ones when they may not.
+            // fly, the old ones when they may not. It writes the flight before its first send.
             case PlayerActionType.StartFlying: {
-                await session.setFlying(true);
+                step.output(session.setFlying(true));
                 return;
             }
             case PlayerActionType.StopFlying: {
-                await session.setFlying(false);
+                step.output(session.setFlying(false));
                 return;
             }
 
@@ -343,12 +371,10 @@ export default class PlayerActionHandler implements PacketHandler<PlayerActionPa
             }
 
             default: {
-                server
-                    .getLogger()
-                    .verbose(
-                        `Dropped action ${action} from ${session.identity.name}: not one a client sends`,
-                        'PlayerActionHandler/handleAction'
-                    );
+                log.verbose(
+                    `Dropped action ${action} from ${session.identity.name}: not one a client sends`,
+                    'PlayerActionHandler/handleAction'
+                );
                 break;
             }
         }
