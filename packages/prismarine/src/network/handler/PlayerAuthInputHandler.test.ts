@@ -13,13 +13,13 @@ import {
 import PlayerAuthInputPacket from '@jsprismarine/protocol/packet/PlayerAuthInputPacket';
 import { describe, expect, it, vi } from 'vitest';
 
-import type Player from '../../Player';
 import type Server from '../../Server';
 import type { Block } from '../../block/Block';
 import type { Config } from '../../config/Config';
 import type HumanInventory from '../../inventory/HumanInventory';
 import { Item } from '../../item/Item';
 import { identityNamed } from '../../testing/sessionIdentity.test.helper';
+import { stubPlayerPort } from '../../testing/playerPort.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import BlockPosition from '../../world/BlockPosition';
 import { Position } from '../../world/Position';
@@ -59,7 +59,7 @@ const fake = ({ serverAuthoritativeBreaking = false, changingDimension = false, 
         }
     });
     let groundState = false;
-    const player = stub<Player>({
+    const player = stubPlayerPort({
         isOnline: () => true,
         gamemode: Gametype.SURVIVAL,
         getName: () => 'tester',

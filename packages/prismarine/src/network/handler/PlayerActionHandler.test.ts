@@ -4,7 +4,6 @@ import type { Vector3 } from '@jsprismarine/math';
 import { describe, expect, it } from 'vitest';
 
 import type { Logger } from '@jsprismarine/logger';
-import type Player from '../../Player';
 import type Server from '../../Server';
 import type { Block } from '../../block/Block';
 import type { Config } from '../../config/Config';
@@ -17,6 +16,7 @@ import BlockPosition from '../../world/BlockPosition';
 import { Position } from '../../world/Position';
 import type { World } from '../../world/World';
 import { identityNamed } from '../../testing/sessionIdentity.test.helper';
+import { stubPlayerPort } from '../../testing/playerPort.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import type PlayerSession from '../PlayerSession';
 import PlayerActionHandler from './PlayerActionHandler';
@@ -38,7 +38,7 @@ const fakeSession = (gamemode: Gametype, { serverAuthoritativeBreaking = false, 
     const broken: BlockPosition[] = [];
     const hit: BlockPosition[] = [];
     /** Whom each hit named as its striker, who is left out of the sound. */
-    const strikers: Array<Player | undefined> = [];
+    const strikers: Array<Parameters<World['hitBlock']>[2]> = [];
     const resent: BlockPosition[] = [];
     const sprinting: boolean[] = [];
     const flying: boolean[] = [];
@@ -60,7 +60,7 @@ const fakeSession = (gamemode: Gametype, { serverAuthoritativeBreaking = false, 
             broken.push(BlockPosition.fromVector3(where));
             return true;
         },
-        hitBlock: async (where: Vector3, _face: number, striker?: Player) => {
+        hitBlock: async (where: Vector3, _face: number, striker?: Parameters<World['hitBlock']>[2]) => {
             hit.push(BlockPosition.fromVector3(where));
             strikers.push(striker);
         },
@@ -84,7 +84,7 @@ const fakeSession = (gamemode: Gametype, { serverAuthoritativeBreaking = false, 
         }
     });
 
-    const player = stub<Player>({
+    const player = stubPlayerPort({
         gamemode,
         getName: () => 'tester',
         getRuntimeId: () => SELF,
