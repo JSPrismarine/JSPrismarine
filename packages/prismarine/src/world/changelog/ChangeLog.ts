@@ -72,9 +72,10 @@ type OpenTick = { readonly tick: number; readonly entries: ChangeEntry[] };
  * It sits beside `WorldChange` and does not replace it yet. `WorldChange` is a push stream to a
  * `WorldChangeSink`: it carries after-values only, holds class instances (`Vector3`,
  * `NBTTagCompound`) and mixes durable changes with transient facts that replication sends at
- * once. This log is pulled after the tick, carries before-values and holds plain data. Block
- * writes move onto it with their logged setters, and replication then reads it instead of the
- * sink, at which point `WorldChange` is deleted (slice 7 of the entity and tick re-architecture).
+ * once. This log is pulled after the tick, carries before-values and holds plain data. Block and
+ * block entity writes reach it through their logged setters, both streams carry them for now, and
+ * once replication reads this log instead of the sink, `WorldChange` is deleted (slice 7 of the
+ * entity and tick re-architecture).
  * @example
  * ```typescript
  * const log = new ChangeLog();
