@@ -3,15 +3,18 @@ import { Logger } from '@jsprismarine/logger';
 import { Config, Server } from '@jsprismarine/prismarine';
 import type { PlayerSession } from '@jsprismarine/prismarine';
 import { networkToken } from '@jsprismarine/prismarine/modules/tokens';
-import { MovePlayerPacket, PacketIdentifier, PositionMode } from '@jsprismarine/protocol';
+import {
+    LevelChunkPacket,
+    MovePlayerPacket,
+    NetworkChunkPublisherUpdatePacket,
+    PositionMode
+} from '@jsprismarine/protocol';
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import Client from './Client';
-import type { DecodedPacket } from './net/ClientPacketRegistry';
-import { isPacket } from './net/ClientPacketRegistry';
 import { LoopbackNetwork } from './testing/loopback.test.helper';
 
 const VIEW_DISTANCE = 2;
@@ -109,19 +112,28 @@ describe('a server teleport of a client that keeps reporting its old position', 
         const inView = (x: number, z: number): boolean =>
             center !== undefined && Math.max(Math.abs(x - center.x), Math.abs(z - center.z)) <= radius;
         let teleportedTo: { x: number; y: number; z: number } | undefined;
-        client.getSession().on('packet', (packet: DecodedPacket) => {
-            if (isPacket(packet, PacketIdentifier.NETWORK_CHUNK_PUBLISHER_UPDATE)) {
-                center = { x: packet.data.position.x >> 4, z: packet.data.position.z >> 4 };
-                radius = packet.data.radius >> 4;
+        const session = client.getSession();
+        session.registerHandler(NetworkChunkPublisherUpdatePacket, {
+            phases: ['login', 'play'],
+            handle: (update) => {
+                center = { x: update.position.x >> 4, z: update.position.z >> 4 };
+                radius = update.radius >> 4;
                 for (const key of kept) {
                     const [x, z] = key.split(',').map(Number);
                     if (!inView(x!, z!)) kept.delete(key);
                 }
-            } else if (isPacket(packet, PacketIdentifier.LEVEL_CHUNK)) {
-                if (inView(packet.data.chunkX, packet.data.chunkZ))
-                    kept.add(`${packet.data.chunkX},${packet.data.chunkZ}`);
-            } else if (isPacket(packet, PacketIdentifier.MOVE_PLAYER) && packet.data.mode === PositionMode.Teleport) {
-                teleportedTo = packet.data.position;
+            }
+        });
+        session.registerHandler(LevelChunkPacket, {
+            phases: ['login', 'play'],
+            handle: (chunk) => {
+                if (inView(chunk.chunkX, chunk.chunkZ)) kept.add(`${chunk.chunkX},${chunk.chunkZ}`);
+            }
+        });
+        session.registerHandler(MovePlayerPacket, {
+            phases: ['login', 'play'],
+            handle: (move) => {
+                if (move.mode === PositionMode.Teleport) teleportedTo = move.position;
             }
         });
 

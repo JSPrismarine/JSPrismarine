@@ -1,5 +1,5 @@
 import { Logger, terminalText } from '@jsprismarine/logger';
-import { PacketIdentifier } from '@jsprismarine/protocol';
+import { TextPacket } from '@jsprismarine/protocol';
 import { ClientSocket } from '@jsprismarine/raknet';
 import { writeFile } from 'node:fs/promises';
 import Client from '../Client';
@@ -8,9 +8,6 @@ import { formatReport } from '../bot/Metrics';
 import { UsageError, parseCount, parseDuration, parseNetwork, parsePercent, parseRate } from './Cli';
 import { conditionLink } from '../net/LinkConditions';
 
-import { isPacket } from '../net/ClientPacketRegistry';
-
-import type { DecodedPacket } from '../net/ClientPacketRegistry';
 import type { CliIo, Values } from './Cli';
 
 const DEFAULT_PORT = 19132;
@@ -87,12 +84,12 @@ const connect = async (values: Values, io: CliIo): Promise<number> => {
         loginTimeoutMs: optionalParsed(values, 'timeout', parseDuration)
     });
 
-    client.on('packet', (packet: DecodedPacket) => {
-        if (!isPacket(packet, PacketIdentifier.TEXT)) return;
-
-        const text = packet.data;
-        const message = terminalText(text.message);
-        io.out(text.sourceName ? `<${terminalText(text.sourceName)}> ${message}` : message);
+    client.getSession().registerHandler(TextPacket, {
+        phases: ['login', 'play'],
+        handle: (text) => {
+            const message = terminalText(text.message);
+            io.out(text.sourceName ? `<${terminalText(text.sourceName)}> ${message}` : message);
+        }
     });
 
     const startGame = await client.connect();

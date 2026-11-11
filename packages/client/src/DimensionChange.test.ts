@@ -4,9 +4,11 @@ import { Gametype } from '@jsprismarine/minecraft';
 import {
     ChangeDimensionPacket,
     LevelChunkPacket,
+    MovePlayerPacket,
     NetworkBinaryStream,
     PacketIdentifier,
     PlayStatus,
+    PlayStatusPacket,
     PlayerActionPacket,
     PlayerActionType,
     PositionMode,
@@ -19,14 +21,14 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
-import type { ChangeDimensionPayload } from '@jsprismarine/protocol';
+import type { ChangeDimensionPayload, NetworkPacket } from '@jsprismarine/protocol';
 import type { PlayerSession } from '@jsprismarine/prismarine';
 import type { DecodedPacket } from './net/ClientPacketRegistry';
 import type { PendingDimensionChange } from './DimensionChange';
 
 import Client from './Client';
 import DimensionChange from './DimensionChange';
-import ClientPacketRegistry, { isPacket } from './net/ClientPacketRegistry';
+import ClientPacketRegistry from './net/ClientPacketRegistry';
 import ClientSession from './net/ClientSession';
 import { FakeTransport } from './testing/fakeTransport.test.helper';
 
@@ -122,6 +124,13 @@ const playerNamed = (name: string): PlayerSession => {
     return player;
 };
 
+/** The payload of a decoded packet when `type` decoded it, and null for any other packet. */
+const payloadOf = <T>(decoded: DecodedPacket, type: new () => NetworkPacket<T>): T | null => {
+    // Typed `object` so that `instanceof` narrows to the class's own payload type.
+    const packet: object = decoded.packet;
+    return packet instanceof type ? packet.getPacketData() : null;
+};
+
 describe('traveling through a nether portal on a real server', () => {
     it('reads the change on the wire, closes the screen, and lands in the Nether', async () => {
         const client = newClient('PortalTester');
@@ -174,24 +183,20 @@ describe('traveling through a nether portal on a real server', () => {
         const indexOf = (id: number) => trip.findIndex((p) => p.id === id);
 
         // `ChangeDimension` names the Nether, carries a screen id, and comes before the rest.
-        const change = trip[0];
-        if (change === undefined || !isPacket(change, PacketIdentifier.CHANGE_DIMENSION)) throw new Error('no change');
-        expect(change.data.dimension).toBe(NETHER);
-        expect(change.data.respawn).toBe(false);
-        expect(change.data.loadingScreenId).not.toBeNull();
-        expect(ended[0]!.loadingScreenId).toBe(change.data.loadingScreenId);
+        const change = trip[0] === undefined ? null : payloadOf(trip[0], ChangeDimensionPacket);
+        if (change === null) throw new Error('no change');
+        expect(change.dimension).toBe(NETHER);
+        expect(change.respawn).toBe(false);
+        expect(change.loadingScreenId).not.toBeNull();
+        expect(ended[0]!.loadingScreenId).toBe(change.loadingScreenId);
 
         // The order the portal note settles on: ChangeDimension, StopSound, the publisher
         // update, the server-sent ack, the chunks, then PlayerSpawn.
         const serverAck = trip.findIndex(
-            (p) => isPacket(p, PacketIdentifier.PLAYER_ACTION) && p.data.action === PlayerActionType.ChangeDimensionAck
+            (p) => payloadOf(p, PlayerActionPacket)?.action === PlayerActionType.ChangeDimensionAck
         );
-        const firstNetherChunk = trip.findIndex(
-            (p) => isPacket(p, PacketIdentifier.LEVEL_CHUNK) && p.data.dimension === NETHER
-        );
-        const spawn = trip.findIndex(
-            (p) => isPacket(p, PacketIdentifier.PLAY_STATUS) && p.data.status === PlayStatus.PlayerSpawn
-        );
+        const firstNetherChunk = trip.findIndex((p) => payloadOf(p, LevelChunkPacket)?.dimension === NETHER);
+        const spawn = trip.findIndex((p) => payloadOf(p, PlayStatusPacket)?.status === PlayStatus.PlayerSpawn);
         expect(indexOf(PacketIdentifier.CHANGE_DIMENSION)).toBeLessThan(indexOf(PacketIdentifier.STOP_SOUND));
         expect(indexOf(PacketIdentifier.STOP_SOUND)).toBeLessThan(
             indexOf(PacketIdentifier.NETWORK_CHUNK_PUBLISHER_UPDATE)
@@ -201,28 +206,26 @@ describe('traveling through a nether portal on a real server', () => {
         expect(spawn).toBeGreaterThan(serverAck);
 
         // Every chunk since the change is the Nether's; none of the Overworld's leaked through.
-        const chunks = trip.filter((p) => isPacket(p, PacketIdentifier.LEVEL_CHUNK));
+        const chunks = trip.flatMap((p) => payloadOf(p, LevelChunkPacket) ?? []);
         expect(chunks.length).toBeGreaterThan(0);
-        for (const chunk of chunks) {
-            if (isPacket(chunk, PacketIdentifier.LEVEL_CHUNK)) expect(chunk.data.dimension).toBe(NETHER);
-        }
+        for (const chunk of chunks) expect(chunk.dimension).toBe(NETHER);
 
         // The server moved the player, and the teleport that ends the change came after the
         // client closed its screen, at the arrival position `ChangeDimension` announced.
         expect(player.getWorld().getDimension().bedrockId).toBe(NETHER);
         expect(player.getWorld()).not.toBe(overworld);
-        const move = trip.find((p) => isPacket(p, PacketIdentifier.MOVE_PLAYER));
-        if (move === undefined || !isPacket(move, PacketIdentifier.MOVE_PLAYER)) throw new Error('no move');
-        expect(move.data.mode).toBe(PositionMode.Teleport);
-        expect(move.data.runtimeEntityId).toBe(client.getStartGame()!.runtimeEntityId);
-        expect(move.data.position.x).toBeCloseTo(change.data.position.getX());
-        expect(move.data.position.y).toBeCloseTo(change.data.position.getY());
-        expect(move.data.position.z).toBeCloseTo(change.data.position.getZ());
+        const move = trip.flatMap((p) => payloadOf(p, MovePlayerPacket) ?? [])[0];
+        if (move === undefined) throw new Error('no move');
+        expect(move.mode).toBe(PositionMode.Teleport);
+        expect(move.runtimeEntityId).toBe(client.getStartGame()!.runtimeEntityId);
+        expect(move.position.x).toBeCloseTo(change.position.getX());
+        expect(move.position.y).toBeCloseTo(change.position.getY());
+        expect(move.position.z).toBeCloseTo(change.position.getZ());
         expect(indexOf(PacketIdentifier.MOVE_PLAYER)).toBeGreaterThan(firstNetherChunk);
 
         // Both carry the eyes the server holds, and the feet below them stand in the portal
         // the trip built rather than in its obsidian floor.
-        expect(move.data.position.y).toBeCloseTo(player.getPosition().getY());
+        expect(move.position.y).toBeCloseTo(player.getPosition().getY());
         const underfoot = await player
             .getWorld()
             .getBlock(
