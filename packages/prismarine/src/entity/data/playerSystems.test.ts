@@ -481,6 +481,22 @@ describe('a store player', () => {
             expect(healthOf(player)).toBe(14);
         });
 
+        it('spends its absorption before its health, as a golden apple gives it', () => {
+            const fixture = storePlayerFixture();
+            const { player, components } = standingPlayer(fixture);
+            components.set('attributes.absorption', 4);
+
+            fixture.runtime.damage({
+                target: player.id,
+                cause: 'entity_attack',
+                amount: 6,
+                source: { route: 'command', mitigated: true }
+            });
+
+            expect(components.get('attributes.absorption')).toBe(0);
+            expect(healthOf(player)).toBe(18);
+        });
+
         it('feeds and drains through the saturation and hunger effects', () => {
             const fixture = storePlayerFixture();
             const { player, components } = standingPlayer(fixture);

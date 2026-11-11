@@ -56,6 +56,8 @@ export interface DamageStageReads {
     isPlayer(id: number): boolean;
     /** Whether a blow reaches its target in the target's game mode, which only a player has. */
     reachesGameMode(intent: DamageIntent): boolean;
+    /** The extra hearts a target has in front of its health, which a player keeps in a component. */
+    absorption(target: DataEntity): number;
     /** The filter view of whoever dealt a blow, for the sensor's filters. */
     damagerView(id: number): FilterEntityView | undefined;
     /** Whether a game rule is on. */
@@ -268,7 +270,7 @@ export const damageModifiers = (reads: DamageStageReads, sensing: DamageSensingS
             modifier: (intent, amount) => {
                 const target = reads.target(intent.target);
                 if (intent.source.mitigated !== true || target === undefined || amount <= 0) return undefined;
-                const absorption = target.instance.attributes.get('absorption')?.current ?? 0;
+                const absorption = reads.absorption(target);
                 return absorption <= 0 ? undefined : { operation: 'add', value: -Math.min(absorption, amount) };
             }
         },

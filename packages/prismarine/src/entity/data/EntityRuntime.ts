@@ -627,6 +627,7 @@ export class EntityRuntime implements EntityScene {
             dying: (id: number) => this.dying.has(id),
             storeEntity: (id: number) => this.store.get(id),
             isPlayer: (id: number) => this.host.playerById(id) !== undefined,
+            absorption: (target: DataEntity) => this.absorptionOf(target),
             reachesGameMode: (intent: DamageIntent) => {
                 const target = this.store.get(intent.target);
                 return (
@@ -2289,9 +2290,7 @@ export class EntityRuntime implements EntityScene {
         }
 
         const absorbed = computation.modifiers.find((modifier) => modifier.name === 'absorption');
-        const absorption = entity.instance.attributes.get('absorption');
-        if (absorbed !== undefined && absorption !== undefined)
-            entity.instance.attributes.set('absorption', absorption.current + absorbed.value);
+        if (absorbed !== undefined) this.setAbsorption(entity, this.absorptionOf(entity) + absorbed.value);
 
         const taken = computation.amount;
         if (fresh && taken > 0 && source.feedback !== false) this.host.hurtFeedback?.(entity.id);
@@ -2325,6 +2324,26 @@ export class EntityRuntime implements EntityScene {
 
         if (result.died) this.die(entity);
         return { taken: result.amount, died: result.died };
+    }
+
+    /**
+     * The extra hearts an entity has in front of its health: its `absorption` attribute, or for a
+     * player the component field that keeps it, where a golden apple writes it.
+     */
+    private absorptionOf(entity: DataEntity): number {
+        if (clientOwnsMovement(entity.identifier))
+            return this.playerSystems.componentsOf(entity).get('attributes.absorption');
+        return entity.instance.attributes.get('absorption')?.current ?? 0;
+    }
+
+    /** Writes what a blow left of an entity's extra hearts, where {@link EntityRuntime.absorptionOf} reads them. */
+    private setAbsorption(entity: DataEntity, absorption: number): void {
+        if (clientOwnsMovement(entity.identifier)) {
+            this.playerSystems.componentsOf(entity).set('attributes.absorption', absorption);
+            return;
+        }
+        if (entity.instance.attributes.get('absorption') !== undefined)
+            entity.instance.attributes.set('absorption', absorption);
     }
 
     /**
