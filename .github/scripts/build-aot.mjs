@@ -1,7 +1,9 @@
 import { execFileSync } from 'node:child_process';
 import { readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+
+import { tsImport } from 'tsx/esm/api';
 
 import { buildPackagedData } from '../../scripts/data-bundle.mts';
 
@@ -125,6 +127,27 @@ console.log(
     `Embedding ${packaged.fileCount} data files (${(packaged.bundle.byteLength / 1024 / 1024).toFixed(1)} MiB gzipped)`
 );
 
+/** The native networking library's platform key for each Bun target; darwin-x64 has no build. */
+const nativePlatforms = {
+    'bun-linux-x64': 'linux-x64-gnu',
+    'bun-linux-arm64': 'linux-arm64-gnu',
+    'bun-linux-x64-musl': 'linux-x64-musl',
+    'bun-linux-arm64-musl': 'linux-arm64-musl',
+    'bun-darwin-arm64': 'darwin-arm64',
+    'bun-windows-x64': 'win32-x64'
+};
+const { libraryForPlatform } = await tsImport(
+    pathToFileURL(path.join(repositoryRoot, 'packages', 'native-network', 'src', 'embed.ts')).href,
+    import.meta.url
+);
+const nativeLibrary =
+    nativePlatforms[target] === undefined ? undefined : await libraryForPlatform(nativePlatforms[target]);
+if (nativeLibrary === undefined) {
+    console.warn(`No native networking library for ${target}: the executable can run RakNet only.`);
+} else {
+    console.log(`Embedding the native networking library (${nativeLibrary.byteLength} bytes)`);
+}
+
 const checkedInSource = readFileSync(embeddedDataPath, 'utf8');
 const withPayload = checkedInSource
     .replace(
@@ -134,6 +157,10 @@ const withPayload = checkedInSource
     .replace(
         "export const EMBEDDED_DATA_MANIFEST = '';",
         `export const EMBEDDED_DATA_MANIFEST = ${JSON.stringify(packaged.manifest)};`
+    )
+    .replace(
+        "export const EMBEDDED_NATIVE_LIBRARY = '';",
+        `export const EMBEDDED_NATIVE_LIBRARY = '${nativeLibrary === undefined ? '' : Buffer.from(nativeLibrary).toString('base64')}';`
     );
 if (withPayload === checkedInSource) {
     throw new Error(`${embeddedDataPath} no longer holds the empty constants this script fills in`);

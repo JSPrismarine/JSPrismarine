@@ -28,6 +28,36 @@ JavaScript:
   a loopback socket, and only when the other side was idle. A RakNet worker thread can own the
   rings without loading this package.
 
+## Installing it
+
+The package carries no library. Its install script downloads the one build for the machine it is
+installed on from the GitHub release `native/manifest.json` names, checks the file's SHA-256
+against the manifest, and stores it in the package's `prebuilds/` directory. Loading the library
+downloads nothing, and checks the file against the same digest.
+
+Package managers that hold install scripts back need to be told to run this one:
+
+- npm runs it unless install scripts are turned off.
+- pnpm runs it after `pnpm approve-builds`, or with
+  `allowBuilds: { '@jsprismarine/native-network': true }` in `pnpm-workspace.yaml`.
+- Bun runs it once `"@jsprismarine/native-network"` is in the project's `trustedDependencies`.
+
+Without the build, loading fails with a message that says which of these applies.
+
+| Variable | Effect |
+| --- | --- |
+| `JSP_NATIVE_NETWORK_LIBRARY` | Loads this file instead of the installed build. It is checked against the manifest too. |
+| `JSP_NATIVE_NETWORK_SKIP_DOWNLOAD=1` | The install script downloads nothing. |
+| `JSP_NATIVE_NETWORK_BASE_URL` | Downloads from another host, or reads from a directory, instead of the release. |
+
+Builds exist for macOS on Apple Silicon, Windows on x64, and Linux on x64 and arm64
+against glibc 2.36 or newer and against musl. Each depends only on what every machine of its
+platform has. The C++ runtime and TLS are linked in.
+
+A single executable built by `pnpm run package`, or by the release's Bun compile, carries its
+platform's build. On its first start it writes the library to its cache directory under the
+file's digest, and loads it from there.
+
 ## Building it
 
 `pnpm --filter @jsprismarine/native-network run build:native` builds the library for this machine
@@ -38,7 +68,18 @@ applies `native/patches/libjuice-mux-hooks.patch`, and runs CMake.
 
 `--tls openssl` builds against OpenSSL instead, for comparison; it also needs Perl and make.
 
-`JSP_NATIVE_NETWORK_LIBRARY` names a library file to load instead of the build in `prebuilds/`.
+The build writes a `build.json` beside the library, and the loader accepts a library whose
+digest matches it, so a checkout runs its own build. A checkout's `pnpm install` downloads the
+published build only while the native sources still match the manifest's `build` hash.
+
+## Publishing builds
+
+The Native network workflow builds every platform on each change, checks each build's
+dependencies, loads it under Node.js and Bun, and installs the packed package with npm, pnpm and
+Bun. Run by hand with `publish`, it attaches the builds to a release named
+`native-network-build-<hash>` for the native sources' hash, and commits the manifest that points
+at them. The release workflow refuses to publish the package while the manifest does not match
+the sources.
 
 ## The libjuice patch
 

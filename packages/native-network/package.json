@@ -22,6 +22,8 @@
     "type": "module",
     "files": [
         "dist",
+        "native/manifest.json",
+        "scripts/postinstall.mjs",
         "CHANGELOG.md",
         "README.md"
     ],
@@ -43,7 +45,8 @@
         "build": "vite build && node ../../scripts/emit-dts.mts",
         "build:watch": "vite build --watch",
         "build:native": "node scripts/build-native.mts",
-        "typecheck": "tsc-ts --noEmit && tsc-ts --noEmit -p tsconfig.test.json"
+        "typecheck": "tsc-ts --noEmit && tsc-ts --noEmit -p tsconfig.test.json",
+        "postinstall": "node scripts/postinstall.mjs"
     },
     "repository": {
         "type": "git",
@@ -65,6 +68,7 @@
         "@types/node": "26.6.6",
         "glob": "14.0.5",
         "rimraf": "6.1.4",
+        "tsx": "4.23.15",
         "typescript": "7.0.2",
         "vite": "8.3.8",
         "vitest": "5.1.0"

@@ -19,8 +19,9 @@ import { execFileSync } from 'node:child_process';
 
 import { mkdirSync, statSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { rolldown } from 'rolldown';
+import { tsImport } from 'tsx/esm/api';
 import { buildPackagedData } from './data-bundle.mts';
 import { rewriteSeaWorkerRequireBase } from './sea-worker-bundle.ts';
 import { yargsCjsImportMetaPlugin } from './yargs-cjs-import-meta.ts';
@@ -125,6 +126,26 @@ console.log(
 const manifestPath = path.join(seaDir, 'data-manifest.json');
 writeFileSync(manifestPath, packaged.manifest);
 
+// The native networking library for this platform, which the executable writes to its cache
+// directory on start. Without it, NetherNet cannot start.
+const nativeNetworkSource = (file: string): string =>
+    pathToFileURL(path.join(repoRoot, 'packages', 'native-network', 'src', file)).href;
+// tsImport returns an untyped module; these are the two exports this script calls.
+const { libraryForPlatform } = (await tsImport(nativeNetworkSource('embed.ts'), import.meta.url)) as {
+    libraryForPlatform: (platform: string) => Promise<Uint8Array | undefined>;
+};
+const { platformKey } = (await tsImport(nativeNetworkSource('platform.ts'), import.meta.url)) as {
+    platformKey: () => string;
+};
+const nativeLibrary = await libraryForPlatform(platformKey());
+const nativeLibraryPath = path.join(seaDir, 'native-network-library.bin');
+if (nativeLibrary === undefined) {
+    console.warn(`No native networking library for ${platformKey()}: the executable can run RakNet only.`);
+} else {
+    writeFileSync(nativeLibraryPath, nativeLibrary);
+    console.log(`Embedding the native networking library (${nativeLibrary.byteLength} bytes)`);
+}
+
 console.log(`Building the single executable (code cache ${useCodeCache ? 'enabled' : 'disabled'})...`);
 const seaConfig = path.join(seaDir, 'sea-config.json');
 writeFileSync(
@@ -138,6 +159,7 @@ writeFileSync(
             assets: {
                 'data-bundle': bundlePath,
                 'data-manifest': manifestPath,
+                ...(nativeLibrary === undefined ? {} : { 'native-network-library': nativeLibraryPath }),
                 ...Object.fromEntries(workerAssets.map(([name]) => [name, path.join(seaDir, `${name}.mjs`)]))
             }
         },

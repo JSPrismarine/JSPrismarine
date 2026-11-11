@@ -21,5 +21,11 @@ export const EMBEDDED_DATA_BUNDLE = '';
 /** The JSON manifest describing the bundle and the pinned Bedrock server. Empty in a checkout. */
 export const EMBEDDED_DATA_MANIFEST = '';
 
+/**
+ * Base64 of the native networking library for the executable's platform. Empty in a checkout, and
+ * in an executable for a platform with no published build.
+ */
+export const EMBEDDED_NATIVE_LIBRARY = '';
+
 /** Whether this build carries embedded data, which only a Bun-compiled executable does. */
 export const hasEmbeddedData = (): boolean => EMBEDDED_DATA_BUNDLE.length > 0;
