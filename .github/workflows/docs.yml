@@ -3,12 +3,26 @@ env:
     GIT_CONFIG_COUNT: '1'
     GIT_CONFIG_KEY_0: init.defaultBranch
     GIT_CONFIG_VALUE_0: master
+    # The gh-pages folder that holds pull request previews. The master deploy leaves it in place.
+    PREVIEW_DIR: pr-preview
 
 on:
     # A push run reports on the master commit it publishes; a workflow_run would attach to the default branch head.
     push:
         branches:
             - master
+    # Previews cover changes to the site's own pages and theme. Package sources also feed the API
+    # reference, the docs facts and the parity tracker, but a change there alone builds no preview.
+    pull_request:
+        types: [opened, reopened, synchronize, closed]
+        paths:
+            - 'docs/**'
+            # Contributor-only notes the site leaves out.
+            - '!docs/design/**'
+            - 'tools/docs/**'
+            - 'CONTRIBUTING.md'
+            - 'CODE_OF_CONDUCT.md'
+            - '.github/workflows/docs.yml'
 
 permissions:
     actions: read
@@ -16,7 +30,7 @@ permissions:
     pull-requests: read
 
 concurrency:
-    group: ${{ github.workflow }}-${{ github.ref }}
+    group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
     cancel-in-progress: false
 
 jobs:
@@ -24,6 +38,11 @@ jobs:
     # run overlaps with the build instead of adding to it and no runner sits waiting meanwhile.
     build-docs:
         name: 📖 Build Docs
+        # A closed pull request only has its preview removed. A fork's token cannot push a preview.
+        if: >-
+            github.event_name == 'push' ||
+            (github.event.action != 'closed' &&
+            github.event.pull_request.head.repo.full_name == github.repository)
         # runs-on: blacksmith-4vcpu-ubuntu-2404
         runs-on: ubuntu-latest
         env:
@@ -87,6 +106,8 @@ jobs:
               env:
                   # The contributors page reads GitHub's contributor list at build time.
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                  # A preview's base path, the folder rossjrw/pr-preview-action deploys it to.
+                  DOCS_PREVIEW_PATH: ${{ github.event_name == 'pull_request' && format('{0}/pr-{1}', env.PREVIEW_DIR, github.event.number) || '' }}
               run: pnpm run build:docs
 
             - name: 🚚 Upload the built site
@@ -98,6 +119,7 @@ jobs:
 
     publish-docs:
         name: 🚀 Publish Docs
+        if: github.event_name == 'push'
         runs-on: ubuntu-latest
         needs: build-docs
         permissions:
@@ -127,9 +149,48 @@ jobs:
                   name: docs-site
                   path: docs-site
 
-            - uses: peaceiris/actions-gh-pages@84c30a85c19949d7eee79c4ff27748b70285e453 # v4
+            # VitePress emits files that start with an underscore, which Jekyll would drop.
+            - name: Turn off Jekyll
+              run: touch docs-site/.nojekyll
+
+            # Replacing the branch's files would delete every open pull request's preview, and a force
+            # push would discard previews pushed meanwhile.
+            - uses: JamesIves/github-pages-deploy-action@fa24774553152dd7873cd16ebd8d959b010c5445 # v4.9.0
               with:
-                  github_token: ${{ secrets.GITHUB_TOKEN }}
-                  publish_dir: ./docs-site
-                  enable_jekyll: false
-                  commit_message: ${{ github.event.head_commit.message }}
+                  folder: docs-site
+                  branch: gh-pages
+                  clean-exclude: ${{ env.PREVIEW_DIR }}
+                  force: false
+                  commit-message: ${{ github.event.head_commit.message }}
+
+    preview-docs:
+        name: 🔎 Preview Docs
+        # Runs without a build when the pull request closes, to remove its preview.
+        if: >-
+            !cancelled() &&
+            github.event_name == 'pull_request' &&
+            github.event.pull_request.head.repo.full_name == github.repository &&
+            (github.event.action == 'closed' || needs.build-docs.result == 'success')
+        runs-on: ubuntu-latest
+        needs: build-docs
+        permissions:
+            contents: write
+            pull-requests: write
+        steps:
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+            - name: 📥 Download the built site
+              if: github.event.action != 'closed'
+              uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+              with:
+                  name: docs-site
+                  path: docs-site
+
+            # Deploys on opened, reopened and synchronize, removes on closed, and keeps a comment with
+            # the preview link on the pull request.
+            - uses: rossjrw/pr-preview-action@873417d2df72380da1f3978378fb58560bcde976 # v1.8.2
+              with:
+                  source-dir: docs-site
+                  preview-branch: gh-pages
+                  umbrella-dir: ${{ env.PREVIEW_DIR }}
+                  action: auto

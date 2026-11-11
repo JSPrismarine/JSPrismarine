@@ -13,6 +13,10 @@ import { palette, paletteCss } from './theme/tokens.ts';
 
 const repositoryUrl = manifest.repository.url.replace(/^git\+/, '').replace(/\.git$/, '');
 const siteUrl = 'https://jsprismarine.github.io/JSPrismarine/';
+// The docs workflow builds a pull request's preview for a folder under the site, such as `pr-preview/pr-12`.
+// Canonical and Open Graph URLs keep pointing at the published site.
+const previewPath = process.env.DOCS_PREVIEW_PATH?.replace(/^\/+|\/+$/g, '');
+const base = `${new URL(siteUrl).pathname}${previewPath ? `${previewPath}/` : ''}`;
 // The README's Discord badge is the one place the invite is written.
 const discordInvite = /\]\((https:\/\/discord\.gg\/[\w-]+)\)/.exec(
     readFileSync(new URL('../../../../README.md', import.meta.url), 'utf8')
@@ -22,7 +26,7 @@ export default defineConfig({
     lang: 'en-US',
     title: 'JSPrismarine',
     description: 'Dedicated Minecraft Bedrock Edition server written in TypeScript',
-    base: '/JSPrismarine/',
+    base,
     head: [
         ['style', {}, paletteCss],
         ['link', { rel: 'icon', type: 'image/svg+xml', href: `data:image/svg+xml,${encodeURIComponent(prismSvg())}` }],
