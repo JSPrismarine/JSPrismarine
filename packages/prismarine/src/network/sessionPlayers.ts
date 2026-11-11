@@ -10,7 +10,7 @@
  * Live players are still legacy `Player` objects, filed in {@link LegacyPlayers} by
  * `createConnectedPlayer` and forgotten by `PlayerSession.disable`. A world's entity map is not
  * enough: a player is not in it from the login to `SetLocalPlayerAsInitialized`, nor between the
- * two worlds of a dimension change, and the session speaks for it throughout. Package C4h of the
+ * two worlds of a dimension change, and the session speaks for it throughout. Package H-D of the
  * entity and tick re-architecture switches the session to `EntityRuntimes.players`, which files
  * store players by the same id and has the same two methods, and deletes {@link LegacyPlayers}.
  */

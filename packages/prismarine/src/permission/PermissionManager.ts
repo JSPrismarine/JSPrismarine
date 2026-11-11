@@ -37,7 +37,9 @@ export type PermissionSubject = Console | { isOp(): boolean; getPermissions(): s
 
 /**
  * Whose permissions to read or set: the identity a login carries, or anything that answers
- * `getUUID`, such as a player. Permissions and operators are filed by UUID.
+ * `getUUID`, such as a player. Permissions and operators are filed by UUID. `Player.enable` reads
+ * its permissions with the second form; package H-D of the entity and tick re-architecture drops
+ * it once that passes the identity.
  */
 export type PermissionHolder = Pick<PlayerIdentity, 'uuid'> | { getUUID(): { toString(): string } };
 

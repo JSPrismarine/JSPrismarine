@@ -24,7 +24,9 @@ export type BanManagerServer = Pick<Server, 'getLogger'>;
 
 /**
  * The part of a player a ban check reads. Bans are keyed by name only, so this is the name of the
- * identity a login carries, or anything that answers `getName`, such as a player.
+ * identity a login carries, or anything that answers `getName`, such as a player. `LoginHandler`
+ * passes the second form with the login's display name; package H-D of the entity and tick
+ * re-architecture drops it once that passes the identity.
  */
 export type BanSubject = Pick<PlayerIdentity, 'name'> | { getName(): string };
 

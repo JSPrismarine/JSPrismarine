@@ -16,8 +16,8 @@ const barsByPlayer = new Map<bigint, Set<BossBar>>();
 
 /**
  * A client a bar is shown to: its session, or a legacy player, which is reached through its
- * session. Callers that still hold the player pass it until package C4h of the entity and tick
- * re-architecture, which leaves the session alone.
+ * session. `BossEventHandler` still passes the player; package H-D of the entity and tick
+ * re-architecture drops the second form once it passes the session.
  */
 export type BossBarViewer = PlayerSession | { getNetworkSession(): PlayerSession };
 

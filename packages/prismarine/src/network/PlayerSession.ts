@@ -286,9 +286,9 @@ const SUB_CHUNK_REQUESTS_SINCE = 2225;
  * What a session reads of its own player beyond the id and identity it holds: the state the
  * entity store does not hold yet. Where the player is and its world drive chunk streaming and
  * entity tracking, and its inventory, attributes and health go into the session's own sends.
- * What other clients are shown of it is its body's, {@link PlayerSession.shown}. A legacy
- * `Player` has every member; package C4h of the entity and tick re-architecture answers them for
- * a store player.
+ * What other clients are shown of it is its body's, {@link PlayerSession.shown}. The
+ * {@link SessionPlayer} has every member; package H-D of the entity and tick re-architecture
+ * answers them from the store player and the session.
  */
 interface OwnPlayer extends Pick<ShownPlayer, 'getPosition' | 'gamemode' | 'attributes' | 'getUUID'> {
     getWorld(): World;
@@ -2090,7 +2090,7 @@ export default class PlayerSession {
     /**
      * Send only the attributes that changed since the last sync, if any.
      *
-     * Called every tick from {@link Player.update}: a value nothing tells the client about is
+     * Called every tick from the player's update: a value nothing tells the client about is
      * a value that only exists on the server.
      */
     public async syncAttributes(): Promise<void> {
@@ -2959,7 +2959,7 @@ export default class PlayerSession {
      *
      * By id rather than by entity because the tracker has to be able to hide something that
      * has already left the world - there is no object left to ask. Correct for every kind of
-     * entity: `RemoveActorPacket` is what `Entity.despawnFrom` sends, players included.
+     * entity, players included: `RemoveActorPacket` names only the id.
      * @param {bigint} runtimeId - The entity's runtime id.
      */
     public async sendRemoveActorById(runtimeId: bigint): Promise<void> {
@@ -3029,8 +3029,8 @@ export default class PlayerSession {
      */
     public queueMoveActor(entity: MovedActor, teleport = false): void {
         // Keyed by entity, so an entity that moved more than once this tick goes out once, at
-        // where it ended up. `Entity.setX`, `setY` and `setZ` each announce a move of their
-        // own, so a diagonal step produced three identical packets naming the same
+        // where it ended up. The legacy entity's `setX`, `setY` and `setZ` each announced a move
+        // of their own, so a diagonal step produced three identical packets naming the same
         // destination. A `Map` keeps insertion order, so the batch is ordered as before.
         this.queuedMoves.set(Number(entity.getRuntimeId()), PlayerSession.movePacketFor(entity, teleport));
     }
@@ -3139,8 +3139,8 @@ export default class PlayerSession {
      *
      * The one way from a session to its player's state. Code that needs only the id, the name
      * or the key reads {@link PlayerSession.runtimeId} or {@link PlayerSession.identity} instead,
-     * and keeps working when package C4h of the entity and tick re-architecture makes this a
-     * store player.
+     * and keeps working when package H-D of the entity and tick re-architecture makes this the
+     * store player; see {@link SessionPlayer}.
      * @returns The player.
      * @throws {Error} Once {@link PlayerSession.disable} has forgotten the player.
      */
