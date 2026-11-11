@@ -3,7 +3,7 @@ import { useRouter, withBase } from 'vitepress';
 import { computed, nextTick, onMounted, ref, shallowRef, useId, watch } from 'vue';
 
 import { type ResultGroup, SCOPES, type SearchEngine, type SearchResult, loadSearch, parseQuery } from './search.ts';
-import { closeAll, menu, readRecent, useSiteMenu } from './state.ts';
+import { closeAll, menu, readRecent, useModifierLabel, useSiteMenu } from './state.ts';
 
 /**
  * The menu's search: a WAI-ARIA combobox over a listbox of grouped results. `bar` puts the field in
@@ -16,6 +16,7 @@ const emit = defineEmits<{ close: [restoreFocus: boolean] }>();
 const uid = useId();
 const router = useRouter();
 const { actions, current } = useSiteMenu();
+const modifier = useModifierLabel();
 const input = ref<HTMLInputElement | null>(null);
 const engine = shallowRef<SearchEngine | null>(null);
 const failed = ref(false);
@@ -301,7 +302,7 @@ const KIND_TAG: Record<SearchResult['kind'], string> = {
                         </button>
                     </span>
                     <span v-if="props.variant === 'bar'" class="site-search__keys">
-                        <kbd>↑↓</kbd> move <kbd>↵</kbd> open <kbd>⌘↵</kbd> new tab
+                        <kbd>↑↓</kbd> move <kbd>↵</kbd> open <kbd>{{ modifier }} ↵</kbd> new tab
                     </span>
                 </div>
             </div>

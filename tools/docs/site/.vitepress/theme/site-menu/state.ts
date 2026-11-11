@@ -1,5 +1,5 @@
 import { useData, useRoute, withBase } from 'vitepress';
-import { computed, reactive, watch } from 'vue';
+import { computed, onMounted, reactive, ref, watch } from 'vue';
 
 import type { MegaMenu, ThemeConfigWithMegaMenus } from '../types.ts';
 import type { SearchResult } from './search.ts';
@@ -163,5 +163,26 @@ export function trackNavigation() {
             if (page.value.title && !page.value.isNotFound) rememberPage(normalizeRoute(route.path), page.value.title);
         },
         { immediate: true }
+    );
+}
+
+/**
+ * The label for the shortcut modifier: ⌘ on Apple platforms, Ctrl elsewhere, as tinykeys' `$mod` reads
+ * it. The server render shows ⌘ until the page mounts and can see the platform.
+ */
+export function useModifierLabel() {
+    const label = ref('⌘');
+    onMounted(() => {
+        if (!/Mac|iPhone|iPad|iPod/.test(navigator.platform)) label.value = 'Ctrl';
+    });
+    return label;
+}
+
+/** Whether a key event comes from a field the reader is typing into, where shortcuts stay out of the way. */
+export function isTyping(event: KeyboardEvent) {
+    const target = event.target;
+    return (
+        target instanceof HTMLElement &&
+        (target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName))
     );
 }

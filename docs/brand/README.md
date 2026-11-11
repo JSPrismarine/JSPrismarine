@@ -159,6 +159,9 @@ The site has one menu, in `tools/docs/site/.vitepress/theme/site-menu/`, drawn f
   the menu is open, and the panel ends on an accent rule.
 - **You leave where you entered.** Close sits exactly where Menu was, and Esc returns focus to the
   button or field that opened the menu.
+- **Its hints are true.** Every key the hint row shows works while the menu is open, wherever focus
+  is, including a menu opened with the pointer. Shortcut labels follow the platform: ⌘ on Apple, Ctrl
+  elsewhere, and `/` works on layouts that need Shift for it.
 - **It knows where you are.** The current section carries the accent bar, the current page is
   highlighted, and a breadcrumb above the page names both.
 

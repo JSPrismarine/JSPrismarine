@@ -5,7 +5,7 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, useId } from 'vue'
 
 import SitePanel from './SitePanel.vue';
 import SiteSearch from './SiteSearch.vue';
-import { closeAll, menu, trackNavigation, useSiteMenu } from './state.ts';
+import { closeAll, isTyping, menu, trackNavigation, useModifierLabel, useSiteMenu } from './state.ts';
 
 /**
  * The site menu on the nav bar, from 768px up: a disclosure navigation (the WAI-ARIA pattern for site
@@ -14,6 +14,7 @@ import { closeAll, menu, trackNavigation, useSiteMenu } from './state.ts';
  */
 const { menus, currentMenu } = useSiteMenu();
 trackNavigation();
+const modifier = useModifierLabel();
 
 const uid = useId();
 const root = ref<HTMLElement | null>(null);
@@ -138,6 +139,17 @@ function onPanelKeydown(event: KeyboardEvent) {
             links[(index + delta + links.length) % links.length]?.focus();
             break;
         }
+        case 'ArrowRight':
+        case 'ArrowLeft': {
+            // From inside the panel the side arrows move to the neighboring section, as on the triggers.
+            event.preventDefault();
+            const buttons = triggerButtons();
+            const position = trigger ? buttons.indexOf(trigger) : -1;
+            const next = buttons[(position + (event.key === 'ArrowRight' ? 1 : -1) + buttons.length) % buttons.length];
+            if (next?.dataset.section) open(next.dataset.section);
+            focusPanelLink('first');
+            break;
+        }
         case 'Escape':
             event.preventDefault();
             close(trigger);
@@ -155,6 +167,38 @@ function onPanelKeydown(event: KeyboardEvent) {
             next?.focus();
             break;
         }
+    }
+}
+
+/**
+ * The keys the open panel advertises, wherever focus is: a panel opened by the pointer leaves focus on
+ * the page, and the hints have to hold there too. Keys the trigger or the panel already handle are
+ * left to them.
+ */
+function onOpenKeydown(event: KeyboardEvent) {
+    if (!menu.section || isTyping(event)) return;
+    const focus = document.activeElement;
+    if (panel.value?.contains(focus) || root.value?.contains(focus)) return;
+    const buttons = triggerButtons();
+    const index = buttons.findIndex((button) => button.dataset.section === menu.section);
+    switch (event.key) {
+        case 'ArrowRight':
+        case 'ArrowLeft': {
+            event.preventDefault();
+            const next = buttons[(index + (event.key === 'ArrowRight' ? 1 : -1) + buttons.length) % buttons.length];
+            if (next?.dataset.section) open(next.dataset.section);
+            next?.focus();
+            break;
+        }
+        case 'ArrowDown':
+        case 'ArrowUp':
+            event.preventDefault();
+            focusPanelLink(event.key === 'ArrowDown' ? 'first' : 'last');
+            break;
+        case 'Escape':
+            event.preventDefault();
+            close(triggerFor(menu.section));
+            break;
     }
 }
 
@@ -180,6 +224,7 @@ function closeSearch(restoreFocus: boolean) {
 
 let unbind: (() => void) | undefined;
 let onPointerdown: ((event: PointerEvent) => void) | undefined;
+let onSlash: ((event: KeyboardEvent) => void) | undefined;
 
 onMounted(() => {
     const wide = window.matchMedia('(min-width: 768px)');
@@ -188,7 +233,14 @@ onMounted(() => {
         event.preventDefault();
         openSearch();
     };
-    unbind = tinykeys(window, { '$mod+KeyK': start, '/': start });
+    unbind = tinykeys(window, { '$mod+KeyK': start });
+    // "/" is matched by the character typed, so it works on layouts that need Shift for it.
+    onSlash = (event) => {
+        if (event.key !== '/' || event.ctrlKey || event.metaKey || event.altKey || isTyping(event)) return;
+        start(event);
+    };
+    window.addEventListener('keydown', onSlash);
+    window.addEventListener('keydown', onOpenKeydown);
     onPointerdown = (event) => {
         if (!menu.section && !menu.searching) return;
         const target = event.target;
@@ -202,6 +254,8 @@ onMounted(() => {
 onBeforeUnmount(() => {
     unbind?.();
     if (onPointerdown) document.removeEventListener('pointerdown', onPointerdown);
+    if (onSlash) window.removeEventListener('keydown', onSlash);
+    window.removeEventListener('keydown', onOpenKeydown);
     clearTimers();
 });
 </script>
@@ -244,7 +298,7 @@ onBeforeUnmount(() => {
             <button ref="searchButton" class="site-nav__search" type="button" @click="openSearch">
                 <span class="site-nav__magnifier" aria-hidden="true"></span>
                 <span class="site-nav__search-label">Search</span>
-                <kbd aria-hidden="true">⌘K</kbd>
+                <kbd aria-hidden="true">{{ modifier }} K</kbd>
             </button>
         </template>
         <SiteSearch v-else ref="search" variant="bar" @close="closeSearch" />
