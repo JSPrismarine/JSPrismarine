@@ -32,8 +32,8 @@ nightly builds of `master`.
 | Linux, x64 | `prismarine-linux-x64` |
 | Linux, ARM64 | `prismarine-linux-arm64` |
 | Linux with musl (Alpine), x64 or ARM64 | `prismarine-linux-x64-musl`, `prismarine-linux-arm64-musl` |
-| macOS, Apple silicon or Intel | `prismarine-darwin-arm64`, `prismarine-darwin-x64`, or the app in `JSPrismarine-<arch>.app.zip` |
-| Windows, x64 or ARM64 | `prismarine-windows-x64.exe`, `prismarine-windows-arm64.exe` |
+| macOS, Apple silicon | `prismarine-darwin-arm64`, or the app in `JSPrismarine-arm64.app.zip` |
+| Windows, x64 | `prismarine-windows-x64.exe` |
 
 Nightly pre-releases are built for fewer platforms: Linux x64, macOS on Apple silicon and Windows
 x64.
