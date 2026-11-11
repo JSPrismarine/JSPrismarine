@@ -9,7 +9,7 @@
 import { WindowIds } from '@jsprismarine/minecraft';
 import { describe, expect, it } from 'vitest';
 
-import type { Entity } from '../entity/Entity';
+import type { ShownActor } from '../world/ShownActor';
 import type { ViewableEquipment } from '../entity/predicateView';
 import { Item } from '../item/Item';
 import { stub } from '../testing/stub.test.helper';
@@ -48,8 +48,8 @@ const recordingSession = () => {
 };
 
 /** A mob whose equipment is the given set, which is all the send reads off it. */
-const mob = (equipment: ViewableEquipment): Entity =>
-    stub<Entity>({
+const mob = (equipment: ViewableEquipment): ShownActor =>
+    stub<ShownActor>({
         getRuntimeId: () => 42n,
         getEquipment: () => equipment
     });

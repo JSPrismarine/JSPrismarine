@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import type { Config } from '../config/Config';
 import type Server from '../Server';
-import type { Entity } from '../entity/Entity';
+import type { MovedActor } from './PlayerSession';
 import type { SessionPlayer } from './sessionPlayers';
 import { stub } from '../testing/stub.test.helper';
 import { Position } from '../world/Position';
@@ -46,15 +46,14 @@ const requireMovementPacket = (packet: NetworkPacket<unknown>): MoveActorAbsolut
 const someWorld = () => stub<World>({ getName: () => 'test', getServer: () => stub<Server>() });
 
 /** An entity with just the parts a movement packet reads. */
-const entityAt = (id: bigint, x: number, grounded = false): Entity =>
-    stub<Entity>({
-        getRuntimeId: () => id,
-        getPosition: () => new Position(x, 65, 0, someWorld()),
-        isOnGround: () => grounded,
-        pitch: 0,
-        yaw: 0,
-        headYaw: 0
-    });
+const entityAt = (id: bigint, x: number, grounded = false, { yaw = 0, headYaw = 0 } = {}): MovedActor => ({
+    getRuntimeId: () => id,
+    getPosition: () => new Position(x, 65, 0, someWorld()),
+    isOnGround: () => grounded,
+    pitch: 0,
+    yaw,
+    headYaw
+});
 
 describe('entity movement on the wire', () => {
     it('sends a whole tick of movement as one batch', async () => {
@@ -127,9 +126,7 @@ describe('entity movement on the wire', () => {
         // Left at zero, every mob faced north whatever it was doing.
         const { session, batches } = sessionWithCountedSends();
 
-        const entity = entityAt(1n, 1);
-        entity.yaw = 90;
-        entity.headYaw = 45;
+        const entity = entityAt(1n, 1, false, { yaw: 90, headYaw: 45 });
 
         session.queueMoveActor(entity);
         await session.flushQueuedMoves();
@@ -146,7 +143,7 @@ describe('entity movement on the wire', () => {
 
     describe('the on-ground flag', () => {
         /** The header byte of the one queued move, which is where the flags are written. */
-        const headerOf = async (entity: Entity): Promise<number> => {
+        const headerOf = async (entity: MovedActor): Promise<number> => {
             const { session, batches } = sessionWithCountedSends();
             session.queueMoveActor(entity);
             await session.flushQueuedMoves();

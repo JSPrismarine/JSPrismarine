@@ -41,7 +41,6 @@ import { Item } from '../item/Item';
 import BlockPosition from '../world/BlockPosition';
 import { Position } from '../world/Position';
 import type { World } from '../world/World';
-import type { WorldActor } from '../world/WorldActor';
 import CoordinateUtils from '../world/CoordinateUtils';
 import { chunkViewArea, offsetsIn } from '../world/ChunkViewArea';
 import { DEFAULT_VIEW_DISTANCE_CHUNKS, effectiveViewDistance, toChunk } from '../world/Proximity';
@@ -258,9 +257,12 @@ export interface TradeSource {
     readonly level: number;
 }
 
+/** What a trade screen reads of its trader: the actor the screen is bound to, and its name for the title. */
+export type TradingActor = Pick<ShownActor, 'getRuntimeId' | 'getPosition' | 'getType'> & { getName(): string };
+
 /** A trade screen's trader, and what happens when the player stops trading. */
 export interface OpenTrade {
-    readonly trader: WorldActor;
+    readonly trader: TradingActor;
     /** The title of the screen as a translation key, such as `entity.villager.farmer`; the trader's name when absent. */
     readonly title?: string;
     readonly source: TradeSource;

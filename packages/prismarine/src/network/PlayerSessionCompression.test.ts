@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import type { Logger } from '@jsprismarine/logger';
 import type { Config } from '../config/Config';
-import type { Entity } from '../entity/Entity';
+import type { ShownActor } from '../world/ShownActor';
 import MoveActorAbsolutePacket from '@jsprismarine/protocol/packet/MoveActorAbsolutePacket';
 import type { SessionPlayer } from './sessionPlayers';
 import type Server from '../Server';
@@ -37,7 +37,7 @@ describe('PlayerSession movement compression', () => {
         });
         const session = sessionFor(stub<Server>({ getConfig: () => config }), connection, stub<SessionPlayer>());
         const position = new Position(12, 64, -5, stub<World>());
-        const entity = stub<Entity>({
+        const entity = stub<ShownActor>({
             getRuntimeId: () => 300n,
             getPosition: () => position,
             pitch: 5,

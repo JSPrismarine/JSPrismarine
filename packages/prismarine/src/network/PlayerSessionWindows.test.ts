@@ -15,8 +15,8 @@ import InventoryContentPacket from '@jsprismarine/protocol/packet/InventoryConte
 import UpdateTradePacket from '@jsprismarine/protocol/packet/UpdateTradePacket';
 import { Merchant, parseTradeTable } from '@jsprismarine/trading';
 import { seededRandom } from '@jsprismarine/predicates';
-import type { Entity } from '../entity/Entity';
 import PlayerSession from './PlayerSession';
+import type { TradingActor } from './PlayerSession';
 import { sessionPlayerFields } from '../testing/playerSession.test.helper';
 
 const protocolCodec = stub<ProtocolCodec>({ context: { protocolVersion: 2193 } });
@@ -244,13 +244,12 @@ describe('network', () => {
                 { pack: 'test' }
             )!;
 
-            const trader = () =>
-                stub<Entity>({
-                    getRuntimeId: () => 42n,
-                    getType: () => 'minecraft:villager_v2',
-                    getName: () => 'Farmer',
-                    getPosition: () => new Vector3(1, 64, 2)
-                } as Partial<Entity>);
+            const trader = (): TradingActor => ({
+                getRuntimeId: () => 42n,
+                getType: () => 'minecraft:villager_v2',
+                getName: () => 'Farmer',
+                getPosition: () => new Vector3(1, 64, 2)
+            });
 
             it('opens on the trader and sends its offers', async () => {
                 const { session, sent } = sessionFor();

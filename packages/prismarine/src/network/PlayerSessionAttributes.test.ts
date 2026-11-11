@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { Attribute, AttributeIds } from '@jsprismarine/protocol/wire/structures/Attribute';
-import type { Entity } from '../entity/Entity';
+import type { ShownActor } from '../world/ShownActor';
 import { stub } from '../testing/stub.test.helper';
 import type UpdateAttributesPacket from '@jsprismarine/protocol/packet/UpdateAttributesPacket';
 import PlayerSession from './PlayerSession';
@@ -19,7 +19,7 @@ const health = () => new Attribute({ name: AttributeIds.Health, min: 0, max: 20,
 /** A session with the connection replaced, so the packets that go out can be inspected. */
 const attributeSession = () => {
     const sent: UpdateAttributesPacket[] = [];
-    const player = stub<Entity>({ getRuntimeId: () => 1n });
+    const player = stub<ShownActor>({ getRuntimeId: () => 1n });
     const session: PlayerSession = Object.assign(Object.create(PlayerSession.prototype), {
         connection: {
             sendDataPacket: async (packet: UpdateAttributesPacket) => void sent.push(packet)
@@ -65,7 +65,7 @@ describe('network', () => {
 
         it("sends a zero tick for another entity's attributes", async () => {
             const { session, sent } = attributeSession();
-            const zombie = stub<Entity>({ getRuntimeId: () => 9n });
+            const zombie = stub<ShownActor>({ getRuntimeId: () => 9n });
 
             session.recordInputTick(42n);
             await session.sendAttributesFor(zombie, [health()]);
