@@ -57,8 +57,6 @@ export interface DriverPeer {
     remoteAddress(): PeerAddress | undefined;
     /** The local address of the selected pair, once connected. */
     localAddress(): PeerAddress | undefined;
-    /** Whether the reliable channel holds data the remote side has not received, when the stack can tell. */
-    hasUndeliveredData(channel: DriverChannel): boolean | undefined;
     close(): void;
 }
 
