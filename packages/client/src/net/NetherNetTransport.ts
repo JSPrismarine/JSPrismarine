@@ -8,11 +8,14 @@ import {
     probeJoin,
     SignalStructure,
     SignalType,
-    verifySelfSignedIdentity
+    verifySelfSignedIdentity,
+    withoutCandidates
 } from '@jsprismarine/nethernet';
 import type { SignalingAddress, WebRtcDriver } from '@jsprismarine/nethernet';
 import { BATCH_PACKET_ID } from '@jsprismarine/protocol';
+import { ClientRelay } from './ClientRelay';
 import type { ITransport, TransportEvents, TransportStats } from './ITransport';
+import { isLinkConditioned } from './LinkConditions';
 
 /** How long a join may take, signaling and WebRTC together, unless the caller says otherwise. */
 const DEFAULT_TIMEOUT_MS = 15_000;
@@ -32,6 +35,11 @@ export interface NetherNetTransportOptions {
     readonly identity?: NetherNetIdentity | (() => Promise<NetherNetIdentity | undefined>);
     /** The WebRTC stack to join over; the native library when absent. */
     readonly driver?: WebRtcDriver;
+    /**
+     * Whether to join through a {@link ClientRelay}; when the process sends over a conditioned
+     * link, which only reaches Node.js sockets, when absent.
+     */
+    readonly relay?: boolean;
 }
 
 /**
@@ -47,6 +55,7 @@ export default class NetherNetTransport extends EventEmitter implements ITranspo
     /** DTLS encrypts the data channel. */
     public readonly encrypted = true;
     private client: NetherNetClient | null = null;
+    private relay: ClientRelay | undefined;
     private connected = false;
     private closed = false;
 
@@ -78,6 +87,8 @@ export default class NetherNetTransport extends EventEmitter implements ITranspo
         const chosen = this.options.identity;
         const identity = (typeof chosen === 'function' ? await chosen() : chosen) ?? NetherNetIdentity.client();
         const driver = this.options.driver ?? (await loadNativeDriver());
+        const relay = (this.options.relay ?? isLinkConditioned()) ? new ClientRelay() : undefined;
+        this.relay = relay;
 
         await new Promise<void>((resolve, reject) => {
             let settled = false;
@@ -94,6 +105,13 @@ export default class NetherNetTransport extends EventEmitter implements ITranspo
             const client: NetherNetClient = new NetherNetClient({
                 driver,
                 timeoutMs,
+                // Through the relay, the client's WebRTC talks only to the relay's loopback sockets.
+                ...(relay === undefined
+                    ? {}
+                    : {
+                          peerConfig: { bindAddress: '127.0.0.1' },
+                          prepareOffer: (offer: string) => withoutCandidates(offer)
+                      }),
                 signal: (signal) => {
                     if (signal.type !== SignalType.ConnectRequest) return;
                     this.signal(client, identity, signal.data, deadline).catch((error: unknown) =>
@@ -140,7 +158,8 @@ export default class NetherNetTransport extends EventEmitter implements ITranspo
         deadline: AbortSignal
     ): Promise<void> {
         const answer = await exchangeOffer(this.address, client.networkId, await identity.sign(offer), deadline);
-        const { description } = await verifySelfSignedIdentity(answer);
+        const verified = (await verifySelfSignedIdentity(answer)).description;
+        const description = this.relay === undefined ? verified : await this.relay.rewriteAnswer(verified);
         client.handleSignal(new SignalStructure(SignalType.ConnectResponse, client.connectionId, description));
     }
 
@@ -163,15 +182,22 @@ export default class NetherNetTransport extends EventEmitter implements ITranspo
     /** Hangs up, and reports the close to listeners once. */
     public close(reason = 'client disconnect'): void {
         this.client?.close(reason);
+        this.relay?.close();
         this.finish(reason);
     }
 
     /** Reports the end of the connection once, however it ended. */
     private finish(reason: string): void {
+        this.relay?.close();
         if (this.closed) return;
         this.closed = true;
         this.connected = false;
         this.emit('close', reason);
+    }
+
+    /** The sockets the relay holds: none unless the join went through one. */
+    public get relaySockets(): number {
+        return this.relay?.socketCount ?? 0;
     }
 
     /** What went past, for the bot harness's reports. */

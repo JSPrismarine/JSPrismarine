@@ -422,7 +422,10 @@ Each slice is a commit or a few, with its tests, on `dev/webrtc-backend`.
        soon as two Vitest worker threads loaded the library.
      - The static archive holds the C layer only; slice 5 merges libdatachannel's archives into it
        for scriptc.
-5. [ ] **Build and ship it for every platform.** As
+5. [ ] **Build and ship it for every platform.** In progress 2026-11-11: the workflow, the
+   install script, the loader's checks and the executables' embedding are on the branch; the CI
+   runs and the first publish are pending.
+    As
    [Platforms and packaging](#platforms-and-packaging) has it.
    - A CI job per target in the table builds the shared library and the static archives, on that
      target's runner or in an Alpine container, and records each build's digest and size.
@@ -451,7 +454,12 @@ Each slice is a commit or a few, with its tests, on `dev/webrtc-backend`.
      `pnpm approve-builds`, and with Bun before and after `trustedDependencies`.
    - Checks: the built package from a consumer project on each platform CI runs, an Alpine
      container among them, and the packaged executable opening a NetherNet peer connection on each.
-6. [ ] **Our own NetherNet protocol on the native driver, for the server and the client.**
+6. [x] **Our own NetherNet protocol on the native driver, for the server and the client.**
+   - Done 2026-11-11. Our bots joined and spawned on Bedrock Dedicated Server 1.26.51 over
+     NetherNet, 3 of 3. Waiting for the listeners let the world tick before they bound, which
+     changed a replayed session's digests, so the ticker now holds its first tick until every
+     transport listens. The client-e2e harness gives each concurrent server its own
+     `server-portv6`, equal to its `port`.
    - Define the WebRTC driver interface in `packages/nethernet`: build a peer connection from a
      configuration, the selected candidate pair of a peer, whether a peer holds undelivered data,
      and tracing. Implement it over the native networking package, which `@jsprismarine/nethernet`
@@ -470,7 +478,11 @@ Each slice is a commit or a few, with its tests, on `dev/webrtc-backend`.
      [the versioning policy](../guide/versioning.md) for the bump.
    - Check: our client's tests against BDS pass over NetherNet, our bots join our server over
      NetherNet, and `pnpm run e2e:client` passes on RakNet.
-7. [ ] **Link conditions through a client relay.**
+7. [x] **Link conditions through a client relay.**
+   - Done 2026-11-11. The relay switches on whenever the process sends over a conditioned link,
+     so the CLI and the tests need no new option. Two bots joined Bedrock Dedicated Server
+     through it at 80 ms and 3% loss over this host's public address; a server on another machine
+     is left for the user to try.
    - With `--latency` or `--loss`, the client binds libjuice to `127.0.0.1`, strips its own
      candidates from the offer, and rewrites each of the server's candidates in the answer to a
      loopback socket that the relay owns. The relay forwards between that socket and the server's

@@ -27,7 +27,13 @@ export { decodeDiscoveryPacket, DiscoveryPacketType, encodeDiscoveryPacket } fro
 export type { DiscoveryMessage, DiscoveryPacket, DiscoveryRequest, DiscoveryResponse } from './protocol/Discovery';
 export { ErrorCode, SignalStructure, SignalType } from './protocol/Signal';
 export { randomUint64 } from './randomUint64';
-export { sdpFingerprints, withoutIdentity, withSessionAttribute } from './sdp';
+export {
+    sdpFingerprints,
+    withoutCandidates,
+    withoutIdentity,
+    withRewrittenCandidates,
+    withSessionAttribute
+} from './sdp';
 export { describeCandidates, tracePeerConnection } from './tracePeerConnection';
 export { parseUdpPorts, withMappedCandidates } from './udpPorts';
 export type { PortMapping, PortRange, UdpPorts } from './udpPorts';
