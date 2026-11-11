@@ -33,6 +33,9 @@ import type { ShownPlayer } from '../../world/ShownPlayer';
 import { PLAYER_TRACKING_RANGE_CHUNKS } from '../../world/ShownPlayer';
 import type { World } from '../../world/World';
 import { sameEquipmentItems } from '../equipment';
+import { breathWorthSending } from '../playerBreath';
+import type { ShownBreath } from '../playerBreath';
+import { mayFlyIn } from '../playerComponents';
 import { clientOwnsMovement } from '../playerOverlay';
 import { StorePlayer } from '../storePlayer';
 import type { StorePlayerIdentity } from '../storePlayer';
@@ -190,6 +193,45 @@ export class StorePlayerActor extends StoreActor implements ShownPlayer {
         blows: StoreActorBlows
     ) {
         super(entity, world, undefined, blows);
+        this.showPlayerState();
+    }
+
+    /**
+     * The breath the player's viewers were last sent, or undefined before the first projection;
+     * see {@link StorePlayerActor.showPlayerState}.
+     */
+    private shownBreath: ShownBreath | undefined;
+
+    /**
+     * Writes what the player's components decide about its metadata: air and breathing, which
+     * the breath system keeps, sprinting, and whether it may fly, which its game mode decides, as
+     * a legacy player writes them into its own metadata. Called after the projection of the
+     * entity's components, which knows nothing of these, so these win.
+     *
+     * @returns Whether viewers should be sent the metadata again: sprinting or flight changed, or
+     *   the breath moved far enough to show, as `breathWorthSending` judges it for a legacy player.
+     */
+    public showPlayerState(): boolean {
+        const components = this.player.getComponents();
+        const { metadata } = this;
+        const sprinting = components.get('movement.sprinting');
+        const canFly = mayFlyIn(components.get('abilities.gamemode'));
+        const changed = metadata.sprinting !== sprinting || metadata.canFly !== canFly;
+        metadata.setSprinting(sprinting);
+        metadata.setCanFly(canFly);
+
+        const breath = this.breathOf();
+        metadata.setAir(breath.air);
+        metadata.setBreathing(breath.breathing);
+        const breathMoved =
+            this.shownBreath === undefined || breathWorthSending(this.shownBreath, breath, components.maxAir());
+        if (breathMoved) this.shownBreath = breath;
+        return changed || breathMoved;
+    }
+
+    private breathOf(): ShownBreath {
+        const components = this.player.getComponents();
+        return { air: components.get('vitals.air'), breathing: components.get('vitals.breathing') };
     }
 
     /** Where the player's eyes are, which is where a client draws a player and where a legacy player is. */

@@ -304,6 +304,34 @@ describe('a store player shown to other clients', () => {
         expect(layer.layerFlags.get(AbilityLayerFlag.OPERATOR_COMMANDS)).toBe(false);
     });
 
+    it('projects its breath, sprinting and flight into its metadata, and says when a send is due', () => {
+        const { spawn } = fixture();
+        const { player, actor } = spawn(identityOf('Steve'), (spawned) => {
+            spawned.getComponents().set('vitals.air', 250);
+            spawned.getComponents().set('abilities.gamemode', Gametype.CREATIVE);
+        });
+        const components = player.getComponents();
+
+        expect([actor.metadata.air, actor.metadata.breathing, actor.metadata.canFly]).toEqual([250, true, true]);
+        expect(actor.showPlayerState()).toBe(false);
+
+        // Under the bar's step, nothing to send; across it, or a change of breathing, a send.
+        components.set('vitals.air', 249);
+        expect(actor.showPlayerState()).toBe(true);
+        components.set('vitals.air', 245);
+        expect(actor.showPlayerState()).toBe(false);
+        expect(actor.metadata.air).toBe(245);
+        components.set('vitals.breathing', false);
+        expect(actor.showPlayerState()).toBe(true);
+
+        components.set('movement.sprinting', true);
+        expect(actor.showPlayerState()).toBe(true);
+        expect(actor.metadata.sprinting).toBe(true);
+        components.set('abilities.gamemode', Gametype.SURVIVAL);
+        expect(actor.showPlayerState()).toBe(true);
+        expect(actor.metadata.canFly).toBe(false);
+    });
+
     it('is listed with the entry a legacy player is listed with', () => {
         const { spawn } = fixture();
         const identity = identityOf('Steve');
