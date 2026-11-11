@@ -268,6 +268,14 @@ export class EntityStore {
         return () => this.sealListeners.delete(listener);
     }
 
+    /**
+     * The number of the open tick, or of the last one sealed, counted from 1 by the store; 0
+     * before the first. A clock that only goes forward, which a meal is counted out on.
+     */
+    public get tick(): number {
+        return this.ticks;
+    }
+
     /** Whether a tick is open, so writes are logged. */
     public get tickOpen(): boolean {
         return this.open;
