@@ -30,12 +30,26 @@ export const LINT_INPUTS: readonly string[] = [
  * Chooses what a lint command runs on.
  *
  * @param changed - Changed files, relative to the repository root, with forward slashes.
- * @param exists - Whether a file is still on disk; a deleted file has nothing to check.
+ * @param exists - Whether a file is on disk to check; see {@link isCheckable}.
  * @returns `all` to run on every file, or the existing changed files, which may be none.
  */
 export const lintTargets = (changed: readonly string[], exists: (file: string) => boolean): 'all' | string[] => {
     if (changed.some((file) => LINT_INPUTS.includes(file) || /^\.prettierrc/.test(file))) return 'all';
     return [...new Set(changed)].filter(exists).sort();
+};
+
+/**
+ * Whether a changed path is a file the formatters can check. A deleted file has nothing to check, and
+ * a symbolic link, such as a skill's `.claude/skills` entry, makes Prettier fail when named explicitly.
+ *
+ * @param file - An absolute path.
+ */
+export const isCheckable = (file: string): boolean => {
+    try {
+        return !fs.lstatSync(file).isSymbolicLink();
+    } catch {
+        return false;
+    }
 };
 
 const git = (root: string, args: readonly string[]): string | undefined => {
@@ -80,8 +94,7 @@ if (process.argv[1] !== undefined && path.resolve(process.argv[1]) === fileURLTo
     }
     const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
     const changed = process.env.JSP_LINT_ALL === '1' ? undefined : changedFiles(root);
-    const targets =
-        changed === undefined ? 'all' : lintTargets(changed, (file) => fs.existsSync(path.join(root, file)));
+    const targets = changed === undefined ? 'all' : lintTargets(changed, (file) => isCheckable(path.join(root, file)));
 
     // Both tools skip a path their own configuration ignores, and these flags keep a path they do
     // not handle, such as an image, from failing the run.

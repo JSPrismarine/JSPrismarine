@@ -1,6 +1,10 @@
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+
 import { describe, expect, it } from 'vitest';
 
-import { LINT_INPUTS, lintTargets } from './lint-changed.mts';
+import { isCheckable, LINT_INPUTS, lintTargets } from './lint-changed.mts';
 
 const everywhere = (): boolean => true;
 
@@ -23,5 +27,21 @@ describe('lintTargets', () => {
 
     it('scopes a package manifest to itself', () => {
         expect(lintTargets(['packages/raknet/package.json'], everywhere)).toEqual(['packages/raknet/package.json']);
+    });
+});
+
+describe('isCheckable', () => {
+    it('accepts a file, and leaves out a missing path and a symbolic link', () => {
+        const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'lint-changed-'));
+        try {
+            fs.mkdirSync(path.join(dir, 'skill'));
+            fs.writeFileSync(path.join(dir, 'skill', 'SKILL.md'), '# Skill\n');
+            fs.symlinkSync('skill', path.join(dir, 'link'));
+            expect(isCheckable(path.join(dir, 'skill', 'SKILL.md'))).toBe(true);
+            expect(isCheckable(path.join(dir, 'link'))).toBe(false);
+            expect(isCheckable(path.join(dir, 'gone.md'))).toBe(false);
+        } finally {
+            fs.rmSync(dir, { recursive: true, force: true });
+        }
     });
 });
