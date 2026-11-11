@@ -1,10 +1,9 @@
 import { WindowIds } from '@jsprismarine/minecraft';
 
-import type { PlayerSession } from '../../';
-import type Server from '../../Server';
 import HumanInventory from '../../inventory/HumanInventory';
 import type MobEquipmentPacket from '@jsprismarine/protocol/packet/MobEquipmentPacket';
-import type PacketHandler from './PacketHandler';
+import type { InputContext } from './HandlerContext';
+import type { InputLaneHandler } from './SessionHandler';
 
 /**
  * A client reporting which hotbar slot it holds.
@@ -16,8 +15,9 @@ import type PacketHandler from './PacketHandler';
  * what a player is holding.
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/mob-equipment-packet/
  */
-export default class MobEquipmentHandler implements PacketHandler<MobEquipmentPacket> {
+export default class MobEquipmentHandler implements InputLaneHandler<MobEquipmentPacket> {
     public static PacketName = 'MobEquipmentPacket';
+    public readonly takes = 'context';
     public readonly phases = ['play'] as const;
     public readonly lane = 'input';
 
@@ -29,29 +29,25 @@ export default class MobEquipmentHandler implements PacketHandler<MobEquipmentPa
      * stack requests that moved something into it. A packet naming any other container, or a
      * slot outside the hotbar, is dropped and logged.
      */
-    public async handle(packet: MobEquipmentPacket, server: Server, session: PlayerSession): Promise<void> {
+    public handle(packet: MobEquipmentPacket, { session, log }: InputContext): undefined {
         const data = packet.getPacketData();
         if (data === null) return;
 
         if (data.windowId === WindowIds.OFFHAND) return;
 
         if (data.windowId !== WindowIds.INVENTORY) {
-            server
-                .getLogger()
-                .debug(
-                    `${session.identity.name} reported equipment for container ${data.windowId}; dropped`,
-                    'MobEquipmentHandler/handle'
-                );
+            log.debug(
+                `${session.identity.name} reported equipment for container ${data.windowId}; dropped`,
+                'MobEquipmentHandler/handle'
+            );
             return;
         }
 
         if (!HumanInventory.isHotbarSlot(data.hotbarSlot) || !HumanInventory.isHotbarSlot(data.inventorySlot)) {
-            server
-                .getLogger()
-                .debug(
-                    `${session.identity.name} selected slot ${data.hotbarSlot} (slot ${data.inventorySlot}), which is outside the hotbar; dropped`,
-                    'MobEquipmentHandler/handle'
-                );
+            log.debug(
+                `${session.identity.name} selected slot ${data.hotbarSlot} (slot ${data.inventorySlot}), which is outside the hotbar; dropped`,
+                'MobEquipmentHandler/handle'
+            );
             return;
         }
 

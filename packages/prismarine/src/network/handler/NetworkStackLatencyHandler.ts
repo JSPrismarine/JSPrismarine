@@ -1,7 +1,6 @@
-import type Server from '../../Server';
-import type PlayerSession from '../PlayerSession';
 import NetworkStackLatencyPacket from '@jsprismarine/protocol/packet/NetworkStackLatencyPacket';
-import type PacketHandler from './PacketHandler';
+import type { SessionContext } from './HandlerContext';
+import type { ConnectionLaneHandler } from './SessionHandler';
 
 /**
  * The client's latency ping.
@@ -13,19 +12,18 @@ import type PacketHandler from './PacketHandler';
  * ping each other forever. A ping that does not set it is recorded and left alone.
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/network-stack-latency-packet/
  */
-export default class NetworkStackLatencyHandler implements PacketHandler<NetworkStackLatencyPacket> {
+export default class NetworkStackLatencyHandler implements ConnectionLaneHandler<NetworkStackLatencyPacket> {
     public static PacketName = 'NetworkStackLatencyPacket';
+    public readonly takes = 'context';
     public readonly phases = ['resourcePacks', 'play'] as const;
     public readonly lane = 'connection';
 
     /** Echoes the timestamp when the ping asked for an answer, and logs it either way. */
-    public async handle(packet: NetworkStackLatencyPacket, server: Server, session: PlayerSession): Promise<void> {
-        server
-            .getLogger()
-            .debug(
-                `${session.identity.name} pinged at ${packet.creationTime}${packet.isFromServer ? ', asking for an answer' : ''}`,
-                'NetworkStackLatencyHandler/handle'
-            );
+    public async handle(packet: NetworkStackLatencyPacket, { session, log }: SessionContext): Promise<void> {
+        log.debug(
+            `${session.identity.name} pinged at ${packet.creationTime}${packet.isFromServer ? ', asking for an answer' : ''}`,
+            'NetworkStackLatencyHandler/handle'
+        );
 
         if (!packet.isFromServer) return;
 

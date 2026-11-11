@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { Logger } from '@jsprismarine/logger';
-import type Server from '../../Server';
+import { inputContext } from '../../testing/handlerContext.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import { STEVE } from '../../testing/sessionIdentity.test.helper';
 import type { World } from '../../world/World';
@@ -38,10 +38,9 @@ const fakeWorld = () => {
     });
     viewers.push(senderSession, watcher);
 
-    const logger = stub<Logger>({ debug: (...message) => void logged.push(message[0] ?? '') });
-    const server = stub<Server>({ getLogger: () => logger });
+    const log = stub<Logger>({ debug: (...message) => void logged.push(message[0] ?? '') });
 
-    return { senderSession, server, toSender, toWatcher, logged };
+    return { senderSession, log, toSender, toWatcher, logged };
 };
 
 const animate = (
@@ -50,13 +49,14 @@ const animate = (
 
 describe('AnimateHandler', () => {
     it('relays the swing under the sender runtime id with its data and swing source', async () => {
-        const { senderSession, server, toWatcher } = fakeWorld();
+        const { senderSession, log, toWatcher } = fakeWorld();
+        const { context, settled } = inputContext(senderSession, { log });
 
-        await new AnimateHandler().handle(
+        new AnimateHandler().handle(
             animate({ action: AnimateAction.Swing, data: 2.5, swingSource: 'attack' }),
-            server,
-            senderSession
+            context
         );
+        await settled();
 
         expect(toWatcher).toHaveLength(1);
         const [relayed] = toWatcher;
@@ -70,26 +70,38 @@ describe('AnimateHandler', () => {
         expect(relayed.swingSource).toBe('attack');
     });
 
-    it('sends nothing back to the sender', async () => {
-        const { senderSession, server, toSender } = fakeWorld();
+    it('hands the relay to the input step instead of waiting for it', () => {
+        const { senderSession, log } = fakeWorld();
+        const { context, outputs } = inputContext(senderSession, { log });
 
-        await new AnimateHandler().handle(
+        const returned = new AnimateHandler().handle(
             animate({ action: AnimateAction.Swing, data: 0, swingSource: null }),
-            server,
-            senderSession
+            context
         );
+
+        expect(returned).toBeUndefined();
+        expect(outputs).toHaveLength(1);
+    });
+
+    it('sends nothing back to the sender', async () => {
+        const { senderSession, log, toSender } = fakeWorld();
+        const { context, settled } = inputContext(senderSession, { log });
+
+        new AnimateHandler().handle(animate({ action: AnimateAction.Swing, data: 0, swingSource: null }), context);
+        await settled();
 
         expect(toSender).toHaveLength(0);
     });
 
     it('drops a packet that names another actor', async () => {
-        const { senderSession, server, toWatcher, logged } = fakeWorld();
+        const { senderSession, log, toWatcher, logged } = fakeWorld();
+        const { context, settled } = inputContext(senderSession, { log });
 
-        await new AnimateHandler().handle(
+        new AnimateHandler().handle(
             animate({ action: AnimateAction.Swing, data: 0, swingSource: null, runtimeEntityId: 8n }),
-            server,
-            senderSession
+            context
         );
+        await settled();
 
         expect(toWatcher).toEqual([]);
         expect(logged).toEqual([
@@ -98,15 +110,13 @@ describe('AnimateHandler', () => {
     });
 
     it('drops an action no client sends', async () => {
-        const { senderSession, server, toWatcher, logged } = fakeWorld();
+        const { senderSession, log, toWatcher, logged } = fakeWorld();
+        const { context, settled } = inputContext(senderSession, { log });
         const handler = new AnimateHandler();
 
-        await handler.handle(
-            animate({ action: AnimateAction.NoAction, data: 0, swingSource: null }),
-            server,
-            senderSession
-        );
-        await handler.handle(animate({ action: 2, data: 0, swingSource: null }), server, senderSession);
+        handler.handle(animate({ action: AnimateAction.NoAction, data: 0, swingSource: null }), context);
+        handler.handle(animate({ action: 2, data: 0, swingSource: null }), context);
+        await settled();
 
         expect(toWatcher).toEqual([]);
         expect(logged).toEqual([

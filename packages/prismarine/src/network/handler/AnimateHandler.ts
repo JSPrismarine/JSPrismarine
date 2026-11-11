@@ -1,7 +1,6 @@
-import type Server from '../../Server';
-import type PlayerSession from '../PlayerSession';
 import AnimatePacket, { AnimateAction } from '@jsprismarine/protocol/packet/AnimatePacket';
-import type PacketHandler from './PacketHandler';
+import type { InputContext } from './HandlerContext';
+import type { InputLaneHandler } from './SessionHandler';
 
 /**
  * The animations a client plays on itself and asks to have shown to everyone else.
@@ -17,8 +16,9 @@ const CLIENT_ACTIONS: ReadonlySet<number> = new Set([
 ]);
 
 /** Relays a client's animation to the players in its world that have it on screen. */
-export default class AnimateHandler implements PacketHandler<AnimatePacket> {
+export default class AnimateHandler implements InputLaneHandler<AnimatePacket> {
     public static PacketName = 'AnimatePacket';
+    public readonly takes = 'context';
     public readonly phases = ['play'] as const;
     // Relays to the players that see the sender, so it is an input though it writes nothing.
     public readonly lane = 'input';
@@ -31,24 +31,20 @@ export default class AnimateHandler implements PacketHandler<AnimatePacket> {
      * and dropped: a client animates itself, and relaying it as anyone else would let one
      * player make another swing.
      */
-    public async handle(packet: AnimatePacket, server: Server, session: PlayerSession): Promise<void> {
+    public handle(packet: AnimatePacket, { session, log, step }: InputContext): undefined {
         if (packet.runtimeEntityId !== session.runtimeId) {
-            server
-                .getLogger()
-                .debug(
-                    `Dropped animation ${packet.action} from ${session.identity.name}: it names actor ${packet.runtimeEntityId}, not themselves`,
-                    'AnimateHandler/handle'
-                );
+            log.debug(
+                `Dropped animation ${packet.action} from ${session.identity.name}: it names actor ${packet.runtimeEntityId}, not themselves`,
+                'AnimateHandler/handle'
+            );
             return;
         }
 
         if (!CLIENT_ACTIONS.has(packet.action)) {
-            server
-                .getLogger()
-                .debug(
-                    `Dropped animation ${packet.action} from ${session.identity.name}: not one a client sends`,
-                    'AnimateHandler/handle'
-                );
+            log.debug(
+                `Dropped animation ${packet.action} from ${session.identity.name}: not one a client sends`,
+                'AnimateHandler/handle'
+            );
             return;
         }
 
@@ -61,13 +57,9 @@ export default class AnimateHandler implements PacketHandler<AnimatePacket> {
         // The player's own world, and only the clients that have them on screen. This went
         // through the session manager, so an arm swing reached every player on the server -
         // across worlds, and at any distance.
-        await Promise.all(
-            session
-                .getWorld()
-                .getViewers()
-                .filter((viewer) => viewer.runtimeId !== session.runtimeId)
-                .filter((viewer) => viewer.tracks(session.runtimeId))
-                .map(async (viewer) => viewer.send(pk))
-        );
+        for (const viewer of session.getWorld().getViewers()) {
+            if (viewer.runtimeId === session.runtimeId || !viewer.tracks(session.runtimeId)) continue;
+            step.output(viewer.send(pk));
+        }
     }
 }

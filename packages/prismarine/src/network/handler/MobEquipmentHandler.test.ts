@@ -2,10 +2,10 @@ import { WindowIds } from '@jsprismarine/minecraft';
 import type { Logger } from '@jsprismarine/logger';
 import { describe, expect, it, vi } from 'vitest';
 
-import type Server from '../../Server';
 import ContainerEntry from '../../inventory/ContainerEntry';
 import HumanInventory from '../../inventory/HumanInventory';
 import { Item } from '../../item/Item';
+import { inputContext } from '../../testing/handlerContext.test.helper';
 import { identityNamed } from '../../testing/sessionIdentity.test.helper';
 import { stubPlayerPort } from '../../testing/playerPort.test.helper';
 import { stub } from '../../testing/stub.test.helper';
@@ -65,9 +65,9 @@ const fakeWorld = () => {
     players.push(senderSession, watcher, bystander);
 
     const debug = vi.fn();
-    const server = stub<Server>({ getLogger: () => stub<Logger>({ debug }) });
+    const { context, outputs } = inputContext(senderSession, { log: stub<Logger>({ debug }) });
 
-    return { senderSession, inventory, server, debug, toSender, toWatcher, toBystander };
+    return { context, outputs, inventory, debug, toSender, toWatcher, toBystander };
 };
 
 /** What a client sends when it selects a hotbar slot: both slot fields name it, container 0. */
@@ -82,67 +82,65 @@ const selected = (slot: number, overrides: Partial<MobEquipmentPayload> = {}): M
     });
 
 describe('MobEquipmentHandler', () => {
-    it('moves the hand to the selected hotbar slot', async () => {
-        const { senderSession, inventory, server } = fakeWorld();
+    it('moves the hand to the selected hotbar slot', () => {
+        const { context, inventory } = fakeWorld();
 
-        await new MobEquipmentHandler().handle(selected(3), server, senderSession);
+        new MobEquipmentHandler().handle(selected(3), context);
 
         expect(inventory.getHandSlotIndex()).toBe(3);
         expect(inventory.getItemInHand().getName()).toBe('minecraft:diamond_sword');
     });
 
-    it('sends nothing itself: the players that see the sender are shown the hand by the sync', async () => {
-        const { senderSession, server, toSender, toWatcher, toBystander } = fakeWorld();
+    it('sends nothing itself: the players that see the sender are shown the hand by the sync', () => {
+        const { context, outputs, toSender, toWatcher, toBystander } = fakeWorld();
         // The client claims to hold a block it was never given, which nobody is told about.
         const packet = selected(3, {
             item: new Item({ runtimeId: 0, name: 'minecraft:bedrock' }).toStackDescriptor(protocolContext)
         });
 
-        await new MobEquipmentHandler().handle(packet, server, senderSession);
+        new MobEquipmentHandler().handle(packet, context);
 
         expect(toSender).toHaveLength(0);
         expect(toWatcher).toHaveLength(0);
         expect(toBystander).toHaveLength(0);
+        expect(outputs).toHaveLength(0);
     });
 
-    it('accepts an offhand report without moving the hand or relaying it', async () => {
-        const { senderSession, inventory, server, debug, toWatcher } = fakeWorld();
+    it('accepts an offhand report without moving the hand or relaying it', () => {
+        const { context, inventory, debug, toWatcher } = fakeWorld();
         inventory.setHandSlot(3);
 
-        await new MobEquipmentHandler().handle(selected(0, { windowId: WindowIds.OFFHAND }), server, senderSession);
+        new MobEquipmentHandler().handle(selected(0, { windowId: WindowIds.OFFHAND }), context);
 
         expect(inventory.getHandSlotIndex()).toBe(3);
         expect(toWatcher).toHaveLength(0);
         expect(debug).not.toHaveBeenCalled();
     });
 
-    it.each([WindowIds.ARMOR, WindowIds.PLAYER_ONLY_UI, 1, 255])(
-        'drops a report for container %i',
-        async (windowId) => {
-            const { senderSession, inventory, server, debug, toWatcher } = fakeWorld();
+    it.each([WindowIds.ARMOR, WindowIds.PLAYER_ONLY_UI, 1, 255])('drops a report for container %i', (windowId) => {
+        const { context, inventory, debug, toWatcher } = fakeWorld();
 
-            await new MobEquipmentHandler().handle(selected(2, { windowId }), server, senderSession);
-
-            expect(inventory.getHandSlotIndex()).toBe(0);
-            expect(toWatcher).toHaveLength(0);
-            expect(debug).toHaveBeenCalledOnce();
-        }
-    );
-
-    it.each([9, 35, 255])('drops a selected slot of %i, which is outside the hotbar', async (slot) => {
-        const { senderSession, inventory, server, debug, toWatcher } = fakeWorld();
-
-        await new MobEquipmentHandler().handle(selected(slot), server, senderSession);
+        new MobEquipmentHandler().handle(selected(2, { windowId }), context);
 
         expect(inventory.getHandSlotIndex()).toBe(0);
         expect(toWatcher).toHaveLength(0);
         expect(debug).toHaveBeenCalledOnce();
     });
 
-    it('drops a hotbar selection whose slot field is outside the hotbar', async () => {
-        const { senderSession, inventory, server, debug, toWatcher } = fakeWorld();
+    it.each([9, 35, 255])('drops a selected slot of %i, which is outside the hotbar', (slot) => {
+        const { context, inventory, debug, toWatcher } = fakeWorld();
 
-        await new MobEquipmentHandler().handle(selected(2, { inventorySlot: 40 }), server, senderSession);
+        new MobEquipmentHandler().handle(selected(slot), context);
+
+        expect(inventory.getHandSlotIndex()).toBe(0);
+        expect(toWatcher).toHaveLength(0);
+        expect(debug).toHaveBeenCalledOnce();
+    });
+
+    it('drops a hotbar selection whose slot field is outside the hotbar', () => {
+        const { context, inventory, debug, toWatcher } = fakeWorld();
+
+        new MobEquipmentHandler().handle(selected(2, { inventorySlot: 40 }), context);
 
         expect(inventory.getHandSlotIndex()).toBe(0);
         expect(toWatcher).toHaveLength(0);
