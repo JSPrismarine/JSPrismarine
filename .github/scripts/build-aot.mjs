@@ -66,12 +66,19 @@ const args = [
     './packages/server/src/Server.ts',
     ...Object.values(workerEntrypoints),
     '--compile',
-    '--sourcemap',
+    // No `--sourcemap`: an AOT executable reports its source positions itself, which the logger
+    // reads its namespaces from. `--sourcemap=external` would move them into a `.map` file and
+    // leave every stack frame reading `compiled.js:1:3`.
+    '--aot',
     `--target=${target}`,
     `--outfile=${outputPath}`,
     '--no-compile-autoload-dotenv',
     '--no-compile-autoload-bunfig',
-    '--trim'
+    '--trim',
+    // The server's entry answers `--role generation-host`, so the generation pool may start its
+    // host by running the executable again.
+    '--define',
+    'JSP_EMBEDDED_GENERATION_HOST=true'
 ];
 
 /**

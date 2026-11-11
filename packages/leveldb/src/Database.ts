@@ -381,7 +381,10 @@ export class Database {
     private getTableWorker(): Worker {
         if (this.tableWorker !== null) return this.tableWorker;
 
-        const isTypeScript = import.meta.url.endsWith('.ts');
+        // An executable compiled ahead of time keeps its modules' `.ts` paths but embeds the worker
+        // compiled, so only a worker loaded from source needs the TypeScript loader.
+        const isTypeScript =
+            import.meta.url.endsWith('.ts') && typeof JSP_EMBEDDED_TABLE_BUILDER_WORKER === 'undefined';
         // A SEA executable has no adjacent dist tree. Read the self-contained worker from its
         // embedded asset instead of resolving a path beside the bundled Database module.
         const workerPath =

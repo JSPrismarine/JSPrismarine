@@ -6,20 +6,28 @@ import path from 'node:path';
 /**
  * Starts a compiled executable in an empty directory and stops it again, failing on any error.
  *
+ * The generation host is the executable started again with `--role generation-host`; falling back to
+ * generating in this process fails the run, because that would go unnoticed otherwise.
+ *
  * Every worker the server runs is a separate module the compile has to embed, and a missing one
  * fails only when the binary first starts it: the generation pool while the start region is
  * prepared, the RakNet socket when the server listens, and LevelDB's table builder when `stop`
  * saves the world. Reaching "now listening" and then stopping cleanly exercises all three.
  *
  * Usage: node .github/scripts/smoke-executable.mjs <bun-target> <binary>
- * A target this host cannot run, which release builds cross-compile, is skipped.
+ * A target this host cannot run is skipped.
  */
 const [target, binary] = process.argv.slice(2);
 if (!target || !binary) throw new Error('Usage: node .github/scripts/smoke-executable.mjs <bun-target> <binary>');
 
 const hostPlatform = { darwin: 'darwin', linux: 'linux', win32: 'windows' }[process.platform];
+/** `musl` on a musl Linux such as Alpine, which reports no glibc version, and undefined elsewhere. */
+const hostLibc =
+    process.platform === 'linux' && process.report.getReport().header.glibcVersionRuntime === undefined
+        ? 'musl'
+        : undefined;
 const [, platform, arch, libc] = target.split('-');
-if (platform !== hostPlatform || arch !== process.arch || libc !== undefined) {
+if (platform !== hostPlatform || arch !== process.arch || libc !== hostLibc) {
     console.log(`Skipping the ${target} smoke run on this ${process.platform}-${process.arch} host`);
     process.exit(0);
 }
@@ -42,6 +50,12 @@ const onOutput = (chunk) => {
         const line = buffered.slice(0, newline).replace(/\u001b\[[0-9;]*m/g, '');
         buffered = buffered.slice(newline + 1);
         if (/\bERROR\b|^error:|Cannot find module|ModuleNotFound/.test(line)) errors.push(line);
+        // The pool falls back to this process when it cannot start its host, and the server then
+        // still starts and stops cleanly. The executable has to run its generation host.
+        if (/Generating (in this process|terrain and features on the server thread)/.test(line)) errors.push(line);
+        // The logger names each line after the module that logged it, read from the stack. A build
+        // that loses its source positions tags every line `compiled` instead.
+        if (/^\[[^\]]* [A-Z]+ compiled\]:/.test(line)) errors.push(`no source positions: ${line}`);
         if (!listening && /now listening on port/.test(line)) {
             listening = true;
             child.stdin.write('stop\n');
