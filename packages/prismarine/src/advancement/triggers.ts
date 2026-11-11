@@ -19,12 +19,12 @@
  * | `inventory_changed` | a dropped stack picked up, and a finished craft |
  * | `thrown_item_picked_up_by_player` | a dropped stack picked up |
  * | `recipe_crafted` | `ItemStackRequestHandler`'s crafting action |
- * | `player_killed_entity`, `entity_killed_player` | `Entity.onDeath` |
- * | `player_hurt_entity`, `entity_hurt_player` | `Entity.damage` |
+ * | `player_killed_entity`, `entity_killed_player` | the store's `damageCommitted` host fact, on a death |
+ * | `player_hurt_entity`, `entity_hurt_player` | the store's `damageCommitted` host fact |
  * | `placed_block` | `useItemOnBlock`, when the block in hand went down |
  * | `enchanted_item` | a row taken at an enchanting table |
- * | `location`, `tick` | `Player.update`, every second |
- * | `changed_dimension` | `Player.setWorld` |
+ * | `location`, `tick` | `Player.updatePlayer`, every second |
+ * | `changed_dimension` | `PlayerSession`, once a dimension change completes |
  * | `consume_item` | the `feed` action in `src/item/actorPort.ts` |
  * | `item_durability_changed` | the `consume-durability` action, beside it |
  * | `default_block_use`, `any_block_use` | `useItemOnBlock` |
