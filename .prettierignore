@@ -41,3 +41,6 @@ packages/packs/fixtures/**/*.json
 *.yml
 *.hbs
 *.md
+
+# Linked git worktrees hold other branches
+.claude/worktrees/
