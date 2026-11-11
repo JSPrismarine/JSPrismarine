@@ -2,10 +2,8 @@
  * What hurt an entity. Carried through so a death can be reported as what it was, and so
  * the things that ignore particular kinds of damage have something to test.
  *
- * Its own file rather than a member of `Entity`, because `DamageSource` has to name both this
- * and `Entity`, and `Entity` has to name `DamageSource` - which is the runtime cycle the import
- * rules in `biome.json` exist to prevent. `Entity` re-exports it, so the older
- * `import { DamageCause } from './entity/Entity'` still resolves and nothing had to be rewritten.
+ * Its own file, because `DamageSource` names it and the store's damage pipeline names both, and
+ * a member of either would make the runtime import cycle the rules in `biome.json` prevent.
  */
 export enum DamageCause {
     Generic = 'generic',

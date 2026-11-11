@@ -21,7 +21,7 @@ export default class EntityDeathEvent extends Event {
         this.source = source;
     }
 
-    /** Who died: a legacy entity, or a store entity through its actor. */
+    /** Who died: a store entity, through its actor. */
     public getEntity(): StoreActor {
         return this.entity;
     }

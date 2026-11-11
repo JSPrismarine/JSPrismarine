@@ -2205,7 +2205,7 @@ export class World implements Service {
         return this.isOverworld() ? this.level.getSpawn() : this.spawn;
     }
 
-    /** Whether this is the level's Overworld, whose spawn and legacy entities the save keeps. */
+    /** Whether this is the level's Overworld, whose spawn the save keeps. */
     private isOverworld(): boolean {
         return this.dimension.bedrockId === Dimensions.Overworld.bedrockId;
     }

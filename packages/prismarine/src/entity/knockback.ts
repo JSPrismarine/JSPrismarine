@@ -1,8 +1,7 @@
 /**
  * Which way a blow shoves its target, and how hard.
  *
- * One home for vanilla's knockback rule, because a legacy entity's {@link Entity.damage} and the
- * entity store's damage pipeline both shove, and two copies of the numbers would drift.
+ * One home for vanilla's knockback rule, which the entity store's damage pipeline shoves with.
  */
 
 /** The shove a plain hit gives, before sprint or enchantments add to it. */

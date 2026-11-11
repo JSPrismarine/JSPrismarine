@@ -47,7 +47,8 @@ import type { DataEntity } from './DataEntity';
 import type { EntityItemInteraction } from './itemInteraction';
 import type { ContentItemEntity, EntityHostFacts, EntityWorldFacts } from './host';
 import { EntityRuntime, PROJECTILE_EYE_HEIGHT_FRACTION } from './EntityRuntime';
-import { INERT_ACTOR, InertActor, StoreActor, StoreActors } from './storeActors';
+import type { StoreActor } from './storeActors';
+import { INERT_ACTOR, InertActor, StoreActors } from './storeActors';
 import { StorePlayerActor, StorePlayers } from './storePlayers';
 import { storePlayerHostFacts } from './playerHostFacts';
 import { consumeHeldItem } from '../../item/interaction';
@@ -655,9 +656,8 @@ export class LiveEntityRuntime {
         });
     }
 
-    /** The store entity behind an actor of this runtime, or undefined for a legacy entity. */
+    /** The store entity behind an actor of this runtime, or undefined once it has left the store. */
     private storeEntityOf(target: StoreActor): DataEntity | undefined {
-        if (!(target instanceof StoreActor)) return undefined;
         const entity = this.runtime.byId(target.entity.id);
         return entity?.removed === undefined ? entity : undefined;
     }

@@ -166,7 +166,7 @@ export class StoreActor implements ShownActor {
         this.shownPose = StoreActor.poseOf(entity);
     }
 
-    /** The entity as `/debug` lists it, in the form `Entity.toString` gives a legacy one. */
+    /** The entity as `/debug` lists it. */
     public toString(): string {
         return `id: §a${this.entity.id}§r, name: §b${this.getName()}§r, type: §b${this.getType()}§r, ${this.getPosition().toString()}, world: §b${this.world.getName()}§r`;
     }
@@ -376,7 +376,7 @@ export class StoreActor implements ShownActor {
 
     /**
      * Applies or refreshes a status effect in the store, unless the entity's
-     * `minecraft:mob_effect_immunity` refuses it. The merge rule is `Entity.addStatusEffect`'s.
+     * `minecraft:mob_effect_immunity` refuses it, merging with an effect already running.
      *
      * @param notify - Whether to tell clients about an accepted change.
      * @returns Whether the effect changed.
@@ -454,8 +454,8 @@ export class StoreActor implements ShownActor {
     }
 
     /**
-     * Records that the entity overlaps a portal block this tick, as `Entity.touchPortal` does: a
-     * touch on cooldown winds the cooldown back instead of opening a contact.
+     * Records that the entity overlaps a portal block this tick: a touch on cooldown winds the
+     * cooldown back instead of opening a contact.
      */
     public touchPortal(at: Vector3, portal?: PortalBlockRef): void {
         if (this.isOnPortalCooldown()) {
@@ -466,7 +466,7 @@ export class StoreActor implements ShownActor {
         this.portalContactState.touch(at, portal);
     }
 
-    /** Claims the entity's one update of a server tick; see `Entity.claimUpdate`. */
+    /** Claims the entity's one update of a server tick, so a world that ticks it twice runs it once. */
     public claimUpdate(tick: number): boolean {
         if (this.lastUpdatedTick === tick) return false;
         this.lastUpdatedTick = tick;

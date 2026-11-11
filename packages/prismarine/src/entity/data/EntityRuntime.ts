@@ -451,8 +451,8 @@ export class EntityRuntime implements EntityScene {
      */
     public readonly damagePipeline: DamagePipeline;
     /**
-     * Where every entity of the dimension stands, this runtime's and the world's legacy ones,
-     * which is what makes a neighbor search cheaper than a scan. See ADR 0007.
+     * Where every entity of the dimension stands, which is what makes a neighbor search cheaper
+     * than a scan. See ADR 0007.
      */
     public readonly index = new EntityIndex();
 
@@ -1518,7 +1518,7 @@ export class EntityRuntime implements EntityScene {
         this.interest.resetBlockCache();
         if (this.navigationView?.persistsAcrossTicks !== true) this.navigationView?.invalidateBlockCache();
         for (const entity of this.entities()) {
-            // A player ticks wherever it stands, as the world's legacy loop and actor update let it.
+            // A player ticks wherever it stands, as the world's actor update lets it.
             if (shouldTick !== undefined && !clientOwnsMovement(entity.identifier) && !shouldTick(entity.position))
                 continue;
             if (entity.removed !== undefined || this.store.isSkipped(entity.id)) continue;
