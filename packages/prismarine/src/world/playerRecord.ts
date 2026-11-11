@@ -13,7 +13,8 @@
  * boundary and write it later.
  */
 import type { PlayerProgressJson } from '@jsprismarine/advancements';
-import { Gametype, getGametypeId, getGametypeName } from '@jsprismarine/minecraft';
+import type { Gametype } from '@jsprismarine/minecraft';
+import { getGametypeId, getGametypeName } from '@jsprismarine/minecraft';
 import { Attribute, AttributeIds } from '@jsprismarine/protocol/wire/structures/Attribute';
 import type { Attributes } from '@jsprismarine/protocol/wire/structures/Attribute';
 
@@ -23,6 +24,7 @@ import type { ServerContent } from '../content/ServerContent';
 import { enchantmentSeedOf } from '../enchantment/enchantingTable';
 import type HumanInventory from '../inventory/HumanInventory';
 import { restoreInventory, storedInventory } from '../inventory/persistence';
+import { mayFlyIn } from '../entity/playerComponents';
 import type { DimensionType } from './Dimension';
 import type { StoredSpawnPoint } from './RespawnPoint';
 
@@ -217,9 +219,7 @@ export const applyPlayerRecord = (
         }
     }
 
-    player.restoreFlying(
-        data.flying === true && (player.gamemode === Gametype.CREATIVE || player.gamemode === Gametype.SPECTATOR)
-    );
+    player.restoreFlying(data.flying === true && mayFlyIn(player.gamemode));
     player.setSpawnPoint(data.spawn);
     player.setSeenCredits(data.seenCredits === true);
     if (data.portalCooldown !== undefined) player.setPortalCooldown(data.portalCooldown);

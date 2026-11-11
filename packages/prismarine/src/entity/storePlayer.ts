@@ -15,7 +15,7 @@
  * the runtime's inverse writer, and run by the survival systems. Built without them, its component
  * writes are not logged. Its inventory is not logged either way.
  */
-import { Gametype } from '@jsprismarine/minecraft';
+import type { Gametype } from '@jsprismarine/minecraft';
 import { Attributes } from '@jsprismarine/protocol/wire/structures/Attribute';
 import type UUID from '@jsprismarine/protocol/wire/structures/UUID';
 import type Skin from '@jsprismarine/protocol/wire/structures/skin/Skin';
@@ -44,7 +44,6 @@ export interface StorePlayerIdentity {
 export class StorePlayer implements PlayerRecordSource, PlayerRecordTarget {
     /** The client's attribute table. Its health entry is not read: health is the entity's. */
     public readonly attributes = new Attributes(Attributes.getPlayerDefaults());
-    public gamemode: Gametype = Gametype.WORLD_DEFAULT;
     /** Where the head looks, which the client reports apart from the body's yaw. */
     public headYaw = 0;
     /** The skin the login carried, which a skin change replaces. */
@@ -71,6 +70,15 @@ export class StorePlayer implements PlayerRecordSource, PlayerRecordTarget {
     ) {
         this.components =
             systems?.attach(entity, this.attributes) ?? new PlayerComponents(this.attributes, () => undefined);
+    }
+
+    /** The game mode, a logged component field the survival systems read. */
+    public get gamemode(): Gametype {
+        return this.components.get('abilities.gamemode');
+    }
+
+    public set gamemode(gamemode: Gametype) {
+        this.components.set('abilities.gamemode', gamemode);
     }
 
     /** The protocol identity the login carried. */
