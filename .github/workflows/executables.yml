@@ -189,11 +189,12 @@ jobs:
               if: ${{ env.MUSL == 'true' }}
               shell: bash
               run: |
+                  # Bun's musl build needs the C++ runtime; build-base is there in case `--aot` links
+                  # with the system toolchain.
                   node_version="$(cat .nvmrc)"
                   docker run --rm -v "$PWD:$PWD" -w "$PWD" \
                       -e BUILD_TIME -e BUILD_GIT_HASH -e BUILD_VERSION -e BUILD_FLAVOR -e BUILD_TYPE -e BUILD_TARGET \
                       "node:${node_version%.x}-alpine" sh -euc '
-                          # Bun's musl build needs the C++ runtime; build-base is there in case `--aot` links with the system toolchain.
                           apk add --no-cache libstdc++ libgcc build-base
                           arch="$(uname -m)"
                           if [ "$arch" = x86_64 ]; then arch=x64; fi
