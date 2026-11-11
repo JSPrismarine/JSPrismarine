@@ -4,7 +4,6 @@ import { describe, expect, it, vi } from 'vitest';
 import type { SessionPlayer } from './sessionPlayers';
 import type Server from '../Server';
 import type { Config } from '../config/Config';
-import type { Entity } from '../entity/Entity';
 import { stub } from '../testing/stub.test.helper';
 import { playerOnPrototype } from '../testing/storePlayer.test.helper';
 import type { ShownActor } from '../world/ShownActor';
@@ -71,9 +70,9 @@ const fakeSession = (
             sendMetadataFor: async () => void selfStateCalls.push('metadata'),
             sendStatusEffect: async () => void selfStateCalls.push('status effect'),
             sendEquipmentFor: async () => void selfStateCalls.push('equipment'),
-            considerEntity: async (entity: Entity) => void considered.push(entity.getRuntimeId()),
-            dropEntity: async (entity: Entity) => void dropped.push(entity.getRuntimeId()),
-            reconcileTrackedEntities: async (entities: Iterable<Entity> = []) =>
+            considerEntity: async (entity: ShownActor) => void considered.push(entity.getRuntimeId()),
+            dropEntity: async (entity: ShownActor) => void dropped.push(entity.getRuntimeId()),
+            reconcileTrackedEntities: async (entities: Iterable<ShownActor> = []) =>
                 void reconciled.push([...entities].map((one) => one.getRuntimeId())),
             send: async (packet: NetworkPacket) => void sent.push(packet),
             tracks: (runtimeId: bigint) => tracked.has(runtimeId)
@@ -113,7 +112,7 @@ const fakePlayer = (
 /** A mob: in the world, but nobody's client. */
 const fakeMob = (runtimeId: bigint) => {
     const world = stub<World>();
-    return stub<Entity>({
+    return stub<ShownActor>({
         getRuntimeId: () => runtimeId,
         getPosition: () => new Position(1, 64, 1, world),
         pitch: 0,
@@ -368,7 +367,7 @@ describe('network', () => {
             };
             const first = fakePlayer(1n, codec);
             const second = fakePlayer(2n, codec);
-            const mob = stub<Entity>({
+            const mob = stub<ShownActor>({
                 getRuntimeId: () => 3n,
                 metadata: new Metadata(false),
                 getSyncedProperties: () => new SyncedProperties(),
@@ -431,7 +430,7 @@ describe('network', () => {
                 const observer = fakePlayer(2n);
                 own.spy.tracked.add(1n);
                 observer.spy.tracked.add(1n);
-                const actor = stub<Entity>({
+                const actor = stub<ShownActor>({
                     getRuntimeId: () => 1n,
                     metadata: new Metadata(),
                     getSyncedProperties: () => new SyncedProperties()
@@ -462,7 +461,7 @@ describe('network', () => {
             it('attributes a mob sound to the mob that made it', () => {
                 const { player, spy } = fakePlayer(1n);
                 const world = stub<World>();
-                const mob = stub<Entity>({
+                const mob = stub<ShownActor>({
                     getRuntimeId: () => 2n,
                     getType: () => 'minecraft:zombie',
                     getPosition: () => new Position(1, 64, 1, world)

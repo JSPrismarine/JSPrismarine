@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import type { Entity } from '../entity/Entity';
+import type { ShownActor } from '../world/ShownActor';
 import { stub } from '../testing/stub.test.helper';
 import type { Position } from '../world/Position';
 import { EntityTracker } from './EntityTracker';
@@ -44,8 +44,8 @@ const trackingSession = ({ viewDistance = 10, spawnFails = false, reconciling = 
     });
 
     /** An entity that records the spawn instead of building a packet for it. */
-    const entityAt = (id: bigint, chunksEast: number, range = 8): Entity =>
-        stub<Entity>({
+    const entityAt = (id: bigint, chunksEast: number, range = 8): ShownActor =>
+        stub<ShownActor>({
             getRuntimeId: () => id,
             getPosition: () => stub<Position>({ getX: () => chunksEast * 16 + 8, getY: () => 64, getZ: () => 8 }),
             getTrackingRange: () => range,
