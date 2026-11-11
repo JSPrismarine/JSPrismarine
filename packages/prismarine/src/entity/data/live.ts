@@ -696,7 +696,7 @@ export class LiveEntityRuntime {
      *
      * @returns Whether it died, or undefined when it is not a store entity.
      */
-    public killEntity(target: WorldActor, source: DamageSource, route: DamageRoute): boolean | undefined {
+    public killEntity(target: StoreActor, source: DamageSource, route: DamageRoute): boolean | undefined {
         const entity = this.storeEntityOf(target);
         if (entity === undefined) return undefined;
         const health = entity.instance.attributes.get('health')?.current;
