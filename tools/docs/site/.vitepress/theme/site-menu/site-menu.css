@@ -760,9 +760,10 @@
 }
 
 .site-menu-open .site-phone__menu {
-    color: var(--jsp-on-accent);
-    background: var(--jsp-accent);
-    border-color: var(--jsp-accent);
+    /* Close is a header control like Menu: an edge on the open ink header, not a filled action. */
+    color: var(--site-menu-text);
+    background: transparent;
+    border-color: var(--site-menu-text);
     box-shadow: none;
 }
 

@@ -37,8 +37,9 @@ const startCommand = `chmod +x ${executable}\n./${executable}`;
         <header class="landing__hero">
             <p class="landing__eyebrow">
                 <!-- The label is set in caps, but a version keeps its own case. -->
-                <i></i><span class="landing__as-is">v{{ project.version }}</span> · Minecraft
-                {{ minecraftRange(project) }}
+                <i></i><span class="landing__as-is">v{{ project.version }}</span> ·
+                <!-- The range wraps as one piece, so no version is left alone on a line. -->
+                <span class="landing__nowrap">Minecraft {{ minecraftRange(project) }}</span>
             </p>
             <h1>The Bedrock<br />server you <em>own.</em></h1>
             <div class="landing__copy">
@@ -142,9 +143,7 @@ const startCommand = `chmod +x ${executable}\n./${executable}`;
                 </p>
                 <ul class="landing__packages">
                     <li v-for="pkg in featured" :key="pkg.name">
-                        <a :href="`https://www.npmjs.com/package/${pkg.name}`" :title="pkg.description">{{
-                            pkg.name
-                        }}</a>
+                        <a :href="withBase(`/api/${pkg.name}/`)" :title="pkg.description">{{ pkg.name }}</a>
                     </li>
                     <li>
                         <a :href="withBase('/packages')">All {{ project.packages.length }}</a>
@@ -234,6 +233,10 @@ const startCommand = `chmod +x ${executable}\n./${executable}`;
 
 .landing__as-is {
     text-transform: none;
+}
+
+.landing__nowrap {
+    white-space: nowrap;
 }
 
 .landing__eyebrow i {
@@ -614,6 +617,12 @@ const startCommand = `chmod +x ${executable}\n./${executable}`;
     .landing__cta :deep(.brand-button) {
         flex: 1 1 100%;
         text-align: center;
+    }
+
+    /* The primary's offset shadow falls outside its box, so it gives up that much width to keep the
+       stack's right edge straight. */
+    .landing__cta :deep(.brand-button.is-primary) {
+        max-width: calc(100% - var(--jsp-shadow-offset));
     }
 }
 

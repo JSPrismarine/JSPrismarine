@@ -84,8 +84,8 @@
     --vp-c-gutter: color-mix(in srgb, var(--jsp-cream) 10%, transparent);
     --vp-c-border: color-mix(in srgb, var(--jsp-cream) 28%, transparent);
     --vp-c-default-soft: color-mix(in srgb, var(--jsp-forest) 55%, transparent);
-    /* Inline code reads mint on its forest chip; accent there is too faint. */
-    --vp-code-color: var(--jsp-mint);
+    /* Inline code is cream on its forest chip, not a green: on the dark page green means a link. */
+    --vp-code-color: color-mix(in srgb, var(--jsp-cream) 92%, var(--jsp-mint));
     /* The page is near ink, so dark code blocks step up one shade, still in the ink family. */
     --vp-code-block-bg: color-mix(in srgb, var(--jsp-ink) 82%, var(--jsp-forest));
 
@@ -510,6 +510,7 @@
         display: grid;
         grid-column: 1 / -1;
         grid-template-columns: repeat(2, minmax(0, 1fr));
+        column-gap: 24px;
     }
 
     .VPFooter .site-footer__column:last-child .site-footer__heading {

@@ -246,6 +246,12 @@ function onKeydown(event: KeyboardEvent) {
     border-radius: var(--jsp-radius-control);
 }
 
+/* On the light page an ink tint reads muddy beside the cream, so the cards take the soft card surface. */
+html:not(.dark) .audience-tabs__links a {
+    background: var(--vp-c-bg-soft);
+    border-color: var(--vp-c-divider);
+}
+
 .audience-tabs__links a::after {
     grid-row: 1 / span 2;
     grid-column: 2;

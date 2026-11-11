@@ -309,9 +309,9 @@ const percentage = trackerProgressPercent;
                     </span>
                     <span class="family-progress">
                         <span :class="{ 'is-gap': family.passed * 2 < trackerProgressTotal(family) }"
-                            >{{ family.passed.toLocaleString() }} of
-                            {{ trackerProgressTotal(family).toLocaleString() }} checks pass ·
-                            {{ percentage(family.passed, trackerProgressTotal(family)) }}%</span
+                            ><b>{{ percentage(family.passed, trackerProgressTotal(family)) }}%</b>
+                            {{ family.passed.toLocaleString() }} of
+                            {{ trackerProgressTotal(family).toLocaleString() }} checks pass</span
                         >
                         <progress
                             :value="family.passed"
@@ -909,15 +909,34 @@ progress::-moz-progress-bar {
 .family-progress {
     display: grid;
     gap: 6px;
-    justify-items: end;
+    /* One width for every row, so the scores and bars line up down the list. */
+    width: 38ch;
     font: var(--jsp-label-size) var(--vp-font-family-mono);
     font-variant-numeric: tabular-nums;
     color: var(--tracker-muted);
 }
 
+/* The score leads the row, in the body color; the counts after it stay muted. */
+.family-progress b {
+    /* A fixed, right-aligned column, so the scores line up down the list. */
+    display: inline-block;
+    min-width: 6ch;
+    margin-right: 6px;
+    font-weight: 700;
+    color: var(--vp-c-text-1);
+    text-align: right;
+}
+
+/* On a wide page the All tile takes two cells, so fourteen groups fill the grid without a hole. */
+@media (min-width: 641px) {
+    .group-option:first-child {
+        grid-column: span 2;
+    }
+}
+
 /* The track is a flat forest tint, the brand's own track color, so a partial bar reads against the row. */
 .family-progress progress {
-    width: 160px;
+    width: 100%;
     height: 6px;
     background: color-mix(in srgb, var(--jsp-forest) 18%, transparent);
 }
@@ -1100,6 +1119,7 @@ progress::-moz-progress-bar {
     }
 
     .family-progress {
+        width: 100%;
         justify-items: start;
     }
 

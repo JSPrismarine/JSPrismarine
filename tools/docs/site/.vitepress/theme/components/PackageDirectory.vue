@@ -260,7 +260,7 @@ const shownAreas = computed(() => {
 .package-directory__areas {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
+    gap: 6px;
     margin: 4px 0 8px;
 }
 
@@ -269,11 +269,12 @@ const shownAreas = computed(() => {
     gap: 8px;
     align-items: center;
     min-height: 36px;
-    padding: 0 14px;
+    padding: 0 12px;
     font-weight: 700;
     color: var(--vp-c-text-1);
     text-decoration: none;
-    border: 1.5px solid var(--vp-c-divider);
+    /* A filter is a control, so it has the 2px edge. */
+    border: 2px solid var(--vp-c-divider);
     border-radius: 99px;
 }
 

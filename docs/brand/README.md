@@ -150,6 +150,8 @@ scrolling off the screen edge, and a two-column table stacks each row as its nam
   cards are the outline.
 - Release notes lead each change with its first sentence in bold. Inline code in them is mono in the
   body color, without a chip, so accent still means a link.
+- Inline code is never a green on the dark page; it is cream on its forest chip, so green still means
+  a link.
 - The parity tracker's rows and group tiles mark anything under
   half passing with a signal square. Its status chips differ by shape as well as color, and only
   defects and failures are filled signal. Group tiles count the behavior checks when a group has
