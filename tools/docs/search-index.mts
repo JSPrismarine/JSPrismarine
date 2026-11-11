@@ -15,7 +15,7 @@ import { createMarkdownRenderer } from 'vitepress';
 import { loadCommands, loadSettings, type CommandData, type SettingData } from './code-data.mts';
 import { loadProject } from './project.mts';
 import { sections } from './sections.mts';
-import { megaMenus } from './site/.vitepress/menus.mts';
+import type { megaMenus } from './site/.vitepress/menus.mts';
 
 /** One heading inside a page, with the start of the text under it. */
 export interface HeadingEntry {
@@ -93,8 +93,8 @@ function routeOf(file: string) {
 }
 
 /** The menu that links a page, else the docs section it sits in, for grouping results. */
-function sectionOf(route: string) {
-    for (const menu of megaMenus) {
+function sectionOf(route: string, menus: typeof megaMenus) {
+    for (const menu of menus) {
         const links = [
             menu.link,
             menu.featured?.link,
@@ -128,6 +128,8 @@ function readPage(html: string, frontmatter: Record<string, unknown>) {
 
 /** Builds the index from the staged site and writes it into the site's public folder. */
 export async function writeSearchIndex(siteDir: string) {
+    // The menu reads the staged guide overview as it loads, so it can only load once staging is done.
+    const { megaMenus: menus } = await import('./site/.vitepress/menus.mts');
     const md = await createMarkdownRenderer(siteDir);
     const pages: PageEntry[] = [];
     for (const file of sitePages(siteDir)) {
@@ -136,7 +138,7 @@ export async function writeSearchIndex(siteDir: string) {
         const page = readPage(html, env.frontmatter ?? {});
         const route = routeOf(file);
         if (!page.title) continue;
-        pages.push({ url: route, section: sectionOf(route), ...page });
+        pages.push({ url: route, section: sectionOf(route, menus), ...page });
     }
     pages.sort((a, b) => a.url.localeCompare(b.url));
 
