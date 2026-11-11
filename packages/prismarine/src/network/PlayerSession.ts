@@ -284,11 +284,12 @@ const SUB_CHUNK_REQUESTS_SINCE = 2225;
 /**
  * What a session reads of its own player beyond the id and identity it holds: the state the
  * entity store does not hold yet. Where the player is and its world drive chunk streaming and
- * entity tracking, and its inventory, attributes, health and what other clients are shown of it
- * go into the session's own sends. A legacy `Player` has every member; package C4h of the entity
- * and tick re-architecture answers them for a store player.
+ * entity tracking, and its inventory, attributes and health go into the session's own sends.
+ * What other clients are shown of it is its body's, {@link PlayerSession.shown}. A legacy
+ * `Player` has every member; package C4h of the entity and tick re-architecture answers them for
+ * a store player.
  */
-interface OwnPlayer extends ShownPlayer {
+interface OwnPlayer extends Pick<ShownPlayer, 'getPosition' | 'gamemode' | 'attributes' | 'getUUID'> {
     getWorld(): World;
     getInventory(): HumanInventory;
     getHealth(): number;
@@ -1022,7 +1023,7 @@ export default class PlayerSession {
      *   to this session's own player.
      */
     public async sendAbilities(player?: ShownPlayer): Promise<void> {
-        const target = player ?? this.own();
+        const target = player ?? this.shown();
 
         // Read off the gamemode rather than each written out by hand, which is how
         // `INSTABUILD` - the flag that *is* creative, as far as the client is concerned - came
@@ -1298,7 +1299,7 @@ export default class PlayerSession {
         armor.containerId = ContainerUiId.ARMOR_CONTAINER;
         await this.connection.sendDataPacket(armor);
 
-        await this.sendArmorFor(player);
+        await this.sendArmorFor(this.shown());
     }
 
     /**
@@ -1930,7 +1931,7 @@ export default class PlayerSession {
     }
 
     private async sendAttributeList(attributes: Attribute[]): Promise<void> {
-        await this.sendAttributesFor(this.own(), attributes);
+        await this.sendAttributesFor(this.shown(), attributes);
     }
 
     /**
@@ -2288,7 +2289,7 @@ export default class PlayerSession {
 
         const { world } = pending.arrival;
         const player = this.getPlayer();
-        await this.sendMove(player, PositionMode.Teleport);
+        await this.sendMove(player.getBody(), PositionMode.Teleport);
         await this.sendAttributes();
         await this.sendInventory();
         // The compass and the map point at the spawn across dimensions, so the client needs
@@ -2323,7 +2324,7 @@ export default class PlayerSession {
     }
 
     public async sendMetadata(metadata?: Metadata): Promise<void> {
-        await this.sendMetadataFor(this.own(), metadata);
+        await this.sendMetadataFor(this.shown(), metadata);
     }
 
     /**
@@ -2521,7 +2522,7 @@ export default class PlayerSession {
      * the server and also to the player itself.
      */
     public async addToPlayerList(): Promise<void> {
-        const entry = playerListEntryOf(this.own());
+        const entry = playerListEntryOf(this.shown());
 
         this.server.getSessionManager().getPlayerList().set(this.identity.uuid, entry);
 
@@ -2970,5 +2971,14 @@ export default class PlayerSession {
      */
     private own(): OwnPlayer {
         return this.getPlayer();
+    }
+
+    /**
+     * The session's own player as clients are shown it, which is the player's body.
+     * @returns The body.
+     * @throws {Error} Once {@link PlayerSession.disable} has forgotten the player.
+     */
+    private shown(): ShownPlayer {
+        return this.getPlayer().getBody();
     }
 }

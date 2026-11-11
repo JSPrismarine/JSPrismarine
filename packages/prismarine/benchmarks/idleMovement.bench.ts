@@ -4,6 +4,7 @@ import type { Logger } from '@jsprismarine/logger';
 import { PacketCompressionAlgorithm } from '@jsprismarine/minecraft';
 
 import type Player from '../src/Player';
+import type { LegacyPlayerBody } from '../src/entity/LegacyPlayerBody';
 import type Server from '../src/Server';
 import type { Config } from '../src/config/Config';
 import type ClientConnection from '../src/network/ClientConnection';
@@ -37,30 +38,38 @@ const pose = {
     headYaw: 164.5,
     onGround: true
 };
-const mover = stub<Player>({
+/** The moving player's body, which is what replication shows. */
+const moverBody = stub<LegacyPlayerBody>({
     getName: () => 'moving-player',
     getRuntimeId: () => 42n,
     getPosition: () => pose.position,
     getWorld: () => world,
-    pitch: pose.pitch,
-    yaw: pose.yaw,
-    headYaw: pose.headYaw,
+    isOnGround: () => pose.onGround
+});
+const mover = stub<Player>({
+    getName: () => 'moving-player',
+    getRuntimeId: () => 42n,
+    getBody: () => moverBody,
+    getPosition: () => pose.position,
+    getWorld: () => world,
     isOnGround: () => pose.onGround,
     setPlayerPosition: async ({ position, pitch, yaw, headYaw }) => {
         pose.position = new Position(position.getX(), position.getY(), position.getZ(), world);
         pose.pitch = pitch ?? pose.pitch;
         pose.yaw = yaw ?? pose.yaw;
         pose.headYaw = headYaw ?? pose.headYaw;
-        await world.broadcastMove(mover);
+        await world.broadcastMove(moverBody);
     },
     setOnGround: async (onGround) => void (pose.onGround = onGround)
 });
 // Replication reads live player angles; static stub fields would hide the updated pose.
-Object.defineProperties(mover, {
-    pitch: { get: () => pose.pitch },
-    yaw: { get: () => pose.yaw },
-    headYaw: { get: () => pose.headYaw }
-});
+for (const shown of [mover, moverBody]) {
+    Object.defineProperties(shown, {
+        pitch: { get: () => pose.pitch },
+        yaw: { get: () => pose.yaw },
+        headYaw: { get: () => pose.headYaw }
+    });
+}
 const connection = stub<ClientConnection>({
     codec: Codec2193,
     compressionAlgorithm: PacketCompressionAlgorithm.ZLIB,

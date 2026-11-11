@@ -31,7 +31,8 @@ const loggedPlayer = () => {
     Object.assign(world, {
         hasEntityStore: () => true,
         getEntityStore: () => store,
-        getEntity: (id: bigint) => (id === player.getRuntimeId() ? player : null),
+        // The body, as a world holds it: the log keeps only writes to the entity the world holds.
+        getEntity: (id: bigint) => (id === player.getRuntimeId() ? player.getBody() : null),
         dataEntities: () => stub<LiveEntityRuntime>({})
     });
     store.addInverseWriter(legacyInverseWriter(world));
@@ -87,7 +88,7 @@ describe("a player's movement belongs to its client", () => {
     it('logs a shove as one impulse occurrence and asks the client to take it', async () => {
         const { player, sent, tick } = loggedPlayer();
 
-        const entries = await tick(1, async () => player.applyKnockback(1, 0, 0.4));
+        const entries = await tick(1, async () => player.getBody().applyKnockback(1, 0, 0.4));
 
         expect(fieldsOf(entries)).toEqual(['occurrence']);
         expect(entries[0]).toMatchObject({

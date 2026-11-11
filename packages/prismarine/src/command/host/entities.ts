@@ -207,7 +207,10 @@ export const entityCommandHost = (server: Server, scoreboard: Scoreboard): Entit
      */
     const candidatesFor = (base: string, dimension: string): readonly WorldActor[] =>
         base === '@a' || base === '@p' || base === '@r'
-            ? server.getSessionManager().getAllPlayers()
+            ? server
+                  .getSessionManager()
+                  .getAllPlayers()
+                  .map((player) => player.getBody())
             : worldOf(server, dimension).getActors();
 
     const applyAttribute = (

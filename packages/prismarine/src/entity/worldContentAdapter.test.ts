@@ -4,8 +4,8 @@ import { Gametype } from '@jsprismarine/minecraft';
 
 import { EYE_HEIGHT } from './playerEyes';
 import type { ContentLookup } from '../content/world/views';
-import Player from '../Player';
-import { stub, stubOf } from '../testing/stub.test.helper';
+import { stub } from '../testing/stub.test.helper';
+import { playerOnPrototype } from '../testing/playerDouble.test.helper';
 import { Position } from '../world/Position';
 import type { World } from '../world/World';
 import { worldEntityAccess } from './worldContentAdapter';
@@ -14,13 +14,11 @@ describe('the live entity content adapter', () => {
     it('reports player mode and feet-level position', () => {
         const world = stub<World>();
         const position = new Position(2.5, 64 + EYE_HEIGHT, -1.5, world);
-        const player = stubOf(Player, {
-            getRuntimeId: () => 7n,
-            getType: () => 'minecraft:player',
-            getPosition: () => position,
-            getTags: () => [],
-            gamemode: Gametype.CREATIVE
-        });
+        const player = playerOnPrototype(
+            { gamemode: Gametype.CREATIVE },
+            // The body, which is what the adapter reads the id, the position and the tags off.
+            { runtimeId: 7n, getPosition: () => position, getTags: () => [] }
+        );
         Object.assign(world, { getPlayers: () => [player] });
         const access = worldEntityAccess({
             world: () => world,

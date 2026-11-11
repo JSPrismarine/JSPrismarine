@@ -119,7 +119,7 @@ export const worldEntityAccess = (options: WorldEntityAccessOptions): ContentEnt
             live()
                 .getPlayers()
                 .map((player) => ({
-                    ...contentEntityOf(player),
+                    ...contentEntityOf(player.getBody()),
                     identifier: PLAYER_IDENTIFIER,
                     creative: player.gamemode === Gametype.CREATIVE,
                     spectator: player.gamemode === Gametype.SPECTATOR

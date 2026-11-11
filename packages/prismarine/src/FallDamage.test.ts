@@ -3,12 +3,14 @@ import { describe, expect, it } from 'vitest';
 import { Gametype } from '@jsprismarine/minecraft';
 import { Vector3 } from '@jsprismarine/math';
 import { PositionMode } from '@jsprismarine/protocol';
-import Player from './Player';
+import type Player from './Player';
 import { DamageCause } from './entity/Entity';
 import { EYE_HEIGHT } from './entity/playerEyes';
 import { Position } from './world/Position';
 import { Attributes } from '@jsprismarine/protocol/wire/structures/Attribute';
-import { withPlayerComponents } from './testing/playerDouble.test.helper';
+import { playerOnPrototype, withPlayerComponents } from './testing/playerDouble.test.helper';
+import { stub } from './testing/stub.test.helper';
+import type PlayerSession from './network/PlayerSession';
 
 /**
  * Fall damage.
@@ -40,30 +42,35 @@ const fallingPlayer = ({
         broadcastMove: async () => {}
     };
 
-    const player: Player = Object.assign(Object.create(Player.prototype), {
-        gamemode,
-        // A real `Position`, because `Entity.setPosition` reads the world off the one it replaces.
-        position: new Position(0, 100, 0, world),
-        pitch: 0,
-        yaw: 0,
-        headYaw: 0,
-        networkSession: { sendMove: async () => {} },
-        metadata: { sprinting: false },
-        // Records the hit instead of taking it, so the amount can be asserted rather than
-        // reverse-engineered from a health bar.
-        damage: async (amount: number, cause: DamageCause) => {
-            hits.push({ amount, cause });
-            return true;
+    const player: Player = playerOnPrototype(
+        {
+            gamemode,
+            getNetworkSession: () => stub<PlayerSession>({ sendMove: async () => {} }),
+            // Records the hit instead of taking it, so the amount can be asserted rather than
+            // reverse-engineered from a health bar.
+            damage: async (amount: number, cause: DamageCause) => {
+                hits.push({ amount, cause });
+                return true;
+            },
+            getWorld: () => world
         },
-        getWorld: () => world,
-        attributes: new Attributes(Attributes.getPlayerDefaults())
-    });
+        {
+            // A real `Position`, because `Entity.setPosition` reads the world off the one it replaces.
+            position: new Position(0, 100, 0, world),
+            pitch: 0,
+            yaw: 0,
+            headYaw: 0,
+            metadata: { sprinting: false },
+            getWorld: () => world,
+            attributes: new Attributes(Attributes.getPlayerDefaults())
+        }
+    );
     // After the components, which the fall bookkeeping reads and writes through.
     Object.assign(withPlayerComponents(player), { flying, onGround: false, fallDistance: 0 });
 
     /** Walks the player down from one height to another, a block at a time, then lands. */
     const fall = async (from: number, to: number) => {
-        player['position'] = new Position(0, from, 0, world);
+        player.getBody()['position'] = new Position(0, from, 0, world);
 
         for (let y = from - 1; y >= to; y--) {
             await player.setPlayerPosition({ position: new Vector3(0, y, 0), type: PositionMode.Normal }, false);

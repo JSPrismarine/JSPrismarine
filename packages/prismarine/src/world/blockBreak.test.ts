@@ -14,7 +14,7 @@ import type { ShownActor } from './ShownActor';
 import { ItemActor as ItemEntity } from '../entity/data/itemActor';
 import ContainerEntry from '../inventory/ContainerEntry';
 import HumanInventory from '../inventory/HumanInventory';
-import Player from '../Player';
+import type Player from '../Player';
 import { definitionOf, definitionsOf } from '../content/ContentOptions';
 import { builtInEntityDefinitions } from '../content/testing';
 import { overlayPackPath } from '../content/packStack';
@@ -33,6 +33,7 @@ import { NULL_WORLD_CHANGE_SINK } from './WorldChangeSink';
 import { fakeLevel } from '../testing/level';
 import { stub } from '../testing/stub.test.helper';
 import type PlayerSession from '../network/PlayerSession';
+import { playerOnPrototype } from '../testing/playerDouble.test.helper';
 
 /** The blocks this fixture declares, which are also the whole of its palette. */
 const BLOCKS = [
@@ -350,19 +351,26 @@ describe('breakBlockWithContent', () => {
         const inventory = new HumanInventory();
         if (held !== null) inventory.setItemInHand(new ContainerEntry({ item: held, count: held.getAmount() }));
 
-        const breaker: Player = Object.assign(Object.create(Player.prototype), {
-            gamemode,
-            getInventory: () => inventory,
-            getPosition: () => new Vector3(3, 64, 3),
-            getRuntimeId: () => PLAYER_ID,
-            getServer: () => world.getServer(),
-            getStatusEffects: () => [],
-            getFallDistance: () => 0,
-            getFood: () => 20,
-            isOnGround: () => true,
-            getNetworkSession: () => stub<PlayerSession>({ getPlayer: () => breaker })
-        });
-        entities.set(Number(PLAYER_ID), breaker);
+        const breaker: Player = playerOnPrototype(
+            {
+                gamemode,
+                getRuntimeId: () => PLAYER_ID,
+                getServer: () => world.getServer(),
+                getFallDistance: () => 0,
+                getFood: () => 20,
+                isOnGround: () => true,
+                getNetworkSession: () => stub<PlayerSession>({ getPlayer: () => breaker })
+            },
+            // The body carries the inventory, as a real one does, and the break reads the tool off it.
+            {
+                runtimeId: PLAYER_ID,
+                inventory,
+                getStatusEffects: () => [],
+                getPosition: () => new Vector3(3, 64, 3),
+                getServer: () => world.getServer()
+            }
+        );
+        entities.set(Number(PLAYER_ID), breaker.getBody());
         players.set(Number(PLAYER_ID), breaker);
         return breaker;
     };

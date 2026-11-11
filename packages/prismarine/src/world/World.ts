@@ -3163,7 +3163,7 @@ export class World implements Service {
      */
     public async addPlayer(player: Player): Promise<void> {
         this.players.set(Number(player.getRuntimeId()), player);
-        await this.addEntity(player);
+        await this.addEntity(player.getBody());
     }
 
     /**
@@ -3171,7 +3171,7 @@ export class World implements Service {
      * @param player - The player.
      */
     public async removePlayer(player: Player): Promise<void> {
-        await this.removeEntity(player);
+        await this.removeEntity(player.getBody());
     }
 
     /**

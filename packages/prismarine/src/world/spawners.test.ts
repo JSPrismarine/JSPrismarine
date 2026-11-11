@@ -10,9 +10,9 @@ import type { LiveEntityRuntime } from '../entity/data/live';
 import { StoreActor } from '../entity/data/storeActors';
 import type { StoreActors } from '../entity/data/storeActors';
 import type { DataEntity } from '../entity/data/DataEntity';
-import type Player from '../Player';
 import type Server from '../Server';
 import { stub, stubOf } from '../testing/stub.test.helper';
+import { stubPlayerPort } from '../testing/playerPort.test.helper';
 import Chunk from './chunk/Chunk';
 import { Dimensions } from './Dimension';
 import { Position } from './Position';
@@ -215,7 +215,7 @@ const worldWithSpawner = ({ playerAt, delay = 0 }: { playerAt: Vector3; delay?: 
         systems: {},
         server
     });
-    const player = stub<Player>({
+    const player = stubPlayerPort({
         isOnline: () => true,
         getType: () => 'minecraft:player',
         getPosition: () => new Position(playerAt.getX(), playerAt.getY() + 1.62, playerAt.getZ(), world),
@@ -223,7 +223,7 @@ const worldWithSpawner = ({ playerAt, delay = 0 }: { playerAt: Vector3; delay?: 
         getRuntimeId: () => 1n
     });
     world['players'].set(1, player);
-    world['entities'].set(1, player);
+    world['entities'].set(1, player.getBody());
 
     const written: WorldChange[] = [];
     world.attachChangeSink({ ...NULL_WORLD_CHANGE_SINK, worldChanged: (change) => void written.push(change) });

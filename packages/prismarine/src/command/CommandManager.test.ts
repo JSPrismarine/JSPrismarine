@@ -8,10 +8,11 @@ import type { Server } from '../';
 import type { ChatManager } from '../chat/ChatManager';
 import type { ServerContent } from '../content/ServerContent';
 import Console from '../Console';
-import Player from '../Player';
+import type Player from '../Player';
 import { PermissionManager } from '../permission/PermissionManager';
 import type SessionManager from '../SessionManager';
-import { stub, stubOf } from '../testing/stub.test.helper';
+import { stub } from '../testing/stub.test.helper';
+import { playerOnPrototype } from '../testing/playerDouble.test.helper';
 import UUID from '@jsprismarine/protocol/wire/structures/UUID';
 import type GameRuleManager from '../world/GameRuleManager';
 import type { GameRuleEntry } from '../world/GameRuleManager';
@@ -127,7 +128,7 @@ describe('command', () => {
 
             // Prototype-only: a real player needs a live connection, and a refused command
             // returns before anything would reach for one.
-            const player = stubOf(Player);
+            const player = playerOnPrototype();
             const sendMessage = vi.spyOn(player, 'sendMessage').mockResolvedValue();
 
             await expect(commandManager.dispatchCommand(player, player, '/help')).resolves.toBe(false);
@@ -231,26 +232,30 @@ describe('command', () => {
                 // Annotated, because these three doubles refer to each other in a cycle -
                 // a player knows its server, the server its session manager, and that manager
                 // the player - which inference alone cannot resolve.
-                const target: Player = stubOf(Player, {
-                    getName: () => 'Target',
-                    getUUID: () => UUID.fromString(targetUuid),
-                    // The command host reads who the target is off its session.
-                    getNetworkSession: () =>
-                        stub<ReturnType<Player['getNetworkSession']>>({
-                            identity: identityNamed('Target', targetUuid),
-                            sendAvailableCommands: async () => {}
-                        }),
-                    getServer: () => server,
-                    // A vanilla command names its targets as `EntityRef`s and resolves them
-                    // back by scanning the loaded worlds, so a target has to have a runtime
-                    // id, a position and a world the way a connected player does.
-                    getRuntimeId: () => 2n,
+                // A vanilla command names its targets as `EntityRef`s and resolves them back by
+                // scanning the loaded worlds, so a target's body has to have a runtime id, a
+                // position and a world the way a connected player's does.
+                const body = {
+                    runtimeId: 2n,
                     getFeetY: () => 64,
-                    getType: () => 'minecraft:player',
                     getPosition: () => new Position(0, 64, 0, world),
-                    getWorld: () => world,
-                    sendSettings: async () => {}
-                });
+                    getWorld: () => world
+                };
+                const target: Player = playerOnPrototype(
+                    {
+                        getName: () => 'Target',
+                        getUUID: () => UUID.fromString(targetUuid),
+                        // The command host reads who the target is off its session.
+                        getNetworkSession: () =>
+                            stub<ReturnType<Player['getNetworkSession']>>({
+                                identity: identityNamed('Target', targetUuid),
+                                sendAvailableCommands: async () => {}
+                            }),
+                        getServer: () => server,
+                        sendSettings: async () => {}
+                    },
+                    body
+                );
                 const sessionManager: SessionManager = stub<SessionManager>({
                     // Both, and agreeing: a vanilla command resolves its targets through the
                     // player list where a legacy one looked the name up directly.
@@ -271,9 +276,9 @@ describe('command', () => {
                 const world = stub<World>({
                     getGameRuleManager: () => stub<GameRuleManager>({ getGameRule: () => [true, true] }),
                     getDimension: () => Dimensions.Overworld,
-                    getEntities: () => [target],
-                    getActors: () => [target],
-                    getActor: (runtimeId: bigint) => (runtimeId === target.getRuntimeId() ? target : null),
+                    getEntities: () => [target.getBody()],
+                    getActors: () => [target.getBody()],
+                    getActor: (runtimeId: bigint) => (runtimeId === target.getRuntimeId() ? target.getBody() : null),
                     viewerOf: (runtimeId: bigint) =>
                         runtimeId === target.getRuntimeId() ? target.getNetworkSession() : undefined
                 });
@@ -319,7 +324,7 @@ describe('command', () => {
 
                 await permissionManager.enable();
                 const grants = await permissionManager.getPermissions(permissionOwner);
-                const owner = stubOf(Player, {
+                const owner = playerOnPrototype({
                     getName: () => 'Filfat',
                     getUUID: () => UUID.fromString(ownerUuid),
                     getRuntimeId: () => 1n,

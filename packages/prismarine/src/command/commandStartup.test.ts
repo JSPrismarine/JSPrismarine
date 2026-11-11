@@ -20,12 +20,12 @@ import { buildContentTags } from '../content/tags';
 import { openContainerContents } from '../inventory/containerStore';
 import { EYE_HEIGHT } from '../entity/playerEyes';
 import { stub } from '../testing/stub.test.helper';
-import Player from '../Player';
+import { playerOnPrototype } from '../testing/playerDouble.test.helper';
+import type Player from '../Player';
 import type { World } from '../world/World';
 import { Position } from '../world/Position';
 import type { CommandExecutor } from './CommandExecutor';
 import { UNWIRED_COMMANDS } from './vanillaCommands';
-import { stubOf } from '../testing/stub.test.helper';
 import { stubRakNetListener } from '../testing/rakNetListener.test.helper';
 
 stubRakNetListener();
@@ -220,7 +220,7 @@ describe('the command layer on a booted server', () => {
     });
 
     it('uses a player’s feet when /summon has no coordinates', async () => {
-        const player = stubOf(Player, {
+        const player = playerOnPrototype({
             getRuntimeId: () => 99n,
             getType: () => 'minecraft:player',
             getName: () => 'TestPlayer',

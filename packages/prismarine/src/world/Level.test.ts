@@ -19,11 +19,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { Config } from '../config/Config';
 import type PlayerSession from '../network/PlayerSession';
-import Player from '../Player';
+import type Player from '../Player';
 import type Server from '../Server';
 import { inertEntityRuntime, testContent } from '../testing/entityServer';
 import { TEST_GENERATOR_KIND } from '../testing/level';
-import { stub, stubOf } from '../testing/stub.test.helper';
+import { stub } from '../testing/stub.test.helper';
+import { playerOnPrototype } from '../testing/playerDouble.test.helper';
 import Chunk from './chunk/Chunk';
 import { Dimensions, FIRST_CUSTOM_DIMENSION_ID } from './Dimension';
 import type { DimensionType } from './Dimension';
@@ -331,28 +332,32 @@ describe('Level', () => {
         const travelerIn = (from: World, to: World) => {
             const updates: number[] = [];
             let position = new Position(0, 64, 0, from);
-            const traveler: Player = stubOf(Player, {
-                attributes: new Attributes(),
-                getRuntimeId: () => 7n,
-                getType: () => 'minecraft:player',
-                getName: () => 'traveler',
-                toString: () => 'traveler',
-                getPosition: () => position,
-                getWorld: () => position.getWorld(),
-                getFeetY: () => position.getY() - 1.62,
-                getBox: () => ({ width: 0.6, height: 1.8 }),
-                isOnPortalCooldown: () => false,
-                // A settled client: the portal pass asks whether a change is still pending.
-                getNetworkSession: () =>
-                    stub<PlayerSession>({ pendingDimensionChange: () => undefined, getViewDistance: () => 4 }),
-                update: async (tick) => {
-                    updates.push(tick);
-                    if (position.getWorld() !== from) return;
-                    await from.removePlayer(traveler);
-                    position = new Position(0, 64, 0, to);
-                    await to.addPlayer(traveler);
+            const traveler: Player = playerOnPrototype(
+                {
+                    getName: () => 'traveler',
+                    // A settled client: the portal pass asks whether a change is still pending.
+                    getNetworkSession: () =>
+                        stub<PlayerSession>({ pendingDimensionChange: () => undefined, getViewDistance: () => 4 })
+                },
+                {
+                    attributes: new Attributes(),
+                    runtimeId: 7n,
+                    toString: () => 'traveler',
+                    getPosition: () => position,
+                    getWorld: () => position.getWorld(),
+                    getFeetY: () => position.getY() - 1.62,
+                    getBox: () => ({ width: 0.6, height: 1.8 }),
+                    isOnPortalCooldown: () => false,
+                    // The world ticks the body, which is what moves between worlds.
+                    update: async (tick: number) => {
+                        updates.push(tick);
+                        if (position.getWorld() !== from) return;
+                        await from.removePlayer(traveler);
+                        position = new Position(0, 64, 0, to);
+                        await to.addPlayer(traveler);
+                    }
                 }
-            });
+            );
             return { traveler, updates };
         };
 
@@ -370,8 +375,8 @@ describe('Level', () => {
 
             await level.update(1);
             expect(updates).toEqual([1]);
-            expect(nether.getEntities()).toContain(traveler);
-            expect(overworld.getEntities()).not.toContain(traveler);
+            expect(nether.getEntities()).toContain(traveler.getBody());
+            expect(overworld.getEntities()).not.toContain(traveler.getBody());
 
             // The next tick finds it in the Nether and ticks it there, once.
             await level.update(2);

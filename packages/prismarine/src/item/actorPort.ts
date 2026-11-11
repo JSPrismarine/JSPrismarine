@@ -218,14 +218,16 @@ export const createItemActorPort = (options: ItemActorPortOptions): ServerItemAc
      * The player a source names, found through its session in the same world, or undefined for
      * any other entity. This is the one place the port asks for it.
      */
-    const playerOf = (source: ItemSource): (WorldActor & ItemPlayer) | undefined =>
+    const playerOf = (source: ItemSource): ItemPlayer | undefined =>
         world()?.viewerOf(BigInt(source.runtimeId))?.getPlayer();
 
     const useItemOnEntity = (source: ItemSource): boolean => {
         const player = playerOf(source);
+        // The player as an entity, which is what the target's components are handed.
+        const actor = entityOf(source);
         const targetSource = targets.get(source.runtimeId);
         const target = targetSource === undefined ? null : entityOf(targetSource);
-        if (player === undefined || target === null || interactWithEntity === undefined) return false;
+        if (player === undefined || actor === null || target === null || interactWithEntity === undefined) return false;
 
         const inventory = player.getInventory();
         const heldEntry = inventory.getEntry(inventory.getHandSlotIndex());
@@ -242,7 +244,7 @@ export const createItemActorPort = (options: ItemActorPortOptions): ServerItemAc
             itemIdentifier = held.getName();
             heldItem = itemDropOf(stored);
         }
-        const outcome = interactWithEntity(target, player, itemIdentifier, heldItem);
+        const outcome = interactWithEntity(target, actor, itemIdentifier, heldItem);
         if (!outcome.accepted) return false;
 
         for (const drop of outcome.addedItems ?? []) giveDrop(source, drop);

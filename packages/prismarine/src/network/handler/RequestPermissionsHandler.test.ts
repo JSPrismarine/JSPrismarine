@@ -94,7 +94,7 @@ describe('RequestPermissionsHandler', () => {
         await new RequestPermissionsHandler().handle(request(PlayerPermissionLevel.CUSTOM, 7n, 0xff), server, session);
 
         expect(opChanges).toEqual([]);
-        expect(resent).toEqual([target]);
+        expect(resent).toEqual([target.getBody()]);
         expect(logged).toEqual([
             'Steve asked to set Alex to permission level CUSTOM (custom flags 0xff). Only Member and Operator are modeled, so the current abilities were sent back'
         ]);

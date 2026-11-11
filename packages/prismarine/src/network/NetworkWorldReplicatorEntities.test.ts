@@ -1,11 +1,12 @@
 import type { Logger } from '@jsprismarine/logger';
 import { describe, expect, it, vi } from 'vitest';
 
-import Player from '../Player';
+import type Player from '../Player';
 import type Server from '../Server';
 import type { Config } from '../config/Config';
 import type { Entity } from '../entity/Entity';
-import { stub, stubOf } from '../testing/stub.test.helper';
+import { stub } from '../testing/stub.test.helper';
+import { playerOnPrototype } from '../testing/playerDouble.test.helper';
 import type { World } from '../world/World';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import type { ProtocolCodec } from '@jsprismarine/protocol';
@@ -87,19 +88,23 @@ const fakePlayer = (
     compressionThreshold?: number
 ) => {
     const spy = fakeSession(runtimeId, codec, compressionAlgorithm, compressionThreshold);
-    const player = stubOf(Player, {
-        getRuntimeId: () => runtimeId,
-        getNetworkSession: () => spy.session,
-        getPosition: () => new Position(1, 64, 1, stub<World>()),
-        pitch: 0,
-        yaw: 0,
-        headYaw: 0,
-        metadata: new Metadata(false),
-        getSyncedProperties: () => new SyncedProperties(),
-        getEquipment: () => ({}),
-        isOnGround: () => false,
-        isOnline: () => true
-    });
+    const player = playerOnPrototype(
+        {
+            getNetworkSession: () => spy.session,
+            isOnGround: () => false,
+            isOnline: () => true
+        },
+        {
+            runtimeId,
+            getPosition: () => new Position(1, 64, 1, stub<World>()),
+            pitch: 0,
+            yaw: 0,
+            headYaw: 0,
+            metadata: new Metadata(false),
+            getSyncedProperties: () => new SyncedProperties(),
+            getEquipment: () => ({})
+        }
+    );
 
     return { player, spy };
 };
@@ -157,7 +162,7 @@ describe('network', () => {
                 const mob = fakeMob(2n);
                 const replicator = replicatorOver({ players: [player], entities: [mob] });
 
-                await replicator.entityAdded(player);
+                await replicator.entityAdded(player.getBody());
 
                 expect(spy.reconciled).toStrictEqual([[2n]]);
             });
@@ -165,9 +170,9 @@ describe('network', () => {
             it('does not offer an arriving player to itself', async () => {
                 // A client is never sent a spawn for the entity it is controlling.
                 const { player, spy } = fakePlayer(1n);
-                const replicator = replicatorOver({ players: [player], entities: [player] });
+                const replicator = replicatorOver({ players: [player], entities: [player.getBody()] });
 
-                await replicator.entityAdded(player);
+                await replicator.entityAdded(player.getBody());
 
                 expect(spy.considered).toStrictEqual([]);
             });
@@ -193,7 +198,7 @@ describe('network', () => {
                 const arriving = fakePlayer(2n);
                 const replicator = replicatorOver({ players: [resident.player, arriving.player] });
 
-                await replicator.entityAdded(arriving.player);
+                await replicator.entityAdded(arriving.player.getBody());
 
                 expect(resident.spy.considered).toStrictEqual([2n]);
             });
@@ -240,7 +245,7 @@ describe('network', () => {
                 observer.spy.tracked.add(1n);
 
                 const replicator = replicatorOver({ players: [moving.player, observer.player] });
-                replicator.entityMoved(moving.player);
+                replicator.entityMoved(moving.player.getBody());
                 await replicator.flushMovement();
 
                 expect(moving.spy.frames).toHaveLength(0);
@@ -407,10 +412,10 @@ describe('network', () => {
                 showIcon: true
             };
 
-            await replicator.entityAttributesChanged(player, [attribute]);
-            await replicator.statusEffectChanged(player, effect, 'add');
-            await replicator.entityMetadataChanged(player);
-            await replicator.entityEquipmentChanged(player);
+            await replicator.entityAttributesChanged(player.getBody(), [attribute]);
+            await replicator.statusEffectChanged(player.getBody(), effect, 'add');
+            await replicator.entityMetadataChanged(player.getBody());
+            await replicator.entityEquipmentChanged(player.getBody());
 
             expect(spy.selfStateCalls).toStrictEqual(['attributes', 'status effect', 'metadata', 'equipment']);
             expect(spy.frames).toHaveLength(0);

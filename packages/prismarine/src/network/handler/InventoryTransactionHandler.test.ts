@@ -3,7 +3,6 @@ import { Vector3 } from '@jsprismarine/math';
 import { ContainerUiId, Gametype } from '@jsprismarine/minecraft';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
-import type Player from '../../Player';
 import type Server from '../../Server';
 import type { Config } from '../../config/Config';
 import * as archery from '../../entity/Archery';
@@ -17,6 +16,7 @@ import HumanInventory from '../../inventory/HumanInventory';
 import { Item } from '../../item/Item';
 import { identityNamed } from '../../testing/sessionIdentity.test.helper';
 import { stub } from '../../testing/stub.test.helper';
+import { stubPlayerPort } from '../../testing/playerPort.test.helper';
 import BlockPosition from '../../world/BlockPosition';
 import { Dimensions } from '../../world/Dimension';
 import { Position } from '../../world/Position';
@@ -115,7 +115,7 @@ const fake = (
     inventory.setHandSlot(2);
 
     const runtimeId = nextPlayerRuntimeId++;
-    const player = stub<Player>({
+    const player = stubPlayerPort({
         isOnline: () => true,
         getRuntimeId: () => runtimeId,
         gamemode,
@@ -486,7 +486,7 @@ describe('InventoryTransactionHandler', () => {
 
         expect(vi.mocked(meleeAttack)).toHaveBeenCalledTimes(1);
         const [attacker, target, options] = vi.mocked(meleeAttack).mock.calls[0]!;
-        expect(attacker).toBe(world.player);
+        expect(attacker).toBe(world.player.getBody());
         expect(target).toBe(world.zombie);
         expect(options).toMatchObject({ reach: 3, damage: 1, critical: false, knockbackLevels: 0 });
         expect(world.exhaustion()).toBeCloseTo(0.1);
@@ -542,7 +542,7 @@ describe('InventoryTransactionHandler', () => {
         await handle(transaction(TransactionType.RELEASE_ITEM, releaseItem()), withStone);
 
         expect(vi.mocked(loose)).toHaveBeenCalledTimes(1);
-        expect(vi.mocked(loose)).toHaveBeenCalledWith(withBow.player, 15);
+        expect(vi.mocked(loose)).toHaveBeenCalledWith(withBow.player.getBody(), 15);
         // The clock is taken either way, so a release with nothing to fire still ends the use.
         expect(withStone.itemUse).toEqual([`take ${TICK}`]);
     });

@@ -33,7 +33,7 @@ describe('ActorEventHandler', () => {
 
         await new ActorEventHandler().handle(event(7n, ActorEvent.FEED, 260), server, session);
 
-        expect(sendActorEvent).toHaveBeenCalledExactlyOnceWith(player, ActorEvent.FEED, 260);
+        expect(sendActorEvent).toHaveBeenCalledExactlyOnceWith(player.getBody(), ActorEvent.FEED, 260);
         expect(verbose).not.toHaveBeenCalled();
     });
 

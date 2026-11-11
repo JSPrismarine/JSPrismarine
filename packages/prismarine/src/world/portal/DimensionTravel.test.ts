@@ -299,7 +299,7 @@ describe('DimensionTravel.resolve', () => {
             expect(scene.overworld.getPortalIndex().size).toBe(6);
 
             const player = playerAt(scene.server, scene.overworld, new Vector3(80.5, 64, 0.5));
-            const arrival = await scene.travel.resolve(player, {
+            const arrival = await scene.travel.resolve(player.getBody(), {
                 world: scene.overworld,
                 position: new Vector3(80, 64, 0),
                 block: 'minecraft:portal'
@@ -407,7 +407,7 @@ describe('DimensionTravel.resolve', () => {
             const scene = await buildScene();
             const player = playerAt(scene.server, scene.overworld, new Vector3(0.5, 60, 0.5));
 
-            const arrival = await scene.travel.resolve(player, {
+            const arrival = await scene.travel.resolve(player.getBody(), {
                 world: scene.overworld,
                 position: new Vector3(0, 60, 0),
                 block: 'minecraft:end_portal'
@@ -453,7 +453,7 @@ describe('DimensionTravel.resolve', () => {
             // A player stepping into the End's portal is in the End, which finds its session.
             await scene.end.addPlayer(player);
 
-            const arrival = await scene.travel.resolve(player, {
+            const arrival = await scene.travel.resolve(player.getBody(), {
                 world: scene.end,
                 position: new Vector3(0, 60, 0),
                 block: 'minecraft:end_portal'
@@ -547,7 +547,7 @@ describe('DimensionTravel.touch', () => {
         await lightPortal(scene.nether, new Vector3(12, 70, 0), 'z');
         const player = playerAt(scene.server, scene.overworld, new Vector3(80.5, 64, 0.5));
         await scene.overworld.addPlayer(player);
-        await scene.travel.transfer(player, {
+        await scene.travel.transfer(player.getBody(), {
             world: scene.nether,
             position: new Vector3(12.5, 70, 0.5),
             yaw: 0,
@@ -556,9 +556,9 @@ describe('DimensionTravel.touch', () => {
         // Past the 10 tick cooldown, with the screen never closed.
         player.setPortalCooldown(0);
 
-        await scene.travel.touch(player, portalAt(scene.nether, new Vector3(12, 70, 0)));
+        await scene.travel.touch(player.getBody(), portalAt(scene.nether, new Vector3(12, 70, 0)));
 
-        expect(player.portalContact()).toBeUndefined();
+        expect(player.getBody().portalContact()).toBeUndefined();
 
         await scene.level.disable();
     }, 60_000);
@@ -654,7 +654,7 @@ describe('DimensionTravel.transfer', () => {
         const seen: [World, World][] = [];
         scene.server.on('playerChangeDimension', (event) => void seen.push([event.getFrom(), event.getTo()]));
 
-        await scene.travel.transfer(player, {
+        await scene.travel.transfer(player.getBody(), {
             world: scene.nether,
             position: new Vector3(10.5, 70, 0.5),
             yaw: 90,
@@ -679,7 +679,7 @@ describe('DimensionTravel.transfer', () => {
         await scene.overworld.addPlayer(player);
         scene.server.on('playerChangeDimension', (event) => event.preventDefault());
 
-        await scene.travel.transfer(player, {
+        await scene.travel.transfer(player.getBody(), {
             world: scene.nether,
             position: new Vector3(10.5, 70, 0.5),
             yaw: 90,
@@ -698,7 +698,7 @@ describe('DimensionTravel.transfer', () => {
 describe('DimensionTravel.transfer out of the End', () => {
     /** The End-exit arrival of `player`, resolved from an exit portal block under them. */
     const exitArrival = async (scene: Awaited<ReturnType<typeof buildScene>>, player: Player) => {
-        const arrival = await scene.travel.resolve(player, {
+        const arrival = await scene.travel.resolve(player.getBody(), {
             world: scene.end,
             position: new Vector3(0, 60, 0),
             block: 'minecraft:end_portal'
@@ -715,7 +715,7 @@ describe('DimensionTravel.transfer out of the End', () => {
         const arrival = await exitArrival(scene, player);
         sent.length = 0;
 
-        await scene.travel.transfer(player, arrival);
+        await scene.travel.transfer(player.getBody(), arrival);
 
         const credits = sent.filter((packet): packet is ShowCreditsPacket => packet instanceof ShowCreditsPacket);
         expect(credits).toHaveLength(1);
@@ -735,7 +735,7 @@ describe('DimensionTravel.transfer out of the End', () => {
         const sent: unknown[] = [];
         const player = playerAt(scene.server, scene.end, new Vector3(0.5, 60, 0.5), sent);
         await scene.end.addPlayer(player);
-        await scene.travel.transfer(player, await exitArrival(scene, player));
+        await scene.travel.transfer(player.getBody(), await exitArrival(scene, player));
         sent.length = 0;
 
         expect(await player.getNetworkSession().completeCredits()).toBe(true);
@@ -760,7 +760,7 @@ describe('DimensionTravel.transfer out of the End', () => {
         const arrival = await exitArrival(scene, player);
         sent.length = 0;
 
-        await scene.travel.transfer(player, arrival);
+        await scene.travel.transfer(player.getBody(), arrival);
 
         expect(sent.some((packet) => packet instanceof ShowCreditsPacket)).toBe(false);
         expect(player.getWorld()).toBe(scene.overworld);
@@ -866,11 +866,11 @@ describe('DimensionTravel through the tick', () => {
         await scene.overworld.addPlayer(player);
         const portal = portalAt(scene.overworld, new Vector3(80, 64, 0));
 
-        for (let tick = 1; tick <= 79; tick += 1) await tickInPortal(scene.travel, player, portal, tick);
+        for (let tick = 1; tick <= 79; tick += 1) await tickInPortal(scene.travel, player.getBody(), portal, tick);
         expect(player.getWorld()).toBe(scene.overworld);
-        expect(player.portalContact()?.getPortalTime()).toBe(79);
+        expect(player.getBody().portalContact()?.getPortalTime()).toBe(79);
 
-        await tickInPortal(scene.travel, player, portal, 80);
+        await tickInPortal(scene.travel, player.getBody(), portal, 80);
 
         expect(player.getWorld()).toBe(scene.nether);
         expect(player.getPortalCooldown()).toBe(10);
@@ -975,8 +975,8 @@ describe('DimensionTravel through the tick', () => {
 
         expect(changes).toEqual([]);
         expect(bot.getWorld()).toBe(scene.nether);
-        expect(bot.portalContact()).toBeUndefined();
-        expect(bot.isOnPortalCooldown()).toBe(true);
+        expect(bot.getBody().portalContact()).toBeUndefined();
+        expect(bot.getBody().isOnPortalCooldown()).toBe(true);
 
         await scene.level.disable();
     }, 60_000);
@@ -1019,7 +1019,7 @@ describe('DimensionTravel through the tick', () => {
         expect(entered).toEqual([]);
         expect(bot.getWorld()).toBe(scene.nether);
         expect(bot.getPortalCooldown()).toBe(10);
-        expect(bot.portalContact()).toBeUndefined();
+        expect(bot.getBody().portalContact()).toBeUndefined();
         expect(bot.getNetworkSession().pendingDimensionChange()).toBe(pending);
         expect(scene.nether.getPlayers()).toContain(bot);
 

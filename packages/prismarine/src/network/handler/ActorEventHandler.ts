@@ -33,7 +33,7 @@ export default class ActorEventHandler implements PacketHandler<ActorEventPacket
 
     /** Relays an allowed event about the sender to the players tracking it, and drops the rest. */
     public async handle(packet: ActorEventPacket, server: Server, session: PlayerSession): Promise<void> {
-        const player: ShownActor & Pick<PlacedPlayer, 'getWorld'> = session.getPlayer();
+        const player: ShownActor & Pick<PlacedPlayer, 'getWorld'> = session.getPlayer().getBody();
         const logger = server.getLogger();
 
         if (packet.runtimeEntityId !== session.runtimeId) {

@@ -78,7 +78,7 @@ export const applyClientMovement = async (
     server.post(['playerMove', event]);
     if (event.isCanceled()) {
         // Since we're canceling the event, we should reset the player's position.
-        await session.sendMove(session.getPlayer(), PositionMode.Respawn);
+        await session.sendMove(session.getPlayer().getBody(), PositionMode.Respawn);
         return;
     }
 
@@ -113,7 +113,7 @@ export const applyClientMovement = async (
     if (groundChanged) {
         // Position queues a snapshot before landing logic updates the on-ground bit. Replacing
         // that entry gives observers the final pose and ground state in the one tick update.
-        await player.getWorld().broadcastMove(session.getPlayer());
+        await player.getWorld().broadcastMove(session.getPlayer().getBody());
     }
 };
 

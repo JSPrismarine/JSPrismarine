@@ -14,6 +14,7 @@ import ContainerEntry from '../inventory/ContainerEntry';
 import HumanInventory from '../inventory/HumanInventory';
 import { Item } from '../item/Item';
 import { stub } from '../testing/stub.test.helper';
+import { stubPlayerPort } from '../testing/playerPort.test.helper';
 import Device from '../utils/Device';
 import { AddPlayerPacket, MobArmorEquipmentPacket, MobEquipmentPacket } from '@jsprismarine/protocol';
 import type { AddPlayerPayload } from '@jsprismarine/protocol';
@@ -94,7 +95,7 @@ const position = () => stub<Position>({ getX: () => 1, getY: () => 64, getZ: () 
 
 /** The player being shown, with the pieces `sendAddPlayer` reads. */
 const shownPlayer = ({ op = false, device = null }: { op?: boolean; device?: Device | null } = {}) =>
-    stub<Player>({
+    stubPlayerPort({
         metadata: new Metadata(),
         isFlying: () => false,
         getEquipment: () => ({}),
@@ -120,7 +121,7 @@ describe('network', () => {
             const ownSession = () => {
                 const human = equippedHuman();
                 return sessionFor(
-                    stub<Player>({
+                    stubPlayerPort({
                         getRuntimeId: () => 7n,
                         getInventory: () => human.getInventory(),
                         getEquipment: () => human.getEquipment()
@@ -204,7 +205,7 @@ describe('network', () => {
             it('sends the off hand as equipment for the offhand container, not as body armor', async () => {
                 // `Body` is the body armor slot. Putting the shield there dressed the player in
                 // it; the client reads off-hand changes from `MobEquipment` with container 119.
-                const { session, sent } = sessionFor(stub<Player>({ getRuntimeId: () => 1n }));
+                const { session, sent } = sessionFor(stubPlayerPort({ getRuntimeId: () => 1n }));
 
                 await session.sendArmorFor(equippedHuman());
 
@@ -231,9 +232,9 @@ describe('network', () => {
 
         describe('sendAddPlayer', () => {
             const spawn = async (shown: Player): Promise<AddPlayerPayload> => {
-                const { session, sent } = sessionFor(stub<Player>({ getRuntimeId: () => 1n }));
+                const { session, sent } = sessionFor(stubPlayerPort({ getRuntimeId: () => 1n }));
 
-                await session.sendAddPlayer(shown);
+                await session.sendAddPlayer(shown.getBody());
 
                 const [packet] = sent;
                 expect(packet).toBeInstanceOf(AddPlayerPacket);
