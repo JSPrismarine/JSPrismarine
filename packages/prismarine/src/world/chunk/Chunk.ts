@@ -117,6 +117,8 @@ export default class Chunk {
     /** Stable insertion positions keep filtered tick indexes in the Map's iteration order. */
     private readonly blockEntityOrder = new Map<number, number>();
     private nextBlockEntityOrder = 0;
+    /** The filing order each removed block entity had, so an undo can put it back in its place. */
+    private readonly removedBlockEntityOrder = new Map<number, number>();
     private readonly furnaces: Array<{ readonly index: number; readonly order: number; readonly entity: Furnace }> = [];
     private readonly mobSpawners: Array<{
         readonly index: number;
@@ -678,6 +680,7 @@ export default class Chunk {
         if (order === undefined) {
             order = this.nextBlockEntityOrder++;
             this.blockEntityOrder.set(index, order);
+            this.removedBlockEntityOrder.delete(index);
         } else if (previous instanceof Furnace) {
             this.removeIndexedBlockEntity(this.furnaces, index);
         } else if (previous instanceof MobSpawner) {
@@ -697,11 +700,37 @@ export default class Chunk {
         this.invalidateNetworkSerialization();
     }
 
+    /**
+     * Files a removed block entity again in the place it held among this chunk's block entities,
+     * which is how the change log undoes its removal: the chunk serializes them in that order.
+     * One that was never removed here is filed as {@link setBlockEntity} files it.
+     */
+    public restoreBlockEntity(blockEntity: BlockEntity): void {
+        const position = blockEntity.getPosition();
+        const index = this.blockEntityIndex(position.getX(), position.getY(), position.getZ());
+        const order = this.removedBlockEntityOrder.get(index);
+        if (order === undefined || this.blockEntityOrder.has(index)) {
+            this.setBlockEntity(blockEntity);
+            return;
+        }
+
+        this.removedBlockEntityOrder.delete(index);
+        this.blockEntityOrder.set(index, order);
+        this.setBlockEntity(blockEntity);
+        const filed = [...this.blockEntities].sort(
+            ([left], [right]) => this.blockEntityOrder.get(left)! - this.blockEntityOrder.get(right)!
+        );
+        this.blockEntities.clear();
+        for (const [key, entity] of filed) this.blockEntities.set(key, entity);
+    }
+
     public removeBlockEntity(x: number, y: number, z: number): boolean {
         const index = this.blockEntityIndex(x, y, z);
         const removedEntity = this.blockEntities.get(index);
         const removed = this.blockEntities.delete(index);
         if (removed) {
+            const order = this.blockEntityOrder.get(index);
+            if (order !== undefined) this.removedBlockEntityOrder.set(index, order);
             this.blockEntityOrder.delete(index);
             if (removedEntity instanceof Furnace) {
                 this.removeIndexedBlockEntity(this.furnaces, index);
@@ -888,8 +917,8 @@ export default class Chunk {
     /**
      * Puts a logged block back, which is how the change log undoes a block write.
      *
-     * {@link setBlockRuntimeId} without clearing the block entity, which the log records apart
-     * from the block.
+     * {@link setBlockRuntimeId} without clearing the block entity: the log records a block entity
+     * of its own, and the undo puts it back itself.
      */
     public restoreBlockRuntimeId(x: number, y: number, z: number, runtimeId: number, layer = 0): void {
         const subChunk = this.subChunkAt(y) ?? this.getOrCreateSubChunk(this.requireSubChunkIndex(y));

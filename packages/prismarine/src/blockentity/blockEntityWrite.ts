@@ -54,8 +54,10 @@ export interface BlockEntityWorld {
      * Called only for a write that changed something, and only once the chunk holds it.
      * @param position - The block the block entity sits in.
      * @param tags - Its complete data, as the chunk would serialize it.
+     * @param before - What stood there before the write, for the change log, or null when
+     *   nothing did.
      */
-    blockEntityChanged(position: Vector3, tags: NBTTagCompound): void;
+    blockEntityChanged(position: Vector3, tags: NBTTagCompound, before: NBTTagCompound | null): void;
 }
 
 /** Encoded forms for entities whose mutable NBT has not escaped through a public getter. */
@@ -99,8 +101,8 @@ export const writeBlockEntity = (world: BlockEntityWorld, tags: NBTTagCompound):
     const settled = written.toNBT();
     const settledBytes = networkTags(settled);
 
-    const standing = chunk.getBlockEntity(x, y, z);
-    if (standing !== null && standing !== undefined) {
+    const standing = chunk.getBlockEntity(x, y, z) ?? null;
+    if (standing !== null) {
         const standingBytes = standing.canReuseSerialization()
             ? (serializedSnapshots.get(standing) ?? networkTags(standing.toNBT()))
             : networkTags(standing.toNBT());
@@ -109,9 +111,10 @@ export const writeBlockEntity = (world: BlockEntityWorld, tags: NBTTagCompound):
         if (standingBytes.equals(settledBytes)) return false;
     }
 
+    const before = standing?.toNBT() ?? null;
     chunk.setBlockEntity(written);
     if (written.canReuseSerialization()) serializedSnapshots.set(written, settledBytes);
-    world.blockEntityChanged(new Vector3(x, y, z), settled);
+    world.blockEntityChanged(new Vector3(x, y, z), settled, before);
 
     return true;
 };

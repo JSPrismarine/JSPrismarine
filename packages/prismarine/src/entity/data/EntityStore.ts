@@ -18,8 +18,8 @@
  * in {@link EntityStore.broken} and the world stops ticking
  * ([ADR 0015](../../../../../docs/adr/0015-a-tick-is-a-fixed-sequence-of-synchronous-phases.md)).
  *
- * The log is the world's: its block writes reach it through {@link EntityStore.writtenBlock},
- * and the world
+ * The log is the world's: its block and block entity writes reach it through
+ * {@link EntityStore.writtenBlock} and {@link EntityStore.writtenBlockEntity}, and the world
  * registers the writer that undoes them. A tick of the log is one world tick, numbered by the
  * store from 1 and not by the level clock, because `/time set` moves the clock backwards and the
  * log only goes forward.
@@ -215,6 +215,22 @@ export class EntityStore {
     public writtenBlock(x: number, y: number, z: number, layer: number, before: number, after: number): void {
         if (before === after) return;
         this.append({ kind: 'field', field: 'block', address: { x, y, z, layer }, before, after });
+    }
+
+    /**
+     * Logs one change to one field of the block entity at a position
+     * (`blockentity/blockEntityLog.ts` names the fields), with its value before and after.
+     */
+    public writtenBlockEntity(
+        x: number,
+        y: number,
+        z: number,
+        field: string,
+        before: PlainData,
+        after: PlainData
+    ): void {
+        if (samePlain(before, after)) return;
+        this.append({ kind: 'field', field: 'block-entity', address: { x, y, z, field }, before, after });
     }
 
     /**
