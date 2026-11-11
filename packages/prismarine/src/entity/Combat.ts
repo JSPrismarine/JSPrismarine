@@ -16,8 +16,8 @@ import { PLAYER_IDENTIFIER } from './playerOverlay';
  * knowing what a weapon is. Putting it here also keeps it out of the packet handler, where it
  * would only ever have served players.
  *
- * Deliberately imports neither `Player` nor anything under `entity/data`, which would import this
- * back. Anything species-specific is passed in by whoever knows it, which is why the reach and
+ * Deliberately imports neither the player nor anything under `entity/data`, which would import
+ * this back. Anything species-specific is passed in by whoever knows it, which is why the reach and
  * the critical are options and not worked out here.
  */
 
@@ -93,7 +93,7 @@ export const distanceToBody = (from: Vector3, target: WorldActor): number => {
  * The gate every fight goes through, so the rules are stated once rather than in each of the
  * handler, the goals and whatever comes next.
  *
- * A dead target is refused here rather than left to `Entity.damage`, because a mob keeps its
+ * A dead target is refused here rather than left to the damage pipeline, because a mob keeps its
  * place in the world for a second while its death animation plays and would otherwise be a
  * punchbag for that second.
  * @param {WorldActor} attacker - Who is swinging.

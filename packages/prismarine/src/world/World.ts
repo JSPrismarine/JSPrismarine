@@ -1150,7 +1150,7 @@ export class World implements Service {
             playerChunkRefCounts.simulates(CoordinateUtils.fromBlockToChunk(x), CoordinateUtils.fromBlockToChunk(z));
 
         // Claimed per tick, so an entity that arrived from a world the level ticked earlier
-        // this pass is not updated twice: see {@link Entity.claimUpdate}. Taken from the map
+        // this pass is not updated twice: see {@link StoreActor.claimUpdate}. Taken from the map
         // into the one list the loop below walks, because an update can add or remove entities.
         // No index is rebuilt here: the entity index is refiled on every position write, so a
         // query sees each entity where its last write put it (ADR 0007).
@@ -1833,7 +1833,7 @@ export class World implements Service {
 
     /**
      * A noise one entity made: being hit, dying, swinging at something.
-     * @param {Entity} entity - Who made it.
+     * @param {ShownActor} entity - Who made it.
      * @param {LevelSoundEvent} sound - Which noise.
      */
     public async sendActorSound(entity: ShownActor, sound: LevelSoundEvent): Promise<void> {
@@ -1842,7 +1842,7 @@ export class World implements Service {
 
     /**
      * Tells everyone watching that an entity now looks different.
-     * @param {Entity} entity - Who changed.
+     * @param {ShownActor} entity - Who changed.
      */
     public async sendActorMetadata(entity: ShownActor): Promise<void> {
         await this.changes.entityMetadataChanged(entity);
@@ -1853,7 +1853,7 @@ export class World implements Service {
      *
      * Called from `entity/data/storeActors.ts`, which has already dropped the writes that
      * changed nothing.
-     * @param {Entity} entity - Whose equipment changed.
+     * @param {ShownActor} entity - Whose equipment changed.
      */
     public entityEquipmentChanged(entity: ShownActor): void {
         void this.changes
@@ -1972,7 +1972,7 @@ export class World implements Service {
     /**
      * Tells everyone watching that something happened to one entity - it was hurt, it died,
      * it swung an arm. The client plays the animation and the sound that go with it.
-     * @param {Entity} entity - The entity it happened to.
+     * @param {ShownActor} entity - The entity it happened to.
      * @param {ActorEvent} event - What happened.
      * @param {number} [data=0] - Extra detail, for the events that carry any.
      */
@@ -1982,7 +1982,7 @@ export class World implements Service {
 
     /**
      * Tells clients tracking an entity about one status effect change.
-     * @param {Entity} entity - The actor whose effect changed.
+     * @param {ShownActor} entity - The actor whose effect changed.
      * @param {StatusEffect} effect - The effect state.
      * @param {StatusEffectChange} change - Whether it was added, updated, or removed.
      */
@@ -3510,7 +3510,7 @@ export class World implements Service {
      * Players are skipped on purpose. They drain their own dirty set in `PlayerSession`, which
      * sends them things a mob has no equivalent of - the hunger and experience bars - and doing
      * it here as well would send every one of those twice.
-     * @param {Entity[]} entities - Everything in the world, from the top of the tick.
+     * @param {ShownActor[]} entities - Everything in the world, from the top of the tick.
      */
     private async flushEntityAttributes(entities: readonly ShownActor[]): Promise<void> {
         const updates: Promise<void>[] = [];
@@ -3556,7 +3556,7 @@ export class World implements Service {
      *
      * It only announces. The entity was refiled when its position was written, through
      * {@link World.entityRelocated}, whether or not the move is announced.
-     * @param {Entity} entity - The entity that moved.
+     * @param {ShownActor} entity - The entity that moved.
      * @param {boolean} teleport - Whether clients should snap instead of interpolate.
      */
     public async broadcastMove(entity: ShownActor, teleport = false): Promise<void> {
