@@ -446,15 +446,22 @@ describe('world', () => {
 describe('world portal contacts', () => {
     /** A standing player, 0.6 wide and 1.8 tall, whose feet are at `feet`. */
     const standingAt = (feet: Vector3, onCooldown = false): Entity => {
-        const position = new Position(feet.getX(), feet.getY() + 1.62, feet.getZ(), stub<World>());
+        // A settled client: no world change is waiting on its loading screen.
+        const session = stub<PlayerSession>({ pendingDimensionChange: () => undefined });
+        const position = new Position(
+            feet.getX(),
+            feet.getY() + 1.62,
+            feet.getZ(),
+            stub<World>({ viewerOf: () => session })
+        );
         return stubOf(Player, {
             attributes: new Attributes(),
             getPosition: () => position,
+            getWorld: () => position.getWorld(),
             getFeetY: () => feet.getY(),
             getBox: () => ({ width: 0.6, height: 1.8 }),
             isOnPortalCooldown: () => onCooldown,
-            // A settled client: no world change is waiting on its loading screen.
-            getNetworkSession: () => stub<PlayerSession>({ pendingDimensionChange: () => undefined }),
+            getNetworkSession: () => session,
             getType: () => 'minecraft:player',
             update: async () => {}
         });

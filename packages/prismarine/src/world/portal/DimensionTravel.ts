@@ -22,10 +22,11 @@ import { NBTTagCompound } from '@jsprismarine/nbt';
 import { dataEntityRecordOf, writeDataEntityRecord } from '../../entity/data/persistence';
 import type { DataEntityRecord } from '../../entity/data/persistence';
 import { StoreActor } from '../../entity/data/storeActors';
+import { PLAYER_IDENTIFIER } from '../../entity/playerOverlay';
 import EntityPortalEnterEvent from '../../events/entity/EntityPortalEnterEvent';
 import PlayerChangeDimensionEvent from '../../events/player/PlayerChangeDimensionEvent';
+import type PlayerSession from '../../network/PlayerSession';
 import type { Arrival } from '../../network/PlayerSession';
-import Player from '../../Player';
 import type Server from '../../Server';
 import { Dimensions } from '../Dimension';
 import type { Level } from '../Level';
@@ -90,6 +91,12 @@ const feetOf = (entity: WorldActor): Vector3 => {
     return new Vector3(at.getX(), entity.getFeetY(), at.getZ());
 };
 
+/** The session of a player, found by its entity id in its world; undefined for anything else. */
+const sessionOf = (entity: WorldActor): PlayerSession | undefined => entity.getWorld().viewerOf(entity.getRuntimeId());
+
+/** Whether an entity is a player, by its type, so a store player is one too. */
+const isPlayer = (entity: WorldActor): boolean => entity.getType() === PLAYER_IDENTIFIER;
+
 /**
  * Whether an entity is a player whose client has not yet closed the loading screen of its
  * last world change.
@@ -98,7 +105,7 @@ const feetOf = (entity: WorldActor): Vector3 => {
  * trip: `PlayerSession.changeWorld` would refuse it, after the contact had already run.
  */
 export const isMidDimensionChange = (entity: WorldActor): boolean =>
-    entity instanceof Player && entity.getNetworkSession().pendingDimensionChange() !== undefined;
+    sessionOf(entity)?.pendingDimensionChange() !== undefined;
 
 /** The portal and End travel service of one server. */
 export class DimensionTravel {
@@ -147,26 +154,28 @@ export class DimensionTravel {
      */
     public async transfer(entity: WorldActor, arrival: Arrival): Promise<void> {
         const from = entity.getWorld();
+        const session = sessionOf(entity);
 
-        if (entity instanceof Player) {
-            const event = new PlayerChangeDimensionEvent(entity, from, arrival.world, arrival);
+        if (session !== undefined) {
+            const player = session.getPlayer();
+            const event = new PlayerChangeDimensionEvent(player, from, arrival.world, arrival);
             await this.server.emit('playerChangeDimension', event);
             if (event.isCanceled()) return;
 
-            entity.setPortalCooldown();
+            player.setPortalCooldown();
 
             // Java's `EndPortalBlock.entityInside`: a first exit through the End's portal
             // rolls the credits and holds the change until the client reports them over. The
             // flag is set as the credits start, Java's `showEndCredits` rule, so a player who
             // disconnects mid-credits comes back in the End and their next exit transfers at
             // once instead of replaying them.
-            if (from.getDimension().id === Dimensions.TheEnd.id && !entity.hasSeenCredits()) {
-                entity.setSeenCredits(true);
-                await entity.getNetworkSession().startCredits(arrival);
+            if (from.getDimension().id === Dimensions.TheEnd.id && !player.hasSeenCredits()) {
+                player.setSeenCredits(true);
+                await session.startCredits(arrival);
                 return;
             }
 
-            await entity.getNetworkSession().changeWorld(arrival, { whenPending: 'drop' });
+            await session.changeWorld(arrival, { whenPending: 'drop' });
             return;
         }
 
@@ -292,7 +301,7 @@ export class DimensionTravel {
         let createdPortal = false;
         if (destination === undefined) {
             // Only a player builds a portal on Bedrock; an item or a mob with nowhere to arrive stays.
-            if (!(entity instanceof Player)) return undefined;
+            if (!isPlayer(entity)) return undefined;
             const actions = this.server.getContent().world.blockWorld.at(to.getDimension().name);
             destination = createNetherPortal(actions, blockOf(target), source.axis, to.getDimension()).rectangle;
             createdPortal = true;
@@ -330,7 +339,7 @@ export class DimensionTravel {
 
         // A `ServerPlayer` has `(0, 1, 0)` subtracted, so players stand on the platform at 49
         // and everything else arrives at 50.
-        const y = entity instanceof Player ? END_SPAWN_POINT.y - 1 : END_SPAWN_POINT.y;
+        const y = isPlayer(entity) ? END_SPAWN_POINT.y - 1 : END_SPAWN_POINT.y;
         return {
             world: end,
             position: new Vector3(END_SPAWN_POINT.x + 0.5, y, END_SPAWN_POINT.z + 0.5),
@@ -346,8 +355,9 @@ export class DimensionTravel {
      * `adjustSpawnLocation` at the Overworld spawn for anything else.
      */
     private async leaveEnd(entity: WorldActor, level: Level, targetId: string): Promise<PortalArrival | undefined> {
-        if (entity instanceof Player) {
-            const respawn = await entity.getRespawnPoint();
+        const session = sessionOf(entity);
+        if (session !== undefined) {
+            const respawn = await session.getPlayer().getRespawnPoint();
             return {
                 world: respawn.world,
                 position: respawn.block,
