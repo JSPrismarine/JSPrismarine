@@ -36,4 +36,28 @@ describe('SharedByteRing', () => {
         expect(consumer.tryRead()).toEqual(Buffer.from([1, 2, 3]));
         expect(producer.getMetrics().queuedBytes).toBe(0);
     });
+
+    it('refuses a capacity that is not a power of two', () => {
+        expect(() => new SharedByteRing(24)).toThrow('power-of-two capacity');
+    });
+
+    it('keeps records whole when the cursors wrap past 2^32', () => {
+        const ring = new SharedByteRing(16);
+        const control = new Int32Array(ring.memory, 0, 8);
+        // Both cursors 6 bytes short of the wrap, as after 4 GiB of traffic.
+        control[0] = -6;
+        control[1] = -6;
+
+        expect(ring.tryWriteParts([Buffer.from('abcdefgh')])).toBe(true);
+        expect(ring.tryRead()?.toString()).toBe('abcdefgh');
+        expect(ring.getMetrics().queuedBytes).toBe(0);
+    });
+
+    it('asks for one wake until the consumer clears it', () => {
+        const ring = new SharedByteRing(64);
+
+        expect([ring.claimWake(), ring.claimWake(), ring.claimWake()]).toStrictEqual([true, false, false]);
+        ring.clearWake();
+        expect(ring.claimWake()).toBe(true);
+    });
 });
