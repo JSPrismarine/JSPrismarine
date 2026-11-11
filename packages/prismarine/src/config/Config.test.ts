@@ -30,8 +30,49 @@ describe('config', () => {
             expect(config.getServerPort()).toBe(19132);
         });
 
-        it('should have the default IPv6 port', () => {
-            expect(config.getServerPortV6()).toBe(19133);
+        it('puts the IPv6 listener on the server port unless the file says otherwise', async () => {
+            expect(config.getServerPortV6()).toBe(19132);
+            expect(config.getServerPortV6Setting()).toBeUndefined();
+
+            writeFileSync(path.join(configDirectory, 'config.json'), '{ "server-portv6": 19133 }\n');
+            const fromFile = new Config();
+            await fromFile.enable();
+            expect(fromFile.getServerPortV6()).toBe(19133);
+        });
+
+        it('writes server-port to a fresh file, and none of the keys that follow it, even when read again', async () => {
+            const read = () => readFileSync(path.join(configDirectory, 'config.json'), 'utf8');
+            const reread = new Config();
+            await reread.enable();
+
+            expect(read()).toContain('"server-port": 19132');
+            for (const key of ['port', 'server-portv6', 'server-udp-ports', 'query-port', 'server-public-ip']) {
+                expect(read()).not.toContain(`"${key}"`);
+            }
+            expect([reread.getServerPortV6(), reread.getQueryPort(), reread.getServerUdpPorts()]).toStrictEqual([
+                19132,
+                19132,
+                ''
+            ]);
+        });
+
+        it("renames an older file's port to server-port, keeping its value and comments", async () => {
+            const file = path.join(configDirectory, 'config.json');
+            writeFileSync(file, '{\n  // My server.\n  "port": 25565, // forwarded\n  "motd": "Hi there"\n}\n');
+
+            const reread = new Config();
+            await reread.enable();
+
+            const text = readFileSync(file, 'utf8');
+            expect(reread.getServerPort()).toBe(25565);
+            expect(text).toContain('  // My server.\n  "server-port": 25565, // forwarded');
+            expect(text).not.toContain('"port"');
+        });
+
+        it('refuses a file that has both port and server-port', async () => {
+            writeFileSync(path.join(configDirectory, 'config.json'), '{ "port": 19132, "server-port": 19200 }\n');
+
+            await expect(new Config().enable()).rejects.toThrow('has both port and server-port');
         });
 
         it('should have the default server IP', () => {
@@ -147,7 +188,7 @@ describe('config', () => {
             expect(config.getEnableRakNet()).toBe(true);
             expect(config.getEnableNetherNet()).toBe(true);
             expect(config.getEnableLanVisibility()).toBe(true);
-            // Empty, as Bedrock Dedicated Server ships it: the system picks NetherNet's UDP ports.
+            // Unset, as Bedrock Dedicated Server 1.26.70 ships it: NetherNet's UDP is the server port.
             expect(config.getServerUdpPorts()).toBe('');
         });
 
@@ -231,10 +272,8 @@ describe('config', () => {
             expect(text).toContain(
                 `https://unpkg.com/@jsprismarine/prismarine@${pkg.version}/schemas/config.schema.json`
             );
-            expect(text).toContain(
-                '// The port the server listens on: UDP for RakNet, TCP for NetherNet signaling. Bedrock clients look for 19132.'
-            );
-            expect(text).toContain('"port": 19132');
+            expect(text).toContain("// The port the server listens on, as Bedrock Dedicated Server's server-port");
+            expect(text).toContain('"server-port": 19132');
             expect(text).toContain('// How far players see, in chunks.');
             expect(text).toContain('"view-distance": 10');
             expect(text).toContain(
@@ -250,7 +289,7 @@ describe('config', () => {
 
         it('should add a new key to an older file without touching what is there', async () => {
             const file = path.join(configDirectory, 'config.json');
-            const oldConfig = '{\n  // My server.\n  "port": 25565, // forwarded\n  "motd": "Hi there"\n}\n';
+            const oldConfig = '{\n  // My server.\n  "server-port": 25565, // forwarded\n  "motd": "Hi there"\n}\n';
             writeFileSync(file, oldConfig);
 
             const reread = new Config();
@@ -260,9 +299,9 @@ describe('config', () => {
             expect(reread.getServerPort()).toBe(25565);
             expect(reread.getMotd()).toBe('Hi there');
             expect(text).toContain('  // My server.');
-            expect(text).toContain('"port": 25565, // forwarded');
+            expect(text).toContain('"server-port": 25565, // forwarded');
             expect(text).toContain('"motd": "Hi there"');
-            expect(text.indexOf('"port":') < text.indexOf('"motd":')).toBe(true);
+            expect(text.indexOf('"server-port":') < text.indexOf('"motd":')).toBe(true);
             expect(text).toContain('// How far players see, in chunks.');
             expect(text).toContain('"view-distance": 10');
         });
@@ -271,19 +310,19 @@ describe('config', () => {
             expect(config.getEnableQuery()).toBe(true);
             expect(config.getQueryPort()).toBe(config.getServerPort());
 
-            writeFileSync(path.join(configDirectory, 'config.json'), '{ "port": 25565 }\n');
+            writeFileSync(path.join(configDirectory, 'config.json'), '{ "server-port": 25565 }\n');
             const reread = new Config();
             await reread.enable();
             expect(reread.getQueryPort()).toBe(25565);
         });
 
-        it('leaves query on the file port when the server port is overridden', async () => {
+        it('keeps query on the game socket when the server port is overridden, and writes no query port', async () => {
             const overridden = new Config({ serverPort: 19200 });
             await overridden.enable();
 
             expect(overridden.getServerPort()).toBe(19200);
-            expect(overridden.getQueryPort()).toBe(19132);
-            expect(readFileSync(path.join(configDirectory, 'config.json'), 'utf8')).toContain('"query-port": 19132');
+            expect(overridden.getQueryPort()).toBe(19200);
+            expect(readFileSync(path.join(configDirectory, 'config.json'), 'utf8')).not.toContain('"query-port"');
         });
 
         it('should rewrite a world read in the old spelling without touching the rest', async () => {
@@ -293,7 +332,7 @@ describe('config', () => {
                 [
                     '{',
                     '  // My server.',
-                    '  "port": 25565, // forwarded',
+                    '  "server-port": 25565, // forwarded',
                     '  "worlds": {',
                     '    "world": { "generator": "Flat", "layers": [{ "block": "stone", "size": 3 }], "seed": "9" }',
                     '  },',
@@ -314,7 +353,7 @@ describe('config', () => {
 
             const text = readFileSync(file, 'utf8');
             expect(text).toContain('  // My server.');
-            expect(text).toContain('"port": 25565, // forwarded');
+            expect(text).toContain('"server-port": 25565, // forwarded');
             expect(text).toContain('"motd": "Hi there"');
             expect(text).not.toContain('"generator": "Flat"');
             expect(text).not.toContain('"size"');

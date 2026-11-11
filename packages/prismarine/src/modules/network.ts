@@ -137,7 +137,15 @@ export class ServerNetworking implements Networking {
         const driver = config.getEnableNetherNet() ? await this.loadWebRtcDriver() : undefined;
         // Read before anything binds, so a malformed setting stops the start instead of half of it.
         const udpPorts =
-            driver === undefined ? undefined : parseUdpPorts(config.getServerUdpPorts(), config.getServerPublicIp());
+            driver === undefined
+                ? undefined
+                : // Unset, NetherNet's UDP is the port the server binds, shared with RakNet, as
+                  // Bedrock Dedicated Server's server-udp-ports defaults to server-port. Port 0
+                  // asks the system for one, which leaves NetherNet's to the system too.
+                  parseUdpPorts(
+                      config.getServerUdpPorts().trim() === '' && port > 0 ? String(port) : config.getServerUdpPorts(),
+                      config.getServerPublicIp()
+                  );
         // A RakNet port inside NetherNet's range is shared: the native library owns the socket and
         // hands RakNet its datagrams (ADR 0008). Opened before anything binds, so a taken port
         // stops the start here.
@@ -153,7 +161,9 @@ export class ServerNetworking implements Networking {
             if (config.getEnableRakNet()) {
                 rakNet.push(this.startRakNet(address, port, serverName, ids, listening, shared.get(port)));
                 if (address === IPV4_WILDCARD) {
-                    rakNet.push(this.startRakNetV6(serverName, ids, listening, shared.get(config.getServerPortV6())));
+                    rakNet.push(
+                        this.startRakNetV6(this.portV6(port), serverName, ids, listening, shared.get(this.portV6(port)))
+                    );
                 }
                 transports.push(...rakNet);
             }
@@ -266,16 +276,16 @@ export class ServerNetworking implements Networking {
 
     /**
      * Binds the second RakNet listener a wildcard-bound server runs, on every IPv6 interface and
-     * `server-portv6`, as Bedrock Dedicated Server does. A port another program holds stops the
+     * `server-portv6`, as Bedrock Dedicated Server did before 1.26.70. A port another program holds stops the
      * start, as it does for the IPv4 listener.
      */
     private startRakNetV6(
+        port: number,
         serverName: ServerName,
         ids: ConnectionIds,
         listening: Promise<void>[],
         shared?: SharedPort
     ): RakNetTransport {
-        const port = this.server.getConfig().getServerPortV6();
         const raknet = this.createRakNetListener(serverName, shared === undefined ? undefined : { shared, family: 6 });
         listening.push(rakNetListening(raknet, `RakNet cannot listen for IPv6 clients on UDP port ${port}`));
         raknet.start(IPV6_WILDCARD, port);
@@ -386,7 +396,7 @@ export class ServerNetworking implements Networking {
     private async openSharedPorts(address: string, port: number, local: PortRange): Promise<Map<number, SharedPort>> {
         const network = await NativeNetwork.load();
         const wildcard = address === IPV4_WILDCARD;
-        const portV6 = wildcard ? this.server.getConfig().getServerPortV6() : port;
+        const portV6 = wildcard ? this.portV6(port) : port;
         const wanted = new Set(
             [port, ...(wildcard ? [portV6] : [])].filter(
                 (candidate) => candidate >= local.start && candidate <= local.end
@@ -483,6 +493,15 @@ export class ServerNetworking implements Networking {
         }
 
         return new NetherNetTransport(nethernet, ids, undefined, logger);
+    }
+
+    /**
+     * The IPv6 listener's port: `server-portv6` when the config sets it, else the port the server
+     * binds, as `server-port` would be.
+     * @param port - The port the server binds.
+     */
+    private portV6(port: number): number {
+        return this.server.getConfig().getServerPortV6Setting() ?? port;
     }
 
     /**
