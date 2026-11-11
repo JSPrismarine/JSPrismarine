@@ -19,7 +19,7 @@ import { parseArgs } from 'node:util';
 
 import { ensureCinnabar, parseTransport } from './cinnabar.mts';
 import { CinnabarClient } from './client.mts';
-import { startServer } from './jsp-server.mts';
+import { startServer, UDP_PORTS_LAYOUTS } from './jsp-server.mts';
 import type { ScenarioResult } from './retry.mts';
 import { mergeRetries, retrySuites } from './retry.mts';
 import { sleep, standAt } from './scenario.mts';
@@ -53,6 +53,7 @@ import { placementOverlap } from './scenarios/placement-overlap.mts';
 import { spawn } from './scenarios/spawn.mts';
 import { subChunkBlockChanges } from './scenarios/sub-chunk-block-changes.mts';
 import { worldgenSpawn } from './scenarios/worldgen-spawn.mts';
+import { kick } from './scenarios/kick.mts';
 import { teleport } from './scenarios/teleport.mts';
 import { edgeChunkBlockChange } from './scenarios/edge-chunk-block-change.mts';
 import { dimensionsScenario } from './scenarios/dimensions.mts';
@@ -110,7 +111,9 @@ const suites: ScenarioSuite[] = [
     // Natural spawning needs its own content fixture so roaming cows cannot affect gameplay checks.
     // The canopy one runs last: it roofs the world over, and nothing after it would see the sky.
     { name: 'natural-spawn', scenarios: [naturalSpawnPlacement, naturalSpawnUnderCanopy] },
-    { name: 'worldgen-spawn', scenarios: [worldgenSpawn] }
+    { name: 'worldgen-spawn', scenarios: [worldgenSpawn] },
+    // Its own suite: a kicked client is gone, so nothing can run after it.
+    { name: 'kick', scenarios: [kick] }
 ];
 
 // pnpm forwards the literal `--` separators it was given; drop them so flags stay flags.
@@ -125,6 +128,8 @@ const { values, positionals } = parseArgs({
         port: { type: 'string' },
         protocol: { type: 'string' },
         transport: { type: 'string', default: 'raknet' },
+        'udp-ports': { type: 'string', default: 'shared' },
+        'public-ip': { type: 'string' },
         'compression-algorithm': { type: 'string', default: 'snappy' },
         'raknet-worker': { type: 'boolean', default: true },
         concurrency: { type: 'string', default: '2' }
@@ -180,6 +185,10 @@ if (protocolVersion !== undefined && (!Number.isSafeInteger(protocolVersion) || 
     throw new Error('--protocol must be a positive integer');
 }
 const transport = parseTransport(values.transport);
+const udpPorts = UDP_PORTS_LAYOUTS.find((layout) => layout === values['udp-ports']);
+if (udpPorts === undefined) {
+    throw new Error(`--udp-ports must be one of ${UDP_PORTS_LAYOUTS.join(', ')}, not ${values['udp-ports']}`);
+}
 const compressionAlgorithm = (() => {
     switch (values['compression-algorithm']) {
         case 'zlib':
@@ -334,6 +343,8 @@ const runSuite = async (suite: ScenarioSuite, index: number): Promise<ScenarioRe
             compressionAlgorithm,
             raknetWorker: values['raknet-worker'],
             transport,
+            udpPorts,
+            ...(values['public-ip'] === undefined ? {} : { publicIp: values['public-ip'] }),
             profile: suite.scenarios.some((scenario) => scenario.serverOptions?.profile === true),
             ...(suite.scenarios.some((scenario) => scenario.serverOptions?.preloadRadius !== undefined)
                 ? {
