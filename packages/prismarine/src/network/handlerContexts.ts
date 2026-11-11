@@ -7,7 +7,7 @@
  * `network/handler/`, which is meant to import no `Server` at all once every handler has moved.
  */
 import type Server from '../Server';
-import { applyInputNow } from '../world/inputUnit';
+import { applyInput, applyInputNow } from '../world/inputUnit';
 import type { HandlerServices, InputStep, SessionContext } from './handler/HandlerContext';
 import type { SessionHandler } from './handler/SessionHandler';
 import type PlayerSession from './PlayerSession';
@@ -112,15 +112,16 @@ export class HandlerContexts {
      *
      * A connection-lane or read-lane handler is awaited. An input-lane handler is applied as one
      * synchronous unit of the world the session's player is in, so a throw undoes what it wrote.
-     * The sends it handed to {@link InputStep.output} are awaited after the unit, before this
-     * settles, so the next input still starts after them, as it did when handlers awaited their
-     * sends.
+     * The work it handed to {@link InputStep.defer} then runs in order, each piece a unit of its
+     * own, and the sends it handed to {@link InputStep.output} are awaited last, before this
+     * settles, so the next input still starts after all of it, as it did when handlers awaited.
      *
      * @param handler - The handler.
      * @param packet - The decoded packet.
      * @param session - The session the packet arrived on.
      * @returns Settles once the handler and its outputs are done.
-     * @throws The handler's error, or the first output's, once every output has settled.
+     * @throws The handler's error, a deferred piece's, or the first output's, once every output
+     *   has settled.
      */
     public async run<P>(handler: SessionHandler<P>, packet: P, session: PlayerSession): Promise<void> {
         if (handler.lane !== 'input') {
@@ -129,13 +130,17 @@ export class HandlerContexts {
         }
 
         const outputs: Promise<void>[] = [];
+        const deferred: (() => Promise<void>)[] = [];
         const step: InputStep = {
             tick: this.server.getTick(),
-            output: (send) => void outputs.push(send)
+            output: (send) => void outputs.push(send),
+            defer: (work) => void deferred.push(work)
         };
         const context = contextOf(this.server, session, { services: this.services, step });
         try {
             applyInputNow(session, () => handler.handle(packet, context));
+            // A piece deferred by an earlier piece joins the end of the list and runs too.
+            for (const work of deferred) await applyInput(session, work);
         } catch (error: unknown) {
             await Promise.allSettled(outputs);
             throw error;
