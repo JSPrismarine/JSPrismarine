@@ -29,26 +29,46 @@ export interface BlockMining {
  * @param {BlockMining} mining - What the player is mining.
  * @returns {PlayerMining} The same block as plain data.
  */
-export const playerMiningOf = ({ position, face, runtimeId, progressPerTick }: BlockMining): PlayerMining => ({
-    x: position.getX(),
-    y: position.getY(),
-    z: position.getZ(),
-    face,
-    runtimeId,
-    progressPerTick
-});
+export function playerMiningOf(mining: BlockMining): PlayerMining;
+/**
+ * A player's mining, or its absence, as the logged plain data its component keeps.
+ * @param {BlockMining | null} mining - What the player is mining, or null when nothing.
+ * @returns {PlayerMining | null} The same block as plain data, or null for null.
+ */
+export function playerMiningOf(mining: BlockMining | null): PlayerMining | null;
+/**
+ * A player's mining, or its absence, as the logged plain data its component keeps.
+ * @param {BlockMining | null} mining - What the player is mining, or null when nothing.
+ * @returns {PlayerMining | null} The same block as plain data, or null for null.
+ */
+export function playerMiningOf(mining: BlockMining | null): PlayerMining | null {
+    if (mining === null) return null;
+    const { position, face, runtimeId, progressPerTick } = mining;
+    return { x: position.getX(), y: position.getY(), z: position.getZ(), face, runtimeId, progressPerTick };
+}
 
 /**
  * The mining a player's component keeps, as the world animates it.
  * @param {PlayerMining} mining - The logged plain data.
  * @returns {BlockMining} The same block, with its position as a vector.
  */
-export const blockMiningOf = ({ x, y, z, face, runtimeId, progressPerTick }: PlayerMining): BlockMining => ({
-    position: new Vector3(x, y, z),
-    face,
-    runtimeId,
-    progressPerTick
-});
+export function blockMiningOf(mining: PlayerMining): BlockMining;
+/**
+ * The mining a player's component keeps, or its absence, as the world animates it.
+ * @param {PlayerMining | null} mining - The logged plain data, or null when nothing is mined.
+ * @returns {BlockMining | null} The same block, with its position as a vector, or null for null.
+ */
+export function blockMiningOf(mining: PlayerMining | null): BlockMining | null;
+/**
+ * The mining a player's component keeps, or its absence, as the world animates it.
+ * @param {PlayerMining | null} mining - The logged plain data, or null when nothing is mined.
+ * @returns {BlockMining | null} The same block, with its position as a vector, or null for null.
+ */
+export function blockMiningOf(mining: PlayerMining | null): BlockMining | null {
+    if (mining === null) return null;
+    const { x, y, z, face, runtimeId, progressPerTick } = mining;
+    return { position: new Vector3(x, y, z), face, runtimeId, progressPerTick };
+}
 
 /**
  * How many ticks early a predicted break may arrive. Network jitter can delay the start of

@@ -56,7 +56,7 @@ const fakeSession = (gamemode: Gametype, { serverAuthoritativeBreaking = false }
     const state = {
         get mining(): BlockMining | null {
             const held = components.get('mining.block');
-            return held === null ? null : blockMiningOf(held);
+            return blockMiningOf(held);
         }
     };
     const at = (where: Vector3) => `${where.getX()},${where.getY()},${where.getZ()}`;
