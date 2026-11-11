@@ -1,14 +1,17 @@
 import { readFileSync, readdirSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import type { ImportDeclaration, Node } from 'tsc-ts/api';
+import type { CallExpression, ImportDeclaration, Node } from 'tsc-ts/api';
 import { getTextOfNode, parseSourceFile, SyntaxKind, walkPreorder } from 'tsc-ts/api';
 import { describe, expect, it } from 'vitest';
+
+import { reportProgress } from '../../../../../.test/reportProgress';
 
 const here = fileURLToPath(new URL('.', import.meta.url));
 const src = resolve(here, '../..');
 
 const isImport = (node: Node): node is ImportDeclaration => node.kind === SyntaxKind.ImportDeclaration;
+const isCall = (node: Node): node is CallExpression => node.kind === SyntaxKind.CallExpression;
 
 /** The modules of the handler directory, tests and test helpers left out. */
 const handlerModules = (): string[] =>
@@ -58,6 +61,17 @@ const callsGetServer = (file: string, text = readFileSync(file, 'utf8')): boolea
     return calls;
 };
 
+/** How many calls to `defer` on a property, such as `step.defer(...)`, a module makes. */
+const countDefers = (file: string, text = readFileSync(file, 'utf8')): number => {
+    let calls = 0;
+    walkPreorder(parseSourceFile(file, text), (node) => {
+        if (!isCall(node)) return;
+        const callee = getTextOfNode(node.expression);
+        if (callee.endsWith('.defer')) calls++;
+    });
+    return calls;
+};
+
 describe('network/handler', () => {
     it('reaches Server from no module', () => {
         // The slice 6 target "No `Server` import in a handler"
@@ -67,6 +81,19 @@ describe('network/handler', () => {
 
         expect(importing).toStrictEqual([]);
         expect(modules.length).toBeGreaterThan(0);
+    });
+
+    it('counts the work handlers still defer', () => {
+        const modules = handlerModules();
+        const total = modules.reduce((sum, name) => sum + countDefers(join(here, name)), 0);
+        const deferring = modules.filter((name) => countDefers(join(here, name)) > 0).length;
+
+        // Each is work that waits for something a later slice removes (docs/plans/entity-simulation-rearchitecture.md,
+        // slice 9), so the count is progress to report and not a gate.
+        reportProgress(`${total} step.defer calls in ${deferring} handler modules`, 'Deferred handler work');
+        expect(countDefers(join(here, 'Example.ts'), 'step.defer(async () => {}); other(); step.output(send);')).toBe(
+            1
+        );
     });
 
     it('finds each way a module can reach Server', () => {
