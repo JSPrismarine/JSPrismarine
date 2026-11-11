@@ -992,7 +992,6 @@ export class World implements Service {
      * @param tick - The server tick.
      */
     public async update(tick: number): Promise<void> {
-        if (!this.hasEntityStore()) return this.tickWorld(tick);
         const store = this.getEntityStore();
         if (store.broken !== undefined) {
             if (!this.stopReported) {
@@ -1017,7 +1016,7 @@ export class World implements Service {
      * a tick that is already open does nothing.
      */
     public beginChangeTick(): void {
-        if (this.hasEntityStore()) this.getEntityStore().beginTick();
+        this.getEntityStore().beginTick();
     }
 
     /**
@@ -1027,7 +1026,7 @@ export class World implements Service {
      * @returns The sealed tick, or undefined when none was open.
      */
     public sealChangeTick(): SealedTick | undefined {
-        return this.hasEntityStore() ? this.getEntityStore().sealTick() : undefined;
+        return this.getEntityStore().sealTick();
     }
 
     /**
@@ -1036,7 +1035,7 @@ export class World implements Service {
      * @returns The tick, or undefined while one is open or before the first one sealed.
      */
     public lastChangeTick(): SealedTick | undefined {
-        return this.hasEntityStore() ? this.getEntityStore().lastSealed() : undefined;
+        return this.getEntityStore().lastSealed();
     }
 
     /**
@@ -1048,7 +1047,12 @@ export class World implements Service {
         return this.getEntityStore().onSealed((sealed) => listener(changeLogCost(sealed)));
     }
 
-    /** Whether the server built an entity runtime, and so an entity store, for this world's dimension. */
+    /**
+     * Whether the server built an entity runtime, and so an entity store, for this world's
+     * dimension. A running server always has, because it builds the content before any world, so
+     * the world reads its store without asking. The legacy adapter still asks, for the test doubles
+     * of a world it is handed.
+     */
     public hasEntityStore(): boolean {
         return this.server.hasEntityRuntime?.() ?? false;
     }
@@ -1073,7 +1077,6 @@ export class World implements Service {
      * @param apply - The input's handler.
      */
     public async runInput(apply: () => Promise<void>): Promise<void> {
-        if (!this.hasEntityStore()) return apply();
         const outcome = await this.getEntityStore().unitAsync(apply);
         if (outcome.failed) throw outcome.error;
     }
@@ -1649,7 +1652,7 @@ export class World implements Service {
         const x = chunk.getX();
         const z = chunk.getZ();
         // Named before its entities, which enter after it and leave before it.
-        if (this.hasEntityStore()) this.getEntityStore().chunk('enter', x, z);
+        this.getEntityStore().chunk('enter', x, z);
         // The provider has completed generation or disk decoding; keep its mutable write fast path
         // out of the final retained form and pack each section before it enters the loaded world.
         this.measured('chunk-register', () => {
@@ -1739,12 +1742,11 @@ export class World implements Service {
      * comes back inert, shown as itself and saved as it was loaded.
      *
      * @param stored - What `EntitySerializer` read from the actor NBT.
-     * @returns Whether the runtime took it. False means the world has no data runtime, or the
-     *   actor is a dropped item with no stack, and the actor is not loaded.
+     * @returns Whether the runtime took it. False means the actor is a dropped item with no stack,
+     *   and it is not loaded.
      */
     private restoreDataEntity(stored: StoredActor): boolean {
-        const live = this.server.getEntityRuntime?.(this.dimension.name);
-        if (live === undefined) return false;
+        const live = this.dataEntities();
         if (stored.identifier === ITEM_ENTITY) return live.restoreItem(stored) !== undefined;
 
         const record = stored.persistentNbt === null ? undefined : dataEntityRecordIn(stored.persistentNbt);
@@ -3337,7 +3339,7 @@ export class World implements Service {
         for (const entity of this.entitiesInChunk(chunk)) removals.push(this.removeEntity(entity));
 
         this.systems.onChunkUnloaded(chunk.getX(), chunk.getZ());
-        if (this.hasEntityStore()) this.getEntityStore().chunk('leave', chunk.getX(), chunk.getZ());
+        this.getEntityStore().chunk('leave', chunk.getX(), chunk.getZ());
         this.chunks.delete(index);
         this.loadedChunksRevision++;
         this.getPlayerChunkRefCounts().chunkUnloaded(chunk);
@@ -3578,7 +3580,6 @@ export class World implements Service {
     private markEntitiesInChunkChanged(chunk: Chunk): void {
         // A player is no part of a chunk's save, whichever kind of entity it is.
         if (
-            this.server.getEntityRuntime?.(this.dimension.name) !== undefined &&
             this.getEntityIndex()
                 .storeInChunk(chunk.getX(), chunk.getZ())
                 .some((entity) => entity.identifier !== PLAYER_IDENTIFIER)
@@ -3669,11 +3670,8 @@ export class World implements Service {
      * holds that is missing from the set.
      */
     public shownActors(): ShownActor[] {
-        const live = this.server.getEntityRuntime?.(this.dimension.name);
-        if (live === undefined) return this.getEntities();
-
         const shown: ShownActor[] = this.getEntities();
-        for (const actor of live.actors.all()) shown.push(actor);
+        for (const actor of this.dataEntities().actors.all()) shown.push(actor);
         return shown;
     }
 
@@ -3707,10 +3705,9 @@ export class World implements Service {
      * @returns {WorldActor[]} The entities.
      */
     public getActors(): WorldActor[] {
-        const live = this.server.getEntityRuntime?.(this.dimension.name);
         const actors: WorldActor[] = [];
         for (const entity of this.entities.values()) actors.push(entity);
-        if (live !== undefined) for (const actor of live.actors.all()) actors.push(actor);
+        for (const actor of this.dataEntities().actors.all()) actors.push(actor);
         return actors.sort(byRuntimeId);
     }
 
@@ -3721,7 +3718,7 @@ export class World implements Service {
      */
     public getActor(runtimeId: bigint): WorldActor | null {
         const id = Number(runtimeId);
-        return this.server.getEntityRuntime?.(this.dimension.name)?.actors.actorOf(id) ?? this.entities.get(id) ?? null;
+        return this.server.getEntityRuntime?.(this.dimension.name).actors.actorOf(id) ?? this.entities.get(id) ?? null;
     }
 
     /**
