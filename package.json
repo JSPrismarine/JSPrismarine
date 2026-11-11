@@ -90,7 +90,7 @@
     },
     "homepage": "https://jsprismarine.dev/",
     "devDependencies": {
-        "@biomejs/biome": "2.6.6",
+        "@biomejs/biome": "2.6.7",
         "@changesets/changelog-github": "1.0.1",
         "@changesets/cli": "3.0.3",
         "@changesets/types": "7.0.0",
