@@ -1,10 +1,10 @@
 import type { Logger } from '@jsprismarine/logger';
 import { describe, expect, it } from 'vitest';
 
-import type Player from '../../Player';
 import type Server from '../../Server';
 import type { CommandManager } from '../../command/CommandManager';
 import { identityNamed } from '../../testing/sessionIdentity.test.helper';
+import { stubPlayerPort } from '../../testing/playerPort.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import UUID from '@jsprismarine/protocol/wire/structures/UUID';
 import type PlayerSession from '../PlayerSession';
@@ -30,7 +30,7 @@ const run = async (packet: CommandRequestPacket, ran: boolean) => {
     const dispatched: { sender: unknown; target: unknown; input: string }[] = [];
     const sent: NetworkPacket[] = [];
     const logged: string[] = [];
-    const player = stub<Player>({ getName: () => 'Steve' });
+    const player = stubPlayerPort({ getName: () => 'Steve' });
     const server = stub<Server>({
         getLogger: () => stub<Logger>({ debug: (...message) => void logged.push(message[0] ?? '') }),
         getCommandManager: () =>

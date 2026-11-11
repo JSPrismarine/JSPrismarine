@@ -1,12 +1,12 @@
 import type { Logger } from '@jsprismarine/logger';
 import { describe, expect, it } from 'vitest';
 
-import type Player from '../../Player';
 import type Server from '../../Server';
 import type { Chat } from '../../chat/Chat';
 import { ChatType } from '../../chat/Chat';
 import type { ChatManager } from '../../chat/ChatManager';
 import { identityNamed } from '../../testing/sessionIdentity.test.helper';
+import { stubPlayerPort } from '../../testing/playerPort.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import type PlayerSession from '../PlayerSession';
 import TextPacket from '@jsprismarine/protocol/packet/TextPacket';
@@ -106,7 +106,7 @@ describe('network', () => {
 const fakeChat = () => {
     const sent: Chat[] = [];
     const dropped: string[] = [];
-    const player = stub<Player>({ getName: () => 'runner' });
+    const player = stubPlayerPort({ getName: () => 'runner' });
 
     return {
         sent,
