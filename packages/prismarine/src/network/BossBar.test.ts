@@ -26,7 +26,7 @@ describe('BossBar', () => {
         const bar = dragonBar();
 
         await bar.setPercent(0.5);
-        await bar.addPlayer(player);
+        await bar.addPlayer(player.getNetworkSession());
 
         const events = bossEvents(sent);
         expect(events).toHaveLength(1);
@@ -44,7 +44,7 @@ describe('BossBar', () => {
         const added = fakePlayer();
         const bystander = fakePlayer();
         const bar = dragonBar();
-        await bar.addPlayer(added.player);
+        await bar.addPlayer(added.player.getNetworkSession());
         added.sent.length = 0;
 
         await bar.setPercent(2);
@@ -67,7 +67,7 @@ describe('BossBar', () => {
     it('sends UpdateName with the new title', async () => {
         const { player, sent } = fakePlayer();
         const bar = dragonBar();
-        await bar.addPlayer(player);
+        await bar.addPlayer(player.getNetworkSession());
         sent.length = 0;
 
         await bar.setName('Dragon, enraged');
@@ -82,10 +82,10 @@ describe('BossBar', () => {
     it('hides the bar on removePlayer and stops updating that player', async () => {
         const { player, sent } = fakePlayer();
         const bar = dragonBar();
-        await bar.addPlayer(player);
+        await bar.addPlayer(player.getNetworkSession());
         sent.length = 0;
 
-        await bar.removePlayer(player);
+        await bar.removePlayer(player.getNetworkSession());
         await bar.setPercent(0.25);
 
         const events = bossEvents(sent);
@@ -98,7 +98,7 @@ describe('BossBar', () => {
     it('drops a player who disconnects', async () => {
         const { player, sent } = fakePlayer();
         const bar = dragonBar();
-        await bar.addPlayer(player);
+        await bar.addPlayer(player.getNetworkSession());
         sent.length = 0;
 
         await player.disable();
@@ -114,13 +114,13 @@ describe('BossBar', () => {
         const { player, sent } = fakePlayer();
         const dragon = dragonBar();
         const wither = new BossBar({ actorUniqueId: 7n, name: 'Wither' });
-        await dragon.addPlayer(player);
-        await wither.addPlayer(player);
+        await dragon.addPlayer(player.getNetworkSession());
+        await wither.addPlayer(player.getNetworkSession());
         sent.length = 0;
 
         player.getNetworkSession().disable();
-        await BossBar.answerQuery(player, 42n);
-        await BossBar.answerQuery(player, 7n);
+        await BossBar.answerQuery(player.getNetworkSession(), 42n);
+        await BossBar.answerQuery(player.getNetworkSession(), 7n);
 
         expect(dragon.players()).toEqual([]);
         expect(wither.players()).toEqual([]);
@@ -131,11 +131,11 @@ describe('BossBar', () => {
         const watching = fakePlayer();
         const other = fakePlayer();
         const bar = dragonBar();
-        await bar.addPlayer(watching.player);
+        await bar.addPlayer(watching.player.getNetworkSession());
         watching.sent.length = 0;
 
-        await BossBar.answerQuery(other.player, 42n);
-        await BossBar.answerQuery(watching.player, 42n);
+        await BossBar.answerQuery(other.player.getNetworkSession(), 42n);
+        await BossBar.answerQuery(watching.player.getNetworkSession(), 42n);
 
         expect(bossEvents(other.sent)).toHaveLength(0);
         expect(bossEvents(watching.sent).map((event) => event.eventType)).toEqual([BossEventUpdateType.Add]);
@@ -144,11 +144,11 @@ describe('BossBar', () => {
     it('stops answering queries for a bar the player was removed from', async () => {
         const { player, sent } = fakePlayer();
         const bar = dragonBar();
-        await bar.addPlayer(player);
-        await bar.removePlayer(player);
+        await bar.addPlayer(player.getNetworkSession());
+        await bar.removePlayer(player.getNetworkSession());
         sent.length = 0;
 
-        await BossBar.answerQuery(player, 42n);
+        await BossBar.answerQuery(player.getNetworkSession(), 42n);
 
         expect(bossEvents(sent)).toHaveLength(0);
     });
@@ -157,7 +157,7 @@ describe('BossBar', () => {
         const { player, sent } = fakePlayer();
         const bar = dragonBar();
         await bar.setPercent(0.5);
-        await bar.addPlayer(player);
+        await bar.addPlayer(player.getNetworkSession());
         sent.length = 0;
 
         await bar.setActorUniqueId(99n);

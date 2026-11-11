@@ -14,17 +14,6 @@ import type PlayerSession from './PlayerSession';
  */
 const barsByPlayer = new Map<bigint, Set<BossBar>>();
 
-/**
- * A client a bar is shown to: its session, or a legacy player, which is reached through its
- * session. `BossEventHandler` still passes the player; package H-D of the entity and tick
- * re-architecture drops the second form once it passes the session.
- */
-export type BossBarViewer = PlayerSession | { getNetworkSession(): PlayerSession };
-
-/** The session a viewer speaks through. */
-const sessionOf = (viewer: BossBarViewer): PlayerSession =>
-    'getNetworkSession' in viewer ? viewer.getNetworkSession() : viewer;
-
 /** What a new boss bar shows before anything updates it. The bar starts full. */
 export interface BossBarOptions {
     /**
@@ -69,8 +58,7 @@ export class BossBar {
      * Shows the bar to a player with its current state. A player already subscribed is left
      * alone.
      */
-    public async addPlayer(viewer: BossBarViewer): Promise<void> {
-        const session = sessionOf(viewer);
+    public async addPlayer(session: PlayerSession): Promise<void> {
         const { runtimeId } = session;
         if (this.subscribers.has(runtimeId)) return;
 
@@ -83,8 +71,7 @@ export class BossBar {
     }
 
     /** Hides the bar from a player. A player the bar does not have is left alone. */
-    public async removePlayer(viewer: BossBarViewer): Promise<void> {
-        const session = sessionOf(viewer);
+    public async removePlayer(session: PlayerSession): Promise<void> {
         const { runtimeId } = session;
         if (!this.subscribers.delete(runtimeId)) return;
 
@@ -128,8 +115,7 @@ export class BossBar {
      * Answers a serverbound `Query` by resending the Add for the queried actor's bar to the
      * asking player. A query for an actor no bar of theirs is bound to goes unanswered.
      */
-    public static async answerQuery(viewer: BossBarViewer, actorUniqueId: bigint): Promise<void> {
-        const session = sessionOf(viewer);
+    public static async answerQuery(session: PlayerSession, actorUniqueId: bigint): Promise<void> {
         for (const bar of barsByPlayer.get(session.runtimeId) ?? []) {
             if (bar.actorUniqueId === actorUniqueId) await bar.sendTo(session, BossEventUpdateType.Add);
         }
