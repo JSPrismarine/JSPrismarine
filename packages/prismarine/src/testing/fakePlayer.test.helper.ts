@@ -162,6 +162,7 @@ export const fakePlayer = ({ underwater = false, worlds: others = [], name = 'Te
         addPlayer: async () => void roster.push('add'),
         getPlayers: () => [],
         getSpawnPosition: async () => new Vector3(0, 64, 0),
+        getKnownSpawnPosition: () => new Vector3(0, 64, 0),
         // Feet one block above the stored spawn, centered, as a Bedrock server places them.
         placePlayerSpawn: async () => ({
             requested: new Vector3(0.5, 65, 0.5),

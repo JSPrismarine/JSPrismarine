@@ -1,11 +1,12 @@
 /**
  * The `entities` group of `ServerWorldAdapter`, over the entities a live {@link World} holds.
  *
- * `contentAdapter.ts` beside this file builds the same group over `EntityRuntime`. The live
- * world remains the client-facing body index and save boundary, while the runtime owns every
- * data-driven entity's components and behavior. `spawn` enters through that runtime; when no
- * runtime owns the identifier, the adapter reports the refusal rather than creating a class or
- * generic body that has no data-driven state behind it.
+ * `contentAdapter.ts` beside this file builds the same group over `EntityRuntime`. Every
+ * entity a live world holds is a store entity of its dimension, which this group reads through
+ * its actor and finds through the world's entity index, because a content query runs inside the
+ * tick and the index answers for the cells a query reaches rather than the whole world. `spawn`
+ * enters through that runtime; when no runtime owns the identifier, the adapter reports the
+ * refusal rather than creating a body that has no data-driven state behind it.
  */
 import { Gametype } from '@jsprismarine/minecraft';
 
@@ -14,10 +15,10 @@ import type { ContentLookup } from '../content/world/views';
 import { itemOfDrop } from '../inventory/persistence';
 import { itemFromContent } from '../item/itemFromContent';
 import type { World } from '../world/World';
-import { StoreActor } from './data/storeActors';
-import type { WorldActor } from '../world/WorldActor';
+import type { StoreActor } from './data/storeActors';
 import { applyBlockEntityRecord } from '../blockentity/contentRecord';
 import { NBTTagCompound } from '@jsprismarine/nbt';
+import { PLAYER_IDENTIFIER } from './playerOverlay';
 
 /** The live world whose entities this group reads, or undefined when none is loaded. */
 export type LiveWorld = () => World | undefined;
@@ -44,21 +45,13 @@ export interface WorldEntityAccessOptions {
 }
 
 /**
- * What the content packages identify a player as.
- *
- * A player has no `MOB_ID`, because nothing ever spawns one from a type, so the identifier
- * the client and every entity file use is named here.
- */
-const PLAYER_IDENTIFIER = 'minecraft:player';
-
-/**
  * One live entity as the content packages read one.
  *
  * The runtime id is a `bigint` here and a `number` there. The counter starts at one and
  * climbs by one per entity, so every id a session produces is exact as a double; a world
  * that somehow passed 2^53 entities would be long out of other resources first.
  */
-const contentEntityOf = (entity: WorldActor): ContentEntity => {
+const contentEntityOf = (entity: StoreActor): ContentEntity => {
     const position = entity.getPosition();
 
     return {
@@ -70,7 +63,7 @@ const contentEntityOf = (entity: WorldActor): ContentEntity => {
 };
 
 /** Whether an entity's position falls inside one block. */
-const standsIn = (entity: WorldActor, at: ContentPosition): boolean => {
+const standsIn = (entity: StoreActor, at: ContentPosition): boolean => {
     const position = entity.getPosition();
     return (
         Math.floor(position.getX()) === at.x &&
@@ -80,12 +73,32 @@ const standsIn = (entity: WorldActor, at: ContentPosition): boolean => {
 };
 
 /** How far an entity is from a position, squared, which is enough to sort and to compare. */
-const distanceSquared = (entity: WorldActor, from: ContentPosition): number => {
+const distanceSquared = (entity: StoreActor, from: ContentPosition): number => {
     const position = entity.getPosition();
     const dx = position.getX() - from.x;
     const dy = entity.getFeetY() - from.y;
     const dz = position.getZ() - from.z;
     return dx * dx + dy * dy + dz * dz;
+};
+
+/**
+ * The store's entities whose feet stand within a horizontal radius of a point, dropped stacks
+ * among them, as actors in ascending runtime id order. A caller narrows the answer with its own
+ * exact test.
+ */
+const actorsWithin = (world: World, x: number, z: number, radius: number): StoreActor[] => {
+    const index = world.getEntityIndex();
+    const { actors } = world.dataEntities();
+    const entities = index.storeWithin(x, z, radius);
+    const stacks = index.itemsWithin(x, z, radius);
+    // Each query answers in id order, so only an answer drawn from both needs sorting.
+    const found =
+        stacks.length === 0
+            ? entities
+            : entities.length === 0
+              ? stacks
+              : [...entities, ...stacks].sort((left, right) => left.id - right.id);
+    return found.flatMap((entity) => actors.actorOf(entity.id) ?? []);
 };
 
 /**
@@ -104,22 +117,22 @@ export const worldEntityAccess = (options: WorldEntityAccessOptions): ContentEnt
     };
 
     return {
+        // Read around the block's center, out to its corners and a little more.
         at: (position) =>
-            live()
-                .getActors()
+            actorsWithin(live(), position.x + 0.5, position.z + 0.5, 1)
                 .filter((entity) => standsIn(entity, position))
                 .map(contentEntityOf),
         near: (center, radius) =>
-            live()
-                .getActors()
+            actorsWithin(live(), center.x, center.z, radius)
                 .filter((entity) => distanceSquared(entity, center) <= radius * radius)
                 .sort((left, right) => distanceSquared(left, center) - distanceSquared(right, center))
                 .map(contentEntityOf),
         players: () =>
             live()
-                .getPlayers()
+                .getViewers()
                 // A player whose entity is in no store yet is not there to be found.
-                .flatMap((player) => {
+                .flatMap((session) => {
+                    const player = session.getPlayer();
                     const actor = player.getActor();
                     return actor === undefined
                         ? []
@@ -145,8 +158,8 @@ export const worldEntityAccess = (options: WorldEntityAccessOptions): ContentEnt
             }
 
             if (runtimeId !== 0 && data !== undefined) {
-                const spawned = loaded.getActor(BigInt(runtimeId));
-                if (spawned !== null) {
+                const spawned = loaded.dataEntities().actors.actorOf(runtimeId);
+                if (spawned !== undefined) {
                     spawned.persistentNbt ??= new NBTTagCompound('');
                     applyBlockEntityRecord(spawned.persistentNbt, data);
                 }
@@ -154,17 +167,8 @@ export const worldEntityAccess = (options: WorldEntityAccessOptions): ContentEnt
             return runtimeId;
         },
         remove: (id) => {
-            const loaded = live();
-            const entity = loaded.getActor(BigInt(id));
-            if (entity === null) return;
-            if (entity instanceof StoreActor) {
-                loaded.dataEntities().runtime.remove(entity.entity.id, 'body removed');
-                return;
-            }
-
-            void loaded.removeEntity(entity).catch((error: unknown) => {
-                loaded.getServer().getLogger().error(error);
-            });
+            const { actors, runtime } = live().dataEntities();
+            if (actors.actorOf(id) !== undefined) runtime.remove(id, 'body removed');
         },
         drop: (at, item) => {
             const loaded = live();
@@ -198,9 +202,8 @@ export const worldEntityAccess = (options: WorldEntityAccessOptions): ContentEnt
             });
         },
         countOfType: (identifier, at, radius) =>
-            live()
-                .getActors()
-                .filter((entity) => entity.getType() === identifier && distanceSquared(entity, at) <= radius * radius)
-                .length
+            actorsWithin(live(), at.x, at.z, radius).filter(
+                (entity) => entity.getType() === identifier && distanceSquared(entity, at) <= radius * radius
+            ).length
     };
 };

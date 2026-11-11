@@ -22,6 +22,7 @@ import { inertEntityRuntime } from '../testing/entityServer';
 import { stub } from '../testing/stub.test.helper';
 import { stubPlayerPort } from '../testing/playerPort.test.helper';
 import type { ContentPosition } from '../content/world/adapter';
+import type PlayerSession from '../network/PlayerSession';
 import type { ShownActor } from './ShownActor';
 import { explode } from '../entity/Explosion';
 import { ItemActor as ItemEntity } from '../entity/data/itemActor';
@@ -243,14 +244,17 @@ const liveWorld = (
         getChunkAt: async () => chunk,
         // Fire reads a player list through `minecraft:fire_spread_radius_around_player`.
         // The content adapter reads the same player fields as it does for a live player.
-        getPlayers: () => [
-            stubPlayerPort({
-                getPosition: () => new Position(8, 64, 8, world),
-                getRuntimeId: () => 1n,
-                getType: () => 'minecraft:player',
-                getFeetY: () => 64,
-                getTags: () => [],
-                gamemode: Gametype.SURVIVAL
+        getViewers: () => [
+            stub<PlayerSession>({
+                getPlayer: () =>
+                    stubPlayerPort({
+                        getPosition: () => new Position(8, 64, 8, world),
+                        getRuntimeId: () => 1n,
+                        getType: () => 'minecraft:player',
+                        getFeetY: () => 64,
+                        getTags: () => [],
+                        gamemode: Gametype.SURVIVAL
+                    })
             })
         ],
         sendWorldEvent: async () => {},
