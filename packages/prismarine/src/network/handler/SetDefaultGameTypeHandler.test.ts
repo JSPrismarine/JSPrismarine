@@ -2,11 +2,11 @@ import type { Logger } from '@jsprismarine/logger';
 import { Gametype } from '@jsprismarine/minecraft';
 import { describe, expect, it } from 'vitest';
 
-import type Player from '../../Player';
 import type Server from '../../Server';
 import type SessionManager from '../../SessionManager';
 import type { Config } from '../../config/Config';
 import { identityNamed } from '../../testing/sessionIdentity.test.helper';
+import { stubPlayerPort } from '../../testing/playerPort.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import type ClientConnection from '../ClientConnection';
 import { latestCodec } from '../codec/CodecRegistry';
@@ -32,7 +32,7 @@ const fakeServer = ({ op }: { op: boolean }) => {
         const session = stub<PlayerSession>({
             getConnection: () => stub<ClientConnection>({ sendDataPacket: async (packet) => void packets.push(packet) })
         });
-        const player = stub<Player>({
+        const player = stubPlayerPort({
             getName: () => name,
             isOp: () => isOp,
             setGamemode: async (mode) => void applied.push([name, mode]),
