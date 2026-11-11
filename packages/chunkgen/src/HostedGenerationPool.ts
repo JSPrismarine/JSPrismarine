@@ -11,8 +11,8 @@
  * the same bytes because a task is a pure function of its inputs; and a host that cannot be
  * started, or keeps dying, hands its tasks to an in-process pool built from the same options.
  */
-import type { ChildProcess } from 'node:child_process';
-import { fork } from 'node:child_process';
+import type { ChildProcess, StdioOptions } from 'node:child_process';
+import { fork, spawn } from 'node:child_process';
 import os from 'node:os';
 import { fileURLToPath } from 'node:url';
 
@@ -21,6 +21,7 @@ import {
     GenerationCanceledError,
     GenerationPool,
     GenerationPoolClosedError,
+    inBunExecutable,
     inCompiledBinary,
     workerExecArgv
 } from './GenerationPool';
@@ -29,6 +30,13 @@ import { GenerationStatsRecorder } from './GenerationStats';
 import type { GenerationTransport } from './GenerationTransport';
 import type { HostCommand, HostEvent } from './hostProtocol';
 import { encodeShared } from './hostProtocol';
+import { GENERATION_HOST_ROLE } from './hostRole';
+
+/**
+ * Defined by an executable build whose entry hands {@link GENERATION_HOST_ROLE} to
+ * `generationHost`. Without it, running the executable again would start the whole program again.
+ */
+declare const JSP_EMBEDDED_GENERATION_HOST: boolean | undefined;
 
 /** How a {@link HostedGenerationPool} is built. */
 export interface HostedGenerationPoolOptions extends GenerationPoolOptions {
@@ -64,6 +72,17 @@ export const defaultGenerationHost = (): string => {
     return fileURLToPath(new URL(beside, import.meta.url));
 };
 
+/**
+ * The command that starts the generation host from a Bun-compiled executable.
+ *
+ * The executable is the program, so the host is the executable run again with
+ * {@link GENERATION_HOST_ROLE}. Its entry has to hand that role to `generationHost`.
+ */
+export const compiledHostCommand = (): { readonly command: string; readonly args: readonly string[] } => ({
+    command: process.execPath,
+    args: ['--role', GENERATION_HOST_ROLE]
+});
+
 /** Runs generation tasks in a child process, with the in-process pool as its fallback. */
 export class HostedGenerationPool implements GenerationTransport {
     private child: ChildProcess | undefined;
@@ -81,11 +100,18 @@ export class HostedGenerationPool implements GenerationTransport {
     /**
      * Why a host cannot be started here, or undefined when one can.
      *
-     * A compiled executable cannot fork its own generation role yet, and the host entry has to be
-     * on disk for anything else.
+     * A Bun-compiled executable starts the host by running itself again, so it needs no file,
+     * only an entry that answers the host role. Node's single executable cannot yet, and the host
+     * entry has to be on disk for anything else.
      */
     public static unavailable(options: GenerationPoolOptions): string | undefined {
-        if (inCompiledBinary()) return 'a compiled executable cannot start the generation host role yet';
+        if (inBunExecutable()) {
+            if (typeof JSP_EMBEDDED_GENERATION_HOST === 'undefined' || !JSP_EMBEDDED_GENERATION_HOST) {
+                return 'this executable was compiled without a generation host role';
+            }
+        } else if (inCompiledBinary()) {
+            return 'a single executable cannot start the generation host role yet';
+        }
 
         return GenerationPool.unavailable(options);
     }
@@ -252,13 +278,19 @@ export class HostedGenerationPool implements GenerationTransport {
         this.ready = new Promise<void>((resolve, reject) => {
             let child: ChildProcess;
             try {
-                const entry = this.options.hostEntry ?? defaultGenerationHost();
-                const execArgv = workerExecArgv({ pipeline: this.options.pipeline, worker: entry });
-                child = fork(entry, [], {
-                    serialization: 'advanced',
-                    stdio: ['ignore', 'inherit', 'inherit', 'ipc'],
-                    ...(execArgv === undefined ? {} : { execArgv })
-                });
+                const stdio: StdioOptions = ['ignore', 'inherit', 'inherit', 'ipc'];
+                if (inBunExecutable() && this.options.hostEntry === undefined) {
+                    const { command, args } = compiledHostCommand();
+                    child = spawn(command, [...args], { serialization: 'advanced', stdio });
+                } else {
+                    const entry = this.options.hostEntry ?? defaultGenerationHost();
+                    const execArgv = workerExecArgv({ pipeline: this.options.pipeline, worker: entry });
+                    child = fork(entry, [], {
+                        serialization: 'advanced',
+                        stdio,
+                        ...(execArgv === undefined ? {} : { execArgv })
+                    });
+                }
             } catch (error) {
                 this.giveUp(`the generation host could not be started: ${String(error)}`);
                 reject(error instanceof Error ? error : new Error(String(error)));

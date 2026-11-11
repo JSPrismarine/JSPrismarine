@@ -230,8 +230,11 @@ is the portable way to give generation a lower priority than the server: Node ca
 worker thread. `createGenerationTransport({ ...options, host: 'process' })` builds it and falls back
 to the in-process pool, calling `onFallback` with the reason, when no host can start. A host that
 dies is replaced and the tasks it held are sent again, which returns the same bytes. Shared
-buffers in the setup are copied to the host once and shared again among its workers. Compiled
-single-file executables cannot start the host yet and keep the in-process pool.
+buffers in the setup are copied to the host once and shared again among its workers. A Bun-compiled
+executable starts the host by running itself again with `--role generation-host` (`GENERATION_HOST_ROLE`
+from `hostRole`), so its entry has to hand that role to `generationHost`, and the build has to define
+`JSP_EMBEDDED_GENERATION_HOST` to say it does. A Node single executable cannot start the host yet
+and keeps the in-process pool.
 `setBackgroundLimit` caps how many `soon` and `idle` tasks run at once, which is what
 `ConcurrencyGovernor` steers; `immediate` tasks are never limited.
 

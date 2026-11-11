@@ -68,6 +68,16 @@ const insideCompiledBundle = (specifier: string): boolean =>
     specifier.includes('/$bunfs/') || specifier.includes('~BUN');
 
 /**
+ * Whether this process is a Bun-compiled executable, which reports a main module under Bun's
+ * virtual filesystem root.
+ */
+export const inBunExecutable = (): boolean => {
+    const main = (globalThis as { Bun?: { main?: string } }).Bun?.main;
+    // `/$bunfs/` on POSIX, `B:\~BUN\` on Windows.
+    return main !== undefined && (main.includes('/$bunfs/') || main.includes('~BUN'));
+};
+
+/**
  * Whether this process is a compiled executable, whose worker modules need an embedded entry.
  *
  * Node's single executable reports through `node:sea`; a Bun-compiled binary reports a main
@@ -77,9 +87,7 @@ const insideCompiledBundle = (specifier: string): boolean =>
  * here rather than in a package it would have to take a dependency on to reach.
  */
 export const inCompiledBinary = (): boolean => {
-    const main = (globalThis as { Bun?: { main?: string } }).Bun?.main;
-    // `/$bunfs/` on POSIX, `B:\~BUN\` on Windows.
-    if (main !== undefined) return main.includes('/$bunfs/') || main.includes('~BUN');
+    if ((globalThis as { Bun?: unknown }).Bun !== undefined) return inBunExecutable();
 
     try {
         const load = createRequire(import.meta.url);

@@ -12,14 +12,15 @@ import os, { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { createGenerationTransport } from './createGenerationTransport';
 import { GenerationCanceledError, GenerationPool } from './GenerationPool';
 import type { GenerationResult } from './GenerationPool';
 import type { GenerationTransport } from './GenerationTransport';
-import { HostedGenerationPool } from './HostedGenerationPool';
+import { compiledHostCommand, HostedGenerationPool } from './HostedGenerationPool';
 import { decodeShared, encodeShared } from './hostProtocol';
+import { GENERATION_HOST_ROLE } from './hostRole';
 
 const FAKE_PIPELINE = fileURLToPath(new URL('../test/fakePipeline.mjs', import.meta.url));
 
@@ -167,6 +168,48 @@ describe('HostedGenerationPool', () => {
 
         expect(() => process.kill(pid, 0)).toThrow();
     }, 60_000);
+});
+
+describe('a Bun-compiled executable', () => {
+    const EMBEDDED_WORKER = 'file:///$bunfs/root/chunkgen/src/singleExecutableWorker.js';
+    const EMBEDDED_PIPELINE = 'file:///$bunfs/root/prismarine/src/chunkPipeline.js';
+
+    afterEach(() => {
+        vi.unstubAllGlobals();
+    });
+
+    it('starts its host by running itself again with the host role', () => {
+        expect(compiledHostCommand()).toEqual({
+            command: process.execPath,
+            args: ['--role', GENERATION_HOST_ROLE]
+        });
+    });
+
+    it('can start a host once its worker and the host role are embedded, without a host file on disk', () => {
+        vi.stubGlobal('Bun', { main: '/$bunfs/root/Server.js' });
+        vi.stubGlobal('JSP_EMBEDDED_GENERATION_WORKER', EMBEDDED_WORKER);
+        vi.stubGlobal('JSP_EMBEDDED_GENERATION_HOST', true);
+
+        expect(HostedGenerationPool.unavailable({ pipeline: EMBEDDED_PIPELINE, workers: 1 })).toBe(undefined);
+    });
+
+    it('does not run itself again when its entry was not built to answer the host role', () => {
+        vi.stubGlobal('Bun', { main: '/$bunfs/root/Server.js' });
+        vi.stubGlobal('JSP_EMBEDDED_GENERATION_WORKER', EMBEDDED_WORKER);
+
+        expect(HostedGenerationPool.unavailable({ pipeline: EMBEDDED_PIPELINE, workers: 1 })).toMatch(
+            /without a generation host role/
+        );
+    });
+
+    it('still reports a worker that was not embedded', () => {
+        vi.stubGlobal('Bun', { main: '/$bunfs/root/Server.js' });
+        vi.stubGlobal('JSP_EMBEDDED_GENERATION_HOST', true);
+
+        expect(HostedGenerationPool.unavailable({ pipeline: EMBEDDED_PIPELINE, workers: 1 })).toMatch(
+            /without its worker entrypoints/
+        );
+    });
 });
 
 describe('createGenerationTransport', () => {
