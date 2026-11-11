@@ -206,12 +206,14 @@ decision. The targets and how each is built:
 | --- | --- | --- | --- |
 | macOS arm64 | macOS on Apple Silicon | `.dylib` | `.a` |
 | Windows x64 | Windows x64 | `.dll` | `.lib` |
-| Windows arm64 | Windows on Arm | `.dll` | `.lib` |
+| Windows arm64 (dropped for now) | Windows on Arm | `.dll` | `.lib` |
 | Linux x64, glibc | Linux x64, in a Debian 12 container | `.so` | `.a` |
 | Linux arm64, glibc | Linux on Arm, in a Debian 12 container | `.so` | `.a` |
 | Linux x64, musl | Linux x64, in an Alpine container | `.so` | `.a` |
 | Linux arm64, musl | Linux on Arm, in an Alpine container | `.so` | `.a` |
 | Android arm64 (stretch) | Linux x64, with the NDK | `.so` | `.a` |
+
+Windows arm64 is dropped for now, 2026-11-11, at the user's call; ADR 0006 records why.
 
 - **One build is several megabytes.** On Linux x64 with OpenSSL, `NO_MEDIA` and `NO_WEBSOCKET`,
   and no size tuning, the stripped library is 10,036,544 bytes and 3,592,262 gzipped; with the C++

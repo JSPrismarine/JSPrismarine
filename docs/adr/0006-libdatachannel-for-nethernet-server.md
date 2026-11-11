@@ -62,6 +62,11 @@ point.
 each Linux architecture against both glibc and musl, since Docker images built on Alpine use musl.
 Android on arm64 is a stretch goal, built with the NDK.
 
+Changed 2026-11-11: Windows on arm64 is dropped for now. Its build passed, but scriptc, a root
+dependency, has no build for it, so the repository cannot install there to test it, and no
+executable targets it. The install script and the loader say a platform has no build, so adding it
+back needs only the workflow's matrix entries and the manifest check's list.
+
 **A build is too big to ship them all.** Linked on Linux x64 with OpenSSL, without media or
 WebSocket support and before any size tuning, the stripped library is 10,036,544 bytes, and
 3,592,262 compressed with gzip. Linux builds also link the C++ runtime in, so they run on an Alpine
