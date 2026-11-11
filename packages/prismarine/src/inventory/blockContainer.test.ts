@@ -945,6 +945,9 @@ describe('a block container a player can put things in', () => {
                 'minecraft:chest',
                 openContainerContents(player, CHEST, 'minecraft:chest')
             );
+            // An empty tick, which logs the chest's placement between ticks before the tick under test.
+            world.beginChangeTick();
+            world.sealChangeTick();
 
             world.beginChangeTick();
             await apply(server, player, [

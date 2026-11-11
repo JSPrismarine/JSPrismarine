@@ -231,6 +231,30 @@ describe('the entity store', () => {
         expect(runtime.store.sealTick()?.entries).toEqual([]);
     });
 
+    it('holds a block write between ticks for the next tick and counts an entity write between ticks as unlogged', () => {
+        const { runtime } = fixture();
+        const cow = runtime.spawn('minecraft:cow', GROUND);
+        if (cow === undefined) throw new Error('the fixture spawns cows');
+        const { unlogged } = runtime.store.counts();
+
+        runtime.store.writtenBlock(1, 64, 1, 0, 0, 5);
+        runtime.store.occurred({
+            kind: 'occurrence',
+            occurrence: 'block-shown',
+            data: { x: 2, y: 64, z: 2, block: 6 }
+        });
+        runtime.store.written(cow, 'tags', [], ['marked']);
+        runtime.store.beginTick();
+        runtime.store.writtenBlock(3, 64, 3, 0, 0, 7);
+
+        expect(runtime.store.counts().unlogged).toBe(unlogged + 1);
+        expect(runtime.store.sealTick()?.entries).toEqual([
+            { kind: 'field', field: 'block', address: { x: 1, y: 64, z: 1, layer: 0 }, before: 0, after: 5 },
+            { kind: 'occurrence', occurrence: 'block-shown', data: { x: 2, y: 64, z: 2, block: 6 } },
+            { kind: 'field', field: 'block', address: { x: 3, y: 64, z: 3, layer: 0 }, before: 0, after: 7 }
+        ]);
+    });
+
     it('appends at most one position write per walking mob in a tick', () => {
         const { runtime } = fixture();
         const walkers = 6;

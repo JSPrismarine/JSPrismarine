@@ -13,14 +13,15 @@ import { buildServerContent } from '../content/ServerContent';
 import type { ServerContent } from '../content/ServerContent';
 import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
 import BlockUpdateScheduler from './BlockUpdateScheduler';
+import { inertEntityRuntime } from '../testing/entityServer';
+import { sealBlockKinds } from '../testing/sealedBlocks.test.helper';
+import { NULL_WORLD_CHANGE_SINK } from './WorldChangeSink';
 import { stub } from '../testing/stub.test.helper';
 import { fakeLevel } from '../testing/level';
 import { Position } from './Position';
 import { Dimensions } from './Dimension';
 import Chunk from './chunk/Chunk';
 import { World } from './World';
-import { NULL_WORLD_CHANGE_SINK } from './WorldChangeSink';
-import type { WorldChange } from './WorldChange';
 import { tickFurnace } from './cooking';
 
 const ITEM_IDS = new Set([
@@ -82,6 +83,10 @@ const tickWorld = (entity: Furnace, blockIdentifier: string) => {
     chunk.setBlockEntity(entity);
     const chunks = new Map([[Chunk.packXZ(0, 0), chunk]]);
     const players = new Map<number, PlayerSession>();
+    // A real store, so the writes are logged as a tick logs them.
+    const runtime = inertEntityRuntime();
+    const store = runtime.runtime.store;
+    store.beginTick();
     const world: World = Object.assign(Object.create(World.prototype), {
         chunks,
         players,
@@ -89,7 +94,12 @@ const tickWorld = (entity: Furnace, blockIdentifier: string) => {
         level: fakeLevel(),
         blockUpdates: new BlockUpdateScheduler(),
         systems: { onBlockChanged: () => {} },
-        server: { getContent: () => content, getLogger: () => ({ error: vi.fn() }) }
+        server: {
+            getContent: () => content,
+            getLogger: () => ({ error: vi.fn() }),
+            getEntityRuntime: () => runtime,
+            hasEntityRuntime: () => true
+        }
     });
     players.set(
         1,
@@ -101,11 +111,10 @@ const tickWorld = (entity: Furnace, blockIdentifier: string) => {
         })
     );
 
-    const changes: WorldChange[] = [];
-    world.attachChangeSink({
-        ...NULL_WORLD_CHANGE_SINK,
-        worldChanged: (change) => void changes.push(change)
-    });
+    // The sink the constructor would have set, which reads the sealed ticks too.
+    world.attachChangeSink(NULL_WORLD_CHANGE_SINK);
+    /** What the open tick changed in the blocks, which seals it and opens the next. */
+    const changes = (): string[] => sealBlockKinds(store);
     const refs = world['getPlayerChunkRefCounts']();
     refs.synchronize(players);
 
@@ -214,7 +223,7 @@ describe('world cooking station tick', () => {
         world['tickCookingStations'](refs);
 
         expect(getBlockEntity).not.toHaveBeenCalled();
-        expect(changes).toEqual([]);
+        expect(changes()).toEqual([]);
         expect(chunk.getBlock(8, 64, 8).name).toBe('minecraft:furnace');
     });
 
@@ -223,7 +232,11 @@ describe('world cooking station tick', () => {
         const { changes, chunk, refs, world } = tickWorld(furnace, 'minecraft:lit_furnace');
         world['tickCookingStations'](refs);
 
-        expect(changes.map(({ kind }) => kind)).toEqual(['block-set', 'block-entity-set']);
+        // The swap takes the furnace's block entity with the block, and the station puts it back
+        // after: the block is announced before the block entity a client is sent.
+        const kinds = changes();
+        expect(kinds.indexOf('block')).toBeGreaterThan(-1);
+        expect(kinds.lastIndexOf('block-entity')).toBeGreaterThan(kinds.indexOf('block'));
         expect(chunk.getBlock(8, 64, 8).name).toBe('minecraft:furnace');
         expect(blockItems(chunk.getBlockEntity(8, 64, 8)!.toNBT())).toEqual([
             { identifier: 'minecraft:iron_ore', count: 1 }

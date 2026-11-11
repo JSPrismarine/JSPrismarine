@@ -11,6 +11,9 @@ import { StoreActor } from '../entity/data/storeActors';
 import type { StoreActors } from '../entity/data/storeActors';
 import type { DataEntity } from '../entity/data/DataEntity';
 import type Server from '../Server';
+import { EntityStore } from '../entity/data/EntityStore';
+import { sealBlockKinds } from '../testing/sealedBlocks.test.helper';
+import { NULL_WORLD_CHANGE_SINK } from './WorldChangeSink';
 import { stub, stubOf } from '../testing/stub.test.helper';
 import type PlayerSession from '../network/PlayerSession';
 import { EYE_HEIGHT } from '../entity/playerEyes';
@@ -18,8 +21,6 @@ import Chunk from './chunk/Chunk';
 import { Dimensions } from './Dimension';
 import { Position } from './Position';
 import { World } from './World';
-import type { WorldChange } from './WorldChange';
-import { NULL_WORLD_CHANGE_SINK } from './WorldChangeSink';
 import { tickSpawner } from './spawners';
 import type { SpawnerSurroundings } from './spawners';
 
@@ -185,7 +186,11 @@ const worldWithSpawner = ({ playerAt, delay = 0 }: { playerAt: Vector3; delay?: 
     const spawned: { identifier: string; x: number; y: number; z: number }[] = [];
     /** The store entities already standing in the world, through their actors. */
     const crowd: StoreActor[] = [];
+    // A real store, so the spawner's writes are logged as a tick logs them.
+    const store = new EntityStore();
+    store.beginTick();
     const runtime = stub<EntityRuntime>({
+        store,
         content: () => ({ entities: { registry: { has: () => true } } }) as never,
         spawn: (identifier, at) => {
             spawned.push({ identifier, ...at });
@@ -205,7 +210,8 @@ const worldWithSpawner = ({ playerAt, delay = 0 }: { playerAt: Vector3; delay?: 
                 runtime,
                 actors: stub<StoreActors>({ all: () => crowd[Symbol.iterator]() })
             }),
-        getLogger: () => ({ debug: () => {} }) as never
+        getLogger: () => ({ debug: () => {} }) as never,
+        hasEntityRuntime: () => true
     });
 
     const world: World = Object.assign(Object.create(World.prototype), {
@@ -220,8 +226,10 @@ const worldWithSpawner = ({ playerAt, delay = 0 }: { playerAt: Vector3; delay?: 
     const player = stub<PlayerSession>({ isConnected: () => true, getViewPosition: eyes });
     world['players'].set(1, player);
 
-    const written: WorldChange[] = [];
-    world.attachChangeSink({ ...NULL_WORLD_CHANGE_SINK, worldChanged: (change) => void written.push(change) });
+    // The sink the constructor would have set, which reads the sealed ticks too.
+    world.attachChangeSink(NULL_WORLD_CHANGE_SINK);
+    /** What the open tick changed in the blocks, which seals it and opens the next. */
+    const written = (): string[] => sealBlockKinds(store);
 
     /** One spawner pass over every chunk, the way the tick runs it. */
     const references = { getRevision: () => 0, simulates: () => true };
@@ -246,7 +254,7 @@ describe('World', () => {
             const standing = chunk.getBlockEntity(5, 64, 5);
             assert(standing instanceof MobSpawner);
             expect(standing.getDelay()).toBe(650);
-            expect(written.map((change) => change.kind)).toEqual(['block-entity-set']);
+            expect(written()).toEqual(['block-entity']);
         });
 
         it('leaves the spawner alone with no player within sixteen blocks', () => {
@@ -255,7 +263,7 @@ describe('World', () => {
             tick();
 
             expect(spawned).toEqual([]);
-            expect(written).toEqual([]);
+            expect(written()).toEqual([]);
         });
 
         it('counts the delay down for a player in range', () => {

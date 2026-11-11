@@ -25,11 +25,11 @@ import { Item } from '../item/Item';
 import type PlayerSession from '../network/PlayerSession';
 import { sessionOnPrototype } from '../testing/storePlayer.test.helper';
 import { blockMiningOf, playerMiningOf } from './BlockMining';
-import { NBTTagCompound, Types } from '@jsprismarine/nbt';
 import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
 import { writeBlockEntity } from '../blockentity/blockEntityWrite';
 import { worldBlockStorage } from './contentAdapter';
 import { createEngineWorld } from './EngineWorld';
+import { chestTags } from '../testing/sealedBlocks.test.helper';
 
 /** A world whose dimension's entity runtime is the real one the entity fixture builds. */
 const worldWithStore = () => {
@@ -496,23 +496,10 @@ describe("a world's blocks and block entities in its change log", () => {
         return { ...made, air: id('minecraft:air'), stone: id('minecraft:stone'), dirt: id('minecraft:dirt') };
     };
 
-    /** A chest's tags at a position, holding the given stacks by slot. */
-    const chestTags = (at: { x: number; y: number; z: number }, stacks: Record<number, [string, number]>) => {
-        const tags = new NBTTagCompound('');
-        tags.addValue('id', new Types.StringVal('Chest'));
-        tags.addValue('x', new Types.NumberVal(at.x));
-        tags.addValue('y', new Types.NumberVal(at.y));
-        tags.addValue('z', new Types.NumberVal(at.z));
-        const items = new Set<NBTTagCompound>();
-        for (const [slot, [name, count]] of Object.entries(stacks)) {
-            const stack = new NBTTagCompound('');
-            stack.addValue('Name', new Types.StringVal(name));
-            stack.addValue('Count', new Types.ByteVal(count));
-            stack.addValue('Slot', new Types.ByteVal(Number(slot)));
-            items.add(stack);
-        }
-        tags.addValue('Items', items);
-        return tags;
+    /** Runs an empty tick, which logs the setup's writes between ticks so the tick under test holds only its own. */
+    const settle = (world: World) => {
+        world.beginChangeTick();
+        world.sealChangeTick();
     };
 
     const blockEntries = (world: World) =>
@@ -549,18 +536,26 @@ describe("a world's blocks and block entities in its change log", () => {
         expect(blockEntries(world)).toHaveLength(count);
     });
 
-    it('counts a block write between ticks as unlogged', async () => {
-        const { world, stone } = await worldWithChunk();
+    it('logs a block write between ticks at the start of the next tick, ahead of its own writes', async () => {
+        const { world, stone, dirt } = await worldWithChunk();
         const before = world.getEntityStore().counts().unlogged;
 
         world.setLoadedBlockRuntimeId(1, 64, 1, stone);
+        world.beginChangeTick();
+        world.setLoadedBlockRuntimeId(2, 64, 2, dirt);
+        world.sealChangeTick();
 
-        expect(world.getEntityStore().counts().unlogged).toBe(before + 1);
+        expect(world.getEntityStore().counts().unlogged).toBe(before);
+        expect(blockEntries(world)).toEqual([
+            expect.objectContaining({ address: { x: 1, y: 64, z: 1, layer: 0 }, after: stone }),
+            expect.objectContaining({ address: { x: 2, y: 64, z: 2, layer: 0 }, after: dirt })
+        ]);
     });
 
     it('undoes a unit that wrote blocks, leaving the replay digest as it was', async () => {
         const { world, stone, dirt } = await worldWithChunk();
         world.setLoadedBlockRuntimeId(1, 64, 1, stone);
+        settle(world);
         const digest = world.replayStateDigest();
         world.beginChangeTick();
 
@@ -599,6 +594,7 @@ describe("a world's blocks and block entities in its change log", () => {
         const { world } = await worldWithChunk();
         const at = { x: 4, y: 64, z: 4 };
         writeBlockEntity(world, chestTags(at, { 0: ['minecraft:bread', 3] }));
+        settle(world);
         world.beginChangeTick();
 
         writeBlockEntity(world, chestTags(at, { 0: ['minecraft:bread', 3], 7: ['minecraft:torch', 4] }));
@@ -615,6 +611,7 @@ describe("a world's blocks and block entities in its change log", () => {
         world.setLoadedBlockRuntimeId(at.x, at.y, at.z, stone);
         writeBlockEntity(world, chestTags(at, { 0: ['minecraft:bread', 3], 2: ['minecraft:torch', 4] }));
         writeBlockEntity(world, chestTags({ x: 5, y: 64, z: 4 }, { 1: ['minecraft:dirt', 9] }));
+        settle(world);
         const digest = world.replayStateDigest();
         world.beginChangeTick();
 
@@ -668,6 +665,7 @@ describe("a world's blocks and block entities in its change log", () => {
         const to = { x: 8, y: 64, z: 7 };
         world.setLoadedBlockRuntimeId(from.x, from.y, from.z, stone);
         writeBlockEntity(world, chestTags(from, { 0: ['minecraft:bread', 3] }));
+        settle(world);
         world.beginChangeTick();
 
         // The write a piston's push makes, through the block storage the block behaviors write through.

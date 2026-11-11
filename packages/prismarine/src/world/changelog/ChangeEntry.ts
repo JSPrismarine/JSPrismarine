@@ -133,6 +133,17 @@ export interface OccurrenceKinds {
      * ([ADR 0008](../../../../../docs/adr/0008-one-entity-model.md)).
      */
     impulse: OccurrenceShape<{ readonly entity: EntityId; readonly x: number; readonly y: number; readonly z: number }>;
+    /**
+     * Clients are told what stands at a position although it did not change, such as for a client
+     * that drew a placement the server refused. It carries the block runtime id it shows, since
+     * replication keeps no copy of the blocks.
+     */
+    'block-shown': OccurrenceShape<{
+        readonly x: number;
+        readonly y: number;
+        readonly z: number;
+        readonly block: number;
+    }>;
     /** An entity's emote. */
     emote: OccurrenceShape<{ readonly entity: EntityId; readonly emote: string }>;
     /**
@@ -163,6 +174,16 @@ export type OccurrenceEntry<K extends OccurrenceKind = OccurrenceKind> = {
  * Checking `kind` narrows to one of the four entry types.
  */
 export type ChangeEntry = FieldEntry | MembershipEntry | ChunkEntry | OccurrenceEntry;
+
+/**
+ * Whether an entry is one replication sends blocks from: a block, a block entity field or a
+ * shown block.
+ * @param {ChangeEntry} entry - The entry.
+ * @returns {boolean} Whether it is about blocks.
+ */
+export const isBlockEntry = (entry: ChangeEntry): boolean =>
+    (entry.kind === 'field' && (entry.field === 'block' || entry.field === 'block-entity')) ||
+    (entry.kind === 'occurrence' && entry.occurrence === 'block-shown');
 
 /**
  * An entry that changes authoritative state and has an inverse: what a store applies.

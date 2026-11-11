@@ -854,6 +854,8 @@ const replayOn = async (
             worldSeries,
             packetSeries,
             changeLogCosts,
+            // What replication keeps of the world's block entities, read from the log (ADR 0016).
+            blockReplica: live.server.getWorldReplicators().for(live.world).blockReplicaCounts(),
             sampledAdmissions,
             admissionDivergences,
             capturedAdmissions: admissionsIn(
@@ -1048,6 +1050,12 @@ describe('live session replay', () => {
                         `blocks and block entities ${sum(blockEntries)} entries and ${sum(blockBytes)} bytes, ` +
                         `at most ${Math.max(0, ...blockEntries)} entries and ${Math.max(0, ...blockBytes)} bytes in one tick`,
                     'Change log cost'
+                );
+                const replica = first.blockReplica;
+                reportProgress(
+                    `block replica after the replay: ${replica.blockEntities} block entities in ${replica.bytes} bytes; ` +
+                        `${replica.entriesRead} block entries read and ${replica.folded} compounds folded`,
+                    'Replica cost'
                 );
             } finally {
                 random.mockRestore();

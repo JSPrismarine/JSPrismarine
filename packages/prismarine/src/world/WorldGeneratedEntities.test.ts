@@ -11,6 +11,7 @@ import type { StoreActor } from '../entity/data/storeActors';
 import { stub } from '../testing/stub.test.helper';
 import Chunk from './chunk/Chunk';
 import { World } from './World';
+import { NULL_WORLD_CHANGE_SINK } from './WorldChangeSink';
 import { fakeLevel } from '../testing/level';
 import type BaseProvider from './providers/BaseProvider';
 
@@ -69,6 +70,8 @@ const worldLoading = (
     });
 
     const world: World = Object.assign(Object.create(World.prototype), {
+        // The sink the constructor would have set, which hears each chunk enter and leave.
+        changes: NULL_WORLD_CHANGE_SINK,
         chunks: new Map(),
         // `loadChunk` joins a load already in flight through this, and a world built on the
         // prototype never ran the constructor that would have made it.

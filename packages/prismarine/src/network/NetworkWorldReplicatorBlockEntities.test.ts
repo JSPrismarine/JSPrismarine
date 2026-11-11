@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest';
 
 import type Server from '../Server';
 import type { Config } from '../config/Config';
+import { sealBlockEntityWrite } from '../testing/sealedBlocks.test.helper';
 import { stub } from '../testing/stub.test.helper';
 import { Position } from '../world/Position';
 import type { World } from '../world/World';
@@ -49,30 +50,40 @@ const replicatorOver = (players: PlayerSession[]) => {
         getLogger: () => stub<Logger>({ verbose: () => {}, error: () => {} })
     });
 
-    return new NetworkWorldReplicator(world, server);
+    const replicator = new NetworkWorldReplicator(world, server);
+    // The chunks the tests write into, held empty, as a world hands them over when they enter.
+    replicator.chunkEntered(0, 0, []);
+    replicator.chunkEntered(-1, 0, []);
+    return replicator;
 };
 
-/** The compound the existing `BlockActorDataPacket` byte test uses, so the bytes are comparable. */
-const signTags = (): NBTTagCompound => {
+/** An unmodeled block entity, so its tags reach the wire as written, with the position the chunk adds. */
+const plainTags = (at: Vector3, id = 'Unmodeled'): NBTTagCompound => {
     const tags = new NBTTagCompound('');
-    tags.addValue('id', new Types.StringVal('Sign'));
+    tags.addValue('id', new Types.StringVal(id));
+    tags.addValue('x', new Types.NumberVal(at.getX()));
+    tags.addValue('y', new Types.NumberVal(at.getY()));
+    tags.addValue('z', new Types.NumberVal(at.getZ()));
     return tags;
 };
+
+const AT = new Vector3(1, 2, 3);
 
 describe('network', () => {
     describe('NetworkWorldReplicator block entities', () => {
         // Header 0x38, then the position 1, 2, 3 as three zigzag varints, then network NBT: an
-        // unnamed root compound holding the string tag "id" with the value "Sign", closed by
-        // TAG_End. The same bytes `BlockActorDataPacket.test.ts` pins for that compound.
+        // unnamed root compound holding the string tag "id" with the value "Unmodeled" and the
+        // int tags x, y and z as zigzag varints, closed by TAG_End.
         const expected = Buffer.from([
-            0x38, 0x02, 0x04, 0x06, 0x0a, 0x00, 0x08, 0x02, 0x69, 0x64, 0x04, 0x53, 0x69, 0x67, 0x6e, 0x00
+            0x38, 0x02, 0x04, 0x06, 0x0a, 0x00, 0x08, 0x02, 0x69, 0x64, 0x09, 0x55, 0x6e, 0x6d, 0x6f, 0x64, 0x65, 0x6c,
+            0x65, 0x64, 0x03, 0x01, 0x78, 0x02, 0x03, 0x01, 0x79, 0x04, 0x03, 0x01, 0x7a, 0x06, 0x00
         ]);
 
         it('encodes the position and the whole compound', async () => {
             const near = playerAt(8, 8);
             const replicator = replicatorOver([near.player]);
 
-            replicator.worldChanged({ kind: 'block-entity-set', position: new Vector3(1, 2, 3), tags: signTags() });
+            sealBlockEntityWrite(replicator, AT, null, plainTags(AT));
             await replicator.flushBlockEntities();
 
             expect(near.sent).toHaveLength(1);
@@ -87,7 +98,7 @@ describe('network', () => {
             const near = playerAt(8, 8);
             const replicator = replicatorOver([near.player]);
 
-            replicator.worldChanged({ kind: 'block-entity-set', position: new Vector3(1, 2, 3), tags: signTags() });
+            sealBlockEntityWrite(replicator, AT, null, plainTags(AT));
 
             // The flush runs after the tick's block changes have gone out. A block entity
             // update that overtook the block update it belongs to would be dropped by the
@@ -99,11 +110,10 @@ describe('network', () => {
             const near = playerAt(8, 8);
             const replicator = replicatorOver([near.player]);
 
-            const first = new NBTTagCompound('');
-            first.addValue('id', new Types.StringVal('Chest'));
+            const first = plainTags(AT, 'Superseded');
 
-            replicator.worldChanged({ kind: 'block-entity-set', position: new Vector3(1, 2, 3), tags: first });
-            replicator.worldChanged({ kind: 'block-entity-set', position: new Vector3(1, 2, 3), tags: signTags() });
+            sealBlockEntityWrite(replicator, AT, null, first);
+            sealBlockEntityWrite(replicator, AT, first, plainTags(AT));
             await replicator.flushBlockEntities();
 
             // The last write wins, and the superseded one costs nothing.
@@ -118,7 +128,7 @@ describe('network', () => {
             const far = playerAt(40 * 16 + 8, 8);
             const replicator = replicatorOver([near.player, far.player]);
 
-            replicator.worldChanged({ kind: 'block-entity-set', position: new Vector3(1, 2, 3), tags: signTags() });
+            sealBlockEntityWrite(replicator, AT, null, plainTags(AT));
             await replicator.flushBlockEntities();
 
             expect(near.sent).toHaveLength(1);
@@ -129,7 +139,7 @@ describe('network', () => {
             const near = playerAt(8, 8);
             const replicator = replicatorOver([near.player]);
 
-            replicator.worldChanged({ kind: 'block-entity-set', position: new Vector3(1, 2, 3), tags: signTags() });
+            sealBlockEntityWrite(replicator, AT, null, plainTags(AT));
             await replicator.flushBlockEntities();
             await replicator.flushBlockEntities();
 
@@ -146,11 +156,11 @@ describe('network', () => {
             text.addValue('Text', new Types.StringVal('hello\nthere'));
             const front = new NBTTagCompound('FrontText');
             front.addValue('SignTextComponent', text);
-            const tags = new NBTTagCompound('');
-            tags.addValue('id', new Types.StringVal('Sign'));
+            const at = new Vector3(-7, 70, 12);
+            const tags = plainTags(at, 'Sign');
             tags.addValue('FrontText', front);
 
-            replicator.worldChanged({ kind: 'block-entity-set', position: new Vector3(-7, 70, 12), tags });
+            sealBlockEntityWrite(replicator, at, null, tags);
             await replicator.flushBlockEntities();
 
             near.sent[0]!.encode();

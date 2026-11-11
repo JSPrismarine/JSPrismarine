@@ -34,6 +34,16 @@ export const slotField = (slot: number): string => `${SLOT_PREFIX}${slot}`;
 /** What one field holds in the change log: its tags as network NBT, or null for nothing. */
 export type BlockEntityValue = Uint8Array | null;
 
+/**
+ * A logged field's value as the type it was written with, for a reader of the log, whose entries
+ * hold any plain data.
+ * @throws {TypeError} When the value is neither bytes nor null.
+ */
+export const blockEntityValueOf = (value: unknown): BlockEntityValue => {
+    if (value === null || value instanceof Uint8Array) return value;
+    throw new TypeError(`A logged block entity field holds ${String(value)}`);
+};
+
 /** One field of a block entity that a write changed. */
 export type BlockEntityFieldChange = {
     readonly field: string;

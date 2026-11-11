@@ -23,8 +23,14 @@
  * registers the writer that undoes them. A tick of the log is one world tick, numbered by the
  * store from 1 and not by the level clock, because `/time set` moves the clock backwards and the
  * log only goes forward.
+ *
+ * A block or block entity write between ticks, such as a command a tick function runs, is held
+ * and appended when the next tick opens, ahead of that tick's own entries. Replication reads
+ * blocks only from the log, and the next tick is when such a write reached clients before it
+ * did. Other writes between ticks are still counted as unlogged.
  */
 import type { ChangeEntry, OccurrenceEntry, StateEntry } from '../../world/changelog/ChangeEntry';
+import { isBlockEntry } from '../../world/changelog/ChangeEntry';
 import type { SealedTick, Span } from '../../world/changelog/ChangeLog';
 import { ChangeLog } from '../../world/changelog/ChangeLog';
 import type { PlainData, PlainRecord } from '../../world/changelog/PlainData';
@@ -66,7 +72,10 @@ const SUCCEEDED: UnitOutcome = { failed: false };
 
 /** What the store reports about itself, by count. */
 export interface EntityStoreCounts {
-    /** Writes the log could not hold because no tick was open, such as a command between ticks. */
+    /**
+     * Writes the log could not hold because no tick was open, such as an entity write between
+     * ticks. Block and block entity writes between ticks are held for the next tick instead.
+     */
     readonly unlogged: number;
     /** Units that threw and were reverted. */
     readonly reverted: number;
@@ -94,6 +103,8 @@ export class EntityStore {
     private readonly units: OpenUnit[] = [];
     private kept = 0;
     private readonly sealListeners = new Set<(sealed: SealedTick) => void>();
+    /** Block entries made between ticks, for the next tick to open with. */
+    private readonly carried: ChangeEntry[] = [];
 
     /**
      * @param report - Receives a line for each inverse that failed.
@@ -290,6 +301,8 @@ export class EntityStore {
         this.log.begin(this.ticks);
         this.open = true;
         this.skipped.clear();
+        for (const entry of this.carried) this.log.append(entry);
+        this.carried.length = 0;
     }
 
     /**
@@ -459,7 +472,8 @@ export class EntityStore {
     private append(entry: ChangeEntry): void {
         if (this.reverting) return;
         if (!this.open) {
-            this.unlogged += 1;
+            if (isBlockEntry(entry)) this.carried.push(entry);
+            else this.unlogged += 1;
             return;
         }
         this.log.append(entry);

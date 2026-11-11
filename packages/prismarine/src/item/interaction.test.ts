@@ -14,6 +14,7 @@ import { Attributes } from '@jsprismarine/protocol/wire/structures/Attribute';
 import ContainerEntry from '../inventory/ContainerEntry';
 import HumanInventory from '../inventory/HumanInventory';
 import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
+import { inertEntityRuntime } from '../testing/entityServer';
 import { definitionOf, definitionsOf } from '../content/ContentOptions';
 import { overlayPackPath } from '../content/packStack';
 import { buildServerContent } from '../content/ServerContent';
@@ -176,12 +177,15 @@ const liveWorld = (
     world: World;
     chunk: Chunk;
     sounds: string[];
-    changed: string[];
+    changed: () => string[];
     redstoneUpdates: { position: ContentPosition; identifier: string; power: number }[];
 } => {
     const chunk = new Chunk(0, 0);
     const sounds: string[] = [];
-    const changed: string[] = [];
+    const shown: string[] = [];
+    // A real store, so the block writes are logged and reach the sink as a sealed tick does.
+    const runtime = inertEntityRuntime();
+    const store = runtime.runtime.store;
     const redstoneUpdates: { position: ContentPosition; identifier: string; power: number }[] = [];
 
     const world: World = Object.assign(Object.create(World.prototype), {
@@ -197,19 +201,35 @@ const liveWorld = (
             getContent: () => content(),
             getLogger: () => ({ debug: () => {}, error: () => {}, verbose: () => {}, warn: () => {} }),
             // Rolled for the pitch of an eye of ender's launch.
-            getRandom: () => () => 0.5
+            getRandom: () => () => 0.5,
+            getEntityRuntime: () => runtime,
+            hasEntityRuntime: () => true
         }
     });
 
     world.attachChangeSink({
         ...NULL_WORLD_CHANGE_SINK,
         namedSound: (_at, name) => void sounds.push(name),
-        worldChanged: (change) => {
-            if (change.kind !== 'block-set') return;
-            const { position: at, blockRuntimeId } = change;
-            changed.push(`${at.getX()},${at.getY()},${at.getZ()} ${BlockRuntimeIds.getState(blockRuntimeId)?.name}`);
+        tickSealed: ({ entries }) => {
+            for (const entry of entries) {
+                const block =
+                    entry.kind === 'field' && entry.field === 'block'
+                        ? { ...entry.address, block: entry.after }
+                        : entry.kind === 'occurrence' && entry.occurrence === 'block-shown'
+                          ? entry.data
+                          : undefined;
+                if (block === undefined) continue;
+                shown.push(`${block.x},${block.y},${block.z} ${BlockRuntimeIds.getState(block.block)?.name}`);
+            }
         }
     });
+    store.beginTick();
+    /** The blocks clients were told about so far, which seals the open tick and opens the next. */
+    const changed = (): string[] => {
+        store.sealTick();
+        store.beginTick();
+        return shown;
+    };
     return { world, chunk, sounds, changed, redstoneUpdates };
 };
 
@@ -385,7 +405,7 @@ describe('useItemOnBlock', () => {
     let world: World;
     let chunk: Chunk;
     let sounds: string[];
-    let changed: string[];
+    let changed: () => string[];
     let redstoneUpdates: { position: ContentPosition; identifier: string; power: number }[];
     let content: ServerContent;
     let handle: ServerWorldHandle;
@@ -517,7 +537,7 @@ describe('useItemOnBlock', () => {
         expect(click(player, { x: 7, y: 64, z: 7 }, 5)).toBe('handled');
 
         expect(world.loadedBlockAt(8, 64, 7)?.name).toBe('minecraft:fire');
-        expect(changed).toContain('8,64,7 minecraft:fire');
+        expect(changed()).toContain('8,64,7 minecraft:fire');
     });
 
     it('places a chest through the content, so it gets its block entity', () => {
@@ -653,7 +673,7 @@ describe('useItemOnBlock', () => {
 
         expect(click(player, { x: 8, y: 64, z: 8 })).toBe('declined');
         expect(world.loadedBlockAt(8, 65, 8)?.name).toBe('minecraft:air');
-        expect(changed).toEqual([]);
+        expect(changed()).toEqual([]);
         expect(sessionOf(player).inventoriesSent).toBe(0);
     });
 
@@ -782,8 +802,8 @@ describe('useItemOnBlock', () => {
             expect(click(player, { x: 1, y: 63, z: 1 })).toBe('handled');
 
             expect(world.loadedBlockAt(1, 64, 1)?.name).toBe('minecraft:air');
-            expect(changed).toContain('1,64,1 minecraft:air');
-            expect(changed).not.toContain('1,64,1 minecraft:dirt');
+            expect(changed()).toContain('1,64,1 minecraft:air');
+            expect(changed()).not.toContain('1,64,1 minecraft:dirt');
             expect(player.getInventory().getEntry(0)?.getCount()).toBe(1);
             expect(sessionOf(player).inventoriesSent).toBe(1);
         });
@@ -1012,7 +1032,7 @@ describe('useItemOnBlock', () => {
             expect(click(player, { x: 7, y: 63, z: 7 })).toBe('handled');
 
             expect(world.loadedBlockAt(7, 64, 7)?.name).toBe('minecraft:stone');
-            expect(changed).toEqual(['7,63,7 minecraft:stone', '7,64,7 minecraft:stone']);
+            expect(changed()).toEqual(['7,63,7 minecraft:stone', '7,64,7 minecraft:stone']);
             expect(player.getInventory().getEntry(0)?.getCount()).toBe(3);
             expect(sessionOf(player).inventoriesSent).toBe(1);
             expect(earned(player, 'test:placed')).toBe(false);
@@ -1115,7 +1135,7 @@ describe('useItemOnBlock', () => {
 
             expect(click(player, { x: 9, y: top, z: 9 })).toBe('handled');
 
-            expect(changed).toEqual([`9,${top},9 minecraft:stone`]);
+            expect(changed()).toEqual([`9,${top},9 minecraft:stone`]);
             expect(player.getInventory().getEntry(0)?.getCount()).toBe(3);
         });
     });

@@ -11,6 +11,7 @@ import { Dimensions } from './Dimension';
 import { Position } from './Position';
 import type BaseProvider from './providers/BaseProvider';
 import { World } from './World';
+import { NULL_WORLD_CHANGE_SINK } from './WorldChangeSink';
 
 /**
  * A world over in-memory chunks whose provider lets them be unloaded, built on the real
@@ -19,6 +20,8 @@ import { World } from './World';
 const worldWith = (chunks: readonly Chunk[]): World => {
     const players = new Map<bigint, PlayerSession>();
     const world: World = Object.assign(Object.create(World.prototype), {
+        // The sink the constructor would have set, which hears each chunk enter and leave.
+        changes: NULL_WORLD_CHANGE_SINK,
         chunks: new Map(chunks.map((chunk) => [Chunk.packXZ(chunk.getX(), chunk.getZ()), chunk])),
         players,
         loading: new Map(),

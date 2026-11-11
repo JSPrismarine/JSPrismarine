@@ -10,7 +10,7 @@ import { ByteOrder, NBTWriter } from '@jsprismarine/nbt';
 import type { ActorEvent } from '@jsprismarine/minecraft';
 import { Gametype, LevelEvent, LevelSoundEvent } from '@jsprismarine/minecraft';
 import { writeBlockEntity } from '../blockentity/blockEntityWrite';
-import { blockEntityChanges, withBlockEntityField } from '../blockentity/blockEntityLog';
+import { blockEntityChanges, blockEntityValueOf, withBlockEntityField } from '../blockentity/blockEntityLog';
 import { BlockEntityRegistry } from '../blockentity/BlockEntityRegistry';
 import { BlockView } from '../entity/ai/BlockView';
 import type { NBTTagCompound } from '@jsprismarine/nbt';
@@ -118,6 +118,14 @@ const SPAWN_SEARCH_STEP = 8;
  * sea, or a lava lake's surface, and never a flower or a leaf.
  */
 const UNSUITABLE_SPAWN_TERRAIN = new Set(['minecraft:water', 'minecraft:lava', 'minecraft:air']);
+
+/**
+ * A chunk's block entities as it serializes them, which replication keeps a copy of when the chunk
+ * enters. Produced as the reader iterates, so a sink that drops them costs nothing.
+ */
+function* blockEntityTags(chunk: Chunk): IterableIterator<NBTTagCompound> {
+    for (const blockEntity of chunk.getBlockEntities()) yield blockEntity.toNBT();
+}
 
 /** Whether a drop is an empty item stack. */
 const isEmptyItemDrop = (drop: Block | Item): boolean =>
@@ -722,6 +730,8 @@ export class World implements Service {
      * Attached from outside rather than built here, for the same reason a player does not
      * build its own session: the world would otherwise have to know the network layer exists
      * in order to construct a piece of it.
+     * The level attaches it as soon as it builds the world, before the world loads a chunk, so
+     * the sink is handed every chunk as it enters.
      * @param {WorldChangeSink} sink - Where changes go from now on.
      */
     public attachChangeSink(sink: WorldChangeSink): void {
@@ -978,11 +988,14 @@ export class World implements Service {
 
     /**
      * Runs one tick of the world, between opening and sealing that tick of its change log
-     * ([ADR 0015](../../../../docs/adr/0015-a-tick-is-a-fixed-sequence-of-synchronous-phases.md)).
+     * ([ADR 0015](../../../../docs/adr/0015-a-tick-is-a-fixed-sequence-of-synchronous-phases.md)),
+     * then sends what it changed.
      *
      * The ticker opens the log before the input step, so the inputs it applies land in this
-     * tick, and an update the ticker did not open for opens it here. A world whose entity store
-     * failed to undo a unit is no longer trusted, so it stops ticking and says so once.
+     * tick, and an update the ticker did not open for opens it here. Sealing hands the tick to
+     * the change sink. A tick that throws is sealed and sends nothing, and the sink keeps what it
+     * read for the next tick's sends. A world whose entity store failed to undo a unit is no
+     * longer trusted, so it stops ticking and says so once.
      *
      * @param tick - The server tick.
      */
@@ -998,12 +1011,15 @@ export class World implements Service {
             }
             return;
         }
+        // Installs the log's readers, so the sink reads this tick when it seals.
+        this.blockLog();
         store.beginTick();
         try {
             await this.tickWorld(tick);
         } finally {
             store.sealTick();
         }
+        await this.replicateTick();
     }
 
     /**
@@ -1069,7 +1085,10 @@ export class World implements Service {
         if (outcome.failed) throw outcome.error;
     }
 
-    /** The phases of one tick, which {@link World.update} runs inside an open log tick. */
+    /**
+     * The phases of one tick, which {@link World.update} runs inside an open log tick, up to the
+     * entity tracking. The phases that send the tick's changes follow the seal.
+     */
     private async tickWorld(tick: number): Promise<void> {
         // A tick already in flight when the shutdown starts would otherwise run on through
         // the save and past the provider's close, and plenty of what a tick does - a block
@@ -1203,6 +1222,17 @@ export class World implements Service {
         } finally {
             endTrackingProfile?.();
         }
+    }
+
+    /**
+     * The phases that send what a tick changed, which {@link World.update} runs after it sealed the
+     * tick's change log, so the block changes come from the sealed tick
+     * ([ADR 0016](../../../../docs/adr/0016-replication-reads-the-change-log.md)).
+     */
+    private async replicateTick(): Promise<void> {
+        if (this.closing) return;
+
+        const startProfile = profileSpanStarter(this.server);
 
         // After physics and after the entities, both of which change blocks, so a tick's block
         // changes leave as one batch per player rather than one packet each - see
@@ -1636,6 +1666,7 @@ export class World implements Service {
         // and before any unit that could make one starts.
         this.blockLog();
         this.getEntityStore().chunk('enter', x, z);
+        this.changes.chunkEntered(x, z, blockEntityTags(chunk));
         // The provider has completed generation or disk decoding; keep its mutable write fast path
         // out of the final retained form and pack each section before it enters the loaded world.
         this.measured('chunk-register', () => {
@@ -2261,14 +2292,14 @@ export class World implements Service {
     }
 
     /**
-     * Reports that the block entity at a position is now these tags.
+     * Logs that the block entity at a position is now these tags, field by field
+     * (`blockentity/blockEntityLog.ts`).
      *
      * What makes this world a {@link import('../blockentity/blockEntityWrite').BlockEntityWorld},
      * so that every block entity write goes through one place and reaches the clients holding
-     * the chunk. Called by `writeBlockEntity` and by nothing else: it reports rather than
-     * writes, and calling it without having written the chunk tells a client something that
-     * is not true.
-     * It also logs the write, field by field (`blockentity/blockEntityLog.ts`).
+     * the chunk, which replication sends from the log. Called by `writeBlockEntity` and by
+     * nothing else: it records rather than writes, and calling it without having written the
+     * chunk tells a client something that is not true.
      * @param {Vector3} position - The block the block entity sits in.
      * @param {NBTTagCompound} tags - Its complete data, as the chunk would serialize it.
      * @param {NBTTagCompound | null} before - What stood there before, or null when nothing did.
@@ -2277,7 +2308,6 @@ export class World implements Service {
         const log = this.blockLog();
         if (log !== undefined)
             this.logBlockEntity(log, position.getX(), position.getY(), position.getZ(), before, tags);
-        this.changes.worldChanged({ kind: 'block-entity-set', position, tags });
     }
 
     /**
@@ -2310,7 +2340,8 @@ export class World implements Service {
      * For a client that predicted a change the server did not make: a refused placement leaves
      * the block that client drew on its screen until something else happens at the position.
      * Nothing is sent for a position whose chunk is not in memory or that lies outside the
-     * dimension.
+     * dimension. It is a `block-shown` occurrence in the change log, which replication sends with
+     * the tick's block changes.
      * @param {number} x - Block x.
      * @param {number} y - Block y.
      * @param {number} z - Block z.
@@ -2319,7 +2350,11 @@ export class World implements Service {
         const runtimeId = this.loadedBlockRuntimeIdAt(x, y, z);
         if (runtimeId === undefined) return;
 
-        this.changes.worldChanged({ kind: 'block-set', position: new Vector3(x, y, z), blockRuntimeId: runtimeId });
+        this.blockLog()?.occurred({
+            kind: 'occurrence',
+            occurrence: 'block-shown',
+            data: { x, y, z, block: runtimeId }
+        });
     }
 
     /**
@@ -2539,8 +2574,8 @@ export class World implements Service {
 
     /**
      * Tells everything that follows the blocks of this world that one changed: the caches, the
-     * portal index, light and the clients. What a write and its undo share; the neighbor updates
-     * are the write's alone.
+     * portal index and light. What a write and its undo share; the neighbor updates are the
+     * write's alone. Clients learn of a write from the change log, which an undo takes it out of.
      * @returns The block now standing there.
      */
     private blockChanged(
@@ -2563,13 +2598,13 @@ export class World implements Service {
             { ...next, runtimeId }
         );
 
-        this.changes.worldChanged({ kind: 'block-set', position: new Vector3(x, y, z), blockRuntimeId: runtimeId });
         return next;
     }
 
     /**
      * The entity store whose change log holds this world's block writes, with this world's
-     * inverse writer and block update journal installed on it.
+     * inverse writer and block update journal installed on it, and each tick it seals handed to
+     * this world's change sink, which is how replication reads the log.
      * @returns The store, or undefined while the server has no entity runtime, so no log.
      */
     private blockLog(): EntityStore | undefined {
@@ -2579,6 +2614,7 @@ export class World implements Service {
             this.blockLogStore = store;
             store.addInverseWriter((inverse) => this.restoreLogged(inverse));
             store.addUnitJournal(this.blockUpdates);
+            store.onSealed((sealed) => this.changes.tickSealed(sealed));
         }
         return store;
     }
@@ -2598,8 +2634,8 @@ export class World implements Service {
 
     /**
      * Writes one inverse entry of a block or a block entity back, which is how the change log
-     * undoes a unit that wrote one. The write tells light, the portal index and the clients, as
-     * any block change does, and schedules no neighbor updates and runs no block behavior: the
+     * undoes a unit that wrote one. The write tells light and the portal index, as any block
+     * change does, and schedules no neighbor updates and runs no block behavior: the
      * unit's own updates are taken back with it, and an undo writes nothing it did not log.
      * @returns Whether the entry was a block or a block entity, so this world wrote it.
      * @throws {Error} When the entry's chunk has left the world.
@@ -2619,22 +2655,17 @@ export class World implements Service {
             return true;
         }
 
-        const value = inverse.after;
-        if (value !== null && !(value instanceof Uint8Array))
-            throw new TypeError(`A logged block entity field holds ${String(value)}`);
         const tags = withBlockEntityField(
             chunk.getBlockEntity(x, y, z)?.toNBT() ?? null,
             { x, y, z },
             inverse.address.field,
-            value
+            blockEntityValueOf(inverse.after)
         );
         if (tags === null) {
             chunk.removeBlockEntity(x, y, z);
             return true;
         }
-        const restored = BlockEntityRegistry.fromNBT(tags);
-        chunk.restoreBlockEntity(restored);
-        this.changes.worldChanged({ kind: 'block-entity-set', position: new Vector3(x, y, z), tags: restored.toNBT() });
+        chunk.restoreBlockEntity(BlockEntityRegistry.fromNBT(tags));
         return true;
     }
 
@@ -3388,6 +3419,7 @@ export class World implements Service {
 
         this.systems.onChunkUnloaded(chunk.getX(), chunk.getZ());
         this.getEntityStore().chunk('leave', chunk.getX(), chunk.getZ());
+        this.changes.chunkLeft(chunk.getX(), chunk.getZ());
         this.chunks.delete(index);
         this.loadedChunksRevision++;
         this.getPlayerChunkRefCounts().chunkUnloaded(chunk);
