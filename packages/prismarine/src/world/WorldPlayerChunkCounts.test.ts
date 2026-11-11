@@ -8,6 +8,7 @@ import Chunk from './chunk/Chunk';
 import { Dimensions } from './Dimension';
 import { Position } from './Position';
 import { World } from './World';
+import { NULL_WORLD_CHANGE_SINK } from './WorldChangeSink';
 import { fakeLevel } from '../testing/level';
 import type BaseProvider from './providers/BaseProvider';
 
@@ -23,6 +24,8 @@ const worldWith = (
     const chunks = new Map(chunkPositions.map(([x, z]) => [Chunk.packXZ(x, z), new Chunk(x, z)]));
 
     const world: World = Object.assign(Object.create(World.prototype), {
+        // The sink the constructor would have set, which hears each chunk enter and leave.
+        changes: NULL_WORLD_CHANGE_SINK,
         chunks,
         loadedChunksRevision: 0,
         players,

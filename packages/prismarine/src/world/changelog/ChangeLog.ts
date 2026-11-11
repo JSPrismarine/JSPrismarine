@@ -69,13 +69,10 @@ type OpenTick = { readonly tick: number; readonly entries: ChangeEntry[] };
  * only its own entries, and the enclosing span goes on. Reverting a span also discards the
  * spans still open inside it, because the throw that is being handled skipped their close.
  *
- * It sits beside `WorldChange` and does not replace it yet. `WorldChange` is a push stream to a
- * `WorldChangeSink`: it carries after-values only, holds class instances (`Vector3`,
- * `NBTTagCompound`) and mixes durable changes with transient facts that replication sends at
- * once. This log is pulled after the tick, carries before-values and holds plain data. Block and
- * block entity writes reach it through their logged setters, both streams carry them for now, and
- * once replication reads this log instead of the sink, `WorldChange` is deleted (slice 7 of the
- * entity and tick re-architecture).
+ * Replication reads the sealed ticks through the world's change sink. It sends block and block
+ * entity changes from this log alone; entities and the transient facts still reach the sink as
+ * calls of their own until the rest of slice 7 of the entity and tick re-architecture moves them
+ * onto the log.
  * @example
  * ```typescript
  * const log = new ChangeLog();

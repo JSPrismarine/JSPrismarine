@@ -22,6 +22,7 @@ import NetworkBinaryStream from '@jsprismarine/protocol/NetworkBinaryStream';
 import { readPacketId } from '@jsprismarine/protocol/NetworkPacket';
 import { PacketIdentifier } from '@jsprismarine/protocol';
 import { isInView } from '../world/Proximity';
+import { sealBlockWrite } from '../testing/sealedBlocks.test.helper';
 
 /** Viewers' sessions and the block updates the replicator batches for each. */
 const replicatorFor = (
@@ -117,7 +118,7 @@ describe('NetworkWorldReplicator block changes', () => {
         const fireRuntimeId = BlockRuntimeIds.tryGetByState('minecraft:fire', { age: 0 });
         if (fireRuntimeId === null) throw new Error('minecraft:fire age 0 must be in the block palette');
 
-        replicator.worldChanged({ kind: 'block-set', position: new Vector3(8, 64, 8), blockRuntimeId: fireRuntimeId });
+        sealBlockWrite(replicator, new Vector3(8, 64, 8), fireRuntimeId);
         await replicator.flushBlockChanges();
 
         const [update] = updatesIn(batches[0]!);
@@ -151,11 +152,11 @@ describe('NetworkWorldReplicator block changes', () => {
             const runtimeId = index === 2 ? stone : fire;
             const key = `${position.getX()},${position.getY()},${position.getZ()}`;
             expectedChanges.set(key, { position, runtimeId });
-            replicator.worldChanged({ kind: 'block-set', position, blockRuntimeId: runtimeId });
+            sealBlockWrite(replicator, position, runtimeId);
         }
         // Replacing an existing position keeps its original position in the pending packet order.
         const first = changes[0]!;
-        replicator.worldChanged({ kind: 'block-set', position: first, blockRuntimeId: stone });
+        sealBlockWrite(replicator, first, stone);
         expectedChanges.set(`${first.getX()},${first.getY()},${first.getZ()}`, { position: first, runtimeId: stone });
 
         await replicator.flushBlockChanges();
@@ -196,7 +197,7 @@ describe('NetworkWorldReplicator block changes', () => {
             for (let z = 0; z < 16; z += 1) {
                 const position = new Vector3(x, 64, z);
                 changed.push(position);
-                replicator.worldChanged({ kind: 'block-set', position, blockRuntimeId: stone });
+                sealBlockWrite(replicator, position, stone);
             }
         }
 
@@ -226,8 +227,8 @@ describe('NetworkWorldReplicator block changes', () => {
         const stone = BlockRuntimeIds.getByName('minecraft:stone');
 
         // Two changes, one sub chunk apart on each axis, so neither has company.
-        replicator.worldChanged({ kind: 'block-set', position: new Vector3(1, 64, 1), blockRuntimeId: stone });
-        replicator.worldChanged({ kind: 'block-set', position: new Vector3(1, 80, 1), blockRuntimeId: stone });
+        sealBlockWrite(replicator, new Vector3(1, 64, 1), stone);
+        sealBlockWrite(replicator, new Vector3(1, 80, 1), stone);
 
         await replicator.flushBlockChanges();
 
@@ -239,7 +240,7 @@ describe('NetworkWorldReplicator block changes', () => {
         const stone = BlockRuntimeIds.getByName('minecraft:stone');
 
         for (const position of [new Vector3(-1, -1, -1), new Vector3(-16, -16, -16)]) {
-            replicator.worldChanged({ kind: 'block-set', position, blockRuntimeId: stone });
+            sealBlockWrite(replicator, position, stone);
         }
 
         await replicator.flushBlockChanges();
@@ -280,7 +281,7 @@ describe('NetworkWorldReplicator block changes', () => {
             (index) => (index === 2 ? codec2225 : codec2193)
         );
         const stone = BlockRuntimeIds.getByName('minecraft:stone');
-        replicator.worldChanged({ kind: 'block-set', position: new Vector3(8, 64, 8), blockRuntimeId: stone });
+        sealBlockWrite(replicator, new Vector3(8, 64, 8), stone);
 
         await replicator.flushBlockChanges();
 
@@ -308,10 +309,10 @@ describe('NetworkWorldReplicator block changes', () => {
             codec
         );
         const stone = BlockRuntimeIds.getByName('minecraft:stone');
-        replicator.worldChanged({ kind: 'block-set', position: new Vector3(8, 64, 8), blockRuntimeId: stone });
-        replicator.worldChanged({ kind: 'block-set', position: new Vector3(40, 64, 8), blockRuntimeId: stone });
-        replicator.worldChanged({ kind: 'block-set', position: new Vector3(41, 64, 8), blockRuntimeId: stone });
-        replicator.worldChanged({ kind: 'block-set', position: new Vector3(72, 64, 8), blockRuntimeId: stone });
+        sealBlockWrite(replicator, new Vector3(8, 64, 8), stone);
+        sealBlockWrite(replicator, new Vector3(40, 64, 8), stone);
+        sealBlockWrite(replicator, new Vector3(41, 64, 8), stone);
+        sealBlockWrite(replicator, new Vector3(72, 64, 8), stone);
 
         // The viewers have different visible chunk sets, but both see the middle chunk.
         // Cache whole packets per chunk so its shared update is encoded only once.
@@ -335,7 +336,7 @@ describe('NetworkWorldReplicator block changes', () => {
                     : { algorithm: PacketCompressionAlgorithm.NONE, threshold: 0 }
         );
         const stone = BlockRuntimeIds.getByName('minecraft:stone');
-        replicator.worldChanged({ kind: 'block-set', position: new Vector3(8, 64, 8), blockRuntimeId: stone });
+        sealBlockWrite(replicator, new Vector3(8, 64, 8), stone);
 
         await replicator.flushBlockChanges();
 
@@ -360,11 +361,7 @@ describe('NetworkWorldReplicator block changes', () => {
         const encodeFragment = vi.spyOn(BatchCodec.prototype, 'encodeFullFlushFragment');
         try {
             for (let index = 0; index < 32; index++) {
-                replicator.worldChanged({
-                    kind: 'block-set',
-                    position: new Vector3(index % 8, 64, Math.trunc(index / 8)),
-                    blockRuntimeId: stoneRuntimeId
-                });
+                sealBlockWrite(replicator, new Vector3(index % 8, 64, Math.trunc(index / 8)), stoneRuntimeId);
             }
             await replicator.flushBlockChanges();
 

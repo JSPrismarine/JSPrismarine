@@ -163,7 +163,7 @@ const buildManager = (
         getVersion: () => '9.9.9',
         getEntityRuntime: () => inertEntityRuntime(),
         getWorldReplicators: () =>
-            stub<WorldReplicators>({ for: () => stub<NetworkWorldReplicator>({ worldChanged: () => {} }) }),
+            stub<WorldReplicators>({ for: () => stub<NetworkWorldReplicator>({ chunkEntered: () => {} }) }),
         releaseOnShutdown: () => {}
     });
 

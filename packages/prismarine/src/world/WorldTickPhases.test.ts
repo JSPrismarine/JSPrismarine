@@ -61,7 +61,9 @@ const worldTicking = ({
         };
 
     const sink: WorldChangeSink = {
-        worldChanged: (change) => calls.push(`worldChanged:${change.kind}`),
+        tickSealed: () => calls.push('tickSealed'),
+        chunkEntered: () => calls.push('chunkEntered'),
+        chunkLeft: () => calls.push('chunkLeft'),
         blockSound: () => calls.push('blockSound'),
         namedSound: () => calls.push('namedSound'),
         namedParticle: () => calls.push('namedParticle'),
@@ -95,6 +97,7 @@ const worldTicking = ({
         // Inert: this file is about the order of the phases, not about what a mob does
         // inside one, and the data runtime's own tick is covered by `live.test.ts`.
         getEntityRuntime: () => live,
+        hasEntityRuntime: () => true,
         getDimensionTravel: () => travel
     };
 
@@ -192,6 +195,7 @@ describe('world', () => {
                 'blockUpdates',
                 'systems',
                 'reconcile',
+                'tickSealed',
                 'flushBlockChanges',
                 'flushBlockEntities',
                 'flushMovement',
@@ -405,6 +409,16 @@ describe('world', () => {
             await tick;
 
             expect(updated).toEqual(['start:0', 'finish:0', 'start:1', 'finish:1']);
+        });
+
+        it("reads the tick's sealed change log before it sends the block changes", async () => {
+            // Blocks reach clients only through the log, so the flush has to read a sealed tick.
+            const { world, calls } = worldTicking();
+
+            await world.update(1);
+
+            expect(calls.indexOf('tickSealed')).toBeGreaterThan(-1);
+            expect(calls.indexOf('tickSealed')).toBeLessThan(calls.indexOf('flushBlockChanges'));
         });
 
         it("sends the tick's block changes before the block entities standing in them", async () => {

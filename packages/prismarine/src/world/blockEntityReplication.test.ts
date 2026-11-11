@@ -5,12 +5,12 @@ import path from 'node:path';
 import type { Logger } from '@jsprismarine/logger';
 import { Difficulty } from '@jsprismarine/minecraft';
 import type { NBTTagCompound } from '@jsprismarine/nbt';
-import type { Vector3 } from '@jsprismarine/math';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
 import type { Config } from '../config/Config';
 import type Server from '../Server';
+import { replicaSink } from '../testing/sealedBlocks.test.helper';
 import { stub } from '../testing/stub.test.helper';
 import { inertEntityRuntime, testContent } from '../testing/entityServer';
 import Chunk from './chunk/Chunk';
@@ -18,11 +18,10 @@ import { worldBlockEntities } from './contentAdapter';
 import type { Generator } from './Generator';
 import type BaseProvider from './providers/BaseProvider';
 import { World } from './World';
-import { NULL_WORLD_CHANGE_SINK } from './WorldChangeSink';
 import { TEST_OVERWORLD_STEM, fakeLevel } from '../testing/level';
 
 /**
- * A block entity change leaving the world through its change sink.
+ * A block entity change leaving the world through its change log, which its change sink reads.
  *
  * The write path is driven whole, over a real world and a real chunk, because the bug this
  * covers was that nothing downstream of the chunk write was ever told. A double over the
@@ -53,16 +52,23 @@ const flatChunk = (x: number, z: number): Chunk => {
     return chunk;
 };
 
-const testServer = (): Server =>
-    stub<Server>({
+const testServer = (): Server => {
+    const runtime = inertEntityRuntime();
+    return stub<Server>({
         getLogger: () =>
             stub<Logger>({ info: () => {}, warn: () => {}, error: () => {}, debug: () => {}, verbose: () => {} }),
         getConfig: () => stub<Config>({ getDifficulty: () => Difficulty.NORMAL, getEntityTrackingInterval: () => 20 }),
         getContent: () => testContent(),
-        getEntityRuntime: () => inertEntityRuntime()
+        getEntityRuntime: () => runtime,
+        hasEntityRuntime: () => true
     });
+};
 
-/** A world with one flat chunk in memory, recording every block entity change it reports. */
+/**
+ * A world with one flat chunk in memory and a tick of its change log open, and what a replicator
+ * would send of each block entity change: `reported` seals the tick, opens the next, and answers
+ * every block entity the sealed tick changed with the compound folded for it.
+ */
 const flatWorld = async () => {
     const server = testServer();
     const world = new World({
@@ -77,16 +83,21 @@ const flatWorld = async () => {
         generator: stub<Generator>({})
     });
 
+    const { sink, replica, sealed } = replicaSink();
+    world.attachChangeSink(sink);
     await world.loadChunk(0, 0);
-
-    const reported: { position: Vector3; tags: NBTTagCompound }[] = [];
-    world.attachChangeSink({
-        ...NULL_WORLD_CHANGE_SINK,
-        worldChanged: (change) => {
-            if (change.kind !== 'block-entity-set') return;
-            reported.push({ position: change.position, tags: change.tags });
-        }
-    });
+    world.beginChangeTick();
+    const reported = (): { at: { x: number; y: number; z: number }; tags: NBTTagCompound | null }[] => {
+        world.sealChangeTick();
+        world.beginChangeTick();
+        const positions = new Map<string, { x: number; y: number; z: number }>();
+        for (const entry of sealed.at(-1)?.entries ?? [])
+            if (entry.kind === 'field' && entry.field === 'block-entity') {
+                const { x, y, z } = entry.address;
+                positions.set(`${x},${y},${z}`, { x, y, z });
+            }
+        return [...positions.values()].map((at) => ({ at, tags: replica.compound(at) }));
+    };
 
     return { world, reported };
 };
@@ -114,11 +125,10 @@ describe('world', () => {
             const store = worldBlockEntities(() => world);
             store.put(at, { items: [undefined], capacity: 27 });
 
-            expect(reported).toHaveLength(1);
-            expect(reported[0]!.position.getX()).toBe(4);
-            expect(reported[0]!.position.getY()).toBe(GROUND + 1);
-            expect(reported[0]!.position.getZ()).toBe(4);
-            expect(reported[0]!.tags.getString('id', '')).toBe('Chest');
+            const sent = reported();
+            expect(sent).toHaveLength(1);
+            expect(sent[0]!.at).toEqual(at);
+            expect(sent[0]!.tags?.getString('id', '')).toBe('Chest');
         });
 
         it('says nothing when the write leaves the block entity exactly as it was', async () => {
@@ -128,13 +138,13 @@ describe('world', () => {
 
             const store = worldBlockEntities(() => world);
             store.put(at, { items: [undefined], capacity: 27 });
-            reported.length = 0;
+            expect(reported()).toHaveLength(1);
 
             // What an unconditional per-tick writer does: a comparator rewriting the signal it
             // already held, a beacon recounting the same pyramid. None of it is news.
             for (let tick = 0; tick < 20; tick++) store.put(at, { items: [undefined], capacity: 27 });
 
-            expect(reported).toEqual([]);
+            expect(reported()).toEqual([]);
         });
     });
 });

@@ -30,6 +30,7 @@ import { encodePacketsForCodec } from '../src/network/encodePacketBatch';
 import type ClientConnection from '../src/network/ClientConnection';
 import type PlayerSession from '../src/network/PlayerSession';
 import Codec2193 from '../src/network/codec/Codec2193';
+import { blockEntry } from '../src/testing/sealedBlocks.test.helper';
 import { percentile } from './percentile';
 
 const { positionals, values } = parseArgs({
@@ -208,9 +209,11 @@ interface Sample {
 const run = async (): Promise<Sample> => {
     for (const playerBatches of batches) playerBatches.length = 0;
     const replicator = new NetworkWorldReplicator(visibleWorld, server);
-    for (const { position, runtimeId } of changes) {
-        replicator.worldChanged({ kind: 'block-set', position, blockRuntimeId: runtimeId });
-    }
+    // One sealed tick, as a world hands over a tick's block writes.
+    replicator.tickSealed({
+        tick: 1,
+        entries: changes.map(({ position, runtimeId }) => blockEntry(position, runtimeId))
+    });
 
     const started = performance.now();
     await replicator.flushBlockChanges();

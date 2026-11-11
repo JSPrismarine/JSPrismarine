@@ -43,8 +43,9 @@ const fakeWorld = (initial: BlockState, broken = fakeBlock(initial.name)) => {
     /**
      * Batches of block changes, which no longer travel one packet at a time.
      *
-     * `blockChanged` records; the tick flushes. A test that breaks a block outside a tick has to
-     * flush by hand, which is what {@link flush} below is for.
+     * A break is logged; the tick's seal hands it to the replicator and the tick flushes. A test
+     * that breaks a block outside a tick has to do both by hand, which is what {@link flush} below
+     * is for.
      */
     const batches: Buffer[] = [];
 
@@ -73,6 +74,7 @@ const fakeWorld = (initial: BlockState, broken = fakeBlock(initial.name)) => {
         getMinY: () => -64,
         getMaxY: () => 319,
         getBlockRuntimeId: () => BlockRuntimeIds.get(current),
+        getBlockEntity: () => null,
         setBlockRuntimeId: (_x: number, _y: number, _z: number, runtimeId: number) => {
             current = BlockRuntimeIds.getState(runtimeId) ?? new BlockState('minecraft:air');
         }
@@ -119,7 +121,8 @@ const fakeWorld = (initial: BlockState, broken = fakeBlock(initial.name)) => {
             // family, so no `onBreak` runs and the block itself says what it drops - which is
             // the path these tests are about.
             getContent: () => entities.content(),
-            getEntityRuntime: (dimension: string) => entities.entityRuntime(dimension)
+            getEntityRuntime: (dimension: string) => entities.entityRuntime(dimension),
+            hasEntityRuntime: () => true
         }
     });
     live = world;
@@ -142,6 +145,9 @@ const fakeWorld = (initial: BlockState, broken = fakeBlock(initial.name)) => {
          * @returns {UpdateBlockPacket[]} The block updates the client would receive.
          */
         flush: async (): Promise<UpdateBlockPacket[]> => {
+            // A break between ticks is logged when the next tick opens.
+            world.beginChangeTick();
+            world.sealChangeTick();
             await replicator.flushBlockChanges();
 
             return batches.flatMap((content) => {

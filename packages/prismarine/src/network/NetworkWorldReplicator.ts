@@ -1,4 +1,4 @@
-import type { Vector3 } from '@jsprismarine/math';
+import { Vector3 } from '@jsprismarine/math';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import type { ProtocolCodec } from '@jsprismarine/protocol';
 import type { LevelEvent, LevelSoundEvent } from '@jsprismarine/minecraft';
@@ -22,8 +22,11 @@ import {
     WORLD_EVENT_RADIUS
 } from '../world/Proximity';
 import type { AudienceOptions, World } from '../world/World';
-import type { WorldChange } from '../world/WorldChange';
 import type { NamedSoundOptions, WorldChangeSink } from '../world/WorldChangeSink';
+import type { SealedTick } from '../world/changelog/ChangeLog';
+import type { BlockPositionKey } from '../world/positionKeys';
+import { BlockReplica } from './replica/BlockReplica';
+import type { BlockAt, BlockReplicaCounts } from './replica/BlockReplica';
 import { broadcastSharedBatches } from './MinecraftSession';
 import type ClientConnection from './ClientConnection';
 import type PlayerSession from './PlayerSession';
@@ -70,15 +73,6 @@ interface BlockPacket {
     readonly key: string;
     readonly packet: NetworkPacket<unknown>;
 }
-
-/** A block entity change waiting for the end of the tick. */
-interface BlockEntityChange {
-    position: Vector3;
-    tags: NBTTagCompound;
-}
-
-/** The pending-map key for a position, which is what makes the last write to it win. */
-const positionKey = (position: Vector3): string => `${position.getX()},${position.getY()},${position.getZ()}`;
 
 /** Builds the actor pose packet once, before the move is fanned out to tracking sessions. */
 const movePacketFor = (entity: ShownActor, teleport: boolean): MoveActorAbsolutePacket => {
@@ -143,21 +137,24 @@ const updateBlockPacket = ({ position, blockRuntimeId }: BlockChange): UpdateBlo
  */
 export class NetworkWorldReplicator implements WorldChangeSink {
     /**
-     * Block changes made since the last flush, keyed by position.
+     * Block changes read from the change log since the last flush, keyed by position.
      *
      * The map is the deduplication: physics rewrites the same position several times while a flow
      * settles, and only where it ended up is worth a packet.
      */
-    private readonly pendingBlocks = new Map<string, BlockChange>();
+    private readonly pendingBlocks = new Map<BlockPositionKey, BlockChange>();
 
     /**
-     * Block entity changes made since the last flush, keyed by position.
+     * Block entities whose fields the change log changed since the last flush, keyed by position.
      *
      * Keyed for the same reason {@link pendingBlocks} is, and with more to gain from it: a
      * block entity update carries the whole compound rather than a block's four bytes, so a
      * chest written twice in a tick is two copies of its 27 slots if nothing collapses them.
      */
-    private readonly pendingBlockEntities = new Map<string, BlockEntityChange>();
+    private readonly pendingBlockEntities = new Map<BlockPositionKey, BlockAt>();
+
+    /** The block entities of the world's loaded chunks, which a block entity update is folded from. */
+    private readonly blocks = new BlockReplica();
 
     /** Last pose for each actor that moved since the world's previous movement flush. */
     private readonly pendingMoves = new Map<number, MoveActorAbsolutePacket>();
@@ -231,23 +228,29 @@ export class NetworkWorldReplicator implements WorldChangeSink {
     }
 
     /** @inheritdoc */
-    public worldChanged(change: WorldChange): void {
-        switch (change.kind) {
-            case 'block-set':
-                // Keyed by position, so a block written twice within a tick - which liquid
-                // physics does constantly, and a cascade of falling sand does by nature -
-                // travels once, as whatever it finally settled on.
-                this.pendingBlocks.set(positionKey(change.position), {
-                    position: change.position,
-                    blockRuntimeId: change.blockRuntimeId
-                });
-                return;
-            case 'block-entity-set':
-                this.pendingBlockEntities.set(positionKey(change.position), {
-                    position: change.position,
-                    tags: change.tags
-                });
-        }
+    public tickSealed(sealed: SealedTick): void {
+        const { blocks, blockEntities } = this.blocks.read(sealed);
+        // Keyed by position, so a block written twice before a flush - which liquid physics does
+        // constantly, and a cascade of falling sand does by nature - travels once, as whatever it
+        // finally settled on.
+        for (const [key, { x, y, z, block }] of blocks)
+            this.pendingBlocks.set(key, { position: new Vector3(x, y, z), blockRuntimeId: block });
+        for (const [key, at] of blockEntities) this.pendingBlockEntities.set(key, at);
+    }
+
+    /** @inheritdoc */
+    public chunkEntered(x: number, z: number, blockEntities: Iterable<NBTTagCompound>): void {
+        this.blocks.chunkEntered(x, z, blockEntities);
+    }
+
+    /** @inheritdoc */
+    public chunkLeft(x: number, z: number): void {
+        this.blocks.chunkLeft(x, z);
+    }
+
+    /** What the block replica holds and has done, for reports and tests. */
+    public blockReplicaCounts(): BlockReplicaCounts {
+        return this.blocks.counts();
     }
 
     /**
@@ -505,13 +508,16 @@ export class NetworkWorldReplicator implements WorldChangeSink {
         const changes = [...this.pendingBlockEntities.values()];
         this.pendingBlockEntities.clear();
 
-        for (const { position, tags } of changes) {
+        for (const at of changes) {
+            // Null when the block entity is gone: the block change that took it says so.
+            const tags = this.blocks.compound(at);
+            if (tags === null) continue;
             const packet = new BlockActorDataPacket({
-                blockPosition: new BlockPos(position.getX(), position.getY(), position.getZ()),
+                blockPosition: new BlockPos(at.x, at.y, at.z),
                 actorDataTags: tags
             });
 
-            this.sendAround(position, packet);
+            this.sendAround(new Vector3(at.x, at.y, at.z), packet);
         }
     }
 
