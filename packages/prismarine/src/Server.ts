@@ -486,6 +486,7 @@ export default class Server extends EventEmitter {
      * @param serverIp - Optional bind address. Defaults to the configured server IP.
      * @param port - Optional bind port. Defaults to the configured server port.
      * @returns {Promise<void>} A promise that resolves when the server is started.
+     * @throws {Error} When an enabled transport cannot listen; the message names it, its port and the cause.
      */
     public async bootstrap(serverIp?: string, port?: number): Promise<void> {
         await this.remoteConsole?.enable();
@@ -496,7 +497,7 @@ export default class Server extends EventEmitter {
         const bindAddress = serverIp ?? this.config.getServerIp();
         const bindPort = port ?? this.config.getServerPort();
 
-        this.networking.start(bindAddress, bindPort);
+        await this.networking.start(bindAddress, bindPort);
 
         this.logger.info(`JSPrismarine is now listening on port §b${bindPort}`);
         this.remoteConsole?.markRunning();

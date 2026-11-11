@@ -117,7 +117,7 @@ describe('a shutdown while the start region is still generating', () => {
             .getGeneratorFactories()
             .register({ kind: HELD_KIND, build: () => new HeldGenerator() });
 
-        const booting = server.bootstrap('0.0.0.0', PORT);
+        const booting = server.bootstrap('127.0.0.1', PORT);
         await asked;
 
         const stopping = server.shutdown({ stayAlive: true });

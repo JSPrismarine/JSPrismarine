@@ -356,7 +356,7 @@ Each slice is a commit or a few, with its tests, on `dev/webrtc-backend`.
 2. [x] **Decide.** ADRs [0006](../adr/0006-libdatachannel-for-nethernet-server.md),
    [0007](../adr/0007-own-nethernet-protocol.md) and
    [0008](../adr/0008-shared-udp-port-in-native-code.md).
-3. [ ] **Stop the start when a transport cannot start.** Today some listeners only warn.
+3. [x] **Stop the start when a transport cannot start.** Today some listeners only warn.
    - A transport that is enabled and cannot start stops the server's start with an error that
      names the transport, the port and the cause. That covers RakNet on `port`, RakNet on
      `server-portv6` (today a warning), and NetherNet's HTTP signaling on `port`'s TCP side
@@ -372,6 +372,8 @@ Each slice is a commit or a few, with its tests, on `dev/webrtc-backend`.
      start.
    - Tests: each listener's port held by another socket stops the start with its message, replacing
      the test that IPv4 keeps running when the IPv6 port is taken.
+   - Done 2026-11-11. The tests that booted a whole server on `0.0.0.0` collided on the default
+     `server-portv6` once that became an error, so they bind `127.0.0.1`.
 4. [ ] **The native networking library, on one platform.** Linux x64 first, and the gate for the
    rest.
    - Create the package for it (working name `@jsprismarine/native-network`, in

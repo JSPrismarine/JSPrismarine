@@ -204,7 +204,7 @@ const runInProcess = async (args: ServerArgs, { remote }: { remote: boolean }): 
         try {
             await server.bootstrap();
         } catch (error: unknown) {
-            logger.warn(`Cannot start the server, is it already running on the same port?`);
+            logger.error(`Cannot start the server: ${error instanceof Error ? error.message : String(error)}`);
             throw error; // Re-throw it so `process.on` can handle it.
         }
     };
