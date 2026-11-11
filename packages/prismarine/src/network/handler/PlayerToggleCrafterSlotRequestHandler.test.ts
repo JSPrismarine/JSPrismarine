@@ -8,18 +8,18 @@ const toggle = (slotIndex: number, posZ = 3) =>
 
 describe('PlayerToggleCrafterSlotRequestHandler', () => {
     it('logs the slot toggle and position of a crafter in reach', () => {
-        const { logged, server, session } = sessionSeeingBlocks({ '1,2,3': 'minecraft:crafter' });
+        const { logged, context } = sessionSeeingBlocks({ '1,2,3': 'minecraft:crafter' });
 
-        new PlayerToggleCrafterSlotRequestHandler().handle(toggle(4), server, session);
+        new PlayerToggleCrafterSlotRequestHandler().handle(toggle(4), context);
 
         expect(logged.debug).toEqual(['Steve disabled slot 4 of the crafter at 1, 2, 3. Crafters are not stored']);
         expect(logged.verbose).toEqual([]);
     });
 
     it('drops a slot a crafter does not have', () => {
-        const { logged, server, session } = sessionSeeingBlocks({ '1,2,3': 'minecraft:crafter' });
+        const { logged, context } = sessionSeeingBlocks({ '1,2,3': 'minecraft:crafter' });
 
-        new PlayerToggleCrafterSlotRequestHandler().handle(toggle(9), server, session);
+        new PlayerToggleCrafterSlotRequestHandler().handle(toggle(9), context);
 
         expect(logged.debug).toEqual([]);
         expect(logged.verbose).toEqual([
@@ -28,9 +28,9 @@ describe('PlayerToggleCrafterSlotRequestHandler', () => {
     });
 
     it('drops a position that holds no crafter', () => {
-        const { logged, server, session } = sessionSeeingBlocks({ '1,2,3': 'minecraft:dropper' });
+        const { logged, context } = sessionSeeingBlocks({ '1,2,3': 'minecraft:dropper' });
 
-        new PlayerToggleCrafterSlotRequestHandler().handle(toggle(4), server, session);
+        new PlayerToggleCrafterSlotRequestHandler().handle(toggle(4), context);
 
         expect(logged.debug).toEqual([]);
         expect(logged.verbose).toEqual([

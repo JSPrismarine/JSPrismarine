@@ -28,9 +28,9 @@ const packetAt = (position: BlockPosition) => {
 
 describe('StructureBlockUpdateHandler', () => {
     it('logs the structure name and position of a structure block in reach', () => {
-        const { logged, server, session } = sessionSeeingBlocks({ '4,1,2': 'minecraft:structure_block' });
+        const { logged, context } = sessionSeeingBlocks({ '4,1,2': 'minecraft:structure_block' });
 
-        new StructureBlockUpdateHandler().handle(packetAt(new BlockPosition(4, 1, 2)), server, session);
+        new StructureBlockUpdateHandler().handle(packetAt(new BlockPosition(4, 1, 2)), context);
 
         expect(logged.debug).toEqual([
             'Steve set the structure block at 4, 1, 2 to structure "house". Structure blocks are not stored'
@@ -39,9 +39,9 @@ describe('StructureBlockUpdateHandler', () => {
     });
 
     it('drops a position that holds no structure block', () => {
-        const { logged, server, session } = sessionSeeingBlocks({ '4,1,2': 'minecraft:stone' });
+        const { logged, context } = sessionSeeingBlocks({ '4,1,2': 'minecraft:stone' });
 
-        new StructureBlockUpdateHandler().handle(packetAt(new BlockPosition(4, 1, 2)), server, session);
+        new StructureBlockUpdateHandler().handle(packetAt(new BlockPosition(4, 1, 2)), context);
 
         expect(logged.debug).toEqual([]);
         expect(logged.verbose).toEqual([
@@ -50,9 +50,9 @@ describe('StructureBlockUpdateHandler', () => {
     });
 
     it('drops a position out of reach without reading the world', () => {
-        const { logged, server, session } = sessionSeeingBlocks({});
+        const { logged, context } = sessionSeeingBlocks({});
 
-        new StructureBlockUpdateHandler().handle(packetAt(new BlockPosition(5_000_000, 64, 0)), server, session);
+        new StructureBlockUpdateHandler().handle(packetAt(new BlockPosition(5_000_000, 64, 0)), context);
 
         expect(logged.debug).toEqual([]);
         expect(logged.verbose).toEqual([

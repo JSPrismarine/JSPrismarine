@@ -1,9 +1,8 @@
-import type Server from '../../Server';
-import type PlayerSession from '../PlayerSession';
 import type AnvilDamagePacket from '@jsprismarine/protocol/packet/AnvilDamagePacket';
 import BlockPosition from '../../world/BlockPosition';
 import { blockTargetRejection } from './BlockTarget';
-import type PacketHandler from './PacketHandler';
+import type { SessionContext } from './HandlerContext';
+import type { ReadLaneHandler } from './SessionHandler';
 
 /** The three anvils, from new to one hit from breaking. */
 const ANVILS: ReadonlySet<string> = new Set(['minecraft:anvil', 'minecraft:chipped_anvil', 'minecraft:damaged_anvil']);
@@ -16,13 +15,14 @@ const ANVILS: ReadonlySet<string> = new Set(['minecraft:anvil', 'minecraft:chipp
  * is not modeled, so the block is neither chipped nor broken; the client's anvil screen works
  * locally only.
  */
-export default class AnvilDamageHandler implements PacketHandler<AnvilDamagePacket> {
+export default class AnvilDamageHandler implements ReadLaneHandler<AnvilDamagePacket> {
     public static PacketName = 'AnvilDamagePacket';
+    public readonly takes = 'context';
     public readonly phases = ['play'] as const;
     public readonly lane = 'read';
 
     /** Checks the position names an anvil in reach, then logs it. */
-    public handle(packet: AnvilDamagePacket, server: Server, session: PlayerSession): void {
+    public handle(packet: AnvilDamagePacket, { session, log }: SessionContext): void {
         const data = packet.getPacketData();
         if (data === null) throw new Error('Cannot handle an AnvilDamagePacket without decoded data');
 
@@ -32,20 +32,16 @@ export default class AnvilDamageHandler implements PacketHandler<AnvilDamagePack
 
         const rejection = blockTargetRejection(session, blockPosition, ANVILS);
         if (rejection !== null) {
-            server
-                .getLogger()
-                .verbose(
-                    `Dropped an anvil damage request from ${session.identity.name} at ${where}: ${rejection}`,
-                    'AnvilDamageHandler/handle'
-                );
+            log.verbose(
+                `Dropped an anvil damage request from ${session.identity.name} at ${where}: ${rejection}`,
+                'AnvilDamageHandler/handle'
+            );
             return;
         }
 
-        server
-            .getLogger()
-            .debug(
-                `${session.identity.name} asked to damage the anvil at ${where}. Anvils are not modeled`,
-                'AnvilDamageHandler/handle'
-            );
+        log.debug(
+            `${session.identity.name} asked to damage the anvil at ${where}. Anvils are not modeled`,
+            'AnvilDamageHandler/handle'
+        );
     }
 }

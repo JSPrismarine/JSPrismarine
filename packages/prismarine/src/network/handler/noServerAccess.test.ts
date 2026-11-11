@@ -19,19 +19,7 @@ const src = resolve(here, '../..');
  * as it converts its files and the list only shrinks.
  */
 const STILL_REACH_SERVER: ReadonlyMap<string, readonly string[]> = new Map([
-    [
-        'D2b read lane',
-        [
-            'AnvilDamageHandler.ts',
-            'BookEditHandler.ts',
-            'BossEventHandler.ts',
-            'LabTableHandler.ts',
-            'LecternUpdateHandler.ts',
-            'PlayerToggleCrafterSlotRequestHandler.ts',
-            'StructureBlockUpdateHandler.ts',
-            'StructureTemplateDataRequestHandler.ts'
-        ]
-    ],
+    ['D2b read lane', ['BookEditHandler.ts', 'BossEventHandler.ts']],
     [
         'D2d movement, actions and inventory',
         [

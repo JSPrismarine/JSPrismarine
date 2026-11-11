@@ -18,9 +18,9 @@ const packetAt = (structurePosition: BlockPosition) =>
 
 describe('StructureTemplateDataRequestHandler', () => {
     it('logs the structure name and the operation by name for a structure block in reach', () => {
-        const { logged, server, session } = sessionSeeingBlocks({ '1,0,1': 'minecraft:structure_block' });
+        const { logged, context } = sessionSeeingBlocks({ '1,0,1': 'minecraft:structure_block' });
 
-        new StructureTemplateDataRequestHandler().handle(packetAt(new BlockPosition(1, 0, 1)), server, session);
+        new StructureTemplateDataRequestHandler().handle(packetAt(new BlockPosition(1, 0, 1)), context);
 
         expect(logged.debug).toEqual([
             'Steve requested structure house with operation QuerySavedStructure. The server stores no structure templates'
@@ -29,9 +29,9 @@ describe('StructureTemplateDataRequestHandler', () => {
     });
 
     it('drops a request whose position holds no structure block', () => {
-        const { logged, server, session } = sessionSeeingBlocks({});
+        const { logged, context } = sessionSeeingBlocks({});
 
-        new StructureTemplateDataRequestHandler().handle(packetAt(new BlockPosition(1, 0, 1)), server, session);
+        new StructureTemplateDataRequestHandler().handle(packetAt(new BlockPosition(1, 0, 1)), context);
 
         expect(logged.debug).toEqual([]);
         expect(logged.verbose).toEqual([

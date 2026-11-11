@@ -14,9 +14,9 @@ const packetAt = (position: BlockPosition) =>
 
 describe('LabTableHandler', () => {
     it('logs the action by name and the position of a lab table in reach', () => {
-        const { logged, server, session } = sessionSeeingBlocks({ '4,1,2': 'minecraft:lab_table' });
+        const { logged, context } = sessionSeeingBlocks({ '4,1,2': 'minecraft:lab_table' });
 
-        new LabTableHandler().handle(packetAt(new BlockPosition(4, 1, 2)), server, session);
+        new LabTableHandler().handle(packetAt(new BlockPosition(4, 1, 2)), context);
 
         expect(logged.debug).toEqual([
             'Steve ran StartCombine on the lab table at 4, 1, 2. Chemistry is not simulated'
@@ -25,9 +25,9 @@ describe('LabTableHandler', () => {
     });
 
     it('drops a position that holds no lab table', () => {
-        const { logged, server, session } = sessionSeeingBlocks({ '4,1,2': 'minecraft:crafting_table' });
+        const { logged, context } = sessionSeeingBlocks({ '4,1,2': 'minecraft:crafting_table' });
 
-        new LabTableHandler().handle(packetAt(new BlockPosition(4, 1, 2)), server, session);
+        new LabTableHandler().handle(packetAt(new BlockPosition(4, 1, 2)), context);
 
         expect(logged.debug).toEqual([]);
         expect(logged.verbose).toEqual([
