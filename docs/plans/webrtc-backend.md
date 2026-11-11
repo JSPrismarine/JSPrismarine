@@ -618,6 +618,10 @@ Each slice is a commit or a few, with its tests, on `dev/webrtc-backend`.
 - **A Bedrock client may not accept libdatachannel, or a shared port.** Slice 13 is the gate, and
   slices 4 to 12 do not merge to `master` before it passes. If the shared port fails and a
   separate one works, the default keeps the two port numbers apart.
+  - Changed 2026-11-11: the user moved the work to `master` before slice 13 passes. Until the
+    first publish of the builds, CI has no native library to download, so every job that starts
+    a server with NetherNet on fails on the branch and on `master` alike. The publish runs from
+    `master`, the remaining fixes land there, and slice 13 runs against `master`.
 - **We own a native build.** Every platform needs libdatachannel, libjuice, usrsctp and a TLS
   library built and published, and the libjuice patch has to keep applying. Slice 4 proves one
   platform before slice 5 commits to all of them.
