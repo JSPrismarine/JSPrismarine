@@ -446,7 +446,7 @@ describe('DimensionTravel.resolve', () => {
             const scene = await buildScene();
             const player = playerAt(scene.server, scene.end, new Vector3(0.5, 60, 0.5));
             // A player stepping into the End's portal is in the End, which finds its session.
-            await scene.end.addEntity(player);
+            await scene.end.addPlayer(player);
 
             const arrival = await scene.travel.resolve(player, {
                 world: scene.end,
@@ -541,7 +541,7 @@ describe('DimensionTravel.touch', () => {
         const scene = await buildScene();
         await lightPortal(scene.nether, new Vector3(12, 70, 0), 'z');
         const player = playerAt(scene.server, scene.overworld, new Vector3(80.5, 64, 0.5));
-        await scene.overworld.addEntity(player);
+        await scene.overworld.addPlayer(player);
         await scene.travel.transfer(player, {
             world: scene.nether,
             position: new Vector3(12.5, 70, 0.5),
@@ -616,7 +616,7 @@ describe('DimensionTravel.transfer', () => {
     it('sends a player through the session, with the 10 tick cooldown and the screen pending', async () => {
         const scene = await buildScene();
         const player = playerAt(scene.server, scene.overworld, new Vector3(80.5, 64, 0.5));
-        await scene.overworld.addEntity(player);
+        await scene.overworld.addPlayer(player);
         const seen: [World, World][] = [];
         scene.server.on('playerChangeDimension', (event) => void seen.push([event.getFrom(), event.getTo()]));
 
@@ -642,7 +642,7 @@ describe('DimensionTravel.transfer', () => {
     it('leaves a player where they are when `playerChangeDimension` is canceled', async () => {
         const scene = await buildScene();
         const player = playerAt(scene.server, scene.overworld, new Vector3(80.5, 64, 0.5));
-        await scene.overworld.addEntity(player);
+        await scene.overworld.addPlayer(player);
         scene.server.on('playerChangeDimension', (event) => event.preventDefault());
 
         await scene.travel.transfer(player, {
@@ -677,7 +677,7 @@ describe('DimensionTravel.transfer out of the End', () => {
         const scene = await buildScene();
         const sent: unknown[] = [];
         const player = playerAt(scene.server, scene.end, new Vector3(0.5, 60, 0.5), sent);
-        await scene.end.addEntity(player);
+        await scene.end.addPlayer(player);
         const arrival = await exitArrival(scene, player);
         sent.length = 0;
 
@@ -700,7 +700,7 @@ describe('DimensionTravel.transfer out of the End', () => {
         const scene = await buildScene();
         const sent: unknown[] = [];
         const player = playerAt(scene.server, scene.end, new Vector3(0.5, 60, 0.5), sent);
-        await scene.end.addEntity(player);
+        await scene.end.addPlayer(player);
         await scene.travel.transfer(player, await exitArrival(scene, player));
         sent.length = 0;
 
@@ -721,7 +721,7 @@ describe('DimensionTravel.transfer out of the End', () => {
         const scene = await buildScene();
         const sent: unknown[] = [];
         const player = playerAt(scene.server, scene.end, new Vector3(0.5, 60, 0.5), sent);
-        await scene.end.addEntity(player);
+        await scene.end.addPlayer(player);
         player.setSeenCredits(true);
         const arrival = await exitArrival(scene, player);
         sent.length = 0;
@@ -829,7 +829,7 @@ describe('DimensionTravel through the tick', () => {
         const scene = await buildScene();
         await lightPortal(scene.overworld, new Vector3(80, 64, 0), 'x');
         const player = playerAt(scene.server, scene.overworld, new Vector3(80.5, 64, 0.5));
-        await scene.overworld.addEntity(player);
+        await scene.overworld.addPlayer(player);
         const portal = portalAt(scene.overworld, new Vector3(80, 64, 0));
 
         for (let tick = 1; tick <= 79; tick += 1) await tickInPortal(scene.travel, player, portal, tick);
@@ -923,7 +923,7 @@ describe('DimensionTravel through the tick', () => {
         await lightPortal(scene.overworld, new Vector3(80, 64, 0), 'x');
         const bot = playerAt(scene.server, scene.overworld, new Vector3(80.5, 64, 0.5));
         bot.gamemode = Gametype.CREATIVE;
-        await scene.overworld.addEntity(bot);
+        await scene.overworld.addPlayer(bot);
 
         // Creative goes through on the first contact tick, into the portal the trip builds.
         await scene.overworld.update(1);
@@ -951,7 +951,7 @@ describe('DimensionTravel through the tick', () => {
         const scene = await buildScene();
         await lightPortal(scene.overworld, new Vector3(80, 64, 0), 'x');
         const bot = playerAt(scene.server, scene.overworld, new Vector3(80.5, 64, 0.5));
-        await scene.overworld.addEntity(bot);
+        await scene.overworld.addPlayer(bot);
 
         for (let tick = 1; tick <= 80; tick += 1) await scene.overworld.update(tick);
 
@@ -966,7 +966,7 @@ describe('DimensionTravel through the tick', () => {
         const scene = await buildScene();
         await lightPortal(scene.overworld, new Vector3(80, 64, 0), 'x');
         const bot = playerAt(scene.server, scene.overworld, new Vector3(80.5, 64, 0.5));
-        await scene.overworld.addEntity(bot);
+        await scene.overworld.addPlayer(bot);
         for (let tick = 1; tick <= 80; tick += 1) await scene.overworld.update(tick);
         const pending = bot.getNetworkSession().pendingDimensionChange();
         expect(pending?.arrival.world).toBe(scene.nether);

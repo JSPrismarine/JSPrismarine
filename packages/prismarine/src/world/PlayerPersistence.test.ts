@@ -127,8 +127,11 @@ const digestWithInsertionOrder = async (
         // A non-player entity verifies the digest path that has no inventory to record.
         const mob = new Entity({ position: new Position(4.5, 65, 0.5, world) });
         // Construct entities in runtime-id order, then reverse map insertion to test canonical sorting.
-        const entities = reverseEntityInsertion ? [second, mob, first] : [first, mob, second];
-        for (const entity of entities) await world.addEntity(entity);
+        const addFirst = () => world.addPlayer(first);
+        const addMob = () => world.addEntity(mob);
+        const addSecond = () => world.addPlayer(second);
+        const additions = reverseEntityInsertion ? [addSecond, addMob, addFirst] : [addFirst, addMob, addSecond];
+        for (const add of additions) await add();
 
         return world.replayStateDigest();
     } finally {
@@ -222,7 +225,7 @@ const logOutAndIn = async () => {
 
     const returning = buildPlayer(back, server, uuid);
     await returning.enable();
-    await back.addEntity(returning);
+    await back.addPlayer(returning);
 
     const returningInventory = returning.getInventory();
     const original = returningInventory.getEntry(0);

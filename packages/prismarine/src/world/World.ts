@@ -3145,7 +3145,7 @@ export class World implements Service {
     }
 
     /**
-     * Adds an entity to the level.
+     * Adds an entity to the level. A player enters through {@link World.addPlayer}.
      * A generic body whose type a loaded pack declares is handed to the store instead, which
      * shows it through a store actor and never adds it to the world.
      * @param {Entity} entity - The entity to add.
@@ -3164,13 +3164,32 @@ export class World implements Service {
         const runtimeId = Number(entity.getRuntimeId());
 
         this.entities.set(runtimeId, entity);
-        if (entity instanceof Player) this.players.set(runtimeId, entity);
         this.getEntityIndex().addLegacy(entity);
         this.markEntityChunkChanged(entity);
 
         // Reported once the maps hold it, so that whoever works out who should see what is
         // looking at the world as it now is - the arrival included.
         await this.changes.entityAdded(entity);
+    }
+
+    /**
+     * Adds a player to the world: files it in the player map by entity id, which
+     * {@link World.viewerOf} and the viewers read, and then adds it as an entity.
+     *
+     * The one way a player enters a world, on its join and on its arrival from another.
+     * @param player - The player.
+     */
+    public async addPlayer(player: Player): Promise<void> {
+        this.players.set(Number(player.getRuntimeId()), player);
+        await this.addEntity(player);
+    }
+
+    /**
+     * Removes a player from the world, on its leave and on its departure for another.
+     * @param player - The player.
+     */
+    public async removePlayer(player: Player): Promise<void> {
+        await this.removeEntity(player);
     }
 
     /**

@@ -321,7 +321,7 @@ describe('a world tick and its change log', () => {
         const playerWithItems = async () => {
             const { world } = worldWithStore();
             const player = playerIn(world);
-            await world.addEntity(player);
+            await world.addPlayer(player);
             player.getInventory().setItem(0, entry('minecraft:bread', 3));
             return { world, player };
         };
@@ -404,7 +404,7 @@ describe('a world tick and its change log', () => {
             const { world } = worldWithStore();
             const player = playerIn(world);
             player.gamemode = Gametype.SURVIVAL;
-            await world.addEntity(player);
+            await world.addPlayer(player);
             return { world, player };
         };
 

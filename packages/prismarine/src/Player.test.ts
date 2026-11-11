@@ -669,7 +669,7 @@ describe('Player', () => {
                 getLevel: level,
                 getDimension: () => Dimensions.Nether,
                 getSpawnPosition: async () => new Vector3(8, 70, -3),
-                addEntity: async () => {},
+                addPlayer: async () => {},
                 entityRelocated: () => {},
                 broadcastMove: async () => {},
                 getBlock: async (x, y, z) => stub<Block>({ isSolid: () => nameAt(x, y, z) !== 'minecraft:air' }),
@@ -801,7 +801,7 @@ describe('Player', () => {
         const elsewhere = () =>
             stub<World>({
                 getName: () => 'other',
-                addEntity: async () => {},
+                addPlayer: async () => {},
                 entityRelocated: () => {},
                 broadcastMove: async () => {},
                 getSpawnPosition: async () => new Vector3(0, 64, 0),
@@ -894,7 +894,7 @@ describe('Player', () => {
         const nether = () =>
             stub<World>({
                 getName: () => 'other',
-                addEntity: async () => {},
+                addPlayer: async () => {},
                 entityRelocated: () => {},
                 broadcastMove: async () => {},
                 getSpawnPosition: async () => new Vector3(8.5, 70, -3.5),

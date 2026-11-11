@@ -18,7 +18,6 @@ import { OVERWORLD_STEM_ID } from '@jsprismarine/worldgen';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { Config } from '../config/Config';
-import type { Entity } from '../entity/Entity';
 import type PlayerSession from '../network/PlayerSession';
 import Player from '../Player';
 import type Server from '../Server';
@@ -332,7 +331,7 @@ describe('Level', () => {
         const travelerIn = (from: World, to: World) => {
             const updates: number[] = [];
             let position = new Position(0, 64, 0, from);
-            const traveler: Entity = stubOf(Player, {
+            const traveler: Player = stubOf(Player, {
                 attributes: new Attributes(),
                 getRuntimeId: () => 7n,
                 getType: () => 'minecraft:player',
@@ -349,9 +348,9 @@ describe('Level', () => {
                 update: async (tick) => {
                     updates.push(tick);
                     if (position.getWorld() !== from) return;
-                    await from.removeEntity(traveler);
+                    await from.removePlayer(traveler);
                     position = new Position(0, 64, 0, to);
-                    await to.addEntity(traveler);
+                    await to.addPlayer(traveler);
                 }
             });
             return { traveler, updates };
@@ -367,7 +366,7 @@ describe('Level', () => {
             // tick alone would get wrong: the Nether reads its roster after the Overworld's tick
             // has put the traveler in it.
             const { traveler, updates } = travelerIn(overworld, nether);
-            await overworld.addEntity(traveler);
+            await overworld.addPlayer(traveler);
 
             await level.update(1);
             expect(updates).toEqual([1]);

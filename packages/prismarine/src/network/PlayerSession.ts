@@ -2063,9 +2063,9 @@ export default class PlayerSession {
         await from.savePlayerData(player);
 
         // Out of the old world first, so it stops broadcasting to us and its players are told
-        // we left. Then the old world's entities come off this client, before `addEntity`
+        // we left. Then the old world's entities come off this client, before `addPlayer`
         // below fills the tracker with the new world's.
-        await from.removeEntity(player);
+        await from.removePlayer(player);
         await this.despawnAllTrackedEntities();
         await this.clearChunks();
 
@@ -2087,7 +2087,7 @@ export default class PlayerSession {
             },
             false
         );
-        await world.addEntity(player);
+        await world.addPlayer(player);
 
         if (left.bedrockId === target.bedrockId) await this.detourFrom(target.bedrockId, eyes);
 

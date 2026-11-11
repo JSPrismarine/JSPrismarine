@@ -123,8 +123,8 @@ export const fakePlayer = ({ underwater = false, worlds: others = [], name = 'Te
         getDimension: () => Dimensions.Overworld,
         entityRelocated: () => {},
         broadcastMove: async () => {},
-        removeEntity: async () => void roster.push('remove'),
-        addEntity: async () => void roster.push('add'),
+        removePlayer: async () => void roster.push('remove'),
+        addPlayer: async () => void roster.push('add'),
         getPlayers: () => [],
         getSpawnPosition: async () => new Vector3(0, 64, 0),
         // Feet one block above the stored spawn, centered, as a Bedrock server places them.

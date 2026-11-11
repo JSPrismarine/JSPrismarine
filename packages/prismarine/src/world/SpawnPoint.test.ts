@@ -285,7 +285,7 @@ describe('a player with a spawn point of their own', () => {
     it('honors a point /spawnpoint set whatever is standing there', async () => {
         const scene = await buildScene('command');
         const player = buildPlayer(scene.world, scene.server, UUID.fromRandom());
-        await scene.world.addEntity(player);
+        await scene.world.addPlayer(player);
 
         const host = worldCommandHost(scene.server);
         const set = host.setSpawnPoint(entityRefOf(player), 'minecraft:overworld', { x: 32, y: 65, z: -17 }, 0);

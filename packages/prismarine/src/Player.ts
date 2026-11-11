@@ -450,9 +450,9 @@ export default class Player extends Human {
         // name for them - so the guard that used to be here threw away the inventory of every
         // player on a server with online mode off.
         await this.getWorld().savePlayerData(this);
-        await this.getWorld().removeEntity(this);
+        await this.getWorld().removePlayer(this);
 
-        // `removeEntity` above already told everyone who could see this player to take them
+        // `removePlayer` above already told everyone who could see this player to take them
         // away, world-scoped and only the clients that actually had them. The loop that used
         // to be here went over every player on the server, in every world, and included the
         // leaving player itself.

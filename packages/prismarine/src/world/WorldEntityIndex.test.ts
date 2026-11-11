@@ -118,7 +118,7 @@ describe('the entity index over a world', () => {
         const stand = legacyEntity(world, 0.5, 0.5);
         const player = await playerAt(world, 0.5, 0.5);
         await world.addEntity(stand);
-        await world.addEntity(player);
+        await world.addPlayer(player);
 
         await stand.setPosition({ position: new Vector3(20.5, Y, 20.5) });
         // The write a movement handler makes for a client-owned move.
@@ -144,7 +144,7 @@ describe('the entity index over a world', () => {
         const player = await playerAt(world, 2.5, 0.5);
 
         // Filed highest id first, so the answer's order cannot be the order things arrived in.
-        await world.addEntity(player);
+        await world.addPlayer(player);
         await world.addEntity(item);
         await world.addEntity(body);
 
