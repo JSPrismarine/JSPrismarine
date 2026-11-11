@@ -1,5 +1,5 @@
 import { DisconnectReason } from '@jsprismarine/minecraft';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { fakePlayer } from '../testing/fakePlayer.test.helper';
 
@@ -39,6 +39,28 @@ describe('PlayerSession', () => {
             session.disable();
 
             expect(() => session.getWorld()).toThrow(/has left/);
+        });
+    });
+
+    describe('leave', () => {
+        it('takes the player off the server and then disables itself', async () => {
+            const { player, roster } = fakePlayer();
+            const session = player.getNetworkSession();
+            await session.leave();
+
+            expect(roster).toEqual(['save', 'remove']);
+            expect(session.isConnected()).toBe(false);
+            expect(() => session.getPlayer()).toThrow(/has left/);
+        });
+
+        it("disables itself even when the player's leave fails", async () => {
+            const { player } = fakePlayer();
+            const session = player.getNetworkSession();
+            vi.spyOn(player, 'disable').mockRejectedValue(new Error('world unavailable'));
+
+            await expect(session.leave()).rejects.toThrow('world unavailable');
+
+            expect(() => session.getPlayer()).toThrow(/has left/);
         });
     });
 });
