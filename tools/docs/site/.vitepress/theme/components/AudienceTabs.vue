@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { withBase } from 'vitepress';
-import { nextTick, onBeforeUnmount, onMounted, ref, useId, useTemplateRef } from 'vue';
+import { onBeforeUnmount, onMounted, ref, useId, useTemplateRef } from 'vue';
 
 import CopyButton from './CopyButton.vue';
 
@@ -22,24 +22,22 @@ export interface Audience {
 const props = defineProps<{
     audiences: Audience[];
     /**
-     * Gives each panel a stable id, `<anchor>-<audience id>`, so a link such as `#start-host` scrolls to
-     * that audience and selects its tab. Without it, ids are generated and links cannot target one.
+     * Selects the audience a URL fragment names, `#<anchor>-<audience id>` such as `#start-host`. The page
+     * puts elements with those ids where a link should scroll to, so the browser lands on the whole
+     * section rather than on one panel.
      */
     anchor?: string;
 }>();
 const active = ref(0);
 /** Prefixes element ids so two tab sets on one page do not collide. */
 const uid = useId();
-const panelId = (audience: Audience) =>
-    props.anchor ? `${props.anchor}-${audience.id}` : `${uid}-panel-${audience.id}`;
+const panelId = (audience: Audience) => `${uid}-panel-${audience.id}`;
 const tabId = (audience: Audience) => `${panelId(audience)}-tab`;
 
-/** Selects the audience the URL fragment names, if any, and scrolls to it once it is shown. */
+/** Selects the audience the URL fragment names, if any. */
 function selectFromHash() {
-    const index = props.audiences.findIndex((audience) => `#${panelId(audience)}` === window.location.hash);
-    if (index === -1) return;
-    active.value = index;
-    void nextTick(() => document.getElementById(window.location.hash.slice(1))?.scrollIntoView());
+    const index = props.audiences.findIndex((audience) => `#${props.anchor}-${audience.id}` === window.location.hash);
+    if (index !== -1) active.value = index;
 }
 
 onMounted(() => {
@@ -155,22 +153,15 @@ function onKeydown(event: KeyboardEvent) {
 }
 
 .audience-tabs__list button[aria-selected='true'] {
-    color: var(--jsp-cream);
-    background: var(--jsp-ink);
-    border-color: var(--jsp-ink);
+    color: var(--jsp-on-accent);
+    background: var(--jsp-accent);
+    border-color: var(--jsp-accent);
 }
 
 /* Forest cards on a dark panel need an edge to stay separate blocks. */
 .dark .audience-tabs__pitch,
 .dark .audience-tabs__code {
     box-shadow: inset 0 0 0 1px var(--jsp-dark-edge);
-}
-
-/* On a dark panel an ink tab would vanish, so the selected tab takes the accent. */
-.dark .audience-tabs__list button[aria-selected='true'] {
-    color: var(--jsp-on-accent);
-    background: var(--jsp-accent);
-    border-color: var(--jsp-accent);
 }
 
 .audience-tabs__panel {

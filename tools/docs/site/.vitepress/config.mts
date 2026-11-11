@@ -101,6 +101,8 @@ export default defineConfig({
         // The copy's own git date is meaningless, so date the page by the source it was built from.
         const updatedAt = sourceUpdatedAt(pageData.relativePath);
         if (updatedAt) pageData.lastUpdated = updatedAt;
+        // The API index's per-area tables share a column width under this class.
+        if (pageData.relativePath === 'api/index.md') pageData.frontmatter.pageClass = 'api-index';
         const source = pageSource(pageData.relativePath);
         pageData.frontmatter.editSource = {
             kind: source.kind,

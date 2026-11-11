@@ -3,6 +3,7 @@ title: Running JSPrismarine
 description: Download the prebuilt server and run it, or run it from source with pnpm run dev to work on it.
 group: Documents
 category: Guides
+outline: [2, 3]
 ---
 
 # Running JSPrismarine
@@ -79,7 +80,7 @@ Run from source when you are building add-ons or plugins, or changing JSPrismari
 rebuilds the packages you edit and restarts the server with your changes. The steps below set up
 a checkout.
 
-## 1. Prerequisites
+### 1. Prerequisites
 
 *   1.1 Node.js <!-- fact:node.minimum -->`26.4.0`<!-- /fact --> or newer and pnpm <!-- fact:pnpm.minimum -->`12`<!-- /fact --> or newer. The terminal UI loads `node:ffi` by default on
     Node 26.9 or newer. Node versions 26.4 through 26.8 require `--experimental-ffi`. If Node cannot
@@ -98,7 +99,7 @@ The Bedrock resources are a pinned download, verified by hash and cached under
 is missing. Offline from a cold cache, point `JSP_CLOUDBURST_DATA_PATH` at a
 local CloudburstMC/Data checkout.
 
-### 1.3 World generation data
+#### 1.3 World generation data
 
 The default world preset, `minecraft:normal`, builds terrain from Mojang's published Java
 Edition world generation data. That data is not shipped with this server; it comes from a
@@ -136,14 +137,14 @@ once so the server can read the vanilla behavior pack. Without it the server log
 with no mobs, no `/summon` and no dragon. Run it by hand with
 `pnpm --filter @jsprismarine/bedrock-data run ensure:bedrock-pack`.
 
-## 2. Install dependencies
+### 2. Install dependencies
 
 ```bash
     # Install npm dependencies
     $ pnpm install
 ```
 
-## 3. Running
+### 3. Running
 
 ```bash
     # Runs the server, rebuilds and restarts it on source changes, and opens the terminal UI
@@ -160,7 +161,7 @@ the watch builds writing their initial output. The watch builds log to
 terminal UI described in the [Console](#4-console) section when it can, and falls back to the plain
 line console otherwise.
 
-### Building the server yourself
+#### Building the server yourself
 
 You rarely need these: to host a server, [download the prebuilt one](#run-the-prebuilt-server).
 They exist for checking a production build, for platforms the releases do not cover, and for
@@ -192,7 +193,7 @@ not provision any on first run yet, so its output needs a directory whose
 `node_modules/.cache/jsprismarine/` was arranged by a checkout, or the `JSP_*` override
 variables above.
 
-### Live debugging and profiling
+#### Live debugging and profiling
 
 Add `--devtools` to a development run to open Node's inspector and enable JSPrismarine timing
 traces:
@@ -244,7 +245,7 @@ phases, and event-loop delay. A forced process exit cannot save the trace.
 The macOS app opens Terminal so the server can use its interactive console. Its config, world, and
 log files are stored in `~/JSPrismarine`.
 
-## 4. Console
+### 4. Console
 
 The `prismarine` entry point picks one of two console modes at startup.
 
@@ -278,7 +279,7 @@ The remaining flags:
     read from it. Use it when a wrapper owns the terminal and only the log file matters.
 *   `--no-tui` forces the plain line console even on an interactive terminal.
 
-### Keys in the terminal UI
+#### Keys in the terminal UI
 
 Press `?` on an empty input line to open the help overlay, which lists every binding. The ones
 you'll need first:
@@ -295,7 +296,7 @@ you'll need first:
 | `?` | Help overlay, on an empty line |
 | `Esc` | Close an overlay or cancel a search |
 
-## 5. Configuration
+### 5. Configuration
 
 New servers keep their settings in `config.json` in the working directory
 (`jsp/` during development). The server creates it on first start, with every
@@ -315,7 +316,7 @@ still need into `config.json` (where `//` comments are allowed).
 `packet-full-flush-fragments` is an opt-in compression prototype. It stays off by default until
 the server has been checked with retail Bedrock clients on Windows and Android.
 
-### Every setting
+#### Every setting
 
 A fresh server writes these <!-- fact:config.count -->39<!-- /fact --> settings, each with the comment below
 above it. The list comes from the code that writes the file, so it matches what your version writes.
@@ -364,7 +365,7 @@ above it. The list comes from the code that writes the file, so it matches what 
 | `content-datapacks`                   | Java datapack directories this world loads, after the vanilla one.                                                                                                                                     |
 <!-- /fact -->
 
-### Networking
+#### Networking
 
 Bedrock clients reach the server over two transports, and it runs both unless `enable-raknet` or
 `enable-nethernet` turns one off:
@@ -392,7 +393,7 @@ The first time NetherNet starts, the server writes its identity key to
 Clients remember the key, and one that meets a different key asks the player to trust the server
 again, so keep the file with your worlds when you move or rebuild the server.
 
-### Query
+#### Query
 
 With `enable-query` on, which is the default, the server answers the GameSpy4 query protocol
 that server lists and status tools use to read its MOTD, world, player count and player names. A
@@ -404,7 +405,7 @@ RakNet socket beside the game, so a firewall needs nothing more. Any other port 
 its own, bound to `server-ip`; when another program holds that port, the server starts anyway and
 logs that query is unavailable.
 
-### Worlds
+#### Worlds
 
 Each entry under `worlds` is one world: its `seed`, the `provider` that stores it on disk and
 the `preset` that says which dimensions it has and how each one generates. The server loads
@@ -485,7 +486,7 @@ key, so an editor flags them, but the server still reads both: `Overworld` is
 to the file, so you only see the message and the editor's marks until the next start. Any other
 `generator` name stops the server with an error, as it did before.
 
-### World seeds
+#### World seeds
 
 Write a world's `seed` as a string, as the examples above do.
 
@@ -534,7 +535,7 @@ A file that does not parse stops the server with an error naming the file
 rather than being replaced by the defaults, so a typo costs a restart, not
 the config.
 
-## 6. How the development server works
+### 6. How the development server works
 
 `pnpm run dev` runs the server from TypeScript source with `--watch`. No build step is needed:
 every `@jsprismarine/*` package resolves straight to its `src/`, so an edit in any package takes
@@ -553,7 +554,7 @@ process, the console keeps working across restarts. If the server crashes while 
 the host stays up and starts the server again on your next change.
 Changing the `bedrock-data` resources or its generator regenerates the data before the restart.
 
-### Dropping packets to find a bad one
+#### Dropping packets to find a bad one
 
 When a client leaves during the join without a `Disconnect` or
 `PacketViolationWarning`, the server log alone does not say which packet it

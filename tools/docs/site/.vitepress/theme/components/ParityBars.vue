@@ -37,7 +37,9 @@ const groups = computed(() =>
             >
         </p>
         <div v-for="group in groups.slice(0, limit)" :key="group.id" class="parity-bars__row">
-            <span class="parity-bars__label">{{ group.label }}</span>
+            <span class="parity-bars__label" :class="{ 'is-gap': group.passed * 2 < group.tracked }">{{
+                group.label
+            }}</span>
             <progress
                 :value="group.passed"
                 :max="group.tracked"
@@ -54,6 +56,16 @@ const groups = computed(() =>
     gap: 7px;
     min-height: 120px;
     font: var(--jsp-label-size) var(--vp-font-family-mono);
+}
+
+/* A group under half passing carries the tracker's signal square. */
+.parity-bars__label.is-gap::before {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    margin-right: 6px;
+    content: '';
+    background: var(--jsp-signal);
 }
 
 .parity-bars__score {

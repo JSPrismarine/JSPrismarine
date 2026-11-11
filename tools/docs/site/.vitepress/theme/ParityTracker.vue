@@ -25,6 +25,8 @@ const activeStatus = ref<(typeof statuses)[number]['id']>('all');
 const query = ref('');
 const search = ref('');
 const expanded = ref(false);
+/** Families sort by pass rate, lowest first, so the open gaps lead; the toggle switches to A to Z. */
+const sortByName = ref(false);
 const familyCaseLimits = ref<Record<string, number>>({});
 const { tracker, loadError } = useTrackerSnapshot();
 let searchTimer: ReturnType<typeof setTimeout> | undefined;
@@ -106,7 +108,13 @@ const visibleFamilies = computed(() => {
             (family) =>
                 family.matchCount > 0 ||
                 (searchTerm === '' && activeStatus.value === 'all' && family.cases.length === 0)
-        );
+        )
+        .sort((left, right) => {
+            if (sortByName.value) return left.id.localeCompare(right.id);
+            const rate = (family: (typeof snapshot.families)[number]) =>
+                family.passed / Math.max(trackerProgressTotal(family), 1);
+            return rate(left) - rate(right) || left.id.localeCompare(right.id);
+        });
 });
 
 const displayedCaseCount = computed(() =>
@@ -160,7 +168,9 @@ const percentage = trackerProgressPercent;
                 :max="Math.max(behavior.tracked, 1)"
                 :aria-label="`${behavior.passed} of ${behavior.tracked} tracked behavior comparisons passing`"
             />
-            <ul class="overview-counts" aria-label="Comparisons by status">
+            <!-- The chips count every comparison; the headline counts behavior checks only. -->
+            <p class="overview-counts-label">All comparisons, including data tables</p>
+            <ul class="overview-counts" aria-label="All comparisons by status">
                 <li class="status-count passed">
                     <b>{{ tracker.passed.toLocaleString() }}</b> passing
                 </li>
@@ -255,9 +265,19 @@ const percentage = trackerProgressPercent;
                     >{{ displayedCaseCount.toLocaleString() }} of {{ matchingCaseCount.toLocaleString() }} matching
                     cases shown · {{ tracker.cases.length.toLocaleString() }} tracked</span
                 >
-                <button type="button" class="expand-toggle" @click="expanded = !expanded">
-                    {{ expanded ? 'Collapse all' : 'Expand all' }}
-                </button>
+                <span class="results-actions">
+                    <button
+                        type="button"
+                        class="expand-toggle"
+                        :aria-pressed="sortByName"
+                        @click="sortByName = !sortByName"
+                    >
+                        {{ sortByName ? 'Sort: A to Z' : 'Sort: lowest first' }}
+                    </button>
+                    <button type="button" class="expand-toggle" @click="expanded = !expanded">
+                        {{ expanded ? 'Collapse all' : 'Expand all' }}
+                    </button>
+                </span>
             </div>
 
             <p v-if="visibleFamilies.length === 0" class="empty-state">No parity cases match these filters.</p>
@@ -840,15 +860,20 @@ progress::-moz-progress-bar {
     color: var(--tracker-muted);
 }
 
-/* The track is a flat ink tint, so a partial bar reads against the row and not as a stray line. */
+/* The track is a flat forest tint, the brand's own track color, so a partial bar reads against the row. */
 .family-progress progress {
     width: 160px;
     height: 6px;
-    background: color-mix(in srgb, var(--vp-c-text-1) 14%, transparent);
+    background: color-mix(in srgb, var(--jsp-forest) 18%, transparent);
 }
 
 .family-progress progress::-webkit-progress-bar {
-    background: color-mix(in srgb, var(--vp-c-text-1) 14%, transparent);
+    background: color-mix(in srgb, var(--jsp-forest) 18%, transparent);
+}
+
+.dark .family-progress progress,
+.dark .family-progress progress::-webkit-progress-bar {
+    background: color-mix(in srgb, var(--jsp-mint) 18%, transparent);
 }
 
 .cases {
@@ -1052,6 +1077,19 @@ progress::-moz-progress-bar {
 }
 .tracker-crumb {
     margin: 4px 4px 10px;
+}
+
+.results-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.overview-counts-label {
+    margin: 14px 0 6px;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--jsp-mint);
 }
 
 /* A zero count is good news, so its dot is a neutral mint ring rather than signal; ink would vanish on forest. */

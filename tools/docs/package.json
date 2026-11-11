@@ -10,7 +10,7 @@
         "docs:stage": "node --import tsx assemble.mts",
         "docs:facts": "node --import tsx facts-cli.mts --write",
         "check:facts": "vitest run --root . --dir . facts.test.ts && node --import tsx facts-cli.mts --check",
-        "docs:api": "typedoc && node fix-typedoc-media-links.mts",
+        "docs:api": "typedoc && node fix-typedoc-media-links.mts && node api-index.mts",
         "docs:content": "concurrently --prefix '{name}' --kill-others-on-fail pnpm:docs:stage pnpm:docs:api",
         "docs": "pnpm run docs:sources && pnpm run docs:generate && pnpm run docs:content && vitepress build site",
         "docs:check": "pnpm run docs:generate && concurrently --prefix '{name}' --kill-others-on-fail pnpm:docs:stage \"typedoc --emit none\"",

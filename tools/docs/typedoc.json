@@ -1,7 +1,6 @@
 {
     "$schema": "https://typedoc.org/schema.json",
     "name": "API reference",
-    "indexFormat": "table",
     "plugin": [
         "typedoc-plugin-markdown",
         "typedoc-vitepress-theme",
@@ -13,8 +12,7 @@
     "tsconfig": "../../tsconfig.json",
     "out": "./site/api",
     "docsRoot": "./site",
-    "readme": "./api-readme.md",
-    "mergeReadme": true,
+    "readme": "none",
     "membersWithOwnFile": ["Class"],
     "router": "member",
     "excludeExternals": true,

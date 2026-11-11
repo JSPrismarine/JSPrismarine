@@ -62,8 +62,8 @@
 
     /* Text is ink, not VitePress's cool gray. Each step stays at 4.5:1 or better on the page and the sidebar. */
     --vp-c-text-1: var(--jsp-ink);
-    --vp-c-text-2: color-mix(in srgb, var(--jsp-ink) 74%, transparent);
-    --vp-c-text-3: color-mix(in srgb, var(--jsp-ink) 62%, transparent);
+    --vp-c-text-2: color-mix(in srgb, var(--jsp-ink) 74%, var(--vp-c-bg));
+    --vp-c-text-3: color-mix(in srgb, var(--jsp-ink) 62%, var(--vp-c-bg));
 }
 
 .dark {
@@ -84,8 +84,8 @@
     --vp-code-block-bg: color-mix(in srgb, var(--jsp-ink) 82%, var(--jsp-forest));
 
     --vp-c-text-1: var(--jsp-cream);
-    --vp-c-text-2: color-mix(in srgb, var(--jsp-cream) 74%, transparent);
-    --vp-c-text-3: color-mix(in srgb, var(--jsp-cream) 62%, transparent);
+    --vp-c-text-2: color-mix(in srgb, var(--jsp-cream) 74%, var(--vp-c-bg));
+    --vp-c-text-3: color-mix(in srgb, var(--jsp-cream) 62%, var(--vp-c-bg));
 }
 
 /* Heavy, tight headlines; body copy keeps the default tracking. */
@@ -261,8 +261,9 @@
         border-radius: var(--jsp-radius-control);
     }
 
-    /* Wrapped lines keep clear of the copy button and the label in the block's top corner. */
-    .vp-doc div[class*='language-'] pre code {
+    /* Only the first line shares a row with the copy button and label, so only it keeps clear of them. */
+    .vp-doc div[class*='language-'] pre code .line:first-child {
+        display: inline-block;
         padding-right: 112px;
     }
 
@@ -469,4 +470,37 @@
 /* Links in tables repeat row after row, so they take a lighter underline than links in prose. */
 .vp-doc table a {
     text-decoration-thickness: 1px;
+}
+
+/* Package names in a table stay whole, and every area's table shares one first column width. */
+.vp-doc td:first-child > a {
+    white-space: nowrap;
+}
+
+@media (min-width: 641px) {
+    .api-index .vp-doc table {
+        display: table;
+        width: 100%;
+        table-layout: fixed;
+    }
+
+    .api-index .vp-doc :is(th, td):first-child {
+        width: 13rem;
+    }
+}
+
+/* The theme switch gets an edge, so it reads as a control beside the outlined Search. */
+.VPSwitch {
+    border: 1px solid var(--vp-c-border);
+}
+
+/* In-page jumps glide instead of cutting, unless the reader asks for less motion. */
+html {
+    scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    html {
+        scroll-behavior: auto;
+    }
 }

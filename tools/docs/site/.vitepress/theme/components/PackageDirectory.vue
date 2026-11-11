@@ -70,7 +70,7 @@ const shownAreas = computed(() => {
                     </div>
                     <p>{{ pkg.description }}</p>
                     <nav :aria-label="`${pkg.name} links`">
-                        <a :href="withBase(`/api/${pkg.name}/`)">API</a>
+                        <a :href="withBase(`/api/${pkg.name}/`)">API reference</a>
                         <a :href="`${repositoryUrl}/tree/master/packages/${pkg.directory}#readme`">README</a>
                         <a :href="`https://www.npmjs.com/package/${pkg.name}`">npm</a>
                     </nav>
@@ -85,7 +85,7 @@ const shownAreas = computed(() => {
 .package-directory__search {
     display: grid;
     gap: 6px;
-    max-width: 640px;
+    max-width: none;
     font: 700 var(--jsp-label-size) var(--vp-font-family-mono);
     color: var(--vp-c-text-2);
     text-transform: uppercase;
@@ -183,30 +183,46 @@ const shownAreas = computed(() => {
 
 .package-card nav {
     display: flex;
-    gap: 6px;
+    flex-wrap: wrap;
+    gap: 0 16px;
+    padding-top: 8px;
+    border-top: 1px solid var(--vp-c-divider);
 }
 
+/* One quiet row of text links: the card's name is already the main way in. */
 .package-card nav a {
     display: inline-flex;
     align-items: center;
-    min-height: 36px;
-    padding: 4px 14px;
+    min-height: 32px;
     font: 700 var(--jsp-label-size) var(--vp-font-family-mono);
-    color: var(--vp-c-text-1);
+    color: var(--vp-c-text-2);
     text-decoration: none;
-    border: 1.5px solid var(--vp-c-divider);
-    border-radius: 99px;
 }
 
 .package-card nav a:hover {
-    color: var(--jsp-on-accent);
-    background: var(--jsp-accent);
-    border-color: var(--jsp-accent);
+    color: var(--vp-c-text-1);
 }
 
+/* Underlined, so the row reads as links rather than metadata. */
+.package-card nav a {
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+}
+
+/* On a phone the links become full-size pills, the touch targets the guide asks for. */
 @media (max-width: 640px) {
+    .package-card nav {
+        gap: 8px;
+        border-top: 0;
+    }
+
     .package-card nav a {
         min-height: var(--jsp-target);
+        padding: 0 14px;
+        text-decoration: none;
+        border: 1.5px solid var(--vp-c-divider);
+        border-radius: 99px;
     }
 }
 .package-directory__search input::placeholder {

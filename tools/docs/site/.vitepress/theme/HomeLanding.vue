@@ -36,7 +36,9 @@ const startCommand = `chmod +x ${executable}\n./${executable}`;
     <div class="landing">
         <header class="landing__hero">
             <p class="landing__eyebrow">
-                <i></i>v{{ project.version }} · Minecraft {{ minecraftRange(project) }} · Protocol {{ latest.protocol }}
+                <!-- The label is set in caps, but a version keeps its own case. -->
+                <i></i><span class="landing__as-is">v{{ project.version }}</span> · Minecraft
+                {{ minecraftRange(project) }}
             </p>
             <h1>The Bedrock<br />server you <em>own.</em></h1>
             <div class="landing__copy">
@@ -106,18 +108,24 @@ const startCommand = `chmod +x ${executable}\n./${executable}`;
         </header>
 
         <section class="landing__paths" aria-labelledby="paths">
+            <!-- The hero's audience links land here, on the section's top, and the tabs select from the fragment. -->
+            <span
+                v-for="audience in audiences"
+                :id="`start-${audience.id}`"
+                :key="audience.id"
+                class="landing__anchor"
+                aria-hidden="true"
+            ></span>
             <h2 id="paths">Start where you are.</h2>
             <AudienceTabs :audiences="audiences" anchor="start" />
         </section>
 
         <BentoGrid>
             <BentoTile tone="accent" class="landing__stat">
-                <div class="bento-figure">{{ latest.protocol }}</div>
+                <div class="bento-figure">{{ latest.minecraft.at(-1) }}</div>
                 <p class="bento-caption">
-                    <b>Protocol</b>Minecraft {{ latest.minecraft.join(', ') }} connects on it, and the server still
-                    speaks {{ project.protocols.length - 1 }} older protocol{{
-                        project.protocols.length === 2 ? '' : 's'
-                    }}.
+                    <b>Newest Minecraft release</b>It joins on protocol {{ latest.protocol }}, and older releases back
+                    to {{ minecraftRange(project).split(' to ')[0] }} still connect.
                     <a :href="withBase('/guide/joining')">Which versions join</a>
                 </p>
             </BentoTile>
@@ -216,6 +224,10 @@ const startCommand = `chmod +x ${executable}\n./${executable}`;
     color: var(--jsp-mint);
     text-transform: uppercase;
     letter-spacing: 0.12em;
+}
+
+.landing__as-is {
+    text-transform: none;
 }
 
 .landing__eyebrow i {
@@ -385,8 +397,8 @@ const startCommand = `chmod +x ${executable}\n./${executable}`;
 }
 
 .landing__stage {
-    align-self: end;
-    margin-bottom: 24px;
+    align-self: start;
+    margin-top: 8px;
 }
 
 .landing__stage {
@@ -413,6 +425,7 @@ const startCommand = `chmod +x ${executable}\n./${executable}`;
 }
 
 .landing__paths {
+    position: relative;
     padding: clamp(16px, 3vw, 32px);
     color: var(--jsp-ink);
     background: var(--jsp-cream);
@@ -424,6 +437,12 @@ const startCommand = `chmod +x ${executable}\n./${executable}`;
     color: var(--jsp-cream);
     /* A filled deep block like its neighbors, so it reads as a panel; forest cards and ink code sit on it. */
     background: var(--jsp-deep);
+}
+
+.landing__anchor {
+    position: absolute;
+    top: 0;
+    scroll-margin-top: calc(var(--vp-nav-height) + var(--jsp-gap));
 }
 
 .landing__paths h2 {
@@ -439,10 +458,15 @@ const startCommand = `chmod +x ${executable}\n./${executable}`;
 
 /* A figure tile sets its number beside its caption, so the pair fills the tile instead of leaving a gap. */
 .landing .landing__stat {
-    flex-direction: row;
-    gap: clamp(16px, 3vw, 32px);
+    flex-flow: row wrap;
+    gap: 12px clamp(16px, 3vw, 32px);
     align-items: center;
     min-height: 0;
+}
+
+/* The caption keeps a readable width; next to a wide figure it moves below it instead of narrowing. */
+.landing .landing__stat :deep(.bento-caption) {
+    flex: 1 1 240px;
 }
 
 .landing .landing__stat :deep(.bento-figure) {
