@@ -10,12 +10,15 @@ import { snappyDecompress } from './Snappy';
  * open a Bedrock world. `ZlibRaw` is what the game writes: a DEFLATE stream with no zlib header
  * and no trailing Adler-32, since the block already carries a CRC-32C of its own.
  */
-export enum CompressionType {
-    None = 0,
-    Snappy = 1,
-    Zlib = 2,
-    ZlibRaw = 4
-}
+export const CompressionType = {
+    None: 0,
+    Snappy: 1,
+    Zlib: 2,
+    ZlibRaw: 4
+} as const;
+
+/** One of the values of {@link CompressionType}. */
+export type CompressionType = (typeof CompressionType)[keyof typeof CompressionType];
 
 export const isCompressionType = (value: number): value is CompressionType =>
     value === CompressionType.None ||

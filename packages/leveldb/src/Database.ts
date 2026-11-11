@@ -2,7 +2,6 @@ import fs from 'node:fs';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import { Worker } from 'node:worker_threads';
-import { pathToFileURL } from 'node:url';
 
 import { AppendFile, TableFile, replaceFileAtomically, writeFileSynced } from './db/Storage';
 import { BYTEWISE_COMPARATOR, compareBytewise } from './util/Comparator';
@@ -452,8 +451,10 @@ export class Database {
             return process.execArgv;
         }
 
-        const tsxLoader = pathToFileURL(createRequire(import.meta.url).resolve('tsx')).href;
-        return [...process.execArgv, '--import', tsxLoader];
+        // Node strips the worker's types itself; the repository's resolver adds the extensionless
+        // relative imports the source uses. Only a checkout runs the worker from source.
+        const resolver = new URL('../../../scripts/native-typescript-loader.mjs', import.meta.url).href;
+        return [...process.execArgv, '--import', resolver];
     }
 
     // ---------------------------------------------------------------- writes

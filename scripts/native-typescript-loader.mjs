@@ -1,5 +1,8 @@
 /**
- * Prototype Node's built-in TypeScript stripping with extensionless relative import resolution.
+ * Runs workspace TypeScript source on Node's built-in type stripping, adding the extensionless
+ * relative imports the source uses: `node --import <this file> entry.ts`. It replaces tsx where a
+ * process or worker runs source directly, such as LevelDB's table builder worker in a checkout.
+ * Node strips types only, so the source it loads must not use enums or parameter properties.
  *
  * Bare workspace package imports pass through Node's package exports unchanged. Relative
  * specifiers resolve to the same source file TSX would select, with common TypeScript and

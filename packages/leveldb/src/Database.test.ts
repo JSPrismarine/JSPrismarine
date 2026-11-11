@@ -1,6 +1,5 @@
 import { spawn } from 'node:child_process';
 import fs from 'node:fs';
-import { createRequire } from 'node:module';
 import os from 'node:os';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -582,14 +581,17 @@ describe('leveldb', () => {
                 // the same-process guard, which is a different mechanism.
                 const directory = scratch();
                 const source = path.resolve(import.meta.dirname, 'index.ts');
-                const tsxLoader = pathToFileURL(createRequire(import.meta.url).resolve('tsx')).href;
+                // Node strips the source's types; the repository's resolver adds its extensionless imports.
+                const resolver = pathToFileURL(
+                    path.resolve(import.meta.dirname, '../../../scripts/native-typescript-loader.mjs')
+                ).href;
                 const packageRoot = path.resolve(import.meta.dirname, '..');
 
                 const child = spawn(
                     process.execPath,
                     [
                         '--import',
-                        tsxLoader,
+                        resolver,
                         '--input-type=module',
                         '-e',
                         `import { Database } from ${JSON.stringify(pathToFileURL(source).href)};
