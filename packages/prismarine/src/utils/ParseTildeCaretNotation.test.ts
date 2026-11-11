@@ -1,18 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
-import type { Entity } from '../entity/Entity';
-import { stub } from '../testing/stub.test.helper';
-import type { World } from '../world';
-import { Position } from '../world/Position';
+import { Vector3 } from '@jsprismarine/math';
+
 import ParseTildeCaretNotation from './ParseTildeCaretNotation';
 
 type Axis = 'x' | 'y' | 'z';
 
 /** An entity standing at (10, 64, -3). */
-const source = () =>
-    stub<Entity>({
-        getPosition: () => new Position(10, 64, -3, stub<World>({ getName: () => 'test' }))
-    });
+const source = () => ({ getPosition: () => new Vector3(10, 64, -3) });
 
 describe('utils', () => {
     describe('ParseTildeCaretNotation', () => {

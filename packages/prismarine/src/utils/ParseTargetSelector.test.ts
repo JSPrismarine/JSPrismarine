@@ -1,39 +1,34 @@
 import { describe, expect, it } from 'vitest';
 
-import { Entity } from '../entity/Entity';
-import { GenericEntity } from '../testing/genericEntity.test.helper';
-import { testEntityServer } from '../testing/entityServer';
-import { stub } from '../testing/stub.test.helper';
-import type { World } from '../world';
-import { Position } from '../world/Position';
+import { Vector3 } from '@jsprismarine/math';
+
 import ParseTargetSelector from './ParseTargetSelector';
+import type { SelectorEntity } from './ParseTargetSelector';
 
-/**
- * Just enough world for an entity to stand in one.
- *
- * A position now insists on having a world, and an entity takes its server from that world,
- * so `null` no longer stands in for either - which is the point of the change: an entity
- * that is nowhere is not a state the type system should have allowed.
- */
-const fakeWorld = () =>
-    stub<World>({ getName: () => 'test-world', getServer: () => testEntityServer(), getEntities: () => [] });
+/** Every double gets its own id, as a world's entities do. */
+let nextId = 1n;
 
-/** An entity somewhere, since where exactly does not matter to a selector. */
-const somewhere = () => new Position(0, 0, 0, fakeWorld());
+/** An entity of a type, standing at a point, which is all a selector reads. */
+const entityAt = (type: string, x = 0): SelectorEntity => {
+    const id = nextId++;
+    return {
+        getRuntimeId: () => id,
+        getType: () => type,
+        getName: () => type,
+        getPosition: () => new Vector3(x, 0, 0)
+    };
+};
 
-/** A mob-shaped body, which is what the runtime gives every mob and what a selector meets. */
-const sheep = () => new GenericEntity({ identifier: 'minecraft:sheep', position: somewhere() });
+/** A mob, which a selector tells apart from a player by its type. */
+const sheep = (x = 0) => entityAt('minecraft:sheep', x);
 
-/**
- * A player, as this selector meets one: an entity of the player's type, which is how the selector
- * tells players apart. No connection or store stands behind it.
- */
-const fakePlayer = () => new GenericEntity({ identifier: 'minecraft:player', position: somewhere() });
+/** A player, as this selector meets one: an entity of the player's type. */
+const fakePlayer = (x = 0) => Object.assign(entityAt('minecraft:player', x), { gamemode: 0 });
 
 describe('utils', () => {
     describe('ParseTargetSelector', () => {
         it('returns source upon "@s"', () => {
-            const source = new Entity({ position: somewhere() });
+            const source = entityAt('minecraft:armor_stand');
 
             expect(
                 ParseTargetSelector({
@@ -45,7 +40,7 @@ describe('utils', () => {
         });
 
         it('returns all players upon "@a"', () => {
-            const source = new Entity({ position: somewhere() });
+            const source = entityAt('minecraft:armor_stand');
             const players = [fakePlayer(), fakePlayer()];
             const entities = [source, ...players];
 
@@ -132,6 +127,14 @@ describe('utils', () => {
                     source
                 })
             ).toStrictEqual([player]);
+        });
+
+        it('returns the nearest other player upon "@p"', () => {
+            const source = fakePlayer(0);
+            const near = fakePlayer(2);
+            const entities = [source, fakePlayer(5), near, sheep(1)];
+
+            expect(ParseTargetSelector({ input: '@p', entities, source })).toStrictEqual([near]);
         });
     });
 });

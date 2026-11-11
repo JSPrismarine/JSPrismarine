@@ -1,4 +1,4 @@
-import type { Entity } from '../entity/Entity';
+import type { Vector3 } from '@jsprismarine/math';
 
 /**
  * Reads one coordinate written as a plain number.
@@ -37,7 +37,8 @@ const ParseTildeCaretNotation = ({
 }: {
     input: string;
     type: 'x' | 'y' | 'z';
-    source: Entity;
+    /** What the coordinate is relative to, which is read for where it is. */
+    source: { getPosition(): Vector3 };
 }): number => {
     if (!input.startsWith('~') && !input.startsWith('^')) return readNumber(input);
 

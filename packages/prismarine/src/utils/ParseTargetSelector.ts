@@ -1,5 +1,15 @@
+import type { Vector3 } from '@jsprismarine/math';
 import { getGametypeName } from '@jsprismarine/minecraft';
-import type { Entity } from '../entity/Entity';
+
+import { PLAYER_IDENTIFIER } from '../entity/playerOverlay';
+
+/** What a selector reads of an entity: its id, its type, its name and where it is. */
+export interface SelectorEntity {
+    getRuntimeId(): bigint;
+    getType(): string;
+    getName(): string;
+    getPosition(): Vector3;
+}
 
 /** What a selector reads of a player beyond what every entity has: the game mode `m=` compares. */
 interface SelectedPlayer {
@@ -7,7 +17,24 @@ interface SelectedPlayer {
 }
 
 /** Whether an entity is a player, by its type, which every kind of player answers the same. */
-const isPlayer = (entity: Entity): entity is Entity & SelectedPlayer => entity.getType() === 'minecraft:player';
+const isPlayer = <T extends SelectorEntity>(entity: T): entity is T & SelectedPlayer =>
+    entity.getType() === PLAYER_IDENTIFIER;
+
+/**
+ * The candidate nearest the source, other than the source itself, as a list of one. The first of
+ * those within a hundred-thousandth of a block of the nearest wins a tie. With no candidate the
+ * one entry is undefined, which is what `@p` has always answered then.
+ */
+const nearestTo = <T extends SelectorEntity>(source: T, candidates: readonly T[]): T[] => {
+    const at = source.getPosition();
+    const others = candidates.filter((entity) => entity.getRuntimeId() !== source.getRuntimeId());
+    const distances = others.map((entity) => {
+        const position = entity.getPosition();
+        return Math.hypot(position.getX() - at.getX(), position.getY() - at.getY(), position.getZ() - at.getZ());
+    });
+    const closest = Math.min(...distances);
+    return [others.find((_entity, index) => distances[index]! - closest < 0.00001)!];
+};
 
 const SORTS = ['nearest', 'furthest', 'random', 'arbitrary'] as const;
 type Sort = (typeof SORTS)[number];
@@ -35,21 +62,21 @@ const isSort = (value: string): value is Sort => SORTS.some((sort) => sort === v
  *
  * @returns The entities matching the target query
  */
-const ParseTargetSelector = ({
+const ParseTargetSelector = <T extends SelectorEntity>({
     input,
     entities,
     source,
     random = Math.random
 }: {
     input: string;
-    entities: Entity[];
-    source: Entity;
+    entities: T[];
+    source: T;
     /** Random draw for `@r`, supplied by the live server during command execution. */
     random?: () => number;
-}): Entity[] => {
+}): T[] => {
     if (!input.startsWith('@')) throw new Error('input does not start with "@"');
 
-    let targets: Entity[] = entities;
+    let targets: T[] = entities;
 
     // Get input without the at symbol
     const str = input.slice(1, input.length);
@@ -145,7 +172,7 @@ const ParseTargetSelector = ({
 
     switch (sort) {
         case 'nearest':
-            targets = source.getNearestEntity(targets.filter(isPlayer));
+            targets = nearestTo(source, targets.filter(isPlayer));
             break;
         case 'random':
             // FIXME: respect limit filter
