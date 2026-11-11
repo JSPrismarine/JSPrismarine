@@ -1,29 +1,25 @@
 import { Logger } from '@jsprismarine/logger';
 import { PacketCompressionAlgorithm } from '@jsprismarine/minecraft';
-import { BatchCodec, NetworkBinaryStream, PlayStatusPacket, TextPacket, TextPacketType } from '@jsprismarine/protocol';
-import { EventEmitter } from 'node:events';
+import {
+    BatchCodec,
+    CreditsState,
+    NetworkBinaryStream,
+    PlayStatus,
+    PlayStatusPacket,
+    ShowCreditsPacket as FieldShowCreditsPacket,
+    TextPacket,
+    TextPacketType
+} from '@jsprismarine/protocol';
 import { describe, expect, it, vi } from 'vitest';
+import { ShowCreditsPacket } from '../Credits';
+import { FakeTransport } from '../testing/fakeTransport.test.helper';
 import ClientPacketRegistry from './ClientPacketRegistry';
 import ClientSession from './ClientSession';
 
-import type { NetworkPacket } from '@jsprismarine/protocol';
-import type { ITransport, TransportStats } from './ITransport';
+import type { NetworkPacket, PlayStatusData } from '@jsprismarine/protocol';
+import type { ClientPhase } from './ClientHandler';
 
 const logger = new Logger('error');
-
-/** A transport that goes nowhere: batches are pushed in and captured on the way out. */
-class FakeTransport extends EventEmitter implements ITransport {
-    public readonly sent: Buffer[] = [];
-
-    public async connect(): Promise<void> {}
-    public send(payload: Buffer): void {
-        this.sent.push(payload);
-    }
-    public close(): void {}
-    public getStats(): TransportStats {
-        return { rtt: null, bytesSent: 0, bytesReceived: 0, packetsSent: 0, packetsReceived: 0 };
-    }
-}
 
 const encode = (packet: NetworkPacket<any>): Buffer => packet.serialize(new NetworkBinaryStream());
 
@@ -164,5 +160,140 @@ describe('ClientSession settling', () => {
         expect(received).toHaveLength(1);
         expect(transport.sent).toHaveLength(1);
         await sending;
+    });
+});
+
+describe('ClientSession handlers', () => {
+    const turn = (): Promise<void> => new Promise((resolve) => setImmediate(resolve));
+    const spawned = () => new PlayStatusPacket({ status: PlayStatus.PlayerSpawn });
+
+    it('runs a handler for its packet only in the phases it lists', async () => {
+        const { transport, session } = newSession();
+        const seen: { phase: ClientPhase; data: PlayStatusData }[] = [];
+        session.registerHandler(PlayStatusPacket, {
+            phases: ['play'],
+            handle: (data) => void seen.push({ phase: session.getPhase(), data })
+        });
+
+        expect(session.getPhase()).toBe('login');
+        await transport.deliver(spawned());
+        await session.settled();
+        expect(seen).toEqual([]);
+
+        session.setPhase('play');
+        await transport.deliver(spawned());
+        await session.settled();
+        expect(seen).toEqual([{ phase: 'play', data: { status: PlayStatus.PlayerSpawn } }]);
+    });
+
+    it('runs handlers in the order they were registered, and a removed one no more', async () => {
+        const { transport, session } = newSession();
+        const order: string[] = [];
+        const removeFirst = session.registerHandler(PlayStatusPacket, {
+            phases: ['login'],
+            handle: () => void order.push('first')
+        });
+        session.registerHandler(PlayStatusPacket, { phases: ['login'], handle: () => void order.push('second') });
+
+        await transport.deliver(spawned());
+        await session.settled();
+        removeFirst();
+        await transport.deliver(spawned());
+        await session.settled();
+
+        expect(order).toEqual(['first', 'second', 'second']);
+    });
+
+    it('still runs a handler for the packet it was read for when an earlier one removes it', async () => {
+        const { transport, session } = newSession();
+        const order: string[] = [];
+        let removeSecond = (): void => {};
+        session.registerHandler(PlayStatusPacket, {
+            phases: ['login'],
+            handle: () => {
+                order.push('first');
+                removeSecond();
+            }
+        });
+        removeSecond = session.registerHandler(PlayStatusPacket, {
+            phases: ['login'],
+            handle: () => void order.push('second')
+        });
+
+        await transport.deliver(spawned(), spawned());
+        await session.settled();
+
+        expect(order).toEqual(['first', 'second', 'first']);
+    });
+
+    it('stays busy until the work a handler returned settles', async () => {
+        const { transport, session } = newSession();
+        let release = (): void => {};
+        const gate = new Promise<void>((resolve) => {
+            release = resolve;
+        });
+        session.registerHandler(PlayStatusPacket, { phases: ['login'], handle: () => gate });
+
+        await transport.deliver(spawned());
+        for (let index = 0; index < 8; index++) await turn();
+        expect(session.isIdle()).toBe(false);
+
+        release();
+        await session.settled();
+        expect(session.isIdle()).toBe(true);
+    });
+
+    it('logs a handler that fails and carries on with the next handler and the next packet', async () => {
+        const { transport, session } = newSession();
+        const warn = vi.spyOn(logger, 'warn');
+        const reached: number[] = [];
+        session.registerHandler(PlayStatusPacket, {
+            phases: ['login'],
+            handle: () => {
+                throw new Error('thrown');
+            }
+        });
+        session.registerHandler(PlayStatusPacket, {
+            phases: ['login'],
+            handle: async () => {
+                throw new Error('rejected');
+            }
+        });
+        session.registerHandler(PlayStatusPacket, {
+            phases: ['login'],
+            handle: (data) => void reached.push(data.status)
+        });
+
+        try {
+            await transport.deliver(spawned(), new PlayStatusPacket({ status: PlayStatus.LoginSuccess }));
+            await session.settled();
+
+            expect(reached).toEqual([PlayStatus.PlayerSpawn, PlayStatus.LoginSuccess]);
+            expect(warn).toHaveBeenCalledTimes(4);
+        } finally {
+            warn.mockRestore();
+        }
+    });
+
+    it('runs a handler only for packets its own class decoded, not another of the same name', async () => {
+        // The protocol's field-based `ShowCreditsPacket` and the client's typed one share a name
+        // and an id. The client decodes with its own, so a handler for the other never sees one.
+        const transport = new FakeTransport();
+        const registry = new ClientPacketRegistry();
+        registry.register(ShowCreditsPacket);
+        const session = new ClientSession(transport, registry, logger);
+        const typed: number[] = [];
+        let fieldBased = 0;
+        session.registerHandler(ShowCreditsPacket, {
+            phases: ['login'],
+            handle: (credits) => void typed.push(credits.creditsState)
+        });
+        session.registerHandler(FieldShowCreditsPacket, { phases: ['login'], handle: () => void fieldBased++ });
+
+        await transport.deliver(new ShowCreditsPacket({ playerRuntimeId: 1n, creditsState: CreditsState.Start }));
+        await session.settled();
+
+        expect(typed).toEqual([CreditsState.Start]);
+        expect(fieldBased).toBe(0);
     });
 });
