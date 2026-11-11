@@ -3,38 +3,22 @@
  * held while it is in no store, logs nothing then, and once attached logs every component, hand
  * slot and carried slot write, which the runtime undoes. Asserted as state and change log entries.
  */
-import UUID from '@jsprismarine/protocol/wire/structures/UUID';
 import { describe, expect, it } from 'vitest';
 
 import ContainerEntry from '../inventory/ContainerEntry';
 import { Item } from '../item/Item';
-import { fieldsOf, logged, storePlayerFixture } from '../testing/storePlayer.test.helper';
+import {
+    enteredStorePlayer,
+    fieldsOf,
+    logged,
+    loggedInStorePlayer,
+    STORE_PLAYER_FEET,
+    storePlayerFixture
+} from '../testing/storePlayer.test.helper';
 import type { ChangeEntry } from '../world/changelog/ChangeEntry';
 import { enterStore, leaveStore, StorePlayers } from './data/storePlayers';
 import type { EntityFixture } from './data/testing';
 import { FLOOR_Y } from './data/testing';
-import { StorePlayer } from './storePlayer';
-
-const FEET = { x: 0.5, y: FLOOR_Y + 1, z: 0.5 };
-
-/** A store player in no store yet, as a login builds one. */
-const loggedIn = (fixture: EntityFixture) => {
-    const player = new StorePlayer(fixture.runtime.nextEntityId(), {
-        uuid: UUID.fromRandom(),
-        name: 'Steve',
-        xuid: ''
-    });
-    player.standAt(FEET);
-    return player;
-};
-
-/** A store player whose entity is in the fixture's store. */
-const entered = (fixture: EntityFixture) => {
-    const player = loggedIn(fixture);
-    const entity = enterStore(fixture.runtime, new StorePlayers(), player);
-    if (entity === undefined) throw new Error('the fixture declares no player');
-    return { player, entity };
-};
 
 const slotEntries = (entries: readonly ChangeEntry[]) =>
     entries.filter((entry) => entry.kind === 'field' && entry.field === 'inventory-slot');
@@ -57,7 +41,7 @@ describe('a store player', () => {
     describe('in no store', () => {
         it('holds its position, look and health, and logs nothing', () => {
             const fixture = storePlayerFixture();
-            const player = loggedIn(fixture);
+            const player = loggedInStorePlayer(fixture);
 
             const entries = logged(fixture.runtime, () => {
                 player.restoreHealth(7);
@@ -75,7 +59,7 @@ describe('a store player', () => {
 
         it('enters a store with what it held, under its own id, as one membership entry', () => {
             const fixture = storePlayerFixture();
-            const player = loggedIn(fixture);
+            const player = loggedInStorePlayer(fixture);
             player.restoreHealth(7);
             player.setFood(3);
 
@@ -85,7 +69,7 @@ describe('a store player', () => {
 
             const { entity } = player;
             expect(entity?.id).toBe(player.id);
-            expect(entity?.position).toEqual(FEET);
+            expect(entity?.position).toEqual(STORE_PLAYER_FEET);
             expect(entity?.body.nameTag).toBe('Steve');
             expect(entity?.instance.attributes.get('health')?.current).toBe(7);
             expect(player.getFood()).toBe(3);
@@ -98,7 +82,7 @@ describe('a store player', () => {
             const overworld = storePlayerFixture();
             const nether = storePlayerFixture();
             const players = new StorePlayers();
-            const { player, entity } = entered(overworld);
+            const { player, entity } = enteredStorePlayer(overworld);
             entity.body.tags.add('traveler');
             player.restoreHealth(9);
 
@@ -123,7 +107,7 @@ describe('a store player', () => {
         it('runs its survival in the store it entered, on the same components', () => {
             const overworld = storePlayerFixture();
             const nether = storePlayerFixture();
-            const { player } = entered(overworld);
+            const { player } = enteredStorePlayer(overworld);
             leaveStore(overworld.runtime, player, 'changed dimension');
             player.setFood(0);
             const entity = enterStore(nether.runtime, new StorePlayers(), player)!;
@@ -138,7 +122,7 @@ describe('a store player', () => {
     describe('in a store', () => {
         it('logs a write to a carried slot as one inventory-slot entry, and the runtime undoes it', () => {
             const fixture = storePlayerFixture();
-            const { player } = entered(fixture);
+            const { player } = enteredStorePlayer(fixture);
             const inventory = player.getInventory();
 
             const entries = logged(fixture.runtime, () => inventory.setItem(4, diamonds(3)));
@@ -158,7 +142,7 @@ describe('a store player', () => {
 
         it('logs and undoes the hand slot and the crafting grid', () => {
             const fixture = storePlayerFixture();
-            const { player } = entered(fixture);
+            const { player } = enteredStorePlayer(fixture);
             const inventory = player.getInventory();
 
             const entries = logged(fixture.runtime, () => {
@@ -178,7 +162,7 @@ describe('a store player', () => {
 
         it('stops logging once it left the store', () => {
             const fixture = storePlayerFixture();
-            const { player } = entered(fixture);
+            const { player } = enteredStorePlayer(fixture);
             leaveStore(fixture.runtime, player, 'changed dimension');
 
             const entries = logged(fixture.runtime, () => {

@@ -8,11 +8,10 @@ import { Gametype, LevelEvent } from '@jsprismarine/minecraft';
 import { describe, expect, it } from 'vitest';
 
 import { PLAYER_IDENTIFIER } from '../playerOverlay';
-import { fieldsOf, logged, storePlayerFixture } from '../../testing/storePlayer.test.helper';
+import { enteredStorePlayer, fieldsOf, logged, storePlayerFixture } from '../../testing/storePlayer.test.helper';
 import UUID from '@jsprismarine/protocol/wire/structures/UUID';
 
-import { StorePlayer } from '../storePlayer';
-import { enterStore, moveStorePlayer, spawnStorePlayer, StorePlayers } from './storePlayers';
+import { moveStorePlayer, spawnStorePlayer, StorePlayers } from './storePlayers';
 import type { DataEntity } from './DataEntity';
 import type { EntityFixture } from './testing';
 import { FLOOR_Y, TestEntityWorld } from './testing';
@@ -315,13 +314,7 @@ describe('a store player', () => {
     describe('as a StorePlayer', () => {
         it('shares one set of components with the systems, logged and run by them', () => {
             const fixture = storePlayerFixture();
-            const player = new StorePlayer(fixture.runtime.nextEntityId(), {
-                uuid: UUID.fromRandom(),
-                name: 'Steve',
-                xuid: ''
-            });
-            player.standAt({ x: 0.5, y: FLOOR_Y + 1, z: 0.5 });
-            const entity = enterStore(fixture.runtime, new StorePlayers(), player)!;
+            const { player, entity } = enteredStorePlayer(fixture);
 
             const entries = logged(fixture.runtime, () => {
                 player.setFood(0);
