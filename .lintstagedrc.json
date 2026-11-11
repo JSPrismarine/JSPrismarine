@@ -1,3 +1,0 @@
-{
-    "*!(tsup.config|*.test|*.d).(js|mjs|mts|ts)": ["biome lint --write --no-errors-on-unmatched", "prettier --write"]
-}

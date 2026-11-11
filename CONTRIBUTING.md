@@ -59,7 +59,7 @@ lists every vanilla behavior that does not match yet, each a possible change.
 - **Check it.** `pnpm run lint` runs Prettier, Biome and the repository's own checks, and
   `pnpm run typecheck` type-checks every package. Prettier and Biome check only the files your
   branch changed, and `pnpm run format` fixes those; `pnpm run lint:all` and `pnpm run format:all`
-  cover every file, as CI does. The pre-commit hook formats what you stage.
+  cover every file, as CI does.
 - **Describe releases.** A change to a published package needs a Changeset: run `pnpm changeset`
   and pick each package's bump from the [versioning policy](docs/guide/versioning.md).
 - **Keep the docs true.** Update the pages that describe what you changed. A value the docs quote
