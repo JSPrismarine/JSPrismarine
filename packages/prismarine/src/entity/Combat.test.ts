@@ -7,7 +7,7 @@ import { Item } from '../item/Item';
 import { Position } from '../world/Position';
 import { canHarm, CREATIVE_REACH, distanceToBody, meleeAttack, SURVIVAL_REACH } from './Combat';
 import { Attribute, AttributeIds } from '@jsprismarine/protocol/wire/structures/Attribute';
-import { GenericEntity } from './GenericEntity';
+import { GenericEntity } from '../testing/genericEntity.test.helper';
 import Human from './Human';
 import type { Entity } from './Entity';
 

@@ -632,9 +632,13 @@ interactions and trades, saves and the replay digest, portal travel and spawner 
 `World.getActors` and `World.getActor` list and find a world's entities, a store entity as its
 actor, and the actor hands every effect back to the store: a blow goes through the damage
 pipeline, a shove onto the body, a tag or a status effect into the entity's state. A store entity
-is never a legacy `Entity` in the world's entity map. A dropped stack gets an `ItemActorBody` from
-`entity/data/itemBodies.ts` instead, which reads everything from the store entity and goes on the
-wire as an `AddItemActor`. A player in the store gets a `StorePlayerActor` from
+is never a legacy `Entity` in the world's entity map. A dropped stack gets an `ItemActor` from
+`entity/data/itemActor.ts`, which goes on the wire as an `AddItemActor`, is followed six chunks
+rather than eight and sends no metadata or attribute updates. A saved actor whose type no loaded
+pack declares comes back as an `InertActor`: a store entity of the entity overlay's
+[`jsprismarine:inert_actor`](../../packages/entities/vanilla_overlay/entities/inert_actor.json)
+type, which has health and runs nothing, shown and saved under the
+identifier it was saved with and with every actor record tag it was loaded with. A player in the store gets a `StorePlayerActor` from
 `entity/data/storePlayers.ts`, which other clients are sent as an `AddPlayer` followed by its
 abilities and armor, at the height of its eyes, through the same code that shows a legacy player.
 Live players are still legacy players, so no store player reaches a client yet.

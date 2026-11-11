@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import Player from '../Player';
 import { Entity } from '../entity/Entity';
-import { GenericEntity } from '../entity/GenericEntity';
+import { GenericEntity } from '../testing/genericEntity.test.helper';
 import { testEntityServer } from '../testing/entityServer';
 import { stub, stubOf } from '../testing/stub.test.helper';
 import type { World } from '../world';

@@ -1,16 +1,13 @@
-import { Entity } from './Entity';
+import { Entity } from '../entity/Entity';
 import type { Position } from '../world/Position';
 import type { Attribute } from '@jsprismarine/protocol/wire/structures/Attribute';
 
 /**
- * An entity the server has no class for.
+ * A legacy entity body of any type, for the tests that still meet one.
  *
- * Its identifier comes from the file rather than from a constant, so a llama restored from a world
- * this server does not model still says it is a llama - which is what the client needs in order to
- * render it. Everything else about it rides along in {@link Entity.persistentNbt}.
- *
- * Without this, loading a world would mean either dropping every unmodeled mob or refusing to
- * load at all; a wolf would vanish because nobody has written a Wolf class yet.
+ * The server builds none: every entity but a player is a store entity, and a saved actor no pack
+ * declares comes back as an inert one. The tests of code that still takes a legacy `Entity` use
+ * this as the mob in front of it, until that code reads store actors.
  */
 export class GenericEntity extends Entity {
     private readonly identifier: string;
@@ -48,5 +45,3 @@ export class GenericEntity extends Entity {
         return this.identifier;
     }
 }
-
-export default GenericEntity;

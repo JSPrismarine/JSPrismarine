@@ -24,7 +24,7 @@ import { DamageCause } from './DamageCause';
 import { EntityIndex } from './data/entityIndex';
 import { explode } from './Explosion';
 import { Attribute, AttributeIds } from '@jsprismarine/protocol/wire/structures/Attribute';
-import { GenericEntity } from './GenericEntity';
+import { GenericEntity } from '../testing/genericEntity.test.helper';
 import { inertEntityRuntime } from '../testing/entityServer';
 
 /** @see {@link emptyContent} */

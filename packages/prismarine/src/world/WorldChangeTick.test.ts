@@ -20,7 +20,7 @@ import type { Generator } from './Generator';
 import type BaseProvider from './providers/BaseProvider';
 import { World } from './World';
 import { Position } from './Position';
-import { GenericEntity } from '../entity/GenericEntity';
+import { GenericEntity } from '../testing/genericEntity.test.helper';
 import ContainerEntry from '../inventory/ContainerEntry';
 import { Item } from '../item/Item';
 import Player from '../Player';

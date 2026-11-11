@@ -30,14 +30,24 @@ describe('the legacy mob bodies', () => {
         expect(existsSync(join(SOURCE, 'entity/data/liveBodies.ts'))).toBe(false);
     });
 
-    it('leave one legacy class over a store entity: the body of a dropped stack, until slice 9', () => {
+    it('leave no legacy class over a store entity', () => {
         const wrappers = modulesIn(SOURCE)
             .filter((path) => {
                 const text = readFileSync(path, 'utf8');
-                return /class \w+ extends (Entity|GenericEntity|Human)\b/.test(text) && /\bDataEntity\b/.test(text);
+                return /class \w+ extends (Entity|Human)\b/.test(text) && /\bDataEntity\b/.test(text);
             })
             .map((path) => relative(SOURCE, path));
 
-        expect(wrappers).toEqual(['entity/data/itemBodies.ts']);
+        expect(wrappers).toEqual([]);
+    });
+
+    it('leave the player body the one subclass of the legacy entity', () => {
+        // A dropped stack is an item actor and a saved actor no pack declares an inert one, both
+        // store actors, so nothing but the player is a legacy entity.
+        const subclasses = modulesIn(SOURCE)
+            .filter((path) => /class \w+ extends Entity\b/.test(readFileSync(path, 'utf8')))
+            .map((path) => relative(SOURCE, path));
+
+        expect(subclasses).toEqual(['entity/Human.ts']);
     });
 });

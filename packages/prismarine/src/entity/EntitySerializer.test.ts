@@ -1,36 +1,36 @@
 import { NBTTagCompound, Types } from '@jsprismarine/nbt';
 import { describe, expect, it } from 'vitest';
 
-import { testEntityServer } from '../testing/entityServer';
-import { stub } from '../testing/stub.test.helper';
 import { Dimensions } from '../world/Dimension';
-import { Position } from '../world/Position';
-import type { World } from '../world/World';
 import { EntitySerializer } from './EntitySerializer';
-import { GenericEntity } from './GenericEntity';
-import { MetadataFlag } from '@jsprismarine/protocol/wire/structures/Metadata';
+import { storeWorld } from '../testing/storeWorld.test.helper';
 import BinaryStream from '@jsprismarine/binaryutils';
 import { ByteOrder, NBTWriter } from '@jsprismarine/nbt';
-import { liveTestEntities } from '../testing/entityServer';
-import type { Entity } from './Entity';
-import { ItemActorBody } from './data/itemBodies';
+import { MetadataFlag } from '@jsprismarine/protocol/wire/structures/Metadata';
+import { ItemActor } from './data/itemActor';
+import type { LiveEntityRuntime } from './data/live';
+import { dataEntityRecordIn, dataEntityRecordOf, writeDataEntityRecord } from './data/persistence';
+import { INERT_ACTOR } from './data/storeActors';
+import type { StoreActor } from './data/storeActors';
 
-/**
- * A world stand-in. `Entity` takes its server from the world its position is in, so the fake has
- * to answer for that as well as name itself.
- */
-const world = stub<World>({
-    getName: () => 'test',
-    getServer: () => testEntityServer(),
-    getDimension: () => Dimensions.Overworld
-});
+/** Loads an actor record as a save loads one no pack declares, and gives its actor. */
+const loaded = (nbt: NBTTagCompound, { live } = storeWorld()): StoreActor => {
+    const entity = live.restoreInert(EntitySerializer.fromNBT(nbt));
+    const actor = entity === undefined ? undefined : live.actors.actorOf(entity.id);
+    if (actor === undefined) throw new Error('the actor was not restored');
+    return actor;
+};
 
-/** The same stand-in, but a Nether world, so the actor NBT has a dimension to name. */
-const netherWorld = stub<World>({
-    getName: () => 'nether',
-    getServer: () => testEntityServer(),
-    getDimension: () => Dimensions.Nether
-});
+/** What a save writes for an actor record that was loaded. */
+const roundTrip = (nbt: NBTTagCompound, at = storeWorld()): NBTTagCompound => EntitySerializer.toNBT(loaded(nbt, at));
+
+const bytesOf = (compound: NBTTagCompound): Buffer => {
+    const stream = new BinaryStream();
+    const writer = new NBTWriter(stream, ByteOrder.LITTLE_ENDIAN);
+    writer.setUseVarint(false);
+    writer.writeCompound(compound);
+    return stream.getBuffer();
+};
 
 const floats = (values: number[]) => new Set(values.map((value) => new Types.FloatVal(value)));
 
@@ -49,53 +49,76 @@ const keysOf = (compound: NBTTagCompound) => [...compound.entries()].map(([key])
 
 describe('entity', () => {
     describe('EntitySerializer', () => {
-        it('restores TNT as a generic body with a fuse for the data runtime', () => {
-            const tnt = EntitySerializer.fromNBT(actor('minecraft:tnt'), world);
+        it('reads TNT with the fuse the data runtime starts it on', () => {
+            const tnt = EntitySerializer.fromNBT(actor('minecraft:tnt'));
 
-            expect(tnt.getType()).toBe('minecraft:tnt');
-            expect(tnt).toBeInstanceOf(GenericEntity);
-            expect(tnt.metadata.getPropertyValue(MetadataFlag.FUSE_TIME)).toBe(80);
+            expect(tnt.identifier).toBe('minecraft:tnt');
+            expect(tnt.fuse).toBe(80);
         });
 
-        it('falls back to a generic entity that still says what it is', () => {
-            // Every mob loads this way now, because the runtime drives it through its
-            // components and the body only has to say which mob it is.
-            const cow = EntitySerializer.fromNBT(actor('minecraft:cow'), world);
+        it('reads any identifier, so an actor still says what it is', () => {
+            // Every mob loads this way, because the runtime drives it through its components
+            // and the record only has to say which mob it is.
+            const cow = EntitySerializer.fromNBT(actor('minecraft:cow'));
 
-            expect(cow).toBeInstanceOf(GenericEntity);
-            expect(cow.getType()).toBe('minecraft:cow');
+            expect(cow.identifier).toBe('minecraft:cow');
+            expect(cow.fuse).toBeUndefined();
         });
 
         it('restores the position, including below y=0', () => {
-            const position = EntitySerializer.fromNBT(actor('minecraft:cow'), world).getPosition();
-
-            expect(position.getX()).toBe(10.5);
-            expect(position.getY()).toBe(-60.25);
-            expect(position.getZ()).toBe(-3.5);
+            expect(EntitySerializer.fromNBT(actor('minecraft:cow')).position).toEqual({ x: 10.5, y: -60.25, z: -3.5 });
         });
 
         it('restores the rotation', () => {
-            const cow = EntitySerializer.fromNBT(actor('minecraft:cow'), world);
+            const cow = EntitySerializer.fromNBT(actor('minecraft:cow'));
 
             expect(cow.yaw).toBe(90);
             expect(cow.pitch).toBe(45);
         });
 
+        describe('an actor no loaded pack declares', () => {
+            it('comes back as an inert store entity that says what it was saved as', () => {
+                const at = storeWorld();
+                const llama = loaded(actor('minecraft:llama'), at);
+
+                expect(llama.entity.identifier).toBe(INERT_ACTOR);
+                expect(llama.getType()).toBe('minecraft:llama');
+                expect(llama.toString()).toContain('minecraft:llama');
+                expect(llama.entity.position).toEqual({ x: 10.5, y: -60.25, z: -3.5 });
+                expect([llama.yaw, llama.pitch]).toEqual([90, 45]);
+            });
+
+            it('saves the record it was loaded from unchanged, its data entity record included', () => {
+                // Saved by a server whose pack declared the llama, and loaded by one whose does not.
+                const at = storeWorld();
+                const cow = at.live.runtime.spawn('minecraft:cow', { x: 0.5, y: 64, z: 0.5 });
+                if (cow === undefined) throw new Error('the fixture declares no cow');
+                const record = { ...dataEntityRecordOf(cow, undefined), identifier: 'minecraft:llama' };
+                const saved = actor('minecraft:llama', (root) => writeDataEntityRecord(root, record));
+
+                const llama = loaded(saved, at);
+                at.live.persist();
+                const written = EntitySerializer.toNBT(llama);
+
+                expect(at.live.savedRecords().has(llama)).toBe(false);
+                expect(dataEntityRecordIn(written)).toEqual(record);
+                expect(keysOf(written)).toEqual(expect.arrayContaining(keysOf(saved)));
+            });
+
+            it('keeps a saved TNT primed, and writes its fuse back', () => {
+                const tnt = loaded(actor('minecraft:tnt', (root) => root.addValue('JSPFuse', new Types.NumberVal(37))));
+
+                expect(tnt.metadata.getPropertyValue(MetadataFlag.FUSE_TIME)).toBe(37);
+                expect(EntitySerializer.toNBT(tnt).getNumber('JSPFuse', 0)).toBe(37);
+            });
+        });
+
         describe('a dropped stack', () => {
-            /** A world whose server runs real entity runtimes, so a stack comes back into a store. */
-            const itemWorld = () => {
-                const added: Entity[] = [];
-                let world: World | undefined;
-                const entities = liveTestEntities(() => world);
-                const server = testEntityServer({ entityRuntime: entities.entityRuntime('minecraft:overworld') });
-                world = stub<World>({
-                    getName: () => 'test',
-                    getServer: () => server,
-                    getDimension: () => Dimensions.Overworld,
-                    addEntity: async (entity: Entity) => void added.push(entity),
-                    entityRelocated: () => {}
-                });
-                return { world, added, live: entities.entityRuntime('minecraft:overworld') };
+            /** The actor of a stack restored from its record. */
+            const itemOf = (live: LiveEntityRuntime, nbt: NBTTagCompound): ItemActor | undefined => {
+                const entity = live.restoreItem(EntitySerializer.fromNBT(nbt));
+                const actor = entity === undefined ? undefined : live.actors.actorOf(entity.id);
+                return actor instanceof ItemActor ? actor : undefined;
             };
 
             /**
@@ -130,66 +153,51 @@ describe('entity', () => {
                 return root;
             };
 
-            const bytesOf = (compound: NBTTagCompound): Buffer => {
-                const stream = new BinaryStream();
-                const writer = new NBTWriter(stream, ByteOrder.LITTLE_ENDIAN);
-                writer.setUseVarint(false);
-                writer.writeCompound(compound);
-                return stream.getBuffer();
-            };
-
             it('comes back as a store stack with its Bedrock fields', () => {
-                const { world, live } = itemWorld();
-                const stored = EntitySerializer.fromNBT(savedItem(), world);
+                const { live } = storeWorld();
 
-                const entity = live.restoreItem(stored);
+                const item = itemOf(live, savedItem());
 
-                expect(entity?.identifier).toBe('minecraft:item');
-                const body = entity === undefined ? undefined : live.itemBodies.bodyOf(entity.id);
-                expect(body).toBeInstanceOf(ItemActorBody);
-                expect(body?.getItem()?.getItem().getName()).toBe('minecraft:stone');
-                expect(body?.getItem()?.getCount()).toBe(2);
-                expect(body?.savedItem()).toMatchObject({ age: 120, pickupDelay: 27 });
-                expect(entity?.position).toEqual({ x: 10.5, y: -60.125, z: -3.5 });
-                expect(entity?.body.velocity).toEqual({ x: -0.01, y: 0.1, z: 0.3 });
+                expect(item?.entity.identifier).toBe('minecraft:item');
+                expect(item?.getItem()?.getItem().getName()).toBe('minecraft:stone');
+                expect(item?.getItem()?.getCount()).toBe(2);
+                expect(item?.savedItem()).toMatchObject({ age: 120, pickupDelay: 27 });
+                expect(item?.entity.position).toEqual({ x: 10.5, y: -60.125, z: -3.5 });
+                expect(item?.entity.body.velocity).toEqual({ x: -0.01, y: 0.1, z: 0.3 });
             });
 
             it('saves the record it was loaded from byte for byte', () => {
-                const { world, live } = itemWorld();
+                const { live } = storeWorld();
                 const record = savedItem();
-                const entity = live.restoreItem(EntitySerializer.fromNBT(record, world));
-                const body = entity === undefined ? undefined : live.itemBodies.bodyOf(entity.id);
-                if (body === undefined) throw new Error('the stack was not restored');
+                const item = itemOf(live, record);
+                if (item === undefined) throw new Error('the stack was not restored');
 
-                const written = EntitySerializer.toNBT(body);
+                // A save writes every entity's record first, and a stack's record is its own tags.
+                live.persist();
+                const written = EntitySerializer.toNBT(item);
                 expect(bytesOf(written)).toEqual(bytesOf(record));
 
                 // And again, from what this server wrote.
-                const again = live.restoreItem(EntitySerializer.fromNBT(written, world));
-                const reloaded = again === undefined ? undefined : live.itemBodies.bodyOf(again.id);
+                const reloaded = itemOf(live, written);
                 expect(reloaded === undefined ? undefined : bytesOf(EntitySerializer.toNBT(reloaded))).toEqual(
                     bytesOf(record)
                 );
             });
 
             it('takes the definition pickup delay when the record has none, and refuses one with no stack', () => {
-                const { world, live } = itemWorld();
+                const { live } = storeWorld();
                 const withoutDelay = savedItem();
                 withoutDelay.remove('PickupDelay');
                 const withoutStack = savedItem();
                 withoutStack.remove('Item');
 
-                const entity = live.restoreItem(EntitySerializer.fromNBT(withoutDelay, world));
-
-                expect(
-                    entity === undefined ? undefined : live.itemBodies.bodyOf(entity.id)?.savedItem()?.pickupDelay
-                ).toBe(10);
-                expect(live.restoreItem(EntitySerializer.fromNBT(withoutStack, world))).toBe(undefined);
+                expect(itemOf(live, withoutDelay)?.savedItem()?.pickupDelay).toBe(10);
+                expect(live.restoreItem(EntitySerializer.fromNBT(withoutStack))).toBe(undefined);
             });
         });
 
         it('writes the position and rotation back', () => {
-            const written = EntitySerializer.toNBT(EntitySerializer.fromNBT(actor('minecraft:cow'), world));
+            const written = roundTrip(actor('minecraft:cow'));
 
             expect([...(written.getList('Pos', false) ?? [])].map((v) => v.getValue())).toEqual([10.5, -60.25, -3.5]);
             expect([...(written.getList('Rotation', false) ?? [])].map((v) => v.getValue())).toEqual([90, 45]);
@@ -203,24 +211,20 @@ describe('entity', () => {
                 );
             });
 
-            const restored = EntitySerializer.fromNBT(source, world);
-            const saved = EntitySerializer.toNBT(restored);
+            const saved = roundTrip(source);
             const motion = saved.getList('Motion', false);
 
             expect(motion && [...motion].map((entry) => entry.getValue())).toEqual([1.25, -0.5, 3]);
-            expect(restored).toBeInstanceOf(GenericEntity);
-            expect(restored.getType()).toBe('minecraft:arrow');
+            expect(saved.getString('identifier', '')).toBe('minecraft:arrow');
         });
 
         it('preserves a legacy TNT fuse through actor NBT', () => {
             const source = actor('minecraft:tnt', (root) => root.addValue('JSPFuse', new Types.NumberVal(37)));
 
-            const written = EntitySerializer.toNBT(EntitySerializer.fromNBT(source, world));
-            const restored = EntitySerializer.fromNBT(written, world);
+            const written = roundTrip(source);
 
             expect(written.getNumber('JSPFuse', 0)).toBe(37);
-            expect(restored).toBeInstanceOf(GenericEntity);
-            expect(restored.metadata.getPropertyValue(MetadataFlag.FUSE_TIME)).toBe(37);
+            expect(EntitySerializer.fromNBT(written).fuse).toBe(37);
         });
 
         it('preserves a legacy falling block payload through actor NBT', () => {
@@ -228,11 +232,10 @@ describe('entity', () => {
                 root.addValue('JSPBlockName', new Types.StringVal('minecraft:stone'))
             );
 
-            const saved = EntitySerializer.toNBT(EntitySerializer.fromNBT(source, world));
-            const restored = EntitySerializer.fromNBT(saved, world);
+            const saved = roundTrip(source);
+            const restored = EntitySerializer.fromNBT(saved);
 
             expect(saved.getString('JSPBlockName', '')).toBe('minecraft:stone');
-            expect(restored).toBeInstanceOf(GenericEntity);
             expect(restored.persistentNbt?.getString('JSPBlockName', '')).toBe('minecraft:stone');
         });
 
@@ -242,7 +245,7 @@ describe('entity', () => {
             const source = actor('minecraft:cow');
             source.addValue('Pos', floats([0, 0, 0]));
 
-            const written = EntitySerializer.toNBT(EntitySerializer.fromNBT(source, world));
+            const written = roundTrip(source);
 
             expect([...(written.getList('Pos', false) ?? [])]).toHaveLength(3);
         });
@@ -256,7 +259,7 @@ describe('entity', () => {
                     );
                 });
 
-                const written = EntitySerializer.toNBT(EntitySerializer.fromNBT(source, world));
+                const written = roundTrip(source);
 
                 expect([...(written.getList('definitions', false) ?? [])].map((v) => v.getValue())).toEqual([
                     '+minecraft:cow',
@@ -272,7 +275,7 @@ describe('entity', () => {
                     root.addValue('SomeFutureField', new Types.StringVal('kept'));
                 });
 
-                const written = EntitySerializer.toNBT(EntitySerializer.fromNBT(source, world));
+                const written = roundTrip(source);
 
                 // A superset, not an equal set: writing also fills in the fields every vanilla
                 // actor carries. What matters is that nothing was dropped.
@@ -283,7 +286,7 @@ describe('entity', () => {
             });
 
             it('keeps a negative Fire, which every burning actor has', () => {
-                const written = EntitySerializer.toNBT(EntitySerializer.fromNBT(actor('minecraft:cow'), world));
+                const written = roundTrip(actor('minecraft:cow'));
 
                 expect(written.getShort('Fire', 0)).toBe(-20);
             });
@@ -293,10 +296,10 @@ describe('entity', () => {
                     root.addValue('Variant', new Types.NumberVal(9))
                 );
 
-                const first = EntitySerializer.toNBT(EntitySerializer.fromNBT(source, world));
+                const first = roundTrip(source);
                 let written = first;
                 for (let i = 0; i < 3; i++) {
-                    written = EntitySerializer.toNBT(EntitySerializer.fromNBT(written, world));
+                    written = roundTrip(written);
                 }
 
                 // Stable after the first pass: the defaults are added once and never again.
@@ -309,7 +312,7 @@ describe('entity', () => {
             const source = new NBTTagCompound('');
             source.addValue('identifier', new Types.StringVal('minecraft:cow'));
 
-            const written = EntitySerializer.toNBT(EntitySerializer.fromNBT(source, world));
+            const written = roundTrip(source);
 
             expect(written.getShort('Air', 0)).toBe(300);
             expect(written.getByte('Invulnerable', 1)).toBe(0);
@@ -321,24 +324,23 @@ describe('entity', () => {
                     root.addValue('PortalCooldown', new Types.NumberVal(123))
                 );
 
-                const restored = EntitySerializer.fromNBT(source, world);
+                const restored = loaded(source);
                 expect(restored.getPortalCooldown()).toBe(123);
 
                 const written = EntitySerializer.toNBT(restored);
                 expect(written.getNumber('PortalCooldown', -1)).toBe(123);
-                expect(EntitySerializer.fromNBT(written, world).getPortalCooldown()).toBe(123);
+                expect(EntitySerializer.fromNBT(written).portalCooldown).toBe(123);
             });
 
             it('writes a zero cooldown for an actor that never had one', () => {
-                const written = EntitySerializer.toNBT(EntitySerializer.fromNBT(actor('minecraft:cow'), world));
+                const written = roundTrip(actor('minecraft:cow'));
 
                 expect(written.getNumber('PortalCooldown', -1)).toBe(0);
             });
 
             it('writes the cooldown the entity has now, not the one it was loaded with', () => {
-                const restored = EntitySerializer.fromNBT(
-                    actor('minecraft:cow', (root) => root.addValue('PortalCooldown', new Types.NumberVal(300))),
-                    world
+                const restored = loaded(
+                    actor('minecraft:cow', (root) => root.addValue('PortalCooldown', new Types.NumberVal(300)))
                 );
                 restored.setPortalCooldown(7);
 
@@ -346,8 +348,8 @@ describe('entity', () => {
             });
 
             it("names the dimension of the world the entity is in, by Bedrock's id", () => {
-                const overworld = EntitySerializer.toNBT(EntitySerializer.fromNBT(actor('minecraft:cow'), world));
-                const nether = EntitySerializer.toNBT(EntitySerializer.fromNBT(actor('minecraft:cow'), netherWorld));
+                const overworld = roundTrip(actor('minecraft:cow'));
+                const nether = roundTrip(actor('minecraft:cow'), storeWorld(Dimensions.Nether));
 
                 expect(overworld.getNumber('DimensionId', -1)).toBe(0);
                 expect(nether.getNumber('DimensionId', -1)).toBe(1);
@@ -356,7 +358,7 @@ describe('entity', () => {
             it('overwrites a stale DimensionId from the file with the world the entity is in', () => {
                 const source = actor('minecraft:cow', (root) => root.addValue('DimensionId', new Types.NumberVal(2)));
 
-                const written = EntitySerializer.toNBT(EntitySerializer.fromNBT(source, netherWorld));
+                const written = roundTrip(source, storeWorld(Dimensions.Nether));
 
                 expect(written.getNumber('DimensionId', -1)).toBe(1);
             });
@@ -365,19 +367,20 @@ describe('entity', () => {
         describe('identity', () => {
             // Every entity once read its uuid off the world it was built in, so all of them
             // shared one. Only players carry a uuid now, and each entity has its own runtime id.
+            const at = storeWorld();
             const catWithId = (uniqueId: bigint) =>
                 actor('minecraft:cat', (root) => root.addValue('UniqueID', new Types.LongVal(uniqueId)));
 
             it('gives two actors loaded from disk their own runtime ids', () => {
-                const first = EntitySerializer.fromNBT(catWithId(1n), world);
-                const second = EntitySerializer.fromNBT(catWithId(2n), world);
+                const first = loaded(catWithId(1n), at);
+                const second = loaded(catWithId(2n), at);
 
                 expect(first.getRuntimeId()).not.toBe(second.getRuntimeId());
             });
 
             it('describes two actors differently, and without a uuid', () => {
-                const first = EntitySerializer.fromNBT(catWithId(1n), world).toString();
-                const second = EntitySerializer.fromNBT(catWithId(2n), world).toString();
+                const first = loaded(catWithId(1n), at).toString();
+                const second = loaded(catWithId(2n), at).toString();
 
                 expect(first).not.toBe(second);
                 expect(first).not.toMatch(/uuid/i);
@@ -385,24 +388,11 @@ describe('entity', () => {
             });
 
             it('writes each actor back with the UniqueID it came with', () => {
-                const first = EntitySerializer.toNBT(EntitySerializer.fromNBT(catWithId(1n), world));
-                const second = EntitySerializer.toNBT(EntitySerializer.fromNBT(catWithId(2n), world));
+                const first = roundTrip(catWithId(1n), at);
+                const second = roundTrip(catWithId(2n), at);
 
                 expect(first.getLong('UniqueID', 0n)).toBe(1n);
                 expect(second.getLong('UniqueID', 0n)).toBe(2n);
-            });
-
-            it('gives two entities built directly their own runtime ids', () => {
-                const first = new GenericEntity({
-                    identifier: 'minecraft:cat',
-                    position: new Position(0, 0, 0, world)
-                });
-                const second = new GenericEntity({
-                    identifier: 'minecraft:cat',
-                    position: new Position(0, 0, 0, world)
-                });
-
-                expect(first.getRuntimeId()).not.toBe(second.getRuntimeId());
             });
         });
     });

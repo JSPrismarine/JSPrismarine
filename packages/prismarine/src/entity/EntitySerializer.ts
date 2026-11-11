@@ -1,22 +1,19 @@
 import { Vector3 } from '@jsprismarine/math';
+import type { EntityPosition } from '@jsprismarine/entities';
 import { NBTTagCompound, Types } from '@jsprismarine/nbt';
 
 import { isStoredItemStack } from '../inventory/persistence';
 import type { StoredItemStack } from '../inventory/persistence';
-import { writtenEntities } from './Entities';
-import type { Entity } from './Entity';
-import { GenericEntity } from './GenericEntity';
-import { ItemActorBody } from './data/itemBodies';
+import { ItemActor } from './data/itemActor';
 import { StoreActor } from './data/storeActors';
 import type { ItemStart } from './data/droppedItems';
 import { DEFAULT_FUSE_TICKS } from './fuse';
 import { MetadataFlag } from '@jsprismarine/protocol/wire/structures/Metadata';
+import { portalCooldownOf } from './PortalContact';
 import type { StatusEffect } from './StatusEffect';
 import { bedrockMobEffectIdentifier, bedrockMobEffectId } from './StatusEffect';
 import type { DataEntityRecord } from './data/persistence';
 import { dataEntityRecordIn, writeDataEntityRecord } from './data/persistence';
-import { Position } from '../world/Position';
-import type { World } from '../world/World';
 import type { WorldActor } from '../world/WorldActor';
 
 const TNT_IDENTIFIER = 'minecraft:tnt';
@@ -25,7 +22,7 @@ const TNT_IDENTIFIER = 'minecraft:tnt';
  * Reads and writes the actor NBT a Bedrock world stores.
  *
  * Same rule as the block entities: the fields the server models are lifted out, and every other
- * tag is kept on {@link Entity.persistentNbt} and written back untouched. `definitions` is the one
+ * tag is kept on {@link StoredActor.persistentNbt} and written back untouched. `definitions` is the one
  * that makes this mandatory rather than tidy - it names the behavior pack component groups the
  * actor was assembled from, and an actor saved without it comes back broken.
  */
@@ -49,38 +46,57 @@ const REWRITTEN = [
     'DimensionId'
 ] as const;
 
+/**
+ * One saved actor as the store takes it in: the fields the server models, lifted out of the actor
+ * NBT, and every other tag kept for the next save to write back.
+ */
+export interface StoredActor {
+    /** The saved type, such as `minecraft:cow`, which no loaded pack has to declare. */
+    readonly identifier: string;
+    /** Where the actor stood. */
+    readonly position: EntityPosition;
+    readonly yaw: number;
+    readonly pitch: number;
+    /** The `/tag` tags, each once. */
+    readonly tags: readonly string[];
+    /** The status effects this server models; the rest stay in {@link StoredActor.persistentNbt}. */
+    readonly statusEffects: readonly StatusEffect[];
+    /** Ticks left before the actor may enter a portal again. */
+    readonly portalCooldown: number;
+    /** A primed TNT's fuse in ticks, or undefined for anything else. */
+    readonly fuse?: number;
+    /**
+     * Every tag the fields above were not read from, the data entity record among them, or null
+     * for an actor a level's entity snapshot holds, which has no actor record.
+     */
+    readonly persistentNbt: NBTTagCompound | null;
+}
+
 export class EntitySerializer {
     /**
-     * Builds an entity from its stored NBT.
+     * Reads a saved actor from its stored NBT.
      *
-     * An identifier with no class behind it becomes a {@link GenericEntity} carrying that
-     * identifier, so an unmodeled mob still loads and still renders as itself.
+     * Any identifier reads, declared by a loaded pack or not, so an unmodeled mob still loads
+     * and still renders as itself; see `LiveEntityRuntime.restoreInert`.
      */
-    public static fromNBT(nbt: NBTTagCompound, world: World): Entity {
+    public static fromNBT(nbt: NBTTagCompound): StoredActor {
         const identifier = nbt.getString('identifier', '');
         const [x, y, z] = readFloats(nbt, 'Pos', 3);
         const [yaw, pitch] = readFloats(nbt, 'Rotation', 2);
 
-        const position = new Position(x ?? 0, y ?? 0, z ?? 0, world);
-        const modeled = writtenEntities().get(identifier);
-        const options = { position, pitch: pitch ?? 0, yaw: yaw ?? 0, headYaw: yaw ?? 0 };
-
-        // A dropped stack comes back as a generic body carrying its record, which the world hands
-        // to the store; see `LiveEntityRuntime.restoreItem`.
-        const entity = modeled ? new modeled(options) : new GenericEntity({ identifier, ...options });
-
-        if (identifier === TNT_IDENTIFIER) {
-            const fuse = nbt.getNumber('JSPFuse', nbt.getNumber('Fuse', nbt.getNumber('fuse', DEFAULT_FUSE_TICKS)));
-            entity.metadata.setInt(MetadataFlag.FUSE_TIME, fuse);
-            entity.metadata.setIgnited(true);
-        }
-
-        for (const tag of stringsIn(nbt, 'Tags')) entity.addTag(tag);
-        for (const effect of activeEffectsIn(nbt)) entity.addStatusEffect(effect, false);
-        entity.setPortalCooldown(nbt.getNumber('PortalCooldown', 0));
-
-        entity.persistentNbt = remainder(nbt);
-        return entity;
+        return {
+            identifier,
+            position: { x: x ?? 0, y: y ?? 0, z: z ?? 0 },
+            yaw: yaw ?? 0,
+            pitch: pitch ?? 0,
+            tags: [...new Set(stringsIn(nbt, 'Tags'))],
+            statusEffects: activeEffectsIn(nbt),
+            portalCooldown: portalCooldownOf(nbt.getNumber('PortalCooldown', 0)),
+            ...(identifier === TNT_IDENTIFIER
+                ? { fuse: nbt.getNumber('JSPFuse', nbt.getNumber('Fuse', nbt.getNumber('fuse', DEFAULT_FUSE_TICKS))) }
+                : {}),
+            persistentNbt: remainder(nbt)
+        };
     }
 
     /**
@@ -114,7 +130,7 @@ export class EntitySerializer {
         if (allEffects.length > 0) nbt.addValue('ActiveEffects', new Set(allEffects));
         else nbt.remove('ActiveEffects');
 
-        if (entity instanceof ItemActorBody) {
+        if (entity instanceof ItemActor) {
             const saved = entity.savedItem();
             nbt.addValue('Age', new Types.ShortVal(saved?.age ?? 0));
             nbt.addValue('PickupDelay', new Types.ShortVal(saved?.pickupDelay ?? 0));
@@ -133,7 +149,7 @@ export class EntitySerializer {
             }
         }
 
-        if (entity instanceof GenericEntity || entity instanceof StoreActor) {
+        if (entity instanceof StoreActor) {
             const projectile = dataEntityRecordIn(nbt)?.projectile;
             if (projectile !== undefined) {
                 const { velocity } = projectile;

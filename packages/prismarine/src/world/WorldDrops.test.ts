@@ -4,8 +4,8 @@ import { describe, expect, it } from 'vitest';
 
 import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
 import { BlockState } from '../block/state/BlockState';
-import type { Entity } from '../entity/Entity';
-import { ItemActorBody as ItemEntity } from '../entity/data/itemBodies';
+import { ItemActor as ItemEntity } from '../entity/data/itemActor';
+import type { LiveEntityRuntime } from '../entity/data/live';
 import { Item } from '../item/Item';
 import { NetworkWorldReplicator } from '../network/NetworkWorldReplicator';
 import AddItemActorPacket from '@jsprismarine/protocol/packet/AddItemActorPacket';
@@ -17,6 +17,10 @@ import Chunk from './chunk/Chunk';
 import { World } from './World';
 import { NULL_WORLD_CHANGE_SINK } from './WorldChangeSink';
 import { fakeLevel } from '../testing/level';
+
+/** The dropped stacks of a dimension's store, by their actors. */
+const itemsOf = (live: LiveEntityRuntime): ItemEntity[] =>
+    [...live.actors.all()].filter((actor): actor is ItemEntity => actor instanceof ItemEntity);
 
 /**
  * A break, all the way to the packet that puts the dropped stack on someone's screen.
@@ -78,13 +82,10 @@ const fakeWorld = (initial: BlockState, { id = 1, dropName = initial.name } = {}
         viewDistance: 10
     };
 
-    // The real one, so `addEntity` has somewhere to put what it is given - and handed back,
-    // because the world keeps no public count of what it holds.
-    const entities = new Map<bigint, Entity>();
-
     // Where a drop becomes a store stack, and whose index the world files it in.
     let world: World | undefined;
     const live = liveTestEntities(() => world);
+    const items = () => itemsOf(live.entityRuntime(Dimensions.Overworld.name));
     world = Object.assign(Object.create(World.prototype), {
         chunks: new Map([[Chunk.packXZ(0, 0), chunk]]),
         dimension: Dimensions.Overworld,
@@ -92,7 +93,7 @@ const fakeWorld = (initial: BlockState, { id = 1, dropName = initial.name } = {}
         level: fakeLevel(),
         blockUpdates: new BlockUpdateScheduler(),
         systems: { onBlockChanged: () => {}, updateAround: () => {} },
-        entities,
+        entities: new Map(),
         players: new Map(),
         getChunkAt: async () => chunk,
         getBlock: async () => block,
@@ -117,7 +118,7 @@ const fakeWorld = (initial: BlockState, { id = 1, dropName = initial.name } = {}
 
     world.attachChangeSink(new NetworkWorldReplicator(world, world.getServer()));
 
-    return { world, player, sent, entities };
+    return { world, player, sent, items };
 };
 
 /**
@@ -129,17 +130,17 @@ const fakeWorld = (initial: BlockState, { id = 1, dropName = initial.name } = {}
  */
 const emptyWorld = () => {
     const warnings: string[] = [];
-    const entities = new Map<bigint, Entity>();
     // Counted, so a test can say how many rolls the drops took. Each is the middle of its range.
     let rolls = 0;
 
     // Where a drop becomes a store stack, and whose index the world files it in.
     let world: World | undefined;
     const live = liveTestEntities(() => world);
+    const items = () => itemsOf(live.entityRuntime(Dimensions.Overworld.name));
     world = Object.assign(Object.create(World.prototype), {
         name: 'flooded',
         dimension: Dimensions.Overworld,
-        entities,
+        entities: new Map(),
         players: new Map(),
         entityChunkIndices: new Map(),
         chunks: new Map(),
@@ -157,7 +158,7 @@ const emptyWorld = () => {
     });
     if (world === undefined) throw new Error('unreachable');
 
-    return { world, entities, warnings, rolls: () => rolls };
+    return { world, items, warnings, rolls: () => rolls };
 };
 
 describe('world', () => {
@@ -190,19 +191,19 @@ describe('world', () => {
         });
 
         it('adds the drop to the world, so it ticks and can be picked up', async () => {
-            const { world, player, entities } = fakeWorld(new BlockState('minecraft:cobblestone'));
+            const { world, player, items } = fakeWorld(new BlockState('minecraft:cobblestone'));
 
             await world.breakBlock(new Vector3(10, 64, -20), player);
 
-            expect(entities.size).toBe(1);
+            expect(items().length).toBe(1);
         });
 
         it('throws a player drop from eye height and delays pickup for forty ticks', async () => {
-            const { world, player, entities } = fakeWorld(new BlockState('minecraft:stone'));
+            const { world, player, items } = fakeWorld(new BlockState('minecraft:stone'));
 
             await world.dropFromPlayer(player, [new Item({ runtimeId: 1, name: 'minecraft:stone', meta: 0 })]);
 
-            const dropped = [...entities.values()].find((entity) => entity instanceof ItemEntity);
+            const dropped = items()[0];
             if (!(dropped instanceof ItemEntity)) throw new Error('the player drop did not create an item entity');
 
             expect([dropped.getPosition().getX(), dropped.getPosition().getY(), dropped.getPosition().getZ()]).toEqual([
@@ -215,13 +216,13 @@ describe('world', () => {
         });
 
         it('drops the whole stack a player let go of as one stack of the same size', async () => {
-            const { world, player, entities } = fakeWorld(new BlockState('minecraft:stone'));
+            const { world, player, items } = fakeWorld(new BlockState('minecraft:stone'));
 
             await world.dropFromPlayer(player, [
                 new Item({ runtimeId: 1, name: 'minecraft:stone', meta: 0, count: 2 })
             ]);
 
-            const dropped = [...entities.values()].filter((entity) => entity instanceof ItemEntity);
+            const dropped = items();
             expect(dropped).toHaveLength(1);
             expect(dropped[0]?.savedItem()?.stack.count).toBe(2);
             expect(dropped[0]?.getItem()?.getCount()).toBe(2);
@@ -229,7 +230,7 @@ describe('world', () => {
 
         it('drops nothing for a block whose drop has no item id, rather than air', async () => {
             // On the wire it was an item actor holding air: an empty item on the ground.
-            const { world, player, sent, entities } = fakeWorld(new BlockState('minecraft:cobblestone'), {
+            const { world, player, sent, items } = fakeWorld(new BlockState('minecraft:cobblestone'), {
                 id: 0,
                 dropName: 'minecraft:not_an_item'
             });
@@ -237,14 +238,14 @@ describe('world', () => {
             await world.breakBlock(new Vector3(10, 64, -20), player);
 
             expect(sent.some((packet) => packet instanceof AddItemActorPacket)).toBe(false);
-            expect(entities.size).toBe(0);
+            expect(items().length).toBe(0);
         });
 
         it('stops at the item entity limit however much is dropped at once', async () => {
             // The reported crash: a world that had just generated a region started ticking
             // it, leaf decay broke tens of thousands of leaves, and every break rolled a
             // loot table through here. Nothing counted the stacks already on the ground.
-            const { world, entities, warnings } = emptyWorld();
+            const { world, items, warnings } = emptyWorld();
             const position = new Vector3(10, 64, -20);
             const stacks = (count: number) =>
                 Array.from({ length: count }, () => new Item({ runtimeId: 4, name: 'minecraft:cobblestone', meta: 0 }));
@@ -253,15 +254,16 @@ describe('world', () => {
                 await world.dropContents(position, stacks(World.ITEM_ENTITY_LIMIT));
             }
 
-            expect(entities.size).toBe(World.ITEM_ENTITY_LIMIT);
+            expect(items().length).toBe(World.ITEM_ENTITY_LIMIT);
             // Said once rather than once per lost stack, which would be the same flood.
             expect(warnings).toHaveLength(1);
 
             // And the room comes back, so a world that fills up once is not full for ever.
-            await world.removeEntity([...entities.values()][0]!);
+            const [first] = items();
+            if (first !== undefined) world.dataEntities().runtime.remove(first.entity.id, 'body removed');
             await world.dropContents(position, stacks(4));
 
-            expect(entities.size).toBe(World.ITEM_ENTITY_LIMIT);
+            expect(items().length).toBe(World.ITEM_ENTITY_LIMIT);
         });
 
         it('preserves an explicit zero item count', () => {
@@ -270,7 +272,7 @@ describe('world', () => {
         });
 
         it('does not turn empty stacks into dropped item actors', async () => {
-            const { world, entities } = emptyWorld();
+            const { world, items } = emptyWorld();
 
             await world.dropContents(new Vector3(0, 64, 0), [
                 Item.air(),
@@ -278,19 +280,19 @@ describe('world', () => {
                 new Item({ name: 'minecraft:stone', count: 0 })
             ]);
 
-            expect(entities.size).toBe(0);
+            expect(items().length).toBe(0);
         });
 
         it('pops every stack out of the block it came from, and rolls none for a stack turned away', async () => {
             // An explosion, a falling block with nowhere to land and a block behavior's drop
             // all go through here. Without the push their stacks lie a whole block apart, where
             // the half-block merge reach never joins them.
-            const { world, entities, rolls } = emptyWorld();
+            const { world, items, rolls } = emptyWorld();
             const cobblestone = () => new Item({ runtimeId: 4, name: 'minecraft:cobblestone', meta: 0 });
 
             await world.dropFromBlock({ x: 3, y: 70, z: -4 }, [cobblestone(), null, cobblestone()]);
 
-            const dropped = [...entities.values()].filter((entity) => entity instanceof ItemEntity);
+            const dropped = items();
             expect(dropped).toHaveLength(2);
             for (const entity of dropped) {
                 expect([entity.getPosition().getX(), entity.getFeetY(), entity.getPosition().getZ()]).toEqual([
@@ -308,11 +310,11 @@ describe('world', () => {
         });
 
         it('leaves a stack it is told where to put still, lying at that spot', async () => {
-            const { world, entities, rolls } = emptyWorld();
+            const { world, items, rolls } = emptyWorld();
 
             await world.dropContents(new Vector3(1.5, 65, 2.5), [new Item({ name: 'minecraft:cobblestone' })]);
 
-            const [dropped] = entities.values();
+            const [dropped] = items();
             if (!(dropped instanceof ItemEntity)) throw new Error('no item entity was added');
             expect(dropped.getFeetY()).toBe(65);
             expect(dropped.getPosition().getY()).toBe(65.125);
@@ -323,13 +325,13 @@ describe('world', () => {
         it('puts a stack on the ground without the stack network id it had', async () => {
             // Ids are counted per player, so one carried onto the ground could name another of
             // the stacks of whoever picks it up.
-            const { world, entities } = emptyWorld();
+            const { world, items } = emptyWorld();
             const held = new Item({ name: 'minecraft:cobblestone', count: 3 });
             held.stackNetworkId = 9;
 
             await world.dropContents(new Vector3(10, 64, -20), [held]);
 
-            const [dropped] = entities.values();
+            const [dropped] = items();
             if (!(dropped instanceof ItemEntity)) throw new Error('no item entity was added');
             expect(dropped.getItem()?.getItem().stackNetworkId).toBe(0);
             expect(dropped.getItem()?.getItem().getAmount()).toBe(3);
@@ -338,13 +340,13 @@ describe('world', () => {
         });
 
         it('drops nothing in creative, where breaking is not mining', async () => {
-            const { world, player, sent, entities } = fakeWorld(new BlockState('minecraft:cobblestone'));
+            const { world, player, sent, items } = fakeWorld(new BlockState('minecraft:cobblestone'));
             player.gamemode = Gametype.CREATIVE;
 
             await world.breakBlock(new Vector3(10, 64, -20), player);
 
             expect(sent.some((packet) => packet instanceof AddItemActorPacket)).toBe(false);
-            expect(entities.size).toBe(0);
+            expect(items().length).toBe(0);
         });
     });
 });

@@ -66,11 +66,12 @@ import { DamageSource } from '../DamageSource';
 import { meleeAttack } from '../Combat';
 import { explode } from '../Explosion';
 import { entityIds } from '../entityIds';
+import { INERT_ACTOR, InertActor } from './storeActors';
 import type { StoreActor } from './storeActors';
-import { GenericEntity } from '../GenericEntity';
+import { savedActorNbt } from '../../testing/savedActor.test.helper';
 import { EntitySerializer } from '../EntitySerializer';
 import { MetadataFlag } from '@jsprismarine/protocol/wire/structures/Metadata';
-import { ItemActorBody as ItemEntity } from './itemBodies';
+import { ItemActor as ItemEntity } from './itemActor';
 import { itemViewOf } from './droppedItems';
 import type { DataEntity } from './DataEntity';
 import { builtInEntityDefinitions } from '../../content/testing';
@@ -1497,7 +1498,7 @@ describe('the data-driven entity runtime over a live world', () => {
         await run(5);
 
         const drops = world
-            .getEntities()
+            .getActors()
             .filter((entity) => entity instanceof ItemEntity)
             .map((entity) => entity.getItem()?.getItem().getName());
         expect(drops).toEqual(['minecraft:egg']);
@@ -2052,7 +2053,7 @@ describe('the data-driven entity runtime over a live world', () => {
             await run(1);
 
             const dropped = world
-                .getEntities()
+                .getActors()
                 .filter((entity) => entity instanceof ItemEntity)
                 .map((entity) => entity.getItem()?.getItem().getName());
             expect(dropped).toEqual(['minecraft:leather']);
@@ -2103,8 +2104,8 @@ describe('the data-driven entity runtime over a live world', () => {
         });
 
         it('shoves the mob away from whoever hit it', async () => {
-            // The body is a `GenericEntity`, which has no velocity of its own, so a sword used
-            // to take a cow's health away and leave it standing exactly where it was.
+            // The legacy body had no velocity of its own, so a sword used to take a cow's health
+            // away and leave it standing exactly where it was.
             const cow = live.runtime.spawn('minecraft:cow', { x: 4.5, y: GROUND_Y, z: 0.5 });
             if (cow === undefined) throw new Error('the fixture declares no minecraft:cow');
             await run(1);
@@ -2184,7 +2185,7 @@ describe('the data-driven entity runtime over a live world', () => {
         /** What is lying on the ground, as item identifiers. */
         const lying = (): Array<string | undefined> =>
             world
-                .getEntities()
+                .getActors()
                 .filter((entity) => entity instanceof ItemEntity)
                 .map((entity) => entity.getItem()?.getItem().getName());
 
@@ -2657,7 +2658,7 @@ describe('the data-driven entity runtime over a live world', () => {
             const restored = second.live.runtime.all();
             expect(restored).toHaveLength(1);
             expect(restored[0]?.identifier).toBe('jsprismarine:dustling');
-            // A data entity rather than a GenericEntity: it has the component set the
+            // A data entity rather than an inert one: it has the component set the
             // definition builds, the groups its spawn event added, and its goals.
             expect(restored[0]?.instance.activeComponentGroups()).toEqual(['settled']);
             expect(restored[0]?.instance.goals.names()).toContain('minecraft:behavior.random_stroll');
@@ -2714,11 +2715,8 @@ describe('the data-driven entity runtime over a live world', () => {
             folders.push(folder);
 
             const first = await session(folder);
-            await first.world.addEntity(
-                new GenericEntity({
-                    identifier: 'minecraft:zombie',
-                    position: new Position(2.5, GROUND_Y + 4, 3.5, first.world)
-                })
+            first.live.restoreExisting(
+                EntitySerializer.fromNBT(savedActorNbt('minecraft:zombie', { x: 2.5, y: GROUND_Y + 4, z: 3.5 }))
             );
 
             await first.world.saveChunks();
@@ -2737,27 +2735,48 @@ describe('the data-driven entity runtime over a live world', () => {
             expect(typesIn(second.world).filter((type) => type === 'minecraft:zombie')).toHaveLength(1);
         });
 
-        it('routes a legacy mob body added to the world through the data runtime', async () => {
-            const legacy = new GenericEntity({
-                identifier: 'minecraft:zombie',
-                position: new Position(2.5, GROUND_Y + 4, 3.5, world),
-                yaw: 45,
-                pitch: 12
-            });
+        it('migrates a saved actor without a record into the data runtime, facing the way it was saved', async () => {
+            const stored = EntitySerializer.fromNBT(
+                savedActorNbt('minecraft:zombie', { x: 2.5, y: GROUND_Y + 4, z: 3.5 }, { yaw: 45, pitch: 12 })
+            );
 
-            await world.addEntity(legacy);
+            live.restoreExisting(stored);
 
             const zombie = live.runtime.all().find((entity) => entity.identifier === 'minecraft:zombie');
             if (zombie === undefined) throw new Error('the legacy zombie was not migrated into the data runtime');
             expect(zombie.instance.goals.names()).toContain('minecraft:behavior.nearest_attackable_target');
             expect(zombie.body.yaw).toBe(45);
             expect(zombie.body.pitch).toBe(12);
-            expect(world.getEntity(legacy.getRuntimeId())).toBeNull();
 
             await run(30);
 
             expect(zombie.position.y).toBe(GROUND_Y);
             expect(typesIn(world).filter((type) => type === 'minecraft:zombie')).toHaveLength(1);
+        });
+
+        it('keeps an actor no pack declares across a restart, inert and under its own identifier', async () => {
+            const folder = mkdtempSync(join(tmpdir(), 'jsp-entity-inert-'));
+            folders.push(folder);
+
+            const first = await session(folder);
+            const saved = savedActorNbt('minecraft:llama', { x: 2.5, y: GROUND_Y + 4, z: 3.5 });
+            saved.addValue('UniqueID', new Types.LongVal(4242n));
+            first.live.restoreInert(EntitySerializer.fromNBT(saved));
+            await first.world.saveChunks();
+            await first.provider.disable();
+
+            const second = await session(folder);
+            await second.world.loadChunk(0, 0);
+
+            const [llama] = second.world.getActors().filter((actor) => actor.getType() === 'minecraft:llama');
+            if (!(llama instanceof InertActor)) throw new Error('the llama did not come back as an inert actor');
+            expect(llama.entity.identifier).toBe(INERT_ACTOR);
+            expect(llama.persistentNbt?.getLong('UniqueID', 0n)).toBe(4242n);
+
+            // It stands where it was saved, in the air, and runs nothing.
+            for (let tick = 1; tick <= 20; tick += 1) await second.live.tick(tick);
+            expect(llama.entity.removed).toBeUndefined();
+            expect(llama.entity.position).toEqual({ x: 2.5, y: GROUND_Y + 4, z: 3.5 });
         });
 
         it('restores migrated legacy mobs when their chunks load', async () => {
@@ -3111,13 +3130,9 @@ describe('the data-driven entity runtime over a live world', () => {
             it('migrates an existing legacy TNT body with its remaining metadata fuse', { timeout: 180_000 }, () => {
                 useVanillaContent();
 
-                const stored = new GenericEntity({
-                    identifier: 'minecraft:tnt',
-                    position: new Position(0.5, GROUND_Y, 0.5, world)
-                });
-                stored.metadata.setInt(MetadataFlag.FUSE_TIME, 37);
-                stored.metadata.setIgnited(true);
-                const migrated = live.restoreExisting(stored);
+                const actor = savedActorNbt('minecraft:tnt', { x: 0.5, y: GROUND_Y, z: 0.5 });
+                actor.addValue('Fuse', new Types.NumberVal(37));
+                const migrated = live.restoreExisting(EntitySerializer.fromNBT(actor));
                 if (migrated === undefined)
                     throw new Error('the vanilla TNT definition could not restore the existing body');
 
@@ -3253,8 +3268,7 @@ describe('the data-driven entity runtime over a live world', () => {
                         failures.push(`${identifier}: runtime did not create an entity`);
                         continue;
                     }
-                    // A dropped stack's body is an item actor of its own; every other type's is the mirror's.
-                    const body = live.actors.actorOf(entity.id) ?? live.itemBodies.bodyOf(entity.id);
+                    const body = live.actors.actorOf(entity.id);
                     if (body === undefined) failures.push(`${identifier}: no live actor body`);
                 }
 
@@ -3312,14 +3326,9 @@ describe('the data-driven entity runtime over a live world', () => {
             it('migrates a serialized legacy TNT with its saved fuse into the runtime', () => {
                 useVanillaContent();
 
-                const legacy = new GenericEntity({
-                    identifier: 'minecraft:tnt',
-                    position: new Position(0.5, GROUND_Y, 0.5, world)
-                });
-                legacy.metadata.setInt(MetadataFlag.FUSE_TIME, 58);
-                legacy.metadata.setIgnited(true);
-                const stored = EntitySerializer.fromNBT(EntitySerializer.toNBT(legacy), world);
-                const migrated = live.restoreExisting(stored);
+                const actor = savedActorNbt('minecraft:tnt', { x: 0.5, y: GROUND_Y, z: 0.5 });
+                actor.addValue('JSPFuse', new Types.NumberVal(58));
+                const migrated = live.restoreExisting(EntitySerializer.fromNBT(actor));
 
                 expect(migrated?.identifier).toBe('minecraft:tnt');
                 expect(migrated?.body.fuseTicks).toBe(58);
@@ -3330,13 +3339,9 @@ describe('the data-driven entity runtime over a live world', () => {
             it('migrates a serialized legacy falling block into the runtime and lands it', async () => {
                 useVanillaContent();
 
-                const legacy = new GenericEntity({
-                    identifier: 'minecraft:falling_block',
-                    position: new Position(2.5, GROUND_Y + 4, 2.5, world)
-                });
-                const actor = EntitySerializer.toNBT(legacy);
+                const actor = savedActorNbt('minecraft:falling_block', { x: 2.5, y: GROUND_Y + 4, z: 2.5 });
                 actor.addValue('JSPBlockName', new Types.StringVal('minecraft:stone'));
-                const stored = EntitySerializer.fromNBT(actor, world);
+                const stored = EntitySerializer.fromNBT(actor);
                 const migrated = live.restoreExisting(stored);
                 if (migrated === undefined) throw new Error('the saved falling block was not migrated');
 
@@ -3491,7 +3496,7 @@ describe('the data-driven entity runtime over a live world', () => {
 
                 expect(sheep.instance.hasComponent('minecraft:is_sheared')).toBe(true);
                 const droppedWool = world
-                    .getEntities()
+                    .getActors()
                     .filter((entity) => entity instanceof ItemEntity)
                     .find((entity) => entity.getItem()?.getItem().getName() === expectedWoolIdentifier);
                 const droppedItem = droppedWool?.getItem()?.getItem();

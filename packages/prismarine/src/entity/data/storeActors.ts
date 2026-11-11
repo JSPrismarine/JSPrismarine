@@ -14,7 +14,9 @@
  * ([ADR 0016](../../../../../docs/adr/0016-replication-reads-the-change-log.md)).
  *
  * Nothing here is mob-specific. Any entity type in the store is shown the same way, with the
- * metadata its projection gives it.
+ * metadata its projection gives it. Three kinds of entity get an actor of their own: a store
+ * player (`storePlayers.ts`), a dropped stack (`itemActor.ts`), and a saved actor no pack
+ * declares ({@link InertActor}).
  *
  * A store actor is also how the legacy world code reaches a store entity: commands and
  * selectors, legacy blasts and swings, interactions, saves, portals and the plugin events. It
@@ -57,6 +59,7 @@ import {
 import { effectHealthChange, tickStatusEffects } from '../StatusEffectTick';
 import type { DataEntity } from './DataEntity';
 import type { DamageRoute } from './damagePipeline';
+import { isDroppedItem } from './droppedItems';
 import type { EntityRuntime } from './EntityRuntime';
 import { acceptsStatusEffect } from './EntityRuntime';
 import type { EntityBox } from './facts';
@@ -156,7 +159,7 @@ export class StoreActor implements ShownActor {
 
         const { width, height } = boxOf(content.entities.registry, entity.identifier);
         this.metadata.setBoundingBox(width, height);
-        this.shownProjection = actorMetadataProjection(entity, leashHolderId);
+        this.shownProjection = this.projectMetadata(leashHolderId);
         applyActorMetadataProjection(this, this.shownProjection);
         this.shownProperties = this.getSyncedProperties();
         this.shownOwner = entity.body.owner;
@@ -165,7 +168,7 @@ export class StoreActor implements ShownActor {
 
     /** The entity as `/debug` lists it, in the form `Entity.toString` gives a legacy one. */
     public toString(): string {
-        return `id: §a${this.entity.id}§r, name: §b${this.getName()}§r, type: §b${this.entity.identifier}§r, ${this.getPosition().toString()}, world: §b${this.world.getName()}§r`;
+        return `id: §a${this.entity.id}§r, name: §b${this.getName()}§r, type: §b${this.getType()}§r, ${this.getPosition().toString()}, world: §b${this.world.getName()}§r`;
     }
 
     /** The world the entity stands in. */
@@ -216,6 +219,20 @@ export class StoreActor implements ShownActor {
     /** A store entity's head turns with its body. */
     public get headYaw(): number {
         return this.entity.body.yaw;
+    }
+
+    /**
+     * The actor metadata the store state projects to, which the constructor and
+     * {@link StoreActors.sync} write into {@link StoreActor.metadata}.
+     * @param leashHolderId - The runtime id of whatever holds the entity's leash.
+     */
+    public projectMetadata(leashHolderId?: number): ActorMetadataProjection {
+        return actorMetadataProjection(this.entity, leashHolderId);
+    }
+
+    /** Writes the store's health into the attributes a client is sent, after a tick. */
+    public showHealth(current: number): void {
+        this.attributes.setValue(AttributeIds.Health, current);
     }
 
     /** @inheritdoc */
@@ -508,6 +525,47 @@ export class StoreActor implements ShownActor {
     }
 }
 
+/**
+ * The type a saved actor no loaded pack declares is held under: the entity overlay's
+ * `jsprismarine:inert_actor`, which has health and nothing else, so it stands still and runs no
+ * behavior.
+ */
+export const INERT_ACTOR = 'jsprismarine:inert_actor';
+
+/**
+ * A saved actor whose type no loaded pack declares, held in the store as an inert entity.
+ *
+ * It reports the identifier it was saved with, so a client draws it as itself and the next save
+ * writes it back under that identifier, with the actor record tags it was loaded with. A world
+ * loaded without the Bedrock pack keeps every mob this way instead of losing it.
+ */
+export class InertActor extends StoreActor {
+    /**
+     * @param entity - The inert store entity.
+     * @param world - The world it stands in.
+     * @param blows - Where the actor sends the blows and heals the world code gives it.
+     * @param savedType - The identifier the actor was saved with.
+     */
+    public constructor(
+        entity: DataEntity,
+        world: World,
+        blows: StoreActorBlows,
+        private readonly savedType: string
+    ) {
+        super(entity, world, undefined, blows);
+    }
+
+    /** The identifier the actor was saved with, not the inert type that holds it. */
+    public override getType(): string {
+        return this.savedType;
+    }
+
+    /** The box of the saved type, which is the default box for a type no pack declares. */
+    public override getBox(): EntityBox {
+        return boxOf(this.getServer().getContent().entities.registry, this.savedType);
+    }
+}
+
 /** What {@link StoreActors} is built over. */
 export interface StoreActorsOptions {
     /** The live world, read at call time, because the runtime outlives any one world load. */
@@ -521,11 +579,18 @@ export interface StoreActorsOptions {
      * profile, or undefined for any other entity, which gets a plain {@link StoreActor}.
      */
     playerActor?(entity: DataEntity, world: World, blows: StoreActorBlows): StoreActor | undefined;
+    /**
+     * The actor of a dropped stack or of a saved actor no pack declares, which
+     * `entity/data/live.ts` builds, or undefined for an entity that gets a plain {@link StoreActor}.
+     */
+    builtInActor?(entity: DataEntity, world: World, blows: StoreActorBlows): StoreActor | undefined;
 }
 
 /** The actors of one dimension's store, one per entity. */
 export class StoreActors {
     private readonly actors = new Map<number, StoreActor>();
+    /** See {@link StoreActors.droppedItemCount}. */
+    private droppedItems = 0;
 
     public constructor(private readonly options: StoreActorsOptions) {}
 
@@ -544,6 +609,11 @@ export class StoreActors {
         return this.actors.size;
     }
 
+    /** How many of the actors are dropped stacks, which is how many lie in the world. */
+    public get droppedItemCount(): number {
+        return this.droppedItems;
+    }
+
     /** Shows a store entity the runtime just made to the clients in range. */
     public add(entity: DataEntity, leashHolderId?: number): void {
         const world = this.options.world();
@@ -551,10 +621,12 @@ export class StoreActors {
 
         const actor =
             this.options.playerActor?.(entity, world, this.options.blows) ??
+            this.options.builtInActor?.(entity, world, this.options.blows) ??
             new StoreActor(entity, world, leashHolderId, this.options.blows);
         // After the constructor, so an actor that reads its equipment elsewhere has been built.
         actor.writeEquipment(world.getServer().getContent());
         this.actors.set(entity.id, actor);
+        if (isDroppedItem(entity)) this.droppedItems++;
         void world.showActor(actor).catch((error: unknown) => this.failed('show', error));
     }
 
@@ -563,6 +635,7 @@ export class StoreActors {
         const actor = this.actors.get(entity.id);
         this.actors.delete(entity.id);
         if (actor === undefined) return;
+        if (isDroppedItem(entity)) this.droppedItems--;
 
         const world = this.options.world();
         if (world === undefined) return;
@@ -589,7 +662,7 @@ export class StoreActors {
             const isTicking = shouldSync === undefined || shouldSync(entity.position);
 
             const health = entity.instance.attributes.get('health');
-            if (health !== undefined) actor.attributes.setValue(AttributeIds.Health, health.current);
+            if (health !== undefined) actor.showHealth(health.current);
             if (actor.writeEquipment(content)) world.entityEquipmentChanged(actor);
 
             const ownerChanged = actor.shownOwner !== entity.body.owner;
@@ -601,7 +674,7 @@ export class StoreActors {
                 const inputs = actorMetadataInputs(entity, leashHolderId);
                 if (!sameActorMetadataInputs(actor.shownInputs, inputs)) {
                     actor.shownInputs = inputs;
-                    const projection = actorMetadataProjection(entity, leashHolderId);
+                    const projection = actor.projectMetadata(leashHolderId);
                     metadataChanged = !sameActorMetadataProjection(actor.shownProjection, projection);
                     if (metadataChanged) {
                         applyActorMetadataProjection(actor, projection);
@@ -627,6 +700,7 @@ export class StoreActors {
     /** Forgets every actor, for a world that is closing. */
     public clear(): void {
         this.actors.clear();
+        this.droppedItems = 0;
     }
 
     /** Sends a move when the entity stands or faces anywhere new. */
