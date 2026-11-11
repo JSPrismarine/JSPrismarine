@@ -594,7 +594,14 @@ Each slice is a commit or a few, with its tests, on `dev/webrtc-backend`.
     - Join with a retail client from outside the local network, with a mapping and
       `server-public-ip`.
 14. [ ] **Offer the libjuice patch upstream.** Ask before filing.
+    - Drafted 2026-11-11, not filed: a pull request description for the two functions and why, for
+      the user to approve.
 15. [ ] **The scriptc binding.** Starts once the `scriptc` workflow compiles the server.
+    - Waiting, 2026-11-11: the workflow's latest run on `master` still stops on compile errors in
+      `packages/advancements` and `packages/blocks`, and passes only because the step may fail. The
+      C interface it will bind is in place and needs no change for scriptc: synchronous calls,
+      events read from a queue, and RakNet's rings. The Mbed TLS symbol clash with scriptc's
+      runtime (slice 4) is the first thing to settle.
     - The FFI manifest over the same C layer, as the research note's experiment had it.
     - A scriptc-only entry that imports the FFI module, so Node.js and Bun never load it.
     - `--ffi <manifest>` in `package:scriptc`, with the static builds from slice 5.
@@ -603,6 +610,8 @@ Each slice is a commit or a few, with its tests, on `dev/webrtc-backend`.
 16. [ ] **Clean up.** Delete `spike/node-datachannel` and `dev/werift-mux`, and bring
     [nethernet-transport.md](nethernet-transport.md) up to date: its requirement to use npm
     `nethernet` no longer holds, and the backend moved.
+    - Done 2026-11-11 for the plan and the local branches. `dev/werift-mux` on `origin` waits for
+      the user's word, since deleting it is a push.
 
 ## Risks
 
