@@ -20,20 +20,6 @@ const src = resolve(here, '../..');
  */
 const STILL_REACH_SERVER: ReadonlyMap<string, readonly string[]> = new Map([
     [
-        'D2a connection lane',
-        [
-            'ServerboundDiagnosticsHandler.ts',
-            'ServerboundPackSettingChangeHandler.ts',
-            'SetActorLinkHandler.ts',
-            'SetPlayerFurnaceOptionsHandler.ts',
-            'SetPlayerInventoryOptionsHandler.ts',
-            'SimpleEventHandler.ts',
-            'SubClientLoginHandler.ts',
-            'TickingAreasLoadStatusHandler.ts',
-            'UpdateClientOptionsHandler.ts'
-        ]
-    ],
-    [
         'D2b read lane',
         [
             'AnvilDamageHandler.ts',

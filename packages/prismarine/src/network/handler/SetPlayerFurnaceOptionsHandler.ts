@@ -1,12 +1,11 @@
-import type Server from '../../Server';
-import type PlayerSession from '../PlayerSession';
 import type SetPlayerFurnaceOptionsPacket from '@jsprismarine/protocol/packet/SetPlayerFurnaceOptionsPacket';
 import {
     FurnaceLayout,
     FurnaceLeftTabIndex,
     FurnaceType
 } from '@jsprismarine/protocol/packet/SetPlayerFurnaceOptionsPacket';
-import type PacketHandler from './PacketHandler';
+import type { SessionContext } from './HandlerContext';
+import type { ConnectionLaneHandler } from './SessionHandler';
 
 /**
  * Takes the player's furnace screen layout.
@@ -20,13 +19,14 @@ import type PacketHandler from './PacketHandler';
  * Known gap: the server does not remember the layout across a rejoin. Doing so needs a field
  * on `WorldPlayerData` and matching reads and writes in `World.savePlayerData`.
  */
-export default class SetPlayerFurnaceOptionsHandler implements PacketHandler<SetPlayerFurnaceOptionsPacket> {
+export default class SetPlayerFurnaceOptionsHandler implements ConnectionLaneHandler<SetPlayerFurnaceOptionsPacket> {
     public static PacketName = 'SetPlayerFurnaceOptionsPacket';
+    public readonly takes = 'context';
     public readonly phases = ['play'] as const;
     public readonly lane = 'connection';
 
     /** Checks the three enum fields, then logs the layout. */
-    public handle(packet: SetPlayerFurnaceOptionsPacket, server: Server, session: PlayerSession): void {
+    public handle(packet: SetPlayerFurnaceOptionsPacket, { session, log }: SessionContext): void {
         const data = packet.getPacketData();
         if (data === null) throw new Error('Cannot handle a SetPlayerFurnaceOptionsPacket without decoded data');
 
@@ -45,17 +45,13 @@ export default class SetPlayerFurnaceOptionsHandler implements PacketHandler<Set
                     ? `${options.layout} is not a furnace layout`
                     : null;
         if (rejection !== null) {
-            server
-                .getLogger()
-                .verbose(`Dropped furnace options from ${name}: ${rejection}`, 'SetPlayerFurnaceOptionsHandler/handle');
+            log.verbose(`Dropped furnace options from ${name}: ${rejection}`, 'SetPlayerFurnaceOptionsHandler/handle');
             return;
         }
 
-        server
-            .getLogger()
-            .debug(
-                `${name} arranged the ${furnace} screen: tab ${tab}, filtering ${options.filtering ? 'on' : 'off'}, layout ${layout}. Furnace options are not stored`,
-                'SetPlayerFurnaceOptionsHandler/handle'
-            );
+        log.debug(
+            `${name} arranged the ${furnace} screen: tab ${tab}, filtering ${options.filtering ? 'on' : 'off'}, layout ${layout}. Furnace options are not stored`,
+            'SetPlayerFurnaceOptionsHandler/handle'
+        );
     }
 }

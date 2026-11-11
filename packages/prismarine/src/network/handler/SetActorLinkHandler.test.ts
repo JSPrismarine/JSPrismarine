@@ -1,7 +1,7 @@
 import type { Logger } from '@jsprismarine/logger';
 import { describe, expect, it, vi } from 'vitest';
 
-import type Server from '../../Server';
+import { sessionContext } from '../../testing/handlerContext.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import { STEVE } from '../../testing/sessionIdentity.test.helper';
 import type PlayerSession from '../PlayerSession';
@@ -13,9 +13,9 @@ import SetActorLinkHandler from './SetActorLinkHandler';
 const setup = () => {
     const debug = vi.fn();
     const verbose = vi.fn();
-    const server = stub<Server>({ getLogger: () => stub<Logger>({ debug, verbose }) });
+    const log = stub<Logger>({ debug, verbose });
     const session = stub<PlayerSession>({ runtimeId: 34n, identity: STEVE });
-    return { debug, verbose, server, session };
+    return { debug, verbose, context: sessionContext(session, { log }) };
 };
 
 const packet = (targetA: bigint, targetB: bigint) => {
@@ -32,9 +32,9 @@ const packet = (targetA: bigint, targetB: bigint) => {
 
 describe('SetActorLinkHandler', () => {
     it('logs a link with the sender as the rider', () => {
-        const { debug, verbose, server, session } = setup();
+        const { debug, verbose, context } = setup();
 
-        new SetActorLinkHandler().handle(packet(12n, 34n), server, session);
+        new SetActorLinkHandler().handle(packet(12n, 34n), context);
 
         expect(debug).toHaveBeenCalledExactlyOnceWith(
             'Steve reported actor link type 1 between 12 and 34. Riding is not modeled',
@@ -44,17 +44,17 @@ describe('SetActorLinkHandler', () => {
     });
 
     it('logs a link with the sender as the vehicle', () => {
-        const { debug, server, session } = setup();
+        const { debug, context } = setup();
 
-        new SetActorLinkHandler().handle(packet(34n, 12n), server, session);
+        new SetActorLinkHandler().handle(packet(34n, 12n), context);
 
         expect(debug).toHaveBeenCalledOnce();
     });
 
     it('drops a link between two other actors', () => {
-        const { debug, verbose, server, session } = setup();
+        const { debug, verbose, context } = setup();
 
-        new SetActorLinkHandler().handle(packet(12n, 56n), server, session);
+        new SetActorLinkHandler().handle(packet(12n, 56n), context);
 
         expect(debug).not.toHaveBeenCalled();
         expect(verbose).toHaveBeenCalledExactlyOnceWith(

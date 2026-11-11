@@ -1,7 +1,6 @@
-import type Server from '../../Server';
-import type PlayerSession from '../PlayerSession';
 import type SetActorLinkPacket from '@jsprismarine/protocol/packet/SetActorLinkPacket';
-import type PacketHandler from './PacketHandler';
+import type { SessionContext } from './HandlerContext';
+import type { ConnectionLaneHandler } from './SessionHandler';
 
 /**
  * A riding link a client reports when its player mounts or dismounts something.
@@ -12,31 +11,28 @@ import type PacketHandler from './PacketHandler';
  * Known gap: riding is not modeled, so the server neither moves a passenger with its vehicle
  * nor tells other players about the link.
  */
-export default class SetActorLinkHandler implements PacketHandler<SetActorLinkPacket> {
+export default class SetActorLinkHandler implements ConnectionLaneHandler<SetActorLinkPacket> {
     public static PacketName = 'SetActorLinkPacket';
+    public readonly takes = 'context';
     public readonly phases = ['play'] as const;
     public readonly lane = 'connection';
 
     /** Logs the two actors and the link type when the sender is one of them. */
-    public handle(packet: SetActorLinkPacket, server: Server, session: PlayerSession): void {
+    public handle(packet: SetActorLinkPacket, { session, log }: SessionContext): void {
         const { targetA, targetB, type } = packet.link;
         const self = session.runtimeId;
 
         if (targetA !== self && targetB !== self) {
-            server
-                .getLogger()
-                .verbose(
-                    `Dropped actor link type ${type} from ${session.identity.name}: it joins ${targetA} and ${targetB}, neither of them the sender`,
-                    'SetActorLinkHandler/handle'
-                );
+            log.verbose(
+                `Dropped actor link type ${type} from ${session.identity.name}: it joins ${targetA} and ${targetB}, neither of them the sender`,
+                'SetActorLinkHandler/handle'
+            );
             return;
         }
 
-        server
-            .getLogger()
-            .debug(
-                `${session.identity.name} reported actor link type ${type} between ${targetA} and ${targetB}. Riding is not modeled`,
-                'SetActorLinkHandler/handle'
-            );
+        log.debug(
+            `${session.identity.name} reported actor link type ${type} between ${targetA} and ${targetB}. Riding is not modeled`,
+            'SetActorLinkHandler/handle'
+        );
     }
 }
