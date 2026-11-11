@@ -243,6 +243,14 @@ export class StorePlayer implements PlayerRecordSource, PlayerRecordTarget {
         else this.attached.position = feet;
     }
 
+    /**
+     * Whether the client last reported the player on the ground: the body's `on_ground`
+     * condition, false while the player is in no store.
+     */
+    public isOnGround(): boolean {
+        return this.attached?.body.conditions.has('on_ground') ?? false;
+    }
+
     /** Everything the player carries. */
     public getInventory(): HumanInventory {
         return this.inventory;
