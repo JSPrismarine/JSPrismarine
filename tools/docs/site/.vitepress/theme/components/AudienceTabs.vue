@@ -231,13 +231,25 @@ function onKeydown(event: KeyboardEvent) {
     gap: 10px;
 }
 
+/* A link is a soft card with a hairline and an arrow: the 2px edge belongs to the tabs, the controls. */
 .audience-tabs__links a {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    column-gap: 12px;
+    align-items: center;
     padding: 14px 16px;
     font-weight: 800;
     color: inherit;
     text-decoration: none;
-    border: 2px solid currentColor;
+    background: color-mix(in srgb, currentColor 8%, transparent);
+    border: 1px solid color-mix(in srgb, currentColor 30%, transparent);
     border-radius: var(--jsp-radius-control);
+}
+
+.audience-tabs__links a::after {
+    grid-row: 1 / span 2;
+    grid-column: 2;
+    content: '→' / '';
 }
 
 .audience-tabs__links a:hover {
@@ -248,6 +260,7 @@ function onKeydown(event: KeyboardEvent) {
 
 .audience-tabs__links span {
     display: block;
+    grid-column: 1;
     margin-top: 2px;
     font: 400 var(--jsp-label-size) var(--vp-font-family-mono);
     opacity: 0.7;

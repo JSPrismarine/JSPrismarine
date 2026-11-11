@@ -394,6 +394,11 @@ const percentage = trackerProgressPercent;
     color: var(--vp-c-text-1);
 }
 
+/* The dark page is nearly ink, so tiles and rows take the deep surface to stand off it. */
+.dark .tracker {
+    --tracker-surface: var(--jsp-deep);
+}
+
 .tracker-message {
     padding: 4rem 16px;
     color: var(--vp-c-text-2);
@@ -669,10 +674,9 @@ progress::-moz-progress-bar {
     background: var(--jsp-accent);
 }
 
+/* Group names are family ids, so they are mono like the case rows below. */
 .group-option-name {
-    font-size: 16px;
-    font-weight: 800;
-    letter-spacing: -0.02em;
+    font: 700 15px var(--vp-font-family-mono);
 }
 
 .group-option-count {

@@ -79,7 +79,8 @@ Rules:
 Headlines are set heavy and tight, in sentence case, and are allowed to be very large. Small labels
 are mono, uppercase and letter-spaced, and never smaller than `--jsp-label-size`: that holds
 for key hints, counts, dates, version tags and code-language labels too. Identifiers, such as
-package names and parity family ids, are mono, never display type, whose tight tracking hides their
+package names (on the package cards, the API index and its sidebar) and parity family and group
+ids, are mono, never display type, whose tight tracking hides their
 dots. System fonts are the fallback when the web fonts do not load.
 
 ## Mark
@@ -101,7 +102,14 @@ ink.
   (`--jsp-radius-control`). Pills are fully round.
 - Primary actions carry a hard offset shadow (`4px 4px 0`, no blur). It shrinks on hover and
   disappears on press, so the button reads as pushed in. The shadow is ink on light surfaces and mint
-  on forest and in dark mode (`--jsp-primary-shadow`), where an ink shadow would vanish.
+  on forest and in dark mode (`--jsp-primary-shadow`), where an ink shadow would vanish. Secondary
+  and outline buttons have no shadow: an edge alone, filled on hover, so only the primary action
+  looks like a key to press.
+- A 2px edge marks a control (a tab, a button, a filter). A link card is a soft fill with a hairline
+  and an arrow.
+- A state bar, such as the current section under the header or the current page in the sidebar,
+  needs 3:1 against the page (`--jsp-state`). Accent on the light page falls short, so the bar is
+  forest there and accent in dark mode.
 - A selected tab or filter pill is ink in light mode and accent in dark mode, so it stands apart
   from the accent figure tiles on the light page and from the ink surfaces on the dark one. A
   selectable tile, such as a parity group, is a figure tile and stays accent when selected.

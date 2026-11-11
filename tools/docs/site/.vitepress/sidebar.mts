@@ -52,7 +52,8 @@ function sidebarItems(section: DocSection, route: string, dir: string): DefaultT
 function cardPageSidebar(section: DocSection): DefaultTheme.SidebarItem[] {
     const route = `/${section.dir}/`;
     const groups: DefaultTheme.SidebarItem[] = [
-        { text: section.title, items: [{ text: 'Overview', link: route }] },
+        // The overview is a link of its own: a group holding only it would repeat the page's title.
+        { text: 'Overview', link: route },
         ...overviewGroups(section.dir).map(({ text, items }) => ({
             text,
             items: items.map(({ text, link }) => ({ text, link }))

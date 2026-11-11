@@ -17,6 +17,9 @@
     --jsp-term-bar: color-mix(in srgb, var(--jsp-ink) 85%, var(--jsp-accent));
     --jsp-term-muted: color-mix(in srgb, var(--jsp-ink) 30%, var(--jsp-mint));
     --jsp-track: color-mix(in srgb, var(--jsp-forest) 70%, var(--jsp-accent));
+    /* A state bar (the current section, the current page) needs 3:1 against the page. Accent on the
+       light page is under that, so the bar is forest there and accent in dark mode. */
+    --jsp-state: var(--jsp-forest);
     /* The hairline that separates dark surfaces close in value. */
     --jsp-dark-edge: color-mix(in srgb, var(--jsp-accent) 30%, transparent);
 
@@ -69,6 +72,7 @@
 .dark {
     /* On the near-ink page a primary button's ink shadow would vanish. */
     --jsp-primary-shadow: var(--jsp-mint);
+    --jsp-state: var(--jsp-accent);
     --vp-c-brand-1: var(--jsp-accent);
     --vp-c-brand-2: color-mix(in srgb, var(--jsp-accent) 86%, #fff);
     --vp-c-brand-3: color-mix(in srgb, var(--jsp-forest) 55%, var(--jsp-accent));
@@ -190,7 +194,7 @@
 
 /* The current sidebar entry gets a solid bar, not just a color change. */
 .VPSidebarItem.is-active > .item {
-    box-shadow: inset 3px 0 0 var(--jsp-accent);
+    box-shadow: inset 3px 0 0 var(--jsp-state);
 }
 
 .VPSidebarItem.is-active > .item .link {
@@ -518,6 +522,13 @@
 /* Package names in a table stay whole, and every area's table shares one first column width. */
 .vp-doc td:first-child > a {
     white-space: nowrap;
+}
+
+/* Package names are identifiers, so the API index and the API sidebar set them in mono. */
+.api-index .vp-doc td:first-child > a,
+.VPSidebarItem a[href*='/api/@'] > .text {
+    font-family: var(--vp-font-family-mono);
+    font-size: 0.9em;
 }
 
 @media (min-width: 641px) {

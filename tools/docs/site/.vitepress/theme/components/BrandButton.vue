@@ -27,22 +27,13 @@ const target = computed(() => (/^[a-z]+:/i.test(props.href) ? props.href : withB
     text-decoration: none;
     border: 2px solid var(--jsp-cream);
     border-radius: var(--jsp-radius-control);
-    box-shadow: var(--jsp-shadow-offset) var(--jsp-shadow-offset) 0 var(--jsp-cream);
     transition:
         transform 0.08s,
-        box-shadow 0.08s;
+        box-shadow 0.08s,
+        background-color 0.12s;
 }
 
-.brand-button:is(:hover, :active) {
-    transform: translate(3px, 3px);
-    box-shadow: 1px 1px 0 var(--jsp-cream);
-}
-
-.brand-button:active {
-    transform: translate(var(--jsp-shadow-offset), var(--jsp-shadow-offset));
-    box-shadow: none;
-}
-
+/* Only the primary action carries the hard offset shadow, so it alone reads as a key to press. */
 .is-primary {
     color: var(--jsp-on-accent);
     background: var(--jsp-accent);
@@ -52,7 +43,13 @@ const target = computed(() => (/^[a-z]+:/i.test(props.href) ? props.href : withB
 }
 
 .is-primary:hover {
+    transform: translate(3px, 3px);
     box-shadow: 1px 1px 0 var(--jsp-primary-shadow, var(--jsp-ink));
+}
+
+.is-primary:active {
+    transform: translate(var(--jsp-shadow-offset), var(--jsp-shadow-offset));
+    box-shadow: none;
 }
 
 .is-primary:focus-visible {
@@ -61,25 +58,24 @@ const target = computed(() => (/^[a-z]+:/i.test(props.href) ? props.href : withB
         0 0 0 2px var(--jsp-ink);
 }
 
+/* Secondary and outline actions are an edge alone, and fill on hover. */
 .is-outline {
     color: var(--jsp-cream);
     background: transparent;
 }
 
-/* Secondary actions keep the hard shadow at half depth, so the primary action stays the loudest. */
-:is(.is-outline, .is-secondary) {
-    --jsp-shadow-offset: 2px;
+.is-outline:hover {
+    background: color-mix(in srgb, var(--jsp-cream) 14%, transparent);
 }
 
 .is-secondary {
     color: var(--vp-c-text-1);
     background: transparent;
     border-color: var(--vp-c-text-1);
-    box-shadow: var(--jsp-shadow-offset) var(--jsp-shadow-offset) 0 var(--vp-c-text-1);
 }
 
 .is-secondary:hover {
-    box-shadow: 1px 1px 0 var(--vp-c-text-1);
+    background: var(--vp-c-bg-soft);
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -94,7 +94,7 @@
     left: 12px;
     height: 3px;
     content: '';
-    background: var(--jsp-accent);
+    background: var(--jsp-state);
 }
 
 /* The open section's button becomes a tab that runs down into the panel. */
