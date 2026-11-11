@@ -1,6 +1,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import type {
+    BindingElement,
     Identifier,
     ImportDeclaration,
     Node,
@@ -14,8 +15,8 @@ import { describe, expect, it } from 'vitest';
 import { Logger } from '@jsprismarine/logger';
 import { reportProgress } from '../../../../../.test/reportProgress';
 import PacketHandlerRegistry from '../PacketHandlerRegistry';
-import type { Lane } from './Lane';
-import { LANES, strictestLane } from './Lane';
+import type { Lane } from '@jsprismarine/protocol/handler/Lane';
+import { LANES, strictestLane } from '@jsprismarine/protocol/handler/Lane';
 
 const here = fileURLToPath(new URL('.', import.meta.url));
 
@@ -31,6 +32,7 @@ const isPropertyAccess = (node: Node): node is PropertyAccessExpression =>
     node.kind === SyntaxKind.PropertyAccessExpression;
 const isImport = (node: Node): node is ImportDeclaration => node.kind === SyntaxKind.ImportDeclaration;
 const isParameter = (node: Node): node is ParameterDeclaration => node.kind === SyntaxKind.Parameter;
+const isBindingElement = (node: Node): node is BindingElement => node.kind === SyntaxKind.BindingElement;
 const isVariableDeclaration = (node: Node): node is VariableDeclaration => node.kind === SyntaxKind.VariableDeclaration;
 
 /**
@@ -44,7 +46,7 @@ const CONNECTION_IMPORTS: readonly RegExp[] = [
     /^\.\.\/PlayerSession$/,
     /^\.\.\/ClientConnection$/,
     /^\.\.\/codec\/CodecRegistry$/,
-    /^\.\/(PacketHandler|ConnectionPacketHandler)$/
+    /^\.\/(PacketHandler|ConnectionPacketHandler|SessionHandler|HandlerContext)$/
 ];
 
 /**
@@ -85,17 +87,46 @@ const KNOWN_WORLD_ACCESS: ReadonlyMap<string, string> = new Map([
 const memberName = (access: PropertyAccessExpression): string | null =>
     isIdentifier(access.name) ? access.name.text : null;
 
-/** The parameter kind a `Server`, `PlayerSession` or `ClientConnection` annotation names. */
+/** The handler contexts, whose `session` is the handler's `PlayerSession`. */
+const CONTEXT_TYPES: ReadonlySet<string> = new Set(['SessionContext', 'InputContext']);
+
+/**
+ * The parameter kind a `Server`, `PlayerSession` or `ClientConnection` annotation names. A
+ * context parameter is a `Context`, and the `session` destructured from one a `PlayerSession`.
+ */
 const parameterKinds = (root: Node): Map<string, string> => {
     const kinds = new Map<string, string>();
     walkPreorder(root, (node) => {
-        if (!isParameter(node) || !isIdentifier(node.name) || node.type === undefined) return;
+        if (!isParameter(node) || node.type === undefined) return;
         const type = getTextOfNode(node.type);
+        if (!isIdentifier(node.name)) {
+            if (!CONTEXT_TYPES.has(type)) return;
+            walkPreorder(node.name, (element) => {
+                if (!isBindingElement(element) || element.name === undefined || !isIdentifier(element.name)) return;
+                const property =
+                    element.propertyName !== undefined && isIdentifier(element.propertyName)
+                        ? element.propertyName.text
+                        : element.name.text;
+                if (property === 'session') kinds.set(element.name.text, 'PlayerSession');
+            });
+            return;
+        }
         if (type === 'Server' || type === 'PlayerSession' || type === 'ClientConnection') {
             kinds.set(node.name.text, type);
         }
+        if (CONTEXT_TYPES.has(type)) kinds.set(node.name.text, 'Context');
     });
     return kinds;
+};
+
+/** The kind of the object a property access reads from: a parameter, or a context's `session`. */
+const receiverKind = (access: PropertyAccessExpression, kinds: ReadonlyMap<string, string>): string | undefined => {
+    const receiver = access.expression;
+    if (isIdentifier(receiver)) return kinds.get(receiver.text);
+    if (isPropertyAccess(receiver) && isIdentifier(receiver.expression) && memberName(receiver) === 'session') {
+        return kinds.get(receiver.expression.text) === 'Context' ? 'PlayerSession' : undefined;
+    }
+    return undefined;
 };
 
 /** Whether `node` reads only the player's identity: `x.getName` or `x.getRuntimeId`. */
@@ -127,9 +158,9 @@ const worldAccess = (file: string): string[] => {
     }
 
     walkPreorder(source, (node) => {
-        if (!isPropertyAccess(node) || !isIdentifier(node.expression)) return;
+        if (!isPropertyAccess(node)) return;
         const member = memberName(node);
-        const kind = kinds.get(node.expression.text);
+        const kind = receiverKind(node, kinds);
         if (member === null || kind === undefined) return;
 
         if (kind === 'Server' && !SERVER_MEMBERS.has(member)) found.push(`calls server.${member}`);

@@ -13,6 +13,8 @@ import type ClientConnection from './ClientConnection';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import { readPacketId } from '@jsprismarine/protocol/NetworkPacket';
 import { takesConnection } from './handler/ConnectionPacketHandler';
+import { takesContext } from './handler/SessionHandler';
+import { HandlerContexts } from './handlerContexts';
 import type { PacketLogFilter } from './PacketLogFilter';
 import type PacketHandlerRegistry from './PacketHandlerRegistry';
 import type { RegisteredHandler } from './PacketHandlerRegistry';
@@ -116,7 +118,10 @@ export interface NetworkDispatcherOptions<C extends TransportConnection> {
     packetHandlerRegistry: Pick<PacketHandlerRegistry, 'getHandler'>;
     /** Where the legacy `raknetDisconnect` event still goes. */
     events: Pick<EventEmitter, 'emit'>;
-    /** Handed to every packet handler; their contract takes the whole server. */
+    /**
+     * Handed to the handlers that still take the whole server, and what the contexts of the
+     * others are built from.
+     */
     server: Server;
     logger: Logger;
     /** Which packets the traffic log leaves out. */
@@ -519,7 +524,8 @@ export default class NetworkDispatcher<C extends TransportConnection> {
             // A handshake- or login-phase handler takes the bare connection; every other
             // handler needs the player session that login creates. A packet that reaches
             // the wrong side of that line is dropped rather than handed an object of the
-            // wrong shape.
+            // wrong shape. A session handler takes either a context, in the shape the client
+            // shares, or the whole server, until every handler has moved to the context.
             const session = connection.getPlayerSession();
             if (takesConnection(handler)) {
                 if (recordInbound && this.inboundPacketRecorder !== undefined) {
@@ -530,7 +536,8 @@ export default class NetworkDispatcher<C extends TransportConnection> {
                 if (recordInbound && this.inboundPacketRecorder !== undefined) {
                     this.recordInboundPacket(packet, connection);
                 }
-                if (handler.lane === 'input')
+                if (takesContext(handler)) await HandlerContexts.of(this.server).run(handler, packet, session);
+                else if (handler.lane === 'input')
                     await applyInput(session, () => handler.handle(packet, this.server, session));
                 else await handler.handle(packet, this.server, session);
             } else this.logger.debug(`Dropped §b${packet.constructor.name}§r: received before login completed`);

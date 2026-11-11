@@ -3,7 +3,8 @@ import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import type { Server } from '../../';
 import type { SessionPhase } from '../SessionPhase';
 import type PacketHandler from './PacketHandler';
-import type { Lane } from './Lane';
+import type { Lane } from '@jsprismarine/protocol/handler/Lane';
+import type { SessionHandler } from './SessionHandler';
 
 /**
  * Handles a packet that arrives before the connection has a player session.
@@ -30,7 +31,7 @@ export default interface ConnectionPacketHandler<T extends NetworkPacket<unknown
  * the bare connection.
  */
 export const takesConnection = (
-    handler: PacketHandler<any> | ConnectionPacketHandler<any>
+    handler: PacketHandler<any> | ConnectionPacketHandler<any> | SessionHandler<any>
 ): handler is ConnectionPacketHandler<any> => {
     return handler.phases.every((phase) => phase === 'handshake' || phase === 'login' || phase === 'encryption');
 };
