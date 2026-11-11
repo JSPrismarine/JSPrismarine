@@ -12,14 +12,14 @@ const packetAt = (blockPosition: BlockPosition) =>
 
 describe('AnvilDamageHandler', () => {
     it('logs the position of an anvil in reach, whatever its wear', () => {
-        const { logged, server, session } = sessionSeeingBlocks({
+        const { logged, context } = sessionSeeingBlocks({
             '3,2,2': 'minecraft:anvil',
             '1,2,2': 'minecraft:damaged_anvil'
         });
         const handler = new AnvilDamageHandler();
 
-        handler.handle(packetAt(new BlockPosition(3, 2, 2)), server, session);
-        handler.handle(packetAt(new BlockPosition(1, 2, 2)), server, session);
+        handler.handle(packetAt(new BlockPosition(3, 2, 2)), context);
+        handler.handle(packetAt(new BlockPosition(1, 2, 2)), context);
 
         expect(logged.debug).toEqual([
             'Steve asked to damage the anvil at 3, 2, 2. Anvils are not modeled',
@@ -29,9 +29,9 @@ describe('AnvilDamageHandler', () => {
     });
 
     it('drops a position that holds no anvil', () => {
-        const { logged, server, session } = sessionSeeingBlocks({ '1,2,2': 'minecraft:iron_block' });
+        const { logged, context } = sessionSeeingBlocks({ '1,2,2': 'minecraft:iron_block' });
 
-        new AnvilDamageHandler().handle(packetAt(new BlockPosition(1, 2, 2)), server, session);
+        new AnvilDamageHandler().handle(packetAt(new BlockPosition(1, 2, 2)), context);
 
         expect(logged.debug).toEqual([]);
         expect(logged.verbose).toEqual([

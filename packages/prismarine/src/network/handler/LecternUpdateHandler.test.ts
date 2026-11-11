@@ -14,9 +14,9 @@ const packetAt = (position: BlockPosition) =>
 
 describe('LecternUpdateHandler', () => {
     it('logs the page and position of a lectern in reach', () => {
-        const { logged, server, session } = sessionSeeingBlocks({ '4,1,2': 'minecraft:lectern' });
+        const { logged, context } = sessionSeeingBlocks({ '4,1,2': 'minecraft:lectern' });
 
-        new LecternUpdateHandler().handle(packetAt(new BlockPosition(4, 1, 2)), server, session);
+        new LecternUpdateHandler().handle(packetAt(new BlockPosition(4, 1, 2)), context);
 
         expect(logged.debug).toEqual([
             'Steve turned the lectern at 4, 1, 2 to page 1 of 3. Lectern pages are not stored'
@@ -25,9 +25,9 @@ describe('LecternUpdateHandler', () => {
     });
 
     it('drops a position that holds no lectern', () => {
-        const { logged, server, session } = sessionSeeingBlocks({ '4,1,2': 'minecraft:bookshelf' });
+        const { logged, context } = sessionSeeingBlocks({ '4,1,2': 'minecraft:bookshelf' });
 
-        new LecternUpdateHandler().handle(packetAt(new BlockPosition(4, 1, 2)), server, session);
+        new LecternUpdateHandler().handle(packetAt(new BlockPosition(4, 1, 2)), context);
 
         expect(logged.debug).toEqual([]);
         expect(logged.verbose).toEqual([

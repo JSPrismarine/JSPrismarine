@@ -1,9 +1,8 @@
-import type Server from '../../Server';
-import type PlayerSession from '../PlayerSession';
 import type StructureBlockUpdatePacket from '@jsprismarine/protocol/packet/StructureBlockUpdatePacket';
 import BlockPosition from '../../world/BlockPosition';
 import { blockTargetRejection } from './BlockTarget';
-import type PacketHandler from './PacketHandler';
+import type { SessionContext } from './HandlerContext';
+import type { ReadLaneHandler } from './SessionHandler';
 
 /** The one block whose screen sends this packet. */
 const STRUCTURE_BLOCKS: ReadonlySet<string> = new Set(['minecraft:structure_block']);
@@ -16,13 +15,14 @@ const STRUCTURE_BLOCKS: ReadonlySet<string> = new Set(['minecraft:structure_bloc
  * server has no structure block entity to store the settings in and no structure storage to
  * save or load from, so nothing can be exported, placed or triggered.
  */
-export default class StructureBlockUpdateHandler implements PacketHandler<StructureBlockUpdatePacket> {
+export default class StructureBlockUpdateHandler implements ReadLaneHandler<StructureBlockUpdatePacket> {
     public static PacketName = 'StructureBlockUpdatePacket';
+    public readonly takes = 'context';
     public readonly phases = ['play'] as const;
     public readonly lane = 'read';
 
     /** Checks the position names a structure block in reach, then logs the structure name. */
-    public handle(packet: StructureBlockUpdatePacket, server: Server, session: PlayerSession): void {
+    public handle(packet: StructureBlockUpdatePacket, { session, log }: SessionContext): void {
         const data = packet.getPacketData();
         if (data === null) throw new Error('Cannot handle a StructureBlockUpdatePacket without decoded data');
 
@@ -31,21 +31,17 @@ export default class StructureBlockUpdateHandler implements PacketHandler<Struct
 
         const rejection = blockTargetRejection(session, blockPosition, STRUCTURE_BLOCKS);
         if (rejection !== null) {
-            server
-                .getLogger()
-                .verbose(
-                    `Dropped a structure block update from ${session.identity.name} at ${where}: ${rejection}`,
-                    'StructureBlockUpdateHandler/handle'
-                );
+            log.verbose(
+                `Dropped a structure block update from ${session.identity.name} at ${where}: ${rejection}`,
+                'StructureBlockUpdateHandler/handle'
+            );
             return;
         }
 
         const name = data.structureData.structureName.unredacted;
-        server
-            .getLogger()
-            .debug(
-                `${session.identity.name} set the structure block at ${where} to structure "${name}". Structure blocks are not stored`,
-                'StructureBlockUpdateHandler/handle'
-            );
+        log.debug(
+            `${session.identity.name} set the structure block at ${where} to structure "${name}". Structure blocks are not stored`,
+            'StructureBlockUpdateHandler/handle'
+        );
     }
 }
