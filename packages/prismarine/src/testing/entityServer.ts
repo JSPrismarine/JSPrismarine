@@ -21,6 +21,7 @@ import { buildServerContent } from '../content/ServerContent';
 import { fixtureContentOptions } from '../content/testing';
 import type { EntityRuntime } from '../entity/data/EntityRuntime';
 import { EntityIndex } from '../entity/data/entityIndex';
+import { EntityStore } from '../entity/data/EntityStore';
 import type { LiveEntityRuntime } from '../entity/data/live';
 import { EntityRuntimes } from '../entity/data/live';
 import { serverWorldSource } from '../content/world/serverSource';
@@ -60,8 +61,14 @@ export const inertEntityRuntime = (): LiveEntityRuntime =>
         // The fixture build, so a caller that asks the runtime what the stack declares - which
         // is what `/summon` does before it spawns - gets an answer rather than a crash. The
         // fixture declares no entity, so every such question answers no.
-        // A real index, empty, so a world double files its entities somewhere it can ask again.
-        runtime: stub<EntityRuntime>({ content: () => testContent(), blockBroken: () => {}, index: new EntityIndex() }),
+        // A real index, empty, so a world double files its entities somewhere it can ask again, and
+        // a real store, because a world always has one: its change log opens and seals each tick.
+        runtime: stub<EntityRuntime>({
+            content: () => testContent(),
+            blockBroken: () => {},
+            index: new EntityIndex(),
+            store: new EntityStore()
+        }),
         actors: stub<StoreActors>({ all: () => [][Symbol.iterator](), actorOf: () => undefined }),
         // Nothing it holds rides anything, so nothing is kept out of a portal.
         isInRide: () => false,

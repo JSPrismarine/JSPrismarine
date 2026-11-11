@@ -3,6 +3,8 @@ import type { EntityPosition, EntityType } from '@jsprismarine/entities';
 import { describe, expect, it } from 'vitest';
 
 import type { ServerContent } from '../content/ServerContent';
+import { EntityIndex } from '../entity/data/entityIndex';
+import { EntityStore } from '../entity/data/EntityStore';
 import type { EntityRuntime } from '../entity/data/EntityRuntime';
 import type { LiveEntityRuntime } from '../entity/data/live';
 import type { Entity } from '../entity/Entity';
@@ -49,6 +51,8 @@ const worldLoading = (
     const content = stub<ServerContent>({ entities: { registry: registryOf(declared) } as ServerContent['entities'] });
     const live = stub<LiveEntityRuntime>({
         runtime: stub<EntityRuntime>({
+            store: new EntityStore(),
+            index: new EntityIndex(),
             content: () => content,
             spawn: (identifier, at, options) => {
                 asked.push({

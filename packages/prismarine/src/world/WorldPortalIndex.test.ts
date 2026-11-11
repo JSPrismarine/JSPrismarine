@@ -1,4 +1,5 @@
 import { EntityIndex } from '../entity/data/entityIndex';
+import { EntityStore } from '../entity/data/EntityStore';
 import { describe, expect, it, vi } from 'vitest';
 
 import type Player from '../Player';
@@ -35,7 +36,7 @@ const worldWith = (chunks: readonly Chunk[]): World => {
         dataEntities: () => ({
             persist: () => {},
             unload: () => false,
-            runtime: { index: new EntityIndex(), remove: () => {} }
+            runtime: { index: new EntityIndex(), store: new EntityStore(), remove: () => {} }
         }),
         systems: { onChunkUnloaded: () => {} },
         dimension: Dimensions.Overworld,
