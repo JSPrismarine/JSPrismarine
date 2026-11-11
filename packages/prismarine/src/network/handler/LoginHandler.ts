@@ -14,7 +14,6 @@ import { identityFromXUID, parseLoginIdentity } from '../LoginIdentity';
 import { LoginRefused, verifyLogin } from '@jsprismarine/auth/server';
 import type ConnectionPacketHandler from './ConnectionPacketHandler';
 import type { PlayerIdentity } from '../../playerIdentity';
-import type { KickedPlayer } from './playerPorts';
 
 type LoginIdentity = ReturnType<typeof parseLoginIdentity>;
 
@@ -244,8 +243,8 @@ export default class LoginHandler implements ConnectionPacketHandler<LoginPacket
         try {
             for (const replaced of sessions.claimIdentity(connection, accountOf(identity), joined)) {
                 await replaced.joined;
-                const player: KickedPlayer | undefined = replaced.connection.getPlayerSession()?.getPlayer();
-                if (player) await player.kick(REPLACED, DisconnectReason.LOGGED_IN_OTHER_LOCATION);
+                const replacedSession = replaced.connection.getPlayerSession();
+                if (replacedSession) await replacedSession.kick(REPLACED, DisconnectReason.LOGGED_IN_OTHER_LOCATION);
                 else await replaced.connection.disconnect(REPLACED, false, DisconnectReason.LOGGED_IN_OTHER_LOCATION);
             }
 

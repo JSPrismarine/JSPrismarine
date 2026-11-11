@@ -57,12 +57,11 @@ export default class EmoteHandler implements PacketHandler<EmotePacket> {
         // reached every player on the server, including ones in another world and ones that
         // were never sent a spawn for the actor the emote names.
         const others = session
-            .getPlayer()
             .getWorld()
-            .getPlayers()
-            .filter((other) => other.getRuntimeId() !== session.runtimeId)
-            .filter((other) => other.getNetworkSession().tracks(session.runtimeId));
-        await Promise.all(others.map((other) => other.getNetworkSession().send(relay)));
+            .getViewers()
+            .filter((other) => other.runtimeId !== session.runtimeId)
+            .filter((other) => other.tracks(session.runtimeId));
+        await Promise.all(others.map((other) => other.send(relay)));
 
         logger.debug(
             `${session.identity.name} played emote ${packet.emoteId} for ${packet.emoteLengthTicks} ticks, relayed to ${others.length} player(s)`,

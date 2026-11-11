@@ -10,7 +10,6 @@ import { eyePositionAt } from '../../entity/playerEyes';
 import { syncActorPropertyPacket } from '../actorProperties';
 import type Server from '../../Server';
 import type { Level } from '../../world/Level';
-import type { PlayerSpawn } from '../../world/SpawnPlacement';
 import ChatEvent from '../../events/chat/ChatEvent';
 import PlayerSpawnEvent from '../../events/player/PlayerSpawnEvent';
 import AvailableActorIdentifiersPacket from '@jsprismarine/protocol/packet/AvailableActorIdentifiersPacket';
@@ -28,18 +27,6 @@ import { overworldSpawnOf, playerSpawnPositionPacket } from '../spawnPosition';
 import { createStartGameData } from '../startGameData';
 import { sendCachedJoinPacket } from '../joinPacketCache';
 import type PacketHandler from './PacketHandler';
-import type { KickedPlayer, PlacedPlayer } from './playerPorts';
-
-/**
- * The joining player as the join burst reads it. The burst also hands `session.getPlayer()` to
- * the spawn event, `StartGame` and the spawn position, which take a legacy player.
- */
-interface JoiningPlayer extends Pick<PlacedPlayer, 'getWorld'> {
-    /** Where the join placed the player, or null for a player returning to a saved position. */
-    getJoinSpawn(): PlayerSpawn | null;
-    /** Sends the player's game mode, adventure settings and abilities. */
-    sendSettings(): Promise<void>;
-}
 
 /**
  * Drives the end of the login exchange, from the client's answer about resource packs to the
@@ -62,8 +49,10 @@ export default class ResourcePackClientResponseHandler implements PacketHandler<
      * None for a player returning to a saved position. What BDS sends then has not been
      * measured, and this server sent none before.
      */
-    private static joinRespawns(player: JoiningPlayer): Array<[Vector3, PlayerRespawnState, bigint]> {
-        const joinSpawn = player.getJoinSpawn();
+    private static joinRespawns(
+        session: Pick<PlayerSession, 'getJoinSpawn'>
+    ): Array<[Vector3, PlayerRespawnState, bigint]> {
+        const joinSpawn = session.getJoinSpawn();
         if (joinSpawn === null) return [];
 
         return [
@@ -147,7 +136,6 @@ export default class ResourcePackClientResponseHandler implements PacketHandler<
         server: Server,
         session: PlayerSession
     ): Promise<void> {
-        const player: KickedPlayer = session.getPlayer();
         const { name } = session.identity;
         const logger = server.getLogger();
         const response = packet.getPacketData();
@@ -159,7 +147,7 @@ export default class ResourcePackClientResponseHandler implements PacketHandler<
 
         switch (response.status) {
             case ResourcePackStatus.Refused:
-                await player.kick('Declined the resource packs', DisconnectReason.RESOURCE_PACK_PROBLEM);
+                await session.kick('Declined the resource packs', DisconnectReason.RESOURCE_PACK_PROBLEM);
                 return;
 
             case ResourcePackStatus.SendPacks:
@@ -167,7 +155,7 @@ export default class ResourcePackClientResponseHandler implements PacketHandler<
                     `${name} asked for ${response.packIds.length} resource pack(s); the server offers none`,
                     'ResourcePackClientResponseHandler/handle'
                 );
-                await player.kick(
+                await session.kick(
                     'Asked for resource packs this server does not have',
                     DisconnectReason.RESOURCE_PACK_PROBLEM
                 );
@@ -253,12 +241,11 @@ export default class ResourcePackClientResponseHandler implements PacketHandler<
      * - `LevelChunk` and `PlayStatus(PlayerSpawn)`. The client discards terrain that arrives
      *   before it has asked for a radius and been answered - see `PlayerSession.setViewDistance`.
      * - The entity spawns. They follow PlayerSpawn, from `announceSpawnIfReady`.
-     * - A second round of settings and inventory. `Player.completeSpawn` runs once, from
+     * - A second round of settings and inventory. `PlayerSession.completeSpawn` runs once, from
      *   `SetLocalPlayerAsInitializedHandler`, because the client rebuilds its local player while
      *   spawning and throws away what step 6 told it.
      */
     private async sendJoinBurst(server: Server, session: PlayerSession): Promise<void> {
-        const player: JoiningPlayer = session.getPlayer();
         const { identity } = session;
         const connection = session.getConnection();
         const address = connection.getAddress();
@@ -272,7 +259,7 @@ export default class ResourcePackClientResponseHandler implements PacketHandler<
         server.post(['playerSpawn', spawnEvent]);
         if (spawnEvent.isCanceled()) return;
 
-        const world = player.getWorld();
+        const world = session.getWorld();
         const content = server.getContent();
         const recipeLimit = server.getConfig().getCraftingRecipeLimit();
         const compressionLevel = server.getConfig().getPacketCompressionLevel();
@@ -355,14 +342,14 @@ export default class ResourcePackClientResponseHandler implements PacketHandler<
             playerSpawnPositionPacket(session.getPlayer(), world, await overworldSpawnOf(world))
         );
 
-        await player.sendSettings();
+        await session.announceSettings();
         await session.sendAttributes();
         await session.sendMetadata();
 
         await session.sendInventory();
 
         // A packet object encodes once and keeps its bytes, so each of these is its own.
-        for (const [position, state, runtimeEntityId] of ResourcePackClientResponseHandler.joinRespawns(player)) {
+        for (const [position, state, runtimeEntityId] of ResourcePackClientResponseHandler.joinRespawns(session)) {
             const respawn = new RespawnPacket({
                 position: { x: position.getX(), y: position.getY(), z: position.getZ() },
                 state,

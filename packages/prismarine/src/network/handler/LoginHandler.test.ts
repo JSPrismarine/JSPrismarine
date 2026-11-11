@@ -263,11 +263,11 @@ describe('network', () => {
                     getName: () => 'Steve',
                     getXUID: () => '2535400000000001',
                     getUUID: () => UUID.fromString('00000000-0000-4000-8000-0000000000aa'),
-                    isOnline: () => true,
-                    kick: async (reason) => void kicked.push(reason ?? '')
+                    isOnline: () => true
                 });
                 const existingSession = stub<PlayerSession>({
                     getPlayer: () => existing,
+                    kick: async (reason) => void kicked.push(reason ?? ''),
                     identity: { name: 'Steve', xuid: '2535400000000001', uuid: '00000000-0000-4000-8000-0000000000aa' }
                 });
                 const chainClaiming = (xuid: string, name: string) => ({

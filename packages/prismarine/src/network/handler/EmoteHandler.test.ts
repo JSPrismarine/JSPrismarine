@@ -4,7 +4,6 @@ import type { Logger } from '@jsprismarine/logger';
 import type Server from '../../Server';
 import type { World } from '../../world/World';
 import type { StubMembers } from '../../testing/stub.test.helper';
-import { stubPlayerPort } from '../../testing/playerPort.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import { STEVE } from '../../testing/sessionIdentity.test.helper';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
@@ -14,35 +13,24 @@ import EmoteHandler from './EmoteHandler';
 
 const EMOTE_ID = '4c8ae710-df2e-47cd-814d-cc7bf21a3d67';
 
-/** A player in the sender's world, with whether it has the sender on screen. */
-const bystander = (name: string, tracking: boolean, sent: NetworkPacket[]) =>
-    stubPlayerPort({
-        getName: () => name,
-        getRuntimeId: () => 99n,
-        getNetworkSession: () =>
-            stub<PlayerSession>({
-                tracks: () => tracking,
-                send: async (packet) => void sent.push(packet)
-            })
+/** A client in the sender's world, with whether it has the sender on screen. */
+const bystander = (tracking: boolean, sent: NetworkPacket[]) =>
+    stub<PlayerSession>({
+        runtimeId: 99n,
+        tracks: () => tracking,
+        send: async (packet) => void sent.push(packet)
     });
 
 /** The sender, runtime id 7, in a world with `others`, plus everything the handler reads. */
-const setup = (
-    xuid: string | null,
-    others: (sender: ReturnType<World['getPlayers']>[number]) => ReturnType<World['getPlayers']>
-) => {
+const setup = (xuid: string | null, others: () => PlayerSession[]) => {
     const logged: string[] = [];
-    const sender = stubPlayerPort({
-        getRuntimeId: () => 7n,
-        getWorld: () => stub<World>({ getPlayers: () => [sender, ...others(sender)] })
-    });
     const server = stub<Server>({
         getLogger: () => stub<Logger>({ debug: (...message) => void logged.push(message[0] ?? '') })
     });
-    const session = stub<PlayerSession>({
+    const session: PlayerSession = stub<PlayerSession>({
         runtimeId: 7n,
         identity: { ...STEVE, xuid: xuid ?? '' },
-        getPlayer: () => sender
+        getWorld: () => stub<World>({ getViewers: () => [session, ...others()] })
     });
     return { logged, server, session };
 };
@@ -64,7 +52,7 @@ const request = (overrides: StubMembers<EmotePacket> = {}) =>
 describe('EmoteHandler', () => {
     it('relays a fresh packet under the sender XUID with the ServerSide flag, and logs it', async () => {
         const sent: NetworkPacket[] = [];
-        const { logged, server, session } = setup('steve-xuid', () => [bystander('Alex', true, sent)]);
+        const { logged, server, session } = setup('steve-xuid', () => [bystander(true, sent)]);
         const incoming = request();
 
         await new EmoteHandler().handle(incoming, server, session);
@@ -85,7 +73,7 @@ describe('EmoteHandler', () => {
 
     it('encodes the relay from its own fields, not the bytes the client sent', async () => {
         const sent: NetworkPacket[] = [];
-        const { server, session } = setup(null, () => [bystander('Alex', true, sent)]);
+        const { server, session } = setup(null, () => [bystander(true, sent)]);
         const incoming = request({ flags: 0 });
         incoming.encode();
 
@@ -102,7 +90,7 @@ describe('EmoteHandler', () => {
 
     it('skips a player in the world that has not been sent the sender', async () => {
         const sent: NetworkPacket[] = [];
-        const { server, session } = setup(null, () => [bystander('Alex', false, sent)]);
+        const { server, session } = setup(null, () => [bystander(false, sent)]);
 
         await new EmoteHandler().handle(request(), server, session);
 
@@ -111,7 +99,7 @@ describe('EmoteHandler', () => {
 
     it('drops an emote for another runtime id at debug level', async () => {
         const sent: NetworkPacket[] = [];
-        const { logged, server, session } = setup('steve-xuid', () => [bystander('Alex', true, sent)]);
+        const { logged, server, session } = setup('steve-xuid', () => [bystander(true, sent)]);
 
         await new EmoteHandler().handle(request({ actorRuntimeId: 999n }), server, session);
 
@@ -121,7 +109,7 @@ describe('EmoteHandler', () => {
 
     it('drops an emote whose id is not a uuid string', async () => {
         const sent: NetworkPacket[] = [];
-        const { logged, server, session } = setup('steve-xuid', () => [bystander('Alex', true, sent)]);
+        const { logged, server, session } = setup('steve-xuid', () => [bystander(true, sent)]);
 
         await new EmoteHandler().handle(request({ emoteId: 'wave' }), server, session);
 
