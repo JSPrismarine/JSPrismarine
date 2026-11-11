@@ -31,6 +31,7 @@ import { describe, expect, it } from 'vitest';
 import type { ShownActor } from '../world/ShownActor';
 import { EYE_HEIGHT } from '../entity/playerEyes';
 import { fakePlayer } from '../testing/fakePlayer.test.helper';
+import { inputContext } from '../testing/handlerContext.test.helper';
 import { stub } from '../testing/stub.test.helper';
 import { Dimensions, dimensionTypeOf, FIRST_CUSTOM_DIMENSION_ID } from '../world/DimensionType';
 import type { DimensionType } from '../world/DimensionType';
@@ -333,6 +334,17 @@ describe('PlayerSession.changeWorld', () => {
         return delivered;
     };
 
+    /** Applies a loading screen report as the input step does: the handler, then what it handed over. */
+    const reportScreen = async (
+        screens: ServerboundLoadingScreenHandler,
+        packet: ServerboundLoadingScreenPacket,
+        { session, server }: Pick<ReturnType<typeof fakePlayer>, 'session' | 'server'>
+    ) => {
+        const { context, settled } = inputContext(session, { log: server.getLogger() });
+        screens.handle(packet, context);
+        await settled();
+    };
+
     it('holds the arrival columns until the client opens the change screen, then sends each once', async () => {
         const { session, server, sent } = fakePlayer();
         const screens = new ServerboundLoadingScreenHandler();
@@ -345,7 +357,7 @@ describe('PlayerSession.changeWorld', () => {
         // A client still switching would file these under the dimension it is leaving.
         expect(levelChunks()).toHaveLength(0);
 
-        await screens.handle(screenOpened(id), server, session);
+        await reportScreen(screens, screenOpened(id), { session, server });
         const columns = levelChunks().map((p) => `${p.getPacketData()?.chunkX},${p.getPacketData()?.chunkZ}`);
         expect(columns).toHaveLength(queued);
         expect(new Set(columns).size).toBe(columns.length);
@@ -382,12 +394,12 @@ describe('PlayerSession.changeWorld', () => {
         await inputs.handle(inputAt(new Vector3(3, 70, -4)), server, session);
         expect(player.getPosition().getX()).toBe(100.5);
 
-        await screens.handle(screenClosed(id + 7), server, session);
+        await reportScreen(screens, screenClosed(id + 7), { session, server });
         expect(session.pendingDimensionChange()?.loadingScreenId).toBe(id);
         expect(logged.at(-1)).toContain(`closed loading screen ${id + 7}`);
         expect(sent.filter((p) => p instanceof MovePlayerPacket)).toHaveLength(0);
 
-        await screens.handle(screenClosed(id), server, session);
+        await reportScreen(screens, screenClosed(id), { session, server });
         expect(session.pendingDimensionChange()).toBeUndefined();
 
         // The change ends with a teleport to the arrival, and the client's first input from

@@ -1,8 +1,7 @@
-import type Server from '../../Server';
-import type PlayerSession from '../PlayerSession';
 import type ShowCreditsPacket from '@jsprismarine/protocol/packet/ShowCreditsPacket';
 import { CreditsState } from '@jsprismarine/protocol/packet/ShowCreditsPacket';
-import type PacketHandler from './PacketHandler';
+import type { InputContext } from './HandlerContext';
+import type { InputLaneHandler } from './SessionHandler';
 
 /**
  * The client reporting that the end credits have finished.
@@ -12,30 +11,31 @@ import type PacketHandler from './PacketHandler';
  * world change. A finish with no credits pending, or a client-sent `Start`, is logged at
  * debug and dropped.
  */
-export default class ShowCreditsHandler implements PacketHandler<ShowCreditsPacket> {
+export default class ShowCreditsHandler implements InputLaneHandler<ShowCreditsPacket> {
     public static PacketName = 'ShowCreditsPacket';
+    public readonly takes = 'context';
     public readonly phases = ['play'] as const;
     public readonly lane = 'input';
 
     /** Completes the held world change on `Finished`, and drops anything else. */
-    public async handle(packet: ShowCreditsPacket, server: Server, session: PlayerSession): Promise<void> {
+    public handle(packet: ShowCreditsPacket, { session, log, step }: InputContext): undefined {
         if (packet.creditsState === CreditsState.Finished) {
-            if (await session.completeCredits()) return;
+            // Slice 9: the held change moves the player to another world, which builds it and
+            // loads its chunks, until dimension travel is a message the destination admits.
+            step.defer(async () => {
+                if (await session.completeCredits()) return;
 
-            server
-                .getLogger()
-                .debug(
+                log.debug(
                     `${session.identity.name} reported the end credits finished with none pending`,
                     'ShowCreditsHandler/handle'
                 );
+            });
             return;
         }
 
-        server
-            .getLogger()
-            .debug(
-                `${session.identity.name} reported the end credits started, which only the server may say`,
-                'ShowCreditsHandler/handle'
-            );
+        log.debug(
+            `${session.identity.name} reported the end credits started, which only the server may say`,
+            'ShowCreditsHandler/handle'
+        );
     }
 }
