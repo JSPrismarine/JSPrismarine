@@ -5,7 +5,8 @@ import { BookEditAction } from '@jsprismarine/protocol/packet/BookEditPacket';
 
 import type { BookEdit } from '@jsprismarine/protocol/packet/BookEditPacket';
 import type PacketHandler from './PacketHandler';
-import type { InventoryHolder } from './playerPorts';
+import type { StorePlayer } from '../../entity/storePlayer';
+import { storePlayerOf } from './playerPorts';
 
 /** The only item a book edit can apply to. Signing turns it into a written book. */
 const WRITABLE_BOOK = 'minecraft:writable_book';
@@ -19,7 +20,7 @@ const pageInRange = (page: number): boolean => Number.isInteger(page) && page >=
  * Why an edit cannot apply to the player's inventory, or null when the slot holds a book and
  * quill and every page number fits in one.
  */
-const bookEditRejection = (player: InventoryHolder, data: BookEdit): string | null => {
+const bookEditRejection = (player: Pick<StorePlayer, 'getInventory'>, data: BookEdit): string | null => {
     const { bookSlot, operation } = data;
 
     // `getItem` answers air for a slot the inventory does not have, so an out of range slot
@@ -53,7 +54,7 @@ export default class BookEditHandler implements PacketHandler<BookEditPacket> {
     public handle(packet: BookEditPacket, server: Server, session: PlayerSession): void {
         const data = packet.getPacketData();
 
-        const rejection = data === null ? 'it carries no operation' : bookEditRejection(session.getPlayer(), data);
+        const rejection = data === null ? 'it carries no operation' : bookEditRejection(storePlayerOf(session), data);
         if (rejection !== null) {
             server
                 .getLogger()

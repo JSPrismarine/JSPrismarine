@@ -1,11 +1,11 @@
 /**
- * What more than one packet handler reads or changes of the player its session speaks for.
+ * How a packet handler reaches the player its session speaks for.
  *
- * A handler reaches the player through `PlayerSession.getPlayer()` and names only the part it
- * uses, so the handler compiles against any player that has that part. A legacy `Player`
- * satisfies each port as it is. Package C4h of the entity and tick re-architecture hands the
- * session a store player instead, and the plan's C4f notes list what a store player still lacks
- * for each port. A port only one handler needs lives in that handler's module.
+ * A handler reads the player's state from its store player, and changes it through the homes
+ * package H-B3 of the entity and tick re-architecture named: a client operation on the session,
+ * and an input, such as a sprint or a jump, through the entity runtime of the session's world. It
+ * calls a `Player` method only where that method posts a player event, or where the callee takes
+ * a `Player`.
  */
 import type { DisconnectReason } from '@jsprismarine/minecraft';
 import type { Vector3 } from '@jsprismarine/math';
@@ -13,6 +13,29 @@ import type { Vector3 } from '@jsprismarine/math';
 import type CraftingInput from '../../crafting/CraftingInput';
 import type HumanInventory from '../../inventory/HumanInventory';
 import type { World } from '../../world/World';
+import type { EntityRuntime } from '../../entity/data/EntityRuntime';
+import type { StorePlayer } from '../../entity/storePlayer';
+import type PlayerSession from '../PlayerSession';
+
+/**
+ * The store player a session speaks for: its entity while it is in a store, and the inventory,
+ * crafting grid, components, look and identity beside it.
+ * @param session - The sender's session.
+ * @returns The store player.
+ * @throws {Error} Once the session has forgotten its player.
+ */
+export const storePlayerOf = (session: Pick<PlayerSession, 'getPlayer'>): StorePlayer =>
+    session.getPlayer().getStorePlayer();
+
+/**
+ * The entity runtime that takes the inputs of a session's player: the runtime of the session's
+ * world, which writes through its player systems while the player's entity is in its store, and
+ * onto the store player's components while it is in none.
+ * @param session - The sender's session.
+ * @returns The runtime.
+ */
+export const playerInputsOf = (session: Pick<PlayerSession, 'getWorld'>): EntityRuntime =>
+    session.getWorld().dataEntities().runtime;
 
 /** A player as a handler that kicks it sees it. */
 export interface KickedPlayer {

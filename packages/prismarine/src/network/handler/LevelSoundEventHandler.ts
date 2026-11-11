@@ -3,11 +3,11 @@ import { LevelSoundEventName } from '@jsprismarine/minecraft';
 import type { PlayerSession } from '../../';
 import type Server from '../../Server';
 import { CREATIVE_REACH } from '../../entity/Combat';
+import { PLAYER_IDENTIFIER } from '../../entity/playerOverlay';
 import { SOUND_RADIUS } from '../../world/Proximity';
 import type LevelSoundEventPacket from '@jsprismarine/protocol/packet/LevelSoundEventPacket';
-import type { ShownActor } from '../../world/ShownActor';
 import type PacketHandler from './PacketHandler';
-import type { PlacedPlayer } from './playerPorts';
+import { storePlayerOf } from './playerPorts';
 
 /**
  * How far from the sender a client-sent sound may claim to have happened.
@@ -44,7 +44,6 @@ export default class LevelSoundEventHandler implements PacketHandler<LevelSoundE
      * and any sound name outside the enum included.
      */
     public async handle(packet: LevelSoundEventPacket, server: Server, session: PlayerSession): Promise<void> {
-        const player: PlacedPlayer & Pick<ShownActor, 'getType'> = session.getPlayer();
         const position = new Vector3(packet.positionX, packet.positionY, packet.positionZ);
 
         const drop = (reason: string) => {
@@ -64,12 +63,12 @@ export default class LevelSoundEventHandler implements PacketHandler<LevelSoundE
             return;
         }
 
-        if (!NO_ACTOR_TYPES.has(packet.entityType) && packet.entityType !== player.getType()) {
+        if (!NO_ACTOR_TYPES.has(packet.entityType) && packet.entityType !== PLAYER_IDENTIFIER) {
             drop(`attributed to a ${packet.entityType}`);
             return;
         }
 
-        const distance = player.getPosition().distanceTo(position);
+        const distance = storePlayerOf(session).getPosition().distanceTo(position);
         if (!Number.isFinite(distance) || distance > MAX_SOUND_DISTANCE) {
             drop(`reported ${distance.toFixed(1)} away`);
             return;
@@ -84,9 +83,12 @@ export default class LevelSoundEventHandler implements PacketHandler<LevelSoundE
         //
         // The sender is left out: the client that sent this has already played it locally, and
         // echoing it back played everything twice for whoever made the noise.
-        server.getWorldReplicators().for(player.getWorld()).sendAround(position, packet, {
-            radius: SOUND_RADIUS,
-            exclude: session.getPlayer()
-        });
+        server
+            .getWorldReplicators()
+            .for(session.getWorld())
+            .sendAround(position, packet, {
+                radius: SOUND_RADIUS,
+                exclude: { getRuntimeId: () => session.runtimeId }
+            });
     }
 }

@@ -5,13 +5,13 @@ import type { Logger } from '@jsprismarine/logger';
 import type Server from '../../Server';
 import type { Entity } from '../../entity/Entity';
 import { identityNamed } from '../../testing/sessionIdentity.test.helper';
-import { stubPlayerPort } from '../../testing/playerPort.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import { Position } from '../../world/Position';
 import type { World } from '../../world/World';
 import type PlayerSession from '../PlayerSession';
 import InteractPacket, { InteractAction } from '@jsprismarine/protocol/packet/InteractPacket';
 import InteractHandler from './InteractHandler';
+import { storePlayerPort } from './storePlayerPort.test.helper';
 
 const SELF = 7n;
 const NPC = 20n;
@@ -34,17 +34,15 @@ const fakeSession = (options: { npcDistance?: number; tracked?: boolean } = {}) 
                 ? stub<Entity>({ getPosition: () => new Position(options.npcDistance ?? 0, 0, 0, world) })
                 : null
     });
-    const player = stubPlayerPort({
+    const player = storePlayerPort({
         gamemode: Gametype.SURVIVAL,
-        getName: () => 'tester',
-        getRuntimeId: () => SELF,
-        getPosition: () => new Position(0, 0, 0, world),
-        getWorld: () => world
+        getPosition: () => new Position(0, 0, 0, world)
     });
     const session = stub<PlayerSession>({
         runtimeId: SELF,
         identity: identityNamed('tester'),
         getPlayer: () => player,
+        getWorld: () => world,
         tracks: (runtimeId) => runtimeId === SELF || (runtimeId === NPC && options.tracked === true),
         openMainInventory: async () => {
             opened.push(1);

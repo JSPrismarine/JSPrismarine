@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import type { StorePlayer } from '../../entity/storePlayer';
 import type HumanInventory from '../../inventory/HumanInventory';
 import { Item } from '../../item/Item';
 import { sessionNearBlocks } from '../../testing/blockTarget.test.helper';
@@ -13,9 +14,12 @@ const steveHolding = (item: Item) => {
     const near = sessionNearBlocks(
         {},
         {
-            getInventory: () =>
-                stub<HumanInventory>({
-                    getItem: (slot) => (slot === 2 ? item : new Item({ runtimeId: 0, name: 'minecraft:air' }))
+            getStorePlayer: () =>
+                stub<StorePlayer>({
+                    getInventory: () =>
+                        stub<HumanInventory>({
+                            getItem: (slot) => (slot === 2 ? item : new Item({ runtimeId: 0, name: 'minecraft:air' }))
+                        })
                 })
         }
     );

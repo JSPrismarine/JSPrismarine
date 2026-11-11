@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 import type Server from '../../Server';
 import type SessionManager from '../../SessionManager';
 import { identityNamed } from '../../testing/sessionIdentity.test.helper';
+import type { StorePlayer } from '../../entity/storePlayer';
 import { stubPlayerPort } from '../../testing/playerPort.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import UUID from '@jsprismarine/protocol/wire/structures/UUID';
@@ -43,17 +44,12 @@ const classicSkin = (id: string, overrides: Partial<ClientData> = {}) =>
         ...overrides
     });
 
-/** An online player whose session records what it is sent. */
-const onlinePlayer = (name: string, uuid: string, runtimeId: bigint) => {
+/** An online player, as its store player, whose session records what it is sent. */
+const onlinePlayer = (name: string, runtimeId: bigint) => {
     const send = vi.fn(async () => {});
-    const player = stubPlayerPort({
-        getName: () => name,
-        getRuntimeId: () => runtimeId,
-        getUUID: () => UUID.fromString(uuid),
-        skin: classicSkin(`${name}-old`),
-        getNetworkSession: () => stub<PlayerSession>({ send })
-    });
-    return { player, send };
+    const player = stub<StorePlayer>({ skin: classicSkin(`${name}-old`) });
+    const session = stub<PlayerSession>({ runtimeId, send });
+    return { player, session, send };
 };
 
 const skinChange = (uuid: string, skin = classicSkin('new-skin')) =>
@@ -65,9 +61,9 @@ const skinChange = (uuid: string, skin = classicSkin('new-skin')) =>
     });
 
 const setUp = () => {
-    const sender = onlinePlayer('runner', SENDER_UUID, 7n);
-    const alice = onlinePlayer('alice', '11111111-1111-4111-8111-111111111111', 8n);
-    const bob = onlinePlayer('bob', '22222222-2222-4222-8222-222222222222', 9n);
+    const sender = onlinePlayer('runner', 7n);
+    const alice = onlinePlayer('alice', 8n);
+    const bob = onlinePlayer('bob', 9n);
     const debug = vi.fn();
 
     // The entry built at login, which `sendPlayerList` hands to whoever joins later.
@@ -88,14 +84,14 @@ const setUp = () => {
         getLogger: () => stub<Logger>({ debug }),
         getSessionManager: () =>
             stub<SessionManager>({
-                getAllPlayers: () => [sender.player, alice.player, bob.player],
+                getSessions: () => [sender.session, alice.session, bob.session],
                 getPlayerList: () => playerList
             })
     });
     const session = stub<PlayerSession>({
         runtimeId: 7n,
         identity: identityNamed('runner', SENDER_UUID),
-        getPlayer: () => sender.player
+        getPlayer: () => stubPlayerPort({ getStorePlayer: () => sender.player })
     });
     return { sender, alice, bob, debug, server, session, playerList, loginEntry };
 };

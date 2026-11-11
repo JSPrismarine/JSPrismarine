@@ -5,7 +5,7 @@ import CraftingInput from '../../crafting/CraftingInput';
 import type { Item } from '../../item/Item';
 import ContainerClosePacket from '@jsprismarine/protocol/packet/ContainerClosePacket';
 import type PacketHandler from './PacketHandler';
-import type { CraftingHolder, InventoryHolder, PlacedPlayer } from './playerPorts';
+import { storePlayerOf } from './playerPorts';
 
 /**
  * Answers a client that closed a container, and clears what the close left behind.
@@ -34,8 +34,7 @@ export default class ContainerCloseHandler implements PacketHandler<ContainerClo
         const open = session.getOpenBlockContainer();
         const left = open?.windowId === packet.containerId ? open.inputs.filter((item) => item !== null) : [];
         // Whatever the player still holds on the cursor goes back with them, since the screen it was held over is gone.
-        const holder: InventoryHolder = session.getPlayer();
-        const inventory = holder.getInventory();
+        const inventory = storePlayerOf(session).getInventory();
         const cursor = inventory.getCursor();
         if (cursor !== null && open?.windowId === packet.containerId) {
             left.push(cursor);
@@ -75,7 +74,7 @@ export default class ContainerCloseHandler implements PacketHandler<ContainerClo
      * has been mining, and silently eating the grid there is the same bug the grid itself was.
      */
     private async emptyCraftingGrid(session: PlayerSession, windowItems: readonly Item[]): Promise<void> {
-        const player: InventoryHolder & CraftingHolder & PlacedPlayer = session.getPlayer();
+        const player = storePlayerOf(session);
         const craftingInput = player.getCraftingInput();
         if (craftingInput.isEmpty() && windowItems.length === 0) return;
 
@@ -98,7 +97,7 @@ export default class ContainerCloseHandler implements PacketHandler<ContainerClo
             craftingInput.set(slot, null);
         }
 
-        if (overflow.length > 0) await player.getWorld().dropContents(player.getPosition(), overflow);
+        if (overflow.length > 0) await session.getWorld().dropContents(player.getPosition(), overflow);
 
         await session.sendInventory();
     }

@@ -18,6 +18,7 @@ import type ClientConnection from '../ClientConnection';
 import type { ProtocolCodec } from '@jsprismarine/protocol';
 import type PlayerSession from '../PlayerSession';
 import MobEquipmentHandler from './MobEquipmentHandler';
+import { storePlayerPort } from './storePlayerPort.test.helper';
 
 const protocolContext: ProtocolContext = { protocolVersion: 2193 };
 const protocolCodec = stub<ProtocolCodec>({ protocolVersion: 2193, context: protocolContext });
@@ -48,13 +49,15 @@ const fakeWorld = () => {
         getPlayer: () => sender,
         getConnection: () => connection
     });
-    const sender = stubPlayerPort({
-        getName: () => 'runner',
-        getRuntimeId: () => 7n,
-        getWorld: () => world,
-        getInventory: () => inventory,
-        getNetworkSession: () => senderSession
-    });
+    const sender = storePlayerPort(
+        { getInventory: () => inventory },
+        {
+            getName: () => 'runner',
+            getRuntimeId: () => 7n,
+            getWorld: () => world,
+            getNetworkSession: () => senderSession
+        }
+    );
     const watcher = stubPlayerPort({
         getRuntimeId: () => 8n,
         getWorld: () => world,

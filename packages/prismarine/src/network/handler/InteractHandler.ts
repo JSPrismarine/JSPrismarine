@@ -5,9 +5,8 @@ import type Server from '../../Server';
 import { CREATIVE_REACH, SURVIVAL_REACH } from '../../entity/Combat';
 import type InteractPacket from '@jsprismarine/protocol/packet/InteractPacket';
 import { InteractAction } from '@jsprismarine/protocol/packet/InteractPacket';
-import type { ShownPlayer } from '../../world/ShownPlayer';
 import type PacketHandler from './PacketHandler';
-import type { PlacedPlayer } from './playerPorts';
+import { storePlayerOf } from './playerPorts';
 
 /**
  * The slack added to a player's reach when checking the actor they say they interacted with.
@@ -36,8 +35,6 @@ export default class InteractHandler implements PacketHandler<InteractPacket> {
     public readonly lane = 'input';
 
     public async handle(packet: InteractPacket, server: Server, session: PlayerSession): Promise<void> {
-        const player: PlacedPlayer & Pick<ShownPlayer, 'gamemode'> = session.getPlayer();
-
         switch (packet.action) {
             case InteractAction.StopRiding:
             case InteractAction.InteractUpdate:
@@ -59,7 +56,7 @@ export default class InteractHandler implements PacketHandler<InteractPacket> {
             }
 
             case InteractAction.NpcOpen: {
-                const target = player.getWorld().getActor(packet.target);
+                const target = session.getWorld().getActor(packet.target);
                 if (target === null || !session.tracks(packet.target)) {
                     server
                         .getLogger()
@@ -70,6 +67,7 @@ export default class InteractHandler implements PacketHandler<InteractPacket> {
                     return;
                 }
 
+                const player = storePlayerOf(session);
                 const reach = (player.gamemode === Gametype.CREATIVE ? CREATIVE_REACH : SURVIVAL_REACH) + REACH_SLACK;
                 const distance = player.getPosition().distanceTo(target.getPosition());
                 // Written so a NaN distance fails too.
