@@ -15,6 +15,7 @@
  * player is a store entity until C4h's H-B2, so this runs in tests only.
  */
 import { AIR_STATE } from '@jsprismarine/entities';
+import { Gametype } from '@jsprismarine/minecraft';
 import { Attributes } from '@jsprismarine/protocol/wire/structures/Attribute';
 
 import type { EntityPosition } from '@jsprismarine/entities';
@@ -24,18 +25,25 @@ import type { ServerContent } from '../../content/ServerContent';
 import type { PlayerContainer, SlotValue } from '../../inventory/slotLog';
 import { DROWNING_DAMAGE, FALL_DAMAGE, NATURAL_REGENERATION, ruleIsOn } from '../../content/world/gameRules';
 import type { PlainData } from '../../world/changelog/PlainData';
-import { DamageCause } from '../DamageCause';
+import { DamageCause, damageCauseOf } from '../DamageCause';
 import { DamageSource } from '../DamageSource';
 import { EYE_HEIGHT } from '../playerEyes';
 import { breathe } from '../playerBreath';
 import { PlayerComponents } from '../playerComponents';
 import type { PlayerMining } from '../playerComponents';
-import { addExhaustion, addJumpExhaustion, addMovementExhaustion, hungerOutcome } from '../playerHunger';
+import {
+    addExhaustion,
+    addJumpExhaustion,
+    addMovementExhaustion,
+    applyHungerEffect,
+    hungerOutcome
+} from '../playerHunger';
 import { cushions, land, trackFall } from '../playerFall';
 import { beginMeal, cancelMeal, dueMeal } from '../playerMeal';
 import { mineTick, stopCracking } from '../playerMining';
 import { diedVitals, respawnVitals } from '../playerRespawn';
 import type { MiningEvent } from '../playerMining';
+import type { StatusEffect } from '../StatusEffect';
 import { survivalReaches } from '../survivalPlayer';
 import type { SurvivalPlayer } from '../survivalPlayer';
 import type { DamageIntent, DamageOutcome } from './damagePipeline';
@@ -257,6 +265,24 @@ export class PlayerSystems {
         cancelMeal(this.componentsOf(entity));
     }
 
+    /**
+     * Whether a blow reaches a store player in its game mode. Survival and adventure take every
+     * blow. Creative takes only what bypasses invulnerability, Java's `#bypasses_invulnerability`
+     * tag, which is the void and `/kill`, and a spectator takes nothing, as Java's
+     * `isInvulnerableTo` answers before the tag is consulted.
+     *
+     * @param entity - The player hurt.
+     * @param intent - The blow.
+     */
+    public reaches(entity: DataEntity, intent: DamageIntent): boolean {
+        const gamemode = this.componentsOf(entity).get('abilities.gamemode');
+        if (survivalReaches(gamemode)) return true;
+        if (gamemode === Gametype.SPECTATOR) return false;
+        const { tags } = intent.source;
+        if (tags !== undefined) return tags.includes('minecraft:bypasses_invulnerability');
+        return DamageSource.of(damageCauseOf(intent.cause)).bypassesInvulnerability();
+    }
+
     /** Writes whether a store player is sprinting, as its client reports it. */
     public setSprinting(entity: DataEntity, sprinting: boolean): void {
         this.componentsOf(entity).set('movement.sprinting', sprinting);
@@ -265,6 +291,11 @@ export class PlayerSystems {
     /** Writes whether a store player is sneaking, as its client reports it. */
     public setSneaking(entity: DataEntity, sneaking: boolean): void {
         this.componentsOf(entity).set('movement.sneaking', sneaking);
+    }
+
+    /** One tick of a status effect on a store player: the hunger effect drains it, saturation feeds it. */
+    public statusEffectTicked(entity: DataEntity, effect: Pick<StatusEffect, 'id' | 'amplifier'>): void {
+        applyHungerEffect(this.playerOf(entity).survival, effect.id, effect.amplifier);
     }
 
     /** Charges a store player for a jump its client reported, four times over for a sprint jump. */

@@ -627,6 +627,14 @@ export class EntityRuntime implements EntityScene {
             dying: (id: number) => this.dying.has(id),
             storeEntity: (id: number) => this.store.get(id),
             isPlayer: (id: number) => this.host.playerById(id) !== undefined,
+            reachesGameMode: (intent: DamageIntent) => {
+                const target = this.store.get(intent.target);
+                return (
+                    target === undefined ||
+                    !clientOwnsMovement(target.identifier) ||
+                    this.playerSystems.reaches(target, intent)
+                );
+            },
             damagerView: (id: number) => this.mobById(id)?.view(),
             gameRule: (rule: 'fireDamage') => rule === 'fireDamage' && ruleIsOn(this.world.level, FIRE_DAMAGE),
             grace: (id: number) => this.hitGraces.get(id),
@@ -1284,12 +1292,14 @@ export class EntityRuntime implements EntityScene {
         entityForBarter = entity;
         body.onWrite = (field, before, after) => this.store.written(entity, field, before, after);
         if (clientOwnsMovement(entity.identifier))
-            body.onImpulse = ({ x, y, z }) =>
+            body.onImpulse = ({ x, y, z }) => {
                 this.store.occurred({
                     kind: 'occurrence',
                     occurrence: 'impulse',
                     data: { entity: BigInt(id), x, y, z }
                 });
+                this.host.playerImpulse?.(id, { x, y, z });
+            };
         this.store.admit(entity);
         this.byPersistentIdentity.set(entity.persistentIdentity, entity);
         this.byInstance.set(instance, entity);

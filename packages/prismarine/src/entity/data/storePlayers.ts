@@ -21,7 +21,7 @@
  * then replaces the comparisons in `sync` with replication from the change log.
  */
 import type { EntityPosition } from '@jsprismarine/entities';
-import type { Gametype } from '@jsprismarine/minecraft';
+import { Gametype } from '@jsprismarine/minecraft';
 import type { Vector3 } from '@jsprismarine/math';
 import { Attributes } from '@jsprismarine/protocol/wire/structures/Attribute';
 import type Skin from '@jsprismarine/protocol/wire/structures/skin/Skin';
@@ -31,12 +31,15 @@ import type PlayerSession from '../../network/PlayerSession';
 import type Device from '../../utils/Device';
 import type { ShownPlayer } from '../../world/ShownPlayer';
 import { PLAYER_TRACKING_RANGE_CHUNKS } from '../../world/ShownPlayer';
+import type { PortalRule } from '../../world/portal/rules';
 import type { World } from '../../world/World';
 import { sameEquipmentItems } from '../equipment';
 import { breathWorthSending } from '../playerBreath';
 import type { ShownBreath } from '../playerBreath';
 import { mayFlyIn } from '../playerComponents';
 import { clientOwnsMovement } from '../playerOverlay';
+import { PORTAL_COOLDOWN_TICKS, PORTAL_TRANSITION_TICKS } from '../PortalContact';
+import type { StatusEffect } from '../StatusEffect';
 import { StorePlayer } from '../storePlayer';
 import type { StorePlayerIdentity } from '../storePlayer';
 import type { DataEntity } from './DataEntity';
@@ -211,7 +214,7 @@ export class StorePlayerActor extends StoreActor implements ShownPlayer {
      * @returns Whether viewers should be sent the metadata again: sprinting or flight changed, or
      *   the breath moved far enough to show, as `breathWorthSending` judges it for a legacy player.
      */
-    public showPlayerState(): boolean {
+    public override showPlayerState(): boolean {
         const components = this.player.getComponents();
         const { metadata } = this;
         const sprinting = components.get('movement.sprinting');
@@ -232,6 +235,60 @@ export class StorePlayerActor extends StoreActor implements ShownPlayer {
     private breathOf(): ShownBreath {
         const components = this.player.getComponents();
         return { air: components.get('vitals.air'), breathing: components.get('vitals.breathing') };
+    }
+
+    /**
+     * The entity's part of the tick, then the player's own: its session, its attribute sync and
+     * its triggers, which `Player.updatePlayer` runs for the player the session speaks for.
+     */
+    public override async update(tick: number): Promise<void> {
+        await super.update(tick);
+        await this.getWorld().viewerOf(this.getRuntimeId())?.getPlayer().updatePlayer(tick);
+    }
+
+    /** A status effect's tick, and what the hunger and saturation effects do to the components. */
+    protected override applyStatusEffectTick(effect: StatusEffect, clock: number): void {
+        super.applyStatusEffectTick(effect, clock);
+        this.getWorld().dataEntities().runtime.playerSystems.statusEffectTicked(this.entity, effect);
+    }
+
+    /**
+     * Ticks this player has to stand in a portal before going through.
+     *
+     * Vanilla reads `players_nether_portal_creative_delay` (0) for a creative player and
+     * `players_nether_portal_default_delay` (80) for everyone else; the game rules are not
+     * modeled yet, so the portal rule's defaults are the answer. An end portal's rule says 0
+     * for both.
+     * @param rule - The rule of the portal stood in. Without one, a nether portal is assumed.
+     */
+    public override getPortalTransitionTicks(rule?: PortalRule): number {
+        const creative = this.player.gamemode === Gametype.CREATIVE;
+        if (rule !== undefined) return creative ? rule.delayTicks.creative : rule.delayTicks.survival;
+        return creative ? PORTAL_TRANSITION_TICKS.creative : PORTAL_TRANSITION_TICKS.player;
+    }
+
+    /** Half a second, where a mob waits fifteen: `Player.getDimensionChangingDelay` in vanilla. */
+    public override getDefaultPortalCooldown(): number {
+        return PORTAL_COOLDOWN_TICKS.player;
+    }
+
+    /** The player's cooldown, which it keeps from one store to the next and in its record. */
+    public override getPortalCooldown(): number {
+        return this.player.getPortalCooldown();
+    }
+
+    /** @inheritdoc */
+    public override setPortalCooldown(ticks: number = this.getDefaultPortalCooldown()): void {
+        this.player.setPortalCooldown(ticks);
+    }
+
+    /**
+     * Holds the cooldown while the client is still loading into the last dimension change, as
+     * `ServerPlayer.processPortalCooldown` holds it while `isChangingDimension`, so the ten ticks
+     * start once the loading screen has closed.
+     */
+    protected override holdsPortalCooldown(): boolean {
+        return this.getWorld().viewerOf(this.getRuntimeId())?.pendingDimensionChange() !== undefined;
     }
 
     /** Where the player's eyes are, which is where a client draws a player and where a legacy player is. */

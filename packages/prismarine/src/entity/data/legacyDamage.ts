@@ -12,6 +12,7 @@ import type { World } from '../../world/World';
 import type { ViewableEntity } from '../predicateView';
 import { DamageCause, damageCauseOf } from '../DamageCause';
 import { DamageSource } from '../DamageSource';
+import { clientOwnsMovement } from '../playerOverlay';
 import type { DataEntity } from './DataEntity';
 import type { DamageIntent, DamageRoute } from './damagePipeline';
 
@@ -40,8 +41,9 @@ export const bedrockCauseOf = (source: DamageSource): string => {
  * The intent a legacy blow on a data-driven entity becomes.
  *
  * A mob keeps the rules the legacy pipeline gave it, which are the grace period, armor and its
- * enchantments, resistance, absorption, the hurt feedback and the shove. Anything else, such as
- * a boat or an end crystal, took a legacy blow as a plain runtime hit, and still does.
+ * enchantments, resistance, absorption, the hurt feedback and the shove, and so does a player,
+ * whose shipped type is of the `player` family alone. Anything else, such as a boat or an end
+ * crystal, took a legacy blow as a plain runtime hit, and still does.
  */
 export const intentOfLegacyBlow = (
     entity: DataEntity,
@@ -61,7 +63,7 @@ export const intentOfLegacyBlow = (
         ...(source.tags === undefined ? {} : { tags: [...source.tags] })
     };
 
-    if (!entity.instance.families().includes('mob'))
+    if (!entity.instance.families().includes('mob') && !clientOwnsMovement(entity.identifier))
         return {
             target: entity.id,
             ...ids,

@@ -6,6 +6,8 @@
  * 1. `present` (pack): the target is in the store, alive, not already dying and has health.
  * 2. `invulnerable` (pack): the record's invulnerable flag, as the respawn sequence's end
  *    crystals carry.
+ * 2a. `game_mode` (pack): a player in creative or spectator, whom only the void and `/kill` reach,
+ *    and a spectator not even those.
  * 3. `damage_resistant` (pack): a dropped stack whose item's `minecraft:damage_resistant` names
  *    the cause, such as a nether star in a blast.
  * 4. `hit_grace` (pack): the half second after a hit during which a weaker blow is ignored.
@@ -52,6 +54,8 @@ export interface DamageStageReads {
     storeEntity(id: number): DataEntity | undefined;
     /** Whether a runtime id names a player. */
     isPlayer(id: number): boolean;
+    /** Whether a blow reaches its target in the target's game mode, which only a player has. */
+    reachesGameMode(intent: DamageIntent): boolean;
     /** The filter view of whoever dealt a blow, for the sensor's filters. */
     damagerView(id: number): FilterEntityView | undefined;
     /** Whether a game rule is on. */
@@ -135,6 +139,11 @@ export const damageGuards = (reads: DamageStageReads, sensing: DamageSensingSlot
         name: 'invulnerable',
         stage: 'pack',
         check: (intent) => (reads.target(intent.target)?.body.invulnerable === true ? VETO : PASS)
+    },
+    {
+        name: 'game_mode',
+        stage: 'pack',
+        check: (intent) => (reads.reachesGameMode(intent) ? PASS : VETO)
     },
     {
         name: 'damage_resistant',
