@@ -66,9 +66,6 @@ const peerOf = (peer: PeerConnection): DriverPeer => {
             const pair = peer.selectedCandidatePair();
             return pair === undefined ? undefined : candidateAddress(pair.local);
         },
-        // libdatachannel shows what its own queue holds; once usrsctp has a message, its graceful
-        // shutdown on close delivers it (docs/plans/webrtc-backend.md, slice 8).
-        hasUndeliveredData: (channel) => channel.bufferedAmount > 0,
         close: () => peer.close()
     };
 };

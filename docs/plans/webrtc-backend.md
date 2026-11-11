@@ -491,7 +491,17 @@ Each slice is a commit or a few, with its tests, on `dev/webrtc-backend`.
    - Tests: with loss set, the relay drops the share of datagrams the link's seeded generator
      picks; bytes sent equal bytes received once SCTP has resent them; with neither flag, the
      client holds no relay socket. A join through the relay to a server on another machine.
-8. [ ] **Close and drain.** Settle open questions 2 and 3 on our side.
+8. [x] **Close and drain.** Settle open questions 2 and 3 on our side.
+   - Done 2026-11-11. The probe sends 200 messages of 10,000 bytes from the server and closes at
+     once in the kick's order, the channels and then the peer connection, with no drain. It lost
+     data twice over in our own code, and neither was libdatachannel's: the native
+     `PeerConnection` deleted itself straight after closing, which cut SCTP's graceful shutdown
+     short (350,000 of 2,000,000 bytes arrived), and the receiving `Connection` closed when its
+     unreliable channel did, which is not ordered with the reliable channel's data (1,330,000 to
+     1,580,000 arrived). With deletion deferred to the `closed` state and the unreliable channel's
+     close treated as the peer going down, 15 closes delivered all 2,000,000 bytes, several with
+     data still queued in libdatachannel at the close. The drain had nothing to wait for and is
+     gone, with `hasUndeliveredData`. What a Bedrock client receives is slice 13's kick scenario.
    - Repeat the close probe through our own connection code, in the close order the server uses
      for a kick.
    - Keep the drain only if the probe shows something to wait for, and read usrsctp's queue in the

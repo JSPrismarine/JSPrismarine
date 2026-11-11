@@ -1,15 +1,11 @@
 import { EventEmitter } from 'node:events';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 import { BATCH_PACKET_ID } from '@jsprismarine/protocol';
 import { InetAddress } from '@jsprismarine/raknet';
 import { settle } from '../../testing/manualTransport.test.helper';
 import { ConnectionIds } from './ConnectionId';
-import NetherNetTransport, {
-    NETHERNET_DRAIN_TIMEOUT_MS,
-    NetherNetTransportConnection,
-    selectedCandidateAddress
-} from './NetherNetTransport';
+import NetherNetTransport, { NetherNetTransportConnection, selectedCandidateAddress } from './NetherNetTransport';
 import type { NetherNetPeer } from './NetherNetTransport';
 
 /** The NetherNet server's event surface, with a recorded `close`. */
@@ -33,7 +29,6 @@ const fakePeer = (connectionId: bigint, remote?: { address: string; port: number
             return data.byteLength;
         },
         close: (reason) => void closed.push(reason),
-        hasUndeliveredData: () => undefined,
         peer: { remoteAddress: () => remote }
     };
     return { peer, sent, closed };
@@ -95,72 +90,9 @@ describe('network/transport/NetherNetTransport', () => {
         it('closes the peer with the reason', async () => {
             const { connection: under, closed } = connection();
 
-            await under.close('Kicked');
+            under.close('Kicked');
 
             expect(closed).toStrictEqual(['Kicked']);
-        });
-
-        describe('hanging up', () => {
-            /** A peer whose undelivered data the test controls. */
-            const drainingPeer = () => {
-                const backlog = { undelivered: false };
-                const closed: (string | undefined)[] = [];
-                const peer = {
-                    ...fakePeer(9n).peer,
-                    closed: false,
-                    hasUndeliveredData: () => backlog.undelivered,
-                    close: (reason?: string) => void closed.push(reason)
-                };
-                const under = new NetherNetTransportConnection(3, peer, new InetAddress('192.0.2.1', 5));
-                return { peer, backlog, closed, under };
-            };
-
-            beforeEach(() => {
-                vi.useFakeTimers();
-            });
-
-            afterEach(() => {
-                vi.useRealTimers();
-            });
-
-            it('waits until the client has received everything sent before it', async () => {
-                const { backlog, closed, under } = drainingPeer();
-                backlog.undelivered = true;
-
-                const closing = under.close('Server closed.');
-                await vi.advanceTimersByTimeAsync(50);
-                expect(closed).toStrictEqual([]);
-
-                backlog.undelivered = false;
-                await vi.advanceTimersByTimeAsync(50);
-                await closing;
-                expect(closed).toStrictEqual(['Server closed.']);
-            });
-
-            it('stops waiting once the client hangs up itself', async () => {
-                const { peer, backlog, closed, under } = drainingPeer();
-                backlog.undelivered = true;
-
-                const closing = under.close('Kicked');
-                peer.closed = true;
-                await vi.advanceTimersByTimeAsync(50);
-                await closing;
-
-                expect(closed).toStrictEqual(['Kicked']);
-            });
-
-            it('hangs up anyway when the client never receives it', async () => {
-                const { backlog, closed, under } = drainingPeer();
-                backlog.undelivered = true;
-
-                const closing = under.close('Kicked');
-                await vi.advanceTimersByTimeAsync(NETHERNET_DRAIN_TIMEOUT_MS - 50);
-                expect(closed).toStrictEqual([]);
-
-                await vi.advanceTimersByTimeAsync(50);
-                await closing;
-                expect(closed).toStrictEqual(['Kicked']);
-            });
         });
     });
 

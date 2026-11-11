@@ -28,17 +28,8 @@ const EARLY_MESSAGE_LIMIT = 16;
 /** Where a peer whose address the transport could not learn is said to be. */
 const UNKNOWN_ADDRESS = new InetAddress('0.0.0.0', 0);
 
-/**
- * How long a hang-up waits for the client to acknowledge what was sent before it. go-nethernet
- * waits as long before it closes a connection.
- */
-export const NETHERNET_DRAIN_TIMEOUT_MS = 3_000;
-
-/** How often a hang-up looks at whether the client has acknowledged everything. */
-const NETHERNET_DRAIN_POLL_MS = 10;
-
 /** The part of a NetherNet {@link Connection} the transport uses, so a test can stand one in. */
-export type NetherNetPeer = Pick<Connection, 'id' | 'closed' | 'send' | 'close' | 'hasUndeliveredData'> & {
+export type NetherNetPeer = Pick<Connection, 'id' | 'closed' | 'send' | 'close'> & {
     readonly peer: Pick<Connection['peer'], 'remoteAddress'>;
 };
 
@@ -72,17 +63,6 @@ export const selectedCandidateAddress: NetherNetPeerAddress = (peer) => {
 };
 
 /**
- * Waits until the client has acknowledged everything sent to it, has hung up itself, or
- * {@link NETHERNET_DRAIN_TIMEOUT_MS} has passed.
- */
-const drain = async (peer: NetherNetPeer): Promise<void> => {
-    for (let waited = 0; waited < NETHERNET_DRAIN_TIMEOUT_MS; waited += NETHERNET_DRAIN_POLL_MS) {
-        if (peer.closed || peer.hasUndeliveredData() !== true) return;
-        await new Promise((resolve) => setTimeout(resolve, NETHERNET_DRAIN_POLL_MS));
-    }
-};
-
-/**
  * One NetherNet peer as a {@link TransportConnection}. Frames go out on the reliable data
  * channel without their `0xFE` batch id, which NetherNet's wire does not carry.
  */
@@ -113,13 +93,11 @@ export class NetherNetTransportConnection implements TransportConnection {
     }
 
     /**
-     * Closes the peer connection once the client has what was sent before; the server then
-     * reports it closed with this reason. A kick is a `DisconnectPacket` followed by this call,
-     * and closing before the client had it showed `NetherNetDataChannelClosed`
-     * (`ClientDisconnection-122`) where the kick's reason belonged.
+     * Closes the peer connection; the server then reports it closed with this reason. A kick is a
+     * `DisconnectPacket` followed by this call, and the close needs no wait for it to arrive:
+     * libdatachannel shuts SCTP down gracefully, which delivers what was sent before it.
      */
-    public async close(reason?: string): Promise<void> {
-        await drain(this.peer);
+    public close(reason?: string): void {
         this.peer.close(reason);
     }
 }
