@@ -122,7 +122,7 @@ const startCommand = `chmod +x ${executable}\n./${executable}`;
 
         <BentoGrid>
             <BentoTile tone="accent" class="landing__stat">
-                <div class="bento-figure">{{ latest.minecraft.at(-1) }}</div>
+                <div class="bento-figure is-dotted">{{ latest.minecraft.at(-1) }}</div>
                 <p class="bento-caption">
                     <b>Newest Minecraft release</b>It joins on protocol {{ latest.protocol }}, and older releases back
                     to {{ minecraftRange(project).split(' to ')[0] }} still connect.

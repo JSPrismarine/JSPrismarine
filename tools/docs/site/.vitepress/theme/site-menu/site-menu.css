@@ -728,8 +728,8 @@
 .site-phone__menu {
     width: 92px;
     background: var(--vp-c-bg);
+    /* A header control: an edge, no offset shadow, as Search has. */
     border-color: var(--vp-c-text-1);
-    box-shadow: 2px 2px 0 var(--vp-c-text-1);
 }
 
 .site-phone__burger {

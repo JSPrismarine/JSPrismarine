@@ -62,7 +62,8 @@ const breaking = computed(
     font-size: clamp(36px, 6vw, 56px);
     font-weight: 800;
     line-height: 1;
-    letter-spacing: -0.05em;
+    /* A version has dots, which tighter tracking would close up. */
+    letter-spacing: -0.03em;
 }
 
 .latest-release__version time {

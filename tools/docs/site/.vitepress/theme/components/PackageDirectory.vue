@@ -183,36 +183,35 @@ const shownAreas = computed(() => {
 
 .package-card nav {
     display: flex;
-    flex-wrap: wrap;
-    gap: 0 16px;
-    padding-top: 8px;
+    /* All three links fit one row on a card, so no card grows a second row for one pill. */
+    flex-wrap: nowrap;
+    gap: 6px;
+    padding-top: 10px;
     border-top: 1px solid var(--vp-c-divider);
 }
 
-/* One quiet row of text links: the card's name is already the main way in. */
+/* The links are pills at every width: one look for one component, and a real target. */
 .package-card nav a {
     display: inline-flex;
     align-items: center;
     min-height: 32px;
+    padding: 0 9px;
     font: 700 var(--jsp-label-size) var(--vp-font-family-mono);
-    color: var(--vp-c-text-2);
+    white-space: nowrap;
+    color: var(--vp-c-text-1);
     text-decoration: none;
+    border: 1.5px solid var(--vp-c-divider);
+    border-radius: 99px;
 }
 
 .package-card nav a:hover {
-    color: var(--vp-c-text-1);
+    border-color: var(--vp-c-text-1);
 }
 
-/* Underlined, so the row reads as links rather than metadata. */
-.package-card nav a {
-    text-decoration: underline;
-    text-decoration-thickness: 1px;
-    text-underline-offset: 3px;
-}
-
-/* On a phone the links become full-size pills, the touch targets the guide asks for. */
+/* On a phone the pills reach the full touch target. */
 @media (max-width: 640px) {
     .package-card nav {
+        flex-wrap: wrap;
         gap: 8px;
         border-top: 0;
     }
@@ -220,11 +219,9 @@ const shownAreas = computed(() => {
     .package-card nav a {
         min-height: var(--jsp-target);
         padding: 0 14px;
-        text-decoration: none;
-        border: 1.5px solid var(--vp-c-divider);
-        border-radius: 99px;
     }
 }
+
 .package-directory__search input::placeholder {
     color: var(--vp-c-text-2);
 }

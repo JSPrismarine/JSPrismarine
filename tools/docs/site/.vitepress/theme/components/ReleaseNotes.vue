@@ -104,7 +104,10 @@ function toggle(key: string) {
     padding: 0;
     margin: 0;
     font-size: 36px;
+    font-weight: 800;
     line-height: 1;
+    /* A version has dots, which tighter tracking would close up. */
+    letter-spacing: -0.03em;
     border: 0;
 }
 

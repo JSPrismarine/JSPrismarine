@@ -634,13 +634,15 @@ progress::-moz-progress-bar {
     margin: 8px 0 0;
 }
 
+/* Section headings match every doc page's h2: display type under the short solid bar. */
 .tracker-section-title {
     padding: 0;
-    margin: 24px 4px 4px;
-    font: 700 var(--jsp-label-size) var(--vp-font-family-mono);
-    color: var(--vp-c-text-2);
-    text-transform: uppercase;
-    letter-spacing: 0.12em;
+    margin: 32px 4px 6px;
+    font-size: 28px;
+    font-weight: 800;
+    line-height: 1.15;
+    letter-spacing: -0.03em;
+    color: var(--vp-c-text-1);
     border: 0;
 }
 

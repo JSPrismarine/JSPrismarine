@@ -291,11 +291,11 @@ function onKeydown(event: KeyboardEvent) {
     }
 }
 
-/* On a narrow phone, two columns squeeze each tagline onto three lines; one column keeps it to one. */
+/* On a narrow phone the tabs stay two by two, so the panel starts sooner; the tagline drops a size
+   so it wraps less. */
 @media (max-width: 480px) {
-    .audience-tabs__list {
-        grid-template-columns: minmax(0, 1fr);
-        gap: 6px;
+    .audience-tabs__hint {
+        font-size: 13px;
     }
 }
 </style>

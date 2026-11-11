@@ -230,8 +230,9 @@
 .vp-doc div[class*='language-'] > span.lang {
     top: 26px;
     right: 64px;
-    font-size: var(--jsp-label-size);
-    line-height: 1;
+    font: 700 var(--jsp-label-size) / 1 var(--vp-font-family-mono);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
 }
 
 .vp-doc div[class*='language-']:is(:hover, :focus-within) > button.copy + span.lang {
@@ -529,6 +530,12 @@
 .VPSidebarItem a[href*='/api/@'] > .text {
     font-family: var(--vp-font-family-mono);
     font-size: 0.9em;
+}
+
+/* In the index, the name is the row's key, so it outweighs the description beside it. */
+.api-index .vp-doc td:first-child > a {
+    font-size: 15px;
+    font-weight: 700;
 }
 
 @media (min-width: 641px) {

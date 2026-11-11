@@ -63,6 +63,12 @@ withDefaults(defineProps<{ tone?: 'accent' | 'signal' | 'deep' | 'forest'; span?
     letter-spacing: -0.06em;
 }
 
+/* A figure with dots in it, such as a version, opens its tracking up so the dots stay visible. */
+.bento-tile :deep(.bento-figure.is-dotted) {
+    letter-spacing: -0.03em;
+    font-variant-numeric: tabular-nums;
+}
+
 .bento-tile :deep(.bento-caption) {
     max-width: 42ch;
     margin: 0;

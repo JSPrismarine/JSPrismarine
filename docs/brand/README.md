@@ -81,7 +81,8 @@ are mono, uppercase and letter-spaced, and never smaller than `--jsp-label-size`
 for key hints, counts, dates, version tags and code-language labels too. Identifiers, such as
 package names (on the package cards, the API index and its sidebar) and parity family and group
 ids, are mono, never display type, whose tight tracking hides their
-dots. System fonts are the fallback when the web fonts do not load.
+dots. A display figure with dots in it, such as a version, opens its tracking to `-0.03em` for the
+same reason. System fonts are the fallback when the web fonts do not load.
 
 ## Mark
 
@@ -140,7 +141,8 @@ scrolling off the screen edge, and a two-column table stacks each row as its nam
   groups, so the sidebar lists every page the overview offers, and the build fails on a page in the
   folder that the overview leaves out.
 - Every page ends on the site footer, doc pages beside a sidebar included.
-- Each second-level section opens on a short solid bar; a component's own headings (`vp-raw`) do not.
+- Each second-level section opens on a short solid bar over a display heading; a component's own
+  headings (`vp-raw`) draw the same pair themselves, as the parity tracker's do.
   Overview pages whose sections are lists of links set those sections as cards (`sectionCards.ts`),
   on a grid that reads left to right in the page's order, at full width with no outline, since the
   cards are the outline.
@@ -155,7 +157,8 @@ scrolling off the screen edge, and a two-column table stacks each row as its nam
 - The package directory and the API reference sidebar group packages by the areas in
   `packageAreas.ts`; the docs build fails when a published package has no area.
 - Menu and search previews end on a whole sentence where one fits.
-- The header's Search is a control, not a primary action: an edge and no offset shadow.
+- The header's controls (Search, and on phones the Menu button) are controls, not primary actions:
+  an edge and no offset shadow.
 
 ## The landing page
 
