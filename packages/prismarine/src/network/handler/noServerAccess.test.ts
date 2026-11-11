@@ -32,7 +32,7 @@ const STILL_REACH_SERVER: ReadonlyMap<string, readonly string[]> = new Map([
             'StructureTemplateDataRequestHandler.ts'
         ]
     ],
-    ['D2c relays and session inputs', ['DisconnectHandler.ts', 'LevelSoundEventHandler.ts']],
+    ['D2c relays and session inputs', ['LevelSoundEventHandler.ts']],
     [
         'D2d movement, actions and inventory',
         [
