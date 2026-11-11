@@ -454,6 +454,14 @@ export class EntityRuntime implements EntityScene {
 
     /** The systems a store player's survival runs on, and its component state. */
     public readonly playerSystems: PlayerSystems;
+    /**
+     * Hears a store player whose update has thrown `ENTITY_FAILURE_LIMIT` (`EntityStore.ts`)
+     * times in a row, which removes a mob. A player is its client's, so the host disconnects the
+     * session instead, and the leave takes the entity out of the store. Every failed update was
+     * undone, so the player is as its last good update left it. It fails again on each later tick
+     * it stays, and this hears each of them. Left unset, the player is removed as a mob is.
+     */
+    public onPlayerFailed: ((entity: DataEntity, error: unknown) => void) | undefined;
     /** The entity each `EntityInstance` belongs to, which is how the AI seams resolve a body. */
     private readonly byInstance = new Map<EntityInstance, DataEntity>();
     /** Invalid interaction slots reported once per entity and request. */
@@ -1449,8 +1457,10 @@ export class EntityRuntime implements EntityScene {
             this.report(
                 `${entity.identifier} ${entity.id} threw in its update, which was undone: ${String(outcome.error)}`
             );
-            if (this.store.failed(entity.id) && this.store.broken === undefined)
-                this.remove(entity.id, 'update_failed');
+            if (!this.store.failed(entity.id) || this.store.broken !== undefined) continue;
+            if (clientOwnsMovement(entity.identifier) && this.onPlayerFailed !== undefined)
+                this.onPlayerFailed(entity, outcome.error);
+            else this.remove(entity.id, 'update_failed');
         }
         if (this.store.broken !== undefined) return;
         this.runSpawnCycle(tick);

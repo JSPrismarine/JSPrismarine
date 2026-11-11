@@ -7,6 +7,8 @@ import type { DataEntity } from './DataEntity';
 import { ENTITY_FAILURE_LIMIT } from './EntityStore';
 import type { EntityRuntime } from './EntityRuntime';
 import { entityFixture, FLOOR_Y, TestEntityWorld } from './testing';
+import { PLAYER_IDENTIFIER } from '../playerOverlay';
+import { storePlayerFixture } from '../../testing/storePlayer.test.helper';
 
 const GROUND = { x: 0.5, y: FLOOR_Y + 1, z: 0.5 };
 
@@ -356,6 +358,42 @@ describe('the entity store', () => {
             expect(runtime.store.has(faulty.id)).toBe(false);
             expect(reports.filter((line) => line.includes('threw in its update'))).toHaveLength(ENTITY_FAILURE_LIMIT);
             expect(runtime.store.broken).toBeUndefined();
+        });
+
+        it('hands a player that keeps throwing to the host instead of removing it', () => {
+            const world = new FaultyWorld();
+            const { runtime, removed } = storePlayerFixture(world);
+            const player = runtime.spawn(PLAYER_IDENTIFIER, { x: 20.5, y: FLOOR_Y + 1, z: 0.5 })!;
+            const failed: { id: number; error: unknown }[] = [];
+            runtime.onPlayerFailed = (entity, error) => failed.push({ id: entity.id, error });
+            world.failing = (at) => Math.abs(at.x - 20) < 4;
+
+            for (let tick = 1; tick <= ENTITY_FAILURE_LIMIT + 1; tick += 1) {
+                runtime.store.beginTick();
+                runtime.tick(tick);
+                runtime.store.sealTick();
+                expect(failed).toHaveLength(Math.max(0, tick - ENTITY_FAILURE_LIMIT + 1));
+            }
+
+            expect(failed[0]?.id).toBe(player.id);
+            expect(String(failed[0]?.error)).toContain('the block read failed');
+            expect(runtime.store.has(player.id)).toBe(true);
+            expect(removed).toEqual([]);
+        });
+
+        it('removes a player that keeps throwing when the host does not hear it', () => {
+            const world = new FaultyWorld();
+            const { runtime } = storePlayerFixture(world);
+            const player = runtime.spawn(PLAYER_IDENTIFIER, { x: 20.5, y: FLOOR_Y + 1, z: 0.5 })!;
+            world.failing = (at) => Math.abs(at.x - 20) < 4;
+
+            for (let tick = 1; tick <= ENTITY_FAILURE_LIMIT; tick += 1) {
+                runtime.store.beginTick();
+                runtime.tick(tick);
+                runtime.store.sealTick();
+            }
+
+            expect(runtime.store.has(player.id)).toBe(false);
         });
 
         it('forgets a run of failures once an update finishes', () => {
