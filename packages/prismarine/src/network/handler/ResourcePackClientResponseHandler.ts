@@ -144,8 +144,9 @@ export default class ResourcePackClientResponseHandler implements InputLaneHandl
 
         switch (response.status) {
             case ResourcePackStatus.Refused:
-                // The kick waits for the connection to close and the player's record to be
-                // saved. Slice 8 saves at a tick boundary, off the tick.
+                // The kick waits for the connection to close, the player's record to be saved
+                // and the departure line in chat. Slice 8 saves at a tick boundary and slice 9
+                // takes the chat line out of the input step.
                 step.defer(() => session.kick('Declined the resource packs', DisconnectReason.RESOURCE_PACK_PROBLEM));
                 return;
 
@@ -154,7 +155,7 @@ export default class ResourcePackClientResponseHandler implements InputLaneHandl
                     `${name} asked for ${response.packIds.length} resource pack(s); the server offers none`,
                     'ResourcePackClientResponseHandler/handle'
                 );
-                // As for a refusal: the kick waits for the close and the save (slice 8).
+                // As for a refusal: the kick waits for the close, the save and the chat line.
                 step.defer(() =>
                     session.kick(
                         'Asked for resource packs this server does not have',
