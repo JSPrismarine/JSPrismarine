@@ -8,7 +8,6 @@ import { Position } from '../world/Position';
 import { canHarm, CREATIVE_REACH, distanceToBody, meleeAttack, SURVIVAL_REACH } from './Combat';
 import { Attribute, AttributeIds } from '@jsprismarine/protocol/wire/structures/Attribute';
 import { GenericEntity } from '../testing/genericEntity.test.helper';
-import Human from './Human';
 import type { Entity } from './Entity';
 
 /**
@@ -63,7 +62,8 @@ const scene = ({ pvp = true } = {}) => {
 };
 
 /** A person, for the rules that only apply between two of them. Position is their eyes. */
-const person = (world: any, x = 0, z = 0) => new Human({ position: new Position(x, 64, z, world) });
+const person = (world: any, x = 0, z = 0) =>
+    new GenericEntity({ identifier: 'minecraft:player', position: new Position(x, 64, z, world) });
 
 /**
  * Only the noises the attacker made.

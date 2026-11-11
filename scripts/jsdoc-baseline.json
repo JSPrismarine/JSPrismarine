@@ -574,8 +574,6 @@
     "packages/prismarine/src/entity/Environment.ts exported constant `SUFFOCATION_INTERVAL`",
     "packages/prismarine/src/entity/Environment.ts exported constant `VOID_DAMAGE`",
     "packages/prismarine/src/entity/Environment.ts exported constant `VOID_INTERVAL`",
-    "packages/prismarine/src/entity/Human.ts public method `Human.getCraftingInput`",
-    "packages/prismarine/src/entity/Human.ts public method `Human.getInventory`",
     "packages/prismarine/src/entity/ai/BlockView.ts exported class `BlockView`",
     "packages/prismarine/src/entity/ai/BlockView.ts public method `BlockView.isHazard`",
     "packages/prismarine/src/entity/ai/BlockView.ts public method `BlockView.isLiquid`",

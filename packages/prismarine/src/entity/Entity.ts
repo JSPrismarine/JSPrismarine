@@ -8,7 +8,6 @@ import type PlayerSession from '../network/PlayerSession';
 import { Position } from '../world/Position';
 import { logLegacyWrite } from './legacyAdapter';
 import type { World } from '../world/World';
-import type { PlainData } from '../world/changelog/PlainData';
 import { SyncedProperties } from '@jsprismarine/protocol/wire/structures/SyncedProperties';
 import type { Attribute } from '@jsprismarine/protocol/wire/structures/Attribute';
 import { AttributeIds, Attributes } from '@jsprismarine/protocol/wire/structures/Attribute';
@@ -618,8 +617,8 @@ export class Entity {
      *
      * False for nearly everything, and deliberately: an arrow in flight, an item on the floor and
      * a painting on the wall are all things you walk through, and shoving a mob aside for them
-     * would be both wrong and expensive. `Human` overrides it, which is what shoves a mob out of
-     * a player's way.
+     * would be both wrong and expensive. A player, a store entity, shoves a mob out of its way
+     * through the store.
      * @returns {boolean} Whether this entity displaces others.
      */
     public occupiesSpace(): boolean {
@@ -631,7 +630,8 @@ export class Entity {
      *
      * The same as its position for everything the server moves itself, and deliberately a method
      * rather than a read of `position.getY()` at each call site: a player's position is not its
-     * feet - see `Human` - so any comparison of one body against another has to go through this.
+     * feet - see `Player.getFeetY` - so any comparison of one body against another has to go
+     * through this.
      * @returns {number} Where the body starts, in world coordinates.
      */
     public getFeetY(): number {
@@ -950,8 +950,8 @@ export class Entity {
     /**
      * What this entity is wearing and holding, by equipment slot.
      *
-     * A `Human` overrides it from the armor container, the hand and the off hand. A store
-     * entity's actor answers from the store's equipment.
+     * A store entity's actor answers from the store's equipment, and a store player's from its
+     * inventory.
      */
     public getEquipment(): ViewableEquipment {
         return this.equipment;
@@ -1195,29 +1195,6 @@ export class Entity {
      */
     public setAttributeValue(name: string, value: number): boolean {
         return this.attributes.setValue(name, value);
-    }
-
-    /**
-     * Writes a logged value back to a field this entity logs besides its position and health,
-     * such as a player's food. Only the entity store's undo calls this, through the legacy adapter.
-     * @param {string} _field - The field an entry names.
-     * @param {PlainData} _value - The value to put back.
-     * @returns {boolean} Whether this entity logs a field of that name. A plain entity logs none.
-     */
-    public restoreLoggedField(_field: string, _value: PlainData): boolean {
-        return false;
-    }
-
-    /**
-     * Writes a logged value back to one slot of a container this entity carries, such as a
-     * player's armor. Only the entity store's undo calls this, through the legacy adapter.
-     * @param {string} _container - The container an entry names.
-     * @param {number} _slot - The slot.
-     * @param {PlainData} _value - The stack to put back, or null for an empty slot.
-     * @returns {boolean} Whether this entity has that slot. A plain entity carries no container.
-     */
-    public restoreLoggedSlot(_container: string, _slot: number, _value: PlainData): boolean {
-        return false;
     }
 
     /**

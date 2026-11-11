@@ -1,11 +1,10 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import { testEntityServer } from '../testing/entityServer';
+import type Player from '../Player';
+import { fakePlayer } from '../testing/fakePlayer.test.helper';
 import ContainerEntry from '../inventory/ContainerEntry';
 import { Item } from '../item/Item';
-import { Position } from '../world/Position';
 import { DamageCause } from './DamageCause';
-import Human from './Human';
 
 /** A stack of one vanilla item, whose armor points come from its Java components. */
 const item = (name: string) => new Item({ name });
@@ -16,32 +15,23 @@ const item = (name: string) => new Item({ name });
  * Both ends of this were complete long before the middle was: two dozen armor items have declared
  * their protection since they were written, and the damage formula has known what to do with it
  * since the pipeline was laid - but there were no armor slots to read, so every blow landed as
- * though the player were naked.
+ * though the player were naked. A player is a store player, whose blows run the store's damage
+ * pipeline with the armor its inventory holds.
  */
-const scene = () => {
-    const world: any = {
-        getName: () => 'test',
-        getServer: () => testEntityServer(),
-        sendActorEvent: async () => {},
-        sendActorSound: async () => {},
-        sendActorMetadata: async () => {},
-        entityRelocated: () => {},
-        broadcastMove: async () => {},
-        getGameRuleManager: () => ({ getGameRule: () => [true, true] }),
-        getLoadedChunk: () => null
-    };
-
-    const wearer = () => new Human({ position: new Position(0, 64, 0, world) });
-
-    return { wearer };
-};
+const scene = () => ({ wearer: () => fakePlayer().player });
 
 /** Puts a piece on, in the slot the client numbers it. */
-const wear = (human: Human, slot: number, piece: any) =>
-    human
+const wear = (player: Player, slot: number, piece: Item) =>
+    player
         .getInventory()
         .getArmor()
         .setItem(slot, new ContainerEntry({ item: piece, count: 1 }));
+
+/** The armor points and toughness a player's inventory gives it. */
+const armorOf = (player: Player) => ({
+    points: player.getInventory().getArmorDefensePoints(),
+    toughness: player.getInventory().getArmorToughness()
+});
 
 describe('armor', () => {
     let stage: ReturnType<typeof scene>;
@@ -51,15 +41,15 @@ describe('armor', () => {
     });
 
     it('protects nothing when nothing is worn', () => {
-        expect(stage.wearer().getArmorDefensePoints()).toBe(0);
-        expect(stage.wearer().getArmorToughness()).toBe(0);
+        expect(armorOf(stage.wearer()).points).toBe(0);
+        expect(armorOf(stage.wearer()).toughness).toBe(0);
     });
 
     it('reads the points the item itself declares', () => {
         const human = stage.wearer();
         wear(human, 1, item('minecraft:iron_chestplate'));
 
-        expect(human.getArmorDefensePoints()).toBe(6);
+        expect(armorOf(human).points).toBe(6);
     });
 
     it('adds the pieces up', () => {
@@ -70,7 +60,7 @@ describe('armor', () => {
         const helmet = item('minecraft:diamond_helmet').getArmorDefensePoints();
         const chest = item('minecraft:diamond_chestplate').getArmorDefensePoints();
 
-        expect(human.getArmorDefensePoints()).toBe(helmet + chest);
+        expect(armorOf(human).points).toBe(helmet + chest);
     });
 
     it('carries toughness, which only the good armor has', () => {
@@ -80,7 +70,7 @@ describe('armor', () => {
         const diamond = stage.wearer();
         wear(diamond, 1, item('minecraft:diamond_chestplate'));
 
-        expect(diamond.getArmorToughness()).toBeGreaterThan(iron.getArmorToughness());
+        expect(armorOf(diamond).toughness).toBeGreaterThan(armorOf(iron).toughness);
     });
 
     describe('in a fight', () => {

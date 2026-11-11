@@ -9,7 +9,7 @@ import {
 import { describe, expect, it } from 'vitest';
 
 import type Player from '../Player';
-import type Human from '../entity/Human';
+import type { StorePlayerActor } from '../entity/data/storePlayers';
 import ContainerEntry from '../inventory/ContainerEntry';
 import HumanInventory from '../inventory/HumanInventory';
 import { Item } from '../item/Item';
@@ -75,7 +75,7 @@ const sessionFor = (player: Player) => {
     return { session, sent };
 };
 
-/** A human wearing a chestplate and holding a shield in the off hand. */
+/** A player's actor wearing a chestplate and holding a shield in the off hand, and its inventory. */
 const equippedHuman = () => {
     const inventory = new HumanInventory();
     const chestplate = new Item({ runtimeId: 0, name: 'minecraft:diamond_chestplate' });
@@ -83,12 +83,14 @@ const equippedHuman = () => {
     inventory.getArmor().setItem(1, new ContainerEntry({ item: chestplate, count: 1 }));
     inventory.getOffhand().setItem(0, new ContainerEntry({ item: shield, count: 1 }));
 
-    return stub<Human>({
-        getRuntimeId: () => 7n,
-        getInventory: () => inventory,
-        // What `Human.getEquipment` reads off those slots.
-        getEquipment: () => ({ chest: chestplate, offhand: shield })
-    });
+    return Object.assign(
+        stub<StorePlayerActor>({
+            getRuntimeId: () => 7n,
+            // What `HumanInventory.getEquipment` reads off those slots.
+            getEquipment: () => ({ chest: chestplate, offhand: shield })
+        }),
+        { getInventory: () => inventory }
+    );
 };
 
 const position = () => stub<Position>({ getX: () => 1, getY: () => 64, getZ: () => 2 });

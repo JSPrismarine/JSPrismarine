@@ -13,7 +13,6 @@ export * from './network/ReplayManifest';
 export * from './utils/';
 export * from './world/';
 
-import * as Entities from './entity/Entities';
 import * as Events from './events/Events';
 
 import Console from './Console';
@@ -24,5 +23,5 @@ import { ConfigBuilder } from './config/ConfigBuilder';
 import PlayerSession from './network/PlayerSession';
 import BaseProvider from './world/providers/BaseProvider';
 
-export { BaseProvider, Chat, ConfigBuilder, Console, Entities, Events, Player, PlayerSession, Server };
+export { BaseProvider, Chat, ConfigBuilder, Console, Events, Player, PlayerSession, Server };
 export type { ServerReplayRandomState } from './Server';
