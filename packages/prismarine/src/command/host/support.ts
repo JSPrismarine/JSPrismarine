@@ -23,10 +23,6 @@ import type { EntityRef, Vector3 as HostVector } from '@jsprismarine/commands';
 import { Vector3 } from '@jsprismarine/math';
 import type { PositionMode, TextPacketType } from '@jsprismarine/protocol';
 
-// Imported straight from their modules rather than through a barrel, for the
-// reason `CommandManager` states: `index.ts` exports `./world/` before
-// `Player`, so a barrel import lands in a half-initialized module.
-import Player from '../../Player';
 import type Server from '../../Server';
 import type { ExperienceHolder } from '../../entity/Experience';
 import type HumanInventory from '../../inventory/HumanInventory';
@@ -170,15 +166,16 @@ export const resolveEntity = (server: Server, ref: EntityRef): WorldActor | unde
 };
 
 /**
- * The session of the player a reference names, found by the runtime id the reference carries.
+ * The session of the player a reference names, found by the runtime id the reference carries in
+ * the world that holds the entity.
  *
- * Players are still the legacy class, and this is the one place the command host asks for it.
+ * This is the one place the command host asks for it.
  * @returns The session, or undefined when the reference names anything but a player or the
  *   player has since left.
  */
 export const playerSessionOf = (server: Server, ref: EntityRef): PlayerSession | undefined => {
     const entity = resolveEntity(server, ref);
-    return entity instanceof Player ? entity.getNetworkSession() : undefined;
+    return entity?.getWorld().viewerOf(entity.getRuntimeId());
 };
 
 /**

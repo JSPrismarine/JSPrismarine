@@ -273,7 +273,9 @@ describe('command', () => {
                     getDimension: () => Dimensions.Overworld,
                     getEntities: () => [target],
                     getActors: () => [target],
-                    getActor: (runtimeId: bigint) => (runtimeId === target.getRuntimeId() ? target : null)
+                    getActor: (runtimeId: bigint) => (runtimeId === target.getRuntimeId() ? target : null),
+                    viewerOf: (runtimeId: bigint) =>
+                        runtimeId === target.getRuntimeId() ? target.getNetworkSession() : undefined
                 });
                 const server: Server = stub<Server>({
                     // Empty registries rather than no content: `enable` builds the vanilla
