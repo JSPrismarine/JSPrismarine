@@ -1,22 +1,20 @@
-import type Server from '../../Server';
-import type PlayerSession from '../PlayerSession';
 import type ClientCacheBlobStatusPacket from '@jsprismarine/protocol/packet/ClientCacheBlobStatusPacket';
-import type PacketHandler from './PacketHandler';
+import type { SessionContext } from './HandlerContext';
+import type { ConnectionLaneHandler } from './SessionHandler';
 
 /** The client's report of cached and missing blob hashes. */
-export default class ClientCacheBlobStatusHandler implements PacketHandler<ClientCacheBlobStatusPacket> {
+export default class ClientCacheBlobStatusHandler implements ConnectionLaneHandler<ClientCacheBlobStatusPacket> {
     public static PacketName = 'ClientCacheBlobStatusPacket';
+    public readonly takes = 'context';
     public readonly phases = ['resourcePacks', 'play'] as const;
     public readonly lane = 'connection';
 
     /** Applies acknowledgments and sends bytes for blob ids the client reports missing. */
-    public async handle(packet: ClientCacheBlobStatusPacket, server: Server, session: PlayerSession): Promise<void> {
+    public async handle(packet: ClientCacheBlobStatusPacket, { session, log }: SessionContext): Promise<void> {
         const responded = await session.handleClientCacheBlobStatus(packet);
-        server
-            .getLogger()
-            .debug(
-                `${session.identity.name} holds ${packet.foundIds.length} cached blob(s) and is missing ${packet.missingIds.length}; sent ${responded}`,
-                'ClientCacheBlobStatusHandler/handle'
-            );
+        log.debug(
+            `${session.identity.name} holds ${packet.foundIds.length} cached blob(s) and is missing ${packet.missingIds.length}; sent ${responded}`,
+            'ClientCacheBlobStatusHandler/handle'
+        );
     }
 }

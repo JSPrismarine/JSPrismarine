@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { Logger } from '@jsprismarine/logger';
-import type Server from '../../Server';
+import { sessionContext } from '../../testing/handlerContext.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import { STEVE } from '../../testing/sessionIdentity.test.helper';
 import ClientCacheStatusHandler from './ClientCacheStatusHandler';
@@ -60,8 +60,7 @@ describe('ClientCacheStatusPacket', () => {
 
     it('applies the cache status to the player session', async () => {
         let enabled: boolean | undefined;
-        const logger = stub<Logger>({ debug: () => {}, verbose: () => {} });
-        const server = stub<Server>({ getLogger: () => logger });
+        const log = stub<Logger>({ debug: () => {}, verbose: () => {} });
         const session = stub<PlayerSession>({
             identity: STEVE,
             setClientCacheEnabled: (value) => {
@@ -71,7 +70,7 @@ describe('ClientCacheStatusPacket', () => {
         const packet = new ClientCacheStatusPacket();
         packet.enabled = true;
 
-        await new ClientCacheStatusHandler().handle(packet, server, session);
+        await new ClientCacheStatusHandler().handle(packet, sessionContext(session, { log }));
 
         expect(enabled).toBe(true);
     });

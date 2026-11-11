@@ -1,8 +1,7 @@
 import { Difficulty } from '@jsprismarine/minecraft';
-import type Server from '../../Server';
-import type PlayerSession from '../PlayerSession';
 import SetDifficultyPacket from '@jsprismarine/protocol/packet/SetDifficultyPacket';
-import type PacketHandler from './PacketHandler';
+import type { SessionContext } from './HandlerContext';
+import type { ConnectionLaneHandler } from './SessionHandler';
 
 /**
  * A client asking to change the world difficulty from its settings menu.
@@ -13,25 +12,24 @@ import type PacketHandler from './PacketHandler';
  * difficulty is sent back to put the menu right. A value that is not a `Difficulty` is
  * treated the same way; nothing is thrown.
  */
-export default class SetDifficultyHandler implements PacketHandler<SetDifficultyPacket> {
+export default class SetDifficultyHandler implements ConnectionLaneHandler<SetDifficultyPacket> {
     public static PacketName = 'SetDifficultyPacket';
+    public readonly takes = 'context';
     public readonly phases = ['play'] as const;
     public readonly lane = 'connection';
 
     /** Logs the request and sends the configured difficulty back when the two differ. */
-    public async handle(packet: SetDifficultyPacket, server: Server, session: PlayerSession): Promise<void> {
+    public async handle(packet: SetDifficultyPacket, { session, log, config }: SessionContext): Promise<void> {
         const data = packet.getPacketData();
         if (data === null) throw new Error('Cannot handle SetDifficultyPacket without decoded data');
 
-        const configured = server.getConfig().getDifficulty();
+        const configured = config.getDifficulty();
         if (data.difficulty === configured) return;
 
-        server
-            .getLogger()
-            .debug(
-                `${session.identity.name} asked for difficulty ${Difficulty[data.difficulty] ?? data.difficulty}, which the server does not change`,
-                'SetDifficultyHandler/handle'
-            );
+        log.debug(
+            `${session.identity.name} asked for difficulty ${Difficulty[data.difficulty] ?? data.difficulty}, which the server does not change`,
+            'SetDifficultyHandler/handle'
+        );
 
         const reply = new SetDifficultyPacket({ difficulty: configured });
         await session.getConnection().sendDataPacket(reply);
