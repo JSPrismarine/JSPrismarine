@@ -24,10 +24,24 @@ const isSafePath = (path: string): boolean =>
     !path.startsWith('/') && !path.includes('\\') && path.split('/').every((segment) => segment !== '..');
 
 /**
+ * Every entry of the real server jar inside the pinned bundler jar, inflated.
+ *
+ * Mojang's published jar is a bundler holding the real server jar under `META-INF/versions/`.
+ * @param jarPath - The bundler jar.
+ * @throws {Error} When the jar holds no inner server jar.
+ */
+export const readServerJar = (jarPath: string): Map<string, Uint8Array> => {
+    const bundler = readZip(readFileSync(jarPath));
+    const innerName = [...bundler.keys()].find((name) => /^META-INF\/versions\/[^/]+\/server-.+\.jar$/.test(name));
+    const inner = innerName === undefined ? undefined : bundler.get(innerName);
+    if (inner === undefined) throw new Error('the server jar holds no META-INF/versions inner jar');
+    return readZip(inner);
+};
+
+/**
  * Unpacks the vanilla datapack JSON out of the pinned server jar, once per version.
  *
- * Mojang's published jar is a bundler holding the real server jar under `META-INF/versions/`,
- * and the datapack is inside that one.
+ * The datapack is inside the real server jar that the bundler holds.
  * @returns The directory holding `pack.mcmeta` and `data/`.
  * @throws {Error} When the jar is not in the fetch cache, or holds no inner server jar.
  */
@@ -40,11 +54,7 @@ export const unpackVanillaDatapack = (): string => {
     const mcmeta = join(target, 'pack.mcmeta');
     if (existsSync(mcmeta)) return target;
 
-    const bundler = readZip(readFileSync(jarPath));
-    const innerName = [...bundler.keys()].find((name) => /^META-INF\/versions\/[^/]+\/server-.+\.jar$/.test(name));
-    if (innerName === undefined) throw new Error('the server jar holds no META-INF/versions inner jar');
-
-    for (const [name, bytes] of readZip(bundler.get(innerName)!)) {
+    for (const [name, bytes] of readServerJar(jarPath)) {
         if (!name.endsWith('.json') || !isSafePath(name)) continue;
         if (!WANTED.some((wanted) => name.startsWith(`data/minecraft/${wanted}`))) continue;
         const absolute = join(target, ...name.split('/'));
