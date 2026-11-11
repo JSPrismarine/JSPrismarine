@@ -81,6 +81,11 @@ Progress (2026-10-30):
     version-independent intent/update vocabulary; NetherNet and Java transports.
   - `bedrock-data`'s versioned captures beyond the wire fixtures (see "bedrock-data versioning"
     below); worker support for the Node single executable.
+- The entity and tick re-architecture ([its plan](entity-simulation-rearchitecture.md)) finished
+  slice 5 on 2026-11-11: every entity is a store entity, a player is a `StorePlayer`, and the
+  `Player` and `Entity` classes are gone. `PlayerSession` is the player's handle for plugins and
+  server code: it holds the connection, the world, the permissions and the operations that post
+  player events, and `getPlayer()` returns the store player.
 - Accepted deviation: `ServerName` advertises only the newest supported version rather than every
   registered codec version. This matches what a Bedrock Dedicated Server of that version
   advertises; as the constructor comment in `packages/raknet/src/utils/ServerName.ts` records,
