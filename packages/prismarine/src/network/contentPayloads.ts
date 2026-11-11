@@ -481,7 +481,7 @@ export const contentPayloadWarning = (report: ContentPayloadReport): string | un
  */
 export const joinContentPayloads = (
     content: ServerContent | undefined,
-    logger: Logger,
+    logger: Pick<Logger, 'info' | 'warn' | 'error'>,
     options: ContentPayloadOptions = {}
 ): NetworkContentPayloads | undefined => {
     if (content === undefined) return undefined;

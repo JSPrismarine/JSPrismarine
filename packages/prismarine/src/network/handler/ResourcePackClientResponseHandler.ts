@@ -8,7 +8,6 @@ import StartGamePacket from '@jsprismarine/protocol/packet/StartGamePacket';
 import type { PlayerSession } from '../../';
 import { eyePositionAt } from '../../entity/playerEyes';
 import { syncActorPropertyPacket } from '../actorProperties';
-import type Server from '../../Server';
 import type { Level } from '../../world/Level';
 import ChatEvent from '../../events/chat/ChatEvent';
 import PlayerSpawnEvent from '../../events/player/PlayerSpawnEvent';
@@ -26,14 +25,16 @@ import { joinContentPayloads } from '../contentPayloads';
 import { overworldSpawnOf, playerSpawnPositionPacket } from '../spawnPosition';
 import { createStartGameData } from '../startGameData';
 import { sendCachedJoinPacket } from '../joinPacketCache';
-import type PacketHandler from './PacketHandler';
+import type { InputContext } from './HandlerContext';
+import type { InputLaneHandler } from './SessionHandler';
 
 /**
  * Drives the end of the login exchange, from the client's answer about resource packs to the
  * burst of registries and world state that puts it in a world.
  */
-export default class ResourcePackClientResponseHandler implements PacketHandler<ResourcePackClientResponsePacket> {
+export default class ResourcePackClientResponseHandler implements InputLaneHandler<ResourcePackClientResponsePacket> {
     public static PacketName = 'ResourcePackClientResponsePacket';
+    public readonly takes = 'context';
     public readonly phases = ['resourcePacks'] as const;
     public readonly lane = 'input';
 
@@ -131,61 +132,64 @@ export default class ResourcePackClientResponseHandler implements PacketHandler<
      * A status outside the four, which `decodePayload` never produces but a caller can set, is
      * logged at debug level and dropped.
      */
-    public async handle(
-        packet: ResourcePackClientResponsePacket,
-        server: Server,
-        session: PlayerSession
-    ): Promise<void> {
+    public handle(packet: ResourcePackClientResponsePacket, context: InputContext): undefined {
+        const { session, log, step } = context;
         const { name } = session.identity;
-        const logger = server.getLogger();
         const response = packet.getPacketData();
 
         if (response === null) {
-            logger.debug(`${name} sent an empty resource pack response; dropped`);
+            log.debug(`${name} sent an empty resource pack response; dropped`);
             return;
         }
 
         switch (response.status) {
             case ResourcePackStatus.Refused:
-                await session.kick('Declined the resource packs', DisconnectReason.RESOURCE_PACK_PROBLEM);
+                // The kick waits for the connection to close and the player's record to be
+                // saved. Slice 8 saves at a tick boundary, off the tick.
+                step.defer(() => session.kick('Declined the resource packs', DisconnectReason.RESOURCE_PACK_PROBLEM));
                 return;
 
             case ResourcePackStatus.SendPacks:
-                logger.debug(
+                log.debug(
                     `${name} asked for ${response.packIds.length} resource pack(s); the server offers none`,
                     'ResourcePackClientResponseHandler/handle'
                 );
-                await session.kick(
-                    'Asked for resource packs this server does not have',
-                    DisconnectReason.RESOURCE_PACK_PROBLEM
+                // As for a refusal: the kick waits for the close and the save (slice 8).
+                step.defer(() =>
+                    session.kick(
+                        'Asked for resource packs this server does not have',
+                        DisconnectReason.RESOURCE_PACK_PROBLEM
+                    )
                 );
                 return;
 
             case ResourcePackStatus.HaveAllPacks: {
                 if (this.joined.has(session)) {
-                    logger.debug(
+                    log.debug(
                         `${name} said it had all packs after its join started; dropped`,
                         'ResourcePackClientResponseHandler/handle'
                     );
                     return;
                 }
 
-                await session.getConnection().sendDataPacket(
-                    new ResourcePackStackPacket({
-                        texturePackRequired: false,
-                        texturePacks: [],
-                        gameVersion: '*',
-                        experiments: [],
-                        experimentsAlreadyEnabled: false,
-                        includeEditorPacks: false
-                    })
+                step.output(
+                    session.getConnection().sendDataPacket(
+                        new ResourcePackStackPacket({
+                            texturePackRequired: false,
+                            texturePacks: [],
+                            gameVersion: '*',
+                            experiments: [],
+                            experimentsAlreadyEnabled: false,
+                            includeEditorPacks: false
+                        })
+                    )
                 );
                 return;
             }
 
             case ResourcePackStatus.Completed:
                 if (this.joined.has(session)) {
-                    logger.debug(
+                    log.debug(
                         `${name} completed the resource packs twice; the second was dropped`,
                         'ResourcePackClientResponseHandler/handle'
                     );
@@ -198,11 +202,11 @@ export default class ResourcePackClientResponseHandler implements PacketHandler<
                 // packets - `RequestChunkRadius` first - while the burst is still being sent.
                 session.getConnection().phase = 'play';
 
-                await this.sendJoinBurst(server, session);
+                this.startJoin(context);
                 return;
 
             default:
-                logger.debug(
+                log.debug(
                     `Dropped a resource pack response with unknown status ${response.status} from ${name}`,
                     'ResourcePackClientResponseHandler/handle'
                 );
@@ -245,31 +249,39 @@ export default class ResourcePackClientResponseHandler implements PacketHandler<
      *   `SetLocalPlayerAsInitializedHandler`, because the client rebuilds its local player while
      *   spawning and throws away what step 6 told it.
      */
-    private async sendJoinBurst(server: Server, session: PlayerSession): Promise<void> {
+    private startJoin(context: InputContext): void {
+        const { session, log, services, step } = context;
         const { identity } = session;
-        const connection = session.getConnection();
-        const address = connection.getAddress();
-        server
-            .getLogger()
-            .info(
-                `§b${identity.name}§f is attempting to join with id §b${identity.uuid}§f (§b${session.runtimeId}§f) from ${address.getAddress()}:${address.getPort()}`
-            );
+        const address = session.getConnection().getAddress();
+        log.info(
+            `§b${identity.name}§f is attempting to join with id §b${identity.uuid}§f (§b${session.runtimeId}§f) from ${address.getAddress()}:${address.getPort()}`
+        );
 
         const spawnEvent = new PlayerSpawnEvent(session);
-        server.post(['playerSpawn', spawnEvent]);
+        services.events.post(['playerSpawn', spawnEvent]);
         if (spawnEvent.isCanceled()) return;
 
+        // The burst waits for the spawn of the world the player joins, which may still have to
+        // search for dry land, and it ends with the join line in chat. Slice 9 builds worlds
+        // outside the tick and takes the chat line out of the input step.
+        step.defer(() => this.sendJoinBurst(context));
+    }
+
+    /** The packets of {@link startJoin}, in order, once the `playerSpawn` event let the join go on. */
+    private async sendJoinBurst({ session, log, config, services, step }: InputContext): Promise<void> {
+        const { identity } = session;
+        const connection = session.getConnection();
         const world = session.getWorld();
-        const content = server.getContent();
-        const recipeLimit = server.getConfig().getCraftingRecipeLimit();
-        const compressionLevel = server.getConfig().getPacketCompressionLevel();
+        const content = services.content;
+        const recipeLimit = config.getCraftingRecipeLimit();
+        const compressionLevel = config.getPacketCompressionLevel();
 
         // Built at startup and cached, so this is a lookup. Undefined only when the
         // build could not produce payloads, and each packet below then writes what it
         // wrote before the content build existed. Built against this session's own item
         // numbering: the registry, the creative entries and the brewing recipes all carry
         // item numbers, and the numbering is a property of the negotiated protocol.
-        const payloads = joinContentPayloads(content, server.getLogger(), {
+        const payloads = joinContentPayloads(content, log, {
             itemData: connection.codec.itemData
         });
 
@@ -279,7 +291,8 @@ export default class ResourcePackClientResponseHandler implements PacketHandler<
         await connection.sendDataPacket(
             new StartGamePacket(
                 createStartGameData({
-                    server,
+                    config,
+                    tick: step.tick,
                     player: session,
                     world,
                     worldSpawnPosition: worldSpawnPos,
@@ -360,7 +373,7 @@ export default class ResourcePackClientResponseHandler implements PacketHandler<
 
         const chatSpawnEvent = new ChatEvent(
             new Chat({
-                sender: server.getConsoleSender(),
+                sender: services.console,
                 // The bare translation key: a color code in front of the `%` stops the
                 // client resolving it, and it renders the unresolved string instead.
                 message: `%multiplayer.player.joined`,
@@ -369,6 +382,6 @@ export default class ResourcePackClientResponseHandler implements PacketHandler<
                 type: ChatType.TRANSLATION
             })
         );
-        await server.emit('chat', chatSpawnEvent);
+        await services.events.emit('chat', chatSpawnEvent);
     }
 }
