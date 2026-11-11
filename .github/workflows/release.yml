@@ -51,6 +51,8 @@ jobs:
             issues: write
             pull-requests: write
             id-token: write
+            # Publishing to GitHub Packages.
+            packages: write
         steps:
             - name: 🕶️ Checkout repository
               uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -88,6 +90,18 @@ jobs:
                       This is an automated commit triggered by the `release` workflow.
                   pr-title: 🚀 Release packages
                   github-token: ${{ secrets.MACHINE_USER }}
+
+            # A release only: the unstable and nightly builds stay on npm. It does not block the
+            # executables below when GitHub Packages is down; the step's error shows on the run, and
+            # `publish-github-packages.mjs` skips versions that are already there, so it can be rerun.
+            - name: 📦 Publish to GitHub Packages
+              if: steps.changesets.outputs.published == 'true'
+              continue-on-error: true
+              env:
+                  PUBLISHED_PACKAGES: ${{ steps.changesets.outputs.published-packages }}
+                  # Not GITHUB_TOKEN, which this workflow sets to the machine user's token.
+                  GITHUB_PACKAGES_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              run: node .github/scripts/publish-github-packages.mjs
 
             - name: 🔢 Capture shared version
               id: shared_version
