@@ -30,7 +30,8 @@
 import { Vector3 } from '@jsprismarine/math';
 import type { EntityPosition } from '@jsprismarine/entities';
 import type { NBTTagCompound } from '@jsprismarine/nbt';
-import { Attribute, AttributeIds, Attributes } from '@jsprismarine/protocol/wire/structures/Attribute';
+import { AttributeIds } from '@jsprismarine/protocol/wire/structures/Attribute';
+import type { Attributes } from '@jsprismarine/protocol/wire/structures/Attribute';
 import { Metadata } from '@jsprismarine/protocol/wire/structures/Metadata';
 import type { SyncedProperties } from '@jsprismarine/protocol/wire/structures/SyncedProperties';
 
@@ -57,6 +58,8 @@ import {
     removeStatusEffectFromMap
 } from '../StatusEffect';
 import { effectHealthChange, tickStatusEffects } from '../StatusEffectTick';
+import { healthAttributesOf } from './actorView';
+import type { ShownPose } from './actorView';
 import type { DataEntity } from './DataEntity';
 import type { DamageRoute } from './damagePipeline';
 import { isDroppedItem } from './droppedItems';
@@ -78,15 +81,6 @@ const MOVEMENT_EPSILON = 1e-4;
 
 /** How far clients follow a store entity, in chunks, which is the legacy entities' default. */
 const TRACKING_RANGE_CHUNKS = 8;
-
-/** Where a store entity was last shown to clients, which the next move is measured from. */
-interface ShownPose {
-    readonly x: number;
-    readonly y: number;
-    readonly z: number;
-    readonly yaw: number;
-    readonly pitch: number;
-}
 
 /** Where a store actor sends the blows and heals the rest of the server gives it. */
 export interface StoreActorBlows {
@@ -141,21 +135,7 @@ export class StoreActor implements ShownActor {
         private readonly blows: StoreActorBlows
     ) {
         const content = world.getServer().getContent();
-        const health = entity.instance.attributes.get('health');
-        // The type's maximum rather than `Attributes.getDefaults`' twenty, so a client draws a
-        // ten-health cow with five hearts instead of with two and a half. A type with no health
-        // is sent none, so an armor stand is not drawn as a living thing.
-        this.attributes = new Attributes(health === undefined ? [] : Attributes.getDefaults());
-        if (health !== undefined)
-            this.attributes.setAttribute(
-                new Attribute({
-                    name: AttributeIds.Health,
-                    min: 0,
-                    max: health.max,
-                    def: health.max,
-                    value: health.current
-                })
-            );
+        this.attributes = healthAttributesOf(entity.instance.attributes.get('health'));
 
         const { width, height } = boxOf(content.entities.registry, entity.identifier);
         this.metadata.setBoundingBox(width, height);

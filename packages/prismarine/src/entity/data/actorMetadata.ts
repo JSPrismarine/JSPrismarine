@@ -1,11 +1,20 @@
 /**
- * Translates live Bedrock entity components into the actor metadata a client renders.
+ * Translates Bedrock entity components and entity state into the actor metadata a client renders.
  *
  * Component semantics belong to the data-driven entity runtime, while actor flags are a wire
  * representation. Keeping that translation here lets every entity use the same projection and
  * keeps the store actors independent of individual component names.
+ *
+ * The projection has two inputs, and each can come from a live entity or from plain data. What
+ * the active components decide ({@link ComponentMetadataFacts}) is read from a
+ * {@link ComponentView}: the live instance, or the component set a type and its active groups
+ * resolve to. What the entity's own state decides ({@link ActorMetadataState}) is plain values:
+ * read off the live body, or off the fields the change log carries. A store actor projects from
+ * the live entity and the entity replica (`network/replica/EntityReplica.ts`) from the log, with
+ * the same {@link projectActorMetadata}.
  */
-import { navigationProfile } from '@jsprismarine/entity-goals';
+import { navigationProfile } from '@jsprismarine/entity-goals/navigation/profile';
+import type { NavigationSource } from '@jsprismarine/entity-goals/navigation/profile';
 import { isRecord } from '@jsprismarine/entities';
 import type { EntityPosition } from '@jsprismarine/entities';
 import { Vector3 } from '@jsprismarine/math';
@@ -32,19 +41,25 @@ type ActorPropertyProjection =
     | { readonly kind: 'position'; readonly id: number; readonly value: EntityPosition }
     | { readonly kind: 'string'; readonly id: number; readonly value: string };
 
+/**
+ * An active component set, as the projection reads it: a live `EntityInstance`, or the set a type
+ * and its active groups resolve to.
+ */
+export type ComponentView = NavigationSource;
+
 /** The first interaction prompt the data type makes available to a touch-screen client. */
-const interactTextOf = (entity: DataEntity): string => {
-    const rideable = entity.instance.componentParams('minecraft:rideable');
+const interactTextOf = (view: ComponentView): string => {
+    const rideable = view.componentParams('minecraft:rideable');
     if (isRecord(rideable) && typeof rideable.interactText === 'string') return rideable.interactText;
 
-    const interact = entity.instance.componentParams('minecraft:interact');
+    const interact = view.componentParams('minecraft:interact');
     if (isRecord(interact) && Array.isArray(interact.interactions)) {
         for (const interaction of interact.interactions) {
             if (isRecord(interaction) && typeof interaction.interactText === 'string') return interaction.interactText;
         }
     }
 
-    const dyeable = entity.instance.componentParams('minecraft:is_dyeable');
+    const dyeable = view.componentParams('minecraft:is_dyeable');
     return isRecord(dyeable) && typeof dyeable.interactText === 'string' ? dyeable.interactText : '';
 };
 
@@ -58,11 +73,11 @@ export interface ActorMetadataProjection {
  * What the active components alone decide about an entity's metadata.
  *
  * Every field here is a pure function of the component set, so it is read once per set and kept
- * until the set changes. The flag values appear in the order {@link actorMetadataProjection}
+ * until the set changes. The flag values appear in the order {@link projectActorMetadata}
  * writes them.
  */
-interface ComponentMetadataFacts {
-    /** The entity instance's component set when these were read; a different one invalidates them. */
+export interface ComponentMetadataFacts {
+    /** The component set these were read from; a different one invalidates them. */
     readonly componentSet: object;
     readonly canClimb: boolean;
     readonly alwaysShowName: boolean;
@@ -109,20 +124,22 @@ interface ComponentMetadataFacts {
     readonly fallingBlock: boolean;
 }
 
-const componentFactsByEntity = new WeakMap<DataEntity, ComponentMetadataFacts>();
+const componentFactsByView = new WeakMap<ComponentView, ComponentMetadataFacts>();
 
-/** The component-derived metadata facts for an entity, read again only when its component set changed. */
-const componentFactsOf = (entity: DataEntity): ComponentMetadataFacts => {
-    const { instance } = entity;
-    const componentSet = instance.componentSetToken;
-    const cached = componentFactsByEntity.get(entity);
+/**
+ * The component-derived metadata facts of a component set, read again only when the set changed.
+ * @param view - The live instance, or a component set resolved from a type and its groups.
+ */
+export const componentMetadataFacts = (view: ComponentView): ComponentMetadataFacts => {
+    const componentSet = view.componentSetToken;
+    const cached = componentFactsByView.get(view);
     if (cached?.componentSet === componentSet) return cached;
 
-    const navigation = navigationProfile(instance);
-    const physics = instance.componentParams('minecraft:physics');
-    const nameable = instance.componentParams('minecraft:nameable');
-    const scale = instance.componentParams('minecraft:scale');
-    const has = (name: string): boolean => instance.hasComponent(name);
+    const navigation = navigationProfile(view);
+    const physics = view.componentParams('minecraft:physics');
+    const nameable = view.componentParams('minecraft:nameable');
+    const scale = view.componentParams('minecraft:scale');
+    const has = (name: string): boolean => view.hasComponent(name);
     const facts: ComponentMetadataFacts = {
         componentSet,
         canClimb: navigation.canClimbLadders === true,
@@ -162,17 +179,40 @@ const componentFactsOf = (entity: DataEntity): ComponentMetadataFacts => {
         baby: has('minecraft:is_baby'),
         sheared: has('minecraft:is_sheared'),
         scale: typeof scale === 'number' ? scale : 1,
-        interactText: interactTextOf(entity),
-        componentColor: instance.componentParams('minecraft:color'),
-        color2: instance.componentParams('minecraft:color2'),
-        variant: instance.componentParams('minecraft:variant'),
-        markVariant: instance.componentParams('minecraft:mark_variant'),
-        skinId: instance.componentParams('minecraft:skin_id'),
+        interactText: interactTextOf(view),
+        componentColor: view.componentParams('minecraft:color'),
+        color2: view.componentParams('minecraft:color2'),
+        variant: view.componentParams('minecraft:variant'),
+        markVariant: view.componentParams('minecraft:mark_variant'),
+        skinId: view.componentParams('minecraft:skin_id'),
         fallingBlock: has('jsprismarine:falling_block')
     };
-    componentFactsByEntity.set(entity, facts);
+    componentFactsByView.set(view, facts);
     return facts;
 };
+
+/**
+ * What an entity's own state decides about its metadata, as plain values.
+ *
+ * A store actor reads it off the live body ({@link actorMetadataStateOf}); the entity replica
+ * reads it off the fields the change log carries. Either way {@link projectActorMetadata} turns
+ * it into the same projection.
+ */
+export interface ActorMetadataState {
+    readonly onFire: boolean;
+    readonly inWater: boolean;
+    readonly fuseTicks: number | undefined;
+    readonly owned: boolean;
+    readonly leashHolderId: number | undefined;
+    readonly nameTag: string | undefined;
+    readonly color: number | undefined;
+    readonly beamX: number | undefined;
+    readonly beamY: number | undefined;
+    readonly beamZ: number | undefined;
+    readonly showBottom: boolean;
+    /** The `block` its spawn data names, which only a falling block shows. */
+    readonly spawnBlock: unknown;
+}
 
 /**
  * Everything besides the component set that a projection reads, as plain values.
@@ -180,29 +220,16 @@ const componentFactsOf = (entity: DataEntity): ComponentMetadataFacts => {
  * Compared before a projection is built: while these and the component set are unchanged, the
  * projection cannot differ from the last one.
  */
-export interface ActorMetadataInputs {
-    readonly componentSet: object;
-    readonly onFire: boolean;
-    readonly inWater: boolean;
-    readonly fuseTicks: number | undefined;
-    readonly owned: boolean;
-    readonly leashHolderId: number | undefined;
-    readonly nameTag: string | undefined;
-    readonly color: unknown;
-    readonly beamX: number | undefined;
-    readonly beamY: number | undefined;
-    readonly beamZ: number | undefined;
-    readonly showBottom: boolean;
-    readonly fallingBlock: unknown;
-}
+export type ActorMetadataInputs = ActorMetadataState & { readonly componentSet: object };
 
-/** Reads the per-tick inputs of an entity's metadata projection. */
-export const actorMetadataInputs = (entity: DataEntity, leashHolderId?: number): ActorMetadataInputs => {
+/**
+ * Reads the state half of an entity's metadata projection off the live entity.
+ * @param leashHolderId - Runtime id of the entity holding this entity's leash, when one is loaded.
+ */
+export const actorMetadataStateOf = (entity: DataEntity, leashHolderId?: number): ActorMetadataState => {
     const { body } = entity;
-    const facts = componentFactsOf(entity);
     const beam = body.beamTarget;
     return {
-        componentSet: facts.componentSet,
         onFire: body.fireTicks > 0,
         inWater: body.conditions.has('in_water'),
         fuseTicks: body.fuseTicks,
@@ -214,9 +241,15 @@ export const actorMetadataInputs = (entity: DataEntity, leashHolderId?: number):
         beamY: beam === undefined ? undefined : Math.floor(beam.y),
         beamZ: beam === undefined ? undefined : Math.floor(beam.z),
         showBottom: body.showBottom !== false,
-        fallingBlock: facts.fallingBlock ? entity.spawnData?.['block'] : undefined
+        spawnBlock: entity.spawnData?.['block']
     };
 };
+
+/** Reads the per-tick inputs of an entity's metadata projection. */
+export const actorMetadataInputs = (entity: DataEntity, leashHolderId?: number): ActorMetadataInputs => ({
+    componentSet: componentMetadataFacts(entity.instance).componentSet,
+    ...actorMetadataStateOf(entity, leashHolderId)
+});
 
 /** Whether two reads of the per-tick inputs are the same, so the last projection still stands. */
 export const sameActorMetadataInputs = (left: ActorMetadataInputs | undefined, right: ActorMetadataInputs): boolean =>
@@ -233,7 +266,7 @@ export const sameActorMetadataInputs = (left: ActorMetadataInputs | undefined, r
     left.beamY === right.beamY &&
     left.beamZ === right.beamZ &&
     left.showBottom === right.showBottom &&
-    left.fallingBlock === right.fallingBlock;
+    left.spawnBlock === right.spawnBlock;
 
 /**
  * Projects the active entity definition and runtime state into client-facing metadata.
@@ -244,14 +277,24 @@ export const sameActorMetadataInputs = (left: ActorMetadataInputs | undefined, r
  *
  * @param leashHolderId - Runtime id of the entity holding this entity's leash, when one is loaded.
  */
-export const actorMetadataProjection = (entity: DataEntity, leashHolderId?: number): ActorMetadataProjection => {
-    const { body } = entity;
-    const facts = componentFactsOf(entity);
-    const color = body.color ?? facts.componentColor;
+export const actorMetadataProjection = (entity: DataEntity, leashHolderId?: number): ActorMetadataProjection =>
+    projectActorMetadata(componentMetadataFacts(entity.instance), actorMetadataStateOf(entity, leashHolderId));
+
+/**
+ * The projection of one component set and one entity state, from plain values alone.
+ * @param facts - What the active components decide.
+ * @param state - What the entity's own state decides.
+ */
+export const projectActorMetadata = (
+    facts: ComponentMetadataFacts,
+    state: ActorMetadataState
+): ActorMetadataProjection => {
+    const { leashHolderId } = state;
+    const color = state.color ?? facts.componentColor;
     const flags: ActorFlagProjection[] = [
         { flag: ActorFlags.CANCLIMB, value: facts.canClimb },
         { flag: ActorFlags.ALWAYS_SHOW_NAME, value: facts.alwaysShowName },
-        { flag: MetadataFlag.ONFIRE, value: body.fireTicks > 0 },
+        { flag: MetadataFlag.ONFIRE, value: state.onFire },
         { flag: ActorFlags.CANSWIM, value: facts.canSwim },
         { flag: ActorFlags.CANFLY, value: facts.canFly },
         { flag: ActorFlags.CANWALK, value: facts.canWalk },
@@ -262,11 +305,11 @@ export const actorMetadataProjection = (entity: DataEntity, leashHolderId?: numb
         { flag: ActorFlags.CAN_USE_VERTICAL_MOVEMENT_ACTION, value: facts.verticalMovement },
         { flag: ActorFlags.FIRE_IMMUNE, value: facts.fireImmune },
         { flag: ActorFlags.OUT_OF_CONTROL, value: facts.outOfControl },
-        { flag: ActorFlags.SWIMMING, value: facts.canSwim && body.conditions.has('in_water') },
+        { flag: ActorFlags.SWIMMING, value: facts.canSwim && state.inWater },
         { flag: MetadataFlag.AFFECTED_BY_GRAVITY, value: facts.affectedByGravity },
         { flag: MetadataFlag.HAS_COLLISION, value: facts.hasCollision },
         { flag: ActorFlags.COLLIDABLE, value: facts.collidable },
-        { flag: MetadataFlag.IGNITED, value: body.fuseTicks !== undefined || facts.ignited },
+        { flag: MetadataFlag.IGNITED, value: state.fuseTicks !== undefined || facts.ignited },
         { flag: ActorFlags.POWERED, value: facts.powered },
         { flag: ActorFlags.SADDLED, value: facts.saddled },
         { flag: ActorFlags.LEASHED, value: leashHolderId !== undefined },
@@ -284,32 +327,28 @@ export const actorMetadataProjection = (entity: DataEntity, leashHolderId?: numb
         { flag: ActorFlags.ROTATION_AXIS_ALIGNED, value: facts.axisAligned },
         { flag: ActorFlags.ROTATION_LOCKED_TO_VEHICLE, value: facts.lockedToVehicle },
         { flag: ActorFlags.USES_LEGACY_FRICTION, value: facts.legacyFriction },
-        { flag: ActorFlags.TAMED, value: body.owner !== undefined || facts.tamed },
+        { flag: ActorFlags.TAMED, value: state.owned || facts.tamed },
         { flag: ActorFlags.BABY, value: facts.baby },
         { flag: ActorFlags.SHEARED, value: facts.sheared },
         // Java's DATA_SHOW_BOTTOM defaults to true, so an unset record keeps the end
         // crystal's base plate; only the crystal's render controller reads the flag.
-        { flag: ActorFlags.SHOW_BOTTOM, value: body.showBottom !== false }
+        { flag: ActorFlags.SHOW_BOTTOM, value: state.showBottom }
     ];
     const properties: ActorPropertyProjection[] = [
         { kind: 'float', id: MetadataFlag.SCALE, value: facts.scale },
-        { kind: 'int', id: MetadataFlag.FUSE_TIME, value: body.fuseTicks ?? 0 },
+        { kind: 'int', id: MetadataFlag.FUSE_TIME, value: state.fuseTicks ?? 0 },
         { kind: 'long', id: MetadataFlag.ENTITY_LEAD_HOLDER_ID, value: BigInt(leashHolderId ?? -1) },
-        { kind: 'string', id: MetadataFlag.NAMETAG, value: body.nameTag ?? '' },
+        { kind: 'string', id: MetadataFlag.NAMETAG, value: state.nameTag ?? '' },
         { kind: 'string', id: ActorDataID.INTERACT_TEXT, value: facts.interactText }
     ];
 
     // The client draws an end crystal's beam at the BLOCK_TARGET block and treats the zero
     // position as no beam, so the key only goes out while a target is set.
-    if (body.beamTarget !== undefined) {
+    if (state.beamX !== undefined && state.beamY !== undefined && state.beamZ !== undefined) {
         properties.push({
             kind: 'position',
             id: ActorDataID.BLOCK_TARGET,
-            value: {
-                x: Math.floor(body.beamTarget.x),
-                y: Math.floor(body.beamTarget.y),
-                z: Math.floor(body.beamTarget.z)
-            }
+            value: { x: state.beamX, y: state.beamY, z: state.beamZ }
         });
     }
 
@@ -318,7 +357,7 @@ export const actorMetadataProjection = (entity: DataEntity, leashHolderId?: numb
         properties.push({ kind: 'byte', id: ActorDataID.COLOR_2_INDEX, value: facts.color2 });
 
     if (facts.fallingBlock) {
-        const block = entity.spawnData?.['block'];
+        const block = state.spawnBlock;
         if (typeof block === 'string') {
             const runtimeId = BlockRuntimeIds.tryGetByName(block);
             if (runtimeId !== null) properties.push({ kind: 'int', id: MetadataFlag.VARIANT, value: runtimeId });
