@@ -2,11 +2,11 @@ import { PlayerPermissionLevel } from '@jsprismarine/minecraft';
 import { describe, expect, it } from 'vitest';
 
 import type { Logger } from '@jsprismarine/logger';
-import type Player from '../../Player';
 import type Server from '../../Server';
 import type SessionManager from '../../SessionManager';
 import type { PermissionManager } from '../../permission/PermissionManager';
 import { identityNamed } from '../../testing/sessionIdentity.test.helper';
+import { stubPlayerPort } from '../../testing/playerPort.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import type PlayerSession from '../PlayerSession';
 import type { ShownPlayer } from '../../world/ShownPlayer';
@@ -22,8 +22,8 @@ const fakeSession = ({ op = true }: { op?: boolean } = {}) => {
     const opChanges: Array<[string, boolean]> = [];
     const resent: Array<ShownPlayer | undefined> = [];
     const logged: string[] = [];
-    const requester = stub<Player>({ getName: () => 'Steve', getRuntimeId: () => 1n, isOp: () => op });
-    const target = stub<Player>({ getName: () => 'Alex', getRuntimeId: () => 7n });
+    const requester = stubPlayerPort({ getName: () => 'Steve', getRuntimeId: () => 1n, isOp: () => op });
+    const target = stubPlayerPort({ getName: () => 'Alex', getRuntimeId: () => 7n });
 
     return {
         opChanges,

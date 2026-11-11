@@ -1,10 +1,10 @@
 import type { Logger } from '@jsprismarine/logger';
 import { describe, expect, it, vi } from 'vitest';
 
-import type Player from '../../Player';
 import type Server from '../../Server';
 import type SessionManager from '../../SessionManager';
 import { identityNamed } from '../../testing/sessionIdentity.test.helper';
+import { stubPlayerPort } from '../../testing/playerPort.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import UUID from '@jsprismarine/protocol/wire/structures/UUID';
 import Skin from '@jsprismarine/protocol/wire/structures/skin/Skin';
@@ -46,7 +46,7 @@ const classicSkin = (id: string, overrides: Partial<ClientData> = {}) =>
 /** An online player whose session records what it is sent. */
 const onlinePlayer = (name: string, uuid: string, runtimeId: bigint) => {
     const send = vi.fn(async () => {});
-    const player = stub<Player>({
+    const player = stubPlayerPort({
         getName: () => name,
         getRuntimeId: () => runtimeId,
         getUUID: () => UUID.fromString(uuid),
