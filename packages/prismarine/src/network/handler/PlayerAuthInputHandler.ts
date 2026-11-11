@@ -11,17 +11,17 @@ import {
 import InventoryTransactionPacket from '@jsprismarine/protocol/packet/InventoryTransactionPacket';
 import type PlayerAuthInputPacket from '@jsprismarine/protocol/packet/PlayerAuthInputPacket';
 
-import type { PlayerSession } from '../../';
-import type Server from '../../Server';
 import BlockPosition from '../../world/BlockPosition';
 import { inventoryTransactionToProtocol } from '../InventoryTransactionAdapter';
 import { playerAuthInputFromProtocol } from '../PlayerAuthInputAdapter';
 import ItemStackRequestPacket from '@jsprismarine/protocol/packet/ItemStackRequestPacket';
 import InventoryTransactionHandler from './InventoryTransactionHandler';
 import ItemStackRequestHandler from './ItemStackRequestHandler';
+import type { InputContext } from './HandlerContext';
+import { orderedParts, withStep } from './inputParts';
 import { applyClientMovement } from './MovePlayerHandler';
-import type PacketHandler from './PacketHandler';
 import PlayerActionHandler from './PlayerActionHandler';
+import type { InputLaneHandler } from './SessionHandler';
 
 /**
  * The flags that are an action in their own right, and the action each one is.
@@ -117,10 +117,13 @@ export const rejectionReason = (input: ReturnType<typeof playerAuthInputFromProt
  * A packet with a value no client can send is dropped whole, at debug level, before anything
  * is done with it. See {@link rejectionReason}.
  *
- * The order is the client's: movement first, then what was done from that position.
+ * The order is the client's: movement first, then what was done from that position. A part
+ * that still waits, such as a break, is deferred, and every part after it waits behind it
+ * (`orderedParts`), so a block placed in the same input as a break still goes down after it.
  */
-export default class PlayerAuthInputHandler implements PacketHandler<PlayerAuthInputPacket> {
+export default class PlayerAuthInputHandler implements InputLaneHandler<PlayerAuthInputPacket> {
     public static PacketName = 'PlayerAuthInputPacket';
+    public readonly takes = 'context';
     public readonly phases = ['play'] as const;
     public readonly lane = 'input';
 
@@ -128,16 +131,15 @@ export default class PlayerAuthInputHandler implements PacketHandler<PlayerAuthI
     private readonly transactions = new InventoryTransactionHandler();
     private readonly requests = new ItemStackRequestHandler();
 
-    public async handle(packet: PlayerAuthInputPacket, server: Server, session: PlayerSession): Promise<void> {
+    public handle(packet: PlayerAuthInputPacket, context: InputContext): undefined {
+        const { session, log } = context;
         const packetData = packet.getPacketData();
         if (packetData === null) return;
         const input = playerAuthInputFromProtocol(packetData, session.getConnection().codec.context);
 
         const reason = rejectionReason(input);
         if (reason !== null) {
-            server
-                .getLogger()
-                .debug(`Dropped an input from ${session.identity.name}: ${reason}`, 'PlayerAuthInputHandler/handle');
+            log.debug(`Dropped an input from ${session.identity.name}: ${reason}`, 'PlayerAuthInputHandler/handle');
             return;
         }
 
@@ -154,33 +156,42 @@ export default class PlayerAuthInputHandler implements PacketHandler<PlayerAuthI
 
         if (!session.isConnected()) return;
 
-        await applyClientMovement(server, session, {
-            position: input.position,
-            pitch: input.pitch,
-            yaw: input.yaw,
-            headYaw: input.headYaw,
-            // The input has no "on ground" bit. A vertical collision is the nearest thing it
-            // says: the ground pushing back, every tick the player stands on it.
-            onGround: input.inputData.has(PlayerAuthInputData.VERTICAL_COLLISION),
-            handledTeleport: input.inputData.has(PlayerAuthInputData.HANDLED_TELEPORT)
-        });
+        // Each part is handed the step it runs against, so a part after one that deferred is
+        // deferred behind it.
+        const apply = orderedParts(context.step);
+        const within = (step: InputContext['step']): InputContext => withStep(context, step);
+
+        apply((step) =>
+            applyClientMovement(within(step), {
+                position: input.position,
+                pitch: input.pitch,
+                yaw: input.yaw,
+                headYaw: input.headYaw,
+                // The input has no "on ground" bit. A vertical collision is the nearest thing it
+                // says: the ground pushing back, every tick the player stands on it.
+                onGround: input.inputData.has(PlayerAuthInputData.VERTICAL_COLLISION),
+                handledTeleport: input.inputData.has(PlayerAuthInputData.HANDLED_TELEPORT)
+            })
+        );
 
         for (const [flag, action] of FLAG_ACTIONS) {
-            if (input.inputData.has(flag)) await this.actions.handleAction(action, NOWHERE, 0, server, session);
+            if (input.inputData.has(flag)) {
+                apply((step) => this.actions.handleAction(action, NOWHERE, 0, within(step)));
+            }
         }
 
         if (
             input.blockActions !== null &&
-            this.flagged(input, PlayerAuthInputData.PERFORM_BLOCK_ACTIONS, 'Player Block Actions', server, session)
+            this.flagged(input, PlayerAuthInputData.PERFORM_BLOCK_ACTIONS, 'Player Block Actions', context)
         ) {
             for (const { action, position, face } of input.blockActions) {
-                await this.actions.handleAction(action, position, face, server, session);
+                apply((step) => this.actions.handleAction(action, position, face, within(step)));
             }
         }
 
         if (
             input.itemUseTransaction !== null &&
-            this.flagged(input, PlayerAuthInputData.PERFORM_ITEM_INTERACTION, 'Item Use Transaction', server, session)
+            this.flagged(input, PlayerAuthInputData.PERFORM_ITEM_INTERACTION, 'Item Use Transaction', context)
         ) {
             const transaction = new InventoryTransactionPacket(
                 inventoryTransactionToProtocol(
@@ -197,19 +208,17 @@ export default class PlayerAuthInputHandler implements PacketHandler<PlayerAuthI
                     session.getConnection().codec.context
                 )
             );
-            await this.transactions.handle(transaction, server, session, {
-                pitch: input.interactRotation.x,
-                yaw: input.interactRotation.y
-            });
+            const rotation = { pitch: input.interactRotation.x, yaw: input.interactRotation.y };
+            apply((step) => this.transactions.handle(transaction, within(step), rotation));
         }
 
         if (
             input.itemStackRequest !== null &&
-            this.flagged(input, PlayerAuthInputData.PERFORM_ITEM_STACK_REQUEST, 'Item Stack Request', server, session)
+            this.flagged(input, PlayerAuthInputData.PERFORM_ITEM_STACK_REQUEST, 'Item Stack Request', context)
         ) {
             const request = new ItemStackRequestPacket();
             request.requests = [input.itemStackRequest];
-            await this.requests.handle(request, server, session);
+            apply((step) => this.requests.handle(request, within(step)));
         }
     }
 
@@ -221,17 +230,14 @@ export default class PlayerAuthInputHandler implements PacketHandler<PlayerAuthI
         input: ReturnType<typeof playerAuthInputFromProtocol>,
         flag: PlayerAuthInputData,
         section: string,
-        server: Server,
-        session: PlayerSession
+        { session, log }: Pick<InputContext, 'session' | 'log'>
     ): boolean {
         if (input.inputData.has(flag)) return true;
 
-        server
-            .getLogger()
-            .debug(
-                `Ignored the ${section} of an input from ${session.identity.name}: the ${PlayerAuthInputData[flag]} flag is not set`,
-                'PlayerAuthInputHandler/handle'
-            );
+        log.debug(
+            `Ignored the ${section} of an input from ${session.identity.name}: the ${PlayerAuthInputData[flag]} flag is not set`,
+            'PlayerAuthInputHandler/handle'
+        );
         return false;
     }
 }

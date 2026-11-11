@@ -25,7 +25,8 @@ export interface InTickChunkLoad {
 export const IN_TICK_CHUNK_LOADS: readonly InTickChunkLoad[] = [
     {
         // A death files the search and the next input step awaits its answer
-        // (`world/RespawnRequests.ts`), and the `Respawn` handler still searches as it runs.
+        // (`world/RespawnRequests.ts`), and the `Respawn` handler and the respawn action hand
+        // their searches to the input step with `step.defer`.
         path: 'player respawn search, awaited by the input step that answers a death',
         file: 'world/RespawnSearch.ts',
         call: 'isObstructed: async (x, y, z) => (await world.getBlock(x, y, z)).isSolid()',
@@ -48,11 +49,5 @@ export const IN_TICK_CHUNK_LOADS: readonly InTickChunkLoad[] = [
         file: 'world/World.ts',
         call: '?? (await this.getChunkAt(x, z))',
         slice: 9
-    },
-    {
-        path: 'input-lane handlers that read a block, such as `PlayerAction`',
-        file: 'network/handler/PlayerActionHandler.ts',
-        call: 'await world.getBlock(',
-        slice: 6
     }
 ];

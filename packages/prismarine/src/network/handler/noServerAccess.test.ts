@@ -18,19 +18,7 @@ const src = resolve(here, '../..');
  * listed reaches `Server`, and when a listed one no longer does, so a package deletes its lines
  * as it converts its files and the list only shrinks.
  */
-const STILL_REACH_SERVER: ReadonlyMap<string, readonly string[]> = new Map([
-    [
-        'D2d movement, actions and inventory',
-        [
-            'InventoryTransactionHandler.ts',
-            'ItemStackRequestHandler.ts',
-            'MovePlayerHandler.ts',
-            'PlayerActionHandler.ts',
-            'PlayerAuthInputHandler.ts'
-        ]
-    ],
-    ['D2 close', ['PacketHandler.ts']]
-]);
+const STILL_REACH_SERVER: ReadonlyMap<string, readonly string[]> = new Map([['D2 close', ['PacketHandler.ts']]]);
 
 const isImport = (node: Node): node is ImportDeclaration => node.kind === SyntaxKind.ImportDeclaration;
 

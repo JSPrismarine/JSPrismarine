@@ -8,7 +8,6 @@ import type { Ingredient as JavaIngredient } from '@jsprismarine/recipes';
 import { WindowTypes } from '@jsprismarine/minecraft';
 
 import type { PlayerSession } from '../../';
-import type Server from '../../Server';
 import { advancementItemCrafted } from '../../advancement/triggers';
 import CraftingInput from '../../crafting/CraftingInput';
 import ContainerEntry from '../../inventory/ContainerEntry';
@@ -33,7 +32,8 @@ import ItemStackResponsePacket, {
 import type { ItemStackRequest, ItemStackRequestSlotInfo } from '@jsprismarine/protocol';
 import { ContainerUiId, ItemStackRequestActionType } from '@jsprismarine/protocol';
 import type { OpenBlockContainer } from '../PlayerSession';
-import type PacketHandler from './PacketHandler';
+import type { HandlerLog, HandlerServices, InputContext } from './HandlerContext';
+import type { InputLaneHandler } from './SessionHandler';
 import { selectTrade } from './tradeScreen';
 import {
     refreshEnchantOptions,
@@ -63,6 +63,12 @@ const PLAYER_CONTAINERS = new Set<number>([
     ContainerUiId.INVENTORY
 ]);
 
+/** What a request reads of the server: the content, the creative menu and the log. */
+interface RequestServices {
+    readonly services: Pick<HandlerServices, 'content' | 'creativeInventory'>;
+    readonly log: HandlerLog;
+}
+
 /**
  * The item a creative pick names.
  *
@@ -76,9 +82,9 @@ const PLAYER_CONTAINERS = new Set<number>([
  * @param netId - The one-based creative net id the client sent back.
  * @returns The item, or null when the id names no entry.
  */
-const creativePick = (server: Server, itemData: ProtocolItemData, netId: number): Item | null => {
-    const payloads = joinContentPayloads(server.getContent(), server.getLogger(), { itemData });
-    if (payloads === undefined) return server.getCreativeInventory().get(netId);
+const creativePick = ({ services, log }: RequestServices, itemData: ProtocolItemData, netId: number): Item | null => {
+    const payloads = joinContentPayloads(services.content, log, { itemData });
+    if (payloads === undefined) return services.creativeInventory.get(netId);
 
     const picked = payloads.creativeItems[netId - 1];
     if (picked === undefined) return null;
@@ -301,7 +307,11 @@ const javaStackOf = (item: Item): RecipeItemStack | undefined => {
 };
 
 /** Builds the server stack from the exact result advertised in CraftingDataPacket. */
-const bedrockRecipeResult = (javaId: string, result: ItemStackData, server: Server): Item | undefined => {
+const bedrockRecipeResult = (
+    javaId: string,
+    result: ItemStackData,
+    content: HandlerServices['content']
+): Item | undefined => {
     const mapped = javaItemToBedrock(javaId);
     if (mapped.kind === 'unknown') return undefined;
 
@@ -312,12 +322,13 @@ const bedrockRecipeResult = (javaId: string, result: ItemStackData, server: Serv
         meta: result.meta,
         count: result.count,
         blockRuntimeId: result.blockRuntimeId,
-        content: server.getContent()
+        content
     });
 };
 
-export default class ItemStackRequestHandler implements PacketHandler<ItemStackRequestPacket> {
+export default class ItemStackRequestHandler implements InputLaneHandler<ItemStackRequestPacket> {
     public static PacketName = 'ItemStackRequestPacket';
+    public readonly takes = 'context';
     public readonly phases = ['play'] as const;
     public readonly lane = 'input';
 
@@ -329,23 +340,23 @@ export default class ItemStackRequestHandler implements PacketHandler<ItemStackR
      * refusing to go anywhere - and an answer of `ERROR` is a clean refusal, the client
      * putting back what it had rather than drifting out of step. A step that throws is
      * answered the same way, once the request has been rolled back.
+     *
+     * Every write happens in the handler's unit: the slots, the trades and the stacks it drops.
+     * What is left is telling people, which goes to `step.output` as one ordered run of sends.
      */
-    public async handle(packet: ItemStackRequestPacket, server: Server, session: PlayerSession): Promise<void> {
+    public handle(packet: ItemStackRequestPacket, context: InputContext): undefined {
+        const { session, log, services, step } = context;
         const player = session.getPlayer();
         const inventory = player.getInventory();
 
         // What the client actually asked for, by name: what a client sends for a given gesture
         // is not written down anywhere, and the log is where it shows.
         for (const request of packet.requests) {
-            server
-                .getLogger()
-                .debug(
-                    `Item stack request ${request.requestId}: ` +
-                        request.actions
-                            .map((action) => ItemStackRequestActionType[action.type] ?? action.type)
-                            .join(', '),
-                    'ItemStackRequestHandler/handle'
-                );
+            log.debug(
+                `Item stack request ${request.requestId}: ` +
+                    request.actions.map((action) => ItemStackRequestActionType[action.type] ?? action.type).join(', '),
+                'ItemStackRequestHandler/handle'
+            );
         }
 
         const craftingInput = player.getCraftingInput();
@@ -362,7 +373,7 @@ export default class ItemStackRequestHandler implements PacketHandler<ItemStackR
 
         const response = new ItemStackResponsePacket();
         response.responses = packet.requests.map((request) =>
-            this.apply(request, server, session, inventory, craftingInput, itemDataForProtocol(packet.codecProtocol), {
+            this.apply(request, context, session, inventory, craftingInput, itemDataForProtocol(packet.codecProtocol), {
                 session,
                 changed: workstationChanged,
                 containerChanged,
@@ -371,24 +382,34 @@ export default class ItemStackRequestHandler implements PacketHandler<ItemStackR
             })
         );
 
-        await session.send(response);
-        for (const work of after) await work();
+        // The stacks enter the world before the drop first waits, so they are in this unit. They
+        // went in after the answer was sent, and nothing the answer or the sends below read
+        // changes with them.
+        if (drops.length > 0) step.output(session.getWorld().dropFromPlayer(player, drops));
 
-        if (drops.length > 0) await session.getWorld().dropFromPlayer(player, drops);
+        step.output(
+            (async () => {
+                await session.send(response);
+                for (const work of after) await work();
 
-        // Redrawn whenever the item in the table changed, which is what `showEnchantingTable`
-        // says it has to be called for: the three rows are a function of the stack.
-        const open = session.getOpenBlockContainer();
-        if (open !== undefined && open.screen === WindowTypes.ENCHANTMENT && workstationChanged.size > 0) {
-            await refreshEnchantOptions(session, open, server.getContent().enchantments, session.getWorld());
-        }
+                // Redrawn whenever the item in the table changed, which is what
+                // `showEnchantingTable` says it has to be called for: the three rows are a
+                // function of the stack. The bookshelf count it keeps on the window is read only
+                // by the next request, which the step starts after this.
+                const open = session.getOpenBlockContainer();
+                if (open !== undefined && open.screen === WindowTypes.ENCHANTMENT && workstationChanged.size > 0) {
+                    await refreshEnchantOptions(session, open, services.content.enchantments, session.getWorld());
+                }
 
-        // Everyone else standing at the same chest. Their client holds its own copy of the
-        // slots and nothing in the exchange above goes anywhere near them, so without this two
-        // players sharing a chest each see only their own half of what is in it.
-        if (open !== undefined && containerChanged.size > 0) {
-            await this.tellOtherViewers(session, open, containerChanged);
-        }
+                // Everyone else standing at the same chest. Their client holds its own copy of
+                // the slots and nothing in the exchange above goes anywhere near them, so
+                // without this two players sharing a chest each see only their own half of what
+                // is in it.
+                if (open !== undefined && containerChanged.size > 0) {
+                    await this.tellOtherViewers(session, open, containerChanged);
+                }
+            })()
+        );
     }
 
     /**
@@ -454,7 +475,7 @@ export default class ItemStackRequestHandler implements PacketHandler<ItemStackR
      */
     private apply(
         request: ItemStackRequest,
-        server: Server,
+        { services, log }: RequestServices,
         player: RequestingPlayer,
         inventory: HumanInventory,
         craftingInput: CraftingInput,
@@ -509,9 +530,7 @@ export default class ItemStackRequestHandler implements PacketHandler<ItemStackR
          * difference shows.
          */
         const deny = (reason: string): ItemStackResponse => {
-            server
-                .getLogger()
-                .debug(`Refused item stack request ${request.requestId}: ${reason}`, 'ItemStackRequestHandler/apply');
+            log.debug(`Refused item stack request ${request.requestId}: ${reason}`, 'ItemStackRequestHandler/apply');
 
             this.restore(before, inventory, craftingInput, open);
             // Thrown away rather than written: the block's slots are only ever read from the
@@ -566,7 +585,7 @@ export default class ItemStackRequestHandler implements PacketHandler<ItemStackR
                 meta: item.meta,
                 count,
                 blockRuntimeId: item.getBlockRuntimeId(),
-                content: server.getContent(),
+                content: services.content,
                 enchantments: item.getEnchantments(),
                 customName: item.getCustomName(),
                 lore: item.getLore(),
@@ -600,7 +619,7 @@ export default class ItemStackRequestHandler implements PacketHandler<ItemStackR
 
                 switch (action.type) {
                     case ItemStackRequestActionType.CREATIVE_CREATE: {
-                        const picked = creativePick(server, itemData, action.creativeItemNetId!);
+                        const picked = creativePick({ services, log }, itemData, action.creativeItemNetId!);
                         if (!picked) return deny(`no creative entry ${action.creativeItemNetId}`);
 
                         // A full stack, of which the steps that follow take what they name.
@@ -736,7 +755,7 @@ export default class ItemStackRequestHandler implements PacketHandler<ItemStackR
                                 player,
                                 open,
                                 action.recipeNetId ?? 0,
-                                server.getContent().enchantments
+                                services.content.enchantments
                             );
                             if (enchanted === undefined) return deny('the enchanting table refused the row');
 
@@ -758,7 +777,7 @@ export default class ItemStackRequestHandler implements PacketHandler<ItemStackR
                                 context.session.getPlayer(),
                                 open,
                                 action.recipeNetId ?? 0,
-                                server.getContent()
+                                services.content
                             );
                             if (trade === undefined) return deny('the villager refused the offer');
 
@@ -796,7 +815,7 @@ export default class ItemStackRequestHandler implements PacketHandler<ItemStackR
                         const crafts = action.repetitions ?? 1;
                         if (!Number.isSafeInteger(crafts) || crafts < 1) return deny(`invalid craft count ${crafts}`);
 
-                        const payloads = joinContentPayloads(server.getContent(), server.getLogger(), {
+                        const payloads = joinContentPayloads(services.content, log, {
                             itemData
                         });
                         let recipeId: string;
@@ -815,7 +834,7 @@ export default class ItemStackRequestHandler implements PacketHandler<ItemStackR
                         ].find((candidate) => candidate.netId === recipeNetId);
                         if (advertised === undefined) return deny(`no advertised recipe with net id ${recipeNetId}`);
 
-                        const content = server.getContent();
+                        const { content } = services;
                         const recipe = content.recipes.get(advertised.id);
                         if (recipe === undefined || content.recipes.netIds.get(advertised.id) !== recipeNetId) {
                             return deny(`no Java recipe for advertised net id ${recipeNetId}`);
@@ -832,7 +851,7 @@ export default class ItemStackRequestHandler implements PacketHandler<ItemStackR
                             const result = recipeResult(recipe);
                             if (result?.id === undefined)
                                 return deny(`the automatic recipe ${recipe.id} has no static result item`);
-                            const recipeOutput = bedrockRecipeResult(result.id, advertisedOutput, server);
+                            const recipeOutput = bedrockRecipeResult(result.id, advertisedOutput, services.content);
                             if (recipeOutput === undefined)
                                 return deny(`the result of ${recipe.id} has no Bedrock item mapping`);
 
@@ -907,7 +926,11 @@ export default class ItemStackRequestHandler implements PacketHandler<ItemStackR
                                 'outputs' in advertised ? advertised.outputs[0] : advertised.output;
                             if (advertisedOutput === undefined)
                                 return deny(`the advertised recipe ${recipe.id} has no output`);
-                            const recipeOutput = bedrockRecipeResult(matched.result.id, advertisedOutput, server);
+                            const recipeOutput = bedrockRecipeResult(
+                                matched.result.id,
+                                advertisedOutput,
+                                services.content
+                            );
                             if (recipeOutput === undefined)
                                 return deny(`the result of ${recipe.id} has no Bedrock item mapping`);
 
@@ -1013,7 +1036,7 @@ export default class ItemStackRequestHandler implements PacketHandler<ItemStackR
                         const result = takeAnvilResult(
                             player,
                             open,
-                            server.getContent().enchantments,
+                            services.content.enchantments,
                             typed === '' ? undefined : typed
                         );
                         if (result === undefined) return deny('the anvil refused the combination');

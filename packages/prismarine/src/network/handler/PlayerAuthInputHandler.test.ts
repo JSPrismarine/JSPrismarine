@@ -14,14 +14,12 @@ import PlayerAuthInputPacket from '@jsprismarine/protocol/packet/PlayerAuthInput
 import { Attributes } from '@jsprismarine/protocol/wire/structures/Attribute';
 import { describe, expect, it, vi } from 'vitest';
 
-import type Server from '../../Server';
-import type { Block } from '../../block/Block';
-import type { Config } from '../../config/Config';
 import type { EntityRuntime } from '../../entity/data/EntityRuntime';
 import type { LiveEntityRuntime } from '../../entity/data/live';
 import { PlayerComponents } from '../../entity/playerComponents';
 import type HumanInventory from '../../inventory/HumanInventory';
 import { Item } from '../../item/Item';
+import { inputContext } from '../../testing/handlerContext.test.helper';
 import { identityNamed } from '../../testing/sessionIdentity.test.helper';
 import { stubPlayerPort } from '../../testing/playerPort.test.helper';
 import { stub } from '../../testing/stub.test.helper';
@@ -29,6 +27,7 @@ import type { ShownPlayer } from '../../world/ShownPlayer';
 import BlockPosition from '../../world/BlockPosition';
 import { Position } from '../../world/Position';
 import type { World } from '../../world/World';
+import type Chunk from '../../world/chunk/Chunk';
 import type PlayerSession from '../PlayerSession';
 import type { Arrival } from '../PlayerSession';
 import Codec2193 from '../codec/Codec2193';
@@ -52,7 +51,10 @@ const fake = ({ serverAuthoritativeBreaking = false, changingDimension = false, 
         broadcastMove: vi.fn(async () => {}),
         hitBlock: async (position, face) =>
             void calls.push(`hit ${position.getX()},${position.getY()},${position.getZ()} face ${face}`),
-        getBlock: async () => stub<Block>({ getBreakTime: () => 0 }),
+        // Every chunk is loaded, and every block in it is stone.
+        getLoadedChunk: () => stub<Chunk>({}),
+        loadedBlockAt: () => ({ name: 'minecraft:stone', states: {} }),
+        sendWorldEvent: async () => {},
         startBlockCracking: async (position, face) => {
             calls.push(`crack ${position.getX()},${position.getY()},${position.getZ()} face ${face}`);
             return null;
@@ -108,23 +110,31 @@ const fake = ({ serverAuthoritativeBreaking = false, changingDimension = false, 
         pendingCreditsArrival: () => undefined,
         holdsMovementForTeleport: (_position, handledTeleport) => awaitingTeleport && !handledTeleport
     });
-    const server = stub<Server>({
-        post: () => 0,
-        getConfig: () => stub<Config>({ getServerAuthoritativeBlockBreaking: () => serverAuthoritativeBreaking }),
-        getLogger: () =>
-            stub<Logger>({ verbose: () => {}, debug: (...message) => void logged.push(String(message[0] ?? '')) })
-    });
 
     return {
         calls,
         logged,
         player,
         session,
-        server,
+        log: stub<Logger>({ verbose: () => {}, debug: (...message) => void logged.push(String(message[0] ?? '')) }),
+        config: { getServerAuthoritativeBlockBreaking: () => serverAuthoritativeBreaking },
+        services: { events: { post: () => 0, emit: async () => {} } },
         leave: () => {
             joined = false;
         }
     };
+};
+
+type Scene = ReturnType<typeof fake>;
+
+/** The context of one input from the scene's player, with what it defers and sends kept. */
+const contextOf = ({ session, log, config, services }: Scene) => inputContext(session, { log, config, services });
+
+/** Applies one input as the input step does: the handler, then what it deferred and sent. */
+const handle = async (scene: Scene, packet: PlayerAuthInputPacket): Promise<void> => {
+    const { context, settled } = contextOf(scene);
+    new PlayerAuthInputHandler().handle(packet, context);
+    await settled();
 };
 
 const input = (configure: (input: ServerPlayerAuthInput) => void = () => {}): PlayerAuthInputPacket => {
@@ -187,9 +197,10 @@ const blockPlacement = (): ServerAuthInputItemUse => ({
 
 describe('PlayerAuthInputHandler', () => {
     it('moves the player to where the input says they are', async () => {
-        const { calls, session, server } = fake();
+        const scene = fake();
+        const { calls, session } = scene;
 
-        await new PlayerAuthInputHandler().handle(input(), server, session);
+        await handle(scene, input());
 
         expect(calls[0]).toBe('move 3,70,-4');
         expect(session.setPlayerPosition).toHaveBeenCalledWith(
@@ -199,54 +210,101 @@ describe('PlayerAuthInputHandler', () => {
     });
 
     it('passes the interaction rotation to the embedded item use without changing movement rotation', async () => {
-        const { session, server } = fake();
-        const handleTransaction = vi.spyOn(InventoryTransactionHandler.prototype, 'handle').mockResolvedValue();
+        const scene = fake();
+        const { session } = scene;
+        const handleTransaction = vi.spyOn(InventoryTransactionHandler.prototype, 'handle').mockReturnValue(undefined);
 
         try {
-            await new PlayerAuthInputHandler().handle(
+            await handle(
+                scene,
                 input((packet) => {
                     packet.inputData.add(PlayerAuthInputData.PERFORM_ITEM_INTERACTION);
                     packet.interactRotation = { x: -25, y: 135 };
                     packet.itemUseTransaction = blockPlacement();
-                }),
-                server,
-                session
+                })
             );
 
             expect(session.setPlayerPosition).toHaveBeenCalledWith(
                 { position: new Vector3(3, 70, -4), pitch: 5, yaw: 90, headYaw: 85 },
                 false
             );
-            expect(handleTransaction.mock.calls[0]?.[3]).toEqual({ pitch: -25, yaw: 135 });
+            expect(handleTransaction.mock.calls[0]?.[2]).toEqual({ pitch: -25, yaw: 135 });
         } finally {
             handleTransaction.mockRestore();
         }
     });
 
-    it('takes a vertical collision as standing on the ground', async () => {
-        const { calls, session, server } = fake();
+    it('applies a movement and a jump in its own unit, deferring nothing', () => {
+        const scene = fake();
+        const { context, deferred } = contextOf(scene);
 
-        await new PlayerAuthInputHandler().handle(
-            input((packet) => packet.inputData.add(PlayerAuthInputData.VERTICAL_COLLISION)),
-            server,
-            session
+        new PlayerAuthInputHandler().handle(
+            input((packet) => packet.inputData.add(PlayerAuthInputData.START_JUMPING)),
+            context
         );
-        await new PlayerAuthInputHandler().handle(input(), server, session);
+
+        expect(scene.calls).toEqual(['move 3,70,-4', 'jump']);
+        expect(deferred).toHaveLength(0);
+    });
+
+    it('keeps an item use behind the break before it, though the break is deferred', async () => {
+        // A client that breaks a block and places one in the same tick reports both in one
+        // input. Applied at once, the placement would land before the break it came after.
+        const scene = fake({ serverAuthoritativeBreaking: true });
+        const use = vi.spyOn(InventoryTransactionHandler.prototype, 'handle').mockImplementation(() => {
+            scene.calls.push('use');
+            return undefined;
+        });
+
+        try {
+            const { context, deferred, settled } = contextOf(scene);
+            new PlayerAuthInputHandler().handle(
+                input((packet) => {
+                    packet.inputData.add(PlayerAuthInputData.PERFORM_BLOCK_ACTIONS);
+                    packet.blockActions = [
+                        { action: PlayerActionType.PredictDestroyBlock, position: new BlockPosition(1, 63, 2), face: 1 }
+                    ];
+                    packet.inputData.add(PlayerAuthInputData.PERFORM_ITEM_INTERACTION);
+                    packet.itemUseTransaction = blockPlacement();
+                }),
+                context
+            );
+
+            expect(scene.calls).toEqual(['move 3,70,-4']);
+            // The break, then the use waiting behind it.
+            expect(deferred).toHaveLength(2);
+
+            await settled();
+            expect(scene.calls).toEqual(['move 3,70,-4', 'break 1,63,2', 'use']);
+        } finally {
+            use.mockRestore();
+        }
+    });
+
+    it('takes a vertical collision as standing on the ground', async () => {
+        const scene = fake();
+        const { calls } = scene;
+
+        await handle(
+            scene,
+            input((packet) => packet.inputData.add(PlayerAuthInputData.VERTICAL_COLLISION))
+        );
+        await handle(scene, input());
 
         expect(calls.filter((call) => call.startsWith('ground'))).toEqual(['ground true', 'ground false']);
     });
 
     it('treats the flags that used to be actions as those actions', async () => {
-        const { calls, session, server } = fake();
+        const scene = fake();
+        const { calls } = scene;
 
-        await new PlayerAuthInputHandler().handle(
+        await handle(
+            scene,
             input((packet) => {
                 packet.inputData.add(PlayerAuthInputData.START_JUMPING);
                 packet.inputData.add(PlayerAuthInputData.START_SPRINTING);
                 packet.inputData.add(PlayerAuthInputData.STOP_SNEAKING);
-            }),
-            server,
-            session
+            })
         );
 
         expect(calls).toContain('jump');
@@ -255,9 +313,10 @@ describe('PlayerAuthInputHandler', () => {
     });
 
     it('hands each block action to the action handler, block and face intact', async () => {
-        const { calls, session, server } = fake();
+        const scene = fake();
+        const { calls } = scene;
 
-        await new PlayerAuthInputHandler().handle(input(breaking), server, session);
+        await handle(scene, input(breaking));
 
         // With the client timing breaks, the start swings once and a crack swings again: two
         // hits, both on the block named.
@@ -265,9 +324,11 @@ describe('PlayerAuthInputHandler', () => {
     });
 
     it('cracks, swings and breaks in order when the server times breaks', async () => {
-        const { calls, session, server } = fake({ serverAuthoritativeBreaking: true });
+        const scene = fake({ serverAuthoritativeBreaking: true });
+        const { calls } = scene;
 
-        await new PlayerAuthInputHandler().handle(
+        await handle(
+            scene,
             input((packet) => {
                 breaking(packet);
                 packet.blockActions?.push({
@@ -275,9 +336,7 @@ describe('PlayerAuthInputHandler', () => {
                     position: new BlockPosition(1, 63, 2),
                     face: 1
                 });
-            }),
-            server,
-            session
+            })
         );
 
         // The start starts the cracks, a crack swings, and the predicted destroy breaks the
@@ -290,15 +349,15 @@ describe('PlayerAuthInputHandler', () => {
     });
 
     it('ignores block actions sent without the PerformBlockActions flag, and still moves', async () => {
-        const { calls, logged, session, server } = fake();
+        const scene = fake();
+        const { calls, logged } = scene;
 
-        await new PlayerAuthInputHandler().handle(
+        await handle(
+            scene,
             input((packet) => {
                 breaking(packet);
                 packet.inputData.delete(PlayerAuthInputData.PERFORM_BLOCK_ACTIONS);
-            }),
-            server,
-            session
+            })
         );
 
         expect(calls.filter((call) => call.startsWith('hit'))).toEqual([]);
@@ -309,9 +368,11 @@ describe('PlayerAuthInputHandler', () => {
     });
 
     it('ignores an item use sent without the PerformItemInteraction flag', async () => {
-        const { calls, logged, session, server } = fake();
+        const scene = fake();
+        const { calls, logged } = scene;
 
-        await new PlayerAuthInputHandler().handle(
+        await handle(
+            scene,
             input((packet) => {
                 packet.itemUseTransaction = {
                     legacyRequestId: 0,
@@ -333,9 +394,7 @@ describe('PlayerAuthInputHandler', () => {
                         clientCooldownState: 0
                     }
                 };
-            }),
-            server,
-            session
+            })
         );
 
         expect(calls[0]).toBe('move 3,70,-4');
@@ -347,29 +406,29 @@ describe('PlayerAuthInputHandler', () => {
     it('ignores where an input says the player is until the client has handled a teleport', async () => {
         // A client goes on sending its old position until it applies the teleport. Taking it
         // would move the player back on the server while the client stands at the target.
-        const { session, server } = fake({ awaitingTeleport: true });
+        const scene = fake({ awaitingTeleport: true });
+        const { session } = scene;
 
-        await new PlayerAuthInputHandler().handle(input(), server, session);
+        await handle(scene, input());
         expect(session.setPlayerPosition).not.toHaveBeenCalled();
 
-        await new PlayerAuthInputHandler().handle(
-            input((packet) => packet.inputData.add(PlayerAuthInputData.HANDLED_TELEPORT)),
-            server,
-            session
+        await handle(
+            scene,
+            input((packet) => packet.inputData.add(PlayerAuthInputData.HANDLED_TELEPORT))
         );
         expect(session.setPlayerPosition).toHaveBeenCalledOnce();
     });
 
     it('drops the whole input while a dimension change is pending, after recording its tick', async () => {
-        const { calls, session, server } = fake({ changingDimension: true });
+        const scene = fake({ changingDimension: true });
+        const { calls, session } = scene;
 
-        await new PlayerAuthInputHandler().handle(
+        await handle(
+            scene,
             input((packet) => {
                 packet.tick = 12n;
                 breaking(packet);
-            }),
-            server,
-            session
+            })
         );
 
         expect(session.recordInputTick).toHaveBeenCalledWith(12n);
@@ -378,54 +437,55 @@ describe('PlayerAuthInputHandler', () => {
     });
 
     it('does nothing for a player who has not finished joining', async () => {
-        const { calls, session, server, leave } = fake();
+        const scene = fake();
+        const { calls, leave } = scene;
         leave();
 
-        await new PlayerAuthInputHandler().handle(input(), server, session);
+        await handle(scene, input());
 
         expect(calls).toEqual([]);
     });
 
     it('records the input tick before anything else, so later packets can echo it', async () => {
-        const { session, server } = fake();
+        const scene = fake();
+        const { session } = scene;
 
-        await new PlayerAuthInputHandler().handle(
+        await handle(
+            scene,
             input((packet) => {
                 packet.tick = 4242n;
-            }),
-            server,
-            session
+            })
         );
 
         expect(session.recordInputTick).toHaveBeenCalledWith(4242n);
     });
 
     it('records the tick of an input from a player who has not finished joining', async () => {
-        const { session, server, leave } = fake();
+        const scene = fake();
+        const { leave, session } = scene;
         leave();
 
-        await new PlayerAuthInputHandler().handle(
+        await handle(
+            scene,
             input((packet) => {
                 packet.tick = 7n;
-            }),
-            server,
-            session
+            })
         );
 
         expect(session.recordInputTick).toHaveBeenCalledWith(7n);
     });
 
     it('accepts every mode the docs define, including the ones the 1.26.51 page left out', async () => {
-        const { calls, session, server } = fake();
+        const scene = fake();
+        const { calls } = scene;
 
-        await new PlayerAuthInputHandler().handle(
+        await handle(
+            scene,
             input((packet) => {
                 packet.inputMode = InputMode.MotionController_Deprecated;
                 packet.playMode = ClientPlayMode.ExitLevel;
                 packet.interactionModel = NewInteractionModel.Touch;
-            }),
-            server,
-            session
+            })
         );
 
         expect(calls[0]).toBe('move 3,70,-4');
@@ -433,9 +493,10 @@ describe('PlayerAuthInputHandler', () => {
 
     describe('drops, without throwing, an input that', () => {
         const dropped = async (configure: (input: ServerPlayerAuthInput) => void, reason: string) => {
-            const { calls, logged, session, server } = fake();
+            const scene = fake();
+            const { calls, logged, session } = scene;
 
-            await new PlayerAuthInputHandler().handle(input(configure), server, session);
+            await handle(scene, input(configure));
 
             expect(calls).toEqual([]);
             expect(session.recordInputTick).not.toHaveBeenCalled();

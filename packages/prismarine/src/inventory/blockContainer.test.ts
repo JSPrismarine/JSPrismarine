@@ -43,6 +43,7 @@ import type ContainerSetDataPacket from '@jsprismarine/protocol/packet/Container
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import { FURNACE_DATA_BURN_DURATION, FURNACE_DATA_BURN_REMAINING, FURNACE_DATA_COOK_TICKS } from '../world/cooking';
 import ItemStackRequestHandler from '../network/handler/ItemStackRequestHandler';
+import { HandlerContexts } from '../network/handlerContexts';
 import ItemStackRequestPacket from '@jsprismarine/protocol/packet/ItemStackRequestPacket';
 import type { ItemStackRequest } from '@jsprismarine/protocol';
 import { ItemStackRequestActionType } from '@jsprismarine/protocol';
@@ -333,9 +334,9 @@ const move = (
 
 /** Runs requests through the real handler and answers with the result of the first one. */
 const apply = async (server: Server, player: PlayerSession, requests: ItemStackRequest[]) => {
-    await new ItemStackRequestHandler().handle(
+    await HandlerContexts.of(server).run(
+        new ItemStackRequestHandler(),
         Object.assign(new ItemStackRequestPacket(), { requests }),
-        server,
         player
     );
 };

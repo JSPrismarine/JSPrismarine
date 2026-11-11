@@ -32,6 +32,7 @@ import type { ShownActor } from '../world/ShownActor';
 import { EYE_HEIGHT } from '../entity/playerEyes';
 import { fakePlayer } from '../testing/fakePlayer.test.helper';
 import { inputContext } from '../testing/handlerContext.test.helper';
+import { serverInputContext } from '../testing/serverInputContext.test.helper';
 import { stub } from '../testing/stub.test.helper';
 import { Dimensions, dimensionTypeOf, FIRST_CUSTOM_DIMENSION_ID } from '../world/DimensionType';
 import type { DimensionType } from '../world/DimensionType';
@@ -44,6 +45,7 @@ import PlayerAuthInputHandler from './handler/PlayerAuthInputHandler';
 import ServerboundLoadingScreenHandler from './handler/ServerboundLoadingScreenHandler';
 import { playerAuthInputToProtocol } from './PlayerAuthInputAdapter';
 import type { Arrival } from './PlayerSession';
+import type PlayerSession from './PlayerSession';
 
 /** A destination world of one dimension, whose chunks are empty and carry that dimension. */
 const worldOf = (dimension: DimensionType, roster: string[] = [], level?: Level) =>
@@ -69,6 +71,18 @@ const arrivalIn = (world: World, extra: Partial<Arrival> = {}): Arrival => ({
     pitch: 10,
     ...extra
 });
+
+/** Applies one client input as the input step does: the handler, then what it deferred and sent. */
+const applyInput = async (
+    handler: PlayerAuthInputHandler,
+    packet: PlayerAuthInputPacket,
+    server: Parameters<typeof serverInputContext>[0],
+    session: PlayerSession
+): Promise<void> => {
+    const { context, settled } = serverInputContext(server, session);
+    handler.handle(packet, context);
+    await settled();
+};
 
 const indexOf = (sent: unknown[], matches: (packet: unknown) => boolean) => sent.findIndex(matches);
 
@@ -391,7 +405,7 @@ describe('PlayerSession.changeWorld', () => {
         sent.length = 0;
 
         // The client is still reporting from the old world's coordinates.
-        await inputs.handle(inputAt(new Vector3(3, 70, -4)), server, session);
+        await applyInput(inputs, inputAt(new Vector3(3, 70, -4)), server, session);
         expect(player.getPosition().getX()).toBe(100.5);
 
         await reportScreen(screens, screenClosed(id + 7), { session, server });
@@ -405,12 +419,13 @@ describe('PlayerSession.changeWorld', () => {
         // The change ends with a teleport to the arrival, and the client's first input from
         // there says it handled it. From then on its positions count again.
         const arrival = player.getPosition();
-        await inputs.handle(
+        await applyInput(
+            inputs,
             inputAt(new Vector3(arrival.getX(), arrival.getY(), arrival.getZ()), true),
             server,
             session
         );
-        await inputs.handle(inputAt(new Vector3(3, 70, -4)), server, session);
+        await applyInput(inputs, inputAt(new Vector3(3, 70, -4)), server, session);
         expect(player.getPosition().getX()).toBe(3);
     });
 
@@ -478,7 +493,7 @@ describe('PlayerSession.changeWorld', () => {
         const inputs = new PlayerAuthInputHandler();
         await session.startCredits(arrivalIn(worldOf(Dimensions.Nether)));
 
-        await inputs.handle(inputAt(new Vector3(3, 70, -4)), server, session);
+        await applyInput(inputs, inputAt(new Vector3(3, 70, -4)), server, session);
 
         expect(player.getPosition().getX()).toBe(0);
     });

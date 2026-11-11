@@ -1,10 +1,9 @@
 import { Vector3 } from '@jsprismarine/math';
 import { PositionMode } from '@jsprismarine/protocol';
-import type { PlayerSession } from '../../';
-import type Server from '../../Server';
 import PlayerMoveEvent from '../../events/player/PlayerMoveEvent';
 import type MovePlayerPacket from '@jsprismarine/protocol/packet/MovePlayerPacket';
-import type PacketHandler from './PacketHandler';
+import type { HandlerServices, InputContext } from './HandlerContext';
+import type { InputLaneHandler } from './SessionHandler';
 
 /** Where a client says its player is, and which way it is facing. */
 export interface ClientMovement {
@@ -28,6 +27,11 @@ export interface ClientMovement {
  */
 const CLIENT_MODES: ReadonlySet<PositionMode> = new Set([PositionMode.Normal, PositionMode.OnlyHeadRot]);
 
+/** What {@link applyClientMovement} reads of an input-lane handler's context. */
+export type MovementContext = Pick<InputContext, 'session' | 'log' | 'step'> & {
+    readonly services: Pick<HandlerServices, 'events'>;
+};
+
 /**
  * Applies a position the client reported, and shows the move to everyone who can see it.
  *
@@ -35,32 +39,32 @@ const CLIENT_MODES: ReadonlySet<PositionMode> = new Set([PositionMode.Normal, Po
  * still sends, and `PlayerAuthInputPacket`, which every real client sends since 1.21.80. The
  * server does not simulate movement, so the client's word is taken - through the move event,
  * which is the one place a plugin can say no.
+ *
+ * Synchronous: the move is written before the sessions' methods first wait, and what they wait
+ * for is a send or the world's move queue, which go to `step.output`.
  */
-export const applyClientMovement = async (
-    server: Server,
-    session: PlayerSession,
+export const applyClientMovement = (
+    { session, log, services, step }: MovementContext,
     movement: ClientMovement
-): Promise<void> => {
+): undefined => {
     // What the move is compared with: the store player's pose. The session moves it.
     const player = session.getPlayer();
 
     // A report from before a teleport the client has not handled yet would undo the teleport.
     if (session.holdsMovementForTeleport(movement.position, movement.handledTeleport ?? false)) {
-        server
-            .getLogger()
-            .debug(
-                `Dropped a position from ${session.identity.name} sent before its teleport`,
-                'MovePlayerHandler/applyClientMovement'
-            );
+        log.debug(
+            `Dropped a position from ${session.identity.name} sent before its teleport`,
+            'MovePlayerHandler/applyClientMovement'
+        );
         return;
     }
 
     // Keep the per-input plugin event cadence stable; unchanged poses only skip state and network work.
     const event = new PlayerMoveEvent(session, movement.position, movement.mode ?? PositionMode.Normal);
-    server.post(['playerMove', event]);
+    services.events.post(['playerMove', event]);
     if (event.isCanceled()) {
         // Since we're canceling the event, we should reset the player's position.
-        await session.sendMove(session.shown(), PositionMode.Respawn);
+        step.output(session.sendMove(session.shown(), PositionMode.Respawn));
         return;
     }
 
@@ -79,14 +83,18 @@ export const applyClientMovement = async (
     if (!positionChanged && !rotationChanged && !groundChanged) return;
 
     if (positionChanged || rotationChanged) {
-        await session.setPlayerPosition(
-            {
-                position: movement.position,
-                pitch: movement.pitch,
-                yaw: movement.yaw,
-                headYaw: movement.headYaw
-            },
-            false
+        // The store player moves before `setPlayerPosition` first waits, on the world's move
+        // queue, and it tells no client: the queue is the only wait.
+        step.output(
+            session.setPlayerPosition(
+                {
+                    position: movement.position,
+                    pitch: movement.pitch,
+                    yaw: movement.yaw,
+                    headYaw: movement.headYaw
+                },
+                false
+            )
         );
     }
 
@@ -95,7 +103,7 @@ export const applyClientMovement = async (
     if (groundChanged) {
         // Position queues a snapshot before landing logic updates the on-ground bit. Replacing
         // that entry gives observers the final pose and ground state in the one tick update.
-        await session.getWorld().broadcastMove(session.shown());
+        step.output(session.getWorld().broadcastMove(session.shown()));
     }
 };
 
@@ -111,24 +119,26 @@ export const applyClientMovement = async (
  *
  * What is accepted ends up in {@link applyClientMovement}, the same as a `PlayerAuthInputPacket`.
  */
-export default class MovePlayerHandler implements PacketHandler<MovePlayerPacket> {
+export default class MovePlayerHandler implements InputLaneHandler<MovePlayerPacket> {
     public static PacketName = 'MovePlayerPacket';
+    public readonly takes = 'context';
     public readonly phases = ['play'] as const;
     public readonly lane = 'input';
 
-    public async handle(packet: MovePlayerPacket, server: Server, session: PlayerSession): Promise<void> {
+    public handle(packet: MovePlayerPacket, context: InputContext): undefined {
+        const { session, log } = context;
         const data = packet.getPacketData();
 
         if (data === null) return;
 
         const { name } = session.identity;
         if (data.runtimeEntityId !== session.runtimeId) {
-            server.getLogger().debug(`${name} sent a MovePlayer for runtime id ${data.runtimeEntityId}, dropped`);
+            log.debug(`${name} sent a MovePlayer for runtime id ${data.runtimeEntityId}, dropped`);
             return;
         }
 
         if (!CLIENT_MODES.has(data.mode)) {
-            server.getLogger().debug(`${name} sent a MovePlayer in mode ${data.mode}, dropped`);
+            log.debug(`${name} sent a MovePlayer in mode ${data.mode}, dropped`);
             return;
         }
 
@@ -136,7 +146,7 @@ export default class MovePlayerHandler implements PacketHandler<MovePlayerPacket
         // Recorded before the move is applied, so a reset for this very move echoes it.
         session.recordInputTick(data.tick);
 
-        await applyClientMovement(server, session, {
+        applyClientMovement(context, {
             position: new Vector3(data.position.x, data.position.y, data.position.z),
             pitch: data.pitch,
             yaw: data.yaw,

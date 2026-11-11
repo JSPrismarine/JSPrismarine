@@ -61,6 +61,7 @@ import type PlayerSession from '../../network/PlayerSession';
 import { inventoryTransactionToProtocol } from '../../network/InventoryTransactionAdapter';
 import Codec2193 from '../../network/codec/Codec2193';
 import InventoryTransactionHandler from '../../network/handler/InventoryTransactionHandler';
+import { HandlerContexts } from '../../network/handlerContexts';
 import { DamageCause } from '../DamageCause';
 import { DamageSource } from '../DamageSource';
 import { meleeAttack } from '../Combat';
@@ -947,7 +948,7 @@ describe('the data-driven entity runtime over a live world', () => {
             )
         );
 
-        await new InventoryTransactionHandler().handle(packet, server, player);
+        await HandlerContexts.of(server).run(new InventoryTransactionHandler(), packet, player);
     };
 
     it('keeps a live player out of chunk saves, chunk changes and the despawn cycle', async () => {

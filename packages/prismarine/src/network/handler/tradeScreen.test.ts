@@ -23,6 +23,7 @@ import { Item } from '../../item/Item';
 import type Server from '../../Server';
 import { stubPlayerPort } from '../../testing/playerPort.test.helper';
 import { stub } from '../../testing/stub.test.helper';
+import { serverInputContext } from '../../testing/serverInputContext.test.helper';
 import { PlayerComponents } from '../../entity/playerComponents';
 import type { World } from '../../world/World';
 import type { StoreActor } from '../../entity/data/storeActors';
@@ -148,11 +149,12 @@ const scene = () => {
 
     const run = async (request: ItemStackRequest): Promise<ItemStackResponsePacket> => {
         sent.length = 0;
-        await new ItemStackRequestHandler().handle(
+        const { context, settled } = serverInputContext(server, session);
+        new ItemStackRequestHandler().handle(
             Object.assign(new ItemStackRequestPacket(), { requests: [request] }),
-            server,
-            session
+            context
         );
+        await settled();
         const response = sent.find(
             (packet): packet is ItemStackResponsePacket => packet instanceof ItemStackResponsePacket
         );
