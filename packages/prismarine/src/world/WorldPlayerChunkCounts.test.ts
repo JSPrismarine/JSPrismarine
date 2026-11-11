@@ -32,7 +32,7 @@ const worldWith = (
         getPlayers: () => Array.from(players.values()),
         enqueueSave: async (write: () => Promise<void>) => write(),
         getEntities: () => [],
-        getActors: () => [],
+        actors: () => [].values(),
         dataEntities: () => ({
             persist: () => {},
             unload: () => false,

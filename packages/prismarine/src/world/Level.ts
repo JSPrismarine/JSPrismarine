@@ -42,6 +42,7 @@ import { World } from './World';
 import { PlayerPersistence } from './PlayerPersistence';
 import { RespawnSearch } from './RespawnSearch';
 import type { WorldData } from './World';
+import { byRuntimeId } from './WorldActor';
 import type { RaidRecord } from './raid/RaidManager';
 import type { DragonFightState, LegacyWorldEntity, SavedRaid, WorldPersistenceData } from './WorldPersistence';
 import { isFlatGenerator, isNoiseGenerator, legacyWorldPersistenceDataOf } from './WorldPersistence';
@@ -742,7 +743,7 @@ export class Level {
      */
     public async enable(): Promise<void> {
         this.provider.setLevel(this);
-        this.provider.setEntitySource((dimension) => this.worldOfBedrockId(dimension.bedrockId)?.getActors() ?? []);
+        this.provider.setEntitySource((dimension) => this.worldOfBedrockId(dimension.bedrockId)?.actors() ?? []);
         this.opened = this.open();
 
         const eager: Promise<World>[] = [];
@@ -956,12 +957,17 @@ export class Level {
         return (type ?? Dimensions.Nether).java.coordinateScale;
     }
 
-    /** Every non-player entity of every loaded world, for a provider without actor storage. */
+    /**
+     * Every non-player entity of every loaded world, for a provider without actor storage, each
+     * world's in ascending runtime id order.
+     */
     private entitySnapshots(): LegacyWorldEntity[] {
         return [...this.worlds()].flatMap((world) =>
             world
-                .getActors()
+                .actors()
                 .filter((entity) => world.viewerOf(entity.getRuntimeId()) === undefined)
+                .toArray()
+                .sort(byRuntimeId)
                 .map((entity) => ({
                     type: entity.getType(),
                     position: {

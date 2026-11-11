@@ -190,7 +190,7 @@ const adapterFor = (dimension: string, options: ServerWorldSourceOptions): Dimen
                 if (support !== 'minecraft:obsidian' && support !== 'minecraft:bedrock') return false;
                 if (loaded.loadedBlockAt(base.x, base.y + 1, base.z)?.name !== 'minecraft:air') return false;
 
-                const overlapsSpawnVolume = loaded.getActors().some((entity) => {
+                const overlapsSpawnVolume = loaded.actors().some((entity) => {
                     const position = entity.getPosition();
                     const box = entity.getBox();
                     const left = position.getX() - box.width / 2;
