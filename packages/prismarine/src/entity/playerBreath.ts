@@ -9,6 +9,37 @@ import type { SurvivalPlayer } from './survivalPlayer';
 /** Ticks of breath regained per tick out of the water; the bar empties at one. */
 const AIR_REGAIN_PER_TICK = 5;
 
+/** Breath is only reported to the client in steps of this many ticks; see {@link breathWorthSending}. */
+export const AIR_SYNC_STEP = 10;
+
+/** A player's breath as a client is told it: the ticks of air left and whether it is breathing. */
+export interface ShownBreath {
+    readonly air: number;
+    readonly breathing: boolean;
+}
+
+/**
+ * Whether a player's breath has moved far enough from what its client was last told to be worth
+ * a packet.
+ *
+ * Air moves every tick underwater, and the bubble bar is ten bubbles over fifteen seconds, so
+ * sending each of those 300 values would be 290 packets that change nothing on screen. A step of
+ * {@link AIR_SYNC_STEP} ticks is finer than the bar can show. Empty and full are sent exactly,
+ * whatever step they fall in.
+ * @param {ShownBreath} sent - What the client was last told.
+ * @param {ShownBreath} now - The breath as it is.
+ * @param {number} maxAir - A full lungful, in ticks.
+ * @returns {boolean} Whether to send it.
+ */
+export const breathWorthSending = (sent: ShownBreath, now: ShownBreath, maxAir: number): boolean => {
+    const step = (ticks: number) => Math.floor(ticks / AIR_SYNC_STEP);
+    return (
+        now.breathing !== sent.breathing ||
+        step(now.air) !== step(sent.air) ||
+        ((now.air === 0 || now.air === maxAir) && now.air !== sent.air)
+    );
+};
+
 /**
  * One tick of breath, which the caller runs only for a player breath reaches: alive, and in
  * survival or adventure.
