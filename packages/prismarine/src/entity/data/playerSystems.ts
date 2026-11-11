@@ -22,7 +22,7 @@ import { DROWNING_DAMAGE, FALL_DAMAGE, NATURAL_REGENERATION, ruleIsOn } from '..
 import type { PlainData } from '../../world/changelog/PlainData';
 import { DamageCause } from '../DamageCause';
 import { DamageSource } from '../DamageSource';
-import { EYE_HEIGHT } from '../Human';
+import { EYE_HEIGHT } from '../playerEyes';
 import { breathe } from '../playerBreath';
 import { PlayerComponents } from '../playerComponents';
 import type { PlayerMining } from '../playerComponents';

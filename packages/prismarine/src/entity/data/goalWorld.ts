@@ -17,7 +17,7 @@ import type { EntityActuator, EntityPosition, FilterEntityView } from '@jsprisma
 import type { GoalDamage, GoalItem, GoalMob, GoalWorld } from '@jsprismarine/entity-goals';
 
 import { isDay } from '../../world/DayCycle';
-import { EYE_HEIGHT } from '../Human';
+import { EYE_HEIGHT } from '../playerEyes';
 import type { DataEntity, MobBody } from './DataEntity';
 import { isReadyToBreed } from './breeding';
 import { distance, squaredDistance } from './DataEntity';

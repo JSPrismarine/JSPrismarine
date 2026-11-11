@@ -22,7 +22,7 @@ import { damageSourceOfType, hasDamageType } from '../../entity/damageTypes';
 import { normalizeStatusEffectId } from '../../entity/StatusEffect';
 import { StoreActor } from '../../entity/data/storeActors';
 import type { ExperienceHolder } from '../../entity/Experience';
-import { eyePositionAt } from '../../entity/Human';
+import { eyePositionAt } from '../../entity/playerEyes';
 import { addExperiencePoints, pointsForNextLevel } from '../../entity/Experience';
 import ContainerEntry from '../../inventory/ContainerEntry';
 import { itemFromContent } from '../../item/itemFromContent';

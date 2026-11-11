@@ -5,7 +5,7 @@ import { describe, expect, it, vi } from 'vitest';
 import type Player from './Player';
 import { AttributeIds } from '@jsprismarine/protocol/wire/structures/Attribute';
 import type { Entity } from './entity/Entity';
-import { EYE_HEIGHT } from './entity/Human';
+import { EYE_HEIGHT } from './entity/playerEyes';
 import { MAX_AIR_TICKS, MetadataFlag } from '@jsprismarine/protocol/wire/structures/Metadata';
 import { ActorEvent } from '@jsprismarine/minecraft';
 import ChangeDimensionPacket from '@jsprismarine/protocol/packet/ChangeDimensionPacket';

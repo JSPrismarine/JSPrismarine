@@ -31,7 +31,7 @@ import { fakePlayer } from '../../testing/fakePlayer.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import type { World } from '../../world/World';
 import { entityIds } from '../entityIds';
-import { EYE_HEIGHT } from '../Human';
+import { EYE_HEIGHT } from '../playerEyes';
 import { PLAYER_IDENTIFIER } from '../playerOverlay';
 import ContainerEntry from '../../inventory/ContainerEntry';
 import type { StorePlayer } from '../storePlayer';

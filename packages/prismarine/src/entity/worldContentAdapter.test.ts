@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { Gametype } from '@jsprismarine/minecraft';
 
-import { EYE_HEIGHT } from './Human';
+import { EYE_HEIGHT } from './playerEyes';
 import type { ContentLookup } from '../content/world/views';
 import Player from '../Player';
 import { stub, stubOf } from '../testing/stub.test.helper';

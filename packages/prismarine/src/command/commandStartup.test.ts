@@ -18,7 +18,7 @@ import Server from '../Server';
 import { Config } from '../config/Config';
 import { buildContentTags } from '../content/tags';
 import { openContainerContents } from '../inventory/containerStore';
-import { EYE_HEIGHT } from '../entity/Human';
+import { EYE_HEIGHT } from '../entity/playerEyes';
 import { stub } from '../testing/stub.test.helper';
 import Player from '../Player';
 import type { World } from '../world/World';
