@@ -536,7 +536,7 @@ Each slice is a commit or a few, with its tests, on `dev/webrtc-backend`.
    - Tests: two peers at once on one port, the port released after the last peer, peers per port
      in a range, a full range reused, a fake strategy's choices followed, the answer's candidates
      for each mapping form, and the fixture table.
-10. [ ] **`server-portv6` on the same number as `port`.**
+10. [x] **`server-portv6` on the same number as `port`.** Done 2026-11-11.
     - Tests: a wildcard server with both settings equal answers a ping on each family, in socket
       mode and worker mode.
     - Say in [Running a server](../guide/running.md) that the two may be equal.

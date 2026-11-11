@@ -8,6 +8,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import type { Logger } from '@jsprismarine/logger';
 import { startTestModule } from '@jsprismarine/kernel/testing';
+import { UnconnectedPing } from '@jsprismarine/raknet';
 import type { Config } from '../config/Config';
 import SessionManager from '../SessionManager';
 import PacketLogFilter from '../network/PacketLogFilter';
@@ -171,6 +172,62 @@ describe('modules/network', () => {
             expect(name.getPort()).not.toBe(19132);
             expect(name.getPortV6()).not.toBe(19133);
             expect(name.getPortV6()).not.toBe(name.getPort());
+        } finally {
+            networking.kill();
+        }
+    });
+
+    /** A port free for UDP on both families right now. */
+    const portFreeOnBothFamilies = async (): Promise<number> => {
+        for (;;) {
+            const v4 = dgram.createSocket('udp4');
+            v4.bind(0, '0.0.0.0');
+            await once(v4, 'listening');
+            const { port } = v4.address();
+            const v6 = dgram.createSocket({ type: 'udp6', ipv6Only: true });
+            const free = await new Promise<boolean>((resolve) => {
+                v6.once('error', () => resolve(false));
+                v6.bind(port, '::', () => resolve(true));
+            });
+            v4.close();
+            v6.close();
+            if (free) return port;
+        }
+    };
+
+    /** Sends an unconnected ping to an address and resolves with the first datagram back. */
+    const pingOnce = async (host: string, port: number): Promise<Buffer> => {
+        const socket = dgram.createSocket(host.includes(':') ? 'udp6' : 'udp4');
+        try {
+            const ping = new UnconnectedPing();
+            ping.timestamp = 1n;
+            ping.clientGUID = 2n;
+            ping.encode();
+            const reply = once(socket, 'message') as Promise<[Buffer]>;
+            socket.send(ping.getBuffer(), port, host);
+            return (await reply)[0];
+        } finally {
+            socket.close();
+        }
+    };
+
+    it.each([
+        ['socket', false],
+        ['worker', true]
+    ])('answers a ping on both families with server-portv6 equal to port, in %s mode', async (_mode, worker) => {
+        const port = await portFreeOnBothFamilies();
+        const networking = new ServerNetworking(rakNetServer(port, () => {}, worker));
+
+        try {
+            await networking.start('0.0.0.0', port);
+
+            // 0x1c is an unconnected pong.
+            expect((await pingOnce('127.0.0.1', port))[0]).toBe(0x1c);
+            expect((await pingOnce('::1', port))[0]).toBe(0x1c);
+            expect([networking.getServerName()!.getPort(), networking.getServerName()!.getPortV6()]).toStrictEqual([
+                port,
+                port
+            ]);
         } finally {
             networking.kill();
         }
