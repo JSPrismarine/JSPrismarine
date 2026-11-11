@@ -5,7 +5,6 @@ import type { InetAddress } from '@jsprismarine/raknet';
 import { generateKeyPairSync, sign } from 'node:crypto';
 import { afterEach, assert, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type Player from '../../Player';
 import Codec2193 from '../codec/Codec2193';
 import UUID from '@jsprismarine/protocol/wire/structures/UUID';
 import type Server from '../../Server';
@@ -14,6 +13,7 @@ import type PlayerSession from '../PlayerSession';
 import type BanManager from '../../ban/BanManager';
 import type { Config } from '../../config/Config';
 import type { PermissionManager } from '../../permission/PermissionManager';
+import { stubPlayerPort } from '../../testing/playerPort.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import { plainCapabilities } from '../../testing/manualTransport.test.helper';
 import type { ChunkScheduler } from '../../world/ChunkScheduler';
@@ -259,7 +259,7 @@ describe('network', () => {
 
                 const kicked: string[] = [];
                 // Steve, signed in on another connection.
-                const existing = stub<Player>({
+                const existing = stubPlayerPort({
                     getName: () => 'Steve',
                     getXUID: () => '2535400000000001',
                     getUUID: () => UUID.fromString('00000000-0000-4000-8000-0000000000aa'),
@@ -628,7 +628,7 @@ describe('network', () => {
                 const fullServer = stub<Server>({
                     ...server,
                     getSessionManager: () =>
-                        stub<SessionManager>({ getAllPlayers: () => [stub<Player>(), stub<Player>()] }),
+                        stub<SessionManager>({ getAllPlayers: () => [stubPlayerPort({}), stubPlayerPort({})] }),
                     getConfig: () => stub<Config>({ getMaxPlayers: () => 2 })
                 });
                 const disconnect = vi.fn();

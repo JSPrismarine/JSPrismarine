@@ -20,8 +20,8 @@ import { AttributeIds, Attributes } from '@jsprismarine/protocol/wire/structures
 import ContainerEntry from '../../inventory/ContainerEntry';
 import HumanInventory from '../../inventory/HumanInventory';
 import { Item } from '../../item/Item';
-import type Player from '../../Player';
 import type Server from '../../Server';
+import { stubPlayerPort } from '../../testing/playerPort.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import { experienceIn } from '../../testing/playerDouble.test.helper';
 import type { World } from '../../world/World';
@@ -117,7 +117,7 @@ const scene = () => {
         }
     };
 
-    const player: Player = stub<Player>({
+    const player = stubPlayerPort({
         getType: () => 'minecraft:player',
         getName: () => 'tester',
         getServer: () => server,
