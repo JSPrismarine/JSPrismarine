@@ -153,6 +153,13 @@ function onKeydown(event: KeyboardEvent) {
 }
 
 .audience-tabs__list button[aria-selected='true'] {
+    color: var(--jsp-cream);
+    background: var(--jsp-ink);
+    border-color: var(--jsp-ink);
+}
+
+/* On a dark panel an ink tab would vanish, so the selected tab takes the accent there. */
+.dark .audience-tabs__list button[aria-selected='true'] {
     color: var(--jsp-on-accent);
     background: var(--jsp-accent);
     border-color: var(--jsp-accent);

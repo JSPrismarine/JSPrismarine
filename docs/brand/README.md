@@ -99,7 +99,10 @@ ink.
 - Corners are `14px` on panels (`--jsp-radius-panel`) and `10px` on controls
   (`--jsp-radius-control`). Pills are fully round.
 - Primary actions carry a hard offset shadow (`4px 4px 0`, no blur). It shrinks on hover and
-  disappears on press, so the button reads as pushed in.
+  disappears on press, so the button reads as pushed in. The shadow is ink on light surfaces and mint
+  on forest and in dark mode (`--jsp-primary-shadow`), where an ink shadow would vanish.
+- A selected tab is ink in light mode and accent in dark mode, so it stands apart from the accent
+  figure tiles on the light page and from the ink surfaces on the dark one.
 - Grids are tight: `10px` gaps (`--jsp-gap`) between solid blocks.
 - Every control shows a signal-orange focus ring when reached by keyboard, with an ink band between
   the control and the ring. Signal alone is too faint on the light page; with the band the ring reads
@@ -128,7 +131,9 @@ scrolling off the screen edge, and a two-column table stacks each row as its nam
   colored without a chip.
 - The parity tracker carries the site breadcrumb, and its rows and group tiles mark anything under
   half passing with a signal square. Its status chips differ by shape as well as color, and only
-  defects and failures are filled signal.
+  defects and failures are filled signal. Group tiles count the behavior checks when a group has
+  them and its data-table rows otherwise, and say which with a unit word, so each tile agrees with
+  the behavior score the home page shows.
 - The package directory and the API reference sidebar group packages by the areas in
   `packageAreas.ts`; the docs build fails when a published package has no area.
 - Menu and search previews end on a whole sentence where one fits.

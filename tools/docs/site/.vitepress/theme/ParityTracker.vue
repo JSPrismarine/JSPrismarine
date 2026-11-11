@@ -3,6 +3,7 @@ import { computed, onBeforeUnmount, ref, watch } from 'vue';
 
 import {
     behaviorProgress,
+    isBehaviorFamily,
     trackerPrimaryProgressPercent,
     trackerProgressPercent,
     trackerProgressTotal
@@ -54,14 +55,27 @@ const behavior = computed(() =>
 const groups = computed(() => {
     const snapshot = tracker.value;
     if (snapshot === null) return [{ id: 'all', label: 'All', passed: 0, tracked: 0 }];
-    const allChecks = {
-        checks: snapshot.checks,
-        deferred: snapshot.deferred,
-        defects: snapshot.defects
-    };
+    // A group with behavior families shows their score, the measure the headline and the landing page
+    // use, so one label never carries two numbers; a group of data tables alone shows its comparisons.
+    const behaviorGroups = new Map(
+        groupProgress(snapshot.families.filter((family) => isBehaviorFamily(family.id))).map((group) => [
+            group.id,
+            group
+        ])
+    );
     return [
-        { id: 'all', label: 'All', passed: snapshot.passed, tracked: trackerProgressTotal(allChecks) },
-        ...groupProgress(snapshot.families)
+        {
+            id: 'all',
+            label: 'All',
+            ...behavior.value,
+            measure: 'behavior'
+        },
+        ...groupProgress(snapshot.families).map((group) => {
+            const scored = behaviorGroups.get(group.id);
+            return scored && scored.tracked > 0
+                ? { ...group, passed: scored.passed, tracked: scored.tracked, measure: 'behavior' }
+                : { ...group, measure: 'comparisons' };
+        })
     ];
 });
 
@@ -220,15 +234,20 @@ const percentage = trackerProgressPercent;
                 @click="selectedGroup(group.id)"
             >
                 <span class="group-option-name">{{ group.label }}</span>
-                <span v-if="group.id === 'all'" class="group-option-count"
-                    >{{ tracker?.cases.length.toLocaleString() ?? 0 }} cases</span
-                >
                 <!-- The percentage leads and the count follows on its own line, so no tile wraps mid-figure. -->
-                <span v-else class="group-option-count">
+                <span class="group-option-count">
+                    <!-- All carries the headline's figure, so it uses the headline's precision. -->
                     <b :class="{ 'is-gap': group.passed * 2 < group.tracked }"
-                        >{{ percentage(group.passed, group.tracked) }}%</b
+                        >{{
+                            group.id === 'all'
+                                ? trackerPrimaryProgressPercent(group.passed, group.tracked)
+                                : percentage(group.passed, group.tracked)
+                        }}%</b
                     >
-                    <span>{{ group.passed }}/{{ group.tracked }}</span>
+                    <span
+                        >{{ group.passed.toLocaleString() }}/{{ group.tracked.toLocaleString() }}
+                        {{ group.measure === 'behavior' ? 'behavior' : 'rows' }}</span
+                    >
                 </span>
                 <progress
                     v-if="group.id !== 'all'"

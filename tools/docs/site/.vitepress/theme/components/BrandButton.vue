@@ -47,16 +47,17 @@ const target = computed(() => (/^[a-z]+:/i.test(props.href) ? props.href : withB
     color: var(--jsp-on-accent);
     background: var(--jsp-accent);
     border-color: var(--jsp-accent);
-    box-shadow: var(--jsp-shadow-offset) var(--jsp-shadow-offset) 0 var(--jsp-ink);
+    /* Ink by default; dark surfaces set --jsp-primary-shadow so the primary shadow never fades out there. */
+    box-shadow: var(--jsp-shadow-offset) var(--jsp-shadow-offset) 0 var(--jsp-primary-shadow, var(--jsp-ink));
 }
 
 .is-primary:hover {
-    box-shadow: 1px 1px 0 var(--jsp-ink);
+    box-shadow: 1px 1px 0 var(--jsp-primary-shadow, var(--jsp-ink));
 }
 
 .is-primary:focus-visible {
     box-shadow:
-        var(--jsp-shadow-offset) var(--jsp-shadow-offset) 0 var(--jsp-ink),
+        var(--jsp-shadow-offset) var(--jsp-shadow-offset) 0 var(--jsp-primary-shadow, var(--jsp-ink)),
         0 0 0 2px var(--jsp-ink);
 }
 

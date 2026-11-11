@@ -226,6 +226,12 @@ const startCommand = `chmod +x ${executable}\n./${executable}`;
     letter-spacing: 0.12em;
 }
 
+/* Primary buttons on forest cast a mint shadow; ink would vanish into the panel. */
+.landing__hero,
+.landing__close {
+    --jsp-primary-shadow: var(--jsp-mint);
+}
+
 .landing__as-is {
     text-transform: none;
 }
@@ -397,8 +403,8 @@ const startCommand = `chmod +x ${executable}\n./${executable}`;
 }
 
 .landing__stage {
-    align-self: start;
-    margin-top: 8px;
+    align-self: end;
+    margin-bottom: 24px;
 }
 
 .landing__stage {
@@ -590,6 +596,11 @@ const startCommand = `chmod +x ${executable}\n./${executable}`;
     .landing .landing__stat {
         flex-direction: column;
         align-items: flex-start;
+    }
+
+    /* Stacked, the caption's flex basis would turn into a height; it takes only what its text needs. */
+    .landing .landing__stat :deep(.bento-caption) {
+        flex: none;
     }
 
     /* Both calls to action take the full width, so neither reads as the smaller one by accident. */

@@ -67,6 +67,8 @@
 }
 
 .dark {
+    /* On the near-ink page a primary button's ink shadow would vanish. */
+    --jsp-primary-shadow: var(--jsp-mint);
     --vp-c-brand-1: var(--jsp-accent);
     --vp-c-brand-2: color-mix(in srgb, var(--jsp-accent) 86%, #fff);
     --vp-c-brand-3: color-mix(in srgb, var(--jsp-forest) 55%, var(--jsp-accent));
