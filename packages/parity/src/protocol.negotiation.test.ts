@@ -5,6 +5,7 @@ import { latestCodec, registeredCodecs } from '@jsprismarine/prismarine/network/
 import { describeSupportedProtocols } from '@jsprismarine/prismarine/network/codec/describeCodecs';
 import HandshakeCodec from '@jsprismarine/prismarine/network/codec/HandshakeCodec';
 import RequestNetworkSettingsHandler from '@jsprismarine/prismarine/network/handler/RequestNetworkSettingsHandler';
+import { ConnectionContexts } from '@jsprismarine/prismarine/network/connectionContexts';
 import type { NetworkPacket } from '@jsprismarine/protocol';
 import {
     LevelChunkPacket,
@@ -102,7 +103,10 @@ const server = stub<Server>({
 
 const negotiate = async (protocolVersion: number) => {
     const recorder = connectionRecorder();
-    await new RequestNetworkSettingsHandler().handle(requestOnTheWire(protocolVersion), server, recorder.connection);
+    await new RequestNetworkSettingsHandler().handle(
+        requestOnTheWire(protocolVersion),
+        ConnectionContexts.of(server).contextOf(recorder.connection)
+    );
     return recorder;
 };
 

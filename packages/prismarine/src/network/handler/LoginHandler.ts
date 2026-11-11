@@ -2,36 +2,21 @@ import { DisconnectReason } from '@jsprismarine/minecraft';
 import { PlayStatus, PlayStatusPacket } from '@jsprismarine/protocol';
 import ServerToClientHandshakePacket from '@jsprismarine/protocol/packet/ServerToClientHandshakePacket';
 import { sessionEncryption } from '../SessionEncryption';
-import type Server from '../../Server';
-import UUID from '@jsprismarine/protocol/wire/structures/UUID';
-import { entityIds } from '../../entity/entityIds';
-import { EYE_HEIGHT } from '../../entity/playerEyes';
-import { StorePlayer } from '../../entity/storePlayer';
-import type ClientConnection from '../ClientConnection';
-import { createConnectedPlayer } from '../createConnectedPlayer';
 import type LoginPacket from '@jsprismarine/protocol/packet/LoginPacket';
 import ResourcePacksInfoPacket from '@jsprismarine/protocol/packet/ResourcePacksInfoPacket';
 import { identityFromXUID, parseLoginIdentity } from '../LoginIdentity';
 import { LoginRefused, verifyLogin } from '@jsprismarine/auth/server';
-import type ConnectionPacketHandler from './ConnectionPacketHandler';
-import type { PlayerIdentity } from '../../playerIdentity';
-
-type LoginIdentity = ReturnType<typeof parseLoginIdentity>;
+import type { ConnectionContext, ConnectionHandler, LoginIdentity } from './ConnectionContext';
+import { accountOf } from './ConnectionContext';
+import type { HandlerLog } from './HandlerContext';
 
 /** What a login replacing another session of the same account tells the one it replaces. */
 const REPLACED = 'Logged in from another location';
 
-/** The account a login names, in the form `SessionManager` compares. */
-const accountOf = (identity: LoginIdentity): PlayerIdentity => ({
-    name: identity.displayName,
-    xuid: identity.xuid,
-    uuid: UUID.fromString(identity.identity).toString()
-});
-
-export default class LoginHandler implements ConnectionPacketHandler<LoginPacket> {
+export default class LoginHandler implements ConnectionHandler<LoginPacket> {
     public static PacketName = 'LoginPacket';
     public readonly phases = ['login'] as const;
-    // Login I/O stays out of the tick (ADR 0014); admission still reads the world and kicks a duplicate.
+    // Login I/O stays out of the tick (ADR 0014): the admission builds the player in front of its join.
     public readonly lane = 'connection';
 
     /**
@@ -43,7 +28,7 @@ export default class LoginHandler implements ConnectionPacketHandler<LoginPacket
      * is signed in. Without this, a refusal says only that all four were empty, and finding
      * out which was supposed to be filled means guessing.
      */
-    private static reportRefusal(protocolVersion: number, identity: LoginIdentity, server: Server, why: string): void {
+    private static reportRefusal(protocolVersion: number, identity: LoginIdentity, log: HandlerLog, why: string): void {
         const found = [
             `protocol=${protocolVersion}`,
             `name=${identity.displayName || 'none'}`,
@@ -52,7 +37,7 @@ export default class LoginHandler implements ConnectionPacketHandler<LoginPacket
             `key=${identity.identityPublicKey ? 'yes' : 'no'}`
         ].join(' ');
 
-        server.getLogger().warn(`Refused a login: ${why}. The packet carried ${found}`, 'LoginHandler/handle');
+        log.warn(`Refused a login: ${why}. The packet carried ${found}`, 'LoginHandler/handle');
     }
 
     /**
@@ -67,7 +52,8 @@ export default class LoginHandler implements ConnectionPacketHandler<LoginPacket
      * finishes in {@link LoginHandler.admit} once the client replies, encrypted unless the
      * transport already encrypts the wire.
      */
-    public async handle(packet: LoginPacket, server: Server, connection: ClientConnection): Promise<void> {
+    public async handle(packet: LoginPacket, context: ConnectionContext): Promise<void> {
+        const { connection, log, config, login: services } = context;
         const login = packet.getPacketData();
         if (login === null) throw new Error('Cannot handle LoginPacket without packet data');
 
@@ -99,7 +85,7 @@ export default class LoginHandler implements ConnectionPacketHandler<LoginPacket
         // The client renders this status as "server full", so the player learns why without
         // the server building a player it would only tear down again. The disconnect that
         // follows carries `ServerFull` and hangs up.
-        if (server.getSessionManager().getSessions().length >= server.getConfig().getMaxPlayers()) {
+        if (services.sessions.getSessions().length >= config.getMaxPlayers()) {
             await connection.sendDataPacket(
                 new PlayStatusPacket({ status: PlayStatus.LoginFailed_ServerFullSubClient }),
                 true
@@ -111,7 +97,7 @@ export default class LoginHandler implements ConnectionPacketHandler<LoginPacket
         // With online mode on, the account comes from the signed token and nowhere else. The claims
         // parsed above are whatever the client wrote; they are replaced, not trusted, and a login
         // that cannot be verified is refused before anything about it is acted on.
-        if (server.getConfig().getOnlineMode()) {
+        if (config.getOnlineMode()) {
             try {
                 const verified = await verifyLogin(login);
                 // A verified login only says the chain is real. Without Minecraft's encryption
@@ -134,7 +120,7 @@ export default class LoginHandler implements ConnectionPacketHandler<LoginPacket
                 };
             } catch (error: unknown) {
                 if (!(error instanceof LoginRefused)) throw error;
-                LoginHandler.reportRefusal(login.protocolVersion, identity, server, error.detail);
+                LoginHandler.reportRefusal(login.protocolVersion, identity, log, error.detail);
                 await connection.disconnect(error.message, false, DisconnectReason.NOT_AUTHENTICATED);
                 return;
             }
@@ -142,7 +128,7 @@ export default class LoginHandler implements ConnectionPacketHandler<LoginPacket
 
         // Kick the player if their username is invalid
         if (!identity.displayName) {
-            LoginHandler.reportRefusal(login.protocolVersion, identity, server, 'no username');
+            LoginHandler.reportRefusal(login.protocolVersion, identity, log, 'no username');
             await connection.disconnect('Invalid username!', false, DisconnectReason.INVALID_PLAYER);
             return;
         }
@@ -151,22 +137,22 @@ export default class LoginHandler implements ConnectionPacketHandler<LoginPacket
         // freshly generated uuid, which the client had never heard of - so the player went
         // into the player list under an id nothing on the other side could match.
         if (!identity.identity) {
-            LoginHandler.reportRefusal(login.protocolVersion, identity, server, 'no identity');
+            LoginHandler.reportRefusal(login.protocolVersion, identity, log, 'no identity');
             await connection.disconnect('Invalid identity!', false, DisconnectReason.INVALID_PLAYER);
             return;
         }
 
         // Before the handshake, so a later login of the same account finds this one while it
         // waits for the client's answer. A reservation replaces nobody; `admit` does that.
-        server.getSessionManager().reserveIdentity(connection, accountOf(identity));
+        services.sessions.reserveIdentity(connection, accountOf(identity));
 
         // A login that names an identity key is answered with the encryption handshake, and the rest
         // of it waits for the client's reply. One that names none stays in plaintext.
-        if (identity.identityPublicKey && (await LoginHandler.beginEncryption(identity, login, server, connection))) {
+        if (identity.identityPublicKey && (await LoginHandler.beginEncryption(identity, login, context))) {
             return;
         }
 
-        await LoginHandler.admit(identity, server, connection);
+        await LoginHandler.admit(identity, context);
     }
 
     /**
@@ -185,20 +171,20 @@ export default class LoginHandler implements ConnectionPacketHandler<LoginPacket
     private static async beginEncryption(
         identity: LoginIdentity,
         login: NonNullable<ReturnType<LoginPacket['getPacketData']>>,
-        server: Server,
-        connection: ClientConnection
+        context: ConnectionContext
     ): Promise<boolean> {
+        const { connection, log } = context;
         let handshake: Awaited<ReturnType<ReturnType<typeof sessionEncryption>['begin']>>;
         try {
             handshake = await sessionEncryption().begin(identity.identityPublicKey!);
         } catch (error: unknown) {
-            LoginHandler.reportRefusal(login.protocolVersion, identity, server, 'unusable identity key');
-            server.getLogger().debug(String(error), 'LoginHandler/beginEncryption');
+            LoginHandler.reportRefusal(login.protocolVersion, identity, log, 'unusable identity key');
+            log.debug(String(error), 'LoginHandler/beginEncryption');
             await connection.disconnect('Invalid identity!', false, DisconnectReason.INVALID_PLAYER);
             return true;
         }
 
-        connection.resumeLogin = () => LoginHandler.admit(identity, server, connection);
+        connection.resumeLogin = () => LoginHandler.admit(identity, context);
         connection.phase = 'encryption';
         // The last frame in the clear: the client turns encryption on when it reads this.
         await connection.sendDataPacket(new ServerToClientHandshakePacket({ jwt: handshake.jwt }), true);
@@ -215,19 +201,20 @@ export default class LoginHandler implements ConnectionPacketHandler<LoginPacket
      * in under one UUID. A connection still joining is replaced once its join settles, through
      * the same kick a joined player gets, so its record is saved before this login reads it.
      */
-    private static async admit(identity: LoginIdentity, server: Server, connection: ClientConnection): Promise<void> {
-        const sessions = server.getSessionManager();
+    private static async admit(identity: LoginIdentity, context: ConnectionContext): Promise<void> {
+        const { connection, config, login } = context;
+        const sessions = login.sessions;
         // A later login of the same account replaced this one while it waited for the handshake.
         if (!sessions.holdsIdentity(connection)) return;
 
         // Refused before the account is claimed: a login turned away here never touches the
         // session it named, which is the whole of the impersonation this used to allow.
-        if (!identity.xuid && server.getConfig().getOnlineMode()) {
+        if (!identity.xuid && config.getOnlineMode()) {
             await connection.disconnect('Server is in online-mode!', false, DisconnectReason.NOT_AUTHENTICATED);
             return;
         }
 
-        const reason = server.getBanManager().isBanned({ name: identity.displayName });
+        const reason = login.bans.isBanned({ name: identity.displayName });
         if (reason !== false) {
             await connection.disconnect(
                 `You have been banned${reason ? ` for reason: ${reason}` : ''}!`,
@@ -249,55 +236,18 @@ export default class LoginHandler implements ConnectionPacketHandler<LoginPacket
                 else await replaced.connection.disconnect(REPLACED, false, DisconnectReason.LOGGED_IN_OTHER_LOCATION);
             }
 
-            await LoginHandler.join(identity, server, connection);
+            await LoginHandler.join(identity, context);
         } finally {
             settle();
         }
     }
 
     /** Builds the player for a login that holds its account and lets it into the resource pack exchange. */
-    private static async join(identity: LoginIdentity, server: Server, connection: ClientConnection): Promise<void> {
-        // Resolved here because this is where a world is first available and awaiting is
-        // allowed. An entity has to be given somewhere to be, so there is no longer a moment
-        // where one exists at the origin waiting to be told where it really is.
-        const world = server.getWorldManager().getDefaultWorld();
-        const spawn = await world.getSpawnPosition();
-        // The entity id is drawn here, and the store player enters a store only at
-        // `SetLocalPlayerAsInitialized`. Built inert: nothing server-wide hears of it until it is
-        // filed below, so a login rejected before then leaves nothing behind.
-        const uuid = UUID.fromString(identity.identity);
-        const player = new StorePlayer(entityIds.next(), { uuid, name: identity.displayName, xuid: identity.xuid });
-        player.skin = identity.skin;
-        player.device = identity.device;
-        // The spawn is where the eyes go, as a client reports its position.
-        player.standAt({ x: spawn.getX(), y: spawn.getY() - EYE_HEIGHT, z: spawn.getZ() });
-
-        // A login of the same account after this one took it while the spawn was read. That one
-        // waits for this join to settle and then disconnects this connection, which has no
-        // player to save yet.
-        if (!server.getSessionManager().holdsIdentity(connection)) return;
-
-        // Joined to its connection only once it is going to be let in, and torn down as a
-        // pair if the join itself fails - otherwise the session would keep its place in the
-        // chunk rotation with nothing on the other end of it.
-        //
-        // `join` sends nothing. Until the client has `PlayStatus(LoginSuccess)` below it is
-        // still logging in, and a retail client handed a game packet in that state drops the
-        // connection with `InitialConnection-90`. Nothing but PlayStatus and ResourcePacksInfo
-        // leaves here; the rest waits for `ResourcePackClientResponseHandler`.
-        const session = createConnectedPlayer({
-            server,
-            connection,
-            player,
-            identity: accountOf(identity),
-            world
-        });
-        try {
-            await session.join();
-        } catch (error: unknown) {
-            await connection.closePlayerSession();
-            throw error;
-        }
+    private static async join(identity: LoginIdentity, { connection, login }: ConnectionContext): Promise<void> {
+        // Nothing but PlayStatus and ResourcePacksInfo leaves here; the rest waits for
+        // `ResourcePackClientResponseHandler`.
+        const session = await login.players.prepare(connection, identity);
+        if (session === null) return;
 
         // The login became a player session, so the resource pack exchange owns the
         // connection from here.

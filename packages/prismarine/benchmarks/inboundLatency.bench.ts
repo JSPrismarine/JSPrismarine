@@ -20,7 +20,7 @@ import type Server from '../src/Server';
 import SessionManager from '../src/SessionManager';
 import { stub } from '../src/testing/stub.test.helper';
 import type ClientConnection from '../src/network/ClientConnection';
-import type ConnectionPacketHandler from '../src/network/handler/ConnectionPacketHandler';
+import type { ConnectionHandler } from '../src/network/handler/ConnectionContext';
 import { PacketLogFilter } from '../src/network/PacketLogFilter';
 import NetworkDispatcher from '../src/network/NetworkDispatcher';
 import type PacketHandlerRegistry from '../src/network/PacketHandlerRegistry';
@@ -101,7 +101,7 @@ const logger = stub<Logger>({
     silly: () => {}
 });
 const server = stub<Server>();
-const handler = stub<ConnectionPacketHandler<TextPacket>>({
+const handler = stub<ConnectionHandler<TextPacket>>({
     phases: ['handshake'],
     handle: async () => {
         handledFrames++;

@@ -21,6 +21,7 @@ import type { ChunkScheduler } from '../../world/ChunkScheduler';
 import type { World } from '../../world/World';
 import type WorldManager from '../../world/WorldManager';
 import type ClientConnection from '../ClientConnection';
+import { ConnectionContexts } from '../connectionContexts';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import LoginPacket from '@jsprismarine/protocol/packet/LoginPacket';
 import { PlayStatus, PlayStatusPacket } from '@jsprismarine/protocol';
@@ -92,6 +93,8 @@ const loginPacket = (
         clientData: jwt(clientDataOf(displayName, identity))
     });
 
+/** The context the dispatcher hands a handler before the session, over a test's server. */
+const contextOf = (server: Server, connection: ClientConnection) => ConnectionContexts.of(server).contextOf(connection);
 describe('network', () => {
     describe('handler', () => {
         describe('LoginHandler', () => {
@@ -177,7 +180,7 @@ describe('network', () => {
                 const pk = loginPacket();
 
                 const handler = new LoginHandler();
-                await handler.handle(pk, server, connection);
+                await handler.handle(pk, contextOf(server, connection));
 
                 // The pair was joined and the connection was given the session, which is what
                 // makes the client a connected player rather than a bare handshake.
@@ -201,7 +204,7 @@ describe('network', () => {
                     disconnect: async () => {}
                 });
 
-                await new LoginHandler().handle(pk, server, quiet);
+                await new LoginHandler().handle(pk, contextOf(server, quiet));
 
                 expect(sent).toEqual(['PlayStatusPacket', 'ResourcePacksInfoPacket']);
             });
@@ -296,8 +299,7 @@ describe('network', () => {
 
                     await new LoginHandler().handle(
                         signedLogin({ AuthenticationType: 0, Token: signedToken() }),
-                        server,
-                        held
+                        contextOf(server, held)
                     );
                     // The account is verified, so the handshake is under way; the other session is
                     // still connected until the client answers it.
@@ -315,8 +317,7 @@ describe('network', () => {
 
                     await new LoginHandler().handle(
                         signedLogin({ AuthenticationType: 0, Token: signedToken(), ...chainClaiming('999', 'Notch') }),
-                        server,
-                        held
+                        contextOf(server, held)
                     );
                     await held.resumeLogin?.();
 
@@ -332,8 +333,7 @@ describe('network', () => {
 
                     await new LoginHandler().handle(
                         signedLogin({ AuthenticationType: 0, Token: signedToken() }),
-                        server,
-                        replayed
+                        contextOf(server, replayed)
                     );
 
                     expect(disconnects).toEqual([
@@ -358,8 +358,7 @@ describe('network', () => {
 
                     await new LoginHandler().handle(
                         signedLogin({ AuthenticationType: 0, Token: `${head}.${segment(claims)}.${signature}` }),
-                        server,
-                        held
+                        contextOf(server, held)
                     );
 
                     expect(disconnects.map(([, code]) => code)).toEqual([DisconnectReason.NOT_AUTHENTICATED]);
@@ -375,7 +374,7 @@ describe('network', () => {
                         { AuthenticationType: 0, ...chainClaiming('2535400000000001', 'Steve') }
                     ]) {
                         const { connection: held, disconnects } = quiet();
-                        await new LoginHandler().handle(signedLogin(request), server, held);
+                        await new LoginHandler().handle(signedLogin(request), contextOf(server, held));
 
                         expect(disconnects.map(([, code]) => code)).toEqual([DisconnectReason.NOT_AUTHENTICATED]);
                         expect(held.attachPlayerSession).not.toHaveBeenCalled();
@@ -388,7 +387,7 @@ describe('network', () => {
                     onlineMode = false;
                     const { connection: held, disconnects } = quiet();
 
-                    await new LoginHandler().handle(loginPacket(), server, held);
+                    await new LoginHandler().handle(loginPacket(), contextOf(server, held));
 
                     expect(disconnects).toEqual([]);
                     expect(held.attachPlayerSession).toHaveBeenCalledOnce();
@@ -423,8 +422,7 @@ describe('network', () => {
 
                     await new LoginHandler().handle(
                         loginPacket('runner', IDENTITY, undefined, identityKey),
-                        server,
-                        held
+                        contextOf(server, held)
                     );
 
                     expect(sent).toEqual([ServerToClientHandshakePacket.name]);
@@ -439,8 +437,7 @@ describe('network', () => {
 
                     await new LoginHandler().handle(
                         loginPacket('runner', IDENTITY, undefined, identityKey),
-                        server,
-                        held
+                        contextOf(server, held)
                     );
 
                     expect(sent).toEqual([ServerToClientHandshakePacket.name]);
@@ -453,14 +450,12 @@ describe('network', () => {
                     const { connection: held, sent } = encrypting();
                     await new LoginHandler().handle(
                         loginPacket('runner', IDENTITY, undefined, identityKey),
-                        server,
-                        held
+                        contextOf(server, held)
                     );
 
                     await new ClientToServerHandshakeHandler().handle(
                         stub<ClientToServerHandshakePacket>({}),
-                        server,
-                        held
+                        contextOf(server, held)
                     );
 
                     expect(held.attachPlayerSession).toHaveBeenCalledOnce();
@@ -477,8 +472,7 @@ describe('network', () => {
 
                     await new LoginHandler().handle(
                         loginPacket('runner', IDENTITY, undefined, 'bm90IGEga2V5'),
-                        server,
-                        held
+                        contextOf(server, held)
                     );
 
                     expect(sent).toEqual([]);
@@ -507,7 +501,7 @@ describe('network', () => {
                     disconnect: async () => {}
                 });
 
-                await new LoginHandler().handle(pk, server, quiet);
+                await new LoginHandler().handle(pk, contextOf(server, quiet));
 
                 const info = sent.find((packet) => packet instanceof ResourcePacksInfoPacket);
                 assert(info instanceof ResourcePacksInfoPacket);
@@ -531,7 +525,7 @@ describe('network', () => {
                     attachPlayerSession: vi.fn()
                 });
 
-                await new LoginHandler().handle(pk, stub<Server>({ ...server, ...overrides }), rejected);
+                await new LoginHandler().handle(pk, contextOf(stub<Server>({ ...server, ...overrides }), rejected));
 
                 expect(rejected.attachPlayerSession).not.toHaveBeenCalled();
                 return disconnect;
@@ -578,7 +572,7 @@ describe('network', () => {
 
                 const disconnect = vi.fn();
                 const rejected = stub<ClientConnection>({ codec: Codec2193, disconnect });
-                await new LoginHandler().handle(pk, server, rejected);
+                await new LoginHandler().handle(pk, contextOf(server, rejected));
 
                 expect(disconnect).toHaveBeenCalledWith('Invalid username!', false, DisconnectReason.INVALID_PLAYER);
             });
@@ -590,7 +584,7 @@ describe('network', () => {
 
                 const disconnect = vi.fn();
                 const rejected = stub<ClientConnection>({ codec: Codec2193, disconnect });
-                await new LoginHandler().handle(pk, server, rejected);
+                await new LoginHandler().handle(pk, contextOf(server, rejected));
 
                 expect(disconnect).toHaveBeenCalledWith('Invalid identity!', false, DisconnectReason.INVALID_PLAYER);
             });
@@ -610,7 +604,7 @@ describe('network', () => {
                     sendDataPacket: async (packet) => void sent.push(packet),
                     disconnect
                 });
-                await new LoginHandler().handle(pk, server, connection);
+                await new LoginHandler().handle(pk, contextOf(server, connection));
 
                 const [status] = sent;
                 assert(status instanceof PlayStatusPacket);
@@ -643,7 +637,7 @@ describe('network', () => {
                     disconnect
                 });
 
-                await new LoginHandler().handle(pk, fullServer, connection);
+                await new LoginHandler().handle(pk, contextOf(fullServer, connection));
 
                 expect(sent).toHaveLength(1);
                 const [status] = sent;
@@ -665,7 +659,7 @@ describe('network', () => {
                     sendDataPacket: async (packet) => void sent.push(packet),
                     disconnect
                 });
-                await new LoginHandler().handle(pk, server, connection);
+                await new LoginHandler().handle(pk, contextOf(server, connection));
 
                 const [status] = sent;
                 assert(status instanceof PlayStatusPacket);
@@ -740,13 +734,19 @@ describe('network', () => {
                     const second = liveConnection(sessions, 2);
 
                     hold();
-                    const firstLogin = new LoginHandler().handle(loginPacket('runner'), joining, first.connection);
+                    const firstLogin = new LoginHandler().handle(
+                        loginPacket('runner'),
+                        contextOf(joining, first.connection)
+                    );
                     await settle();
                     // The first login is reading its record: it has a player, but not an online one.
                     expect(first.connection.getPlayerSession()).not.toBeNull();
                     expect(sessions.getAllPlayers()).toEqual([]);
 
-                    const secondLogin = new LoginHandler().handle(loginPacket('runner'), joining, second.connection);
+                    const secondLogin = new LoginHandler().handle(
+                        loginPacket('runner'),
+                        contextOf(joining, second.connection)
+                    );
                     await settle();
                     releaseAll();
                     await Promise.all([firstLogin, secondLogin]);
@@ -767,12 +767,11 @@ describe('network', () => {
 
                     await new LoginHandler().handle(
                         loginPacket('runner', IDENTITY, undefined, identityKey),
-                        joining,
-                        first.connection
+                        contextOf(joining, first.connection)
                     );
                     expect(first.connection.phase).toBe('encryption');
 
-                    await new LoginHandler().handle(loginPacket('runner'), joining, second.connection);
+                    await new LoginHandler().handle(loginPacket('runner'), contextOf(joining, second.connection));
                     // The first client answering after it was replaced lets nobody in.
                     await first.connection.resumeLogin?.();
 
@@ -787,8 +786,8 @@ describe('network', () => {
                     const first = liveConnection(sessions, 1);
                     const second = liveConnection(sessions, 2);
 
-                    await new LoginHandler().handle(loginPacket('runner'), joining, first.connection);
-                    await new LoginHandler().handle(loginPacket('walker'), joining, second.connection);
+                    await new LoginHandler().handle(loginPacket('runner'), contextOf(joining, first.connection));
+                    await new LoginHandler().handle(loginPacket('walker'), contextOf(joining, second.connection));
 
                     expect(first.disconnects).toEqual([DisconnectReason.LOGGED_IN_OTHER_LOCATION]);
                     expect(second.disconnects).toEqual([]);
@@ -799,11 +798,10 @@ describe('network', () => {
                     const first = liveConnection(sessions, 1);
                     const second = liveConnection(sessions, 2);
 
-                    await new LoginHandler().handle(loginPacket('runner'), joining, first.connection);
+                    await new LoginHandler().handle(loginPacket('runner'), contextOf(joining, first.connection));
                     await new LoginHandler().handle(
                         loginPacket('walker', '11111111-2222-3333-4444-555555555555'),
-                        joining,
-                        second.connection
+                        contextOf(joining, second.connection)
                     );
 
                     expect(first.disconnects).toEqual([]);

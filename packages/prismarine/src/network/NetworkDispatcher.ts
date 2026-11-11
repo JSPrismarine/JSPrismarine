@@ -12,10 +12,12 @@ import Timer from '../utils/Timer';
 import type ClientConnection from './ClientConnection';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import { readPacketId } from '@jsprismarine/protocol/NetworkPacket';
-import { takesConnection } from './handler/ConnectionPacketHandler';
+import { takesConnection } from './handler/ConnectionContext';
+import { ConnectionContexts } from './connectionContexts';
 import { takesContext } from './handler/SessionHandler';
 import { HandlerContexts } from './handlerContexts';
 import type { PacketLogFilter } from './PacketLogFilter';
+import type { SessionPhase } from './SessionPhase';
 import type PacketHandlerRegistry from './PacketHandlerRegistry';
 import type { RegisteredHandler } from './PacketHandlerRegistry';
 import type { InboundPacketRecord, InboundPacketRecorder } from './InboundPacketTrace';
@@ -499,7 +501,8 @@ export default class NetworkDispatcher<C extends TransportConnection> {
         recordInbound: boolean,
         expectedTick: number | undefined
     ): Promise<void> {
-        if (!handler.phases.includes(connection.phase)) {
+        const phases: readonly SessionPhase[] = handler.phases;
+        if (!phases.includes(connection.phase)) {
             if (expectedTick !== undefined) {
                 throw new Error(`Replay packet ${packet.getName()} was rejected in the ${connection.phase} phase`);
             }
@@ -521,7 +524,7 @@ export default class NetworkDispatcher<C extends TransportConnection> {
         this.logInbound(packet);
 
         try {
-            // A handshake- or login-phase handler takes the bare connection; every other
+            // A handshake- or login-phase handler takes the connection's context; every other
             // handler needs the player session that login creates. A packet that reaches
             // the wrong side of that line is dropped rather than handed an object of the
             // wrong shape. A session handler takes either a context, in the shape the client
@@ -531,7 +534,7 @@ export default class NetworkDispatcher<C extends TransportConnection> {
                 if (recordInbound && this.inboundPacketRecorder !== undefined) {
                     this.recordInboundPacket(packet, connection);
                 }
-                await handler.handle(packet, this.server, connection);
+                await handler.handle(packet, ConnectionContexts.of(this.server).contextOf(connection));
             } else if (session !== null) {
                 if (recordInbound && this.inboundPacketRecorder !== undefined) {
                     this.recordInboundPacket(packet, connection);
