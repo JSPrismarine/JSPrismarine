@@ -280,13 +280,13 @@ export class PermissionManager implements Service {
      * @returns {Promise<boolean>} A promise that resolves with a boolean indicating whether the operation was successful.
      */
     public async setOp(username: string, op: boolean): Promise<boolean> {
-        const target = this.server.getSessionManager().getPlayerByExactName(username); // TODO: by name not exact
+        const target = this.server.getSessionManager().findSession({ name: username }); // TODO: by name not exact
         if (!target) throw new PlayerNotFoundError(username);
         const event = new playerToggleOperatorEvent(target, op);
         this.server.post(['playerToggleOperator', event]);
         if (event.isCanceled()) return false;
 
-        const uuid = target.getUUID().toString();
+        const { uuid } = target.identity;
         if (op) this.ops.add(uuid);
         else this.ops.delete(uuid);
 
@@ -296,8 +296,8 @@ export class PermissionManager implements Service {
             await this.writeOp(uuid, username, op);
 
             // After the change, so the list the client gets is the one its new status allows.
-            await target.getNetworkSession().sendAvailableCommands();
-            await target.sendSettings();
+            await target.sendAvailableCommands();
+            await target.announceSettings();
             return true;
         } catch {
             return false;
