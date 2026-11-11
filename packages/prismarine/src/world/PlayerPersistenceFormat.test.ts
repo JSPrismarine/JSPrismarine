@@ -28,10 +28,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { PlayerAdvancements } from '@jsprismarine/advancements';
 
-import { advancementsOf, loadAdvancements } from '../advancement/progress';
+import { advancementsOf, forgetAdvancements, loadAdvancements } from '../advancement/progress';
 import type { Config } from '../config/Config';
 import type Console from '../Console';
-import { enchantmentSeedOf } from '../enchantment/enchantingTable';
+import { enchantmentSeedOf, forgetEnchantmentSeed } from '../enchantment/enchantingTable';
 import { entityFixture } from '../entity/data/testing';
 import { PLAYER_IDENTIFIER } from '../entity/playerOverlay';
 import type { StorePlayer } from '../entity/storePlayer';
@@ -329,14 +329,25 @@ const giveStoreState = (player: StorePlayer): void => {
     player.placeAt({ x: 12.5, y: 71.62, z: -8.5, pitch: 10, yaw: 20, headYaw: 30 });
 };
 
-/** Writes a store player's record into a fresh level and hands back the bytes it holds. */
+/**
+ * Writes a store player's record into a fresh level through `World.savePlayerData`, with the
+ * services holding the fixture's state under the player's key, and hands back the bytes it holds.
+ */
 const writeStoreRecord = async (player: StorePlayer, fileRecords: boolean, name: string): Promise<Buffer> => {
     const server = testServer();
     const folder = path.join(scratch, name);
     const level = buildLevel(server, folder, fileRecords);
     await level.enable();
     const world = await level.world(OVERWORLD_STEM_ID);
-    await level.savePlayerData(KEY, playerRecordFrom(player, fixtureServices(), world.getDimension()));
+    const { advancements, enchantmentSeed } = fixtureServices();
+    loadAdvancements(KEY, advancements);
+    enchantmentSeedOf({ key: KEY, server }, enchantmentSeed);
+    try {
+        await world.savePlayerData(player);
+    } finally {
+        forgetAdvancements(KEY);
+        forgetEnchantmentSeed(KEY);
+    }
     await level.disable();
 
     if (fileRecords) return fs.readFileSync(path.join(folder, 'playerdata', `${KEY}.json`));
