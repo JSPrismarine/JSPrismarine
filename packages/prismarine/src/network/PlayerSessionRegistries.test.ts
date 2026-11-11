@@ -11,7 +11,7 @@ import type { Logger } from '@jsprismarine/logger';
 import { CraftingDataPacket, CreativeContentPacket } from '@jsprismarine/protocol';
 import { describe, expect, it } from 'vitest';
 
-import type Player from '../Player';
+import type { SessionPlayer } from './sessionPlayers';
 import type Server from '../Server';
 import type { Config } from '../config/Config';
 import { buildServerContent } from '../content/ServerContent';
@@ -42,7 +42,7 @@ const sessionFor = (server: Server, codec: ProtocolCodec = Codec2193) => {
             sent.push(...encoded.packets);
         }
     });
-    const player = stub<Player>({ getServer: () => server, getName: () => 'runner' });
+    const player = stub<SessionPlayer>({ getServer: () => server, getName: () => 'runner' });
     const session: PlayerSession = Object.assign(Object.create(PlayerSession.prototype), {
         connection,
         ...sessionPlayerFields(player),

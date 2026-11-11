@@ -8,7 +8,7 @@ import {
 } from '@jsprismarine/minecraft';
 import { describe, expect, it } from 'vitest';
 
-import type Player from '../Player';
+import type { SessionPlayer } from './sessionPlayers';
 import type { StorePlayerActor } from '../entity/data/storePlayers';
 import ContainerEntry from '../inventory/ContainerEntry';
 import HumanInventory from '../inventory/HumanInventory';
@@ -60,7 +60,7 @@ const itemName = (descriptor: Parameters<typeof Item.fromStackDescriptor>[1]): s
  */
 
 /** A session whose connection records what goes out, speaking for `player`. */
-const sessionFor = (player: Player) => {
+const sessionFor = (player: SessionPlayer) => {
     const sent: NetworkPacket[] = [];
     const connection = stub<ClientConnection>({
         codec: protocolCodec,
@@ -233,7 +233,7 @@ describe('network', () => {
         });
 
         describe('sendAddPlayer', () => {
-            const spawn = async (shown: Player): Promise<AddPlayerPayload> => {
+            const spawn = async (shown: SessionPlayer): Promise<AddPlayerPayload> => {
                 const { session, sent } = sessionFor(stubPlayerPort({ getRuntimeId: () => 1n }));
 
                 await session.sendAddPlayer(shown.getBody());

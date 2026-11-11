@@ -13,7 +13,7 @@ import type { Entity } from '../entity/Entity';
 import type { ViewableEquipment } from '../entity/predicateView';
 import { Item } from '../item/Item';
 import { stub } from '../testing/stub.test.helper';
-import type Player from '../Player';
+import type { SessionPlayer } from './sessionPlayers';
 import type ClientConnection from './ClientConnection';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import { MobArmorEquipmentPacket, MobEquipmentPacket } from '@jsprismarine/protocol';
@@ -41,7 +41,7 @@ const recordingSession = () => {
 
     const session: PlayerSession = Object.assign(Object.create(PlayerSession.prototype), {
         connection,
-        ...sessionPlayerFields(stub<Player>())
+        ...sessionPlayerFields(stub<SessionPlayer>())
     });
 
     return { session, sent };

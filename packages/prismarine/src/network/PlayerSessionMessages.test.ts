@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import type Player from '../Player';
+import type { SessionPlayer } from './sessionPlayers';
 import { stub } from '../testing/stub.test.helper';
 import type ClientConnection from './ClientConnection';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
@@ -18,7 +18,7 @@ const sessionWithRecorder = () => {
 
     const session: PlayerSession = Object.assign(Object.create(PlayerSession.prototype), {
         connection,
-        ...sessionPlayerFields(stub<Player>())
+        ...sessionPlayerFields(stub<SessionPlayer>())
     });
 
     return { session, sent };

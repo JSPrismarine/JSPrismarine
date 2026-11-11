@@ -2,7 +2,7 @@ import BinaryStream from '@jsprismarine/binaryutils';
 import type { Logger } from '@jsprismarine/logger';
 import { describe, expect, it } from 'vitest';
 
-import type Player from '../../Player';
+import type { SessionPlayer } from '../sessionPlayers';
 import type Server from '../../Server';
 import type SessionManager from '../../SessionManager';
 import type PlayerSession from '../../network/PlayerSession';
@@ -431,7 +431,7 @@ describe('AvailableCommandsPacket', () => {
         const commandManager = new CommandManager(server);
         await commandManager.enable();
 
-        const player = stub<Player>({ getName: () => 'Steve', getServer: () => server, isOp: () => false });
+        const player = stub<SessionPlayer>({ getName: () => 'Steve', getServer: () => server, isOp: () => false });
         const connection = stub<ClientConnection>({
             sendDataPacket: async (packet) => {
                 sent.push(packet);

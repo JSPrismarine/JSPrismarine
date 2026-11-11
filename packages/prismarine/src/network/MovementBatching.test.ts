@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import type { Config } from '../config/Config';
 import type Server from '../Server';
 import type { Entity } from '../entity/Entity';
-import type Player from '../Player';
+import type { SessionPlayer } from './sessionPlayers';
 import { stub } from '../testing/stub.test.helper';
 import { Position } from '../world/Position';
 import type { World } from '../world/World';
@@ -33,7 +33,7 @@ const sessionWithCountedSends = () => {
         flushOutboundPackets: async () => {}
     });
     const config = stub<Config>({ getEntityTrackingHysteresis: () => 2, getProximityBroadcast: () => true });
-    const session = sessionFor(stub<Server>({ getConfig: () => config }), connection, stub<Player>());
+    const session = sessionFor(stub<Server>({ getConfig: () => config }), connection, stub<SessionPlayer>());
 
     return { session, batches, singles };
 };

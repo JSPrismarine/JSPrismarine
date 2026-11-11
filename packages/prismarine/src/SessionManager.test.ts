@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import type Player from './Player';
+import type { SessionPlayer } from './network/sessionPlayers';
 import SessionManager from './SessionManager';
 import type ClientConnection from './network/ClientConnection';
 import type PlayerSession from './network/PlayerSession';
@@ -13,7 +13,7 @@ const ALEX = identityNamed('Alex');
 
 /** A connection whose session holds runtime id `id` and `identity`, for a player online or not. */
 const connectionFor = (id: bigint, identity = ALEX, online = true) => {
-    const player = stub<Player>({});
+    const player = stub<SessionPlayer>({});
     const session = stub<PlayerSession>({
         runtimeId: id,
         identity,

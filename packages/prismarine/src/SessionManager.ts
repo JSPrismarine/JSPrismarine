@@ -1,7 +1,7 @@
-import type Player from './Player';
 import type ClientConnection from './network/ClientConnection';
 import type PlayerSession from './network/PlayerSession';
 import { LegacyPlayers } from './network/sessionPlayers';
+import type { SessionPlayer } from './network/sessionPlayers';
 import type { ConnectionId } from './network/transport/ConnectionId';
 import type { PlayerListEntry } from '@jsprismarine/protocol/wire/structures/PlayerListEntry';
 import type { PlayerIdentity } from './playerIdentity';
@@ -131,12 +131,12 @@ export default class SessionManager {
      * Online only, the same test `World.getPlayers` applies. A connection has a session from
      * the moment it authenticates, well before the client is ready to be sent anything, and
      * without this the login handshake was among the recipients of every broadcast.
-     * @returns {Player[]} The online players.
+     * @returns {SessionPlayer[]} The online players.
      */
-    public getAllPlayers(): Player[] {
+    public getAllPlayers(): SessionPlayer[] {
         return Array.from(this.connections.values())
             .map((conn) => conn.getPlayerSession()?.getPlayer())
-            .filter((player): player is Player => Boolean(player?.isOnline()));
+            .filter((player): player is SessionPlayer => Boolean(player?.isOnline()));
     }
 
     /**
@@ -200,7 +200,7 @@ export default class SessionManager {
      * @param query.xuid - The Xbox Live id.
      * @returns The player, or null when no online player matches.
      */
-    public findPlayer(query: { name?: string; xuid?: string }): Player | null {
+    public findPlayer(query: { name?: string; xuid?: string }): SessionPlayer | null {
         return this.findSession(query)?.getPlayer() ?? null;
     }
 
@@ -211,7 +211,7 @@ export default class SessionManager {
      * @param name
      * @returns
      */
-    public getPlayerByExactName(name: string): Player | null {
+    public getPlayerByExactName(name: string): SessionPlayer | null {
         return this.findSession({ name })?.getPlayer() ?? null;
     }
 
@@ -225,7 +225,7 @@ export default class SessionManager {
      * @param id - The runtime id to look up.
      * @returns The player, or null when no online player has that id.
      */
-    public getPlayerById(id: bigint): Player | null {
+    public getPlayerById(id: bigint): SessionPlayer | null {
         return this.sessionOf(id)?.getPlayer() ?? null;
     }
 }

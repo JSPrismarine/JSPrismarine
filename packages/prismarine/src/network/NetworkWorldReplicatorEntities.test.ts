@@ -1,7 +1,7 @@
 import type { Logger } from '@jsprismarine/logger';
 import { describe, expect, it, vi } from 'vitest';
 
-import type Player from '../Player';
+import type { SessionPlayer } from './sessionPlayers';
 import type Server from '../Server';
 import type { Config } from '../config/Config';
 import type { Entity } from '../entity/Entity';
@@ -129,7 +129,7 @@ const replicatorOver = ({
     proximity = true,
     fullFlushFragments = false
 }: {
-    players?: Player[];
+    players?: SessionPlayer[];
     entities?: ShownActor[];
     proximity?: boolean;
     fullFlushFragments?: boolean;

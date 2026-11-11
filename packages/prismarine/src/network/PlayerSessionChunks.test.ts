@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import type { Logger } from '@jsprismarine/logger';
-import type Player from '../Player';
+import type { SessionPlayer } from './sessionPlayers';
 import type Server from '../Server';
 import type { Config } from '../config/Config';
 import { stub } from '../testing/stub.test.helper';
@@ -41,9 +41,9 @@ describe('network', () => {
          * which is what the session actually calls, reads it on every call.
          */
         const playerAt = (x: number, z: number) => {
-            const walkable: { position: { x: number; z: number }; player: Player } = {
+            const walkable: { position: { x: number; z: number }; player: SessionPlayer } = {
                 position: { x, z },
-                player: stub<Player>({
+                player: stub<SessionPlayer>({
                     getPosition: () =>
                         stub<Position>({
                             getX: () => walkable.position.x,
@@ -157,7 +157,7 @@ describe('network', () => {
             const world = stub<World>({
                 getLoadedChunk: (x, z) => (x === 1 && z === 2 ? chunk : x === 2 && z === 2 ? secondChunk : null)
             });
-            const playerWithWorld = stub<Player>({
+            const playerWithWorld = stub<SessionPlayer>({
                 getPosition: () => stub<Position>({ getX: () => 0, getZ: () => 0 }),
                 getWorld: () => world
             });
@@ -179,7 +179,7 @@ describe('network', () => {
             const chunk = new Chunk(1, 2, new Map(), Dimensions.Overworld);
             chunk.setBlockRuntimeId(1, 70, 2, BlockRuntimeIds.getByName('minecraft:stone'));
             const world = stub<World>({ getLoadedChunk: () => chunk });
-            const cachePlayer = stub<Player>({
+            const cachePlayer = stub<SessionPlayer>({
                 getPosition: () => stub<Position>({ getX: () => 0, getZ: () => 0 }),
                 getWorld: () => world
             });
@@ -218,7 +218,7 @@ describe('network', () => {
                 const chunk = new Chunk(1, 2, new Map(), Dimensions.Overworld);
                 chunk.setBlockRuntimeId(1, 70, 2, BlockRuntimeIds.getByName('minecraft:stone'));
                 const world = stub<World>({ getLoadedChunk: () => chunk });
-                const playerWithWorld = stub<Player>({
+                const playerWithWorld = stub<SessionPlayer>({
                     getPosition: () => new Position(0, 64, 0, world),
                     getWorld: () => world,
                     isOnline: () => true
@@ -282,7 +282,7 @@ describe('network', () => {
                 getDimension: () => Dimensions.Overworld,
                 getLoadedChunk: (x, z) => (x === 1 && z === 2 ? chunk : null)
             });
-            const playerWithWorld = stub<Player>({
+            const playerWithWorld = stub<SessionPlayer>({
                 getWorld: () => world,
                 isOnline: () => true,
                 getName: () => 'tester'
@@ -350,7 +350,7 @@ describe('network', () => {
                     return chunk;
                 }
             });
-            const playerWithWorld = stub<Player>({
+            const playerWithWorld = stub<SessionPlayer>({
                 getPosition: () => new Position(0, 64, 0, world),
                 getWorld: () => world,
                 getName: () => 'tester',
@@ -393,7 +393,7 @@ describe('network', () => {
                 getDimension: () => Dimensions.Overworld,
                 getLoadedChunk: () => chunk
             });
-            const playerWithWorld = stub<Player>({ getWorld: () => world, isOnline: () => true });
+            const playerWithWorld = stub<SessionPlayer>({ getWorld: () => world, isOnline: () => true });
             const sentPackets: NetworkPacket<unknown>[] = [];
             const cacheSession = sessionFor(
                 server,

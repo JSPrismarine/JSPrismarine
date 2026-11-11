@@ -2,7 +2,7 @@ import type { Logger } from '@jsprismarine/logger';
 import { CommandPermissionLevel } from '@jsprismarine/minecraft';
 import { describe, expect, it } from 'vitest';
 
-import type Player from '../Player';
+import type { SessionPlayer } from './sessionPlayers';
 import type Server from '../Server';
 import type SessionManager from '../SessionManager';
 import type PlayerSession from './PlayerSession';
@@ -57,7 +57,7 @@ const commandsSentTo = async ({
     const commandManager = new CommandManager(server);
     await commandManager.enable();
 
-    const player = stub<Player>({
+    const player = stub<SessionPlayer>({
         getName: () => 'Steve',
         getServer: () => server,
         isOp: () => op,
@@ -171,7 +171,7 @@ describe('PlayerSession', () => {
             const commandManager = new CommandManager(server);
             await commandManager.enable();
             const cachedCommands = commandManager.getVanillaCommandList();
-            const player = stub<Player>({
+            const player = stub<SessionPlayer>({
                 getName: () => 'Steve',
                 getServer: () => server,
                 isOp: () => false,

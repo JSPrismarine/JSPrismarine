@@ -12,7 +12,6 @@ import {
     PlayerPermissionLevel
 } from '@jsprismarine/minecraft';
 import { advancementChangedDimension } from '../advancement/triggers';
-import type Player from '../Player';
 import type { PlayerIdentity } from '../playerIdentity';
 import { playerKeyOf } from '../playerIdentity';
 import type Server from '../Server';
@@ -55,7 +54,7 @@ import { forgetAdvancements } from '../advancement/progress';
 import { forgetEnchantmentSeed } from '../enchantment/enchantingTable';
 import { BossBar } from './BossBar';
 import { EntityTracker } from './EntityTracker';
-import type { SessionPlayerRef, SessionPlayers } from './sessionPlayers';
+import type { SessionPlayer, SessionPlayerRef, SessionPlayers } from './sessionPlayers';
 import { craftingRecipeCount, joinContentPayloads, limitCraftingData } from './contentPayloads';
 import { sendCachedJoinPacket } from './joinPacketCache';
 import { creativeContentFrom } from './payloadAdapters';
@@ -309,7 +308,7 @@ export default class PlayerSession {
     public readonly identity: PlayerIdentity;
 
     /** Where {@link PlayerSession.getPlayer} finds the player by {@link PlayerSession.runtimeId}. */
-    private readonly players: SessionPlayers<Player>;
+    private readonly players: SessionPlayers<SessionPlayer>;
 
     /**
      * Entity movement produced by this tick, waiting to go out as one batch.
@@ -475,7 +474,7 @@ export default class PlayerSession {
         server: Server,
         connection: ClientConnection,
         player: SessionPlayerRef,
-        players: SessionPlayers<Player>
+        players: SessionPlayers<SessionPlayer>
     ) {
         this.server = server;
         this.connection = connection;
@@ -3143,7 +3142,7 @@ export default class PlayerSession {
      * @returns The player.
      * @throws {Error} Once {@link PlayerSession.disable} has forgotten the player.
      */
-    public getPlayer(): Player {
+    public getPlayer(): SessionPlayer {
         const player = this.players.of(Number(this.runtimeId));
         if (player === undefined) {
             throw new Error(`${this.identity.name} (entity ${this.runtimeId}) has left: its session has no player`);
