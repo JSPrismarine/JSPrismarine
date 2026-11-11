@@ -22,6 +22,6 @@ export default class BossEventHandler implements PacketHandler<BossEventPacket> 
     public async handle(packet: BossEventPacket, _server: Server, session: PlayerSession): Promise<void> {
         if (packet.eventType !== BossEventUpdateType.Query) return;
 
-        await BossBar.answerQuery(session.getPlayer(), packet.targetActorId);
+        await BossBar.answerQuery(session, packet.targetActorId);
     }
 }
