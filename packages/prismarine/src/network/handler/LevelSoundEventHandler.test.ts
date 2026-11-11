@@ -3,13 +3,13 @@ import { Vector3 } from '@jsprismarine/math';
 import { LevelSoundEvent } from '@jsprismarine/minecraft';
 import { describe, expect, it } from 'vitest';
 
-import type Player from '../../Player';
 import type Server from '../../Server';
 import type { NetworkWorldReplicator, WorldReplicators } from '../NetworkWorldReplicator';
 import { Position } from '../../world/Position';
 import type { World } from '../../world/World';
 import type { StubMembers } from '../../testing/stub.test.helper';
 import { identityNamed } from '../../testing/sessionIdentity.test.helper';
+import { stubPlayerPort } from '../../testing/playerPort.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import type PlayerSession from '../PlayerSession';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
@@ -22,7 +22,7 @@ const SENDER_ID = 7n;
 const fakeSession = () => {
     const played: { position: Vector3; packet: NetworkPacket }[] = [];
     const world = stub<World>({});
-    const player = stub<Player>({
+    const player = stubPlayerPort({
         getName: () => 'tester',
         getRuntimeId: () => SENDER_ID,
         getType: () => 'minecraft:player',

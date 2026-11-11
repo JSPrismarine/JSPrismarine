@@ -1,7 +1,6 @@
 import type { Logger } from '@jsprismarine/logger';
 import { describe, expect, it, vi } from 'vitest';
 
-import type Player from '../../Player';
 import type Server from '../../Server';
 import CraftingInput from '../../crafting/CraftingInput';
 import ContainerEntry from '../../inventory/ContainerEntry';
@@ -10,6 +9,7 @@ import { WindowTypes } from '../../inventory/WindowTypes';
 import { Item } from '../../item/Item';
 import type { StubMembers } from '../../testing/stub.test.helper';
 import { identityNamed } from '../../testing/sessionIdentity.test.helper';
+import { stubPlayerPort } from '../../testing/playerPort.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import { Position } from '../../world/Position';
 import type { World } from '../../world/World';
@@ -62,7 +62,7 @@ const run = async ({
         identity: identityNamed('Steve'),
         getConnection: () => stub<ClientConnection>({ sendDataPacket: async (packet) => void sent.push(packet) }),
         getPlayer: () =>
-            stub<Player>({
+            stubPlayerPort({
                 getName: () => 'Steve',
                 getInventory: () => inventory,
                 getCraftingInput: () => craftingInput,

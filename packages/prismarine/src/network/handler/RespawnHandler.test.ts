@@ -2,9 +2,9 @@ import type { Logger } from '@jsprismarine/logger';
 import { Vector3 } from '@jsprismarine/math';
 import { describe, expect, it } from 'vitest';
 
-import type Player from '../../Player';
 import type Server from '../../Server';
 import { identityNamed } from '../../testing/sessionIdentity.test.helper';
+import { stubPlayerPort } from '../../testing/playerPort.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import { Position } from '../../world/Position';
 import type { World } from '../../world/World';
@@ -43,7 +43,7 @@ const fakeSession = ({ alive = true, spawnWorld }: { alive?: boolean; spawnWorld
             sendAbilities: async () => void done.push({ what: 'abilities' }),
             sendInventory: async () => void done.push({ what: 'inventory' }),
             getPlayer: () =>
-                stub<Player>({
+                stubPlayerPort({
                     getName: () => 'tester',
                     getRuntimeId: () => 7n,
                     isAlive: () => alive,
