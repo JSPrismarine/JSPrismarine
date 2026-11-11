@@ -306,6 +306,34 @@ describe('modules/ticker', () => {
         }
     });
 
+    it('holds its first tick until released, as the server does while its transports bind', async () => {
+        const harness = buildHarness();
+        harness.ticker.hold();
+        const handle = await startTestModule(tickerModule(harness.ticker));
+        try {
+            await vi.advanceTimersByTimeAsync(TICK_MS * 4);
+            expect(harness.tickEvents).toHaveLength(0);
+
+            harness.ticker.release();
+            await vi.advanceTimersByTimeAsync(0);
+            expect(harness.tickEvents.map((event) => event.getTick())).toEqual([0]);
+        } finally {
+            await handle.stop();
+        }
+    });
+
+    it('stays stopped when released after the kernel stopped it', async () => {
+        const harness = buildHarness();
+        harness.ticker.hold();
+        const handle = await startTestModule(tickerModule(harness.ticker));
+        await handle.stop();
+
+        harness.ticker.release();
+        await vi.advanceTimersByTimeAsync(TICK_MS * 4);
+
+        expect(harness.tickEvents).toHaveLength(0);
+    });
+
     it('does not tick when ticking is disabled', async () => {
         const harness = buildHarness({ isTickingEnabled: () => false });
         const handle = await startTestModule(tickerModule(harness.ticker));
