@@ -675,7 +675,7 @@ export class StoreActors {
         const content = world.getServer().getContent();
         const sends: Promise<void>[] = [];
 
-        for (const entity of runtime.all()) {
+        for (const entity of runtime.entities()) {
             const actor = this.actors.get(entity.id);
             if (actor === undefined) continue;
             const isTicking = shouldSync === undefined || shouldSync(entity.position);

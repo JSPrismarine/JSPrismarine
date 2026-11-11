@@ -474,6 +474,10 @@ export class EntityRuntime implements EntityScene {
     public onPlayerFailed: ((entity: DataEntity, error: unknown) => void) | undefined;
     /** The entity each `EntityInstance` belongs to, which is how the AI seams resolve a body. */
     private readonly byInstance = new Map<EntityInstance, DataEntity>();
+    /** The order each entity entered the store in, which {@link EntityRuntime.entities} cuts a walk off by. */
+    private readonly admissionOf = new WeakMap<DataEntity, number>();
+    /** How many entities the store has admitted, the next one's place in {@link EntityRuntime.admissionOf}. */
+    private admissions = 0;
     /** Invalid interaction slots reported once per entity and request. */
     private readonly reportedInteractionSlots = new WeakMap<DataEntity, Set<string>>();
     /** Barter requests waiting for a piglin's admire behavior to finish. */
@@ -745,9 +749,30 @@ export class EntityRuntime implements EntityScene {
         return this.facts;
     }
 
-    /** Every live entity, in spawn order. */
+    /**
+     * Every live entity in spawn order, walked in place, for a caller that reads or changes the
+     * entities as it goes.
+     *
+     * The walk visits the entities the store held when it began and skips one admitted after
+     * that, as the copy it replaces did, so a mob a goal spawns first acts on the next tick. An
+     * entity removed before the walk reaches it is not visited.
+     */
+    public *entities(): IterableIterator<DataEntity> {
+        const end = this.admissions;
+        for (const entity of this.store.values()) {
+            // The store keeps spawn order, so the first newer entity ends the walk.
+            if ((this.admissionOf.get(entity) ?? 0) >= end) return;
+            yield entity;
+        }
+    }
+
+    /**
+     * Every live entity, in spawn order, as an array that holds still while it is read.
+     *
+     * This copies the store. Walk {@link EntityRuntime.entities} unless the caller needs an array.
+     */
     public all(): readonly DataEntity[] {
-        return [...this.store.values()];
+        return [...this.entities()];
     }
 
     /** One live entity by its runtime id, or undefined when this index holds no such entity. */
@@ -1312,6 +1337,7 @@ export class EntityRuntime implements EntityScene {
                 this.host.playerImpulse?.(id, { x, y, z });
             };
         this.store.admit(entity);
+        this.admissionOf.set(entity, this.admissions++);
         this.byPersistentIdentity.set(entity.persistentIdentity, entity);
         this.byInstance.set(instance, entity);
         // After the index, and with the hook set last: everything a component did while the
@@ -1500,13 +1526,10 @@ export class EntityRuntime implements EntityScene {
         this.refreshOnlineOwners();
         this.interest.resetBlockCache();
         if (this.navigationView?.persistsAcrossTicks !== true) this.navigationView?.invalidateBlockCache();
-        const allEntities = this.all();
-        // A player ticks wherever it stands, as the world's legacy loop and actor update let it.
-        const entities =
-            shouldTick === undefined
-                ? allEntities
-                : allEntities.filter((entity) => clientOwnsMovement(entity.identifier) || shouldTick(entity.position));
-        for (const entity of entities) {
+        for (const entity of this.entities()) {
+            // A player ticks wherever it stands, as the world's legacy loop and actor update let it.
+            if (shouldTick !== undefined && !clientOwnsMovement(entity.identifier) && !shouldTick(entity.position))
+                continue;
             if (entity.removed !== undefined || this.store.isSkipped(entity.id)) continue;
             if (this.store.broken !== undefined) break;
             // One unit per update (ADR 0015): a throw undoes what this update wrote, skips the
@@ -1703,7 +1726,7 @@ export class EntityRuntime implements EntityScene {
         const world = this.spawnWorld;
         if (world === undefined) return;
 
-        for (const entity of this.all()) {
+        for (const entity of this.entities()) {
             if (shouldTick !== undefined && !shouldTick(entity.position)) continue;
             if (!this.pools.has(entity.id)) continue;
             const reason = despawnReason({ position: blockPositionOf(entity.position) }, world);
@@ -3263,7 +3286,7 @@ export class EntityRuntime implements EntityScene {
 
         const identity = this.host.playerIdentityOf?.(playerId);
         let nearbyCured = 0;
-        for (const other of this.all()) {
+        for (const other of this.entities()) {
             if (other.id === id || other.body.curedBy === undefined || other.removed !== undefined) continue;
             if (other.identifier.startsWith('minecraft:zombie_villager')) continue;
             if (distance(entity.position, other.position) <= NEARBY_CURED_RANGE) nearbyCured += 1;
