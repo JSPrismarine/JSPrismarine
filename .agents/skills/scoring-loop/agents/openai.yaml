@@ -1,0 +1,5 @@
+interface:
+  display_name: "Scoring Loop"
+  short_description: "Hill-climb any artifact with blind judges"
+policy:
+  allow_implicit_invocation: false

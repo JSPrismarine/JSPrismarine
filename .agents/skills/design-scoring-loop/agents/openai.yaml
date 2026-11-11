@@ -1,0 +1,5 @@
+interface:
+  display_name: "Design Scoring Loop"
+  short_description: "Hill-climb a visual surface with blind judges"
+policy:
+  allow_implicit_invocation: false
