@@ -40,6 +40,10 @@ afterEach(() => {
 
 const start = async () => {
     const server = new ServerSocket(10, false, serverName, logger);
+    const listening = new Promise<number>((resolve, reject) => {
+        server.once('listening', resolve);
+        server.once('error', reject);
+    });
     server.start('127.0.0.1', 0);
 
     const client = Dgram.createSocket('udp4');
@@ -47,15 +51,7 @@ const start = async () => {
     client.on('message', (msg) => inbox.push(msg));
     await new Promise<void>((resolve) => client.bind(0, '127.0.0.1', resolve));
 
-    const socket = server['socket']!;
-    const port = await new Promise<number>((resolve, reject) => {
-        try {
-            resolve(socket.address().port);
-        } catch {
-            socket.once('listening', () => resolve(socket.address().port));
-            socket.once('error', reject);
-        }
-    });
+    const port = await listening;
 
     running = { server, client };
 

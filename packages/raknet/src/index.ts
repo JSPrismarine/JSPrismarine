@@ -25,6 +25,8 @@ export {
 };
 
 export * from './ClientSocket';
+export * from './DatagramSource';
+export * from './RingDatagramSource';
 export * from './Constants';
 export * from './LoopbackSocket';
 export * from './WorkerServerSocket';

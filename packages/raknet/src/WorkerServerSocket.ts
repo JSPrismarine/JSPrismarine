@@ -7,6 +7,7 @@ import type Packet from './protocol/Packet';
 import Frame from './protocol/Frame';
 import RakNetSession, { RakNetPriority, RakNetRole, SessionStatus } from './Session';
 import type { Logger, RakNetListenerLike } from './RakNetPeer';
+import type { AttachRings, DatagramRings, WorkerSharedPort } from './RingDatagramSource';
 import SharedByteRing from './SharedByteRing';
 import InetAddress from './utils/InetAddress';
 import type { ServerName, ServerNameSnapshot } from './utils/ServerName';
@@ -50,6 +51,17 @@ interface WorkerServerOptions {
     readonly inboundMemory: SharedArrayBuffer;
     readonly metricsMemory: SharedArrayBuffer;
     readonly ringCapacity: number;
+    readonly sharedPort?: WorkerSharedPort;
+}
+
+/** A port the native networking library shares with this listener, and how its rings are attached. */
+export interface SharedPortRings {
+    readonly rings: DatagramRings;
+    readonly family: 4 | 6;
+    /** The port clients reach. */
+    readonly port: number;
+    /** Attaches the rings once the worker can be woken; see {@link AttachRings}. */
+    readonly attach: AttachRings;
 }
 
 /** Raised when the bounded main-to-worker ring has no room for a complete message. */
@@ -90,6 +102,7 @@ export default class WorkerServerSocket extends EventEmitter implements RakNetLi
      * @param logger - Receives the worker's RakNet log messages.
      * @param socketBufferOptions - UDP socket buffers requested by the worker.
      * @param ringCapacity - Byte capacity of each bounded shared-memory ring.
+     * @param sharedPort - A port the worker reads through rings instead of a socket of its own.
      */
     public constructor(
         maxConnections: number,
@@ -97,7 +110,8 @@ export default class WorkerServerSocket extends EventEmitter implements RakNetLi
         public readonly serverName: ServerName,
         private readonly logger: Logger,
         private readonly socketBufferOptions: SocketBufferOptions = {},
-        private readonly ringCapacity = DEFAULT_RING_CAPACITY
+        private readonly ringCapacity = DEFAULT_RING_CAPACITY,
+        private readonly sharedPort?: SharedPortRings
     ) {
         super();
         validateSocketBufferOptions(socketBufferOptions);
@@ -166,7 +180,16 @@ export default class WorkerServerSocket extends EventEmitter implements RakNetLi
             outboundMemory: this.outbound.memory,
             inboundMemory: this.inbound.memory,
             metricsMemory: this.metricsMemory,
-            ringCapacity: this.ringCapacity
+            ringCapacity: this.ringCapacity,
+            ...(this.sharedPort === undefined
+                ? {}
+                : {
+                      sharedPort: {
+                          ...this.sharedPort.rings,
+                          family: this.sharedPort.family,
+                          port: this.sharedPort.port
+                      }
+                  })
         };
 
         const worker = new Worker(workerUrl, { workerData: options, execArgv });
@@ -353,6 +376,16 @@ export default class WorkerServerSocket extends EventEmitter implements RakNetLi
     private handleWorkerMessage(message: unknown): void {
         if (typeof message !== 'object' || message === null || !('type' in message)) return;
         if (typeof message.type !== 'string') return;
+
+        if (message.type === 'attach-rings' && 'wakePort' in message && typeof message.wakePort === 'number') {
+            const sharedPort = this.sharedPort;
+            if (sharedPort === undefined) return;
+            Promise.resolve(sharedPort.attach(message.wakePort)).then(
+                (outboundWakePort) => this.worker?.postMessage({ type: 'rings-attached', outboundWakePort }),
+                (error: unknown) => this.handleWorkerFailure(error instanceof Error ? error : new Error(String(error)))
+            );
+            return;
+        }
 
         if (message.type === 'ready' && 'port' in message && typeof message.port === 'number') {
             if (this.address !== undefined && isIPv6(this.address)) this.serverName.setPortV6(message.port);

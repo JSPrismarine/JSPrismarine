@@ -5,6 +5,8 @@ import Frame from './protocol/Frame';
 import type { Logger } from './RakNetPeer';
 import { RakNetPriority } from './Session';
 import type RakNetSession from './Session';
+import { RingDatagramSource } from './RingDatagramSource';
+import type { WorkerSharedPort } from './RingDatagramSource';
 import ServerSocket from './ServerSocket';
 import SharedByteRing from './SharedByteRing';
 import WorkerEventQueue from './WorkerEventQueue';
@@ -34,6 +36,8 @@ interface WorkerServerOptions {
     readonly inboundMemory: SharedArrayBuffer;
     readonly metricsMemory: SharedArrayBuffer;
     readonly ringCapacity: number;
+    /** The rings of a port the native networking library shares with RakNet, when this listener uses one. */
+    readonly sharedPort?: WorkerSharedPort;
 }
 
 const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null;
@@ -62,7 +66,13 @@ const isWorkerOptions = (value: unknown): value is WorkerServerOptions =>
     value.outboundMemory instanceof SharedArrayBuffer &&
     value.inboundMemory instanceof SharedArrayBuffer &&
     value.metricsMemory instanceof SharedArrayBuffer &&
-    typeof value.ringCapacity === 'number';
+    typeof value.ringCapacity === 'number' &&
+    (value.sharedPort === undefined ||
+        (isRecord(value.sharedPort) &&
+            value.sharedPort.inbound instanceof SharedArrayBuffer &&
+            value.sharedPort.outbound instanceof SharedArrayBuffer &&
+            (value.sharedPort.family === 4 || value.sharedPort.family === 6) &&
+            typeof value.sharedPort.port === 'number'));
 
 const options = workerData;
 if (!isWorkerOptions(options)) throw new TypeError('RakNet worker received invalid startup data');
@@ -129,6 +139,9 @@ const applyServerName = (snapshot: ServerNameSnapshot): void => {
 };
 applyServerName(options.name);
 
+/** Settles the shared port's attach once the main thread says the rings are attached. */
+let resolveAttached: ((outboundWakePort: number) => void) | undefined;
+
 const server = new ServerSocket(
     options.maxConnections,
     false,
@@ -136,7 +149,20 @@ const server = new ServerSocket(
     workerLogger,
     options.socketBufferOptions,
     'copy',
-    BigInt(options.serverGuid)
+    BigInt(options.serverGuid),
+    options.sharedPort === undefined
+        ? undefined
+        : new RingDatagramSource(
+              options.sharedPort,
+              options.sharedPort.family,
+              options.sharedPort.port,
+              // The main thread holds the native library; it attaches the rings and answers.
+              (wakePort) =>
+                  new Promise<number>((resolve) => {
+                      resolveAttached = resolve;
+                      workerPort.postMessage({ type: 'attach-rings', wakePort });
+                  })
+          )
 );
 
 const writeEvent = (type: number, id: number, address: string, port: number, payload: Buffer): void => {
@@ -286,6 +312,16 @@ workerPort.on('message', (message: unknown) => {
         clearInterval(pumpTimer);
         server.kill();
         workerPort.close();
+        return;
+    }
+
+    if (
+        message.type === 'rings-attached' &&
+        'outboundWakePort' in message &&
+        typeof message.outboundWakePort === 'number'
+    ) {
+        resolveAttached?.(message.outboundWakePort);
+        resolveAttached = undefined;
         return;
     }
 

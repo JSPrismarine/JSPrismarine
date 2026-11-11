@@ -44,13 +44,8 @@ const startServer = async (maxConnections = 10) => {
 
     // ServerSocket.start binds asynchronously; wait for the port to be assigned.
     const port = await new Promise<number>((resolve, reject) => {
-        const socket = server['socket']!;
-        try {
-            resolve(socket.address().port);
-        } catch {
-            socket.once('listening', () => resolve(socket.address().port));
-            socket.once('error', reject);
-        }
+        server.once('listening', resolve);
+        server.once('error', reject);
     });
 
     running = { server, clients: [], sockets: [] };
