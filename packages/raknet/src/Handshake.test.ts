@@ -38,6 +38,11 @@ afterEach(() => {
 
 const start = async (name = serverName) => {
     const server = new ServerSocket(10, false, name, logger);
+    // ServerSocket.start binds asynchronously; listen for the port before anything else awaits.
+    const listening = new Promise<number>((resolve, reject) => {
+        server.once('listening', resolve);
+        server.once('error', reject);
+    });
     server.start('127.0.0.1', 0);
 
     const client = Dgram.createSocket('udp4');
@@ -45,16 +50,7 @@ const start = async (name = serverName) => {
     client.on('message', (msg) => inbox.push(msg));
     await new Promise<void>((resolve) => client.bind(0, '127.0.0.1', resolve));
 
-    // ServerSocket.start binds asynchronously; wait for the port to be assigned.
-    const port = await new Promise<number>((resolve, reject) => {
-        const socket = server['socket']!;
-        try {
-            resolve(socket.address().port);
-        } catch {
-            socket.once('listening', () => resolve(socket.address().port));
-            socket.once('error', reject);
-        }
-    });
+    const port = await listening;
 
     running = { server, client };
 
@@ -183,7 +179,7 @@ describe('offline handshake over a real socket', () => {
         expect(reply1[0]).toBe(MessageIdentifiers.OPEN_CONNECTION_REPLY_1);
         expect(reply1.readBigUInt64BE(1 + OFFLINE_MESSAGE_DATA_ID.byteLength)).toBe(guid);
 
-        send(openConnectionRequest2(1200, server['socket']!.address().port));
+        send(openConnectionRequest2(1200, name.getPort()));
         const reply2 = await next();
         expect(reply2[0]).toBe(MessageIdentifiers.OPEN_CONNECTION_REPLY_2);
         expect(reply2.readBigUInt64BE(1 + OFFLINE_MESSAGE_DATA_ID.byteLength)).toBe(guid);

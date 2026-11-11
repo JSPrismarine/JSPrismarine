@@ -3,6 +3,7 @@ import type { RemoteInfo } from 'node:dgram';
 import { once } from 'node:events';
 import { RAKNET_TICK_INTERVAL_MS, RTO_MAX_MS, SESSION_TIMEOUT_MS } from './Constants';
 import type RakNetSession from './Session';
+import type { DatagramListener, DatagramSource } from './DatagramSource';
 import ServerSocket from './ServerSocket';
 import { ServerName } from './utils/ServerName';
 
@@ -22,6 +23,24 @@ const freshServerName = () =>
         { getConfig: () => ({ getMotd: () => 'x', getGamemode: () => 'survival', getMaxPlayers: () => 10 }) },
         { protocolVersion: 0, minecraftVersions: ['0.0.0'] }
     );
+
+/** A datagram source a test feeds by hand. */
+class FakeSource implements DatagramSource {
+    private listener: DatagramListener | undefined;
+
+    public start(_address: string, _port: number, listener: DatagramListener): Promise<number> {
+        this.listener = listener;
+        return Promise.resolve(19132);
+    }
+
+    public send(): void {}
+
+    public close(): void {}
+
+    public deliver(datagram: Buffer, from: RemoteInfo): void {
+        this.listener?.(datagram, from);
+    }
+}
 
 describe('ServerSocket', () => {
     afterEach(() => {
@@ -85,7 +104,8 @@ describe('ServerSocket', () => {
 
     it('processes an ACK queued during a retransmission stall before session updates', async () => {
         vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date', 'performance'] });
-        const server = new ServerSocket(1, false, serverName, logger);
+        const source = new FakeSource();
+        const server = new ServerSocket(1, false, serverName, logger, {}, 'copy', undefined, source);
         const remote: RemoteInfo = { address: '127.0.0.1', port: 19132, family: 'IPv4', size: 4 };
         const state = stalledSessionState(RTO_MAX_MS + 1);
         server['sessions'].set('127.0.0.1:19132', state.session);
@@ -94,7 +114,7 @@ describe('ServerSocket', () => {
         await listening;
 
         vi.advanceTimersByTime(RAKNET_TICK_INTERVAL_MS);
-        server['socket']!.emit('message', Buffer.from([0xc0, 0, 0, 0]), remote);
+        source.deliver(Buffer.from([0xc0, 0, 0, 0]), remote);
         await new Promise<void>((resolve) => setImmediate(resolve));
 
         expect(state.events[0]).toBe('handle');
@@ -108,7 +128,8 @@ describe('ServerSocket', () => {
 
     it('refreshes session activity before timeout checks after a long stall', async () => {
         vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date', 'performance'] });
-        const server = new ServerSocket(1, false, serverName, logger);
+        const source = new FakeSource();
+        const server = new ServerSocket(1, false, serverName, logger, {}, 'copy', undefined, source);
         const remote: RemoteInfo = { address: '127.0.0.1', port: 19132, family: 'IPv4', size: 4 };
         const state = stalledSessionState(SESSION_TIMEOUT_MS + 1);
         server['sessions'].set('127.0.0.1:19132', state.session);
@@ -117,7 +138,7 @@ describe('ServerSocket', () => {
         await listening;
 
         vi.advanceTimersByTime(RAKNET_TICK_INTERVAL_MS);
-        server['socket']!.emit('message', Buffer.from([0xc0, 0, 0, 0]), remote);
+        source.deliver(Buffer.from([0xc0, 0, 0, 0]), remote);
         await new Promise<void>((resolve) => setImmediate(resolve));
 
         expect(state.events[0]).toBe('handle');
