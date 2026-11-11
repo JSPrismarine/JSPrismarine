@@ -243,7 +243,7 @@ const percentage = trackerProgressPercent;
                     >
                     <span
                         >{{ group.passed.toLocaleString() }}/{{ group.tracked.toLocaleString() }}
-                        {{ group.measure === 'behavior' ? 'behavior' : 'rows' }}</span
+                        <i>{{ group.measure === 'behavior' ? 'checks' : 'rows' }}</i></span
                     >
                 </span>
                 <progress
@@ -700,6 +700,12 @@ progress::-moz-progress-bar {
     background: var(--jsp-signal);
 }
 
+/* The unit has a line of its own, so every tile's text keeps one rhythm whatever the count's width. */
+.group-option-count i {
+    display: block;
+    font-style: normal;
+}
+
 .group-option.active .group-option-count b {
     color: inherit;
 }
@@ -763,6 +769,13 @@ progress::-moz-progress-bar {
 }
 
 .status-filters button.active {
+    color: var(--jsp-cream);
+    background: var(--jsp-ink);
+    border-color: var(--jsp-ink);
+}
+
+/* A selected control is ink in light mode and accent in dark mode, as the audience tabs are. */
+.dark .status-filters button.active {
     color: var(--jsp-on-accent);
     background: var(--jsp-accent);
     border-color: var(--jsp-accent);
@@ -821,7 +834,9 @@ progress::-moz-progress-bar {
     grid-template-columns: minmax(0, 1fr) auto;
     gap: 6px 16px;
     align-items: center;
-    padding: 14px 16px;
+    padding: 12px 16px;
+    /* The doc column gives every summary a paragraph's margin; a row needs none. */
+    margin: 0;
     cursor: pointer;
     list-style: none;
 }

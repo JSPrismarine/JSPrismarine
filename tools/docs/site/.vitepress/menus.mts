@@ -9,7 +9,7 @@ const startCommand = `./${exampleExecutable(loadProject())}`;
 export const megaMenus = [
     {
         text: 'Guides',
-        description: 'Run, configure and operate a server.',
+        description: 'Play on, host and configure a server.',
         featured: {
             text: 'Run a server',
             description: 'Download the prebuilt server and start it. Nothing else to install.',
@@ -24,11 +24,16 @@ export const megaMenus = [
                         text: 'Joining a server',
                         description: 'Add a server in Minecraft, versions and fixes.',
                         link: '/guide/joining'
+                    },
+                    {
+                        text: 'Commands and functions',
+                        description: 'Run commands and .mcfunction files.',
+                        link: '/data-driven/commands'
                     }
                 ]
             },
             {
-                text: 'Operate',
+                text: 'Host a server',
                 items: [
                     {
                         text: 'Run the prebuilt server',

@@ -77,8 +77,6 @@ export function useSiteMenu() {
     const menus = computed(() => theme.value.megaMenus ?? []);
     const current = computed(() => normalizeRoute(route.path));
 
-    /** Whether a link is the page being read. A link to a section of a page is not the page itself. */
-    const isCurrent = (link: string) => !link.includes('#') && normalizeRoute(withBase(link)) === current.value;
     /** Whether a link points into the page being read, section links included. */
     const isOnCurrent = (link: string) => normalizeRoute(withBase(link)) === current.value;
 
@@ -87,6 +85,19 @@ export function useSiteMenu() {
         entry.featured?.link,
         ...entry.sections.flatMap((section) => section.items.map(({ link }) => link))
     ];
+
+    /**
+     * The menu entry that marks the page being read: the link to the page itself, or, when the menus
+     * link only to its sections, the first of those.
+     */
+    const currentLink = computed(() => {
+        const links = menus.value.flatMap((entry) =>
+            entry.sections.flatMap(({ items }) => items.map(({ link }) => link))
+        );
+        return links.find((link) => !link.includes('#') && isOnCurrent(link)) ?? links.find(isOnCurrent);
+    });
+    /** Whether a menu entry marks the page being read. */
+    const isCurrent = (link: string) => link === currentLink.value;
 
     /** Whether a menu lists the page being read. */
     const holdsCurrent = (entry: MegaMenu) => menuLinks(entry).some((link) => link !== undefined && isOnCurrent(link));

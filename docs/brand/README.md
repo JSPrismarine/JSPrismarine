@@ -101,8 +101,9 @@ ink.
 - Primary actions carry a hard offset shadow (`4px 4px 0`, no blur). It shrinks on hover and
   disappears on press, so the button reads as pushed in. The shadow is ink on light surfaces and mint
   on forest and in dark mode (`--jsp-primary-shadow`), where an ink shadow would vanish.
-- A selected tab is ink in light mode and accent in dark mode, so it stands apart from the accent
-  figure tiles on the light page and from the ink surfaces on the dark one.
+- A selected tab or filter pill is ink in light mode and accent in dark mode, so it stands apart
+  from the accent figure tiles on the light page and from the ink surfaces on the dark one. A
+  selectable tile, such as a parity group, is a figure tile and stays accent when selected.
 - Grids are tight: `10px` gaps (`--jsp-gap`) between solid blocks.
 - Every control shows a signal-orange focus ring when reached by keyboard, with an ink band between
   the control and the ring. Signal alone is too faint on the light page; with the band the ring reads
@@ -130,8 +131,10 @@ scrolling off the screen edge, and a two-column table stacks each row as its nam
   groups, so the sidebar lists every page the overview offers, and the build fails on a page in the
   folder that the overview leaves out.
 - Every page ends on the site footer, doc pages beside a sidebar included.
-- Each second-level section opens on a short solid bar. Overview pages whose sections are lists of
-  links set those sections as cards (`sectionCards.ts`).
+- Each second-level section opens on a short solid bar; a component's own headings (`vp-raw`) do not.
+  Overview pages whose sections are lists of links set those sections as cards (`sectionCards.ts`),
+  on a grid that reads left to right in the page's order, at full width with no outline, since the
+  cards are the outline.
 - Release notes lead each change with its first sentence in bold. Inline code in them is mono and
   colored without a chip.
 - The parity tracker's rows and group tiles mark anything under
@@ -174,7 +177,9 @@ The site has one menu, in `tools/docs/site/.vitepress/theme/site-menu/`, drawn f
   on Apple, Ctrl elsewhere, and `/` works on layouts that need Shift for it.
 - **It knows where you are.** The current section carries the accent bar, the current page is
   highlighted, and a breadcrumb above the page names both. A section's index page counts as current
-  in the first menu that lists pages in its folder, even when no menu links the index itself.
+  in the first menu that lists pages in its folder, even when no menu links the index itself. When
+  the menus link only to sections of the page being read, the first of those links marks it.
+- The Guides menu groups pages under the same audience names as the guide overview.
 
 ## Voice
 

@@ -64,9 +64,11 @@ withDefaults(defineProps<{ tone?: 'accent' | 'signal' | 'deep' | 'forest'; span?
 }
 
 .bento-tile :deep(.bento-caption) {
-    max-width: 34ch;
+    max-width: 42ch;
     margin: 0;
     font-size: 15px;
+    /* No word alone on a caption's last line. */
+    text-wrap: pretty;
 }
 
 /*

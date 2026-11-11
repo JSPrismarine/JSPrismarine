@@ -320,11 +320,12 @@
     }
 }
 
-/* Long outline entries wrap instead of ending in an ellipsis. */
+/* Long outline entries wrap instead of ending in an ellipsis. Wrapped lines sit tight and flush with
+   the first, with the gap between entries, so a two-line entry reads as one. */
 .VPDocOutlineItem .outline-link {
+    padding: 4px 0;
     overflow: visible;
-    padding-left: 1.2em;
-    text-indent: -1.2em;
+    line-height: 1.4;
     text-overflow: clip;
     white-space: normal;
 }
@@ -412,8 +413,9 @@
 }
 
 /* Doc pages end on the same footer as the landing page. VitePress hides it beside a sidebar, so it
-   takes the content column's offset instead, as VPContent does. */
-.VPFooter.has-sidebar {
+   takes the content column's offset instead, as VPContent does. The hiding rule is scoped, which adds
+   an attribute to its weight, so this one names the layout too. */
+.Layout .VPFooter.has-sidebar {
     display: block;
 }
 
@@ -451,15 +453,22 @@
 }
 
 /* Overview pages set their sections as cards: see sectionCards.ts. Columns stack short and tall cards without holes. */
+/* A grid, not columns: the cards read left to right in the page's order, and a row shares one height. */
 .vp-doc .doc-cards {
-    columns: 2 280px;
-    column-gap: var(--jsp-gap);
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--jsp-gap);
     margin-top: 32px;
 }
 
+/* Two columns, so four audiences fill two even rows. */
+@media (min-width: 640px) {
+    .vp-doc .doc-cards {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
 .vp-doc .doc-card {
-    margin-bottom: var(--jsp-gap);
-    break-inside: avoid;
     padding: 22px 22px 8px;
     background: var(--vp-c-bg-soft);
     border-radius: var(--jsp-radius-panel);
