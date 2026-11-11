@@ -9,8 +9,10 @@ import MoveActorAbsolutePacket from '@jsprismarine/protocol/packet/MoveActorAbso
 import { stub } from '../src/testing/stub.test.helper';
 import { Position } from '../src/world/Position';
 import type { World } from '../src/world/World';
-import type { Entity } from '../src/entity/Entity';
 import PlayerSession from '../src/network/PlayerSession';
+
+/** What a session queues a move of. */
+type MovedActor = Parameters<PlayerSession['queueMoveActor']>[0];
 
 const VIEWER_COUNT = 20;
 const ENTITY_COUNT = 30;
@@ -20,7 +22,7 @@ const world = stub<World>({ getName: () => 'runtime id fanout benchmark' });
 
 const coordinates = Array.from({ length: ENTITY_COUNT }, (_, index) => ({ x: index, y: 64, z: -index }));
 const entities = coordinates.map((position, index) =>
-    stub<Entity>({
+    stub<MovedActor>({
         getRuntimeId: () => BigInt(index + 1),
         getPosition: () => new Position(position.x, position.y, position.z, world),
         isOnGround: () => true,
@@ -33,6 +35,7 @@ const entities = coordinates.map((position, index) =>
 const createViewer = () => {
     const batches: Buffer[][] = [];
     const connection = {
+        flushOutboundPackets: async () => {},
         sendPackets: (packets: readonly MoveActorAbsolutePacket[]) => {
             batches.push(
                 packets.map((packet) => {

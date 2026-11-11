@@ -3,7 +3,6 @@ import { Vector3 } from '@jsprismarine/math';
 import type { Logger } from '@jsprismarine/logger';
 import { PacketCompressionAlgorithm } from '@jsprismarine/minecraft';
 
-import type Player from '../src/Player';
 import type { StorePlayerActor } from '../src/entity/data/storePlayers';
 import type Server from '../src/Server';
 import type { Config } from '../src/config/Config';
@@ -24,11 +23,13 @@ const packets: string[] = [];
 /** Reads the packets again after a check, which TypeScript would otherwise keep narrowed across awaits. */
 const observerPackets = (): readonly string[] => packets;
 const frames: Buffer[] = [];
-const players: Player[] = [];
+/** The player a session answers with, which the movement handler moves. */
+type SessionPlayer = ReturnType<PlayerSession['getPlayer']>;
+const sessions: PlayerSession[] = [];
 let replicator!: NetworkWorldReplicator;
 const world = stub<World>({
     getName: () => 'idle movement benchmark',
-    getPlayers: () => players,
+    getViewers: () => sessions,
     broadcastMove: async (entity) => replicator.entityMoved(entity)
 });
 const pose = {
@@ -46,7 +47,7 @@ const moverBody = stub<StorePlayerActor>({
     getWorld: () => world,
     isOnGround: () => pose.onGround
 });
-const mover = stub<Player>({
+const mover = stub<SessionPlayer>({
     getName: () => 'moving-player',
     getRuntimeId: () => 42n,
     getBody: () => moverBody,
@@ -95,7 +96,7 @@ const observerSession = stub<PlayerSession>({
     getConnection: () => connection
 });
 Object.assign(mover, { getNetworkSession: () => moverSession });
-players.push(mover, stub<Player>({ getRuntimeId: () => 43n, getNetworkSession: () => observerSession }));
+sessions.push(moverSession, observerSession);
 
 const config = stub<Config>({
     getPacketCompressionLevel: () => 1,
@@ -112,7 +113,7 @@ const server = stub<Server>({
     post: () => 0
 });
 replicator = new NetworkWorldReplicator(world, server);
-const session = stub<PlayerSession>({ getPlayer: () => mover });
+const session = stub<PlayerSession>({ getPlayer: () => mover, acceptsClientPosition: () => true });
 const movement = {
     position: new Vector3(124.25, 68, -91.75),
     pitch: 3.5,

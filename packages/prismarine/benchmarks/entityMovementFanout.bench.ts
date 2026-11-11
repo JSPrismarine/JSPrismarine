@@ -13,12 +13,11 @@ import { BatchCodec } from '@jsprismarine/protocol';
 import type { ProtocolCodec } from '@jsprismarine/protocol';
 import MoveActorAbsolutePacket from '@jsprismarine/protocol/packet/MoveActorAbsolutePacket';
 
-import type Player from '../src/Player';
 import type Server from '../src/Server';
 import type { Config } from '../src/config/Config';
-import type { Entity } from '../src/entity/Entity';
 import { stub } from '../src/testing/stub.test.helper';
 import { Position } from '../src/world/Position';
+import type { ShownActor } from '../src/world/ShownActor';
 import type { World } from '../src/world/World';
 import type ClientConnection from '../src/network/ClientConnection';
 import type PlayerSession from '../src/network/PlayerSession';
@@ -65,8 +64,8 @@ const codecs = Array.from({ length: VIEWER_COUNT }, (_unused, index) => counters
 const frames: Buffer[][] = codecs.map(() => []);
 const world = stub<World>({ getName: () => 'entity movement fan-out benchmark' });
 const positions = Array.from({ length: ENTITY_COUNT }, (_unused, index) => ({ x: index * 2 + 0.25 }));
-const entities: Entity[] = positions.map((position, index) =>
-    stub<Entity>({
+const entities: ShownActor[] = positions.map((position, index) =>
+    stub<ShownActor>({
         getRuntimeId: () => BigInt(index + 1),
         getPosition: () => new Position(position.x, 64, index % 11, world),
         pitch: index % 23,
@@ -75,26 +74,25 @@ const entities: Entity[] = positions.map((position, index) =>
         isOnGround: () => true
     })
 );
-const players = codecs.map((codec, index) => {
+const sessions = codecs.map((codec, index) => {
     const tracked = new Set(entities.map((entity) => entity.getRuntimeId()));
     const connection = stub<ClientConnection>({
         codec,
         sendSharedBatch: async (content) => void frames[index]!.push(content),
         sendSharedBatchAsync: async (batch) => void frames[index]!.push((await batch).content)
     });
-    const session = stub<PlayerSession>({
+    return stub<PlayerSession>({
         tracks: (runtimeId: bigint) => tracked.has(runtimeId),
         getConnection: () => connection
     });
-    return stub<Player>({ getRuntimeId: () => BigInt(index + 10_000), getNetworkSession: () => session });
 });
-const visibleWorld = stub<World>({ getName: () => 'entity movement fan-out benchmark', getPlayers: () => players });
+const visibleWorld = stub<World>({ getName: () => 'entity movement fan-out benchmark', getViewers: () => sessions });
 const config = stub<Config>({ getPacketCompressionLevel: () => 1, getPacketCompressionThreshold: () => 256 });
 const logger = stub<Logger>({ error: () => {} });
 const server = stub<Server>({ getConfig: () => config, getLogger: () => logger });
 const replicator = new NetworkWorldReplicator(visibleWorld, server);
 
-const movePacketFor = (entity: Entity): MoveActorAbsolutePacket => {
+const movePacketFor = (entity: ShownActor): MoveActorAbsolutePacket => {
     const packet = new MoveActorAbsolutePacket();
     packet.runtimeEntityId = entity.getRuntimeId();
     packet.position = entity.getPosition();

@@ -19,7 +19,6 @@ import UpdateSubChunkBlocksPacket from '@jsprismarine/protocol/packet/UpdateSubC
 import UpdateSubChunkNetworkBlockInfo from '@jsprismarine/protocol/structure/UpdateSubChunkNetworkBlockInfo';
 
 import { BlockRuntimeIds } from '../src/block/state/BlockRuntimeIds';
-import type Player from '../src/Player';
 import type Server from '../src/Server';
 import type { Config } from '../src/config/Config';
 import { stub } from '../src/testing/stub.test.helper';
@@ -79,21 +78,19 @@ const viewers: Viewer[] = Array.from({ length: PLAYER_COUNT }, (_unused, index) 
 });
 
 const batches: Buffer[][] = viewers.map(() => []);
-const players = viewers.map((viewer, index) => {
+const sessions = viewers.map((viewer, index) => {
     const connection = stub<ClientConnection>({
         codec: Codec2193,
         sendSharedBatch: async (content) => void batches[index]!.push(content)
     });
-    const session = stub<PlayerSession>({ getConnection: () => connection });
-    return stub<Player>({
-        getNetworkSession: () => session,
-        getPosition: () => new Position(viewer.x, Y, viewer.z, world),
-        isOnline: () => true,
-        viewDistance: viewer.viewDistance
+    return stub<PlayerSession>({
+        getConnection: () => connection,
+        getViewPosition: () => new Position(viewer.x, Y, viewer.z, world),
+        getViewDistance: () => viewer.viewDistance
     });
 });
 
-const visibleWorld = stub<World>({ getName: () => 'block proximity benchmark', getPlayers: () => players });
+const visibleWorld = stub<World>({ getName: () => 'block proximity benchmark', getViewers: () => sessions });
 const config = stub<Config>({
     getProximityBroadcast: () => true,
     getPacketCompressionLevel: () => 1,
