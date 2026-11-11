@@ -1,10 +1,9 @@
-import type Player from '../Player';
 import type Server from '../Server';
 import type ClientConnection from '../network/ClientConnection';
 import PlayerSession from '../network/PlayerSession';
 import type SessionManager from '../SessionManager';
 import { LegacyPlayers } from '../network/sessionPlayers';
-import type { SessionPlayerRef, SessionPlayers } from '../network/sessionPlayers';
+import type { SessionPlayer, SessionPlayerRef, SessionPlayers } from '../network/sessionPlayers';
 import type { StubMembers } from './stub.test.helper';
 import { stub } from './stub.test.helper';
 import type { PlayerIdentity } from '../playerIdentity';
@@ -43,7 +42,7 @@ export const sessionPlayerFields = <P>(
 export const sessionFor = (
     server: Server,
     connection: ClientConnection,
-    player: Player,
+    player: SessionPlayer,
     ref: Partial<SessionPlayerRef> = {}
 ): PlayerSession =>
     new PlayerSession(

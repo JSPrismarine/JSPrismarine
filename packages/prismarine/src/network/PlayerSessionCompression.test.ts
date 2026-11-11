@@ -4,7 +4,7 @@ import type { Logger } from '@jsprismarine/logger';
 import type { Config } from '../config/Config';
 import type { Entity } from '../entity/Entity';
 import MoveActorAbsolutePacket from '@jsprismarine/protocol/packet/MoveActorAbsolutePacket';
-import type Player from '../Player';
+import type { SessionPlayer } from './sessionPlayers';
 import type Server from '../Server';
 import { stub } from '../testing/stub.test.helper';
 import { Position } from '../world/Position';
@@ -35,7 +35,7 @@ describe('PlayerSession movement compression', () => {
             getEntityTrackingHysteresis: () => 2,
             getProximityBroadcast: () => true
         });
-        const session = sessionFor(stub<Server>({ getConfig: () => config }), connection, stub<Player>());
+        const session = sessionFor(stub<Server>({ getConfig: () => config }), connection, stub<SessionPlayer>());
         const position = new Position(12, 64, -5, stub<World>());
         const entity = stub<Entity>({
             getRuntimeId: () => 300n,

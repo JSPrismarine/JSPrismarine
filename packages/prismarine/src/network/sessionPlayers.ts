@@ -17,6 +17,13 @@
 import type Player from '../Player';
 import type { PlayerIdentity } from '../playerIdentity';
 
+/**
+ * The player a session speaks for, which `PlayerSession.getPlayer` returns. Still the legacy
+ * `Player`. Package H-D of the entity and tick re-architecture makes it the `StorePlayer` that
+ * `EntityRuntimes.players` files, and every reader of this alias follows.
+ */
+export type SessionPlayer = Player;
+
 /** The players sessions speak for, by entity id. */
 export interface SessionPlayers<P> {
     /** The player with this entity id, or undefined once it has left the server. */

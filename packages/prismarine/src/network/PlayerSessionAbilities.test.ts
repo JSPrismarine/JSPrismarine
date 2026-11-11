@@ -1,7 +1,7 @@
 import { CommandPermissionLevel, Gametype, PlayerPermissionLevel } from '@jsprismarine/minecraft';
 import { describe, expect, it } from 'vitest';
 
-import type Player from '../Player';
+import type { SessionPlayer } from './sessionPlayers';
 import type { Metadata } from '@jsprismarine/protocol/wire/structures/Metadata';
 import { stub } from '../testing/stub.test.helper';
 import { stubPlayerPort } from '../testing/playerPort.test.helper';
@@ -31,7 +31,7 @@ const floatLE = (value: number): Buffer => {
 };
 
 /** A session whose connection records what goes out, speaking for `player`. */
-const sessionFor = (player: Player) => {
+const sessionFor = (player: SessionPlayer) => {
     const sent: NetworkPacket[] = [];
     const connection = stub<ClientConnection>({
         sendDataPacket: async (packet) => void sent.push(packet)

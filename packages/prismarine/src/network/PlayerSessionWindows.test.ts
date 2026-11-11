@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 import ContainerEntry from '../inventory/ContainerEntry';
 import type HumanInventory from '../inventory/HumanInventory';
 import { Item } from '../item/Item';
-import type Player from '../Player';
+import type { SessionPlayer } from './sessionPlayers';
 import { stub } from '../testing/stub.test.helper';
 import type ClientConnection from './ClientConnection';
 import type { ProtocolCodec } from '@jsprismarine/protocol';
@@ -45,7 +45,7 @@ const sessionFor = () => {
             return item.stackNetworkId;
         }
     });
-    const player = stub<Player>({ getRuntimeId: () => 7n, getInventory: () => inventory });
+    const player = stub<SessionPlayer>({ getRuntimeId: () => 7n, getInventory: () => inventory });
 
     const session: PlayerSession = Object.assign(Object.create(PlayerSession.prototype), {
         connection,
