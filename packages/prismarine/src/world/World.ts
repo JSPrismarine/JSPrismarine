@@ -18,10 +18,7 @@ import Timer from '../utils/Timer';
 import UUID from '@jsprismarine/protocol/wire/structures/UUID';
 import { randomOf } from '../utils/Random';
 import type { Random } from '../utils/Random';
-// Imported straight from its module rather than through the barrel: `index.ts` exports
-// `./world/` before `Player`, so reaching for it via '../' lands back in a module that is
-// still initializing and the binding is not a constructor yet when `instanceof` runs.
-import Player from '../Player';
+import type Player from '../Player';
 import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
 import { BlockStateSchemas } from '../block/state/BlockStateSchema';
 import type { BlockState } from '../block/state/BlockState';
@@ -38,6 +35,7 @@ import { storedItemActorOf } from '../entity/EntitySerializer';
 import type { Entity } from '../entity/Entity';
 import type { StatusEffect, StatusEffectChange } from '../entity/StatusEffect';
 import { GenericEntity } from '../entity/GenericEntity';
+import { PLAYER_IDENTIFIER } from '../entity/playerOverlay';
 import { storedInventory, storedItem } from '../inventory/persistence';
 import type PlayerSession from '../network/PlayerSession';
 import { keyOfPlayer } from '../playerIdentity';
@@ -1149,16 +1147,18 @@ export class World implements Service {
         // clock and the status effects, after the legacy entities.
         const live = this.dataEntities();
         const tickingEntities: WorldActor[] = [];
+        // A player ticks wherever it stands, whichever kind of entity it is.
         for (const entity of this.entities.values()) {
-            if (!(entity instanceof Player)) {
+            if (entity.getType() !== PLAYER_IDENTIFIER) {
                 const position = entity.getPosition();
                 if (!isPositionTicking(position.getX(), position.getZ())) continue;
             }
             if (entity.claimUpdate(tick)) tickingEntities.push(entity);
         }
         for (const actor of live.actors.all()) {
-            const { x, z } = actor.entity.position;
-            if (isPositionTicking(x, z) && actor.claimUpdate(tick)) tickingEntities.push(actor);
+            const { identifier, position } = actor.entity;
+            const ticking = identifier === PLAYER_IDENTIFIER || isPositionTicking(position.x, position.z);
+            if (ticking && actor.claimUpdate(tick)) tickingEntities.push(actor);
         }
 
         // Before the updates, so the contact an entity's own update advances this tick already
@@ -3342,7 +3342,7 @@ export class World implements Service {
 
         const live = this.dataEntities();
         for (const entity of this.getEntityIndex().storeInChunk(chunk.getX(), chunk.getZ()))
-            live.runtime.remove(entity.id, 'chunk unload');
+            if (entity.identifier !== PLAYER_IDENTIFIER) live.runtime.remove(entity.id, 'chunk unload');
         const removals: Promise<void>[] = [];
         for (const entity of this.entitiesInChunk(chunk)) {
             if (live.unload(entity)) continue;
@@ -3510,7 +3510,7 @@ export class World implements Service {
         const updates: Promise<void>[] = [];
         for (const entity of entities) {
             try {
-                if (entity instanceof Player) continue;
+                if (entity.getType() === PLAYER_IDENTIFIER) continue;
 
                 const dirty = entity.attributes.getDirty();
                 if (dirty.length === 0) continue;
@@ -3566,7 +3566,7 @@ export class World implements Service {
      * its footprint overlaps. {@link World.entityRelocated} writes both, so they move together.
      */
     private markEntityChunkChanged(entity: Entity): void {
-        if (entity instanceof Player) return;
+        if (entity.getType() === PLAYER_IDENTIFIER) return;
         const runtimeIdsByChunk = this.runtimeIdsByChunk();
 
         const runtimeId = entity.getRuntimeId();
@@ -3592,13 +3592,16 @@ export class World implements Service {
     }
 
     private markEntitiesInChunkChanged(chunk: Chunk): void {
+        // A player is no part of a chunk's save, whichever kind of entity it is.
         if (
             this.server.getEntityRuntime?.(this.dimension.name) !== undefined &&
-            this.getEntityIndex().storeInChunk(chunk.getX(), chunk.getZ()).length > 0
+            this.getEntityIndex()
+                .storeInChunk(chunk.getX(), chunk.getZ())
+                .some((entity) => entity.identifier !== PLAYER_IDENTIFIER)
         )
             chunk.markEntitiesChanged();
         for (const entity of this.entities.values()) {
-            if (entity instanceof Player) continue;
+            if (entity.getType() === PLAYER_IDENTIFIER) continue;
 
             const position = entity.getPosition();
             if (
@@ -3828,8 +3831,9 @@ export class World implements Service {
                 )
             );
 
-            if (entity instanceof Player) {
-                const inventory = entity.getInventory();
+            const player = this.players.get(Number(entity.getRuntimeId()));
+            if (player !== undefined) {
+                const inventory = player.getInventory();
                 const containers = [inventory, inventory.getArmor(), inventory.getOffhand(), inventory.getEnderChest()];
                 const stackCounts = containers.map((container) =>
                     Array.from({ length: container.getSlotCount() }, (_unused, slot) => {
@@ -3850,7 +3854,7 @@ export class World implements Service {
                         inventory: storedInventory(inventory),
                         cursor: cursor === null ? null : storedItem(cursor),
                         stackCounts,
-                        components: entity.componentSnapshot()
+                        components: player.componentSnapshot()
                     })
                 );
             }
