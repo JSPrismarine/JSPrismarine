@@ -1,8 +1,7 @@
 import { DisconnectReason } from '@jsprismarine/minecraft';
-import type Server from '../../Server';
-import type PlayerSession from '../PlayerSession';
 import type ResourcePackChunkRequestPacket from '@jsprismarine/protocol/packet/ResourcePackChunkRequestPacket';
-import type PacketHandler from './PacketHandler';
+import type { InputContext } from './HandlerContext';
+import type { InputLaneHandler } from './SessionHandler';
 
 /**
  * A request for one chunk of a resource pack the client is downloading.
@@ -18,23 +17,23 @@ import type PacketHandler from './PacketHandler';
  * is checked against that pack's `Number of Chunks`, and a `ResourcePackChunkDataPacket`
  * carries the chunk back.
  */
-export default class ResourcePackChunkRequestHandler implements PacketHandler<ResourcePackChunkRequestPacket> {
+export default class ResourcePackChunkRequestHandler implements InputLaneHandler<ResourcePackChunkRequestPacket> {
     public static PacketName = 'ResourcePackChunkRequestPacket';
+    public readonly takes = 'context';
     public readonly phases = ['resourcePacks'] as const;
     // Input: the kick tears the player down and announces the departure to everyone.
     public readonly lane = 'input';
 
     /** Logs the requested pack and chunk, then disconnects the client. */
-    public async handle(packet: ResourcePackChunkRequestPacket, server: Server, session: PlayerSession): Promise<void> {
-        server
-            .getLogger()
-            .debug(
-                `${session.identity.name} requested chunk ${packet.chunk} of pack ${packet.resourceName}, which the server does not serve`,
-                'ResourcePackChunkRequestHandler/handle'
-            );
-        await session.kick(
-            'Asked for a resource pack this server does not have',
-            DisconnectReason.RESOURCE_PACK_PROBLEM
+    public handle(packet: ResourcePackChunkRequestPacket, { session, log, step }: InputContext): undefined {
+        log.debug(
+            `${session.identity.name} requested chunk ${packet.chunk} of pack ${packet.resourceName}, which the server does not serve`,
+            'ResourcePackChunkRequestHandler/handle'
+        );
+        // Slice 9: taking the player off saves its record and announces the departure in chat,
+        // and the kick waits for both until they leave the tick.
+        step.defer(() =>
+            session.kick('Asked for a resource pack this server does not have', DisconnectReason.RESOURCE_PACK_PROBLEM)
         );
     }
 }

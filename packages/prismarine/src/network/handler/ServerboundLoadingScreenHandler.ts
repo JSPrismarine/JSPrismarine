@@ -1,8 +1,7 @@
-import type Server from '../../Server';
-import type PlayerSession from '../PlayerSession';
 import type ServerboundLoadingScreenPacket from '@jsprismarine/protocol/packet/ServerboundLoadingScreenPacket';
 import { ServerboundLoadingScreenPacketType } from '@jsprismarine/protocol/packet/ServerboundLoadingScreenPacket';
-import type PacketHandler from './PacketHandler';
+import type { InputContext } from './HandlerContext';
+import type { InputLaneHandler } from './SessionHandler';
 
 /**
  * The client reporting a loading screen edge.
@@ -14,8 +13,9 @@ import type PacketHandler from './PacketHandler';
  * recorded at debug level; a closed screen that is not the pending change's is logged as such
  * and otherwise ignored.
  */
-export default class ServerboundLoadingScreenHandler implements PacketHandler<ServerboundLoadingScreenPacket> {
+export default class ServerboundLoadingScreenHandler implements InputLaneHandler<ServerboundLoadingScreenPacket> {
     public static PacketName = 'ServerboundLoadingScreenPacket';
+    public readonly takes = 'context';
     public readonly phases = ['play'] as const;
     public readonly lane = 'input';
 
@@ -23,7 +23,7 @@ export default class ServerboundLoadingScreenHandler implements PacketHandler<Se
      * Logs which screen opened or closed, closes a dimension change's screen on the session,
      * and finishes the pending world change when the closed screen is its.
      */
-    public async handle(packet: ServerboundLoadingScreenPacket, server: Server, session: PlayerSession): Promise<void> {
+    public handle(packet: ServerboundLoadingScreenPacket, { session, log, step }: InputContext): undefined {
         const data = packet.getPacketData();
         if (data === null) throw new Error('Cannot handle a ServerboundLoadingScreenPacket without a payload');
         const closed = data.loadingScreenType === ServerboundLoadingScreenPacketType.EndLoadingScreen;
@@ -44,18 +44,31 @@ export default class ServerboundLoadingScreenHandler implements PacketHandler<Se
                   ? `, not screen ${pending.loadingScreenId} of the pending dimension change`
                   : '';
 
-        const released =
-            data.loadingScreenType === ServerboundLoadingScreenPacketType.StartLoadingScreen &&
-            data.loadingScreenId !== null &&
-            (await session.releaseArrivalChunks(data.loadingScreenId));
-
-        server
-            .getLogger()
-            .debug(
+        const report = (released: boolean) =>
+            log.debug(
                 `${session.identity.name} ${edge} ${screen}${known}${released ? '; sending its arrival columns' : ''}`,
                 'ServerboundLoadingScreenHandler/handle'
             );
 
-        if (closedId !== null) await session.completeDimensionChange(closedId);
+        const openedId =
+            data.loadingScreenType === ServerboundLoadingScreenPacketType.StartLoadingScreen
+                ? data.loadingScreenId
+                : null;
+        if (openedId !== null) {
+            // The session marks the columns released before it sends them, so what is left is
+            // chunk delivery, a send the step waits for.
+            step.output(session.releaseArrivalChunks(openedId).then(report));
+            return;
+        }
+
+        report(false);
+
+        // Slice 9: finishing the change waits for the arrival's spawn and may start a queued
+        // world change, until dimension travel is a message the destination admits.
+        if (closedId !== null) {
+            step.defer(async () => {
+                await session.completeDimensionChange(closedId);
+            });
+        }
     }
 }
