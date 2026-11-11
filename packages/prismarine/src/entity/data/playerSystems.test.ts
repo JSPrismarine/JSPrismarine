@@ -12,7 +12,7 @@ import { fieldsOf, logged, storePlayerFixture } from '../../testing/storePlayer.
 import UUID from '@jsprismarine/protocol/wire/structures/UUID';
 
 import { StorePlayer } from '../storePlayer';
-import { enterStore, StorePlayers } from './storePlayers';
+import { enterStore, moveStorePlayer, spawnStorePlayer, StorePlayers } from './storePlayers';
 import type { DataEntity } from './DataEntity';
 import type { EntityFixture } from './testing';
 import { FLOOR_Y, TestEntityWorld } from './testing';
@@ -467,6 +467,77 @@ describe('a store player', () => {
             ticks(fixture, 1, 80);
 
             expect(healthOf(player)).toBe(19);
+        });
+    });
+
+    describe('inputs', () => {
+        it('writes sprinting and sneaking as logged component fields', () => {
+            const fixture = storePlayerFixture();
+            const { player, components } = standingPlayer(fixture);
+
+            const entries = logged(fixture.runtime, () => {
+                fixture.runtime.playerSystems.setSprinting(player, true);
+                fixture.runtime.playerSystems.setSneaking(player, true);
+            });
+
+            expect(components.get('movement.sprinting')).toBe(true);
+            expect(components.get('movement.sneaking')).toBe(true);
+            expect(fieldsOf(entries, 'movement.sprinting')).toHaveLength(1);
+            expect(fieldsOf(entries, 'movement.sneaking')).toHaveLength(1);
+        });
+
+        it('charges a sprint jump four times what a standing jump costs', () => {
+            const fixture = storePlayerFixture();
+            const { player, components } = standingPlayer(fixture);
+
+            fixture.runtime.playerSystems.jumped(player);
+            const standing = components.get('vitals.exhaustion');
+            fixture.runtime.playerSystems.setSprinting(player, true);
+            fixture.runtime.playerSystems.jumped(player);
+
+            expect(standing).toBeGreaterThan(0);
+            expect(components.get('vitals.exhaustion') - standing).toBeCloseTo(standing * 4);
+        });
+
+        it('ends the fall in progress when the server moves the player', () => {
+            const fixture = storePlayerFixture();
+            const { player, components } = standingPlayer(fixture);
+            report(fixture, player, { y: FLOOR_Y + 11 }, false);
+            report(fixture, player, { y: FLOOR_Y + 5 }, false);
+            expect(components.get('vitals.fallDistance')).toBe(6);
+
+            expect(fixture.runtime.teleportPlayer(player.id, { x: 0.5, y: FLOOR_Y + 2, z: 0.5 })).toBe(true);
+            expect(components.get('vitals.fallDistance')).toBe(0);
+            expect(player.body.teleportPending).toBe(true);
+            report(fixture, player, { y: FLOOR_Y + 1 }, true);
+
+            expect(healthOf(player)).toBe(20);
+        });
+
+        it('keeps the head yaw a client reports beside its move', () => {
+            const fixture = storePlayerFixture();
+            const player = spawnStorePlayer(
+                fixture.runtime,
+                new StorePlayers(),
+                { x: 0.5, y: FLOOR_Y + 1, z: 0.5 },
+                {
+                    uuid: UUID.fromRandom(),
+                    name: 'Steve',
+                    xuid: ''
+                }
+            )!;
+
+            const moved = moveStorePlayer(fixture.runtime, player, {
+                position: { x: 1.5, y: FLOOR_Y + 1, z: 0.5 },
+                yaw: 30,
+                pitch: 5,
+                onGround: true,
+                headYaw: 45
+            });
+
+            expect(moved).toBe(true);
+            expect([player.yaw, player.pitch, player.headYaw]).toEqual([30, 5, 45]);
+            expect(player.entity?.position.x).toBe(1.5);
         });
     });
 
