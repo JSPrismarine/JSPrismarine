@@ -21,16 +21,19 @@ describe('player events', () => {
         expect(event.getGamemode()).toBe(1);
     });
 
-    it('still hand a listener the player, beside what each one reports', () => {
+    it('hand a listener the session, beside what each one reports', () => {
         const { player } = fakePlayer();
+        const session = player.getNetworkSession();
         const to = new Vector3(1, 2, 3);
-        const move = new PlayerMoveEvent(player, to);
+        const move = new PlayerMoveEvent(session, to);
         const disconnect = new PlayerDisconnectEvent(player, new InetAddress('127.0.0.1', 19132));
 
-        expect(move.getPlayer()).toBe(player);
+        expect(move.getSession()).toBe(session);
+        expect(move.getFrom()).toEqual(player.getPosition());
         expect(move.getTo()).toBe(to);
-        expect(disconnect.getPlayer()).toBe(player);
-        expect(disconnect.getRuntimeId()).toBe(player.getRuntimeId());
+        expect(disconnect.getSession()).toBe(session);
+        expect(disconnect.getRuntimeId()).toBe(session.runtimeId);
+        expect(disconnect.getIdentity()).toBe(session.identity);
         expect(disconnect.getInetAddr().getAddress()).toBe('127.0.0.1');
     });
 });
