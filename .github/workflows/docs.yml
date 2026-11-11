@@ -194,3 +194,4 @@ jobs:
                   preview-branch: gh-pages
                   umbrella-dir: ${{ env.PREVIEW_DIR }}
                   action: auto
+                  comment: true
