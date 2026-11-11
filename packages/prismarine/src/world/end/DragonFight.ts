@@ -318,27 +318,22 @@ export class DragonFight {
 
     /** Finds a crystal whose feet occupy one exact block cell. */
     private findCrystalAt(at: { x: number; y: number; z: number }): DataEntity | undefined {
-        return this.world
-            .dataEntities()
-            .runtime.all()
-            .find(
-                (entity) =>
-                    entity.identifier === CRYSTAL_IDENTIFIER &&
-                    Math.floor(entity.position.x) === at.x &&
-                    entity.position.y === at.y &&
-                    Math.floor(entity.position.z) === at.z
-            );
+        for (const entity of this.world.dataEntities().runtime.entities())
+            if (
+                entity.identifier === CRYSTAL_IDENTIFIER &&
+                Math.floor(entity.position.x) === at.x &&
+                entity.position.y === at.y &&
+                Math.floor(entity.position.z) === at.z
+            )
+                return entity;
+        return undefined;
     }
 
     /** Whether every saved crystal is present in the loaded entity runtime. */
     private respawnCrystalIdsAreLive(): boolean {
-        const liveIds = new Set(
-            this.world
-                .dataEntities()
-                .runtime.all()
-                .filter((entity) => entity.identifier === CRYSTAL_IDENTIFIER)
-                .map((entity) => entity.persistentIdentity)
-        );
+        const liveIds = new Set<string>();
+        for (const entity of this.world.dataEntities().runtime.entities())
+            if (entity.identifier === CRYSTAL_IDENTIFIER) liveIds.add(entity.persistentIdentity);
         return (
             this.fight.respawnCrystalIds.length === RESPAWN_CRYSTAL_OFFSETS.length &&
             this.fight.respawnCrystalIds.every((id) => liveIds.has(id))
@@ -348,14 +343,14 @@ export class DragonFight {
     /** Points the four driving crystals at one position. */
     private setRespawnCrystalBeam(target: { x: number; y: number; z: number }): void {
         const ids = new Set(this.fight.respawnCrystalIds);
-        for (const crystal of this.world.dataEntities().runtime.all()) {
+        for (const crystal of this.world.dataEntities().runtime.entities()) {
             if (ids.has(crystal.persistentIdentity)) crystal.body.beamTarget = { ...target };
         }
     }
 
     /** Clears pillar-crystal protection and beams on both completion and abort. */
     private resetPillarCrystalOptions(): void {
-        for (const crystal of this.world.dataEntities().runtime.all()) {
+        for (const crystal of this.world.dataEntities().runtime.entities()) {
             if (crystal.identifier !== CRYSTAL_IDENTIFIER) continue;
             crystal.body.invulnerable = false;
             crystal.body.beamTarget = undefined;
@@ -391,7 +386,8 @@ export class DragonFight {
         await Promise.all(chunks);
 
         const runtime = this.world.dataEntities().runtime;
-        for (const crystal of runtime.all()) {
+        // Removed as the walk goes, which the walk allows: a removed entity is not visited again.
+        for (const crystal of runtime.entities()) {
             if (
                 crystal.identifier === CRYSTAL_IDENTIFIER &&
                 Math.abs(crystal.position.x - spike.centerX) <= 10 &&
@@ -425,10 +421,9 @@ export class DragonFight {
     /** Explodes the four driving crystals without block damage and spawns the next dragon. */
     private async finishRespawn(): Promise<void> {
         const ids = new Set(this.fight.respawnCrystalIds);
-        const crystals = this.world
-            .dataEntities()
-            .runtime.all()
-            .filter((entity) => ids.has(entity.persistentIdentity));
+        const crystals: DataEntity[] = [];
+        for (const entity of this.world.dataEntities().runtime.entities())
+            if (ids.has(entity.persistentIdentity)) crystals.push(entity);
         const positions = crystals.map((crystal) => ({ ...crystal.position }));
         for (const crystal of crystals) this.world.dataEntities().runtime.remove(crystal.id, 'respawn complete');
 
@@ -458,10 +453,7 @@ export class DragonFight {
 
     /** Puts the bar on the players in the arena and takes it off everyone else. */
     private async updatePlayers(): Promise<void> {
-        const near = this.world
-            .getPlayers()
-            .filter((player) => this.inArena(player.getPosition()))
-            .map((player) => player.getNetworkSession());
+        const near = this.world.getViewers().filter((session) => this.inArena(session.getViewPosition()));
         this.playerNear = near.length > 0;
 
         if (!this.fight.dragonKilled) for (const session of near) await this.bar.addPlayer(session);
@@ -601,10 +593,10 @@ export class DragonFight {
         }
 
         const killerId = dragon.body.damage.last()?.sourceId;
-        const killer = this.world.getPlayers().find((player) => Number(player.getRuntimeId()) === killerId);
+        const killer = this.world.getViewers().find((session) => Number(session.runtimeId) === killerId);
         if (killer === undefined) return;
 
-        addExperiencePoints(killer.getExperience(), xp);
+        addExperiencePoints(killer.getPlayer().getExperience(), xp);
     }
 
     /** Java's `spawnExitPortal` position: the (0, 0) surface, stepped down through bedrock above y 63. */
@@ -658,11 +650,13 @@ export class DragonFight {
 
     /** The loaded dragon this fight's reference names, or any loaded dragon, Java's `getDragons`. */
     private findLiveDragon(): DataEntity | undefined {
-        const dragons = this.world
-            .dataEntities()
-            .runtime.all()
-            .filter((entity) => entity.identifier === DRAGON_IDENTIFIER);
-        return dragons.find((entity) => entity.persistentIdentity === this.fight.dragonUniqueId) ?? dragons[0];
+        let first: DataEntity | undefined;
+        for (const entity of this.world.dataEntities().runtime.entities()) {
+            if (entity.identifier !== DRAGON_IDENTIFIER) continue;
+            if (entity.persistentIdentity === this.fight.dragonUniqueId) return entity;
+            first ??= entity;
+        }
+        return first;
     }
 
     private async adopt(dragon: DataEntity): Promise<void> {
@@ -687,16 +681,14 @@ export class DragonFight {
 
     private crystalNear(dragon: DataEntity): boolean {
         const radiusSquared = CRYSTAL_HEAL_RADIUS * CRYSTAL_HEAL_RADIUS;
-        return this.world
-            .dataEntities()
-            .runtime.all()
-            .some((entity) => {
-                if (entity.identifier !== CRYSTAL_IDENTIFIER) return false;
-                const dx = entity.position.x - dragon.position.x;
-                const dy = entity.position.y - dragon.position.y;
-                const dz = entity.position.z - dragon.position.z;
-                return dx * dx + dy * dy + dz * dz <= radiusSquared;
-            });
+        for (const entity of this.world.dataEntities().runtime.entities()) {
+            if (entity.identifier !== CRYSTAL_IDENTIFIER) continue;
+            const dx = entity.position.x - dragon.position.x;
+            const dy = entity.position.y - dragon.position.y;
+            const dz = entity.position.z - dragon.position.z;
+            if (dx * dx + dy * dy + dz * dz <= radiusSquared) return true;
+        }
+        return false;
     }
 
     /** Follows the dragon's health onto the bar, sending only when the percent moved. */

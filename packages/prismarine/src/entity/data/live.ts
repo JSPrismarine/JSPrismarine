@@ -1055,7 +1055,7 @@ export class LiveEntityRuntime {
      */
     public savedRecords(): ReadonlyMap<WorldActor, DataEntityRecord> {
         const records = new Map<WorldActor, DataEntityRecord>();
-        for (const entity of this.runtime.all()) {
+        for (const entity of this.runtime.entities()) {
             const actor = this.actors.actorOf(entity.id);
             // A player is saved as its player record, never with a chunk.
             if (
