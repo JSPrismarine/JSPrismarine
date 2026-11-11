@@ -33,7 +33,7 @@ export default class StructureTemplateDataRequestHandler implements PacketHandle
             data.structurePosition.z
         );
 
-        const rejection = blockTargetRejection(session.getPlayer(), structurePosition, STRUCTURE_BLOCKS);
+        const rejection = blockTargetRejection(session, structurePosition, STRUCTURE_BLOCKS);
         if (rejection !== null) {
             server
                 .getLogger()

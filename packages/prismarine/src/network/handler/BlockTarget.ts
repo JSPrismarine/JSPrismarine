@@ -1,6 +1,6 @@
 import type { Vector3 } from '@jsprismarine/math';
 import { CREATIVE_REACH } from '../../entity/Combat';
-import type { World } from '../../world/World';
+import type PlayerSession from '../PlayerSession';
 
 /**
  * How far from the player a block named in a packet may stand.
@@ -13,13 +13,11 @@ import type { World } from '../../world/World';
  */
 export const MAX_BLOCK_TARGET_DISTANCE = CREATIVE_REACH + 1;
 
-/** What {@link blockTargetRejection} reads of the player who sent a block position. */
-export interface BlockTargetSender {
-    /** Where the player stands. */
-    getPosition(): Vector3;
-    /** The world the block is read in. */
-    getWorld(): World;
-}
+/**
+ * What {@link blockTargetRejection} reads of the session that sent a block position: where its
+ * player's eyes are, and the world the block is read in.
+ */
+export type BlockTargetSender = Pick<PlayerSession, 'getViewPosition' | 'getWorld'>;
 
 /**
  * Why a block position a client sent must not be acted on, or null when it names one of
@@ -34,7 +32,7 @@ export interface BlockTargetSender {
  * entities it read from disk; a lectern a player placed has none, and refusing it would
  * drop every legitimate packet.
  *
- * @param sender - The player who sent the position.
+ * @param sender - The session that sent the position.
  * @param position - The block position the packet names.
  * @param blocks - The block names the packet may name, such as `minecraft:lectern`.
  * @returns The reason to drop the packet, fit for a log line, or null to go ahead.
@@ -44,7 +42,7 @@ export const blockTargetRejection = (
     position: Vector3,
     blocks: ReadonlySet<string>
 ): string | null => {
-    const distance = sender.getPosition().distanceTo(position);
+    const distance = sender.getViewPosition().distanceTo(position);
     if (!Number.isFinite(distance) || distance > MAX_BLOCK_TARGET_DISTANCE) {
         return `it is ${distance.toFixed(1)} blocks away`;
     }

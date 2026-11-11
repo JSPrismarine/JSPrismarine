@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { sessionNamedNearBlocks } from '../../testing/namedBlockTarget.test.helper';
+import { sessionSeeingBlocks } from './blockTargetSession.test.helper';
 import BlockPosition from '../../world/BlockPosition';
 import StructureBlockUpdatePacket, {
     StructureBlockType,
@@ -28,7 +28,7 @@ const packetAt = (position: BlockPosition) => {
 
 describe('StructureBlockUpdateHandler', () => {
     it('logs the structure name and position of a structure block in reach', () => {
-        const { logged, server, session } = sessionNamedNearBlocks({ '4,1,2': 'minecraft:structure_block' });
+        const { logged, server, session } = sessionSeeingBlocks({ '4,1,2': 'minecraft:structure_block' });
 
         new StructureBlockUpdateHandler().handle(packetAt(new BlockPosition(4, 1, 2)), server, session);
 
@@ -39,7 +39,7 @@ describe('StructureBlockUpdateHandler', () => {
     });
 
     it('drops a position that holds no structure block', () => {
-        const { logged, server, session } = sessionNamedNearBlocks({ '4,1,2': 'minecraft:stone' });
+        const { logged, server, session } = sessionSeeingBlocks({ '4,1,2': 'minecraft:stone' });
 
         new StructureBlockUpdateHandler().handle(packetAt(new BlockPosition(4, 1, 2)), server, session);
 
@@ -50,7 +50,7 @@ describe('StructureBlockUpdateHandler', () => {
     });
 
     it('drops a position out of reach without reading the world', () => {
-        const { logged, server, session } = sessionNamedNearBlocks({});
+        const { logged, server, session } = sessionSeeingBlocks({});
 
         new StructureBlockUpdateHandler().handle(packetAt(new BlockPosition(5_000_000, 64, 0)), server, session);
 

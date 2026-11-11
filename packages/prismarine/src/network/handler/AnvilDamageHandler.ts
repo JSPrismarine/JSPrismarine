@@ -30,7 +30,7 @@ export default class AnvilDamageHandler implements PacketHandler<AnvilDamagePack
         const blockPosition = new BlockPosition(protocolPosition.x, protocolPosition.y, protocolPosition.z);
         const where = `${blockPosition.getX()}, ${blockPosition.getY()}, ${blockPosition.getZ()}`;
 
-        const rejection = blockTargetRejection(session.getPlayer(), blockPosition, ANVILS);
+        const rejection = blockTargetRejection(session, blockPosition, ANVILS);
         if (rejection !== null) {
             server
                 .getLogger()
