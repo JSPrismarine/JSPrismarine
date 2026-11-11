@@ -1,0 +1,16 @@
+{
+    "format_version": "1.26.20",
+    "minecraft:entity": {
+        "description": {
+            "identifier": "jsprismarine:inert_actor",
+            "is_spawnable": false,
+            "is_summonable": false
+        },
+        "components": {
+            "minecraft:health": {
+                "value": 20,
+                "max": 20
+            }
+        }
+    }
+}
