@@ -59,7 +59,7 @@
     "homepage": "https://github.com/JSPrismarine/JSPrismarine/tree/master/packages/auth",
     "devDependencies": {
         "@types/node": "26.6.6",
-        "glob": "14.0.4",
+        "glob": "14.0.5",
         "prismarine-auth": "3.1.1",
         "rimraf": "6.1.4",
         "typescript": "7.0.2",
