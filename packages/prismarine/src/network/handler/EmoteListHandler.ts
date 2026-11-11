@@ -1,7 +1,6 @@
-import type Server from '../../Server';
-import type PlayerSession from '../PlayerSession';
 import type EmoteListPacket from '@jsprismarine/protocol/packet/EmoteListPacket';
-import type PacketHandler from './PacketHandler';
+import type { SessionContext } from './HandlerContext';
+import type { ConnectionLaneHandler } from './SessionHandler';
 
 /**
  * A client's list of equipped emotes.
@@ -9,8 +8,9 @@ import type PacketHandler from './PacketHandler';
  * Known gap: the server does not store a player's equipped emotes and does not forward them
  * to other players, so nobody else can download them.
  */
-export default class EmoteListHandler implements PacketHandler<EmoteListPacket> {
+export default class EmoteListHandler implements ConnectionLaneHandler<EmoteListPacket> {
     public static PacketName = 'EmoteListPacket';
+    public readonly takes = 'context';
     public readonly phases = ['play'] as const;
     public readonly lane = 'connection';
 
@@ -18,15 +18,13 @@ export default class EmoteListHandler implements PacketHandler<EmoteListPacket> 
      * Drops a list naming another player's runtime id and accepts, without storing, one
      * for the sender.
      */
-    public handle(packet: EmoteListPacket, server: Server, session: PlayerSession): void {
+    public handle(packet: EmoteListPacket, { session, log }: SessionContext): void {
         // `Runtime id` names whose emotes these are, and a client only equips its own.
         if (packet.runtimeId !== session.runtimeId) {
-            server
-                .getLogger()
-                .debug(
-                    `${session.identity.name} sent an EmoteList for runtime id ${packet.runtimeId}, dropped`,
-                    'EmoteListHandler/handle'
-                );
+            log.debug(
+                `${session.identity.name} sent an EmoteList for runtime id ${packet.runtimeId}, dropped`,
+                'EmoteListHandler/handle'
+            );
         }
     }
 }

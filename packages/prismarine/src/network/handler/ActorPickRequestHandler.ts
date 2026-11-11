@@ -1,7 +1,6 @@
-import type Server from '../../Server';
-import type PlayerSession from '../PlayerSession';
 import type ActorPickRequestPacket from '@jsprismarine/protocol/packet/ActorPickRequestPacket';
-import type PacketHandler from './PacketHandler';
+import type { SessionContext } from './HandlerContext';
+import type { ConnectionLaneHandler } from './SessionHandler';
 
 /**
  * An actor pick.
@@ -9,18 +8,17 @@ import type PacketHandler from './PacketHandler';
  * The pick is recorded at debug level and dropped. Known gap: there is no spawn egg item
  * mapping to hand back, and no server-initiated hotbar write to put it in.
  */
-export default class ActorPickRequestHandler implements PacketHandler<ActorPickRequestPacket> {
+export default class ActorPickRequestHandler implements ConnectionLaneHandler<ActorPickRequestPacket> {
     public static PacketName = 'ActorPickRequestPacket';
+    public readonly takes = 'context';
     public readonly phases = ['play'] as const;
     public readonly lane = 'connection';
 
     /** Logs the picked actor. */
-    public handle(packet: ActorPickRequestPacket, server: Server, session: PlayerSession): void {
-        server
-            .getLogger()
-            .debug(
-                `${session.identity.name} picked actor ${packet.actorId}${packet.withData ? ' with data' : ''} (${packet.maxSlots} free hotbar slots). Actor picking is not implemented`,
-                'ActorPickRequestHandler/handle'
-            );
+    public handle(packet: ActorPickRequestPacket, { session, log }: SessionContext): void {
+        log.debug(
+            `${session.identity.name} picked actor ${packet.actorId}${packet.withData ? ' with data' : ''} (${packet.maxSlots} free hotbar slots). Actor picking is not implemented`,
+            'ActorPickRequestHandler/handle'
+        );
     }
 }

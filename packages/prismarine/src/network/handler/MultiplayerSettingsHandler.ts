@@ -1,8 +1,7 @@
-import type Server from '../../Server';
-import type PlayerSession from '../PlayerSession';
 import { MultiplayerSettingsPacketType } from '@jsprismarine/protocol/packet/MultiplayerSettingsPacket';
 import type MultiplayerSettingsPacket from '@jsprismarine/protocol/packet/MultiplayerSettingsPacket';
-import type PacketHandler from './PacketHandler';
+import type { SessionContext } from './HandlerContext';
+import type { ConnectionLaneHandler } from './SessionHandler';
 
 /**
  * A request to change the multiplayer settings of an Education Edition session.
@@ -11,20 +10,19 @@ import type PacketHandler from './PacketHandler';
  * and join codes are not modeled, so the session stays as it is and no packet goes back to
  * the players in it.
  */
-export default class MultiplayerSettingsHandler implements PacketHandler<MultiplayerSettingsPacket> {
+export default class MultiplayerSettingsHandler implements ConnectionLaneHandler<MultiplayerSettingsPacket> {
     public static PacketName = 'MultiplayerSettingsPacket';
+    public readonly takes = 'context';
     public readonly phases = ['play'] as const;
     public readonly lane = 'connection';
 
     /** Logs the requested setting. */
-    public handle(packet: MultiplayerSettingsPacket, server: Server, session: PlayerSession): void {
+    public handle(packet: MultiplayerSettingsPacket, { session, log }: SessionContext): void {
         const name = MultiplayerSettingsPacketType[packet.packetType] ?? `type ${packet.packetType}`;
 
-        server
-            .getLogger()
-            .debug(
-                `${session.identity.name} asked for multiplayer setting ${name}. Education Edition sessions are not modeled`,
-                'MultiplayerSettingsHandler/handle'
-            );
+        log.debug(
+            `${session.identity.name} asked for multiplayer setting ${name}. Education Edition sessions are not modeled`,
+            'MultiplayerSettingsHandler/handle'
+        );
     }
 }

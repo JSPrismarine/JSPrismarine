@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { Logger } from '@jsprismarine/logger';
-import type Server from '../../Server';
+import { sessionContext } from '../../testing/handlerContext.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import { STEVE } from '../../testing/sessionIdentity.test.helper';
 import type PlayerSession from '../PlayerSession';
@@ -12,9 +12,7 @@ import BlockPickRequestHandler from './BlockPickRequestHandler';
 describe('BlockPickRequestHandler', () => {
     it('logs the position and flags', () => {
         const logged: string[] = [];
-        const server = stub<Server>({
-            getLogger: () => stub<Logger>({ debug: (...message) => void logged.push(message[0] ?? '') })
-        });
+        const log = stub<Logger>({ debug: (...message) => void logged.push(message[0] ?? '') });
         const session = stub<PlayerSession>({ identity: STEVE });
         const packet = new BlockPickRequestPacket({
             position: new BlockPos(1, 2, 3),
@@ -22,7 +20,7 @@ describe('BlockPickRequestHandler', () => {
             maxSlots: 4
         });
 
-        new BlockPickRequestHandler().handle(packet, server, session);
+        new BlockPickRequestHandler().handle(packet, sessionContext(session, { log }));
 
         expect(logged).toEqual([
             'Steve picked the block at 1, 2, 3 with data (4 free hotbar slots). Block picking is not implemented'
