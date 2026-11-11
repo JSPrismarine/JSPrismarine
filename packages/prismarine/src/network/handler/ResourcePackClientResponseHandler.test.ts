@@ -5,7 +5,6 @@ import { InetAddress } from '@jsprismarine/raknet';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { ConsoleSender } from '../../command/ConsoleSender';
-import type Player from '../../Player';
 import type Server from '../../Server';
 import type { Config } from '../../config/Config';
 import type { ServerContent } from '../../content/ServerContent';
@@ -14,6 +13,7 @@ import { fixtureBlockPalette, fixtureContentOptions } from '../../content/testin
 import type { Event } from '../../events/Event';
 import { fakeLevel, TEST_OVERWORLD_STEM } from '../../testing/level';
 import { identityNamed } from '../../testing/sessionIdentity.test.helper';
+import { stubPlayerPort } from '../../testing/playerPort.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import UUID from '@jsprismarine/protocol/wire/structures/UUID';
 import type GameRuleManager from '../../world/GameRuleManager';
@@ -98,7 +98,7 @@ const harness = ({
             stub<GameRuleManager>({ getGameRules: () => new Map<string, [boolean | number, boolean]>() })
     });
 
-    const player = stub<Player>({
+    const player = stubPlayerPort({
         getName: () => 'runner',
         getUUID: () => UUID.fromRandom(),
         getRuntimeId: () => 1n,
