@@ -28,6 +28,8 @@ import { blockMiningOf, playerMiningOf } from './BlockMining';
 import { NBTTagCompound, Types } from '@jsprismarine/nbt';
 import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
 import { writeBlockEntity } from '../blockentity/blockEntityWrite';
+import { worldBlockStorage } from './contentAdapter';
+import { createEngineWorld } from './EngineWorld';
 
 /** A world whose dimension's entity runtime is the real one the entity fixture builds. */
 const worldWithStore = () => {
@@ -614,6 +616,58 @@ describe("a world's blocks and block entities in its change log", () => {
 
         expect(outcome.failed).toBe(true);
         expect(world.getLoadedChunk(0, 0)?.getBlockEntity(at.x, at.y, at.z)).toBeNull();
+        expect(world.replayStateDigest()).toBe(digest);
+    });
+
+    it('logs what the engine systems write, which fluids, fire, redstone and blasts write through', async () => {
+        const { world, air } = await worldWithChunk();
+        world.beginChangeTick();
+
+        createEngineWorld(world).setBlock({ x: 6, y: 64, z: 6 }, { name: 'minecraft:stone', states: {} }, true);
+        world.sealChangeTick();
+
+        expect(blockEntries(world)).toEqual([
+            expect.objectContaining({ field: 'block', address: { x: 6, y: 64, z: 6, layer: 0 }, before: air })
+        ]);
+    });
+
+    it('logs a pushed chest as leaving one position and arriving at the next, and undoes the push', async () => {
+        const { world, stone, air } = await worldWithChunk();
+        const from = { x: 7, y: 64, z: 7 };
+        const to = { x: 8, y: 64, z: 7 };
+        world.setLoadedBlockRuntimeId(from.x, from.y, from.z, stone);
+        writeBlockEntity(world, chestTags(from, { 0: ['minecraft:bread', 3] }));
+        world.beginChangeTick();
+
+        // The write a piston's push makes, through the block storage the block behaviors write through.
+        const { move } = worldBlockStorage(() => world);
+        if (move === undefined) throw new Error('the world block storage moves no blocks');
+        move(from, to);
+        const digest = world.replayStateDigest();
+        const pushed = world.getEntityStore().unit(() => {
+            move(to, { x: 9, y: 64, z: 7 });
+            throw new Error('planned');
+        });
+        world.sealChangeTick();
+
+        expect(pushed.failed).toBe(true);
+        expect(
+            blockEntries(world).map((entry) =>
+                entry.field === 'block'
+                    ? `block ${entry.address.x}: ${entry.before} -> ${entry.after}`
+                    : `${entry.address.field} ${entry.address.x}: ${entry.before === null ? 'none' : 'some'} -> ${entry.after === null ? 'none' : 'some'}`
+            )
+        ).toEqual([
+            'items.0 7: some -> none',
+            'data 7: some -> none',
+            `block 7: ${stone} -> ${air}`,
+            `block 8: ${air} -> ${stone}`,
+            'data 8: none -> some',
+            'items.0 8: none -> some'
+        ]);
+        // Undoing the second push leaves the chest where the first one put it.
+        expect(world.getLoadedChunk(0, 0)?.getBlockEntity(to.x, to.y, to.z)?.getId()).toBe('Chest');
+        expect(world.loadedBlockAt(9, 64, 7)?.name).toBe('minecraft:air');
         expect(world.replayStateDigest()).toBe(digest);
     });
 });
