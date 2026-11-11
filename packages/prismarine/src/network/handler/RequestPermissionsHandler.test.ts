@@ -5,7 +5,7 @@ import type { Logger } from '@jsprismarine/logger';
 import type Server from '../../Server';
 import type SessionManager from '../../SessionManager';
 import type { PermissionManager } from '../../permission/PermissionManager';
-import { identityNamed } from '../../testing/sessionIdentity.test.helper';
+import { identityNamed, STEVE } from '../../testing/sessionIdentity.test.helper';
 import { stubPlayerPort } from '../../testing/playerPort.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import type PlayerSession from '../PlayerSession';
@@ -22,8 +22,12 @@ const fakeSession = ({ op = true }: { op?: boolean } = {}) => {
     const opChanges: Array<[string, boolean]> = [];
     const resent: Array<ShownPlayer | undefined> = [];
     const logged: string[] = [];
-    const requester = stubPlayerPort({ getName: () => 'Steve', getRuntimeId: () => 1n, isOp: () => op });
-    const target = stubPlayerPort({ getName: () => 'Alex', getRuntimeId: () => 7n });
+    const target = stubPlayerPort({});
+    const targetSession = stub<PlayerSession>({
+        runtimeId: 7n,
+        identity: identityNamed('Alex'),
+        getPlayer: () => target
+    });
 
     return {
         opChanges,
@@ -32,9 +36,11 @@ const fakeSession = ({ op = true }: { op?: boolean } = {}) => {
         target,
         server: stub<Server>({
             getLogger: () => stub<Logger>({ debug: (...message) => void logged.push(message[0] ?? '') }),
-            getSessionManager: () => stub<SessionManager>({ getAllPlayers: () => [requester, target] }),
+            getSessionManager: () =>
+                stub<SessionManager>({ sessionOf: (id) => (id === targetSession.runtimeId ? targetSession : null) }),
             getPermissionManager: () =>
                 stub<PermissionManager>({
+                    isOp: (uuid) => op && uuid === STEVE.uuid,
                     setOp: async (name, value) => {
                         opChanges.push([name, value]);
                         return true;
@@ -42,8 +48,7 @@ const fakeSession = ({ op = true }: { op?: boolean } = {}) => {
                 })
         }),
         session: stub<PlayerSession>({
-            identity: identityNamed('Steve'),
-            getPlayer: () => requester,
+            identity: STEVE,
             sendAbilities: async (player) => void resent.push(player)
         })
     };

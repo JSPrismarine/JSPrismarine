@@ -2,7 +2,6 @@ import { PlayerPermissionLevel } from '@jsprismarine/minecraft';
 import type Server from '../../Server';
 import type PlayerSession from '../PlayerSession';
 import type RequestPermissionsPacket from '@jsprismarine/protocol/packet/RequestPermissionsPacket';
-import type { ShownPlayer } from '../../world/ShownPlayer';
 import type PacketHandler from './PacketHandler';
 
 /**
@@ -22,15 +21,11 @@ export default class RequestPermissionsHandler implements PacketHandler<RequestP
 
     /** Applies the level through the op list, or resends the current abilities when refused. */
     public async handle(packet: RequestPermissionsPacket, server: Server, session: PlayerSession): Promise<void> {
-        const requester: Pick<ShownPlayer, 'isOp'> = session.getPlayer();
         const { name } = session.identity;
         const level = PlayerPermissionLevel[packet.playerPermissionLevel] ?? packet.playerPermissionLevel;
-        const target = server
-            .getSessionManager()
-            .getAllPlayers()
-            .find((player) => player.getRuntimeId() === packet.targetPlayerUniqueId);
+        const target = server.getSessionManager().sessionOf(packet.targetPlayerUniqueId);
 
-        if (!requester.isOp()) {
+        if (!server.getPermissionManager().isOp(session.identity.uuid)) {
             server
                 .getLogger()
                 .debug(
@@ -53,20 +48,20 @@ export default class RequestPermissionsHandler implements PacketHandler<RequestP
 
         switch (packet.playerPermissionLevel) {
             case PlayerPermissionLevel.OPERATOR:
-                await server.getPermissionManager().setOp(target.getName(), true);
+                await server.getPermissionManager().setOp(target.identity.name, true);
                 return;
             case PlayerPermissionLevel.MEMBER:
             case PlayerPermissionLevel.VISITOR:
-                await server.getPermissionManager().setOp(target.getName(), false);
+                await server.getPermissionManager().setOp(target.identity.name, false);
                 return;
             default:
                 server
                     .getLogger()
                     .debug(
-                        `${name} asked to set ${target.getName()} to permission level ${level} (custom flags 0x${packet.customPermissionFlags.toString(16)}). Only Member and Operator are modeled, so the current abilities were sent back`,
+                        `${name} asked to set ${target.identity.name} to permission level ${level} (custom flags 0x${packet.customPermissionFlags.toString(16)}). Only Member and Operator are modeled, so the current abilities were sent back`,
                         'RequestPermissionsHandler/handle'
                     );
-                await session.sendAbilities(target.getBody());
+                await session.sendAbilities(target.getPlayer().getBody());
         }
     }
 }

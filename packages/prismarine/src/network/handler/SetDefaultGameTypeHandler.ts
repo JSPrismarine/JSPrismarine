@@ -2,7 +2,6 @@ import type { Gametype, GametypeName } from '@jsprismarine/minecraft';
 import { getGametypeId, getGametypeName } from '@jsprismarine/minecraft';
 
 import type Server from '../../Server';
-import type { ShownPlayer } from '../../world/ShownPlayer';
 import type PlayerSession from '../PlayerSession';
 import SetDefaultGameTypePacket from '@jsprismarine/protocol/packet/SetDefaultGameTypePacket';
 import type PacketHandler from './PacketHandler';
@@ -37,8 +36,7 @@ export default class SetDefaultGameTypeHandler implements PacketHandler<SetDefau
 
     /** Sets the configured default and moves every player onto it, when the sender may. */
     public async handle(packet: SetDefaultGameTypePacket, server: Server, session: PlayerSession): Promise<void> {
-        const player: Pick<ShownPlayer, 'isOp'> = session.getPlayer();
-        if (!player.isOp()) {
+        if (!server.getPermissionManager().isOp(session.identity.uuid)) {
             server
                 .getLogger()
                 .warn(`Player ${session.identity.name} tried to change default gamemode without proper permissions.`);
