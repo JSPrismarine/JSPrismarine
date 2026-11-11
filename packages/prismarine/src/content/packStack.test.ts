@@ -210,7 +210,9 @@ describe.skipIf(!process.env.JSP_CONTENT_VANILLA)('the vanilla content build', {
         reportProgress(`The vanilla content build registered ${content.entities.registry.size} entities.`);
         expect(content.entities.registry.size).toBeGreaterThan(0);
         expect(content.entities.registry.has('minecraft:falling_block')).toBe(true);
-        expect(content.entities.registry.keys().filter((id) => !id.startsWith('minecraft:'))).toEqual([]);
+        // The one exception is the type an actor no pack declares is held under, which never goes
+        // on the wire: its actor reports the identifier the actor was saved with.
+        expect(content.entities.registry.keys().filter((id) => !id.startsWith('minecraft:'))).toEqual(['jsprismarine:inert_actor']);
     });
 
     it('starts clean, with every warning left naming something the server does not do', { timeout: 180_000 }, () => {
