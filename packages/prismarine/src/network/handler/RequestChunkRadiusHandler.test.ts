@@ -1,8 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { Logger } from '@jsprismarine/logger';
-import type Server from '../../Server';
-import type { Config } from '../../config/Config';
+import { inputContext } from '../../testing/handlerContext.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import { STEVE } from '../../testing/sessionIdentity.test.helper';
 import type PlayerSession from '../PlayerSession';
@@ -19,16 +18,17 @@ const run = async (
 ): Promise<{ granted: number | undefined; logged: string[] }> => {
     let granted: number | undefined;
     const logged: string[] = [];
-    const server = stub<Server>({
-        getConfig: () => stub<Config>({ getViewDistance: () => serverMax }),
-        getLogger: () => stub<Logger>({ debug: (...message) => void logged.push(message[0] ?? '') })
-    });
     const session = stub<PlayerSession>({
         identity: STEVE,
         setViewDistance: async (distance) => void (granted = distance)
     });
+    const { context, settled } = inputContext(session, {
+        config: { getViewDistance: () => serverMax },
+        log: stub<Logger>({ debug: (...message) => void logged.push(message[0] ?? '') })
+    });
 
-    await new RequestChunkRadiusHandler().handle(packet, server, session);
+    new RequestChunkRadiusHandler().handle(packet, context);
+    await settled();
 
     return { granted, logged };
 };

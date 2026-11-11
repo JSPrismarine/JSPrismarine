@@ -2,7 +2,7 @@ import type { Logger } from '@jsprismarine/logger';
 import { Vector3 } from '@jsprismarine/math';
 import { describe, expect, it } from 'vitest';
 
-import type Server from '../../Server';
+import { inputContext } from '../../testing/handlerContext.test.helper';
 import { identityNamed } from '../../testing/sessionIdentity.test.helper';
 import { stubPlayerPort } from '../../testing/playerPort.test.helper';
 import { stub } from '../../testing/stub.test.helper';
@@ -57,10 +57,18 @@ const fakeSession = ({ alive = true, spawnWorld }: { alive?: boolean; spawnWorld
                 eyes: new Vector3(100, 71.62, 100)
             })
         }),
-        server: stub<Server>({
-            getLogger: () => stub<Logger>({ debug: (...message: string[]) => void dropped.push(message.join(' ')) })
-        })
+        log: stub<Logger>({ debug: (...message: string[]) => void dropped.push(message.join(' ')) })
     };
+};
+
+/** Applies one packet as the input step does: the handler, then what it deferred and sent. */
+const handle = async (
+    { session, log }: Pick<ReturnType<typeof fakeSession>, 'session' | 'log'>,
+    packet: RespawnPacket
+): Promise<void> => {
+    const { context, settled } = inputContext(session, { log });
+    new RespawnHandler().handle(packet, context);
+    await settled();
 };
 
 const respawn = (state: PlayerRespawnState, runtimeEntityId = 7n): RespawnPacket =>
@@ -70,9 +78,9 @@ describe('RespawnHandler', () => {
     it('answers the client with the state that ends the exchange', async () => {
         // Once a second, for as long as it takes. No answer is a screen that never lifts and
         // a log filling with `RespawnPacket`.
-        const { done, session, server, standingAt } = fakeSession();
+        const { done, standingAt, ...fake } = fakeSession();
 
-        await new RespawnHandler().handle(respawn(PlayerRespawnState.CLIENT_READY_TO_SPAWN), server, session);
+        await handle(fake, respawn(PlayerRespawnState.CLIENT_READY_TO_SPAWN));
 
         expect(done[0]).toEqual({ state: PlayerRespawnState.READY_TO_SPAWN, position: standingAt });
     });
@@ -81,9 +89,9 @@ describe('RespawnHandler', () => {
         // The client reports ready when the button is pressed, before its respawn action, so
         // the player is still dead here. A Bedrock Dedicated Server 1.26.52 sends these two
         // and nothing else; describing the dead player after them left the client frozen.
-        const { done, session, server } = fakeSession({ alive: false });
+        const { done, ...fake } = fakeSession({ alive: false });
 
-        await new RespawnHandler().handle(respawn(PlayerRespawnState.CLIENT_READY_TO_SPAWN), server, session);
+        await handle(fake, respawn(PlayerRespawnState.CLIENT_READY_TO_SPAWN));
 
         expect(done).toEqual([
             { state: PlayerRespawnState.SEARCHING_FOR_SPAWN, position: new Vector3(100, 70, 100) },
@@ -91,10 +99,25 @@ describe('RespawnHandler', () => {
         ]);
     });
 
-    it('respawns in place when the spawn is in the world the player died in', async () => {
-        const { done, session, server } = fakeSession({ alive: false });
+    it("defers a dead player's answer, which waits on the respawn search", async () => {
+        // The search reads blocks that may not be loaded, so the handler itself sends nothing and
+        // leaves one piece of work for the input step to run after its unit.
+        const fake = fakeSession({ alive: false });
+        const { context, outputs, deferred, settled } = inputContext(fake.session, { log: fake.log });
 
-        await new RespawnHandler().handle(respawn(PlayerRespawnState.CLIENT_READY_TO_SPAWN), server, session);
+        new RespawnHandler().handle(respawn(PlayerRespawnState.CLIENT_READY_TO_SPAWN), context);
+
+        expect(fake.done).toEqual([]);
+        expect(deferred).toHaveLength(1);
+        expect(outputs).toHaveLength(0);
+        await settled();
+        expect(fake.done).toHaveLength(2);
+    });
+
+    it('respawns in place when the spawn is in the world the player died in', async () => {
+        const { done, ...fake } = fakeSession({ alive: false });
+
+        await handle(fake, respawn(PlayerRespawnState.CLIENT_READY_TO_SPAWN));
 
         expect(done.filter((step) => step.what === 'changeWorld')).toHaveLength(0);
     });
@@ -104,9 +127,9 @@ describe('RespawnHandler', () => {
         // `Respawn` set, as gophertunnel documents, and gets exactly one, at the spawn block,
         // before the two `Respawn` answers that end the exchange.
         const overworld = stub<World>({});
-        const { done, session, server } = fakeSession({ alive: false, spawnWorld: overworld });
+        const { done, ...fake } = fakeSession({ alive: false, spawnWorld: overworld });
 
-        await new RespawnHandler().handle(respawn(PlayerRespawnState.CLIENT_READY_TO_SPAWN), server, session);
+        await handle(fake, respawn(PlayerRespawnState.CLIENT_READY_TO_SPAWN));
 
         const changes = done.filter((step) => step.what === 'changeWorld');
         expect(changes).toHaveLength(1);
@@ -128,9 +151,9 @@ describe('RespawnHandler', () => {
     it('describes a player who has already respawned again once the exchange has closed', async () => {
         // The respawn action came first, which a Bedrock server was not recorded doing: the
         // player is alive, and is described again after the answer, as before.
-        const { done, session, server } = fakeSession();
+        const { done, ...fake } = fakeSession();
 
-        await new RespawnHandler().handle(respawn(PlayerRespawnState.CLIENT_READY_TO_SPAWN), server, session);
+        await handle(fake, respawn(PlayerRespawnState.CLIENT_READY_TO_SPAWN));
 
         expect(done.map((step) => step.what).filter(Boolean)).toEqual([
             'attributes',
@@ -143,19 +166,19 @@ describe('RespawnHandler', () => {
     });
 
     it("ignores the states that are the server's to send", async () => {
-        const { done, session, server } = fakeSession();
+        const { done, ...fake } = fakeSession();
 
         for (const state of [PlayerRespawnState.SEARCHING_FOR_SPAWN, PlayerRespawnState.READY_TO_SPAWN]) {
-            await new RespawnHandler().handle(respawn(state), server, session);
+            await handle(fake, respawn(state));
         }
 
         expect(done).toHaveLength(0);
     });
 
     it('drops a respawn for another runtime id', async () => {
-        const { done, dropped, session, server } = fakeSession();
+        const { done, dropped, ...fake } = fakeSession();
 
-        await new RespawnHandler().handle(respawn(PlayerRespawnState.CLIENT_READY_TO_SPAWN, 8n), server, session);
+        await handle(fake, respawn(PlayerRespawnState.CLIENT_READY_TO_SPAWN, 8n));
 
         expect(done).toHaveLength(0);
         expect(dropped).toHaveLength(1);
