@@ -1,1 +1,3 @@
 packages/bedrock-data/src/jsp/v*/wire/*.bin binary
+# git apply needs the patch's line endings to match the LF sources it patches, on every checkout.
+packages/native-network/native/patches/*.patch text eol=lf

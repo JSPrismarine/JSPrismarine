@@ -374,7 +374,7 @@ Each slice is a commit or a few, with its tests, on `dev/webrtc-backend`.
      the test that IPv4 keeps running when the IPv6 port is taken.
    - Done 2026-11-11. The tests that booted a whole server on `0.0.0.0` collided on the default
      `server-portv6` once that became an error, so they bind `127.0.0.1`.
-4. [ ] **The native networking library, on one platform.** Linux x64 first, and the gate for the
+4. [x] **The native networking library, on one platform.** Linux x64 first, and the gate for the
    rest.
    - Create the package for it (working name `@jsprismarine/native-network`, in
      `packages/native-network`), with its README.
@@ -395,6 +395,33 @@ Each slice is a commit or a few, with its tests, on `dev/webrtc-backend`.
      carrying STUN's cookie still classes as RakNet; connected RakNet reaches the ring with no
      address-table lookup; a datagram written to the outbound ring leaves from the mux port; a
      burst of N RakNet datagrams costs one wake.
+   - Done 2026-11-11 on Linux x64 (glibc), with Node.js 26.13.0 and Bun 1.3.14. Findings:
+     - **Binding (question 8):** a plain C shared library bound with `node:ffi` and `bun:ffi`,
+       both loaded synchronously through `process.getBuiltinModule`. No call crosses from a
+       foreign thread, so neither FFI's callback support matters, and no Node-API addon is
+       needed. `node:ffi` prints an experimental warning on load, which the binding holds back.
+     - **Wake (question 9):** one byte over UDP to a socket on `127.0.0.1`, sent only when the
+       consumer was idle. libdatachannel's events queue in native memory per runtime thread, and
+       the wake's handler drains the queue with plain calls; 500 messages cost far fewer than 500
+       wakes, and a burst of 13 RakNet datagrams cost one. RakNet's rings are `SharedByteRing`s,
+       whose layout grew to eight control slots with a wake flag and a power-of-two capacity, so a
+       worker can own them without the native package. The same wake works under Node.js, Bun,
+       in a worker, and on every operating system.
+     - **Size:** stripped, with libjuice, usrsctp and the C++ runtime linked in, the library is
+       3,166,912 bytes (1,366,963 gzipped) with Mbed TLS 3.6.7, against 8,741,568 (3,382,531
+       gzipped) with OpenSSL 3.5.9 configured without apps, engines, QUIC or compression. Mbed TLS
+       is the build. libdatachannel's Mbed TLS path needs `MBEDTLS_SSL_DTLS_SRTP`, which
+       `native/mbedtls_user_config.h` turns on.
+     - **scriptc:** `@scriptc/runtime-linux-x64-gnu` 0.4.11 links Mbed TLS 3.6.7 too, with
+       unprefixed symbols and without DTLS-SRTP, so the two cannot share one copy and would clash.
+       Slice 15 renames our Mbed TLS symbols in the static archives (`objcopy --redefine-syms`).
+     - Built on this host, the library needs `GLIBC_2.38`; it already names only `libc`, `libm`
+       and the loader. Slice 5's Debian 12 container sets the floor at 2.36.
+     - Each runtime thread opens its own event queue (`jsp_events_open` returns a handle, and
+       libdatachannel's user pointer routes each callback to it). A process-wide queue failed as
+       soon as two Vitest worker threads loaded the library.
+     - The static archive holds the C layer only; slice 5 merges libdatachannel's archives into it
+       for scriptc.
 5. [ ] **Build and ship it for every platform.** As
    [Platforms and packaging](#platforms-and-packaging) has it.
    - A CI job per target in the table builds the shared library and the static archives, on that

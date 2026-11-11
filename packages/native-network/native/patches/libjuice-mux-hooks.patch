@@ -1,0 +1,236 @@
+diff --git a/include/juice/juice.h b/include/juice/juice.h
+index e43db6c..f69738a 100644
+--- a/include/juice/juice.h
++++ b/include/juice/juice.h
+@@ -77,6 +77,22 @@ typedef struct juice_mux_binding_request {
+ 
+ typedef void (*juice_cb_mux_incoming_t)(const juice_mux_binding_request_t *info, void *user_ptr);
+ 
++// Sees every datagram the mux socket receives, before the mux looks up its agent. The address is
++// a struct sockaddr, with an IPv4-mapped IPv6 address unmapped. Returns nonzero to take the
++// datagram, which the mux then drops; zero lets the mux handle it as usual.
++typedef int (*juice_cb_mux_filter_t)(const char *data, size_t size, const void *src_addr,
++                                     size_t src_addr_len, void *user_ptr);
++
++// Receives each datagram the filter let through and no agent claimed.
++typedef void (*juice_cb_mux_unhandled_t)(const char *data, size_t size, const void *src_addr,
++                                         size_t src_addr_len, void *user_ptr);
++
++typedef struct juice_mux_hooks {
++	juice_cb_mux_filter_t filter;       // optional
++	juice_cb_mux_unhandled_t unhandled; // optional
++	void *user_ptr;
++} juice_mux_hooks_t;
++
+ typedef struct juice_turn_server {
+ 	const char *host;
+ 	const char *username;
+@@ -137,6 +153,13 @@ JUICE_EXPORT int juice_get_selected_addresses(juice_agent_t *agent, char *local,
+ JUICE_EXPORT int juice_set_local_ice_attributes(juice_agent_t *agent, const char *ufrag, const char *pwd);
+ JUICE_EXPORT const char *juice_state_to_string(juice_state_t state);
+ JUICE_EXPORT int juice_mux_listen(const char *bind_address, int local_port, juice_cb_mux_incoming_t cb, void *user_ptr);
++// Binds the mux socket for local_port, creating it if needed, and keeps it open while hooks are
++// set, even with no agent on it. NULL hooks remove them, and the socket closes with its last agent.
++JUICE_EXPORT int juice_mux_set_hooks(const char *bind_address, int local_port,
++                                     const juice_mux_hooks_t *hooks);
++// Sends a datagram from the mux socket bound on local_port to a struct sockaddr.
++JUICE_EXPORT int juice_mux_sendto(int local_port, const char *data, size_t size,
++                                  const void *dst_addr, size_t dst_addr_len);
+ JUICE_EXPORT int juice_set_ice_tcp_mode(juice_agent_t *agent, juice_ice_tcp_mode_t ice_tcp_mode);
+ 
+ // ICE server
+diff --git a/src/conn.c b/src/conn.c
+index 831d2d5..683eeef 100644
+--- a/src/conn.c
++++ b/src/conn.c
+@@ -23,13 +23,14 @@
+ static conn_mode_entry_t mode_entries[MODE_ENTRIES_SIZE] = {
+     {conn_poll_registry_init, conn_poll_registry_cleanup, conn_poll_init, conn_poll_cleanup,
+      conn_poll_lock, conn_poll_unlock, conn_poll_interrupt, conn_poll_send, conn_poll_tcp_connect, conn_poll_get_addrs,
+-     NULL, NULL, NULL, MUTEX_INITIALIZER, NULL},
++     NULL, NULL, NULL, NULL, NULL, MUTEX_INITIALIZER, NULL},
+     {conn_mux_registry_init, conn_mux_registry_cleanup, conn_mux_init, conn_mux_cleanup,
+      conn_mux_lock, conn_mux_unlock, conn_mux_interrupt, conn_mux_send, NULL, conn_mux_get_addrs,
+-     conn_mux_listen, conn_mux_get_registry, conn_mux_can_release_registry, MUTEX_INITIALIZER, NULL},
++     conn_mux_listen, conn_mux_set_hooks, conn_mux_sendto, conn_mux_get_registry,
++     conn_mux_can_release_registry, MUTEX_INITIALIZER, NULL},
+     {NULL, NULL, conn_thread_init, conn_thread_cleanup,
+      conn_thread_lock, conn_thread_unlock, conn_thread_interrupt, conn_thread_send, NULL, conn_thread_get_addrs,
+-     NULL, NULL, NULL, MUTEX_INITIALIZER, NULL}
++     NULL, NULL, NULL, NULL, NULL, MUTEX_INITIALIZER, NULL}
+ };
+ 
+ static conn_mode_entry_t *get_mode_entry(juice_concurrency_mode_t mode) {
+@@ -311,3 +312,64 @@ int juice_mux_listen(const char *bind_address, int local_port, juice_cb_mux_inco
+ 	mutex_unlock(&entry->mutex);
+ 	return 0;
+ }
++
++int juice_mux_set_hooks(const char *bind_address, int local_port, const juice_mux_hooks_t *hooks) {
++	conn_mode_entry_t *entry = &mode_entries[JUICE_CONCURRENCY_MODE_MUX];
++	if (!entry->mux_set_hooks_func || !entry->get_registry_func)
++		return -1;
++
++	mutex_lock(&entry->mutex);
++
++	udp_socket_config_t config;
++	memset(&config, 0, sizeof(config));
++	config.bind_address = bind_address;
++	config.port_begin = config.port_end = (uint16_t)local_port;
++
++	conn_registry_t *registry;
++	if (hooks) {
++		// locks the registry, creating it first if required
++		if (acquire_registry(entry, &config, &registry) || !registry) {
++			JLOG_WARN("juice_mux_set_hooks could not bind port %d", local_port);
++			mutex_unlock(&entry->mutex);
++			return -1;
++		}
++	} else {
++		registry = entry->get_registry_func(&config);
++		if (!registry) {
++			mutex_unlock(&entry->mutex);
++			return 0;
++		}
++		mutex_lock(&registry->mutex);
++	}
++
++	int ret = entry->mux_set_hooks_func(registry, hooks);
++	release_registry(entry, registry); // unlocks the registry
++	mutex_unlock(&entry->mutex);
++	return ret;
++}
++
++int juice_mux_sendto(int local_port, const char *data, size_t size, const void *dst_addr,
++                     size_t dst_addr_len) {
++	conn_mode_entry_t *entry = &mode_entries[JUICE_CONCURRENCY_MODE_MUX];
++	if (!entry->mux_sendto_func || !entry->get_registry_func)
++		return -1;
++
++	if (dst_addr_len > sizeof(struct sockaddr_storage))
++		return -1;
++
++	addr_record_t dst;
++	memset(&dst, 0, sizeof(dst));
++	memcpy(&dst.addr, dst_addr, dst_addr_len);
++	dst.len = (socklen_t)dst_addr_len;
++	dst.socktype = SOCK_DGRAM;
++
++	udp_socket_config_t config;
++	memset(&config, 0, sizeof(config));
++	config.port_begin = config.port_end = (uint16_t)local_port;
++
++	mutex_lock(&entry->mutex);
++	conn_registry_t *registry = entry->get_registry_func(&config);
++	int ret = registry ? entry->mux_sendto_func(registry, data, size, &dst) : -1;
++	mutex_unlock(&entry->mutex);
++	return ret;
++}
+diff --git a/src/conn.h b/src/conn.h
+index 7ad6205..3d2f7e5 100644
+--- a/src/conn.h
++++ b/src/conn.h
+@@ -47,6 +47,9 @@ typedef struct conn_mode_entry {
+ 	void (*tcp_connect_func)(juice_agent_t *agent, const addr_record_t *dst);
+ 	int (*get_addrs_func)(juice_agent_t *agent, addr_record_t *records, size_t size);
+ 	int (*mux_listen_func)(conn_registry_t *registry, juice_cb_mux_incoming_t cb, void *user_ptr);
++	int (*mux_set_hooks_func)(conn_registry_t *registry, const juice_mux_hooks_t *hooks);
++	int (*mux_sendto_func)(conn_registry_t *registry, const char *data, size_t size,
++	                       const addr_record_t *dst);
+ 	conn_registry_t *(*get_registry_func)(udp_socket_config_t *config);
+ 	bool (*can_release_registry_func)(conn_registry_t *registry);
+ 
+diff --git a/src/conn_mux.c b/src/conn_mux.c
+index 6af8833..9d692b7 100644
+--- a/src/conn_mux.c
++++ b/src/conn_mux.c
+@@ -44,6 +44,8 @@ typedef struct registry_impl {
+ 	int map_count;
+ 	juice_cb_mux_incoming_t cb_mux_incoming;
+ 	void *mux_incoming_user_ptr;
++	juice_mux_hooks_t hooks;
++	bool has_hooks;
+ } registry_impl_t;
+ 
+ typedef struct conn_impl {
+@@ -326,6 +328,8 @@ int conn_mux_prepare(conn_registry_t *registry, struct pollfd *pfd, timestamp_t
+ 	registry_impl_t *impl = registry->impl;
+ 	if (impl->cb_mux_incoming)
+ 		++count;
++	if (impl->has_hooks)
++		++count;
+ 	mutex_unlock(&registry->mutex);
+ 	return count;
+ }
+@@ -445,8 +449,20 @@ int conn_mux_process(conn_registry_t *registry, struct pollfd *pfd) {
+ 				JLOG_DEBUG("Demultiplexing incoming datagram from %s", src_str);
+ 			}
+ 
++			registry_impl_t *hooks_impl = registry->impl;
++			if (hooks_impl->has_hooks && hooks_impl->hooks.filter &&
++			    hooks_impl->hooks.filter(buffer, (size_t)ret, &src.addr, (size_t)src.len,
++			                             hooks_impl->hooks.user_ptr)) {
++				continue;
++			}
++
+ 			juice_agent_t *agent = lookup_agent(registry, buffer, (size_t)ret, &src);
+ 			if (!agent || !is_ready(agent)) {
++				if (hooks_impl->has_hooks && hooks_impl->hooks.unhandled) {
++					hooks_impl->hooks.unhandled(buffer, (size_t)ret, &src.addr, (size_t)src.len,
++					                            hooks_impl->hooks.user_ptr);
++					continue;
++				}
+ 				JLOG_DEBUG("Agent not found for incoming datagram, dropping");
+ 				continue;
+ 			}
+@@ -699,5 +715,36 @@ bool conn_mux_can_release_registry(conn_registry_t *registry) {
+ 		return true;
+ 	}
+ 
+-	return registry_impl->cb_mux_incoming == NULL;
++	return registry_impl->cb_mux_incoming == NULL && !registry_impl->has_hooks;
++}
++
++int conn_mux_set_hooks(conn_registry_t *registry, const juice_mux_hooks_t *hooks) {
++	// registry must be locked
++	registry_impl_t *registry_impl = registry->impl;
++	if (!registry_impl)
++		return -1;
++
++	if (hooks) {
++		registry_impl->hooks = *hooks;
++		registry_impl->has_hooks = true;
++		return 0;
++	}
++
++	memset(&registry_impl->hooks, 0, sizeof(registry_impl->hooks));
++	registry_impl->has_hooks = false;
++	return conn_mux_interrupt_registry(registry);
++}
++
++int conn_mux_sendto(conn_registry_t *registry, const char *data, size_t size,
++                    const addr_record_t *dst) {
++	registry_impl_t *registry_impl = registry->impl;
++	if (!registry_impl)
++		return -1;
++
++	mutex_lock(&registry_impl->send_mutex);
++	int ret = udp_sendto(registry_impl->sock, data, size, dst);
++	if (ret < 0)
++		ret = -sockerrno;
++	mutex_unlock(&registry_impl->send_mutex);
++	return ret;
+ }
+diff --git a/src/conn_mux.h b/src/conn_mux.h
+index bfd6501..d00cc78 100644
+--- a/src/conn_mux.h
++++ b/src/conn_mux.h
+@@ -32,5 +32,8 @@ int conn_mux_get_addrs(juice_agent_t *agent, addr_record_t *records, size_t size
+ int conn_mux_listen(conn_registry_t *registry, juice_cb_mux_incoming_t cb, void *user_ptr);
+ conn_registry_t *conn_mux_get_registry(udp_socket_config_t *config);
+ bool conn_mux_can_release_registry(conn_registry_t *registry);
++int conn_mux_set_hooks(conn_registry_t *registry, const juice_mux_hooks_t *hooks);
++int conn_mux_sendto(conn_registry_t *registry, const char *data, size_t size,
++                    const addr_record_t *dst);
+ 
+ #endif

@@ -16,7 +16,7 @@ export const packageAreas = [
         id: 'network',
         title: 'Network and protocol',
         description: 'Packets, transports and sign-in, for a server or a client.',
-        packages: ['protocol', 'raknet', 'nethernet', 'auth', 'client', 'binaryutils']
+        packages: ['protocol', 'raknet', 'nethernet', 'native-network', 'auth', 'client', 'binaryutils']
     },
     {
         id: 'world',
