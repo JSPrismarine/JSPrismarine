@@ -22,9 +22,9 @@ import { inertEntityRuntime } from '../testing/entityServer';
 import { stub } from '../testing/stub.test.helper';
 import type Player from '../Player';
 import type { ContentPosition } from '../content/world/adapter';
-import type { Entity } from '../entity/Entity';
+import type { ShownActor } from './ShownActor';
 import { explode } from '../entity/Explosion';
-import { ItemActorBody as ItemEntity } from '../entity/data/itemBodies';
+import { ItemActor as ItemEntity } from '../entity/data/itemActor';
 import type { ServerContent } from '../content/ServerContent';
 import BlockUpdateScheduler from './BlockUpdateScheduler';
 import Chunk from './chunk/Chunk';
@@ -211,7 +211,7 @@ const fixturePalette = (): BlockPalette =>
 interface Fixture {
     world: World;
     chunk: Chunk;
-    spawned: Entity[];
+    spawned: ShownActor[];
     /** The world's game rules, by the name they were set under. A test writes into it. */
     rules: Map<string, GameRuleEntry>;
 }
@@ -223,7 +223,7 @@ const liveWorld = (
     entityRuntimes: EntityRuntimes
 ): Fixture => {
     const chunk = new Chunk(0, 0);
-    const spawned: Entity[] = [];
+    const spawned: ShownActor[] = [];
     const rules = new Map<string, GameRuleEntry>();
 
     const world: World = Object.assign(Object.create(World.prototype), {
@@ -258,7 +258,7 @@ const liveWorld = (
         removeEntity: async () => {},
         playNamedSound: () => {},
         spawnNamedParticle: () => {},
-        addEntity: async (entity: Entity) => void spawned.push(entity),
+        showActor: async (actor: ShownActor) => void spawned.push(actor),
         server: {
             getConfig: () => ({ getDifficulty: () => Difficulty.NORMAL, getProximityBroadcast: () => true }),
             // Block destruction and blasts must share the fixture's seeded world RNG.
@@ -299,7 +299,7 @@ const place = (chunk: Chunk, at: ContentPosition, identifier: string, states: Re
 describe('a block the world destroyed', () => {
     let world: World;
     let chunk: Chunk;
-    let spawned: Entity[];
+    let spawned: ShownActor[];
     let rules: Map<string, GameRuleEntry>;
     let content: ServerContent;
     let random: RandomSource;

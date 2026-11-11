@@ -10,7 +10,8 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
 import { EntityRuntimes } from '../entity/data/live';
 import type { Entity } from '../entity/Entity';
-import { ItemActorBody as ItemEntity } from '../entity/data/itemBodies';
+import type { ShownActor } from './ShownActor';
+import { ItemActor as ItemEntity } from '../entity/data/itemActor';
 import ContainerEntry from '../inventory/ContainerEntry';
 import HumanInventory from '../inventory/HumanInventory';
 import Player from '../Player';
@@ -219,12 +220,12 @@ const liveWorld = (
 ): {
     world: World;
     chunk: Chunk;
-    spawned: Entity[];
+    spawned: ShownActor[];
     entities: Map<number, Entity>;
     players: Map<number, Player>;
 } => {
     const chunk = new Chunk(0, 0);
-    const spawned: Entity[] = [];
+    const spawned: ShownActor[] = [];
     // Where the item actor port finds the breaking player by the world's numeric runtime ID key.
     const entities = new Map<number, Entity>();
     // Where the world finds the breaking player's session by the same key.
@@ -242,7 +243,7 @@ const liveWorld = (
         getPlayers: () => [],
         notifyBlockBreak: () => {},
         sendWorldEvent: async () => {},
-        addEntity: async (entity: Entity) => void spawned.push(entity),
+        showActor: async (actor: ShownActor) => void spawned.push(actor),
         server: {
             getConfig: () => ({ getDifficulty: () => Difficulty.NORMAL, getProximityBroadcast: () => true }),
             getLogger: () => ({ debug: () => {}, error: () => {}, verbose: () => {}, warn: () => {} }),
@@ -277,7 +278,7 @@ const place = (chunk: Chunk, at: ContentPosition, identifier: string, states: Re
 describe('breakBlockWithContent', () => {
     let world: World;
     let chunk: Chunk;
-    let spawned: Entity[];
+    let spawned: ShownActor[];
     let entities: Map<number, Entity>;
     let players: Map<number, Player>;
     let content: ServerContent;

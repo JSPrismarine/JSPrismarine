@@ -81,15 +81,14 @@ const fakeWorld = (initial: BlockState, broken = fakeBlock(initial.name)) => {
     // Built on the real prototype, so that `breakBlock` and everything it reaches for -
     // `setBlockRuntimeId`, `dropContents`, `dropItem` - is the code under test rather than more of
     // the stand-in. Only what touches the disk, the network or a chunk is replaced.
-    // Where a drop becomes a store stack, whose body arrives through `addEntity` below.
+    // Where a drop becomes a store stack, whose actor arrives through `showActor` below.
     let live: World | undefined;
     const entities = liveTestEntities(() => live);
     const world: World = Object.assign(Object.create(World.prototype), {
         chunks: new Map([[Chunk.packXZ(0, 0), chunk]]),
         dimension: Dimensions.Overworld,
-        // Empty and never written, because `addEntity` below replaces the real one. It is
-        // here because a world with no entity map is not a world: `dropContents` counts the
-        // stacks already on the ground before it adds another.
+        // Empty and never written: a drop is a store stack. It is here because a world with no
+        // entity map is not a world.
         entities: new Map(),
         level: fakeLevel(),
         blockUpdates: new BlockUpdateScheduler(),
@@ -110,7 +109,7 @@ const fakeWorld = (initial: BlockState, broken = fakeBlock(initial.name)) => {
         sendWorldEvent: async (position: Vector3 | null, event: LevelEvent, data: number) => {
             events.push({ position, event, data });
         },
-        addEntity: async (entity: any) => void spawned.push(entity),
+        showActor: async (actor: any) => void spawned.push(actor),
         server: {
             getConfig: () => ({
                 getProximityBroadcast: () => true,

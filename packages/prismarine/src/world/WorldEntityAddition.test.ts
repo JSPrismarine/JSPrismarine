@@ -3,8 +3,7 @@ import { describe, expect, it } from 'vitest';
 import type Server from '../Server';
 import type { LiveEntityRuntime } from '../entity/data/live';
 import type { StoreActors } from '../entity/data/storeActors';
-import type { Entity } from '../entity/Entity';
-import { GenericEntity } from '../entity/GenericEntity';
+import { Entity } from '../entity/Entity';
 import { stub, stubOf } from '../testing/stub.test.helper';
 import { Dimensions } from './Dimension';
 import { inertEntityRuntime } from '../testing/entityServer';
@@ -13,7 +12,7 @@ import { World } from './World';
 import { Position } from './Position';
 
 const bodyOf = (identifier: string, world: World): Entity =>
-    stubOf(GenericEntity, {
+    stubOf(Entity, {
         getRuntimeId: () => 1n,
         getType: () => identifier,
         getPosition: () => new Position(0.5, 64, 0.5, world),
@@ -35,12 +34,13 @@ const worldOf = (live: LiveEntityRuntime): World => {
 };
 
 describe('World.addEntity', () => {
-    it('offers an unclaimed generic body to the data runtime before keeping it in the world', async () => {
-        const restored: Entity[] = [];
+    it('keeps the entity it is given in the world, without offering it to the store', async () => {
+        // A saved actor reaches the store from its record, never through `addEntity`.
+        const offered: unknown[] = [];
         const live = stub<LiveEntityRuntime>({
             actors: stub<StoreActors>({ all: () => [][Symbol.iterator](), actorOf: () => undefined }),
             restoreExisting: (stored) => {
-                restored.push(stored);
+                offered.push(stored);
                 return undefined;
             },
             runtime: inertEntityRuntime().runtime
@@ -50,7 +50,7 @@ describe('World.addEntity', () => {
 
         await world.addEntity(body);
 
-        expect(restored).toEqual([body]);
+        expect(offered).toEqual([]);
         expect(world.getEntity(body.getRuntimeId())).toBe(body);
     });
 });
@@ -66,7 +66,7 @@ describe('World.entityRelocated', () => {
             server: stub<Server>({ getEntityRuntime: () => inertEntityRuntime() })
         });
         world.attachChangeSink(NULL_WORLD_CHANGE_SINK);
-        const entity = stubOf(GenericEntity, {
+        const entity = stubOf(Entity, {
             getRuntimeId: () => 42n,
             getType: () => 'minecraft:cow',
             getPosition: () => new Position(32, 64, -16, world),

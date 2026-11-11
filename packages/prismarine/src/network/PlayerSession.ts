@@ -31,7 +31,7 @@ import type { StatusEffect, StatusEffectChange } from '../entity/StatusEffect';
 import { bedrockMobEffectId } from '../entity/StatusEffect';
 import type { Metadata } from '@jsprismarine/protocol/wire/structures/Metadata';
 import { eyePositionAt } from '../entity/playerEyes';
-import type { ItemActorBody } from '../entity/data/itemBodies';
+import type { ItemActor } from '../entity/data/itemActor';
 import type ContainerEntry from '../inventory/ContainerEntry';
 import type HumanInventory from '../inventory/HumanInventory';
 import { blockContainerOf } from '../inventory/blockContainers';
@@ -2734,9 +2734,9 @@ export default class PlayerSession {
 
     /**
      * Writes a dropped item onto this connection.
-     * @param {Item} item - The item entity to show.
+     * @param {ItemActor} item - The dropped stack to show.
      */
-    public async sendAddItemActor(item: ItemActorBody): Promise<void> {
+    public async sendAddItemActor(item: ItemActor): Promise<void> {
         const stack = item.getItem();
         if (!stack) return;
 

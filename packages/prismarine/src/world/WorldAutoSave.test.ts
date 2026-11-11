@@ -10,7 +10,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
 import { GenericBlockEntity } from '../blockentity/GenericBlockEntity';
-import { GenericEntity } from '../entity/GenericEntity';
+import { GenericEntity } from '../testing/genericEntity.test.helper';
 import type Player from '../Player';
 import type { Config } from '../config/Config';
 import type Server from '../Server';

@@ -7,11 +7,7 @@ import { entityFixture, FLOOR_Y } from '../entity/data/testing';
 import type { LiveEntityRuntime } from '../entity/data/live';
 import type { StoreActors } from '../entity/data/storeActors';
 import type { Entity } from '../entity/Entity';
-import { GenericEntity } from '../entity/GenericEntity';
-import type { DataEntity } from '../entity/data/DataEntity';
-import type { EntityRuntime } from '../entity/data/EntityRuntime';
-import { ItemActorBody } from '../entity/data/itemBodies';
-import type { ItemBodies } from '../entity/data/itemBodies';
+import { GenericEntity } from '../testing/genericEntity.test.helper';
 import { testEntityServer } from '../testing/entityServer';
 import { stub, stubOf } from '../testing/stub.test.helper';
 import { withPlayerComponents } from '../testing/playerDouble.test.helper';
@@ -24,13 +20,9 @@ import { NULL_WORLD_CHANGE_SINK } from './WorldChangeSink';
 /** A world over a real entity runtime, whose index is the one under test. */
 const indexedWorld = () => {
     const fixture = entityFixture();
-    /** The data entity each body stands for, which `World.addEntity` asks about. */
-    const bodies = new Map<Entity, number>();
     const live = stub<LiveEntityRuntime>({
         runtime: fixture.runtime,
-        itemBodies: stub<ItemBodies>({ entityIdOf: (entity) => bodies.get(entity) }),
         actors: stub<StoreActors>({ all: () => [][Symbol.iterator](), actorOf: () => undefined }),
-        removeBody: () => false,
         restoreExisting: () => undefined
     });
     /** The chunk each non-player entity is filed under, which chunk save and unload read. */
@@ -44,7 +36,7 @@ const indexedWorld = () => {
         server: testEntityServer({ entityRuntime: live })
     });
     world.attachChangeSink(NULL_WORLD_CHANGE_SINK);
-    return { world, bodies, entityChunkIndices, index: fixture.runtime.index, runtime: fixture.runtime };
+    return { world, entityChunkIndices, index: fixture.runtime.index, runtime: fixture.runtime };
 };
 
 const Y = FLOOR_Y + 1;
@@ -62,21 +54,6 @@ const legacyEntity = (world: World, x: number, z: number): GenericEntity =>
         position: new Position(x, Y, z, world),
         runtimeId: nextLegacyId++
     });
-
-/** A dropped stack of the store and the body the world holds for it. */
-const droppedItem = (
-    world: World,
-    runtime: EntityRuntime,
-    bodies: Map<Entity, number>,
-    x: number,
-    z: number
-): { entity: DataEntity; body: ItemActorBody } => {
-    const entity = runtime.droppedItems.spawn({ x, y: Y, z }, { stack: { name: 'minecraft:dirt', count: 1 } });
-    if (entity === undefined) throw new Error('the fixture declares no dropped item');
-    const body = new ItemActorBody(entity, runtime.droppedItems, world);
-    bodies.set(body, entity.id);
-    return { entity, body };
-};
 
 /** A player with no connection, which is all a position write needs. */
 const playerAt = async (world: World, x: number, z: number): Promise<Player> => {
@@ -97,16 +74,19 @@ const finds = (world: World, entity: Entity, x: number, z: number): boolean =>
     world.getEntityIndex().legacyWithin(x, z, 1).includes(entity);
 
 describe('the entity index over a world', () => {
-    it('sees a dropped stack where the store moved it, before its body catches up', async () => {
-        const { world, runtime, bodies } = indexedWorld();
-        const { entity, body } = droppedItem(world, runtime, bodies, 0.5, 0.5);
-        await world.addEntity(body);
-        expect(finds(world, body, 0.5, 0.5)).toBe(true);
+    it('sees a dropped stack where the store moved it, and never as a legacy entity', () => {
+        const { world, runtime } = indexedWorld();
+        const entity = runtime.droppedItems.spawn(
+            { x: 0.5, y: Y, z: 0.5 },
+            { stack: { name: 'minecraft:dirt', count: 1 } }
+        );
+        if (entity === undefined) throw new Error('the fixture declares no dropped item');
+        expect(world.getEntityIndex().itemsWithin(0.5, 0.5, 0.5)).toEqual([entity]);
 
         entity.position = { x: 40.5, y: Y, z: 0.5 };
-        expect(finds(world, body, 0.5, 0.5)).toBe(false);
-        expect(finds(world, body, 40.5, 0.5)).toBe(true);
+        expect(world.getEntityIndex().itemsWithin(0.5, 0.5, 0.5)).toEqual([]);
         expect(world.getEntityIndex().itemsWithin(40.5, 0.5, 0.5)).toEqual([entity]);
+        expect(world.getEntityIndex().legacyWithin(40.5, 0.5, 1)).toEqual([]);
 
         // Gone from the store, so no query finds it as a stack any more.
         runtime.remove(entity.id, 'merged');
@@ -130,26 +110,18 @@ describe('the entity index over a world', () => {
     });
 
     it('answers a legacy query with the legacy entities only, in ascending runtime id order', async () => {
-        const { world, bodies, runtime } = indexedWorld();
+        const { world, runtime } = indexedWorld();
         const cow = runtime.spawn('minecraft:cow', { x: 0.5, y: Y, z: 0.5 });
         if (cow === undefined) throw new Error('the fixture declares no cow');
-        const body = stubOf(GenericEntity, {
-            getRuntimeId: () => BigInt(cow.id),
-            getType: () => 'minecraft:cow',
-            getPosition: () => new Position(0.5, Y, 0.5, world),
-            persistentNbt: null
-        });
-        bodies.set(body, cow.id);
-        const item = droppedItem(world, runtime, bodies, 1.5, 0.5).body;
+        const stand = legacyEntity(world, 1.5, 0.5);
         const player = await playerAt(world, 2.5, 0.5);
 
         // Filed highest id first, so the answer's order cannot be the order things arrived in.
         await world.addPlayer(player);
-        await world.addEntity(item);
-        await world.addEntity(body);
+        await world.addEntity(stand);
 
-        // A store entity other than a dropped stack is found through `storeWithin`, as its actor.
-        expect(world.getEntityIndex().legacyWithin(1, 0.5, 4)).toEqual([item, player]);
+        // A store entity is found through `storeWithin`, as its actor.
+        expect(world.getEntityIndex().legacyWithin(1, 0.5, 4)).toEqual([stand, player]);
         expect(world.getEntityIndex().storeWithin(1, 0.5, 4)).toEqual([cow]);
     });
 

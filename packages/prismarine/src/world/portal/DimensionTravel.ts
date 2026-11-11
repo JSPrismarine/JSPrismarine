@@ -21,7 +21,8 @@ import { NBTTagCompound } from '@jsprismarine/nbt';
 
 import { dataEntityRecordOf, writeDataEntityRecord } from '../../entity/data/persistence';
 import type { DataEntityRecord } from '../../entity/data/persistence';
-import { StoreActor } from '../../entity/data/storeActors';
+import { ItemActor } from '../../entity/data/itemActor';
+import { InertActor, StoreActor } from '../../entity/data/storeActors';
 import { PLAYER_IDENTIFIER } from '../../entity/playerOverlay';
 import EntityPortalEnterEvent from '../../events/entity/EntityPortalEnterEvent';
 import PlayerChangeDimensionEvent from '../../events/player/PlayerChangeDimensionEvent';
@@ -150,7 +151,9 @@ export class DimensionTravel {
      *
      * A store entity's state lives in its dimension's store. It leaves that store with the
      * record a save would write, and the destination's store restores the same entity from it,
-     * component groups and all, with the cooldown.
+     * component groups and all, with the cooldown. A dropped stack leaves with its stack, its
+     * age, its pickup delay and its motion, and an inert actor with its saved identifier and
+     * actor record tags, as each would be saved.
      */
     public async transfer(entity: WorldActor, arrival: Arrival): Promise<void> {
         const from = entity.getWorld();
@@ -203,7 +206,31 @@ export class DimensionTravel {
      */
     private transferStoreEntity(actor: StoreActor, arrival: Arrival): void {
         const from = this.server.getEntityRuntime(actor.getWorld().getDimension().name);
+        const to = this.server.getEntityRuntime(arrival.world.getDimension().name);
         const { entity } = actor;
+        const at = { x: arrival.position.getX(), y: arrival.position.getY(), z: arrival.position.getZ() };
+
+        if (actor instanceof ItemActor) {
+            from.runtime.remove(entity.id, 'body removed');
+            to.adoptItem(actor, at, actor.getDefaultPortalCooldown());
+            return;
+        }
+        if (actor instanceof InertActor) {
+            from.runtime.remove(entity.id, 'body removed');
+            const restored = to.restoreInert({
+                identifier: actor.getType(),
+                position: at,
+                yaw: arrival.yaw,
+                pitch: arrival.pitch,
+                tags: actor.getTags(),
+                statusEffects: actor.getStatusEffects(),
+                portalCooldown: 0,
+                persistentNbt: actor.persistentNbt ?? new NBTTagCompound('')
+            });
+            if (restored !== undefined) to.actors.actorOf(restored.id)?.setPortalCooldown();
+            return;
+        }
+
         const record: DataEntityRecord = {
             ...dataEntityRecordOf(
                 entity,
@@ -217,13 +244,11 @@ export class DimensionTravel {
         writeDataEntityRecord(persistentNbt, record);
         from.runtime.remove(entity.id, 'body removed');
 
-        const to = this.server.getEntityRuntime(arrival.world.getDimension().name);
-        const at = arrival.position;
-        const restored = to.restoreRecord(
-            record,
-            { x: at.getX(), y: at.getY(), z: at.getZ() },
-            { persistentNbt, tags: actor.getTags(), statusEffects: actor.getStatusEffects() }
-        );
+        const restored = to.restoreRecord(record, at, {
+            persistentNbt,
+            tags: actor.getTags(),
+            statusEffects: actor.getStatusEffects()
+        });
         if (restored !== undefined) to.actors.actorOf(restored.id)?.setPortalCooldown();
     }
 

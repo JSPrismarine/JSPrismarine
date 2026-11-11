@@ -6,7 +6,7 @@ import { Vector3 } from '@jsprismarine/math';
 import type { Logger } from '@jsprismarine/logger';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { ItemActorBody as ItemEntity } from '../entity/data/itemBodies';
+import { ItemActor as ItemEntity } from '../entity/data/itemActor';
 import { Item } from '../item/Item';
 import type Server from '../Server';
 import { stub } from '../testing/stub.test.helper';
@@ -321,7 +321,7 @@ describe('world persistence', () => {
             );
 
             expect(warnings).toEqual([]);
-            expect(world.getEntities().filter((entity) => entity instanceof ItemEntity)).toHaveLength(NEXT_DROP_COUNT);
+            expect(world.getActors().filter((entity) => entity instanceof ItemEntity)).toHaveLength(NEXT_DROP_COUNT);
             expect(fs.existsSync(levelPath)).toBe(false);
 
             await world.saveLevelData();

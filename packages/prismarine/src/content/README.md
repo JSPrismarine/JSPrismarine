@@ -184,12 +184,11 @@ Each owns part of one object. Build it per dimension and hand a `ServerWorldSour
 
 ### Entities (`src/entity/`)
 
-- `entities`: `at`, `near`, `players`, `spawn`, `remove`, `drop`, `countOfType`. `spawn` puts a
-  body into the live world rather than an `EntityInstance` into the data-driven index, because the
-  live world is what clients are sent and what a save writes. The content entity registry decides
-  which identifiers are spawnable, a written class is used where one adds behavior, and everything
-  else is a `GenericEntity` carrying the identifier, which the client draws from the identifier
-  anyway.
+- `entities`: `at`, `near`, `players`, `spawn`, `remove`, `drop`, `countOfType`. `spawn` puts an
+  entity into the store of the live world, which shows it to clients through its store actor and
+  writes it into a save. The content entity registry decides which identifiers are spawnable, and
+  an identifier it does not declare spawns nothing. A saved actor whose type no loaded pack
+  declares still loads, as an inert store entity that keeps its identifier and is drawn from it.
 - The optional `spawning` group: `site`, `poolCount`, `mobEventActive` and the optional
   `villageBorderDistance`.
 - The optional `ai` group: `goalWorld(entity)`, `actuator(entity)` and `brainWorld()`. `GoalWorld`

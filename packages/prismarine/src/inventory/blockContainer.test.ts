@@ -34,7 +34,7 @@ import { serverWorldSource } from '../content/world/serverSource';
 import { builtInEntityDefinitions } from '../content/testing';
 import { EntityRuntimes } from '../entity/data/live';
 import { Item } from '../item/Item';
-import { ItemActorBody as ItemEntity } from '../entity/data/itemBodies';
+import { ItemActor as ItemEntity } from '../entity/data/itemActor';
 import type ClientConnection from '../network/ClientConnection';
 import Codec2193 from '../network/codec/Codec2193';
 import { createConnectedPlayer } from '../network/createConnectedPlayer';
@@ -698,7 +698,7 @@ describe('a block container a player can put things in', () => {
         // The diamonds among what fell, which is the half of the break the block entity owns:
         // the chest itself comes from the loot roll and the family's stand-in for it.
         const dropped = world
-            .getEntities()
+            .getActors()
             .filter((entity): entity is ItemEntity => entity instanceof ItemEntity)
             .map((entity) => entity.getItem()?.getItem());
 
@@ -776,7 +776,7 @@ describe('a block container a player can put things in', () => {
         await world.breakBlock(new Vector3(CHEST.x, CHEST.y, CHEST.z));
 
         const dropped = world
-            .getEntities()
+            .getActors()
             .filter((entity): entity is ItemEntity => entity instanceof ItemEntity)
             .map((entity) => entity.getItem()?.getItem());
 

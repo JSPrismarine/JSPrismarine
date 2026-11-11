@@ -12,7 +12,7 @@ import type { Generator } from './Generator';
 import type BaseProvider from './providers/BaseProvider';
 import { World } from './World';
 import { Position } from './Position';
-import { GenericEntity } from '../entity/GenericEntity';
+import { GenericEntity } from '../testing/genericEntity.test.helper';
 import type { LiveEntityRuntime } from '../entity/data/live';
 import type { DataEntityRecord } from '../entity/data/persistence';
 import { DATA_ENTITY_TAG } from '../entity/data/persistence';

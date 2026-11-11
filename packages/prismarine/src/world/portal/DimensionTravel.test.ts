@@ -9,6 +9,7 @@ import path from 'node:path';
 
 import type { Logger } from '@jsprismarine/logger';
 import { Vector3 } from '@jsprismarine/math';
+import { Types } from '@jsprismarine/nbt';
 import { Gametype } from '@jsprismarine/minecraft';
 import { InetAddress } from '@jsprismarine/raknet';
 import ChangeDimensionPacket from '@jsprismarine/protocol/packet/ChangeDimensionPacket';
@@ -29,7 +30,11 @@ import { serverWorldSource } from '../../content/world/serverSource';
 import { EventEmitter } from '../../events/EventEmitter';
 import { EntityRuntimes } from '../../entity/data/live';
 import { Entity } from '../../entity/Entity';
-import { GenericEntity } from '../../entity/GenericEntity';
+import { GenericEntity } from '../../testing/genericEntity.test.helper';
+import { ItemActor } from '../../entity/data/itemActor';
+import { InertActor } from '../../entity/data/storeActors';
+import EntitySerializer from '../../entity/EntitySerializer';
+import { savedActorNbt } from '../../testing/savedActor.test.helper';
 import type ClientConnection from '../../network/ClientConnection';
 import Codec2193 from '../../network/codec/Codec2193';
 import { createConnectedPlayer } from '../../network/createConnectedPlayer';
@@ -586,7 +591,7 @@ describe('DimensionTravel.transfer', () => {
             { x: 80.5, y: 64, z: 0.5 },
             { stack: { name: 'minecraft:stone', count: 3 }, age: 40, pickupDelay: 7 }
         );
-        const body = stack === undefined ? undefined : from.itemBodies.bodyOf(stack.id);
+        const body = stack === undefined ? undefined : from.actors.actorOf(stack.id);
         if (stack === undefined || body === undefined) throw new Error('the scene declares no dropped item');
 
         await scene.travel.transfer(body, {
@@ -598,9 +603,10 @@ describe('DimensionTravel.transfer', () => {
 
         expect(stack.removed).toBeDefined();
         expect(from.runtime.byId(stack.id)).toBeUndefined();
-        expect(scene.overworld.getEntities()).not.toContain(body);
+        expect(scene.overworld.getActors()).not.toContain(body);
         const [arrived] = to.runtime.all().filter((entity) => entity.identifier === 'minecraft:item');
-        const arrivedBody = arrived === undefined ? undefined : to.itemBodies.bodyOf(arrived.id);
+        const arrivedBody = arrived === undefined ? undefined : to.actors.actorOf(arrived.id);
+        if (!(arrivedBody instanceof ItemActor)) throw new Error('the stack did not arrive as an item actor');
         expect(arrived?.position).toEqual({ x: 10.5, y: 70, z: 0.5 });
         expect(arrivedBody?.savedItem()).toMatchObject({
             stack: { name: 'minecraft:stone', count: 3 },
@@ -608,7 +614,35 @@ describe('DimensionTravel.transfer', () => {
             pickupDelay: 7
         });
         expect(arrivedBody?.getPortalCooldown()).toBe(300);
-        expect(scene.nether.getEntities()).toContain(arrivedBody);
+        expect(scene.nether.getActors()).toContain(arrivedBody);
+
+        await scene.level.disable();
+    }, 60_000);
+
+    it('moves an actor no pack declares into the other store under its saved identifier', async () => {
+        const scene = await buildScene({ entities: new Map(builtInEntityDefinitions()) });
+        const from = scene.overworld.dataEntities();
+        const to = scene.nether.dataEntities();
+        const saved = savedActorNbt('minecraft:llama', { x: 80.5, y: 64, z: 0.5 });
+        saved.addValue('UniqueID', new Types.LongVal(7n));
+        const entity = from.restoreInert(EntitySerializer.fromNBT(saved));
+        const actor = entity === undefined ? undefined : from.actors.actorOf(entity.id);
+        if (entity === undefined || actor === undefined) throw new Error('the scene declares no inert actor');
+
+        await scene.travel.transfer(actor, {
+            world: scene.nether,
+            position: new Vector3(10.5, 70, 0.5),
+            yaw: 90,
+            pitch: 0
+        });
+
+        expect(from.runtime.byId(entity.id)).toBeUndefined();
+        const [arrived] = [...to.actors.all()].filter((candidate) => candidate.getType() === 'minecraft:llama');
+        if (!(arrived instanceof InertActor)) throw new Error('the llama did not arrive as an inert actor');
+        expect(arrived.entity.position).toEqual({ x: 10.5, y: 70, z: 0.5 });
+        expect(arrived.yaw).toBe(90);
+        expect(arrived.persistentNbt?.getLong('UniqueID', 0n)).toBe(7n);
+        expect(arrived.getPortalCooldown()).toBe(300);
 
         await scene.level.disable();
     }, 60_000);

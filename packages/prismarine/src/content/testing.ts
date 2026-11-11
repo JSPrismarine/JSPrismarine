@@ -64,12 +64,14 @@ const blockFile = (identifier: string, hardness: number, lightEmission: number):
 /** The entity overlay's files for the entities Mojang's pack has no file for, by identifier. */
 const BUILT_IN_ENTITY_FILES = {
     'minecraft:item': 'item.json',
-    'minecraft:eye_of_ender_signal': 'eye_of_ender_signal.json'
+    'minecraft:eye_of_ender_signal': 'eye_of_ender_signal.json',
+    'jsprismarine:inert_actor': 'inert_actor.json'
 } as const;
 
 /**
- * The built-in definitions of a dropped item and the eye of ender, read from the entity overlay
- * the server ships, so a fixture runs the definition the server does rather than a copy of it.
+ * The built-in definitions of a dropped item, the eye of ender and the inert actor, read from the
+ * entity overlay the server ships, so a fixture runs the definition the server does rather than a
+ * copy of it.
  */
 export const builtInEntityDefinitions = (): [string, ReturnType<typeof definitionOf>][] =>
     Object.entries(BUILT_IN_ENTITY_FILES).map(([identifier, file]) => [

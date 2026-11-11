@@ -8,6 +8,7 @@ import { VANILLA_BEHAVIOR_PACK_UUID } from '@jsprismarine/packs';
 import { reportProgress } from '../../../../.test/reportProgress';
 
 import { buildServerContent } from './ServerContent';
+import { INERT_ACTOR } from '../entity/data/storeActors';
 import {
     entityOverlayPackPath,
     fingerprintPackDirectories,
@@ -212,7 +213,7 @@ describe.skipIf(!process.env.JSP_CONTENT_VANILLA)('the vanilla content build', {
         expect(content.entities.registry.has('minecraft:falling_block')).toBe(true);
         // The one exception is the type an actor no pack declares is held under, which never goes
         // on the wire: its actor reports the identifier the actor was saved with.
-        expect(content.entities.registry.keys().filter((id) => !id.startsWith('minecraft:'))).toEqual(['jsprismarine:inert_actor']);
+        expect(content.entities.registry.keys().filter((id) => !id.startsWith('minecraft:'))).toEqual([INERT_ACTOR]);
     });
 
     it('starts clean, with every warning left naming something the server does not do', { timeout: 180_000 }, () => {

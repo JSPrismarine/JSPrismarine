@@ -8,7 +8,7 @@ import { NBTTagCompound, Types } from '@jsprismarine/nbt';
 import type { Logger } from '@jsprismarine/logger';
 import { BlockRuntimeIds } from '../src/block/state/BlockRuntimeIds';
 import type { Config } from '../src/config/Config';
-import { GenericEntity } from '../src/entity/GenericEntity';
+import { GenericEntity } from '../src/testing/genericEntity.test.helper';
 import type Server from '../src/Server';
 import { stub } from '../src/testing/stub.test.helper';
 import { inertEntityRuntime, testContent } from '../src/testing/entityServer';

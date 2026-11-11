@@ -22,19 +22,17 @@ import type Player from '../Player';
 import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
 import { BlockStateSchemas } from '../block/state/BlockStateSchema';
 import type { BlockState } from '../block/state/BlockState';
-import { writtenEntities } from '../entity/Entities';
 import type { EntityIndex } from '../entity/data/entityIndex';
 import type { LiveEntityRuntime } from '../entity/data/live';
 import type { DataEntityRecord } from '../entity/data/persistence';
 import { dataEntityRecordIn } from '../entity/data/persistence';
 import EntitySerializer from '../entity/EntitySerializer';
 import { ITEM_ENTITY } from '../entity/data/droppedItems';
-import { ItemActorBody } from '../entity/data/itemBodies';
 import { StoreActor } from '../entity/data/storeActors';
 import { storedItemActorOf } from '../entity/EntitySerializer';
+import type { StoredActor } from '../entity/EntitySerializer';
 import type { Entity } from '../entity/Entity';
 import type { StatusEffect, StatusEffectChange } from '../entity/StatusEffect';
-import { GenericEntity } from '../entity/GenericEntity';
 import { PLAYER_IDENTIFIER } from '../entity/playerOverlay';
 import { storedInventory, storedItem } from '../inventory/persistence';
 import type PlayerSession from '../network/PlayerSession';
@@ -59,7 +57,7 @@ import type { BlockMining } from './BlockMining';
 import { playerMiningOf } from './BlockMining';
 import { CRACK_PARTICLES, mineTick } from '../entity/playerMining';
 import type { WorldConfig, WorldPlayerData } from '../config/JsonConfigTypes';
-import { Position } from './Position';
+import type { Position } from './Position';
 import type { PlayerSpawn, RelocationOffset } from './SpawnPlacement';
 import Progress from '../utils/Progress';
 import { blockFromContent } from '../block/Block';
@@ -742,26 +740,25 @@ export class World implements Service {
         // when the save had one world, so they are the Overworld's.
         if (this.isOverworld()) {
             for (const entityData of this.level.legacyEntities()) {
+                // A player comes back from its own record, never from a snapshot.
+                if (entityData.type === PLAYER_IDENTIFIER) continue;
                 // The saved coordinates are actually used now. They used to be spread into
                 // an options object that had no place for them, so every entity restored
                 // from disk silently reappeared at the origin.
-                const { x, y, z } = entityData.position;
-                const position = new Position(x, y, z, this);
-                const Written = writtenEntities().get(entityData.type);
-                const placement = {
-                    position,
-                    pitch: entityData.position.pitch,
-                    yaw: entityData.position.yaw,
-                    headYaw: entityData.position.headYaw
-                };
-                const body = Written
-                    ? new Written(placement)
-                    : new GenericEntity({ identifier: entityData.type, ...placement });
-
+                const { x, y, z, yaw = 0, pitch = 0 } = entityData.position;
                 // The level file has no component state, but a declared type can still resume
-                // from its spawn event here. A chunk actor record replaces this body with the
+                // from its spawn event here. A chunk actor record replaces this entity with the
                 // saved runtime state when that chunk loads.
-                if (!this.restoreDataEntity(body)) await this.addEntity(body);
+                this.restoreDataEntity({
+                    identifier: entityData.type,
+                    position: { x, y, z },
+                    yaw,
+                    pitch,
+                    tags: [],
+                    statusEffects: [],
+                    portalCooldown: 0,
+                    persistentNbt: null
+                });
             }
         }
 
@@ -1192,9 +1189,9 @@ export class World implements Service {
             endEntityUpdatesProfile?.();
         }
 
-        // The data-driven entities, after the written ones: a data entity's body is a
-        // `GenericEntity` whose own update does nothing, so the loop above has already run the
-        // half of it that the class hierarchy owns and this runs the half the components do.
+        // The data-driven entities, after the updates: the loop above has already run the half
+        // of a store entity its actor owns, the portal clock and the status effects, and this
+        // runs the half the components do.
         // The spawn and despawn cycle runs inside this tick, with Bedrock's caps and cadences
         // and the sixty vanilla spawn rules, through `@jsprismarine/spawning`.
         const endDataEntitiesProfile = startProfile?.(`World.dataEntities:${this.name}`);
@@ -1709,8 +1706,8 @@ export class World implements Service {
         for (const nbt of chunk.takeStoredEntities()) {
             if (nbt.getString('identifier', '') === 'minecraft:player') continue;
 
-            const entity = EntitySerializer.fromNBT(nbt, this);
-            if (entity.getType() === ITEM_ENTITY && storedItemActorOf(nbt) === undefined) {
+            const entity = EntitySerializer.fromNBT(nbt);
+            if (entity.identifier === ITEM_ENTITY && storedItemActorOf(nbt) === undefined) {
                 this.server
                     .getLogger()
                     .warn(`Skipped dropped item without a stack in chunk ${chunk.getX()},${chunk.getZ()}`);
@@ -1724,49 +1721,45 @@ export class World implements Service {
             const legacyEntity = this.getActors().find((candidate) => this.isLegacyEntity(candidate, entity));
             if (legacyEntity instanceof StoreActor)
                 this.dataEntities().runtime.remove(legacyEntity.entity.id, 'body removed');
-            else if (legacyEntity) await this.removeEntity(legacyEntity);
 
-            if (this.restoreDataEntity(entity)) continue;
-
-            await this.addEntity(entity);
+            this.restoreDataEntity(entity);
         }
 
         return discardedStacklessItems;
     }
 
     /**
-     * Hands a saved entity back to the data-driven runtime when its pack type is available.
+     * Hands a saved actor to the data-driven runtime.
      *
      * Without this a mob that was running its components, goals and brain came
      * back as a body with none of them behind it, and the spawn loop counted
      * nothing against the population cap it had been spawned under, so a
-     * reloaded world over-spawned.
+     * reloaded world over-spawned. An actor whose type no loaded pack declares
+     * comes back inert, shown as itself and saved as it was loaded.
      *
-     * @param stored - The body built from the actor NBT, which the runtime
-     *   reads the position and the untouched tags off and then replaces.
-     * @returns Whether the runtime took it. False means this world runs the
-     *   written entity classes, the actor is a dropped item, the world has no data runtime, or
-     *   no loaded pack declares its type, and the caller adds the body it built.
+     * @param stored - What `EntitySerializer` read from the actor NBT.
+     * @returns Whether the runtime took it. False means the world has no data runtime, or the
+     *   actor is a dropped item with no stack, and the actor is not loaded.
      */
-    private restoreDataEntity(stored: Entity, live = this.server.getEntityRuntime?.(this.dimension.name)): boolean {
+    private restoreDataEntity(stored: StoredActor): boolean {
+        const live = this.server.getEntityRuntime?.(this.dimension.name);
         if (live === undefined) return false;
-        if (stored.getType() === ITEM_ENTITY) return live.restoreItem(stored) !== undefined;
+        if (stored.identifier === ITEM_ENTITY) return live.restoreItem(stored) !== undefined;
 
         const record = stored.persistentNbt === null ? undefined : dataEntityRecordIn(stored.persistentNbt);
-        if (record !== undefined) return live.restore(record, stored) !== undefined;
-
-        return live.restoreExisting(stored) !== undefined;
+        const restored = record === undefined ? live.restoreExisting(stored) : live.restore(record, stored);
+        return (restored ?? live.restoreInert(stored)) !== undefined;
     }
 
-    private isLegacyEntity(candidate: WorldActor, stored: Entity): boolean {
-        if (candidate.persistentNbt !== null || candidate.getType() !== stored.getType()) return false;
+    private isLegacyEntity(candidate: WorldActor, stored: StoredActor): boolean {
+        if (candidate.persistentNbt !== null || candidate.getType() !== stored.identifier) return false;
 
         const candidatePosition = candidate.getPosition();
-        const storedPosition = stored.getPosition();
+        const storedPosition = stored.position;
         return (
-            Math.fround(candidatePosition.getX()) === Math.fround(storedPosition.getX()) &&
-            Math.fround(candidatePosition.getY()) === Math.fround(storedPosition.getY()) &&
-            Math.fround(candidatePosition.getZ()) === Math.fround(storedPosition.getZ())
+            Math.fround(candidatePosition.getX()) === Math.fround(storedPosition.x) &&
+            Math.fround(candidatePosition.getY()) === Math.fround(storedPosition.y) &&
+            Math.fround(candidatePosition.getZ()) === Math.fround(storedPosition.z)
         );
     }
 
@@ -2925,13 +2918,13 @@ export class World implements Service {
     private itemEntityLimitReportedAt: number | undefined;
 
     /**
-     * How many dropped stacks lie in this world, which the store's item bodies count as each one
+     * How many dropped stacks lie in this world, which the store's actors count as each one
      * enters and leaves. A cascade of block updates reaches the drop path thousands of times in a
      * tick, and walking the entities that often is the cost this limit exists to avoid.
      * @returns {number} The number of `minecraft:item` entities in the world.
      */
     private itemEntityCount(): number {
-        return this.dataEntities().itemBodies.size;
+        return this.dataEntities().actors.droppedItemCount;
     }
 
     /**
@@ -3145,22 +3138,11 @@ export class World implements Service {
     }
 
     /**
-     * Adds an entity to the level. A player enters through {@link World.addPlayer}.
-     * A generic body whose type a loaded pack declares is handed to the store instead, which
-     * shows it through a store actor and never adds it to the world.
+     * Adds an entity to the level. A player enters through {@link World.addPlayer}; every other
+     * entity is a store entity, which its store shows through a store actor.
      * @param {Entity} entity - The entity to add.
      */
     public async addEntity(entity: Entity): Promise<void> {
-        const live = this.server.getEntityRuntime?.(this.dimension.name);
-        if (entity instanceof GenericEntity && live !== undefined && this.restoreDataEntity(entity, live)) return;
-
-        // The body of a stack that left another world's store, through a portal: this world's
-        // store takes the stack in and gives it a body of its own.
-        if (entity instanceof ItemActorBody && live !== undefined && live.itemBodies.entityIdOf(entity) === undefined) {
-            live.adoptItem(entity);
-            return;
-        }
-
         const runtimeId = Number(entity.getRuntimeId());
 
         this.entities.set(runtimeId, entity);
@@ -3197,8 +3179,6 @@ export class World implements Service {
      * @param {Entity} entity - The entity to remove.
      */
     public async removeEntity(entity: Entity): Promise<void> {
-        this.server.getEntityRuntime?.(this.dimension.name)?.removeBody?.(entity);
-
         const runtimeId = entity.getRuntimeId();
         const runtimeIdKey = Number(runtimeId);
         const chunkIndex = this.entityChunkIndices.get(runtimeIdKey);
@@ -3344,10 +3324,7 @@ export class World implements Service {
         for (const entity of this.getEntityIndex().storeInChunk(chunk.getX(), chunk.getZ()))
             if (entity.identifier !== PLAYER_IDENTIFIER) live.runtime.remove(entity.id, 'chunk unload');
         const removals: Promise<void>[] = [];
-        for (const entity of this.entitiesInChunk(chunk)) {
-            if (live.unload(entity)) continue;
-            removals.push(this.removeEntity(entity));
-        }
+        for (const entity of this.entitiesInChunk(chunk)) removals.push(this.removeEntity(entity));
 
         this.systems.onChunkUnloaded(chunk.getX(), chunk.getZ());
         if (this.hasEntityStore()) this.getEntityStore().chunk('leave', chunk.getX(), chunk.getZ());

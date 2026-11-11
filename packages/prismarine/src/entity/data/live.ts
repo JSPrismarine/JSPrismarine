@@ -37,20 +37,18 @@ import type { World } from '../../world/World';
 import type { WorldActor } from '../../world/WorldActor';
 import { damageCauseOf, DamageCause } from '../DamageCause';
 import { DamageSource } from '../DamageSource';
-import type { Entity } from '../Entity';
 import { entityIds } from '../entityIds';
-import { GenericEntity } from '../GenericEntity';
 import AnimatePacket, { AnimateAction } from '@jsprismarine/protocol/packet/AnimatePacket';
 import { actorMotionIn, dataEntityRecordOf, writeDataEntityRecord } from './persistence';
 import { lookVector } from '../Archery';
-import { MetadataFlag } from '@jsprismarine/protocol/wire/structures/Metadata';
 import { AttributeIds } from '@jsprismarine/protocol/wire/structures/Attribute';
+import { MetadataFlag } from '@jsprismarine/protocol/wire/structures/Metadata';
 import type { ContentItemDrop, ContentPosition } from '../../content/world/adapter';
 import type { DataEntity } from './DataEntity';
 import type { EntityItemInteraction } from './itemInteraction';
 import type { ContentItemEntity, EntityHostFacts, EntityWorldFacts } from './host';
 import { EntityRuntime, PROJECTILE_EYE_HEIGHT_FRACTION } from './EntityRuntime';
-import { StoreActor, StoreActors } from './storeActors';
+import { INERT_ACTOR, InertActor, StoreActor, StoreActors } from './storeActors';
 import { StorePlayers } from './storePlayers';
 import type { StoreActorBlows } from './storeActors';
 import { tradeDisplayNameOf } from './trading';
@@ -72,9 +70,9 @@ import ContainerEntry from '../../inventory/ContainerEntry';
 import { TakeItemActorPacket } from '@jsprismarine/protocol';
 import type { DroppedItems, ItemStart } from './droppedItems';
 import { isDroppedItem, itemTuningOf, itemViewOf } from './droppedItems';
-import { ItemBodies } from './itemBodies';
-import type { ItemActorBody } from './itemBodies';
+import { ItemActor } from './itemActor';
 import { storedItemActorOf } from '../EntitySerializer';
+import type { StoredActor } from '../EntitySerializer';
 
 /** A held or equipped item as the entity filter language reads it. */
 const filterItemOf = (item: Item | undefined): FilterItemView | undefined =>
@@ -193,6 +191,12 @@ const playerFilterView = (player: FilteredPlayer): FilterEntityView => {
     return view;
 };
 
+/**
+ * The health a saved actor without a data entity record comes back with, capped at its type's
+ * maximum: `Attributes.getDefaults`' twenty, which the legacy body it used to be read into had.
+ */
+const SAVED_ACTOR_HEALTH = 20;
+
 /** What an actor record held apart from an entity's record, which a restored entity keeps. */
 export interface KeptActorState {
     /** The actor record tags this server does not model, which the next save writes back. */
@@ -300,12 +304,7 @@ const givePlayerItem = (
 };
 
 /** The host facts over one live world. */
-const liveHost = (
-    options: LiveEntityOptions,
-    itemBodies: ItemBodies,
-    actors: StoreActors,
-    runtime: () => EntityRuntime
-): EntityHostFacts => ({
+const liveHost = (options: LiveEntityOptions, actors: StoreActors, runtime: () => EntityRuntime): EntityHostFacts => ({
     damageMitigation: (target, intent) => {
         const world = options.liveWorld();
         if (world === undefined) return undefined;
@@ -326,7 +325,8 @@ const liveHost = (
     damageCommitted: (commit) => {
         const world = options.liveWorld();
         const victim = actors.actorOf(commit.target.id);
-        if (world === undefined || victim === undefined) return;
+        // A dropped stack raises no plugin event or trigger, as its legacy body never did.
+        if (world === undefined || victim === undefined || victim instanceof ItemActor) return;
 
         // The order the legacy pipeline raised them in: the death, then the blow.
         const source = legacySourceOfIntent(world, commit.intent);
@@ -365,7 +365,7 @@ const liveHost = (
     givePlayerItem: (playerId, itemId, item) => givePlayerItem(options, playerId, itemId, item),
     itemStackChanged: (itemId, count) => {
         const world = options.liveWorld();
-        const body = itemBodies.bodyOf(itemId);
+        const body = actors.actorOf(itemId);
         if (world === undefined || body === undefined) return;
         // There is no packet that updates a dropped stack: `AddItemActor` carries the item and is
         // only sent when the entity appears, so this event is the one way to say the number changed.
@@ -518,12 +518,10 @@ export class LiveEntityRuntime {
     /** The entities themselves, for the content adapter's three groups and for tests. */
     public readonly runtime: EntityRuntime;
 
-    /** The body each dropped stack shows a client. */
-    public readonly itemBodies: ItemBodies;
-
     /**
      * Each entity as the clients are shown it and the legacy world code reaches it, read from
-     * the store. A dropped stack has an item body instead.
+     * the store: an {@link ItemActor} for a dropped stack and an {@link InertActor} for a saved
+     * actor no pack declares.
      */
     public readonly actors: StoreActors;
 
@@ -533,6 +531,8 @@ export class LiveEntityRuntime {
     private started = false;
     /** Who hears about removals beyond the body index, such as the End's dragon fight. */
     private readonly removalListeners = new Set<(entity: DataEntity, reason: string) => void>();
+    /** The saved identifier of each inert entity, by runtime id; see {@link LiveEntityRuntime.restoreInert}. */
+    private readonly inertTypes = new Map<number, string>();
 
     /**
      * @param players - The server's store players, whose actors show them as players; empty
@@ -552,24 +552,22 @@ export class LiveEntityRuntime {
             world: options.liveWorld,
             report: options.report,
             blows,
-            playerActor: (entity, world, actorBlows) => players.actorOf(entity, world, actorBlows)
+            playerActor: (entity, world, actorBlows) => players.actorOf(entity, world, actorBlows),
+            builtInActor: (entity, world, actorBlows) => {
+                if (isDroppedItem(entity)) return new ItemActor(entity, world, actorBlows, this.runtime.droppedItems);
+                const saved = this.inertTypes.get(entity.id);
+                return saved === undefined ? undefined : new InertActor(entity, world, actorBlows, saved);
+            }
         });
-        this.itemBodies = new ItemBodies({ world: options.liveWorld, report: options.report });
         this.runtime = new EntityRuntime({
             content: options.content,
             world: options.world,
-            host: liveHost(options, this.itemBodies, this.actors, () => this.runtime),
+            host: liveHost(options, this.actors, () => this.runtime),
             report: options.report,
-            onSpawn: (entity) => {
-                if (isDroppedItem(entity)) {
-                    this.itemBodies.add(entity, this.runtime.droppedItems);
-                    return;
-                }
-                this.actors.add(entity, this.runtime.leashHolderIdOf(entity.id));
-            },
+            onSpawn: (entity) => this.actors.add(entity, this.runtime.leashHolderIdOf(entity.id)),
             onRemove: (entity, reason) => {
-                if (isDroppedItem(entity)) this.itemBodies.drop(entity);
-                else this.actors.remove(entity);
+                this.actors.remove(entity);
+                this.inertTypes.delete(entity.id);
                 for (const listener of this.removalListeners) listener(entity, reason);
             },
             gameEvents: {
@@ -588,7 +586,7 @@ export class LiveEntityRuntime {
             if (intent.amount <= 0) return PASS;
             const world = options.liveWorld();
             const victim = this.actors.actorOf(intent.target);
-            if (world === undefined || victim === undefined) return PASS;
+            if (world === undefined || victim === undefined || victim instanceof ItemActor) return PASS;
 
             const event = new EntityDamageEvent(victim, intent.amount, legacySourceOfIntent(world, intent));
             world.getServer().post(['entityDamage', event]);
@@ -692,7 +690,7 @@ export class LiveEntityRuntime {
         }
 
         this.runtime.tick(tick, shouldTick);
-        await Promise.all([...this.actors.sync(this.runtime, shouldTick), ...this.itemBodies.sync()]);
+        await Promise.all(this.actors.sync(this.runtime, shouldTick));
     }
 
     /** The dropped stacks of this dimension. */
@@ -710,45 +708,48 @@ export class LiveEntityRuntime {
     }
 
     /**
-     * Brings a saved dropped stack back as a store entity, from the actor record a chunk or a
-     * portal carried.
+     * Brings a saved dropped stack back as a store entity, from the actor record a chunk carried.
      *
-     * @param stored - A body whose position, tags and kept actor tags the record was read into.
      * @returns The entity, or undefined when the record holds no stack.
      */
-    public restoreItem(stored: Entity): DataEntity | undefined {
+    public restoreItem(stored: StoredActor): DataEntity | undefined {
         const saved = stored.persistentNbt === null ? undefined : storedItemActorOf(stored.persistentNbt);
-        return saved === undefined ? undefined : this.restoreItemFrom(stored, saved);
+        return saved === undefined ? undefined : this.restoreItemFrom(stored.position, saved, stored);
     }
 
     /**
-     * Takes in the body of a stack that left another dimension's store through a portal, with the
-     * state it left with, and gives it a body of this dimension's.
-     * @returns The entity, or undefined when the body held no stack.
+     * Takes in a stack that left another dimension's store through a portal, with the state it
+     * left with, at where it arrives.
+     *
+     * @param arrived - The stack's actor in the store it left.
+     * @param at - Where it arrives, which it reports itself at.
+     * @param portalCooldown - The cooldown it arrives with.
+     * @returns The entity, or undefined when the actor held no stack.
      */
-    public adoptItem(arrived: ItemActorBody): DataEntity | undefined {
+    public adoptItem(arrived: ItemActor, at: EntityPosition, portalCooldown: number): DataEntity | undefined {
         const saved = arrived.savedItem();
         if (saved === undefined) return undefined;
         const { motion } = saved;
-        return this.restoreItemFrom(arrived, {
-            ...saved,
-            motion: { x: motion.getX(), y: motion.getY(), z: motion.getZ() }
-        });
+        return this.restoreItemFrom(
+            at,
+            { ...saved, motion: { x: motion.getX(), y: motion.getY(), z: motion.getZ() } },
+            { persistentNbt: arrived.persistentNbt, tags: arrived.getTags(), portalCooldown }
+        );
     }
 
-    /** Spawns a stack where a body reports it, carrying over the actor tags the body kept. */
-    private restoreItemFrom(stored: Entity, saved: ItemStart): DataEntity | undefined {
-        const at = stored.getPosition();
-        const entity = this.runtime.droppedItems.spawn(
-            { x: at.getX(), y: at.getY(), z: at.getZ() },
-            { ...saved, reported: true }
-        );
+    /** Spawns a stack where it reports itself, carrying over the actor tags it kept. */
+    private restoreItemFrom(
+        at: EntityPosition,
+        saved: ItemStart,
+        kept: Pick<StoredActor, 'tags' | 'portalCooldown'> & Pick<KeptActorState, 'persistentNbt'>
+    ): DataEntity | undefined {
+        const entity = this.runtime.droppedItems.spawn(at, { ...saved, reported: true });
         if (entity === undefined) return undefined;
-        const body = this.itemBodies.bodyOf(entity.id);
-        if (body !== undefined) {
-            body.persistentNbt = stored.persistentNbt;
-            for (const tag of stored.getTags()) body.addTag(tag);
-            body.setPortalCooldown(stored.getPortalCooldown());
+        const actor = this.actors.actorOf(entity.id);
+        if (actor !== undefined) {
+            actor.persistentNbt = kept.persistentNbt;
+            for (const tag of kept.tags) actor.addTag(tag);
+            actor.setPortalCooldown(kept.portalCooldown);
         }
         return entity;
     }
@@ -970,7 +971,9 @@ export class LiveEntityRuntime {
     }
 
     /**
-     * Writes every entity's record into its actor's tags, ready for a save.
+     * Writes every entity's record into its actor's tags, ready for a save. A dropped stack's
+     * actor record is the item's own tags, which `EntitySerializer.toNBT` writes, and an inert
+     * actor keeps the tags it was loaded with, so neither is given a record.
      *
      * Called by `World.saveChunks` before it writes anything, rather than once a tick: the
      * record is a snapshot of state that changes every tick, and nothing reads it until a chunk
@@ -992,7 +995,13 @@ export class LiveEntityRuntime {
         const records = new Map<WorldActor, DataEntityRecord>();
         for (const entity of this.runtime.all()) {
             const actor = this.actors.actorOf(entity.id);
-            if (actor === undefined || !actor.shouldPersist()) continue;
+            if (
+                actor === undefined ||
+                !actor.shouldPersist() ||
+                actor instanceof ItemActor ||
+                actor instanceof InertActor
+            )
+                continue;
             records.set(
                 actor,
                 dataEntityRecordOf(
@@ -1007,64 +1016,18 @@ export class LiveEntityRuntime {
     }
 
     /**
-     * Suspends a dropped stack whose chunk is leaving memory, by its body.
-     *
-     * The caller writes the stack's NBT to its chunk before calling this, so removing it from
-     * the store here does not make it a despawn. A chunk's other store entities leave through
-     * `World`, which finds them in the entity index.
-     */
-    public unload(body: Entity): boolean {
-        if (!this.removeBody(body, 'chunk unload')) return false;
-        void body
-            .getWorld()
-            .removeEntity(body)
-            .catch((error: unknown) => this.options.report(String(error)));
-        return true;
-    }
-
-    /**
-     * Removes a dropped stack from the store when the world removes its body directly.
-     *
-     * Detaching first lets the runtime's removal callback run without asking the world to remove
-     * the same body recursively. This covers explicit world removals such as `/kill`.
-     *
-     * @param body - The body being removed from its world.
-     * @param reason - Why the runtime entity is being removed.
-     * @returns Whether this runtime owned the body.
-     */
-    public removeBody(body: Entity, reason = 'body removed'): boolean {
-        const id = this.itemBodies.detach(body);
-        if (id === undefined) return false;
-
-        this.runtime.remove(id, reason);
-        return true;
-    }
-
-    /**
      * Brings one saved entity back into the runtime.
      *
-     * The body built from the file never enters the world: the store entity
-     * is what does, shown through its actor. Everything the file carried that
-     * this server does not model, the actor's `UniqueID` first among them,
-     * moves onto the actor, so the next save addresses the same actor rather
-     * than writing a second one.
+     * The store entity is what enters the world, shown through its actor.
+     * Everything the file carried that this server does not model, the actor's
+     * `UniqueID` first among them, moves onto the actor, so the next save
+     * addresses the same actor rather than writing a second one.
      *
-     * @param stored - The body `EntitySerializer` built from the actor NBT.
-     * @returns The entity, or undefined when no loaded pack declares its type,
-     *   in which case the caller keeps the body it was given.
+     * @param stored - What `EntitySerializer` read from the actor NBT.
+     * @returns The entity, or undefined when no loaded pack declares its type.
      */
-    public restore(record: DataEntityRecord, stored: Entity): DataEntity | undefined {
-        const at = stored.getPosition();
-        return this.restoreRecord(
-            record,
-            { x: at.getX(), y: at.getY(), z: at.getZ() },
-            {
-                persistentNbt: stored.persistentNbt,
-                nameTag: stored.metadata.nameTag || undefined,
-                tags: stored.getTags(),
-                statusEffects: stored.getStatusEffects()
-            }
-        );
+    public restore(record: DataEntityRecord, stored: StoredActor): DataEntity | undefined {
+        return this.restoreRecord(record, stored.position, stored);
     }
 
     /**
@@ -1093,57 +1056,73 @@ export class LiveEntityRuntime {
     }
 
     /**
-     * Migrates an existing body without runtime state when its pack type is available.
+     * Migrates a saved actor without runtime state when its pack type is available.
      *
-     * This covers entities saved by an older class-based runtime as well as generic actors rebuilt
-     * from a provider's lightweight entity snapshot. The type's spawn event initializes current
-     * components, goals, and physics, while the original actor tags stay on the replacement body
-     * for fields the runtime does not model yet.
+     * This covers entities saved by an older class-based runtime as well as actors rebuilt from a
+     * provider's lightweight entity snapshot. The type's spawn event initializes current
+     * components, goals, and physics, while the original actor tags stay on the actor for fields
+     * the runtime does not model yet.
      */
-    public restoreExisting(stored: Entity): DataEntity | undefined {
-        const identifier = stored.getType();
-        const type = this.runtime.content().entities.registry.get(identifier);
-        if (type === undefined) return undefined;
+    public restoreExisting(stored: StoredActor): DataEntity | undefined {
+        const { identifier, fuse, persistentNbt } = stored;
+        if (!this.runtime.content().entities.registry.has(identifier)) return undefined;
 
-        const position = stored.getPosition();
-        const fuse = stored.metadata.getPropertyValue(MetadataFlag.FUSE_TIME);
-        const motion = stored.persistentNbt === null ? undefined : actorMotionIn(stored.persistentNbt);
-        const isProjectile = type.declaredComponents.includes('minecraft:projectile');
-        if (!(stored instanceof GenericEntity) && typeof fuse !== 'number' && !isProjectile) return undefined;
+        const motion = persistentNbt === null ? undefined : actorMotionIn(persistentNbt);
         const blockName =
             identifier === 'minecraft:falling_block'
-                ? stored.persistentNbt?.getString('JSPBlockName', '') ||
-                  stored.persistentNbt?.getString('Block', '') ||
-                  ''
+                ? persistentNbt?.getString('JSPBlockName', '') || persistentNbt?.getString('Block', '') || ''
                 : '';
-        const entity = this.runtime.spawn(
-            identifier,
-            { x: position.getX(), y: position.getY(), z: position.getZ() },
-            {
-                yaw: stored.yaw,
-                pitch: stored.pitch,
-                ...(blockName.length > 0 || typeof fuse === 'number'
-                    ? {
-                          data: {
-                              ...(blockName.length > 0 ? { block: blockName } : {}),
-                              ...(typeof fuse === 'number' ? { fuse } : {})
-                          }
+        const entity = this.runtime.spawn(identifier, stored.position, {
+            yaw: stored.yaw,
+            pitch: stored.pitch,
+            ...(blockName.length > 0 || fuse !== undefined
+                ? {
+                      data: {
+                          ...(blockName.length > 0 ? { block: blockName } : {}),
+                          ...(fuse === undefined ? {} : { fuse })
                       }
-                    : {})
-            }
-        );
+                  }
+                : {})
+        });
         if (entity === undefined) return undefined;
         if (entity.instance.hasComponent('minecraft:projectile') && motion !== undefined) entity.body.velocity = motion;
 
+        // The health the legacy body read from the file was its default, as the actor record's
+        // `Attributes` are not read.
         const health = entity.instance.attributes.get('health');
-        if (health !== undefined) entity.instance.attributes.set('health', Math.min(health.max, stored.getHealth()));
+        if (health !== undefined) entity.instance.attributes.set('health', Math.min(health.max, SAVED_ACTOR_HEALTH));
 
-        entity.body.nameTag = stored.metadata.nameTag || undefined;
-        this.keep(entity, {
-            persistentNbt: stored.persistentNbt,
-            tags: stored.getTags(),
-            statusEffects: stored.getStatusEffects()
+        this.keep(entity, stored);
+        return entity;
+    }
+
+    /**
+     * Brings back a saved actor that no loaded pack declares, or whose type would not spawn, as
+     * an inert store entity: it keeps its identifier, its position, its tags, its portal
+     * cooldown, a TNT's fuse and every actor record tag, a data entity record among them, is
+     * shown to clients as itself and runs nothing. The next save writes it back as it was loaded, so a world loaded once without the
+     * pack that declares its mobs still has them when the pack comes back.
+     *
+     * @returns The entity, or undefined when the content has no inert type either.
+     */
+    public restoreInert(stored: StoredActor): DataEntity | undefined {
+        const entity = this.runtime.spawn(INERT_ACTOR, stored.position, {
+            yaw: stored.yaw,
+            pitch: stored.pitch,
+            // Before the actor is built, which reads the saved identifier.
+            prepare: (prepared) => this.inertTypes.set(prepared.id, stored.identifier)
         });
+        if (entity === undefined) return undefined;
+        this.keep(entity, stored);
+        const actor = this.actors.actorOf(entity.id);
+        if (actor !== undefined) {
+            actor.setPortalCooldown(stored.portalCooldown);
+            // Primed and counting, as the legacy body showed a saved TNT, and saved with its fuse.
+            if (stored.fuse !== undefined) {
+                actor.metadata.setInt(MetadataFlag.FUSE_TIME, stored.fuse);
+                actor.metadata.setIgnited(true);
+            }
+        }
         return entity;
     }
 }
@@ -1192,7 +1171,6 @@ export class EntityRuntimes {
 
     /** Forgets one dimension's runtime, which is what closing its world does. */
     public close(dimension: string): void {
-        this.byDimension.get(dimension)?.itemBodies.clear();
         this.byDimension.get(dimension)?.actors.clear();
         this.byDimension.delete(dimension);
     }
