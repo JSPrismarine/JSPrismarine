@@ -30,7 +30,7 @@ export default class LabTableHandler implements PacketHandler<LabTablePacket> {
         const position = new BlockPosition(data.position.x, data.position.y, data.position.z);
         const where = `${position.getX()}, ${position.getY()}, ${position.getZ()}`;
 
-        const rejection = blockTargetRejection(session.getPlayer(), position, LAB_TABLES);
+        const rejection = blockTargetRejection(session, position, LAB_TABLES);
         if (rejection !== null) {
             server
                 .getLogger()

@@ -29,7 +29,7 @@ export default class LecternUpdateHandler implements PacketHandler<LecternUpdate
         const position = new BlockPosition(data.position.x, data.position.y, data.position.z);
         const where = `${position.getX()}, ${position.getY()}, ${position.getZ()}`;
 
-        const rejection = blockTargetRejection(session.getPlayer(), position, LECTERNS);
+        const rejection = blockTargetRejection(session, position, LECTERNS);
         if (rejection !== null) {
             server
                 .getLogger()

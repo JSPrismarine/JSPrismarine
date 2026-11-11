@@ -29,7 +29,7 @@ export default class StructureBlockUpdateHandler implements PacketHandler<Struct
         const blockPosition = new BlockPosition(data.blockPosition.x, data.blockPosition.y, data.blockPosition.z);
         const where = `${blockPosition.getX()}, ${blockPosition.getY()}, ${blockPosition.getZ()}`;
 
-        const rejection = blockTargetRejection(session.getPlayer(), blockPosition, STRUCTURE_BLOCKS);
+        const rejection = blockTargetRejection(session, blockPosition, STRUCTURE_BLOCKS);
         if (rejection !== null) {
             server
                 .getLogger()

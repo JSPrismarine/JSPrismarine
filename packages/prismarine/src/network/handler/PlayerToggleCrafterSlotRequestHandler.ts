@@ -31,11 +31,7 @@ export default class PlayerToggleCrafterSlotRequestHandler implements PacketHand
         const rejection =
             packet.slotIndex >= CRAFTER_SLOTS
                 ? `a crafter has no slot ${packet.slotIndex}`
-                : blockTargetRejection(
-                      session.getPlayer(),
-                      new BlockPosition(packet.posX, packet.posY, packet.posZ),
-                      CRAFTERS
-                  );
+                : blockTargetRejection(session, new BlockPosition(packet.posX, packet.posY, packet.posZ), CRAFTERS);
         if (rejection !== null) {
             server
                 .getLogger()

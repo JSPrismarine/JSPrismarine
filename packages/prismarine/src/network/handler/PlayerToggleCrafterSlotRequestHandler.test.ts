@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { sessionNamedNearBlocks } from '../../testing/namedBlockTarget.test.helper';
+import { sessionSeeingBlocks } from './blockTargetSession.test.helper';
 import PlayerToggleCrafterSlotRequestPacket from '@jsprismarine/protocol/packet/PlayerToggleCrafterSlotRequestPacket';
 import PlayerToggleCrafterSlotRequestHandler from './PlayerToggleCrafterSlotRequestHandler';
 
@@ -8,7 +8,7 @@ const toggle = (slotIndex: number, posZ = 3) =>
 
 describe('PlayerToggleCrafterSlotRequestHandler', () => {
     it('logs the slot toggle and position of a crafter in reach', () => {
-        const { logged, server, session } = sessionNamedNearBlocks({ '1,2,3': 'minecraft:crafter' });
+        const { logged, server, session } = sessionSeeingBlocks({ '1,2,3': 'minecraft:crafter' });
 
         new PlayerToggleCrafterSlotRequestHandler().handle(toggle(4), server, session);
 
@@ -17,7 +17,7 @@ describe('PlayerToggleCrafterSlotRequestHandler', () => {
     });
 
     it('drops a slot a crafter does not have', () => {
-        const { logged, server, session } = sessionNamedNearBlocks({ '1,2,3': 'minecraft:crafter' });
+        const { logged, server, session } = sessionSeeingBlocks({ '1,2,3': 'minecraft:crafter' });
 
         new PlayerToggleCrafterSlotRequestHandler().handle(toggle(9), server, session);
 
@@ -28,7 +28,7 @@ describe('PlayerToggleCrafterSlotRequestHandler', () => {
     });
 
     it('drops a position that holds no crafter', () => {
-        const { logged, server, session } = sessionNamedNearBlocks({ '1,2,3': 'minecraft:dropper' });
+        const { logged, server, session } = sessionSeeingBlocks({ '1,2,3': 'minecraft:dropper' });
 
         new PlayerToggleCrafterSlotRequestHandler().handle(toggle(4), server, session);
 
