@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
 import type { Logger } from '@jsprismarine/logger';
-import type Player from '../../Player';
 import type Server from '../../Server';
 import type { World } from '../../world/World';
 import type { StubMembers } from '../../testing/stub.test.helper';
+import { stubPlayerPort } from '../../testing/playerPort.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import { STEVE } from '../../testing/sessionIdentity.test.helper';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
@@ -16,7 +16,7 @@ const EMOTE_ID = '4c8ae710-df2e-47cd-814d-cc7bf21a3d67';
 
 /** A player in the sender's world, with whether it has the sender on screen. */
 const bystander = (name: string, tracking: boolean, sent: NetworkPacket[]) =>
-    stub<Player>({
+    stubPlayerPort({
         getName: () => name,
         getRuntimeId: () => 99n,
         getNetworkSession: () =>
@@ -27,9 +27,12 @@ const bystander = (name: string, tracking: boolean, sent: NetworkPacket[]) =>
     });
 
 /** The sender, runtime id 7, in a world with `others`, plus everything the handler reads. */
-const setup = (xuid: string | null, others: (sender: Player) => Player[]) => {
+const setup = (
+    xuid: string | null,
+    others: (sender: ReturnType<World['getPlayers']>[number]) => ReturnType<World['getPlayers']>
+) => {
     const logged: string[] = [];
-    const sender: Player = stub<Player>({
+    const sender = stubPlayerPort({
         getRuntimeId: () => 7n,
         getWorld: () => stub<World>({ getPlayers: () => [sender, ...others(sender)] })
     });
