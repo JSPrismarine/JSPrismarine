@@ -13,6 +13,8 @@ import type { DataEntity } from '../entity/data/DataEntity';
 import type Server from '../Server';
 import { stub, stubOf } from '../testing/stub.test.helper';
 import { stubPlayerPort } from '../testing/playerPort.test.helper';
+import type PlayerSession from '../network/PlayerSession';
+import { EYE_HEIGHT } from '../entity/playerEyes';
 import Chunk from './chunk/Chunk';
 import { Dimensions } from './Dimension';
 import { Position } from './Position';
@@ -215,12 +217,15 @@ const worldWithSpawner = ({ playerAt, delay = 0 }: { playerAt: Vector3; delay?: 
         systems: {},
         server
     });
+    const eyes = () => new Position(playerAt.getX(), playerAt.getY() + EYE_HEIGHT, playerAt.getZ(), world);
+    // The spawner measures from where the player's client sees the world from, its eyes.
     const player = stubPlayerPort({
         isOnline: () => true,
         getType: () => 'minecraft:player',
-        getPosition: () => new Position(playerAt.getX(), playerAt.getY() + 1.62, playerAt.getZ(), world),
+        getPosition: eyes,
         getFeetY: () => playerAt.getY(),
-        getRuntimeId: () => 1n
+        getRuntimeId: () => 1n,
+        getNetworkSession: () => stub<PlayerSession>({ getViewPosition: eyes })
     });
     world['players'].set(1, player);
 

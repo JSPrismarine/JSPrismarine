@@ -43,6 +43,8 @@ import type { PlayerRecordSource } from './playerRecord';
 import { Item } from '../item/Item';
 import BlockUpdateScheduler from './BlockUpdateScheduler';
 import { breakBlockWithContent, collectBreakDrops, wearBreakingTool } from './blockBreak';
+import type { Breaker } from './blockBreak';
+import { EYE_HEIGHT } from '../entity/playerEyes';
 import { notifyContentNeighbors } from './neighborContent';
 import CoordinateUtils from './CoordinateUtils';
 import type { ShownActor } from './ShownActor';
@@ -244,6 +246,12 @@ const LIGHT_GUARD_CHUNKS = 1;
  */
 const BODY_SHRINK = 1e-6;
 
+/** What a player's chunk coverage reads: where it stands and how far its client sees. */
+interface CoveringPlayer {
+    getPosition(): Vector3;
+    getNetworkSession(): Pick<PlayerSession, 'getViewDistance'>;
+}
+
 interface PlayerChunkCoverage {
     readonly x: number;
     readonly z: number;
@@ -273,7 +281,7 @@ class PlayerChunkRefCounts {
     private readonly unloadCandidates = new Set<number>();
     private revision = 0;
 
-    public synchronize(players: ReadonlyMap<number, Player>): void {
+    public synchronize(players: ReadonlyMap<number, CoveringPlayer>): void {
         let changed = false;
         for (const [runtimeId, player] of players) {
             const position = player.getPosition();
@@ -502,6 +510,11 @@ export interface WorldData {
     blockTickHandlers?: WorldSystemsOptions['blockTickHandlers'];
     /** Content redstone hooks and their power cache lifecycle. */
     redstoneUpdateHandlers?: WorldSystemsOptions['redstoneUpdateHandlers'];
+}
+
+/** The player who broke a block, as {@link World.breakBlock} reads one: the break's three reads and its id. */
+export interface BlockBreaker extends Breaker {
+    getRuntimeId(): bigint;
 }
 
 /** How a broadcast narrows its audience beyond "everyone who can see the place". */
@@ -951,12 +964,9 @@ export class World implements Service {
         return {
             random,
             isPlayerWithin: (range) =>
-                this.getPlayers().some((player) => {
-                    const feet = new Vector3(
-                        player.getPosition().getX(),
-                        player.getFeetY(),
-                        player.getPosition().getZ()
-                    );
+                this.getViewers().some((session) => {
+                    const eyes = session.getViewPosition();
+                    const feet = new Vector3(eyes.getX(), eyes.getY() - EYE_HEIGHT, eyes.getZ());
                     return feet.distanceSquaredTo(center) <= range * range;
                 }),
             // Walked in place rather than copied: a count needs no order.
@@ -2347,10 +2357,10 @@ export class World implements Service {
      * than guess which one to trust, every route calls this, and whichever arrives second finds
      * the work already done. That is what keeps the break from sounding twice.
      * @param {Vector3} position - the block to destroy.
-     * @param {Player} [player] - who broke it, when a player did. Decides what it drops.
+     * @param {BlockBreaker} [player] - who broke it, when a player did. Decides what it drops.
      * @returns {boolean} `true` if a block was there and is now gone.
      */
-    public async breakBlock(position: Vector3, player?: Player): Promise<boolean> {
+    public async breakBlock(position: Vector3, player?: BlockBreaker): Promise<boolean> {
         const x = position.getX();
         const y = position.getY();
         const z = position.getZ();
@@ -2614,7 +2624,8 @@ export class World implements Service {
     /** What the raid manager asks of this world. */
     private raidHost(): RaidHost {
         const livePlayers = () =>
-            this.getPlayers()
+            this.getViewers()
+                .map((session) => session.getPlayer())
                 .filter((player) => player.gamemode !== Gametype.SPECTATOR)
                 .map((player) => ({
                     id: Number(player.getRuntimeId()),
@@ -4014,7 +4025,7 @@ export class World implements Service {
         await this.enqueueSave(async () => {
             // Wait for every player write before returning, so a failed capture cannot leave
             // another record write running while the provider snapshot is abandoned.
-            for (const player of this.getPlayers()) await this.savePlayerData(player, true);
+            for (const session of this.getViewers()) await this.savePlayerData(session.getPlayer(), true);
             await this.writeChunks(true);
         });
     }
@@ -4081,7 +4092,7 @@ export class World implements Service {
         // `forEach` discards the promise an async callback returns, so these writes used to
         // be in flight - and their failures unobserved - long after `save` had resolved.
         // A shutdown save could return before a single player had reached disk.
-        await Promise.all(this.getPlayers().map(async (player) => this.savePlayerData(player)));
+        await Promise.all(this.getViewers().map(async (session) => this.savePlayerData(session.getPlayer())));
         await this.saveChunks();
         await this.saveLevelData();
     }
