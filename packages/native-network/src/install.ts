@@ -37,6 +37,13 @@ export interface InstallOptions {
 export const installedLibraryPath = (packageDir: string, platform: string): string =>
     join(packageDir, 'prebuilds', platform, sharedLibraryName(operatingSystemOf(platform)));
 
+/** A URL without the slashes it ends in, trimmed by index: a regular expression would backtrack on a long run of them. */
+const withoutTrailingSlashes = (url: string): string => {
+    let end = url.length;
+    while (end > 0 && url[end - 1] === '/') end--;
+    return url.slice(0, end);
+};
+
 const readSource = async (
     base: string,
     file: string,
@@ -44,7 +51,7 @@ const readSource = async (
 ): Promise<Uint8Array> => {
     // A base that is not a URL is a directory, as a test or an offline mirror gives.
     if (!/^[a-z]+:\/\//i.test(base)) return readFileSync(join(base, file));
-    const url = `${base.replace(/\/+$/, '')}/${encodeURIComponent(file)}`;
+    const url = `${withoutTrailingSlashes(base)}/${encodeURIComponent(file)}`;
     const response = await fetchImpl(url);
     if (!response.ok) throw new Error(`${url} answered ${response.status}`);
     return new Uint8Array(await response.arrayBuffer());
