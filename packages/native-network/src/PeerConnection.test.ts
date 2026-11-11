@@ -35,6 +35,19 @@ describe.skipIf(!nativeLibraryAvailable())('a native peer connection', async () 
         expect(first.answererPair?.remote).not.toBe(second.answererPair?.remote);
     });
 
+    it('serves peers on two mux ports at once, each on its own port', async () => {
+        // libjuice keeps one mux registry per port, found by the port a peer asks for.
+        const [first, second] = await Promise.all([
+            runLoopback(network, { enableIceUdpMux: true, portRangeBegin: 19_873, portRangeEnd: 19_873 }),
+            runLoopback(network, { enableIceUdpMux: true, portRangeBegin: 19_874, portRangeEnd: 19_874 })
+        ]);
+
+        expect(/ (\d+) typ /.exec(first.answererPair?.local ?? '')?.[1]).toBe('19873');
+        expect(/ (\d+) typ /.exec(second.answererPair?.local ?? '')?.[1]).toBe('19874');
+        expect(first.bytesReceived).toBe(first.bytesSent);
+        expect(second.bytesReceived).toBe(second.bytesSent);
+    });
+
     it('wakes JavaScript far fewer times than it delivers events', async () => {
         const before = network.wakes;
         const result = await runLoopback(network, {}, 500, 1000);
