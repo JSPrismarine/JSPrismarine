@@ -19,7 +19,7 @@ import type { PlayerSpawn } from '../world/SpawnPlacement';
 import type { World } from '../world/World';
 import { isFlatGenerator } from '../world/WorldPersistence';
 
-/** What the join state reads of the joining player. A legacy `Player` has every member. */
+/** What the join state reads of the joining player, which `PlayerSession.getPlayer` answers with. */
 export interface JoiningPlayer extends Pick<
     ShownPlayer,
     'getRuntimeId' | 'getPosition' | 'gamemode' | 'pitch' | 'yaw'

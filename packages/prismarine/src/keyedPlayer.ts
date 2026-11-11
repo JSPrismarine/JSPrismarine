@@ -4,8 +4,11 @@
  * Advancement progress and the enchantment seed are filed under the player's key
  * (`playerKeyOf` in `playerIdentity.ts`), so a service needs the key and, when it reads the content or draws from
  * the server's random, the server. A session holds the identity the key comes from. A legacy
- * `Player` answers both through its accessors, so each service takes either one until every
- * caller holds the key.
+ * player answers both through its accessors, so each service takes either one until every
+ * caller holds the key. The callers that still pass a player are `Player.enable` (the loaded
+ * advancements and seed), the enchanting table and `raiseAdvancement`, which take the ports
+ * `advancement/triggers.ts` declares, `workstation.ts` and tests; package H-D of the entity and
+ * tick re-architecture moves them and drops the legacy forms.
  */
 import type Server from './Server';
 import { keyOfPlayer } from './playerIdentity';

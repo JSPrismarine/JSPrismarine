@@ -93,7 +93,7 @@ const readExperience = (holder: ExperienceHolder, unit: 'points' | 'levels'): nu
  *
  * Java clamps it just below full rather than to 1, so setting the points to
  * exactly what the level costs does not promote the player - which is what
- * `Player.setExperiencePoints` does with its `(f - 1) / f` ceiling.
+ * Java's `Player.setExperiencePoints` does with its `(f - 1) / f` ceiling.
  */
 const barFractionOf = (level: number, points: number): number => {
     const needed = pointsForNextLevel(Math.max(0, Math.trunc(level)));
@@ -335,7 +335,7 @@ export const entityCommandHost = (server: Server, scoreboard: Scoreboard): Entit
                 });
             };
 
-            // Only a player can change world here; `Entity.setPosition` keeps
+            // Only a player can change world here; any other entity's move keeps
             // the world it is in, which is why `/tp` across dimensions is a
             // player-only move on this server. The destination is built if the
             // level has its stem and nobody has entered it yet, and the player

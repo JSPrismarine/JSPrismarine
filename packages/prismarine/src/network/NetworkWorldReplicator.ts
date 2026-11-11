@@ -797,7 +797,7 @@ export class NetworkWorldReplicator implements WorldChangeSink {
         const playersByCodec = new Map<ProtocolCodec, ClientConnection[]>();
         for (const session of this.world.getViewers()) {
             // By id, not by object: `tracks` answers yes for a client's own entity, and a player
-            // in the entity store is shown through an actor that is not its session's `Player`.
+            // in the entity store is shown through an actor, not the object its session holds.
             if (session.runtimeId === runtimeId || !session.tracks(runtimeId)) continue;
 
             const connection = session.getConnection();
