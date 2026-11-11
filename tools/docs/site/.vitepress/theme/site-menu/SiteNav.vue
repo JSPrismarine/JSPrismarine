@@ -170,38 +170,6 @@ function onPanelKeydown(event: KeyboardEvent) {
     }
 }
 
-/**
- * The keys the open panel advertises, wherever focus is: a panel opened by the pointer leaves focus on
- * the page, and the hints have to hold there too. Keys the trigger or the panel already handle are
- * left to them.
- */
-function onOpenKeydown(event: KeyboardEvent) {
-    if (!menu.section || isTyping(event)) return;
-    const focus = document.activeElement;
-    if (panel.value?.contains(focus) || root.value?.contains(focus)) return;
-    const buttons = triggerButtons();
-    const index = buttons.findIndex((button) => button.dataset.section === menu.section);
-    switch (event.key) {
-        case 'ArrowRight':
-        case 'ArrowLeft': {
-            event.preventDefault();
-            const next = buttons[(index + (event.key === 'ArrowRight' ? 1 : -1) + buttons.length) % buttons.length];
-            if (next?.dataset.section) open(next.dataset.section);
-            next?.focus();
-            break;
-        }
-        case 'ArrowDown':
-        case 'ArrowUp':
-            event.preventDefault();
-            focusPanelLink(event.key === 'ArrowDown' ? 'first' : 'last');
-            break;
-        case 'Escape':
-            event.preventDefault();
-            close(triggerFor(menu.section));
-            break;
-    }
-}
-
 function onPanelFocusout(event: FocusEvent) {
     const target = event.relatedTarget;
     if (!(target instanceof Node)) return;
@@ -240,7 +208,6 @@ onMounted(() => {
         start(event);
     };
     window.addEventListener('keydown', onSlash);
-    window.addEventListener('keydown', onOpenKeydown);
     onPointerdown = (event) => {
         if (!menu.section && !menu.searching) return;
         const target = event.target;
@@ -255,7 +222,6 @@ onBeforeUnmount(() => {
     unbind?.();
     if (onPointerdown) document.removeEventListener('pointerdown', onPointerdown);
     if (onSlash) window.removeEventListener('keydown', onSlash);
-    window.removeEventListener('keydown', onOpenKeydown);
     clearTimers();
 });
 </script>
@@ -317,10 +283,6 @@ onBeforeUnmount(() => {
                 @pointerleave="onPointerleave"
             >
                 <SitePanel :key="openSection.text" :section="openSection" />
-                <div class="site-panel__foot" aria-hidden="true">
-                    <span><kbd>←→</kbd> section</span><span><kbd>↑↓</kbd> page</span><span><kbd>↵</kbd> open</span
-                    ><span><kbd>/</kbd> search</span><span><kbd>esc</kbd> close</span>
-                </div>
             </div>
             <div v-if="menu.section || menu.searching" class="site-backdrop" aria-hidden="true"></div>
         </Teleport>

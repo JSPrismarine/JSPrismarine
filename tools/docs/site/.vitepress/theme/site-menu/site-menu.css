@@ -171,9 +171,10 @@
 
 .site-nav__search kbd,
 .site-search__esc,
-.site-panel__foot kbd,
 .site-search__keys kbd {
     padding: 0 5px;
+    letter-spacing: 0;
+    white-space: nowrap;
     font: var(--jsp-label-size) var(--vp-font-family-mono);
     border: 1.5px solid currentColor;
     border-bottom-width: 3px;
@@ -438,7 +439,6 @@
     border-left: 2px solid var(--site-menu-line);
 }
 
-.site-panel__foot,
 .site-search__foot {
     display: flex;
     flex-wrap: wrap;
