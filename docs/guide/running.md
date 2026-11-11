@@ -36,8 +36,7 @@ nightly builds of `master`.
 | Windows, x64 or ARM64 | `prismarine-windows-x64.exe`, `prismarine-windows-arm64.exe` |
 
 Nightly pre-releases are built for fewer platforms: Linux x64, macOS on Apple silicon and Windows
-x64. The `.map` files next to each executable are source maps for reading stack traces; you don't
-need them to run the server.
+x64.
 
 Put the file in the folder you want the server to live in, then run it from there:
 
