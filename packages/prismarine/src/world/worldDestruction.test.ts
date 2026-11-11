@@ -238,8 +238,6 @@ const liveWorld = (
         }),
         dimension: Dimensions.Overworld,
         blockUpdates: new BlockUpdateScheduler(),
-        entities: new Map(),
-        entityChunkIndices: new Map(),
         players: new Map(),
         getChunkAt: async () => chunk,
         // Fire reads a player list through `minecraft:fire_spread_radius_around_player`.

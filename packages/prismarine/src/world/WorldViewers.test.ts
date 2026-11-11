@@ -51,8 +51,6 @@ describe('World viewers', () => {
         });
         const created: World = Object.assign(Object.create(World.prototype), {
             chunks: new Map(),
-            entities: new Map(),
-            entityChunkIndices: new Map(),
             players: new Map(),
             dimension: Dimensions.Overworld,
             server
@@ -74,7 +72,6 @@ describe('World viewers', () => {
         const actor = created.getActor(4n);
         expect(actor).toBeInstanceOf(StorePlayerActor);
         expect(actor instanceof StorePlayerActor && actor.player).toBe(session.getPlayer());
-        expect(created.getEntity(4n)).toBeNull();
 
         await created.removePlayer(session);
         expect(created.viewerOf(4n)).toBeUndefined();

@@ -388,7 +388,7 @@ const digestOf = (
         // Keep the old whole-run digest and also hash each tick separately, so a replay check
         // can name the first state where the same seeded workload diverged.
         const tickHash = createHash('sha256');
-        for (const entity of runtime.all()) {
+        for (const entity of runtime.entities().toArray()) {
             const state =
                 [
                     tick,

@@ -28,8 +28,6 @@ import { builtInEntityDefinitions, fixtureContentOptions, fixtureDefinitions } f
 import { serverWorldSource } from '../../content/world/serverSource';
 import { EventEmitter } from '../../events/EventEmitter';
 import { EntityRuntimes } from '../../entity/data/live';
-import { Entity } from '../../entity/Entity';
-import { GenericEntity } from '../../testing/genericEntity.test.helper';
 import { ItemActor } from '../../entity/data/itemActor';
 import { InertActor } from '../../entity/data/storeActors';
 import EntitySerializer from '../../entity/EntitySerializer';
@@ -49,14 +47,13 @@ import type { DimensionType } from '../Dimension';
 import type { Generator } from '../Generator';
 import { GeneratorFactories } from '../GeneratorFactories';
 import { Level } from '../Level';
-import { Position } from '../Position';
 import LevelDB from '../providers/leveldb/LevelDB';
 import type { World } from '../World';
 import type WorldManager from '../WorldManager';
 import { DimensionTravel, END_ARRIVAL_YAW } from './DimensionTravel';
 import type { PortalBlockRef } from './DimensionTravel';
 import { ChunkCompletionQueue } from '../ChunkCompletionQueue';
-import type { WorldActor } from '../WorldActor';
+import type { StoreActor } from '../../entity/data/storeActors';
 
 const NETHER_STEM_ID = 'minecraft:the_nether';
 const END_STEM_ID = 'minecraft:the_end';
@@ -254,19 +251,32 @@ const portalAt = (world: World, minCorner: Vector3): PortalBlockRef => ({
     block: 'minecraft:portal'
 });
 
-/** A non-player body of the dropped-item type, which is all `resolve` and `touch` read. */
-const itemAt = (world: World, feet: Vector3): Entity =>
-    new GenericEntity({
-        identifier: 'minecraft:item',
-        position: new Position(feet.getX(), feet.getY(), feet.getZ(), world)
-    });
+/** A dropped stack in the world's store, whose actor is all `resolve` and `touch` read. */
+const itemAt = (world: World, feet: Vector3): StoreActor => {
+    const live = world.dataEntities();
+    const item = live.runtime.droppedItems.spawn(
+        { x: feet.getX(), y: feet.getY(), z: feet.getZ() },
+        { stack: { name: 'minecraft:dirt', count: 1 } }
+    );
+    const actor = item === undefined ? undefined : live.actors.actorOf(item.id);
+    if (actor === undefined) throw new Error('the store made no actor for the dropped stack');
+    return actor;
+};
 
 /**
- * A written entity that is no player, for the tick-driven tests: its own update has no
- * physics, where an `Item`'s reads blocks the fixture content does not define.
+ * A mob in the world's store, for the tick-driven tests. Only its actor's update runs, which is
+ * the portal clock; the store's own tick, and with it the mob's physics, never does.
  */
-const mobAt = (world: World, feet: Vector3): Entity =>
-    new Entity({ position: new Position(feet.getX(), feet.getY(), feet.getZ(), world) });
+const mobAt = (world: World, feet: Vector3): StoreActor => {
+    const live = world.dataEntities();
+    const cow = live.runtime.spawn('minecraft:cow', { x: feet.getX(), y: feet.getY(), z: feet.getZ() });
+    const actor = cow === undefined ? undefined : live.actors.actorOf(cow.id);
+    if (actor === undefined) throw new Error('the fixture declares no minecraft:cow');
+    return actor;
+};
+
+/** The cows a world's store holds, through their actors. A cow that changes world is a new actor there. */
+const cowsIn = (world: World): StoreActor[] => world.getActors().filter((actor) => actor.getType() === 'minecraft:cow');
 
 const nameAt = (world: World, x: number, y: number, z: number): string | undefined =>
     world.loadedBlockAt(x, y, z)?.name;
@@ -559,7 +569,7 @@ describe('DimensionTravel.touch', () => {
         const scene = await buildScene();
         const item = itemAt(scene.overworld, new Vector3(80.5, 64, 0.5));
         item.setPortalCooldown(5);
-        const entered: WorldActor[] = [];
+        const entered: StoreActor[] = [];
         scene.server.on('entityPortalEnter', (event) => void entered.push(event.getEntity()));
 
         await scene.travel.touch(item, portalAt(scene.overworld, new Vector3(80, 64, 0)));
@@ -596,7 +606,10 @@ describe('DimensionTravel.transfer', () => {
         expect(stack.removed).toBeDefined();
         expect(from.runtime.byId(stack.id)).toBeUndefined();
         expect(scene.overworld.getActors()).not.toContain(body);
-        const [arrived] = to.runtime.all().filter((entity) => entity.identifier === 'minecraft:item');
+        const [arrived] = to.runtime
+            .entities()
+            .toArray()
+            .filter((entity) => entity.identifier === 'minecraft:item');
         const arrivedBody = arrived === undefined ? undefined : to.actors.actorOf(arrived.id);
         if (!(arrivedBody instanceof ItemActor)) throw new Error('the stack did not arrive as an item actor');
         expect(arrived?.position).toEqual({ x: 10.5, y: 70, z: 0.5 });
@@ -811,7 +824,7 @@ describe('DimensionTravel.transfer of a data-driven mob', () => {
         });
 
         expect(travelersIn(scene.overworld)).toEqual([]);
-        expect(overworldLive.runtime.all()).toEqual([]);
+        expect(overworldLive.runtime.entities().toArray()).toEqual([]);
         const arrived = travelersIn(scene.nether);
         expect(arrived).toHaveLength(1);
         const restored = netherLive.runtime.byId(Number(arrived[0]!.getRuntimeId()));
@@ -827,7 +840,7 @@ describe('DimensionTravel.transfer of a data-driven mob', () => {
 });
 
 /** One world tick for an entity standing in a portal: the world's touch, then the entity's own update. */
-const tickInPortal = async (travel: DimensionTravel, entity: WorldActor, portal: PortalBlockRef, tick: number) => {
+const tickInPortal = async (travel: DimensionTravel, entity: StoreActor, portal: PortalBlockRef, tick: number) => {
     await travel.touch(entity, portal);
     await entity.update(tick);
 };
@@ -838,15 +851,15 @@ describe('DimensionTravel through the tick', () => {
         await lightPortal(scene.overworld, new Vector3(80, 64, 0), 'x');
         await lightPortal(scene.nether, new Vector3(12, 70, 0), 'z');
         const mob = mobAt(scene.overworld, new Vector3(80.5, 64, 0.5));
-        await scene.overworld.addEntity(mob);
 
         await tickInPortal(scene.travel, mob, portalAt(scene.overworld, new Vector3(80, 64, 0)), 1);
 
-        expect(mob.getWorld()).toBe(scene.nether);
-        expect(mob.getPosition().getY()).toBe(70);
-        expect(mob.getPortalCooldown()).toBe(300);
-        expect(mob.portalContact()).toBeUndefined();
-        expect(scene.nether.getEntities()).toContain(mob);
+        expect(cowsIn(scene.overworld)).toEqual([]);
+        const [arrived] = cowsIn(scene.nether);
+        if (arrived === undefined) throw new Error('the cow did not arrive in the Nether');
+        expect(arrived.getPosition().getY()).toBe(70);
+        expect(arrived.getPortalCooldown()).toBe(300);
+        expect(arrived.portalContact()).toBeUndefined();
 
         await scene.level.disable();
     }, 60_000);
@@ -878,15 +891,14 @@ describe('DimensionTravel through the tick', () => {
         await lightPortal(scene.overworld, new Vector3(80, 64, 0), 'x');
         await lightPortal(scene.nether, new Vector3(12, 70, 0), 'z');
         const mob = mobAt(scene.overworld, new Vector3(80.5, 64, 0.5));
-        await scene.overworld.addEntity(mob);
         scene.server.on('entityPortalEnter', (event) => event.preventDefault());
 
         for (let tick = 1; tick <= 3; tick += 1)
             await tickInPortal(scene.travel, mob, portalAt(scene.overworld, new Vector3(80, 64, 0)), tick);
 
-        expect(mob.getWorld()).toBe(scene.overworld);
+        expect(cowsIn(scene.overworld)).toEqual([mob]);
         expect(mob.getPortalCooldown()).toBe(0);
-        expect(scene.overworld.getEntities()).toContain(mob);
+        expect(cowsIn(scene.nether)).toEqual([]);
 
         await scene.level.disable();
     }, 60_000);
@@ -895,10 +907,14 @@ describe('DimensionTravel through the tick', () => {
         const scene = await buildScene();
         await lightPortal(scene.overworld, new Vector3(80, 64, 0), 'x');
         await lightPortal(scene.nether, new Vector3(12, 70, 0), 'z');
-        const mob = mobAt(scene.overworld, new Vector3(80.5, 64, 0.5));
-        await scene.overworld.addEntity(mob);
-        await tickInPortal(scene.travel, mob, portalAt(scene.overworld, new Vector3(80, 64, 0)), 1);
-        expect(mob.getWorld()).toBe(scene.nether);
+        await tickInPortal(
+            scene.travel,
+            mobAt(scene.overworld, new Vector3(80.5, 64, 0.5)),
+            portalAt(scene.overworld, new Vector3(80, 64, 0)),
+            1
+        );
+        const [mob] = cowsIn(scene.nether);
+        if (mob === undefined) throw new Error('the cow did not arrive in the Nether');
 
         // It arrived inside the Nether portal, so the world dispatches a touch every tick.
         // Well past the 300 tick cooldown: each touch winds the cooldown back to its full
@@ -906,7 +922,7 @@ describe('DimensionTravel through the tick', () => {
         const arrivalPortal = portalAt(scene.nether, new Vector3(12, 70, 0));
         for (let tick = 2; tick <= 420; tick += 1) await tickInPortal(scene.travel, mob, arrivalPortal, tick);
 
-        expect(mob.getWorld()).toBe(scene.nether);
+        expect(cowsIn(scene.nether)).toEqual([mob]);
         expect(mob.portalContact()).toBeUndefined();
         expect(mob.isOnPortalCooldown()).toBe(true);
 
@@ -917,11 +933,15 @@ describe('DimensionTravel through the tick', () => {
         const scene = await buildScene();
         await lightPortal(scene.overworld, new Vector3(80, 64, 0), 'x');
         await lightPortal(scene.nether, new Vector3(12, 70, 0), 'z');
-        const mob = mobAt(scene.overworld, new Vector3(80.5, 64, 0.5));
-        await scene.overworld.addEntity(mob);
         let tick = 0;
-        await tickInPortal(scene.travel, mob, portalAt(scene.overworld, new Vector3(80, 64, 0)), ++tick);
-        expect(mob.getWorld()).toBe(scene.nether);
+        await tickInPortal(
+            scene.travel,
+            mobAt(scene.overworld, new Vector3(80.5, 64, 0.5)),
+            portalAt(scene.overworld, new Vector3(80, 64, 0)),
+            ++tick
+        );
+        const [mob] = cowsIn(scene.nether);
+        if (mob === undefined) throw new Error('the cow did not arrive in the Nether');
         const arrivalPortal = portalAt(scene.nether, new Vector3(12, 70, 0));
         for (let stand = 0; stand < 50; stand += 1) await tickInPortal(scene.travel, mob, arrivalPortal, ++tick);
 
@@ -931,7 +951,7 @@ describe('DimensionTravel through the tick', () => {
         // Stepping back in before the cooldown has run out winds it back to the full 300,
         // minus the one tick the same update counts down.
         await tickInPortal(scene.travel, mob, arrivalPortal, ++tick);
-        expect(mob.getWorld()).toBe(scene.nether);
+        expect(cowsIn(scene.nether)).toEqual([mob]);
         expect(mob.getPortalCooldown()).toBe(299);
 
         // Out of the portal, the cooldown finally runs down, and the next contact travels.
@@ -939,7 +959,8 @@ describe('DimensionTravel through the tick', () => {
         expect(mob.isOnPortalCooldown()).toBe(false);
         await tickInPortal(scene.travel, mob, arrivalPortal, ++tick);
 
-        expect(mob.getWorld()).toBe(scene.overworld);
+        expect(cowsIn(scene.nether)).toEqual([]);
+        expect(cowsIn(scene.overworld)).toHaveLength(1);
 
         await scene.level.disable();
     }, 60_000);
@@ -997,7 +1018,7 @@ describe('DimensionTravel through the tick', () => {
         const pending = bot.pendingDimensionChange();
         expect(pending?.arrival.world).toBe(scene.nether);
         expect(scene.nether.getPortalIndex().has({ x: 9, y: 70, z: 0 })).toBe(true);
-        const entered: WorldActor[] = [];
+        const entered: StoreActor[] = [];
         scene.server.on('entityPortalEnter', (event) => void entered.push(event.getEntity()));
 
         // The bot stands in the portal the trip built, the client has still not closed the

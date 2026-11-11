@@ -6,7 +6,9 @@ import { Vector3 } from '@jsprismarine/math';
 import { describe, expect, it, vi } from 'vitest';
 
 import { Attributes, AttributeIds } from '@jsprismarine/protocol/wire/structures/Attribute';
-import { Entity } from '../entity/Entity';
+import type { DataEntity } from '../entity/data/DataEntity';
+import type { StoreActors } from '../entity/data/storeActors';
+import { StoreActor } from '../entity/data/storeActors';
 import type PlayerSession from '../network/PlayerSession';
 import { stub, stubOf } from '../testing/stub.test.helper';
 import type { DimensionTravel, PortalBlockRef } from './portal/DimensionTravel';
@@ -42,7 +44,7 @@ const worldTicking = ({
 }: {
     trackingInterval?: number;
     currentTick?: number;
-    entities?: Entity[];
+    entities?: StoreActor[];
     entityAttributesChanged?: WorldChangeSink['entityAttributesChanged'];
     /** What stands at a block, for the portal check; air everywhere by default. */
     blockAt?: (x: number, y: number, z: number) => SystemBlock | undefined;
@@ -80,12 +82,19 @@ const worldTicking = ({
         flushMovement: record('flushMovement')
     };
 
+    // The store's actors are the entities the tick walks, in the order they were given.
+    const live = Object.assign(inertEntityRuntime(), {
+        actors: stub<StoreActors>({
+            all: () => new Map(entities.map((entity) => [Number(entity.getRuntimeId()), entity])).values(),
+            actorOf: (id) => entities.find((entity) => entity.getRuntimeId() === BigInt(id))
+        })
+    });
     const server = {
         getConfig: () => ({ getEntityTrackingInterval: () => trackingInterval }),
         getLogger: () => ({ verbose: () => {}, error: () => {}, warn: () => {} }),
         // Inert: this file is about the order of the phases, not about what a mob does
         // inside one, and the data runtime's own tick is covered by `live.test.ts`.
-        getEntityRuntime: () => inertEntityRuntime(),
+        getEntityRuntime: () => live,
         getDimensionTravel: () => travel
     };
 
@@ -93,8 +102,6 @@ const worldTicking = ({
     // stand-in. Only what would reach the disk, a chunk or the network is replaced.
     const runtimeIds = new Map<string, number>();
     const world: World = Object.assign(Object.create(World.prototype), {
-        // The map the tick walks, filled the way `addEntity` keys it.
-        entities: new Map(entities.map((entity) => [Number(entity.getRuntimeId()), entity])),
         players: new Map(),
         chunks: new Map(),
         name: 'tick-test-world',
@@ -107,8 +114,6 @@ const worldTicking = ({
             provider: stub<BaseProvider>({ supportsChunkUnload: false })
         }),
         dimension: Dimensions.Overworld,
-        getEntities: () => entities,
-        getPlayers: () => [],
         loadedBlockAt: blockAt,
         // A runtime id names one block, so the stand-in numbers each name the first time it is read.
         loadedBlockRuntimeIdAt: (x: number, y: number, z: number) => {
@@ -128,14 +133,36 @@ const worldTicking = ({
     return { world, calls, server };
 };
 
+/** A store entity's actor, standing where `members.getPosition` says, of `members.getType`'s type. */
+const actorOf = (members: Parameters<typeof stubOf<StoreActor>>[1] & Pick<StoreActor, 'getPosition' | 'getType'>) => {
+    const actor = stubOf(StoreActor, members);
+    // The tick reads the store entity behind the actor for its type and where it stands.
+    Object.defineProperty(actor, 'entity', {
+        get: () => {
+            const at = members.getPosition();
+            return stub<DataEntity>({
+                id: Number(actor.getRuntimeId()),
+                identifier: members.getType(),
+                position: { x: at.getX(), y: at.getY(), z: at.getZ() }
+            });
+        }
+    });
+    return actor;
+};
+
+/** Ids for the attribute doubles, so each is its own entry in the store's map. */
+let nextId = 100;
+
 const dirtyEntity = (world: World) => {
     const attributes = new Attributes();
     attributes.setValue(AttributeIds.Health, 19);
     const position = new Position(0, 64, 0, world);
-    const entity = stub<Entity>({
+    const entity = actorOf({
         attributes,
+        getRuntimeId: () => BigInt(++nextId),
         getPosition: () => position,
         getType: () => 'minecraft:cow',
+        claimUpdate: () => true,
         update: async () => {}
     });
 
@@ -185,7 +212,7 @@ describe('world', () => {
             });
             const { world } = worldTicking({
                 entities: [
-                    stubOf(Entity, {
+                    actorOf({
                         getPosition: () => new Position(0, 64, 0, world),
                         getType: () => 'minecraft:player',
                         getRuntimeId: () => 1n,
@@ -197,7 +224,7 @@ describe('world', () => {
                             firstFinished = true;
                         }
                     }),
-                    stubOf(Entity, {
+                    actorOf({
                         getPosition: () => new Position(0, 64, 0, world),
                         getType: () => 'minecraft:player',
                         getRuntimeId: () => 2n,
@@ -227,7 +254,7 @@ describe('world', () => {
 
         it('ticks its entities without copying the whole entity list for an index', async () => {
             const updated: bigint[] = [];
-            const player = stubOf(Entity, {
+            const player = actorOf({
                 getPosition: () => new Position(0, 64, 0, world),
                 getType: () => 'minecraft:player',
                 getRuntimeId: () => 1n,
@@ -242,18 +269,20 @@ describe('world', () => {
                 flushEntityAttributes: async () => {},
                 updateTracking: async () => {}
             });
-            const copies = vi.spyOn(world, 'getEntities');
+            const copies = vi.spyOn(world, 'getActors');
+            const shown = vi.spyOn(world, 'shownActors');
 
             await world.update(1);
 
             expect(updated).toEqual([1n]);
-            // Once, for the list the attribute pass is handed. Slice 5 removes that one too.
-            expect(copies).toHaveBeenCalledTimes(1);
+            // The loop and the attribute pass walk the store's actors in place.
+            expect(copies).not.toHaveBeenCalled();
+            expect(shown).not.toHaveBeenCalled();
         });
 
         it('uses the roster insertion order that Java 26.3 entity ticks preserve', async () => {
             const started: bigint[] = [];
-            const firstInserted = stubOf(Entity, {
+            const firstInserted = actorOf({
                 getPosition: () => new Position(0, 64, 0, world),
                 getType: () => 'minecraft:player',
                 getRuntimeId: () => 2n,
@@ -262,7 +291,7 @@ describe('world', () => {
                     started.push(2n);
                 }
             });
-            const secondInserted = stubOf(Entity, {
+            const secondInserted = actorOf({
                 getPosition: () => new Position(0, 64, 0, world),
                 getType: () => 'minecraft:player',
                 getRuntimeId: () => 1n,
@@ -273,11 +302,6 @@ describe('world', () => {
             });
             const { world } = worldTicking({ entities: [firstInserted, secondInserted] });
             Object.assign(world, {
-                entities: new Map([
-                    [2, firstInserted],
-                    [1, secondInserted]
-                ]),
-                getEntities: World.prototype.getEntities,
                 touchPortals: async () => {},
                 flushEntityAttributes: async () => {},
                 updateTracking: async () => {}
@@ -417,9 +441,9 @@ describe('world', () => {
         });
 
         it('continues flushing later attributes after a synchronous sink failure', async () => {
-            const entities: Entity[] = [];
+            const entities: StoreActor[] = [];
             const sent: ShownActor[] = [];
-            let failingEntity: Entity | undefined;
+            let failingEntity: StoreActor | undefined;
             const { world } = worldTicking({
                 entities,
                 entityAttributesChanged: (entity) => {
@@ -444,7 +468,7 @@ describe('world', () => {
 
 describe('world portal contacts', () => {
     /** A standing player, 0.6 wide and 1.8 tall, whose feet are at `feet`. */
-    const standingAt = (feet: Vector3, onCooldown = false): Entity => {
+    const standingAt = (feet: Vector3, onCooldown = false): StoreActor => {
         // A settled client: no world change is waiting on its loading screen.
         const session = stub<PlayerSession>({ pendingDimensionChange: () => undefined });
         const position = new Position(
@@ -454,7 +478,7 @@ describe('world portal contacts', () => {
             stub<World>({ viewerOf: () => session })
         );
         // An entity of the player's type, which is what the portal pass reads of a player.
-        return stubOf(Entity, {
+        return actorOf({
             getType: () => 'minecraft:player',
             getRuntimeId: () => 1n,
             attributes: new Attributes(),

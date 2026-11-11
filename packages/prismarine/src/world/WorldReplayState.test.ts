@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type { Config } from '../config/Config';
 import { stub } from '../testing/stub.test.helper';
-import { inertEntityRuntime, testContent } from '../testing/entityServer';
+import { inertEntityRuntime, liveTestEntities, testContent } from '../testing/entityServer';
 import { TEST_OVERWORLD_STEM, fakeLevel } from '../testing/level';
 import type Server from '../Server';
 import Chunk from './chunk/Chunk';
@@ -11,42 +11,9 @@ import { Dimensions } from './Dimension';
 import type { Generator } from './Generator';
 import type BaseProvider from './providers/BaseProvider';
 import { World } from './World';
-import { Position } from './Position';
-import { GenericEntity } from '../testing/genericEntity.test.helper';
 import type { LiveEntityRuntime } from '../entity/data/live';
-import type { DataEntityRecord } from '../entity/data/persistence';
 import { DATA_ENTITY_TAG } from '../entity/data/persistence';
 import { NBTTagCompound, Types } from '@jsprismarine/nbt';
-
-/**
- * A runtime that answers the record a save would write for each body, the way the real one does,
- * and whose `persist` would write it onto the bodies if anything called it.
- */
-const recordingRuntime = (bodies: () => readonly GenericEntity[], health: () => number): LiveEntityRuntime => {
-    const recordOf = (body: GenericEntity): DataEntityRecord => ({
-        identifier: body.getType(),
-        persistentIdentity: `body-${body.getRuntimeId()}`,
-        componentGroups: [],
-        properties: {},
-        attributes: { health: health() },
-        yaw: 0,
-        pitch: 0,
-        inventory: [],
-        sitting: false,
-        sleeping: false,
-        loveTicks: 0,
-        breedCooldown: 0
-    });
-    return stub<LiveEntityRuntime>({
-        savedRecords: () => new Map(bodies().map((body) => [body, recordOf(body)])),
-        persist: () => {
-            for (const body of bodies()) {
-                body.persistentNbt ??= new NBTTagCompound('');
-                body.persistentNbt.addValue(DATA_ENTITY_TAG, new Types.StringVal(JSON.stringify(recordOf(body))));
-            }
-        }
-    });
-};
 
 const createWorld = (entityRuntime: LiveEntityRuntime = inertEntityRuntime()) => {
     const logger = stub<Logger>({
@@ -130,34 +97,30 @@ describe('World.replayStateDigest', () => {
     });
 
     it('hashes the record a save would write, and writes nothing onto an entity', () => {
-        let health = 20;
-        const bodies: GenericEntity[] = [];
-        const world = createWorld(
-            recordingRuntime(
-                () => bodies,
-                () => health
-            )
-        );
-        const fresh = new GenericEntity({ identifier: 'minecraft:cow', position: new Position(1, 64, 1, world) });
-        const saved = new GenericEntity({ identifier: 'minecraft:pig', position: new Position(2, 64, 2, world) });
+        let world: World | undefined;
+        const live = liveTestEntities(() => world).entityRuntime(Dimensions.Overworld.name);
+        world = createWorld(live);
+        const fresh = live.runtime.spawn('minecraft:cow', { x: 1, y: 64, z: 1 });
+        const saved = live.runtime.spawn('minecraft:cow', { x: 2, y: 64, z: 2 });
+        const freshActor = fresh === undefined ? undefined : live.actors.actorOf(fresh.id);
+        const savedActor = saved === undefined ? undefined : live.actors.actorOf(saved.id);
+        if (fresh === undefined || freshActor === undefined || savedActor === undefined)
+            throw new Error('the fixture declares no cow');
         const savedNbt = new NBTTagCompound('');
         const savedRecord = new Types.StringVal(JSON.stringify({ health: 7 }));
         savedNbt.addValue(DATA_ENTITY_TAG, savedRecord);
-        saved.persistentNbt = savedNbt;
-        bodies.push(fresh, saved);
-        vi.spyOn(world, 'getActors').mockImplementation(() => [...bodies]);
+        savedActor.persistentNbt = savedNbt;
 
         const before = world.replayStateDigest();
-        health = 12;
+        fresh.instance.attributes.set('health', 2);
         const after = world.replayStateDigest();
 
-        // A body with no compound is what `isLegacyEntity` reads as legacy; a digest must not change that.
-        expect(fresh.persistentNbt).toBeNull();
-        expect(saved.persistentNbt).toBe(savedNbt);
+        expect(freshActor.persistentNbt).toBeNull();
+        expect(savedActor.persistentNbt).toBe(savedNbt);
         expect(savedNbt.children.get(DATA_ENTITY_TAG)).toBe(savedRecord);
         expect(savedNbt.getString(DATA_ENTITY_TAG, '')).toBe('{"health":7}');
         expect(after).not.toBe(before);
-        // The same bytes a save holds: persisting first and hashing the bodies gives the same digest.
+        // The same bytes a save holds: persisting first and hashing the actors gives the same digest.
         const digest = world.replayStateDigest();
         world.dataEntities().persist();
         const persisted = world.replayStateDigest();

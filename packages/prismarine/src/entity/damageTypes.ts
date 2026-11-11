@@ -3,7 +3,7 @@ import type { Vector3 } from '@jsprismarine/math';
 import type { ServerContent } from '../content/ServerContent';
 import { DamageCause } from './DamageCause';
 import { DamageSource } from './DamageSource';
-import type { WorldActor } from '../world/WorldActor';
+import type { StoreActor } from './data/storeActors';
 import { damageTagsOf } from './mobLoot';
 
 /**
@@ -62,9 +62,9 @@ export const damageCauseOfType = (type: string, tags: ReadonlySet<string>): Dama
 /** Where `/damage` says a blow came from. */
 export interface DamageOrigins {
     /** `by`: what made contact. */
-    readonly by?: WorldActor;
+    readonly by?: StoreActor;
     /** `from`: who is answerable for `by`; without it `by` is both. */
-    readonly from?: WorldActor;
+    readonly from?: StoreActor;
     /** `at`: a point the blow came from. */
     readonly at?: Vector3;
 }

@@ -3,7 +3,7 @@ import type { CommandExecutor } from '../command/CommandExecutor';
 import { DamageCause } from '../entity/DamageCause';
 import { DamageSource } from '../entity/DamageSource';
 import { deathMessage } from '../entity/DeathMessages';
-import type { Entity } from '../entity/Entity';
+import type { StoreActor } from '../entity/data/storeActors';
 import { stub } from '../testing/stub.test.helper';
 import { Chat, ChatType } from './Chat';
 import { consoleTextOf, translateForConsole } from './ConsoleText';
@@ -13,7 +13,7 @@ const sender = stub<CommandExecutor>({});
 const translation = (message: string, parameters: string[]) =>
     new Chat({ sender, message, parameters, needsTranslation: true, type: ChatType.TRANSLATION });
 
-const entity = (name: string, type: string) => stub<Entity>({ getName: () => name, getType: () => type });
+const entity = (name: string, type: string) => stub<StoreActor>({ getName: () => name, getType: () => type });
 
 describe('ConsoleText', () => {
     describe('translateForConsole', () => {

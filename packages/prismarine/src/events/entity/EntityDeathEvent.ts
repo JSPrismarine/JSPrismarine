@@ -1,5 +1,5 @@
 import type { DamageSource } from '../../entity/DamageSource';
-import type { WorldActor } from '../../world/WorldActor';
+import type { StoreActor } from '../../entity/data/storeActors';
 import { Event } from '../Event';
 
 /**
@@ -11,10 +11,10 @@ import { Event } from '../Event';
  * the whole point, which is why the source is carried rather than only the cause.
  */
 export default class EntityDeathEvent extends Event {
-    private readonly entity: WorldActor;
+    private readonly entity: StoreActor;
     private readonly source: DamageSource;
 
-    public constructor(entity: WorldActor, source: DamageSource) {
+    public constructor(entity: StoreActor, source: DamageSource) {
         super();
 
         this.entity = entity;
@@ -22,7 +22,7 @@ export default class EntityDeathEvent extends Event {
     }
 
     /** Who died: a legacy entity, or a store entity through its actor. */
-    public getEntity(): WorldActor {
+    public getEntity(): StoreActor {
         return this.entity;
     }
 

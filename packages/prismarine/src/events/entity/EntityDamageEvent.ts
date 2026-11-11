@@ -1,5 +1,5 @@
 import type { DamageSource } from '../../entity/DamageSource';
-import type { WorldActor } from '../../world/WorldActor';
+import type { StoreActor } from '../../entity/data/storeActors';
 import { Event } from '../Event';
 
 /**
@@ -12,11 +12,11 @@ import { Event } from '../Event';
  * rather than undoing whatever their armor was about to do.
  */
 export default class EntityDamageEvent extends Event {
-    private readonly entity: WorldActor;
+    private readonly entity: StoreActor;
     private readonly source: DamageSource;
     private amount: number;
 
-    public constructor(entity: WorldActor, amount: number, source: DamageSource) {
+    public constructor(entity: StoreActor, amount: number, source: DamageSource) {
         super();
 
         this.entity = entity;
@@ -25,7 +25,7 @@ export default class EntityDamageEvent extends Event {
     }
 
     /** Who is being hurt: a legacy entity, or a store entity through its actor. */
-    public getEntity(): WorldActor {
+    public getEntity(): StoreActor {
         return this.entity;
     }
 

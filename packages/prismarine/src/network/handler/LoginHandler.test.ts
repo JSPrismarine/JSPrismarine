@@ -112,7 +112,6 @@ describe('network', () => {
 
             const world = (): World =>
                 stub<World>({
-                    addEntity: async () => {},
                     // The handler resolves where the player starts before building one,
                     // now that an entity has to be given somewhere to be.
                     getSpawnPosition: async () => new Vector3(0, 64, 0),
@@ -122,7 +121,6 @@ describe('network', () => {
                     // `lastPlayerRecord`.
                     getLevel: () => fakeLevel({ server }),
                     // Announcing a move is the world's job now, not the entity's.
-                    entityRelocated: () => {},
                     broadcastMove: async () => {},
                     getPlayerData: async () => ({ position: { x: 0, y: 0, z: 0, pitch: 0, yaw: 0, headYaw: 0 } })
                 });

@@ -28,7 +28,6 @@ const fake = () => {
     const players: PlayerSession[] = [];
     const world = stub<World>({
         getViewers: () => players,
-        entityRelocated: () => {},
         broadcastMove: vi.fn(async () => {})
     });
     const position = new Position(0, 64, 0, world);
@@ -75,7 +74,6 @@ describe('MovePlayerHandler', () => {
     it('keeps posting movement events but queues movement only for changed poses', async () => {
         const world = stub<World>({
             getViewers: () => [],
-            entityRelocated: () => {},
             broadcastMove: vi.fn(async () => {})
         });
         const pose = {

@@ -460,7 +460,7 @@ const scenario = (count: number, seed: number) => {
 
     if (COLLISION_SCENE === 'end') runtime.spawn('minecraft:ender_dragon', { x: 0, y: FLOOR_Y + 1, z: 0 });
 
-    const spawned = runtime.all().length;
+    const spawned = runtime.entities().toArray().length;
     const expectedSpawned = count + (COLLISION_SCENE === 'end' ? 1 : 0);
     if (spawned !== expectedSpawned) {
         throw new Error(
@@ -473,7 +473,7 @@ const scenario = (count: number, seed: number) => {
     if (AVOID_BLOCK_PROFILE) {
         // Seed a nearby match for each subject so queries return the kind of candidate
         // avoid_block consumes while still scanning the full search volume.
-        for (const entity of runtime.all()) {
+        for (const entity of runtime.entities().toArray()) {
             world.blocks.set(
                 {
                     x: Math.floor(entity.position.x),
@@ -495,7 +495,7 @@ const scenario = (count: number, seed: number) => {
             sensingCounts.rays += 1;
             return raycast(from, to);
         };
-        for (const entity of runtime.all()) {
+        for (const entity of runtime.entities().toArray()) {
             if (!SENSING_TYPES.has(entity.identifier)) continue;
             // Keep the direct benchmark queries inside range so they reach the ray walker.
             entity.instance.attributes.define('follow_range', { base: 32 });
@@ -580,7 +580,8 @@ const run = (
     } = scenario(count, seed);
     const avoidBlockSubjects = AVOID_BLOCK_PROFILE
         ? runtime
-              .all()
+              .entities()
+              .toArray()
               .filter((entity) => entity.identifier === 'minecraft:piglin' || entity.identifier === 'minecraft:hoglin')
         : [];
     const runAvoidBlockQueries = (tick: number): void => {

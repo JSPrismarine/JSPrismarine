@@ -1,19 +1,16 @@
 /**
- * The slice 5 target of the entity and tick re-architecture: no `Entity`, `GenericEntity` or
- * `Human` class, and no array copy through `all()`.
+ * The slice 5 target of the entity and tick re-architecture: no `Entity`, `GenericEntity`,
+ * `Human` or `Player` class, and no array copy through `all()` or `getEntities()`.
  *
  * A player is a store player and every other entity is a store entity, so the server holds one
  * kind of entity and one kind of actor. These checks fail if a legacy class comes back, if an
  * actor subclass appears beside the store's own, or if a pass over the store copies it again.
  * They count and read structure, never a duration. `noMirror.test.ts` is the slice 4 target.
- *
- * Two checks wait for H-D, which deletes `Entity` and moves the last callers off `all()`. They
- * are `it.todo` until then, and become the assertions beside them.
  */
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 import { entityFixture, TestEntityWorld } from './testing';
 
@@ -43,9 +40,11 @@ describe('the legacy entity classes', () => {
         expect(existsSync(join(SOURCE, 'entity/Human.ts'))).toBe(false);
     });
 
-    // H-D deletes `entity/Entity.ts` with `Player`, and this becomes
-    // `expect(modulesMatching(/^export (?:abstract )?class Entity\b/m)).toEqual([])`.
-    it.todo('declare no Entity, which H-D deletes with the legacy player');
+    it('declare no Entity and no Player', () => {
+        expect(modulesMatching(/^export (?:default )?(?:abstract )?class (?:Entity|Player)\b/m)).toEqual([]);
+        expect(existsSync(join(SOURCE, 'entity/Entity.ts'))).toBe(false);
+        expect(existsSync(join(SOURCE, 'Player.ts'))).toBe(false);
+    });
 
     it('leave no class extending a legacy entity', () => {
         expect(modulesMatching(/class \w+ extends (?:Entity|GenericEntity|Human)\b/)).toEqual([]);
@@ -70,24 +69,10 @@ describe('the actors', () => {
 });
 
 describe('the passes over the store', () => {
-    it('copy no array of it through all() inside the runtime and the actors', () => {
-        // The entity pass, the despawn cycle, the cured-villager count and the actor sync walk the
-        // store with `entities()`.
-        for (const module of ['entity/data/EntityRuntime.ts', 'entity/data/storeActors.ts']) {
-            const text = readFileSync(join(SOURCE, module), 'utf8');
-            expect(text.match(/\b(?:this|runtime)\.all\(\)/g) ?? [], module).toEqual([]);
-        }
-    });
-
-    it('make no call to all() in a tick', () => {
-        const { runtime } = entityFixture(new TestEntityWorld());
-        for (const x of [0, 2, 4]) runtime.spawn('minecraft:cow', { ...GROUND, x });
-        const all = vi.spyOn(runtime, 'all');
-
-        for (let tick = 1; tick <= 3; tick += 1) runtime.tick(tick);
-        runtime.tick(4, () => false);
-
-        expect(all).not.toHaveBeenCalled();
+    it('copy no array of it through all() anywhere in the server', () => {
+        // The entity pass, the despawn cycle, the cured-villager count, the actor sync and the
+        // content's entity queries walk the store with `entities()`.
+        expect(modulesMatching(/\b(?:this|runtime)\.all\(\)/)).toEqual([]);
     });
 
     it('walk the entities the store held when the walk began, in spawn order', () => {
@@ -120,8 +105,10 @@ describe('the passes over the store', () => {
         expect(visited).toEqual([first.id, third.id]);
     });
 
-    // `all()` stays for the callers that need an array: `live.ts`, `DragonFight.ts`,
-    // `contentAdapter.ts` and the tests. H-C1 and H-D move them to `entities()` or an index
-    // query, and then `EntityRuntime.all` goes.
-    it.todo('leave no all() on the runtime, which H-C1 and H-D empty of callers');
+    it('leave no all() on the runtime and no getEntities() on the world', () => {
+        const { runtime } = entityFixture(new TestEntityWorld());
+
+        expect('all' in runtime).toBe(false);
+        expect(modulesMatching(/\bgetEntities\(\)/)).toEqual([]);
+    });
 });

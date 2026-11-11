@@ -525,7 +525,7 @@ describe('EntityRuntime', () => {
             const second = runtime.spawn('minecraft:cow', GROUND);
 
             expect(first?.id).not.toBe(second?.id);
-            expect(runtime.all()).toHaveLength(2);
+            expect(runtime.entities().toArray()).toHaveLength(2);
         });
 
         it('announces each entity once its spawn event has run', () => {
@@ -1322,7 +1322,8 @@ describe('EntityRuntime', () => {
             });
             expect(
                 runtime
-                    .all()
+                    .entities()
+                    .toArray()
                     .map((entity) => entity.identifier)
                     .sort()
             ).toEqual([
@@ -2596,7 +2597,7 @@ describe('EntityRuntime', () => {
 
             runtime.hurt(cow, undefined, 'entity_attack', 10);
 
-            expect(runtime.all()).not.toContain(cow);
+            expect(runtime.entities().toArray()).not.toContain(cow);
             expect(world.drops.map((drop) => drop.item.identifier)).toEqual(['minecraft:leather']);
         });
     });
@@ -2701,16 +2702,16 @@ describe('EntityRuntime', () => {
             if (first === undefined || second === undefined) throw new Error('no villagers');
             for (const villager of [first, second])
                 villager.body.setInventory([...villager.body.inventory, ...Array(3).fill('minecraft:bread')]);
-            const before = runtime.all().length;
+            const before = runtime.entities().toArray().length;
 
             expect(runtime.villagerTask(first.body, 'make_love', second.id)).toBe(false);
-            expect(runtime.all()).toHaveLength(before);
+            expect(runtime.entities().toArray()).toHaveLength(before);
 
             world.setBlock({ x: 4, y: FLOOR_Y + 1, z: 0 }, 'minecraft:bed');
             runtime.invalidateBlockCaches();
             expect(runtime.villagerTask(first.body, 'make_love', second.id)).toBe(true);
 
-            expect(runtime.all()).toHaveLength(before + 1);
+            expect(runtime.entities().toArray()).toHaveLength(before + 1);
             expect(first.body.inventory).toEqual([]);
             expect(runtime.villagerCanBreed(first.body, second.id)).toBe(false);
         });
@@ -2868,7 +2869,7 @@ describe('EntityRuntime', () => {
             runtime.kill(cow!);
 
             expect(world.drops.map((drop) => drop.item.identifier)).toEqual(['minecraft:leather']);
-            expect(runtime.all()).toHaveLength(0);
+            expect(runtime.entities().toArray()).toHaveLength(0);
         });
 
         it('rolls nothing with doMobLoot off, and still takes the entity', () => {
@@ -2879,7 +2880,7 @@ describe('EntityRuntime', () => {
             runtime.kill(cow!);
 
             expect(world.drops).toHaveLength(0);
-            expect(runtime.all()).toHaveLength(0);
+            expect(runtime.entities().toArray()).toHaveLength(0);
         });
     });
 
@@ -2921,7 +2922,7 @@ describe('EntityRuntime', () => {
                 throw new Error('the fixture declares no crystal and cow');
 
             runtime.hurt(crystal, undefined, 'entity_attack', 1);
-            expect(runtime.all()).not.toContain(crystal);
+            expect(runtime.entities().toArray()).not.toContain(crystal);
             runtime.tick(1);
 
             expect(removed.map((entry) => [entry.entity.identifier, entry.reason])).toContainEqual([
@@ -3195,7 +3196,7 @@ describe('EntityRuntime', () => {
             runtime.hurt(guarded, undefined, 'block_explosion', 5);
 
             expect(guarded.instance.attributes.get('health')?.current).toBe(10);
-            expect(runtime.all()).toContain(guarded);
+            expect(runtime.entities().toArray()).toContain(guarded);
         });
     });
 

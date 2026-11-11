@@ -34,7 +34,6 @@ import type { ServerContent } from '../../content/ServerContent';
 import { contentWorldViews } from '../../content/world/views';
 import { destroyBlock } from '../../world/blockDestroy';
 import type { World } from '../../world/World';
-import type { WorldActor } from '../../world/WorldActor';
 import { damageCauseOf, DamageCause } from '../DamageCause';
 import { DamageSource } from '../DamageSource';
 import { entityIds } from '../entityIds';
@@ -657,7 +656,7 @@ export class LiveEntityRuntime {
     }
 
     /** The store entity behind an actor of this runtime, or undefined for a legacy entity. */
-    private storeEntityOf(target: WorldActor): DataEntity | undefined {
+    private storeEntityOf(target: StoreActor): DataEntity | undefined {
         if (!(target instanceof StoreActor)) return undefined;
         const entity = this.runtime.byId(target.entity.id);
         return entity?.removed === undefined ? entity : undefined;
@@ -678,7 +677,7 @@ export class LiveEntityRuntime {
      *   and the caller still owns the blow.
      */
     public damageEntity(
-        target: WorldActor,
+        target: StoreActor,
         amount: number,
         source: DamageSource,
         route: DamageRoute
@@ -825,7 +824,7 @@ export class LiveEntityRuntime {
      * @param shooter - The live entity that used the item.
      * @returns The spawned projectile, or undefined when its loaded definition is not a projectile.
      */
-    public launchProjectile(action: LaunchProjectileAction, shooter: WorldActor): DataEntity | undefined {
+    public launchProjectile(action: LaunchProjectileAction, shooter: StoreActor): DataEntity | undefined {
         const position = shooter.getPosition();
         const eyeOffset =
             shooter.getType() === 'minecraft:player' ? 0 : shooter.getBox().height * PROJECTILE_EYE_HEIGHT_FRACTION;
@@ -869,7 +868,7 @@ export class LiveEntityRuntime {
      * @param target - The entity, a store entity through its actor.
      * @returns Whether its runtime entity accepts name tags.
      */
-    public canNameEntity(target: WorldActor): boolean {
+    public canNameEntity(target: StoreActor): boolean {
         const id = this.storeEntityOf(target)?.id;
         return id !== undefined && this.runtime.canNameEntity(id);
     }
@@ -881,7 +880,7 @@ export class LiveEntityRuntime {
      * @param name - The custom name being assigned.
      * @returns Whether the runtime accepted the name tag.
      */
-    public nameEntity(target: WorldActor, name: string): boolean {
+    public nameEntity(target: StoreActor, name: string): boolean {
         const id = this.storeEntityOf(target)?.id;
         return id !== undefined && this.runtime.nameEntity(id, name);
     }
@@ -893,7 +892,7 @@ export class LiveEntityRuntime {
      * @param color - The dye color name.
      * @returns Whether the runtime entity accepts the dye.
      */
-    public canDyeEntity(target: WorldActor, color: string): boolean {
+    public canDyeEntity(target: StoreActor, color: string): boolean {
         const id = this.storeEntityOf(target)?.id;
         return id !== undefined && this.runtime.canDyeEntity(id, color);
     }
@@ -905,7 +904,7 @@ export class LiveEntityRuntime {
      * @param color - The dye color name.
      * @returns Whether the runtime changed the color.
      */
-    public dyeEntity(target: WorldActor, color: string): boolean {
+    public dyeEntity(target: StoreActor, color: string): boolean {
         const id = this.storeEntityOf(target)?.id;
         return id !== undefined && this.runtime.dyeEntity(id, color);
     }
@@ -917,7 +916,7 @@ export class LiveEntityRuntime {
      * `Villager.mobInteract` leaves them. Everything else on a trader that has offers opens the
      * screen, and one that has none or is a baby does nothing.
      */
-    private openTradeScreen(id: number, trader: WorldActor, session: PlayerSession, itemIdentifier: string): boolean {
+    private openTradeScreen(id: number, trader: StoreActor, session: PlayerSession, itemIdentifier: string): boolean {
         const player = session.getPlayer();
         if (itemIdentifier.endsWith('_spawn_egg') || player.isSneaking()) return false;
         const entity = this.runtime.byId(id);
@@ -964,8 +963,8 @@ export class LiveEntityRuntime {
 
     /** Applies a held item to a data-driven entity and carries out its world, item, and animation effects. */
     public interactWithItem(
-        target: WorldActor,
-        player: WorldActor,
+        target: StoreActor,
+        player: StoreActor,
         itemIdentifier: string,
         heldItem?: ContentItemDrop
     ): EntityItemInteraction {
@@ -1050,10 +1049,10 @@ export class LiveEntityRuntime {
     /**
      * The record {@link LiveEntityRuntime.persist} would write for each entity that persists, by
      * actor, without writing it, so a replay digest can hash what a save holds and change nothing.
-     * @returns {ReadonlyMap<WorldActor, DataEntityRecord>} The records, each keyed by a store actor.
+     * @returns {ReadonlyMap<StoreActor, DataEntityRecord>} The records, each keyed by a store actor.
      */
-    public savedRecords(): ReadonlyMap<WorldActor, DataEntityRecord> {
-        const records = new Map<WorldActor, DataEntityRecord>();
+    public savedRecords(): ReadonlyMap<StoreActor, DataEntityRecord> {
+        const records = new Map<StoreActor, DataEntityRecord>();
         for (const entity of this.runtime.entities()) {
             const actor = this.actors.actorOf(entity.id);
             // A player is saved as its player record, never with a chunk.

@@ -13,7 +13,7 @@ import * as archery from '../../entity/Archery';
 import { loose } from '../../entity/Archery';
 import * as combat from '../../entity/Combat';
 import { meleeAttack } from '../../entity/Combat';
-import type { Entity } from '../../entity/Entity';
+import type { StoreActor } from '../../entity/data/storeActors';
 import ContainerEntry from '../../inventory/ContainerEntry';
 import HumanInventory from '../../inventory/HumanInventory';
 import { Item } from '../../item/Item';
@@ -96,7 +96,7 @@ const fake = (
     const inventorySyncs: Array<readonly [number, number, number, Item | null]> = [];
     let exhaustion = 0;
 
-    let zombie: Entity;
+    let zombie: StoreActor;
     const world = stub<World>({
         breakBlock: async (position) => {
             broken.push(BlockPosition.fromVector3(position));
@@ -108,7 +108,7 @@ const fake = (
             for (const content of contents) if (content instanceof Item) dropped.push(content);
         }
     });
-    zombie = stub<Entity>({
+    zombie = stub<StoreActor>({
         getRuntimeId: () => 42n,
         getType: () => 'minecraft:zombie',
         getPosition: () => new Position(0, 64, 0, world)

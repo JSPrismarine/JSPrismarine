@@ -10,7 +10,6 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
 import { GenericBlockEntity } from '../blockentity/GenericBlockEntity';
-import { GenericEntity } from '../testing/genericEntity.test.helper';
 import type { Config } from '../config/Config';
 import type Server from '../Server';
 import type PlayerSession from '../network/PlayerSession';
@@ -19,7 +18,7 @@ import Chunk from './chunk/Chunk';
 import { Dimensions } from './Dimension';
 import type { Generator } from './Generator';
 import LevelDB from './providers/leveldb/LevelDB';
-import { inertEntityRuntime, testContent } from '../testing/entityServer';
+import { inertEntityRuntime, liveTestEntities, testContent } from '../testing/entityServer';
 import { DimensionTravel } from './portal/DimensionTravel';
 import { Position } from './Position';
 import { OVERWORLD_STEM_ID } from '@jsprismarine/worldgen';
@@ -301,16 +300,14 @@ describe('the autosave a tick starts', () => {
             })
         );
 
-        const live = Object.assign(world.dataEntities(), { unload: () => false });
+        // A real entity runtime over this world, which holds the cow the unload saves.
+        const live = liveTestEntities(() => world).entityRuntime(Dimensions.Overworld.name);
         const server = Reflect.get(world, 'server');
         if (typeof server !== 'object' || server === null) throw new Error('World server is unavailable');
         Reflect.set(server, 'getEntityRuntime', () => live);
 
-        const actor = new GenericEntity({
-            identifier: 'minecraft:cow',
-            position: new Position(11 * 16 + 0.5, GROUND + 1, 0.5, world)
-        });
-        await world.addEntity(actor);
+        const cow = live.runtime.spawn('minecraft:cow', { x: 11 * 16 + 0.5, y: GROUND + 1, z: 0.5 });
+        if (cow === undefined) throw new Error('the fixture declares no minecraft:cow');
 
         level.setTicks(1);
         const update = world.update(1);

@@ -114,7 +114,12 @@ describe.skipIf(!process.env.JSP_CONTENT_VANILLA)(
                 expect(restored.identifier).toBe(identifier);
             }
 
-            expect(runtime.all().map((entity) => entity.identifier)).toEqual(identifiers);
+            expect(
+                runtime
+                    .entities()
+                    .toArray()
+                    .map((entity) => entity.identifier)
+            ).toEqual(identifiers);
         });
     }
 );

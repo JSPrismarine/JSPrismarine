@@ -25,7 +25,7 @@ import { stubPlayerPort } from '../../testing/playerPort.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import { PlayerComponents } from '../../entity/playerComponents';
 import type { World } from '../../world/World';
-import type { Entity } from '../../entity/Entity';
+import type { StoreActor } from '../../entity/data/storeActors';
 import type { Logger } from '@jsprismarine/logger';
 import type { OpenBlockContainer } from '../PlayerSession';
 import type PlayerSession from '../PlayerSession';
@@ -110,7 +110,7 @@ const scene = () => {
         inputs: [null, null],
         bookshelfPower: 0,
         trade: {
-            trader: stub<Entity>({}),
+            trader: stub<StoreActor>({}),
             source: merchant,
             context: () => ({}),
             release: () => undefined,

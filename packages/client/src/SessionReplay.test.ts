@@ -629,18 +629,6 @@ const replayOn = async (
             [startGame.runtimeEntityId, 1n],
             [observerStartGame.runtimeEntityId, 2n]
         ]);
-        // Replication also addresses mobs and other tracked actors. Assign those process-local IDs
-        // by world order so output digests compare the same actors across fresh server instances.
-        for (const entity of live.world.getEntities().sort((left, right) => {
-            const leftId = left.getRuntimeId();
-            const rightId = right.getRuntimeId();
-            return leftId < rightId ? -1 : leftId > rightId ? 1 : 0;
-        })) {
-            const runtimeId = entity.getRuntimeId();
-            if (!stableRuntimeIds.has(runtimeId)) {
-                stableRuntimeIds.set(runtimeId, BigInt(stableRuntimeIds.size + 1));
-            }
-        }
 
         // The baseline installs no recorder. The mover still gets the source id because it logs in
         // first and the dispatcher assigns connection ids in admission order.

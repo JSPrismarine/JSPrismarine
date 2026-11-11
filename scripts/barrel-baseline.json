@@ -257,7 +257,7 @@
     },
     "packages/prismarine/src/entity/index.ts": {
         "noBarrelFile": 1,
-        "noReExportAll": 5
+        "noReExportAll": 4
     },
     "packages/prismarine/src/index.ts": {
         "noBarrelFile": 1,

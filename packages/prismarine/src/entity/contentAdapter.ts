@@ -64,16 +64,18 @@ export const entityContentGroups = (runtime: EntityRuntime): EntityContentGroups
 
 /** `ContentEntityAccess`: spawning, removing and counting the entities of one dimension. */
 const entityAccessOf = (runtime: EntityRuntime): ContentEntityAccess => ({
+    // Walked in place: only the entities in the block are copied out.
     at: (position) =>
         runtime
-            .all()
+            .entities()
             .filter(
                 (entity) =>
                     Math.floor(entity.position.x) === position.x &&
                     Math.floor(entity.position.y) === position.y &&
                     Math.floor(entity.position.z) === position.z
             )
-            .map(contentEntityOf),
+            .map(contentEntityOf)
+            .toArray(),
     near: (center, radius) => runtime.near(center, radius).map(contentEntityOf),
     players: () => runtime.host.players(),
     spawn: (identifier, at, data) => {

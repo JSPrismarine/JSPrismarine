@@ -141,8 +141,6 @@ const liveWorld = (
         level: fakeLevel({ spawn: new Vector3(8, 64, 8) }),
         dimension: Dimensions.Overworld,
         blockUpdates: new BlockUpdateScheduler(),
-        entities: new Map(),
-        entityChunkIndices: new Map(),
         players: new Map(),
         server: {
             getConfig: () => ({ getDifficulty: () => Difficulty.NORMAL }),
@@ -418,7 +416,8 @@ describe('serverWorldSource', () => {
         expect(items.placeEndCrystal?.(base)).toBe(true);
         const crystal = entityRuntimes
             .at(DIMENSION)
-            ?.runtime.all()
+            ?.runtime.entities()
+            .toArray()
             .find((entity) => entity.identifier === 'minecraft:ender_crystal');
         expect(crystal?.position).toEqual({ x: 8.5, y: 65, z: 8.5 });
         expect(crystal?.body.showBottom).toBe(false);
@@ -486,7 +485,7 @@ describe('serverWorldSource', () => {
         const id = content.world.blockWorld.at(DIMENSION).spawnEntity({ x: 3, y: 64, z: 7 }, 'fixture:nowhere');
 
         expect(id).toBe(0);
-        expect(world.getEntities()).toHaveLength(0);
+        expect(world.getActors()).toHaveLength(0);
     });
 
     it('names the biome the live chunk stores, and its tags', () => {

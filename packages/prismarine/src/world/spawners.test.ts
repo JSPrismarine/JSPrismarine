@@ -211,7 +211,6 @@ const worldWithSpawner = ({ playerAt, delay = 0 }: { playerAt: Vector3; delay?: 
     const world: World = Object.assign(Object.create(World.prototype), {
         chunks: new Map([[Chunk.packXZ(0, 0), chunk]]),
         players: new Map(),
-        entities: new Map(),
         dimension: Dimensions.Overworld,
         systems: {},
         server

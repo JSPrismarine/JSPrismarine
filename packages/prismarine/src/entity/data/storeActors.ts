@@ -619,7 +619,7 @@ export class StoreActors {
     }
 
     /** Every actor, in the order the store made them. */
-    public all(): IterableIterator<StoreActor> {
+    public all(): MapIterator<StoreActor> {
         return this.actors.values();
     }
 

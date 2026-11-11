@@ -19,7 +19,8 @@ import { definitionsOf, definitionOf } from '../../content/ContentOptions';
 import type { ServerContent } from '../../content/ServerContent';
 import { AttributeIds, Attributes } from '@jsprismarine/protocol/wire/structures/Attribute';
 import { DamageCause } from '../../entity/DamageCause';
-import { Entity } from '../../entity/Entity';
+import type { EntityRuntime } from '../../entity/data/EntityRuntime';
+import type { LiveEntityRuntime } from '../../entity/data/live';
 import { DamageSource } from '../../entity/DamageSource';
 import ContainerEntry from '../../inventory/ContainerEntry';
 import HumanInventory from '../../inventory/HumanInventory';
@@ -47,7 +48,7 @@ import type WorldManager from '../../world/WorldManager';
 import { inertEntityRuntime, testContent } from '../../testing/entityServer';
 import type { DataEntity, MobBody } from '../../entity/data/DataEntity';
 import { StoreActor } from '../../entity/data/storeActors';
-import type { WorldActor } from '../../world/WorldActor';
+import { ObservedSet } from '../../entity/data/observedCollections';
 import { collectAsyncCommands } from '../deferred';
 import { buildVanillaCommands } from '../vanillaCommands';
 import { serverCommandHost } from './serverCommandHost';
@@ -65,7 +66,7 @@ interface Fixture {
     readonly nether: World;
     readonly blocks: BlockTable;
     readonly rules: Map<string, GameRuleEntry>;
-    readonly entities: WorldActor[];
+    readonly entities: StoreActor[];
     readonly players: PlayerSession[];
     readonly sent: unknown[];
     readonly feedback: string[];
@@ -88,7 +89,7 @@ const buildFixture = (): Fixture => {
         ['fallDamage', [true, true]],
         ['randomTickSpeed', [3, true]]
     ]);
-    const entities: WorldActor[] = [];
+    const entities: StoreActor[] = [];
     const players: PlayerSession[] = [];
     const dropped: { position: Vector3; contents: unknown[] }[] = [];
     let weather: 'clear' | 'rain' | 'thunder' = 'clear';
@@ -110,7 +111,6 @@ const buildFixture = (): Fixture => {
     /** The destination of a cross-dimension `/tp`; nothing happens in it. */
     const nether: World = stub<World>({
         getDimension: () => Dimensions.Nether,
-        getEntities: () => [],
         getActors: () => [],
         getActor: () => null
     });
@@ -120,7 +120,6 @@ const buildFixture = (): Fixture => {
     const world: World = stub<World>({
         getDimension: () => Dimensions.Overworld,
         getGameRuleManager: () => gameRules,
-        getEntities: () => entities.filter((entity) => entity instanceof Entity),
         getActors: () => entities,
         getActor: (runtimeId: bigint) => entities.find((entity) => entity.getRuntimeId() === runtimeId) ?? null,
         getViewers: () => players,
@@ -130,12 +129,6 @@ const buildFixture = (): Fixture => {
             ticks = value;
         },
         sendTime: async () => {},
-        addEntity: async (entity: Entity) => {
-            entities.push(entity);
-        },
-        removeEntity: async (entity: Entity) => {
-            entities.splice(entities.indexOf(entity), 1);
-        },
         breakBlock: async (position: Vector3) => {
             blocks.set(key(position.getX(), position.getY(), position.getZ()), {
                 name: 'minecraft:air',
@@ -284,28 +277,38 @@ const buildFixture = (): Fixture => {
     };
 };
 
-/** A living entity double that answers everything `entityRefOf` reads. */
-const mobAt = (fixture: Fixture, id: bigint, type: string, position: Vector3): Entity => {
-    const entity = stubOf(Entity, {
+/**
+ * A store entity double that answers everything `entityRefOf` reads, in a world whose live
+ * runtime records the kills, blows and removals the command host asks it for.
+ */
+const mobAt = (fixture: Fixture, id: bigint, type: string, position: Vector3, alive = true) => {
+    const kill = vi.fn<LiveEntityRuntime['killEntity']>(() => true);
+    const damage = vi.fn<LiveEntityRuntime['damageEntity']>(() => true);
+    const remove = vi.fn<EntityRuntime['remove']>(() => true);
+    const teleportTo = vi.fn();
+    const live = stub<LiveEntityRuntime>({
+        killEntity: kill,
+        damageEntity: damage,
+        runtime: stub<EntityRuntime>({ remove })
+    });
+    // The fixture's world, answering this entity's live runtime.
+    const world: World = Object.assign(Object.create(fixture.world), { dataEntities: () => live });
+    const actor = stubOf(StoreActor, {
+        entity: stub<DataEntity>({
+            id: Number(id),
+            body: stub<MobBody>({ yaw: 0, pitch: 0, teleportTo, tags: new ObservedSet<string>() })
+        }),
         getRuntimeId: () => id,
         getType: () => type,
         getName: () => type.split(':')[1]!,
         getPosition: () => Position.fromVector3(position, fixture.world),
         getFeetY: () => position.getY(),
-        getWorld: () => fixture.world,
-        isAlive: () => true,
-        setHealth: vi.fn().mockResolvedValue(undefined),
-        damage: vi.fn().mockResolvedValue(true),
-        setPosition: vi.fn().mockResolvedValue(undefined),
-        yaw: 0,
-        pitch: 0,
-        headYaw: 0
+        getWorld: () => world,
+        isAlive: () => alive
     });
-    // The tag set is real state on `Entity`, so the double borrows the real
-    // methods rather than restating them.
-    Object.defineProperty(entity, 'tags', { value: new Set<string>(), writable: false });
-    fixture.entities.push(entity);
-    return entity;
+    for (const angle of ['yaw', 'pitch', 'headYaw']) Object.defineProperty(actor, angle, { value: 0 });
+    fixture.entities.push(actor);
+    return { actor, kill, damage, remove, teleportTo };
 };
 
 const playerAt = (fixture: Fixture, id: bigint, name: string, position: Vector3): PlayerSession => {
@@ -423,28 +426,19 @@ describe('the server command host', () => {
 
             // The cause is load-bearing: the ender dragon's damage rules turn aside a
             // generic attacker-less blow, and `self_destruct` is what gets through.
-            expect(pig.setHealth).toHaveBeenCalledWith(0, DamageCause.SelfDestruct);
+            expect(pig.kill).toHaveBeenCalledWith(
+                pig.actor,
+                expect.objectContaining({ cause: DamageCause.SelfDestruct }),
+                'command'
+            );
         });
 
         it('removes an entity that has no health to take', async () => {
-            const item = stubOf(Entity, {
-                getRuntimeId: () => 7n,
-                getType: () => 'minecraft:item',
-                getName: () => 'Item',
-                getPosition: () => Position.fromVector3(new Vector3(0, 0, 0), fixture.world),
-                getFeetY: () => 0,
-                getWorld: () => fixture.world,
-                isAlive: () => false,
-                yaw: 0,
-                pitch: 0
-            });
-            fixture.entities.push(item);
+            const item = mobAt(fixture, 7n, 'minecraft:boat', new Vector3(0, 0, 0), false);
 
             await expect(fixture.run('kill @e')).resolves.toBe(1);
-            // By identity rather than `toContain`: letting vitest pretty-print
-            // a prototype-only entity walks into `toString()`, which reaches
-            // for metadata the double has never been given.
-            expect(fixture.entities.includes(item)).toBe(false);
+            expect(item.remove).toHaveBeenCalledWith(7, 'body removed');
+            expect(item.kill).not.toHaveBeenCalled();
         });
 
         it('stands a player with their feet at the position a same-world `/tp` names', async () => {
@@ -463,9 +457,7 @@ describe('the server command host', () => {
             const pig = mobAt(fixture, 1n, 'minecraft:pig', new Vector3(0, 64, 0));
 
             await expect(fixture.run('tp @e 10 70 10')).resolves.toBe(1);
-            expect(pig.setPosition).toHaveBeenCalledWith(
-                expect.objectContaining({ position: expect.objectContaining({ x: 10, y: 70, z: 10 }) })
-            );
+            expect(pig.teleportTo).toHaveBeenCalledWith({ x: 10, y: 70, z: 10 });
         });
 
         it('teleports a store entity in the store, which owns where it stands', async () => {
@@ -554,11 +546,11 @@ describe('the server command host', () => {
             const pig = mobAt(fixture, 1n, 'minecraft:pig', new Vector3(0, 0, 0));
 
             await expect(fixture.run('tag @e add winner')).resolves.toBe(1);
-            expect(pig.getTags()).toEqual(['winner']);
+            expect(pig.actor.getTags()).toEqual(['winner']);
 
             await expect(fixture.run('tag @e add winner')).resolves.toBe(0);
             await expect(fixture.run('tag @e remove winner')).resolves.toBe(1);
-            expect(pig.getTags()).toEqual([]);
+            expect(pig.actor.getTags()).toEqual([]);
         });
 
         it('selects by a tag it was given', async () => {
@@ -567,7 +559,7 @@ describe('the server command host', () => {
             await fixture.run('tag @e[type=cow] add keep');
 
             await expect(fixture.run('kill @e[tag=keep]')).resolves.toBe(1);
-            expect(cow.setHealth).toHaveBeenCalled();
+            expect(cow.kill).toHaveBeenCalled();
         });
 
         it('refuses a type the data-driven runtime does not declare', async () => {
@@ -587,7 +579,7 @@ describe('the server command host', () => {
             const pig = mobAt(fixture, 1n, 'minecraft:pig', new Vector3(0, 0, 0));
 
             await expect(fixture.run('damage @e 4')).resolves.toBe(1);
-            expect(pig.damage).toHaveBeenCalledWith(4, expect.anything());
+            expect(pig.damage).toHaveBeenCalledWith(pig.actor, 4, expect.anything(), 'command');
         });
 
         describe('/damage sources', () => {
@@ -596,7 +588,7 @@ describe('the server command host', () => {
                 const pig = mobAt(fixture, 1n, 'minecraft:pig', new Vector3(0, 64, 0));
                 const player = playerAt(fixture, 2n, 'Steve', new Vector3(1, 64, 0));
                 await fixture.run(line, player);
-                const [, source] = vi.mocked(pig.damage).mock.calls[0] ?? [];
+                const [, , source] = pig.damage.mock.calls[0] ?? [];
                 return { pig, player, source };
             };
 

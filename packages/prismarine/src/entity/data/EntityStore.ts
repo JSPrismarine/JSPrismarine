@@ -13,7 +13,7 @@
  * A unit of work, such as one entity's update or one applied input, runs through
  * {@link EntityStore.unit} or {@link EntityStore.unitAsync}. When it throws, the store reverts
  * the unit's span: it writes the inverse of each entry the unit appended, newest first, through
- * the writers the runtime and the legacy adapter register, and ignores the reports those writes
+ * the writers the runtime registers, and ignores the reports those writes
  * cause. When an inverse throws, the store can no longer be trusted, so it records the failure
  * in {@link EntityStore.broken} and the world stops ticking
  * ([ADR 0015](../../../../../docs/adr/0015-a-tick-is-a-fixed-sequence-of-synchronous-phases.md)).
@@ -38,8 +38,8 @@ export const ENTITY_FAILURE_LIMIT = 3;
 /**
  * Writes one inverse entry back to the state it describes, without logging it.
  *
- * @returns Whether the writer knew the entity the entry addresses. The store asks the runtime
- *   first and the legacy adapter second.
+ * @returns Whether the writer knew the entity the entry addresses. The store asks each writer in
+ *   the order it was registered.
  */
 export type InverseWriter = (inverse: StateEntry) => boolean;
 
@@ -158,8 +158,8 @@ export class EntityStore {
     }
 
     /**
-     * Logs one change to an entity the store does not hold, such as a legacy player, addressed
-     * by its runtime id. The legacy adapter is the only caller.
+     * Logs one change to an entity the store does not hold, addressed by its runtime id: a rider
+     * whose ride changed after its entity left the store.
      */
     public writtenLegacy(id: bigint | number, field: string, before: unknown, after: unknown): void {
         this.writtenField(id, field, before, after);

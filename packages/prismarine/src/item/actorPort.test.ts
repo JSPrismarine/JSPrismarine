@@ -14,7 +14,7 @@ import { stub } from '../testing/stub.test.helper';
 import { createItemActorPort } from './actorPort';
 import type { ContentEntityAccess, ContentItemDrop, ContentLevelFacts } from '../content/world/adapter';
 import { unwiredWorld } from '../content/world/unwired';
-import type { Entity } from '../entity/Entity';
+import type { StoreActor } from '../entity/data/storeActors';
 import type { EntityPosition } from '@jsprismarine/entities';
 import type { StoredItemStack } from '../inventory/persistence';
 import type { World } from '../world/World';
@@ -28,7 +28,7 @@ interface Recorded {
     readonly fed: { nutrition: number; saturation: number }[];
     readonly logged: string[];
     /** Every entity the world was asked to add. */
-    readonly added: Entity[];
+    readonly added: StoreActor[];
     /** Every actor sound the world was asked to play, by runtime id. */
     readonly actorSounds: { runtimeId: bigint; sound: number }[];
     readonly namedSounds: { sound: string; volume?: number; pitch?: number }[];
@@ -79,7 +79,7 @@ const playerDouble = (recorded: Recorded): PlayerSession => {
 };
 
 /** A world reduced to the entity lookup, the block read, the logger, and what a thrown eye needs. */
-const worldDouble = (player: PlayerSession, recorded: Recorded, target?: Entity): World =>
+const worldDouble = (player: PlayerSession, recorded: Recorded, target?: StoreActor): World =>
     ({
         getActor: (runtimeId: bigint) =>
             runtimeId === 7n ? (player.getActor() ?? null) : runtimeId === 9n ? (target ?? null) : null,
@@ -91,7 +91,7 @@ const worldDouble = (player: PlayerSession, recorded: Recorded, target?: Entity)
             getContent: () => testContent(),
             getRandom: () => () => 0.5
         }),
-        addEntity: async (entity: Entity) => void recorded.added.push(entity),
+        addEntity: async (entity: StoreActor) => void recorded.added.push(entity),
         dataEntities: () => ({
             runtime: {
                 eyesOfEnder: {
@@ -104,7 +104,7 @@ const worldDouble = (player: PlayerSession, recorded: Recorded, target?: Entity)
         }),
         entityRelocated: () => {},
         broadcastMove: async () => {},
-        sendActorSound: async (entity: Entity, sound: number) =>
+        sendActorSound: async (entity: StoreActor, sound: number) =>
             void recorded.actorSounds.push({ runtimeId: entity.getRuntimeId(), sound }),
         playNamedSoundAt: (_position: Vector3, sound: string, options?: { volume?: number; pitch?: number }) =>
             void recorded.namedSounds.push({ sound, ...options }),
@@ -194,7 +194,7 @@ describe('the item actor port', () => {
             },
             { runtimeId: 7n, actor: { getPosition: () => new Vector3(1.5, 65, 1.5) } }
         );
-        const target = stub<Entity>();
+        const target = stub<StoreActor>();
         const offered: { itemIdentifier: string; heldItem: ContentItemDrop }[] = [];
         const port = createItemActorPort({
             world: () => worldDouble(player, recorded, target),

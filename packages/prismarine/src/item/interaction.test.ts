@@ -189,8 +189,6 @@ const liveWorld = (
         level: fakeLevel({ spawn: new Vector3(8, 64, 8) }),
         dimension: Dimensions.Overworld,
         blockUpdates: new BlockUpdateScheduler(),
-        entities: new Map(),
-        entityChunkIndices: new Map(),
         players: new Map(),
         server: {
             getConfig: () => ({ getDifficulty: () => Difficulty.NORMAL }),
@@ -697,7 +695,9 @@ describe('useItemOnBlock', () => {
                 return { id: launched.length };
             };
             Object.assign(world, {
-                entities: new Map([[Number(player.getRuntimeId()), player]]),
+                // The thrower's actor, which the port reads the eyes of.
+                getActor: (runtimeId: bigint) =>
+                    runtimeId === player.getRuntimeId() ? (player.getActor() ?? null) : null,
                 players: new Map([[Number(player.getRuntimeId()), player]]),
                 dataEntities: () => ({ runtime: { eyesOfEnder: { launch } } })
             });

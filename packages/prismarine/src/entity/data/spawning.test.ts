@@ -23,7 +23,7 @@ describe('spawn rules', () => {
         fixture.runtime.startSpawning(spawnWorld);
         fixture.runtime.tick(0);
 
-        const spawned = fixture.runtime.all();
+        const spawned = fixture.runtime.entities().toArray();
         expect(spawned.length).toBeGreaterThan(0);
         for (const entity of spawned) expect(entity.identifier).toBe('minecraft:cow');
     });
@@ -35,7 +35,7 @@ describe('spawn rules', () => {
         fixture.runtime.startSpawning(spawnWorld);
         fixture.runtime.tick(0);
 
-        expect(fixture.runtime.poolCount('animal')).toBe(fixture.runtime.all().length);
+        expect(fixture.runtime.poolCount('animal')).toBe(fixture.runtime.entities().toArray().length);
     });
 
     it('spawns nothing until the spawner is started', () => {
@@ -43,7 +43,7 @@ describe('spawn rules', () => {
 
         fixture.runtime.tick(0);
 
-        expect(fixture.runtime.all()).toEqual([]);
+        expect(fixture.runtime.entities().toArray()).toEqual([]);
     });
 
     it('runs no cycle at all with doMobSpawning off', () => {
@@ -59,7 +59,7 @@ describe('spawn rules', () => {
         fixture.runtime.startSpawning(spawnWorld);
         fixture.runtime.tick(0);
 
-        expect(fixture.runtime.all()).toEqual([]);
+        expect(fixture.runtime.entities().toArray()).toEqual([]);
     });
 });
 

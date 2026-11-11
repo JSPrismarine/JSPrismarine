@@ -27,11 +27,10 @@ import type { DataEntityRecord } from '../entity/data/persistence';
 import { dataEntityRecordIn } from '../entity/data/persistence';
 import EntitySerializer from '../entity/EntitySerializer';
 import { ITEM_ENTITY } from '../entity/data/droppedItems';
-import { StoreActor } from '../entity/data/storeActors';
+import type { StoreActor } from '../entity/data/storeActors';
 import { enterStore, leaveStore, StorePlayerActor } from '../entity/data/storePlayers';
 import { storedItemActorOf } from '../entity/EntitySerializer';
 import type { StoredActor } from '../entity/EntitySerializer';
-import type { Entity } from '../entity/Entity';
 import type { StatusEffect, StatusEffectChange } from '../entity/StatusEffect';
 import { PLAYER_IDENTIFIER } from '../entity/playerOverlay';
 import { storedInventory, storedItem } from '../inventory/persistence';
@@ -47,8 +46,7 @@ import { EYE_HEIGHT } from '../entity/playerEyes';
 import { notifyContentNeighbors } from './neighborContent';
 import CoordinateUtils from './CoordinateUtils';
 import type { ShownActor } from './ShownActor';
-import type { WorldActor } from './WorldActor';
-import { byRuntimeId } from './WorldActor';
+import { byRuntimeId } from './runtimeIdOrder';
 import type { NamedSoundOptions, WorldChangeSink } from './WorldChangeSink';
 import { NULL_WORLD_CHANGE_SINK } from './WorldChangeSink';
 import { Dimensions, maxY } from './Dimension';
@@ -59,7 +57,6 @@ import type { BlockMining } from './BlockMining';
 import { playerMiningOf } from './BlockMining';
 import { CRACK_PARTICLES, mineTick } from '../entity/playerMining';
 import type { WorldConfig, WorldPlayerData } from '../config/JsonConfigTypes';
-import type { Position } from './Position';
 import type { PlayerSpawn, RelocationOffset } from './SpawnPlacement';
 import Progress from '../utils/Progress';
 import { blockFromContent } from '../block/Block';
@@ -97,7 +94,6 @@ import type { ChunkSaveContext } from './providers/ChunkSaveContext';
 import { createChunkSaveContext } from './providers/ChunkSaveContext';
 import type { Level } from './Level';
 import type { EntityStore } from '../entity/data/EntityStore';
-import { legacyInverseWriter, logLegacyWrite } from '../entity/legacyAdapter';
 import type { SealedTick } from './changelog/ChangeLog';
 import type { ChangeLogCost } from './changelog/changeLogCost';
 import { changeLogCost } from './changelog/changeLogCost';
@@ -535,10 +531,6 @@ export class World implements Service {
     private readonly uuid: string = UUID.randomString();
     private name: string;
 
-    private readonly entities: Map<number, Entity> = new Map();
-    private readonly entityChunkIndices = new Map<number, number>();
-    /** Reverse membership lets unloads visit one chunk's actors without rescanning the world. */
-    private entityRuntimeIdsByChunk = new Map<number, Set<number>>();
     private gameEventListenerRegistry: GameEventListenerRegistry | undefined;
 
     /**
@@ -628,8 +620,6 @@ export class World implements Service {
     private closing = false;
     /** Whether the world has reported that its entity store broke and it stopped ticking. */
     private stopReported = false;
-    /** The store the legacy adapter's writer was registered with. */
-    private adaptedStore: EntityStore | undefined;
 
     /**
      * The start region work while it is running, so a shutdown can wait for it rather than
@@ -969,14 +959,6 @@ export class World implements Service {
             // Walked in place rather than copied: a count needs no order.
             countNearby: (identifier, range) => {
                 let count = 0;
-                for (const entity of this.entities.values()) {
-                    const position = entity.getPosition();
-                    if (
-                        entity.getType() === identifier &&
-                        inBox(position.getX(), entity.getFeetY(), position.getZ(), range)
-                    )
-                        count += 1;
-                }
                 for (const actor of this.dataEntities().actors.all()) {
                     const { x, y, z } = actor.entity.position;
                     if (actor.entity.identifier === identifier && inBox(x, y, z, range)) count += 1;
@@ -1054,27 +1036,9 @@ export class World implements Service {
         return this.getEntityStore().onSealed((sealed) => listener(changeLogCost(sealed)));
     }
 
-    /**
-     * Whether the server built an entity runtime, and so an entity store, for this world's
-     * dimension. A running server always has, because it builds the content before any world, so
-     * the world reads its store without asking. The legacy adapter still asks, for the test doubles
-     * of a world it is handed.
-     */
-    public hasEntityStore(): boolean {
-        return this.server.hasEntityRuntime?.() ?? false;
-    }
-
-    /**
-     * The entity store of this world's dimension, which holds its change log. The first call
-     * registers the legacy adapter's writer, so the store can undo writes to legacy entities.
-     */
+    /** The entity store of this world's dimension, which holds its change log. */
     public getEntityStore(): EntityStore {
-        const store = this.dataEntities().runtime.store;
-        if (this.adaptedStore !== store) {
-            this.adaptedStore = store;
-            store.addInverseWriter(legacyInverseWriter(this));
-        }
-        return store;
+        return this.dataEntities().runtime.store;
     }
 
     /**
@@ -1152,17 +1116,9 @@ export class World implements Service {
         // No index is rebuilt here: the entity index is refiled on every position write, so a
         // query sees each entity where its last write put it (ADR 0007).
         // A store entity's actor runs the part of a tick the store does not run yet, the portal
-        // clock and the status effects, after the legacy entities.
+        // clock and the status effects. A player ticks wherever it stands.
         const live = this.dataEntities();
-        const tickingEntities: WorldActor[] = [];
-        // A player ticks wherever it stands, whichever kind of entity it is.
-        for (const entity of this.entities.values()) {
-            if (entity.getType() !== PLAYER_IDENTIFIER) {
-                const position = entity.getPosition();
-                if (!isPositionTicking(position.getX(), position.getZ())) continue;
-            }
-            if (entity.claimUpdate(tick)) tickingEntities.push(entity);
-        }
+        const tickingEntities: StoreActor[] = [];
         for (const actor of live.actors.all()) {
             const { identifier, position } = actor.entity;
             const ticking = identifier === PLAYER_IDENTIFIER || isPositionTicking(position.x, position.z);
@@ -1217,7 +1173,7 @@ export class World implements Service {
         // cycle above has put bodies in the world since the list was taken.
         const endAttributesProfile = startProfile?.(`World.entityAttributes:${this.name}`);
         try {
-            await this.flushEntityAttributes(this.shownActors());
+            await this.flushEntityAttributes(this.actors());
         } finally {
             endAttributesProfile?.();
         }
@@ -3155,22 +3111,6 @@ export class World implements Service {
     }
 
     /**
-     * Adds an entity to the level. A player enters through {@link World.addPlayer}; every other
-     * entity is a store entity, which its store shows through a store actor.
-     * @param {Entity} entity - The entity to add.
-     */
-    public async addEntity(entity: Entity): Promise<void> {
-        const runtimeId = Number(entity.getRuntimeId());
-
-        this.entities.set(runtimeId, entity);
-        this.markEntityChunkChanged(entity);
-
-        // Reported once the maps hold it, so that whoever works out who should see what is
-        // looking at the world as it now is - the arrival included.
-        await this.changes.entityAdded(entity);
-    }
-
-    /**
      * Adds a player to the world: files it in the player map by entity id, which
      * {@link World.viewerOf} and the viewers read, and then gives its store player an entity in
      * this world's store under the same id. The store shows the arriving player the world and the
@@ -3196,30 +3136,6 @@ export class World implements Service {
     public async removePlayer(session: PlayerSession): Promise<void> {
         this.players.delete(Number(session.runtimeId));
         leaveStore(this.dataEntities().runtime, session.getPlayer(), 'left_world');
-    }
-
-    /**
-     * Removes an entity from the level.
-     * @param {Entity} entity - The entity to remove.
-     */
-    public async removeEntity(entity: Entity): Promise<void> {
-        const runtimeId = entity.getRuntimeId();
-        const runtimeIdKey = Number(runtimeId);
-        const chunkIndex = this.entityChunkIndices.get(runtimeIdKey);
-        if (chunkIndex !== undefined) {
-            this.chunks.get(chunkIndex)?.markEntitiesChanged();
-            const runtimeIds = this.runtimeIdsByChunk().get(chunkIndex);
-            runtimeIds?.delete(runtimeIdKey);
-            if (runtimeIds?.size === 0) this.runtimeIdsByChunk().delete(chunkIndex);
-        }
-        this.entityChunkIndices.delete(runtimeIdKey);
-
-        this.entities.delete(runtimeIdKey);
-        this.players.delete(runtimeIdKey);
-
-        // Taken out of the maps first, so a leaving player is not among the clients told
-        // about its own departure - and so nothing is announced to a session on its way out.
-        await this.changes.entityRemoved(entity);
     }
 
     /**
@@ -3346,8 +3262,6 @@ export class World implements Service {
         const live = this.dataEntities();
         for (const entity of this.getEntityIndex().storeInChunk(chunk.getX(), chunk.getZ()))
             if (entity.identifier !== PLAYER_IDENTIFIER) live.runtime.remove(entity.id, 'chunk unload');
-        const removals: Promise<void>[] = [];
-        for (const entity of this.entitiesInChunk(chunk)) removals.push(this.removeEntity(entity));
 
         this.systems.onChunkUnloaded(chunk.getX(), chunk.getZ());
         this.getEntityStore().chunk('leave', chunk.getX(), chunk.getZ());
@@ -3359,18 +3273,6 @@ export class World implements Service {
         this.lastChunkIndex = -1;
         this.lastChunk = null;
         this.lastChunkSource = null;
-        await Promise.all(
-            removals.map(async (removal) => {
-                try {
-                    await removal;
-                } catch (error: unknown) {
-                    this.server
-                        .getLogger()
-                        .error(`Failed to remove entities from chunk ${chunk.getX()},${chunk.getZ()}`);
-                    this.server.getLogger().error(error);
-                }
-            })
-        );
         return true;
     }
 
@@ -3384,7 +3286,7 @@ export class World implements Service {
      * the last change is skipped: another change would be refused, so the body scan is not
      * worth running.
      */
-    private async touchPortals(entities: readonly WorldActor[]): Promise<void> {
+    private async touchPortals(entities: readonly StoreActor[]): Promise<void> {
         const travel = this.server.getDimensionTravel();
 
         // Awaited so that an asynchronous `entityPortalEnter` listener has answered before
@@ -3405,7 +3307,7 @@ export class World implements Service {
      * `1.0E-6`, so a body resting on a block boundary does not count the block beyond it, and a
      * portal at head height alone still counts.
      */
-    private portalOverlapping(entity: WorldActor): PortalBlockRef | undefined {
+    private portalOverlapping(entity: StoreActor): PortalBlockRef | undefined {
         const at = entity.getPosition();
         const { width, height } = entity.getBox();
         const half = Math.max(width / 2 - BODY_SHRINK, 0);
@@ -3462,33 +3364,9 @@ export class World implements Service {
         return this.getPlayerChunkRefCounts().retains(chunk.getX(), chunk.getZ());
     }
 
-    private entitiesInChunk(chunk: Chunk): Entity[] {
-        const runtimeIds = this.runtimeIdsByChunk().get(Chunk.packXZ(chunk.getX(), chunk.getZ()));
-        if (runtimeIds === undefined) return [];
-
-        const entities: Entity[] = [];
-        for (const runtimeId of runtimeIds) {
-            const entity = this.entities.get(runtimeId);
-            if (entity !== undefined) entities.push(entity);
-        }
-        return entities;
-    }
-
-    /**
-     * Returns the reverse actor index, creating it for lightweight World test doubles that bypass
-     * the constructor. Normal worlds already own the map from field initialization.
-     */
-    private runtimeIdsByChunk(): Map<number, Set<number>> {
-        return (this.entityRuntimeIdsByChunk ??= new Map());
-    }
-
     /** Builds the entity and actor indexes once for every chunk in a save or unload pass. */
     private chunkSaveContext(): ChunkSaveContext {
         return createChunkSaveContext(this.dimension.bedrockId, this.actors(), (entity) => {
-            const chunkIndex =
-                entity instanceof StoreActor ? undefined : this.entityChunkIndices.get(Number(entity.getRuntimeId()));
-            if (chunkIndex !== undefined) return chunkIndex;
-
             const position = entity.getPosition();
             return Chunk.packXZ(Math.floor(position.getX() / 16), Math.floor(position.getZ() / 16));
         });
@@ -3506,7 +3384,7 @@ export class World implements Service {
      * it here as well would send every one of those twice.
      * @param {ShownActor[]} entities - Everything in the world, from the top of the tick.
      */
-    private async flushEntityAttributes(entities: readonly ShownActor[]): Promise<void> {
+    private async flushEntityAttributes(entities: Iterable<ShownActor>): Promise<void> {
         const updates: Promise<void>[] = [];
         for (const entity of entities) {
             try {
@@ -3548,44 +3426,13 @@ export class World implements Service {
      * mobs move in fits and starts. A move outside the tick waits at most one tick, which is
      * fifty milliseconds and below anything a player can see.
      *
-     * It only announces. The entity was refiled when its position was written, through
-     * {@link World.entityRelocated}, whether or not the move is announced.
+     * It only announces. The entity index refiled the entity when its position was written,
+     * whether or not the move is announced.
      * @param {ShownActor} entity - The entity that moved.
      * @param {boolean} teleport - Whether clients should snap instead of interpolate.
      */
     public async broadcastMove(entity: ShownActor, teleport = false): Promise<void> {
         this.changes.entityMoved(entity, teleport);
-    }
-
-    /**
-     * Files a non-player legacy entity under the chunk it stands in, for chunk save and unload.
-     * The entity index holds only the store's entities, which leave a chunk through
-     * {@link EntityIndex.storeInChunk}. {@link World.entityRelocated} writes it on every move.
-     */
-    private markEntityChunkChanged(entity: Entity): void {
-        if (entity.getType() === PLAYER_IDENTIFIER) return;
-        const runtimeIdsByChunk = this.runtimeIdsByChunk();
-
-        const runtimeId = entity.getRuntimeId();
-        const position = entity.getPosition();
-        const nextChunkIndex = Chunk.packXZ(Math.floor(position.getX() / 16), Math.floor(position.getZ() / 16));
-        const runtimeIdKey = Number(runtimeId);
-        const previousChunkIndex = this.entityChunkIndices.get(runtimeIdKey);
-
-        if (previousChunkIndex !== undefined && previousChunkIndex !== nextChunkIndex) {
-            this.chunks.get(previousChunkIndex)?.markEntitiesChanged();
-            const previousRuntimeIds = runtimeIdsByChunk.get(previousChunkIndex);
-            previousRuntimeIds?.delete(runtimeIdKey);
-            if (previousRuntimeIds?.size === 0) runtimeIdsByChunk.delete(previousChunkIndex);
-        }
-        this.chunks.get(nextChunkIndex)?.markEntitiesChanged();
-        this.entityChunkIndices.set(runtimeIdKey, nextChunkIndex);
-        let nextRuntimeIds = runtimeIdsByChunk.get(nextChunkIndex);
-        if (nextRuntimeIds === undefined) {
-            nextRuntimeIds = new Set();
-            runtimeIdsByChunk.set(nextChunkIndex, nextRuntimeIds);
-        }
-        nextRuntimeIds.add(runtimeIdKey);
     }
 
     private markEntitiesInChunkChanged(chunk: Chunk): void {
@@ -3596,17 +3443,6 @@ export class World implements Service {
                 .some((entity) => entity.identifier !== PLAYER_IDENTIFIER)
         )
             chunk.markEntitiesChanged();
-        for (const entity of this.entities.values()) {
-            if (entity.getType() === PLAYER_IDENTIFIER) continue;
-
-            const position = entity.getPosition();
-            if (
-                Math.floor(position.getX() / 16) === chunk.getX() &&
-                Math.floor(position.getZ() / 16) === chunk.getZ()
-            ) {
-                chunk.markEntitiesChanged();
-            }
-        }
     }
 
     /** Sends every player the movement that happened this tick, as one batch each. */
@@ -3675,15 +3511,13 @@ export class World implements Service {
     }
 
     /**
-     * Every actor this world shows its clients: the legacy entities and the store's entities.
+     * Every actor this world shows its clients: the store's entities.
      *
      * What tracking reads, and it has to be every one, because a tracker hides anything it
      * holds that is missing from the set.
      */
     public shownActors(): ShownActor[] {
-        const shown: ShownActor[] = this.getEntities();
-        for (const actor of this.dataEntities().actors.all()) shown.push(actor);
-        return shown;
+        return Array.from(this.dataEntities().actors.all());
     }
 
     /**
@@ -3703,43 +3537,30 @@ export class World implements Service {
     }
 
     /**
-     * Get all entities in this world.
-     * @returns {Entity[]} the entities.
-     */
-    public getEntities(): Entity[] {
-        return Array.from(this.entities.values());
-    }
-
-    /**
-     * Every entity of this world, the legacy entities and the store's through their actors, in no
-     * particular order and without a copy. A caller that needs an order sorts what it keeps.
+     * Every entity of this world, through its actor, in no particular order and without a copy.
+     * A caller that needs an order sorts what it keeps.
      * @returns The entities.
      */
-    public *actors(): IteratorObject<WorldActor, void> {
-        yield* this.entities.values();
-        yield* this.dataEntities().actors.all();
+    public actors(): MapIterator<StoreActor> {
+        return this.dataEntities().actors.all();
     }
 
     /**
-     * Every entity of this world, the legacy entities and the store's through their actors, in
-     * ascending runtime id order. A copy, sorted, for a caller outside the tick.
-     * @returns {WorldActor[]} The entities.
+     * Every entity of this world, through its actor, in ascending runtime id order. A copy,
+     * sorted, for a caller outside the tick.
+     * @returns {StoreActor[]} The entities.
      */
-    public getActors(): WorldActor[] {
-        const actors: WorldActor[] = [];
-        for (const entity of this.entities.values()) actors.push(entity);
-        for (const actor of this.dataEntities().actors.all()) actors.push(actor);
-        return actors.sort(byRuntimeId);
+    public getActors(): StoreActor[] {
+        return Array.from(this.dataEntities().actors.all()).sort(byRuntimeId);
     }
 
     /**
-     * One entity of this world by its runtime id, a store entity through its actor.
+     * One entity of this world by its runtime id, through its actor.
      * @param {bigint} runtimeId - The entity's runtime id.
-     * @returns {WorldActor | null} The entity, or null if nothing here has that id.
+     * @returns {StoreActor | null} The entity, or null if nothing here has that id.
      */
-    public getActor(runtimeId: bigint): WorldActor | null {
-        const id = Number(runtimeId);
-        return this.server.getEntityRuntime?.(this.dimension.name).actors.actorOf(id) ?? this.entities.get(id) ?? null;
+    public getActor(runtimeId: bigint): StoreActor | null {
+        return this.server.getEntityRuntime?.(this.dimension.name).actors.actorOf(Number(runtimeId)) ?? null;
     }
 
     /**
@@ -3804,8 +3625,8 @@ export class World implements Service {
     /** Feeds each entity's saved form, attributes and, for a player, inventory into a digest. */
     private hashEntities(
         hash: Hash,
-        entities: readonly WorldActor[],
-        records: ReadonlyMap<WorldActor, DataEntityRecord>
+        entities: readonly StoreActor[],
+        records: ReadonlyMap<StoreActor, DataEntityRecord>
     ): void {
         for (const entity of entities) {
             const stream = new BinaryStream();
@@ -3864,21 +3685,7 @@ export class World implements Service {
     }
 
     /**
-     * One entity, by the id the protocol names it with.
-     *
-     * The map has always been here; only the array of its values was exposed. Everything that
-     * arrives from a client naming an entity - an attack, an interaction, a pick - names it by
-     * runtime id, and resolving that by walking `getEntities()` is a linear scan through
-     * everything in the world for something the map answers in one step.
-     * @param {bigint} runtimeId - The entity's runtime id.
-     * @returns {Entity | null} The entity, or null if nothing here has that id.
-     */
-    public getEntity(runtimeId: bigint): Entity | null {
-        return this.entities.get(Number(runtimeId)) ?? null;
-    }
-
-    /**
-     * Where every entity of this world is now, data-driven and legacy alike.
+     * Where every entity of this world is now.
      *
      * The dimension's one index (ADR 0007), which the entity runtime owns. A position write is
      * visible to the next query, and every query answers in ascending runtime id order.
@@ -3897,28 +3704,6 @@ export class World implements Service {
         this.chunks.get(Chunk.packXZ(chunkX, chunkZ))?.markEntitiesChanged();
     }
 
-    /**
-     * Refiles an entity after its position was written, which {@link Entity.relocate} calls.
-     *
-     * The one writer of the chunk membership that chunk save and unload read for a legacy
-     * entity, which the entity index does not hold. Only for an entity this world holds: one on
-     * its way in from another world is filed by {@link World.addEntity} once it arrives.
-     * @param {Entity} entity - The entity that moved.
-     * @internal
-     */
-    public entityRelocated(entity: Entity, before?: Position): void {
-        if (this.entities.get(Number(entity.getRuntimeId())) !== entity) return;
-        this.markEntityChunkChanged(entity);
-        if (before !== undefined && before.getWorld() === this) {
-            const after = entity.getPosition();
-            logLegacyWrite(
-                entity,
-                'position',
-                { x: before.getX(), y: before.getY(), z: before.getZ() },
-                { x: after.getX(), y: after.getY(), z: after.getZ() }
-            );
-        }
-    }
     /**
      * The clients that see this world: the sessions of its online players.
      * @returns The sessions.

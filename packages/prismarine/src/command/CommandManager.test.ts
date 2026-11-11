@@ -275,7 +275,6 @@ describe('command', () => {
                 const world = stub<World>({
                     getGameRuleManager: () => stub<GameRuleManager>({ getGameRule: () => [true, true] }),
                     getDimension: () => Dimensions.Overworld,
-                    getEntities: () => [],
                     getActors: () => [target.getActor()!],
                     getActor: (runtimeId: bigint) =>
                         runtimeId === target.getRuntimeId() ? (target.getActor() ?? null) : null,

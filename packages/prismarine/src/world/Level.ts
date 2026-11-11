@@ -42,7 +42,7 @@ import { World } from './World';
 import { PlayerPersistence } from './PlayerPersistence';
 import { RespawnSearch } from './RespawnSearch';
 import type { WorldData } from './World';
-import { byRuntimeId } from './WorldActor';
+import { byRuntimeId } from './runtimeIdOrder';
 import type { RaidRecord } from './raid/RaidManager';
 import type { DragonFightState, LegacyWorldEntity, SavedRaid, WorldPersistenceData } from './WorldPersistence';
 import { isFlatGenerator, isNoiseGenerator, legacyWorldPersistenceDataOf } from './WorldPersistence';

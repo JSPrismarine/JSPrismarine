@@ -43,7 +43,7 @@ import type { ItemStack as PredicateItemStack, Vec3 } from '@jsprismarine/predic
 
 import type Server from '../Server';
 import type HumanInventory from '../inventory/HumanInventory';
-import type { WorldActor } from '../world/WorldActor';
+import type { StoreActor } from '../entity/data/storeActors';
 import type { DamageSource } from '../entity/DamageSource';
 import type { Item } from '../item/Item';
 import { entityPredicateView, vec3Of } from '../entity/predicateView';
@@ -73,7 +73,7 @@ const listening = (player: { getServer(): Server }, trigger: TriggerName): boole
     player.getServer().getContent().advancements.listensFor(trigger);
 
 /** One entity as a trigger condition reads it, equipment included. */
-const viewOf = (entity: WorldActor) =>
+const viewOf = (entity: StoreActor) =>
     entityPredicateView(entity, {
         equipment: entity.getEquipment(),
         tags: entity.getServer().getContent().tags
@@ -144,7 +144,7 @@ export const advancementItemCrafted = (
  * different triggers over the same event, and a player killed by a player
  * raises both.
  */
-export const advancementKill = (victim: WorldActor, source: DamageSource): void => {
+export const advancementKill = (victim: StoreActor, source: DamageSource): void => {
     const killer = source.attacker;
     const killingPlayer = killer && listeningPlayer(killer, 'player_killed_entity');
 
@@ -176,7 +176,7 @@ export const advancementKill = (victim: WorldActor, source: DamageSource): void 
  * may name either.
  */
 export const advancementDamage = (
-    victim: WorldActor,
+    victim: StoreActor,
     source: DamageSource,
     dealt: number,
     taken: number,
@@ -333,7 +333,7 @@ export const advancementEnchantedItem = (player: AdvancementPlayer, item: Item, 
 };
 
 /** A player picked a dropped stack up off the ground. */
-export const advancementPickedUpItem = (player: AdvancementPlayer, item: Item, thrower?: WorldActor): void => {
+export const advancementPickedUpItem = (player: AdvancementPlayer, item: Item, thrower?: StoreActor): void => {
     if (listening(player, 'thrown_item_picked_up_by_player')) {
         raiseAdvancement(player, 'thrown_item_picked_up_by_player', {
             player: advancementSubject(player),
@@ -375,7 +375,7 @@ export const advancementChangedDimension = (player: AdvancementPlayer, from: str
  * it loops through, and then found through its session by entity id, because a blow and a death
  * name the player's entity, not the player.
  */
-const listeningPlayer = (entity: WorldActor, trigger: TriggerName): AdvancementPlayer | undefined =>
+const listeningPlayer = (entity: StoreActor, trigger: TriggerName): AdvancementPlayer | undefined =>
     entity.getType() === 'minecraft:player' && listening(entity, trigger)
         ? entity.getWorld().viewerOf(entity.getRuntimeId())
         : undefined;
@@ -390,7 +390,7 @@ const listeningPlayer = (entity: WorldActor, trigger: TriggerName): AdvancementP
  * present rather than absent, and that is the difference between a condition
  * reporting and a condition failing.
  */
-const damageSourceView = (victim: WorldActor, source: DamageSource) => {
+const damageSourceView = (victim: StoreActor, source: DamageSource) => {
     return (
         lootDamageSource(victim.getServer().getContent(), source) ?? {
             type: 'minecraft:generic',

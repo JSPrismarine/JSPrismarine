@@ -7,7 +7,7 @@ import { EntityIndex } from '../entity/data/entityIndex';
 import { EntityStore } from '../entity/data/EntityStore';
 import type { EntityRuntime } from '../entity/data/EntityRuntime';
 import type { LiveEntityRuntime } from '../entity/data/live';
-import type { Entity } from '../entity/Entity';
+import type { StoreActor } from '../entity/data/storeActors';
 import { stub } from '../testing/stub.test.helper';
 import Chunk from './chunk/Chunk';
 import { World } from './World';
@@ -45,7 +45,7 @@ const worldLoading = (
     chunk: Chunk,
     declared: readonly string[] = ['minecraft:villager_v2', 'minecraft:iron_golem']
 ) => {
-    const added: Entity[] = [];
+    const added: StoreActor[] = [];
     const asked: Asked[] = [];
 
     const content = stub<ServerContent>({ entities: { registry: registryOf(declared) } as ServerContent['entities'] });
@@ -69,8 +69,6 @@ const worldLoading = (
     });
 
     const world: World = Object.assign(Object.create(World.prototype), {
-        entities: new Map(),
-        entityChunkIndices: new Map(),
         chunks: new Map(),
         // `loadChunk` joins a load already in flight through this, and a world built on the
         // prototype never ran the constructor that would have made it.
@@ -79,7 +77,7 @@ const worldLoading = (
         generator: {},
         config: {},
         systems: { onChunkLoaded: () => {} },
-        addEntity: async (entity: Entity) => void added.push(entity),
+        addEntity: async (entity: StoreActor) => void added.push(entity),
         dataEntities: () => live,
         server: { getLogger: () => ({ debug: () => {}, warn: () => {} }), getContent: () => content }
     });
