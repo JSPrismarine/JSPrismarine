@@ -6,26 +6,9 @@ import BlockPosition from '../../world/BlockPosition';
 import { PlayerActionType } from '@jsprismarine/protocol';
 import type PlayerActionPacket from '@jsprismarine/protocol/packet/PlayerActionPacket';
 import { MAX_BLOCK_TARGET_DISTANCE } from './BlockTarget';
-import type { ShownPlayer } from '../../world/ShownPlayer';
-import type { BlockMining } from '../../world/BlockMining';
+import { blockMiningOf, playerMiningOf } from '../../world/BlockMining';
 import type PacketHandler from './PacketHandler';
-import type { FlyingPlayer, InventoryHolder, PlacedPlayer } from './playerPorts';
-
-/**
- * The player as its actions read and change it. Hitting and breaking a block take
- * `session.getPlayer()`, since the world takes a legacy player as the one who struck.
- */
-interface ActingPlayer extends PlacedPlayer, InventoryHolder, FlyingPlayer, Pick<ShownPlayer, 'gamemode'> {
-    /** The block the player is breaking, for a world that animates the cracks itself. */
-    getMining(): BlockMining | null;
-    setMining(mining: BlockMining | null): void;
-    /** Stands a dead player up where it respawns. */
-    respawn(): Promise<void>;
-    addJumpExhaustion(): void;
-    setSprinting(sprinting: boolean): Promise<void>;
-    setSneaking(sneaking: boolean): Promise<void>;
-    setSleeping(sleeping: boolean): void;
-}
+import { playerInputsOf, storePlayerOf } from './playerPorts';
 
 /**
  * The actions whose block position is read, so the one the client sends has to be checked.
@@ -123,8 +106,13 @@ export default class PlayerActionHandler implements PacketHandler<PlayerActionPa
         server: Server,
         session: PlayerSession
     ): Promise<void> {
-        const player: ActingPlayer = session.getPlayer();
-        const world = player.getWorld();
+        // The state an action reads, and the runtime that takes the inputs. Hitting and breaking
+        // a block take `session.getPlayer()`, since the world takes a legacy player as the one who
+        // struck, and a sprint, a flight toggle and a respawn go through the player, which posts
+        // their events and orders the respawn's parts.
+        const player = storePlayerOf(session);
+        const inputs = playerInputsOf(session);
+        const world = session.getWorld();
 
         if (BLOCK_ACTIONS.has(action)) {
             // Spectators pass through the world without touching it. `InventoryTransactionHandler`
@@ -158,9 +146,9 @@ export default class PlayerActionHandler implements PacketHandler<PlayerActionPa
             // Two ways to run a break, one per `server-authoritative-block-breaking` setting.
             //
             // Server-authoritative, as a Bedrock Dedicated Server 1.26.52 runs it: the server
-            // stops the cracks on the block mined before, starts them on this one, and animates
-            // them every tick from `Player.update`. The client predicts the break and reports
-            // it as `PREDICT_DESTROY_BLOCK`.
+            // stops the cracks on the block mined before, starts them on this one, and the
+            // store's player systems animate them every tick. The client predicts the break and
+            // reports it as `PREDICT_DESTROY_BLOCK`.
             //
             // Client-authoritative: the client times the break itself and reports it with an
             // `InventoryTransaction`, and the server only starts the crack animation, once.
@@ -176,9 +164,14 @@ export default class PlayerActionHandler implements PacketHandler<PlayerActionPa
                 const tool = player.getInventory().getItemInHand();
 
                 if (server.getConfig().getServerAuthoritativeBlockBreaking()) {
-                    player.setMining(
-                        await world.startBlockCracking(blockPosition, blockFace, tool, player.getMining())
+                    const mining = player.getComponents().get('mining.block');
+                    const started = await world.startBlockCracking(
+                        blockPosition,
+                        blockFace,
+                        tool,
+                        mining === null ? null : blockMiningOf(mining)
                     );
+                    inputs.setPlayerMining(player, started === null ? null : playerMiningOf(started));
                     return;
                 }
 
@@ -210,7 +203,7 @@ export default class PlayerActionHandler implements PacketHandler<PlayerActionPa
 
             case PlayerActionType.AbortDestroyBlock: {
                 await world.stopBlockCracking(blockPosition);
-                player.setMining(null);
+                inputs.setPlayerMining(player, null);
                 return;
             }
 
@@ -227,7 +220,7 @@ export default class PlayerActionHandler implements PacketHandler<PlayerActionPa
             case PlayerActionType.PredictDestroyBlock: {
                 if (!server.getConfig().getServerAuthoritativeBlockBreaking()) return;
 
-                player.setMining(null);
+                inputs.setPlayerMining(player, null);
 
                 // Adventure mode breaks nothing, but the client has already taken the block
                 // off its screen, so it is told what is still there.
@@ -278,39 +271,39 @@ export default class PlayerActionHandler implements PacketHandler<PlayerActionPa
             }
 
             case PlayerActionType.Respawn: {
-                await player.respawn();
+                await session.getPlayer().respawn();
                 return;
             }
 
             case PlayerActionType.StartJump: {
-                player.addJumpExhaustion();
+                inputs.playerJumped(player);
                 return;
             }
 
             case PlayerActionType.StartSprinting: {
-                await player.setSprinting(true);
+                await session.getPlayer().setSprinting(true);
                 return;
             }
             case PlayerActionType.StopSprinting: {
-                await player.setSprinting(false);
+                await session.getPlayer().setSprinting(false);
                 return;
             }
 
             case PlayerActionType.StartSneaking: {
-                await player.setSneaking(true);
+                inputs.setPlayerSneaking(player, true);
                 return;
             }
             case PlayerActionType.StopSneaking: {
-                await player.setSneaking(false);
+                inputs.setPlayerSneaking(player, false);
                 return;
             }
 
             case PlayerActionType.StartSleeping: {
-                player.setSleeping(true);
+                player.getComponents().set('movement.sleeping', true);
                 return;
             }
             case PlayerActionType.StopSleeping: {
-                player.setSleeping(false);
+                player.getComponents().set('movement.sleeping', false);
                 return;
             }
 
@@ -318,11 +311,11 @@ export default class PlayerActionHandler implements PacketHandler<PlayerActionPa
             // toggle. `setFlying` sends one either way: the new abilities when the player may
             // fly, the old ones when they may not.
             case PlayerActionType.StartFlying: {
-                await player.setFlying(true);
+                await session.getPlayer().setFlying(true);
                 return;
             }
             case PlayerActionType.StopFlying: {
-                await player.setFlying(false);
+                await session.getPlayer().setFlying(false);
                 return;
             }
 

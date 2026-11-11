@@ -1,7 +1,6 @@
 import type { Vector3 } from '@jsprismarine/math';
 import { ContainerUiId, Gametype } from '@jsprismarine/minecraft';
 import type { PlayerSession } from '../../';
-import type Player from '../../Player';
 import { EXHAUSTION } from '../../entity/playerHunger';
 import type Server from '../../Server';
 import { BOW, loose } from '../../entity/Archery';
@@ -11,8 +10,7 @@ import HumanInventory from '../../inventory/HumanInventory';
 import { WindowIds } from '../../inventory/WindowIds';
 import type { Item } from '../../item/Item';
 import { consumeTicksOf, useItemInAir, useItemOnBlock, useItemOnEntity } from '../../item/interaction';
-import type { InteractionResult, InteractionRotation } from '../../item/interaction';
-import type { ShownPlayer } from '../../world/ShownPlayer';
+import type { InteractingPlayer, InteractionResult, InteractionRotation } from '../../item/interaction';
 import type InventoryTransactionPacket from '@jsprismarine/protocol/packet/InventoryTransactionPacket';
 import type {
     ReleaseItemData,
@@ -32,7 +30,7 @@ import {
 import { MAX_BLOCK_TARGET_DISTANCE } from './BlockTarget';
 import { EyeOfEnderEcho } from './eyeOfEnderEcho';
 import type PacketHandler from './PacketHandler';
-import type { InventoryHolder, PlacedPlayer } from './playerPorts';
+import { playerInputsOf, storePlayerOf } from './playerPorts';
 
 /**
  * What sprinting is worth in knockback levels.
@@ -71,7 +69,7 @@ const eyeEcho = new EyeOfEnderEcho(EYE_ECHO_TICKS);
  */
 const contentUse = (
     server: Server,
-    player: Player,
+    player: InteractingPlayer,
     data: UseItemData,
     rotation?: InteractionRotation
 ): InteractionResult => {
@@ -110,7 +108,11 @@ const contentUse = (
  * @returns Whether a behavior consumed the click. Nothing follows it either way: this server has
  *   no legacy path for using an item on an entity.
  */
-const contentUseOnEntity = (server: Server, player: Player, data: UseItemOnEntityData): InteractionResult => {
+const contentUseOnEntity = (
+    server: Server,
+    player: InteractingPlayer,
+    data: UseItemOnEntityData
+): InteractionResult => {
     const content = server.getContent();
     const actors = server.getContentWorld().actorsAt(player.getWorld().getDimension().name);
 
@@ -140,7 +142,7 @@ const contentUseOnEntity = (server: Server, player: Player, data: UseItemOnEntit
  *
  * @returns Whether a behavior consumed the click. A behavior that throws is logged and declines.
  */
-const contentUseInAir = (server: Server, player: Player): InteractionResult => {
+const contentUseInAir = (server: Server, player: InteractingPlayer): InteractionResult => {
     const content = server.getContent();
     const actors = server.getContentWorld().actorsAt(player.getWorld().getDimension().name);
 
@@ -257,7 +259,7 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
         interactionRotation?: InteractionRotation
     ): Promise<void> {
         if (!connection.isConnected()) return;
-        const player: InventoryHolder & Pick<ShownPlayer, 'gamemode'> = connection.getPlayer();
+        const player = storePlayerOf(connection);
         if (player.gamemode === Gametype.SPECTATOR) return; // Spectators pass through the world without touching it.
 
         const packetData = packet.getPacketData();
@@ -307,7 +309,7 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
                 await this.handleUseItemOnEntity(data, server, connection);
                 return;
             case 'releaseItem':
-                await this.handleReleaseItem(data, server, connection.getPlayer());
+                await this.handleReleaseItem(data, server, connection);
                 return;
         }
     }
@@ -322,7 +324,7 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
         server: Server,
         session: PlayerSession
     ): Promise<void> {
-        const player: InventoryHolder & PlacedPlayer = session.getPlayer();
+        const player = storePlayerOf(session);
         if (transaction.transactionType === TransactionType.NORMAL && transaction.inventoryActions.length === 2) {
             const container = transaction.inventoryActions.find(
                 (action) => action.sourceType === InventorySourceType.CONTAINER
@@ -379,7 +381,7 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
                         container.targetSlot,
                         inventory.getItem(container.targetSlot)
                     );
-                    await player.getWorld().dropFromPlayer(session.getPlayer(), [dropped]);
+                    await session.getWorld().dropFromPlayer(player, [dropped]);
                     return;
                 }
             }
@@ -417,21 +419,20 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
         server: Server,
         session: PlayerSession
     ): Promise<void> {
-        // The legacy player, because the content and the melee rules take one.
-        const player = session.getPlayer();
         if (
             data.actionType === ItemUseOnActorActionType.INTERACT ||
             data.actionType === ItemUseOnActorActionType.ITEM_INTERACT
         ) {
             // Entity interactions and targeted item uses both enter the content path. The latter
             // includes spawn eggs; the item's `onUse` reads the clicked entity through `targetOf`.
-            contentUseOnEntity(server, player, data);
+            // The legacy player, because the content rules take one.
+            contentUseOnEntity(server, session.getPlayer(), data);
             return;
         }
 
         if (data.actionType !== ItemUseOnActorActionType.ATTACK) return;
 
-        const target = player.getWorld().getActor(data.entityRuntimeId);
+        const target = session.getWorld().getActor(data.entityRuntimeId);
         if (!target) {
             server
                 .getLogger()
@@ -443,8 +444,10 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
         }
 
         // A player whose entity is in no store yet cannot reach anything.
-        const attacker = player.getActor();
+        const attacker = session.getPlayer().getActor();
         if (attacker === undefined) return;
+        const player = storePlayerOf(session);
+        const components = player.getComponents();
         const landed = await meleeAttack(attacker, target, {
             reach: player.gamemode === Gametype.CREATIVE ? CREATIVE_REACH : SURVIVAL_REACH,
 
@@ -454,14 +457,14 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
 
             // Falling, and actually descending: a player on the way up through a jump is off the
             // ground too, and vanilla does not let them crit from there.
-            critical: !player.isOnGround() && player.getFallDistance() > 0 && !player.isFlying(),
+            critical: !player.isOnGround() && components.get('vitals.fallDistance') > 0 && !player.isFlying(),
 
-            knockbackLevels: player.isSprinting() ? SPRINT_KNOCKBACK : 0
+            knockbackLevels: components.get('movement.sprinting') ? SPRINT_KNOCKBACK : 0
         });
 
         // Only a swing that connected costs anything. A miss is free, which is why the hunger is
         // charged here rather than before the attempt.
-        if (landed) player.addExhaustion(EXHAUSTION.attacking);
+        if (landed) playerInputsOf(session).exhaustPlayer(player, EXHAUSTION.attacking);
     }
 
     /**
@@ -470,11 +473,12 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
      * The client reports the start of a meal and nothing at its end, so the player finishes it
      * itself once the item's `consume_seconds` have passed.
      */
-    private startMeal(server: Server, player: Player): void {
+    private startMeal(server: Server, session: PlayerSession): void {
+        const player = storePlayerOf(session);
         const ticks = consumeTicksOf(server.getContent(), player);
         if (ticks === undefined) return;
 
-        player.beginConsuming(server.getTick(), ticks);
+        playerInputsOf(session).beginPlayerMeal(player, ticks);
     }
 
     /**
@@ -489,15 +493,17 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
      * work where that lives, because a server that silently disagrees with the client about
      * what is in a player's hand is worse than one that has not got round to the accounting.
      */
-    private async handleReleaseItem(data: ReleaseItemData, server: Server, player: Player): Promise<void> {
+    private async handleReleaseItem(data: ReleaseItemData, server: Server, session: PlayerSession): Promise<void> {
+        const player = storePlayerOf(session);
         // Letting go of the button ends a meal that has not finished.
-        player.cancelConsuming();
-        const drawn = player.takeItemUseTicks(server.getTick());
+        playerInputsOf(session).cancelPlayerMeal(player);
+        // The draw's clock, which `Player` keeps.
+        const drawn = session.getPlayer().takeItemUseTicks(server.getTick());
 
         if (data.actionType !== ItemReleaseActionType.RELEASE) return;
         if (player.getInventory().getItemInHand().getName() !== BOW) return;
 
-        const shooter = player.getActor();
+        const shooter = session.getPlayer().getActor();
         if (shooter !== undefined) await loose(shooter, drawn);
     }
 
@@ -516,8 +522,8 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
         session: PlayerSession,
         interactionRotation?: InteractionRotation
     ): Promise<void> {
-        // The legacy player, because the content rules and the block break take one.
-        const player = session.getPlayer();
+        // The content rules and the block break take the legacy player, `session.getPlayer()`.
+        const player = storePlayerOf(session);
         switch (data.actionType) {
             case ItemUseActionType.PLACE:
             case ItemUseActionType.DESTROY: {
@@ -539,7 +545,7 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
                     if (player.getInventory().getItemInHand().getName() === ENDER_EYE) {
                         eyeEcho.usedOnBlock(session.runtimeId, server.getTick());
                     }
-                    contentUse(server, player, data, interactionRotation);
+                    contentUse(server, session.getPlayer(), data, interactionRotation);
                     return;
                 }
 
@@ -559,7 +565,7 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
                     return;
                 }
 
-                await player.getWorld().breakBlock(data.blockPosition, player);
+                await session.getWorld().breakBlock(data.blockPosition, session.getPlayer());
                 return;
             }
 
@@ -576,12 +582,12 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
                 // "released" in another transaction entirely, and the gap between the two is the
                 // charge. So the clock starts here.
                 if (player.getInventory().getItemInHand().getName() === BOW) {
-                    player.beginItemUse(server.getTick());
+                    session.getPlayer().beginItemUse(server.getTick());
                 }
 
                 // The item's own `onUse`, which is how an eye of ender or a snowball leaves the
                 // hand. Eating is not here: it ends in a release the content has no path for yet.
-                if (contentUseInAir(server, player) === 'handled') this.startMeal(server, player);
+                if (contentUseInAir(server, session.getPlayer()) === 'handled') this.startMeal(server, session);
                 return;
 
             // A swing at nothing. Hitting an entity arrives as `USE_ITEM_ON_ENTITY` instead,
