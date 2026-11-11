@@ -37,11 +37,11 @@ const sizeOf = ({ start, end }: PortRange): number => end - start + 1;
 
 /**
  * Reads Bedrock Dedicated Server's `server-udp-ports` syntax: comma-separated entries, each either
- * `internal` or `start-end` (a local port range for WebRTC), or `[ip:]external[-external]:internal[-internal]`
+ * `internal` or `start-end` (a local port or port range for WebRTC), or `[ip:]external[-external]:internal[-internal]`
  * (a mapping to advertise, its two sides the same length). An IPv6 address goes in brackets.
  * @param setting - The setting, or an empty string for none.
  * @throws {Error} For an entry in neither form, ports out of range, or mismatched mapping lengths;
- * and for local ranges werift cannot allocate from: more than one, or a single port.
+ * and for more than one local range, which werift cannot allocate from.
  */
 export const parseUdpPorts = (setting: string): UdpPorts => {
     const ranges: PortRange[] = [];
@@ -73,11 +73,6 @@ export const parseUdpPorts = (setting: string): UdpPorts => {
     const covered = ranges.every((range) => range.start === start && range.end === end);
     if (!covered) {
         throw new Error('server-udp-ports: every local range must be the same one; werift allocates from one range');
-    }
-    if (start === end) {
-        throw new Error(
-            'server-udp-ports: a local range needs at least two ports; each player takes a port of its own'
-        );
     }
     return { local: { start, end }, mappings };
 };

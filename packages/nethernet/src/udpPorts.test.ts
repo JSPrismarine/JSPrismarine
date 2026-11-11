@@ -27,6 +27,11 @@ describe('parseUdpPorts', () => {
         );
     });
 
+    it('reads a single port, which every player shares as on Bedrock Dedicated Server', () => {
+        expect(parseUdpPorts('19132')).toStrictEqual({ local: { start: 19132, end: 19132 }, mappings: [] });
+        expect(parseUdpPorts('19132:32000').local).toStrictEqual({ start: 32000, end: 32000 });
+    });
+
     it('keeps each candidate address for a mapping that names no address', () => {
         expect(parseUdpPorts('19132-19133:32000-32001').mappings).toStrictEqual([
             { external: { start: 19132, end: 19133 }, internal: { start: 32000, end: 32001 } }
@@ -38,9 +43,7 @@ describe('parseUdpPorts', () => {
         ['a port past 65535', '70000-70010', 'between 1 and 65535'],
         ['a backwards range', '50010-50000', 'between 1 and 65535'],
         ['a mapping of different lengths', '19132-19140:32000-32001', 'maps 9 ports onto 2'],
-        ['two different local ranges', '40000-40010,50000-50010', 'werift allocates from one range'],
-        // Bedrock Dedicated Server multiplexes players on one port; werift takes a port per player.
-        ['a single local port', '19132:32000', 'at least two ports']
+        ['two different local ranges', '40000-40010,50000-50010', 'werift allocates from one range']
     ])('refuses %s', (_name, setting, reason) => {
         expect(() => parseUdpPorts(setting)).toThrow(reason);
     });

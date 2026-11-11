@@ -29,14 +29,20 @@ const backendOf = (holder: object): WebRtcBackend => {
  * `nethernet` takes a peer connection configuration.
  * @param holder - A `nethernet` `Server` or `Client`, before it negotiates any peer.
  * @param configuration - Peer connection settings, as werift's `RTCPeerConnection` reads them.
+ * @param built - Called with each peer connection as it is built.
  * @throws {Error} When the holder has no backend in the shape this expects.
  */
-export const configurePeerConnections = (holder: object, configuration: Record<string, unknown>): void => {
+export const configurePeerConnections = (
+    holder: object,
+    configuration: Record<string, unknown>,
+    built?: (peer: object) => void
+): void => {
     const backend = backendOf(holder);
     const Base = backend.RTCPeerConnection;
     class ConfiguredPeerConnection extends Base {
         public constructor(own: Record<string, unknown>) {
             super({ ...own, ...configuration });
+            built?.(this);
         }
     }
     wrappers.add(ConfiguredPeerConnection);
