@@ -5,6 +5,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import type Server from '../../Server';
 import { identityNamed } from '../../testing/sessionIdentity.test.helper';
+import type { StorePlayer } from '../../entity/storePlayer';
 import { stubPlayerPort } from '../../testing/playerPort.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import { Position } from '../../world/Position';
@@ -14,6 +15,7 @@ import MovePlayerPacket from '@jsprismarine/protocol/packet/MovePlayerPacket';
 
 import type { MovePlayer } from '@jsprismarine/protocol/packet/MovePlayerPacket';
 import MovePlayerHandler, { applyClientMovement } from './MovePlayerHandler';
+import { storePlayerPort } from './storePlayerPort.test.helper';
 
 /**
  * At protocol 2193 `MovePlayerPacket` is client-bound. The bot harness still sends it, so
@@ -28,19 +30,17 @@ const fake = () => {
         entityRelocated: () => {},
         broadcastMove: vi.fn(async () => {})
     });
-    const player = stubPlayerPort({
-        getName: () => 'tester',
-        getRuntimeId: () => 7n,
-        getPosition: () => new Position(0, 64, 0, world),
-        getWorld: () => world,
-        isOnGround: () => false,
-        setPlayerPosition: vi.fn(async () => {}),
-        setOnGround: vi.fn(async () => {})
-    });
+    const position = new Position(0, 64, 0, world);
+    const player = storePlayerPort(
+        { getPosition: () => position, isOnGround: () => false },
+        // The move event reads where the player was from the player.
+        { getPosition: () => position, setPlayerPosition: vi.fn(async () => {}), setOnGround: vi.fn(async () => {}) }
+    );
     const session = stub<PlayerSession>({
         runtimeId: 7n,
         identity: identityNamed('tester'),
         getPlayer: () => player,
+        getWorld: () => world,
         sendMove: vi.fn(async () => {}),
         recordInputTick: vi.fn(),
         holdsMovementForTeleport: () => false
@@ -83,15 +83,15 @@ describe('MovePlayerHandler', () => {
             headYaw: 0,
             onGround: false
         };
+        const store = stub<StorePlayer>({ getPosition: () => pose.position, isOnGround: () => pose.onGround });
+        Object.defineProperties(store, {
+            pitch: { get: () => pose.pitch },
+            yaw: { get: () => pose.yaw },
+            headYaw: { get: () => pose.headYaw }
+        });
         const player = stubPlayerPort({
-            getName: () => 'tester',
-            getRuntimeId: () => 7n,
+            getStorePlayer: () => store,
             getPosition: () => pose.position,
-            pitch: pose.pitch,
-            yaw: pose.yaw,
-            headYaw: pose.headYaw,
-            isOnGround: () => pose.onGround,
-            getWorld: () => world,
             setPlayerPosition: vi.fn(async ({ position, pitch, yaw, headYaw }) => {
                 pose.position = new Position(position.getX(), position.getY(), position.getZ(), world);
                 pose.pitch = pitch;
@@ -101,15 +101,11 @@ describe('MovePlayerHandler', () => {
             }),
             setOnGround: vi.fn(async (onGround: boolean) => void (pose.onGround = onGround))
         });
-        Object.defineProperties(player, {
-            pitch: { get: () => pose.pitch },
-            yaw: { get: () => pose.yaw },
-            headYaw: { get: () => pose.headYaw }
-        });
         const session = stub<PlayerSession>({
             runtimeId: 7n,
             identity: identityNamed('tester'),
             getPlayer: () => player,
+            getWorld: () => world,
             holdsMovementForTeleport: () => false
         });
         let events = 0;

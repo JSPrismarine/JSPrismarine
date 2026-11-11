@@ -1,10 +1,14 @@
 import type { Logger } from '@jsprismarine/logger';
 import { Vector3 } from '@jsprismarine/math';
 import { ContainerUiId, Gametype } from '@jsprismarine/minecraft';
+import { Attributes } from '@jsprismarine/protocol/wire/structures/Attribute';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import type Server from '../../Server';
 import type { Config } from '../../config/Config';
+import type { EntityRuntime } from '../../entity/data/EntityRuntime';
+import type { LiveEntityRuntime } from '../../entity/data/live';
+import { PlayerComponents } from '../../entity/playerComponents';
 import * as archery from '../../entity/Archery';
 import { loose } from '../../entity/Archery';
 import * as combat from '../../entity/Combat';
@@ -15,7 +19,6 @@ import HumanInventory from '../../inventory/HumanInventory';
 import { Item } from '../../item/Item';
 import { identityNamed } from '../../testing/sessionIdentity.test.helper';
 import { stub } from '../../testing/stub.test.helper';
-import { stubPlayerPort } from '../../testing/playerPort.test.helper';
 import BlockPosition from '../../world/BlockPosition';
 import { Dimensions } from '../../world/Dimension';
 import { Position } from '../../world/Position';
@@ -39,6 +42,7 @@ import {
 } from '@jsprismarine/protocol';
 import Codec2193 from '../codec/Codec2193';
 import InventoryTransactionHandler, { rejectionReason } from './InventoryTransactionHandler';
+import { storePlayerPort } from './storePlayerPort.test.helper';
 import * as interaction from '../../item/interaction';
 import { useItemInAir, useItemOnBlock } from '../../item/interaction';
 import type { InteractionResult } from '../../item/interaction';
@@ -114,28 +118,39 @@ const fake = (
     inventory.setHandSlot(2);
 
     const runtimeId = nextPlayerRuntimeId++;
-    const player = stubPlayerPort({
-        isOnline: () => true,
-        getRuntimeId: () => runtimeId,
-        gamemode,
-        getName: () => 'tester',
-        getPosition: () => new Position(0, 64, 0, world),
-        getWorld: () => world,
-        getInventory: () => inventory,
-        isSprinting: () => false,
-        isOnGround: () => true,
-        getFallDistance: () => 0,
-        isFlying: () => false,
-        addExhaustion: (amount) => {
+    // Standing still on the ground, so a swing is no critical and carries no sprint.
+    const components = new PlayerComponents(new Attributes(Attributes.getPlayerDefaults()), () => {});
+    const player = storePlayerPort(
+        {
+            gamemode,
+            getPosition: () => new Position(0, 64, 0, world),
+            getInventory: () => inventory,
+            isOnGround: () => true,
+            isFlying: () => false,
+            getComponents: () => components
+        },
+        {
+            // What the content path reads of the player who clicked.
+            isOnline: () => true,
+            getRuntimeId: () => runtimeId,
+            getWorld: () => world,
+            getInventory: () => inventory,
+            beginItemUse: (tick) => void itemUse.push(`begin ${tick}`),
+            takeItemUseTicks: (tick) => {
+                itemUse.push(`take ${tick}`);
+                return 15;
+            }
+        }
+    );
+    // The runtime that takes the player's inputs.
+    const inputs = stub<EntityRuntime>({
+        exhaustPlayer: (_player, amount) => {
             exhaustion += amount;
         },
-        beginItemUse: (tick) => void itemUse.push(`begin ${tick}`),
-        cancelConsuming: () => void meals.push('cancel'),
-        takeItemUseTicks: (tick) => {
-            itemUse.push(`take ${tick}`);
-            return 15;
-        }
+        beginPlayerMeal: () => true,
+        cancelPlayerMeal: () => void meals.push('cancel')
     });
+    Object.assign(world, { dataEntities: () => stub<LiveEntityRuntime>({ runtime: inputs }) });
 
     const server = stub<Server>({
         getTick: () => TICK,
@@ -165,6 +180,7 @@ const fake = (
         runtimeId,
         identity: identityNamed('tester'),
         getPlayer: () => player,
+        getWorld: () => world,
         isConnected: () => player.isOnline(),
         getConnection: () => stub<ReturnType<PlayerSession['getConnection']>>({ codec: Codec2193 }),
         sendContainerSlot: async (windowId, containerId, slot, item) =>

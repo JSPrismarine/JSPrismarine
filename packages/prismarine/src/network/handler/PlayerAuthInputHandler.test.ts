@@ -11,15 +11,18 @@ import {
     PlayerAuthInputData
 } from '@jsprismarine/protocol';
 import PlayerAuthInputPacket from '@jsprismarine/protocol/packet/PlayerAuthInputPacket';
+import { Attributes } from '@jsprismarine/protocol/wire/structures/Attribute';
 import { describe, expect, it, vi } from 'vitest';
 
 import type Server from '../../Server';
 import type { Block } from '../../block/Block';
 import type { Config } from '../../config/Config';
+import type { EntityRuntime } from '../../entity/data/EntityRuntime';
+import type { LiveEntityRuntime } from '../../entity/data/live';
+import { PlayerComponents } from '../../entity/playerComponents';
 import type HumanInventory from '../../inventory/HumanInventory';
 import { Item } from '../../item/Item';
 import { identityNamed } from '../../testing/sessionIdentity.test.helper';
-import { stubPlayerPort } from '../../testing/playerPort.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import BlockPosition from '../../world/BlockPosition';
 import { Position } from '../../world/Position';
@@ -31,6 +34,7 @@ import type { ServerAuthInputItemUse, ServerPlayerAuthInput } from '../PlayerAut
 import { playerAuthInputFromProtocol, playerAuthInputToProtocol } from '../PlayerAuthInputAdapter';
 import InventoryTransactionHandler from './InventoryTransactionHandler';
 import PlayerAuthInputHandler, { rejectionReason } from './PlayerAuthInputHandler';
+import { storePlayerPort } from './storePlayerPort.test.helper';
 
 /**
  * A session whose player records what is done to it, and a server that posts nothing.
@@ -59,35 +63,44 @@ const fake = ({ serverAuthoritativeBreaking = false, changingDimension = false, 
         }
     });
     let groundState = false;
-    const player = stubPlayerPort({
-        isOnline: () => true,
-        gamemode: Gametype.SURVIVAL,
-        getName: () => 'tester',
-        getPosition: () => new Position(0, 64, 0, world),
-        setPlayerPosition: vi.fn(
-            async ({ position }: { position: Vector3 }) =>
-                void calls.push(`move ${position.getX()},${position.getY()},${position.getZ()}`)
-        ),
-        isOnGround: () => groundState,
-        setOnGround: vi.fn(async (onGround: boolean) => {
-            groundState = onGround;
-            calls.push(`ground ${onGround}`);
-        }),
-        addJumpExhaustion: () => void calls.push('jump'),
-        setSprinting: async (sprinting) => void calls.push(`sprint ${sprinting}`),
-        setSneaking: async (sneaking) => void calls.push(`sneak ${sneaking}`),
-        getRuntimeId: () => 1n,
-        getWorld: () => world,
-        // The crack animation reads the held item, so the break time is the
-        // tool's rather than a fist's.
-        getInventory: () => stub<HumanInventory>({ getItemInHand: () => Item.air() }),
-        getMining: () => null,
-        setMining: () => {}
+    const components = new PlayerComponents(new Attributes(Attributes.getPlayerDefaults()), () => {});
+    const player = storePlayerPort(
+        {
+            gamemode: Gametype.SURVIVAL,
+            getPosition: () => new Position(0, 64, 0, world),
+            isOnGround: () => groundState,
+            // The crack animation reads the held item, so the break time is the
+            // tool's rather than a fist's.
+            getInventory: () => stub<HumanInventory>({ getItemInHand: () => Item.air() }),
+            getComponents: () => components
+        },
+        {
+            isOnline: () => true,
+            // The move event reads where the player was from the player.
+            getPosition: () => new Position(0, 64, 0, world),
+            setPlayerPosition: vi.fn(
+                async ({ position }: { position: Vector3 }) =>
+                    void calls.push(`move ${position.getX()},${position.getY()},${position.getZ()}`)
+            ),
+            setOnGround: vi.fn(async (onGround: boolean) => {
+                groundState = onGround;
+                calls.push(`ground ${onGround}`);
+            }),
+            setSprinting: async (sprinting) => void calls.push(`sprint ${sprinting}`)
+        }
+    );
+    // The runtime that takes the player's inputs.
+    const inputs = stub<EntityRuntime>({
+        setPlayerMining: () => {},
+        playerJumped: () => void calls.push('jump'),
+        setPlayerSneaking: (_player, sneaking) => void calls.push(`sneak ${sneaking}`)
     });
+    Object.assign(world, { dataEntities: () => stub<LiveEntityRuntime>({ runtime: inputs }) });
     const session = stub<PlayerSession>({
         runtimeId: 1n,
         identity: identityNamed('tester'),
         getPlayer: () => player,
+        getWorld: () => world,
         isConnected: () => player.isOnline(),
         getConnection: () => stub<ReturnType<PlayerSession['getConnection']>>({ codec: Codec2193 }),
         sendMove: vi.fn(),
