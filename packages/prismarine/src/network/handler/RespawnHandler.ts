@@ -1,8 +1,7 @@
-import type Server from '../../Server';
-import type PlayerSession from '../PlayerSession';
 import type RespawnPacket from '@jsprismarine/protocol/packet/RespawnPacket';
 import { PlayerRespawnState } from '@jsprismarine/minecraft';
-import type PacketHandler from './PacketHandler';
+import type { InputContext } from './HandlerContext';
+import type { InputLaneHandler } from './SessionHandler';
 
 /**
  * The client's half of the respawn exchange.
@@ -28,21 +27,20 @@ import type PacketHandler from './PacketHandler';
  * client sent nothing more: no movement, no input, for as long as it stayed connected.
  * @see https://github.com/pmmp/PocketMine-MP/blob/stable/src/network/mcpe/handler/DeathPacketHandler.php
  */
-export default class RespawnHandler implements PacketHandler<RespawnPacket> {
+export default class RespawnHandler implements InputLaneHandler<RespawnPacket> {
     public static PacketName = 'RespawnPacket';
+    public readonly takes = 'context';
     public readonly phases = ['play'] as const;
     public readonly lane = 'input';
 
-    public async handle(packet: RespawnPacket, server: Server, session: PlayerSession): Promise<void> {
+    public handle(packet: RespawnPacket, { session, log, step }: InputContext): undefined {
         const player = session.getPlayer();
         const data = packet.getPacketData();
         if (data === null) throw new Error('Cannot handle RespawnPacket without decoded data');
 
         // `Player Runtime Id` names the player respawning, and a client only respawns itself.
         if (data.runtimeEntityId !== session.runtimeId) {
-            server
-                .getLogger()
-                .debug(`${session.identity.name} sent a Respawn for runtime id ${data.runtimeEntityId}, dropped`);
+            log.debug(`${session.identity.name} sent a Respawn for runtime id ${data.runtimeEntityId}, dropped`);
             return;
         }
 
@@ -51,34 +49,43 @@ export default class RespawnHandler implements PacketHandler<RespawnPacket> {
         if (data.state !== PlayerRespawnState.CLIENT_READY_TO_SPAWN) return;
 
         if (player.getHealth() <= 0) {
-            // Where the player comes back: the spawn block and the eyes above it, in the world
-            // the spawn is in. `PlayerSession.getRespawnPoint` asks the level's search and clears a
-            // spawn point that no longer holds.
-            const point = await session.getRespawnPoint();
-            // The dead body moves world first, facing as it fell; `PlayerSession.respawn` then stands
-            // it at the eyes once the client's `Respawn` action arrives, as in one world.
-            if (point.world !== session.getWorld()) {
-                await session.changeWorld({
-                    world: point.world,
-                    position: point.block,
-                    yaw: player.yaw,
-                    pitch: player.pitch,
-                    respawn: true,
-                    closesLoadingScreen: false
-                });
-            }
-            await session.sendRespawn(point.block, PlayerRespawnState.SEARCHING_FOR_SPAWN);
-            await session.sendRespawn(point.eyes, PlayerRespawnState.READY_TO_SPAWN);
+            // Deferred until slice 9 makes the respawn search a request whose answer is an input:
+            // the search reads blocks that may not be loaded, and the change of world loads chunks.
+            step.defer(async () => {
+                // Where the player comes back: the spawn block and the eyes above it, in the world
+                // the spawn is in. `PlayerSession.getRespawnPoint` asks the level's search and
+                // clears a spawn point that no longer holds.
+                const point = await session.getRespawnPoint();
+                // The dead body moves world first, facing as it fell; `PlayerSession.respawn` then
+                // stands it at the eyes once the client's `Respawn` action arrives, as in one world.
+                if (point.world !== session.getWorld()) {
+                    await session.changeWorld({
+                        world: point.world,
+                        position: point.block,
+                        yaw: player.yaw,
+                        pitch: player.pitch,
+                        respawn: true,
+                        closesLoadingScreen: false
+                    });
+                }
+                await session.sendRespawn(point.block, PlayerRespawnState.SEARCHING_FOR_SPAWN);
+                await session.sendRespawn(point.eyes, PlayerRespawnState.READY_TO_SPAWN);
+            });
             return;
         }
 
         // Already alive: the respawn action came first. How a Bedrock Dedicated Server answers
         // this order has not been recorded, so the player is told where they stand and
-        // described again, as this server did before.
-        await session.sendRespawn(player.getPosition(), PlayerRespawnState.READY_TO_SPAWN);
-        await session.sendAttributes();
-        await session.sendMetadata();
-        await session.sendAbilities();
-        await session.sendInventory();
+        // described again, as this server did before. One output, so the packets keep their order.
+        const position = player.getPosition();
+        step.output(
+            (async () => {
+                await session.sendRespawn(position, PlayerRespawnState.READY_TO_SPAWN);
+                await session.sendAttributes();
+                await session.sendMetadata();
+                await session.sendAbilities();
+                await session.sendInventory();
+            })()
+        );
     }
 }
