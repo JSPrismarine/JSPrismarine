@@ -10,7 +10,6 @@ import { loose } from '../../entity/Archery';
 import * as combat from '../../entity/Combat';
 import { meleeAttack } from '../../entity/Combat';
 import type { Entity } from '../../entity/Entity';
-import type { Metadata } from '@jsprismarine/protocol/wire/structures/Metadata';
 import ContainerEntry from '../../inventory/ContainerEntry';
 import HumanInventory from '../../inventory/HumanInventory';
 import { Item } from '../../item/Item';
@@ -123,7 +122,7 @@ const fake = (
         getPosition: () => new Position(0, 64, 0, world),
         getWorld: () => world,
         getInventory: () => inventory,
-        metadata: stub<Metadata>({ sprinting: false }),
+        isSprinting: () => false,
         isOnGround: () => true,
         getFallDistance: () => 0,
         isFlying: () => false,

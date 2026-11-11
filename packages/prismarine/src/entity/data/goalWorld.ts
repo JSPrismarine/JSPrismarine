@@ -23,6 +23,7 @@ import { isReadyToBreed } from './breeding';
 import { distance, squaredDistance } from './DataEntity';
 import { blockPositionOf, entityEyePosition } from './position';
 import type { EntityScene } from './scene';
+import { clientOwnsMovement } from '../playerOverlay';
 
 /** The reach of a melee swing, in blocks, which is Java's base attack range. */
 const MELEE_REACH = 3;
@@ -187,7 +188,12 @@ export const goalWorldOf = (entity: MobBody, scene: EntityScene): Required<GoalW
             const here = entity.position;
             const found: Ranked[] = [];
             for (const other of scene.near(here, radius, families)) {
-                if (other.id === entity.id || (families !== undefined && !other.instance.hasAnyFamily(families)))
+                // A player is appended below, as the host's, whose view knows its game mode.
+                if (
+                    other.id === entity.id ||
+                    clientOwnsMovement(other.identifier) ||
+                    (families !== undefined && !other.instance.hasAnyFamily(families))
+                )
                     continue;
                 found.push({ mob: goalMobOf(other, scene), away: squaredDistance(here, other.position) });
             }

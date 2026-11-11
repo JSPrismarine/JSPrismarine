@@ -2142,7 +2142,9 @@ export class EntityRuntime implements EntityScene {
             lastHits.set(id, tick);
         };
 
+        // A player is the host's below, which skips a creative or spectator one.
         for (const target of this.inBox(queryMin, queryMax)) {
+            if (clientOwnsMovement(target.identifier)) continue;
             damageTarget(target.id, target.position, target.facts.box, target.instance.filterContext().self, target);
         }
 
@@ -2343,7 +2345,9 @@ export class EntityRuntime implements EntityScene {
     /**
      * Brings a dead player back, with the same id, at full health (ADR 0008). Its death left it
      * in the store, so nothing enters or leaves here: the log holds one health entry, and one for
-     * each player component the revival resets (`PlayerSystems.revived`).
+     * each player component the revival resets (`PlayerSystems.revived`). A player that died in
+     * another store and was restored here on its way to its spawn point is as dead, with no
+     * health left, though its death did not run here.
      *
      * @returns Whether the entity was a dead player that is alive again.
      */
@@ -2351,7 +2355,7 @@ export class EntityRuntime implements EntityScene {
         const entity = this.store.get(id);
         const health = entity?.instance.attributes.get('health');
         if (entity === undefined || health === undefined || !clientOwnsMovement(entity.identifier)) return false;
-        if (!this.dying.has(id)) return false;
+        if (!this.dying.has(id) && health.current > 0) return false;
 
         this.dying.delete(id);
         this.hitGraces.delete(id);
@@ -2580,7 +2584,8 @@ export class EntityRuntime implements EntityScene {
 
         if (!query.findPlayersOnly) {
             for (const candidate of this.near(center, radius)) {
-                if (candidate.id === body.id) continue;
+                // A player is the host's below.
+                if (candidate.id === body.id || clientOwnsMovement(candidate.identifier)) continue;
                 include(candidate.position, candidate.instance.filterContext().self);
             }
         }
@@ -4554,7 +4559,9 @@ export class EntityRuntime implements EntityScene {
         const projectileBox = projectile.facts.box;
         const owner = projectile.body.owner;
         for (const target of this.index.within(at, 16)) {
+            // A player is the host's below, which a projectile passes in creative or spectator.
             if (
+                clientOwnsMovement(target.identifier) ||
                 target.id === projectile.id ||
                 target.instance.hasComponent('minecraft:projectile') ||
                 (target.id === owner && projectile.body.projectileAge <= PROJECTILE_OWNER_GRACE) ||

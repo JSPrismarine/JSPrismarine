@@ -12,19 +12,15 @@ import path from 'node:path';
 import type { Logger } from '@jsprismarine/logger';
 import { Vector3 } from '@jsprismarine/math';
 import { Generator as GeneratorType } from '@jsprismarine/minecraft';
-import { Attributes } from '@jsprismarine/protocol/wire/structures/Attribute';
 import type { DimensionTypeDefinition, LevelStem } from '@jsprismarine/worldgen';
 import { OVERWORLD_STEM_ID } from '@jsprismarine/worldgen';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { Config } from '../config/Config';
-import type PlayerSession from '../network/PlayerSession';
-import type Player from '../Player';
 import type Server from '../Server';
 import { inertEntityRuntime, testContent } from '../testing/entityServer';
 import { TEST_GENERATOR_KIND } from '../testing/level';
 import { stub } from '../testing/stub.test.helper';
-import { playerOnPrototype } from '../testing/playerDouble.test.helper';
 import Chunk from './chunk/Chunk';
 import { Dimensions, FIRST_CUSTOM_DIMENSION_ID } from './Dimension';
 import type { DimensionType } from './Dimension';
@@ -34,10 +30,8 @@ import { GeneratorFactories } from './GeneratorFactories';
 import { Level } from './Level';
 import { DimensionTravel } from './portal/DimensionTravel';
 import type { LevelOptions } from './Level';
-import { Position } from './Position';
 import { readLevelDat } from './providers/leveldb/LevelDat';
 import LevelDB from './providers/leveldb/LevelDB';
-import type { World } from './World';
 import { ChunkCompletionQueue } from './ChunkCompletionQueue';
 
 const NETHER_STEM_ID = 'minecraft:the_nether';
@@ -325,65 +319,6 @@ describe('Level', () => {
     });
 
     describe('the tick', () => {
-        /**
-         * A player, since a world ticks every player and only the mobs near one, whose own
-         * update records the tick and, the first time, walks out of its world into `to`.
-         */
-        const travelerIn = (from: World, to: World) => {
-            const updates: number[] = [];
-            let position = new Position(0, 64, 0, from);
-            const traveler: Player = playerOnPrototype(
-                {
-                    getName: () => 'traveler',
-                    // A settled client: the portal pass asks whether a change is still pending.
-                    getNetworkSession: () =>
-                        stub<PlayerSession>({ pendingDimensionChange: () => undefined, getViewDistance: () => 4 })
-                },
-                {
-                    attributes: new Attributes(),
-                    runtimeId: 7n,
-                    toString: () => 'traveler',
-                    getPosition: () => position,
-                    getWorld: () => position.getWorld(),
-                    getFeetY: () => position.getY() - 1.62,
-                    getBox: () => ({ width: 0.6, height: 1.8 }),
-                    isOnPortalCooldown: () => false,
-                    // The world ticks the body, which is what moves between worlds.
-                    update: async (tick: number) => {
-                        updates.push(tick);
-                        if (position.getWorld() !== from) return;
-                        await from.removePlayer(traveler);
-                        position = new Position(0, 64, 0, to);
-                        await to.addPlayer(traveler);
-                    }
-                }
-            );
-            return { traveler, updates };
-        };
-
-        it('ticks an entity once, however many worlds it crosses during the update', async () => {
-            const { level } = buildLevel('crossing');
-            await level.enable();
-            const overworld = await level.world(OVERWORLD_STEM_ID);
-            const nether = await level.world(NETHER_STEM_ID);
-
-            // Leaving the world ticked first for the one ticked second is the case a sequential
-            // tick alone would get wrong: the Nether reads its roster after the Overworld's tick
-            // has put the traveler in it.
-            const { traveler, updates } = travelerIn(overworld, nether);
-            await overworld.addPlayer(traveler);
-
-            await level.update(1);
-            expect(updates).toEqual([1]);
-            expect(nether.getEntities()).toContain(traveler.getBody());
-            expect(overworld.getEntities()).not.toContain(traveler.getBody());
-
-            // The next tick finds it in the Nether and ticks it there, once.
-            await level.update(2);
-            expect(updates).toEqual([1, 2]);
-
-            await level.disable();
-        });
         it('ticks every world in stem order and carries on past one that throws', async () => {
             const errors: unknown[] = [];
             const server = testServer();

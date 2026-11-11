@@ -126,8 +126,7 @@ export interface EntityHostFacts {
     itemStackChanged?(itemId: number, count: number): void;
     /**
      * The item a store player holds in its main hand, by identifier, or undefined for an empty
-     * hand. Left out by a host that keeps no inventory for store players, which is every host
-     * until players move into the store (C4h).
+     * hand. Left out by a host that keeps no inventory for store players, such as a test's.
      */
     heldItemOf?(playerId: number): string | undefined;
     /**

@@ -6,7 +6,8 @@ import type Server from '../Server';
 import type { Config } from '../config/Config';
 import type { Entity } from '../entity/Entity';
 import { stub } from '../testing/stub.test.helper';
-import { playerOnPrototype } from '../testing/playerDouble.test.helper';
+import { playerOnPrototype } from '../testing/storePlayer.test.helper';
+import type { ShownActor } from '../world/ShownActor';
 import type { World } from '../world/World';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import type { ProtocolCodec } from '@jsprismarine/protocol';
@@ -96,13 +97,13 @@ const fakePlayer = (
         },
         {
             runtimeId,
-            getPosition: () => new Position(1, 64, 1, stub<World>()),
-            pitch: 0,
-            yaw: 0,
-            headYaw: 0,
-            metadata: new Metadata(false),
-            getSyncedProperties: () => new SyncedProperties(),
-            getEquipment: () => ({})
+            actor: {
+                getPosition: () => new Position(1, 64, 1, stub<World>()),
+                isOnGround: () => false,
+                metadata: new Metadata(false),
+                getSyncedProperties: () => new SyncedProperties(),
+                getEquipment: () => ({})
+            }
         }
     );
 
@@ -129,7 +130,7 @@ const replicatorOver = ({
     fullFlushFragments = false
 }: {
     players?: Player[];
-    entities?: Entity[];
+    entities?: ShownActor[];
     proximity?: boolean;
     fullFlushFragments?: boolean;
 } = {}) => {
@@ -137,7 +138,6 @@ const replicatorOver = ({
         getName: () => 'test',
         getViewers: () => players.map((player) => player.getNetworkSession()),
         viewerOf: (runtimeId) => players.find((player) => player.getRuntimeId() === runtimeId)?.getNetworkSession(),
-        getEntities: () => entities,
         shownActors: () => entities
     });
 
@@ -162,7 +162,7 @@ describe('network', () => {
                 const mob = fakeMob(2n);
                 const replicator = replicatorOver({ players: [player], entities: [mob] });
 
-                await replicator.entityAdded(player.getBody());
+                await replicator.entityAdded(player.getActor()!);
 
                 expect(spy.reconciled).toStrictEqual([[2n]]);
             });
@@ -170,9 +170,9 @@ describe('network', () => {
             it('does not offer an arriving player to itself', async () => {
                 // A client is never sent a spawn for the entity it is controlling.
                 const { player, spy } = fakePlayer(1n);
-                const replicator = replicatorOver({ players: [player], entities: [player.getBody()] });
+                const replicator = replicatorOver({ players: [player], entities: [player.getActor()!] });
 
-                await replicator.entityAdded(player.getBody());
+                await replicator.entityAdded(player.getActor()!);
 
                 expect(spy.considered).toStrictEqual([]);
             });
@@ -198,7 +198,7 @@ describe('network', () => {
                 const arriving = fakePlayer(2n);
                 const replicator = replicatorOver({ players: [resident.player, arriving.player] });
 
-                await replicator.entityAdded(arriving.player.getBody());
+                await replicator.entityAdded(arriving.player.getActor()!);
 
                 expect(resident.spy.considered).toStrictEqual([2n]);
             });
@@ -245,7 +245,7 @@ describe('network', () => {
                 observer.spy.tracked.add(1n);
 
                 const replicator = replicatorOver({ players: [moving.player, observer.player] });
-                replicator.entityMoved(moving.player.getBody());
+                replicator.entityMoved(moving.player.getActor()!);
                 await replicator.flushMovement();
 
                 expect(moving.spy.frames).toHaveLength(0);
@@ -399,7 +399,7 @@ describe('network', () => {
             expect(first.spy.sent).toHaveLength(0);
         });
 
-        it('routes the entity player state changes through its own input-tick-aware session methods', async () => {
+        it('routes the player state changes but its equipment through its own input-tick-aware session methods', async () => {
             const { player, spy } = fakePlayer(1n);
             const replicator = replicatorOver({ players: [player] });
             const attribute = new Attribute({ name: 'minecraft:health', min: 0, max: 20, def: 20, value: 15 });
@@ -412,12 +412,14 @@ describe('network', () => {
                 showIcon: true
             };
 
-            await replicator.entityAttributesChanged(player.getBody(), [attribute]);
-            await replicator.statusEffectChanged(player.getBody(), effect, 'add');
-            await replicator.entityMetadataChanged(player.getBody());
-            await replicator.entityEquipmentChanged(player.getBody());
+            await replicator.entityAttributesChanged(player.getActor()!, [attribute]);
+            await replicator.statusEffectChanged(player.getActor()!, effect, 'add');
+            await replicator.entityMetadataChanged(player.getActor()!);
+            await replicator.entityEquipmentChanged(player.getActor()!);
 
-            expect(spy.selfStateCalls).toStrictEqual(['attributes', 'status effect', 'metadata', 'equipment']);
+            // No equipment: the client keeps its own inventory, and a held item named at hotbar slot
+            // zero would move its selection there.
+            expect(spy.selfStateCalls).toStrictEqual(['attributes', 'status effect', 'metadata']);
             expect(spy.frames).toHaveLength(0);
         });
 

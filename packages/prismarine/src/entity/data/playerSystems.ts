@@ -11,8 +11,8 @@
  *
  * A store player (`entity/storePlayer.ts`) outlives its entity: it holds its components and its
  * inventory from the login on, and hands them to the systems of each store its entity enters
- * through {@link PlayerSystems.attach}, which logs their writes there and undoes them. No live
- * player is a store entity until C4h's H-B2, so this runs in tests only.
+ * through {@link PlayerSystems.attach}, which logs their writes there and undoes them. Every
+ * live player is one, so these systems are a live player's survival.
  */
 import { AIR_STATE } from '@jsprismarine/entities';
 import { Gametype } from '@jsprismarine/minecraft';
@@ -291,6 +291,11 @@ export class PlayerSystems {
     /** Writes whether a store player is sneaking, as its client reports it. */
     public setSneaking(entity: DataEntity, sneaking: boolean): void {
         this.componentsOf(entity).set('movement.sneaking', sneaking);
+    }
+
+    /** Makes a store player hungrier, as moving, jumping, attacking and healing do. */
+    public exhaust(entity: DataEntity, amount: number): void {
+        addExhaustion(this.playerOf(entity).survival, amount);
     }
 
     /** One tick of a status effect on a store player: the hunger effect drains it, saturation feeds it. */

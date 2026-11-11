@@ -12,7 +12,7 @@ import type Player from '../Player';
 import { PermissionManager } from '../permission/PermissionManager';
 import type SessionManager from '../SessionManager';
 import { stub } from '../testing/stub.test.helper';
-import { playerOnPrototype } from '../testing/playerDouble.test.helper';
+import { playerOnPrototype } from '../testing/storePlayer.test.helper';
 import UUID from '@jsprismarine/protocol/wire/structures/UUID';
 import type GameRuleManager from '../world/GameRuleManager';
 import type { GameRuleEntry } from '../world/GameRuleManager';
@@ -235,11 +235,16 @@ describe('command', () => {
                 // A vanilla command names its targets as `EntityRef`s and resolves them back by
                 // scanning the loaded worlds, so a target's body has to have a runtime id, a
                 // position and a world the way a connected player's does.
+                // What a selector reads of the target's actor.
                 const body = {
                     runtimeId: 2n,
-                    getFeetY: () => 64,
-                    getPosition: () => new Position(0, 64, 0, world),
-                    getWorld: () => world
+                    actor: {
+                        isAlive: () => true,
+                        getTags: () => [],
+                        getFeetY: () => 64,
+                        getPosition: () => new Position(0, 64, 0, world),
+                        getWorld: () => world
+                    }
                 };
                 const target: Player = playerOnPrototype(
                     {
@@ -276,9 +281,10 @@ describe('command', () => {
                 const world = stub<World>({
                     getGameRuleManager: () => stub<GameRuleManager>({ getGameRule: () => [true, true] }),
                     getDimension: () => Dimensions.Overworld,
-                    getEntities: () => [target.getBody()],
-                    getActors: () => [target.getBody()],
-                    getActor: (runtimeId: bigint) => (runtimeId === target.getRuntimeId() ? target.getBody() : null),
+                    getEntities: () => [],
+                    getActors: () => [target.getActor()!],
+                    getActor: (runtimeId: bigint) =>
+                        runtimeId === target.getRuntimeId() ? (target.getActor() ?? null) : null,
                     viewerOf: (runtimeId: bigint) =>
                         runtimeId === target.getRuntimeId() ? target.getNetworkSession() : undefined
                 });

@@ -26,6 +26,7 @@ import { EntityRuntimes } from '../entity/data/live';
 import { serverWorldSource } from '../content/world/serverSource';
 import type { World } from '../world/World';
 import type { StoreActors } from '../entity/data/storeActors';
+import type { StorePlayers } from '../entity/data/storePlayers';
 import type Server from '../Server';
 import { ChunkCompletionQueue } from '../world/ChunkCompletionQueue';
 import { stub } from './stub.test.helper';
@@ -150,6 +151,8 @@ export interface LiveTestEntities {
     content(): ServerContent;
     /** One dimension's runtime, which turns a drop into a store stack; inert when none opened. */
     entityRuntime(dimension: string): LiveEntityRuntime;
+    /** The store players every dimension's runtime shows, as a server's `getStorePlayers`. */
+    readonly players: StorePlayers;
 }
 
 /**
@@ -182,6 +185,7 @@ export const liveTestEntities = (world: () => World | undefined): LiveTestEntiti
         ));
     return {
         content,
+        players: entityRuntimes.players,
         entityRuntime: (dimension) => {
             content();
             return entityRuntimes.at(dimension) ?? inertEntityRuntime();

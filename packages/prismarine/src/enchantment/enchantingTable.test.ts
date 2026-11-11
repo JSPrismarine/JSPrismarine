@@ -14,7 +14,7 @@ import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import PlayerEnchantOptionsPacket, { EnchantType } from '@jsprismarine/protocol/packet/PlayerEnchantOptionsPacket';
 import { fakePlayer } from '../testing/fakePlayer.test.helper';
 import { stub } from '../testing/stub.test.helper';
-import { experienceIn } from '../testing/playerDouble.test.helper';
+import { experienceIn } from '../testing/storePlayer.test.helper';
 import { keyOfPlayer } from '../playerIdentity';
 import { bookshelfPowerAround } from './bookshelves';
 import {
@@ -140,7 +140,7 @@ const scene = (built: ServerContent, world = worldOf(), random: () => number = (
         getExperience: () => experienceIn(attributes),
         // What `advancementSubject` reads when the enchant raises
         // `enchanted_item`.
-        metadata: { sprinting: false } as never,
+        isSprinting: () => false,
         gamemode: 0,
         isSneaking: () => false,
         isFlying: () => false,

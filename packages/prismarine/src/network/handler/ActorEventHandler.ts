@@ -33,8 +33,10 @@ export default class ActorEventHandler implements PacketHandler<ActorEventPacket
 
     /** Relays an allowed event about the sender to the players tracking it, and drops the rest. */
     public async handle(packet: ActorEventPacket, server: Server, session: PlayerSession): Promise<void> {
-        const player: ShownActor & Pick<PlacedPlayer, 'getWorld'> = session.getPlayer().getBody();
+        const player: (ShownActor & Pick<PlacedPlayer, 'getWorld'>) | undefined = session.getPlayer().getActor();
         const logger = server.getLogger();
+        // Nobody sees a player whose entity is in no store, so there is nobody to relay to.
+        if (player === undefined) return;
 
         if (packet.runtimeEntityId !== session.runtimeId) {
             logger.verbose(

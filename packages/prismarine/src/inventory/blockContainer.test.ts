@@ -201,6 +201,7 @@ const buildScene = async (name: string) => {
         },
         // The dimension's runtime the content build opened, where a drop becomes a store stack.
         getEntityRuntime: (dimension: string) => entityRuntimes.at(dimension) ?? inertEntityRuntime(),
+        getStorePlayers: () => entityRuntimes.players,
         getDimensionTravel: () => stub<DimensionTravel>({ touch: async () => {} }),
         getConfig: () =>
             stub<Config>({

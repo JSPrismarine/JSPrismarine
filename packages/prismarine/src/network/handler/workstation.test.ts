@@ -25,7 +25,7 @@ import type Player from '../../Player';
 import type Server from '../../Server';
 import { enchantingRows, enchantmentSeedOf } from '../../enchantment/enchantingTable';
 import { stub } from '../../testing/stub.test.helper';
-import { experienceIn } from '../../testing/playerDouble.test.helper';
+import { experienceIn } from '../../testing/storePlayer.test.helper';
 import type { World } from '../../world/World';
 import type { Logger } from '@jsprismarine/logger';
 import type { OpenBlockContainer } from '../PlayerSession';
@@ -156,7 +156,7 @@ const scene = (open: OpenBlockContainer) => {
         getCraftingInput: () => new CraftingInput(),
         attributes,
         getExperience: () => experienceIn(attributes),
-        metadata: { sprinting: false } as never,
+        isSprinting: () => false,
         gamemode: 0,
         isSneaking: () => false,
         isFlying: () => false,

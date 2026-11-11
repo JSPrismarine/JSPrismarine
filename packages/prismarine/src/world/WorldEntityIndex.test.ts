@@ -1,8 +1,6 @@
 import { Vector3 } from '@jsprismarine/math';
-import { PositionMode } from '@jsprismarine/protocol/packet/MovePlayerPacket';
 import { describe, expect, it } from 'vitest';
 
-import type Player from '../Player';
 import { entityFixture, FLOOR_Y } from '../entity/data/testing';
 import type { LiveEntityRuntime } from '../entity/data/live';
 import type { StoreActors } from '../entity/data/storeActors';
@@ -10,7 +8,8 @@ import type { Entity } from '../entity/Entity';
 import { GenericEntity } from '../testing/genericEntity.test.helper';
 import { testEntityServer } from '../testing/entityServer';
 import { stub } from '../testing/stub.test.helper';
-import { playerOnPrototype, withPlayerComponents } from '../testing/playerDouble.test.helper';
+import { moveStorePlayer } from '../entity/data/storePlayers';
+import { enteredStorePlayer } from '../testing/storePlayer.test.helper';
 import Chunk from './chunk/Chunk';
 import { Dimensions } from './Dimension';
 import { Position } from './Position';
@@ -55,14 +54,6 @@ const legacyEntity = (world: World, x: number, z: number): GenericEntity =>
         runtimeId: nextLegacyId++
     });
 
-/** A player with no connection, which is all a position write needs. */
-const playerAt = async (world: World, x: number, z: number): Promise<Player> => {
-    const runtimeId = nextLegacyId++;
-    const player = withPlayerComponents(playerOnPrototype({ isOnline: () => true }, { runtimeId }));
-    await player.setPlayerPosition({ position: new Position(x, Y, z, world), type: PositionMode.Teleport }, false);
-    return player;
-};
-
 /** Whether a legacy query at a point finds this entity. */
 const finds = (world: World, entity: Entity, x: number, z: number): boolean =>
     world.getEntityIndex().legacyWithin(x, z, 1).includes(entity);
@@ -87,20 +78,25 @@ describe('the entity index over a world', () => {
         expect(world.getEntityIndex().itemsWithin(40.5, 0.5, 0.5)).toEqual([]);
     });
 
-    it('sees a legacy entity and a player where their last write put them', async () => {
-        const { world } = indexedWorld();
+    it('sees a legacy entity and a store player where their last write put them', async () => {
+        const { world, runtime } = indexedWorld();
         const stand = legacyEntity(world, 0.5, 0.5);
-        const player = await playerAt(world, 0.5, 0.5);
+        const { player, entity } = enteredStorePlayer({ runtime });
         await world.addEntity(stand);
-        await world.addPlayer(player);
 
         await stand.setPosition({ position: new Vector3(20.5, Y, 20.5) });
-        // The write a movement handler makes for a client-owned move.
-        await player.setPlayerPosition({ position: new Vector3(-30.5, Y, 4.5) }, false);
+        // The write the input step makes for a client-owned move.
+        moveStorePlayer(runtime, player, {
+            position: { x: -30.5, y: Y, z: 4.5 },
+            yaw: 0,
+            pitch: 0,
+            onGround: true,
+            headYaw: 0
+        });
 
         expect(finds(world, stand, 20.5, 20.5)).toBe(true);
-        expect(finds(world, player.getBody(), -30.5, 4.5)).toBe(true);
-        expect(finds(world, player.getBody(), 0.5, 0.5)).toBe(false);
+        expect(world.getEntityIndex().storeWithin(-30.5, 4.5, 1)).toEqual([entity]);
+        expect(world.getEntityIndex().storeWithin(0.5, 0.5, 1)).toEqual([]);
     });
 
     it('answers a legacy query with the legacy entities only, in ascending runtime id order', async () => {
@@ -108,14 +104,14 @@ describe('the entity index over a world', () => {
         const cow = runtime.spawn('minecraft:cow', { x: 0.5, y: Y, z: 0.5 });
         if (cow === undefined) throw new Error('the fixture declares no cow');
         const stand = legacyEntity(world, 1.5, 0.5);
-        const player = await playerAt(world, 2.5, 0.5);
+        const other = legacyEntity(world, 2.5, 0.5);
 
         // Filed highest id first, so the answer's order cannot be the order things arrived in.
-        await world.addPlayer(player);
+        await world.addEntity(other);
         await world.addEntity(stand);
 
         // A store entity is found through `storeWithin`, as its actor.
-        expect(world.getEntityIndex().legacyWithin(1, 0.5, 4)).toEqual([stand, player.getBody()]);
+        expect(world.getEntityIndex().legacyWithin(1, 0.5, 4)).toEqual([stand, other]);
         expect(world.getEntityIndex().storeWithin(1, 0.5, 4)).toEqual([cow]);
     });
 
@@ -123,12 +119,12 @@ describe('the entity index over a world', () => {
         const { world, index } = indexedWorld();
         const item = legacyEntity(world, 0.5, 0.5);
         const stand = legacyEntity(world, 17.5, 0.5);
-        const player = await playerAt(world, -17.5, 0.5);
-        for (const entity of [item, stand, player.getBody()]) await world.addEntity(entity);
+        const other = legacyEntity(world, -17.5, 0.5);
+        for (const entity of [item, stand, other]) await world.addEntity(entity);
         await item.setPosition({ position: new Vector3(33.5, Y, 0.5) });
         expect(index.size).toBe(3);
 
-        for (const entity of [item, stand, player.getBody()]) await world.removeEntity(entity);
+        for (const entity of [item, stand, other]) await world.removeEntity(entity);
 
         expect(index.size).toBe(0);
         expect(index.occupiedCells).toBe(0);

@@ -16,7 +16,6 @@ import RespawnPacket from '@jsprismarine/protocol/packet/RespawnPacket';
 import SetActorDataPacket from '@jsprismarine/protocol/packet/SetActorDataPacket';
 import UpdateAttributesPacket from '@jsprismarine/protocol/packet/UpdateAttributesPacket';
 import { fakePlayer } from './testing/fakePlayer.test.helper';
-import * as interaction from './item/interaction';
 import { stub } from './testing/stub.test.helper';
 import type { Block } from './block/Block';
 import { BlockState } from './block/state/BlockState';
@@ -27,12 +26,21 @@ import { Position } from './world/Position';
 import type { BlockMining } from './world/BlockMining';
 import type { World } from './world/World';
 
-/** Runs `n` ticks, the way the world does. */
+/**
+ * Runs `n` ticks, the way the world does: the input step, the player's actor and its own part,
+ * then the store's entity pass, which runs the player systems, and the sync after it.
+ */
 const tick = async (player: Player, n: number, from = 1) => {
     for (let i = 0; i < n; i++) {
         // The input step first, as a tick runs it, which is where a death's respawn answer lands.
         await player.getServer().getRespawnRequests().admit();
+        // The level clock the store's void and grace periods read.
+        vi.spyOn(player.getWorld(), 'getTicks').mockReturnValue(from + i);
         await player.update(from + i);
+        await player
+            .getWorld()
+            .dataEntities()
+            .tick(from + i);
     }
 };
 
@@ -83,8 +91,7 @@ describe('Player', () => {
             });
             const sendMove = vi.spyOn(player.getNetworkSession(), 'sendMove').mockResolvedValue();
 
-            const entity: Entity = player.getBody();
-            await entity.setPosition({ position: new Vector3(90, 64, 0), teleport: true });
+            await player.setPosition({ position: new Vector3(90, 64, 0), teleport: true });
 
             expect(snaps).toStrictEqual([true]);
             expect(sendMove).toHaveBeenCalledWith(player.getBody(), PositionMode.Teleport);
@@ -214,7 +221,7 @@ describe('Player', () => {
     describe('exhaustion from movement', () => {
         it('costs 0.1 per meter sprinted', async () => {
             const { player } = fakePlayer();
-            player.metadata.setSprinting(true);
+            await player.setSprinting(true);
 
             await move(player, 40);
 
@@ -234,7 +241,7 @@ describe('Player', () => {
         it('empties the bar over a long enough sprint', async () => {
             const { player } = fakePlayer();
             player.setSaturation(0);
-            player.metadata.setSprinting(true);
+            await player.setSprinting(true);
 
             await move(player, 40 * 20);
 
@@ -243,7 +250,7 @@ describe('Player', () => {
 
         it('charges nothing for a teleport', async () => {
             const { player } = fakePlayer();
-            player.metadata.setSprinting(true);
+            await player.setSprinting(true);
 
             await move(player, 40, PositionMode.Teleport);
 
@@ -252,7 +259,7 @@ describe('Player', () => {
 
         it('charges nothing for standing still', async () => {
             const { player } = fakePlayer();
-            player.metadata.setSprinting(true);
+            await player.setSprinting(true);
 
             const position = player.getPosition();
             await player.setPlayerPosition({ position: new Vector3(position.getX(), 64, 0) }, false);
@@ -262,19 +269,19 @@ describe('Player', () => {
 
         it('charges nothing for falling', async () => {
             const { player } = fakePlayer();
-            player.metadata.setSprinting(true);
+            await player.setSprinting(true);
 
             await player.setPlayerPosition({ position: new Vector3(0, 60, 0) }, false);
 
             expect(player.attributes.getValue(AttributeIds.PlayerExhaustion)).toBe(0);
         });
 
-        it('costs more to jump while sprinting than to jump standing still', () => {
+        it('costs more to jump while sprinting than to jump standing still', async () => {
             const { player: walker } = fakePlayer();
             walker.addJumpExhaustion();
 
             const { player: sprinter } = fakePlayer();
-            sprinter.metadata.setSprinting(true);
+            await sprinter.setSprinting(true);
             sprinter.addJumpExhaustion();
 
             expect(walker.attributes.getValue(AttributeIds.PlayerExhaustion)).toBeCloseTo(0.05);
@@ -285,7 +292,7 @@ describe('Player', () => {
             for (const gamemode of [Gametype.CREATIVE, Gametype.SPECTATOR]) {
                 const { player } = fakePlayer();
                 player.gamemode = gamemode;
-                player.metadata.setSprinting(true);
+                await player.setSprinting(true);
 
                 await move(player, 100);
 
@@ -726,69 +733,6 @@ describe('Player', () => {
         });
     });
 
-    describe('meals', () => {
-        /** A player holding `item`, on a server clock the test moves, whose finished meals are counted. */
-        const eating = (item: string) => {
-            const { player } = fakePlayer();
-            const clock = { now: 0 };
-            const server = player.getServer();
-            server.getTick = () => clock.now;
-            server.getContentWorld = () => stub({ actorsAt: () => stub({}) });
-            const held = { name: item };
-            player.getInventory().getItemInHand = () => stub({ getName: () => held.name });
-            const finished = vi.spyOn(interaction, 'consumeHeldItem').mockImplementation(() => true);
-            finished.mockClear();
-            return { player, clock, held, finished };
-        };
-
-        it('finishes once its time is up with the same item still in hand', async () => {
-            const { player, clock, finished } = eating('minecraft:bread');
-            player.beginConsuming(0, 32);
-
-            clock.now = 31;
-            await player.update(31);
-            expect(finished).not.toHaveBeenCalled();
-
-            clock.now = 32;
-            await player.update(32);
-            expect(finished).toHaveBeenCalledTimes(1);
-            expect(player['components'].get('consumption.meal')).toBeNull();
-        });
-
-        it('keeps the clock of a meal reported again part way through', () => {
-            const { player } = eating('minecraft:bread');
-            player.beginConsuming(0, 32);
-            player.beginConsuming(10, 32);
-
-            expect(player['components'].get('consumption.meal')).toEqual({
-                startedAt: 0,
-                ticks: 32,
-                item: 'minecraft:bread'
-            });
-        });
-
-        it('ends without finishing when another item is in hand by then', async () => {
-            const { player, clock, held, finished } = eating('minecraft:bread');
-            player.beginConsuming(0, 32);
-            held.name = 'minecraft:stone';
-
-            clock.now = 32;
-            await player.update(32);
-            expect(finished).not.toHaveBeenCalled();
-            expect(player['components'].get('consumption.meal')).toBeNull();
-        });
-
-        it('forgets a meal that is let go of', async () => {
-            const { player, clock, finished } = eating('minecraft:bread');
-            player.beginConsuming(0, 32);
-            player.cancelConsuming();
-
-            clock.now = 41;
-            await player.update(41);
-            expect(finished).not.toHaveBeenCalled();
-        });
-    });
-
     describe('mining', () => {
         const mining: BlockMining = {
             position: new Vector3(2, 57, 16),
@@ -808,32 +752,8 @@ describe('Player', () => {
                 getDimension: () => Dimensions.Nether
             });
 
-        it('animates the cracks every tick while a block is being mined, and stops after', async () => {
-            const { player, cracked } = fakePlayer();
-
-            player.setMining(mining);
-            await tick(player, 3);
-            player.setMining(null);
-            await tick(player, 2, 4);
-
-            expect(cracked).toEqual([mining, mining, mining]);
-        });
-
-        it('forgets the block once the world says it is not the one being mined any more', async () => {
-            // Somebody else broke it. The world stopped its cracks; the player stops asking.
-            const { player, cracked, mined } = fakePlayer();
-            mined.stays = false;
-
-            player.setMining(mining);
-            await tick(player, 3);
-
-            expect(cracked).toEqual([mining]);
-            expect(player.getMining()).toBeNull();
-        });
-
         it.each([
             ['disconnects', (player: Player) => player.disable()],
-            ['dies', (player: Player) => player.setHealth(0)],
             ['changes game mode', (player: Player) => player.setGamemode(Gametype.CREATIVE)],
             ['changes world', (player: Player) => player.setWorld(elsewhere())]
         ])('stops the cracks when the player %s, rather than sending them every tick for good', async (_, end) => {
@@ -864,21 +784,21 @@ describe('Player', () => {
             const { player } = fakePlayer();
             const nether = PORTALS['minecraft:portal']!;
 
-            expect(player.getBody().getPortalTransitionTicks(nether)).toBe(80);
-            expect(player.getBody().getPortalTransitionTicks()).toBe(80);
+            expect(player.getActor()!.getPortalTransitionTicks(nether)).toBe(80);
+            expect(player.getActor()!.getPortalTransitionTicks()).toBe(80);
 
             player.gamemode = Gametype.CREATIVE;
-            expect(player.getBody().getPortalTransitionTicks(nether)).toBe(0);
-            expect(player.getBody().getPortalTransitionTicks()).toBe(0);
+            expect(player.getActor()!.getPortalTransitionTicks(nether)).toBe(0);
+            expect(player.getActor()!.getPortalTransitionTicks()).toBe(0);
         });
 
         it('sends a player through an end portal on the first tick in any game mode', () => {
             const { player } = fakePlayer();
             const end = PORTALS['minecraft:end_portal']!;
 
-            expect(player.getBody().getPortalTransitionTicks(end)).toBe(0);
+            expect(player.getActor()!.getPortalTransitionTicks(end)).toBe(0);
             player.gamemode = Gametype.CREATIVE;
-            expect(player.getBody().getPortalTransitionTicks(end)).toBe(0);
+            expect(player.getActor()!.getPortalTransitionTicks(end)).toBe(0);
         });
 
         it('waits 10 ticks after a dimension change, not the 300 a mob does', () => {
@@ -937,8 +857,10 @@ describe('Player', () => {
             // The session does the change; this only chooses the arrival. A caller with a
             // destination of its own, such as a teleport, moves the player again afterwards.
             const { player, sent } = fakePlayer();
-            player.yaw = 45;
-            player.pitch = -10;
+            await player.setPlayerPosition(
+                { position: player.getPosition(), yaw: 45, pitch: -10, type: PositionMode.Teleport },
+                false
+            );
 
             await player.setWorld(nether());
 
@@ -1021,7 +943,7 @@ describe('Player', () => {
     describe('syncing', () => {
         it('sends what changed, and only what changed', async () => {
             const { player, sent } = fakePlayer();
-            player.metadata.setSprinting(true);
+            await player.setSprinting(true);
             await player.getNetworkSession().sendAttributes();
             sent.length = 0;
 

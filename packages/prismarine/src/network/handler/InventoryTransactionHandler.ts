@@ -442,7 +442,10 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
             return;
         }
 
-        const landed = await meleeAttack(player.getBody(), target, {
+        // A player whose entity is in no store yet cannot reach anything.
+        const attacker = player.getActor();
+        if (attacker === undefined) return;
+        const landed = await meleeAttack(attacker, target, {
             reach: player.gamemode === Gametype.CREATIVE ? CREATIVE_REACH : SURVIVAL_REACH,
 
             // What they are holding, not their attack attribute: in vanilla the weapon *is* the
@@ -453,7 +456,7 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
             // ground too, and vanilla does not let them crit from there.
             critical: !player.isOnGround() && player.getFallDistance() > 0 && !player.isFlying(),
 
-            knockbackLevels: player.metadata.sprinting ? SPRINT_KNOCKBACK : 0
+            knockbackLevels: player.isSprinting() ? SPRINT_KNOCKBACK : 0
         });
 
         // Only a swing that connected costs anything. A miss is free, which is why the hunger is
@@ -494,7 +497,8 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
         if (data.actionType !== ItemReleaseActionType.RELEASE) return;
         if (player.getInventory().getItemInHand().getName() !== BOW) return;
 
-        await loose(player.getBody(), drawn);
+        const shooter = player.getActor();
+        if (shooter !== undefined) await loose(shooter, drawn);
     }
 
     /**

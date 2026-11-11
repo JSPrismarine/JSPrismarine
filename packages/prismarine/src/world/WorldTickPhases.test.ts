@@ -6,11 +6,9 @@ import { Vector3 } from '@jsprismarine/math';
 import { describe, expect, it, vi } from 'vitest';
 
 import { Attributes, AttributeIds } from '@jsprismarine/protocol/wire/structures/Attribute';
-import type { Entity } from '../entity/Entity';
+import { Entity } from '../entity/Entity';
 import type PlayerSession from '../network/PlayerSession';
-import { LegacyPlayerBody } from '../entity/LegacyPlayerBody';
 import { stub, stubOf } from '../testing/stub.test.helper';
-import { playerOnPrototype } from '../testing/playerDouble.test.helper';
 import type { DimensionTravel, PortalBlockRef } from './portal/DimensionTravel';
 import type { ShownActor } from './ShownActor';
 import type { SystemBlock } from './WorldSystems';
@@ -187,7 +185,7 @@ describe('world', () => {
             });
             const { world } = worldTicking({
                 entities: [
-                    stubOf(LegacyPlayerBody, {
+                    stubOf(Entity, {
                         getPosition: () => new Position(0, 64, 0, world),
                         getType: () => 'minecraft:player',
                         getRuntimeId: () => 1n,
@@ -199,7 +197,7 @@ describe('world', () => {
                             firstFinished = true;
                         }
                     }),
-                    stubOf(LegacyPlayerBody, {
+                    stubOf(Entity, {
                         getPosition: () => new Position(0, 64, 0, world),
                         getType: () => 'minecraft:player',
                         getRuntimeId: () => 2n,
@@ -229,7 +227,7 @@ describe('world', () => {
 
         it('ticks its entities without copying the whole entity list for an index', async () => {
             const updated: bigint[] = [];
-            const player = stubOf(LegacyPlayerBody, {
+            const player = stubOf(Entity, {
                 getPosition: () => new Position(0, 64, 0, world),
                 getType: () => 'minecraft:player',
                 getRuntimeId: () => 1n,
@@ -255,7 +253,7 @@ describe('world', () => {
 
         it('uses the roster insertion order that Java 26.3 entity ticks preserve', async () => {
             const started: bigint[] = [];
-            const firstInserted = stubOf(LegacyPlayerBody, {
+            const firstInserted = stubOf(Entity, {
                 getPosition: () => new Position(0, 64, 0, world),
                 getType: () => 'minecraft:player',
                 getRuntimeId: () => 2n,
@@ -264,7 +262,7 @@ describe('world', () => {
                     started.push(2n);
                 }
             });
-            const secondInserted = stubOf(LegacyPlayerBody, {
+            const secondInserted = stubOf(Entity, {
                 getPosition: () => new Position(0, 64, 0, world),
                 getType: () => 'minecraft:player',
                 getRuntimeId: () => 1n,
@@ -455,18 +453,18 @@ describe('world portal contacts', () => {
             feet.getZ(),
             stub<World>({ viewerOf: () => session })
         );
-        return playerOnPrototype(
-            { getNetworkSession: () => session },
-            {
-                attributes: new Attributes(),
-                getPosition: () => position,
-                getWorld: () => position.getWorld(),
-                getFeetY: () => feet.getY(),
-                getBox: () => ({ width: 0.6, height: 1.8 }),
-                isOnPortalCooldown: () => onCooldown,
-                update: async () => {}
-            }
-        ).getBody();
+        // An entity of the player's type, which is what the portal pass reads of a player.
+        return stubOf(Entity, {
+            getType: () => 'minecraft:player',
+            getRuntimeId: () => 1n,
+            attributes: new Attributes(),
+            getPosition: () => position,
+            getWorld: () => position.getWorld(),
+            getFeetY: () => feet.getY(),
+            getBox: () => ({ width: 0.6, height: 1.8 }),
+            isOnPortalCooldown: () => onCooldown,
+            update: async () => {}
+        });
     };
 
     /** A world whose only non-air block is a portal at `portal`. */

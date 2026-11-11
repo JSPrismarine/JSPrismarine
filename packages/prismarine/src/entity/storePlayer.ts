@@ -18,11 +18,12 @@
  * the two: the player's writes are then logged in that store and undone by its runtime, and the
  * runtime's player systems run its survival. `leaveStore` detaches them again.
  *
- * Live players are still legacy `Player` objects until C4h's H-B2 moves them into the store, so
- * nothing builds one of these outside tests yet.
+ * Every live player is one: a `Player` holds its store player from the login on and keeps no
+ * entity state of its own.
  */
 import type { Gametype } from '@jsprismarine/minecraft';
 import { AttributeIds, Attributes } from '@jsprismarine/protocol/wire/structures/Attribute';
+import { Metadata } from '@jsprismarine/protocol/wire/structures/Metadata';
 import type UUID from '@jsprismarine/protocol/wire/structures/UUID';
 import type Skin from '@jsprismarine/protocol/wire/structures/skin/Skin';
 import { Vector3 } from '@jsprismarine/math';
@@ -83,13 +84,23 @@ export class StorePlayer implements PlayerRecordSource, PlayerRecordTarget {
     public device: Device | null = null;
     /** The platform chat id, which the login handler does not read yet and leaves empty. */
     public platformChatId = '';
+    /**
+     * The actor metadata the components keep air, breathing and sprinting in, and which the
+     * player's own client is shown while the player is in no store. In a store, clients are shown
+     * the actor's metadata, which reads these from the components.
+     */
+    public readonly metadata = new Metadata();
 
-    private readonly components = new PlayerComponents(this.attributes, (field, before, after) =>
-        this.log?.field(field, before, after)
+    private readonly components = new PlayerComponents(
+        this.attributes,
+        (field, before, after) => this.log?.field(field, before, after),
+        this.metadata
     );
     private readonly inventory = new HumanInventory();
     private readonly craftingInput = new CraftingInput();
     private portalCooldown = 0;
+    /** The last tick an actor of this player was updated in; see {@link StorePlayer.claimUpdate}. */
+    private updatedTick = -1;
     private attached: DataEntity | undefined;
     /** Where writes are logged while the entity is in a store. */
     private log: PlayerLog | undefined;
@@ -110,6 +121,7 @@ export class StorePlayer implements PlayerRecordSource, PlayerRecordTarget {
         public readonly id: number,
         private readonly identity: StorePlayerIdentity
     ) {
+        this.metadata.setNameTag(identity.name);
         this.inventory.observeCarried({
             slot: (container, slot, before, after) => this.log?.slot(container, slot, before, after),
             handSlot: (before, after) => this.log?.field('inventory.handSlot', before, after)
@@ -336,6 +348,19 @@ export class StorePlayer implements PlayerRecordSource, PlayerRecordTarget {
     /** Records whether the player has watched the end credits. */
     public setSeenCredits(seen: boolean): void {
         this.components.set('respawn.seenCredits', seen);
+    }
+
+    /**
+     * Claims the player's one actor update of a server tick. The player keeps the claim rather
+     * than its actor, because a dimension change mid-tick gives it a new actor in a world the
+     * level ticks later, which would otherwise update it a second time.
+     *
+     * @returns Whether this is the first claim of `tick`.
+     */
+    public claimUpdate(tick: number): boolean {
+        if (this.updatedTick === tick) return false;
+        this.updatedTick = tick;
+        return true;
     }
 
     /** Ticks left before the player may enter a portal again. */

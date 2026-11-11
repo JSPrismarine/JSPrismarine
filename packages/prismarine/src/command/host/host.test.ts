@@ -34,7 +34,7 @@ import SetTitlePacket from '@jsprismarine/protocol/packet/SetTitlePacket';
 import type { PermissionManager } from '../../permission/PermissionManager';
 import type PlayerSession from '../../network/PlayerSession';
 import { stub, stubOf } from '../../testing/stub.test.helper';
-import { playerOnPrototype, withPlayerComponents } from '../../testing/playerDouble.test.helper';
+import { playerOnPrototype } from '../../testing/storePlayer.test.helper';
 import { LootRegistry, javaLootTables } from '@jsprismarine/loot';
 import { loadRecipes } from '@jsprismarine/recipes';
 import { RemoveObjectivePacket, SetDisplayObjectivePacket, SetScorePacket } from '@jsprismarine/protocol';
@@ -324,34 +324,39 @@ const playerAt = (fixture: Fixture, id: bigint, name: string, position: Vector3)
         sendAttributes: async () => {},
         changeWorld: vi.fn().mockResolvedValue(undefined)
     });
-    const player = withPlayerComponents(
-        playerOnPrototype(
-            {
-                getName: () => name,
-                gamemode: Gametype.SURVIVAL,
-                setGamemode: vi.fn().mockResolvedValue(undefined),
-                setPlayerPosition: vi.fn().mockResolvedValue(undefined),
-                kick: vi.fn().mockResolvedValue(undefined),
-                sendMessage: vi.fn().mockResolvedValue(undefined),
-                getInventory: () => inventory,
-                getNetworkSession: () => session
-            },
-            {
-                // What a selector and a reference read of the player's body.
-                runtimeId: id,
+    const tags = new Set<string>();
+    const player = playerOnPrototype(
+        {
+            getName: () => name,
+            gamemode: Gametype.SURVIVAL,
+            setGamemode: vi.fn().mockResolvedValue(undefined),
+            setPlayerPosition: vi.fn().mockResolvedValue(undefined),
+            kick: vi.fn().mockResolvedValue(undefined),
+            sendMessage: vi.fn().mockResolvedValue(undefined),
+            getInventory: () => inventory,
+            getNetworkSession: () => session,
+            getWorld: () => fixture.world,
+            getPosition: () => Position.fromVector3(position, fixture.world)
+        },
+        {
+            runtimeId: id,
+            // What a selector and a reference read of the player's actor.
+            actor: {
                 getPosition: () => Position.fromVector3(position, fixture.world),
                 getFeetY: () => position.getY(),
                 getWorld: () => fixture.world,
                 isAlive: () => true,
-                tags: new Set<string>(),
+                getTags: () => [...tags],
+                addTag: (tag: string) => !tags.has(tag) && tags.add(tag).has(tag),
+                removeTag: (tag: string) => tags.delete(tag),
                 attributes: new Attributes(Attributes.getPlayerDefaults()),
                 yaw: 0,
                 pitch: 0,
                 headYaw: 0
             }
-        )
+        }
     );
-    fixture.entities.push(player.getBody());
+    fixture.entities.push(player.getActor()!);
     fixture.players.push(player);
     return player;
 };

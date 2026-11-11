@@ -29,6 +29,7 @@ import { dataEntityRecordIn } from '../entity/data/persistence';
 import EntitySerializer from '../entity/EntitySerializer';
 import { ITEM_ENTITY } from '../entity/data/droppedItems';
 import { StoreActor } from '../entity/data/storeActors';
+import { enterStore, leaveStore } from '../entity/data/storePlayers';
 import { storedItemActorOf } from '../entity/EntitySerializer';
 import type { StoredActor } from '../entity/EntitySerializer';
 import type { Entity } from '../entity/Entity';
@@ -3156,22 +3157,33 @@ export class World implements Service {
 
     /**
      * Adds a player to the world: files it in the player map by entity id, which
-     * {@link World.viewerOf} and the viewers read, and then adds it as an entity.
+     * {@link World.viewerOf} and the viewers read, and then gives its store player an entity in
+     * this world's store under the same id. The store shows the arriving player the world and the
+     * world the player, through the player's actor.
      *
-     * The one way a player enters a world, on its join and on its arrival from another.
+     * The one way a player enters a world, on its join and on its arrival from another. Until it
+     * runs, nothing in the world can target or see the player.
      * @param player - The player.
      */
     public async addPlayer(player: Player): Promise<void> {
         this.players.set(Number(player.getRuntimeId()), player);
-        await this.addEntity(player.getBody());
+        if (
+            enterStore(this.dataEntities().runtime, this.server.getStorePlayers(), player.getStorePlayer()) ===
+            undefined
+        )
+            this.server.getLogger().warn(`The content declares no player, so ${player.getName()} has no entity`);
     }
 
     /**
-     * Removes a player from the world, on its leave and on its departure for another.
+     * Removes a player from the world, on its leave and on its departure for another: out of the
+     * player map first, so a leaving player is not among the clients told it left, and then its
+     * entity out of this world's store, which takes it off every client that was shown it. The
+     * store player keeps what its next entity needs.
      * @param player - The player.
      */
     public async removePlayer(player: Player): Promise<void> {
-        await this.removeEntity(player.getBody());
+        this.players.delete(Number(player.getRuntimeId()));
+        leaveStore(this.dataEntities().runtime, player.getStorePlayer(), 'left_world');
     }
 
     /**

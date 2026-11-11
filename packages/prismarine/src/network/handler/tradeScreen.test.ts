@@ -23,7 +23,7 @@ import { Item } from '../../item/Item';
 import type Server from '../../Server';
 import { stubPlayerPort } from '../../testing/playerPort.test.helper';
 import { stub } from '../../testing/stub.test.helper';
-import { experienceIn } from '../../testing/playerDouble.test.helper';
+import { experienceIn } from '../../testing/storePlayer.test.helper';
 import type { World } from '../../world/World';
 import type { Entity } from '../../entity/Entity';
 import type { Logger } from '@jsprismarine/logger';
@@ -128,7 +128,7 @@ const scene = () => {
         getCraftingInput: () => new CraftingInput(),
         attributes,
         getExperience: () => experienceIn(attributes),
-        metadata: { sprinting: false } as never,
+        isSprinting: () => false,
         gamemode: 0,
         isSneaking: () => false,
         isFlying: () => false,

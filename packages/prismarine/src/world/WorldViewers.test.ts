@@ -3,10 +3,11 @@ import { describe, expect, it } from 'vitest';
 import type Player from '../Player';
 import type Server from '../Server';
 import type PlayerSession from '../network/PlayerSession';
-import { inertEntityRuntime } from '../testing/entityServer';
+import { StorePlayerActor } from '../entity/data/storePlayers';
+import { liveTestEntities } from '../testing/entityServer';
 import { stub } from '../testing/stub.test.helper';
 import { stubPlayerPort } from '../testing/playerPort.test.helper';
-import { playerOnPrototype } from '../testing/playerDouble.test.helper';
+import { playerOnPrototype } from '../testing/storePlayer.test.helper';
 import { Dimensions } from './Dimension';
 import { Position } from './Position';
 import { World } from './World';
@@ -49,39 +50,47 @@ describe('World viewers', () => {
 
     it('finds a player added through addPlayer before anyone is told it arrived, and none after removePlayer', async () => {
         const session = stub<PlayerSession>({ runtimeId: 4n });
-        const world: World = Object.assign(Object.create(World.prototype), {
+        let world: World | undefined;
+        const entities = liveTestEntities(() => world);
+        const live = entities.entityRuntime(Dimensions.Overworld.name);
+        const server = stub<Server>({
+            getEntityRuntime: () => live,
+            getStorePlayers: () => entities.players,
+            getContent: () => entities.content()
+        });
+        const created: World = Object.assign(Object.create(World.prototype), {
             chunks: new Map(),
             entities: new Map(),
             entityChunkIndices: new Map(),
             players: new Map(),
             dimension: Dimensions.Overworld,
-            server: stub<Server>({ getEntityRuntime: () => inertEntityRuntime() })
+            server
         });
+        world = created;
         const player = playerOnPrototype(
             { getNetworkSession: () => session, isOnline: () => true },
-            {
-                runtimeId: 4n,
-                position: new Position(0.5, 65.62, 0.5, world),
-                getBox: () => ({ width: 0.6, height: 1.8 })
-            }
+            { runtimeId: 4n, position: new Position(0.5, 65.62, 0.5, created) }
         );
         // What the replicator sees when it shows an arriving player the world and a leaving one
         // goes: the arrival already findable, the departure already not.
         const seen: Array<PlayerSession | undefined> = [];
-        world.attachChangeSink({
+        created.attachChangeSink({
             ...NULL_WORLD_CHANGE_SINK,
-            entityAdded: async (entity) => void seen.push(world.viewerOf(entity.getRuntimeId())),
-            entityRemoved: async (entity) => void seen.push(world.viewerOf(entity.getRuntimeId()))
+            entityAdded: async (entity) => void seen.push(created.viewerOf(entity.getRuntimeId())),
+            entityRemoved: async (entity) => void seen.push(created.viewerOf(entity.getRuntimeId()))
         });
 
-        await world.addPlayer(player);
-        expect(world.viewerOf(4n)).toBe(session);
-        // The world holds the player's body as the entity under the player's id, not the player.
-        expect(world.getEntity(4n)).toBe(player.getBody());
+        await created.addPlayer(player);
+        expect(created.viewerOf(4n)).toBe(session);
+        // The world answers the store player's actor under the player's id, not the player.
+        const actor = created.getActor(4n);
+        expect(actor).toBeInstanceOf(StorePlayerActor);
+        expect(actor instanceof StorePlayerActor && actor.player).toBe(player.getStorePlayer());
+        expect(created.getEntity(4n)).toBeNull();
 
-        await world.removePlayer(player);
-        expect(world.viewerOf(4n)).toBeUndefined();
-        expect(world.getEntity(4n)).toBeNull();
+        await created.removePlayer(player);
+        expect(created.viewerOf(4n)).toBeUndefined();
+        expect(created.getActor(4n)).toBeNull();
         expect(seen).toEqual([session, undefined]);
     });
 });

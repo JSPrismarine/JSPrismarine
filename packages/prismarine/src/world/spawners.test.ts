@@ -223,7 +223,6 @@ const worldWithSpawner = ({ playerAt, delay = 0 }: { playerAt: Vector3; delay?: 
         getRuntimeId: () => 1n
     });
     world['players'].set(1, player);
-    world['entities'].set(1, player.getBody());
 
     const written: WorldChange[] = [];
     world.attachChangeSink({ ...NULL_WORLD_CHANGE_SINK, worldChanged: (change) => void written.push(change) });

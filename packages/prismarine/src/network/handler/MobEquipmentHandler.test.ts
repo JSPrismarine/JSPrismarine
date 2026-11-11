@@ -94,15 +94,6 @@ const selected = (slot: number, overrides: Partial<MobEquipmentPayload> = {}): M
         ...overrides
     });
 
-/** The one relay a watcher was sent, typed for the assertions that follow. */
-const relayed = (sent: NetworkPacket[]): MobEquipmentPacket => {
-    expect(sent).toHaveLength(1);
-    const [packet] = sent;
-    expect(packet).toBeInstanceOf(MobEquipmentPacket);
-    if (!(packet instanceof MobEquipmentPacket)) throw new Error('unreachable');
-    return packet;
-};
-
 describe('MobEquipmentHandler', () => {
     it('moves the hand to the selected hotbar slot', async () => {
         const { senderSession, inventory, server } = fakeWorld();
@@ -113,39 +104,18 @@ describe('MobEquipmentHandler', () => {
         expect(inventory.getItemInHand().getName()).toBe('minecraft:diamond_sword');
     });
 
-    it('relays the server copy of the held item to the players that have the sender on screen', async () => {
+    it('sends nothing itself: the players that see the sender are shown the hand by the sync', async () => {
         const { senderSession, server, toSender, toWatcher, toBystander } = fakeWorld();
-        // The client claims to hold a block it was never given.
+        // The client claims to hold a block it was never given, which nobody is told about.
         const packet = selected(3, {
             item: new Item({ runtimeId: 0, name: 'minecraft:bedrock' }).toStackDescriptor(protocolContext)
         });
 
         await new MobEquipmentHandler().handle(packet, server, senderSession);
 
-        const relay = relayed(toWatcher);
-        expect(relay).not.toBe(packet);
-        const data = relay.getPacketData();
-        expect(data).not.toBeNull();
-        if (data === null) throw new Error('the relay has no payload');
-        expect(data.runtimeEntityId).toBe(7n);
-        expect(Item.fromStackDescriptor(protocolContext, data.item).getName()).toBe('minecraft:diamond_sword');
-        expect(data.inventorySlot).toBe(3);
-        expect(data.hotbarSlot).toBe(3);
-        expect(data.windowId).toBe(WindowIds.INVENTORY);
-
         expect(toSender).toHaveLength(0);
+        expect(toWatcher).toHaveLength(0);
         expect(toBystander).toHaveLength(0);
-    });
-
-    it('relays air for an empty slot', async () => {
-        const { senderSession, server, toWatcher } = fakeWorld();
-
-        await new MobEquipmentHandler().handle(selected(0), server, senderSession);
-
-        const data = relayed(toWatcher).getPacketData();
-        expect(data).not.toBeNull();
-        if (data === null) throw new Error('the relay has no payload');
-        expect(Item.fromStackDescriptor(protocolContext, data.item).getName()).toBe('minecraft:air');
     });
 
     it('accepts an offhand report without moving the hand or relaying it', async () => {

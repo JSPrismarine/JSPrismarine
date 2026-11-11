@@ -4,7 +4,7 @@ import type { Logger } from '@jsprismarine/logger';
 import { PacketCompressionAlgorithm } from '@jsprismarine/minecraft';
 
 import type Player from '../src/Player';
-import type { LegacyPlayerBody } from '../src/entity/LegacyPlayerBody';
+import type { StorePlayerActor } from '../src/entity/data/storePlayers';
 import type Server from '../src/Server';
 import type { Config } from '../src/config/Config';
 import type ClientConnection from '../src/network/ClientConnection';
@@ -38,8 +38,8 @@ const pose = {
     headYaw: 164.5,
     onGround: true
 };
-/** The moving player's body, which is what replication shows. */
-const moverBody = stub<LegacyPlayerBody>({
+/** The moving player's actor, which is what replication shows. */
+const moverBody = stub<StorePlayerActor>({
     getName: () => 'moving-player',
     getRuntimeId: () => 42n,
     getPosition: () => pose.position,
@@ -50,6 +50,7 @@ const mover = stub<Player>({
     getName: () => 'moving-player',
     getRuntimeId: () => 42n,
     getBody: () => moverBody,
+    getActor: () => moverBody,
     getPosition: () => pose.position,
     getWorld: () => world,
     isOnGround: () => pose.onGround,

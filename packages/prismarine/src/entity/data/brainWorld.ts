@@ -39,6 +39,7 @@ import { actuatorOf, withinMeleeReach } from './goalWorld';
 import { blockPositionOf, ENTITY_EYE_HEIGHT_FRACTION } from './position';
 import type { EntityScene } from './scene';
 import { DEFAULT_BOX, PLAYER_BOX } from './facts';
+import { clientOwnsMovement } from '../playerOverlay';
 
 /** How far a sensor may look for a non-combat target when the type declares no follow range. */
 const DEFAULT_FOLLOW_RANGE = 16;
@@ -414,7 +415,13 @@ export const brainWorldOf = (scene: EntityScene): BrainWorld => {
         >();
         let order = 0;
         for (const candidate of scene.inBox(bounds.min, bounds.max)) {
-            if (String(candidate.id) === exclude.id || candidate.removed !== undefined) continue;
+            // A player is the host's below, whose view knows its game mode.
+            if (
+                String(candidate.id) === exclude.id ||
+                candidate.removed !== undefined ||
+                clientOwnsMovement(candidate.identifier)
+            )
+                continue;
             const entity = brainEntityOf(candidate, scene);
             // Java's nearest-first order is distance-based; caching the key also keeps ties stable.
             found.set(entity.id, { entity, distance: distance(center, entity.position), order });

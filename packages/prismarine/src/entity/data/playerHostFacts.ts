@@ -6,7 +6,7 @@
  * `EntityHostFacts.heldItemOf` and `finishMeal`, what is in hand and what finishing it does. The
  * hand is the player's `HumanInventory`. Finishing runs the held item's `onConsume` through the
  * server's item interaction code, which needs the session and the content world, so the server
- * hands that in as `finish`. C4h's H-B2 spreads these facts into the live host (`live.ts`).
+ * hands that in as `finish`. The live host (`live.ts`) spreads these facts into its own.
  */
 import { slotValueOfItem } from '../../inventory/slotLog';
 import type { StorePlayer } from '../storePlayer';

@@ -16,11 +16,36 @@ export const PLAYER_IDENTIFIER = 'minecraft:player';
 
 /**
  * What the overlay adds, by component name. Bedrock's player has 20 health, ten hearts, as
- * `Player.getDefaultAttributes` gives the legacy player.
+ * `Attributes.getPlayerDefaults` gives a player's own client.
  */
 export const PLAYER_OVERLAY_COMPONENTS: Readonly<Record<string, unknown>> = {
     'minecraft:health': { value: 20, max: 20 }
 };
+
+/**
+ * The player a pack stack that declares none is given, such as a server started without the
+ * Bedrock pack, so every live player still has an entity type to stand in its world as. It holds
+ * what the store's player rules read of the shipped file: the box, the family, the walk speed,
+ * the physics and the breath, and the overlay adds the health.
+ */
+export const FALLBACK_PLAYER_FILE = {
+    format_version: '1.21.0',
+    'minecraft:entity': {
+        description: { identifier: PLAYER_IDENTIFIER, is_spawnable: false, is_summonable: false },
+        components: {
+            'minecraft:collision_box': { width: 0.6, height: 1.8 },
+            'minecraft:type_family': { family: ['player'] },
+            'minecraft:movement': { value: 0.1 },
+            'minecraft:physics': {},
+            'minecraft:breathable': {
+                total_supply: 15,
+                suffocate_time: -1,
+                inhale_time: 3.75,
+                generates_bubbles: false
+            }
+        }
+    }
+} as const;
 
 /**
  * Applies the overlay to one entity file in the shape a behavior pack writes.

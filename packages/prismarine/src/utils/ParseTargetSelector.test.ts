@@ -4,7 +4,6 @@ import { Entity } from '../entity/Entity';
 import { GenericEntity } from '../testing/genericEntity.test.helper';
 import { testEntityServer } from '../testing/entityServer';
 import { stub } from '../testing/stub.test.helper';
-import { playerOnPrototype } from '../testing/playerDouble.test.helper';
 import type { World } from '../world';
 import { Position } from '../world/Position';
 import ParseTargetSelector from './ParseTargetSelector';
@@ -26,13 +25,10 @@ const somewhere = () => new Position(0, 0, 0, fakeWorld());
 const sheep = () => new GenericEntity({ identifier: 'minecraft:sheep', position: somewhere() });
 
 /**
- * A player's body, which is what a selector meets of a player, without a connection behind it.
- *
- * The selector tells players apart by their type, which a body built from its prototype answers
- * through its class. Going through the prototype rather than the constructor keeps the network
- * session out of a unit test.
+ * A player, as this selector meets one: an entity of the player's type, which is how the selector
+ * tells players apart. No connection or store stands behind it.
  */
-const fakePlayer = () => playerOnPrototype().getBody();
+const fakePlayer = () => new GenericEntity({ identifier: 'minecraft:player', position: somewhere() });
 
 describe('utils', () => {
     describe('ParseTargetSelector', () => {

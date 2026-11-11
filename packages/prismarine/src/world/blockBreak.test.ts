@@ -30,10 +30,11 @@ import { createEngineWorld } from './EngineWorld';
 import { World } from './World';
 import { WorldSystems } from './WorldSystems';
 import { NULL_WORLD_CHANGE_SINK } from './WorldChangeSink';
+import { Position } from './Position';
 import { fakeLevel } from '../testing/level';
 import { stub } from '../testing/stub.test.helper';
 import type PlayerSession from '../network/PlayerSession';
-import { playerOnPrototype } from '../testing/playerDouble.test.helper';
+import { playerOnPrototype } from '../testing/storePlayer.test.helper';
 
 /** The blocks this fixture declares, which are also the whole of its palette. */
 const BLOCKS = [
@@ -280,7 +281,6 @@ describe('breakBlockWithContent', () => {
     let world: World;
     let chunk: Chunk;
     let spawned: ShownActor[];
-    let entities: Map<number, Entity>;
     let players: Map<number, Player>;
     let content: ServerContent;
 
@@ -289,7 +289,7 @@ describe('breakBlockWithContent', () => {
         // sides reach for it through the same closure.
         let built: ServerContent | undefined;
         const entityRuntimes = new EntityRuntimes();
-        ({ world, chunk, spawned, entities, players } = liveWorld(() => built, entityRuntimes));
+        ({ world, chunk, spawned, players } = liveWorld(() => built, entityRuntimes));
 
         content = buildServerContent({
             load: () => ({
@@ -342,7 +342,7 @@ describe('breakBlockWithContent', () => {
     /**
      * A player holding one item, standing beside the block they break.
      *
-     * On the real prototype and in the world's entity and player maps, because a tool wears
+     * On the real prototype and in the world's player map, because a tool wears
      * through the item actor port, which finds the player's session by runtime id. A real one
      * needs a network session before it exists at all, so only what the break and the port read
      * is filled in.
@@ -359,18 +359,21 @@ describe('breakBlockWithContent', () => {
                 getFallDistance: () => 0,
                 getFood: () => 20,
                 isOnGround: () => true,
+                // The break reads the tool off the inventory.
+                getInventory: () => inventory,
+                getStatusEffects: () => [],
+                getPosition: () => Position.fromVector3(new Vector3(3, 64, 3), world),
                 getNetworkSession: () => stub<PlayerSession>({ getPlayer: () => breaker })
             },
-            // The body carries the inventory, as a real one does, and the break reads the tool off it.
             {
                 runtimeId: PLAYER_ID,
-                inventory,
-                getStatusEffects: () => [],
-                getPosition: () => new Vector3(3, 64, 3),
-                getServer: () => world.getServer()
+                actor: {
+                    getStatusEffects: () => [],
+                    getPosition: () => new Vector3(3, 64, 3),
+                    getServer: () => world.getServer()
+                }
             }
         );
-        entities.set(Number(PLAYER_ID), breaker.getBody());
         players.set(Number(PLAYER_ID), breaker);
         return breaker;
     };

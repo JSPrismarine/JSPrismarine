@@ -3,7 +3,7 @@ import { WindowIds } from '@jsprismarine/minecraft';
 import type { PlayerSession } from '../../';
 import type Server from '../../Server';
 import HumanInventory from '../../inventory/HumanInventory';
-import MobEquipmentPacket from '@jsprismarine/protocol/packet/MobEquipmentPacket';
+import type MobEquipmentPacket from '@jsprismarine/protocol/packet/MobEquipmentPacket';
 import type PacketHandler from './PacketHandler';
 import type { InventoryHolder, PlacedPlayer } from './playerPorts';
 
@@ -23,8 +23,8 @@ export default class MobEquipmentHandler implements PacketHandler<MobEquipmentPa
     public readonly lane = 'input';
 
     /**
-     * Moves the player's hand to the reported hotbar slot and shows the players that have the
-     * sender on screen what the server says is in it.
+     * Moves the player's hand to the reported hotbar slot. What the server says is in it reaches
+     * the players that have the sender on screen with the next tick's sync.
      *
      * An offhand report is accepted and ignored, since the off hand is kept through the item
      * stack requests that moved something into it. A packet naming any other container, or a
@@ -57,46 +57,8 @@ export default class MobEquipmentHandler implements PacketHandler<MobEquipmentPa
             return;
         }
 
-        const inventory = player.getInventory();
-        const previousSlot = inventory.getHandSlotIndex();
-        inventory.setHandSlot(data.hotbarSlot);
-
-        // A block being mined was timed for the tool held when mining began. A switch starts the
-        // mining over for the new tool, as a Bedrock client restarts its own break progress, so a
-        // fast tool's time cannot be kept for a block finished with a slow one. A report of the
-        // slot already held changes nothing.
-        const mining = player.getMining();
-        if (mining !== null && data.hotbarSlot !== previousSlot) {
-            const world = player.getWorld();
-            await world.stopBlockCracking(mining.position);
-            player.setMining(
-                await world.startBlockCracking(mining.position, mining.face, inventory.getItemInHand(), null)
-            );
-        }
-
-        // The server's stack for that slot under the sender's runtime id, not the client's
-        // bytes forwarded: a client could otherwise show everyone else an item it does not have.
-        // The sender's own world, and only the clients that have them on screen, the scope
-        // `AnimateHandler` relays an arm swing in.
-        await Promise.all(
-            player
-                .getWorld()
-                .getPlayers()
-                .filter((other) => other.getRuntimeId() !== session.runtimeId)
-                .filter((other) => other.getNetworkSession().tracks(session.runtimeId))
-                .map(async (other) => {
-                    const targetSession = other.getNetworkSession();
-                    const context = targetSession.getConnection().codec.context;
-                    return targetSession.send(
-                        new MobEquipmentPacket({
-                            runtimeEntityId: session.runtimeId,
-                            item: inventory.getItemInHand().toStackDescriptor(context),
-                            inventorySlot: data.hotbarSlot,
-                            hotbarSlot: data.hotbarSlot,
-                            windowId: WindowIds.INVENTORY
-                        })
-                    );
-                })
-        );
+        // The players that see the sender are shown the stack now in its hand by
+        // `StoreActors.sync`, which reads the inventory each tick, with the armor and the off hand.
+        player.getInventory().setHandSlot(data.hotbarSlot);
     }
 }

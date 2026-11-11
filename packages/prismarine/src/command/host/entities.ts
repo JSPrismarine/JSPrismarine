@@ -210,7 +210,7 @@ export const entityCommandHost = (server: Server, scoreboard: Scoreboard): Entit
             ? server
                   .getSessionManager()
                   .getAllPlayers()
-                  .map((player) => player.getBody())
+                  .flatMap((player) => player.getActor() ?? [])
             : worldOf(server, dimension).getActors();
 
     const applyAttribute = (
