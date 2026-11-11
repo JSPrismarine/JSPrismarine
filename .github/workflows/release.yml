@@ -72,6 +72,11 @@ jobs:
             - name: 🔨 Build
               run: pnpm run build
 
+            # A published @jsprismarine/native-network downloads the builds its manifest names, so
+            # the manifest must match the native sources and cover every platform first.
+            - name: 🧭 Check the native library's manifest
+              run: node packages/native-network/scripts/check-manifest.mts
+
             - name: 🤝 Create Release Pull Request or Publish to NPM
               id: changesets
               uses: changesets/action@ae32849d5ba541f9ae29e40e22a623bc13562f51 # v2.1.2
