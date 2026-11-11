@@ -65,7 +65,7 @@ import { DamageCause } from '../DamageCause';
 import { DamageSource } from '../DamageSource';
 import { meleeAttack } from '../Combat';
 import { explode } from '../Explosion';
-import { Entity } from '../Entity';
+import { entityIds } from '../entityIds';
 import type { StoreActor } from './storeActors';
 import { GenericEntity } from '../GenericEntity';
 import { EntitySerializer } from '../EntitySerializer';
@@ -704,15 +704,15 @@ const flatChunk = (x: number, z: number): Chunk => {
 
 /** A player standing at a position, reserving its id from the server's shared counter. */
 const playerAt = (world: World, x: number, z: number): Player => {
-    Entity.runtimeIdCount += 1n;
+    const id = entityIds.next();
     return withPlayerComponents(
         Object.assign(Object.create(Player.prototype), {
             position: new Position(x, GROUND_Y + EYE_HEIGHT, z, world),
             pitch: 0,
             yaw: 0,
             headYaw: 0,
-            runtimeId: Entity.runtimeIdCount,
-            uuid: new UUID(0, 0, 0, Number(Entity.runtimeIdCount)),
+            runtimeId: BigInt(id),
+            uuid: new UUID(0, 0, 0, id),
             // The world only hands out players it believes are still connected.
             connected: true,
             tags: new Set<string>(),

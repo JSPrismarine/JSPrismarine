@@ -37,7 +37,8 @@ import type { World } from '../../world/World';
 import type { WorldActor } from '../../world/WorldActor';
 import { damageCauseOf, DamageCause } from '../DamageCause';
 import { DamageSource } from '../DamageSource';
-import { Entity } from '../Entity';
+import type { Entity } from '../Entity';
+import { entityIds } from '../entityIds';
 import { GenericEntity } from '../GenericEntity';
 import AnimatePacket, { AnimateAction } from '@jsprismarine/protocol/packet/AnimatePacket';
 import { actorMotionIn, dataEntityRecordOf, writeDataEntityRecord } from './persistence';
@@ -565,12 +566,8 @@ export class LiveEntityRuntime {
                 add: (listener) => options.liveWorld()?.addGameEventListener(listener),
                 move: (listener) => options.liveWorld()?.moveGameEventListener(listener)
             },
-            // One pool of runtime ids with the server's own entities, so a goal that holds
-            // the id of a player cannot be handed a data-driven mob that happens to share it.
-            nextId: () => {
-                Entity.runtimeIdCount += 1n;
-                return Number(Entity.runtimeIdCount);
-            }
+            // One pool of runtime ids with the server's own entities.
+            nextId: () => entityIds.next()
         });
         this.runtime.index.chunkChanged = (chunkX, chunkZ) =>
             options.liveWorld()?.storeEntityChunkChanged(chunkX, chunkZ);

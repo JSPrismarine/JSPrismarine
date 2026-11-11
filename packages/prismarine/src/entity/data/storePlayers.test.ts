@@ -30,7 +30,7 @@ import type Server from '../../Server';
 import { fakePlayer } from '../../testing/fakePlayer.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import type { World } from '../../world/World';
-import { Entity } from '../Entity';
+import { entityIds } from '../entityIds';
 import { EYE_HEIGHT } from '../Human';
 import { PLAYER_IDENTIFIER } from '../playerOverlay';
 import ContainerEntry from '../../inventory/ContainerEntry';
@@ -71,8 +71,7 @@ const fixture = () => {
         const claimed = nextId;
         nextId = undefined;
         if (claimed !== undefined) return claimed;
-        Entity.runtimeIdCount += 1n;
-        return Number(Entity.runtimeIdCount);
+        return entityIds.next();
     });
     /** Gives the next spawned entity this id. */
     const spawnNextAs = (id: bigint) => {
