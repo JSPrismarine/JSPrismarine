@@ -11,6 +11,12 @@ import { runLoopback } from './testing/loopback';
 
 const RING_CAPACITY = 1 << 16;
 
+/** A pair of rings in SharedByteRing's layout. */
+const newRings = () => ({
+    inbound: new SharedArrayBuffer(SharedByteRing.byteLength(RING_CAPACITY)),
+    outbound: new SharedArrayBuffer(SharedByteRing.byteLength(RING_CAPACITY))
+});
+
 /** A UDP port nothing holds right now. */
 const freePort = async (): Promise<number> => {
     const socket = dgram.createSocket('udp6');
@@ -76,7 +82,8 @@ describe.skipIf(!nativeLibraryAvailable())('a UDP port RakNet shares with Nether
         const wake = await wakeListener();
         const client = dgram.createSocket('udp4');
         try {
-            const rings = shared.attach(4, RING_CAPACITY, wake.port);
+            const rings = newRings();
+            shared.attach(4, rings, wake.port);
             const inbound = new SharedByteRing(RING_CAPACITY, rings.inbound);
             client.bind(0, '127.0.0.1');
             await once(client, 'listening');
@@ -110,7 +117,8 @@ describe.skipIf(!nativeLibraryAvailable())('a UDP port RakNet shares with Nether
         const wake = await wakeListener();
         const client = dgram.createSocket('udp4');
         try {
-            const rings = shared.attach(4, RING_CAPACITY, wake.port);
+            const rings = newRings();
+            const outboundWakePort = shared.attach(4, rings, wake.port);
             const outbound = new SharedByteRing(RING_CAPACITY, rings.outbound);
             client.bind(0, '127.0.0.1');
             await once(client, 'listening');
@@ -126,7 +134,7 @@ describe.skipIf(!nativeLibraryAvailable())('a UDP port RakNet shares with Nether
             // One wake for the batch.
             expect(outbound.claimWake()).toBe(true);
             const waker = dgram.createSocket('udp4');
-            waker.send(Buffer.from([1]), rings.outboundWakePort, '127.0.0.1', () => waker.close());
+            waker.send(Buffer.from([1]), outboundWakePort, '127.0.0.1', () => waker.close());
 
             await vi.waitFor(() => expect(received).toHaveLength(3));
             expect(received.map((entry) => entry.message)).toStrictEqual(replies);
@@ -145,7 +153,8 @@ describe.skipIf(!nativeLibraryAvailable())('a UDP port RakNet shares with Nether
         const wake = await wakeListener();
         const client = dgram.createSocket('udp4');
         try {
-            const rings = shared.attach(4, RING_CAPACITY, wake.port);
+            const rings = newRings();
+            shared.attach(4, rings, wake.port);
             const inbound = new SharedByteRing(RING_CAPACITY, rings.inbound);
             client.bind(0, '127.0.0.1');
             await once(client, 'listening');

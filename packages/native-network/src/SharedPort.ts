@@ -31,14 +31,12 @@ export interface SharedPortStats {
 /** How many counters `jsp_mux_stats` writes (`JSP_MUX_STAT_COUNT`). */
 const STAT_COUNT = 9;
 
-/** The rings one address family's RakNet datagrams cross in, and where to wake the native side. */
+/** The rings one address family's RakNet datagrams cross in. */
 export interface RakNetRings {
     /** Written by the native side, read by RakNet. */
     readonly inbound: SharedArrayBuffer;
     /** Written by RakNet, read by the native side. */
     readonly outbound: SharedArrayBuffer;
-    /** The loopback UDP port RakNet sends a byte to after writing a batch to the outbound ring. */
-    readonly outboundWakePort: number;
 }
 
 /**
@@ -75,29 +73,32 @@ export class SharedPort {
     }
 
     /**
-     * Gives one address family's RakNet datagrams to a pair of new rings.
+     * Gives one address family's RakNet datagrams to a pair of rings, in the layout of
+     * `SharedByteRing` in `@jsprismarine/raknet`.
      * @param family - 4 or 6.
-     * @param capacity - Each ring's byte capacity, a power of two.
-     * @param wakePort - The loopback UDP port the consumer listens on for inbound wakes.
-     * @returns The rings, to hand to RakNet.
+     * @param rings - The inbound ring, which this library writes, and the outbound one, which it reads.
+     * @param wakePort - The loopback UDP port RakNet listens on for inbound wakes.
+     * @returns The loopback UDP port RakNet sends a byte to after writing a batch to the outbound ring.
+     * @throws {Error} When the memory is not a ring of a power-of-two capacity.
      */
-    public attach(family: 4 | 6, capacity: number, wakePort: number): RakNetRings {
-        const inbound = new SharedArrayBuffer(RING_CONTROL_BYTES + capacity);
-        const outbound = new SharedArrayBuffer(RING_CONTROL_BYTES + capacity);
+    public attach(
+        family: 4 | 6,
+        rings: { inbound: SharedArrayBuffer; outbound: SharedArrayBuffer },
+        wakePort: number
+    ): number {
         const result = this.network.symbols.jsp_mux_attach(
             this.handle,
             family,
-            this.network.pointerOf(inbound),
-            inbound.byteLength,
-            this.network.pointerOf(outbound),
-            outbound.byteLength,
+            this.network.pointerOf(rings.inbound),
+            rings.inbound.byteLength,
+            this.network.pointerOf(rings.outbound),
+            rings.outbound.byteLength,
             wakePort
         );
         if (result < 0) throw new Error(`Attaching RakNet's IPv${family} rings failed (error ${result})`);
         // Held here as well, so the memory outlives every native write to it.
-        const rings = { inbound, outbound, outboundWakePort: result };
         this.attached.set(family, rings);
-        return rings;
+        return result;
     }
 
     /**
