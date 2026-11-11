@@ -48,6 +48,9 @@ const overLink = async (values: Values, command: () => Promise<number>): Promise
     const latencyMs = optionalParsed(values, 'latency', parseDuration);
     const loss = optionalParsed(values, 'loss', (value) => parsePercent(value, '--loss'));
     if (latencyMs === undefined && loss === undefined) return command();
+    if (network(values) === 'nethernet') {
+        throw new UsageError('--latency and --loss work over RakNet only for now');
+    }
 
     const link = conditionLink({ latencyMs, loss });
     try {

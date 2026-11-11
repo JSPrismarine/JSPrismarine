@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { SignalStructure, SignalType } from 'nethernet';
+import { SignalStructure, SignalType } from './protocol/Signal';
 import { HttpSignaling } from './HttpSignaling';
 import type { NetherNetOfferAnswerer } from './HttpSignaling';
 

@@ -13,15 +13,9 @@ allowBuilds:
 
 minimumReleaseAge: 0
 
-# nethernet 1.1.2 pins werift 0.24.4, whose SCTP stops sending for good after a
-# retransmission timeout that follows a gap ack (werift #806, fixed in 0.27.0) and
-# slows down quadratically on large send bursts (fixed in 0.26.0). Both hit
-# NetherNet players on a long or lossy path.
-#
 # @spyglassmc/core 0.4.57 depends on decompress 4.2.1, which is unmaintained and
 # lets a crafted archive escape the output directory through links, sibling-prefix
 # paths and setuid modes. @xhmikosr/decompress is the maintained fork with the
 # same default export and options, fixed in 11.1.3.
 overrides:
   decompress: npm:@xhmikosr/decompress@11.1.4
-  werift: 0.27.0

@@ -104,11 +104,11 @@ describe('logging into a real server', () => {
         expect(players.map((player: any) => player.getName())).toContain('NetherNetTester');
     }, 40_000);
 
-    it('spawns over NetherNet across a long, lossy path', async () => {
-        // Werift 0.24.4 could stop sending for good once a retransmission timer fired after a gap
-        // ack, which loss on a long path makes likely, and the client then waited on a link that
-        // still looked up. Both ends run in this process, so each datagram is held and each may
-        // be dropped on its way out of either.
+    // libdatachannel sends from its own sockets, which `conditionLink` does not reach; the client
+    // relay of docs/plans/webrtc-backend.md slice 7 puts Node.js sockets back in the path.
+    it.skip('spawns over NetherNet across a long, lossy path', async () => {
+        // A lossy path makes retransmission timers fire after gap acks, which once stopped a
+        // WebRTC stack from sending for good. Each datagram is held and each may be dropped.
         const random = new Random(90);
         const link = conditionLink({ latencyMs: 50, loss: 0.02, random: () => random.next() });
         try {

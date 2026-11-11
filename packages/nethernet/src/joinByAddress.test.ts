@@ -1,7 +1,7 @@
 import http from 'node:http';
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { SignalStructure, SignalType } from 'nethernet';
+import { SignalStructure, SignalType } from './protocol/Signal';
 import { HttpSignaling } from './HttpSignaling';
 import { exchangeOffer, JoinRefusedError, probeJoin } from './joinByAddress';
 import { joinStatusJson } from './NetherNetStatus';

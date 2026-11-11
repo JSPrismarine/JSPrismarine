@@ -7,7 +7,7 @@ import { describe, expect, it } from 'vitest';
 import { BEDROCK_CURVE } from './es384';
 import { NetherNetIdentity, verifySelfSignedIdentity } from './NetherNetIdentity';
 
-/** A description in the shape werift writes, trimmed to what the identity touches. */
+/** A description in the shape a WebRTC stack writes, trimmed to what the identity touches. */
 const DESCRIPTION = [
     'v=0',
     'o=- 1 0 IN IP4 0.0.0.0',

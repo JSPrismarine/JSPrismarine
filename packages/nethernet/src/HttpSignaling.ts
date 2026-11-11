@@ -1,11 +1,12 @@
-import { randomBytes } from 'node:crypto';
 import http from 'node:http';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { AddressInfo } from 'node:net';
 
-import { SignalStructure, SignalType } from 'nethernet';
+import { SignalStructure, SignalType } from './protocol/Signal';
+import { randomUint64 } from './randomUint64';
 import { withoutIdentity } from './sdp';
 import { describeCandidates, tracePeerConnection } from './tracePeerConnection';
+import type { DriverPeer } from './WebRtcDriver';
 
 /** The largest SDP offer accepted. A real offer with every candidate is a few kilobytes. */
 const MAX_OFFER_BYTES = 64 * 1024;
@@ -16,10 +17,10 @@ const DEFAULT_ANSWER_TIMEOUT_MS = 15_000;
 /** The largest NetherNet network ID, an unsigned 64-bit integer. */
 const MAX_NETWORK_ID = (1n << 64n) - 1n;
 
-/** The part of `nethernet`'s `Server` that turns an offer into an answer. */
+/** The part of {@link NetherNetServer} that turns an offer into an answer. */
 export interface NetherNetOfferAnswerer {
     /** Every peer by connection ID, which a new offer's ID must not collide with. */
-    readonly connections: ReadonlyMap<bigint, { close(reason?: string): void; readonly rtcConnection?: unknown }>;
+    readonly connections: ReadonlyMap<bigint, { close(reason?: string): void; readonly peer?: DriverPeer }>;
     /** Negotiates a peer for the offer, answering through `respond`. */
     handleOffer(signal: SignalStructure, respond: (signal: SignalStructure) => void): Promise<void>;
 }
@@ -61,16 +62,13 @@ class RefusedRequest extends Error {
     }
 }
 
-/** A random unsigned 64-bit integer. */
-const randomUint64 = (): bigint => randomBytes(8).readBigUInt64BE();
-
 /**
  * NetherNet's HTTP signaling, which a client joining by address uses: it probes `GET /v1/join`
  * on the game port's TCP side, then posts its complete SDP offer to `POST /v1/join/{networkId}`
  * and reads the complete answer from the response. One request per attempt; trickle ICE is
  * off, so each side's candidates travel inside its description.
  *
- * The offer goes to the same `nethernet` `Server` LAN signaling feeds, so a peer negotiated
+ * The offer goes to the same {@link NetherNetServer} LAN signaling feeds, so a peer negotiated
  * here reaches the server through `NetherNetTransport` like any other. HTTP carries no
  * connection ID, so this picks one for each offer, unused by any live peer.
  */
@@ -181,9 +179,12 @@ export class HttpSignaling {
             const respond = (signal: SignalStructure) => {
                 if (signal.type === SignalType.ConnectResponse) {
                     // From here the join is WebRTC's: report each state change until it settles.
-                    tracePeerConnection(answerer.connections.get(connectionId)?.rtcConnection, (line) =>
-                        this.options.logger.info(`NetherNet connection ${connectionId}: ${line}`)
-                    );
+                    const peer = answerer.connections.get(connectionId)?.peer;
+                    if (peer !== undefined) {
+                        tracePeerConnection(peer, (line) =>
+                            this.options.logger.info(`NetherNet connection ${connectionId}: ${line}`)
+                        );
+                    }
                     settle({ answer: signal.data, connectionId });
                 } else if (signal.type === SignalType.ConnectError) settle({ error: signal.data });
             };

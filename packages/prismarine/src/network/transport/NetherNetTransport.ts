@@ -1,30 +1,25 @@
+import { MAX_MESSAGE_BYTES } from '@jsprismarine/nethernet';
+import type { Connection } from '@jsprismarine/nethernet';
 import { BATCH_PACKET_ID } from '@jsprismarine/protocol';
 import { InetAddress } from '@jsprismarine/raknet';
-import { isRecord } from '../../utils/isRecord';
 import type { ConnectionId, ConnectionIds } from './ConnectionId';
 import { KeyedTransport } from './KeyedTransport';
 import type { TransportCapabilities, TransportConnection } from './Transport';
 
 /**
- * The largest message `nethernet` can send: it splits a message into fragments of 10,000 bytes
- * and counts the ones still to come in a single byte, so 256 fragments at most.
- */
-const NETHERNET_MAX_MESSAGE_SIZE = 256 * 10_000;
-
-/**
  * What NetherNet does on its own. DTLS encrypts the data channel, so the session skips the
- * Minecraft encryption handshake, and the reliable channel is ordered and fragments for us.
+ * Minecraft encryption handshake, and the reliable channel is ordered and segments for us.
  * A frame carries the `0xFE` byte the wire leaves out, so it may be one byte longer than a
  * message.
  */
 const NETHERNET_CAPABILITIES: TransportCapabilities = {
     encrypted: true,
     reliableOrdered: true,
-    maxFrameSize: NETHERNET_MAX_MESSAGE_SIZE + 1
+    maxFrameSize: MAX_MESSAGE_BYTES + 1
 };
 
 /**
- * How many messages a peer may send before `nethernet` says it opened. A client sends its first
+ * How many messages a peer may send before the server says it opened. A client sends its first
  * packet as soon as its reliable channel opens, which can be before its other channel arrives;
  * a handful covers that, and the cap keeps a peer that never opens from holding memory.
  */
@@ -42,25 +37,14 @@ export const NETHERNET_DRAIN_TIMEOUT_MS = 3_000;
 /** How often a hang-up looks at whether the client has acknowledged everything. */
 const NETHERNET_DRAIN_POLL_MS = 10;
 
-/** The part of a `nethernet` connection the transport uses. */
-export interface NetherNetPeer {
-    /** The connection ID the client chose, which is how `nethernet` keys its connections. */
-    readonly address: bigint;
-    /** The WebRTC peer connection underneath, whose chosen ICE pair names the client's address. */
-    readonly rtcConnection?: unknown;
-    /** The reliable data channel, whose send buffer says whether the client has everything. */
-    readonly reliable?: unknown;
-    /** Whether the peer has closed; `nethernet` throws on a send after that. */
-    readonly closed: boolean;
-    /** Sends one message on the reliable data channel, fragmenting it as needed. */
-    send(data: Buffer): number;
-    /** Closes the peer connection. */
-    close(reason?: string): void;
-}
+/** The part of a NetherNet {@link Connection} the transport uses, so a test can stand one in. */
+export type NetherNetPeer = Pick<Connection, 'id' | 'closed' | 'send' | 'close' | 'hasUndeliveredData'> & {
+    readonly peer: Pick<Connection['peer'], 'remoteAddress'>;
+};
 
 /**
- * The `nethernet` `Server` surface {@link NetherNetTransport} consumes, narrowed so a test can
- * stand in a plain event emitter. `nethernet`'s `Server` satisfies it structurally.
+ * The {@link NetherNetServer} surface {@link NetherNetTransport} consumes, narrowed so a test can
+ * stand in a plain event emitter.
  */
 export interface NetherNetTransportSource {
     on(event: 'openConnection', listener: (connection: NetherNetPeer) => void): unknown;
@@ -75,62 +59,16 @@ export interface NetherNetTransportLog {
     warn(message: string): void;
 }
 
-/**
- * Says where a NetherNet client connected from. Signaling knows (the HTTP request or LAN
- * datagram that carried the offer came from somewhere), and so does the ICE pair WebRTC chose.
- */
+/** Says where a NetherNet client connected from. */
 export type NetherNetPeerAddress = (peer: NetherNetPeer) => InetAddress | undefined;
-
-/**
- * The address and port in an ICE candidate line, which reads
- * `candidate:<foundation> <component> <protocol> <priority> <address> <port> typ <type> …`.
- * @param candidate - The candidate line, with or without the `a=` SDP prefix.
- * @returns The address, or undefined for a line that does not have one where the format puts it.
- */
-export const candidateAddress = (candidate: string): InetAddress | undefined => {
-    const fields = candidate.replace(/^a=/, '').split(' ');
-    const address = fields[4];
-    const port = Number(fields[5]);
-    if (!address || !Number.isInteger(port) || port < 1 || port > 65_535) return undefined;
-    return new InetAddress(address, port);
-};
 
 /**
  * Where the client is, read from the ICE candidate pair the peer connection chose. That is the
  * address the client's traffic really comes from, whichever signaling channel introduced it.
- * Werift, `nethernet`'s default WebRTC backend, exposes the pair on its ICE transport; with any
- * other backend this finds nothing and the caller falls back.
  */
 export const selectedCandidateAddress: NetherNetPeerAddress = (peer) => {
-    const rtc = peer.rtcConnection;
-    if (!isRecord(rtc) || !Array.isArray(rtc.iceTransports)) return undefined;
-    const ice: unknown = rtc.iceTransports[0];
-    if (!isRecord(ice) || typeof ice.getSelectedCandidatePair !== 'function') return undefined;
-    const pair: unknown = ice.getSelectedCandidatePair();
-    if (!isRecord(pair) || !isRecord(pair.remote) || typeof pair.remote.candidate !== 'string') return undefined;
-    return candidateAddress(pair.remote.candidate);
-};
-
-/**
- * Whether the reliable channel holds data the client has not acknowledged. Werift, `nethernet`'s
- * default backend, counts it in three places: the channel's `bufferedAmount` (messages not yet
- * handed to SCTP), and the association's `outboundQueue` (chunks not yet sent) and `flightSize`
- * (bytes sent but not acknowledged).
- * @returns Undefined when the backend exposes none of it, so nothing can be waited for.
- */
-export const hasUndeliveredData = (peer: NetherNetPeer): boolean | undefined => {
-    const channel = peer.reliable;
-    if (!isRecord(channel) || typeof channel.bufferedAmount !== 'number') return undefined;
-    if (channel.bufferedAmount > 0) return true;
-
-    const transport = channel.sctp;
-    const association = isRecord(transport) ? transport.sctp : undefined;
-    if (!isRecord(association)) return false;
-    const inFlight = typeof association.flightSize === 'number' && association.flightSize > 0;
-    // An array before werift 0.26, a `FifoQueue` with a `length` since.
-    const queue = association.outboundQueue;
-    const queued = (Array.isArray(queue) || isRecord(queue)) && typeof queue.length === 'number' && queue.length > 0;
-    return inFlight || queued;
+    const remote = peer.peer.remoteAddress();
+    return remote === undefined ? undefined : new InetAddress(remote.address, remote.port);
 };
 
 /**
@@ -139,7 +77,7 @@ export const hasUndeliveredData = (peer: NetherNetPeer): boolean | undefined => 
  */
 const drain = async (peer: NetherNetPeer): Promise<void> => {
     for (let waited = 0; waited < NETHERNET_DRAIN_TIMEOUT_MS; waited += NETHERNET_DRAIN_POLL_MS) {
-        if (peer.closed || hasUndeliveredData(peer) !== true) return;
+        if (peer.closed || peer.hasUndeliveredData() !== true) return;
         await new Promise((resolve) => setTimeout(resolve, NETHERNET_DRAIN_POLL_MS));
     }
 };
@@ -175,13 +113,10 @@ export class NetherNetTransportConnection implements TransportConnection {
     }
 
     /**
-     * Closes the peer connection once the client has what was sent before; `nethernet` then
-     * reports it closed with this reason.
-     *
-     * `nethernet` closes the data channels and the peer connection at once, and werift throws
-     * away what SCTP has not delivered. A kick is a `DisconnectPacket` followed by this call, so
-     * closing straight away lost the packet, and the client showed `NetherNetDataChannelClosed`
-     * (`ClientDisconnection-122`) where it should have shown the kick's reason.
+     * Closes the peer connection once the client has what was sent before; the server then
+     * reports it closed with this reason. A kick is a `DisconnectPacket` followed by this call,
+     * and closing before the client had it showed `NetherNetDataChannelClosed`
+     * (`ClientDisconnection-122`) where the kick's reason belonged.
      */
     public async close(reason?: string): Promise<void> {
         await drain(this.peer);
@@ -190,19 +125,19 @@ export class NetherNetTransportConnection implements TransportConnection {
 }
 
 /**
- * `nethernet`'s `Server` as a {@link Transport}. A message from a client becomes a frame with
+ * A {@link NetherNetServer} as a {@link Transport}. A message from a client becomes a frame with
  * the `0xFE` batch id put back in front, so the layers above read one format from every
  * transport.
  *
  * How the offer reached the server (LAN discovery on UDP 7551, or HTTP signaling on the game
- * port) is not this class's business: both feed the same `nethernet` `Server`.
+ * port) is not this class's business: both feed the same NetherNet server.
  */
 export default class NetherNetTransport extends KeyedTransport<NetherNetTransportConnection, bigint> {
-    /** Messages from peers `nethernet` has not yet said are open, in arrival order. */
+    /** Messages from peers the server has not yet said are open, in arrival order. */
     private readonly early = new Map<bigint, Buffer[]>();
 
     /**
-     * @param source - The `nethernet` server whose connections this carries.
+     * @param source - The NetherNet server whose connections this carries.
      * @param ids - The connection ID allocator every transport of the server shares.
      * @param peerAddress - Where a newly opened peer connected from, when anything knows.
      */
@@ -213,16 +148,16 @@ export default class NetherNetTransport extends KeyedTransport<NetherNetTranspor
         private readonly log: NetherNetTransportLog = { info: () => {}, warn: () => {} }
     ) {
         super(ids);
-        // `nethernet` keys a peer on the connection ID the client picked. That ID stays in here:
-        // the server knows the connection by the one `accept` allocates.
+        // The NetherNet server keys a peer on the connection ID the client picked. That ID stays
+        // in here: the server knows the connection by the one `accept` allocates.
         source.on('openConnection', (peer) => {
             const address = this.peerAddress(peer) ?? UNKNOWN_ADDRESS;
-            const accepted = this.accept(peer.address, (id) => new NetherNetTransportConnection(id, peer, address));
-            const early = this.early.get(peer.address) ?? [];
-            this.early.delete(peer.address);
+            const accepted = this.accept(peer.id, (id) => new NetherNetTransportConnection(id, peer, address));
+            const early = this.early.get(peer.id) ?? [];
+            this.early.delete(peer.id);
             if (accepted === undefined) return;
-            this.log.info(`NetherNet peer ${peer.address} opened from ${address} as connection ${accepted.id}`);
-            for (const frame of early) this.receive(peer.address, frame);
+            this.log.info(`NetherNet peer ${peer.id} opened from ${address} as connection ${accepted.id}`);
+            for (const frame of early) this.receive(peer.id, frame);
         });
         // A peer that closes before it opened was never accepted, so `forget` finds nothing.
         source.on('closeConnection', (connectionId, reason) => {
@@ -241,7 +176,7 @@ export default class NetherNetTransport extends KeyedTransport<NetherNetTranspor
                 this.receive(connectionId, frame);
                 return;
             }
-            // `nethernet` delivers messages from a peer it has not yet said is open. Dropping
+            // The server delivers messages from a peer it has not yet said is open. Dropping
             // them loses a client's first packet, and the client then waits for a reply forever.
             const early = this.early.get(connectionId) ?? [];
             if (early.length >= EARLY_MESSAGE_LIMIT) return;
@@ -250,7 +185,7 @@ export default class NetherNetTransport extends KeyedTransport<NetherNetTranspor
         });
     }
 
-    /** Closes the `nethernet` server, which closes every peer connection with it. */
+    /** Closes the NetherNet server, which closes every peer connection with it. */
     public close(): void {
         this.source.close('Server closed');
     }
