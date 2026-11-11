@@ -1,27 +1,32 @@
 import {
     ClientToServerHandshakePacket,
+    DisconnectPacket,
     LoginPacket,
-    PacketIdentifier,
+    NetworkSettingsPacket,
     PlayStatus,
+    PlayStatusPacket,
     RequestChunkRadiusPacket,
     RequestNetworkSettingsPacket,
     ResourcePackClientResponsePacket,
+    ResourcePackStackPacket,
     ResourcePackStatus,
-    SetLocalPlayerAsInitializedPacket
+    ResourcePacksInfoPacket,
+    ServerToClientHandshakePacket,
+    SetLocalPlayerAsInitializedPacket,
+    StartGamePacket
 } from '@jsprismarine/protocol';
 import type { IAuthProvider } from '@jsprismarine/auth';
-import type { Logger } from '@jsprismarine/logger';
 import type {
     Disconnect,
+    NetworkPacket,
     NetworkSettings,
     PlayStatusData,
     ServerToClientHandshake,
     StartGame
 } from '@jsprismarine/protocol';
 import { deriveEncryptionKey, readHandshake } from './Handshake';
+import type { ClientContext } from '../net/ClientHandler';
 import type ClientSession from '../net/ClientSession';
-import { isPacket } from '../net/ClientPacketRegistry';
-import type { DecodedPacket } from '../net/ClientPacketRegistry';
 
 /** How far a login has got. Every step is driven by a packet, never by a timer. */
 export enum LoginStage {
@@ -57,11 +62,12 @@ const DEFAULT_VIEW_DISTANCE = 8;
 /**
  * The join, from the first packet to standing in the world.
  *
- * Written as one object with one promise rather than as handlers scattered across the
- * client, because the sequence is genuinely a sequence: each step is only valid after the
- * one before it, and every one of the four ways it can fail - refused, kicked, timed out,
- * wrong version - has to end up at the same place. A caller gets `await login()` and either
- * a spawned player or an error that says why.
+ * Written as one object with one promise, whose steps are packet handlers it registers on the
+ * session for the `login` phase while it runs, because the sequence is genuinely a sequence:
+ * each step is only valid after the one before it, and every one of the four ways it can fail -
+ * refused, kicked, timed out, wrong version - has to end up at the same place. A caller gets
+ * `await login()` and either a spawned player or an error that says why. Once the server has
+ * spawned the player, the sequence moves the session to the `play` phase.
  *
  * The steps, and who speaks:
  *
@@ -88,10 +94,17 @@ export default class LoginSequence {
     private reject!: (error: Error) => void;
     private timer: NodeJS.Timeout | undefined;
 
+    /** Removes each step's handler from the session, once the login settles. */
+    private readonly unregister: (() => void)[] = [];
+
+    /**
+     * @param session - The session to log in on. The steps log through its logger.
+     * @param auth - Signs the login.
+     * @param options - What the login reports to the server.
+     */
     public constructor(
         private readonly session: ClientSession,
         private readonly auth: IAuthProvider,
-        private readonly logger: Logger,
         private readonly options: LoginSequenceOptions
     ) {}
 
@@ -111,7 +124,21 @@ export default class LoginSequence {
         }, this.options.timeoutMs ?? DEFAULT_TIMEOUT_MS);
         this.timer.unref();
 
-        this.session.on('packet', this.onPacket);
+        this.unregister.push(
+            this.step(NetworkSettingsPacket, (settings, context) => this.onNetworkSettings(settings, context)),
+            this.step(ServerToClientHandshakePacket, (handshake, context) =>
+                this.onServerToClientHandshake(handshake, context)
+            ),
+            this.step(PlayStatusPacket, (status, context) => this.onPlayStatus(status, context)),
+            this.step(StartGamePacket, (startGame, context) => this.onStartGame(startGame, context)),
+            this.step(DisconnectPacket, (disconnect) => this.onDisconnect(disconnect)),
+            this.step(ResourcePacksInfoPacket, (_info, context) =>
+                this.sendResourcePackResponse(ResourcePackStatus.HaveAllPacks, context)
+            ),
+            this.step(ResourcePackStackPacket, (_stack, context) =>
+                this.sendResourcePackResponse(ResourcePackStatus.Completed, context)
+            )
+        );
 
         await this.session.sendImmediate(
             new RequestNetworkSettingsPacket({ protocolVersion: this.options.protocolVersion })
@@ -125,30 +152,26 @@ export default class LoginSequence {
         this.fail(new Error(`Disconnected during login: ${reason}`));
     }
 
-    private readonly onPacket = (packet: DecodedPacket): void => {
-        if (this.settled) return;
-
-        void this.session.track(this.dispatch(packet)).catch((error: unknown) => {
-            this.fail(error instanceof Error ? error : new Error(String(error)));
+    /**
+     * Registers one step as the handler of its packet in the `login` phase. A step that throws
+     * fails the login, and one whose packet arrives after the login settled does nothing.
+     * @returns A function that removes the handler again.
+     */
+    private step<T>(
+        packet: new () => NetworkPacket<T>,
+        respond: (data: T, context: ClientContext) => void | Promise<void>
+    ): () => void {
+        return this.session.registerHandler(packet, {
+            phases: ['login'],
+            handle: async (data, context) => {
+                if (this.settled) return;
+                try {
+                    await respond(data, context);
+                } catch (error: unknown) {
+                    this.fail(error instanceof Error ? error : new Error(String(error)));
+                }
+            }
         });
-    };
-
-    private async dispatch(packet: DecodedPacket): Promise<void> {
-        if (isPacket(packet, PacketIdentifier.NETWORK_SETTINGS)) {
-            await this.onNetworkSettings(packet.data);
-        } else if (isPacket(packet, PacketIdentifier.SERVER_TO_CLIENT_HANDSHAKE)) {
-            await this.onServerToClientHandshake(packet.data);
-        } else if (isPacket(packet, PacketIdentifier.PLAY_STATUS)) {
-            await this.onPlayStatus(packet.data);
-        } else if (isPacket(packet, PacketIdentifier.START_GAME)) {
-            await this.onStartGame(packet.data);
-        } else if (isPacket(packet, PacketIdentifier.DISCONNECT)) {
-            this.onDisconnect(packet.data);
-        } else if (packet.id === PacketIdentifier.RESOURCE_PACKS_INFO) {
-            await this.sendResourcePackResponse(ResourcePackStatus.HaveAllPacks);
-        } else if (packet.id === PacketIdentifier.RESOURCE_PACK_STACK) {
-            await this.sendResourcePackResponse(ResourcePackStatus.Completed);
-        }
     }
 
     /**
@@ -156,8 +179,8 @@ export default class LoginSequence {
      * trick: `NetworkSettings` itself arrived uncompressed, and the very next packet in
      * either direction carries an algorithm prefix.
      */
-    private async onNetworkSettings(settings: NetworkSettings): Promise<void> {
-        this.session.enableCompression({
+    private async onNetworkSettings(settings: NetworkSettings, { session }: ClientContext): Promise<void> {
+        session.enableCompression({
             algorithm: settings.compressionAlgorithm,
             threshold: settings.compressionThreshold
         });
@@ -169,7 +192,7 @@ export default class LoginSequence {
             protocolVersion: this.options.protocolVersion
         });
 
-        await this.session.sendImmediate(
+        await session.sendImmediate(
             new LoginPacket({
                 protocolVersion: this.options.protocolVersion,
                 chainData: credentials.chainData,
@@ -188,14 +211,17 @@ export default class LoginSequence {
      * A server may skip the handshake entirely - nothing here requires it - in which case the
      * login carries on unencrypted and this is never called.
      */
-    private async onServerToClientHandshake(handshake: ServerToClientHandshake): Promise<void> {
+    private async onServerToClientHandshake(
+        handshake: ServerToClientHandshake,
+        { session, log }: ClientContext
+    ): Promise<void> {
         const { publicKeyDer, salt } = readHandshake(handshake.jwt);
         const privateKey = await this.auth.getIdentityPrivateKey();
 
-        this.session.enableEncryption(deriveEncryptionKey(privateKey, publicKeyDer, salt));
-        this.logger.debug('Client/LoginSequence: encryption enabled');
+        session.enableEncryption(deriveEncryptionKey(privateKey, publicKeyDer, salt));
+        log.debug('Client/LoginSequence: encryption enabled');
 
-        await this.session.sendImmediate(new ClientToServerHandshakePacket({}));
+        await session.sendImmediate(new ClientToServerHandshakePacket({}));
     }
 
     /**
@@ -206,22 +232,22 @@ export default class LoginSequence {
      * `AWAITING_SPAWN` while chunks pile up around it, which reads as a hung login rather
      * than a missing packet.
      */
-    private async onStartGame(startGame: StartGame): Promise<void> {
+    private async onStartGame(startGame: StartGame, { session }: ClientContext): Promise<void> {
         this.startGame = startGame;
 
-        await this.session.sendImmediate(
+        await session.sendImmediate(
             new RequestChunkRadiusPacket({ radius: DEFAULT_VIEW_DISTANCE, maxRadius: DEFAULT_VIEW_DISTANCE })
         );
     }
 
-    private async onPlayStatus(status: PlayStatusData): Promise<void> {
+    private async onPlayStatus(status: PlayStatusData, context: ClientContext): Promise<void> {
         switch (status.status) {
             case PlayStatus.LoginSuccess:
                 this.stage = LoginStage.NEGOTIATING_RESOURCE_PACKS;
                 break;
 
             case PlayStatus.PlayerSpawn:
-                await this.onPlayerSpawn();
+                await this.onPlayerSpawn(context);
                 break;
 
             // The refusals. Each is terminal and each is worth its own words: "login failed"
@@ -241,17 +267,17 @@ export default class LoginSequence {
         }
     }
 
-    private async sendResourcePackResponse(status: ResourcePackStatus): Promise<void> {
+    private async sendResourcePackResponse(status: ResourcePackStatus, { session }: ClientContext): Promise<void> {
         this.stage =
             status === ResourcePackStatus.Completed ? LoginStage.AWAITING_SPAWN : LoginStage.NEGOTIATING_RESOURCE_PACKS;
 
         // No packs are ever downloaded: this client ships its own and does not accept a
         // server's. Saying "I have them all" is what a client with the packs already
         // cached says, and it is true in the only sense the server checks.
-        await this.session.sendImmediate(new ResourcePackClientResponsePacket({ status, packIds: [] }));
+        await session.sendImmediate(new ResourcePackClientResponsePacket({ status, packIds: [] }));
     }
 
-    private async onPlayerSpawn(): Promise<void> {
+    private async onPlayerSpawn({ session, log }: ClientContext): Promise<void> {
         if (this.settled) return;
 
         if (this.startGame === null) {
@@ -262,13 +288,14 @@ export default class LoginSequence {
         // Answered with the runtime id the server gave us rather than a placeholder.
         // JSPrismarine ignores the field, but a real server does not, and a client that
         // only works against one server is not the point.
-        await this.session.sendImmediate(
+        await session.sendImmediate(
             new SetLocalPlayerAsInitializedPacket({ runtimeEntityId: this.startGame.runtimeEntityId })
         );
 
         this.stage = LoginStage.SPAWNED;
+        if (!this.settled) this.session.setPhase('play');
         this.settle(() => this.resolve({ startGame: this.startGame! }));
-        this.logger.info(`Joined as runtime entity §b${this.startGame.runtimeEntityId}§r`);
+        log.info(`Joined as runtime entity §b${this.startGame.runtimeEntityId}§r`);
     }
 
     private onDisconnect(disconnect: Disconnect): void {
@@ -285,7 +312,7 @@ export default class LoginSequence {
 
         this.settled = true;
         clearTimeout(this.timer);
-        this.session.off('packet', this.onPacket);
+        for (const unregister of this.unregister.splice(0)) unregister();
         finish();
     }
 }

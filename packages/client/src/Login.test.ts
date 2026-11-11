@@ -89,6 +89,8 @@ describe('logging into a real server', () => {
         expect(startGame.entityId).toBeGreaterThan(0n);
         expect(Number.isFinite(startGame.position.y)).toBe(true);
         expect(client.isConnected()).toBe(true);
+        // The login answered the spawn and handed the session to the game's handlers.
+        expect(client.getSession().getPhase()).toBe('play');
     }, 40_000);
 
     it('completes the handshake and spawns over NetherNet, joined by address', async () => {
@@ -308,5 +310,6 @@ describe('logging into a real server', () => {
         });
 
         await expect(client.connect()).rejects.toThrow(/out of date|refused|Disconnected/i);
+        expect(client.getSession().getPhase()).toBe('login');
     }, 40_000);
 });

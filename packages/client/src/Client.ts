@@ -203,7 +203,7 @@ export default class Client extends EventEmitter {
         await this.transport.connect();
         this.connected = true;
 
-        this.login = new LoginSequence(this.session, this.auth, this.logger, {
+        this.login = new LoginSequence(this.session, this.auth, {
             protocolVersion: this.protocolVersion,
             serverAddress: `${this.options.host}:${this.options.port ?? 19132}`,
             timeoutMs: this.options.loginTimeoutMs
