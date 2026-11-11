@@ -21,7 +21,8 @@ import { AttributeIds, Attributes } from '@jsprismarine/protocol/wire/structures
 import ContainerEntry from '../../inventory/ContainerEntry';
 import HumanInventory from '../../inventory/HumanInventory';
 import { Item } from '../../item/Item';
-import type Player from '../../Player';
+import type { StorePlayer } from '../../entity/storePlayer';
+import { stubPlayerPort } from '../../testing/playerPort.test.helper';
 import type Server from '../../Server';
 import { enchantingRows, enchantmentSeedOf } from '../../enchantment/enchantingTable';
 import { stub } from '../../testing/stub.test.helper';
@@ -138,7 +139,7 @@ const scene = (open: OpenBlockContainer) => {
     });
 
     const runtimeId = nextRuntimeId++;
-    const player: Player = stub<Player>({
+    const player = stubPlayerPort({
         getType: () => 'minecraft:player',
         // Its own name, because per-player services are keyed by the name of a player with no XUID.
         getName: () => `tester-${runtimeId}`,
@@ -162,11 +163,15 @@ const scene = (open: OpenBlockContainer) => {
         isFlying: () => false,
         getFood: () => 20,
         getSaturation: () => 5,
-        getNetworkSession: () => session
+        getNetworkSession: () => session,
+        // What the request's steps move.
+        getStorePlayer: () =>
+            stub<StorePlayer>({ getInventory: () => inventory, getCraftingInput: () => new CraftingInput() })
     });
 
     const session: PlayerSession = stub<PlayerSession>({
         getPlayer: () => player,
+        getWorld: () => stub<World>({ getViewers: () => [] }),
         getOpenBlockContainer: () => open,
         send: async (packet: NetworkPacket) => void sent.push(packet)
     });
