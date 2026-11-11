@@ -61,6 +61,11 @@ export interface PlayerSystemsPorts {
     content(): ServerContent;
     /** The level, for its game rules. */
     readonly level: ContentLevelFacts;
+    /**
+     * The store's tick (`EntityStore.tick`), which a meal is counted out on: it only goes forward,
+     * where the level clock moves back under `/time set`.
+     */
+    tick(): number;
     /** The block at a position, or undefined when its chunk is not loaded. */
     blockAt(at: ContentPosition): ContentBlock | undefined;
     /** The runtime id at a position, or undefined when its chunk is not loaded. */
@@ -233,8 +238,8 @@ export class PlayerSystems {
     }
 
     /**
-     * Notes that a store player has started eating or drinking what is in its hand, on the level
-     * clock its meal is counted out on.
+     * Notes that a store player has started eating or drinking what is in its hand, on the store's
+     * tick its meal is counted out on.
      *
      * @param entity - The player.
      * @param ticks - How long the meal takes.
@@ -243,7 +248,7 @@ export class PlayerSystems {
     public beginMeal(entity: DataEntity, ticks: number): boolean {
         const item = this.ports.heldItem(entity.id);
         if (item === undefined) return false;
-        beginMeal(this.componentsOf(entity), this.ports.level.gameTime(), ticks, item);
+        beginMeal(this.componentsOf(entity), this.ports.tick(), ticks, item);
         return true;
     }
 
@@ -333,7 +338,7 @@ export class PlayerSystems {
 
     /** The meal in progress, finished once its time is up if the same item is still in hand. */
     private tickMeal(entity: DataEntity, survival: SurvivalPlayer): void {
-        const item = dueMeal(survival.components, this.ports.level.gameTime(), this.ports.heldItem(entity.id));
+        const item = dueMeal(survival.components, this.ports.tick(), this.ports.heldItem(entity.id));
         if (item !== undefined) this.ports.finishMeal(entity.id, item);
     }
 

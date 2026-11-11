@@ -231,7 +231,7 @@ describe('a store player', () => {
     });
 
     describe('meals', () => {
-        it('finishes a meal once its time is up with the same item in hand, as plain logged data', () => {
+        it('finishes a meal on the store tick its time is up with the same item in hand, as plain logged data', () => {
             const fixture = storePlayerFixture();
             const { player, components } = standingPlayer(fixture);
             fixture.world.held.set(player.id, 'minecraft:bread');
@@ -239,15 +239,14 @@ describe('a store player', () => {
             const begun = logged(fixture.runtime, () => {
                 expect(fixture.runtime.playerSystems.beginMeal(player, 32)).toBe(true);
             });
-            expect(components.get('consumption.meal')).toEqual({ startedAt: 0, ticks: 32, item: 'minecraft:bread' });
+            // The meal began in the store's first tick. The level clock never moves here.
+            expect(components.get('consumption.meal')).toEqual({ startedAt: 1, ticks: 32, item: 'minecraft:bread' });
             expect(fieldsOf(begun, 'consumption.meal')).toHaveLength(1);
 
-            fixture.world.advance(31);
-            ticks(fixture, 1);
+            ticks(fixture, 31, 2);
             expect(fixture.world.meals).toEqual([]);
 
-            fixture.world.advance(1);
-            const finished = ticks(fixture, 1, 2);
+            const finished = ticks(fixture, 1, 33);
             expect(fixture.world.meals).toEqual([{ playerId: player.id, item: 'minecraft:bread' }]);
             expect(components.get('consumption.meal')).toBeNull();
             expect(fieldsOf(finished, 'consumption.meal')).toHaveLength(1);
@@ -259,7 +258,7 @@ describe('a store player', () => {
             fixture.world.held.set(player.id, 'minecraft:bread');
 
             fixture.runtime.playerSystems.beginMeal(player, 32);
-            fixture.world.advance(10);
+            ticks(fixture, 10);
             fixture.runtime.playerSystems.beginMeal(player, 32);
             expect(components.get('consumption.meal')?.startedAt).toBe(0);
         });
@@ -271,8 +270,7 @@ describe('a store player', () => {
             fixture.runtime.playerSystems.beginMeal(player, 32);
 
             fixture.world.held.set(player.id, 'minecraft:stone');
-            fixture.world.advance(32);
-            ticks(fixture, 1);
+            ticks(fixture, 32);
             expect(fixture.world.meals).toEqual([]);
             expect(components.get('consumption.meal')).toBeNull();
         });

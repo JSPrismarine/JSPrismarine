@@ -694,6 +694,7 @@ export class EntityRuntime implements EntityScene {
             },
             content: () => this.content(),
             level: this.world.level,
+            tick: () => this.store.tick,
             blockAt: (at) => this.world.blocks.get(at),
             runtimeIdAt: (at) => this.world.blocks.runtimeIdAt?.(at),
             levelEvent: (at, event, data) => this.host.levelEvent?.(at, event, data),
