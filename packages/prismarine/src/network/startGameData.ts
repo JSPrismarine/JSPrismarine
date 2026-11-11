@@ -11,8 +11,8 @@ import { writeNetworkNbt } from '@jsprismarine/protocol/payload';
 import { OVERWORLD_STEM_ID } from '@jsprismarine/worldgen';
 
 import type { BlockProperty, GameRule, StartGame } from '@jsprismarine/protocol/packet/StartGamePacket';
-import type Server from '../Server';
 import { BlockStateSchemas } from '../block/state/BlockStateSchema';
+import type { Config } from '../config/Config';
 import { eyePositionAt } from '../entity/playerEyes';
 import type { ShownPlayer } from '../world/ShownPlayer';
 import type { PlayerSpawn } from '../world/SpawnPlacement';
@@ -30,8 +30,10 @@ export interface JoiningPlayer extends Pick<
 
 /** The server-owned state needed to produce a Protocol `StartGame` payload. */
 export interface StartGameDataOptions {
-    /** The server and its selected game settings. */
-    readonly server: Server;
+    /** The server's game settings that `StartGame` reports. */
+    readonly config: Pick<Config, 'getGamemode' | 'getDifficulty' | 'getServerAuthoritativeBlockBreaking'>;
+    /** The server tick the join runs in. */
+    readonly tick: number;
     /** The joining player. */
     readonly player: JoiningPlayer;
     /** The world the player is joining. */
@@ -51,7 +53,8 @@ export interface StartGameDataOptions {
  * packet class and writes this data using the negotiated connection context.
  */
 export const createStartGameData = ({
-    server,
+    config,
+    tick,
     player,
     world,
     worldSpawnPosition,
@@ -78,9 +81,9 @@ export const createStartGameData = ({
         userDefinedBiomeName: 'minecraft:plains',
         dimension: world.getDimension().bedrockId,
         generator: startGameGenerator(world),
-        worldGamemode: getGametypeId(server.getConfig().getGamemode()),
+        worldGamemode: getGametypeId(config.getGamemode()),
         hardcore: false,
-        difficulty: server.getConfig().getDifficulty(),
+        difficulty: config.getDifficulty(),
         spawnPosition: {
             x: worldSpawnPosition.getX(),
             y: worldSpawnPosition.getY(),
@@ -135,8 +138,8 @@ export const createStartGameData = ({
         templateContentIdentity: '00000000-0000-0000-0000-000000000000',
         isTrial: false,
         rewindHistorySize: 0,
-        serverAuthoritativeBlockBreaking: server.getConfig().getServerAuthoritativeBlockBreaking(),
-        currentTick: BigInt(server.getTick()),
+        serverAuthoritativeBlockBreaking: config.getServerAuthoritativeBlockBreaking(),
+        currentTick: BigInt(tick),
         enchantmentSeed: 0,
         blockProperties: [...(blockProperties ?? managerBlockProperties())],
         multiplayerCorrelationId: '',

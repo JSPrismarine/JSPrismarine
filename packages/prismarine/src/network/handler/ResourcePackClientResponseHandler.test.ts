@@ -5,12 +5,10 @@ import { InetAddress } from '@jsprismarine/raknet';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { ConsoleSender } from '../../command/ConsoleSender';
-import type Server from '../../Server';
-import type { Config } from '../../config/Config';
 import type { ServerContent } from '../../content/ServerContent';
 import { buildServerContent } from '../../content/ServerContent';
 import { fixtureBlockPalette, fixtureContentOptions } from '../../content/testing';
-import type { Event } from '../../events/Event';
+import PlayerSpawnEvent from '../../events/player/PlayerSpawnEvent';
 import { fakeLevel, TEST_OVERWORLD_STEM } from '../../testing/level';
 import { identityNamed } from '../../testing/sessionIdentity.test.helper';
 import { stubPlayerPort } from '../../testing/playerPort.test.helper';
@@ -42,6 +40,9 @@ import SetSpawnPositionPacket from '@jsprismarine/protocol/packet/SetSpawnPositi
 import { ResourcePackStatus } from '@jsprismarine/protocol';
 import ItemRegistryPacket from '@jsprismarine/protocol/packet/ItemRegistryPacket';
 import StartGamePacket from '@jsprismarine/protocol/packet/StartGamePacket';
+import { inputContext } from '../../testing/handlerContext.test.helper';
+import type { ContextParts } from '../../testing/handlerContext.test.helper';
+import type { HandlerLog } from './HandlerContext';
 import ResourcePackClientResponseHandler from './ResourcePackClientResponseHandler';
 
 /**
@@ -150,32 +151,46 @@ const harness = ({
     });
 
     const emit = vi.fn(async (_name: string, _event: unknown) => {});
-    const server = stub<Server>({
-        getLogger: () => stub<Logger>({ info: () => {}, warn: () => {}, error: () => {}, debug }),
-        getContent: () => content,
-        getConfig: () =>
-            stub<Config>({
-                getGamemode: () => 'survival',
-                getDifficulty: () => 1,
-                getCraftingRecipeLimit: () => -1,
-                getPacketCompressionLevel: () => 1,
-                getPacketCompressionThreshold: () => 256,
-                getServerAuthoritativeBlockBreaking: () => serverAuthoritativeBreaking
-            }),
-        getTick: () => 100,
-        getConsoleSender: () => stub<ConsoleSender>({ getFormattedUsername: () => 'Console' }),
-        post: ([, event]: [string, Event]) => {
-            if (cancelSpawn) event.preventDefault();
-            return 0;
+    const parts: ContextParts = {
+        log: stub<HandlerLog>({ info: () => {}, warn: () => {}, error: () => {}, debug }),
+        config: {
+            getGamemode: () => 'survival',
+            getDifficulty: () => 1,
+            getCraftingRecipeLimit: () => -1,
+            getPacketCompressionLevel: () => 1,
+            getServerAuthoritativeBlockBreaking: () => serverAuthoritativeBreaking
         },
-        emit
-    });
+        services: {
+            content,
+            console: stub<ConsoleSender>({ getFormattedUsername: () => 'Console' }),
+            events: {
+                post: ([, event]) => {
+                    if (cancelSpawn && event instanceof PlayerSpawnEvent) event.preventDefault();
+                    return 0;
+                },
+                emit
+            }
+        },
+        tick: 100
+    };
 
-    return { sent, packets, emit, kick, debug, server, session };
+    return { sent, packets, emit, kick, debug, parts, session };
 };
 
 const response = (status: ResourcePackStatus, packIds: string[] = []) =>
     new ResourcePackClientResponsePacket({ status, packIds });
+
+/** Applies one response as the input step does: the handler, then its deferred work and sends. */
+const respond = async (
+    handler: ResourcePackClientResponseHandler,
+    packet: ResourcePackClientResponsePacket,
+    parts: ContextParts,
+    session: PlayerSession
+): Promise<void> => {
+    const { context, settled } = inputContext(session, parts);
+    handler.handle(packet, context);
+    await settled();
+};
 
 /**
  * The fixture content with its join payloads already built and cached.
@@ -207,11 +222,12 @@ const fixtureJoinPayloads = () => {
 
 describe('ResourcePackClientResponseHandler', () => {
     it('answers "have all packs" with the pack stack and nothing else', async () => {
-        const { sent, server, session } = harness();
+        const { sent, parts, session } = harness();
 
-        await new ResourcePackClientResponseHandler().handle(
+        await respond(
+            new ResourcePackClientResponseHandler(),
             response(ResourcePackStatus.HaveAllPacks),
-            server,
+            parts,
             session
         );
 
@@ -221,9 +237,9 @@ describe('ResourcePackClientResponseHandler', () => {
     it('sends the join in the order a dedicated server does', async () => {
         // Pinned as a whole rather than as pairwise "before" checks: the point is the order a
         // 1.26.51 client accepts, and a reordering anywhere in it is worth a failing test.
-        const { sent, server, session } = harness();
+        const { sent, parts, session } = harness();
 
-        await new ResourcePackClientResponseHandler().handle(response(ResourcePackStatus.Completed), server, session);
+        await respond(new ResourcePackClientResponseHandler(), response(ResourcePackStatus.Completed), parts, session);
 
         expect(sent).toEqual([
             // Before StartGame: a client that reaches StartGame without it disconnects with
@@ -254,9 +270,9 @@ describe('ResourcePackClientResponseHandler', () => {
     it('floors a fractional world spawn into the block positions of SetSpawnPosition', async () => {
         // Both positions are `BlockPos`, and a ZigZag varint write truncates toward zero, so
         // the spawn at -0.5 would have gone out as block 0.
-        const { packets, server, session } = harness({ spawn: new Vector3(0.5, 64.9, -0.5) });
+        const { packets, parts, session } = harness({ spawn: new Vector3(0.5, 64.9, -0.5) });
 
-        await new ResourcePackClientResponseHandler().handle(response(ResourcePackStatus.Completed), server, session);
+        await respond(new ResourcePackClientResponseHandler(), response(ResourcePackStatus.Completed), parts, session);
 
         const packet = packets.find((sent) => sent instanceof SetSpawnPositionPacket);
         expect(packet).toBeInstanceOf(SetSpawnPositionPacket);
@@ -268,9 +284,9 @@ describe('ResourcePackClientResponseHandler', () => {
     });
 
     it('announces no dimension for a level of vanilla dimensions', async () => {
-        const { sent, server, session } = harness();
+        const { sent, parts, session } = harness();
 
-        await new ResourcePackClientResponseHandler().handle(response(ResourcePackStatus.Completed), server, session);
+        await respond(new ResourcePackClientResponseHandler(), response(ResourcePackStatus.Completed), parts, session);
 
         expect(sent).not.toContain('DimensionDataPacket');
     });
@@ -303,10 +319,11 @@ describe('ResourcePackClientResponseHandler', () => {
             });
 
         const dimensionDataSentTo = async (codec: ProtocolCodec) => {
-            const { sent, packets, server, session } = harness({ codec, level: level() });
-            await new ResourcePackClientResponseHandler().handle(
+            const { sent, packets, parts, session } = harness({ codec, level: level() });
+            await respond(
+                new ResourcePackClientResponseHandler(),
                 response(ResourcePackStatus.Completed),
-                server,
+                parts,
                 session
             );
             const packet = packets.find((sent) => sent instanceof DimensionDataPacket);
@@ -350,10 +367,11 @@ describe('ResourcePackClientResponseHandler', () => {
 
     describe('SetSpawnPosition', () => {
         const spawnPositionSentBy = async (options: Parameters<typeof harness>[0]) => {
-            const { packets, server, session } = harness(options);
-            await new ResourcePackClientResponseHandler().handle(
+            const { packets, parts, session } = harness(options);
+            await respond(
+                new ResourcePackClientResponseHandler(),
                 response(ResourcePackStatus.Completed),
-                server,
+                parts,
                 session
             );
             const packet = packets.find((sent) => sent instanceof SetSpawnPositionPacket);
@@ -393,9 +411,9 @@ describe('ResourcePackClientResponseHandler', () => {
 
     it('sends no Respawn when the player returns to a saved position', async () => {
         // What BDS sends then has not been measured, so nothing is invented for it.
-        const { sent, server, session } = harness();
+        const { sent, parts, session } = harness();
 
-        await new ResourcePackClientResponseHandler().handle(response(ResourcePackStatus.Completed), server, session);
+        await respond(new ResourcePackClientResponseHandler(), response(ResourcePackStatus.Completed), parts, session);
 
         expect(sent).not.toContain('RespawnPacket');
     });
@@ -409,9 +427,9 @@ describe('ResourcePackClientResponseHandler', () => {
             position: new Vector3(7.5, 70, -8.5),
             relocated: true
         };
-        const { sent, packets, server, session } = harness({ joinSpawn });
+        const { sent, packets, parts, session } = harness({ joinSpawn });
 
-        await new ResourcePackClientResponseHandler().handle(response(ResourcePackStatus.Completed), server, session);
+        await respond(new ResourcePackClientResponseHandler(), response(ResourcePackStatus.Completed), parts, session);
 
         expect(sent.slice(sent.indexOf('InventoryContent') + 1)).toEqual([
             'RespawnPacket',
@@ -437,9 +455,9 @@ describe('ResourcePackClientResponseHandler', () => {
 
     it('declares what the content build holds in StartGame', async () => {
         const { content } = fixtureJoinPayloads();
-        const { packets, server, session } = harness({ content });
+        const { packets, parts, session } = harness({ content });
 
-        await new ResourcePackClientResponseHandler().handle(response(ResourcePackStatus.Completed), server, session);
+        await respond(new ResourcePackClientResponseHandler(), response(ResourcePackStatus.Completed), parts, session);
 
         // The fixture's two blocks are both in the client's palette and
         // neither is one Mojang defines in data, so the registries declare an
@@ -450,11 +468,12 @@ describe('ResourcePackClientResponseHandler', () => {
 
     it('announces the block breaking mode the config chose in StartGame', async () => {
         for (const serverAuthoritativeBreaking of [true, false]) {
-            const { packets, server, session } = harness({ serverAuthoritativeBreaking });
+            const { packets, parts, session } = harness({ serverAuthoritativeBreaking });
 
-            await new ResourcePackClientResponseHandler().handle(
+            await respond(
+                new ResourcePackClientResponseHandler(),
                 response(ResourcePackStatus.Completed),
-                server,
+                parts,
                 session
             );
 
@@ -465,9 +484,9 @@ describe('ResourcePackClientResponseHandler', () => {
 
     it('sends the content build item registry', async () => {
         const { content, payloads } = fixtureJoinPayloads();
-        const { packets, server, session } = harness({ content });
+        const { packets, parts, session } = harness({ content });
 
-        await new ResourcePackClientResponseHandler().handle(response(ResourcePackStatus.Completed), server, session);
+        await respond(new ResourcePackClientResponseHandler(), response(ResourcePackStatus.Completed), parts, session);
 
         const items = packets.find((packet) => packet instanceof ItemRegistryPacket);
         expect(items?.getPacketData()?.items).toEqual(payloads.items);
@@ -485,10 +504,11 @@ describe('ResourcePackClientResponseHandler', () => {
         expect(at2225.items).not.toBe(payloads.items);
 
         const sentTo = async (codec: ProtocolCodec) => {
-            const { packets, server, session } = harness({ content, codec });
-            await new ResourcePackClientResponseHandler().handle(
+            const { packets, parts, session } = harness({ content, codec });
+            await respond(
+                new ResourcePackClientResponseHandler(),
                 response(ResourcePackStatus.Completed),
-                server,
+                parts,
                 session
             );
 
@@ -502,17 +522,17 @@ describe('ResourcePackClientResponseHandler', () => {
     it('sends nothing game-related before StartGame', async () => {
         // The player list and the time used to go out first. A client that has not had
         // StartGame has no world to apply them to.
-        const { sent, server, session } = harness();
+        const { sent, parts, session } = harness();
 
-        await new ResourcePackClientResponseHandler().handle(response(ResourcePackStatus.Completed), server, session);
+        await respond(new ResourcePackClientResponseHandler(), response(ResourcePackStatus.Completed), parts, session);
 
         expect(sent.slice(0, sent.indexOf('StartGamePacket'))).toEqual(['JigsawStructureDataPacket']);
     });
 
     it('announces the join once, after everything else', async () => {
-        const { sent, emit, server, session } = harness();
+        const { sent, emit, parts, session } = harness();
 
-        await new ResourcePackClientResponseHandler().handle(response(ResourcePackStatus.Completed), server, session);
+        await respond(new ResourcePackClientResponseHandler(), response(ResourcePackStatus.Completed), parts, session);
 
         expect(emit).toHaveBeenCalledOnce();
         expect(emit.mock.calls[0]?.[0]).toBe('chat');
@@ -520,9 +540,9 @@ describe('ResourcePackClientResponseHandler', () => {
     });
 
     it('kicks a player that refuses the packs, with the resource pack reason', async () => {
-        const { sent, kick, server, session } = harness();
+        const { sent, kick, parts, session } = harness();
 
-        await new ResourcePackClientResponseHandler().handle(response(ResourcePackStatus.Refused), server, session);
+        await respond(new ResourcePackClientResponseHandler(), response(ResourcePackStatus.Refused), parts, session);
 
         expect(kick).toHaveBeenCalledOnce();
         expect(kick.mock.calls[0]?.[1]).toBe(DisconnectReason.RESOURCE_PACK_PROBLEM);
@@ -532,11 +552,12 @@ describe('ResourcePackClientResponseHandler', () => {
     it('kicks a player that asks for packs, since the server offers none', async () => {
         // A `ResourcePackDataInfo` per pack is the answer once the server serves packs. Until
         // then a client waiting for one would sit on the loading screen until RakNet times out.
-        const { sent, kick, debug, server, session } = harness();
+        const { sent, kick, debug, parts, session } = harness();
 
-        await new ResourcePackClientResponseHandler().handle(
+        await respond(
+            new ResourcePackClientResponseHandler(),
             response(ResourcePackStatus.SendPacks, ['a_1.0.0', 'b_2.0.0']),
-            server,
+            parts,
             session
         );
 
@@ -550,9 +571,9 @@ describe('ResourcePackClientResponseHandler', () => {
         // `decodePayload` rejects a fifth alternative, so this only reaches the handler from a
         // caller setting the field. Numeric enums accept any number.
         const unknown: number = 9;
-        const { sent, kick, emit, debug, server, session } = harness();
+        const { sent, kick, emit, debug, parts, session } = harness();
 
-        await new ResourcePackClientResponseHandler().handle(response(unknown), server, session);
+        await respond(new ResourcePackClientResponseHandler(), response(unknown), parts, session);
 
         expect(sent).toEqual([]);
         expect(kick).not.toHaveBeenCalled();
@@ -561,24 +582,24 @@ describe('ResourcePackClientResponseHandler', () => {
     });
 
     it('starts the join once, however many times the client says it completed', async () => {
-        const { sent, emit, server, session } = harness();
+        const { sent, emit, parts, session } = harness();
         const handler = new ResourcePackClientResponseHandler();
 
-        await handler.handle(response(ResourcePackStatus.Completed), server, session);
+        await respond(handler, response(ResourcePackStatus.Completed), parts, session);
         const afterFirst = [...sent];
-        await handler.handle(response(ResourcePackStatus.Completed), server, session);
+        await respond(handler, response(ResourcePackStatus.Completed), parts, session);
 
         expect(sent).toEqual(afterFirst);
         expect(emit).toHaveBeenCalledOnce();
     });
 
     it('sends no second pack stack once the join has started', async () => {
-        const { sent, server, session } = harness();
+        const { sent, parts, session } = harness();
         const handler = new ResourcePackClientResponseHandler();
 
-        await handler.handle(response(ResourcePackStatus.Completed), server, session);
+        await respond(handler, response(ResourcePackStatus.Completed), parts, session);
         const afterJoin = [...sent];
-        await handler.handle(response(ResourcePackStatus.HaveAllPacks), server, session);
+        await respond(handler, response(ResourcePackStatus.HaveAllPacks), parts, session);
 
         expect(sent).toEqual(afterJoin);
     });
@@ -590,17 +611,42 @@ describe('ResourcePackClientResponseHandler', () => {
         const second = harness();
         const handler = new ResourcePackClientResponseHandler();
 
-        await handler.handle(response(ResourcePackStatus.Completed), first.server, first.session);
-        await handler.handle(response(ResourcePackStatus.Completed), second.server, second.session);
+        await respond(handler, response(ResourcePackStatus.Completed), first.parts, first.session);
+        await respond(handler, response(ResourcePackStatus.Completed), second.parts, second.session);
 
         expect(second.sent).toEqual(first.sent);
         expect(second.sent).toContain('StartGamePacket');
     });
 
-    it('sends nothing when a subscriber cancels the spawn', async () => {
-        const { sent, emit, server, session } = harness({ cancelSpawn: true });
+    it('hands the step the burst as one piece of deferred work and sends nothing itself', () => {
+        const { sent, parts, session } = harness();
+        const { context, outputs, deferred } = inputContext(session, parts);
 
-        await new ResourcePackClientResponseHandler().handle(response(ResourcePackStatus.Completed), server, session);
+        expect(
+            new ResourcePackClientResponseHandler().handle(response(ResourcePackStatus.Completed), context)
+        ).toBeUndefined();
+
+        // The play phase opens inside the handler, before the burst it lets the client answer.
+        expect(session.getConnection().phase).toBe('play');
+        expect(deferred).toHaveLength(1);
+        expect(outputs).toHaveLength(0);
+        expect(sent).toEqual([]);
+    });
+
+    it('hands the step the pack stack as its one output', () => {
+        const { parts, session } = harness();
+        const { context, outputs, deferred } = inputContext(session, parts);
+
+        new ResourcePackClientResponseHandler().handle(response(ResourcePackStatus.HaveAllPacks), context);
+
+        expect(outputs).toHaveLength(1);
+        expect(deferred).toHaveLength(0);
+    });
+
+    it('sends nothing when a subscriber cancels the spawn', async () => {
+        const { sent, emit, parts, session } = harness({ cancelSpawn: true });
+
+        await respond(new ResourcePackClientResponseHandler(), response(ResourcePackStatus.Completed), parts, session);
 
         expect(sent).toEqual([]);
         expect(emit).not.toHaveBeenCalled();

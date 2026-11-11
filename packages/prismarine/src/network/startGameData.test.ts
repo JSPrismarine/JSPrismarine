@@ -5,8 +5,6 @@ import { OVERWORLD_STEM_ID } from '@jsprismarine/worldgen';
 import { describe, expect, it } from 'vitest';
 
 import type PlayerSession from './PlayerSession';
-import type Server from '../Server';
-import type { Config } from '../config/Config';
 import { fakeLevel, TEST_GENERATOR_KIND } from '../testing/level';
 import { stub } from '../testing/stub.test.helper';
 import { Dimensions } from '../world/Dimension';
@@ -63,15 +61,12 @@ const worldOf = (dimension: DimensionType, stem: LevelStem, stems: ReadonlyMap<s
 
 const startGameFor = (world: World) =>
     createStartGameData({
-        server: stub<Server>({
-            getConfig: () =>
-                stub<Config>({
-                    getGamemode: () => 'survival',
-                    getDifficulty: () => 1,
-                    getServerAuthoritativeBlockBreaking: () => true
-                }),
-            getTick: () => 0
-        }),
+        config: {
+            getGamemode: () => 'survival',
+            getDifficulty: () => 1,
+            getServerAuthoritativeBlockBreaking: () => true
+        },
+        tick: 0,
         player: stub<PlayerSession>({
             getRuntimeId: () => 1n,
             getJoinSpawn: () => null,

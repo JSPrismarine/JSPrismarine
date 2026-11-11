@@ -45,7 +45,6 @@ const STILL_REACH_SERVER: ReadonlyMap<string, readonly string[]> = new Map([
             'workstation.ts'
         ]
     ],
-    ['D2f the join', ['ResourcePackClientResponseHandler.ts', 'SetLocalPlayerAsInitializedHandler.ts']],
     ['D2 close', ['PacketHandler.ts']]
 ]);
 
