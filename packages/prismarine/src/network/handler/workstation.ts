@@ -15,9 +15,10 @@ import {
     sendEnchantOptions,
     takeEnchantingRow
 } from '../../enchantment/enchantingTable';
+import type { EnchantingPlayer } from '../../enchantment/enchantingTable';
 import { takeFromAnvil } from '../../enchantment/anvil';
 import type { Item } from '../../item/Item';
-import type Player from '../../Player';
+import type { KeyedPlayerSource } from '../../keyedPlayer';
 import type { OpenBlockContainer } from '../PlayerSession';
 
 /** The slot the item being worked on sits in. */
@@ -57,6 +58,12 @@ export const workstationSlotOf = (open: OpenBlockContainer | undefined, containe
 export const workstationContainerId = (open: OpenBlockContainer, slot: number): number =>
     SLOT_IDS[open.screen]?.[slot] ?? ContainerUiId.ANVIL_INPUT_CONTAINER;
 
+/**
+ * The player at a workstation: who is shown the enchanting table's rows, whose seed draws them,
+ * who is told of an enchanting, and whose experience a craft spends.
+ */
+export type WorkstationPlayer = EnchantingPlayer & KeyedPlayerSource & Parameters<typeof takeFromAnvil>[1];
+
 /** What a workstation craft produced, and what it cost. */
 export interface WorkstationCraft {
     /** The finished stack, which the client takes out of the result slot. */
@@ -73,7 +80,7 @@ export interface WorkstationCraft {
  * that the rows the player is shown and the row {@link takeEnchantOption} later applies are
  * drawn from the same number rather than from two walks of the same bookshelves.
  */
-export const refreshEnchantOptions = async (player: Player, open: OpenBlockContainer): Promise<void> => {
+export const refreshEnchantOptions = async (player: WorkstationPlayer, open: OpenBlockContainer): Promise<void> => {
     const registry = player.getServer().getContent().enchantments;
     const stack = open.inputs[WORKSTATION_ITEM];
     if (stack === null || stack === undefined || stack.getName() === 'minecraft:air') {
@@ -106,7 +113,7 @@ export const refreshEnchantOptions = async (player: Player, open: OpenBlockConta
  *   pay - each of which is a refusal rather than a free enchantment.
  */
 export const takeEnchantOption = (
-    player: Player,
+    player: WorkstationPlayer,
     open: OpenBlockContainer,
     enchantNetId: number
 ): WorkstationCraft | undefined => {
@@ -133,7 +140,7 @@ export const takeEnchantOption = (
  *   the player cannot pay.
  */
 export const takeAnvilResult = (
-    player: Player,
+    player: WorkstationPlayer,
     open: OpenBlockContainer,
     name?: string
 ): WorkstationCraft | undefined => {

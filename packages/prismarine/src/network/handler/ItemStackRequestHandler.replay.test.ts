@@ -3,7 +3,6 @@ import type { Logger } from '@jsprismarine/logger';
 import fs from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
-import type Player from '../../Player';
 import type Server from '../../Server';
 import CraftingInput from '../../crafting/CraftingInput';
 import { fixtureRecipeContent } from '../../content/testing';
@@ -11,7 +10,6 @@ import ContainerEntry from '../../inventory/ContainerEntry';
 import HumanInventory from '../../inventory/HumanInventory';
 import { Item } from '../../item/Item';
 import { stub } from '../../testing/stub.test.helper';
-import { Position } from '../../world/Position';
 import type { World } from '../../world/World';
 import type PlayerSession from '../PlayerSession';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
@@ -19,6 +17,7 @@ import ItemStackRequestPacket from '@jsprismarine/protocol/packet/ItemStackReque
 import ItemStackResponsePacket from '@jsprismarine/protocol/packet/ItemStackResponsePacket';
 import type { ItemStackResponse } from '@jsprismarine/protocol/packet/ItemStackResponsePacket';
 import ItemStackRequestHandler from './ItemStackRequestHandler';
+import { storePlayerPort } from './storePlayerPort.test.helper';
 
 /**
  * A session on a Bedrock Dedicated Server 1.26.52.3, recorded through the proxy with the
@@ -173,13 +172,11 @@ const replay = async () => {
     const session = stub<PlayerSession>({
         getOpenBlockContainer: () => undefined,
         getPlayer: () =>
-            stub<Player>({
-                getInventory: () => inventory,
-                getCraftingInput: () => craftingInput,
-                getServer: () => server,
-                getWorld: () => world,
-                getPosition: () => new Position(0, 64, 0, world)
-            }),
+            storePlayerPort(
+                { getInventory: () => inventory, getCraftingInput: () => craftingInput },
+                { getServer: () => server }
+            ),
+        getWorld: () => world,
         send: async (packet) => void sent.push(packet)
     });
 

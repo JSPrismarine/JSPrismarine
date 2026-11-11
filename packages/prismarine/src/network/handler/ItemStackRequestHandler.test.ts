@@ -4,7 +4,6 @@ import { WindowTypes } from '@jsprismarine/minecraft';
 import { vanillaItemDefinitions } from '@jsprismarine/items';
 import { describe, expect, it } from 'vitest';
 
-import type Player from '../../Player';
 import type Server from '../../Server';
 import { definitionOf, definitionsOf } from '../../content/ContentOptions';
 import { buildServerContent } from '../../content/ServerContent';
@@ -24,7 +23,6 @@ import { stub } from '../../testing/stub.test.helper';
 import type PlayerSession from '../PlayerSession';
 import type { OpenBlockContainer } from '../PlayerSession';
 import type { World } from '../../world/World';
-import { Position } from '../../world/Position';
 import { joinContentPayloads } from '../contentPayloads';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import ItemStackRequestPacket from '@jsprismarine/protocol/packet/ItemStackRequestPacket';
@@ -33,6 +31,7 @@ import ItemStackResponsePacket, {
 } from '@jsprismarine/protocol/packet/ItemStackResponsePacket';
 import type { ItemStackRequest, ItemStackRequestSlotInfo } from '@jsprismarine/protocol';
 import { ContainerUiId, ItemStackRequestActionType } from '@jsprismarine/protocol';
+import { storePlayerPort } from './storePlayerPort.test.helper';
 import ItemStackRequestHandler from './ItemStackRequestHandler';
 import { testContent } from '../../testing/entityServer';
 
@@ -132,20 +131,19 @@ const run = async (
     inventory: HumanInventory,
     server: Server,
     craftingInput = new CraftingInput(),
-    options: { open?: OpenBlockContainer; player?: Player } = {}
+    options: { open?: OpenBlockContainer; world?: World } = {}
 ) => {
     const sent: NetworkPacket[] = [];
+    const player = storePlayerPort(
+        { getInventory: () => inventory, getCraftingInput: () => craftingInput },
+        // A finished craft raises `recipe_crafted`, which asks the
+        // server whether any content is loaded. These doubles load none.
+        { getServer: () => server }
+    );
     const session = stub<PlayerSession>({
         getOpenBlockContainer: () => options.open,
-        getPlayer: () =>
-            options.player ??
-            stub<Player>({
-                getInventory: () => inventory,
-                getCraftingInput: () => craftingInput,
-                // A finished craft raises `recipe_crafted`, which asks the
-                // server whether any content is loaded. These doubles load none.
-                getServer: () => server
-            }),
+        getPlayer: () => player,
+        getWorld: () => options.world ?? stub<World>(),
         send: async (packet) => void sent.push(packet)
     });
 
@@ -211,13 +209,6 @@ describe('network', () => {
                 }
             });
             const server = fakeServer([]);
-            const player = stub<Player>({
-                getInventory: () => inventory,
-                getCraftingInput: () => new CraftingInput(),
-                getServer: () => server,
-                getWorld: () => world,
-                getPosition: () => new Position(0, 64, 0, world)
-            });
 
             const response = await run(
                 [
@@ -231,7 +222,7 @@ describe('network', () => {
                 inventory,
                 server,
                 new CraftingInput(),
-                { player }
+                { world }
             );
 
             expect(response.responses[0]?.result).toBe(ItemStackResponseResult.OK);
@@ -252,13 +243,6 @@ describe('network', () => {
                 }
             });
             const server = fakeServer([]);
-            const player = stub<Player>({
-                getInventory: () => inventory,
-                getCraftingInput: () => new CraftingInput(),
-                getServer: () => server,
-                getWorld: () => world,
-                getPosition: () => new Position(0, 64, 0, world)
-            });
 
             const response = await run(
                 [
@@ -275,7 +259,7 @@ describe('network', () => {
                 inventory,
                 server,
                 new CraftingInput(),
-                { player }
+                { world }
             );
 
             expect(response.responses[0]?.result).toBe(ItemStackResponseResult.ERROR);

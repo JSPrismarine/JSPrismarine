@@ -23,7 +23,8 @@ import { Item } from '../../item/Item';
 import type Server from '../../Server';
 import { stubPlayerPort } from '../../testing/playerPort.test.helper';
 import { stub } from '../../testing/stub.test.helper';
-import { experienceIn } from '../../testing/storePlayer.test.helper';
+import { PlayerComponents } from '../../entity/playerComponents';
+import type { StorePlayer } from '../../entity/storePlayer';
 import type { World } from '../../world/World';
 import type { Entity } from '../../entity/Entity';
 import type { Logger } from '@jsprismarine/logger';
@@ -90,6 +91,7 @@ const scene = () => {
     const merchant = new Merchant({ table: FARMER, random: seededRandom(1) });
     const inventory = new HumanInventory();
     const attributes = new Attributes(Attributes.getPlayerDefaults());
+    const craftingInput = new CraftingInput();
     const sent: NetworkPacket[] = [];
     const log: string[] = [];
     const content = buildServerContent({
@@ -125,19 +127,26 @@ const scene = () => {
         getPosition: () => ({ getX: () => 0, getY: () => 64, getZ: () => 0 }) as never,
         getEquipment: () => ({}),
         getInventory: () => inventory,
-        getCraftingInput: () => new CraftingInput(),
+        getCraftingInput: () => craftingInput,
         attributes,
-        getExperience: () => experienceIn(attributes),
         isSprinting: () => false,
         gamemode: 0,
         isSneaking: () => false,
         isFlying: () => false,
-        getNetworkSession: () => session
+        getNetworkSession: () => session,
+        // What the request's steps move, and the components the trade pays experience into.
+        getStorePlayer: () =>
+            stub<StorePlayer>({
+                getInventory: () => inventory,
+                getCraftingInput: () => craftingInput,
+                getComponents: () => new PlayerComponents(attributes, () => {})
+            })
     });
 
     const redraws: number[] = [];
     const session: PlayerSession = stub<PlayerSession>({
         getPlayer: () => player,
+        getWorld: () => stub<World>({ getViewers: () => [] }),
         getOpenBlockContainer: () => open,
         send: async (packet: NetworkPacket) => void sent.push(packet),
         sendTradeOffers: async () => void redraws.push(merchant.offers()[0]?.uses ?? -1)

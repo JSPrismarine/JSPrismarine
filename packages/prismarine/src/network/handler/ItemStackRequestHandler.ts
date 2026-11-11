@@ -8,7 +8,6 @@ import type { Ingredient as JavaIngredient } from '@jsprismarine/recipes';
 import { WindowTypes } from '@jsprismarine/minecraft';
 
 import type { PlayerSession } from '../../';
-import type Player from '../../Player';
 import type Server from '../../Server';
 import { advancementItemCrafted } from '../../advancement/triggers';
 import CraftingInput from '../../crafting/CraftingInput';
@@ -17,7 +16,7 @@ import type Inventory from '../../inventory/Inventory';
 import type HumanInventory from '../../inventory/HumanInventory';
 import { blockSlotName, blockSlotOf, isTakeOnlySlot, screenStoresSlots } from '../../inventory/containerSlots';
 import { containerAnchorOf, isPerPlayerContainer, openContainerSlots } from '../../inventory/containerStore';
-import type { OpenContainerSlots } from '../../inventory/containerStore';
+import type { ContainerViewer, OpenContainerSlots } from '../../inventory/containerStore';
 import { Item } from '../../item/Item';
 import { itemDataForProtocol } from '../codec/itemData';
 import type { ProtocolItemData } from '@jsprismarine/protocol';
@@ -35,7 +34,7 @@ import type { ItemStackRequest, ItemStackRequestSlotInfo } from '@jsprismarine/p
 import { ContainerUiId, ItemStackRequestActionType } from '@jsprismarine/protocol';
 import type { OpenBlockContainer } from '../PlayerSession';
 import type PacketHandler from './PacketHandler';
-import type { CraftingHolder, InventoryHolder, PlacedPlayer } from './playerPorts';
+import { storePlayerOf } from './playerPorts';
 import { selectTrade } from './tradeScreen';
 import {
     refreshEnchantOptions,
@@ -46,6 +45,14 @@ import {
     workstationContainerId,
     workstationSlotOf
 } from './workstation';
+import type { WorkstationPlayer } from './workstation';
+
+/**
+ * The player as a request's steps hand it on: to the workstations, the craft's advancement and the
+ * block's own slots, which each take a legacy player until their packages take something
+ * narrower. What the steps read and move of the player is its store player's.
+ */
+type RequestingPlayer = WorkstationPlayer & ContainerViewer;
 
 /** Helmet, chestplate, leggings, boots - the four the client numbers head to feet. */
 const ARMOR_SLOTS = 4;
@@ -325,7 +332,7 @@ export default class ItemStackRequestHandler implements PacketHandler<ItemStackR
      * answered the same way, once the request has been rolled back.
      */
     public async handle(packet: ItemStackRequestPacket, server: Server, session: PlayerSession): Promise<void> {
-        const player: InventoryHolder & CraftingHolder & PlacedPlayer = session.getPlayer();
+        const player = storePlayerOf(session);
         const inventory = player.getInventory();
 
         // What the client actually asked for, by name: what a client sends for a given gesture
@@ -376,7 +383,7 @@ export default class ItemStackRequestHandler implements PacketHandler<ItemStackR
         await session.send(response);
         for (const work of after) await work();
 
-        if (drops.length > 0) await player.getWorld().dropFromPlayer(session.getPlayer(), drops);
+        if (drops.length > 0) await session.getWorld().dropFromPlayer(player, drops);
 
         // Redrawn whenever the item in the table changed, which is what `showEnchantingTable`
         // says it has to be called for: the three rows are a function of the stack.
@@ -389,7 +396,7 @@ export default class ItemStackRequestHandler implements PacketHandler<ItemStackR
         // slots and nothing in the exchange above goes anywhere near them, so without this two
         // players sharing a chest each see only their own half of what is in it.
         if (open !== undefined && containerChanged.size > 0) {
-            await this.tellOtherViewers(session.getPlayer(), open, containerChanged);
+            await this.tellOtherViewers(session, open, containerChanged);
         }
     }
 
@@ -406,7 +413,7 @@ export default class ItemStackRequestHandler implements PacketHandler<ItemStackR
      * count per player, so they would name nothing the other client knows.
      */
     private async tellOtherViewers(
-        player: Player,
+        session: PlayerSession,
         open: OpenBlockContainer,
         slots: ReadonlySet<number>
     ): Promise<void> {
@@ -416,26 +423,24 @@ export default class ItemStackRequestHandler implements PacketHandler<ItemStackR
 
         // Which block the slots belong to, rather than which block was clicked: either half of a
         // double chest opens the same 54 slots, so the two have to compare as one container.
-        const changed = containerAnchorOf(player, blockPositionOf(open.position), open.identifier);
+        const changed = containerAnchorOf(session.getPlayer(), blockPositionOf(open.position), open.identifier);
 
-        for (const other of player.getWorld().getPlayers()) {
-            if (other === player) continue;
+        for (const other of session.getWorld().getViewers()) {
+            if (other.runtimeId === session.runtimeId) continue;
 
-            const theirs = other.getNetworkSession().getOpenBlockContainer();
+            const theirs = other.getOpenBlockContainer();
             if (theirs === undefined) continue;
 
             const at = blockPositionOf(theirs.position);
-            const anchor = containerAnchorOf(other, at, theirs.identifier);
+            const anchor = containerAnchorOf(other.getPlayer(), at, theirs.identifier);
             if (anchor.x !== changed.x || anchor.y !== changed.y || anchor.z !== changed.z) continue;
 
-            const held = openContainerSlots(other, at, theirs.identifier);
+            const held = openContainerSlots(other.getPlayer(), at, theirs.identifier);
             if (held === undefined) continue;
 
             for (const slot of slots) {
                 const named = blockSlotName(theirs.screen, slot);
-                await other
-                    .getNetworkSession()
-                    .sendContainerSlot(theirs.windowId, named.containerId, named.slotId, held.get(slot));
+                await other.sendContainerSlot(theirs.windowId, named.containerId, named.slotId, held.get(slot));
             }
         }
     }
@@ -459,7 +464,7 @@ export default class ItemStackRequestHandler implements PacketHandler<ItemStackR
     private apply(
         request: ItemStackRequest,
         server: Server,
-        player: Player,
+        player: RequestingPlayer,
         inventory: HumanInventory,
         craftingInput: CraftingInput,
         itemData: ProtocolItemData,
@@ -753,7 +758,12 @@ export default class ItemStackRequestHandler implements PacketHandler<ItemStackR
                         if (open?.screen === WindowTypes.TRADE) {
                             if (unpaid()) return deny('a trade began before the last one was paid for');
 
-                            const trade = selectTrade(player, open, action.recipeNetId ?? 0, server.getContent());
+                            const trade = selectTrade(
+                                storePlayerOf(context.session),
+                                open,
+                                action.recipeNetId ?? 0,
+                                server.getContent()
+                            );
                             if (trade === undefined) return deny('the villager refused the offer');
 
                             created = trade.stack;

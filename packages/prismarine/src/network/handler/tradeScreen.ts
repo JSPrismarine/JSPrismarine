@@ -12,8 +12,8 @@
 import type { TradeResult, TradeStack } from '@jsprismarine/trading';
 
 import type { ServerContent } from '../../content/ServerContent';
-import type { ExperienceHolder } from '../../entity/Experience';
 import { addExperiencePoints } from '../../entity/Experience';
+import type { StorePlayer } from '../../entity/storePlayer';
 import { Item } from '../../item/Item';
 import { tradeIndexOf } from '../tradeOffers';
 import type { OpenBlockContainer } from '../PlayerSession';
@@ -28,10 +28,8 @@ export interface TradeSelection {
     readonly commit: () => TradeResult;
 }
 
-/** The player as a trade reads it: the experience an offer pays. */
-export interface Trader {
-    getExperience(): ExperienceHolder;
-}
+/** The player as a trade reads it: the components that hold the experience an offer pays. */
+export type Trader = Pick<StorePlayer, 'getComponents'>;
 
 /** Whether a payment stack is what the offer wants: the same item and the same aux value. */
 const pays = (held: Item, want: TradeStack): boolean =>
@@ -95,7 +93,7 @@ export const selectTrade = (
         commit: () => {
             const result = trade.source.trade(index, context);
             if (result.traded && result.playerExperience > 0) {
-                addExperiencePoints(player.getExperience(), result.playerExperience);
+                addExperiencePoints(player.getComponents().experience(), result.playerExperience);
             }
             trade.traded?.(result);
             return result;
