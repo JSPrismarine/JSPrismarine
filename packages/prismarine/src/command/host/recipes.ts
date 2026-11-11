@@ -17,7 +17,7 @@ import type { RecipeBook } from '@jsprismarine/recipes';
 
 import type Server from '../../Server';
 import UnlockedRecipesPacket, { UnlockedRecipesType } from '@jsprismarine/protocol/packet/UnlockedRecipesPacket';
-import { carryOut, refuse, resolvePlayer } from './support';
+import { carryOut, playerSessionOf, refuse } from './support';
 
 /** The recipe name `/recipe` means "every one of them" by. */
 const ALL_RECIPES = '*';
@@ -84,10 +84,10 @@ export const changeRecipes = (
     let changed = 0;
 
     for (const ref of players) {
-        const player = resolvePlayer(server, ref);
-        if (player === undefined) continue;
+        const session = playerSessionOf(server, ref);
+        if (session === undefined) continue;
 
-        const name = player.getName();
+        const { name } = session.identity;
         // Locking everything is its own packet type, and it is the one case
         // where the client does not need the list to apply the change.
         if (!give && all) {
@@ -95,7 +95,7 @@ export const changeRecipes = (
             if (held === 0) continue;
 
             changed += 1;
-            carryOut(send(player, UnlockedRecipesType.REMOVE_ALL_UNLOCKED_RECIPES, []), undefined);
+            carryOut(send(session, UnlockedRecipesType.REMOVE_ALL_UNLOCKED_RECIPES, []), undefined);
             continue;
         }
 
@@ -105,7 +105,7 @@ export const changeRecipes = (
         changed += 1;
         carryOut(
             send(
-                player,
+                session,
                 give ? UnlockedRecipesType.NEWLY_UNLOCKED_RECIPES : UnlockedRecipesType.REMOVE_UNLOCKED_RECIPES,
                 applied
             ),
@@ -118,10 +118,10 @@ export const changeRecipes = (
 
 /** One delta on the wire. */
 const send = (
-    player: { getNetworkSession(): { send(packet: UnlockedRecipesPacket): Promise<void> } },
+    session: { send(packet: UnlockedRecipesPacket): Promise<void> },
     type: UnlockedRecipesType,
     recipes: readonly string[]
 ): Promise<void> => {
     const packet = new UnlockedRecipesPacket({ type, recipes: [...recipes] });
-    return player.getNetworkSession().send(packet);
+    return session.send(packet);
 };

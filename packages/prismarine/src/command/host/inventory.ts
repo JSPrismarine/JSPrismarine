@@ -24,7 +24,7 @@ import ContainerEntry from '../../inventory/ContainerEntry';
 import { itemFromContent } from '../../item/itemFromContent';
 import type Inventory from '../../inventory/Inventory';
 import { blockContainerAt } from './containers';
-import { blockPositionOf, carryOut, refuse, resolvePlayer, unsupported, worldOf } from './support';
+import { blockPositionOf, carryOut, refuse, resolveTarget, unsupported, worldOf } from './support';
 
 /** How many of the main container's slots are the hotbar. */
 const HOTBAR_SIZE = 9;
@@ -120,8 +120,9 @@ export const setItemSlot = (
     if (target.kind === 'block') return setBlockSlot(server, target, slot, item, count, mode);
     if (target.kind !== 'entity') unsupported('NBT storage, which this');
 
-    const player = resolvePlayer(server, target.entity);
-    if (player === undefined) unsupported("item slots on anything but a player, which this server's inventories");
+    const holder = resolveTarget(server, target.entity);
+    if (holder === undefined) unsupported("item slots on anything but a player, which this server's inventories");
+    const { player, session } = holder;
 
     const inventory = player.getInventory();
     const index = slot.index ?? 0;
@@ -159,5 +160,5 @@ export const setItemSlot = (
     if (stack === null) return 0;
 
     resolved.inventory.setItem(resolved.slot, new ContainerEntry({ item: stack, count }));
-    return carryOut(player.getNetworkSession().sendInventory(), count);
+    return carryOut(session.sendInventory(), count);
 };

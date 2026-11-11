@@ -322,6 +322,8 @@ const playerAt = (fixture: Fixture, id: bigint, name: string, position: Vector3)
         },
         sendInventory: async () => {},
         sendAttributes: async () => {},
+        sendMessage: vi.fn().mockResolvedValue(undefined),
+        kick: vi.fn().mockResolvedValue(undefined),
         changeWorld: vi.fn().mockResolvedValue(undefined)
     });
     const tags = new Set<string>();
@@ -331,8 +333,6 @@ const playerAt = (fixture: Fixture, id: bigint, name: string, position: Vector3)
             gamemode: Gametype.SURVIVAL,
             setGamemode: vi.fn().mockResolvedValue(undefined),
             setPlayerPosition: vi.fn().mockResolvedValue(undefined),
-            kick: vi.fn().mockResolvedValue(undefined),
-            sendMessage: vi.fn().mockResolvedValue(undefined),
             getInventory: () => inventory,
             getNetworkSession: () => session,
             getWorld: () => fixture.world,
@@ -920,7 +920,7 @@ describe('the server command host', () => {
                 const player = playerAt(fixture, 1n, 'Steve', new Vector3(0, 64, 0));
 
                 await expect(fixture.run('execute if score @a kills matches 1.. run say hi')).resolves.toBe(0);
-                expect(player.sendMessage).not.toHaveBeenCalled();
+                expect(player.getNetworkSession().sendMessage).not.toHaveBeenCalled();
                 expect(fixture.errors).toEqual([]);
             });
 
@@ -930,7 +930,7 @@ describe('the server command host', () => {
                 await fixture.run('scoreboard players set Steve kills 3');
 
                 await expect(fixture.run('execute if score @a kills matches 1.. run say hi')).resolves.toBe(1);
-                expect(player.sendMessage).toHaveBeenCalled();
+                expect(player.getNetworkSession().sendMessage).toHaveBeenCalled();
             });
         });
 

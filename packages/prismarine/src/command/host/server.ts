@@ -18,7 +18,7 @@ import SetTitlePacket from '@jsprismarine/protocol/packet/SetTitlePacket';
 import TransferPacket from '@jsprismarine/protocol/packet/TransferPacket';
 import { TextPacketType } from '@jsprismarine/protocol';
 import { UnlockedRecipes, changeRecipes } from './recipes';
-import { carryOut, entityRefOf, playerSessionOf, playersOf, resolveEntity, resolvePlayer } from './support';
+import { carryOut, entityRefOf, playerSessionOf, resolveEntity, sessionsOf } from './support';
 
 /**
  * How the client renders each of the four message kinds a command sends.
@@ -131,10 +131,10 @@ export const serverSideCommandHost = (server: Server, onStopRequested: () => voi
         removeOperator: (player) => operator(player, false),
 
         kick: (ref, reason) => {
-            const player = resolvePlayer(server, ref);
-            if (player === undefined) return false;
+            const session = playerSessionOf(server, ref);
+            if (session === undefined) return false;
 
-            return carryOut(player.kick(reason), true);
+            return carryOut(session.kick(reason), true);
         },
 
         listPlayers: () =>
@@ -165,11 +165,11 @@ export const serverSideCommandHost = (server: Server, onStopRequested: () => voi
         },
 
         transfer: (ref, host, port) => {
-            const player = resolvePlayer(server, ref);
-            if (player === undefined) return false;
+            const session = playerSessionOf(server, ref);
+            if (session === undefined) return false;
 
             const packet = new TransferPacket({ address: host, port, reloadWorld: false, gatheringsConfig: null });
-            return carryOut(player.getNetworkSession().send(packet), true);
+            return carryOut(session.send(packet), true);
         },
 
         recipes: (players, recipe, give) =>
@@ -180,34 +180,34 @@ export const serverSideCommandHost = (server: Server, onStopRequested: () => voi
             // server messages into the logger so the headless console and saved logs can see
             // what the game sent; whispers remain private to their recipients.
             if (kind !== 'whisper') server.getLogger().info(text);
-            for (const player of playersOf(server, targets)) {
-                carryOut(player.sendMessage(text, MESSAGE_TYPES[kind]), undefined);
+            for (const session of sessionsOf(server, targets)) {
+                carryOut(session.sendMessage({ message: text, type: MESSAGE_TYPES[kind] }), undefined);
             }
         },
 
         sendTitle: (targets, title) => {
-            for (const player of playersOf(server, targets)) {
-                carryOut(player.getNetworkSession().send(titlePacketOf(title)), undefined);
+            for (const session of sessionsOf(server, targets)) {
+                carryOut(session.send(titlePacketOf(title)), undefined);
             }
         },
 
         shakeCamera: (targets, shake) => {
-            const players = playersOf(server, targets);
-            for (const player of players) {
+            const sessions = sessionsOf(server, targets);
+            for (const session of sessions) {
                 const packet = new CameraShakePacket();
                 packet.intensity = shake.intensity;
                 packet.seconds = shake.seconds;
                 packet.shakeType = SHAKE_TYPES[shake.shakeType];
                 packet.shakeAction = shake.action === 'stop' ? CameraShakeAction.Stop : CameraShakeAction.Add;
-                carryOut(player.getNetworkSession().send(packet), undefined);
+                carryOut(session.send(packet), undefined);
             }
-            return players.length;
+            return sessions.length;
         },
 
         setFog: (targets, change) => {
             let changed = 0;
-            for (const player of playersOf(server, targets)) {
-                const stack = fogStacks.get(player.getRuntimeId()) ?? [];
+            for (const session of sessionsOf(server, targets)) {
+                const stack = fogStacks.get(session.runtimeId) ?? [];
                 const next =
                     change.mode === 'push'
                         ? [...stack, { fogId: change.fogId, userId: change.userId }]
@@ -218,9 +218,9 @@ export const serverSideCommandHost = (server: Server, onStopRequested: () => voi
                             dropLast(stack, change.userId);
                 if (next.length === stack.length && change.mode !== 'push') continue;
 
-                fogStacks.set(player.getRuntimeId(), next);
+                fogStacks.set(session.runtimeId, next);
                 const packet = new PlayerFogPacket({ fogStack: next.map((layer) => layer.fogId) });
-                carryOut(player.getNetworkSession().send(packet), undefined);
+                carryOut(session.send(packet), undefined);
                 changed += 1;
             }
             return changed;

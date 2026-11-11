@@ -39,7 +39,7 @@ import { worldBlockEntities } from '../../world/contentAdapter';
 import { lootLevelOf } from '../../world/lootLevel';
 import { blockContainerAt, insertIntoContainer } from './containers';
 import { BLOCK_CONTAINER_SLOT, setItemSlot } from './inventory';
-import { blockPositionOf, carryOut, refuse, resolveEntity, resolvePlayer, worldOf } from './support';
+import { blockPositionOf, carryOut, refuse, resolveEntity, resolvePlayer, resolveTarget, worldOf } from './support';
 
 /**
  * Java's slot names as the Bedrock group and index `setItemSlot` writes.
@@ -189,8 +189,9 @@ const giveTo = (
 ): number => {
     let given = 0;
     for (const ref of players) {
-        const player = resolvePlayer(server, ref);
-        if (player === undefined) continue;
+        const target = resolveTarget(server, ref);
+        if (target === undefined) continue;
+        const { player, session } = target;
 
         for (const drop of drops) {
             const stack = stackOf(content, drop);
@@ -199,7 +200,7 @@ const giveTo = (
             const leftover = player.getInventory().addItem(new ContainerEntry({ item: stack, count: drop.count }));
             given += drop.count - leftover;
         }
-        carryOut(player.getNetworkSession().sendInventory(), undefined);
+        carryOut(session.sendInventory(), undefined);
     }
     return given;
 };
