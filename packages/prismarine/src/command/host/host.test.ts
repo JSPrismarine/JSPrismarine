@@ -589,21 +589,21 @@ describe('the server command host', () => {
                 const player = playerAt(fixture, 2n, 'Steve', new Vector3(1, 64, 0));
                 await fixture.run(line, player);
                 const [, , source] = pig.damage.mock.calls[0] ?? [];
+                if (!(source instanceof DamageSource)) throw new Error('the pig was not hurt with a DamageSource');
                 return { pig, player, source };
             };
 
             it('has no source entity when the command names none, even from a player', async () => {
                 const { source } = await hurtWith('damage @e[type=pig] 4');
 
-                expect(source).toBeInstanceOf(DamageSource);
-                expect((source as DamageSource).attacker).toBeNull();
+                expect(source.attacker).toBeNull();
             });
 
             it('blames the entity a `by` clause names', async () => {
                 const { player, source } = await hurtWith('damage @e[type=pig] 4 minecraft:fire by @s');
 
                 // The player's body, which is the entity a blow names.
-                expect((source as DamageSource).attacker).toBe(player.shown());
+                expect(source.attacker).toBe(player.shown());
             });
         });
     });
