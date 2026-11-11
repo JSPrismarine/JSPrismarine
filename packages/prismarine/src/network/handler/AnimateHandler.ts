@@ -63,12 +63,11 @@ export default class AnimateHandler implements PacketHandler<AnimatePacket> {
         // across worlds, and at any distance.
         await Promise.all(
             session
-                .getPlayer()
                 .getWorld()
-                .getPlayers()
-                .filter((otherPlayer) => otherPlayer.getRuntimeId() !== session.runtimeId)
-                .filter((otherPlayer) => otherPlayer.getNetworkSession().tracks(session.runtimeId))
-                .map(async (otherPlayer) => otherPlayer.getNetworkSession().send(pk))
+                .getViewers()
+                .filter((viewer) => viewer.runtimeId !== session.runtimeId)
+                .filter((viewer) => viewer.tracks(session.runtimeId))
+                .map(async (viewer) => viewer.send(pk))
         );
     }
 }

@@ -107,10 +107,8 @@ const harness = ({
         gamemode: Gametype.SURVIVAL,
         pitch: 0,
         yaw: 0,
-        sendSettings: record('Settings'),
         getJoinSpawn: () => joinSpawn,
-        getSpawnPoint: () => spawnPoint,
-        kick
+        getSpawnPoint: () => spawnPoint
     });
 
     const connection = stub<ClientConnection>({
@@ -131,6 +129,10 @@ const harness = ({
         runtimeId: 1n,
         identity: identityNamed('runner'),
         getPlayer: () => player,
+        getWorld: () => world,
+        getJoinSpawn: () => joinSpawn,
+        announceSettings: record('Settings'),
+        kick,
         getConnection: () => connection,
         sendCreativeContents: record('CreativeContent'),
         sendCraftingData: record('CraftingData'),
