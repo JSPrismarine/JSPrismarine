@@ -283,6 +283,9 @@ export class PermissionManager implements Service {
         if (op) this.ops.add(uuid);
         else this.ops.delete(uuid);
 
+        // After the change, because the list holds only the commands the player may now run.
+        await target.sendAvailableCommands();
+
         try {
             // Saved before the client is told anything, so a send that fails cannot leave the
             // change in memory alone, to be undone by the next restart.
