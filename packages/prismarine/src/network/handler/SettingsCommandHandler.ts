@@ -1,7 +1,6 @@
-import type Server from '../../Server';
-import type PlayerSession from '../PlayerSession';
 import type SettingsCommandPacket from '@jsprismarine/protocol/packet/SettingsCommandPacket';
-import type PacketHandler from './PacketHandler';
+import type { InputContext } from './HandlerContext';
+import type { InputLaneHandler } from './SessionHandler';
 
 /**
  * A command issued from a settings screen.
@@ -11,15 +10,20 @@ import type PacketHandler from './PacketHandler';
  * Known gap: Suppress Output? is read and ignored, because the command manager has no quiet
  * mode and sends its messages straight to the player.
  */
-export default class SettingsCommandHandler implements PacketHandler<SettingsCommandPacket> {
+export default class SettingsCommandHandler implements InputLaneHandler<SettingsCommandPacket> {
     public static PacketName = 'SettingsCommandPacket';
+    public readonly takes = 'context';
     public readonly phases = ['play'] as const;
     public readonly lane = 'input';
 
     /** Dispatches the command line as the player who sent it. */
-    public async handle(packet: SettingsCommandPacket, server: Server, session: PlayerSession): Promise<void> {
+    public handle(packet: SettingsCommandPacket, { session, services, step }: InputContext): undefined {
         const data = packet.getPacketData();
         if (data === null) throw new Error('Cannot handle a SettingsCommandPacket without decoded data');
-        await server.getCommandManager().dispatchCommand(session, session, data.command);
+        // A command can do anything, and the command manager waits on what it does. Slice 9
+        // removes the wait, unless the command is synchronous by then.
+        step.defer(async () => {
+            await services.commands.dispatchCommand(session, session, data.command);
+        });
     }
 }

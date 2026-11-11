@@ -1,9 +1,8 @@
-import type Server from '../../Server';
-import type PlayerSession from '../PlayerSession';
 import { CommandOutputPacket, CommandOutputType } from '@jsprismarine/protocol';
 import type { CommandRequestPacket } from '@jsprismarine/protocol';
 import CommandOriginType from '@jsprismarine/protocol/wire/structures/CommandOriginType';
-import type PacketHandler from './PacketHandler';
+import type { InputContext } from './HandlerContext';
+import type { InputLaneHandler } from './SessionHandler';
 
 /**
  * A slash command a client typed.
@@ -16,36 +15,39 @@ import type PacketHandler from './PacketHandler';
  * echoes the request's origin, UUID included, and reports whether the command ran as its
  * `Success Count`. The reply carries no messages of its own, since they have already gone out.
  */
-export default class CommandRequestHandler implements PacketHandler<CommandRequestPacket> {
+export default class CommandRequestHandler implements InputLaneHandler<CommandRequestPacket> {
     public static PacketName = 'CommandRequestPacket';
+    public readonly takes = 'context';
     public readonly phases = ['play'] as const;
     public readonly lane = 'input';
 
     /** Dispatches the command as the player who sent it and answers with its outcome. */
-    public async handle(packet: CommandRequestPacket, server: Server, session: PlayerSession): Promise<void> {
+    public handle(packet: CommandRequestPacket, { session, log, services, step }: InputContext): undefined {
         const request = packet.getPacketData();
         if (request === null) throw new Error('CommandRequestPacket has no decoded payload');
         const origin = request.commandOriginData;
 
         if (origin.type !== CommandOriginType.Player) {
-            server
-                .getLogger()
-                .debug(
-                    `Dropped a command request from ${session.identity.name} with origin ${CommandOriginType[origin.type] ?? origin.type}; a client may only send the Player origin`,
-                    'CommandRequestHandler/handle'
-                );
+            log.debug(
+                `Dropped a command request from ${session.identity.name} with origin ${CommandOriginType[origin.type] ?? origin.type}; a client may only send the Player origin`,
+                'CommandRequestHandler/handle'
+            );
             return;
         }
 
-        const ran = await server.getCommandManager().dispatchCommand(session, session, request.commandName);
+        // A command can do anything, and the command manager waits on what it does. Slice 9
+        // removes the wait, unless the command is synchronous by then.
+        step.defer(async () => {
+            const ran = await services.commands.dispatchCommand(session, session, request.commandName);
 
-        const output = new CommandOutputPacket({
-            originData: origin,
-            outputType: CommandOutputType.AllOutput,
-            successCount: ran ? 1 : 0,
-            outputMessages: [],
-            dataSet: null
+            const output = new CommandOutputPacket({
+                originData: origin,
+                outputType: CommandOutputType.AllOutput,
+                successCount: ran ? 1 : 0,
+                outputMessages: [],
+                dataSet: null
+            });
+            await session.send(output);
         });
-        await session.send(output);
     }
 }
