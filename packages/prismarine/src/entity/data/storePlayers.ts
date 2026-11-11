@@ -127,6 +127,23 @@ export const leaveStore = (runtime: EntityRuntime, player: StorePlayer, reason: 
 };
 
 /**
+ * Applies a move a store player's client reported: the body's position, look and ground through
+ * `EntityRuntime.applyClientMovement`, which charges the walk and pays for a landing, and the head
+ * yaw, which the player keeps beside its entity because the body has none.
+ *
+ * @returns Whether the player's entity is in `runtime`'s store.
+ */
+export const moveStorePlayer = (
+    runtime: EntityRuntime,
+    player: StorePlayer,
+    movement: Parameters<EntityRuntime['applyClientMovement']>[1] & { readonly headYaw: number }
+): boolean => {
+    if (!runtime.applyClientMovement(player.id, movement)) return false;
+    player.headYaw = movement.headYaw;
+    return true;
+};
+
+/**
  * Builds a store player under an id from the runtime's pool, fills it, and enters it into the
  * store, which is a login and a first spawn in one call.
  *

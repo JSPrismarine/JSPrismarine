@@ -2380,6 +2380,20 @@ export class EntityRuntime implements EntityScene {
     }
 
     /**
+     * The server's move of a body whose client owns it, which the client has to acknowledge: the
+     * body teleports, and the fall in progress ends, as a legacy player's does.
+     *
+     * @returns Whether the entity is one whose client owns its movement.
+     */
+    public teleportPlayer(id: number, position: EntityPosition): boolean {
+        const entity = this.store.get(id);
+        if (entity === undefined || !clientOwnsMovement(entity.identifier)) return false;
+        entity.body.teleportTo(position);
+        this.playerSystems.teleported(entity);
+        return true;
+    }
+
+    /**
      * Damage a component deals its own entity, such as drowning or `minecraft:hurt_on_condition`.
      *
      * Through the pipeline like every other blow, so a hazard that kills runs the death. It shows

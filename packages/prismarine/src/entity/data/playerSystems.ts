@@ -30,7 +30,7 @@ import { EYE_HEIGHT } from '../playerEyes';
 import { breathe } from '../playerBreath';
 import { PlayerComponents } from '../playerComponents';
 import type { PlayerMining } from '../playerComponents';
-import { addExhaustion, addMovementExhaustion, hungerOutcome } from '../playerHunger';
+import { addExhaustion, addJumpExhaustion, addMovementExhaustion, hungerOutcome } from '../playerHunger';
 import { cushions, land, trackFall } from '../playerFall';
 import { beginMeal, cancelMeal, dueMeal } from '../playerMeal';
 import { mineTick, stopCracking } from '../playerMining';
@@ -250,6 +250,29 @@ export class PlayerSystems {
     /** Forgets a store player's unfinished meal, as letting go of the button does. */
     public cancelMeal(entity: DataEntity): void {
         cancelMeal(this.componentsOf(entity));
+    }
+
+    /** Writes whether a store player is sprinting, as its client reports it. */
+    public setSprinting(entity: DataEntity, sprinting: boolean): void {
+        this.componentsOf(entity).set('movement.sprinting', sprinting);
+    }
+
+    /** Writes whether a store player is sneaking, as its client reports it. */
+    public setSneaking(entity: DataEntity, sneaking: boolean): void {
+        this.componentsOf(entity).set('movement.sneaking', sneaking);
+    }
+
+    /** Charges a store player for a jump its client reported, four times over for a sprint jump. */
+    public jumped(entity: DataEntity): void {
+        addJumpExhaustion(this.playerOf(entity).survival);
+    }
+
+    /**
+     * Ends the fall in progress of a store player the server moved, which the runtime calls
+     * beside `MobBody.teleportTo`: a teleport is not a fall, as a legacy player's is not.
+     */
+    public teleported(entity: DataEntity): void {
+        this.componentsOf(entity).set('vitals.fallDistance', 0);
     }
 
     /**
