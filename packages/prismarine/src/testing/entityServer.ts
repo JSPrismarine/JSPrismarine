@@ -1,7 +1,7 @@
 /**
  * The server an entity standing in a test world reaches.
  *
- * An `Entity` takes its server from the world its position names, and then asks it for things
+ * An entity's actor takes its server from its world, and then asks it for things
  * no test ever cares about: the event bus a damage event goes onto, the tick an effect expires
  * on, the content the enchantment step reads. Every entity test used to answer those itself,
  * in an object literal typed `any`, and each one answered a different subset. When `damage`
@@ -50,9 +50,8 @@ export const testContent = (): ServerContent => (sharedContent ??= buildServerCo
 /**
  * A runtime that holds no entity and saves none.
  *
- * A `World` can ask it to tick, save, restore, or route a legacy body. It has no actors, and
- * an unknown legacy body stays with the world. A test about the data path builds a real runtime
- * and passes it.
+ * A `World` can ask it to tick, save or restore. It has no actors. A test about the data path
+ * builds a real runtime and passes it.
  *
  * @returns {LiveEntityRuntime} The inert runtime.
  */

@@ -23,7 +23,7 @@
  * | `player_hurt_entity`, `entity_hurt_player` | the store's `damageCommitted` host fact |
  * | `placed_block` | `useItemOnBlock`, when the block in hand went down |
  * | `enchanted_item` | a row taken at an enchanting table |
- * | `location`, `tick` | `Player.updatePlayer`, every second |
+ * | `location`, `tick` | `PlayerSession.updatePlayer`, every second |
  * | `changed_dimension` | `PlayerSession`, once a dimension change completes |
  * | `consume_item` | the `feed` action in `src/item/actorPort.ts` |
  * | `item_durability_changed` | the `consume-durability` action, beside it |

@@ -4,13 +4,13 @@ import { isInView, VIEW_MARGIN_CHUNKS } from '../world/Proximity';
 /**
  * The parts of an entity a tracker reads.
  *
- * Structural rather than the `Entity` class, so a test can hand this a plain object and so
+ * Structural rather than the `StoreActor` class, so a test can hand this a plain object and so
  * this file does not import half the server to answer a question about distance.
  */
 export interface TrackableEntity {
     getRuntimeId(): bigint;
     getPosition(): Point3;
-    /** How far clients follow this kind of entity, in chunks. See `Entity.getTrackingRange`. */
+    /** How far clients follow this kind of entity, in chunks. See `StoreActor.getTrackingRange`. */
     getTrackingRange(): number;
 }
 

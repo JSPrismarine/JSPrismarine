@@ -11,7 +11,7 @@ import type PacketHandler from './PacketHandler';
  * The docs promise the client an answer either way: a granted change is broadcast as
  * `UpdateAbilitiesPacket`, and a refused one is answered with the player's unchanged
  * abilities so the client reverts. Flight is the one ability the client asks for in play,
- * through its fly button, and the one the server models per player; `Player.setFlying`
+ * through its fly button, and the one the server models per player; `PlayerSession.setFlying`
  * applies it, runs `PlayerToggleFlightEvent`, and broadcasts the result. Every other ability
  * comes from the game mode and op state, so the request is refused by resending the state.
  */

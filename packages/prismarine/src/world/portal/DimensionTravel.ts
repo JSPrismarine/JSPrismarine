@@ -6,8 +6,8 @@
  * timer on the entity. {@link DimensionTravel.resolve} names the world, the feet position and
  * the facing a traveler arrives with, creating the arrival portal or the End platform when the
  * rules say so. {@link DimensionTravel.transfer} moves the entity there, players through the
- * client's dimension change sequence on their session. `Entity.update`, and a store entity's
- * `StoreActor.update`, call the last two once the timer runs out.
+ * client's dimension change sequence on their session. A store entity's `StoreActor.update`
+ * calls the last two once the timer runs out.
  *
  * Every rule is data from {@link PORTALS} and {@link DIMENSION_TRAVEL}; the geometry is
  * chunk 5's in `@jsprismarine/block-behaviors`, reached through the content world adapter of

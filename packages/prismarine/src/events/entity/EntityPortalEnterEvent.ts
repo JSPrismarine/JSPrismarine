@@ -20,7 +20,7 @@ export default class EntityPortalEnterEvent extends Event {
         this.portal = portal;
     }
 
-    /** Who stepped into the portal: a legacy entity, or a store entity through its actor. */
+    /** Who stepped into the portal: a store entity, through its actor. */
     public getEntity(): StoreActor {
         return this.entity;
     }

@@ -3184,9 +3184,8 @@ export default class PlayerSession {
      */
     public queueMoveActor(entity: MovedActor, teleport = false): void {
         // Keyed by entity, so an entity that moved more than once this tick goes out once, at
-        // where it ended up. The legacy entity's `setX`, `setY` and `setZ` each announced a move
-        // of their own, so a diagonal step produced three identical packets naming the same
-        // destination. A `Map` keeps insertion order, so the batch is ordered as before.
+        // where it ended up, rather than one packet for each axis it moved along. A `Map` keeps
+        // insertion order, so the batch is ordered as the moves were.
         this.queuedMoves.set(Number(entity.getRuntimeId()), PlayerSession.movePacketFor(entity, teleport));
     }
 
@@ -3217,7 +3216,7 @@ export default class PlayerSession {
      */
     public async sendAddPlayer(player: ShownPlayer): Promise<void> {
         const context = this.connection.codec.context;
-        // `Player.platformChatId` is still empty because the login handler does not read the
+        // `StorePlayer.platformChatId` is still empty because the login handler does not read the
         // client's platform online id yet. This sends what the player list sends.
         // Mirrors `sendAbilities`. Without these every player showed up to everybody else as
         // a visitor on an unknown platform.

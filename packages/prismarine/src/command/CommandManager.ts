@@ -573,7 +573,7 @@ export class CommandManager implements Service {
         }
 
         // The dispatcher is synchronous and the host verbs park their delivery
-        // on the same queue the legacy bodies use, so everything one command
+        // on one shared queue, so everything one command
         // line started is awaited here before the call returns.
         let results: unknown = [];
         const started = collectAsyncCommands(() => {

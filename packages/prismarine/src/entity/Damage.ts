@@ -6,7 +6,7 @@ import { DamageCause } from './DamageCause';
  * Pure arithmetic and nothing else - no entity, no world, no packets - because these are the
  * numbers players will compare against a wiki, and a formula that can be read on its own is a
  * formula that can be checked. Everything that decides *whether* to hurt something lives in
- * `Entity.damage`; this only says by how much.
+ * the store's damage pipeline; this only says by how much.
  *
  * The order matters and is vanilla's: armor first, then the enchantments on that armor, then
  * resistance. Applying them in any other order gives a different answer, because each one takes

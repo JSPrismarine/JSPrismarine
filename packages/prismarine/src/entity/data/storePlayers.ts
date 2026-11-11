@@ -1,12 +1,12 @@
 /**
- * Players in the entity store, shown to other clients as a legacy player is shown.
+ * Players in the entity store, and how other clients are shown them.
  *
  * A store player is a {@link StorePlayer}: the `minecraft:player` entity, which holds the
  * position, the look, the health, the status effects and the metadata its components project,
  * and beside it the parts the store does not model yet, such as the identity, the inventory, the
- * game mode and the head yaw. {@link StorePlayerActor} shows it through the same
- * `PlayerSession.sendAddPlayer`, abilities, armor and player list entry a legacy player goes
- * through ({@link ShownPlayer}).
+ * game mode and the head yaw. {@link StorePlayerActor} shows it through
+ * `PlayerSession.sendAddPlayer`, the abilities, the armor and the player list entry
+ * ({@link ShownPlayer}).
  *
  * Every move, metadata change and equipment change reaches clients through `StoreActors.sync`,
  * as a mob's does, at most one move a tick. Removal from the store hides the player from every
@@ -181,11 +181,12 @@ export const spawnStorePlayer = (
 };
 
 /**
- * One store player as the network layer and the legacy world code read it.
+ * One store player as the network layer and the world code read it.
  *
  * The position, the look and the status effects come from the store, as a mob's do, and the
  * identity, the head yaw, the game mode, flight and equipment from the {@link StorePlayer}.
- * Where a legacy player and a mob differ in how they are shown, this follows the legacy player.
+ * Where a player and a mob differ in how they are shown, this follows what a client expects of
+ * a player.
  */
 export class StorePlayerActor extends StoreActor implements ShownPlayer {
     /**

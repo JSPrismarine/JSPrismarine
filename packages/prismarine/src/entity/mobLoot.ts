@@ -217,14 +217,14 @@ const PROJECTILE_TYPES: Readonly<Record<string, string>> = {
     'minecraft:small_fireball': 'minecraft:fireball'
 };
 
-/** The little of an entity the loot predicates read, so an `Entity` satisfies it as it is. */
+/** The little of an entity the loot predicates read, so an actor satisfies it as it is. */
 export interface LootEntity {
     getType(): string;
     getPosition(): { getX(): number; getY(): number; getZ(): number };
     /**
      * The inventory, which only something humanlike has. The optional
-     * member is what lets a plain
-     * `Entity` - a skeleton, a cactus - satisfy this type without one.
+     * member is what lets an actor
+     * without one - a skeleton, a cactus - satisfy this type.
      */
     n?(): { getItemInHand(): { asPredicateStack(): PredicateItemStack } };
 }

@@ -24,7 +24,7 @@ export default class EntityDamageEvent extends Event {
         this.source = source;
     }
 
-    /** Who is being hurt: a legacy entity, or a store entity through its actor. */
+    /** Who is being hurt: a store entity, through its actor. */
     public getEntity(): StoreActor {
         return this.entity;
     }

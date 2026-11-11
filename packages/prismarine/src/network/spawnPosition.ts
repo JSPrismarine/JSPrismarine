@@ -4,7 +4,7 @@
  * The client shows the point on its compass and its map, so the packet carries the player's
  * own spawn point when they have one, in the dimension the block stands in, which need not be
  * the dimension the player is standing in. A player with no point of their own is told the
- * level's Overworld spawn in the Overworld, which is where `Player.getRespawnPoint` lands them
+ * level's Overworld spawn in the Overworld, which is where `PlayerSession.getRespawnPoint` lands them
  * without a bed, whatever world they are standing in. Both positions in the packet are
  * `BlockPos`, and a ZigZag varint write truncates toward zero without a word, so a fractional
  * spawn is floored here rather than sent as the wrong block.

@@ -17,7 +17,7 @@ import type PacketHandler from './PacketHandler';
  * 3. the server answers at once with `SearchingForSpawn` at the spawn block, then
  *    `ReadyToSpawn` at the eyes above it, and the client puts its player there;
  * 4. the client sends a `Respawn` player action, and the server sends the living player:
- *    see `Player.respawn`.
+ *    see `PlayerSession.respawn`.
  *
  * When the spawn is in another world, a Nether death with an Overworld bed, step 3 opens with
  * a `ChangeDimension` carrying `Respawn` set, which is what the client asks for in that case
@@ -52,10 +52,10 @@ export default class RespawnHandler implements PacketHandler<RespawnPacket> {
 
         if (player.getHealth() <= 0) {
             // Where the player comes back: the spawn block and the eyes above it, in the world
-            // the spawn is in. `Player.getRespawnPoint` asks the level's search and clears a
+            // the spawn is in. `PlayerSession.getRespawnPoint` asks the level's search and clears a
             // spawn point that no longer holds.
             const point = await session.getRespawnPoint();
-            // The dead body moves world first, facing as it fell; `Player.respawn` then stands
+            // The dead body moves world first, facing as it fell; `PlayerSession.respawn` then stands
             // it at the eyes once the client's `Respawn` action arrives, as in one world.
             if (point.world !== session.getWorld()) {
                 await session.changeWorld({
