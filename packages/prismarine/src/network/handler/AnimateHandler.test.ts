@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
 import type { Logger } from '@jsprismarine/logger';
-import type Player from '../../Player';
 import type Server from '../../Server';
+import { stubPlayerPort } from '../../testing/playerPort.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import { STEVE } from '../../testing/sessionIdentity.test.helper';
 import type { World } from '../../world/World';
@@ -22,7 +22,7 @@ const fakeWorld = () => {
     const toSender: NetworkPacket[] = [];
     const toWatcher: NetworkPacket[] = [];
     const logged: string[] = [];
-    const players: Player[] = [];
+    const players: ReturnType<World['getPlayers']> = [];
     const world = stub<World>({ getPlayers: () => players });
 
     const senderSession: PlayerSession = stub<PlayerSession>({
@@ -32,12 +32,12 @@ const fakeWorld = () => {
         identity: { ...STEVE, name: 'tester' },
         getPlayer: () => sender
     });
-    const sender: Player = stub<Player>({
+    const sender = stubPlayerPort({
         getRuntimeId: () => SELF,
         getWorld: () => world,
         getNetworkSession: () => senderSession
     });
-    const watcher = stub<Player>({
+    const watcher = stubPlayerPort({
         getRuntimeId: () => 8n,
         getWorld: () => world,
         getNetworkSession: () =>
