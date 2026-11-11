@@ -48,6 +48,12 @@ const startCommand = `chmod +x ${executable}\n./${executable}`;
                     <BrandButton href="/guide/running#run-the-prebuilt-server">Run a server</BrandButton>
                     <BrandButton href="/guide/" variant="outline">Read the docs</BrandButton>
                 </div>
+                <nav class="landing__jump" aria-label="Start where you are">
+                    <span aria-hidden="true">Start as</span>
+                    <a v-for="audience in audiences" :key="audience.id" :href="`#start-${audience.id}`">{{
+                        audience.tab
+                    }}</a>
+                </nav>
                 <dl class="landing__facts">
                     <div>
                         <dt>builds, no Node.js needed</dt>
@@ -66,14 +72,10 @@ const startCommand = `chmod +x ${executable}\n./${executable}`;
                         <dd>{{ project.license }}</dd>
                     </div>
                 </dl>
-                <nav class="landing__jump" aria-label="Start where you are">
-                    <span aria-hidden="true">Start as</span>
-                    <a v-for="audience in audiences" :key="audience.id" :href="`#start-${audience.id}`">{{
-                        audience.tab
-                    }}</a>
-                </nav>
             </div>
             <div class="landing__stage">
+                <!-- The console's first line is the command a host runs, so it can be copied from the hero. -->
+                <CopyButton class="landing__stage-copy" :text="startCommand" />
                 <TerminalWindow>
                     <span class="t-line"><span class="t-prompt">$</span> ./{{ executable }}</span>
                     <span class="t-line"
@@ -297,7 +299,7 @@ const startCommand = `chmod +x ${executable}\n./${executable}`;
     flex-wrap: wrap;
     gap: 6px;
     align-items: center;
-    margin: 0 0 8px;
+    margin: 12px 0 24px;
 }
 
 .landing__jump span {
@@ -345,6 +347,17 @@ const startCommand = `chmod +x ${executable}\n./${executable}`;
 .landing__stage {
     align-self: end;
     margin-bottom: 24px;
+}
+
+.landing__stage {
+    position: relative;
+}
+
+.landing__stage-copy {
+    position: absolute;
+    top: 46px;
+    right: 14px;
+    z-index: 1;
 }
 
 .landing__stage :deep(.terminal) {

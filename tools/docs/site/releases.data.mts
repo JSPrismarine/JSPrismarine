@@ -152,7 +152,7 @@ export { data };
  */
 function markChange(html: string) {
     return html
-        .replace(/^<p>([^<]+?[.!?])(?=\s|<\/p>)/, '<p><strong class="release__lead">$1</strong>')
+        .replace(/^<p>((?:[^<.!?]|<[^>]+>)+?[.!?])(?=\s|<\/p>)/, '<p><strong class="release__lead">$1</strong>')
         .replace(/<p>(?=(?:Breaking|Removed)\b)/g, '<p class="release__breaking">');
 }
 

@@ -8,6 +8,7 @@ import {
     trackerProgressTotal
 } from '../../../../../packages/parity/src/dashboard/trackerProgress.ts';
 import { groupProgress, useTrackerSnapshot } from './parity';
+import SiteBreadcrumb from './site-menu/SiteBreadcrumb.vue';
 
 const statuses = [
     { id: 'all', label: 'Any status' },
@@ -127,6 +128,8 @@ const percentage = trackerProgressPercent;
 
 <template>
     <main v-if="tracker" class="tracker">
+        <!-- A full-width page has no doc chrome, so the tracker places the breadcrumb itself. -->
+        <SiteBreadcrumb class="tracker-crumb" />
         <header class="tracker-hero">
             <p class="tracker-eyebrow">
                 <i></i>Parity tracker · generated
@@ -266,8 +269,8 @@ const percentage = trackerProgressPercent;
                         <span class="family-count">{{ family.matchCount }} matching cases</span>
                     </span>
                     <span class="family-progress">
-                        <span
-                            >{{ family.passed }}/{{ trackerProgressTotal(family) }} tracked passing ·
+                        <span :class="{ 'is-gap': family.passed * 2 < trackerProgressTotal(family) }"
+                            >{{ family.passed }}/{{ trackerProgressTotal(family) }} ·
                             {{ percentage(family.passed, trackerProgressTotal(family)) }}%</span
                         >
                         <progress
@@ -648,6 +651,7 @@ progress::-moz-progress-bar {
 }
 
 /* A group under half passing carries a signal square: the open gaps stand out from the finished groups. */
+.family-progress .is-gap::before,
 .group-option-count b.is-gap::before {
     display: inline-block;
     width: 9px;
@@ -1041,5 +1045,8 @@ progress::-moz-progress-bar {
     .case-more button {
         min-height: var(--jsp-target);
     }
+}
+.tracker-crumb {
+    margin: 4px 4px 10px;
 }
 </style>

@@ -68,10 +68,15 @@ function textOf(html: string) {
     );
 }
 
-/** The leading sentence or two of a text, cut at a word boundary. */
+/**
+ * The leading sentence or two of a text. It ends at the last full sentence that fits, when that keeps
+ * at least half the length, and otherwise at a word boundary with an ellipsis.
+ */
 function excerpt(text: string, length = EXCERPT_LENGTH) {
     if (text.length <= length) return text;
     const cut = text.slice(0, length);
+    const sentenceEnd = Math.max(...['. ', '? ', '! '].map((end) => cut.lastIndexOf(end)));
+    if (sentenceEnd >= length / 2) return cut.slice(0, sentenceEnd + 1);
     return `${cut.slice(0, Math.max(cut.lastIndexOf(' '), length - 20))}…`;
 }
 

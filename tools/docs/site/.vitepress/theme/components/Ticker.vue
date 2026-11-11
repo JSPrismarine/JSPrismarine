@@ -2,15 +2,20 @@
 import { computed, ref } from 'vue';
 
 const props = defineProps<{ items: string[] }>();
-/** Two identical halves let the -50% translation loop without a visible jump. */
-const line = computed(() => `${props.items.join(' · ')} · `.repeat(4));
+/** Two identical halves of four rounds each let the -50% translation loop without a visible jump. */
+const loop = computed(() => Array.from({ length: 8 }, () => props.items).flat());
 /** Moving content needs a way to stop it, for readers who have not set reduced motion. */
 const paused = ref(false);
 </script>
 
 <template>
     <div class="ticker" :class="{ 'is-paused': paused }">
-        <div class="ticker__track" aria-hidden="true">{{ line }}{{ line }}</div>
+        <div class="ticker__track" aria-hidden="true">
+            <template v-for="(item, index) in loop" :key="index"
+                ><span>{{ item }}</span
+                ><i class="ticker__mark"></i
+            ></template>
+        </div>
         <button class="ticker__toggle" type="button" :aria-pressed="paused" @click="paused = !paused">
             {{ paused ? 'Play' : 'Pause' }}
         </button>
@@ -31,8 +36,20 @@ const paused = ref(false);
     border-radius: var(--jsp-radius-panel);
 }
 
+/* Signal squares separate the phrases: the small spot of orange the brand allows. */
+.ticker__mark {
+    display: inline-block;
+    width: 0.32em;
+    height: 0.32em;
+    margin: 0 0.5em;
+    vertical-align: 0.18em;
+    background: var(--jsp-signal);
+}
+
 .ticker__track {
     display: inline-block;
+    /* The first phrase starts inside the band, not against its edge. */
+    padding-left: 0.5em;
     animation: ticker 40s linear infinite;
 }
 

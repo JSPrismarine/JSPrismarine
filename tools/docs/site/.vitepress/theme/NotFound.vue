@@ -18,6 +18,7 @@ const route = useRoute();
             <span class="t-line"
                 ><span class="t-warn">[warn]</span> Unknown page. It may have moved or been renamed.</span
             >
+            <span class="t-line"><span class="t-prompt">&gt;</span> <span class="t-cursor"></span></span>
         </TerminalWindow>
         <p>Search with <kbd>/</kbd>, or start from one of these.</p>
         <div class="not-found__links">
@@ -47,6 +48,7 @@ const route = useRoute();
 
 .not-found h1 {
     margin: 0;
+    text-wrap: balance;
     font-size: clamp(36px, 7vw, 64px);
     font-weight: 800;
     line-height: 0.95;
@@ -66,6 +68,13 @@ const route = useRoute();
     display: flex;
     flex-wrap: wrap;
     gap: 14px;
+}
+
+@media (max-width: 480px) {
+    .not-found__links :deep(.brand-button) {
+        flex: 1 1 100%;
+        text-align: center;
+    }
 }
 
 .not-found__report a {

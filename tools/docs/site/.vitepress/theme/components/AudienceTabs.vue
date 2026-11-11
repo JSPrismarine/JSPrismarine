@@ -266,9 +266,10 @@ function onKeydown(event: KeyboardEvent) {
         text-align: center;
     }
 
-    /* On a phone a tab is its audience alone, in sentence case so it fits; the panel below carries the title. */
+    /* On a phone the audience reads in sentence case so it fits, with what it gets set small beneath. */
     .audience-tabs__hint {
-        display: none;
+        font-size: 13px;
+        font-weight: 700;
     }
 
     .audience-tabs__tab {

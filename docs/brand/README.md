@@ -126,6 +126,9 @@ scrolling off the screen edge, and a two-column table stacks each row as its nam
   links set those sections as cards (`sectionCards.ts`).
 - Release notes lead each change with its first sentence in bold. Inline code in them is mono and
   colored without a chip.
+- The parity tracker carries the site breadcrumb, and its rows and group tiles mark anything under
+  half passing with a signal square.
+- Menu and search previews end on a whole sentence where one fits.
 - The header's Search is a control, not a primary action: an edge and no offset shadow.
 
 ## The landing page

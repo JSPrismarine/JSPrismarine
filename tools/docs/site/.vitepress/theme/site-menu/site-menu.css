@@ -403,8 +403,13 @@
 
 .site-panel__preview p,
 .site-search__preview p {
+    /* A clean four-line excerpt rather than a sentence cut wherever the index stopped. */
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 6;
     margin: 0;
-    font-size: 13px;
+    font-size: 14px;
     line-height: 1.5;
     color: color-mix(in srgb, var(--jsp-cream) 75%, var(--jsp-mint));
 }
@@ -833,8 +838,8 @@
 }
 
 .site-sheet__foot {
-    position: sticky;
-    bottom: 0;
+    /* At the end of the list, not pinned over it, so no section is ever half hidden. */
+    position: static;
     display: flex;
     flex-wrap: wrap;
     gap: 8px;

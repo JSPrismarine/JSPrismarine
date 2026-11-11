@@ -162,7 +162,7 @@ const shown = computed(() => {
 .package-card nav a {
     display: inline-flex;
     align-items: center;
-    min-height: 34px;
+    min-height: 36px;
     padding: 4px 14px;
     font: 700 var(--jsp-label-size) var(--vp-font-family-mono);
     color: var(--vp-c-text-1);
