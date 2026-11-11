@@ -1,0 +1,251 @@
+name: Native network
+
+# Builds @jsprismarine/native-network's library for every platform it ships, checks that each
+# build depends on nothing a bare machine lacks, loads it under Node.js and Bun, and installs the
+# packed package from consumer projects. Run by hand with `publish` set, it also attaches the
+# builds to a GitHub release named for the native sources' hash and commits the manifest that
+# points at them to the branch it ran on.
+on:
+    pull_request:
+        paths:
+            - 'packages/native-network/**'
+            - '.github/workflows/native-network.yml'
+    push:
+        branches:
+            - master
+        paths:
+            - 'packages/native-network/**'
+            - '.github/workflows/native-network.yml'
+    workflow_dispatch:
+        inputs:
+            publish:
+                description: 'Attach the builds to a release and commit the manifest to this branch'
+                required: false
+                type: boolean
+                default: false
+
+concurrency:
+    group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+    cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+    contents: read
+
+env:
+    HUSKY: 0
+
+jobs:
+    build:
+        name: 🔨 Build (${{ matrix.platform }})
+        strategy:
+            fail-fast: false
+            matrix:
+                include:
+                    # Linux builds run in containers: Debian 12 sets the glibc floor at 2.36, and
+                    # Alpine builds against musl. Their compilers are build tools, not user ones.
+                    - platform: linux-x64-gnu
+                      runner: ubuntu-latest
+                      image: node:26-bookworm
+                    - platform: linux-arm64-gnu
+                      runner: ubuntu-24.04-arm
+                      image: node:26-bookworm
+                    - platform: linux-x64-musl
+                      runner: ubuntu-latest
+                      image: node:26-alpine
+                    - platform: linux-arm64-musl
+                      runner: ubuntu-24.04-arm
+                      image: node:26-alpine
+                    - platform: darwin-arm64
+                      runner: macos-latest
+                    - platform: win32-x64
+                      runner: windows-latest
+                      msvc: x64
+        runs-on: ${{ matrix.runner }}
+        steps:
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+            - name: 🐧 Build in ${{ matrix.image }}
+              if: ${{ matrix.image != '' }}
+              run: |
+                  docker run --rm -v "$PWD:/work" -w /work ${{ matrix.image }} sh -euc '
+                      if command -v apk >/dev/null; then
+                          apk add --no-cache build-base cmake git perl linux-headers
+                      else
+                          apt-get update -qq && apt-get install -y -qq cmake >/dev/null
+                      fi
+                      git config --global --add safe.directory /work
+                      node packages/native-network/scripts/build-native.mts --out /work/out
+                      node packages/native-network/scripts/check-native-deps.mts out/libjsp_native_network.so ${{ matrix.platform }}
+                  '
+
+            - name: 🏎️ Setup Node
+              if: ${{ matrix.image == '' }}
+              uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+              with:
+                  node-version-file: '.nvmrc'
+
+            - name: 🪟 Use the MSVC tools
+              if: ${{ matrix.msvc != '' }}
+              uses: ilammy/msvc-dev-cmd@0b201ec74fa43914dc39ae48a89fd1d8cb592756 # v1.13.0
+              with:
+                  arch: ${{ matrix.msvc }}
+
+            - name: 🔨 Build
+              if: ${{ matrix.image == '' }}
+              shell: bash
+              run: |
+                  node packages/native-network/scripts/build-native.mts --out "$PWD/out"
+                  # The shared library, whichever extension this platform gives it.
+                  for candidate in out/libjsp_native_network.so out/libjsp_native_network.dylib out/libjsp_native_network.dll; do
+                      if [ -f "$candidate" ]; then library="$candidate"; fi
+                  done
+                  node packages/native-network/scripts/check-native-deps.mts "$library" ${{ matrix.platform }}
+
+            - name: 🏷️ Name the files for the release
+              shell: bash
+              run: |
+                  mkdir -p artifacts
+                  for file in out/libjsp_native_network.*; do
+                      cp "$file" "artifacts/${{ matrix.platform }}-$(basename "$file")"
+                  done
+                  cp out/build.json "artifacts/${{ matrix.platform }}.build.json"
+                  cat out/build.json
+
+            - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+              with:
+                  name: native-${{ matrix.platform }}
+                  path: artifacts/
+                  if-no-files-found: error
+
+    test:
+        name: 🧪 Load and connect (${{ matrix.platform }})
+        needs: build
+        strategy:
+            fail-fast: false
+            matrix:
+                include:
+                    - platform: linux-x64-gnu
+                      runner: ubuntu-latest
+                      bare: node:26-bookworm-slim
+                    - platform: linux-arm64-gnu
+                      runner: ubuntu-24.04-arm
+                      bare: node:26-bookworm-slim
+                    - platform: linux-x64-musl
+                      runner: ubuntu-latest
+                      bare: node:26-alpine
+                      musl: true
+                    - platform: linux-arm64-musl
+                      runner: ubuntu-24.04-arm
+                      bare: node:26-alpine
+                      musl: true
+                    - platform: darwin-arm64
+                      runner: macos-latest
+                    - platform: win32-x64
+                      runner: windows-latest
+        runs-on: ${{ matrix.runner }}
+        steps:
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+            - name: 📦 Install
+              uses: ./.github/common/install
+
+            - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+              with:
+                  name: native-${{ matrix.platform }}
+                  path: artifacts
+
+            - name: 📍 Put the build where a local build goes
+              shell: bash
+              run: |
+                  dir="packages/native-network/prebuilds/${{ matrix.platform }}"
+                  mkdir -p "$dir"
+                  for file in artifacts/${{ matrix.platform }}-libjsp_native_network.*; do
+                      cp "$file" "$dir/${file#artifacts/${{ matrix.platform }}-}"
+                  done
+                  cp "artifacts/${{ matrix.platform }}.build.json" "$dir/build.json"
+
+            - name: 🐰 Setup Bun
+              if: ${{ !matrix.musl }}
+              uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+
+            # On the runner for glibc, macOS and Windows; the musl builds run in Alpine below.
+            - name: 🧪 Peer connections, the shared port and the installer
+              if: ${{ !matrix.musl }}
+              shell: bash
+              env:
+                  JSP_NATIVE_NETWORK_REQUIRE: '1'
+              run: pnpm exec vitest run packages/native-network
+
+            - name: 📦 Load in a bare ${{ matrix.bare }}
+              if: ${{ matrix.bare != '' }}
+              run: |
+                  docker run --rm -v "$PWD:/work" -w /work/packages/native-network ${{ matrix.bare }} \
+                      node --import tsx src/testing/loopback-main.ts 0 | tee loopback.json
+                  grep -q '"bytesReceived":100000' loopback.json
+
+    consumer:
+        name: 📥 Install from a consumer project
+        needs: build
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+            - name: 📦 Install
+              uses: ./.github/common/install
+
+            - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+              with:
+                  pattern: native-*
+                  path: artifacts
+                  merge-multiple: true
+
+            - name: 🐰 Setup Bun
+              uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+
+            - name: 📥 npm, pnpm and Bun, with and without approving the install script
+              run: node packages/native-network/scripts/consumer-test.mts "$PWD/artifacts"
+
+    publish:
+        name: 🚚 Publish the builds
+        needs: [build, test, consumer]
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.publish }}
+        runs-on: ubuntu-latest
+        permissions:
+            contents: write
+        env:
+            GH_TOKEN: ${{ github.token }}
+        steps:
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+            - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+              with:
+                  node-version-file: '.nvmrc'
+
+            - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+              with:
+                  pattern: native-*
+                  path: artifacts
+                  merge-multiple: true
+
+            - name: 🏷️ Attach the builds to the release for these sources
+              id: release
+              run: |
+                  hash=$(node --input-type=module -e "import { nativeSourceHash } from './packages/native-network/src/nativeHash.ts'; console.log(nativeSourceHash('packages/native-network'))")
+                  tag="native-network-build-$hash"
+                  echo "tag=$tag" >> "$GITHUB_OUTPUT"
+                  if ! gh release view "$tag" >/dev/null 2>&1; then
+                      gh release create "$tag" --prerelease --target "$GITHUB_SHA" \
+                          --title "Native network library $hash" \
+                          --notes "Builds of @jsprismarine/native-network's library from native sources $hash. Packages download them at install; their manifest records each file's SHA-256."
+                  fi
+                  gh release upload "$tag" artifacts/*-libjsp_native_network.* --clobber
+
+            - name: 📝 Commit the manifest
+              run: |
+                  node packages/native-network/scripts/write-manifest.mts --artifacts artifacts \
+                      --base-url "https://github.com/${GITHUB_REPOSITORY}/releases/download/${{ steps.release.outputs.tag }}"
+                  git config user.name 'github-actions[bot]'
+                  git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+                  git add packages/native-network/native/manifest.json
+                  git commit -m "build(native-network): point the manifest at ${{ steps.release.outputs.tag }}"
+                  git push origin "HEAD:${GITHUB_REF_NAME}"
