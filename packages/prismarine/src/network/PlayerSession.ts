@@ -508,8 +508,8 @@ export default class PlayerSession {
      * {@link PlayerSession.getPlayer} throws. Paired with {@link PlayerSession.enable} and safe to
      * call more than once.
      *
-     * `ClientConnection.closePlayerSession` runs this after `Player.disable` has saved the
-     * player, and whether or not that succeeded or the join ever completed.
+     * {@link PlayerSession.leave} runs this after `Player.disable` has saved the player, and
+     * whether or not that succeeded or the join ever completed.
      * @group Lifecycle
      */
     public disable(): void {
@@ -520,6 +520,23 @@ export default class PlayerSession {
         const key = playerKeyOf(this.identity);
         forgetAdvancements(key);
         forgetEnchantmentSeed(key);
+    }
+
+    /**
+     * Takes the player off the server and then this session down with it: `Player.disable` saves
+     * the player, takes it out of its world and the player list and says it left, and
+     * {@link PlayerSession.disable} runs whether or not that succeeded.
+     *
+     * `ClientConnection.closePlayerSession` calls this once per connection.
+     * @throws {Error} What the player's leave threw, after the session is disabled.
+     * @group Lifecycle
+     */
+    public async leave(): Promise<void> {
+        try {
+            await this.getPlayer().disable();
+        } finally {
+            this.disable();
+        }
     }
 
     /** The queue the scheduler drains - see {@link ChunkRecipient}. */

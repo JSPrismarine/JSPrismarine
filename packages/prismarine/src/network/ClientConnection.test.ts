@@ -3,7 +3,6 @@ import { describe, expect, it, vi } from 'vitest';
 import type { Logger } from '@jsprismarine/logger';
 import { DisconnectReason } from '@jsprismarine/minecraft';
 import { DisconnectPacket } from '@jsprismarine/protocol';
-import type Player from '../Player';
 import { stub } from '../testing/stub.test.helper';
 import ClientConnection from './ClientConnection';
 import type PlayerSession from './PlayerSession';
@@ -15,25 +14,10 @@ describe('network', () => {
         const fakeConnection = () =>
             new ClientConnection(stub<TransportConnection>(), stub<Logger>({ isEnabled: () => false }));
 
-        /**
-         * A player whose teardown is `disable`.
-         *
-         * Set after the fact rather than passed as a literal: `Entity` declares `constructor`
-         * as the class itself, which an object literal's `Function` does not satisfy.
-         */
-        const fakePlayer = (disable: Player['disable']) => {
-            const player = stub<Player>();
-            player.disable = disable;
-            return player;
-        };
-
-        /** A session and the player behind it, both recording what was released. */
+        /** A session that records each time it is asked to leave. */
         const fakePair = () => {
             const released: string[] = [];
-            const session = stub<PlayerSession>({
-                getPlayer: () => fakePlayer(async () => void released.push('player')),
-                disable: () => void released.push('session')
-            });
+            const session = stub<PlayerSession>({ leave: async () => void released.push('session') });
 
             return { session, released };
         };
@@ -61,17 +45,14 @@ describe('network', () => {
             expect(() => connection.attachPlayerSession(session)).toThrow(/already created/);
         });
 
-        it('releases the player and the session together', async () => {
+        it('has the session take the player and itself down', async () => {
             const { session, released } = fakePair();
             const connection = fakeConnection();
 
             connection.attachPlayerSession(session);
             await connection.closePlayerSession();
 
-            // Both, and the session last: its place in the chunk rotation outlives the
-            // player's own teardown, and leaving it behind is what grew the scheduler's set
-            // for the life of the server.
-            expect(released).toStrictEqual(['player', 'session']);
+            expect(released).toStrictEqual(['session']);
             expect(connection.getPlayerSession()).toBeNull();
         });
 
@@ -85,24 +66,21 @@ describe('network', () => {
             await connection.closePlayerSession();
             await connection.closePlayerSession();
 
-            expect(released).toStrictEqual(['player', 'session']);
+            expect(released).toStrictEqual(['session']);
         });
 
-        it('still releases the session when the player fails to shut down', async () => {
-            const disable = vi.fn<() => void>();
+        it('lets go of the session when its leave fails', async () => {
             const session = stub<PlayerSession>({
-                getPlayer: () =>
-                    fakePlayer(async () => {
-                        throw new Error('world unavailable');
-                    }),
-                disable
+                leave: async () => {
+                    throw new Error('world unavailable');
+                }
             });
 
             const connection = fakeConnection();
             connection.attachPlayerSession(session);
 
             await expect(connection.closePlayerSession()).rejects.toThrow('world unavailable');
-            expect(disable).toHaveBeenCalledOnce();
+            expect(connection.getPlayerSession()).toBeNull();
         });
 
         it('sends the goodbye uncompressed until compression has been negotiated', async () => {

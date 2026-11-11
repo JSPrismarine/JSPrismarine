@@ -61,7 +61,7 @@ export default class ClientConnection extends MinecraftSession {
      *
      * The session belongs to the connection, which is what the packet dispatcher looks it up
      * on - see `Server`, which routes to `getPlayerSession() ?? this`. It used to be built by
-     * the `Player` and merely adopted here, which is what made the player and the session
+     * the player and merely adopted here, which is what made the player and the session
      * import each other at runtime.
      *
      * @param session - the session built for this connection by `createConnectedPlayer`
@@ -77,20 +77,16 @@ export default class ClientConnection extends MinecraftSession {
      *
      * The single teardown entry point: a kick, a transport disconnect and a failed join all
      * arrive here, and whichever gets here first does the work. The session is detached
-     * before anything is awaited so that a second caller finds nothing to do, and the
-     * session's own release runs even if the player's fails.
+     * before anything is awaited so that a second caller finds nothing to do. The session's
+     * {@link PlayerSession.leave} takes the player down and then itself, even if the player's
+     * part fails.
      */
     public async closePlayerSession(): Promise<void> {
         const session = this.playerSession;
         if (session === null) return;
 
         this.playerSession = null;
-
-        try {
-            await session.getPlayer().disable();
-        } finally {
-            session.disable();
-        }
+        await session.leave();
     }
 
     /**
