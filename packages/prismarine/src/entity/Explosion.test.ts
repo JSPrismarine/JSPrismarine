@@ -18,14 +18,14 @@ import type { Block } from '../block/Block';
 import type { Item } from '../item/Item';
 import { Dimensions } from '../world/Dimension';
 import { GameRules } from '../world/GameRuleManager';
-import { Position } from '../world/Position';
 import type { World } from '../world/World';
 import { DamageCause } from './DamageCause';
-import { EntityIndex } from './data/entityIndex';
+import type { DamageSource } from './DamageSource';
+import { DEFAULT_BOX } from './data/facts';
+import type { LiveEntityRuntime } from './data/live';
+import type { StoreActor, StoreActors } from './data/storeActors';
+import { entityFixture } from './data/testing';
 import { explode } from './Explosion';
-import { Attribute, AttributeIds } from '@jsprismarine/protocol/wire/structures/Attribute';
-import { GenericEntity } from '../testing/genericEntity.test.helper';
-import { inertEntityRuntime } from '../testing/entityServer';
 
 /** @see {@link emptyContent} */
 let bareBuild: ServerContent | undefined;
@@ -51,8 +51,22 @@ const emptyContent = (): ServerContent =>
  */
 const scene = ({ griefing = true, solid = false, block = '', content = emptyContent() } = {}) => {
     const blockName = block !== '' ? block : solid ? 'minecraft:stone' : 'minecraft:air';
-    // The real one, so a blast finds what it catches the way a live world's does.
-    const index = new EntityIndex();
+    // A real store, so a blast finds what it catches through the index the way a live world's
+    // does. Its actors are doubles that keep the blows they took, which is what is checked here;
+    // `live.test.ts` runs a blast through the store's damage pipeline.
+    const store = entityFixture().runtime;
+    const caught = new Map<number, Caught>();
+    const live = stub<LiveEntityRuntime>({
+        runtime: store,
+        actors: stub<StoreActors>({ actorOf: (id: number) => caught.get(id)?.actor }),
+        damageEntity: (actor: StoreActor, amount: number, source: DamageSource) => {
+            const hit = caught.get(actor.entity.id);
+            if (hit === undefined) return undefined;
+            hit.health = Math.max(0, hit.health - amount);
+            hit.lastSource = source;
+            return amount > 0;
+        }
+    });
     const effects: LevelEvent[] = [];
     const cleared: string[] = [];
     const dropped: Array<{ at: ContentPosition; names: string[] }> = [];
@@ -79,14 +93,13 @@ const scene = ({ griefing = true, solid = false, block = '', content = emptyCont
         sendActorSound: async () => {},
         sendActorMetadata: async () => {},
         sendWorldEvent: async (_at: unknown, event: LevelEvent) => void effects.push(event),
-        entityRelocated: (entity) => index.refileLegacy(entity),
         broadcastMove: async () => {},
         playNamedSound: () => {},
         getGameRuleManager: () =>
             stub<ReturnType<World['getGameRuleManager']>>({
                 getGameRule: (name: string) => [name === GameRules.MobGriefing ? griefing : true, true]
             }),
-        getEntityIndex: () => index,
+        getEntityIndex: () => store.index,
         loadedBlockAt: () => ({ name: blockName, states: {} }),
         loadedBlockRuntimeIdAt: () => runtimeId,
         setLoadedBlockState: (x: number, y: number, z: number) => {
@@ -96,21 +109,41 @@ const scene = ({ griefing = true, solid = false, block = '', content = emptyCont
         dropFromBlock: async (at: ContentPosition, contents: Array<Block | Item | null>) =>
             void dropped.push({ at, names: contents.flatMap((item) => (item === null ? [] : [item.getName()])) }),
         getLoadedChunk: () => null,
-        dataEntities: () => inertEntityRuntime()
+        dataEntities: () => live
     });
 
     /**
-     * A body in the blast, with the health the caller wants to watch come off it.
+     * A store entity in the blast, with the health the caller wants to watch come off it.
      *
-     * `GenericEntity` is what the data-driven runtime gives every mob, so it is what a blast
-     * actually catches. The shove is recorded rather than applied: the base entity has no
-     * velocity to spend, and what this scene checks is that the blast asked for one.
+     * Filed in the store's index as a cow, whatever the type it reports, because the index is all
+     * a blast reads of the store. The shove is recorded rather than applied, because what this
+     * scene checks is that the blast asked for one.
      */
-    const spawn = (identifier: string, x = 0, z = 0, health = 10): Shoved => {
-        const entity = new Shoved({ identifier, position: new Position(x, 64, z, world) });
-        entity.attributes.setAttribute(new Attribute({ name: AttributeIds.Health, min: 0, max: health, def: health }));
-        index.addLegacy(entity);
-        return entity;
+    const spawn = (identifier: string, x = 0, z = 0, health = 10): Caught => {
+        const entity = store.spawn('minecraft:cow', { x, y: 64, z });
+        if (entity === undefined) throw new Error('the fixture declares no cow');
+        const hit: Caught = {
+            health,
+            lastSource: undefined,
+            shove: undefined,
+            actor: stub<StoreActor>({
+                entity,
+                getRuntimeId: () => BigInt(entity.id),
+                getType: () => identifier,
+                getPosition: () => new Vector3(entity.position.x, entity.position.y, entity.position.z),
+                getFeetY: () => entity.position.y,
+                getBox: () => DEFAULT_BOX,
+                isAlive: () => hit.health > 0,
+                applyKnockback: (x: number, z: number, strength: number) => {
+                    hit.shove = { x, z, strength };
+                }
+            }),
+            moveTo: (toX, toZ) => {
+                entity.position = { x: toX, y: 64, z: toZ };
+            }
+        };
+        caught.set(entity.id, hit);
+        return hit;
     };
 
     return { world, spawn, effects, cleared, dropped };
@@ -143,13 +176,15 @@ const blastContentOptions = () =>
         }
     });
 
-/** A body that remembers the shove it was given instead of spending it. */
-class Shoved extends GenericEntity {
-    public shove: { x: number; z: number; strength: number } | undefined;
-
-    public override applyKnockback(directionX: number, directionZ: number, strength: number): void {
-        this.shove = { x: directionX, z: directionZ, strength };
-    }
+/** A store entity a scene put in the blast's way, and what the blast did to it. */
+interface Caught {
+    readonly actor: StoreActor;
+    health: number;
+    lastSource: DamageSource | undefined;
+    /** The shove it was given, kept instead of spent. */
+    shove: { x: number; z: number; strength: number } | undefined;
+    /** Moves it in the store, which refiles it in the index. */
+    moveTo(x: number, z: number): void;
 }
 
 /**
@@ -165,7 +200,7 @@ const blastAt = async (distance: number): Promise<number> => {
 
     await explode(stage.world, new Vector3(0, 64, 0), { power: 3, breaksBlocks: false });
 
-    return 100 - golem.getHealth();
+    return 100 - golem.health;
 };
 
 describe('explosions', () => {
@@ -179,7 +214,7 @@ describe('explosions', () => {
         const cow = stage.spawn('minecraft:cow', 0, 0);
         await explode(stage.world, new Vector3(0, 64, 0), { power: 3, breaksBlocks: false });
 
-        expect(cow.isAlive()).toBe(false);
+        expect(cow.health).toBe(0);
     });
 
     it('falls away steeply with distance', async () => {
@@ -195,12 +230,12 @@ describe('explosions', () => {
     it('catches an entity where it moved to earlier in the tick', async () => {
         const moved = stage.spawn('minecraft:cow', 40, 0);
         const stayed = stage.spawn('minecraft:cow', 40, 2);
-        await moved.setPosition({ position: new Vector3(0, 64, 0) });
+        moved.moveTo(0, 0);
 
         await explode(stage.world, new Vector3(0, 64, 0), { power: 3, breaksBlocks: false });
 
-        expect(moved.isAlive()).toBe(false);
-        expect(stayed.getHealth()).toBe(10);
+        expect(moved.health).toBe(0);
+        expect(stayed.health).toBe(10);
     });
 
     it('does nothing at all past twice its power', async () => {
@@ -215,17 +250,21 @@ describe('explosions', () => {
 
         await explode(walled.world, new Vector3(0, 64, 0), { power: 3 });
 
-        expect(100 - golem.getHealth()).toBe(1);
+        expect(100 - golem.health).toBe(1);
     });
 
     it('reports itself as an explosion, and names who set it off', async () => {
         const creeper = stage.spawn('minecraft:creeper', 0, 0);
         const cow = stage.spawn('minecraft:cow', 4, 0);
 
-        await explode(stage.world, new Vector3(0, 64, 0), { power: 3, source: creeper, breaksBlocks: false });
+        await explode(stage.world, new Vector3(0, 64, 0), {
+            power: 3,
+            source: creeper.actor,
+            breaksBlocks: false
+        });
 
-        expect(cow.getLastDamageSource()?.cause).toBe(DamageCause.Explosion);
-        expect(cow.getLastDamageSource()?.attacker).toBe(creeper);
+        expect(cow.lastSource?.cause).toBe(DamageCause.Explosion);
+        expect(cow.lastSource?.attacker).toBe(creeper.actor);
     });
 
     it('throws what it hurts away from the center', async () => {
@@ -298,7 +337,7 @@ describe('explosions', () => {
 
             await explode(polite.world, new Vector3(0, 64, 0), { power: 3 });
 
-            expect(cow.getHealth()).toBeLessThan(10);
+            expect(cow.health).toBeLessThan(10);
         });
 
         it('drops nothing for a block the pack stack has no loot table for', async () => {

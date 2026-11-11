@@ -27,17 +27,8 @@ import type { World } from '../world/World';
 import { DEFAULT_FUSE_TICKS, randomShortFuse } from './fuse';
 import { DamageCause } from './DamageCause';
 import { DamageSource } from './DamageSource';
-import type { WorldActor } from '../world/WorldActor';
-import { byRuntimeId } from '../world/WorldActor';
-
-/**
- * Where an entity's eyes are, as a fraction of its height.
- *
- * Java's `EntityDimensions.eyeHeight` default. A player's own is 1.62 rather than this, which
- * is 0.09 higher than the default puts it; it moves the knockback direction by a fraction of a
- * degree and nothing else, because the damage reads the whole collision box instead.
- */
-const EYE_HEIGHT_FRACTION = 0.85;
+import type { StoreActor } from './data/storeActors';
+import { ENTITY_EYE_HEIGHT_FRACTION } from './data/position';
 
 /** The primed TNT entity in the data-driven runtime. */
 const TNT_IDENTIFIER = 'minecraft:tnt';
@@ -47,14 +38,14 @@ export interface ExplosionOptions {
     /** Java's radius: TNT is 4, a creeper 3, a charged creeper 6. */
     power: number;
     /** Whoever set it off, so a death can be reported as their doing. */
-    source?: WorldActor | null;
+    source?: StoreActor | null;
     /** Whether it takes blocks out as well as hurting things. */
     breaksBlocks?: boolean;
 }
 
 /** An entity paired with the geometry the ray math reads off it. */
 interface CaughtEntity extends ExplosionEntity {
-    readonly entity: WorldActor;
+    readonly entity: StoreActor;
 }
 
 /**
@@ -138,7 +129,7 @@ const explosionWorldOf = (world: World): ExplosionWorld => createEngineWorld(wor
  * The blast has already written air over the block by the time this runs, so there is nothing
  * to clear first.
  */
-const primeTnt = async (world: World, at: BlockPosition, source: WorldActor | null): Promise<void> => {
+const primeTnt = async (world: World, at: BlockPosition, source: StoreActor | null): Promise<void> => {
     const [allowed] = world.getGameRuleManager().getGameRule(GameRules.TNTExplodes) ?? [true];
     if (!allowed) return;
 
@@ -171,20 +162,23 @@ const griefingAllowed = (world: World): boolean => {
  *
  * From the world's entity index rather than every entity in the world, so an entity that moved
  * earlier in the tick is caught where it now stands and one taken out of the world is not caught
- * at all. The legacy entities and the store's come from one index, a store entity as its actor.
- * The engine accepts anything within its reach plus a block and runs the range test itself. In
- * ascending runtime id order, which is the order the hits come back in.
+ * at all. Each is a store entity, as its actor. The engine accepts anything within its reach plus
+ * a block and runs the range test itself. In ascending runtime id order, which is the order the
+ * index answers in and the hits come back in.
+ *
+ * The eyes are at Java's `EntityDimensions.eyeHeight` default. A player's own is 1.62 rather than
+ * that, which is 0.09 higher than the default puts it; it moves the knockback direction by a
+ * fraction of a degree and nothing else, because the damage reads the whole collision box instead.
  */
 const entitiesNear = (world: World, at: Vector3, power: number): readonly CaughtEntity[] => {
     const index = world.getEntityIndex();
     const live = world.dataEntities();
     const radius = power * EXPLOSION_ENTITY_REACH + 1;
-    const near: WorldActor[] = index.legacyWithin(at.getX(), at.getZ(), radius);
+    const near: StoreActor[] = [];
     for (const entity of index.storeWithin(at.getX(), at.getZ(), radius)) {
         const actor = live.actors.actorOf(entity.id);
         if (actor !== undefined) near.push(actor);
     }
-    near.sort(byRuntimeId);
 
     return near.map((entity) => {
         const position = entity.getPosition();
@@ -194,7 +188,7 @@ const entitiesNear = (world: World, at: Vector3, power: number): readonly Caught
         return {
             entity,
             position: feet,
-            eye: { x: feet.x, y: feet.y + height * EYE_HEIGHT_FRACTION, z: feet.z },
+            eye: { x: feet.x, y: feet.y + height * ENTITY_EYE_HEIGHT_FRACTION, z: feet.z },
             box: {
                 minX: feet.x - width / 2,
                 minY: feet.y,
@@ -239,7 +233,7 @@ const collectDrops = (
  * horizontal direction and a strength and works out its own lift, so the horizontal part
  * carries over exactly and the vertical part is the server's rather than Java's.
  */
-const shove = (entity: WorldActor, knockback: { x: number; y: number; z: number }): void => {
+const shove = (entity: StoreActor, knockback: { x: number; y: number; z: number }): void => {
     const flat = Math.hypot(knockback.x, knockback.z);
     if (flat < Number.EPSILON) return;
 
