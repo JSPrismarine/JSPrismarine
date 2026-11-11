@@ -1,4 +1,5 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+import pkg from '../../package.json' with { type: 'json' };
 import { parseServerArgs, serverCli } from './Cli';
 
 describe('parseServerArgs', () => {
@@ -44,6 +45,23 @@ describe('parseServerArgs', () => {
         expect(help).toContain('--no-tui');
         expect(help).toContain('--headless');
         expect(help).not.toContain('--role');
+    });
+
+    it('prints only the version for --version and -v, then exits', () => {
+        for (const flag of ['--version', '-v']) {
+            const output: string[] = [];
+            const log = vi.spyOn(console, 'log').mockImplementation((message) => void output.push(String(message)));
+            const exit = vi.spyOn(process, 'exit').mockImplementation(() => undefined as never);
+
+            try {
+                parseServerArgs([flag]);
+            } finally {
+                log.mockRestore();
+                exit.mockRestore();
+            }
+
+            expect(output).toEqual([pkg.version]);
+        }
     });
 
     it('drops the leading -- that pnpm passes through', () => {
