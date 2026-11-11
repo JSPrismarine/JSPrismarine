@@ -1,7 +1,7 @@
 import { withBase } from 'vitepress';
 import { onMounted, ref } from 'vue';
 
-import type { TrackerData, TrackerFamily } from '../../../../../packages/parity/src/dashboard/tracker.ts';
+import type { TrackerCase, TrackerData, TrackerFamily } from '../../../../../packages/parity/src/dashboard/tracker.ts';
 import { trackerProgressTotal } from '../../../../../packages/parity/src/dashboard/trackerProgress.ts';
 
 /** Passing and tracked counts for one family group, as the parity tracker page shows them. */
@@ -12,21 +12,41 @@ export interface GroupProgress {
     tracked: number;
 }
 
+/**
+ * The staged tracker index. Its families and top-level list carry no cases; `caseChunks` names the
+ * files under `parity-tracker/` that hold them, in family order.
+ */
+export interface TrackerIndex extends TrackerData {
+    readonly caseChunks: readonly string[];
+}
+
 /** Loads the tracker snapshot that `docs:stage` writes into the site's public directory. */
 export function useTrackerSnapshot() {
     const tracker = ref<TrackerData | null>(null);
     const loadError = ref(false);
     onMounted(async () => {
         try {
-            const response = await fetch(withBase('/parity-tracker.json'));
-            if (!response.ok) throw new Error(`Could not load tracker data (${response.status}).`);
-            // The site build stages this file from the typed parity tracker generator.
-            tracker.value = (await response.json()) as TrackerData;
+            const index = await fetchJson<TrackerIndex>('index.json');
+            const chunks = await Promise.all(index.caseChunks.map((name) => fetchJson<TrackerCase[]>(name)));
+            const cases = chunks.flat();
+            const byFamily = Map.groupBy(cases, (entry) => entry.family);
+            tracker.value = {
+                ...index,
+                cases,
+                families: index.families.map((family) => ({ ...family, cases: byFamily.get(family.id) ?? [] }))
+            };
         } catch {
             loadError.value = true;
         }
     });
     return { tracker, loadError };
+}
+
+async function fetchJson<T>(name: string): Promise<T> {
+    const response = await fetch(withBase(`/parity-tracker/${name}`));
+    if (!response.ok) throw new Error(`Could not load tracker data (${response.status}).`);
+    // The site build stages these files from the typed parity tracker generator.
+    return (await response.json()) as T;
 }
 
 /**

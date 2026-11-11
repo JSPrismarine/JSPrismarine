@@ -14,12 +14,15 @@ import { applyFacts, loadFacts } from './facts.mts';
 import { writeSearchIndex } from './search-index.mts';
 import { isUnpublished, pageTitle, rootPages, sections } from './sections.mts';
 import type { TrackerData } from '../../packages/parity/src/dashboard/tracker.ts';
+import type { TrackerIndex } from './site/.vitepress/theme/parity.ts';
 
 const packageDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(packageDir, '..', '..');
 const siteDir = path.join(packageDir, 'site');
 const publicDir = path.join(siteDir, 'public');
-const trackerPath = path.join(publicDir, 'parity-tracker.json');
+const trackerDir = path.join(publicDir, 'parity-tracker');
+/** Cloudflare Pages rejects files over 25 MiB; each case chunk stays well under it. */
+const trackerChunkBytes = 8 * 1024 * 1024;
 
 execFileSync('pnpm', ['--filter', '@jsprismarine/parity', 'run', 'dashboard'], {
     cwd: repoRoot,
@@ -31,7 +34,43 @@ mkdirSync(publicDir, { recursive: true });
 const tracker = JSON.parse(
     readFileSync(path.join(repoRoot, 'packages', 'parity', 'dist', 'tracker.json'), 'utf8')
 ) as TrackerData;
-writeFileSync(trackerPath, JSON.stringify(tracker));
+writeTrackerSnapshot(tracker);
+
+/**
+ * Writes the tracker as an index plus numbered case chunks. The top-level case list repeats every
+ * family's cases, so the index drops both and the page rebuilds them from the chunks.
+ */
+function writeTrackerSnapshot(snapshot: TrackerData) {
+    rmSync(trackerDir, { recursive: true, force: true });
+    mkdirSync(trackerDir, { recursive: true });
+    const chunks: string[] = [];
+    let chunk: string[] = [];
+    let chunkSize = 0;
+    const flush = () => {
+        if (chunk.length === 0) return;
+        const name = `cases-${chunks.length}.json`;
+        writeFileSync(path.join(trackerDir, name), `[${chunk.join(',')}]`);
+        chunks.push(name);
+        chunk = [];
+        chunkSize = 0;
+    };
+    for (const family of snapshot.families) {
+        for (const entry of family.cases) {
+            const encoded = JSON.stringify(entry);
+            if (chunkSize + encoded.length > trackerChunkBytes) flush();
+            chunk.push(encoded);
+            chunkSize += encoded.length + 1;
+        }
+    }
+    flush();
+    const index: TrackerIndex = {
+        ...snapshot,
+        cases: [],
+        families: snapshot.families.map((family) => ({ ...family, cases: [] })),
+        caseChunks: chunks
+    };
+    writeFileSync(path.join(trackerDir, 'index.json'), JSON.stringify(index));
+}
 
 /** VitePress serves index.md for a directory, where GitHub renders README.md. */
 function toSitePage(source: string) {
