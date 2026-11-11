@@ -146,10 +146,11 @@ export const advancementItemCrafted = (
  */
 export const advancementKill = (victim: WorldActor, source: DamageSource): void => {
     const killer = source.attacker;
+    const killingPlayer = killer && listeningPlayer(killer, 'player_killed_entity');
 
-    if (killer && isPlayer(killer) && listening(killer, 'player_killed_entity')) {
-        raiseAdvancement(killer, 'player_killed_entity', {
-            player: advancementSubject(killer),
+    if (killingPlayer) {
+        raiseAdvancement(killingPlayer, 'player_killed_entity', {
+            player: advancementSubject(killingPlayer),
             entity: viewOf(victim),
             damageSource: damageSourceView(victim, source)
         });
@@ -157,9 +158,10 @@ export const advancementKill = (victim: WorldActor, source: DamageSource): void 
 
     // Only with a killer, which is Java's own condition: `entity_killed_player`
     // names the entity that did it, and falling into a hole names nobody.
-    if (killer && isPlayer(victim) && listening(victim, 'entity_killed_player')) {
-        raiseAdvancement(victim, 'entity_killed_player', {
-            player: advancementSubject(victim),
+    const killedPlayer = killer && listeningPlayer(victim, 'entity_killed_player');
+    if (killedPlayer) {
+        raiseAdvancement(killedPlayer, 'entity_killed_player', {
+            player: advancementSubject(killedPlayer),
             entity: viewOf(killer),
             damageSource: damageSourceView(victim, source)
         });
@@ -181,10 +183,11 @@ export const advancementDamage = (
     blocked: boolean
 ): void => {
     const attacker = source.attacker;
+    const hurtingPlayer = attacker && listeningPlayer(attacker, 'player_hurt_entity');
 
-    if (attacker && isPlayer(attacker) && listening(attacker, 'player_hurt_entity')) {
-        raiseAdvancement(attacker, 'player_hurt_entity', {
-            player: advancementSubject(attacker),
+    if (hurtingPlayer) {
+        raiseAdvancement(hurtingPlayer, 'player_hurt_entity', {
+            player: advancementSubject(hurtingPlayer),
             entity: viewOf(victim),
             damageSource: damageSourceView(victim, source),
             dealt,
@@ -193,9 +196,10 @@ export const advancementDamage = (
         });
     }
 
-    if (isPlayer(victim) && listening(victim, 'entity_hurt_player')) {
-        raiseAdvancement(victim, 'entity_hurt_player', {
-            player: advancementSubject(victim),
+    const hurtPlayer = listeningPlayer(victim, 'entity_hurt_player');
+    if (hurtPlayer) {
+        raiseAdvancement(hurtPlayer, 'entity_hurt_player', {
+            player: advancementSubject(hurtPlayer),
             damageSource: damageSourceView(victim, source),
             dealt,
             taken,
@@ -366,11 +370,15 @@ export const advancementChangedDimension = (player: AdvancementPlayer, from: str
 };
 
 /**
- * Whether an entity is a player, by its type rather than its class, which would import the class
- * into a module it loops through.
+ * The player an entity is, when an advancement listens for the trigger, or undefined for any
+ * other entity. Tested by type rather than by class, which would import the class into a module
+ * it loops through, and then found through its session by entity id, because a blow and a death
+ * name the player's entity, not the player.
  */
-const isPlayer = (entity: WorldActor): entity is WorldActor & AdvancementPlayer =>
-    entity.getType() === 'minecraft:player';
+const listeningPlayer = (entity: WorldActor, trigger: TriggerName): AdvancementPlayer | undefined =>
+    entity.getType() === 'minecraft:player' && listening(entity, trigger)
+        ? entity.getWorld().viewerOf(entity.getRuntimeId())?.getPlayer()
+        : undefined;
 
 /**
  * The blow as the damage source conditions read it.

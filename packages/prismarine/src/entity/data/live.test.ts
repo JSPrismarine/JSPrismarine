@@ -17,7 +17,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { EYE_HEIGHT } from '../../entity/playerEyes';
 import type { RaidRecord } from '../../world/raid/RaidManager';
-import Player from '../../Player';
+import type Player from '../../Player';
 import type Server from '../../Server';
 import type { Config } from '../../config/Config';
 import { definitionOf, definitionsOf } from '../../content/ContentOptions';
@@ -38,7 +38,7 @@ import { testEntityServer } from '../../testing/entityServer';
 import { fakeLevel } from '../../testing/level';
 import { identityNamed } from '../../testing/sessionIdentity.test.helper';
 import { stub } from '../../testing/stub.test.helper';
-import { withPlayerComponents } from '../../testing/playerDouble.test.helper';
+import { playerOnPrototype, withPlayerComponents } from '../../testing/playerDouble.test.helper';
 import { entityCommandHost } from '../../command/host/entities';
 import { Scoreboard } from '../../command/host/scoreboard';
 import type WorldManager from '../../world/WorldManager';
@@ -706,22 +706,23 @@ const flatChunk = (x: number, z: number): Chunk => {
 /** A player standing at a position, reserving its id from the server's shared counter. */
 const playerAt = (world: World, x: number, z: number): Player => {
     const id = entityIds.next();
+    const body = {
+        position: new Position(x, GROUND_Y + EYE_HEIGHT, z, world),
+        pitch: 0,
+        yaw: 0,
+        headYaw: 0,
+        runtimeId: BigInt(id),
+        tags: new Set<string>(),
+        server: world.getServer(),
+        statusEffects: new Map(),
+        metadata: { sprinting: false },
+        attributes: { getValue: () => 20, setValue: () => true, getAttribute: () => null }
+    };
     return withPlayerComponents(
-        Object.assign(Object.create(Player.prototype), {
-            position: new Position(x, GROUND_Y + EYE_HEIGHT, z, world),
-            pitch: 0,
-            yaw: 0,
-            headYaw: 0,
-            runtimeId: BigInt(id),
+        Object.assign(playerOnPrototype({ gamemode: Gametype.SURVIVAL }, body), {
             uuid: new UUID(0, 0, 0, id),
             // The world only hands out players it believes are still connected.
-            connected: true,
-            tags: new Set<string>(),
-            server: world.getServer(),
-            gamemode: Gametype.SURVIVAL,
-            statusEffects: new Map(),
-            metadata: { sprinting: false },
-            attributes: { getValue: () => 20, setValue: () => true, getAttribute: () => null }
+            connected: true
         })
     );
 };
@@ -988,7 +989,7 @@ describe('the data-driven entity runtime over a live world', () => {
 
         expect(first).toBeDefined();
         expect(second).toBe(first);
-        player.addTag('changed-during-runtime');
+        player.getBody().addTag('changed-during-runtime');
         expect(first?.names?.('has_tag')).toContain('changed-during-runtime');
     });
 
@@ -1047,7 +1048,7 @@ describe('the data-driven entity runtime over a live world', () => {
 
     it('replaces a successfully used tame item through the live inventory path', async () => {
         const player = addPlayer(2, 2);
-        Object.assign(player, { inventory: new HumanInventory() });
+        Object.assign(player.getBody(), { inventory: new HumanInventory() });
         player
             .getInventory()
             .setItemInHand(new ContainerEntry({ item: new Item({ name: 'minecraft:bone' }), count: 2 }));
@@ -1095,7 +1096,7 @@ describe('the data-driven entity runtime over a live world', () => {
 
         const body = live.actors.actorOf(pet.id);
         if (body === undefined) throw new Error('the tameable pet has no store actor');
-        expect(live.interactWithItem(body, firstPlayer, 'minecraft:bone').accepted).toBe(true);
+        expect(live.interactWithItem(body, firstPlayer.getBody(), 'minecraft:bone').accepted).toBe(true);
 
         live.persist();
         const record = body.persistentNbt === null ? undefined : dataEntityRecordIn(body.persistentNbt);
@@ -1120,7 +1121,7 @@ describe('the data-driven entity runtime over a live world', () => {
 
     it('feeds an ageable baby through the live inventory path and applies its result item', async () => {
         const player = addPlayer(2, 2);
-        Object.assign(player, { inventory: new HumanInventory() });
+        Object.assign(player.getBody(), { inventory: new HumanInventory() });
         player
             .getInventory()
             .setItemInHand(new ContainerEntry({ item: new Item({ name: 'minecraft:wheat' }), count: 2 }));
@@ -1165,7 +1166,7 @@ describe('the data-driven entity runtime over a live world', () => {
 
     it('filters a live player interaction, transforms the held item data, and applies its event', async () => {
         const player = addPlayer(2, 2);
-        Object.assign(player, { inventory: new HumanInventory() });
+        Object.assign(player.getBody(), { inventory: new HumanInventory() });
         player
             .getInventory()
             .setItemInHand(new ContainerEntry({ item: new Item({ name: 'minecraft:bucket' }), count: 1 }));
@@ -1199,7 +1200,7 @@ describe('the data-driven entity runtime over a live world', () => {
 
     it('passes Bedrock item tags to a live entity interaction filter', async () => {
         const player = addPlayer(2, 2);
-        Object.assign(player, { inventory: new HumanInventory() });
+        Object.assign(player.getBody(), { inventory: new HumanInventory() });
         player.getInventory().setItemInHand(
             new ContainerEntry({
                 item: new Item({ name: 'minecraft:oak_log', content: live.runtime.content() }),
@@ -1212,7 +1213,7 @@ describe('the data-driven entity runtime over a live world', () => {
         if (body === undefined) throw new Error('the interactable entity has no store actor');
 
         expect(player.getInventory().getItemInHand().hasTag('minecraft:logs')).toBe(true);
-        expect(live.interactWithItem(body, player, 'minecraft:oak_log').accepted).toBe(true);
+        expect(live.interactWithItem(body, player.getBody(), 'minecraft:oak_log').accepted).toBe(true);
         expect(animal.instance.hasComponent('minecraft:persistent')).toBe(false);
 
         await live.tick(1);
@@ -1222,7 +1223,7 @@ describe('the data-driven entity runtime over a live world', () => {
 
     it('scans a live player inventory for item tags and data components', async () => {
         const player = addPlayer(2, 2);
-        Object.assign(player, { inventory: new HumanInventory() });
+        Object.assign(player.getBody(), { inventory: new HumanInventory() });
         player.getInventory().setItemInHand(
             new ContainerEntry({
                 item: new Item({ name: 'minecraft:stone', content: live.runtime.content() }),
@@ -1241,7 +1242,7 @@ describe('the data-driven entity runtime over a live world', () => {
         const body = live.actors.actorOf(animal.id);
         if (body === undefined) throw new Error('the interactable entity has no store actor');
 
-        expect(live.interactWithItem(body, player, 'minecraft:stone').accepted).toBe(true);
+        expect(live.interactWithItem(body, player.getBody(), 'minecraft:stone').accepted).toBe(true);
         await live.tick(1);
 
         expect(animal.instance.hasComponent('minecraft:persistent')).toBe(true);
@@ -1249,7 +1250,7 @@ describe('the data-driven entity runtime over a live world', () => {
 
     it('spawns a spawn egg entity inside an interacted mob even when its interaction accepts the egg', async () => {
         const player = addPlayer(2, 2);
-        Object.assign(player, { inventory: new HumanInventory() });
+        Object.assign(player.getBody(), { inventory: new HumanInventory() });
         player
             .getInventory()
             .setItemInHand(new ContainerEntry({ item: new Item({ name: 'minecraft:chicken_spawn_egg' }), count: 1 }));
@@ -1267,7 +1268,8 @@ describe('the data-driven entity runtime over a live world', () => {
 
     it('gives a transformed interaction item to a creative player without consuming the held item', () => {
         const player = addPlayer(2, 2);
-        Object.assign(player, { inventory: new HumanInventory(), gamemode: Gametype.CREATIVE });
+        Object.assign(player.getBody(), { inventory: new HumanInventory() });
+        player.gamemode = Gametype.CREATIVE;
         player
             .getInventory()
             .setItemInHand(new ContainerEntry({ item: new Item({ name: 'minecraft:bucket' }), count: 1 }));
@@ -1302,7 +1304,7 @@ describe('the data-driven entity runtime over a live world', () => {
 
     it('leaves a survival player’s item alone when the interaction does not use it', async () => {
         const player = addPlayer(2, 2);
-        Object.assign(player, { inventory: new HumanInventory() });
+        Object.assign(player.getBody(), { inventory: new HumanInventory() });
         player
             .getInventory()
             .setItemInHand(new ContainerEntry({ item: new Item({ name: 'minecraft:stick' }), count: 2 }));
@@ -1335,7 +1337,7 @@ describe('the data-driven entity runtime over a live world', () => {
 
     it('routes data-defined healing through the live item interaction and consumes one item', async () => {
         const player = addPlayer(2, 2);
-        Object.assign(player, { inventory: new HumanInventory() });
+        Object.assign(player.getBody(), { inventory: new HumanInventory() });
         player
             .getInventory()
             .setItemInHand(new ContainerEntry({ item: new Item({ name: 'minecraft:cooked_beef' }), count: 1 }));
@@ -1668,7 +1670,7 @@ describe('the data-driven entity runtime over a live world', () => {
 
             it("takes a player's swing as melee, and kills in the same call with the events in the legacy order", async () => {
                 const player = addPlayer(0.5, 0.5);
-                Object.assign(player, { inventory: new HumanInventory() });
+                Object.assign(player.getBody(), { inventory: new HumanInventory() });
                 const { cow, body } = await cowAt(1.5);
                 const posted: string[] = [];
                 vi.spyOn(world.getServer(), 'post').mockImplementation((pair) => {
@@ -1683,7 +1685,7 @@ describe('the data-driven entity runtime over a live world', () => {
                     return false;
                 });
 
-                const landed = await meleeAttack(player, body, { damage: 100 });
+                const landed = await meleeAttack(player.getBody(), body, { damage: 100 });
 
                 expect(landed).toBe(true);
                 expect(routes()).toMatchObject({ melee: 1 });
@@ -1696,14 +1698,14 @@ describe('the data-driven entity runtime over a live world', () => {
 
             it('lets an entityDamage listener cancel or rewrite a blow, as a before-hook', async () => {
                 const player = addPlayer(0.5, 0.5);
-                Object.assign(player, { inventory: new HumanInventory() });
+                Object.assign(player.getBody(), { inventory: new HumanInventory() });
                 const { cow, body } = await cowAt(1.5);
                 vi.spyOn(world.getServer(), 'post').mockImplementation((pair) => {
                     if (pair[0] === 'entityDamage') pair[1].setAmount(1);
                     return 0;
                 });
 
-                await meleeAttack(player, body, { damage: 5 });
+                await meleeAttack(player.getBody(), body, { damage: 5 });
 
                 expect(cow.instance.attributes.get('health')?.current).toBe(9);
             });
@@ -1792,7 +1794,7 @@ describe('the data-driven entity runtime over a live world', () => {
 
             it("lets the pack's damage sensor turn a player's swing aside as `entity_attack`", async () => {
                 const player = addPlayer(0.5, 0.5);
-                Object.assign(player, { inventory: new HumanInventory() });
+                Object.assign(player.getBody(), { inventory: new HumanInventory() });
                 const immune = live.runtime.spawn('jsprismarine:sword_immune', { x: 1.5, y: GROUND_Y, z: 0.5 });
                 if (immune === undefined) throw new Error('the fixture declares no jsprismarine:sword_immune');
                 await run(1);
@@ -1800,7 +1802,7 @@ describe('the data-driven entity runtime over a live world', () => {
                 if (body === undefined) throw new Error('the entity has no store actor');
                 const before = immune.instance.attributes.get('health')?.current;
 
-                await meleeAttack(player, body, { damage: 5 });
+                await meleeAttack(player.getBody(), body, { damage: 5 });
 
                 expect(immune.instance.attributes.get('health')?.current).toBe(before);
             });
@@ -2111,7 +2113,7 @@ describe('the data-driven entity runtime over a live world', () => {
             await run(1);
 
             const puncher = playerAt(world, 0, 0.5);
-            await live.actors.actorOf(cow.id)!.damage(1, DamageSource.entity(puncher));
+            await live.actors.actorOf(cow.id)!.damage(1, DamageSource.entity(puncher.getBody()));
 
             expect(cow.body.velocity.x).toBeGreaterThan(0);
             expect(cow.body.velocity.y).toBeGreaterThan(0);
@@ -2396,8 +2398,8 @@ describe('the data-driven entity runtime over a live world', () => {
             const tradingPlayer = (x: number, z: number, sneaking = false) => {
                 const player = addPlayer(x, z);
                 const opened: OpenTrade[] = [];
+                Object.assign(player.getBody(), { inventory: new HumanInventory() });
                 Object.assign(player, {
-                    inventory: new HumanInventory(),
                     isSneaking: () => sneaking,
                     getStatusEffect: () => undefined,
                     getNetworkSession: () =>
@@ -2435,7 +2437,7 @@ describe('the data-driven entity runtime over a live world', () => {
                 const { player } = tradingPlayer(1, 0);
                 const { body } = villagerBody();
 
-                const outcome = live.interactWithItem(body, player, 'minecraft:emerald');
+                const outcome = live.interactWithItem(body, player.getBody(), 'minecraft:emerald');
 
                 expect(outcome).toMatchObject({ accepted: true, consumeItem: false });
             });
@@ -3056,7 +3058,7 @@ describe('the data-driven entity runtime over a live world', () => {
                 useVanillaContent();
 
                 const player = addPlayer(2, 2);
-                const shot = await loose(player, 20);
+                const shot = await loose(player.getBody(), 20);
 
                 expect(shot).toBe(true);
                 const arrow = live.runtime.all().find((entity) => entity.identifier === 'minecraft:arrow');
@@ -3190,7 +3192,7 @@ describe('the data-driven entity runtime over a live world', () => {
                 useVanillaContent();
 
                 const player = addPlayer(2, 2);
-                Object.assign(player, { inventory: new HumanInventory() });
+                Object.assign(player.getBody(), { inventory: new HumanInventory() });
                 player
                     .getInventory()
                     .setItemInHand(new ContainerEntry({ item: new Item({ name: 'minecraft:wheat' }), count: 2 }));
@@ -3225,7 +3227,7 @@ describe('the data-driven entity runtime over a live world', () => {
                 useVanillaContent();
 
                 const player = addPlayer(2, 2);
-                Object.assign(player, { inventory: new HumanInventory() });
+                Object.assign(player.getBody(), { inventory: new HumanInventory() });
                 player
                     .getInventory()
                     .setItemInHand(new ContainerEntry({ item: new Item({ name: 'minecraft:iron_ingot' }), count: 2 }));
@@ -3449,7 +3451,7 @@ describe('the data-driven entity runtime over a live world', () => {
                 useVanillaContent();
 
                 const player = addPlayer(2, 2);
-                Object.assign(player, { inventory: new HumanInventory() });
+                Object.assign(player.getBody(), { inventory: new HumanInventory() });
                 player
                     .getInventory()
                     .setItemInHand(new ContainerEntry({ item: new Item({ name: 'minecraft:shears' }), count: 1 }));
@@ -3509,7 +3511,7 @@ describe('the data-driven entity runtime over a live world', () => {
                 useVanillaContent();
 
                 const player = addPlayer(2, 2);
-                Object.assign(player, { inventory: new HumanInventory() });
+                Object.assign(player.getBody(), { inventory: new HumanInventory() });
                 player
                     .getInventory()
                     .setItemInHand(
@@ -3541,7 +3543,7 @@ describe('the data-driven entity runtime over a live world', () => {
                 useVanillaContent();
 
                 const player = addPlayer(2, 2);
-                Object.assign(player, { inventory: new HumanInventory() });
+                Object.assign(player.getBody(), { inventory: new HumanInventory() });
                 player
                     .getInventory()
                     .setItemInHand(
@@ -3563,7 +3565,7 @@ describe('the data-driven entity runtime over a live world', () => {
                 useVanillaContent();
 
                 const player = addPlayer(2, 2);
-                Object.assign(player, { inventory: new HumanInventory() });
+                Object.assign(player.getBody(), { inventory: new HumanInventory() });
                 player
                     .getInventory()
                     .setItemInHand(
@@ -3591,7 +3593,7 @@ describe('the data-driven entity runtime over a live world', () => {
                 useVanillaContent();
 
                 const player = addPlayer(2, 2);
-                Object.assign(player, { inventory: new HumanInventory() });
+                Object.assign(player.getBody(), { inventory: new HumanInventory() });
                 player
                     .getInventory()
                     .setItemInHand(
@@ -3620,7 +3622,7 @@ describe('the data-driven entity runtime over a live world', () => {
 
                     const player = addPlayer(18, 0);
                     player.gamemode = Gametype.SURVIVAL;
-                    Object.assign(player, { inventory: new HumanInventory() });
+                    Object.assign(player.getBody(), { inventory: new HumanInventory() });
                     player
                         .getInventory()
                         .setItemInHand(
@@ -3658,7 +3660,7 @@ describe('the data-driven entity runtime over a live world', () => {
 
                     const player = addPlayer(18, 0);
                     player.gamemode = Gametype.SURVIVAL;
-                    Object.assign(player, { inventory: new HumanInventory() });
+                    Object.assign(player.getBody(), { inventory: new HumanInventory() });
                     player
                         .getInventory()
                         .setItemInHand(
@@ -3690,7 +3692,7 @@ describe('the data-driven entity runtime over a live world', () => {
                 useVanillaContent();
 
                 const player = addPlayer(2, 2);
-                Object.assign(player, { inventory: new HumanInventory() });
+                Object.assign(player.getBody(), { inventory: new HumanInventory() });
                 player
                     .getInventory()
                     .setItemInHand(
@@ -3741,7 +3743,7 @@ describe('the data-driven entity runtime over a live world', () => {
                         eggByEntity.has(type.identifier)
                 );
                 const player = addPlayer(2, 2);
-                Object.assign(player, { inventory: new HumanInventory() });
+                Object.assign(player.getBody(), { inventory: new HumanInventory() });
 
                 for (const [identifier] of eggTargets) {
                     const egg = eggByEntity.get(identifier);
@@ -3817,7 +3819,7 @@ describe('the data-driven entity runtime over a live world', () => {
                     useVanillaContent();
 
                     const player = addPlayer(2, 2);
-                    Object.assign(player, { inventory: new HumanInventory() });
+                    Object.assign(player.getBody(), { inventory: new HumanInventory() });
                     player
                         .getInventory()
                         .setItemInHand(

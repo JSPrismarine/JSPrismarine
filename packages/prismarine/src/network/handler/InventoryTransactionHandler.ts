@@ -442,7 +442,7 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
             return;
         }
 
-        const landed = await meleeAttack(player, target, {
+        const landed = await meleeAttack(player.getBody(), target, {
             reach: player.gamemode === Gametype.CREATIVE ? CREATIVE_REACH : SURVIVAL_REACH,
 
             // What they are holding, not their attack attribute: in vanilla the weapon *is* the
@@ -494,7 +494,7 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
         if (data.actionType !== ItemReleaseActionType.RELEASE) return;
         if (player.getInventory().getItemInHand().getName() !== BOW) return;
 
-        await loose(player, drawn);
+        await loose(player.getBody(), drawn);
     }
 
     /**

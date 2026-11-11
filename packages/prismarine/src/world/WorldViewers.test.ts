@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
-import Player from '../Player';
+import type Player from '../Player';
 import type Server from '../Server';
 import type PlayerSession from '../network/PlayerSession';
 import { inertEntityRuntime } from '../testing/entityServer';
-import { stub, stubOf } from '../testing/stub.test.helper';
+import { stub } from '../testing/stub.test.helper';
+import { stubPlayerPort } from '../testing/playerPort.test.helper';
+import { playerOnPrototype } from '../testing/playerDouble.test.helper';
 import { Dimensions } from './Dimension';
 import { Position } from './Position';
 import { World } from './World';
@@ -13,7 +15,7 @@ import { NULL_WORLD_CHANGE_SINK } from './WorldChangeSink';
 /** A player in the world, joined or still joining, with the session its client speaks through. */
 const playerWith = (runtimeId: bigint, online: boolean) => {
     const session = stub<PlayerSession>({ runtimeId });
-    const player = stub<Player>({
+    const player = stubPlayerPort({
         getRuntimeId: () => runtimeId,
         getNetworkSession: () => session,
         isOnline: () => online
@@ -55,14 +57,14 @@ describe('World viewers', () => {
             dimension: Dimensions.Overworld,
             server: stub<Server>({ getEntityRuntime: () => inertEntityRuntime() })
         });
-        const player = stubOf(Player, {
-            getRuntimeId: () => 4n,
-            getType: () => 'minecraft:player',
-            getPosition: () => new Position(0.5, 65.62, 0.5, world),
-            getBox: () => ({ width: 0.6, height: 1.8 }),
-            getNetworkSession: () => session,
-            isOnline: () => true
-        });
+        const player = playerOnPrototype(
+            { getNetworkSession: () => session, isOnline: () => true },
+            {
+                runtimeId: 4n,
+                position: new Position(0.5, 65.62, 0.5, world),
+                getBox: () => ({ width: 0.6, height: 1.8 })
+            }
+        );
         // What the replicator sees when it shows an arriving player the world and a leaving one
         // goes: the arrival already findable, the departure already not.
         const seen: Array<PlayerSession | undefined> = [];
@@ -74,7 +76,8 @@ describe('World viewers', () => {
 
         await world.addPlayer(player);
         expect(world.viewerOf(4n)).toBe(session);
-        expect(world.getEntity(4n)).toBe(player);
+        // The world holds the player's body as the entity under the player's id, not the player.
+        expect(world.getEntity(4n)).toBe(player.getBody());
 
         await world.removePlayer(player);
         expect(world.viewerOf(4n)).toBeUndefined();

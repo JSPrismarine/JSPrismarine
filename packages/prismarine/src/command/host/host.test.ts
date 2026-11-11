@@ -13,7 +13,7 @@ import { Vector3 } from '@jsprismarine/math';
 import type { GeneratorDefinition, LevelStem } from '@jsprismarine/worldgen';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import Player from '../../Player';
+import type Player from '../../Player';
 import type { Server } from '../../';
 import type { Config } from '../../config/Config';
 import { definitionsOf, definitionOf } from '../../content/ContentOptions';
@@ -34,7 +34,7 @@ import SetTitlePacket from '@jsprismarine/protocol/packet/SetTitlePacket';
 import type { PermissionManager } from '../../permission/PermissionManager';
 import type PlayerSession from '../../network/PlayerSession';
 import { stub, stubOf } from '../../testing/stub.test.helper';
-import { withPlayerComponents } from '../../testing/playerDouble.test.helper';
+import { playerOnPrototype, withPlayerComponents } from '../../testing/playerDouble.test.helper';
 import { LootRegistry, javaLootTables } from '@jsprismarine/loot';
 import { loadRecipes } from '@jsprismarine/recipes';
 import { RemoveObjectivePacket, SetDisplayObjectivePacket, SetScorePacket } from '@jsprismarine/protocol';
@@ -325,29 +325,33 @@ const playerAt = (fixture: Fixture, id: bigint, name: string, position: Vector3)
         changeWorld: vi.fn().mockResolvedValue(undefined)
     });
     const player = withPlayerComponents(
-        stubOf(Player, {
-            getRuntimeId: () => id,
-            getType: () => 'minecraft:player',
-            getName: () => name,
-            getPosition: () => Position.fromVector3(position, fixture.world),
-            getFeetY: () => position.getY(),
-            getWorld: () => fixture.world,
-            isAlive: () => true,
-            gamemode: Gametype.SURVIVAL,
-            setGamemode: vi.fn().mockResolvedValue(undefined),
-            setPlayerPosition: vi.fn().mockResolvedValue(undefined),
-            kick: vi.fn().mockResolvedValue(undefined),
-            sendMessage: vi.fn().mockResolvedValue(undefined),
-            getInventory: () => inventory,
-            attributes: new Attributes(Attributes.getPlayerDefaults()),
-            getNetworkSession: () => session,
-            yaw: 0,
-            pitch: 0,
-            headYaw: 0
-        })
+        playerOnPrototype(
+            {
+                getName: () => name,
+                gamemode: Gametype.SURVIVAL,
+                setGamemode: vi.fn().mockResolvedValue(undefined),
+                setPlayerPosition: vi.fn().mockResolvedValue(undefined),
+                kick: vi.fn().mockResolvedValue(undefined),
+                sendMessage: vi.fn().mockResolvedValue(undefined),
+                getInventory: () => inventory,
+                getNetworkSession: () => session
+            },
+            {
+                // What a selector and a reference read of the player's body.
+                runtimeId: id,
+                getPosition: () => Position.fromVector3(position, fixture.world),
+                getFeetY: () => position.getY(),
+                getWorld: () => fixture.world,
+                isAlive: () => true,
+                tags: new Set<string>(),
+                attributes: new Attributes(Attributes.getPlayerDefaults()),
+                yaw: 0,
+                pitch: 0,
+                headYaw: 0
+            }
+        )
     );
-    Object.defineProperty(player, 'tags', { value: new Set<string>(), writable: false });
-    fixture.entities.push(player);
+    fixture.entities.push(player.getBody());
     fixture.players.push(player);
     return player;
 };
@@ -608,7 +612,8 @@ describe('the server command host', () => {
             it('blames the entity a `by` clause names', async () => {
                 const { player, source } = await hurtWith('damage @e[type=pig] 4 minecraft:fire by @s');
 
-                expect((source as DamageSource).attacker).toBe(player);
+                // The player's body, which is the entity a blow names.
+                expect((source as DamageSource).attacker).toBe(player.getBody());
             });
         });
     });

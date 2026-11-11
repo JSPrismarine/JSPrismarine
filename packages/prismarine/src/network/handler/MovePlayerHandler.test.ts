@@ -97,7 +97,7 @@ describe('MovePlayerHandler', () => {
                 pose.pitch = pitch;
                 pose.yaw = yaw;
                 pose.headYaw = headYaw;
-                await world.broadcastMove(player);
+                await world.broadcastMove(player.getBody());
             }),
             setOnGround: vi.fn(async (onGround: boolean) => void (pose.onGround = onGround))
         });

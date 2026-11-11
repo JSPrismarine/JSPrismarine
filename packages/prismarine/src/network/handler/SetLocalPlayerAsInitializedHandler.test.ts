@@ -23,7 +23,7 @@ const fakeSession = () => {
         getEntity: (runtimeId) => added.get(runtimeId) ?? null,
         addPlayer: async (player) => {
             order.push('addPlayer');
-            added.set(player.getRuntimeId(), player);
+            added.set(player.getRuntimeId(), player.getBody());
         }
     });
 

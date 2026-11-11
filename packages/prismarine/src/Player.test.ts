@@ -83,11 +83,11 @@ describe('Player', () => {
             });
             const sendMove = vi.spyOn(player.getNetworkSession(), 'sendMove').mockResolvedValue();
 
-            const entity: Entity = player;
+            const entity: Entity = player.getBody();
             await entity.setPosition({ position: new Vector3(90, 64, 0), teleport: true });
 
             expect(snaps).toStrictEqual([true]);
-            expect(sendMove).toHaveBeenCalledWith(player, PositionMode.Teleport);
+            expect(sendMove).toHaveBeenCalledWith(player.getBody(), PositionMode.Teleport);
         });
     });
 
@@ -864,21 +864,21 @@ describe('Player', () => {
             const { player } = fakePlayer();
             const nether = PORTALS['minecraft:portal']!;
 
-            expect(player.getPortalTransitionTicks(nether)).toBe(80);
-            expect(player.getPortalTransitionTicks()).toBe(80);
+            expect(player.getBody().getPortalTransitionTicks(nether)).toBe(80);
+            expect(player.getBody().getPortalTransitionTicks()).toBe(80);
 
             player.gamemode = Gametype.CREATIVE;
-            expect(player.getPortalTransitionTicks(nether)).toBe(0);
-            expect(player.getPortalTransitionTicks()).toBe(0);
+            expect(player.getBody().getPortalTransitionTicks(nether)).toBe(0);
+            expect(player.getBody().getPortalTransitionTicks()).toBe(0);
         });
 
         it('sends a player through an end portal on the first tick in any game mode', () => {
             const { player } = fakePlayer();
             const end = PORTALS['minecraft:end_portal']!;
 
-            expect(player.getPortalTransitionTicks(end)).toBe(0);
+            expect(player.getBody().getPortalTransitionTicks(end)).toBe(0);
             player.gamemode = Gametype.CREATIVE;
-            expect(player.getPortalTransitionTicks(end)).toBe(0);
+            expect(player.getBody().getPortalTransitionTicks(end)).toBe(0);
         });
 
         it('waits 10 ticks after a dimension change, not the 300 a mob does', () => {

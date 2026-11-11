@@ -20,7 +20,7 @@ import { builtInEntityDefinitions } from '../content/testing';
 import { EntityRuntimes } from '../entity/data/live';
 import { inertEntityRuntime } from '../testing/entityServer';
 import { stub } from '../testing/stub.test.helper';
-import type Player from '../Player';
+import { stubPlayerPort } from '../testing/playerPort.test.helper';
 import type { ContentPosition } from '../content/world/adapter';
 import type { ShownActor } from './ShownActor';
 import { explode } from '../entity/Explosion';
@@ -244,7 +244,7 @@ const liveWorld = (
         // Fire reads a player list through `minecraft:fire_spread_radius_around_player`.
         // The content adapter reads the same player fields as it does for a live player.
         getPlayers: () => [
-            stub<Player>({
+            stubPlayerPort({
                 getPosition: () => new Position(8, 64, 8, world),
                 getRuntimeId: () => 1n,
                 getType: () => 'minecraft:player',

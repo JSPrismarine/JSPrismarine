@@ -287,7 +287,7 @@ const buildOver = (world: World, runtimes: EntityRuntimes): { source: ServerWorl
 /** A connected player standing in the End world, with its captured packets. */
 const enterArena = (world: World, players: Map<bigint, Player>, x: number, y: number, z: number) => {
     const fixture = fakePlayer();
-    Object.assign(fixture.player, { position: new Position(x, y, z, world) });
+    Object.assign(fixture.player.getBody(), { position: new Position(x, y, z, world) });
     players.set(fixture.player.getRuntimeId(), fixture.player);
     return fixture;
 };

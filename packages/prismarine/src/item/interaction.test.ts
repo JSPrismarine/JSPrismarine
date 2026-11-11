@@ -32,8 +32,9 @@ import { World } from '../world/World';
 import { WorldSystems } from '../world/WorldSystems';
 import { NULL_WORLD_CHANGE_SINK } from '../world/WorldChangeSink';
 import { contentRedstoneUpdateHandlers } from '../world/redstoneUpdates';
-import Player from '../Player';
+import type Player from '../Player';
 import { fakeLevel } from '../testing/level';
+import { playerOnPrototype } from '../testing/playerDouble.test.helper';
 
 /** One call to the session's container opener, as the harness records it. */
 interface OpenedContainer {
@@ -299,34 +300,42 @@ const playerHolding = (
     };
 
     const runtimeId = nextPlayerRuntimeId++;
-    const player: Player = Object.assign(Object.create(Player.prototype), {
+    // What entity code reads of the player's body, which a click hands it as the source.
+    const body = {
+        runtimeId,
         getWorld: () => world,
         getServer: () => world.getServer(),
-        getInventory: () => inventory,
-        getNetworkSession: () => session,
-        getRuntimeId: () => runtimeId,
         getPosition: () => new Vector3(1.5, 65, 1.5),
         getFeetY: () => 65 - 1.62,
         getBox: () => ({ width: 0.6, height: 1.8 }),
         getStatusEffects: () => [],
+        getEquipment: () => ({}),
         pitch: rotation.pitch,
         yaw: rotation.yaw,
         headYaw: rotation.yaw,
-        // Its own name, because per-player services are keyed by the name of a player with no XUID.
-        getName: () => `tester-${runtimeId}`,
-        getXUID: () => null,
-        getType: () => 'minecraft:player',
-        getEquipment: () => ({}),
         attributes: new Attributes(Attributes.getPlayerDefaults()),
-        metadata: { sprinting: false },
-        isFlying: () => false,
-        getSaturation: () => 5,
-        getFallDistance: () => 0,
-        getFood: () => 20,
-        isOnGround: () => true,
-        isSneaking: () => sneaking,
-        gamemode
-    });
+        metadata: { sprinting: false }
+    };
+    const player: Player = Object.assign(
+        playerOnPrototype(
+            {
+                getInventory: () => inventory,
+                // Its own name, because per-player services are keyed by the name of a player with no XUID.
+                getName: () => `tester-${runtimeId}`,
+                getXUID: () => null,
+                isFlying: () => false,
+                getSaturation: () => 5,
+                getFallDistance: () => 0,
+                getFood: () => 20,
+                isOnGround: () => true,
+                isSneaking: () => sneaking,
+                gamemode
+            },
+            body
+        ),
+        // The session double counts what it is sent, which a real session does not.
+        { getNetworkSession: () => session }
+    );
     return player;
 };
 

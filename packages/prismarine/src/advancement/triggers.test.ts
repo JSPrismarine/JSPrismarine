@@ -4,7 +4,7 @@ import { buildServerContent } from '../content/ServerContent';
 import { definitionOf, definitionsOf } from '../content/ContentOptions';
 import type { ServerContent } from '../content/ServerContent';
 import { fixtureBlockPalette, fixtureItemDefinitions } from '../content/testing';
-import Player from '../Player';
+import type Player from '../Player';
 import type Server from '../Server';
 import type { World } from '../world/World';
 import type PlayerSession from '../network/PlayerSession';
@@ -19,8 +19,8 @@ import { createItemActorPort } from '../item/actorPort';
 import type { ContentEntityAccess } from '../content/world/adapter';
 import { unwiredWorld } from '../content/world/unwired';
 import { testContent } from '../testing/entityServer';
-import { stub, stubOf } from '../testing/stub.test.helper';
-import { withPlayerComponents } from '../testing/playerDouble.test.helper';
+import { stub } from '../testing/stub.test.helper';
+import { playerOnPrototype, withPlayerComponents } from '../testing/playerDouble.test.helper';
 import { advancementsOf, loadAdvancements, storedAdvancements } from './progress';
 import {
     advancementBlockUsed,
@@ -257,39 +257,51 @@ const scene = () => {
     const server = stub<Server>({ getContent: () => built });
     const world = stub<World>({
         getPlayers: () => [player],
-        getEntity: (id: bigint) => (id === runtimeId ? player : null),
-        getActor: (id: bigint) => (id === runtimeId ? player : null),
+        getEntity: (id: bigint) => (id === runtimeId ? player.getBody() : null),
+        getActor: (id: bigint) => (id === runtimeId ? player.getBody() : null),
         // The player's session, which is how the item actor port finds the player.
         viewerOf: (id: bigint) => (id === runtimeId ? stub<PlayerSession>({ getPlayer: () => player }) : undefined),
         loadedBlockAt: () => ({ name: 'minecraft:air', states: {} }) as never,
         getServer: () => server
     });
 
+    const position = () => ({ getX: () => 0, getY: () => 64, getZ: () => 0 }) as never;
     const player: Player = withPlayerComponents(
-        stubOf(Player, {
-            getRuntimeId: () => runtimeId,
-            getType: () => 'minecraft:player',
-            // Its own name, because per-player services are keyed by the name of a player with no XUID.
-            getName: () => `tester-${runtimeId}`,
-            getXUID: () => null,
-            getPosition: () => ({ getX: () => 0, getY: () => 64, getZ: () => 0 }) as never,
-            getServer: () => server,
-            getWorld: () => world,
-            getInventory: () => inventory,
-            getEquipment: () => ({}),
-            getStatusEffects: () => [],
-            attributes: new Attributes(Attributes.getPlayerDefaults()),
-            metadata: { sprinting: false } as never,
-            gamemode: 0,
-            isSneaking: () => false,
-            isFlying: () => false,
-            getFood: () => 20,
-            getSaturation: () => 5,
-            addFood: () => {},
-            sendMessage: async (message: string, _type?: number, parameters: string[] = []) => {
-                announced.push({ key: message, parameters });
+        playerOnPrototype(
+            {
+                getRuntimeId: () => runtimeId,
+                getType: () => 'minecraft:player',
+                // Its own name, because per-player services are keyed by the name of a player with no XUID.
+                getName: () => `tester-${runtimeId}`,
+                getXUID: () => null,
+                getPosition: position,
+                getServer: () => server,
+                getWorld: () => world,
+                getInventory: () => inventory,
+                getEquipment: () => ({}),
+                getStatusEffects: () => [],
+                gamemode: 0,
+                isSneaking: () => false,
+                isFlying: () => false,
+                getFood: () => 20,
+                getSaturation: () => 5,
+                addFood: () => {},
+                sendMessage: async (message: string, _type?: number, parameters: string[] = []) => {
+                    announced.push({ key: message, parameters });
+                }
+            },
+            {
+                // What entity code reads of the player's body: a blow names it as the attacker.
+                runtimeId,
+                server,
+                getPosition: position,
+                getWorld: () => world,
+                getEquipment: () => ({}),
+                getStatusEffects: () => [],
+                metadata: { sprinting: false },
+                attributes: new Attributes(Attributes.getPlayerDefaults())
             }
-        })
+        )
     );
 
     const port = createItemActorPort({
@@ -369,14 +381,14 @@ describe('earning vanilla advancements by playing', () => {
     it('earns kill_a_mob from killing one of the mobs it names', () => {
         const { player } = scene();
 
-        advancementKill(mob('minecraft:zombie'), DamageSource.entity(player));
+        advancementKill(mob('minecraft:zombie'), DamageSource.entity(player.getBody()));
         expect(done(player, 'minecraft:adventure/kill_a_mob')).toBe(true);
     });
 
     it('does not earn it from killing something else', () => {
         const { player } = scene();
 
-        advancementKill(mob('minecraft:cow'), DamageSource.entity(player));
+        advancementKill(mob('minecraft:cow'), DamageSource.entity(player.getBody()));
         expect(done(player, 'minecraft:adventure/kill_a_mob')).toBe(false);
     });
 

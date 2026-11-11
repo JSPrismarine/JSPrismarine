@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import type Player from '../Player';
 import type { Metadata } from '@jsprismarine/protocol/wire/structures/Metadata';
 import { stub } from '../testing/stub.test.helper';
+import { stubPlayerPort } from '../testing/playerPort.test.helper';
 import type ClientConnection from './ClientConnection';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import UpdateAbilitiesPacket, {
@@ -49,7 +50,7 @@ const playerIn = ({
     flying?: boolean;
     canFly?: boolean;
 }) =>
-    stub<Player>({
+    stubPlayerPort({
         gamemode,
         getRuntimeId: () => 7n,
         isOp: () => op,

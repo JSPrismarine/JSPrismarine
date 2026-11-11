@@ -198,7 +198,7 @@ describe('a store player shown to other clients', () => {
         // What a legacy player is shown with, in the same order, from the same code.
         const legacy = fakePlayer({ name: 'Legacy' });
         const before = alex!.sent.length;
-        await alex!.player.getNetworkSession().sendAddPlayer(legacy.player);
+        await alex!.player.getNetworkSession().sendAddPlayer(legacy.player.getBody());
         const names = (packets: readonly NetworkPacket<unknown>[]) => packets.map((packet) => packet.getName());
         expect(names(alex!.sent.slice(0, before))).toEqual(names(alex!.sent.slice(before)));
     });
