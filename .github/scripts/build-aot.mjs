@@ -74,6 +74,13 @@ const args = [
     '--trim'
 ];
 
+/**
+ * A compiled Bun executable reports `NODE_ENV=development` when the variable is unset, which
+ * turned on development behavior such as the verbose default log level and the development log
+ * file. Defining it at build time makes every shipped executable a production build.
+ */
+args.push('--define', 'process.env.NODE_ENV="production"');
+
 for (const name of buildMetadata) {
     const value = process.env[name];
     if (!value) throw new Error(`${name} must be set before building an executable`);
