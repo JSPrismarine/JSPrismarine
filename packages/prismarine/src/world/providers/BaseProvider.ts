@@ -28,7 +28,7 @@ const WORLD_DATA_FILE_NAME = 'jsprismarine-world.dat';
  * The provider serves every dimension of a save, so it cannot read one world's entity list;
  * whoever owns the worlds hands it this instead.
  */
-export type EntitySource = (dimension: DimensionType) => readonly WorldActor[];
+export type EntitySource = (dimension: DimensionType) => Iterable<WorldActor>;
 
 /**
  * What the provider formats share: the folder, the server, the fallback world data file and
@@ -118,10 +118,10 @@ export default abstract class BaseProvider implements Provider {
      * The live entities of one dimension, from the attached source, or from the attached world
      * when it is the only one.
      */
-    protected entitiesIn(dimension: DimensionType): readonly WorldActor[] {
+    protected entitiesIn(dimension: DimensionType): Iterable<WorldActor> {
         if (this.entitySource !== null) return this.entitySource(dimension);
         if (this.world === undefined || this.world.getDimension().bedrockId !== dimension.bedrockId) return [];
-        return this.world.getActors();
+        return this.world.actors();
     }
 
     /**

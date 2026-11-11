@@ -9,7 +9,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 
 import { BlockEntityRegistry } from '../../../blockentity/BlockEntityRegistry';
 import { BlockRuntimeIds } from '../../../block/state/BlockRuntimeIds';
-import type { Entity } from '../../../entity/Entity';
+import type { StoreActor } from '../../../entity/data/storeActors';
 import {
     ChunkTag,
     decodeChunkKey,
@@ -67,7 +67,7 @@ const actorIdBytesForTest = (uniqueId: bigint): Buffer => {
  * The pieces of `Server` and `World` a provider touches. Hand-rolled rather than mocked, so what
  * the provider actually depends on stays visible.
  */
-const harness = (worldPath: string, name = 'testworld', seed = 1234n, entities: Entity[] = []) => {
+const harness = (worldPath: string, name = 'testworld', seed = 1234n, entities: StoreActor[] = []) => {
     const warnings: string[] = [];
     const logger = stub<Logger>({
         warn: (message: string) => {
@@ -84,8 +84,7 @@ const harness = (worldPath: string, name = 'testworld', seed = 1234n, entities: 
         getName: () => name,
         getSeed: () => seed,
         getDimension: () => Dimensions.Overworld,
-        getEntities: () => entities,
-        getActors: () => entities,
+        actors: () => entities.values(),
         getServer: () => server
     });
 
@@ -665,7 +664,8 @@ describe('world', () => {
                 const position = stub<Position>({ getX: () => actorX, getY: () => 64, getZ: () => 1 });
                 const persistentNbt = new NBTTagCompound('');
                 persistentNbt.addValue('UniqueID', new Types.LongVal(9933n));
-                const actor = stub<Entity>({
+                const actor = stub<StoreActor>({
+                    getRuntimeId: () => 1n,
                     getType: () => 'minecraft:cow',
                     getPosition: () => position,
                     getTags: () => [],
@@ -736,7 +736,8 @@ describe('world', () => {
             it('does not save entities whose data says they are transient', async () => {
                 const worldPath = scratch();
                 let persistent = true;
-                const transient = stub<Entity>({
+                const transient = stub<StoreActor>({
+                    getRuntimeId: () => 1n,
                     getType: () => 'minecraft:fishing_hook',
                     getPosition: () => stub<Position>({ getX: () => 1, getY: () => 64, getZ: () => 1 }),
                     getTags: () => [],
@@ -763,13 +764,20 @@ describe('world', () => {
                 await reopened.provider.disable();
             });
 
-            it('keeps the first duplicate actor id and filters digests by dimension', async () => {
+            it('keeps a duplicate actor id for the lower runtime id and filters digests by dimension', async () => {
                 const worldPath = scratch();
-                const persistentActor = (uniqueId: bigint, identifier: string, dimension: DimensionType, x: number) => {
+                const persistentActor = (
+                    runtimeId: bigint,
+                    uniqueId: bigint,
+                    identifier: string,
+                    dimension: DimensionType,
+                    x: number
+                ) => {
                     const persistentNbt = new NBTTagCompound('');
                     persistentNbt.addValue('UniqueID', new Types.LongVal(uniqueId));
 
-                    return stub<Entity>({
+                    return stub<StoreActor>({
+                        getRuntimeId: () => runtimeId,
                         getType: () => identifier,
                         getPosition: () => stub<Position>({ getX: () => x, getY: () => 64, getZ: () => 1 }),
                         getTags: () => [],
@@ -782,13 +790,14 @@ describe('world', () => {
                         pitch: 0
                     });
                 };
-                const first = persistentActor(111n, 'minecraft:cow', Dimensions.Overworld, 1);
-                const duplicate = persistentActor(111n, 'minecraft:sheep', Dimensions.Overworld, 17);
-                const nether = persistentActor(222n, 'minecraft:zombified_piglin', Dimensions.Nether, 1);
+                // The lower runtime id keeps the actor id, whichever order the source lists them in.
+                const first = persistentActor(1n, 111n, 'minecraft:cow', Dimensions.Overworld, 1);
+                const duplicate = persistentActor(2n, 111n, 'minecraft:sheep', Dimensions.Overworld, 17);
+                const nether = persistentActor(3n, 222n, 'minecraft:zombified_piglin', Dimensions.Nether, 1);
                 const { provider } = harness(worldPath);
                 provider.setEntitySource((dimension) => {
                     if (dimension.bedrockId === Dimensions.Nether.bedrockId) return [nether];
-                    return dimension.bedrockId === Dimensions.Overworld.bedrockId ? [first, duplicate] : [];
+                    return dimension.bedrockId === Dimensions.Overworld.bedrockId ? [duplicate, first] : [];
                 });
                 await provider.enable();
                 await provider.writeChunk(new Chunk(0, 0, new Map(), Dimensions.Overworld));
@@ -1213,7 +1222,8 @@ describe('world', () => {
             it('lists an actor in a Nether chunk under the Nether digest only, with DimensionId 1', async () => {
                 const worldPath = scratch();
                 const netherWorld = stub<World>({ getDimension: () => Dimensions.Nether });
-                const zombie = stub<Entity>({
+                const zombie = stub<StoreActor>({
+                    getRuntimeId: () => 1n,
                     getType: () => 'minecraft:zombified_piglin',
                     getPosition: () => stub<Position>({ getX: () => 5, getY: () => 40, getZ: () => 5 }),
                     getTags: () => [],

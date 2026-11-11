@@ -1721,10 +1721,16 @@ export class World implements Service {
             }
 
             // Before the restore, not after: providers without actor storage may keep a
-            // lightweight entity snapshot, which the full actor record replaces on load.
-            const legacyEntity = this.getActors().find((candidate) => this.isLegacyEntity(candidate, entity));
-            if (legacyEntity instanceof StoreActor)
-                this.dataEntities().runtime.remove(legacyEntity.entity.id, 'body removed');
+            // lightweight entity snapshot, which the full actor record replaces on load. The
+            // lowest id of those that match, which is the one an ordered search would find.
+            let snapshot: StoreActor | undefined;
+            for (const candidate of this.dataEntities().actors.all())
+                if (
+                    this.isLegacyEntity(candidate, entity) &&
+                    (snapshot === undefined || candidate.entity.id < snapshot.entity.id)
+                )
+                    snapshot = candidate;
+            if (snapshot !== undefined) this.dataEntities().runtime.remove(snapshot.entity.id, 'body removed');
 
             this.restoreDataEntity(entity);
         }
@@ -1754,7 +1760,7 @@ export class World implements Service {
         return (restored ?? live.restoreInert(stored)) !== undefined;
     }
 
-    private isLegacyEntity(candidate: WorldActor, stored: StoredActor): boolean {
+    private isLegacyEntity(candidate: StoreActor, stored: StoredActor): boolean {
         if (candidate.persistentNbt !== null || candidate.getType() !== stored.identifier) return false;
 
         const candidatePosition = candidate.getPosition();
@@ -3473,7 +3479,7 @@ export class World implements Service {
 
     /** Builds the entity and actor indexes once for every chunk in a save or unload pass. */
     private chunkSaveContext(): ChunkSaveContext {
-        return createChunkSaveContext(this.dimension.bedrockId, this.getActors(), (entity) => {
+        return createChunkSaveContext(this.dimension.bedrockId, this.actors(), (entity) => {
             const chunkIndex =
                 entity instanceof StoreActor ? undefined : this.entityChunkIndices.get(Number(entity.getRuntimeId()));
             if (chunkIndex !== undefined) return chunkIndex;
@@ -3700,8 +3706,18 @@ export class World implements Service {
     }
 
     /**
+     * Every entity of this world, the legacy entities and the store's through their actors, in no
+     * particular order and without a copy. A caller that needs an order sorts what it keeps.
+     * @returns The entities.
+     */
+    public *actors(): IteratorObject<WorldActor, void> {
+        yield* this.entities.values();
+        yield* this.dataEntities().actors.all();
+    }
+
+    /**
      * Every entity of this world, the legacy entities and the store's through their actors, in
-     * ascending runtime id order.
+     * ascending runtime id order. A copy, sorted, for a caller outside the tick.
      * @returns {WorldActor[]} The entities.
      */
     public getActors(): WorldActor[] {
