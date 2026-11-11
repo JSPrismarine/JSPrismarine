@@ -2,19 +2,18 @@ import { DisconnectReason, PacketCompressionAlgorithm } from '@jsprismarine/mine
 import { CompressionThreshold, NetworkSettingsPacket, PlayStatus, PlayStatusPacket } from '@jsprismarine/protocol';
 import type { RequestNetworkSettingsPacket } from '@jsprismarine/protocol';
 import { codecForProtocol, latestCodec, registeredCodecs } from '../codec/CodecRegistry';
-import type Server from '../../Server';
-import type ConnectionPacketHandler from './ConnectionPacketHandler';
 import type ClientConnection from '../ClientConnection';
+import type { ConnectionContext, ConnectionHandler } from './ConnectionContext';
+import type { HandlerLog } from './HandlerContext';
 
-export default class RequestNetworkSettingsHandler implements ConnectionPacketHandler<RequestNetworkSettingsPacket> {
+export default class RequestNetworkSettingsHandler implements ConnectionHandler<RequestNetworkSettingsPacket> {
     public static PacketName = 'RequestNetworkSettingsPacket';
     public readonly phases = ['handshake'] as const;
     public readonly lane = 'connection';
 
     public async handle(
         packet: RequestNetworkSettingsPacket,
-        server: Server,
-        connection: ClientConnection
+        { connection, log, config }: ConnectionContext
     ): Promise<void> {
         const request = packet.getPacketData();
         if (request === null) throw new Error('RequestNetworkSettingsPacket has no payload');
@@ -23,18 +22,18 @@ export default class RequestNetworkSettingsHandler implements ConnectionPacketHa
         // and either the registry has a codec for it or the connection ends here.
         const codec = codecForProtocol(request.protocolVersion);
         if (codec === undefined) {
-            await RequestNetworkSettingsHandler.refuseProtocol(request.protocolVersion, server, connection);
+            await RequestNetworkSettingsHandler.refuseProtocol(request.protocolVersion, log, connection);
             return;
         }
 
         connection.codec = codec;
         connection.phase = 'login';
 
-        const compressionAlgorithm = server.getConfig().getPacketCompressionAlgorithm();
+        const compressionAlgorithm = config.getPacketCompressionAlgorithm();
         const compressionThreshold =
             compressionAlgorithm === PacketCompressionAlgorithm.NONE
                 ? CompressionThreshold.COMPRESS_NOTHING
-                : server.getConfig().getPacketCompressionThreshold();
+                : config.getPacketCompressionThreshold();
         const networkSettings = new NetworkSettingsPacket({
             compressionThreshold,
             compressionAlgorithm,
@@ -62,15 +61,17 @@ export default class RequestNetworkSettingsHandler implements ConnectionPacketHa
      * The status is sent uncompressed: compression is only agreed by the `NetworkSettings`
      * this client is not going to get.
      */
-    private static async refuseProtocol(protocol: number, server: Server, connection: ClientConnection): Promise<void> {
+    private static async refuseProtocol(
+        protocol: number,
+        log: HandlerLog,
+        connection: ClientConnection
+    ): Promise<void> {
         const outdatedClient = protocol < latestCodec.protocolVersion;
 
-        server
-            .getLogger()
-            .info(
-                `Refused a client on protocol ${protocol}: this server speaks ${registeredCodecs.map((codec) => codec.protocolVersion).join(', ')}`,
-                'RequestNetworkSettingsHandler/handle'
-            );
+        log.info(
+            `Refused a client on protocol ${protocol}: this server speaks ${registeredCodecs.map((codec) => codec.protocolVersion).join(', ')}`,
+            'RequestNetworkSettingsHandler/handle'
+        );
 
         const status = outdatedClient ? PlayStatus.LoginFailed_ClientOld : PlayStatus.LoginFailed_ServerOld;
         await connection.sendDataPacket(new PlayStatusPacket({ status }), false);

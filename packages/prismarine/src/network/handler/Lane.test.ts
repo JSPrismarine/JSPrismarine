@@ -46,7 +46,7 @@ const CONNECTION_IMPORTS: readonly RegExp[] = [
     /^\.\.\/PlayerSession$/,
     /^\.\.\/ClientConnection$/,
     /^\.\.\/codec\/CodecRegistry$/,
-    /^\.\/(PacketHandler|ConnectionPacketHandler|SessionHandler|HandlerContext)$/
+    /^\.\/(PacketHandler|ConnectionContext|SessionHandler|HandlerContext)$/
 ];
 
 /**
@@ -79,7 +79,10 @@ const PLAYER_IDENTITY: ReadonlySet<string> = new Set(['getName', 'getRuntimeId']
  * The test fails when one of these stops reaching the world, so the list only shrinks.
  */
 const KNOWN_WORLD_ACCESS: ReadonlyMap<string, string> = new Map([
-    ['LoginHandler', 'admission reads the default world, builds the player and kicks a duplicate'],
+    [
+        'LoginHandler',
+        "admission builds the player in front of the join, through its context's `login.players`, and kicks a duplicate"
+    ],
     ['ClientToServerHandshakeHandler', 'resumes the login admission after encryption starts']
 ]);
 
@@ -87,44 +90,58 @@ const KNOWN_WORLD_ACCESS: ReadonlyMap<string, string> = new Map([
 const memberName = (access: PropertyAccessExpression): string | null =>
     isIdentifier(access.name) ? access.name.text : null;
 
-/** The handler contexts, whose `session` is the handler's `PlayerSession`. */
-const CONTEXT_TYPES: ReadonlySet<string> = new Set(['SessionContext', 'InputContext']);
+/**
+ * The handler contexts, each with the member that holds what the handler's packet arrived on:
+ * a session's `session`, and the `connection` of a connection that has no session yet.
+ */
+const CONTEXT_TYPES: ReadonlyMap<string, readonly [member: string, kind: string]> = new Map([
+    ['SessionContext', ['session', 'PlayerSession']],
+    ['InputContext', ['session', 'PlayerSession']],
+    ['ConnectionContext', ['connection', 'ClientConnection']]
+]);
 
 /**
  * The parameter kind a `Server`, `PlayerSession` or `ClientConnection` annotation names. A
- * context parameter is a `Context`, and the `session` destructured from one a `PlayerSession`.
+ * context parameter is its context type, and the `session` or `connection` destructured from one
+ * a `PlayerSession` or a `ClientConnection`.
  */
 const parameterKinds = (root: Node): Map<string, string> => {
     const kinds = new Map<string, string>();
     walkPreorder(root, (node) => {
         if (!isParameter(node) || node.type === undefined) return;
         const type = getTextOfNode(node.type);
+        const held = CONTEXT_TYPES.get(type);
         if (!isIdentifier(node.name)) {
-            if (!CONTEXT_TYPES.has(type)) return;
+            if (held === undefined) return;
             walkPreorder(node.name, (element) => {
                 if (!isBindingElement(element) || element.name === undefined || !isIdentifier(element.name)) return;
                 const property =
                     element.propertyName !== undefined && isIdentifier(element.propertyName)
                         ? element.propertyName.text
                         : element.name.text;
-                if (property === 'session') kinds.set(element.name.text, 'PlayerSession');
+                if (property === held[0]) kinds.set(element.name.text, held[1]);
             });
             return;
         }
         if (type === 'Server' || type === 'PlayerSession' || type === 'ClientConnection') {
             kinds.set(node.name.text, type);
         }
-        if (CONTEXT_TYPES.has(type)) kinds.set(node.name.text, 'Context');
+        if (held !== undefined) kinds.set(node.name.text, type);
     });
     return kinds;
 };
 
-/** The kind of the object a property access reads from: a parameter, or a context's `session`. */
+/**
+ * The kind of the object a property access reads from: a parameter, or the `session` or
+ * `connection` of a context.
+ */
 const receiverKind = (access: PropertyAccessExpression, kinds: ReadonlyMap<string, string>): string | undefined => {
     const receiver = access.expression;
     if (isIdentifier(receiver)) return kinds.get(receiver.text);
-    if (isPropertyAccess(receiver) && isIdentifier(receiver.expression) && memberName(receiver) === 'session') {
-        return kinds.get(receiver.expression.text) === 'Context' ? 'PlayerSession' : undefined;
+    if (isPropertyAccess(receiver) && isIdentifier(receiver.expression)) {
+        const context = kinds.get(receiver.expression.text);
+        const held = context === undefined ? undefined : CONTEXT_TYPES.get(context);
+        return held !== undefined && memberName(receiver) === held[0] ? held[1] : undefined;
     }
     return undefined;
 };

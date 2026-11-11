@@ -174,7 +174,11 @@ const makeDispatcher = (options?: {
     session?: { readonly session: PlayerSession; readonly phase: SessionPhase };
     handler?: {
         phases: readonly SessionPhase[];
-        handle: (packet: unknown, server: Server, target: unknown) => Promise<void>;
+        /**
+         * Handed the server and the session in the play phases, and the connection's context
+         * before a session exists.
+         */
+        handle: (packet: unknown, given: unknown, target: unknown) => Promise<void>;
     };
     /** A handler in the shared shape, registered for every packet in place of `handler`. */
     contextHandler?: SessionHandler<unknown>;
@@ -343,14 +347,17 @@ describe('network', () => {
             expect(info.lines.some(({ level }) => level === 'silly')).toBe(false);
         });
 
-        it('hands a handshake-phase handler the bare connection', async () => {
+        it('hands a handshake-phase handler the context of its connection, and not the server', async () => {
             const targets: unknown[] = [];
-            const { transport, built, server } = makeDispatcher({
+            const extra: unknown[] = [];
+            const { transport, built } = makeDispatcher({
                 handler: {
                     phases: ['handshake'],
-                    handle: async (_packet, givenServer, target) => {
-                        expect(givenServer).toBe(server);
-                        targets.push(target);
+                    handle: async (_packet, context, target) => {
+                        extra.push(target);
+                        if (typeof context === 'object' && context !== null && 'connection' in context) {
+                            targets.push(context.connection);
+                        }
                     }
                 }
             });
@@ -359,6 +366,7 @@ describe('network', () => {
             await transport.emitFrame(frameOf(message('login')), 1);
 
             expect(targets).toStrictEqual([built[0]]);
+            expect(extra).toStrictEqual([undefined]);
         });
 
         it('records accepted packet bytes with global order, connection order, and the tick they ran in', async () => {

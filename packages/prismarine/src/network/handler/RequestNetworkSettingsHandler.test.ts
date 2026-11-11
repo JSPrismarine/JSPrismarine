@@ -13,6 +13,7 @@ import type Server from '../../Server';
 import type { Config } from '../../config/Config';
 import { stub } from '../../testing/stub.test.helper';
 import type ClientConnection from '../ClientConnection';
+import { ConnectionContexts } from '../connectionContexts';
 import Codec2193 from '../codec/Codec2193';
 import Codec2225 from '../codec/Codec2225';
 import { latestCodec } from '../codec/CodecRegistry';
@@ -50,6 +51,8 @@ const fakeConnection = () => {
 const request = (protocolVersion: number): RequestNetworkSettingsPacket =>
     new RequestNetworkSettingsPacket({ protocolVersion });
 
+/** The context the dispatcher hands a handler before the session, over a test's server. */
+const contextOf = (server: Server, connection: ClientConnection) => ConnectionContexts.of(server).contextOf(connection);
 describe('RequestNetworkSettingsHandler', () => {
     const info = vi.fn();
     const serverFor = (algorithm: PacketCompressionAlgorithm = PacketCompressionAlgorithm.ZLIB, threshold = 256) =>
@@ -66,7 +69,10 @@ describe('RequestNetworkSettingsHandler', () => {
     it('answers a matching protocol with the network settings', async () => {
         const { sent, disconnect, connection } = fakeConnection();
 
-        await new RequestNetworkSettingsHandler().handle(request(Codec2193.protocolVersion), server, connection);
+        await new RequestNetworkSettingsHandler().handle(
+            request(Codec2193.protocolVersion),
+            contextOf(server, connection)
+        );
 
         expect(sent).toHaveLength(1);
         expect(sent[0]!.packet).toBeInstanceOf(NetworkSettingsPacket);
@@ -89,11 +95,17 @@ describe('RequestNetworkSettingsHandler', () => {
 
     it('assigns each announced version its own codec', async () => {
         const older = fakeConnection();
-        await new RequestNetworkSettingsHandler().handle(request(Codec2193.protocolVersion), server, older.connection);
+        await new RequestNetworkSettingsHandler().handle(
+            request(Codec2193.protocolVersion),
+            contextOf(server, older.connection)
+        );
         expect(older.connection.codec).toBe(Codec2193);
 
         const newer = fakeConnection();
-        await new RequestNetworkSettingsHandler().handle(request(Codec2225.protocolVersion), server, newer.connection);
+        await new RequestNetworkSettingsHandler().handle(
+            request(Codec2225.protocolVersion),
+            contextOf(server, newer.connection)
+        );
         expect(newer.connection.codec).toBe(Codec2225);
         expect(newer.disconnect).not.toHaveBeenCalled();
     });
@@ -107,8 +119,7 @@ describe('RequestNetworkSettingsHandler', () => {
 
         await new RequestNetworkSettingsHandler().handle(
             request(Codec2193.protocolVersion),
-            serverFor(algorithm, threshold),
-            connection
+            contextOf(serverFor(algorithm, threshold), connection)
         );
 
         expect(sent[0]!.packet.getPacketData()).toMatchObject({
@@ -122,7 +133,10 @@ describe('RequestNetworkSettingsHandler', () => {
         // A bare disconnect here showed "Disconnected from Server" and nothing else (#1586).
         const { sent, order, disconnect, connection } = fakeConnection();
 
-        await new RequestNetworkSettingsHandler().handle(request(latestCodec.protocolVersion - 10), server, connection);
+        await new RequestNetworkSettingsHandler().handle(
+            request(latestCodec.protocolVersion - 10),
+            contextOf(server, connection)
+        );
 
         expect(sent).toHaveLength(1);
         const { packet, comp } = sent[0]!;
@@ -143,7 +157,10 @@ describe('RequestNetworkSettingsHandler', () => {
     it('tells a newer client that the server is out of date', async () => {
         const { sent, disconnect, connection } = fakeConnection();
 
-        await new RequestNetworkSettingsHandler().handle(request(latestCodec.protocolVersion + 10), server, connection);
+        await new RequestNetworkSettingsHandler().handle(
+            request(latestCodec.protocolVersion + 10),
+            contextOf(server, connection)
+        );
 
         expect(sent).toHaveLength(1);
         expect(sent[0]!.packet.getPacketData()).toMatchObject({ status: PlayStatus.LoginFailed_ServerOld });
@@ -154,7 +171,7 @@ describe('RequestNetworkSettingsHandler', () => {
         info.mockClear();
         const { connection } = fakeConnection();
 
-        await new RequestNetworkSettingsHandler().handle(request(712), server, connection);
+        await new RequestNetworkSettingsHandler().handle(request(712), contextOf(server, connection));
 
         expect(info).toHaveBeenCalledOnce();
         const [message] = info.mock.calls[0]!;

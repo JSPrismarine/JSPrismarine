@@ -8,7 +8,7 @@ import * as Handlers from './Handlers';
 const here = fileURLToPath(new URL('.', import.meta.url));
 
 /** Handler interfaces beside the handlers, rather than concrete packet handlers. */
-const HANDLER_INTERFACES = new Set(['PacketHandler', 'ConnectionPacketHandler', 'SessionHandler']);
+const HANDLER_INTERFACES = new Set(['PacketHandler', 'SessionHandler']);
 
 /** Handler module names under `dir`, excluding tests and interface-only modules. */
 const handlerModuleNames = () =>

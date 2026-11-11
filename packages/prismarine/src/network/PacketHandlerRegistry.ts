@@ -4,7 +4,7 @@ import type { PlayerSession } from '../';
 import type Server from '../Server';
 import Timer from '../utils/Timer';
 import type PacketHandler from './handler/PacketHandler';
-import type ConnectionPacketHandler from './handler/ConnectionPacketHandler';
+import type { ConnectionHandler } from './handler/ConnectionContext';
 import { strictestLane } from '@jsprismarine/protocol/handler/Lane';
 import { HandlerContexts } from './handlerContexts';
 import type { SessionHandler } from './handler/SessionHandler';
@@ -15,7 +15,7 @@ import { takesContext } from './handler/SessionHandler';
  * handler takes either a context ({@link SessionHandler}) or, until every handler has moved to the
  * shared shape, the whole server ({@link PacketHandler}).
  */
-export type RegisteredHandler = PacketHandler<any> | ConnectionPacketHandler<any> | SessionHandler<any>;
+export type RegisteredHandler = PacketHandler<any> | ConnectionHandler<any> | SessionHandler<any>;
 
 /** A handler of a player session, in either shape. */
 export type RegisteredSessionHandler = PacketHandler<any> | SessionHandler<any>;
