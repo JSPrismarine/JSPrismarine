@@ -3,8 +3,12 @@
  * its client owns its movement, and its death keeps it in the store until respawn revives it.
  * Asserted as counts of change log entries, store members and removals.
  */
+import { entity_identifiers } from '@jsprismarine/bedrock-data';
+import BinaryStream from '@jsprismarine/binaryutils';
+import { ByteOrder, NBTReader, NBTTagCompound } from '@jsprismarine/nbt';
 import { describe, expect, it } from 'vitest';
 
+import { testContent } from '../testing/entityServer';
 import { FLOOR_Y } from './data/testing';
 import { PLAYER_IDENTIFIER, withPlayerOverlay } from './playerOverlay';
 import { fieldsOf, logged, storePlayerFixture as fixture } from '../testing/storePlayer.test.helper';
@@ -13,6 +17,34 @@ import type { ChangeEntry } from '../world/changelog/ChangeEntry';
 const playerFile = (components: Record<string, unknown>) => ({
     format_version: '1.21.0',
     'minecraft:entity': { description: { identifier: PLAYER_IDENTIFIER }, components }
+});
+
+/** The `id` of every `ActorInfo` the server advertises in `AvailableActorIdentifiersPacket`. */
+const advertisedActorTypes = (): Set<string> => {
+    const reader = new NBTReader(new BinaryStream(entity_identifiers), ByteOrder.LITTLE_ENDIAN);
+    reader.setUseVarint(true);
+    const idlist = reader.parse().getList('idlist', false) ?? [];
+
+    const ids = new Set<string>();
+    for (const entry of idlist) {
+        if (entry instanceof NBTTagCompound) ids.add(entry.getString('id', ''));
+    }
+    return ids;
+};
+
+describe("the player's type", () => {
+    it('is one the client was told about', () => {
+        // `AddPlayerPacket` and `AddActorPacket` name an actor by its type, and the client only
+        // draws a type it found in `AvailableActorIdentifiersPacket`.
+        expect(advertisedActorTypes().has(PLAYER_IDENTIFIER)).toBe(true);
+    });
+
+    it('is declared even by a pack stack that has no player file, with the overlay health', () => {
+        const player = testContent().entities.registry.get(PLAYER_IDENTIFIER);
+
+        expect(player).toBeDefined();
+        expect(player?.hasComponent('minecraft:health')).toBe(true);
+    });
 });
 
 describe('withPlayerOverlay', () => {

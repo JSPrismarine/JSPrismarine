@@ -222,8 +222,8 @@ export interface LootEntity {
     getType(): string;
     getPosition(): { getX(): number; getY(): number; getZ(): number };
     /**
-     * The inventory, which only something humanlike has. `n` is what
-     * `Human` calls it, and the optional member is what lets a plain
+     * The inventory, which only something humanlike has. The optional
+     * member is what lets a plain
      * `Entity` - a skeleton, a cactus - satisfy this type without one.
      */
     n?(): { getItemInHand(): { asPredicateStack(): PredicateItemStack } };
