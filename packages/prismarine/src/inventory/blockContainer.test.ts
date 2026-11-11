@@ -203,6 +203,7 @@ const buildScene = async (name: string) => {
         },
         // The dimension's runtime the content build opened, where a drop becomes a store stack.
         getEntityRuntime: (dimension: string) => entityRuntimes.at(dimension) ?? inertEntityRuntime(),
+        hasEntityRuntime: () => true,
         getStorePlayers: () => entityRuntimes.players,
         getDimensionTravel: () => stub<DimensionTravel>({ touch: async () => {} }),
         getConfig: () =>
@@ -923,4 +924,90 @@ describe('a block container a player can put things in', () => {
 
         await level.disable();
     }, 120_000);
+
+    describe('in the change log', () => {
+        /** The block and block entity entries of the world's last sealed tick. */
+        const blockEntries = (world: World) =>
+            (world.lastChangeTick()?.entries ?? []).flatMap((entry) =>
+                entry.kind === 'field' && (entry.field === 'block' || entry.field === 'block-entity') ? [entry] : []
+            );
+
+        it("logs a stack put in a chest as one field of the chest's block entity", async () => {
+            const { server, world, level, blocks } = await buildScene('logged-chest');
+            const player = buildPlayer(world, server, 'Logged');
+            blocks.setBlock(CHEST, 'minecraft:chest');
+            player
+                .getInventory()
+                .setItem(HELD_SLOT, new ContainerEntry({ item: new Item({ name: 'minecraft:diamond', count: 3 }) }));
+            await player.openBlockContainer(
+                new Vector3(CHEST.x, CHEST.y, CHEST.z),
+                'minecraft:chest',
+                openContainerContents(player, CHEST, 'minecraft:chest')
+            );
+
+            world.beginChangeTick();
+            await apply(server, player, [
+                move(
+                    at(ContainerUiId.COMBINED_HOTBAR_AND_INVENTORY, HELD_SLOT),
+                    at(ContainerUiId.LEVEL_ENTITY_CONTAINER, 5),
+                    3
+                )
+            ]);
+            world.sealChangeTick();
+
+            expect(blockEntries(world)).toEqual([
+                expect.objectContaining({ address: { ...CHEST, field: 'items.5' }, before: null })
+            ]);
+            await level.disable();
+        }, 120_000);
+
+        it('logs a lit furnace as at most one data entry a tick while it cooks', async () => {
+            const { server, world, level, blocks } = await buildScene('logged-furnace');
+            await world.addPlayer(buildPlayer(world, server, 'Smelter'));
+            blocks.setBlock(FURNACE, 'minecraft:furnace');
+            blocks.setBlockData(FURNACE, {
+                items: [
+                    { identifier: 'minecraft:iron_ore', count: 1 },
+                    { identifier: 'minecraft:coal', count: 1 }
+                ],
+                capacity: 3
+            });
+
+            const dataEntries: number[] = [];
+            for (let tick = 1; tick <= 20; tick++) {
+                level.setTicks(tick);
+                await world.update(tick);
+                const furnace = blockEntries(world).filter(
+                    (entry) => entry.field === 'block-entity' && entry.address.field === 'data'
+                );
+                dataEntries.push(furnace.length);
+            }
+
+            // Lit on the first tick, so every tick after it advances the arrow and the flame.
+            expect(dataEntries.slice(1).every((count) => count === 1)).toBe(true);
+            await level.disable();
+        }, 120_000);
+
+        it('appends no block entries while nothing happens', async () => {
+            const { server, world, level, blocks } = await buildScene('logged-idle');
+            await world.addPlayer(buildPlayer(world, server, 'Idle'));
+            blocks.setBlock(CHEST, 'minecraft:chest');
+            blocks.setBlock(FURNACE, 'minecraft:furnace');
+            // Settle what the placements queued.
+            for (let tick = 1; tick <= 5; tick++) {
+                level.setTicks(tick);
+                await world.update(tick);
+            }
+
+            const appended: number[] = [];
+            for (let tick = 6; tick <= 25; tick++) {
+                level.setTicks(tick);
+                await world.update(tick);
+                appended.push(blockEntries(world).length);
+            }
+
+            expect(appended).toEqual(Array.from({ length: 20 }, () => 0));
+            await level.disable();
+        }, 120_000);
+    });
 });
