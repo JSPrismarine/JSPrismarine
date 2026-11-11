@@ -201,8 +201,8 @@ the state values. `onPlayerInteract` is the one hook with a return value: `true`
 consumed the interaction, which stops the later handlers under `dispatchFirst`. A handler whose
 interaction costs the player the held item answers `{ consumed: true, consumesHeldItem: true }`
 instead, and the host that dispatched the click takes the item out of the hand, outside creative. The event types are
-structural and name only what a handler reads, so the server's own `Player` and `Entity` classes are
-assignable to `HookActor` without this package depending on the server.
+structural and name only what a handler reads, so a host builds a `HookActor` from its own
+entities without this package depending on the server.
 
 ### The held item and the clicked face
 

@@ -570,14 +570,15 @@ server at startup rather than falling back to them. Behavior pack directories li
 `content-world-packs` in `config.json` load after the vanilla ones, and later packs replace
 earlier definitions whole; see [using-packs.md](using-packs.md) for the precedence rules.
 
-One written class remains: `Human`, which is what a player is. TNT and falling blocks restore
-through their vanilla entity definitions. Older projectile actors load as generic bodies and
-migrate into the data runtime from their saved `Motion` when the type is present; subsequent
-runtime records preserve their velocity, flight age and stuck state. New projectile flight and hit
-behavior comes from each type's `minecraft:projectile` component. Everything else is a component
-set in the runtime, so a mob's hitbox, stats and death loot table come from the pack rather than a
-table in this repository. `Entity.getBox()` reads the type's `minecraft:collision_box` from the
-content registry.
+No written entity class remains. A player is a store entity too, of the shipped
+`minecraft:player` type. TNT and falling blocks restore through their vanilla entity definitions.
+A saved actor with no runtime record, such as a projectile from an older save, migrates into the
+data runtime from its saved `Motion` when the type is present; subsequent runtime records preserve
+its velocity, flight age and stuck state. New projectile flight and hit behavior comes from each
+type's `minecraft:projectile` component. Everything else is a component set in the runtime, so a
+mob's hitbox, stats and death loot table come from the pack rather than a table in this
+repository. `StoreActor.getBox()` reads the type's `minecraft:collision_box` from the content
+registry.
 
 A dropped stack and the eye of ender in flight are entities of the store too, with built-in
 definitions, because Mojang ships no entity file for `minecraft:item` or
@@ -626,22 +627,24 @@ lifetime it plays its break sound and leaves, dropping the eye as a stack or bur
 
 Until replication reads the change log, clients are shown a mob and the eye through a
 `StoreActor` from `entity/data/storeActors.ts`, which answers the network layer from store state
-and sends each tick's moves, metadata, health and equipment. The legacy world code reaches a store
-entity through the same actor: commands and selectors, legacy blasts and a player's swing, item
+and sends each tick's moves, metadata, health and equipment. The rest of the server reaches an
+entity through the same actor: commands and selectors, blasts and a player's swing, item
 interactions and trades, saves and the replay digest, portal travel and spawner caps.
-`World.getActors` and `World.getActor` list and find a world's entities, a store entity as its
-actor, and the actor hands every effect back to the store: a blow goes through the damage
-pipeline, a shove onto the body, a tag or a status effect into the entity's state. A store entity
-is never a legacy `Entity` in the world's entity map. A dropped stack gets an `ItemActor` from
-`entity/data/itemActor.ts`, which goes on the wire as an `AddItemActor`, is followed six chunks
-rather than eight and sends no metadata or attribute updates. A saved actor whose type no loaded
-pack declares comes back as an `InertActor`: a store entity of the entity overlay's
+`World.actors`, `World.getActors` and `World.getActor` walk, list and find a world's entities as
+their actors, and the actor hands every effect back to the store: a blow goes through the damage
+pipeline, a shove onto the body, a tag or a status effect into the entity's state. A dropped
+stack gets an `ItemActor` from `entity/data/itemActor.ts`, which goes on the wire as an
+`AddItemActor`, is followed six chunks rather than eight and sends no metadata or attribute
+updates. A saved actor whose type no loaded pack declares comes back as an `InertActor`: a store entity of the entity overlay's
 [`jsprismarine:inert_actor`](../../packages/entities/vanilla_overlay/entities/inert_actor.json)
 type, which has health and runs nothing, shown and saved under the
 identifier it was saved with and with every actor record tag it was loaded with. A player in the store gets a `StorePlayerActor` from
 `entity/data/storePlayers.ts`, which other clients are sent as an `AddPlayer` followed by its
-abilities and armor, at the height of its eyes, through the same code that shows a legacy player.
-Live players are still legacy players, so no store player reaches a client yet.
+abilities and armor, at the height of its eyes. Every live player is a store player: a login
+builds one, files it in the server's `StorePlayers` and spawns it into its world's store, and
+`PlayerSession.getPlayer()` returns it. The session holds what is not entity state: the
+connection, the world the player is in, its permissions and the operations that post player
+events or tell the client, such as `setGamemode` and `respawn`.
 
 The server opens one `EntityRuntime` per dimension as that dimension's content adapter is
 assembled, and `World.update` ticks it. Each tick, for each entity in order: the queued events
@@ -651,14 +654,13 @@ cycle and the despawn pass run. Each actor then runs what the store does not run
 clock and the status effects, whose harm and healing go through the store.
 
 Each runtime also owns its dimension's entity index, the one place the server asks what stands
-near a point ([ADR 0007](../adr/0007-one-entity-index-visible-on-write.md)). It holds the runtime's
-mobs, dropped stacks and the eye of ender, and the world's other entities, such as players. Goals, brains,
+near a point ([ADR 0007](../adr/0007-one-entity-index-visible-on-write.md)). It holds every entity
+of the runtime's store, players and dropped stacks among them. Goals, brains,
 collision, item merging and pickup, and explosions all query it. A position write refiles the
 entity before the write returns, so a query later in the same tick finds a mob that already moved
 where it moved to, and every query answers in ascending runtime id order. That order is what
-breaks a tie, such as which of two equally near villagers a zombie picks. A dropped stack's body is
-not filed a second time: a query that wants legacy entities answers with the body where its stack
-lies. A blast asks for the legacy entities and the store's apart. A store entity's move marks its
+breaks a tie, such as which of two equally near villagers a zombie picks. Dropped stacks have
+cells of their own, which a mob's neighbor search never reads. A store entity's move marks its
 chunk for the next save, and the chunk it left too when it crossed into another. The index is
 derived state and stays out of the replay digest.
 
