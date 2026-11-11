@@ -146,13 +146,15 @@ const debugAction = async (server: Server, current: CommandSource, action: strin
 
 /** Bans a name, kicking its player first when one is online. */
 const ban = async (server: Server, target: string, reason?: string): Promise<string> => {
-    const player = server
+    const session = server
         .getSessionManager()
-        .getAllPlayers()
-        .find((candidate) => candidate.getName() === target);
-    if (player) {
+        .getSessions()
+        .find(({ identity }) => identity.name === target);
+    // Read before the kick, which forgets the session's player.
+    const name = session ? session.getPlayer().getFormattedUsername() : target;
+    if (session) {
         try {
-            await player.kick(
+            await session.kick(
                 reason === undefined
                     ? 'You have been banned!'
                     : `You have been banned from the server due to: \n\n${reason}!`
@@ -163,7 +165,6 @@ const ban = async (server: Server, target: string, reason?: string): Promise<str
     }
     if (reason === undefined) await server.getBanManager().setBanned(target);
     else await server.getBanManager().setBanned(target, reason);
-    const name = player ? player.getFormattedUsername() : target;
     return reason === undefined ? `Banned ${name}` : `Banned ${name} due to: ${reason}!`;
 };
 

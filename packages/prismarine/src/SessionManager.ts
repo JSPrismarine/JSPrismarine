@@ -187,7 +187,7 @@ export default class SessionManager {
      * @param {string} reason - The reason to kick the players.
      */
     public async kickAllPlayers(reason: string) {
-        await Promise.all(this.getAllPlayers().map((player) => player.kick(reason)));
+        await Promise.all(this.getSessions().map((session) => session.kick(reason)));
     }
 
     /**

@@ -7,6 +7,8 @@ import type Player from '../Player';
 import type Server from '../Server';
 import type SessionManager from '../SessionManager';
 import type BanManager from '../ban/BanManager';
+import type PlayerSession from '../network/PlayerSession';
+import { identityNamed } from '../testing/sessionIdentity.test.helper';
 import { stub } from '../testing/stub.test.helper';
 import { collectAsyncCommands } from './deferred';
 import { registerJsprismarineCommands } from './jsprismarineCommands';
@@ -15,23 +17,23 @@ describe("this server's own commands", () => {
     let registry: CommandRegistry<CommandSource>;
     let setBanned: ReturnType<typeof vi.fn<BanManager['setBanned']>>;
     let setUnbanned: ReturnType<typeof vi.fn<BanManager['setUnbanned']>>;
-    let kick: ReturnType<typeof vi.fn<Player['kick']>>;
+    let kick: ReturnType<typeof vi.fn<PlayerSession['kick']>>;
     let feedback: string[];
 
     beforeEach(() => {
         setBanned = vi.fn<BanManager['setBanned']>(async () => true);
         setUnbanned = vi.fn<BanManager['setUnbanned']>(async () => {});
-        kick = vi.fn<Player['kick']>(async () => {});
+        kick = vi.fn<PlayerSession['kick']>(async () => {});
         feedback = [];
 
-        const target = stub<Player>({
-            getName: () => 'testPlayer',
-            getFormattedUsername: () => 'testPlayer',
+        const target = stub<PlayerSession>({
+            identity: identityNamed('testPlayer'),
+            getPlayer: () => stub<Player>({ getFormattedUsername: () => 'testPlayer' }),
             kick
         });
         const server = stub<Server>({
             getBanManager: () => stub<BanManager>({ setBanned, setUnbanned }),
-            getSessionManager: () => stub<SessionManager>({ getAllPlayers: () => [target] }),
+            getSessionManager: () => stub<SessionManager>({ getSessions: () => [target] }),
             getTPS: () => 18.5,
             getTick: () => 42
         });

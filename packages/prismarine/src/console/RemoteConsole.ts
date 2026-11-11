@@ -202,7 +202,7 @@ export class RemoteConsole implements Service {
     }
 
     private sendStatus(): void {
-        const players = this.server.getSessionManager().getAllPlayers();
+        const players = this.server.getSessionManager().getSessions();
         const status: ServerMessage = {
             type: 'status',
             v: PROTOCOL_VERSION,
@@ -210,7 +210,7 @@ export class RemoteConsole implements Service {
             tickMs: this.server.getTickMs(),
             tickRate: this.server.getTickControl().getTickRate(),
             players: players.length,
-            playerNames: players.map((player) => player.getName()).sort(),
+            playerNames: players.map(({ identity }) => identity.name).sort(),
             maxPlayers: this.server.getConfig().getMaxPlayers(),
             rssBytes: process.memoryUsage().rss,
             uptimeMs: process.uptime() * 1000
