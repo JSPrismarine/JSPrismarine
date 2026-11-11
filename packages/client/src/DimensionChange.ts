@@ -1,16 +1,15 @@
 import {
-    PacketIdentifier,
+    ChangeDimensionPacket,
+    LevelChunkPacket,
     PlayerActionPacket,
     PlayerActionType,
     ServerboundLoadingScreenPacket,
     ServerboundLoadingScreenPacketType
 } from '@jsprismarine/protocol';
 import { EventEmitter } from 'node:events';
-import { isPacket } from './net/ClientPacketRegistry';
 
-import type { Logger } from '@jsprismarine/logger';
-import type { ChangeDimensionPayload } from '@jsprismarine/protocol';
-import type { DecodedPacket } from './net/ClientPacketRegistry';
+import type { ChangeDimensionPayload, LevelChunk } from '@jsprismarine/protocol';
+import type { ClientContext, ClientPacketHandler, ClientPhase } from './net/ClientHandler';
 import type ClientSession from './net/ClientSession';
 
 /** A dimension change the server started and this client has not yet closed the screen for. */
@@ -25,6 +24,13 @@ export interface PendingDimensionChange {
 
 /** The block position a `PlayerActionPacket` carries when the action has no block. */
 const NO_BLOCK = { x: 0, y: 0, z: 0 };
+
+/**
+ * The phases both handlers run in: both, as when this listened to every packet the session read.
+ * A change that arrives while the spawn answer is still being sent, before the session moves to
+ * `play`, is answered all the same.
+ */
+const PHASES: readonly ClientPhase[] = ['login', 'play'];
 
 /**
  * The client's half of a dimension change.
@@ -45,15 +51,17 @@ export default class DimensionChange extends EventEmitter {
     private pending: PendingDimensionChange | null = null;
 
     /**
+     * Registers the two handlers on the session, for the life of the session.
+     * @param session - The session whose dimension changes this answers.
      * @param runtimeEntityId - Returns the runtime id `StartGame` assigned, for the ack.
      */
     public constructor(
-        private readonly session: ClientSession,
-        private readonly logger: Logger,
+        session: ClientSession,
         private readonly runtimeEntityId: () => bigint
     ) {
         super();
-        this.session.on('packet', this.onPacket);
+        session.registerHandler(ChangeDimensionPacket, this.changeDimension);
+        session.registerHandler(LevelChunkPacket, this.levelChunk);
     }
 
     /** The change in progress, or null when this client is settled in a dimension. */
@@ -61,48 +69,47 @@ export default class DimensionChange extends EventEmitter {
         return this.pending;
     }
 
-    private readonly onPacket = (packet: DecodedPacket): void => {
-        void this.session.track(this.dispatch(packet)).catch((error: unknown) => {
-            this.logger.warn(
-                `Client/DimensionChange: ${error instanceof Error ? error.message : String(error)}`,
-                'Client/DimensionChange/dispatch'
+    /** Opens the loading screen for the change the server started. */
+    private readonly changeDimension: ClientPacketHandler<ChangeDimensionPayload> = {
+        phases: PHASES,
+        handle: async (change, { session }) => {
+            this.pending = {
+                dimension: change.dimension,
+                loadingScreenId: change.loadingScreenId,
+                position: change.position
+            };
+            this.emit('start', this.pending);
+
+            // The join screen has no id; a dimension change has the one the server picked, and
+            // an id the server did not expect disconnects a retail client.
+            if (change.loadingScreenId === null) return;
+            await session.send(
+                new ServerboundLoadingScreenPacket({
+                    loadingScreenType: ServerboundLoadingScreenPacketType.StartLoadingScreen,
+                    loadingScreenId: change.loadingScreenId
+                })
             );
-        });
+        }
     };
 
-    private async dispatch(packet: DecodedPacket): Promise<void> {
-        if (isPacket(packet, PacketIdentifier.CHANGE_DIMENSION)) {
-            await this.onChangeDimension(packet.data);
-        } else if (isPacket(packet, PacketIdentifier.LEVEL_CHUNK)) {
-            if (this.pending !== null && packet.data.dimension === this.pending.dimension) await this.onArrived();
+    /**
+     * Closes the screen on the first chunk of the dimension the change is to. Not asynchronous
+     * itself, so the chunks that arrive with no change pending leave nothing to wait for.
+     */
+    private readonly levelChunk: ClientPacketHandler<LevelChunk> = {
+        phases: PHASES,
+        handle: (chunk, context) => {
+            if (this.pending === null || chunk.dimension !== this.pending.dimension) return;
+            return this.onArrived(context);
         }
-    }
+    };
 
-    private async onChangeDimension(change: ChangeDimensionPayload): Promise<void> {
-        this.pending = {
-            dimension: change.dimension,
-            loadingScreenId: change.loadingScreenId,
-            position: change.position
-        };
-        this.emit('start', this.pending);
-
-        // The join screen has no id; a dimension change has the one the server picked, and
-        // an id the server did not expect disconnects a retail client.
-        if (change.loadingScreenId === null) return;
-        await this.session.send(
-            new ServerboundLoadingScreenPacket({
-                loadingScreenType: ServerboundLoadingScreenPacketType.StartLoadingScreen,
-                loadingScreenId: change.loadingScreenId
-            })
-        );
-    }
-
-    private async onArrived(): Promise<void> {
+    private async onArrived({ session, log }: ClientContext): Promise<void> {
         const pending = this.pending;
         if (pending === null) return;
         this.pending = null;
 
-        await this.session.send(
+        await session.send(
             new PlayerActionPacket({
                 runtimeEntityId: this.runtimeEntityId(),
                 action: PlayerActionType.ChangeDimensionAck,
@@ -111,14 +118,14 @@ export default class DimensionChange extends EventEmitter {
                 blockFace: 0
             })
         );
-        await this.session.send(
+        await session.send(
             new ServerboundLoadingScreenPacket({
                 loadingScreenType: ServerboundLoadingScreenPacketType.EndLoadingScreen,
                 loadingScreenId: pending.loadingScreenId
             })
         );
 
-        this.logger.debug(`Client/DimensionChange: arrived in dimension ${pending.dimension}`);
+        log.debug(`Client/DimensionChange: arrived in dimension ${pending.dimension}`);
         this.emit('end', pending);
     }
 }

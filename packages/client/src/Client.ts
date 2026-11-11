@@ -181,11 +181,7 @@ export default class Client extends EventEmitter {
 
         // Answers the server's `ChangeDimension` for the life of the connection; the login
         // never sees one, so this is not part of `LoginSequence`.
-        this.dimensionChange = new DimensionChange(
-            this.session,
-            this.logger,
-            () => this.startGame?.runtimeEntityId ?? 0n
-        );
+        this.dimensionChange = new DimensionChange(this.session, () => this.startGame?.runtimeEntityId ?? 0n);
         this.dimensionChange.on('end', (change: PendingDimensionChange) => this.emit('dimensionChange', change));
 
         // Answers the server's `ShowCredits Start`, which arrives once per save on the first
