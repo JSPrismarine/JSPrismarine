@@ -30,6 +30,8 @@ import { World } from './World';
 import { WorldSystems } from './WorldSystems';
 import { NULL_WORLD_CHANGE_SINK } from './WorldChangeSink';
 import { fakeLevel } from '../testing/level';
+import { stub } from '../testing/stub.test.helper';
+import type PlayerSession from '../network/PlayerSession';
 
 /** The blocks this fixture declares, which are also the whole of its palette. */
 const BLOCKS = [
@@ -214,11 +216,19 @@ const XP_ORB = {
 const liveWorld = (
     content: () => ServerContent | undefined,
     entityRuntimes: EntityRuntimes
-): { world: World; chunk: Chunk; spawned: Entity[]; entities: Map<number, Entity> } => {
+): {
+    world: World;
+    chunk: Chunk;
+    spawned: Entity[];
+    entities: Map<number, Entity>;
+    players: Map<number, Player>;
+} => {
     const chunk = new Chunk(0, 0);
     const spawned: Entity[] = [];
     // Where the item actor port finds the breaking player by the world's numeric runtime ID key.
     const entities = new Map<number, Entity>();
+    // Where the world finds the breaking player's session by the same key.
+    const players = new Map<number, Player>();
 
     const world: World = Object.assign(Object.create(World.prototype), {
         chunks: new Map([[Chunk.packXZ(0, 0), chunk]]),
@@ -227,7 +237,7 @@ const liveWorld = (
         blockUpdates: new BlockUpdateScheduler(),
         entities,
         entityChunkIndices: new Map(),
-        players: new Map(),
+        players,
         getChunkAt: async () => chunk,
         getPlayers: () => [],
         notifyBlockBreak: () => {},
@@ -254,7 +264,7 @@ const liveWorld = (
         })
     });
 
-    return { world, chunk, spawned, entities };
+    return { world, chunk, spawned, entities, players };
 };
 
 /** Writes a block straight into the chunk, which is the ground the break then happens on. */
@@ -269,6 +279,7 @@ describe('breakBlockWithContent', () => {
     let chunk: Chunk;
     let spawned: Entity[];
     let entities: Map<number, Entity>;
+    let players: Map<number, Player>;
     let content: ServerContent;
 
     beforeEach(() => {
@@ -276,7 +287,7 @@ describe('breakBlockWithContent', () => {
         // sides reach for it through the same closure.
         let built: ServerContent | undefined;
         const entityRuntimes = new EntityRuntimes();
-        ({ world, chunk, spawned, entities } = liveWorld(() => built, entityRuntimes));
+        ({ world, chunk, spawned, entities, players } = liveWorld(() => built, entityRuntimes));
 
         content = buildServerContent({
             load: () => ({
@@ -329,10 +340,10 @@ describe('breakBlockWithContent', () => {
     /**
      * A player holding one item, standing beside the block they break.
      *
-     * On the real prototype and in the world's entity map, because a tool wears through the
-     * item actor port, which finds the player by runtime id and acts only on a `Player`. A real
-     * one needs a network session before it exists at all, so only what the break and the port
-     * read is filled in.
+     * On the real prototype and in the world's entity and player maps, because a tool wears
+     * through the item actor port, which finds the player's session by runtime id. A real one
+     * needs a network session before it exists at all, so only what the break and the port read
+     * is filled in.
      */
     const player = (held: Item | null = null, gamemode = Gametype.SURVIVAL): Player => {
         const inventory = new HumanInventory();
@@ -347,9 +358,11 @@ describe('breakBlockWithContent', () => {
             getStatusEffects: () => [],
             getFallDistance: () => 0,
             getFood: () => 20,
-            isOnGround: () => true
+            isOnGround: () => true,
+            getNetworkSession: () => stub<PlayerSession>({ getPlayer: () => breaker })
         });
         entities.set(Number(PLAYER_ID), breaker);
+        players.set(Number(PLAYER_ID), breaker);
         return breaker;
     };
 

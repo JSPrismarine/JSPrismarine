@@ -16,6 +16,7 @@ import type { Entity } from '../entity/Entity';
 import type { EntityPosition } from '@jsprismarine/entities';
 import type { StoredItemStack } from '../inventory/persistence';
 import type { World } from '../world/World';
+import type PlayerSession from '../network/PlayerSession';
 
 /** Whoever is holding the item, as the item runtime names one. */
 const SOURCE = { identifier: 'minecraft:player', runtimeId: 7 };
@@ -45,7 +46,7 @@ const recording = (): Recorded => ({
     eyes: []
 });
 
-/** A player reduced to what the port reads and writes, still a `Player` to `instanceof`. */
+/** A player reduced to what the port reads and writes, over the real prototype. */
 const playerDouble = (recorded: Recorded): Player =>
     Object.assign(Object.create(Player.prototype), {
         getPosition: () => new Vector3(1.5, 65, 1.5),
@@ -69,6 +70,9 @@ const worldDouble = (player: Player, recorded: Recorded, target?: Entity): World
     ({
         getActor: (runtimeId: bigint) =>
             runtimeId === 7n ? (player as unknown as Entity) : runtimeId === 9n ? (target ?? null) : null,
+        // The player's session, which is how the port tells a player from any other entity.
+        viewerOf: (runtimeId: bigint) =>
+            runtimeId === 7n ? stub<PlayerSession>({ getPlayer: () => player }) : undefined,
         loadedBlockAt: () => ({ name: 'minecraft:air', states: {} }),
         getServer: () => ({
             getLogger: () => ({ debug: (message: string) => void recorded.logged.push(message) }),

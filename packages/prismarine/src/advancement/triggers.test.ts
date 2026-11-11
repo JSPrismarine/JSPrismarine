@@ -7,6 +7,7 @@ import { fixtureBlockPalette, fixtureItemDefinitions } from '../content/testing'
 import Player from '../Player';
 import type Server from '../Server';
 import type { World } from '../world/World';
+import type PlayerSession from '../network/PlayerSession';
 import { Attributes } from '@jsprismarine/protocol/wire/structures/Attribute';
 import { DamageCause } from '../entity/DamageCause';
 import { DamageSource } from '../entity/DamageSource';
@@ -258,6 +259,8 @@ const scene = () => {
         getPlayers: () => [player],
         getEntity: (id: bigint) => (id === runtimeId ? player : null),
         getActor: (id: bigint) => (id === runtimeId ? player : null),
+        // The player's session, which is how the item actor port finds the player.
+        viewerOf: (id: bigint) => (id === runtimeId ? stub<PlayerSession>({ getPlayer: () => player }) : undefined),
         loadedBlockAt: () => ({ name: 'minecraft:air', states: {} }) as never,
         getServer: () => server
     });
