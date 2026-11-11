@@ -24,8 +24,6 @@ const STILL_REACH_SERVER: ReadonlyMap<string, readonly string[]> = new Map([
         [
             'ActorPickRequestHandler.ts',
             'BlockPickRequestHandler.ts',
-            'ClientCacheBlobStatusHandler.ts',
-            'ClientCacheStatusHandler.ts',
             'ClientCameraAimAssistHandler.ts',
             'ClientMovementPredictionSyncHandler.ts',
             'CommandBlockUpdateHandler.ts',
@@ -46,7 +44,6 @@ const STILL_REACH_SERVER: ReadonlyMap<string, readonly string[]> = new Map([
             'ServerboundDiagnosticsHandler.ts',
             'ServerboundPackSettingChangeHandler.ts',
             'SetActorLinkHandler.ts',
-            'SetDifficultyHandler.ts',
             'SetPlayerFurnaceOptionsHandler.ts',
             'SetPlayerInventoryOptionsHandler.ts',
             'SimpleEventHandler.ts',

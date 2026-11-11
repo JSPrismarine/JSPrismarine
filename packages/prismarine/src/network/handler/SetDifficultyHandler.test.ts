@@ -2,8 +2,7 @@ import { Difficulty } from '@jsprismarine/minecraft';
 import { describe, expect, it } from 'vitest';
 
 import type { Logger } from '@jsprismarine/logger';
-import type Server from '../../Server';
-import type { Config } from '../../config/Config';
+import { sessionContext } from '../../testing/handlerContext.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import { STEVE } from '../../testing/sessionIdentity.test.helper';
 import type ClientConnection from '../ClientConnection';
@@ -19,23 +18,26 @@ const fakeSession = (configured: Difficulty) => {
     return {
         logged,
         sent,
-        server: stub<Server>({
-            getLogger: () => stub<Logger>({ debug: (...message) => void logged.push(message[0] ?? '') }),
-            getConfig: () => stub<Config>({ getDifficulty: () => configured })
-        }),
-        session: stub<PlayerSession>({
-            identity: STEVE,
-            getConnection: () => stub<ClientConnection>({ sendDataPacket: async (packet) => void sent.push(packet) })
-        })
+        context: sessionContext(
+            stub<PlayerSession>({
+                identity: STEVE,
+                getConnection: () =>
+                    stub<ClientConnection>({ sendDataPacket: async (packet) => void sent.push(packet) })
+            }),
+            {
+                log: stub<Logger>({ debug: (...message) => void logged.push(message[0] ?? '') }),
+                config: { getDifficulty: () => configured }
+            }
+        )
     };
 };
 
 describe('SetDifficultyHandler', () => {
     it('logs the requested difficulty by name and sends the configured one back', async () => {
-        const { logged, sent, server, session } = fakeSession(Difficulty.NORMAL);
+        const { logged, sent, context } = fakeSession(Difficulty.NORMAL);
         const packet = new SetDifficultyPacket({ difficulty: Difficulty.EASY });
 
-        await new SetDifficultyHandler().handle(packet, server, session);
+        await new SetDifficultyHandler().handle(packet, context);
 
         expect(logged).toEqual(['Steve asked for difficulty EASY, which the server does not change']);
         expect(sent).toHaveLength(1);
@@ -44,23 +46,23 @@ describe('SetDifficultyHandler', () => {
     });
 
     it('answers a value that is not a difficulty without throwing', async () => {
-        const { logged, sent, server, session } = fakeSession(Difficulty.HARD);
+        const { logged, sent, context } = fakeSession(Difficulty.HARD);
 
         // 42 is not a `Difficulty`, so it has to come in off the wire.
         const packet = new SetDifficultyPacket(Buffer.from([0x3c, 0x2a]));
         packet.decode();
 
-        await new SetDifficultyHandler().handle(packet, server, session);
+        await new SetDifficultyHandler().handle(packet, context);
 
         expect(logged).toEqual(['Steve asked for difficulty 42, which the server does not change']);
         expect(sent.map((packet) => packet.getPacketData())).toMatchObject([{ difficulty: Difficulty.HARD }]);
     });
 
     it('stays quiet when the client already shows the configured difficulty', async () => {
-        const { logged, sent, server, session } = fakeSession(Difficulty.PEACEFUL);
+        const { logged, sent, context } = fakeSession(Difficulty.PEACEFUL);
         const packet = new SetDifficultyPacket({ difficulty: Difficulty.PEACEFUL });
 
-        await new SetDifficultyHandler().handle(packet, server, session);
+        await new SetDifficultyHandler().handle(packet, context);
 
         expect(logged).toEqual([]);
         expect(sent).toEqual([]);
