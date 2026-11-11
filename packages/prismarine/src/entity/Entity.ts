@@ -28,7 +28,7 @@ import { Metadata, MetadataFlag } from '@jsprismarine/protocol/wire/structures/M
 import type { ViewableEquipment } from './predicateView';
 import type { StatusEffect, StatusEffectChange, StatusEffectInput } from './StatusEffect';
 import { effectHealthChange, tickStatusEffects } from './StatusEffectTick';
-import { PORTAL_COOLDOWN_TICKS, PORTAL_TRANSITION_TICKS, PortalContact } from './PortalContact';
+import { PORTAL_COOLDOWN_TICKS, PORTAL_TRANSITION_TICKS, PortalContact, portalCooldownOf } from './PortalContact';
 import type { PortalBlockRef } from '../world/portal/DimensionTravel';
 import { portalRuleOf } from '../world/portal/rules';
 import type { PortalRule } from '../world/portal/rules';
@@ -557,7 +557,7 @@ export class Entity {
      * @param ticks - The cooldown in ticks. Defaults to {@link Entity.getDefaultPortalCooldown}.
      */
     public setPortalCooldown(ticks: number = this.getDefaultPortalCooldown()): void {
-        this.portalCooldown = Math.max(0, Math.floor(ticks));
+        this.portalCooldown = portalCooldownOf(ticks);
     }
 
     /**

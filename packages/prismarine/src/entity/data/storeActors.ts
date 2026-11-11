@@ -45,7 +45,7 @@ import { DamageCause } from '../DamageCause';
 import { DamageSource } from '../DamageSource';
 import { sameEquipmentItems, viewableEquipmentOf } from '../equipment';
 import { KNOCKBACK_LIFT } from '../knockback';
-import { PORTAL_COOLDOWN_TICKS, PORTAL_TRANSITION_TICKS, PortalContact } from '../PortalContact';
+import { PORTAL_COOLDOWN_TICKS, PORTAL_TRANSITION_TICKS, PortalContact, portalCooldownOf } from '../PortalContact';
 import type { ViewableEquipment } from '../predicateView';
 import type { StatusEffect, StatusEffectChange, StatusEffectInput } from '../StatusEffect';
 import {
@@ -405,7 +405,7 @@ export class StoreActor implements ShownActor {
 
     /** Starts the portal cooldown, on arrival through a portal. */
     public setPortalCooldown(ticks: number = this.getDefaultPortalCooldown()): void {
-        this.portalCooldown = Math.max(0, Math.floor(ticks));
+        this.portalCooldown = portalCooldownOf(ticks);
     }
 
     /** Whether the entity still refuses portals after a recent dimension change. */

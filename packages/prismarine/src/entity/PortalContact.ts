@@ -33,6 +33,9 @@ export const PORTAL_COOLDOWN_TICKS = {
     player: 10
 } as const;
 
+/** A portal cooldown as it is held: whole ticks, never below zero. */
+export const portalCooldownOf = (ticks: number): number => Math.max(0, Math.floor(ticks));
+
 /** How much `portalTime` drops for every tick spent outside the portal. */
 const DECAY_PER_TICK = 4;
 
