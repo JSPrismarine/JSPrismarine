@@ -53,7 +53,7 @@
         "lint:wire-layouts": "node scripts/check-wire-layouts.mts",
         "lint:biome": "node scripts/lint-changed.mts biome check",
         "format:biome": "node scripts/lint-changed.mts biome lint --write",
-        "package:scriptc": "scriptc build ./packages/server/src/Server.ts --npm-static auto --out ./dist/prismarine-scriptc",
+        "package:scriptc": "scriptc build ./packages/server/src/Server.ts --npm-static auto --node-islands auto --emit exe --out ./dist/prismarine-scriptc",
         "package:scriptc:coverage": "scriptc coverage ./packages/server/src/Server.ts",
         "lint:jsdoc": "node scripts/check-jsdoc.mts",
         "lint:encoding": "node scripts/check-unicode-escapes.mts",
