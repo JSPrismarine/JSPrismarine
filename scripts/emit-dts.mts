@@ -7,7 +7,8 @@
  * - a `<name>.json.d.ts` beside every JSON module the emitted declarations import.
  *   Vite bundles the JSON into JavaScript, so the published package ships no raw
  *   JSON; TypeScript resolves `./data.json` to `data.json.d.ts`, which is how the
- *   published packages have always typed their data.
+ *   published packages have always typed their data;
+ * - a `.js` extension on each relative import, so a NodeNext consumer can follow it.
  *
  * Run from the package directory, after `vite build`.
  */
@@ -16,6 +17,8 @@ import { execFileSync } from 'node:child_process';
 import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+
+import { withJsExtensions } from './declaration-specifiers.mts';
 
 const packageDir = process.cwd();
 const srcDir = path.join(packageDir, 'src');
@@ -96,5 +99,17 @@ if (existsSync(distDir)) {
             const source = path.join(srcDir, path.relative(distDir, path.resolve(path.dirname(file), specifier)));
             declareJson(source, declaration);
         }
+    });
+}
+
+// The declarations are emitted for bundler resolution, which follows `./logger` to
+// `logger.d.ts`. The packages are ESM, and a consumer resolving with NodeNext follows only
+// a specifier with its extension, so each relative import names the built `.js` module.
+if (existsSync(distDir)) {
+    walk(distDir, (file) => {
+        if (!file.endsWith('.d.ts')) return;
+        const source = readFileSync(file, 'utf8');
+        const rewritten = withJsExtensions(source, file);
+        if (rewritten !== source) writeFileSync(file, rewritten);
     });
 }
