@@ -1,7 +1,6 @@
-import type Server from '../../Server';
-import type PlayerSession from '../PlayerSession';
 import EmotePacket, { EmoteFlags } from '@jsprismarine/protocol/packet/EmotePacket';
-import type PacketHandler from './PacketHandler';
+import type { InputContext } from './HandlerContext';
+import type { InputLaneHandler } from './SessionHandler';
 
 /** The `8-4-4-4-12` hex form a client writes an emote piece id in. */
 const EMOTE_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -15,18 +14,17 @@ const EMOTE_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$
  * copy the server sends, so a client cannot sign the emote with somebody else's account. The
  * server does not check that the sender owns the emote.
  */
-export default class EmoteHandler implements PacketHandler<EmotePacket> {
+export default class EmoteHandler implements InputLaneHandler<EmotePacket> {
     public static PacketName = 'EmotePacket';
+    public readonly takes = 'context';
     public readonly phases = ['play'] as const;
     // Relays to the players that see the sender, so it is an input though it writes nothing.
     public readonly lane = 'input';
 
     /** Relays the emote to the players that have the sender on screen and logs it. */
-    public async handle(packet: EmotePacket, server: Server, session: PlayerSession): Promise<void> {
-        const logger = server.getLogger();
-
+    public handle(packet: EmotePacket, { session, log, step }: InputContext): undefined {
         if (packet.actorRuntimeId !== session.runtimeId) {
-            logger.debug(
+            log.debug(
                 `${session.identity.name} sent an Emote for runtime id ${packet.actorRuntimeId}, dropped`,
                 'EmoteHandler/handle'
             );
@@ -34,7 +32,7 @@ export default class EmoteHandler implements PacketHandler<EmotePacket> {
         }
 
         if (!EMOTE_ID.test(packet.emoteId)) {
-            logger.debug(
+            log.debug(
                 `${session.identity.name} sent an Emote whose id ${JSON.stringify(packet.emoteId)} is not a uuid, dropped`,
                 'EmoteHandler/handle'
             );
@@ -61,9 +59,9 @@ export default class EmoteHandler implements PacketHandler<EmotePacket> {
             .getViewers()
             .filter((other) => other.runtimeId !== session.runtimeId)
             .filter((other) => other.tracks(session.runtimeId));
-        await Promise.all(others.map((other) => other.send(relay)));
+        for (const other of others) step.output(other.send(relay));
 
-        logger.debug(
+        log.debug(
             `${session.identity.name} played emote ${packet.emoteId} for ${packet.emoteLengthTicks} ticks, relayed to ${others.length} player(s)`,
             'EmoteHandler/handle'
         );

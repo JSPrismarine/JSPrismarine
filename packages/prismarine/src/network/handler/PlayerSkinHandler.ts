@@ -1,9 +1,8 @@
-import type Server from '../../Server';
 import type Skin from '@jsprismarine/protocol/wire/structures/skin/Skin';
 import type SkinImage from '@jsprismarine/protocol/wire/structures/skin/SkinImage';
-import type PlayerSession from '../PlayerSession';
 import PlayerSkinPacket from '@jsprismarine/protocol/packet/PlayerSkinPacket';
-import type PacketHandler from './PacketHandler';
+import type { InputContext } from './HandlerContext';
+import type { InputLaneHandler } from './SessionHandler';
 
 /** The largest `Width` or `Height` the `SkinImage` schema allows. */
 const MAX_IMAGE_SIDE = 4096;
@@ -83,23 +82,22 @@ const skinProblem = (skin: Skin): string | null => {
  * than 4096 pixels a side, or whose geometry is not JSON; the other clients would be left to
  * reject it.
  */
-export default class PlayerSkinHandler implements PacketHandler<PlayerSkinPacket> {
+export default class PlayerSkinHandler implements InputLaneHandler<PlayerSkinPacket> {
     public static PacketName = 'PlayerSkinPacket';
+    public readonly takes = 'context';
     public readonly phases = ['play'] as const;
     public readonly lane = 'input';
 
     /**
      * Stores the new skin on the sender and relays it to every other player.
      * @param {PlayerSkinPacket} packet - The skin change.
-     * @param {Server} server - The server, for its players and logger.
-     * @param {PlayerSession} session - The client that sent it.
+     * @param {InputContext} context - The client that sent it, the other sessions and the logger.
      */
-    public async handle(packet: PlayerSkinPacket, server: Server, session: PlayerSession): Promise<void> {
+    public handle(packet: PlayerSkinPacket, { session, log, services, step }: InputContext): undefined {
         const { identity } = session;
-        const logger = server.getLogger();
 
         if (packet.uuid.toString() !== identity.uuid) {
-            logger.debug(
+            log.debug(
                 `Dropped skin change from §b${identity.name}§r for another player's UUID ${packet.uuid.toString()}`,
                 'PlayerSkinHandler/handle'
             );
@@ -108,7 +106,7 @@ export default class PlayerSkinHandler implements PacketHandler<PlayerSkinPacket
 
         const problem = skinProblem(packet.skin);
         if (problem !== null) {
-            logger.debug(`Dropped skin change from §b${identity.name}§r: ${problem}`, 'PlayerSkinHandler/handle');
+            log.debug(`Dropped skin change from §b${identity.name}§r: ${problem}`, 'PlayerSkinHandler/handle');
             return;
         }
 
@@ -116,7 +114,7 @@ export default class PlayerSkinHandler implements PacketHandler<PlayerSkinPacket
         session.getPlayer().skin = packet.skin;
 
         // The entry the session manager sends to whoever joins later was built at login.
-        const playerList = server.getSessionManager().getPlayerList();
+        const playerList = services.sessions.getPlayerList();
         const entry = playerList.get(identity.uuid);
         if (entry !== undefined) playerList.set(identity.uuid, entry.withSkin(packet.skin));
 
@@ -126,13 +124,10 @@ export default class PlayerSkinHandler implements PacketHandler<PlayerSkinPacket
         relay.newSkinName = packet.newSkinName;
         relay.oldSkinName = packet.oldSkinName;
 
-        const others = server
-            .getSessionManager()
-            .getSessions()
-            .filter((other) => other.runtimeId !== session.runtimeId);
-        await Promise.all(others.map((other) => other.send(relay)));
+        const others = services.sessions.getSessions().filter((other) => other.runtimeId !== session.runtimeId);
+        for (const other of others) step.output(other.send(relay));
 
-        logger.debug(
+        log.debug(
             `§b${identity.name}§r changed skin to §b${packet.skin.getId()}§r, relayed to ${others.length} player(s)`,
             'PlayerSkinHandler/handle'
         );
