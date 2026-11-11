@@ -10,6 +10,8 @@ import { ByteOrder, NBTWriter } from '@jsprismarine/nbt';
 import type { ActorEvent } from '@jsprismarine/minecraft';
 import { Gametype, LevelEvent, LevelSoundEvent } from '@jsprismarine/minecraft';
 import { writeBlockEntity } from '../blockentity/blockEntityWrite';
+import { blockEntityChanges, withBlockEntityField } from '../blockentity/blockEntityLog';
+import { BlockEntityRegistry } from '../blockentity/BlockEntityRegistry';
 import { BlockView } from '../entity/ai/BlockView';
 import type { NBTTagCompound } from '@jsprismarine/nbt';
 import type { LevelStem } from '@jsprismarine/worldgen';
@@ -2255,10 +2257,15 @@ export class World implements Service {
      * the chunk. Called by `writeBlockEntity` and by nothing else: it reports rather than
      * writes, and calling it without having written the chunk tells a client something that
      * is not true.
+     * It also logs the write, field by field (`blockentity/blockEntityLog.ts`).
      * @param {Vector3} position - The block the block entity sits in.
      * @param {NBTTagCompound} tags - Its complete data, as the chunk would serialize it.
+     * @param {NBTTagCompound | null} before - What stood there before, or null when nothing did.
      */
-    public blockEntityChanged(position: Vector3, tags: NBTTagCompound): void {
+    public blockEntityChanged(position: Vector3, tags: NBTTagCompound, before: NBTTagCompound | null): void {
+        const log = this.blockLog();
+        if (log !== undefined)
+            this.logBlockEntity(log, position.getX(), position.getY(), position.getZ(), before, tags);
         this.changes.worldChanged({ kind: 'block-entity-set', position, tags });
     }
 
@@ -2495,7 +2502,13 @@ export class World implements Service {
         // Read before the write: the light engine's decrease wave needs what stood here.
         const previous = chunk.getBlock(x, y, z);
         const log = this.blockLog();
-        log?.writtenBlock(x, y, z, 0, previousRuntimeId, runtimeId);
+        if (log !== undefined) {
+            // The write clears the block entity standing here. Logged before the block, so an undo,
+            // which runs newest first, puts the block back before its block entity.
+            const standing = chunk.getBlockEntity(x, y, z);
+            if (standing !== null) this.logBlockEntity(log, x, y, z, standing.toNBT(), null);
+            log.writtenBlock(x, y, z, 0, previousRuntimeId, runtimeId);
+        }
         chunk.setBlockRuntimeId(x & 0xf, y, z & 0xf, runtimeId);
         const next = this.blockChanged(chunk, x, y, z, previous, previousRuntimeId, runtimeId);
 
@@ -2559,25 +2572,58 @@ export class World implements Service {
         return store;
     }
 
+    /** Logs a block entity write field by field, from what stood at the position to what stands there now. */
+    private logBlockEntity(
+        log: EntityStore,
+        x: number,
+        y: number,
+        z: number,
+        before: NBTTagCompound | null,
+        after: NBTTagCompound | null
+    ): void {
+        for (const change of blockEntityChanges(before, after))
+            log.writtenBlockEntity(x, y, z, change.field, change.before, change.after);
+    }
+
     /**
-     * Writes one inverse block entry back, which is how the change log undoes a unit that wrote
-     * a block. The write tells light, the portal index and the clients, as
+     * Writes one inverse entry of a block or a block entity back, which is how the change log
+     * undoes a unit that wrote one. The write tells light, the portal index and the clients, as
      * any block change does, and schedules no neighbor updates and runs no block behavior: the
      * unit's own updates are taken back with it, and an undo writes nothing it did not log.
-     * @returns Whether the entry was a block, so this world wrote it.
+     * @returns Whether the entry was a block or a block entity, so this world wrote it.
      * @throws {Error} When the entry's chunk has left the world.
      */
     private restoreLogged(inverse: StateEntry): boolean {
-        if (inverse.kind !== 'field' || inverse.field !== 'block') return false;
+        if (inverse.kind !== 'field' || (inverse.field !== 'block' && inverse.field !== 'block-entity')) return false;
         const { x, y, z } = inverse.address;
         const chunk = this.getLoadedChunk(x >> 4, z >> 4);
         if (chunk === null) throw new Error(`Cannot undo the ${inverse.field} at ${x}, ${y}, ${z}: its chunk left`);
 
-        const { layer } = inverse.address;
-        const previous = chunk.getBlock(x, y, z, layer);
-        const previousRuntimeId = chunk.getBlockRuntimeId(x & 0xf, y, z & 0xf, layer);
-        chunk.restoreBlockRuntimeId(x & 0xf, y, z & 0xf, inverse.after, layer);
-        if (layer === 0) this.blockChanged(chunk, x, y, z, previous, previousRuntimeId, inverse.after);
+        if (inverse.field === 'block') {
+            const { layer } = inverse.address;
+            const previous = chunk.getBlock(x, y, z, layer);
+            const previousRuntimeId = chunk.getBlockRuntimeId(x & 0xf, y, z & 0xf, layer);
+            chunk.restoreBlockRuntimeId(x & 0xf, y, z & 0xf, inverse.after, layer);
+            if (layer === 0) this.blockChanged(chunk, x, y, z, previous, previousRuntimeId, inverse.after);
+            return true;
+        }
+
+        const value = inverse.after;
+        if (value !== null && !(value instanceof Uint8Array))
+            throw new TypeError(`A logged block entity field holds ${String(value)}`);
+        const tags = withBlockEntityField(
+            chunk.getBlockEntity(x, y, z)?.toNBT() ?? null,
+            { x, y, z },
+            inverse.address.field,
+            value
+        );
+        if (tags === null) {
+            chunk.removeBlockEntity(x, y, z);
+            return true;
+        }
+        const restored = BlockEntityRegistry.fromNBT(tags);
+        chunk.restoreBlockEntity(restored);
+        this.changes.worldChanged({ kind: 'block-entity-set', position: new Vector3(x, y, z), tags: restored.toNBT() });
         return true;
     }
 

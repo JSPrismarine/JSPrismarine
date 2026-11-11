@@ -25,7 +25,9 @@ import { Item } from '../item/Item';
 import type PlayerSession from '../network/PlayerSession';
 import { sessionOnPrototype } from '../testing/storePlayer.test.helper';
 import { blockMiningOf, playerMiningOf } from './BlockMining';
+import { NBTTagCompound, Types } from '@jsprismarine/nbt';
 import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
+import { writeBlockEntity } from '../blockentity/blockEntityWrite';
 
 /** A world whose dimension's entity runtime is the real one the entity fixture builds. */
 const worldWithStore = () => {
@@ -461,8 +463,29 @@ describe("a world's blocks and block entities in its change log", () => {
         return { ...made, air: id('minecraft:air'), stone: id('minecraft:stone'), dirt: id('minecraft:dirt') };
     };
 
+    /** A chest's tags at a position, holding the given stacks by slot. */
+    const chestTags = (at: { x: number; y: number; z: number }, stacks: Record<number, [string, number]>) => {
+        const tags = new NBTTagCompound('');
+        tags.addValue('id', new Types.StringVal('Chest'));
+        tags.addValue('x', new Types.NumberVal(at.x));
+        tags.addValue('y', new Types.NumberVal(at.y));
+        tags.addValue('z', new Types.NumberVal(at.z));
+        const items = new Set<NBTTagCompound>();
+        for (const [slot, [name, count]] of Object.entries(stacks)) {
+            const stack = new NBTTagCompound('');
+            stack.addValue('Name', new Types.StringVal(name));
+            stack.addValue('Count', new Types.ByteVal(count));
+            stack.addValue('Slot', new Types.ByteVal(Number(slot)));
+            items.add(stack);
+        }
+        tags.addValue('Items', items);
+        return tags;
+    };
+
     const blockEntries = (world: World) =>
-        (world.lastChangeTick()?.entries ?? []).filter((entry) => entry.kind === 'field' && entry.field === 'block');
+        (world.lastChangeTick()?.entries ?? []).filter(
+            (entry) => entry.kind === 'field' && (entry.field === 'block' || entry.field === 'block-entity')
+        );
 
     it('appends exactly one entry for each block write, with the block before it', async () => {
         const { world, air, stone, dirt } = await worldWithChunk();
@@ -519,6 +542,78 @@ describe("a world's blocks and block entities in its change log", () => {
         expect(world.lastChangeTick()?.entries).toEqual([]);
         expect(world.loadedBlockAt(1, 64, 1)?.name).toBe('minecraft:stone');
         expect(world.loadedBlockAt(1, 65, 1)?.name).toBe('minecraft:air');
+        expect(world.replayStateDigest()).toBe(digest);
+    });
+
+    it('logs a block entity as its data and one field for each slot, by block position', async () => {
+        const { world } = await worldWithChunk();
+        world.beginChangeTick();
+
+        writeBlockEntity(
+            world,
+            chestTags({ x: 4, y: 64, z: 4 }, { 0: ['minecraft:bread', 3], 5: ['minecraft:stone', 1] })
+        );
+        world.sealChangeTick();
+
+        expect(blockEntries(world).map((entry) => entry.kind === 'field' && entry.address)).toEqual([
+            { x: 4, y: 64, z: 4, field: 'data' },
+            { x: 4, y: 64, z: 4, field: 'items.0' },
+            { x: 4, y: 64, z: 4, field: 'items.5' }
+        ]);
+    });
+
+    it('logs one entry for a stack moved into a chest', async () => {
+        const { world } = await worldWithChunk();
+        const at = { x: 4, y: 64, z: 4 };
+        writeBlockEntity(world, chestTags(at, { 0: ['minecraft:bread', 3] }));
+        world.beginChangeTick();
+
+        writeBlockEntity(world, chestTags(at, { 0: ['minecraft:bread', 3], 7: ['minecraft:torch', 4] }));
+        world.sealChangeTick();
+
+        expect(blockEntries(world)).toEqual([
+            expect.objectContaining({ field: 'block-entity', address: { ...at, field: 'items.7' }, before: null })
+        ]);
+    });
+
+    it('undoes a unit that changed and then removed a block entity, leaving the replay digest as it was', async () => {
+        const { world, stone } = await worldWithChunk();
+        const at = { x: 4, y: 64, z: 4 };
+        world.setLoadedBlockRuntimeId(at.x, at.y, at.z, stone);
+        writeBlockEntity(world, chestTags(at, { 0: ['minecraft:bread', 3], 2: ['minecraft:torch', 4] }));
+        writeBlockEntity(world, chestTags({ x: 5, y: 64, z: 4 }, { 1: ['minecraft:dirt', 9] }));
+        const digest = world.replayStateDigest();
+        world.beginChangeTick();
+
+        const outcome = world.getEntityStore().unit(() => {
+            writeBlockEntity(world, chestTags(at, { 0: ['minecraft:bread', 2], 9: ['minecraft:stone', 1] }));
+            // A block write clears the block entity standing there.
+            world.setLoadedBlockRuntimeId(at.x, at.y, at.z, BlockRuntimeIds.getByName('minecraft:air'));
+            throw new Error('planned');
+        });
+        world.sealChangeTick();
+
+        expect(outcome.failed).toBe(true);
+        expect(world.lastChangeTick()?.entries).toEqual([]);
+        expect(world.getLoadedChunk(0, 0)?.getBlockEntity(at.x, at.y, at.z)?.getId()).toBe('Chest');
+        expect(world.replayStateDigest()).toBe(digest);
+    });
+
+    it('undoes a unit that placed a block entity, leaving the replay digest as it was', async () => {
+        const { world, stone } = await worldWithChunk();
+        const at = { x: 4, y: 64, z: 4 };
+        const digest = world.replayStateDigest();
+        world.beginChangeTick();
+
+        const outcome = world.getEntityStore().unit(() => {
+            world.setLoadedBlockRuntimeId(at.x, at.y, at.z, stone);
+            writeBlockEntity(world, chestTags(at, { 3: ['minecraft:bread', 1] }));
+            throw new Error('planned');
+        });
+        world.sealChangeTick();
+
+        expect(outcome.failed).toBe(true);
+        expect(world.getLoadedChunk(0, 0)?.getBlockEntity(at.x, at.y, at.z)).toBeNull();
         expect(world.replayStateDigest()).toBe(digest);
     });
 });
