@@ -2,7 +2,7 @@ import type { PlayerSession } from '../../';
 import type Server from '../../Server';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import type { SessionPhase } from '../SessionPhase';
-import type { Lane } from './Lane';
+import type { Lane } from '@jsprismarine/protocol/handler/Lane';
 
 export default interface PacketHandler<T extends NetworkPacket<unknown>> {
     /**

@@ -17,12 +17,14 @@ import TextPacket from '@jsprismarine/protocol/packet/TextPacket';
 import { PacketLogFilter } from './PacketLogFilter';
 import type PacketHandlerRegistry from './PacketHandlerRegistry';
 import type PlayerSession from './PlayerSession';
+import type { SessionHandler } from './handler/SessionHandler';
+import { STEVE } from '../testing/sessionIdentity.test.helper';
 import type { InboundPacketRecorder } from './InboundPacketTrace';
 import { InboundPacketTrace } from './InboundPacketTrace';
 import type { OutboundPacketRecorder } from './OutboundPacketTrace';
 import type { SessionPhase } from './SessionPhase';
 import type { ConnectionId } from './transport/ConnectionId';
-import type { Lane } from './handler/Lane';
+import type { Lane } from '@jsprismarine/protocol/handler/Lane';
 import ClientCacheStatusPacket from '@jsprismarine/protocol/packet/ClientCacheStatusPacket';
 import { ServerTicker } from '../modules/ticker';
 import type { TickerServer, TickerWorld } from '../modules/ticker';
@@ -168,10 +170,14 @@ const makeDispatcher = (options?: {
     phasesOf?: Readonly<Record<string, readonly SessionPhase[]>>;
     /** Called when a connection's player is torn down. */
     onClosePlayerSession?: () => void;
+    /** The player session every connection has, and the phase it is in; none, in `handshake`, by default. */
+    session?: { readonly session: PlayerSession; readonly phase: SessionPhase };
     handler?: {
         phases: readonly SessionPhase[];
         handle: (packet: unknown, server: Server, target: unknown) => Promise<void>;
     };
+    /** A handler in the shared shape, registered for every packet in place of `handler`. */
+    contextHandler?: SessionHandler<unknown>;
 }) => {
     const transport = new FakeTransport();
     const sessionManager = new SessionManager();
@@ -180,6 +186,7 @@ const makeDispatcher = (options?: {
     const server = stub<Server>({ getTick: options?.tick ?? (() => 0) });
     const packetHandlerRegistry = stub<PacketHandlerRegistry>({
         getHandler: (name: string) => {
+            if (options?.contextHandler) return options.contextHandler;
             if (!options?.handler) throw new Error('no handler registered');
             // Every double here runs in the handshake phase, before a session exists.
             return {
@@ -211,9 +218,9 @@ const makeDispatcher = (options?: {
                 getConnectionId: () => transportConnection.id,
                 hasCompression: options?.compressed ?? false,
                 codec: options?.codec ?? Codec2193,
-                phase: 'handshake',
+                phase: options?.session?.phase ?? 'handshake',
                 decryptFrame: (frame) => frame,
-                getPlayerSession: () => null,
+                getPlayerSession: () => options?.session?.session ?? null,
                 closePlayerSession: async () => options?.onClosePlayerSession?.(),
                 setOutboundPacketRecorder: (recorder, connectionId, getTick) =>
                     void outboundRecorderSetup.push({ recorder, connectionId, getTick })
@@ -948,6 +955,29 @@ describe('network', () => {
                 'world:1:start',
                 'world:1:end'
             ]);
+        });
+
+        it('applies a handler that takes a context in the input step, with the session and its tick', async () => {
+            const seen: string[] = [];
+            const { transport, dispatcher } = makeDispatcher({
+                tick: () => 5,
+                session: { session: stub<PlayerSession>({ identity: STEVE }), phase: 'play' },
+                contextHandler: {
+                    takes: 'context',
+                    lane: 'input',
+                    phases: ['play'],
+                    handle: (_packet, { session, step }) => {
+                        seen.push(`${session.identity.name} at ${step.tick}`);
+                        return undefined;
+                    }
+                }
+            });
+            await transport.emitConnect(fakeConnection(1).connection);
+            await transport.emitFrame(frameOf(message('move')), 1);
+
+            expect(seen).toEqual([]);
+            expect(await dispatcher.admitInputs()).toBe(1);
+            expect(seen).toEqual(['Steve at 5']);
         });
 
         it('applies every input a connection sent before a step in that step, and a later read after it', async () => {
