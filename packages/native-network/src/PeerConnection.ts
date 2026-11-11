@@ -175,6 +175,7 @@ export class PeerConnection extends EventEmitter {
     public readonly id: number;
     private readonly channels = new Set<DataChannel>();
     private deleted = false;
+    private closing = false;
 
     /**
      * @param network - The loaded library.
@@ -282,12 +283,16 @@ export class PeerConnection extends EventEmitter {
         return { local: withoutAttributePrefix(local), remote: withoutAttributePrefix(remote) };
     }
 
-    /** Closes the connection and its channels; the native objects are freed once it reports `closed`. */
+    /**
+     * Closes the connection and its channels. libdatachannel shuts SCTP down gracefully, so what
+     * was sent before still arrives; the native objects are freed once it reports `closed`, and
+     * deleting them sooner would cut that shutdown short.
+     */
     public close(): void {
-        if (this.deleted) return;
+        if (this.deleted || this.closing) return;
+        this.closing = true;
         for (const channel of this.channels) channel.close();
         this.network.symbols.jsp_pc_close(this.id);
-        this.free();
     }
 
     private track(channel: DataChannel): void {
