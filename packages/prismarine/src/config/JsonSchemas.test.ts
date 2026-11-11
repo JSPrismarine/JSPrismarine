@@ -41,7 +41,7 @@ describe('JSON schemas', () => {
             file: 'config.schema.json',
             valid: {
                 'log-level': 'info',
-                port: 19132,
+                'server-port': 19132,
                 'server-ip': '0.0.0.0',
                 'level-name': 'world',
                 worlds: {

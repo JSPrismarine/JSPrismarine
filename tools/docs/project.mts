@@ -129,7 +129,7 @@ export function loadProject(): ProjectData {
 
     const [, port] = fromSource(
         path.join(packagesDir, 'prismarine', 'src', 'config', 'Config.ts'),
-        /^\s+port: (\d+),$/m,
+        /^\s+'server-port': (\d+),$/m,
         'the default port'
     );
 

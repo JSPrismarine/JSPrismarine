@@ -567,7 +567,11 @@ Each slice is a commit or a few, with its tests, on `dev/webrtc-backend`.
       the RakNet worker, the main thread receives nothing per datagram; a range containing `port`
       serves peers on every port and RakNet on that one.
     - Run it under Bun, and on macOS and Windows where we can.
-12. [ ] **`server-port`, the new defaults and the written config.** As the table above has it.
+12. [x] **`server-port`, the new defaults and the written config.** As the table above has it.
+    - Done 2026-11-11. `ConfigDocument.rename` renames `port` in place, keeping its comments.
+      Unset `server-portv6`, `query-port` and `server-udp-ports` follow the port the server binds,
+      not only the file's, so `--port` moves them too. With port 0, as tests bind, NetherNet's UDP
+      is left to the system. `server-public-ip` is also read without being written.
     - Rename `port` to `server-port`: the key, its description, `JsonConfigTypes.ts`, the config
       schema, the client-e2e harness's config, and the docs. Rename it in an existing file on load,
       and refuse a config that has both.
