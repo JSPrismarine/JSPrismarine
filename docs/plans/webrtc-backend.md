@@ -507,7 +507,16 @@ Each slice is a commit or a few, with its tests, on `dev/webrtc-backend`.
    - Keep the drain only if the probe shows something to wait for, and read usrsctp's queue in the
      C layer if it does.
    - Test: every byte sent before a close reaches the receiver.
-9. [ ] **`server-udp-ports` and `server-public-ip` as BDS 1.26.70 has them.**
+9. [x] **`server-udp-ports` and `server-public-ip` as BDS 1.26.70 has them.**
+   - Done 2026-11-11. Question 5: libjuice serves several mux ports at once, one registry each,
+     found by the port a peer asks for, so each peer gets a range of one port from the strategy.
+     Question 6: BDS adds a server-reflexive candidate per mapped host candidate, at the public
+     address for hosts of its family and at the host's own address without one
+     ([research note](../research/bds-server-udp-ports.md#what-the-answer-advertises)). With
+     `server-public-ip` set, BDS stops HTTP signaling and signs in to Microsoft's signaling
+     service, so its candidates for that setting were read from the IP prefix's. We keep HTTP
+     signaling with `server-public-ip`. Every error carries BDS's message after
+     `server-udp-ports:`, and `server-public-ip` is read without being written to a fresh config.
    - First check open questions 5 and 6: several mux ports at once in libjuice, and the candidates
      BDS answers with for a mapping.
    - Parse as BDS does. Take the table in the research note as the test fixture: every value BDS

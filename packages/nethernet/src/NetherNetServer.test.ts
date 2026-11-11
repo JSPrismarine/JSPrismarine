@@ -1,11 +1,12 @@
 import dgram from 'node:dgram';
 import { once } from 'node:events';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import type { Connection } from './Connection';
 import { LanDiscovery } from './LanDiscovery';
 import { NetherNetClient } from './NetherNetClient';
 import { NetherNetServer } from './NetherNetServer';
+import { PortAllocator } from './PortAllocator';
 import { SignalStructure, SignalType } from './protocol/Signal';
 import { loadDriver, nativeAvailable } from './testing/nativeDriver.test.helper';
 import type { PeerConfig, WebRtcDriver } from './WebRtcDriver';
@@ -194,6 +195,81 @@ describe.skipIf(!nativeAvailable())('NetherNet over the native driver', async ()
             client.close();
         } finally {
             discovery.close();
+            server.close();
+        }
+    });
+
+    /** The local port of the pair a server-side connection selected. */
+    const portOfConnection = (connection: Connection): number | undefined => connection.peer.localAddress()?.port;
+
+    /** Whether a UDP port can be bound on 127.0.0.1 right now. */
+    const bindable = async (port: number): Promise<boolean> => {
+        const socket = dgram.createSocket('udp4');
+        try {
+            await new Promise<void>((resolve, reject) => {
+                socket.once('error', reject);
+                socket.bind(port, '127.0.0.1', resolve);
+            });
+            return true;
+        } catch {
+            return false;
+        } finally {
+            socket.close();
+        }
+    };
+
+    it('serves two peers on one port at once, and frees the port after the last one leaves', async () => {
+        const port = await freePort();
+        const server = new NetherNetServer({
+            driver,
+            peerConfig: () => LOOPBACK,
+            ports: new PortAllocator({ start: port, end: port })
+        });
+        const first = await join(driver, server);
+        const second = await join(driver, server);
+        try {
+            expect([portOfConnection(first.connection), portOfConnection(second.connection)]).toStrictEqual([
+                port,
+                port
+            ]);
+            expect(await bindable(port)).toBe(false);
+
+            const closed = once(server, 'closeConnection');
+            first.client.close();
+            await closed;
+            expect(await bindable(port)).toBe(false);
+            const lastClosed = once(server, 'closeConnection');
+            second.client.close();
+            await lastClosed;
+            await vi.waitFor(async () => expect(await bindable(port)).toBe(true));
+        } finally {
+            first.client.close();
+            second.client.close();
+            server.close();
+        }
+    });
+
+    it('spreads peers over a range by the fewest peers, and reuses its ports once all are in use', async () => {
+        const start = await freePort();
+        // Two ports in a row; skip the test's luck if the next one is taken.
+        if (!(await bindable(start + 1))) return;
+        const allocator = new PortAllocator({ start, end: start + 1 });
+        const server = new NetherNetServer({ driver, peerConfig: () => LOOPBACK, ports: allocator });
+        const joined = [];
+        try {
+            for (let index = 0; index < 3; index++) joined.push(await join(driver, server));
+
+            expect(joined.map(({ connection }) => portOfConnection(connection))).toStrictEqual([
+                start,
+                start + 1,
+                start
+            ]);
+            expect(allocator.loads()).toStrictEqual([
+                { port: start, peers: 2 },
+                { port: start + 1, peers: 1 }
+            ]);
+        } finally {
+            for (const { client } of joined) client.close();
             server.close();
         }
     });
