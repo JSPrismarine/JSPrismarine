@@ -424,9 +424,13 @@ Bedrock clients reach the server over two transports, and it runs both unless `e
 
 A firewall in front of the server needs `port` open for both UDP and TCP, and `server-portv6`
 open for UDP when IPv6 clients should reach it. A server bound to one IPv4 address through
-`server-ip` does not listen on IPv6 at all; when another program holds `server-portv6`, the server
-starts anyway and logs that IPv6 clients cannot join. Only one program on a
-machine can hold the LAN port; when another server or a game already holds it, the server starts
+`server-ip` does not listen on IPv6 at all.
+
+Every transport that is on must be able to listen. When another program holds `port`,
+`server-portv6` or the TCP side of `port` that NetherNet signals on, the server does not start, and
+its error names the transport, the port and the cause. Turn the transport off with `enable-raknet`
+or `enable-nethernet`, or free the port. The LAN port is different: only one program on a
+machine can hold it, and when another server or a game already holds it, the server starts
 anyway and logs that it is not visible on the local network.
 
 The server offers WebRTC only its own interface addresses, so a player outside your network can

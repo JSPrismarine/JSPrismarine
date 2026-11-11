@@ -140,7 +140,7 @@ describe('the command layer on a booted server', () => {
 
         server = new Server({ logger: new Logger(), config: debugConfig('commands'), headless: true });
         vi.spyOn(server, 'shutdown').mockResolvedValue(undefined);
-        await server.bootstrap('0.0.0.0', 12347);
+        await server.bootstrap('127.0.0.1', 12347);
 
         world = server.getWorldManager().getDefaultWorld();
         // Nothing is preloaded at radius 0, and the command verbs write through
@@ -611,7 +611,7 @@ describe('the command layer on a server with packs of its own', () => {
 
         server = new Server({ logger: new Logger(), config: debugConfig('content-commands'), headless: true });
         vi.spyOn(server, 'shutdown').mockResolvedValue(undefined);
-        await server.bootstrap('0.0.0.0', 12348);
+        await server.bootstrap('127.0.0.1', 12348);
 
         world = server.getWorldManager().getDefaultWorld();
         await world.getChunkAt(0, 0);

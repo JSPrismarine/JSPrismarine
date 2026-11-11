@@ -49,12 +49,15 @@ const IPV6_WILDCARD = '::';
  */
 export interface Networking {
     /**
-     * Binds every enabled transport and wires inbound traffic to the packet dispatcher.
+     * Binds every enabled transport and wires inbound traffic to the packet dispatcher, and
+     * resolves once every transport listens.
      * @param address - The address to bind.
      * @param port - The port to bind.
-     * @throws {Error} When the config enables no transport, so no client could connect.
+     * @throws {Error} When the config enables no transport, so no client could connect, or when
+     * an enabled transport cannot listen. The error names the transport, the port and the cause,
+     * and every transport that did start is closed again.
      */
-    start(address: string, port: number): void;
+    start(address: string, port: number): Promise<void>;
 
     /** Replays one accepted packet through the connected session's handler path. */
     replayInboundRecord?(record: InboundPacketRecord, tickOffset?: number): Promise<void>;
@@ -110,8 +113,8 @@ export class ServerNetworking implements Networking {
         private readonly outboundPacketRecorder?: OutboundPacketRecorder
     ) {}
 
-    /** Binds every enabled transport and subscribes the packet dispatcher to them. */
-    public start(address: string, port: number): void {
+    /** Binds every enabled transport, subscribes the packet dispatcher to them, and waits for each to listen. */
+    public async start(address: string, port: number): Promise<void> {
         const server = this.server;
         const config = server.getConfig();
         this.serverName = new ServerName(server, latestCodec);
@@ -120,14 +123,18 @@ export class ServerNetworking implements Networking {
 
         const serverName = this.serverName;
         const rakNet: RakNetTransport[] = [];
+        // One per transport that binds, settled once it listens or cannot.
+        const listening: Promise<void>[] = [];
         this.transport = new MultiTransport((ids) => {
             const transports: Transport[] = [];
             if (config.getEnableRakNet()) {
-                rakNet.push(this.startRakNet(address, port, serverName, ids));
-                if (address === IPV4_WILDCARD) rakNet.push(this.startRakNetV6(serverName, ids));
+                rakNet.push(this.startRakNet(address, port, serverName, ids, listening));
+                if (address === IPV4_WILDCARD) rakNet.push(this.startRakNetV6(serverName, ids, listening));
                 transports.push(...rakNet);
             }
-            if (config.getEnableNetherNet()) transports.push(this.startNetherNet(address, port, serverName, ids));
+            if (config.getEnableNetherNet()) {
+                transports.push(this.startNetherNet(address, port, serverName, ids, listening));
+            }
             if (transports.length === 0) {
                 throw new Error('No transport is enabled: turn on enable-raknet or enable-nethernet in config.json');
             }
@@ -161,6 +168,16 @@ export class ServerNetworking implements Networking {
         // Counted here rather than per transport: every transport advertises the same total.
         this.transport.onConnect((connection) => this.countConnection(serverName, connection.id, true));
         this.transport.onDisconnect((id) => this.countConnection(serverName, id, false));
+
+        // Every listener is waited for, not only the first to fail, so none is still binding
+        // when the kill below closes them.
+        const failures = (await Promise.allSettled(listening)).flatMap((result) =>
+            result.status === 'rejected' ? [result.reason] : []
+        );
+        if (failures.length > 0) {
+            this.kill();
+            throw new Error(failures.map((failure) => errorMessage(failure)).join('; '), { cause: failures[0] });
+        }
     }
 
     /**
@@ -205,8 +222,15 @@ export class ServerNetworking implements Networking {
     }
 
     /** Binds the RakNet listener, on a worker thread when the config says so. */
-    private startRakNet(address: string, port: number, serverName: ServerName, ids: ConnectionIds): RakNetTransport {
+    private startRakNet(
+        address: string,
+        port: number,
+        serverName: ServerName,
+        ids: ConnectionIds,
+        listening: Promise<void>[]
+    ): RakNetTransport {
         const raknet = this.createRakNetListener(serverName);
+        listening.push(rakNetListening(raknet, `RakNet cannot listen on UDP port ${port}`));
         raknet.start(address, port);
         this.raknet = raknet;
         return new RakNetTransport(raknet, this.server, ids);
@@ -214,17 +238,13 @@ export class ServerNetworking implements Networking {
 
     /**
      * Binds the second RakNet listener a wildcard-bound server runs, on every IPv6 interface and
-     * `server-portv6`, as Bedrock Dedicated Server does. A port another program holds costs IPv6
-     * clients their way in, with a warning, not the server.
+     * `server-portv6`, as Bedrock Dedicated Server does. A port another program holds stops the
+     * start, as it does for the IPv4 listener.
      */
-    private startRakNetV6(serverName: ServerName, ids: ConnectionIds): RakNetTransport {
-        const config = this.server.getConfig();
-        const logger = this.server.getLogger();
-        const port = config.getServerPortV6();
+    private startRakNetV6(serverName: ServerName, ids: ConnectionIds, listening: Promise<void>[]): RakNetTransport {
+        const port = this.server.getConfig().getServerPortV6();
         const raknet = this.createRakNetListener(serverName);
-        raknet.on('error', (error) =>
-            logger.warn(`IPv6 clients cannot join: UDP port ${port} is unavailable (${error.message})`)
-        );
+        listening.push(rakNetListening(raknet, `RakNet cannot listen for IPv6 clients on UDP port ${port}`));
         raknet.start(IPV6_WILDCARD, port);
         this.raknetV6 = raknet;
         return new RakNetTransport(raknet, this.server, ids);
@@ -290,15 +310,17 @@ export class ServerNetworking implements Networking {
 
     /**
      * Starts the `nethernet` server and the two ways offers reach it. HTTP signaling on the game
-     * port's TCP side serves clients joining by address. With LAN visibility on, UDP 7551 serves
-     * clients on the local network, which discover the server and send their offers there. A
-     * port another program holds costs that way in, with a warning, not the server.
+     * port's TCP side serves clients joining by address, and a TCP port another program holds
+     * stops the start. With LAN visibility on, UDP 7551 serves clients on the local network,
+     * which discover the server and send their offers there; that port being taken costs the
+     * LAN its view of the server, with a warning, not the start.
      */
     private startNetherNet(
         address: string,
         port: number,
         serverName: ServerName,
-        ids: ConnectionIds
+        ids: ConnectionIds,
+        listening: Promise<void>[]
     ): NetherNetTransport {
         const server = this.server;
         const config = server.getConfig();
@@ -319,12 +341,18 @@ export class ServerNetworking implements Networking {
             sign: (answer) => identity.sign(withMappedCandidates(answer, udpPorts.mappings)),
             logger
         });
-        this.signaling.listen(port, address).then(
-            (bound) => logger.info(`NetherNet clients can join by address on TCP port ${bound}`),
-            (error: unknown) =>
-                logger.warn(
-                    `NetherNet clients cannot join by address: TCP port ${port} is unavailable (${error instanceof Error ? error.message : String(error)})`
-                )
+        listening.push(
+            this.signaling.listen(port, address).then(
+                (bound) => logger.info(`NetherNet clients can join by address on TCP port ${bound}`),
+                (error: unknown) => {
+                    throw new Error(
+                        `NetherNet cannot listen for signaling on TCP port ${port}: ${errorMessage(error)}`,
+                        {
+                            cause: error
+                        }
+                    );
+                }
+            )
         );
 
         if (config.getEnableLanVisibility()) {
@@ -353,6 +381,30 @@ export class ServerNetworking implements Networking {
         serverName.setOnlinePlayerCount(this.liveConnections.size);
     }
 }
+
+/** The message of a thrown value, which is not always an `Error`. */
+const errorMessage = (error: unknown): string => (error instanceof Error ? error.message : String(error));
+
+/**
+ * Settles once a RakNet listener binds or fails to. Subscribe before `start`: a worker's failure
+ * arrives later, and a socket's `error` with no listener would be thrown instead.
+ * @param raknet - The listener, not yet started.
+ * @param failure - What the error says before the cause, naming the transport and the port.
+ * @returns A promise that resolves on `listening` and rejects on `error`.
+ */
+const rakNetListening = (raknet: RakNetListenerLike, failure: string): Promise<void> =>
+    new Promise((resolve, reject) => {
+        let settled = false;
+        raknet.on('listening', () => {
+            settled = true;
+            resolve();
+        });
+        raknet.on('error', (error) => {
+            if (settled) return;
+            settled = true;
+            reject(new Error(`${failure}: ${error.message}`, { cause: error }));
+        });
+    });
 
 /**
  * Provides the {@link Networking} service as `prismarine:network`. The module

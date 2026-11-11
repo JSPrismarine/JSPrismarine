@@ -135,7 +135,7 @@ describe('a command typed while the start region is still generating', () => {
 
         // Deliberately not awaited. The point of the test is the state the server is in while
         // this is still running.
-        booting = server.bootstrap('0.0.0.0', PORT);
+        booting = server.bootstrap('127.0.0.1', PORT);
         await asked;
 
         sender = {

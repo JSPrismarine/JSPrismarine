@@ -1,6 +1,7 @@
 import dgram from 'node:dgram';
 import { once } from 'node:events';
 import fs from 'node:fs';
+import net from 'node:net';
 import os from 'node:os';
 import path from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
@@ -50,7 +51,7 @@ describe('modules/network', () => {
         expect(() => networking.kill()).not.toThrow();
     });
 
-    it('refuses to start with every transport turned off', () => {
+    it('refuses to start with every transport turned off', async () => {
         const server = stub<Server>({
             getConfig: () =>
                 stub<Config>({
@@ -63,12 +64,13 @@ describe('modules/network', () => {
         });
         const networking = new ServerNetworking(server);
 
-        expect(() => networking.start('127.0.0.1', 0)).toThrow('No transport is enabled');
+        await expect(networking.start('127.0.0.1', 0)).rejects.toThrow('No transport is enabled');
         expect(networking.getListener()).toBeUndefined();
     });
 
-    it('starts with NetherNet alone, advertising the same server name RakNet would', () => {
-        const server = stub<Server>({
+    /** A server running NetherNet alone, with LAN visibility off so nothing fixed binds. */
+    const netherNetServer = () =>
+        stub<Server>({
             getConfig: () =>
                 stub<Config>({
                     getGamemode: () => 'survival',
@@ -87,14 +89,16 @@ describe('modules/network', () => {
             getPacketLogFilter: () => new PacketLogFilter(),
             getSessionManager: () => new SessionManager()
         });
-        const networking = new ServerNetworking(server);
+
+    it('starts with NetherNet alone, advertising the same server name RakNet would', async () => {
+        const networking = new ServerNetworking(netherNetServer());
         // The server identity key is written to the data directory, so keep it out of the repository.
         const dataDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'jsp-network-'));
         vi.stubEnv('JSP_DIR', dataDirectory);
 
         try {
             // Port 0: HTTP signaling binds an ephemeral TCP port, so nothing fixed is taken.
-            networking.start('127.0.0.1', 0);
+            await networking.start('127.0.0.1', 0);
 
             expect(networking.getListener()).toBeUndefined();
             expect(networking.getServerName()?.getMotd()).toBe('test server');
@@ -106,7 +110,7 @@ describe('modules/network', () => {
         }
     });
 
-    it('refuses to start NetherNet with a malformed server-udp-ports, before anything binds', () => {
+    it('refuses to start NetherNet with a malformed server-udp-ports, before anything binds', async () => {
         const server = stub<Server>({
             getConfig: () =>
                 stub<Config>({
@@ -120,13 +124,13 @@ describe('modules/network', () => {
             getLogger: () => stub<Logger>({ info: () => {}, warn: () => {}, error: () => {} })
         });
 
-        expect(() => new ServerNetworking(server).start('127.0.0.1', 0)).toThrow(
+        await expect(new ServerNetworking(server).start('127.0.0.1', 0)).rejects.toThrow(
             'server-udp-ports: ports is neither a port range nor a mapping'
         );
     });
 
-    /** A server running RakNet alone, in socket mode, on the IPv6 port given. */
-    const rakNetServer = (portV6: number, warn: (message: string) => void = () => {}) =>
+    /** A server running RakNet alone, in socket or worker mode, on the IPv6 port given. */
+    const rakNetServer = (portV6: number, warn: (message: string) => void = () => {}, worker = false) =>
         stub<Server>({
             getConfig: () =>
                 stub<Config>({
@@ -137,7 +141,7 @@ describe('modules/network', () => {
                     getOnlineMode: () => false,
                     getEnableRakNet: () => true,
                     getEnableNetherNet: () => false,
-                    getUseRakNetWorker: () => false,
+                    getUseRakNetWorker: () => worker,
                     getServerPortV6: () => portV6
                 }),
             getLogger: () =>
@@ -159,36 +163,100 @@ describe('modules/network', () => {
 
         try {
             // Port 0 for both: the advertised ports change from their defaults once each socket binds.
-            networking.start('0.0.0.0', 0);
+            await networking.start('0.0.0.0', 0);
             const name = networking.getServerName()!;
 
-            await vi.waitFor(() => {
-                expect(name.getPort()).not.toBe(19132);
-                expect(name.getPortV6()).not.toBe(19133);
-            });
+            expect(name.getPort()).not.toBe(19132);
+            expect(name.getPortV6()).not.toBe(19133);
             expect(name.getPortV6()).not.toBe(name.getPort());
         } finally {
             networking.kill();
         }
     });
 
-    it('keeps IPv4 running and warns when the IPv6 port is taken', async () => {
+    it('stops the start and names the port when the IPv4 RakNet port is taken', async () => {
+        const holder = dgram.createSocket('udp4');
+        holder.bind(0, '127.0.0.1');
+        await once(holder, 'listening');
+        const taken = holder.address().port;
+        const networking = new ServerNetworking(rakNetServer(0));
+
+        try {
+            await expect(networking.start('127.0.0.1', taken)).rejects.toThrow(
+                `RakNet cannot listen on UDP port ${taken}: bind EADDRINUSE`
+            );
+        } finally {
+            networking.kill();
+            holder.close();
+        }
+    });
+
+    it('stops the start and closes IPv4 when the IPv6 RakNet port is taken', async () => {
         const holder = dgram.createSocket({ type: 'udp6', ipv6Only: true });
         holder.bind(0, '::');
         await once(holder, 'listening');
         const taken = holder.address().port;
-        const warnings: string[] = [];
-        const networking = new ServerNetworking(rakNetServer(taken, (message) => warnings.push(message)));
+        const networking = new ServerNetworking(rakNetServer(taken));
 
         try {
-            networking.start('0.0.0.0', 0);
-
-            await vi.waitFor(() => expect(warnings).toHaveLength(1));
-            expect(warnings[0]).toContain(`IPv6 clients cannot join: UDP port ${taken} is unavailable`);
-            expect(networking.getListener()).toBeDefined();
+            await expect(networking.start('0.0.0.0', 0)).rejects.toThrow(
+                `RakNet cannot listen for IPv6 clients on UDP port ${taken}: bind EADDRINUSE`
+            );
+            // The IPv4 listener bound, and the failed start closed it again, freeing its port.
+            const port = networking.getServerName()!.getPort();
+            await vi.waitFor(async () => {
+                const probe = dgram.createSocket('udp4');
+                try {
+                    await new Promise<void>((resolve, reject) => {
+                        probe.once('error', reject);
+                        probe.bind(port, '0.0.0.0', resolve);
+                    });
+                } finally {
+                    probe.close();
+                }
+            });
         } finally {
             networking.kill();
             holder.close();
+        }
+    });
+
+    it('stops the start when the IPv6 RakNet port is taken in worker mode', async () => {
+        const holder = dgram.createSocket({ type: 'udp6', ipv6Only: true });
+        holder.bind(0, '::');
+        await once(holder, 'listening');
+        const taken = holder.address().port;
+        const networking = new ServerNetworking(rakNetServer(taken, () => {}, true));
+
+        try {
+            await expect(networking.start('0.0.0.0', 0)).rejects.toThrow(
+                `RakNet cannot listen for IPv6 clients on UDP port ${taken}: bind EADDRINUSE`
+            );
+        } finally {
+            networking.kill();
+            holder.close();
+        }
+    });
+
+    it("stops the start when NetherNet's signaling TCP port is taken", async () => {
+        const holder = net.createServer();
+        holder.listen(0, '127.0.0.1');
+        await once(holder, 'listening');
+        const address = holder.address();
+        if (address === null || typeof address === 'string') throw new Error('The holder has no port');
+        const networking = new ServerNetworking(netherNetServer());
+        const dataDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'jsp-network-'));
+        vi.stubEnv('JSP_DIR', dataDirectory);
+
+        try {
+            await expect(networking.start('127.0.0.1', address.port)).rejects.toThrow(
+                `NetherNet cannot listen for signaling on TCP port ${address.port}: listen EADDRINUSE`
+            );
+        } finally {
+            networking.kill();
+            holder.close();
+            vi.unstubAllEnvs();
+            fs.rmSync(dataDirectory, { recursive: true, force: true });
         }
     });
 
@@ -252,9 +320,9 @@ describe('modules/network', () => {
         const networking = new ServerNetworking(queryServer(19_132, 19_132));
 
         try {
-            networking.start('127.0.0.1', 0);
+            await networking.start('127.0.0.1', 0);
             const name = networking.getServerName()!;
-            await vi.waitFor(() => expect(name.getPort()).not.toBe(19132));
+            expect(name.getPort()).not.toBe(19132);
 
             const [motd, gameType, map, online, max] = await queryBasicStat(name.getPort());
             expect([motd, gameType, map, online, max]).toStrictEqual(['query server', 'SMP', 'world', '0', '5']);
@@ -273,7 +341,7 @@ describe('modules/network', () => {
         );
 
         try {
-            networking.start('127.0.0.1', 0);
+            await networking.start('127.0.0.1', 0);
             await vi.waitFor(() => expect(bound).toHaveLength(1));
             expect(bound[0]).not.toBe(networking.getServerName()!.getPort());
 
@@ -330,7 +398,7 @@ describe('modules/network', () => {
 
         try {
             // Port 0 asks the OS for an ephemeral local port; cleanup below leaves no listener behind.
-            networking.start('127.0.0.1', 0);
+            await networking.start('127.0.0.1', 0);
 
             await expect(
                 networking.replayInboundRecord({
