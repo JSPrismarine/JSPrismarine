@@ -33,15 +33,15 @@ const isBound = (socket: dgram.Socket): boolean => {
 };
 
 /**
- * Makes every UDP socket in this process send as if over a longer, lossier path: RakNet's and
- * the ones WebRTC opens for NetherNet alike.
+ * Makes every Node.js UDP socket in this process send as if over a longer, lossier path.
+ * NetherNet's WebRTC runs in native code with sockets of its own, so it is conditioned only
+ * where a relay puts a Node.js socket in its path.
  *
  * A server on the same machine answers in microseconds and never loses a datagram, which hides
- * whatever a transport does on a path across an ocean. A NetherNet join over 300 ms with some
- * loss took tens of seconds and could stall for good on werift 0.24.4; this is how such a path
- * is reproduced on one machine.
+ * whatever a transport does on a path across an ocean; this is how such a path is reproduced on
+ * one machine.
  *
- * Applied to the process, not to one socket, because WebRTC opens its sockets out of reach.
+ * Applied to the process, not to one socket, so every socket a transport opens is covered.
  * In a process that runs both ends, both are conditioned, so the round trip grows by twice the
  * latency.
  * @throws {RangeError} When the latency is negative or the loss is outside 0 to 1.

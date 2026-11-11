@@ -3,17 +3,27 @@ import { describe, expect, it } from 'vitest';
 
 import type { Logger } from '@jsprismarine/logger';
 import { BATCH_PACKET_ID } from '@jsprismarine/protocol';
-import { Client, Server, SignalStructure, SignalType } from 'nethernet';
 import { stub } from '../../testing/stub.test.helper';
 import { ConnectionIds } from '../transport/ConnectionId';
 import NetherNetTransport from '../transport/NetherNetTransport';
 import type { NetherNetTransportConnection } from '../transport/NetherNetTransport';
-import { adaptPeerConnections, BEDROCK_CURVE, HttpSignaling, NetherNetIdentity } from '@jsprismarine/nethernet';
+import {
+    BEDROCK_CURVE,
+    HttpSignaling,
+    loadNativeDriver,
+    NetherNetClient,
+    NetherNetIdentity,
+    NetherNetServer,
+    SignalStructure,
+    SignalType
+} from '@jsprismarine/nethernet';
 
-describe('network/nethernet/HttpSignaling over a real WebRTC connection', () => {
+/** The native WebRTC stack, or undefined on a machine with no build of it. */
+const driver = await loadNativeDriver().catch(() => undefined);
+
+describe.skipIf(driver === undefined)('network/nethernet/HttpSignaling over a real WebRTC connection', () => {
     it('lets a client join by address: offer over HTTP, then batches over the data channel', async () => {
-        const nethernet = new Server();
-        adaptPeerConnections(nethernet);
+        const nethernet = new NetherNetServer({ driver: driver! });
         const transport = new NetherNetTransport(nethernet, new ConnectionIds());
         const { privateKey } = generateKeyPairSync('ec', { namedCurve: BEDROCK_CURVE });
         const signaling = new HttpSignaling({
@@ -25,39 +35,35 @@ describe('network/nethernet/HttpSignaling over a real WebRTC connection', () => 
         const port = await signaling.listen(0, '127.0.0.1');
 
         // A client joining by address signals over HTTP instead of LAN discovery.
-        const client = new Client(nethernet.networkId, '127.0.0.1');
-        adaptPeerConnections(client);
         const answers: string[] = [];
-        client.signalHandler = (signal) => {
-            if (signal.type !== SignalType.ConnectRequest) return;
-            void fetch(`http://127.0.0.1:${port}/v1/join/${client.networkId}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/sdp' },
-                body: signal.data
-            })
-                .then((response) => response.text())
-                .then((answer) => {
-                    answers.push(answer);
-                    client.handleSignal(
-                        new SignalStructure(
-                            SignalType.ConnectResponse,
-                            client.connectionId,
-                            answer,
-                            nethernet.networkId
-                        )
-                    );
-                });
-        };
+        const client: NetherNetClient = new NetherNetClient({
+            driver: driver!,
+            signal: (signal) => {
+                if (signal.type !== SignalType.ConnectRequest) return;
+                void fetch(`http://127.0.0.1:${port}/v1/join/${client.networkId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/sdp' },
+                    body: signal.data
+                })
+                    .then((response) => response.text())
+                    .then((answer) => {
+                        answers.push(answer);
+                        client.handleSignal(
+                            new SignalStructure(SignalType.ConnectResponse, client.connectionId, answer)
+                        );
+                    });
+            }
+        });
 
         try {
             const connected = new Promise<NetherNetTransportConnection>((resolve) => transport.onConnect(resolve));
             const serverFrame = new Promise<Buffer>((resolve) => transport.onFrame((payload) => resolve(payload)));
-            const clientMessage = new Promise<Buffer>((resolve) =>
-                client.on('encapsulated', (data) => resolve(Buffer.from(data)))
-            );
+            const clientMessage = new Promise<Buffer>((resolve) => client.on('encapsulated', resolve));
+            const clientConnected = new Promise((resolve) => client.once('connected', resolve));
 
-            client.connect();
+            await client.connect();
             const connection = await connected;
+            await clientConnected;
 
             expect(answers[0]).toMatch(/\r\na=identity:/);
             // Whichever of this host's interfaces ICE chose, not the placeholder for an unknown peer.

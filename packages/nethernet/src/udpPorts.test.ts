@@ -1,8 +1,5 @@
-import { Client, Server, SignalStructure, SignalType } from 'nethernet';
 import { describe, expect, it } from 'vitest';
 
-import { constrainIcePorts } from './constrainIcePorts';
-import { adaptPeerConnections } from './peerConnections';
 import { parseUdpPorts, withMappedCandidates } from './udpPorts';
 
 describe('parseUdpPorts', () => {
@@ -70,42 +67,5 @@ describe('withMappedCandidates', () => {
 
     it('leaves an answer alone when nothing is mapped', () => {
         expect(withMappedCandidates(ANSWER, [])).toBe(ANSWER);
-    });
-});
-
-describe('constrainIcePorts', () => {
-    it('makes the server gather its candidates from the range', async () => {
-        const server = new Server();
-        adaptPeerConnections(server);
-        constrainIcePorts(server, { start: 47_200, end: 47_299 });
-        const client = new Client(server.networkId, '127.0.0.1');
-        adaptPeerConnections(client);
-        try {
-            const answer = await new Promise<string>((resolve, reject) => {
-                client.signalHandler = (signal) => {
-                    if (signal.type !== SignalType.ConnectRequest) return;
-                    const offer = new SignalStructure(SignalType.ConnectRequest, 1n, signal.data, client.networkId);
-                    server
-                        .handleOffer(offer, (response) => {
-                            if (response.type === SignalType.ConnectResponse) resolve(response.data);
-                        })
-                        .catch(reject);
-                };
-                client.connect();
-            });
-
-            const ports = [...answer.matchAll(/^a=candidate:\S+ \d+ udp \d+ \S+ (\d+) typ host/gim)].map(([, port]) =>
-                Number(port)
-            );
-            expect(ports.length).toBeGreaterThan(0);
-            expect(ports.every((port) => port >= 47_200 && port <= 47_299)).toBe(true);
-        } finally {
-            client.close();
-            server.close();
-        }
-    });
-
-    it('refuses a server with no backend to wrap', () => {
-        expect(() => constrainIcePorts({}, { start: 1, end: 2 })).toThrow('no WebRTC backend');
     });
 });
