@@ -51,9 +51,10 @@ const DEFAULT_PACKET_COMPRESSION_THRESHOLD = 256;
  */
 const COMMENTS = {
     'log-level': 'How much the console and the log file say: error, warn, info, verbose, debug or silly.',
-    port: 'The port the server listens on: UDP for RakNet, TCP for NetherNet signaling. Bedrock clients look for 19132.',
+    'server-port':
+        "The port the server listens on, as Bedrock Dedicated Server's server-port: TCP for NetherNet signaling, and UDP for RakNet and NetherNet. Unless server-portv6, server-udp-ports or query-port is set, RakNet's IPv4 and IPv6 listeners, NetherNet's players and query all use this one UDP port. Bedrock clients look for 19132.",
     'server-portv6':
-        'The UDP port RakNet listens on for IPv6 clients when server-ip is 0.0.0.0. Bedrock clients look for 19133.',
+        'The UDP port RakNet listens on for IPv6 clients when server-ip is 0.0.0.0. Unset, it is server-port. It may equal server-port.',
     'server-ip': 'The address to listen on. 0.0.0.0 accepts connections on every interface.',
     'level-name': 'Which entry of `worlds` players join.',
     worlds: 'Every world the server loads, by name, with its preset, provider and seed. Write the seed as a string; a 64-bit seed written as a number is rounded.',
@@ -80,7 +81,7 @@ const COMMENTS = {
     'enable-nethernet':
         'Whether to accept clients over NetherNet, the WebRTC transport Bedrock Dedicated Server defaults to.',
     'server-udp-ports':
-        "The UDP ports NetherNet players use, as Bedrock Dedicated Server's server-udp-ports. A single port, such as 19489, puts every player on it. A range, such as 19400-19500, spreads players over its ports and reuses a port once every port has a player. Either can be a public:local mapping for a server behind NAT or port forwarding, such as 29489:19489 or 21200-21300:19400-19500, with the same number of ports on each side. Commas join entries whose local ports form one continuous range. Empty lets the system pick a port for each player. Ignored when enable-nethernet is off.",
+        "The UDP ports NetherNet players use, as Bedrock Dedicated Server's server-udp-ports. A single port, such as 19489, puts every player on it. A range, such as 19400-19500, spreads players over its ports and reuses a port once every port has a player. Either can be a public:local mapping for a server behind NAT or port forwarding, such as 29489:19489 or 21200-21300:19400-19500, with the same number of ports on each side. Commas join entries whose local ports form one continuous range. Unset or empty, it is server-port, shared with RakNet. A port that is also server-port or server-portv6 is shared with RakNet. Ignored when enable-nethernet is off.",
     'server-public-ip':
         "The address NetherNet advertises to players, as Bedrock Dedicated Server's server-public-ip: set it when the server is behind NAT, a firewall or port forwarding. A raw IPv4 or a raw or [bracketed] IPv6, with no port or hostname. Empty advertises the host's own addresses. Ignored when enable-nethernet is off.",
     'enable-lan-visibility': 'Whether players on the local network see the server among their LAN games.',
@@ -92,7 +93,7 @@ const COMMENTS = {
         'Prototype: reuse independently compressed packet fragments. Requires retail client validation.',
     'enable-query': 'Whether to answer the GameSpy4 query protocol that server lists and status tools use.',
     'query-port':
-        'The UDP port the query protocol answers on. Set to the same value as port, query shares the RakNet socket with the game.',
+        'The UDP port the query protocol answers on. Unset, or the same as server-port, query shares the RakNet socket with the game.',
     'enable-process-title': 'Whether to show the tick rate in the process title. Some terminals redraw slowly.',
     'enable-ticking': 'Whether the world ticks. Off is only useful for tests.',
     'log-excluded-packets': 'Packet class names kept out of the traffic log at the silly level.',
@@ -118,8 +119,10 @@ const COMMENTS = {
  */
 const DEFAULTS = {
     'log-level': isDev ? 'verbose' : 'info',
-    port: 19132,
-    'server-portv6': 19133,
+    'server-port': 19132,
+    // Unset, server-portv6 and query-port follow the port the server binds, and a fresh config
+    // writes neither; this is that port's default, for anything that lists defaults.
+    'server-portv6': 19132,
     'server-ip': '0.0.0.0',
     'level-name': 'world',
     'max-players': 20,
@@ -148,7 +151,6 @@ const DEFAULTS = {
     'packet-compression-threshold': DEFAULT_PACKET_COMPRESSION_THRESHOLD,
     'packet-full-flush-fragments': false,
     'enable-query': true,
-    // A fresh file writes the port it read, so query shares the game's socket; see Config.enable.
     'query-port': 19132,
     'enable-process-title': true,
     'enable-ticking': true,
@@ -214,8 +216,9 @@ export class Config {
 
     private logLevel: LogLevel = DEFAULTS['log-level'];
 
-    private port: number = DEFAULTS.port;
-    private portV6: number = DEFAULTS['server-portv6'];
+    private port: number = DEFAULTS['server-port'];
+    /** `server-portv6` as the file sets it, or undefined when it follows the server port. */
+    private portV6Setting: number | undefined;
     private serverIp: string = DEFAULTS['server-ip'];
     private levelName: string = DEFAULTS['level-name'];
     private worlds: Record<string, WorldData> = defaultWorlds();
@@ -252,7 +255,8 @@ export class Config {
     private enableQuery: boolean = DEFAULTS['enable-query'];
 
     /** The UDP port the query protocol answers on; equal to {@link port} to share RakNet's socket. */
-    private queryPort: number = DEFAULTS['query-port'];
+    /** `query-port` as the file sets it, or undefined when it follows the server port. */
+    private queryPortSetting: number | undefined;
 
     /**
      * Controls if the process title should be updated.
@@ -313,16 +317,31 @@ export class Config {
         this.configBuilder = config;
         const read = <T>(key: keyof typeof COMMENTS, defaults: T): T => config.get(key, defaults, COMMENTS[key]);
         // For a key a fresh config leaves out: absent means its default, and reading it writes nothing.
-        const readUnwritten = <T>(key: keyof typeof COMMENTS, defaults: T): T => {
+        const readUnwritten = <T>(
+            key: keyof typeof COMMENTS,
+            defaults: T,
+            kind: 'number' | 'string' = typeof defaults === 'string' ? 'string' : 'number'
+        ): T => {
             const stored = config.get(key);
-            // The stored value is the file's; a value of another kind than the default is ignored, as `read` does.
-            return typeof stored === typeof defaults ? (stored as T) : defaults;
+            // The stored value is the file's; a value of another kind is ignored, as `read` does.
+            return typeof stored === kind ? (stored as T) : defaults;
         };
 
         this.logLevel = read('log-level', DEFAULTS['log-level']);
-        const filePort = read('port', DEFAULTS.port);
+        // `port` was this setting's name before it took Bedrock Dedicated Server's.
+        if (config.has('port')) {
+            if (config.has('server-port')) {
+                throw new Error(
+                    `${configFilePath()} has both port and server-port. port is the old name of server-port: remove it, and keep the port you want in server-port.`
+                );
+            }
+            config.rename('port', 'server-port');
+        }
+        const filePort = read('server-port', DEFAULTS['server-port']);
         this.port = this.serverPortOverride ?? filePort;
-        this.portV6 = read('server-portv6', DEFAULTS['server-portv6']);
+        // Unset, the IPv6 listener, NetherNet's UDP and query all follow the server port, as
+        // Bedrock Dedicated Server's server-udp-ports does; reading them writes nothing.
+        this.portV6Setting = readUnwritten<number | undefined>('server-portv6', undefined);
         this.serverIp = read('server-ip', DEFAULTS['server-ip']);
         this.levelName = read('level-name', DEFAULTS['level-name']);
         this.worlds = read<Record<string, WorldData>>('worlds', this.worlds);
@@ -347,7 +366,7 @@ export class Config {
         this.enableRakNet = read('enable-raknet', DEFAULTS['enable-raknet']);
         this.useRakNetWorker = read('use-raknet-worker', DEFAULTS['use-raknet-worker']);
         this.enableNetherNet = read('enable-nethernet', DEFAULTS['enable-nethernet']);
-        this.serverUdpPorts = read('server-udp-ports', DEFAULTS['server-udp-ports']);
+        this.serverUdpPorts = readUnwritten('server-udp-ports', DEFAULTS['server-udp-ports']);
         this.serverPublicIp = readUnwritten('server-public-ip', DEFAULTS['server-public-ip']);
         this.enableLanVisibility = read('enable-lan-visibility', DEFAULTS['enable-lan-visibility']);
         this.packetCompressionLevel = read('packet-compression-level', DEFAULTS['packet-compression-level']);
@@ -361,9 +380,7 @@ export class Config {
         );
         this.packetFullFlushFragments = read('packet-full-flush-fragments', DEFAULTS['packet-full-flush-fragments']);
         this.enableQuery = read('enable-query', this.enableQuery);
-        // Defaults to the file's port, not an override's, so a run on another port leaves the
-        // file saying query shares the game's socket rather than naming the override.
-        this.queryPort = read('query-port', filePort);
+        this.queryPortSetting = readUnwritten<number | undefined>('query-port', undefined);
         this.enableProcessTitle = read('enable-process-title', this.enableProcessTitle);
         this.enableTicking = read('enable-ticking', this.enableTicking);
         this.logExcludedPackets = read('log-excluded-packets', this.logExcludedPackets);
@@ -393,11 +410,18 @@ export class Config {
      * The UDP port RakNet listens on for IPv6 clients, as Bedrock Dedicated Server's
      * `server-portv6`. Only a server bound to the IPv4 wildcard, `0.0.0.0`, also listens on
      * IPv6: an operator who named one IPv4 interface asked for that interface alone.
-     * @returns The IPv6 port.
-     * @remarks The default port is `19133`.
+     * @returns The IPv6 port; the server port when the config does not set one.
      */
     public getServerPortV6(): number {
-        return this.portV6;
+        return this.portV6Setting ?? this.port;
+    }
+
+    /**
+     * `server-portv6` as the config sets it.
+     * @returns The port, or undefined when it follows the port the server binds.
+     */
+    public getServerPortV6Setting(): number | undefined {
+        return this.portV6Setting;
     }
 
     /**
@@ -665,7 +689,7 @@ export class Config {
         return this.enableNetherNet;
     }
 
-    /** The NetherNet UDP ports setting, unparsed, in Bedrock Dedicated Server's syntax. */
+    /** The NetherNet UDP ports setting, unparsed, in Bedrock Dedicated Server's syntax; empty means the server port. */
     public getServerUdpPorts(): string {
         return this.serverUdpPorts;
     }
@@ -721,11 +745,19 @@ export class Config {
     /**
      * The UDP port the query protocol answers on, as Java Edition's `query.port`. When it is
      * the same as {@link getServerPort}, query answers on the RakNet socket beside the game,
-     * which is what a fresh config does; any other port gets a socket of its own.
+     * which is what an unset one does; any other port gets a socket of its own.
      * @returns The query port.
      */
     public getQueryPort(): number {
-        return this.queryPort;
+        return this.queryPortSetting ?? this.port;
+    }
+
+    /**
+     * `query-port` as the config sets it.
+     * @returns The port, or undefined when query answers on the port the server binds.
+     */
+    public getQueryPortSetting(): number | undefined {
+        return this.queryPortSetting;
     }
 
     public getEnableProcessTitle() {

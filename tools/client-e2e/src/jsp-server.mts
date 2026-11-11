@@ -364,10 +364,9 @@ export const startServer = async (
         }
     });
     const config = {
-        port: port,
-        // Concurrent suites each run a server, so the IPv6 listener cannot take the default
-        // 19133 for all of them; an IPv6-only socket shares the IPv4 listener's number.
-        'server-portv6': port,
+        // server-portv6 and server-udp-ports follow it, so each concurrent suite's server holds
+        // its own numbers and nothing else.
+        'server-port': port,
         'online-mode': false,
         // Debug, so the transactions and moves the server drops on purpose, and which loading
         // screens the client opened and closed, show in the evidence log.

@@ -157,7 +157,7 @@ describe('modules/network', () => {
                     getEnableRakNet: () => true,
                     getEnableNetherNet: () => false,
                     getUseRakNetWorker: () => worker,
-                    getServerPortV6: () => portV6
+                    getServerPortV6Setting: () => portV6
                 }),
             getLogger: () =>
                 stub<Logger>({
@@ -488,7 +488,7 @@ describe('modules/network', () => {
     });
 
     /** A server running RakNet and NetherNet with NetherNet's UDP on the game port. */
-    const sharedPortServer = (port: number, worker: boolean) =>
+    const sharedPortServer = (worker: boolean, udpPorts: string, portV6: number | undefined) =>
         stub<Server>({
             getConfig: () =>
                 stub<Config>({
@@ -501,8 +501,8 @@ describe('modules/network', () => {
                     getUseRakNetWorker: () => worker,
                     getEnableQuery: () => false,
                     getEnableLanVisibility: () => false,
-                    getServerPortV6: () => port,
-                    getServerUdpPorts: () => String(port),
+                    getServerPortV6Setting: () => portV6,
+                    getServerUdpPorts: () => udpPorts,
                     getServerPublicIp: () => '',
                     getLevelName: () => 'world'
                 }),
@@ -523,19 +523,27 @@ describe('modules/network', () => {
         });
 
     it.skipIf(driver === undefined).each([
-        ['socket', false],
-        ['worker', true]
-    ])('shares the game port between RakNet and NetherNet, in %s mode', async (_mode, worker) => {
+        // The table in docs/plans/webrtc-backend.md: what is written, and where each listener goes.
+        ['server-port only, socket mode', false, false, false],
+        ['server-port only, worker mode', true, false, false],
+        ['server-port and server-udp-ports', false, true, false],
+        ['server-port and server-portv6', true, false, true],
+        ['all three', false, true, true]
+    ])('opens the ports the defaults table lists: %s', async (_row, worker, withUdpPorts, withPortV6) => {
         const port = await portFreeOnBothFamilies();
-        const networking = new ServerNetworking(sharedPortServer(port, worker));
+        const udpPort = withUdpPorts ? await portFreeOnBothFamilies() : port;
+        const portV6 = withPortV6 ? await portFreeOnBothFamilies() : port;
+        const networking = new ServerNetworking(
+            sharedPortServer(worker, withUdpPorts ? String(udpPort) : '', withPortV6 ? portV6 : undefined)
+        );
         const dataDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'jsp-network-'));
         vi.stubEnv('JSP_DIR', dataDirectory);
         try {
             await networking.start('0.0.0.0', port);
 
-            // RakNet on both families of the one port.
+            // RakNet on server-port for IPv4, and on server-portv6, or server-port, for IPv6.
             expect((await pingOnce('127.0.0.1', port))[0]).toBe(0x1c);
-            expect((await pingOnce('::1', port))[0]).toBe(0x1c);
+            expect((await pingOnce('::1', portV6))[0]).toBe(0x1c);
 
             // And a NetherNet client joining by address, its media on the same port.
             const client: NetherNetClient = new NetherNetClient({
@@ -558,7 +566,8 @@ describe('modules/network', () => {
             const connected = once(client, 'connected') as Promise<[Connection]>;
             await client.connect();
             const [connection] = await connected;
-            expect(connection.peer.remoteAddress()?.port).toBe(port);
+            // NetherNet's UDP on server-udp-ports, or on server-port beside RakNet.
+            expect(connection.peer.remoteAddress()?.port).toBe(udpPort);
             client.close();
         } finally {
             networking.kill();

@@ -52,7 +52,8 @@ ENV JSP_NO_TUI=1
 
 USER node
 WORKDIR /app/packages/server
-EXPOSE 19132/udp
+# server-port: UDP for RakNet and NetherNet, TCP for NetherNet's signaling.
+EXPOSE 19132/udp 19132/tcp
 
 # Node runs as PID 1 so SIGTERM reaches the server, which saves the world before it exits.
 CMD ["node", "--conditions=jsprismarine:dist", "--unhandled-rejections=strict", "./dist/Server.js"]

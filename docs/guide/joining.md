@@ -15,7 +15,7 @@ already have. This page is for them, and for the host answering their questions.
 1. Open Minecraft and choose **Play**, then the **Servers** tab.
 2. Choose **Add Server**.
 3. Enter a name, the server's address, and its port. The port is
-   <!-- fact:server.port -->19132<!-- /fact --> unless the host changed `port` in `config.json`.
+   <!-- fact:server.port -->19132<!-- /fact --> unless the host changed `server-port` in `config.json`.
 4. Save it and select it from the list to join.
 
 ## Which versions connect
