@@ -1,5 +1,4 @@
 import type Server from '../Server';
-import type { Entity } from '../entity/Entity';
 
 /**
  * Something that can issue a command and be answered.
@@ -40,9 +39,13 @@ export interface CommandExecutor {
 }
 
 /**
- * Whether a command target can be answered, which is what separates an executor from any other
- * entity. Checks for `sendMessage` with `in` so this module stays free of a runtime import of
- * `Entity`.
+ * Whatever a command can be run as: an executor, or an entity a selector named, which has a name
+ * to report but nowhere to put a reply.
  */
-export const isCommandExecutor = (target: CommandExecutor | Entity): target is CommandExecutor =>
-    'sendMessage' in target;
+export type CommandTarget = CommandExecutor | Pick<CommandExecutor, 'getName'>;
+
+/**
+ * Whether a command target can be answered, which is what separates an executor from any other
+ * entity. Checks for `sendMessage` with `in`, because that member is the whole difference.
+ */
+export const isCommandExecutor = (target: CommandTarget): target is CommandExecutor => 'sendMessage' in target;
