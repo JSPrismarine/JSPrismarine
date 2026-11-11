@@ -1,7 +1,6 @@
-import type Server from '../../Server';
-import type PlayerSession from '../PlayerSession';
 import type MapInfoRequestPacket from '@jsprismarine/protocol/packet/MapInfoRequestPacket';
-import type PacketHandler from './PacketHandler';
+import type { SessionContext } from './HandlerContext';
+import type { ConnectionLaneHandler } from './SessionHandler';
 
 /**
  * A map data request.
@@ -10,18 +9,17 @@ import type PacketHandler from './PacketHandler';
  * storage, so there is no `ClientBoundMapItemDataPacket` to answer with and the map item
  * stays blank on the client.
  */
-export default class MapInfoRequestHandler implements PacketHandler<MapInfoRequestPacket> {
+export default class MapInfoRequestHandler implements ConnectionLaneHandler<MapInfoRequestPacket> {
     public static PacketName = 'MapInfoRequestPacket';
+    public readonly takes = 'context';
     public readonly phases = ['play'] as const;
     public readonly lane = 'connection';
 
     /** Logs the map id and how many pixels came with it. */
-    public handle(packet: MapInfoRequestPacket, server: Server, session: PlayerSession): void {
-        server
-            .getLogger()
-            .debug(
-                `${session.identity.name} requested map ${packet.mapUniqueId} and offered ${packet.clientPixels.length} pixel(s). Maps are not stored`,
-                'MapInfoRequestHandler/handle'
-            );
+    public handle(packet: MapInfoRequestPacket, { session, log }: SessionContext): void {
+        log.debug(
+            `${session.identity.name} requested map ${packet.mapUniqueId} and offered ${packet.clientPixels.length} pixel(s). Maps are not stored`,
+            'MapInfoRequestHandler/handle'
+        );
     }
 }

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { Logger } from '@jsprismarine/logger';
-import type Server from '../../Server';
+import { sessionContext } from '../../testing/handlerContext.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import { STEVE } from '../../testing/sessionIdentity.test.helper';
 import type PlayerSession from '../PlayerSession';
@@ -11,9 +11,7 @@ import ClientMovementPredictionSyncHandler from './ClientMovementPredictionSyncH
 describe('ClientMovementPredictionSyncHandler', () => {
     it('summarizes the prediction inputs', () => {
         const logged: string[] = [];
-        const server = stub<Server>({
-            getLogger: () => stub<Logger>({ debug: (...message) => void logged.push(message[0] ?? '') })
-        });
+        const log = stub<Logger>({ debug: (...message) => void logged.push(message[0] ?? '') });
         const session = stub<PlayerSession>({ identity: STEVE });
         const packet = Object.assign(new ClientMovementPredictionSyncPacket(), {
             actorUniqueId: 5n,
@@ -25,7 +23,7 @@ describe('ClientMovementPredictionSyncHandler', () => {
             actorFlyingState: true
         });
 
-        new ClientMovementPredictionSyncHandler().handle(packet, server, session);
+        new ClientMovementPredictionSyncHandler().handle(packet, sessionContext(session, { log }));
 
         expect(logged).toEqual(['Steve predicts actor 5 with speed 0.1, jump 0.42, box 0.6x1.8, flags 0x101, flying']);
     });

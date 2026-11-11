@@ -1,8 +1,7 @@
-import type Server from '../../Server';
-import type PlayerSession from '../PlayerSession';
 import type ModalFormResponsePacket from '@jsprismarine/protocol/packet/ModalFormResponsePacket';
 import { ModalFormCancelReason } from '@jsprismarine/protocol/packet/ModalFormResponsePacket';
-import type PacketHandler from './PacketHandler';
+import type { SessionContext } from './HandlerContext';
+import type { ConnectionLaneHandler } from './SessionHandler';
 
 /**
  * A form response.
@@ -13,18 +12,18 @@ import type PacketHandler from './PacketHandler';
  * hand. When forms arrive, this is where the id should look up the waiting request and hand
  * it the parsed JSON or the cancel reason.
  */
-export default class ModalFormResponseHandler implements PacketHandler<ModalFormResponsePacket> {
+export default class ModalFormResponseHandler implements ConnectionLaneHandler<ModalFormResponsePacket> {
     public static PacketName = 'ModalFormResponsePacket';
+    public readonly takes = 'context';
     public readonly phases = ['play'] as const;
     public readonly lane = 'connection';
 
     /** Logs the form id with either the JSON or the cancel reason, and never throws. */
-    public handle(packet: ModalFormResponsePacket, server: Server, session: PlayerSession): void {
-        const logger = server.getLogger();
+    public handle(packet: ModalFormResponsePacket, { session, log }: SessionContext): void {
         const name = session.identity.name;
 
         if (packet.jsonResponse !== null && !parses(packet.jsonResponse)) {
-            logger.warn(
+            log.warn(
                 `${name} answered form ${packet.formId} with text that is not JSON, dropped`,
                 'ModalFormResponseHandler/handle'
             );
@@ -38,7 +37,7 @@ export default class ModalFormResponseHandler implements PacketHandler<ModalForm
                   ? `dismissed (${ModalFormCancelReason[packet.formCancelReason] ?? packet.formCancelReason})`
                   : 'answered with neither a response nor a reason';
 
-        logger.debug(
+        log.debug(
             `${name} ${outcome} form ${packet.formId}, which the server never sent`,
             'ModalFormResponseHandler/handle'
         );

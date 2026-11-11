@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { Logger } from '@jsprismarine/logger';
-import type Server from '../../Server';
+import { sessionContext } from '../../testing/handlerContext.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import type PlayerSession from '../PlayerSession';
 import ClientCameraAimAssistPacket, {
@@ -28,7 +28,7 @@ describe('ClientCameraAimAssistPacket', () => {
         });
 
         expect(() =>
-            new ClientCameraAimAssistHandler().handle(packet, stub<Server>(), stub<PlayerSession>())
+            new ClientCameraAimAssistHandler().handle(packet, sessionContext(stub<PlayerSession>()))
         ).not.toThrow();
     });
 });

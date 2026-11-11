@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
 import type { Logger } from '@jsprismarine/logger';
-import type Server from '../../Server';
 import UUID from '@jsprismarine/protocol/wire/structures/UUID';
+import { sessionContext } from '../../testing/handlerContext.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import { STEVE } from '../../testing/sessionIdentity.test.helper';
 import EmoteListPacket from '@jsprismarine/protocol/packet/EmoteListPacket';
@@ -11,11 +11,9 @@ import EmoteListHandler from './EmoteListHandler';
 
 const setup = () => {
     const logged: string[] = [];
-    const server = stub<Server>({
-        getLogger: () => stub<Logger>({ debug: (...message) => void logged.push(message[0] ?? '') })
-    });
+    const log = stub<Logger>({ debug: (...message) => void logged.push(message[0] ?? '') });
     const session = stub<PlayerSession>({ runtimeId: 7n, identity: STEVE });
-    return { logged, server, session };
+    return { logged, context: sessionContext(session, { log }) };
 };
 
 const list = (runtimeId: bigint) =>
@@ -26,17 +24,17 @@ const list = (runtimeId: bigint) =>
 
 describe('EmoteListHandler', () => {
     it('accepts a list for the sender without logging', () => {
-        const { logged, server, session } = setup();
+        const { logged, context } = setup();
 
-        new EmoteListHandler().handle(list(7n), server, session);
+        new EmoteListHandler().handle(list(7n), context);
 
         expect(logged).toEqual([]);
     });
 
     it('drops a list for another runtime id at debug level', () => {
-        const { logged, server, session } = setup();
+        const { logged, context } = setup();
 
-        new EmoteListHandler().handle(list(999n), server, session);
+        new EmoteListHandler().handle(list(999n), context);
 
         expect(logged).toEqual(['Steve sent an EmoteList for runtime id 999, dropped']);
     });
