@@ -277,4 +277,12 @@ function onKeydown(event: KeyboardEvent) {
         grid-template-columns: minmax(0, 1fr);
     }
 }
+
+/* On a narrow phone, two columns squeeze each tagline onto three lines; one column keeps it to one. */
+@media (max-width: 480px) {
+    .audience-tabs__list {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 6px;
+    }
+}
 </style>

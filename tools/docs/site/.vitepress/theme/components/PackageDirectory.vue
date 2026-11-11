@@ -156,13 +156,13 @@ const shownAreas = computed(() => {
     color: var(--vp-c-text-2);
 }
 
+/* A package name is an identifier, so it is mono: display type's tight tracking squeezes its hyphens. */
 .package-card h3 {
     min-width: 0;
     margin: 0;
     overflow-wrap: anywhere;
-    font-size: 20px;
-    line-height: 1.1;
-    letter-spacing: -0.03em;
+    font: 700 17px/1.2 var(--vp-font-family-mono);
+    letter-spacing: 0;
 }
 
 .package-card code {

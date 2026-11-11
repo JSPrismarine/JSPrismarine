@@ -709,7 +709,8 @@
     gap: 7px;
     align-items: center;
     justify-content: center;
-    height: 36px;
+    /* Phone controls meet the touch target. */
+    height: var(--jsp-target);
     font: inherit;
     font-size: 13px;
     font-weight: 800;
@@ -720,12 +721,12 @@
 }
 
 .site-phone__icon {
-    width: 36px;
+    width: var(--jsp-target);
 }
 
 /* A fixed width keeps Close exactly where Menu was. */
 .site-phone__menu {
-    width: 84px;
+    width: 92px;
     background: var(--vp-c-bg);
     border-color: var(--vp-c-text-1);
     box-shadow: 2px 2px 0 var(--vp-c-text-1);

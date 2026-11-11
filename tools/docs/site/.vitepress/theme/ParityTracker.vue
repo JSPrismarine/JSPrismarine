@@ -720,6 +720,24 @@ progress::-moz-progress-bar {
     height: 6px;
 }
 
+/* The tile is the tracker surface, so its track takes the case rows' forest tint to stay visible. Each
+   selector has its own rule: one list with the pseudo-element loses that half in the minified build. */
+.group-option progress {
+    background: color-mix(in srgb, var(--jsp-forest) 18%, transparent);
+}
+
+.group-option progress::-webkit-progress-bar {
+    background: color-mix(in srgb, var(--jsp-forest) 18%, transparent);
+}
+
+.dark .group-option progress {
+    background: color-mix(in srgb, var(--jsp-mint) 18%, transparent);
+}
+
+.dark .group-option progress::-webkit-progress-bar {
+    background: color-mix(in srgb, var(--jsp-mint) 18%, transparent);
+}
+
 .group-option.active progress,
 .group-option.active progress::-webkit-progress-bar {
     background: color-mix(in srgb, var(--jsp-forest) 25%, transparent);
@@ -1101,6 +1119,41 @@ progress::-moz-progress-bar {
     .expand-toggle,
     .case-more button {
         min-height: var(--jsp-target);
+    }
+
+    /* On a phone, groups are rows, not tiles: the name and score on one line and the bar under them,
+       so fourteen groups stay one screen tall and the cases follow close behind. */
+    .group-picker {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 6px;
+    }
+
+    .group-option {
+        grid-template-rows: none;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 6px 12px;
+        align-items: baseline;
+        min-height: var(--jsp-target);
+        padding: 10px 14px;
+    }
+
+    .group-option-count {
+        display: flex;
+        gap: 8px;
+        align-items: baseline;
+    }
+
+    .group-option-count b {
+        display: inline;
+        font-size: 16px;
+    }
+
+    .group-option-count i {
+        display: inline;
+    }
+
+    .group-option progress {
+        grid-column: 1 / -1;
     }
 }
 .results-actions {

@@ -345,8 +345,15 @@ const startCommand = `chmod +x ${executable}\n./${executable}`;
     font-weight: 700;
     color: var(--jsp-cream);
     text-decoration: none;
-    border: 2px solid color-mix(in srgb, var(--jsp-mint) 55%, transparent);
+    /* Mixed with the hero's forest, not transparency, so the edge is a flat color like every other. */
+    border: 2px solid color-mix(in srgb, var(--jsp-mint) 55%, var(--jsp-forest));
     border-radius: 99px;
+}
+
+/* Each link jumps down the page, and says so. */
+.landing__jump a::after {
+    margin-left: 6px;
+    content: '↓' / '';
 }
 
 .landing__jump a:hover {
@@ -386,7 +393,7 @@ const startCommand = `chmod +x ${executable}\n./${executable}`;
 
 .landing__jump-line a::after {
     margin-left: 4px;
-    content: '↓';
+    content: '↓' / '';
 }
 
 .landing__install {

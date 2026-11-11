@@ -142,7 +142,8 @@ scrolling off the screen edge, and a two-column table stacks each row as its nam
   half passing with a signal square. Its status chips differ by shape as well as color, and only
   defects and failures are filled signal. Group tiles count the behavior checks when a group has
   them and its data-table rows otherwise, and say which with a unit word, so each tile agrees with
-  the behavior score the home page shows.
+  the behavior score the home page shows. On phones the group tiles become one-line rows, so the cases
+  follow within a screen.
 - The package directory and the API reference sidebar group packages by the areas in
   `packageAreas.ts`; the docs build fails when a published package has no area.
 - Menu and search previews end on a whole sentence where one fits.
