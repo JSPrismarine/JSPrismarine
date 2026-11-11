@@ -40,6 +40,7 @@ import PlayerEnchantOptionsPacket from '@jsprismarine/protocol/packet/PlayerEnch
 import type { ItemStackRequest, ItemStackRequestSlotInfo } from '@jsprismarine/protocol';
 import { ItemStackRequestActionType } from '@jsprismarine/protocol';
 import ItemStackRequestHandler from './ItemStackRequestHandler';
+import { refreshEnchantOptions } from './workstation';
 
 /** Both enchantments are mainhand mining ones, which is what a pickaxe can take. */
 const MINING = {
@@ -150,7 +151,7 @@ const scene = (open: OpenBlockContainer) => {
         getServer: () => server,
         getWorld: () =>
             stub<World>({
-                getBlockState: async () => ({ name: 'minecraft:bookshelf' }) as never,
+                loadedBlockAt: () => ({ name: 'minecraft:bookshelf', states: {} }),
                 getViewers: () => []
             }),
         getPosition: () => ({ getX: () => 0, getY: () => 64, getZ: () => 0 }) as never,
@@ -240,6 +241,30 @@ describe('a workstation screen', () => {
             // And the answer names the container the client knows that slot by.
             const named = response.responses[0]?.containers.map((container) => container.container.containerId);
             expect(named).toContain(ContainerUiId.ENCHANTING_INPUT_CONTAINER);
+        });
+
+        it('counts the bookshelves from loaded blocks only', async () => {
+            // The count runs in the input step, which must not load a chunk to look at a block.
+            const open = openScreen(WindowTypes.ENCHANTMENT);
+            open.inputs[0] = pickaxe();
+            const { player } = scene(open);
+            const { enchantments } = content();
+            const asked: string[] = [];
+
+            await refreshEnchantOptions(player, open, enchantments, {
+                loadedBlockAt: (x, y, z) => void asked.push(`${x} ${y} ${z}`)
+            });
+            expect(open.bookshelfPower).toBe(0);
+            expect(asked.length).toBeGreaterThan(0);
+
+            // A full ring two blocks out, with the gap around the table empty.
+            await refreshEnchantOptions(player, open, enchantments, {
+                loadedBlockAt: (x, _y, z) => ({
+                    name: Math.max(Math.abs(x), Math.abs(z)) === 2 ? 'minecraft:bookshelf' : 'minecraft:air',
+                    states: {}
+                })
+            });
+            expect(open.bookshelfPower).toBe(15);
         });
 
         it('enchants the stack and charges the levels when a row is taken', async () => {

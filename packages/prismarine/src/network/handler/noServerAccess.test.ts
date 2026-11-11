@@ -26,8 +26,7 @@ const STILL_REACH_SERVER: ReadonlyMap<string, readonly string[]> = new Map([
             'ItemStackRequestHandler.ts',
             'MovePlayerHandler.ts',
             'PlayerActionHandler.ts',
-            'PlayerAuthInputHandler.ts',
-            'workstation.ts'
+            'PlayerAuthInputHandler.ts'
         ]
     ],
     ['D2 close', ['PacketHandler.ts']]
