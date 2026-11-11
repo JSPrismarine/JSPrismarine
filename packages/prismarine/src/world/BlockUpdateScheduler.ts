@@ -1,3 +1,4 @@
+import type { UnitJournal } from '../entity/data/EntityStore';
 import { blockPositionKey } from './positionKeys';
 import type { BlockPositionKey } from './positionKeys';
 
@@ -41,8 +42,14 @@ export interface BlockUpdate {
     z: number;
 }
 
-/** Coalesces delayed block-physics checks and drains them within a per-tick budget. */
-export class BlockUpdateScheduler {
+/**
+ * Coalesces delayed block-physics checks and drains them within a per-tick budget.
+ *
+ * It is a {@link UnitJournal} of the world's change log: while a unit of work runs, each schedule
+ * records what it replaced, so undoing a unit that wrote a block also takes back the updates the
+ * write queued.
+ */
+export class BlockUpdateScheduler implements UnitJournal {
     /**
      * Pending updates, keyed by position so duplicate schedules update their due time in place.
      *
@@ -54,6 +61,9 @@ export class BlockUpdateScheduler {
 
     /** Earliest due tick, allowing an all-future queue to return without scanning. */
     private earliestDue = Number.POSITIVE_INFINITY;
+
+    /** What each schedule since the outermost open unit began replaced, oldest first, or null outside units. */
+    private journal: { readonly key: BlockPositionKey; readonly replaced: PendingUpdate | undefined }[] | null = null;
 
     /**
      * Queues a position to be looked at.
@@ -71,6 +81,7 @@ export class BlockUpdateScheduler {
         const existing = this.pending.get(key);
         if (existing && existing.at <= at) return;
 
+        this.journal?.push({ key, replaced: existing });
         this.pending.set(key, { at, update: { x, y, z } });
 
         if (Number.isNaN(at)) this.earliestDue = Number.NEGATIVE_INFINITY;
@@ -95,6 +106,30 @@ export class BlockUpdateScheduler {
     }
 
     /** How many updates are waiting, for tests and diagnostics. */
+    /** Starts recording what each schedule replaces, for a unit that is starting. */
+    public markUnit(): number {
+        this.journal ??= [];
+        return this.journal.length;
+    }
+
+    /** Takes back every schedule made since `mark`, newest first, for a unit that was undone. */
+    public revertUnit(mark: number): void {
+        const journal = this.journal;
+        if (journal === null) return;
+        while (journal.length > mark) {
+            const { key, replaced } = journal.pop()!;
+            if (replaced === undefined) this.pending.delete(key);
+            else this.pending.set(key, replaced);
+        }
+        this.recomputeEarliestDue();
+    }
+
+    /** Stops recording, once no unit is open. */
+    public settleUnits(): void {
+        this.journal = null;
+    }
+
+    /** How many positions are waiting. */
     public size(): number {
         return this.pending.size;
     }

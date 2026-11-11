@@ -94,6 +94,7 @@ import type { ChunkSaveContext } from './providers/ChunkSaveContext';
 import { createChunkSaveContext } from './providers/ChunkSaveContext';
 import type { Level } from './Level';
 import type { EntityStore } from '../entity/data/EntityStore';
+import type { StateEntry } from './changelog/ChangeEntry';
 import type { SealedTick } from './changelog/ChangeLog';
 import type { ChangeLogCost } from './changelog/changeLogCost';
 import { changeLogCost } from './changelog/changeLogCost';
@@ -629,6 +630,9 @@ export class World implements Service {
 
     /** Positions waiting to react to a nearby change, and what they do about it. */
     private readonly blockUpdates = new BlockUpdateScheduler();
+
+    /** The store whose log this world's block writes go to, once the world has installed its inverse writer there. */
+    private blockLogStore: EntityStore | undefined;
 
     /**
      * Every lit nether portal block in memory, which is what a trip into this world searches.
@@ -1614,7 +1618,10 @@ export class World implements Service {
     private async enterChunk(index: number, chunk: Chunk): Promise<boolean> {
         const x = chunk.getX();
         const z = chunk.getZ();
-        // Named before its entities, which enter after it and leave before it.
+        // Named before its entities, which enter after it and leave before it. Every logged block
+        // write is into a loaded chunk, so the block log is installed by the time one is made,
+        // and before any unit that could make one starts.
+        this.blockLog();
         this.getEntityStore().chunk('enter', x, z);
         // The provider has completed generation or disk decoding; keep its mutable write fast path
         // out of the final retained form and pack each section before it enters the loaded world.
@@ -2487,19 +2494,10 @@ export class World implements Service {
 
         // Read before the write: the light engine's decrease wave needs what stood here.
         const previous = chunk.getBlock(x, y, z);
+        const log = this.blockLog();
+        log?.writtenBlock(x, y, z, 0, previousRuntimeId, runtimeId);
         chunk.setBlockRuntimeId(x & 0xf, y, z & 0xf, runtimeId);
-        this.blockWriteVersion = World.nextBlockWriteVersion++;
-        this.server.invalidateEntityBlockCaches?.(this.dimension.name, x >> 4, z >> 4);
-        const state = chunk.getBlock(x, y, z);
-        this.getPortalIndex().blockChanged({ x, y, z }, previous.name, state.name);
-        const next: SystemBlock = { name: state.name, states: state.properties };
-        this.systems.onBlockChanged(
-            { x, y, z },
-            { name: previous.name, states: previous.properties, runtimeId: previousRuntimeId },
-            { ...next, runtimeId }
-        );
-
-        this.changes.worldChanged({ kind: 'block-set', position: new Vector3(x, y, z), blockRuntimeId: runtimeId });
+        const next = this.blockChanged(chunk, x, y, z, previous, previousRuntimeId, runtimeId);
 
         this.blockUpdates.scheduleAround(x, y, z, now, delay);
 
@@ -2512,6 +2510,74 @@ export class World implements Service {
             if (this.server.getContent() === undefined) this.systems.updateAround({ x, y, z }, next);
             notifyContentNeighbors(this, { x, y, z });
         }
+        return true;
+    }
+
+    /**
+     * Tells everything that follows the blocks of this world that one changed: the caches, the
+     * portal index, light and the clients. What a write and its undo share; the neighbor updates
+     * are the write's alone.
+     * @returns The block now standing there.
+     */
+    private blockChanged(
+        chunk: Chunk,
+        x: number,
+        y: number,
+        z: number,
+        previous: BlockState,
+        previousRuntimeId: number,
+        runtimeId: number
+    ): SystemBlock {
+        this.blockWriteVersion = World.nextBlockWriteVersion++;
+        this.server.invalidateEntityBlockCaches?.(this.dimension.name, x >> 4, z >> 4);
+        const state = chunk.getBlock(x, y, z);
+        this.getPortalIndex().blockChanged({ x, y, z }, previous.name, state.name);
+        const next: SystemBlock = { name: state.name, states: state.properties };
+        this.systems.onBlockChanged(
+            { x, y, z },
+            { name: previous.name, states: previous.properties, runtimeId: previousRuntimeId },
+            { ...next, runtimeId }
+        );
+
+        this.changes.worldChanged({ kind: 'block-set', position: new Vector3(x, y, z), blockRuntimeId: runtimeId });
+        return next;
+    }
+
+    /**
+     * The entity store whose change log holds this world's block writes, with this world's
+     * inverse writer and block update journal installed on it.
+     * @returns The store, or undefined while the server has no entity runtime, so no log.
+     */
+    private blockLog(): EntityStore | undefined {
+        if (this.server.hasEntityRuntime?.() !== true) return undefined;
+        const store = this.getEntityStore();
+        if (this.blockLogStore !== store) {
+            this.blockLogStore = store;
+            store.addInverseWriter((inverse) => this.restoreLogged(inverse));
+            store.addUnitJournal(this.blockUpdates);
+        }
+        return store;
+    }
+
+    /**
+     * Writes one inverse block entry back, which is how the change log undoes a unit that wrote
+     * a block. The write tells light, the portal index and the clients, as
+     * any block change does, and schedules no neighbor updates and runs no block behavior: the
+     * unit's own updates are taken back with it, and an undo writes nothing it did not log.
+     * @returns Whether the entry was a block, so this world wrote it.
+     * @throws {Error} When the entry's chunk has left the world.
+     */
+    private restoreLogged(inverse: StateEntry): boolean {
+        if (inverse.kind !== 'field' || inverse.field !== 'block') return false;
+        const { x, y, z } = inverse.address;
+        const chunk = this.getLoadedChunk(x >> 4, z >> 4);
+        if (chunk === null) throw new Error(`Cannot undo the ${inverse.field} at ${x}, ${y}, ${z}: its chunk left`);
+
+        const { layer } = inverse.address;
+        const previous = chunk.getBlock(x, y, z, layer);
+        const previousRuntimeId = chunk.getBlockRuntimeId(x & 0xf, y, z & 0xf, layer);
+        chunk.restoreBlockRuntimeId(x & 0xf, y, z & 0xf, inverse.after, layer);
+        if (layer === 0) this.blockChanged(chunk, x, y, z, previous, previousRuntimeId, inverse.after);
         return true;
     }
 

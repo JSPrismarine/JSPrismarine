@@ -885,6 +885,19 @@ export default class Chunk {
         this.invalidateNetworkSerialization();
     }
 
+    /**
+     * Puts a logged block back, which is how the change log undoes a block write.
+     *
+     * {@link setBlockRuntimeId} without clearing the block entity, which the log records apart
+     * from the block.
+     */
+    public restoreBlockRuntimeId(x: number, y: number, z: number, runtimeId: number, layer = 0): void {
+        const subChunk = this.subChunkAt(y) ?? this.getOrCreateSubChunk(this.requireSubChunkIndex(y));
+        subChunk.setBlock(x, y & 0xf, z, runtimeId, layer);
+        this.hasChanged = true;
+        this.invalidateNetworkSerialization();
+    }
+
     private requireSubChunkIndex(y: number): number {
         if (y < this.dimension.minY || y > maxY(this.dimension)) {
             throw new Error(

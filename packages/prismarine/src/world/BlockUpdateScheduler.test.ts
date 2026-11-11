@@ -23,3 +23,40 @@ describe('BlockUpdateScheduler', () => {
         ]);
     });
 });
+
+describe('BlockUpdateScheduler as a unit journal', () => {
+    it('takes back what an undone unit scheduled, and keeps what was there before it', () => {
+        const scheduler = new BlockUpdateScheduler();
+        scheduler.schedule(0, 64, 0, 10, 5);
+        const before = scheduler.snapshot();
+
+        const mark = scheduler.markUnit();
+        scheduler.scheduleAround(0, 64, 0, 10, 1);
+        scheduler.revertUnit(mark);
+        scheduler.settleUnits();
+
+        expect(scheduler.snapshot()).toEqual(before);
+        expect(scheduler.due(15)).toEqual([{ x: 0, y: 64, z: 0 }]);
+    });
+
+    it('undoes only the inner unit when units nest', () => {
+        const scheduler = new BlockUpdateScheduler();
+        const outer = scheduler.markUnit();
+        scheduler.schedule(1, 64, 1, 0);
+        const inner = scheduler.markUnit();
+        scheduler.schedule(2, 64, 2, 0);
+        scheduler.revertUnit(inner);
+
+        expect(scheduler.snapshot().map(({ position }) => position)).toEqual([{ x: 1, y: 64, z: 1 }]);
+        scheduler.revertUnit(outer);
+        expect(scheduler.size()).toBe(0);
+    });
+
+    it('records nothing outside units', () => {
+        const scheduler = new BlockUpdateScheduler();
+        scheduler.schedule(1, 64, 1, 0);
+        scheduler.revertUnit(0);
+
+        expect(scheduler.size()).toBe(1);
+    });
+});
