@@ -445,6 +445,8 @@ describe('DimensionTravel.resolve', () => {
         it('lands a player leaving the End at their respawn point, which is the Overworld spawn without a bed', async () => {
             const scene = await buildScene();
             const player = playerAt(scene.server, scene.end, new Vector3(0.5, 60, 0.5));
+            // A player stepping into the End's portal is in the End, which finds its session.
+            await scene.end.addEntity(player);
 
             const arrival = await scene.travel.resolve(player, {
                 world: scene.end,
