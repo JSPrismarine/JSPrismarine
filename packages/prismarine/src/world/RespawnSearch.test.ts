@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 
 import type { Block } from '../block/Block';
 import { BlockState } from '../block/state/BlockState';
-import { EYE_HEIGHT } from '../entity/Human';
+import { EYE_HEIGHT } from '../entity/playerEyes';
 import { stub } from '../testing/stub.test.helper';
 import { Dimensions } from './DimensionType';
 import type { DimensionType } from './DimensionType';

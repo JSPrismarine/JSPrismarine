@@ -30,7 +30,7 @@ import type { EntityPosition } from '@jsprismarine/entities';
 import { Navigator, navigationProfile } from '@jsprismarine/entity-goals';
 import { javaEntityTypeToBedrock } from '@jsprismarine/mapping';
 
-import { EYE_HEIGHT } from '../Human';
+import { EYE_HEIGHT } from '../playerEyes';
 import type { ContentTags } from '../../content/tags';
 import type { ContentEntity } from '../../content/world/adapter';
 import type { DataEntity } from './DataEntity';

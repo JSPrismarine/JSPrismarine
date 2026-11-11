@@ -26,7 +26,7 @@ import type Device from '../utils/Device';
 import type { PlayerRecordSource, PlayerRecordTarget, RecordedPosition } from '../world/playerRecord';
 import type { StoredSpawnPoint } from '../world/RespawnPoint';
 import type { DataEntity } from './data/DataEntity';
-import { EYE_HEIGHT } from './Human';
+import { EYE_HEIGHT } from './playerEyes';
 import { PlayerComponents } from './playerComponents';
 import { setSaturation } from './playerHunger';
 import type { PlayerSystems } from './data/playerSystems';

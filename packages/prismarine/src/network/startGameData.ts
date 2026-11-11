@@ -13,7 +13,7 @@ import { OVERWORLD_STEM_ID } from '@jsprismarine/worldgen';
 import type { BlockProperty, GameRule, StartGame } from '@jsprismarine/protocol/packet/StartGamePacket';
 import type Server from '../Server';
 import { BlockStateSchemas } from '../block/state/BlockStateSchema';
-import { eyePositionAt } from '../entity/Human';
+import { eyePositionAt } from '../entity/playerEyes';
 import type { ShownPlayer } from '../world/ShownPlayer';
 import type { PlayerSpawn } from '../world/SpawnPlacement';
 import type { World } from '../world/World';

@@ -30,7 +30,7 @@ import { tradeOffersPayload } from './tradeOffers';
 import type { StatusEffect, StatusEffectChange } from '../entity/StatusEffect';
 import { bedrockMobEffectId } from '../entity/StatusEffect';
 import type { Metadata } from '@jsprismarine/protocol/wire/structures/Metadata';
-import { eyePositionAt } from '../entity/Human';
+import { eyePositionAt } from '../entity/playerEyes';
 import type { ItemActorBody } from '../entity/data/itemBodies';
 import type ContainerEntry from '../inventory/ContainerEntry';
 import type HumanInventory from '../inventory/HumanInventory';
@@ -152,7 +152,7 @@ const URGENT_CHUNK_DISTANCE = 2;
  *
  * The position is the feet position in `world`, as a portal's exit, the End platform, a spawn
  * block and `/tp` all produce it. A player's own position is their eyes (see
- * {@link import('../entity/Human').EYE_HEIGHT}), so `changeWorld` raises the arrival once, and
+ * {@link import('../entity/playerEyes').EYE_HEIGHT}), so `changeWorld` raises the arrival once, and
  * `ChangeDimensionPacket` and the `MovePlayer` teleport at the end of the change both carry
  * those eyes.
  */

@@ -5,7 +5,7 @@ import { Vector3 } from '@jsprismarine/math';
 import { PositionMode } from '@jsprismarine/protocol';
 import Player from './Player';
 import { DamageCause } from './entity/Entity';
-import { EYE_HEIGHT } from './entity/Human';
+import { EYE_HEIGHT } from './entity/playerEyes';
 import { Position } from './world/Position';
 import { Attributes } from '@jsprismarine/protocol/wire/structures/Attribute';
 import { withPlayerComponents } from './testing/playerDouble.test.helper';

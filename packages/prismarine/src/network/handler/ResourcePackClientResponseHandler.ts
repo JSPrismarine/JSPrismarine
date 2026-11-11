@@ -6,7 +6,7 @@ import type { Vector3 } from '@jsprismarine/math';
 import { DisconnectReason } from '@jsprismarine/minecraft';
 import StartGamePacket from '@jsprismarine/protocol/packet/StartGamePacket';
 import type { PlayerSession } from '../../';
-import { eyePositionAt } from '../../entity/Human';
+import { eyePositionAt } from '../../entity/playerEyes';
 import { syncActorPropertyPacket } from '../actorProperties';
 import type Server from '../../Server';
 import type { Level } from '../../world/Level';

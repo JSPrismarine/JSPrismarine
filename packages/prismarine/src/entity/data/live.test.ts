@@ -15,7 +15,7 @@ import { AttributeIds } from '@jsprismarine/protocol/wire/structures/Attribute';
 import { entityData, vanillaItemDefinitions } from '@jsprismarine/items';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { EYE_HEIGHT } from '../../entity/Human';
+import { EYE_HEIGHT } from '../../entity/playerEyes';
 import type { RaidRecord } from '../../world/raid/RaidManager';
 import Player from '../../Player';
 import type Server from '../../Server';

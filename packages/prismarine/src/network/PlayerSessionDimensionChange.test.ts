@@ -29,7 +29,7 @@ import UpdateAttributesPacket from '@jsprismarine/protocol/packet/UpdateAttribut
 import { describe, expect, it } from 'vitest';
 
 import type { Entity } from '../entity/Entity';
-import { EYE_HEIGHT } from '../entity/Human';
+import { EYE_HEIGHT } from '../entity/playerEyes';
 import { fakePlayer } from '../testing/fakePlayer.test.helper';
 import { stub } from '../testing/stub.test.helper';
 import { Dimensions, dimensionTypeOf, FIRST_CUSTOM_DIMENSION_ID } from '../world/DimensionType';

@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 
 import Player from '../../Player';
 import type Server from '../../Server';
-import { EYE_HEIGHT } from '../../entity/Human';
+import { EYE_HEIGHT } from '../../entity/playerEyes';
 import { stub, stubOf } from '../../testing/stub.test.helper';
 import { Dimensions } from '../../world/Dimension';
 import type { Level } from '../../world/Level';
