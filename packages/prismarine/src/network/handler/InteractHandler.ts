@@ -1,11 +1,10 @@
 import { Gametype } from '@jsprismarine/minecraft';
 
-import type { PlayerSession } from '../../';
-import type Server from '../../Server';
 import { CREATIVE_REACH, SURVIVAL_REACH } from '../../entity/Combat';
 import type InteractPacket from '@jsprismarine/protocol/packet/InteractPacket';
 import { InteractAction } from '@jsprismarine/protocol/packet/InteractPacket';
-import type PacketHandler from './PacketHandler';
+import type { InputContext } from './HandlerContext';
+import type { InputLaneHandler } from './SessionHandler';
 
 /**
  * The slack added to a player's reach when checking the actor they say they interacted with.
@@ -27,13 +26,14 @@ const REACH_SLACK = 1;
  * `StopRiding` has no vehicles to leave, so both are ignored. Nothing here
  * throws: a value no client sends is logged and dropped.
  */
-export default class InteractHandler implements PacketHandler<InteractPacket> {
+export default class InteractHandler implements InputLaneHandler<InteractPacket> {
     public static PacketName = 'InteractPacket';
+    public readonly takes = 'context';
     public readonly phases = ['play'] as const;
     // Input, not read: opening the inventory adds to the window table input handlers check.
     public readonly lane = 'input';
 
-    public async handle(packet: InteractPacket, server: Server, session: PlayerSession): Promise<void> {
+    public handle(packet: InteractPacket, { session, log, step }: InputContext): undefined {
         switch (packet.action) {
             case InteractAction.StopRiding:
             case InteractAction.InteractUpdate:
@@ -41,28 +41,25 @@ export default class InteractHandler implements PacketHandler<InteractPacket> {
 
             case InteractAction.OpenInventory: {
                 if (packet.target !== session.runtimeId) {
-                    server
-                        .getLogger()
-                        .debug(
-                            `Dropped an inventory open from ${session.identity.name}: it names actor ${packet.target}, not themselves`,
-                            'InteractHandler/handle'
-                        );
+                    log.debug(
+                        `Dropped an inventory open from ${session.identity.name}: it names actor ${packet.target}, not themselves`,
+                        'InteractHandler/handle'
+                    );
                     return;
                 }
 
-                await session.openMainInventory();
+                // The window is on the session's table once this returns; what follows are sends.
+                step.output(session.openMainInventory());
                 return;
             }
 
             case InteractAction.NpcOpen: {
                 const target = session.getWorld().getActor(packet.target);
                 if (target === null || !session.tracks(packet.target)) {
-                    server
-                        .getLogger()
-                        .debug(
-                            `Dropped an NPC open from ${session.identity.name}: actor ${packet.target} is not one they have been shown`,
-                            'InteractHandler/handle'
-                        );
+                    log.debug(
+                        `Dropped an NPC open from ${session.identity.name}: actor ${packet.target} is not one they have been shown`,
+                        'InteractHandler/handle'
+                    );
                     return;
                 }
 
@@ -71,31 +68,25 @@ export default class InteractHandler implements PacketHandler<InteractPacket> {
                 const distance = player.getPosition().distanceTo(target.getPosition());
                 // Written so a NaN distance fails too.
                 if (!(distance <= reach)) {
-                    server
-                        .getLogger()
-                        .debug(
-                            `Dropped an NPC open from ${session.identity.name}: actor ${packet.target} is ${distance.toFixed(1)} away`,
-                            'InteractHandler/handle'
-                        );
+                    log.debug(
+                        `Dropped an NPC open from ${session.identity.name}: actor ${packet.target} is ${distance.toFixed(1)} away`,
+                        'InteractHandler/handle'
+                    );
                     return;
                 }
 
-                server
-                    .getLogger()
-                    .debug(
-                        `${session.identity.name} opened NPC ${packet.target}. NPC dialogue is not implemented`,
-                        'InteractHandler/handle'
-                    );
+                log.debug(
+                    `${session.identity.name} opened NPC ${packet.target}. NPC dialogue is not implemented`,
+                    'InteractHandler/handle'
+                );
                 return;
             }
 
             default:
-                server
-                    .getLogger()
-                    .verbose(
-                        `Dropped interact action ${packet.action} from ${session.identity.name}: not one a client sends`,
-                        'InteractHandler/handle'
-                    );
+                log.verbose(
+                    `Dropped interact action ${packet.action} from ${session.identity.name}: not one a client sends`,
+                    'InteractHandler/handle'
+                );
         }
     }
 }

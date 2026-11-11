@@ -1,10 +1,10 @@
-import type { PlayerSession } from '../../';
-import type Server from '../../Server';
 import ContainerEntry from '../../inventory/ContainerEntry';
 import CraftingInput from '../../crafting/CraftingInput';
 import type { Item } from '../../item/Item';
 import ContainerClosePacket from '@jsprismarine/protocol/packet/ContainerClosePacket';
-import type PacketHandler from './PacketHandler';
+import type PlayerSession from '../PlayerSession';
+import type { InputContext, InputStep } from './HandlerContext';
+import type { InputLaneHandler } from './SessionHandler';
 
 /**
  * Answers a client that closed a container, and clears what the close left behind.
@@ -14,8 +14,9 @@ import type PacketHandler from './PacketHandler';
  * `Server Initiated Close` (boolean). The client sends it once its own container manager is
  * gone; the server deletes its own and sends one back, which is what closes the screen.
  */
-export default class ContainerCloseHandler implements PacketHandler<ContainerClosePacket> {
+export default class ContainerCloseHandler implements InputLaneHandler<ContainerClosePacket> {
     public static PacketName = 'ContainerClosePacket';
+    public readonly takes = 'context';
     public readonly phases = ['play'] as const;
     public readonly lane = 'input';
 
@@ -28,7 +29,7 @@ export default class ContainerCloseHandler implements PacketHandler<ContainerClo
      * it opens the next container, and the same packet is what it sends back after a close
      * the server forced.
      */
-    public async handle(packet: ContainerClosePacket, server: Server, session: PlayerSession): Promise<void> {
+    public handle(packet: ContainerClosePacket, { session, log, step }: InputContext): undefined {
         // The slots a workstation or trade screen kept are gone once the window is, so take them first.
         const open = session.getOpenBlockContainer();
         const left = open?.windowId === packet.containerId ? open.inputs.filter((item) => item !== null) : [];
@@ -41,21 +42,19 @@ export default class ContainerCloseHandler implements PacketHandler<ContainerClo
         }
 
         if (!session.closeWindow(packet.containerId)) {
-            server
-                .getLogger()
-                .debug(
-                    `${session.identity.name} closed container ${packet.containerId}, which it did not have open`,
-                    'ContainerCloseHandler/handle'
-                );
+            log.debug(
+                `${session.identity.name} closed container ${packet.containerId}, which it did not have open`,
+                'ContainerCloseHandler/handle'
+            );
         }
 
         const pk = new ContainerClosePacket();
         pk.containerId = packet.containerId;
         pk.containerType = packet.containerType;
         pk.serverInitiatedClose = false;
-        await session.getConnection().sendDataPacket(pk);
+        step.output(session.getConnection().sendDataPacket(pk));
 
-        await this.emptyCraftingGrid(session, left);
+        this.emptyCraftingGrid(session, left, step);
     }
 
     /**
@@ -72,7 +71,7 @@ export default class ContainerCloseHandler implements PacketHandler<ContainerClo
      * Dropped rather than discarded: a full inventory is the ordinary case for a player who
      * has been mining, and silently eating the grid there is the same bug the grid itself was.
      */
-    private async emptyCraftingGrid(session: PlayerSession, windowItems: readonly Item[]): Promise<void> {
+    private emptyCraftingGrid(session: PlayerSession, windowItems: readonly Item[], step: InputStep): void {
         const player = session.getPlayer();
         const craftingInput = player.getCraftingInput();
         if (craftingInput.isEmpty() && windowItems.length === 0) return;
@@ -96,8 +95,10 @@ export default class ContainerCloseHandler implements PacketHandler<ContainerClo
             craftingInput.set(slot, null);
         }
 
-        if (overflow.length > 0) await session.getWorld().dropContents(player.getPosition(), overflow);
+        // The world puts the stacks on the ground before its promise settles, so they are part
+        // of this input's unit; the promise is handed over only so a failure is reported.
+        if (overflow.length > 0) step.output(session.getWorld().dropContents(player.getPosition(), overflow));
 
-        await session.sendInventory();
+        step.output(session.sendInventory());
     }
 }

@@ -261,7 +261,7 @@ describe('network/handler/Lane', () => {
     });
 
     it('flags the world access it guards against', () => {
-        expect(worldAccess(`${here}SetPlayerGameTypeHandler.ts`)).toContain('calls server.getPermissionManager');
+        expect(worldAccess(`${here}SetPlayerGameTypeHandler.ts`)).toContain('calls session.sendGamemode');
         expect(worldAccess(`${here}AnimateHandler.ts`).some((use) => use.includes('getWorld'))).toBe(true);
     });
 

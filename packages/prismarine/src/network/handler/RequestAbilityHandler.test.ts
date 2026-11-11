@@ -2,7 +2,7 @@ import { AbilityLayerFlag } from '@jsprismarine/minecraft';
 import { describe, expect, it } from 'vitest';
 
 import type { Logger } from '@jsprismarine/logger';
-import type Server from '../../Server';
+import { inputContext } from '../../testing/handlerContext.test.helper';
 import { identityNamed } from '../../testing/sessionIdentity.test.helper';
 import { stubPlayerPort } from '../../testing/playerPort.test.helper';
 import { stub } from '../../testing/stub.test.helper';
@@ -23,23 +23,19 @@ const fakeSession = ({ flying = false, canFly = true }: { flying?: boolean; canF
     let isFlying = flying;
     const player = stubPlayerPort({ isFlying: () => isFlying });
 
-    return {
-        requested,
-        resent,
-        logged,
-        server: stub<Server>({
-            getLogger: () => stub<Logger>({ debug: (...message) => void logged.push(message[0] ?? '') })
-        }),
-        session: stub<PlayerSession>({
-            identity: identityNamed('Steve'),
-            getPlayer: () => player,
-            setFlying: async (value: boolean) => {
-                requested.push(value);
-                if (canFly) isFlying = value;
-            },
-            sendAbilities: async (target) => void resent.push(target)
-        })
-    };
+    const session = stub<PlayerSession>({
+        identity: identityNamed('Steve'),
+        getPlayer: () => player,
+        setFlying: async (value: boolean) => {
+            requested.push(value);
+            if (canFly) isFlying = value;
+        },
+        sendAbilities: async (target) => void resent.push(target)
+    });
+    const log = stub<Logger>({ debug: (...message) => void logged.push(message[0] ?? '') });
+    const { context, outputs, settled } = inputContext(session, { log });
+
+    return { requested, resent, logged, context, outputs, settled, isFlying: () => isFlying };
 };
 
 const request = (ability: AbilityLayerFlag, valueType: RequestAbilityValueType, value: boolean | number) =>
@@ -50,52 +46,65 @@ const request = (ability: AbilityLayerFlag, valueType: RequestAbilityValueType, 
     });
 
 describe('RequestAbilityHandler', () => {
-    it('applies a flight toggle and leaves the broadcast to the player', async () => {
-        const { requested, resent, server, session } = fakeSession();
+    it('writes the flight state before it returns, and leaves only the sends to the step', () => {
+        const { requested, isFlying, context, outputs } = fakeSession();
 
-        await new RequestAbilityHandler().handle(
+        new RequestAbilityHandler().handle(
             request(AbilityLayerFlag.FLYING, RequestAbilityValueType.Bool, true),
-            server,
-            session
+            context
         );
+
+        expect(requested).toEqual([true]);
+        expect(isFlying()).toBe(true);
+        expect(outputs).toHaveLength(1);
+    });
+
+    it('applies a flight toggle and leaves the broadcast to the player', async () => {
+        const { requested, resent, context, settled } = fakeSession();
+
+        new RequestAbilityHandler().handle(
+            request(AbilityLayerFlag.FLYING, RequestAbilityValueType.Bool, true),
+            context
+        );
+        await settled();
 
         expect(requested).toEqual([true]);
         expect(resent).toEqual([]);
     });
 
     it('sends the abilities back when flight was refused', async () => {
-        const { requested, resent, server, session } = fakeSession({ canFly: false });
+        const { requested, resent, context, settled } = fakeSession({ canFly: false });
 
-        await new RequestAbilityHandler().handle(
+        new RequestAbilityHandler().handle(
             request(AbilityLayerFlag.FLYING, RequestAbilityValueType.Bool, true),
-            server,
-            session
+            context
         );
+        await settled();
 
         expect(requested).toEqual([true]);
         expect(resent).toEqual([undefined]);
     });
 
     it('sends the abilities back when the client asks for the state the server holds', async () => {
-        const { resent, server, session } = fakeSession({ flying: true });
+        const { resent, context, settled } = fakeSession({ flying: true });
 
-        await new RequestAbilityHandler().handle(
+        new RequestAbilityHandler().handle(
             request(AbilityLayerFlag.FLYING, RequestAbilityValueType.Bool, true),
-            server,
-            session
+            context
         );
+        await settled();
 
         expect(resent).toEqual([undefined]);
     });
 
     it('refuses any other ability by logging it and resending the abilities', async () => {
-        const { requested, resent, logged, server, session } = fakeSession();
+        const { requested, resent, logged, context, settled } = fakeSession();
 
-        await new RequestAbilityHandler().handle(
+        new RequestAbilityHandler().handle(
             request(AbilityLayerFlag.FLY_SPEED, RequestAbilityValueType.Float, 0.5),
-            server,
-            session
+            context
         );
+        await settled();
 
         expect(requested).toEqual([]);
         expect(resent).toEqual([undefined]);
@@ -105,13 +114,10 @@ describe('RequestAbilityHandler', () => {
     });
 
     it('does not treat a float-typed flying request as a toggle', async () => {
-        const { requested, resent, server, session } = fakeSession();
+        const { requested, resent, context, settled } = fakeSession();
 
-        await new RequestAbilityHandler().handle(
-            request(AbilityLayerFlag.FLYING, RequestAbilityValueType.Float, 1),
-            server,
-            session
-        );
+        new RequestAbilityHandler().handle(request(AbilityLayerFlag.FLYING, RequestAbilityValueType.Float, 1), context);
+        await settled();
 
         expect(requested).toEqual([]);
         expect(resent).toEqual([undefined]);

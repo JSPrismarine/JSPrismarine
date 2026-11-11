@@ -1,13 +1,13 @@
 import type { Logger } from '@jsprismarine/logger';
 import { describe, expect, it, vi } from 'vitest';
 
-import type Server from '../../Server';
 import CraftingInput from '../../crafting/CraftingInput';
 import ContainerEntry from '../../inventory/ContainerEntry';
 import HumanInventory from '../../inventory/HumanInventory';
 import { WindowTypes } from '../../inventory/WindowTypes';
 import { Item } from '../../item/Item';
 import type { StubMembers } from '../../testing/stub.test.helper';
+import { inputContext } from '../../testing/handlerContext.test.helper';
 import { identityNamed } from '../../testing/sessionIdentity.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import { Position } from '../../world/Position';
@@ -87,17 +87,20 @@ const run = async ({
         sendInventory: async () => {}
     });
 
-    const server = stub<Server>({ getLogger: () => stub<Logger>({ debug }) });
-
     const packet = Object.assign(
         new ContainerClosePacket(),
         { containerId: 3, containerType: 0, serverInitiatedClose: false },
         fields
     );
 
-    await new ContainerCloseHandler().handle(packet, server, session);
+    const { context, settled } = inputContext(session, { log: stub<Logger>({ debug }) });
+    new ContainerCloseHandler().handle(packet, context);
+    // What the handler wrote, before the step waits for its sends.
+    const droppedInHandler = [...dropped];
+    const emptiedInHandler = craftingInput.isEmpty();
+    await settled();
 
-    return { sent, dropped, droppedItems, closed, debug };
+    return { sent, dropped, droppedItems, closed, debug, droppedInHandler, emptiedInHandler };
 };
 
 describe('network', () => {
@@ -177,10 +180,13 @@ describe('network', () => {
             const craftingInput = new CraftingInput();
             craftingInput.set(0, planks(4));
 
-            const { dropped } = await run({ craftingInput, inventory });
+            const { dropped, droppedInHandler, emptiedInHandler } = await run({ craftingInput, inventory });
 
             expect(dropped).toEqual(['minecraft:oak_planks x4']);
             expect(craftingInput.isEmpty()).toBe(true);
+            // Inside the handler's unit, so a throw would undo them, and not after the reply.
+            expect(droppedInHandler).toEqual(dropped);
+            expect(emptiedInHandler).toBe(true);
         });
 
         it('drops a copy of what did not fit, name and enchantments included', async () => {
