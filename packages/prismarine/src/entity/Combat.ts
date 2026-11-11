@@ -7,7 +7,7 @@ import { AttributeIds } from '@jsprismarine/protocol/wire/structures/Attribute';
 import { DamageCause } from './DamageCause';
 import { DamageSource } from './DamageSource';
 import type { Entity } from './Entity';
-import Human from './Human';
+import { PLAYER_IDENTIFIER } from './playerOverlay';
 
 /**
  * One entity hitting another.
@@ -108,7 +108,8 @@ export const canHarm = (attacker: Entity, target: WorldActor): boolean => {
     // A fight cannot cross worlds, and the runtime id a client names is only unique within one.
     if (attacker.getWorld() !== target.getWorld()) return false;
 
-    if (attacker instanceof Human && target instanceof Human) {
+    // By type, so a store player is one too.
+    if (attacker.getType() === PLAYER_IDENTIFIER && target.getType() === PLAYER_IDENTIFIER) {
         const [pvp] = target.getWorld().getGameRuleManager()?.getGameRule(GameRules.PVP) ?? [true];
         if (!pvp) return false;
     }
