@@ -251,7 +251,7 @@ export class StorePlayerActor extends StoreActor implements ShownPlayer {
 
     /**
      * The entity's part of the tick, then the player's own: its session, its attribute sync and
-     * its triggers, which `Player.updatePlayer` runs for the player the session speaks for.
+     * its triggers, which run for the player the session speaks for.
      */
     public override async update(tick: number): Promise<void> {
         await super.update(tick);
@@ -361,7 +361,7 @@ export class StorePlayerActor extends StoreActor implements ShownPlayer {
         return this.player.gamemode;
     }
 
-    /** Whether the permission service lists the player as an operator, as `Player.isOp` asks it. */
+    /** Whether the permission service lists the player as an operator. */
     public isOp(): boolean {
         return this.getServer().getPermissionManager().isOp(this.getUUID().toString());
     }

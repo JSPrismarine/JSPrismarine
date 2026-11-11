@@ -1,9 +1,9 @@
 /**
  * Where one player comes back, as opposed to where the world's spawn is.
  *
- * This server modeled no per-player spawn at all: `Player.getRespawnPoint` answered with the
- * world spawn for everybody, sleeping in a bed set nothing, and `/spawnpoint` was left out of
- * the command registry because there was nothing behind it.
+ * This server modeled no per-player spawn at all: a player's respawn point was the world spawn
+ * for everybody, sleeping in a bed set nothing, and `/spawnpoint` was left out of the command
+ * registry because there was nothing behind it.
  *
  * The rules are Java's, from `ServerPlayer.findRespawnPositionAndUseSpawnBlock`:
  *

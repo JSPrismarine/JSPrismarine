@@ -3,7 +3,7 @@
  *
  * The engine declares four hooks and fires each one against the `EntityView`
  * of whoever completed the advancement, which is the only thing it has. This
- * is where that view is turned back into a `Player` - see `subject.ts` for
+ * is where that view is turned back into the player - see `subject.ts` for
  * how - and where the two rewards this server can actually pay are paid.
  *
  * Vanilla uses `experience` on 23 of its 1866 files and `recipes` on 1739, and

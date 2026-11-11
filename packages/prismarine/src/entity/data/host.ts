@@ -49,7 +49,7 @@ export interface EntityWorldFacts {
 /**
  * The facts about entities that the data-driven index does not hold.
  *
- * Players are the server's, not the runtime's: a `Player` is driven by a
+ * Players are the server's, not the runtime's: a player is driven by a
  * network session rather than by a component set, so it never enters the
  * entity index and has to be asked for. Item drops are the item subsystem's
  * for the same reason.

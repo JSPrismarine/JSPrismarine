@@ -9,8 +9,8 @@ import { DamageCause } from './DamageCause';
  * What the world does to things standing in it.
  *
  * The rules only, with no entity in sight: which blocks break a fall, how far is free, how often
- * a burn hurts. They used to live inside `Player`, where they applied to exactly one kind of
- * entity - so a player drowned and burned and a zombie stood in lava indefinitely.
+ * a burn hurts. They used to be written for the player alone, where they applied to exactly one
+ * kind of entity - so a player drowned and burned and a zombie stood in lava indefinitely.
  *
  * Kept as constants and small functions rather than as a base class, because the two things that
  * need them could hardly be less alike: a player's fall is *reported* by their own client and has
