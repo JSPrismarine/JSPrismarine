@@ -1,10 +1,9 @@
-import type Server from '../../Server';
-import type PlayerSession from '../PlayerSession';
 import type BookEditPacket from '@jsprismarine/protocol/packet/BookEditPacket';
 import { BookEditAction } from '@jsprismarine/protocol/packet/BookEditPacket';
 
 import type { BookEdit } from '@jsprismarine/protocol/packet/BookEditPacket';
-import type PacketHandler from './PacketHandler';
+import type { SessionContext } from './HandlerContext';
+import type { ReadLaneHandler } from './SessionHandler';
 import type { StorePlayer } from '../../entity/storePlayer';
 
 /** The only item a book edit can apply to. Signing turns it into a written book. */
@@ -44,20 +43,19 @@ const bookEditRejection = (player: Pick<StorePlayer, 'getInventory'>, data: Book
  * items carry no NBT pages here, so there is no book to write into; the client keeps its
  * local copy until it relogs.
  */
-export default class BookEditHandler implements PacketHandler<BookEditPacket> {
+export default class BookEditHandler implements ReadLaneHandler<BookEditPacket> {
     public static PacketName = 'BookEditPacket';
+    public readonly takes = 'context';
     public readonly phases = ['play'] as const;
     public readonly lane = 'read';
 
     /** Checks the slot holds a book and quill, then logs the edit by action. */
-    public handle(packet: BookEditPacket, server: Server, session: PlayerSession): void {
+    public handle(packet: BookEditPacket, { session, log }: SessionContext): void {
         const data = packet.getPacketData();
 
         const rejection = data === null ? 'it carries no operation' : bookEditRejection(session.getPlayer(), data);
         if (rejection !== null) {
-            server
-                .getLogger()
-                .verbose(`Dropped a book edit from ${session.identity.name}: ${rejection}`, 'BookEditHandler/handle');
+            log.verbose(`Dropped a book edit from ${session.identity.name}: ${rejection}`, 'BookEditHandler/handle');
             return;
         }
 
@@ -72,11 +70,9 @@ export default class BookEditHandler implements PacketHandler<BookEditPacket> {
                     ? `deleted page ${operation.pageIndex}`
                     : `${operation.action === BookEditAction.AddPage ? 'added' : 'replaced'} page ${operation.pageIndex} (${operation.pageText.length} chars)`;
 
-        server
-            .getLogger()
-            .debug(
-                `${session.identity.name} ${edit} in slot ${data.bookSlot}. Books are not stored, so nothing changed`,
-                'BookEditHandler/handle'
-            );
+        log.debug(
+            `${session.identity.name} ${edit} in slot ${data.bookSlot}. Books are not stored, so nothing changed`,
+            'BookEditHandler/handle'
+        );
     }
 }

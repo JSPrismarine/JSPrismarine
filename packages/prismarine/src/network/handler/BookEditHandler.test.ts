@@ -1,16 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import type HumanInventory from '../../inventory/HumanInventory';
 import { Item } from '../../item/Item';
-import { sessionNearBlocks } from '../../testing/blockTarget.test.helper';
-import { identityNamed } from '../../testing/sessionIdentity.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import BookEditPacket, { BookEditAction } from '@jsprismarine/protocol/packet/BookEditPacket';
 import type { BookEditOperation } from '@jsprismarine/protocol/packet/BookEditPacket';
 import BookEditHandler from './BookEditHandler';
+import { sessionSeeingBlocks } from './blockTargetSession.test.helper';
 
 /** Steve holding `item` in slot 2 and nothing anywhere else. */
-const steveHolding = (item: Item) => {
-    const near = sessionNearBlocks(
+const steveHolding = (item: Item) =>
+    sessionSeeingBlocks(
         {},
         {
             getInventory: () =>
@@ -19,10 +18,6 @@ const steveHolding = (item: Item) => {
                 })
         }
     );
-    // The handler logs the name the session holds, which the shared helper leaves out.
-    Object.assign(near.session, { identity: identityNamed('Steve') });
-    return near;
-};
 
 const bookAndQuill = () => new Item({ runtimeId: 0, name: 'minecraft:writable_book' });
 
@@ -30,12 +25,11 @@ const edit = (bookSlot: number, operation: BookEditOperation) => new BookEditPac
 
 describe('BookEditHandler', () => {
     it('logs a page edit with its length', () => {
-        const { logged, server, session } = steveHolding(bookAndQuill());
+        const { logged, context } = steveHolding(bookAndQuill());
 
         new BookEditHandler().handle(
             edit(2, { action: BookEditAction.AddPage, pageIndex: 1, pageText: 'hello', photoName: '' }),
-            server,
-            session
+            context
         );
 
         expect(logged.debug).toEqual([
@@ -45,12 +39,11 @@ describe('BookEditHandler', () => {
     });
 
     it('logs a signing with title and author', () => {
-        const { logged, server, session } = steveHolding(bookAndQuill());
+        const { logged, context } = steveHolding(bookAndQuill());
 
         new BookEditHandler().handle(
             edit(2, { action: BookEditAction.Finalize, title: 'Diary', author: 'Steve', xuid: '' }),
-            server,
-            session
+            context
         );
 
         expect(logged.debug).toEqual([
@@ -59,11 +52,11 @@ describe('BookEditHandler', () => {
     });
 
     it('drops an edit aimed at a slot that holds no book and quill', () => {
-        const { logged, server, session } = steveHolding(new Item({ runtimeId: 1, name: 'minecraft:stone' }));
+        const { logged, context } = steveHolding(new Item({ runtimeId: 1, name: 'minecraft:stone' }));
         const handler = new BookEditHandler();
 
-        handler.handle(edit(2, { action: BookEditAction.DeletePage, pageIndex: 0 }), server, session);
-        handler.handle(edit(40, { action: BookEditAction.DeletePage, pageIndex: 0 }), server, session);
+        handler.handle(edit(2, { action: BookEditAction.DeletePage, pageIndex: 0 }), context);
+        handler.handle(edit(40, { action: BookEditAction.DeletePage, pageIndex: 0 }), context);
 
         expect(logged.debug).toEqual([]);
         expect(logged.verbose).toEqual([
@@ -73,11 +66,11 @@ describe('BookEditHandler', () => {
     });
 
     it('drops a page number a book cannot have', () => {
-        const { logged, server, session } = steveHolding(bookAndQuill());
+        const { logged, context } = steveHolding(bookAndQuill());
         const handler = new BookEditHandler();
 
-        handler.handle(edit(2, { action: BookEditAction.DeletePage, pageIndex: -1 }), server, session);
-        handler.handle(edit(2, { action: BookEditAction.SwapPages, pageIndex: 0, swapWithIndex: 50 }), server, session);
+        handler.handle(edit(2, { action: BookEditAction.DeletePage, pageIndex: -1 }), context);
+        handler.handle(edit(2, { action: BookEditAction.SwapPages, pageIndex: 0, swapWithIndex: 50 }), context);
 
         expect(logged.debug).toEqual([]);
         expect(logged.verbose).toEqual([
@@ -87,9 +80,9 @@ describe('BookEditHandler', () => {
     });
 
     it('drops a packet that decoded no operation instead of throwing', () => {
-        const { logged, server, session } = steveHolding(bookAndQuill());
+        const { logged, context } = steveHolding(bookAndQuill());
 
-        new BookEditHandler().handle(new BookEditPacket(), server, session);
+        new BookEditHandler().handle(new BookEditPacket(), context);
 
         expect(logged.verbose).toEqual(['Dropped a book edit from Steve: it carries no operation']);
     });
