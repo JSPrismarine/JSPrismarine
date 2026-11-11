@@ -35,6 +35,7 @@ import { enchantmentSeedOf } from '../enchantment/enchantingTable';
 import { entityFixture, FLOOR_Y } from '../entity/data/testing';
 import { PLAYER_IDENTIFIER } from '../entity/playerOverlay';
 import { StorePlayer } from '../entity/storePlayer';
+import { enterStore, StorePlayers } from '../entity/data/storePlayers';
 import ContainerEntry from '../inventory/ContainerEntry';
 import { Item } from '../item/Item';
 import type ClientConnection from '../network/ClientConnection';
@@ -292,9 +293,10 @@ const SHIPPED_PLAYER = {
 /** A store player built the way the store's player rules are tested, with the overlay's health. */
 const buildStorePlayer = (): StorePlayer => {
     const { runtime } = entityFixture(undefined, {}, { [PLAYER_IDENTIFIER]: SHIPPED_PLAYER });
-    const entity = runtime.spawn(PLAYER_IDENTIFIER, { x: 0.5, y: FLOOR_Y + 1, z: 0.5 });
-    if (entity === undefined) throw new Error('the store refused a player');
-    return new StorePlayer(entity, { uuid: IDENTITY, name: NAME, xuid: '' }, runtime.playerSystems);
+    const player = new StorePlayer(runtime.nextEntityId(), { uuid: IDENTITY, name: NAME, xuid: '' });
+    player.standAt({ x: 0.5, y: FLOOR_Y + 1, z: 0.5 });
+    if (enterStore(runtime, new StorePlayers(), player) === undefined) throw new Error('the store refused a player');
+    return player;
 };
 
 /** What the per-player services hold for the player both fixtures describe. */
@@ -403,7 +405,7 @@ describe.each([
         expect(inventory.getOffhand().getItem(0).getName()).toBe('minecraft:shield');
         expect(inventory.getEnderChest().getItem(5).getAmount()).toBe(9);
         // Health is the entity's, not the attribute table's.
-        expect(player.entity.instance.attributes.get('health')?.current).toBe(11);
+        expect(player.entity?.instance.attributes.get('health')?.current).toBe(11);
         expect(player.getFood()).toBe(13);
         expect(player.getSaturation()).toBe(4);
         expect(player.attributes.getValue(AttributeIds.PlayerLevel)).toBe(27);
@@ -411,7 +413,7 @@ describe.each([
         expect(player.getPortalCooldown()).toBe(40);
         expect(player.getSpawnPoint()).toEqual({ x: 3, y: 64, z: -7, dimension: 'minecraft:overworld', forced: true });
         // The entity stands at the feet, 1.62 below the eye the record holds.
-        expect(player.entity.position).toEqual({ x: 12.5, y: 70, z: -8.5 });
+        expect(player.entity?.position).toEqual({ x: 12.5, y: 70, z: -8.5 });
         expect([player.pitch, player.yaw, player.headYaw]).toEqual([10, 20, 30]);
 
         const again = await writeStoreRecord(player, fileRecords, fileRecords ? 'store-file-out' : 'store-leveldb-out');
