@@ -43,7 +43,6 @@ import { GenericEntity } from '../GenericEntity';
 import AnimatePacket, { AnimateAction } from '@jsprismarine/protocol/packet/AnimatePacket';
 import { actorMotionIn, dataEntityRecordOf, writeDataEntityRecord } from './persistence';
 import { lookVector } from '../Archery';
-import Player from '../../Player';
 import { MetadataFlag } from '@jsprismarine/protocol/wire/structures/Metadata';
 import { AttributeIds } from '@jsprismarine/protocol/wire/structures/Attribute';
 import type { ContentItemDrop, ContentPosition } from '../../content/world/adapter';
@@ -64,6 +63,8 @@ import { PASS, VETO, replaceAmount } from './damagePipeline';
 import type { DamageOutcome, DamageRoute } from './damagePipeline';
 import { intentOfHealthWrite, intentOfLegacyBlow, legacySourceOfIntent, viewableDataEntity } from './legacyDamage';
 import type { Item } from '../../item/Item';
+import type HumanInventory from '../../inventory/HumanInventory';
+import type PlayerSession from '../../network/PlayerSession';
 import type { StatusEffect } from '../StatusEffect';
 import { advancementDamage, advancementKill, advancementPickedUpItem } from '../../advancement/triggers';
 import { itemDropOf, itemOfDrop } from '../../inventory/persistence';
@@ -88,11 +89,20 @@ const filterItemOf = (item: Item | undefined): FilterItemView | undefined =>
               damaged: () => item.getMaxDurability() > 0 && item.getDurability() < item.getMaxDurability()
           };
 
+/** What a player's filter view reads of the player. */
+interface FilteredPlayer {
+    getRuntimeId(): bigint;
+    getInventory(): HumanInventory;
+    getTags(): readonly string[];
+    isSneaking(): boolean;
+    isSleeping(): boolean;
+}
+
 /** The live player's family and equipment, which `minecraft:interact` filters inspect. */
-const playerFilterViews = new WeakMap<Player, FilterEntityView>();
+const playerFilterViews = new WeakMap<FilteredPlayer, FilterEntityView>();
 
 /** Reuses a player's filter closures while they continue to read that player's live state. */
-const playerFilterView = (player: Player): FilterEntityView => {
+const playerFilterView = (player: FilteredPlayer): FilterEntityView => {
     const cached = playerFilterViews.get(player);
     if (cached !== undefined) return cached;
 
@@ -845,19 +855,19 @@ export class LiveEntityRuntime {
      * `Villager.mobInteract` leaves them. Everything else on a trader that has offers opens the
      * screen, and one that has none or is a baby does nothing.
      */
-    private openTradeScreen(id: number, trader: WorldActor, player: WorldActor, itemIdentifier: string): boolean {
-        if (!(player instanceof Player) || itemIdentifier.endsWith('_spawn_egg') || player.isSneaking()) return false;
+    private openTradeScreen(id: number, trader: WorldActor, session: PlayerSession, itemIdentifier: string): boolean {
+        const player = session.getPlayer();
+        if (itemIdentifier.endsWith('_spawn_egg') || player.isSneaking()) return false;
         const entity = this.runtime.byId(id);
         if (entity === undefined) return false;
         const merchant = this.runtime.merchant(entity);
         if (merchant === undefined) return false;
         const title = tradeDisplayNameOf(entity.instance);
 
-        const playerId = Number(player.getRuntimeId());
+        const playerId = Number(session.runtimeId);
         if (!this.runtime.beginTrade(id, playerId)) return false;
 
-        void player
-            .getNetworkSession()
+        void session
             .openTradeWindow({
                 trader,
                 source: merchant,
@@ -900,7 +910,9 @@ export class LiveEntityRuntime {
         const id = this.storeEntityOf(target)?.id;
         if (id === undefined) return { accepted: false };
 
-        if (this.openTradeScreen(id, target, player, itemIdentifier))
+        // The interacting player's session, found by entity id; undefined for anything else.
+        const session = player.getWorld().viewerOf(player.getRuntimeId());
+        if (session !== undefined && this.openTradeScreen(id, target, session, itemIdentifier))
             return { accepted: true, swing: true, consumeItem: false };
 
         const previousLoveTicks = this.runtime.byId(id)?.body.loveTicks ?? 0;
@@ -908,7 +920,7 @@ export class LiveEntityRuntime {
             id,
             Number(player.getRuntimeId()),
             itemIdentifier,
-            player instanceof Player ? playerFilterView(player) : undefined,
+            session === undefined ? undefined : playerFilterView(session.getPlayer()),
             heldItem
         );
         if (interaction.accepted) {
@@ -928,13 +940,12 @@ export class LiveEntityRuntime {
 
             target.getWorld().spawnNamedParticleAt(new Vector3(x, y, z), particle.particleType);
         }
-        if (interaction.accepted && interaction.swing === true && player instanceof Player) {
-            const runtimeEntityId = player.getRuntimeId();
+        if (interaction.accepted && interaction.swing === true && session !== undefined) {
+            const runtimeEntityId = session.runtimeId;
             const watchers = player
                 .getWorld()
-                .getPlayers()
-                .filter((viewer) => viewer !== player)
-                .filter((viewer) => viewer.getNetworkSession().tracks(runtimeEntityId));
+                .getViewers()
+                .filter((viewer) => viewer.runtimeId !== runtimeEntityId && viewer.tracks(runtimeEntityId));
 
             void Promise.all(
                 watchers.map(async (viewer) => {
@@ -942,7 +953,7 @@ export class LiveEntityRuntime {
                     animation.runtimeEntityId = runtimeEntityId;
                     animation.action = AnimateAction.Swing;
                     animation.swingSource = 'interact';
-                    await viewer.getNetworkSession().send(animation);
+                    await viewer.send(animation);
                 })
             ).catch((error: unknown) => this.options.report(String(error)));
         }
