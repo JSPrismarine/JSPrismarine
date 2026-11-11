@@ -68,7 +68,7 @@
         "@jsprismarine/mapping": "workspace:*",
         "@types/node": "26.6.6",
         "glob": "14.0.5",
-        "prettier": "3.9.10",
+        "prettier": "3.10.0",
         "rimraf": "6.1.4",
         "typescript": "7.0.2",
         "vite": "8.3.8",
