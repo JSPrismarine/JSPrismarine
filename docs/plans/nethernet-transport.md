@@ -13,12 +13,21 @@ it.
 Requirements from the request:
 
 - Use [`nethernet`](https://github.com/PrismarineJS/node-nethernet) (npm `nethernet`, PrismarineJS's
-  node-nethernet) for the WebRTC side.
+  node-nethernet) for the WebRTC side. **No longer holds**, from 2026-11-11:
+  [ADR 0007](../adr/0007-own-nethernet-protocol.md) replaced it with our own protocol code, and
+  [ADR 0006](../adr/0006-libdatachannel-for-nethernet-server.md) moved the WebRTC stack from werift
+  to libdatachannel ([webrtc-backend.md](webrtc-backend.md)).
 - `enable-raknet` and `enable-nethernet` config keys, both on by default, so both transports run side
   by side.
 - `enable-lan-visibility`, named as BDS names it and on by default, as BDS ships it.
 
 ## Status
+
+Updated 2026-11-11: NetherNet now runs on `NetherNetServer` and `NetherNetClient` in
+`@jsprismarine/nethernet`, over libdatachannel in `@jsprismarine/native-network`; werift, npm
+`nethernet` and `protodef` are gone. `port` is `server-port`, and with the defaults RakNet and
+NetherNet share its UDP port. The rest of this section is as of 2026-11-10, and names werift and
+`nethernet` where they were.
 
 As of 2026-11-10. Both transports run side by side, on by default:
 
@@ -283,14 +292,15 @@ Not needed for a viable NetherNet transport, but known and worth doing:
 - **Friends and Realms joins.** BDS signs in to Microsoft's signaling service at startup ("Signed in
   to signaling service successfully"), which is how friends join a server they have not typed the
   address of. That needs an Xbox Live identity for the server.
-- **LAN discovery in the client.** `@jsprismarine/client` joins by address only; finding servers on
-  the local network needs the discovery side of `nethernet`'s `Client`.
-- **NetherNet load.** Whether werift keeps up with many players. Measure by counts (messages, bytes,
+- **LAN discovery in the client.** `@jsprismarine/client` joins by address only; `LanDiscovery` in
+  `@jsprismarine/nethernet` now finds servers on the local network, and the client does not use it
+  yet.
+- **NetherNet load.** Whether the WebRTC stack keeps up with many players. Measure by counts (messages, bytes,
   allocations, tasks), not wall-clock time, as [AGENTS.md](../../AGENTS.md#measuring-performance)
   asks, and decide from that whether NetherNet needs a worker thread like RakNet's.
-- **An upstream question for `nethernet`.** It keys peers on the connection ID the client picks,
-  and its LAN path applies a `CANDIDATEADD` to whichever peer that ID names, whoever sent it. Check
-  whether one LAN peer can disturb another's negotiation, and report it upstream if so.
+- **A LAN peer's candidates.** `NetherNetServer`, like `nethernet` before it, keys peers on the
+  connection ID the client picks, and applies a `CANDIDATEADD` to whichever peer that ID names,
+  whoever sent it. Check whether one LAN peer can disturb another's negotiation.
 - **A Java Edition transport.** The seam is ready for one: a `KeyedTransport` over TCP drawing from
   the same `ConnectionIds`, in a package of its own, feeding a Java session pipeline rather than the
   Bedrock dispatcher.
