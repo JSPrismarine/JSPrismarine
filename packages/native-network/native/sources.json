@@ -1,0 +1,41 @@
+{
+    "$comment": "The pinned sources the native library is built from. libdatachannel's archive has no submodules, so libjuice, usrsctp and plog are pinned at the commits its v0.24.6 tag records.",
+    "libdatachannel": {
+        "version": "0.24.6",
+        "url": "https://codeload.github.com/paullouisageneau/libdatachannel/tar.gz/v0.24.6",
+        "sha256": "22a66aebebd8dae561d8e5181da96f2fcc203e067c5b2186c07b39af913464c0",
+        "into": "libdatachannel"
+    },
+    "libjuice": {
+        "version": "b89c792e3612faf2f12cf35bcc56857313a06be3",
+        "url": "https://codeload.github.com/paullouisageneau/libjuice/tar.gz/b89c792e3612faf2f12cf35bcc56857313a06be3",
+        "sha256": "713b22174e8cb2e06538fa9bac2650bda21b83c86f5128813ab4dcf8f5bea9ed",
+        "into": "libdatachannel/deps/libjuice",
+        "patches": ["patches/libjuice-mux-hooks.patch"]
+    },
+    "usrsctp": {
+        "version": "fec583d54493f879d2ae44a743423bf8a04371ab",
+        "url": "https://codeload.github.com/sctplab/usrsctp/tar.gz/fec583d54493f879d2ae44a743423bf8a04371ab",
+        "sha256": "e5c114afe73c9a0ec419fab5f5b3f63f3ce57b09b90d06ea85e63dca8aed3e7c",
+        "into": "libdatachannel/deps/usrsctp"
+    },
+    "plog": {
+        "version": "94899e0b926ac1b0f4750bfbd495167b4a6ae9ef",
+        "url": "https://codeload.github.com/SergiusTheBest/plog/tar.gz/94899e0b926ac1b0f4750bfbd495167b4a6ae9ef",
+        "sha256": "92a08bce559b5f28aa88d3fd9071567414b9f43a83fe2a05a6dd14f1da536072",
+        "into": "libdatachannel/deps/plog"
+    },
+    "mbedtls": {
+        "version": "3.6.7",
+        "url": "https://github.com/Mbed-TLS/mbedtls/releases/download/mbedtls-3.6.7/mbedtls-3.6.7.tar.bz2",
+        "sha256": "a7e8bcbec0e6f761b4af24f25677626b35f762f68eef79c08677a363212d11f6",
+        "into": "mbedtls"
+    },
+    "openssl": {
+        "version": "3.5.9",
+        "url": "https://github.com/openssl/openssl/releases/download/openssl-3.5.9/openssl-3.5.9.tar.gz",
+        "sha256": "603f5602e2eef00d77fbd429d34dcd5822bb301757a1bc9cdb24c670f1eb859a",
+        "into": "openssl",
+        "optional": true
+    }
+}
