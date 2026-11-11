@@ -1,3 +1,4 @@
+import { GENERATION_HOST_ROLE } from '@jsprismarine/chunkgen/hostRole';
 import type { ConsoleMessage, ServerMessage } from '@jsprismarine/console-protocol';
 import { childProcessLink, isConsoleMessage } from '@jsprismarine/console-protocol';
 import type { LogTransport } from '@jsprismarine/logger';
@@ -304,6 +305,19 @@ const main = async (): Promise<void> => {
     }
 
     if (args.help || args.version || args._.includes('completion')) return;
+
+    // A compiled executable starts its generation host as itself. Nothing else runs: no data
+    // provisioning and no server, only the host listening on its IPC channel.
+    if (args.role === GENERATION_HOST_ROLE) {
+        // The host only answers its parent; started from a terminal it would wait for nothing.
+        if (process.send === undefined) {
+            process.stderr.write(`prismarine: --role ${GENERATION_HOST_ROLE} is started by the server, not by hand\n`);
+            process.exitCode = 2;
+            return;
+        }
+        await import('@jsprismarine/chunkgen/generationHost');
+        return;
+    }
 
     loadEnvFiles();
 

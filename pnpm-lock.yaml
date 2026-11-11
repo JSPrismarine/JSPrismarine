@@ -1670,6 +1670,9 @@ importers:
 
   packages/server:
     dependencies:
+      '@jsprismarine/chunkgen':
+        specifier: workspace:*
+        version: link:../chunkgen
       '@jsprismarine/color-parser':
         specifier: workspace:*
         version: link:../color-parser

@@ -1,3 +1,4 @@
+import { GENERATION_HOST_ROLE } from '@jsprismarine/chunkgen/hostRole';
 import yargs from 'yargs/yargs';
 import pkg from '../../package.json' with { type: 'json' };
 
@@ -5,8 +6,11 @@ declare const BUILD_VERSION: string | undefined;
 
 const buildVersion = typeof BUILD_VERSION === 'undefined' ? pkg.version : BUILD_VERSION;
 
-/** The roles the entry point can take; `server` is what the host spawns its child with. */
-export const ROLES = ['server'] as const;
+/**
+ * The roles the entry point can take; `server` is what the host spawns its child with, and the
+ * generation host is what a compiled executable starts itself as.
+ */
+export const ROLES = ['server', GENERATION_HOST_ROLE] as const;
 
 /**
  * Builds the server's command-line parser without running it, so help text can be read

@@ -63,8 +63,10 @@ can fork the generation entry, and otherwise builds the in-process pool and says
   exits when its channel closes, so a server that dies does not leave one behind.
 - Priority is a hint. It is strong on Linux, weaker on macOS and different on Windows, and it does
   nothing about a container's CPU quota, which is slice 3's problem.
-- A compiled executable cannot yet start the host: `singleExecutableWorker.ts` handles workers
-  and not a forked role. Such builds keep the in-process pool.
+- A Bun-compiled executable starts the host by running itself again with `--role generation-host`;
+  its entry hands that role to `generationHost` before anything else loads. A Node single
+  executable cannot yet start the host, because `singleExecutableWorker.ts` handles workers and not
+  a forked role, so it keeps the in-process pool.
 
 ## What stays the same
 

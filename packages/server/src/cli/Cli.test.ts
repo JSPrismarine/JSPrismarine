@@ -34,6 +34,10 @@ describe('parseServerArgs', () => {
         expect(parseServerArgs(['--headless']).headless).toBe(true);
     });
 
+    it('accepts the role a compiled executable starts its generation host with', () => {
+        expect(parseServerArgs(['--role', 'generation-host']).role).toBe('generation-host');
+    });
+
     it('rejects a role it does not know', () => {
         expect(() => parseServerArgs(['--role', 'console'])).toThrow(/role/);
     });
