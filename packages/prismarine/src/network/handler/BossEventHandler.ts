@@ -1,10 +1,9 @@
 import type BossEventPacket from '@jsprismarine/protocol/packet/BossEventPacket';
 import { BossEventUpdateType } from '@jsprismarine/protocol/packet/BossEventPacket';
 
-import type Server from '../../Server';
 import { BossBar } from '../BossBar';
-import type PlayerSession from '../PlayerSession';
-import type PacketHandler from './PacketHandler';
+import type { SessionContext } from './HandlerContext';
+import type { ReadLaneHandler } from './SessionHandler';
 
 /**
  * The client asking about a boss bar it has on screen.
@@ -13,13 +12,14 @@ import type PacketHandler from './PacketHandler';
  * bound to the queried actor for the asking player. Anything else from the client, and a query
  * about an actor the player has no bar for, is dropped.
  */
-export default class BossEventHandler implements PacketHandler<BossEventPacket> {
+export default class BossEventHandler implements ReadLaneHandler<BossEventPacket> {
     public static PacketName = 'BossEventPacket';
+    public readonly takes = 'context';
     public readonly phases = ['play'] as const;
     public readonly lane = 'read';
 
     /** Replays the queried bar's Add to the asking player. */
-    public async handle(packet: BossEventPacket, _server: Server, session: PlayerSession): Promise<void> {
+    public async handle(packet: BossEventPacket, { session }: SessionContext): Promise<void> {
         if (packet.eventType !== BossEventUpdateType.Query) return;
 
         await BossBar.answerQuery(session, packet.targetActorId);

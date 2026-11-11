@@ -6,6 +6,7 @@ import BossEventPacket, {
 import { describe, expect, it } from 'vitest';
 
 import { fakePlayer } from '../../testing/fakePlayer.test.helper';
+import { sessionContext } from '../../testing/handlerContext.test.helper';
 import { BossBar } from '../BossBar';
 import BossEventHandler from './BossEventHandler';
 
@@ -18,7 +19,7 @@ const query = (targetActorId: bigint, eventType = BossEventUpdateType.Query) =>
 
 describe('BossEventHandler', () => {
     it('answers a Query with an Add carrying the bar state the player already has', async () => {
-        const { session, server, sent } = fakePlayer();
+        const { session, sent } = fakePlayer();
         const bar = new BossBar({
             actorUniqueId: 42n,
             name: 'Ender Dragon',
@@ -29,7 +30,7 @@ describe('BossEventHandler', () => {
         await bar.addPlayer(session);
         sent.length = 0;
 
-        await new BossEventHandler().handle(query(42n), server, session);
+        await new BossEventHandler().handle(query(42n), sessionContext(session));
 
         const events = bossEvents(sent);
         expect(events).toHaveLength(1);
@@ -42,23 +43,23 @@ describe('BossEventHandler', () => {
     });
 
     it('leaves a Query about an actor with no bar for that player unanswered', async () => {
-        const { session, server, sent } = fakePlayer();
+        const { session, sent } = fakePlayer();
         const bar = new BossBar({ actorUniqueId: 42n, name: 'Ender Dragon' });
         await bar.addPlayer(session);
         sent.length = 0;
 
-        await new BossEventHandler().handle(query(7n), server, session);
+        await new BossEventHandler().handle(query(7n), sessionContext(session));
 
         expect(bossEvents(sent)).toHaveLength(0);
     });
 
     it('ignores a serverbound event that is not a Query', async () => {
-        const { session, server, sent } = fakePlayer();
+        const { session, sent } = fakePlayer();
         const bar = new BossBar({ actorUniqueId: 42n, name: 'Ender Dragon' });
         await bar.addPlayer(session);
         sent.length = 0;
 
-        await new BossEventHandler().handle(query(42n, BossEventUpdateType.Remove), server, session);
+        await new BossEventHandler().handle(query(42n, BossEventUpdateType.Remove), sessionContext(session));
 
         expect(bossEvents(sent)).toHaveLength(0);
     });
