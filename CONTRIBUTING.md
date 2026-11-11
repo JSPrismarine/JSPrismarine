@@ -47,7 +47,7 @@ pnpm run dev
 
 Issues labeled
 [Good First Issue](https://github.com/JSPrismarine/JSPrismarine/issues?q=is%3Aissue+is%3Aopen+label%3A%22Good+First+Issue%22)
-are small and well described. The [parity tracker](https://jsprismarine.github.io/JSPrismarine/parity)
+are small and well described. The [parity tracker](https://jsprismarine.dev/parity)
 lists every vanilla behavior that does not match yet, each a possible change.
 
 ### Make the change

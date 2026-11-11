@@ -186,6 +186,12 @@ jobs:
                   name: docs-site
                   path: docs-site
 
+            # The root manifest's homepage is the site's custom domain. The action would otherwise link
+            # the github.io address, which redirects there.
+            - name: Read the site's domain
+              id: site
+              run: echo "host=$(node -p 'new URL(require("./package.json").homepage).host')" >> "$GITHUB_OUTPUT"
+
             # Deploys on opened, reopened and synchronize, removes on closed, and keeps a comment with
             # the preview link on the pull request.
             - uses: rossjrw/pr-preview-action@873417d2df72380da1f3978378fb58560bcde976 # v1.8.2
@@ -195,3 +201,4 @@ jobs:
                   umbrella-dir: ${{ env.PREVIEW_DIR }}
                   action: auto
                   comment: true
+                  pages-base-url: ${{ steps.site.outputs.host }}

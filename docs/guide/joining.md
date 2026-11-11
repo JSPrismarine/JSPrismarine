@@ -36,7 +36,7 @@ off for a private network; anyone who reaches the server can then join under any
 ## What works
 
 JSPrismarine is under active development and does not do everything a vanilla server does yet.
-The [parity tracker](https://jsprismarine.github.io/JSPrismarine/parity) shows, behavior by behavior, what matches vanilla and what does not,
+The [parity tracker](https://jsprismarine.dev/parity) shows, behavior by behavior, what matches vanilla and what does not,
 and [Commands and functions](../data-driven/commands.md) lists the commands you can type.
 
 ## When you cannot connect

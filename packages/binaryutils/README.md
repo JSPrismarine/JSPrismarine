@@ -1,7 +1,7 @@
 [![npm](https://img.shields.io/npm/v/@jsprismarine/binaryutils?style=flat-square)](https://www.npmjs.com/package/@jsprismarine/binaryutils)
 [![Dependents (via libraries.io)](https://img.shields.io/librariesio/dependents/npm/@jsprismarine/binaryutils?style=flat-square)](#)
 ![npm](https://img.shields.io/npm/dw/@jsprismarine/binaryutils?style=flat-square)
-[![Documentation](https://img.shields.io/badge/docs-typedoc-blue?style=flat-square)](https://jsprismarine.github.io/JSPrismarine/)
+[![Documentation](https://img.shields.io/badge/docs-typedoc-blue?style=flat-square)](https://jsprismarine.dev/)
 
 # @jsprismarine/binaryutils
 
@@ -127,7 +127,7 @@ const result = stream.getWriteBuffer();
 ## Documentation
 
 Full API documentation with detailed method descriptions and examples is available at:
-[https://jsprismarine.github.io/JSPrismarine/](https://jsprismarine.github.io/JSPrismarine/)
+[https://jsprismarine.dev/](https://jsprismarine.dev/)
 
 ## Performance
 

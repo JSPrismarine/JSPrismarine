@@ -1,7 +1,7 @@
 # Brand
 
 How JSPrismarine looks and sounds. The docs site implements this guide, and the
-[brand kit](https://jsprismarine.github.io/JSPrismarine/brand-kit) renders every color, the mark and
+[brand kit](https://jsprismarine.dev/brand-kit) renders every color, the mark and
 each component live from the same source.
 
 | What                     | Where                                         |

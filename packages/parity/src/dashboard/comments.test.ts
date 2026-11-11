@@ -57,7 +57,7 @@ describe('parity report comment lookup', () => {
             tracker([changed, untouched]),
             tracker([trackerCase(), untouched]),
             '0123456789012345678901234567890123456789',
-            'https://jsprismarine.github.io/JSPrismarine/parity.html'
+            'https://jsprismarine.dev/parity.html'
         );
 
         expect(comment).toContain('1/2 passing; 1 failing');
@@ -81,7 +81,7 @@ describe('parity report comment lookup', () => {
             tracker([existing, ...added]),
             tracker([existing]),
             '0123456789012345678901234567890123456789',
-            'https://jsprismarine.github.io/JSPrismarine/parity.html'
+            'https://jsprismarine.dev/parity.html'
         );
 
         expect(comment).toContain('50 added');
@@ -102,7 +102,7 @@ describe('parity report comment lookup', () => {
             tracker([trackerCase(), gap]),
             tracker([trackerCase()]),
             '0123456789012345678901234567890123456789',
-            'https://jsprismarine.github.io/JSPrismarine/parity.html'
+            'https://jsprismarine.dev/parity.html'
         );
 
         expect(comment).toContain('Gap: minecraft:fixture_block');

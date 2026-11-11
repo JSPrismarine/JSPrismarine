@@ -99,12 +99,7 @@ const baselineTracker: TrackerData = baselineReport.trimStart().startsWith('{')
               defects: totals.defects
           };
       })();
-const body = renderParityComment(
-    current,
-    baselineTracker,
-    headSha,
-    'https://jsprismarine.github.io/JSPrismarine/parity.html'
-);
+const body = renderParityComment(current, baselineTracker, headSha, 'https://jsprismarine.dev/parity.html');
 
 const commentUrl = previousComment
     ? `${apiRoot}/repos/${repository}/issues/comments/${previousComment.id}`

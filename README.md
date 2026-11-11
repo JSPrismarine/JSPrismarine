@@ -15,13 +15,13 @@ JSPrismarine builds its blocks, items, mobs, loot, recipes and world generation 
 - **Living mobs.** Bedrock spawn rules, AI goals and Java brains. Villagers trade, and raids come for your village.
 - **Survival systems.** Combat, effects, enchanting, crafting, furnaces, redstone, flowing water and fire.
 - **Vanilla commands** and Java datapack functions, plus your own Bedrock packs and datapacks on top.
-- **Parity you can check.** A test suite compares the server with vanilla, and the [parity tracker](https://jsprismarine.github.io/JSPrismarine/parity) shows what matches and what doesn't yet.
+- **Parity you can check.** A test suite compares the server with vanilla, and the [parity tracker](https://jsprismarine.dev/parity) shows what matches and what doesn't yet.
 
 JSPrismarine is in active development, so some vanilla behavior is still missing. Try it, and tell us what you find.
 
 ## Try it
 
-You need [Node.js](https://nodejs.org), [pnpm](https://pnpm.io/installation) and a JDK; [Running JSPrismarine](https://jsprismarine.github.io/JSPrismarine/guide/running#run-from-source) lists the versions.
+You need [Node.js](https://nodejs.org), [pnpm](https://pnpm.io/installation) and a JDK; [Running JSPrismarine](https://jsprismarine.dev/guide/running#run-from-source) lists the versions.
 
 ```bash
 git clone https://github.com/JSPrismarine/JSPrismarine.git
@@ -34,10 +34,10 @@ The first run downloads Mojang's game data once. Then add the server in Minecraf
 
 ## Learn more
 
-- [Documentation](https://jsprismarine.github.io/JSPrismarine/): running, configuring and hosting a server
+- [Documentation](https://jsprismarine.dev/): running, configuring and hosting a server
 - [Joining a server](docs/guide/joining.md): for players, including the Windows loopback fix
 - [Extending JSPrismarine](docs/guide/extending.md): packs, and embedding the server in your own code
-- [Packages](https://jsprismarine.github.io/JSPrismarine/packages): the protocol, RakNet, NBT, LevelDB, Molang and the rest, each on npm
+- [Packages](https://jsprismarine.dev/packages): the protocol, RakNet, NBT, LevelDB, Molang and the rest, each on npm
 
 ## Get involved
 

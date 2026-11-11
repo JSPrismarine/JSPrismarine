@@ -111,9 +111,9 @@ move or a trip through a portal.
 | `raknetEncapsulatedPacket` | `RaknetEncapsulatedPacketEvent` |
 <!-- /fact -->
 
-The [API reference](https://jsprismarine.github.io/JSPrismarine/api/) documents every class the
+The [API reference](https://jsprismarine.dev/api/) documents every class the
 events hand you, and every other export of the
-[published packages](https://jsprismarine.github.io/JSPrismarine/packages).
+[published packages](https://jsprismarine.dev/packages).
 
 ## Use the pieces on their own
 

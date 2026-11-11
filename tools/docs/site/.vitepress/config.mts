@@ -1,4 +1,5 @@
-import { readFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
+import path from 'node:path';
 import { defineConfig } from 'vitepress';
 import manifest from '../../../../package.json' with { type: 'json' };
 import mcfunction from './mcfunction.tmLanguage.json';
@@ -12,7 +13,8 @@ import { prismSvg } from './theme/prism.ts';
 import { palette, paletteCss } from './theme/tokens.ts';
 
 const repositoryUrl = manifest.repository.url.replace(/^git\+/, '').replace(/\.git$/, '');
-const siteUrl = 'https://jsprismarine.github.io/JSPrismarine/';
+// The root manifest's homepage is where the site is published, on a custom GitHub Pages domain.
+const siteUrl = manifest.homepage;
 // The docs workflow builds a pull request's preview for a folder under the site, such as `pr-preview/pr-12`.
 // Canonical and Open Graph URLs keep pointing at the published site.
 const previewPath = process.env.DOCS_PREVIEW_PATH?.replace(/^\/+|\/+$/g, '');
@@ -45,6 +47,10 @@ export default defineConfig({
         ]
     ],
     lastUpdated: true,
+    /** GitHub Pages serves the site's custom domain from a `CNAME` file at the branch root, which a preview is not. */
+    buildEnd(siteConfig) {
+        if (!previewPath) writeFileSync(path.join(siteConfig.outDir, 'CNAME'), `${new URL(siteUrl).hostname}\n`);
+    },
     sitemap: { hostname: siteUrl },
     /** Per-page Open Graph title, description and URL, so shared links preview the page itself. */
     transformPageData(pageData, { siteConfig }) {
