@@ -3147,7 +3147,6 @@ export class World implements Service {
         const runtimeId = Number(entity.getRuntimeId());
 
         this.entities.set(runtimeId, entity);
-        this.getEntityIndex().addLegacy(entity);
         this.markEntityChunkChanged(entity);
 
         // Reported once the maps hold it, so that whoever works out who should see what is
@@ -3202,7 +3201,6 @@ export class World implements Service {
         }
         this.entityChunkIndices.delete(runtimeIdKey);
 
-        this.getEntityIndex().removeLegacy(entity);
         this.entities.delete(runtimeIdKey);
         this.players.delete(runtimeIdKey);
 
@@ -3547,12 +3545,9 @@ export class World implements Service {
     }
 
     /**
-     * Files a non-player entity under the chunk it stands in, for chunk save and unload.
-     *
-     * Kept apart from the entity index on purpose. It follows the body a client is shown, which
-     * is what a chunk saves, while the index finds a data-driven mob where the runtime put it,
-     * and it files every entity under one chunk while the index files a large box in every cell
-     * its footprint overlaps. {@link World.entityRelocated} writes both, so they move together.
+     * Files a non-player legacy entity under the chunk it stands in, for chunk save and unload.
+     * The entity index holds only the store's entities, which leave a chunk through
+     * {@link EntityIndex.storeInChunk}. {@link World.entityRelocated} writes it on every move.
      */
     private markEntityChunkChanged(entity: Entity): void {
         if (entity.getType() === PLAYER_IDENTIFIER) return;
@@ -3887,16 +3882,14 @@ export class World implements Service {
     /**
      * Refiles an entity after its position was written, which {@link Entity.relocate} calls.
      *
-     * The one writer of both structures that say where a legacy entity is: the entity index,
-     * and the chunk membership that chunk save and unload read. Only for an entity this world
-     * holds: one on its way in from another world is filed by {@link World.addEntity} once it
-     * arrives.
+     * The one writer of the chunk membership that chunk save and unload read for a legacy
+     * entity, which the entity index does not hold. Only for an entity this world holds: one on
+     * its way in from another world is filed by {@link World.addEntity} once it arrives.
      * @param {Entity} entity - The entity that moved.
      * @internal
      */
     public entityRelocated(entity: Entity, before?: Position): void {
         if (this.entities.get(Number(entity.getRuntimeId())) !== entity) return;
-        this.getEntityIndex().refileLegacy(entity);
         this.markEntityChunkChanged(entity);
         if (before !== undefined && before.getWorld() === this) {
             const after = entity.getPosition();

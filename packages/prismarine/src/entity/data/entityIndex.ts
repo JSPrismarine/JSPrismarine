@@ -4,9 +4,8 @@
  * One index, which ADR 0007 asks for. A position write refiles the entity
  * before the write returns, so a query later in the same tick sees it where it
  * moved to, and every query answers in ascending runtime id order. It serves
- * the store's entities, whose `MobBody.onMove` refiles them, and the legacy
- * entities the world still holds - players and the bodies of dropped stacks -
- * which `Entity`'s one position setter refiles through the world.
+ * every entity of the dimension's store, players and dropped stacks among
+ * them, which `MobBody.onMove` refiles.
  *
  * The runtime's one quadratic cost is the neighbor search: `goalWorld.mobs`
  * runs it once per searching goal, and a hundred mobs ask about seventy-five
@@ -26,18 +25,16 @@
  * within half a block and a farm can leave hundreds in one chunk, so a merge
  * search over sixteen-block cells would read every item in the chunk. They are
  * store entities, but a mob's neighbor search never reads them: they are found
- * through {@link EntityIndex.itemsWithin} and, as their bodies, by a legacy query.
+ * through {@link EntityIndex.itemsWithin}.
  *
  * The index is derived state. It is rebuilt from the entities whenever they
  * are, and it stays out of the replay digest.
  */
 import type { EntityPosition } from '@jsprismarine/entities';
 
-import type { Entity } from '../Entity';
 import type { DataEntity } from './DataEntity';
 import { squaredDistance } from './DataEntity';
 import { ITEM_ENTITY } from './droppedItems';
-import { byRuntimeId } from '../../world/WorldActor';
 import { clientOwnsMovement } from '../playerOverlay';
 
 /**
@@ -77,29 +74,11 @@ const keyOf = (cellX: number, cellZ: number): number => (cellX & KEY_MASK) * KEY
 /** The fine cell one horizontal coordinate falls in, for dropped items. */
 const itemCellOf = (coordinate: number): number => Math.floor(coordinate / ITEM_CELL_SIZE);
 
-/** Whether a legacy entity is a dropped item, which the index files in its fine cells. */
-const isItem = (entity: Entity): boolean => entity.getType() === ITEM_ENTITY;
-
 /** Whether a store entity is a dropped item, which the index files apart from the mobs. */
 const isStoreItem = (entity: DataEntity): boolean => entity.identifier === ITEM_ENTITY;
 
 /** The fine cell key of a position, for dropped items. */
 const itemKeyOf = (position: EntityPosition): number => keyOf(itemCellOf(position.x), itemCellOf(position.z));
-
-/** The cell a legacy entity belongs in now, in the layer `item` names. */
-const legacyKeyOf = (entity: Entity, item: boolean): number => {
-    const position = entity.getPosition();
-    return item
-        ? keyOf(itemCellOf(position.getX()), itemCellOf(position.getZ()))
-        : keyOf(cellOf(position.getX()), cellOf(position.getZ()));
-};
-
-/** Where one legacy entity is filed. */
-interface LegacyFiling {
-    readonly entity: Entity;
-    readonly key: number;
-    readonly item: boolean;
-}
 
 /** One entity's dimensions as the spatial index last filed them. */
 interface IndexedBox {
@@ -143,30 +122,11 @@ export class EntityIndex {
     /** The widest ordinary box, maintained as entities enter, leave, or change components. */
     private widestRegularBox = 0;
 
-    /** Legacy entities with no data entity behind them, keyed by runtime id. */
-    private readonly legacyFiled = new Map<number, LegacyFiling>();
-
-    /** Legacy entities other than dropped items, in each sixteen-block cell. */
-    private readonly legacyCells = new Map<number, Entity[]>();
-
-    /** Bodies of dropped items whose store entity has gone, in each two-block cell. */
-    private readonly itemCells = new Map<number, Entity[]>();
-
     /** Dropped stacks of the store in each two-block cell. */
     private readonly storeItemCells = new Map<number, DataEntity[]>();
 
     /** The two-block cell each dropped stack of the store is filed under now. */
     private readonly filedItems = new Map<number, number>();
-
-    /**
-     * The body of each dropped stack of the store, once the world holds it.
-     *
-     * A body shares its stack's runtime id, and its position is a copy the
-     * stack's body follows after the stack moved. So it is attached to the
-     * stack's entry rather than filed a second time, and a legacy query that
-     * reaches the stack answers with its body.
-     */
-    private readonly bodies = new Map<number, Entity>();
 
     /**
      * Hears each chunk a store entity other than a dropped stack or a player enters, leaves or
@@ -192,33 +152,20 @@ export class EntityIndex {
         return this.examined;
     }
 
-    /** How many entities the index holds, a data entity and its body counting once. */
+    /** How many entities the index holds. */
     public get size(): number {
-        return this.filed.size + this.filedItems.size + this.legacyFiled.size;
+        return this.filed.size + this.filedItems.size;
     }
 
     /** How many cell lists hold anything, across every layer. Zero once the index is empty. */
     public get occupiedCells(): number {
         let familyCells = 0;
         for (const cells of this.familyCells.values()) familyCells += cells.size;
-        return (
-            this.cells.size +
-            this.largeCells.size +
-            familyCells +
-            this.legacyCells.size +
-            this.itemCells.size +
-            this.storeItemCells.size
-        );
+        return this.cells.size + this.largeCells.size + familyCells + this.storeItemCells.size;
     }
 
     /** Puts one entity in the index, at the position it stands at now. */
     public add(entity: DataEntity): void {
-        // A body the world filed before its data entity existed is the same entity, now attached.
-        const legacy = this.legacyFiled.get(entity.id);
-        if (legacy !== undefined) {
-            this.unfileLegacy(legacy);
-            this.bodies.set(entity.id, legacy.entity);
-        }
         if (isStoreItem(entity)) {
             this.fileItem(entity, itemKeyOf(entity.position));
             return;
@@ -233,7 +180,6 @@ export class EntityIndex {
         const itemKey = this.filedItems.get(entity.id);
         if (itemKey !== undefined) {
             this.unfileItem(entity, itemKey);
-            this.reattachBody(entity.id);
             return;
         }
         const key = this.filed.get(entity.id);
@@ -244,50 +190,6 @@ export class EntityIndex {
         this.unfile(entity, key);
         for (const family of this.filedFamilies.get(entity.id) ?? []) this.unfileFamily(entity, family, key);
         this.filedFamilies.delete(entity.id);
-        this.reattachBody(entity.id);
-    }
-
-    /** Files a body the world still holds at its own position, until the world drops it. */
-    private reattachBody(id: number): void {
-        const body = this.bodies.get(id);
-        if (body === undefined) return;
-        this.bodies.delete(id);
-        this.fileLegacyAt(body, id);
-    }
-
-    /**
-     * Files one legacy entity the world has just taken in.
-     *
-     * The body of a data entity is attached to that entity's entry, since the
-     * two are one entity. Anything else is filed at its own position.
-     */
-    public addLegacy(entity: Entity): void {
-        const id = Number(entity.getRuntimeId());
-        if (this.filed.has(id) || this.filedItems.has(id)) {
-            this.bodies.set(id, entity);
-            return;
-        }
-
-        const previous = this.legacyFiled.get(id);
-        if (previous !== undefined) this.unfileLegacy(previous);
-        this.fileLegacyAt(entity, id);
-    }
-
-    /** Moves one legacy entity to the cell it stands in now, which its position setter calls. */
-    public refileLegacy(entity: Entity): void {
-        const previous = this.legacyFiled.get(Number(entity.getRuntimeId()));
-        if (previous?.entity !== entity || legacyKeyOf(entity, previous.item) === previous.key) return;
-
-        this.unfileLegacy(previous);
-        this.fileLegacyAt(entity, Number(entity.getRuntimeId()));
-    }
-
-    /** Takes one legacy entity, or the body of a data entity, out of the index. */
-    public removeLegacy(entity: Entity): void {
-        const id = Number(entity.getRuntimeId());
-        if (this.bodies.get(id) === entity) this.bodies.delete(id);
-        const previous = this.legacyFiled.get(id);
-        if (previous?.entity === entity) this.unfileLegacy(previous);
     }
 
     /**
@@ -316,42 +218,6 @@ export class EntityIndex {
                 }
             }
         return inIdOrder(found);
-    }
-
-    /**
-     * The legacy entities the world holds within a horizontal radius of a point, in ascending
-     * runtime id order: players, and the body of each dropped stack, found where its stack lies.
-     * The store's other entities are found through {@link EntityIndex.storeWithin}.
-     */
-    public legacyWithin(x: number, z: number, radius: number): Entity[] {
-        if (radius < 0) return [];
-
-        const found: Entity[] = [];
-        this.collectItems(found, x, z, radius);
-        for (const item of this.itemsWithin(x, z, radius)) {
-            const body = this.bodies.get(item.id);
-            if (body !== undefined) found.push(body);
-        }
-
-        const reach = radius * radius;
-        const lowX = cellOf(x - radius);
-        const highX = cellOf(x + radius);
-        const lowZ = cellOf(z - radius);
-        const highZ = cellOf(z + radius);
-        for (let cellX = lowX; cellX <= highX; cellX += 1)
-            for (let cellZ = lowZ; cellZ <= highZ; cellZ += 1) {
-                const legacy = this.legacyCells.get(keyOf(cellX, cellZ));
-                if (legacy === undefined) continue;
-                this.examined += legacy.length;
-                for (const entity of legacy) {
-                    const position = entity.getPosition();
-                    const dx = position.getX() - x;
-                    const dz = position.getZ() - z;
-                    if (dx * dx + dz * dz <= reach) found.push(entity);
-                }
-            }
-
-        return inRuntimeIdOrder(found);
     }
 
     /**
@@ -588,49 +454,6 @@ export class EntityIndex {
         }
     }
 
-    /** Adds the dropped items within a horizontal radius to `found`, in no particular order. */
-    private collectItems(found: Entity[], x: number, z: number, radius: number): void {
-        const reach = radius * radius;
-        const lowX = itemCellOf(x - radius);
-        const highX = itemCellOf(x + radius);
-        const lowZ = itemCellOf(z - radius);
-        const highZ = itemCellOf(z + radius);
-        for (let cellX = lowX; cellX <= highX; cellX += 1)
-            for (let cellZ = lowZ; cellZ <= highZ; cellZ += 1) {
-                const cell = this.itemCells.get(keyOf(cellX, cellZ));
-                if (cell === undefined) continue;
-                this.examined += cell.length;
-                for (const entity of cell) {
-                    const position = entity.getPosition();
-                    const dx = position.getX() - x;
-                    const dz = position.getZ() - z;
-                    if (dx * dx + dz * dz <= reach) found.push(entity);
-                }
-            }
-    }
-
-    /** Files one legacy entity at the cell it stands in now. */
-    private fileLegacyAt(entity: Entity, id: number): void {
-        const item = isItem(entity);
-        const key = legacyKeyOf(entity, item);
-        this.legacyFiled.set(id, { entity, key, item });
-        const cells = item ? this.itemCells : this.legacyCells;
-        const cell = cells.get(key);
-        if (cell === undefined) cells.set(key, [entity]);
-        else cell.push(entity);
-    }
-
-    /** Takes one legacy entity out of its cell and forgets where it was. */
-    private unfileLegacy(filing: LegacyFiling): void {
-        this.legacyFiled.delete(Number(filing.entity.getRuntimeId()));
-        const cells = filing.item ? this.itemCells : this.legacyCells;
-        const cell = cells.get(filing.key);
-        if (cell === undefined) return;
-        const at = cell.indexOf(filing.entity);
-        if (at !== -1) cell.splice(at, 1);
-        if (cell.length === 0) cells.delete(filing.key);
-    }
-
     /** Puts one dropped stack of the store in its two-block cell. */
     private fileItem(entity: DataEntity, key: number): void {
         this.filedItems.set(entity.id, key);
@@ -784,12 +607,5 @@ const cellKeyOf = (position: EntityPosition): number => keyOf(cellOf(position.x)
 const inIdOrder = (found: DataEntity[]): DataEntity[] => {
     for (let index = 1; index < found.length; index += 1)
         if (found[index - 1]!.id > found[index]!.id) return found.sort((a, b) => a.id - b.id);
-    return found;
-};
-
-/** Puts legacy entities in ascending runtime id order, checking first as {@link inIdOrder} does. */
-const inRuntimeIdOrder = (found: Entity[]): Entity[] => {
-    for (let index = 1; index < found.length; index += 1)
-        if (found[index - 1]!.getRuntimeId() > found[index]!.getRuntimeId()) return found.sort(byRuntimeId);
     return found;
 };
