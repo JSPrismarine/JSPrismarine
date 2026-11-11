@@ -20,7 +20,6 @@ import { PLAYER_SOFT_ENUM } from '../command/jsprismarineCommands';
 import { CommandEnum } from '@jsprismarine/protocol/wire/structures/CommandEnum';
 import { commandDataOf } from '../command/availableCommands';
 import type { Attribute, Attributes } from '@jsprismarine/protocol/wire/structures/Attribute';
-import type { Entity } from '../entity/Entity';
 import type { ShownActor } from '../world/ShownActor';
 import type { ShownPlayer } from '../world/ShownPlayer';
 import type { LiveOffer, TradeContext, TradeResult } from '@jsprismarine/trading';
@@ -296,6 +295,9 @@ interface OwnPlayer extends Pick<ShownPlayer, 'getPosition' | 'gamemode' | 'attr
     getInventory(): HumanInventory;
     getHealth(): number;
 }
+
+/** What a move packet reads of the actor that moved: its id, where it is, where it faces and whether it stands. */
+export type MovedActor = Pick<ShownActor, 'getRuntimeId' | 'getPosition' | 'pitch' | 'yaw' | 'headYaw' | 'isOnGround'>;
 
 export default class PlayerSession {
     private connection: ClientConnection;
@@ -846,7 +848,7 @@ export default class PlayerSession {
      *
      * The single-entity path, for something that has just entered the world rather than a
      * whole pass over everything in it.
-     * @param {Entity} entity - The entity to consider.
+     * @param {ShownActor} entity - The entity to consider.
      */
     public async considerEntity(entity: ShownActor): Promise<void> {
         if (!this.isConnected()) return;
@@ -862,7 +864,7 @@ export default class PlayerSession {
      *
      * Unconditional forgetting matters: a stale id left behind would make the tracker believe
      * the client still has an entity it does not, and block it from ever being sent again.
-     * @param {Entity} entity - The entity that is going away.
+     * @param {ShownActor} entity - The entity that is going away.
      */
     public async dropEntity(entity: ShownActor): Promise<void> {
         if (!this.entityTracker.remove(entity.getRuntimeId())) return;
@@ -2750,7 +2752,7 @@ export default class PlayerSession {
      * Packet construction lives here rather than on the entity: what goes on the wire is the
      * session's business, and an entity that built its own packets also had to reach into
      * the world for the list of players to send them to.
-     * @param {Entity} entity - The entity to show.
+     * @param {ShownActor} entity - The entity to show.
      */
     public async sendAddActor(entity: ShownActor): Promise<void> {
         const packet = new AddActorPacket();
@@ -2785,7 +2787,7 @@ export default class PlayerSession {
 
     /**
      * Sends every active effect after the actor that owns them has spawned.
-     * @param {Entity} entity - The spawned actor.
+     * @param {ShownActor} entity - The spawned actor.
      */
     public async sendStatusEffects(entity: ShownActor): Promise<void> {
         for (const effect of entity.getStatusEffects()) await this.sendStatusEffect(entity, effect, 'add');
@@ -2793,7 +2795,7 @@ export default class PlayerSession {
 
     /**
      * Sends one effect state change to this client.
-     * @param {Entity} entity - The actor whose effect changed.
+     * @param {ShownActor} entity - The actor whose effect changed.
      * @param {StatusEffect} effect - The effect state.
      * @param {StatusEffectChange} change - Whether it was added, updated, or removed.
      */
@@ -2868,7 +2870,7 @@ export default class PlayerSession {
      * packet's bytes as the fourth, and an empty slot has to travel as air. The main hand is a
      * separate packet because that is the one the client reads a held item from; the off hand
      * follows only when something is in it, the way vanilla sends it.
-     * @param {Entity} entity - Whose equipment it is.
+     * @param {ShownActor} entity - Whose equipment it is.
      */
     public async sendEquipmentFor(entity: ShownActor): Promise<void> {
         const worn = entity.getEquipment();
@@ -2903,7 +2905,7 @@ export default class PlayerSession {
 
     /**
      * Tells this client what another entity is holding.
-     * @param {Entity} entity - Whose hand it is in.
+     * @param {ShownActor} entity - Whose hand it is in.
      * @param {Item} item - What they are holding.
      */
     public async sendHeldItemFor(entity: ShownActor, item: Item): Promise<void> {
@@ -2946,7 +2948,7 @@ export default class PlayerSession {
 
     /**
      * Takes an entity off this connection.
-     * @param {Entity} entity - The entity to remove.
+     * @param {ShownActor} entity - The entity to remove.
      */
     public async sendRemoveActor(entity: ShownActor): Promise<void> {
         await this.sendRemoveActorById(entity.getRuntimeId());
@@ -2975,11 +2977,11 @@ export default class PlayerSession {
      *
      * Ordinary movement stays interpolated. A teleport sets the snap flag so a client does not
      * animate the actor across the distance between its old and new positions.
-     * @param {Entity} entity - The entity that moved.
+     * @param {MovedActor} entity - The entity that moved.
      * @param {boolean} teleport - Whether clients should snap to the new position.
      * @returns {MoveActorAbsolutePacket} The packet, not yet sent.
      */
-    private static movePacketFor(entity: Entity, teleport = false): MoveActorAbsolutePacket {
+    private static movePacketFor(entity: MovedActor, teleport = false): MoveActorAbsolutePacket {
         const packet = new MoveActorAbsolutePacket();
         packet.runtimeEntityId = entity.getRuntimeId();
         packet.position = entity.getPosition();
@@ -3005,9 +3007,9 @@ export default class PlayerSession {
      *
      * For a move that happens outside the world tick - a teleport, a command. Movement produced by
      * the tick goes through {@link queueMoveActor} instead.
-     * @param {Entity} entity - The entity that moved.
+     * @param {MovedActor} entity - The entity that moved.
      */
-    public async sendMoveActor(entity: Entity): Promise<void> {
+    public async sendMoveActor(entity: MovedActor): Promise<void> {
         await this.send(PlayerSession.movePacketFor(entity));
     }
 
@@ -3023,9 +3025,9 @@ export default class PlayerSession {
      *
      * One batch a tick fixes both: one compression, one frame, and one place in the queue for the
      * lot of them.
-     * @param {Entity} entity - The entity that moved.
+     * @param {MovedActor} entity - The entity that moved.
      */
-    public queueMoveActor(entity: Entity, teleport = false): void {
+    public queueMoveActor(entity: MovedActor, teleport = false): void {
         // Keyed by entity, so an entity that moved more than once this tick goes out once, at
         // where it ended up. `Entity.setX`, `setY` and `setZ` each announce a move of their
         // own, so a diagonal step produced three identical packets naming the same
