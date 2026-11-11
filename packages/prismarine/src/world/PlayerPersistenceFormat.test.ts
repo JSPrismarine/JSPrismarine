@@ -32,10 +32,10 @@ import { advancementsOf, loadAdvancements } from '../advancement/progress';
 import type { Config } from '../config/Config';
 import type Console from '../Console';
 import { enchantmentSeedOf } from '../enchantment/enchantingTable';
-import { entityFixture, FLOOR_Y } from '../entity/data/testing';
+import { entityFixture } from '../entity/data/testing';
 import { PLAYER_IDENTIFIER } from '../entity/playerOverlay';
-import { StorePlayer } from '../entity/storePlayer';
-import { enterStore, StorePlayers } from '../entity/data/storePlayers';
+import type { StorePlayer } from '../entity/storePlayer';
+import { enteredStorePlayer } from '../testing/storePlayer.test.helper';
 import ContainerEntry from '../inventory/ContainerEntry';
 import { Item } from '../item/Item';
 import type ClientConnection from '../network/ClientConnection';
@@ -293,10 +293,7 @@ const SHIPPED_PLAYER = {
 /** A store player built the way the store's player rules are tested, with the overlay's health. */
 const buildStorePlayer = (): StorePlayer => {
     const { runtime } = entityFixture(undefined, {}, { [PLAYER_IDENTIFIER]: SHIPPED_PLAYER });
-    const player = new StorePlayer(runtime.nextEntityId(), { uuid: IDENTITY, name: NAME, xuid: '' });
-    player.standAt({ x: 0.5, y: FLOOR_Y + 1, z: 0.5 });
-    if (enterStore(runtime, new StorePlayers(), player) === undefined) throw new Error('the store refused a player');
-    return player;
+    return enteredStorePlayer({ runtime }, { uuid: IDENTITY, name: NAME, xuid: '' }).player;
 };
 
 /** What the per-player services hold for the player both fixtures describe. */
