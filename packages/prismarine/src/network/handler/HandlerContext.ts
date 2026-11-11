@@ -18,6 +18,7 @@ import type { EventEmitter } from '../../events/EventEmitter';
 import type { CreativeInventory } from '../../inventory/CreativeInventory';
 import type { PermissionManager } from '../../permission/PermissionManager';
 import type SessionManager from '../../SessionManager';
+import type { WorldReplicators } from '../NetworkWorldReplicator';
 import type PlayerSession from '../PlayerSession';
 
 /** The logger levels a handler writes at. */
@@ -68,6 +69,8 @@ export interface HandlerServices {
     readonly commands: Pick<CommandManager, 'dispatchCommand'>;
     /** Chat fan-out, which runs the plugins' chat listeners, so a handler defers it. */
     readonly chat: Pick<ChatManager, 'send'>;
+    /** The per-world replicators, for a handler that relays a packet to the players near a point. */
+    readonly replicators: Pick<WorldReplicators, 'for'>;
     /** The console, as the sender of a server-issued line. */
     readonly console: ConsoleSender;
     /** The plugin events a handler raises. */
