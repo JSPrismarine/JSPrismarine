@@ -85,6 +85,19 @@ const paused = ref(false);
     transform: translateY(-50%);
 }
 
+/* A pointer can hover, and hovering already stops the band, so the button shows only then, on
+   keyboard focus, or while paused. Touch screens cannot hover and keep it in view. */
+@media (hover: hover) and (pointer: fine) {
+    .ticker__toggle {
+        opacity: 0;
+        transition: opacity 0.15s;
+    }
+
+    .ticker:is(:hover, :focus-within, .is-paused) .ticker__toggle {
+        opacity: 1;
+    }
+}
+
 @media (prefers-reduced-motion: reduce) {
     .ticker__track {
         animation: none;

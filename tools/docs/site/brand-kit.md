@@ -157,7 +157,8 @@ export const names = Object.keys(palette).slice(0, 3);
 
 ### Ticker
 
-It stops on hover and has a Pause button. Under reduced motion it does not move, and the button is
+It stops on hover and has a Pause button, which a mouse sees on hover and a touch screen always
+shows. Under reduced motion it does not move, and the button is
 hidden.
 
 <Ticker :items="['Play it', 'Host it', 'Build on it', 'Fix it']" />
