@@ -65,7 +65,7 @@ const logger = new Logger(config.getLogLevel());
 const server = new Server({ config, logger });
 
 server.on('playerSpawn', (event) => {
-    logger.info(`${event.getPlayer().getName()} spawned`);
+    logger.info(`${event.getIdentity().name} spawned`);
 });
 
 server.on('chat', (event) => {

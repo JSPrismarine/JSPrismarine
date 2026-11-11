@@ -1,5 +1,5 @@
 import PlayerEvent from './PlayerEvent';
-import type Player from '../../Player';
+import type { PlayerEventSubject } from './PlayerEvent';
 
 /**
  * Fired as a player's operator status is changed
@@ -7,8 +7,8 @@ import type Player from '../../Player';
 export default class playerToggleOperatorEvent extends PlayerEvent {
     private readonly operator: boolean;
 
-    public constructor(player: Player, operator: boolean) {
-        super(player);
+    public constructor(subject: PlayerEventSubject, operator: boolean) {
+        super(subject);
         this.operator = operator;
     }
 

@@ -1,27 +1,40 @@
-import type Player from '../../Player';
-import { sessionPlayerRefOf } from '../../network/sessionPlayers';
-import type { SessionPlayerRef } from '../../network/sessionPlayers';
+import type PlayerSession from '../../network/PlayerSession';
 import type { PlayerIdentity } from '../../playerIdentity';
 import { Event } from '../Event';
 
 /**
+ * Who a player event is about: the player's session, or anything that answers for it.
+ *
+ * The second form is for code that still holds the player object; package H-D of the entity and
+ * tick re-architecture passes the session everywhere and drops it.
+ */
+export type PlayerEventSubject = PlayerSession | { getNetworkSession(): PlayerSession };
+
+/**
+ * The session a subject names.
+ * @param subject - The session, or what answers for it.
+ * @returns The session.
+ */
+const sessionOfSubject = (subject: PlayerEventSubject): PlayerSession =>
+    'getNetworkSession' in subject ? subject.getNetworkSession() : subject;
+
+/**
  * An event about one player.
  *
- * It names the player by its runtime id and the identity it logged in with, which a session holds
- * too and which stay right once the player has left. A listener that needs to act on the player
- * still has the player object.
+ * It names the player by its runtime id and the identity it logged in with, which stay right once
+ * the player has left, and hands a listener that acts on the player its session.
  */
 export default class PlayerEvent extends Event {
-    private readonly player: Player;
-    /** Read off the player the first time a listener asks for it. */
-    private ref: SessionPlayerRef | undefined;
+    private readonly subject: PlayerEventSubject;
+    /** Found through the subject the first time a listener asks for it. */
+    private session: PlayerSession | undefined;
 
     /**
-     * @param player - The player the event is about.
+     * @param subject - The player the event is about, as its session.
      */
-    public constructor(player: Player) {
+    public constructor(subject: PlayerEventSubject) {
         super();
-        this.player = player;
+        this.subject = subject;
     }
 
     /**
@@ -29,7 +42,7 @@ export default class PlayerEvent extends Event {
      * @returns The id.
      */
     public getRuntimeId(): bigint {
-        return this.refOf().runtimeId;
+        return this.getSession().runtimeId;
     }
 
     /**
@@ -37,20 +50,17 @@ export default class PlayerEvent extends Event {
      * @returns The name, the XUID (empty when the login carried none) and the UUID.
      */
     public getIdentity(): PlayerIdentity {
-        return this.refOf().identity;
+        return this.getSession().identity;
     }
 
     /**
-     * The player the event is about, for a listener that acts on it. To name the player, read
-     * {@link PlayerEvent.getRuntimeId} or {@link PlayerEvent.getIdentity}.
-     * @returns The player.
+     * The session of the player the event is about, for a listener that acts on the player: it
+     * sends to the client, and `getPlayer()` reaches the player's state while it is connected.
+     * To name the player, read {@link PlayerEvent.getRuntimeId} or {@link PlayerEvent.getIdentity}.
+     * @returns The session.
      */
-    public getPlayer(): Player {
-        return this.player;
-    }
-
-    private refOf(): SessionPlayerRef {
-        this.ref ??= sessionPlayerRefOf(this.player);
-        return this.ref;
+    public getSession(): PlayerSession {
+        this.session ??= sessionOfSubject(this.subject);
+        return this.session;
     }
 }

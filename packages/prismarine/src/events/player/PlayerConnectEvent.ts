@@ -1,6 +1,6 @@
 import PlayerEvent from './PlayerEvent';
 import type { InetAddress } from '@jsprismarine/raknet';
-import type Player from '../../Player';
+import type { PlayerEventSubject } from './PlayerEvent';
 
 /**
  * Fired just after a client has connected to the raknet instance
@@ -8,8 +8,8 @@ import type Player from '../../Player';
 export default class PlayerConnectEvent extends PlayerEvent {
     private readonly inetAddr;
 
-    public constructor(player: Player, inetAddr: InetAddress) {
-        super(player);
+    public constructor(subject: PlayerEventSubject, inetAddr: InetAddress) {
+        super(subject);
         this.inetAddr = inetAddr;
     }
 
