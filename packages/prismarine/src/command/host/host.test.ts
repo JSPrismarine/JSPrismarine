@@ -125,6 +125,8 @@ const buildFixture = (): Fixture => {
         getActors: () => entities,
         getActor: (runtimeId: bigint) => entities.find((entity) => entity.getRuntimeId() === runtimeId) ?? null,
         getPlayers: () => players,
+        viewerOf: (runtimeId: bigint) =>
+            players.find((player) => player.getRuntimeId() === runtimeId)?.getNetworkSession(),
         getTicks: () => ticks,
         setTicks: (value: number) => {
             ticks = value;
