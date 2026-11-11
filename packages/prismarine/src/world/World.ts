@@ -1058,6 +1058,17 @@ export class World implements Service {
         if (outcome.failed) throw outcome.error;
     }
 
+    /**
+     * {@link World.runInput} for a synchronous input-lane handler, whose unit closes when it
+     * returns.
+     *
+     * @param apply - The input's handler.
+     */
+    public runInputNow(apply: () => void): void {
+        const outcome = this.getEntityStore().unit(apply);
+        if (outcome.failed) throw outcome.error;
+    }
+
     /** The phases of one tick, which {@link World.update} runs inside an open log tick. */
     private async tickWorld(tick: number): Promise<void> {
         // A tick already in flight when the shutdown starts would otherwise run on through

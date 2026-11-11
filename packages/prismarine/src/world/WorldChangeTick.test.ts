@@ -287,6 +287,37 @@ describe('a world tick and its change log', () => {
         expect(world.lastChangeTick()?.entries).toEqual([]);
     });
 
+    it('undoes a synchronous input that throws, and keeps the writes of one that returns', () => {
+        const { world, runtime } = worldWithStore();
+        const cow = runtime.spawn('minecraft:cow', { x: 0.5, y: FLOOR_Y + 1, z: 0.5 });
+        if (cow === undefined) throw new Error('the fixture declares no cow');
+        const before = runtime.savedFormOf(cow);
+
+        world.beginChangeTick();
+        expect(() =>
+            world.runInputNow(() => {
+                cow.instance.attributes.set('health', 1);
+                throw new Error('the handler failed');
+            })
+        ).toThrow('the handler failed');
+        expect(runtime.savedFormOf(cow)).toEqual(before);
+
+        world.runInputNow(() => {
+            cow.body.nameTag = 'Daisy';
+        });
+        world.sealChangeTick();
+
+        expect(world.lastChangeTick()?.entries).toEqual([
+            {
+                kind: 'field',
+                field: 'entity',
+                address: { entity: BigInt(cow.id), field: 'nameTag' },
+                before: null,
+                after: 'Daisy'
+            }
+        ]);
+    });
+
     it('names a chunk that enters the world in the tick that admitted it', async () => {
         const { world } = worldWithStore();
         world.beginChangeTick();

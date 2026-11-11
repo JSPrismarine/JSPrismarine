@@ -23,3 +23,20 @@ export const applyInput = async (session: PlayerSession, apply: () => Promise<vo
     if (world === undefined) return apply();
     return world.runInput(async () => apply());
 };
+
+/**
+ * {@link applyInput} for a synchronous input-lane handler: the unit opens and closes around the
+ * call, so nothing another input or the tick does lands in its span.
+ *
+ * @param session - The session the packet arrived on.
+ * @param apply - The handler, applied to that session.
+ */
+export const applyInputNow = (session: PlayerSession, apply: () => void): void => {
+    // Read through optional calls: a dispatcher test hands handlers a partial session.
+    const world = session.getWorld?.();
+    if (world === undefined) {
+        apply();
+        return;
+    }
+    world.runInputNow(apply);
+};
