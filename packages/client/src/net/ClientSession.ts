@@ -5,6 +5,7 @@ import { SendPriority } from './ITransport';
 import type { Logger } from '@jsprismarine/logger';
 import type { CompressionSettings, NetworkPacket } from '@jsprismarine/protocol';
 import ClientPacketRegistry from './ClientPacketRegistry';
+import type { ClientContext, ClientPacketHandler, ClientPhase } from './ClientHandler';
 import type { ITransport } from './ITransport';
 
 /**
@@ -53,8 +54,14 @@ export default class ClientSession extends EventEmitter {
     /** Sends still compressing, which have not reached the transport yet. */
     private readonly pendingSends = new Set<Promise<void>>();
 
-    /** Work packet listeners started and handed to {@link ClientSession.track}, still running. */
+    /** Work packet handlers and listeners started, still running. */
     private readonly pendingWork = new Set<Promise<unknown>>();
+
+    /** The phase whose handlers run; the login sequence moves it to `play`. */
+    private phase: ClientPhase = 'login';
+
+    /** What every handler is handed. */
+    private readonly context: ClientContext;
 
     public constructor(
         private readonly transport: ITransport,
@@ -62,6 +69,7 @@ export default class ClientSession extends EventEmitter {
         private readonly logger: Logger
     ) {
         super();
+        this.context = { session: this, log: logger };
 
         this.transport.on('batch', (payload) => {
             this.pendingBatches++;
@@ -106,6 +114,35 @@ export default class ClientSession extends EventEmitter {
         return this.codec.isCompressionEnabled();
     }
 
+    /** The phase this session is in, which decides the handlers a packet reaches. */
+    public getPhase(): ClientPhase {
+        return this.phase;
+    }
+
+    /**
+     * Moves the session to another phase. A packet decoded after this reaches only the handlers
+     * that accept the new one.
+     * @param phase - The phase to move to.
+     */
+    public setPhase(phase: ClientPhase): void {
+        this.phase = phase;
+    }
+
+    /**
+     * Registers a handler for the packets one class decodes; see
+     * {@link ClientPacketRegistry.registerHandler}.
+     *
+     * A handler runs as its packet is read, after the session's `packet` event. What it returns
+     * is counted by {@link ClientSession.isIdle} until it settles, and a failure is logged as a
+     * warning.
+     * @param packet - The packet class whose payload the handler takes.
+     * @param handler - The handler.
+     * @returns A function that removes the handler again.
+     */
+    public registerHandler<T>(packet: new () => NetworkPacket<T>, handler: ClientPacketHandler<T>): () => void {
+        return this.registry.registerHandler(packet, handler);
+    }
+
     /**
      * Serializes a packet, batches it and hands it to the transport.
      * @param packet - a packet already carrying its data.
@@ -143,8 +180,9 @@ export default class ClientSession extends EventEmitter {
     }
 
     /**
-     * Counts work a packet listener started, such as signing a login or answering a dimension
-     * change, until it settles, so {@link ClientSession.isIdle} stays false meanwhile.
+     * Counts work a packet listener started until it settles, so {@link ClientSession.isIdle}
+     * stays false meanwhile. The session does this itself for what a registered handler
+     * returns, such as signing a login or answering a dimension change.
      *
      * A listener runs synchronously inside the batch that carried its packet, but what it
      * awaits finishes later, and a reply it sends after that await is not yet a send this
@@ -209,6 +247,16 @@ export default class ClientSession extends EventEmitter {
 
             this.logger.silly(`Received §b${decoded.name}§r`);
             this.emit('packet', decoded);
+            for (const work of this.registry.dispatch(decoded, this.phase, this.context)) {
+                this.track(work).catch((error: unknown) => {
+                    this.logger.warn(
+                        `Client/ClientSession: the ${decoded.name} handler failed: ${
+                            error instanceof Error ? error.message : String(error)
+                        }`,
+                        'Client/ClientSession/handleBatch'
+                    );
+                });
+            }
             this.emit(`packet:${decoded.id}`, decoded.data);
         }
     }
