@@ -150,7 +150,8 @@ As of 2026-11-11. The rows through C4f were checked at program head `7265972882`
 | D1 the shared handler shape, the narrow context and the proxy test | Landed on the program branch, with four handlers converted; see the D1 notes under phase D |
 | D3 block and block entity writes through logged setters | Landed on the program branch, see the D3 notes under phase D |
 | D2 the remaining handlers on the context, with its close | Landed on the program branch, with D2a to D2g and the close; see the D2 notes under phase D |
-| D4, and phases E and F | Not started |
+| D4 replication reads the log | Split into D4a to D4f, see the D4 section under phase D. D4a has landed on the program branch |
+| Phases E and F | Not started |
 
 ## Phases and work packages
 
@@ -896,6 +897,57 @@ D3, the logged block writes, left these for D4 and later packages.
   3. A lit furnace appends one `data` entry a tick, and a spawner near a player one each tick its delay counts down. Each carries the block entity's tags without its stacks, before and after.
   4. A change that only reorders an `Items` list logs nothing, though the chunk's bytes change. Every writer in this server keeps stacks in slot order.
 - Checks at D3's head, on program head `d2d36c1c2f`: `pnpm run typecheck`, the Prismarine suite with `JSP_CONTENT_VANILLA=1` (431 files, 4362 tests), the block-behaviors (27 files) and engine-systems (8 files) suites, `SessionReplay.test.ts`, the whole parity suite (53 files, the block and redstone families among them), and client e2e `block-placement`, `mining-drops`, `lever-lamp`, `furnace`, `lit-furnace`, `farmland`, `edge-chunk-block-change` and `sub-chunk-block-changes` pass. No replay digest changed.
+
+#### D4: replication reads the change log
+
+D4 is the rest of slice 7: replication reads each sealed tick of the change log, keeps a replica, computes each change's audience once and encodes once for each codec and compression group, and the simulation stops sending. It splits into six packages. D4a comes first, because every other package reads the log through what it builds. D4b and D4d then run side by side, D4c and D4e run side by side after them, and D4f closes the slice.
+
+Where things stand at program head `204b9acc66`:
+
+- The log is complete for blocks, block entities, entity fields, inventory slots and membership (D3, C1c, C4c). Writes between ticks are counted as unlogged and are not in it.
+- The replicator (`network/NetworkWorldReplicator.ts`) is a `WorldChangeSink`. The world pushes `block-set` and `block-entity-set` through `worldChanged` for every write and every undo, and the replicator collects them and sends them in the tick's flush phases, which run before the tick's log is sealed.
+- Entities reach clients through `StoreActors.sync`, which compares each actor with what it last sent: health, equipment (one equipment set built per store player a tick), the owner, the metadata inputs, the synced properties and the pose. `showPlayerState` throttles breath with `breathWorthSending`. A first sight calls `spawnTo` once for each viewer, which reads the live entity and encodes for that viewer.
+- Transient facts (sounds, particles, level events, actor events) are sink methods that send at once. Handlers relay through `step.output`, and `PlayerSession` sends to its own client and awaits the send in the middle of simulation code. 184 lines of `PlayerSession.ts` await something.
+- `broadcastSharedBatches` and the block flush already encode once for each codec and compression group. `spawnTo`, `sendAddPlayer` and the per-session sends do not.
+
+The slice 7 items that earlier packages left, and the package that takes each:
+
+| Item | From | Package |
+| --- | --- | --- |
+| `UpdateBlock` from `block` entries, `BlockActorData` from `block-entity` entries folded with `withBlockEntityField`, and `WorldChangeSink`'s `block-set` and `block-entity-set` deleted | D3's "For D4" 1 and 2 | D4a |
+| A lit furnace's and a spawner's `data` entry each tick, and an `Items` reorder that logs nothing | D3's "For D4" 3 and 4 | D4a (sent as before; the reorder stays unlogged, as D3 found no writer that makes one) |
+| `StoreActors.sync`'s comparisons and the per-tick equipment comparison | C3, C4g, C4h | D4c, over D4b's replica |
+| The breath send, its throttle and the player state metadata | C4d, C4h item 15 | D4c |
+| The motion send for an `impulse` occurrence | C3, C4b | D4d |
+| The status effect clock and the actor record tags (`persistentNbt`), which the actor keeps outside the store | C3 | D4b gives them logged homes |
+| Merchant offers, saved and hashed but not logged, because a trade changes the `Merchant` in place | C2 | D4b logs them, D4e sends them to the trader from the log |
+| A stack network id after an undo: the slot has to be sent again | C4c | D4e |
+| `step.defer` 1 of D2c: `SetPlayerGameType`, `PlayerSession.setGamemode` | D2c | D4e |
+| `step.defer` 8 of D2d: `InventoryTransaction` melee, `meleeAttack` awaits its sounds | D2d | D4e, after D4d makes the sounds occurrences |
+| `step.defer` 4 of D2f: `SetLocalPlayerAsInitialized`, `World.addPlayer` and `completeSpawn` | D2f | D4e |
+| Writes that stay in a handler's unit only because they come before the method's first `await`: `setFlying`, `openMainInventory`, `releaseArrivalChunks`, `dropContents`, `setPlayerPosition`, `setSprinting`, `dropFromPlayer`, `loose` | D2c, D2d | D4e removes the sends those methods await |
+| Advancement triggers read from the log keep their timing (`gameplay.combat-advancements`) | C3, "Checks to run" | D4d |
+| "Encode calls for one broadcast occurrence equal the number of codec and compression groups" | Targets | D4d for occurrences, D4c for first sights |
+| "Replication visits entities in proportion to log entries, not to the number of entities" | Targets | D4a for blocks and block entities, D4c for entities |
+| "A snapshot plus the log reproduces the replay digest" | Targets | D4f |
+| Outbound packets count toward the tick that produced them | Slice 7, ADR 0006 | D4f |
+
+| Package | Depends on | Files | What is not mechanical | Gate beyond the unit tests |
+| --- | --- | --- | --- | --- |
+| D4a the block replica | D3 | New `network/replica/BlockReplica.ts`; the block and block entity parts of `NetworkWorldReplicator.ts` and `WorldChangeSink.ts`; `WorldChange.ts`, deleted; in `World.ts`, `update` and the block write, undo, resend and chunk paths; `EntityStore.ts`'s handling of writes between ticks; a `block-shown` occurrence in `ChangeEntry.ts` | A block entity's compound is folded from its fields, and the fields a tick did not change come from the replica, which takes a chunk's block entities when the chunk enters (the chunk's content arrives as an input under ADR 0012, so this is the input and not a read of the simulation). The seal moves ahead of the flush phases, so the flushes read a sealed tick. Block writes between ticks, such as a command from a tick function, are logged at the start of the next tick, which is when their packets went out before. `resendBlock` changes no state and becomes an occurrence. An undone unit's writes leave the log, so they send nothing | Proxy tests: reading a tick folds only the block entities the tick's entries name, whatever number the replica holds; a `BlockActorData` carries the bytes the block entity's own `toNBT` gives; a unit of block writes that throws sends nothing; a block write between ticks is sent in the next tick's flush. Replica entries and bytes through `reportProgress`. Replay digests; parity `blocks.behavior`, `integration.block-behaviors`; client e2e `block-placement`, `mining-drops`, `lever-lamp`, `furnace`, `lit-furnace`, `farmland`, `edge-chunk-block-change`, `sub-chunk-block-changes` |
+| D4b the entity replica | D4a | New `network/replica/EntityReplica.ts`; the metadata projection helpers moved out of `entity/data/storeActors.ts` into a module the actor and the replica share; the status effect clock and `persistentNbt` in `storeActors.ts`; merchant offers in `entity/data/trading.ts` | Every field a client is shown needs a logged home before the replica can be built from the log alone: the status effect clock, the actor record tags and the offers are not logged today. The replica is folded from a membership entry's saved form and the entity and slot entries after it, so the projection has to run from plain data. Logging the offers changes no state, so no digest moves | Proxy test: for every entity in the replay scenarios, the replica folded from the log equals the projection the actor makes from live state, tick by tick. Replica entries and bytes through `reportProgress`. Replay digests; parity `entities.addactor`, `gameplay.brain-effects` |
+| D4c entity replication | D4b | `entity/data/storeActors.ts`, `entity/data/storePlayers.ts`, `world/ShownActor.ts`, the entity parts of `NetworkWorldReplicator.ts` and `WorldChangeSink.ts` (`reconcile`, `entityMoved`, `flushMovement`, `entityAdded`, `entityRemoved`, the attribute, metadata, equipment and status effect changes), the tracking phase in `World.ts`, and `PlayerSession.sendAddPlayer` | `StoreActors.sync` and its comparisons go: moves come from position entries, health and metadata from the replica, equipment from `inventory-slot` entries, a removal from a leave entry. A first sight is answered from the replica and encoded once for each group, so `spawnTo` stops reading the live entity. Breath goes out from `vitals.air` entries with the same throttle. The tracking phase moves after the seal. Entity writes between ticks are carried into the next tick as D4a carries block writes | Proxy tests: with N entities and k of them written in a tick, replication visits k; a first sight to V viewers in G groups encodes G times. Replay digests; parity `entities.addactor`, `integration.client-packets`; client e2e `movement-fanout`, `movement-rotation`, `look-direction`, `gait`, `summon-entity`, `attack-entity`, `damage`, `item-drop-pickup`, `natural-spawn-placement`, `ender-dragon` |
+| D4d occurrences | D4a | `world/changelog/ChangeEntry.ts`'s occurrence kinds; the transient members of `WorldChangeSink.ts` and their parts of `NetworkWorldReplicator.ts` (`blockSound`, `namedSound`, `namedParticle`, `worldEffect`, `actorEffect`, `actorSound`); the methods in `World.ts` that call them; the relaying handlers (`Animate`, `ActorEvent`, `Emote`, `LevelSoundEvent`); `entity/data/live.ts`' impulse send | Each transient fact becomes an occurrence that replication encodes once for each group, after the seal. An occurrence in a unit that throws is removed with it, so a sound for an undone action no longer plays. Advancement triggers that observers read from the log have to fire at the same point as the inline triggers did | Proxy test: one broadcast occurrence to V viewers in G groups encodes G times. Parity `gameplay.combat-advancements`; client e2e `attack-entity`, `player-knockback`, `damage`, `eating`, `lever-lamp`, `block-placement` |
+| D4e the owner's view | D4b, D4d | `network/PlayerSession.ts`; the three handlers with slice 7 `step.defer` calls (`SetPlayerGameType`, `InventoryTransaction`, `SetLocalPlayerAsInitialized`); the inventory and trade screen sends | The simulation stops awaiting sends to the player's own client. Slots reach their owner from `inventory-slot` entries, and a slot whose write was undone is sent again, because the stack's network id changed. The trader is sent offers from the log. The three deferred pieces run in the handler | The `step.defer` count lowered by three, and the awaits reachable from `World.update` through `reportProgress`. Replay digests; client e2e `spawn`, `rejoin`, `death-respawn`, `villager-trade`, `recipe-book`, `eating`, `attack-entity`, `teleport` |
+| D4f the close | D4c, D4e | `WorldChangeSink.ts` reduced to the sealed tick and what is left; the replay recorder; a snapshot test beside `SessionReplay.test.ts`; the docs the slice invalidates | A packet replication sends counts toward the sealed tick it read, not the tick the transport framed it in (ADR 0006). A snapshot plus the log reproduces the replay digest only if everything the digest hashes is logged or held in the snapshot: D3 found that scheduled block and fluid ticks, the light queue and the block update queue are hashed and not logged, so this package logs them or puts them in the snapshot and says which | Everything in the gate for each slice, the full client e2e suite, and the three targets gating |
+
+Rules that keep the packages apart:
+
+- D4a lands first. The others build on its sealed-tick reader, its `network/replica/` module and its carrying of writes between ticks into the next tick.
+- `NetworkWorldReplicator.ts`, `WorldChangeSink.ts` and `World.ts` are shared by section: D4c owns the entity members and the tracking phase, D4d the transient members and the methods that call them. Neither moves the other's members.
+- D4c owns `storeActors.ts` and `storePlayers.ts`; D4e owns `PlayerSession.ts`. `sendAddPlayer` is D4c's, and D4e does not edit it.
+- No D4 package edits the D2 close's files (`PacketHandler.ts`, `SessionHandler.ts`, `handlerContexts.ts`, `NetworkDispatcher.ts`, `PacketHandlerRegistry.ts`, `noServerAccess.test.ts`, `Lane.test.ts`) until the close has landed.
+- Each package adds its own Changeset. The sink is public through Prismarine's `"./*"` export, so a package that changes its members adds a `minor` one.
 
 ### Phase E: the synchronous tick
 
