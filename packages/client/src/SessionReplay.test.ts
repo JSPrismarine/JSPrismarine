@@ -1040,9 +1040,13 @@ describe('live session replay', () => {
                 const entries = first.changeLogCosts.map(([, cost]) => cost.entries);
                 const bytes = first.changeLogCosts.map(([, cost]) => cost.bytes);
                 const sum = (values: readonly number[]) => values.reduce((total, value) => total + value, 0);
+                const blockEntries = first.changeLogCosts.map(([, cost]) => cost.blockEntries);
+                const blockBytes = first.changeLogCosts.map(([, cost]) => cost.blockBytes);
                 reportProgress(
                     `change log over ${entries.length} replayed ticks: ${sum(entries)} entries and ${sum(bytes)} bytes, ` +
-                        `at most ${Math.max(0, ...entries)} entries and ${Math.max(0, ...bytes)} bytes in one tick`,
+                        `at most ${Math.max(0, ...entries)} entries and ${Math.max(0, ...bytes)} bytes in one tick; ` +
+                        `blocks and block entities ${sum(blockEntries)} entries and ${sum(blockBytes)} bytes, ` +
+                        `at most ${Math.max(0, ...blockEntries)} entries and ${Math.max(0, ...blockBytes)} bytes in one tick`,
                     'Change log cost'
                 );
             } finally {
