@@ -1,4 +1,5 @@
 import { loadProject } from '../../project.mts';
+import { overviewGroups } from './overviewGroups.mts';
 import { exampleExecutable } from './theme/landing.ts';
 import type { MegaMenu } from './theme/types.ts';
 
@@ -9,65 +10,15 @@ const startCommand = `./${exampleExecutable(loadProject())}`;
 export const megaMenus = [
     {
         text: 'Guides',
-        description: 'Play on, host and configure a server.',
+        description: 'Play on, host, extend or work on a server.',
         featured: {
             text: 'Run a server',
             description: 'Download the prebuilt server and start it. Nothing else to install.',
             command: startCommand,
             link: '/guide/running#run-the-prebuilt-server'
         },
-        sections: [
-            {
-                text: 'Play',
-                items: [
-                    {
-                        text: 'Joining a server',
-                        description: 'Add a server in Minecraft, versions and fixes.',
-                        link: '/guide/joining'
-                    },
-                    {
-                        text: 'Commands and functions',
-                        description: 'Run commands and .mcfunction files.',
-                        link: '/data-driven/commands'
-                    }
-                ]
-            },
-            {
-                text: 'Host a server',
-                items: [
-                    {
-                        text: 'Run the prebuilt server',
-                        description: 'Download, first start and updates.',
-                        link: '/guide/running#run-the-prebuilt-server'
-                    },
-                    {
-                        text: 'Every setting',
-                        description: 'What each key in config.json does.',
-                        link: '/guide/running#every-setting'
-                    },
-                    {
-                        text: 'Log levels',
-                        description: 'What each level prints and how to change it.',
-                        link: '/guide/log-levels'
-                    }
-                ]
-            },
-            {
-                text: 'Data-driven engine',
-                items: [
-                    {
-                        text: 'Overview',
-                        description: 'How vanilla behavior comes from data.',
-                        link: '/data-driven/'
-                    },
-                    {
-                        text: 'Using packs',
-                        description: 'Load and write your own data packs.',
-                        link: '/data-driven/using-packs'
-                    }
-                ]
-            }
-        ]
+        // The guide overview's audience groups, so the menu, the sidebar and the page always agree.
+        sections: overviewGroups('guide')
     },
     {
         text: 'Build',

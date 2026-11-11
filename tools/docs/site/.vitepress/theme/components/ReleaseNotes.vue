@@ -180,11 +180,12 @@ function toggle(key: string) {
     overflow-wrap: anywhere;
 }
 
-/* Release notes name many identifiers; mono and color mark them without a chip on every one. */
+/* Release notes name many identifiers; mono marks them without a chip on every one. They keep the
+   body color, so accent still means a link. */
 .release__text :deep(:not(pre) > code) {
     padding: 0;
     font-size: 0.9em;
-    color: var(--vp-code-color);
+    color: var(--vp-c-text-1);
     background: none;
 }
 

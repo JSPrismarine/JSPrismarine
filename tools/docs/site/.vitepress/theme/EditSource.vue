@@ -9,7 +9,10 @@ interface EditSource {
 }
 
 const { frontmatter } = useData();
-const source = computed((): EditSource | undefined => frontmatter.value.editSource);
+/** `editLink: false` in front matter drops the link, as it does VitePress's own edit link. */
+const source = computed((): EditSource | undefined =>
+    frontmatter.value.editLink === false ? undefined : frontmatter.value.editSource
+);
 </script>
 
 <template>

@@ -3,6 +3,7 @@ title: Guides
 description: Where to start, whether you play on, host, extend or work on a JSPrismarine server.
 aside: false
 pageClass: is-wide
+lastUpdated: false
 ---
 
 # Guides

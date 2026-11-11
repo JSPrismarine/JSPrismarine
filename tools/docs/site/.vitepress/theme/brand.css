@@ -206,6 +206,19 @@
     border-color: var(--jsp-accent);
 }
 
+/* "Next page" is a label like any other: mono, uppercase, at the label floor. */
+.VPDocFooter .pager-link .desc {
+    font: 700 var(--jsp-label-size) var(--vp-font-family-mono);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+.VPDocFooter .pager-link .title {
+    font-size: 17px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+}
+
 /*
  * The language label is a mono label like any other, so it keeps the label floor. The copy button now
  * shows at rest, so the label sits beside it rather than under it, and stays visible on hover.

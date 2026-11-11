@@ -78,8 +78,9 @@ Rules:
 
 Headlines are set heavy and tight, in sentence case, and are allowed to be very large. Small labels
 are mono, uppercase and letter-spaced, and never smaller than `--jsp-label-size`: that holds
-for key hints, counts, dates, version tags and code-language labels too. System fonts are the
-fallback when the web fonts do not load.
+for key hints, counts, dates, version tags and code-language labels too. Identifiers, such as
+package names and parity family ids, are mono, never display type, whose tight tracking hides their
+dots. System fonts are the fallback when the web fonts do not load.
 
 ## Mark
 
@@ -135,8 +136,8 @@ scrolling off the screen edge, and a two-column table stacks each row as its nam
   Overview pages whose sections are lists of links set those sections as cards (`sectionCards.ts`),
   on a grid that reads left to right in the page's order, at full width with no outline, since the
   cards are the outline.
-- Release notes lead each change with its first sentence in bold. Inline code in them is mono and
-  colored without a chip.
+- Release notes lead each change with its first sentence in bold. Inline code in them is mono in the
+  body color, without a chip, so accent still means a link.
 - The parity tracker's rows and group tiles mark anything under
   half passing with a signal square. Its status chips differ by shape as well as color, and only
   defects and failures are filled signal. Group tiles count the behavior checks when a group has
@@ -169,7 +170,8 @@ The site has one menu, in `tools/docs/site/.vitepress/theme/site-menu/`, drawn f
 - **It grows out of the header.** The header's bottom edge is the panel's top edge. The open section's
   button becomes an ink tab that runs into the panel, and search opens in the header itself.
 - **Ink means open.** The tab, the panel, the search field and, on phones, the header turn ink while
-  the menu is open, and the panel ends on an accent rule.
+  the menu is open, and the panel ends on an accent rule. The dark header is nearly ink already, so in
+  dark mode the open menu takes the deep surface instead.
 - **You leave where you entered.** Close sits exactly where Menu was, and Esc returns focus to the
   button or field that opened the menu.
 - **It shows no key hints.** The menu keeps the keyboard behavior of a disclosure menu, but only
@@ -179,7 +181,8 @@ The site has one menu, in `tools/docs/site/.vitepress/theme/site-menu/`, drawn f
   highlighted, and a breadcrumb above the page names both. A section's index page counts as current
   in the first menu that lists pages in its folder, even when no menu links the index itself. When
   the menus link only to sections of the page being read, the first of those links marks it.
-- The Guides menu groups pages under the same audience names as the guide overview.
+- The Guides menu takes its groups and links from the guide overview (`overviewGroups.mts`), as the
+  sidebar does, so the menu, the sidebar and the page always name the same audiences.
 
 ## Voice
 

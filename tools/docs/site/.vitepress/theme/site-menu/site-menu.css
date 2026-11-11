@@ -14,8 +14,10 @@
 }
 
 .dark {
-    /* On a dark page the panel lifts slightly off the background, so the open menu still has an edge. */
-    --site-menu-surface: color-mix(in srgb, var(--jsp-ink) 78%, var(--jsp-forest));
+    /* The dark header is nearly ink, so an ink tab would vanish into it; the open menu takes the deep
+       surface, as the ticker does on the dark page. */
+    --site-menu-surface: var(--jsp-deep);
+    --site-menu-line: color-mix(in srgb, var(--jsp-deep) 70%, var(--jsp-mint));
 }
 
 /* VitePress's own menu button and small-screen menu are replaced by SitePhoneMenu. */

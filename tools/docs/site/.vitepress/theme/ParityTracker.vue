@@ -868,10 +868,9 @@ progress::-moz-progress-bar {
     transform: rotate(90deg);
 }
 
+/* Family names are identifiers, so they are mono: the display face's tight tracking hides the dots. */
 .family-name {
-    font-size: 17px;
-    font-weight: 800;
-    letter-spacing: -0.02em;
+    font: 700 15px var(--vp-font-family-mono);
     overflow-wrap: anywhere;
 }
 
