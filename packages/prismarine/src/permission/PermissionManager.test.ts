@@ -8,8 +8,9 @@ import pkg from '../../package.json' with { type: 'json' };
 import Console from '../Console';
 import { parseConfigDocument } from '../config/ConfigDocument';
 import type Player from '../Player';
-import type PlayerSession from '../network/PlayerSession';
 import type SessionManager from '../SessionManager';
+import type PlayerToggleOperatorEvent from '../events/player/PlayerToggleOperatorEvent';
+import type PlayerSession from '../network/PlayerSession';
 import { fakePlayer } from '../testing/fakePlayer.test.helper';
 import { stub } from '../testing/stub.test.helper';
 import UUID from '@jsprismarine/protocol/wire/structures/UUID';
@@ -247,6 +248,38 @@ describe('permission', () => {
             writeFileSync(path.join(directory, 'permissions.json'), '{ "defaultPermissions": [');
 
             await expect(manager.enable()).rejects.toThrow('Invalid permissions.json file.');
+        });
+
+        it('makes an online player an operator through its session', async () => {
+            const uuid = '00000000-0000-0000-0000-000000000007';
+            const sent: string[] = [];
+            const session = stub<PlayerSession>({
+                identity: identityNamed('carol', uuid),
+                sendAvailableCommands: async () => void sent.push('commands'),
+                announceSettings: async () => void sent.push('settings')
+            });
+            const posted: PlayerToggleOperatorEvent[] = [];
+            const opManager = new PermissionManager({
+                getLogger: () => logger,
+                getSessionManager: () =>
+                    stub<SessionManager>({
+                        findSession: ({ name }) => (name === 'carol' ? session : null)
+                    }),
+                post: (entry) => (entry[0] === 'playerToggleOperator' ? posted.push(entry[1]) : posted.length)
+            });
+            await opManager.enable();
+
+            expect(await opManager.setOp('carol', true)).toBe(true);
+
+            expect(posted.map((event) => [event.getSession(), event.getOperator()])).toEqual([[session, true]]);
+            expect(sent).toEqual(['commands', 'settings']);
+            expect(opManager.isOp(uuid)).toBe(true);
+            expect(plain(readFileSync(path.join(directory, 'ops.json'), 'utf8'))).toContainEqual({
+                name: 'carol',
+                uuid,
+                level: 4
+            });
+            await expect(opManager.setOp('nobody', true)).rejects.toThrow();
         });
 
         it('adds and removes one operator line and keeps the comments', async () => {
