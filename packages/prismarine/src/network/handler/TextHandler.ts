@@ -1,9 +1,8 @@
 import { Chat, ChatType } from '../../chat/Chat';
 import { TextPacketType } from '@jsprismarine/protocol';
-import type PacketHandler from './PacketHandler';
-import type { PlayerSession } from '../../';
-import type Server from '../../Server';
 import type TextPacket from '@jsprismarine/protocol/packet/TextPacket';
+import type { InputContext } from './HandlerContext';
+import type { InputLaneHandler } from './SessionHandler';
 
 /** What a Bedrock client's chat box lets a player type, and so the most the server takes. */
 const MAX_MESSAGE_LENGTH = 512;
@@ -37,8 +36,9 @@ const isTypeable = (character: string): boolean => {
  * packet carrying one of them is dropped. The author, XUID and platform id the packet names
  * are ignored as well: the relay takes all three from the server's record of the sender.
  */
-export default class TextHandler implements PacketHandler<TextPacket> {
+export default class TextHandler implements InputLaneHandler<TextPacket> {
     public static PacketName = 'TextPacket';
+    public readonly takes = 'context';
     public readonly phases = ['play'] as const;
     public readonly lane = 'input';
 
@@ -48,23 +48,19 @@ export default class TextHandler implements PacketHandler<TextPacket> {
      * The length, the formatting codes and the line breaks all come straight off the wire,
      * and none of them is bounded by anything a real client does.
      */
-    public async handle(packet: TextPacket, server: Server, session: PlayerSession): Promise<void> {
+    public handle(packet: TextPacket, { session, log, services, step }: InputContext): undefined {
         const text = packet.getPacketData();
 
         if (text === null) {
-            server
-                .getLogger()
-                .verbose(`Dropped an empty text packet from ${session.identity.name}`, 'TextHandler/handle');
+            log.verbose(`Dropped an empty text packet from ${session.identity.name}`, 'TextHandler/handle');
             return;
         }
 
         if (text.type !== TextPacketType.Chat) {
-            server
-                .getLogger()
-                .verbose(
-                    `Dropped a text of type ${TextPacketType[text.type] ?? text.type} from ${session.identity.name}: a client only sends Chat`,
-                    'TextHandler/handle'
-                );
+            log.verbose(
+                `Dropped a text of type ${TextPacketType[text.type] ?? text.type} from ${session.identity.name}: a client only sends Chat`,
+                'TextHandler/handle'
+            );
             return;
         }
 
@@ -76,6 +72,8 @@ export default class TextHandler implements PacketHandler<TextPacket> {
         if (message.length === 0) return;
 
         const chat = new Chat({ sender: session, message, type: ChatType.CHAT });
-        await server.getChatManager().send(chat);
+        // The chat event runs the plugins' listeners, which can do anything, and the chat
+        // manager waits for them. Slice 9 removes the wait.
+        step.defer(async () => services.chat.send(chat));
     }
 }

@@ -1,8 +1,7 @@
 import type { Logger } from '@jsprismarine/logger';
 import { describe, expect, it } from 'vitest';
 
-import type Server from '../../Server';
-import type { CommandManager } from '../../command/CommandManager';
+import { inputContext } from '../../testing/handlerContext.test.helper';
 import { identityNamed } from '../../testing/sessionIdentity.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import UUID from '@jsprismarine/protocol/wire/structures/UUID';
@@ -11,6 +10,7 @@ import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import CommandOriginData from '@jsprismarine/protocol/wire/structures/CommandOriginData';
 import CommandOriginType from '@jsprismarine/protocol/wire/structures/CommandOriginType';
 import { CommandOutputPacket, CommandOutputType, CommandRequestPacket } from '@jsprismarine/protocol';
+import type { HandlerServices } from './HandlerContext';
 import CommandRequestHandler from './CommandRequestHandler';
 
 const origin = (type: CommandOriginType): CommandOriginData =>
@@ -29,24 +29,27 @@ const run = async (packet: CommandRequestPacket, ran: boolean) => {
     const dispatched: { sender: unknown; target: unknown; input: string }[] = [];
     const sent: NetworkPacket[] = [];
     const logged: string[] = [];
-    const server = stub<Server>({
-        getLogger: () => stub<Logger>({ debug: (...message) => void logged.push(message[0] ?? '') }),
-        getCommandManager: () =>
-            stub<CommandManager>({
+    const session = stub<PlayerSession>({
+        identity: identityNamed('Steve'),
+        send: async (packet) => void sent.push(packet)
+    });
+    const { context, outputs, deferred, settled } = inputContext(session, {
+        log: stub<Logger>({ debug: (...message) => void logged.push(message[0] ?? '') }),
+        services: {
+            commands: stub<HandlerServices['commands']>({
                 dispatchCommand: async (sender, target, input = '') => {
                     dispatched.push({ sender, target, input });
                     return ran;
                 }
             })
-    });
-    const session = stub<PlayerSession>({
-        identity: identityNamed('Steve'),
-        send: async (packet) => void sent.push(packet)
+        }
     });
 
-    await new CommandRequestHandler().handle(packet, server, session);
+    const returned = new CommandRequestHandler().handle(packet, context);
+    const handed = { returned, outputs: outputs.length, deferred: deferred.length, dispatched: dispatched.length };
+    await settled();
 
-    return { dispatched, sent, logged, session };
+    return { dispatched, sent, logged, session, handed };
 };
 
 describe('CommandRequestHandler', () => {
@@ -69,6 +72,12 @@ describe('CommandRequestHandler', () => {
             outputMessages: [],
             dataSet: null
         });
+    });
+
+    it('defers the command and its reply to after the handler returns', async () => {
+        const { handed } = await run(request('/say hi', origin(CommandOriginType.Player)), true);
+
+        expect(handed).toEqual({ returned: undefined, outputs: 0, deferred: 1, dispatched: 0 });
     });
 
     it('reports a command that did not run with a success count of zero', async () => {
