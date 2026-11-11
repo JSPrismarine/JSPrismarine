@@ -18,9 +18,11 @@
  * in {@link EntityStore.broken} and the world stops ticking
  * ([ADR 0015](../../../../../docs/adr/0015-a-tick-is-a-fixed-sequence-of-synchronous-phases.md)).
  *
- * The log lives here until block writes join it (slice 7), at which point it moves to the world.
- * A tick of the log is one world tick, numbered by the store from 1 and not by the level clock,
- * because `/time set` moves the clock backwards and the log only goes forward.
+ * The log is the world's: its block writes reach it through {@link EntityStore.writtenBlock},
+ * and the world
+ * registers the writer that undoes them. A tick of the log is one world tick, numbered by the
+ * store from 1 and not by the level clock, because `/time set` moves the clock backwards and the
+ * log only goes forward.
  */
 import type { ChangeEntry, OccurrenceEntry, StateEntry } from '../../world/changelog/ChangeEntry';
 import type { SealedTick, Span } from '../../world/changelog/ChangeLog';
@@ -42,6 +44,20 @@ export const ENTITY_FAILURE_LIMIT = 3;
  *   the order it was registered.
  */
 export type InverseWriter = (inverse: StateEntry) => boolean;
+
+/**
+ * Work queued outside the log that undoing a unit also takes back, such as the block updates a
+ * reverted block write scheduled. The store marks each journal as a unit starts, rolls it back to
+ * that mark when the unit is reverted, and lets it forget once no unit is open.
+ */
+export interface UnitJournal {
+    /** Where the journal stands as a unit starts. */
+    markUnit(): number;
+    /** Takes back everything recorded since `mark`, newest first. */
+    revertUnit(mark: number): void;
+    /** Forgets what was recorded, once no unit is open. */
+    settleUnits(): void;
+}
 
 /** How a unit of work ended. */
 export type UnitOutcome = { readonly failed: false } | { readonly failed: true; readonly error: unknown };
@@ -65,6 +81,7 @@ export class EntityStore {
     private readonly entered = new WeakSet<DataEntity>();
     private readonly log = new ChangeLog();
     private readonly writers: InverseWriter[] = [];
+    private readonly journals: UnitJournal[] = [];
     private ticks = 0;
     private open = false;
     private reverting = false;
@@ -74,7 +91,7 @@ export class EntityStore {
     private readonly failures = new Map<number, number>();
     private readonly skipped = new Set<number>();
     /** The open units, innermost last, each pinned once a chunk entered inside it. */
-    private readonly units: { readonly span: Span; pinned: boolean }[] = [];
+    private readonly units: OpenUnit[] = [];
     private kept = 0;
     private readonly sealListeners = new Set<(sealed: SealedTick) => void>();
 
@@ -192,6 +209,15 @@ export class EntityStore {
     }
 
     /**
+     * Logs one change to the block at a position, as block runtime ids.
+     * @param layer - The storage layer, 0 for the block and 1 for what is waterlogged into it.
+     */
+    public writtenBlock(x: number, y: number, z: number, layer: number, before: number, after: number): void {
+        if (before === after) return;
+        this.append({ kind: 'field', field: 'block', address: { x, y, z, layer }, before, after });
+    }
+
+    /**
      * Appends an occurrence, which changes no state: something replication sends, or the
      * record of an action a guard vetoed.
      */
@@ -224,8 +250,7 @@ export class EntityStore {
         try {
             for (const entry of entries) {
                 if (entry.kind !== 'field' && entry.kind !== 'membership') continue;
-                if (!this.writers.some((write) => write(entry)))
-                    throw new Error(`No writer knows entity ${String(addressedEntity(entry))}`);
+                if (!this.writers.some((write) => write(entry))) throw new Error(`No writer knows ${addressed(entry)}`);
             }
         } finally {
             this.reverting = false;
@@ -235,6 +260,11 @@ export class EntityStore {
     /** Registers a writer for inverse entries; the first one that knows the entity writes it. */
     public addInverseWriter(writer: InverseWriter): void {
         this.writers.push(writer);
+    }
+
+    /** Registers a journal that undoing a unit rolls back with the unit's span. */
+    public addUnitJournal(journal: UnitJournal): void {
+        this.journals.push(journal);
     }
 
     /** Opens the next tick of the log, or does nothing when one is already open. */
@@ -366,24 +396,30 @@ export class EntityStore {
         return this.skipped.has(id);
     }
 
-    private startUnit(): { readonly span: Span; pinned: boolean } {
-        const unit = { span: this.log.startSpan(), pinned: false };
+    private startUnit(): OpenUnit {
+        const unit: OpenUnit = {
+            span: this.log.startSpan(),
+            pinned: false,
+            marks: this.journals.map((journal) => journal.markUnit())
+        };
         this.units.push(unit);
         return unit;
     }
 
-    private endUnit(unit: { readonly span: Span; pinned: boolean }, threw: boolean): void {
+    private endUnit(unit: OpenUnit, threw: boolean): void {
         const depth = this.units.lastIndexOf(unit);
         if (depth !== -1) this.units.length = depth;
         if (threw && !unit.pinned) {
             this.revert(unit.span);
-            return;
+            this.journals.forEach((journal, index) => journal.revertUnit(unit.marks[index] ?? 0));
+        } else {
+            if (threw) {
+                this.kept += 1;
+                this.report('A unit that threw keeps its writes: a chunk entered inside it, and that cannot be undone');
+            }
+            this.log.closeSpan(unit.span);
         }
-        if (threw) {
-            this.kept += 1;
-            this.report('A unit that threw keeps its writes: a chunk entered inside it, and that cannot be undone');
-        }
-        this.log.closeSpan(unit.span);
+        if (this.units.length === 0) for (const journal of this.journals) journal.settleUnits();
     }
 
     private writtenField(id: bigint | number, field: string, before: unknown, after: unknown): void {
@@ -419,7 +455,7 @@ export class EntityStore {
         try {
             this.log.revertSpan(span, (inverse) => {
                 if (!this.writers.some((write) => write(inverse)))
-                    throw new Error(`No writer knows entity ${String(addressedEntity(inverse))}`);
+                    throw new Error(`No writer knows ${addressed(inverse)}`);
             });
         } catch (error: unknown) {
             this.failure ??= error;
@@ -430,11 +466,21 @@ export class EntityStore {
     }
 }
 
-/** The entity an inverse entry addresses. */
-export const addressedEntity = (entry: StateEntry): bigint | undefined => {
-    if (entry.kind === 'membership') return entry.entity;
-    if (entry.field === 'entity' || entry.field === 'inventory-slot') return entry.address.entity;
-    return undefined;
+/** A unit of work that is still running. */
+type OpenUnit = {
+    readonly span: Span;
+    /** Set once a chunk entered inside the unit, which keeps its writes if it throws. */
+    pinned: boolean;
+    /** Where each journal stood as the unit started, in registration order. */
+    readonly marks: readonly number[];
+};
+
+/** What an inverse entry addresses, for the line that reports no writer knew it. */
+const addressed = (entry: StateEntry): string => {
+    if (entry.kind === 'membership') return `entity ${entry.entity}`;
+    if (entry.field === 'entity' || entry.field === 'inventory-slot') return `entity ${entry.address.entity}`;
+    const { x, y, z } = entry.address;
+    return `the ${entry.field} at ${x}, ${y}, ${z}`;
 };
 
 /** A logged value as plain data, with `undefined` standing for "nothing" as `null`. */

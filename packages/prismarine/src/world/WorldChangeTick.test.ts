@@ -25,6 +25,7 @@ import { Item } from '../item/Item';
 import type PlayerSession from '../network/PlayerSession';
 import { sessionOnPrototype } from '../testing/storePlayer.test.helper';
 import { blockMiningOf, playerMiningOf } from './BlockMining';
+import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
 
 /** A world whose dimension's entity runtime is the real one the entity fixture builds. */
 const worldWithStore = () => {
@@ -444,5 +445,80 @@ describe('a world tick and its change log', () => {
             // Food is already full, and its attribute keeps it at 20, so neither write changed it.
             expect(world.lastChangeTick()?.entries).toEqual([]);
         });
+    });
+});
+
+describe("a world's blocks and block entities in its change log", () => {
+    /** A world with the chunk at the origin loaded, and the runtime ids of a few blocks. */
+    const worldWithChunk = async () => {
+        const made = worldWithStore();
+        await made.world.loadChunk(0, 0);
+        const id = (name: string) => {
+            const runtimeId = BlockRuntimeIds.tryGetByName(name);
+            if (runtimeId === null) throw new Error(`the test content has no ${name}`);
+            return runtimeId;
+        };
+        return { ...made, air: id('minecraft:air'), stone: id('minecraft:stone'), dirt: id('minecraft:dirt') };
+    };
+
+    const blockEntries = (world: World) =>
+        (world.lastChangeTick()?.entries ?? []).filter((entry) => entry.kind === 'field' && entry.field === 'block');
+
+    it('appends exactly one entry for each block write, with the block before it', async () => {
+        const { world, air, stone, dirt } = await worldWithChunk();
+        world.beginChangeTick();
+
+        world.setLoadedBlockRuntimeId(1, 64, 1, stone);
+        world.setLoadedBlockRuntimeId(2, 64, 1, stone);
+        world.setLoadedBlockRuntimeId(1, 64, 1, dirt);
+        // Writing what already stands there changes nothing, so it is not a write.
+        world.setLoadedBlockRuntimeId(2, 64, 1, stone);
+        world.sealChangeTick();
+
+        expect(blockEntries(world)).toEqual([
+            { kind: 'field', field: 'block', address: { x: 1, y: 64, z: 1, layer: 0 }, before: air, after: stone },
+            { kind: 'field', field: 'block', address: { x: 2, y: 64, z: 1, layer: 0 }, before: air, after: stone },
+            { kind: 'field', field: 'block', address: { x: 1, y: 64, z: 1, layer: 0 }, before: stone, after: dirt }
+        ]);
+    });
+
+    it.each([1, 16, 100])('appends %i entries for as many block writes', async (count) => {
+        const { world, stone } = await worldWithChunk();
+        world.beginChangeTick();
+
+        for (let index = 0; index < count; index++)
+            world.setLoadedBlockRuntimeId(index % 16, 64 + (index >> 4), 3, stone);
+        world.sealChangeTick();
+
+        expect(blockEntries(world)).toHaveLength(count);
+    });
+
+    it('counts a block write between ticks as unlogged', async () => {
+        const { world, stone } = await worldWithChunk();
+        const before = world.getEntityStore().counts().unlogged;
+
+        world.setLoadedBlockRuntimeId(1, 64, 1, stone);
+
+        expect(world.getEntityStore().counts().unlogged).toBe(before + 1);
+    });
+
+    it('undoes a unit that wrote blocks, leaving the replay digest as it was', async () => {
+        const { world, stone, dirt } = await worldWithChunk();
+        world.setLoadedBlockRuntimeId(1, 64, 1, stone);
+        const digest = world.replayStateDigest();
+        world.beginChangeTick();
+
+        const outcome = world.getEntityStore().unit(() => {
+            world.setLoadedBlockRuntimeId(1, 64, 1, dirt);
+            world.setLoadedBlockRuntimeId(1, 65, 1, stone);
+            throw new Error('planned');
+        });
+        world.sealChangeTick();
+
+        expect(outcome.failed).toBe(true);
+        expect(world.lastChangeTick()?.entries).toEqual([]);
+        expect(world.loadedBlockAt(1, 64, 1)?.name).toBe('minecraft:stone');
+        expect(world.loadedBlockAt(1, 65, 1)?.name).toBe('minecraft:air');
+        expect(world.replayStateDigest()).toBe(digest);
     });
 });
