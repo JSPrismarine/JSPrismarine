@@ -540,7 +540,17 @@ Each slice is a commit or a few, with its tests, on `dev/webrtc-backend`.
     - Tests: a wildcard server with both settings equal answers a ping on each family, in socket
       mode and worker mode.
     - Say in [Running a server](../guide/running.md) that the two may be equal.
-11. [ ] **RakNet and NetherNet on one port.** The design is in ADR 0008.
+11. [x] **RakNet and NetherNet on one port.** The design is in ADR 0008.
+    - Done 2026-11-11. `ServerSocket` reads through a `DatagramSource`, a UDP socket or a
+      `RingDatagramSource`, and `SharedPort.attach` takes the rings RakNet allocates. The ring
+      source binds its loopback wake socket first and gets the native side's outbound wake port
+      back from the attach, so in worker mode the worker binds and the main thread attaches, in
+      one message each way; the main thread sees no datagram. On a shared port a RakNet client's
+      whole session, offline requests to frame sets and ACKs, reached RakNet with 0 datagrams
+      passed to libjuice's lookup, and pings on both families got pongs from the shared port
+      while a data channel on it delivered every byte. The server shares only when NetherNet's
+      local range covers `port` or `server-portv6`, which before slice 12 needs `server-udp-ports`
+      set. Run under Bun on Linux; macOS and Windows wait for their builds.
     - `ServerSocket` in `packages/raknet` reads and writes through a datagram source: a Node.js UDP
       socket, as today, or a pair of rings. RakNet's protocol code and query do not change, and
       `packages/raknet` does not depend on `packages/nethernet`.

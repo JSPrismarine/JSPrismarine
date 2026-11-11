@@ -1505,6 +1505,9 @@ importers:
       '@jsprismarine/minecraft':
         specifier: workspace:*
         version: link:../minecraft
+      '@jsprismarine/native-network':
+        specifier: workspace:*
+        version: link:../native-network
       '@jsprismarine/nbt':
         specifier: workspace:*
         version: link:../nbt
