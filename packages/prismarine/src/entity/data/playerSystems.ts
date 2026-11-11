@@ -293,6 +293,16 @@ export class PlayerSystems {
         this.componentsOf(entity).set('movement.sneaking', sneaking);
     }
 
+    /** Writes a store player's game mode, which decides which blows and survival rules reach it. */
+    public setGamemode(entity: DataEntity, gamemode: Gametype): void {
+        this.componentsOf(entity).set('abilities.gamemode', gamemode);
+    }
+
+    /** Writes whether a store player is flying. Whether its game mode lets it fly is the caller's. */
+    public setFlying(entity: DataEntity, flying: boolean): void {
+        this.componentsOf(entity).set('abilities.flying', flying);
+    }
+
     /** Makes a store player hungrier, as moving, jumping, attacking and healing do. */
     public exhaust(entity: DataEntity, amount: number): void {
         addExhaustion(this.playerOf(entity).survival, amount);

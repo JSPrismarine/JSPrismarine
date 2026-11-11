@@ -185,6 +185,10 @@ import { VOID_DAMAGE, VOID_DEPTH, VOID_INTERVAL } from '../Environment';
 import type { StatusEffectInput } from '../StatusEffect';
 import { mergeStatusEffect, normalizeStatusEffectId, removeStatusEffectFromMap } from '../StatusEffect';
 import { clientOwnsMovement, PLAYER_IDENTIFIER } from '../playerOverlay';
+import type { Gametype } from '@jsprismarine/minecraft';
+import type { PlayerMining } from '../playerComponents';
+import { cancelMeal } from '../playerMeal';
+import type { StorePlayer } from '../storePlayer';
 
 /** The interval between projectile samples, small enough not to skip a target. */
 const PROJECTILE_SWEEP_STEP = 0.25;
@@ -354,6 +358,12 @@ const projectileVelocity = (
         z: scattered.z * launchSpeed
     };
 };
+
+/**
+ * A store player as the runtime's player inputs take it: its entity while it has one, and its
+ * components, which take an input themselves while the player is in no store.
+ */
+export type PlayerInputTarget = Pick<StorePlayer, 'entity' | 'getComponents'>;
 
 /** How to build one {@link EntityRuntime}. */
 export interface EntityRuntimeOptions {
@@ -2425,6 +2435,97 @@ export class EntityRuntime implements EntityScene {
         entity.body.teleportTo(position);
         this.playerSystems.teleported(entity);
         return true;
+    }
+
+    /**
+     * A store player's entity while it is in this store, or undefined from its login to its spawn,
+     * between two stores, and while it is in another store. The player inputs below read it to
+     * choose between this store's player systems and the player's own components.
+     */
+    public entityOfPlayer(player: Pick<StorePlayer, 'entity'>): DataEntity | undefined {
+        const { entity } = player;
+        return entity !== undefined && this.store.get(entity.id) === entity ? entity : undefined;
+    }
+
+    /**
+     * Sets the block a store player is mining, whose cracks the player systems animate every tick
+     * while its entity is in this store. In no store, the player keeps it for the next one.
+     *
+     * @param mining - The block, or null when the player stopped or broke it.
+     */
+    public setPlayerMining(player: PlayerInputTarget, mining: PlayerMining | null): void {
+        const entity = this.entityOfPlayer(player);
+        if (entity === undefined) player.getComponents().set('mining.block', mining);
+        else this.playerSystems.setMining(entity, mining);
+    }
+
+    /**
+     * Starts a store player's meal of what is in its hand, counted out on this store's tick. A
+     * player in no store does not eat.
+     *
+     * @param ticks - How long the meal takes.
+     * @returns Whether a meal began.
+     */
+    public beginPlayerMeal(player: PlayerInputTarget, ticks: number): boolean {
+        const entity = this.entityOfPlayer(player);
+        return entity !== undefined && this.playerSystems.beginMeal(entity, ticks);
+    }
+
+    /** Forgets a store player's unfinished meal, as letting go of the button or putting the item away does. */
+    public cancelPlayerMeal(player: PlayerInputTarget): void {
+        const entity = this.entityOfPlayer(player);
+        if (entity === undefined) cancelMeal(player.getComponents());
+        else this.playerSystems.cancelMeal(entity);
+    }
+
+    /** Writes whether a store player is sprinting, as its client reports it. */
+    public setPlayerSprinting(player: PlayerInputTarget, sprinting: boolean): void {
+        const entity = this.entityOfPlayer(player);
+        if (entity === undefined) player.getComponents().set('movement.sprinting', sprinting);
+        else this.playerSystems.setSprinting(entity, sprinting);
+    }
+
+    /** Writes whether a store player is sneaking, as its client reports it. */
+    public setPlayerSneaking(player: PlayerInputTarget, sneaking: boolean): void {
+        const entity = this.entityOfPlayer(player);
+        if (entity === undefined) player.getComponents().set('movement.sneaking', sneaking);
+        else this.playerSystems.setSneaking(entity, sneaking);
+    }
+
+    /** Writes a store player's game mode, which its systems and its actor read. */
+    public setPlayerGamemode(player: PlayerInputTarget, gamemode: Gametype): void {
+        const entity = this.entityOfPlayer(player);
+        if (entity === undefined) player.getComponents().set('abilities.gamemode', gamemode);
+        else this.playerSystems.setGamemode(entity, gamemode);
+    }
+
+    /** Writes whether a store player is flying. Whether its game mode lets it fly is the caller's. */
+    public setPlayerFlying(player: PlayerInputTarget, flying: boolean): void {
+        const entity = this.entityOfPlayer(player);
+        if (entity === undefined) player.getComponents().set('abilities.flying', flying);
+        else this.playerSystems.setFlying(entity, flying);
+    }
+
+    /** Makes a store player in this store hungrier, as moving, jumping, attacking and healing do. */
+    public exhaustPlayer(player: PlayerInputTarget, amount: number): void {
+        const entity = this.entityOfPlayer(player);
+        if (entity !== undefined) this.playerSystems.exhaust(entity, amount);
+    }
+
+    /** Charges a store player in this store for a jump its client reported. */
+    public playerJumped(player: PlayerInputTarget): void {
+        const entity = this.entityOfPlayer(player);
+        if (entity !== undefined) this.playerSystems.jumped(entity);
+    }
+
+    /**
+     * Brings a dead store player in this store back at full health; see {@link EntityRuntime.revive}.
+     *
+     * @returns Whether the player was dead here and is alive again.
+     */
+    public revivePlayer(player: PlayerInputTarget): boolean {
+        const entity = this.entityOfPlayer(player);
+        return entity !== undefined && this.revive(entity.id);
     }
 
     /**
