@@ -227,8 +227,6 @@ const liveEndWorld = ({ unloaded = [], readChunk, completionQueue }: LiveEndWorl
         dimension: END,
         generator: stub<Generator>({ generateChunk: async (x, z) => endChunk(x, z) }),
         blockUpdates: new BlockUpdateScheduler(),
-        entities: new Map(),
-        entityChunkIndices: new Map(),
         players,
         server
     });
@@ -325,7 +323,10 @@ describe('the dragon fight over a live End world', () => {
     };
 
     const dragons = (): DataEntity[] =>
-        live.runtime.all().filter((entity) => entity.identifier === 'minecraft:ender_dragon');
+        live.runtime
+            .entities()
+            .toArray()
+            .filter((entity) => entity.identifier === 'minecraft:ender_dragon');
 
     /** A state the way a save after a first kill holds it. */
     const killedState = (): DragonFightState => ({
@@ -574,7 +575,8 @@ describe('the dragon fight over a live End world', () => {
         /** The values of every experience orb lying in the world, in spawn order. */
         const orbValues = (): unknown[] =>
             live.runtime
-                .all()
+                .entities()
+                .toArray()
                 .filter((entity) => entity.identifier === 'minecraft:xp_orb')
                 .map((orb) => orb.spawnData?.['value']);
 
@@ -713,7 +715,8 @@ describe('the dragon fight over a live End world', () => {
             const firstSpike = endSpikesForSeed(world.getSeed())[0];
             if (firstSpike === undefined) throw new Error('the End spike list was empty');
             const firstPillarCrystal = live.runtime
-                .all()
+                .entities()
+                .toArray()
                 .find(
                     (entity) =>
                         entity.identifier === 'minecraft:ender_crystal' &&
@@ -738,7 +741,8 @@ describe('the dragon fight over a live End world', () => {
             expect(crystals.every((crystal) => crystal.removed === 'respawn complete')).toBe(true);
             expect(
                 live.runtime
-                    .all()
+                    .entities()
+                    .toArray()
                     .filter((entity) => entity.identifier === 'minecraft:ender_crystal')
                     .every((crystal) => !crystal.body.invulnerable && crystal.body.beamTarget === undefined)
             ).toBe(true);
@@ -897,7 +901,6 @@ describe('fight persistence through a real level over LevelDB', () => {
                 getName: () => 'fight',
                 getSeed: () => 1234n,
                 getDimension: () => Dimensions.Overworld,
-                getEntities: () => [],
                 getActors: () => [],
                 getServer: () => server
             })

@@ -20,7 +20,6 @@ import type { Generator } from './Generator';
 import type BaseProvider from './providers/BaseProvider';
 import { World } from './World';
 import { Position } from './Position';
-import { GenericEntity } from '../testing/genericEntity.test.helper';
 import ContainerEntry from '../inventory/ContainerEntry';
 import { Item } from '../item/Item';
 import type PlayerSession from '../network/PlayerSession';
@@ -309,48 +308,6 @@ describe('a world tick and its change log', () => {
 
         expect(cow.body.loveTicks).toBe(100);
         expect(errors.filter((line) => String(line).includes('stopped ticking'))).toHaveLength(1);
-    });
-
-    it("logs a legacy entity's position and health through the adapter, and undoes them", async () => {
-        const { world } = worldWithStore();
-        const body = new GenericEntity({
-            identifier: 'minecraft:armor_stand',
-            position: new Position(1, 64, 1, world)
-        });
-        await world.addEntity(body);
-        const health = body.getHealth();
-        const store = world.getEntityStore();
-        world.beginChangeTick();
-
-        const outcome = await store.unitAsync(async () => {
-            body.restorePosition(new Position(4, 64, 2, world));
-            await body.setHealth(health - 1);
-            throw new Error('planned');
-        });
-
-        expect(outcome.failed).toBe(true);
-        expect([body.getPosition().getX(), body.getPosition().getZ(), body.getHealth()]).toEqual([1, 1, health]);
-
-        body.restorePosition(new Position(4, 64, 2, world));
-        await body.setHealth(health - 1);
-        world.sealChangeTick();
-        const id = body.getRuntimeId();
-        expect(world.lastChangeTick()?.entries).toEqual([
-            {
-                kind: 'field',
-                field: 'entity',
-                address: { entity: id, field: 'position' },
-                before: { x: 1, y: 64, z: 1 },
-                after: { x: 4, y: 64, z: 2 }
-            },
-            {
-                kind: 'field',
-                field: 'entity',
-                address: { entity: id, field: 'health' },
-                before: health,
-                after: health - 1
-            }
-        ]);
     });
 
     describe("a player's inventory", () => {

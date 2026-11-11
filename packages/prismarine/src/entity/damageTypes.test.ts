@@ -7,7 +7,7 @@ import { buildContentTags } from '../content/tags';
 import { stub } from '../testing/stub.test.helper';
 import { DamageCause } from './DamageCause';
 import { damageCauseOfType, damageSourceOfType, hasDamageType } from './damageTypes';
-import type { Entity } from './Entity';
+import type { StoreActor } from './data/storeActors';
 import { Position } from '../world/Position';
 import type { World } from '../world/World';
 
@@ -55,8 +55,8 @@ const content = stub<ServerContent>({
     )
 });
 
-const entityAt = (x: number, z: number): Entity =>
-    stub<Entity>({ getPosition: () => new Position(x, 64, z, stub<World>({})) });
+const entityAt = (x: number, z: number): StoreActor =>
+    stub<StoreActor>({ getPosition: () => new Position(x, 64, z, stub<World>({})) });
 
 describe('damage types', () => {
     it('knows the types the loaded packs declare', () => {

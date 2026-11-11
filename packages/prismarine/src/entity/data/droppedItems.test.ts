@@ -64,7 +64,7 @@ describe('dropped items in the store', () => {
             undefined
         );
         expect(fixture.runtime.spawn('minecraft:item', { x: 0, y: SURFACE, z: 0 })).toBe(undefined);
-        expect(fixture.runtime.all()).toEqual([]);
+        expect(fixture.runtime.entities().toArray()).toEqual([]);
     });
 
     describe('movement', () => {
@@ -403,7 +403,7 @@ describe('dropped items in the store', () => {
         expect(item.position.y).toBe(SURFACE + 2 + OFFSET);
         expect(countOf(item)).toBe(1);
         expect(itemViewOf(item)?.age).toBe(0);
-        expect(fixture.runtime.all()).toHaveLength(2);
+        expect(fixture.runtime.entities().toArray()).toHaveLength(2);
         expect(fixture.runtime.store.counts().reverted).toBe(1);
         expect(fixture.reports.some((report) => report.includes('the inventory is gone'))).toBe(true);
     });

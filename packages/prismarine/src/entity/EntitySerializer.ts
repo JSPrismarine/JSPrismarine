@@ -14,7 +14,6 @@ import type { StatusEffect } from './StatusEffect';
 import { bedrockMobEffectIdentifier, bedrockMobEffectId } from './StatusEffect';
 import type { DataEntityRecord } from './data/persistence';
 import { dataEntityRecordIn, writeDataEntityRecord } from './data/persistence';
-import type { WorldActor } from '../world/WorldActor';
 
 const TNT_IDENTIFIER = 'minecraft:tnt';
 
@@ -105,7 +104,7 @@ export class EntitySerializer {
      * @param record - A data-driven entity's record, written into the copy rather than onto the
      *   entity, as a save that called `LiveEntityRuntime.persist` first would hold it.
      */
-    public static toNBT(entity: WorldActor, record?: DataEntityRecord): NBTTagCompound {
+    public static toNBT(entity: StoreActor, record?: DataEntityRecord): NBTTagCompound {
         const nbt = entity.persistentNbt ? copy(entity.persistentNbt) : new NBTTagCompound('');
         if (record !== undefined) writeDataEntityRecord(nbt, record);
         const position = entity.getPosition();

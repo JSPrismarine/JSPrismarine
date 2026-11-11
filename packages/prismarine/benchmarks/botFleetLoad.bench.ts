@@ -652,7 +652,7 @@ const run = async (): Promise<void> => {
                                 endedAtMs: performance.now(),
                                 cpu: process.cpuUsage(cpuBefore),
                                 connectedPlayers: server!.getSessionManager().getAllPlayers().length,
-                                entities: world.getEntities().length,
+                                entities: world.dataEntities().actors.size,
                                 loadedChunks: world.getLoadedChunkCount()
                             });
                         };

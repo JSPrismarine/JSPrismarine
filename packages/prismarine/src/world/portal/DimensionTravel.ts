@@ -22,7 +22,8 @@ import { NBTTagCompound } from '@jsprismarine/nbt';
 import { dataEntityRecordOf, writeDataEntityRecord } from '../../entity/data/persistence';
 import type { DataEntityRecord } from '../../entity/data/persistence';
 import { ItemActor } from '../../entity/data/itemActor';
-import { InertActor, StoreActor } from '../../entity/data/storeActors';
+import type { StoreActor } from '../../entity/data/storeActors';
+import { InertActor } from '../../entity/data/storeActors';
 import { PLAYER_IDENTIFIER } from '../../entity/playerOverlay';
 import { PORTAL_COOLDOWN_TICKS } from '../../entity/PortalContact';
 import EntityPortalEnterEvent from '../../events/entity/EntityPortalEnterEvent';
@@ -32,10 +33,8 @@ import type { Arrival } from '../../network/PlayerSession';
 import type Server from '../../Server';
 import { Dimensions } from '../Dimension';
 import type { Level } from '../Level';
-import { Position } from '../Position';
 import { requestedSpawnPosition } from '../SpawnPlacement';
 import type { World } from '../World';
-import type { WorldActor } from '../WorldActor';
 import { createNetherPortal } from './create';
 import { portalRuleOf, travelRuleOf } from './rules';
 import { scalePosition } from './scale';
@@ -88,16 +87,16 @@ const blockOf = (at: Vector3): BlockPosition => ({
 });
 
 /** Where the traveler's body starts: a player's position is its eyes, everything else's its feet. */
-const feetOf = (entity: WorldActor): Vector3 => {
+const feetOf = (entity: StoreActor): Vector3 => {
     const at = entity.getPosition();
     return new Vector3(at.getX(), entity.getFeetY(), at.getZ());
 };
 
 /** The session of a player, found by its entity id in its world; undefined for anything else. */
-const sessionOf = (entity: WorldActor): PlayerSession | undefined => entity.getWorld().viewerOf(entity.getRuntimeId());
+const sessionOf = (entity: StoreActor): PlayerSession | undefined => entity.getWorld().viewerOf(entity.getRuntimeId());
 
 /** Whether an entity is a player, by its type, so a store player is one too. */
-const isPlayer = (entity: WorldActor): boolean => entity.getType() === PLAYER_IDENTIFIER;
+const isPlayer = (entity: StoreActor): boolean => entity.getType() === PLAYER_IDENTIFIER;
 
 /**
  * Whether an entity is a player whose client has not yet closed the loading screen of its
@@ -106,7 +105,7 @@ const isPlayer = (entity: WorldActor): boolean => entity.getType() === PLAYER_ID
  * Such a player is still ticked, standing in the arrival portal, and must not start another
  * trip: `PlayerSession.changeWorld` would refuse it, after the contact had already run.
  */
-export const isMidDimensionChange = (entity: WorldActor): boolean =>
+export const isMidDimensionChange = (entity: StoreActor): boolean =>
     sessionOf(entity)?.pendingDimensionChange() !== undefined;
 
 /** The portal and End travel service of one server. */
@@ -126,7 +125,7 @@ export class DimensionTravel {
      * (MCPE-47288), or for a player whose client is still on the loading screen of the last
      * change.
      */
-    public async touch(entity: WorldActor, portal: PortalBlockRef): Promise<void> {
+    public async touch(entity: StoreActor, portal: PortalBlockRef): Promise<void> {
         if (isMidDimensionChange(entity) || this.isInRide(entity)) return;
 
         if (!entity.isOnPortalCooldown() && entity.portalContact() === undefined) {
@@ -156,7 +155,7 @@ export class DimensionTravel {
      * age, its pickup delay and its motion, and an inert actor with its saved identifier and
      * actor record tags, as each would be saved.
      */
-    public async transfer(entity: WorldActor, arrival: Arrival): Promise<void> {
+    public async transfer(entity: StoreActor, arrival: Arrival): Promise<void> {
         const from = entity.getWorld();
         const session = sessionOf(entity);
 
@@ -183,21 +182,7 @@ export class DimensionTravel {
             return;
         }
 
-        if (entity instanceof StoreActor) {
-            this.transferStoreEntity(entity, arrival);
-            return;
-        }
-
-        entity.setPortalCooldown();
-        await from.removeEntity(entity);
-        await entity.setPosition({
-            position: Position.fromVector3(arrival.position, arrival.world),
-            yaw: arrival.yaw,
-            headYaw: arrival.yaw,
-            pitch: arrival.pitch,
-            teleport: true
-        });
-        await arrival.world.addEntity(entity);
+        this.transferStoreEntity(entity, arrival);
     }
 
     /**
@@ -254,7 +239,7 @@ export class DimensionTravel {
     }
 
     /** Whether the entity rides or is ridden, as far as the data-driven runtime of its world knows. */
-    private isInRide(entity: WorldActor): boolean {
+    private isInRide(entity: StoreActor): boolean {
         return this.server
             .getEntityRuntime(entity.getWorld().getDimension().name)
             .isInRide(Number(entity.getRuntimeId()));
@@ -275,7 +260,7 @@ export class DimensionTravel {
      *   the level has no world for the other side, or there is no portal to arrive in and
      *   the traveler is not a player.
      */
-    public async resolve(entity: WorldActor, portal: PortalBlockRef): Promise<PortalArrival | undefined> {
+    public async resolve(entity: StoreActor, portal: PortalBlockRef): Promise<PortalArrival | undefined> {
         const rule = portalRuleOf(portal.block);
         if (rule === undefined) return undefined;
 
@@ -301,7 +286,7 @@ export class DimensionTravel {
 
     /** `NetherPortalBlock.getPortalDestination` and `getExitPortal`, with Bedrock's player-only creation. */
     private async throughNetherPortal(
-        entity: WorldActor,
+        entity: StoreActor,
         portal: PortalBlockRef,
         to: World
     ): Promise<PortalArrival | undefined> {
@@ -357,7 +342,7 @@ export class DimensionTravel {
     }
 
     /** `EndPortalBlock.getPortalDestination` into the End, with `EndPlatformFeature.createEndPlatform`. */
-    private async enterEnd(entity: WorldActor, end: World): Promise<PortalArrival> {
+    private async enterEnd(entity: StoreActor, end: World): Promise<PortalArrival> {
         // `BlockPos.containing(bottomCenter).below()`: the platform's air starts at y 49 and its obsidian at 48.
         const platformCenter = { ...END_SPAWN_POINT, y: END_SPAWN_POINT.y - 1 };
         await this.loadAround(end, Vector3.fromObject(platformCenter), END_PLATFORM_HALF_SIDE);
@@ -380,7 +365,7 @@ export class DimensionTravel {
      * `findRespawnPositionAndUseSpawnBlock(false, ...)`, which spends no anchor charge, and
      * `adjustSpawnLocation` at the Overworld spawn for anything else.
      */
-    private async leaveEnd(entity: WorldActor, level: Level, targetId: string): Promise<PortalArrival | undefined> {
+    private async leaveEnd(entity: StoreActor, level: Level, targetId: string): Promise<PortalArrival | undefined> {
         const session = sessionOf(entity);
         if (session !== undefined) {
             const respawn = await session.getRespawnPoint();

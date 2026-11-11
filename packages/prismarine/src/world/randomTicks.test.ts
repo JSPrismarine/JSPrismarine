@@ -99,8 +99,6 @@ describe('contentRandomTickHandlers', () => {
             level: fakeLevel({ spawn: new Vector3(8, 64, 8) }),
             dimension: Dimensions.Overworld,
             blockUpdates: new BlockUpdateScheduler(),
-            entities: new Map(),
-            entityChunkIndices: new Map(),
             players: new Map(),
             server: {
                 getConfig: () => ({ getDifficulty: () => Difficulty.NORMAL }),

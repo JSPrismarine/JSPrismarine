@@ -1,7 +1,7 @@
 import type { Logger } from '@jsprismarine/logger';
 import { describe, expect, it, vi } from 'vitest';
 
-import type { WorldActor } from '../../world/WorldActor';
+import type { StoreActor } from '../../entity/data/storeActors';
 import type Server from '../../Server';
 import { identityNamed } from '../../testing/sessionIdentity.test.helper';
 import { stubPlayerPort } from '../../testing/playerPort.test.helper';
@@ -18,7 +18,7 @@ import SetLocalPlayerAsInitializedHandler from './SetLocalPlayerAsInitializedHan
  */
 const fakeSession = () => {
     const order: string[] = [];
-    const added = new Map<bigint, WorldActor>();
+    const added = new Map<bigint, StoreActor>();
 
     const world: World = stub<World>({
         getActor: (runtimeId) => added.get(runtimeId) ?? null,

@@ -9,7 +9,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 
 import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
 import { EntityRuntimes } from '../entity/data/live';
-import type { Entity } from '../entity/Entity';
+import type { StoreActor } from '../entity/data/storeActors';
 import type { ShownActor } from './ShownActor';
 import { ItemActor as ItemEntity } from '../entity/data/itemActor';
 import ContainerEntry from '../inventory/ContainerEntry';
@@ -221,13 +221,13 @@ const liveWorld = (
     world: World;
     chunk: Chunk;
     spawned: ShownActor[];
-    entities: Map<number, Entity>;
+    entities: Map<number, StoreActor>;
     players: Map<number, PlayerSession>;
 } => {
     const chunk = new Chunk(0, 0);
     const spawned: ShownActor[] = [];
     // Where the item actor port finds the breaking player by the world's numeric runtime ID key.
-    const entities = new Map<number, Entity>();
+    const entities = new Map<number, StoreActor>();
     // Where the world finds the breaking player's session by the same key.
     const players = new Map<number, PlayerSession>();
 
@@ -237,7 +237,6 @@ const liveWorld = (
         dimension: Dimensions.Overworld,
         blockUpdates: new BlockUpdateScheduler(),
         entities,
-        entityChunkIndices: new Map(),
         players,
         getChunkAt: async () => chunk,
         getPlayers: () => [],
@@ -482,7 +481,8 @@ describe('breakBlockWithContent', () => {
         expect(
             world
                 .dataEntities()
-                .runtime.all()
+                .runtime.entities()
+                .toArray()
                 .some((entity) => entity.identifier === 'minecraft:xp_orb')
         ).toBe(true);
     });

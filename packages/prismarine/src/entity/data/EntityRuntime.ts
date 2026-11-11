@@ -757,22 +757,13 @@ export class EntityRuntime implements EntityScene {
      * that, as the copy it replaces did, so a mob a goal spawns first acts on the next tick. An
      * entity removed before the walk reaches it is not visited.
      */
-    public *entities(): IterableIterator<DataEntity> {
+    public *entities(): Generator<DataEntity, void, undefined> {
         const end = this.admissions;
         for (const entity of this.store.values()) {
             // The store keeps spawn order, so the first newer entity ends the walk.
             if ((this.admissionOf.get(entity) ?? 0) >= end) return;
             yield entity;
         }
-    }
-
-    /**
-     * Every live entity, in spawn order, as an array that holds still while it is read.
-     *
-     * This copies the store. Walk {@link EntityRuntime.entities} unless the caller needs an array.
-     */
-    public all(): readonly DataEntity[] {
-        return [...this.entities()];
     }
 
     /** One live entity by its runtime id, or undefined when this index holds no such entity. */

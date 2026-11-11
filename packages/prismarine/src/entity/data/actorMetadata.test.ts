@@ -3,7 +3,7 @@ import { ActorDataID } from '@jsprismarine/minecraft/ActorDataID';
 import { ActorFlags } from '@jsprismarine/minecraft/ActorFlags';
 import { Vector3 } from '@jsprismarine/math';
 
-import type { Entity } from '../Entity';
+import type { StoreActor } from './storeActors';
 import { Metadata, MetadataFlag } from '@jsprismarine/protocol/wire/structures/Metadata';
 import { stub } from '../../testing/stub.test.helper';
 import {
@@ -40,7 +40,7 @@ describe('actor metadata from entity components', () => {
         if (creeper === undefined) throw new Error('the fixture did not declare a charged creeper');
 
         const metadata = new Metadata();
-        const body = stub<Entity>({ metadata });
+        const body = stub<StoreActor>({ metadata });
         const uncharged = actorMetadataProjection(creeper);
         applyActorMetadataProjection(body, uncharged);
         expect(metadata.getDataFlag(MetadataFlag.INDEX, BigInt(ActorFlags.POWERED))).toBe(false);
@@ -80,7 +80,7 @@ describe('actor metadata from entity components', () => {
         if (tnt === undefined) throw new Error('the fixture did not declare primed TNT');
 
         const metadata = new Metadata();
-        const body = stub<Entity>({ metadata });
+        const body = stub<StoreActor>({ metadata });
         applyActorMetadataProjection(body, actorMetadataProjection(tnt));
         expect(metadata.getDataFlag(MetadataFlag.INDEX, BigInt(MetadataFlag.IGNITED))).toBe(false);
 
@@ -102,7 +102,7 @@ describe('actor metadata from entity components', () => {
         if (crystal === undefined) throw new Error('the fixture declares no minecraft:cow');
 
         const metadata = new Metadata();
-        const body = stub<Entity>({ metadata });
+        const body = stub<StoreActor>({ metadata });
         applyActorMetadataProjection(body, actorMetadataProjection(crystal));
 
         expect(metadata.getPropertyValue(ActorDataID.BLOCK_TARGET)).toEqual(new Vector3(0, 128, 0));
@@ -115,7 +115,7 @@ describe('actor metadata from entity components', () => {
         if (crystal === undefined) throw new Error('the fixture declares no minecraft:cow');
 
         const metadata = new Metadata();
-        const body = stub<Entity>({ metadata });
+        const body = stub<StoreActor>({ metadata });
         applyActorMetadataProjection(body, actorMetadataProjection(crystal));
 
         expect(metadata.getPropertyValue(ActorDataID.BLOCK_TARGET)).toBeNull();
@@ -179,7 +179,7 @@ describe('actor metadata from entity components', () => {
         if (actor === undefined) throw new Error('the fixture did not declare a marker actor');
 
         const metadata = new Metadata();
-        const body = stub<Entity>({ metadata });
+        const body = stub<StoreActor>({ metadata });
         const flags = [
             ActorFlags.SADDLED,
             ActorFlags.CHESTED,

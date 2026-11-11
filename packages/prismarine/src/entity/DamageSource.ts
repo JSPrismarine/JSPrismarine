@@ -1,7 +1,7 @@
 import type { Vector3 } from '@jsprismarine/math';
 import { bypassesArmor, bypassesEnchantments } from './Damage';
 import { DamageCause } from './DamageCause';
-import type { WorldActor } from '../world/WorldActor';
+import type { StoreActor } from './data/storeActors';
 
 /**
  * Who did the damage, and not only what kind it was.
@@ -46,10 +46,10 @@ export class DamageSource {
      * say who shot you, and what makes a skeleton's stray shot start a fight with the skeleton
      * rather than with the projectile that has already gone.
      */
-    public readonly attacker: WorldActor | null;
+    public readonly attacker: StoreActor | null;
 
     /** The thing that actually made contact, when that is not the attacker. */
-    public readonly projectile: WorldActor | null;
+    public readonly projectile: StoreActor | null;
 
     /**
      * Extra knockback beyond the base, in vanilla's "levels".
@@ -86,8 +86,8 @@ export class DamageSource {
         position = null
     }: {
         cause: DamageCause;
-        attacker?: WorldActor | null;
-        projectile?: WorldActor | null;
+        attacker?: StoreActor | null;
+        projectile?: StoreActor | null;
         knockbackLevels?: number;
         deathMessageOverride?: string;
         damageType?: string;
@@ -126,24 +126,24 @@ export class DamageSource {
 
     /**
      * One entity hitting another with what it is holding.
-     * @param {WorldActor} attacker - Who swung.
+     * @param {StoreActor} attacker - Who swung.
      * @param {number} [knockbackLevels=0] - Sprint and Knockback levels, summed.
      * @returns {DamageSource} The source.
      */
-    public static entity(attacker: WorldActor, knockbackLevels = 0): DamageSource {
+    public static entity(attacker: StoreActor, knockbackLevels = 0): DamageSource {
         return new DamageSource({ cause: DamageCause.Attack, attacker, knockbackLevels });
     }
 
     /**
      * Something thrown or fired arriving.
-     * @param {WorldActor} projectile - What hit.
-     * @param {WorldActor | null} [shooter=null] - Who sent it, if anyone is still around to blame.
+     * @param {StoreActor} projectile - What hit.
+     * @param {StoreActor | null} [shooter=null] - Who sent it, if anyone is still around to blame.
      * @param {number} [knockbackLevels=0] - Punch levels, and the like.
      * @returns {DamageSource} The source.
      */
     public static projectileFrom(
-        projectile: WorldActor,
-        shooter: WorldActor | null = null,
+        projectile: StoreActor,
+        shooter: StoreActor | null = null,
         knockbackLevels = 0
     ): DamageSource {
         return new DamageSource({

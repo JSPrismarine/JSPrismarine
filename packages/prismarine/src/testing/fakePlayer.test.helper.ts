@@ -133,7 +133,6 @@ export const fakePlayer = ({ underwater = false, worlds: others = [], name = 'Te
         getLevel: () => level,
         getPlayerData: async () => ({}),
         getDimension: () => Dimensions.Overworld,
-        entityRelocated: () => {},
         broadcastMove: async () => {},
         dataEntities: () => entities.entityRuntime(Dimensions.Overworld.name),
         getTicks: () => clock.ticks,

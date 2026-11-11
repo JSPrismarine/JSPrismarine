@@ -786,8 +786,6 @@ const liveWorld = (
         dimension: Dimensions.Overworld,
         generator: stub<Generator>({}),
         blockUpdates: new BlockUpdateScheduler(),
-        entities: new Map(),
-        entityChunkIndices: new Map(),
         players: new Map(),
         server
     });
@@ -1258,7 +1256,10 @@ describe('the data-driven entity runtime over a live world', () => {
 
         await useHeldItemOnEntity(player, body.getRuntimeId());
 
-        const chicken = live.runtime.all().find((entity) => entity.identifier === 'minecraft:chicken');
+        const chicken = live.runtime
+            .entities()
+            .toArray()
+            .find((entity) => entity.identifier === 'minecraft:chicken');
         expect(chicken?.position).toEqual(animal.position);
         expect(player.getInventory().getItemInHand().getAmount()).toBe(0);
     });
@@ -1382,7 +1383,10 @@ describe('the data-driven entity runtime over a live world', () => {
             data: { critical: true }
         });
 
-        const arrow = live.runtime.all().find((entity) => entity.identifier === 'minecraft:arrow');
+        const arrow = live.runtime
+            .entities()
+            .toArray()
+            .find((entity) => entity.identifier === 'minecraft:arrow');
         if (arrow === undefined) throw new Error('the item action did not spawn its arrow in the data runtime');
         const arrowBody = live.actors.actorOf(arrow.id);
         if (arrowBody === undefined) throw new Error('the data-driven arrow has no live body');
@@ -1435,7 +1439,10 @@ describe('the data-driven entity runtime over a live world', () => {
         if (targetMob === undefined) throw new Error('the fixture target has no goal view');
 
         live.runtime.shoot(shooter.body, targetMob, 'minecraft:arrow');
-        const arrow = live.runtime.all().find((entity) => entity.identifier === 'minecraft:arrow');
+        const arrow = live.runtime
+            .entities()
+            .toArray()
+            .find((entity) => entity.identifier === 'minecraft:arrow');
         if (arrow === undefined) throw new Error('the mob shot did not create its arrow in the data runtime');
 
         await run(4);
@@ -1459,7 +1466,10 @@ describe('the data-driven entity runtime over a live world', () => {
             inaccuracy: 0
         });
 
-        const arrow = live.runtime.all().find((entity) => entity.identifier === 'minecraft:arrow');
+        const arrow = live.runtime
+            .entities()
+            .toArray()
+            .find((entity) => entity.identifier === 'minecraft:arrow');
         if (arrow === undefined) throw new Error('the arrow launch action produced no data entity');
 
         await run(1);
@@ -1485,7 +1495,10 @@ describe('the data-driven entity runtime over a live world', () => {
 
         await run(4);
 
-        const chick = live.runtime.all().find((entity) => entity.identifier === 'minecraft:chicken');
+        const chick = live.runtime
+            .entities()
+            .toArray()
+            .find((entity) => entity.identifier === 'minecraft:chicken');
         if (chick === undefined) throw new Error('the egg hit action did not spawn its chicken');
         expect(chick.instance.hasComponent('minecraft:is_baby')).toBe(true);
     });
@@ -1510,7 +1523,10 @@ describe('the data-driven entity runtime over a live world', () => {
 
         await run(1);
 
-        const chicks = live.runtime.all().filter((entity) => entity.identifier === 'minecraft:chicken');
+        const chicks = live.runtime
+            .entities()
+            .toArray()
+            .filter((entity) => entity.identifier === 'minecraft:chicken');
         expect(chicks).toHaveLength(2);
         expect(chicks.every((chick) => chick.instance.hasComponent('minecraft:is_baby'))).toBe(true);
     });
@@ -1574,9 +1590,15 @@ describe('the data-driven entity runtime over a live world', () => {
                 });
             }
 
-            const zombie = live.runtime.all().find((entity) => entity.identifier === 'minecraft:zombie');
+            const zombie = live.runtime
+                .entities()
+                .toArray()
+                .find((entity) => entity.identifier === 'minecraft:zombie');
             if (zombie === undefined) throw new Error('the spawn egg action bypassed the data runtime');
-            const villager = live.runtime.all().find((entity) => entity.identifier === 'minecraft:villager_v2');
+            const villager = live.runtime
+                .entities()
+                .toArray()
+                .find((entity) => entity.identifier === 'minecraft:villager_v2');
             if (villager === undefined) throw new Error('the villager spawn egg action bypassed the data runtime');
 
             expect(villager.brain).toBeDefined();
@@ -1596,7 +1618,10 @@ describe('the data-driven entity runtime over a live world', () => {
             // `@jsprismarine/spawning` carries for it.
             await live.tick(400);
 
-            const cows = live.runtime.all().filter((entity) => entity.identifier === 'minecraft:cow');
+            const cows = live.runtime
+                .entities()
+                .toArray()
+                .filter((entity) => entity.identifier === 'minecraft:cow');
             expect(cows.length).toBeGreaterThan(0);
             expect(live.runtime.poolCount('animal')).toBe(cows.length);
             // Standing on the floor the chunk actually carries, not at a guessed height.
@@ -1612,7 +1637,10 @@ describe('the data-driven entity runtime over a live world', () => {
 
             await live.tick(400);
 
-            const cows = live.runtime.all().filter((entity) => entity.identifier === 'minecraft:cow').length;
+            const cows = live.runtime
+                .entities()
+                .toArray()
+                .filter((entity) => entity.identifier === 'minecraft:cow').length;
             expect(typesIn(world).filter((type) => type === 'minecraft:cow')).toHaveLength(cows);
             // And the player, whose entity is in the store beside them.
             expect(live.actors.size).toBe(cows + 1);
@@ -1635,7 +1663,7 @@ describe('the data-driven entity runtime over a live world', () => {
         it('spawns nothing with nobody in the world to spawn around', async () => {
             await live.tick(400);
 
-            expect(live.runtime.all()).toEqual([]);
+            expect(live.runtime.entities().toArray()).toEqual([]);
         });
 
         it('keeps the body moving where the runtime moves the entity', async () => {
@@ -2004,7 +2032,7 @@ describe('the data-driven entity runtime over a live world', () => {
             expect(zombies.filter((zombie) => zombie.position.x > 4)).toHaveLength(24);
         });
 
-        it('shows a store entity to clients through its store actor, with no legacy body in the world', async () => {
+        it('shows a store entity to clients through its store actor', async () => {
             const cow = live.runtime.spawn('minecraft:cow', { x: 0.5, y: GROUND_Y, z: 0.5 });
             if (cow === undefined) throw new Error('the fixture declares no minecraft:cow');
             await run(1);
@@ -2012,9 +2040,6 @@ describe('the data-driven entity runtime over a live world', () => {
             if (actor === undefined) throw new Error('the cow has no actor');
 
             expect(world.shownActors()).toContain(actor);
-            // The target "no mirror class": nothing in the world's entity map stands in for it.
-            expect(world.getEntity(BigInt(cow.id))).toBeNull();
-            expect(world.getEntities().some((entity) => entity.getType() === 'minecraft:cow')).toBe(false);
             expect(world.getActor(BigInt(cow.id))).toBe(actor);
 
             live.runtime.hurt(cow, undefined, 'entity_attack', 3);
@@ -2067,7 +2092,7 @@ describe('the data-driven entity runtime over a live world', () => {
             await run(1);
 
             expect(dragon.instance.hasComponent('minecraft:behavior.dragondeath')).toBe(true);
-            expect(live.runtime.all()).toContain(dragon);
+            expect(live.runtime.entities().toArray()).toContain(dragon);
             // The clients hear the hold begin, so they play the 200-tick death their packs define.
             expect(broadcasts.actorEffects).toContainEqual({
                 identifier: 'jsprismarine:dragon_death_fixture',
@@ -2076,10 +2101,10 @@ describe('the data-driven entity runtime over a live world', () => {
             });
 
             await run(198);
-            expect(live.runtime.all()).toContain(dragon);
+            expect(live.runtime.entities().toArray()).toContain(dragon);
 
             await run(1);
-            expect(live.runtime.all()).not.toContain(dragon);
+            expect(live.runtime.entities().toArray()).not.toContain(dragon);
         });
 
         it('lands a `/kill` on the ender dragon, whose rules refuse an attacker-less blow', async () => {
@@ -2217,7 +2242,8 @@ describe('the data-driven entity runtime over a live world', () => {
             await run(300);
 
             const babies = live.runtime
-                .all()
+                .entities()
+                .toArray()
                 .filter((entity) => entity.instance.activeComponentGroups().includes('baby'));
             expect(babies).toHaveLength(1);
             const babyBody = live.actors.actorOf(babies[0]!.id);
@@ -2486,7 +2512,10 @@ describe('the data-driven entity runtime over a live world', () => {
         it('summons a mob only a pack declares, with its components running', () => {
             const ref = summon('jsprismarine:dustling', { x: 2.5, y: GROUND_Y, z: 2.5 });
 
-            const dustling = live.runtime.all().find((entity) => entity.identifier === 'jsprismarine:dustling');
+            const dustling = live.runtime
+                .entities()
+                .toArray()
+                .find((entity) => entity.identifier === 'jsprismarine:dustling');
             expect(ref?.type).toBe('jsprismarine:dustling');
             expect(dustling).toBeDefined();
             // The spawn event ran, so this is a live component set rather than a bare body.
@@ -2503,7 +2532,10 @@ describe('the data-driven entity runtime over a live world', () => {
                 {}
             );
 
-            const dustling = live.runtime.all().find((entity) => entity.identifier === 'jsprismarine:dustling');
+            const dustling = live.runtime
+                .entities()
+                .toArray()
+                .find((entity) => entity.identifier === 'jsprismarine:dustling');
             expect(dustling?.body.pitch).toBe(0);
         });
 
@@ -2526,7 +2558,10 @@ describe('the data-driven entity runtime over a live world', () => {
                 { name: 'Dusty' }
             );
 
-            const dustling = live.runtime.all().find((entity) => entity.identifier === 'jsprismarine:dustling');
+            const dustling = live.runtime
+                .entities()
+                .toArray()
+                .find((entity) => entity.identifier === 'jsprismarine:dustling');
             expect(ref?.name).toBe('Dusty');
             expect(dustling?.body.nameTag).toBe('Dusty');
         });
@@ -2544,7 +2579,12 @@ describe('the data-driven entity runtime over a live world', () => {
         it('summons a vanilla mob through the data path rather than a written class', () => {
             summon('minecraft:cow', { x: 4.5, y: GROUND_Y, z: 4.5 });
 
-            expect(live.runtime.all().map((entity) => entity.identifier)).toEqual(['minecraft:cow']);
+            expect(
+                live.runtime
+                    .entities()
+                    .toArray()
+                    .map((entity) => entity.identifier)
+            ).toEqual(['minecraft:cow']);
             expect(live.actors.size).toBe(1);
         });
 
@@ -2555,7 +2595,12 @@ describe('the data-driven entity runtime over a live world', () => {
             const ref = summon('minecraft:villager', { x: 1.5, y: GROUND_Y, z: 1.5 });
 
             expect(ref?.type).toBe('minecraft:villager_v2');
-            expect(live.runtime.all().map((entity) => entity.identifier)).toEqual(['minecraft:villager_v2']);
+            expect(
+                live.runtime
+                    .entities()
+                    .toArray()
+                    .map((entity) => entity.identifier)
+            ).toEqual(['minecraft:villager_v2']);
         });
 
         it('leaves a Bedrock-only identifier as typed', () => {
@@ -2568,7 +2613,7 @@ describe('the data-driven entity runtime over a live world', () => {
 
         it('summons nothing for an identifier no pack and no class declares', () => {
             expect(summon('jsprismarine:nothing', { x: 0.5, y: GROUND_Y, z: 0.5 })).toBeUndefined();
-            expect(live.runtime.all()).toEqual([]);
+            expect(live.runtime.entities().toArray()).toEqual([]);
         });
 
         it('does not build a written class for an identifier the content has no type for', () => {
@@ -2577,7 +2622,7 @@ describe('the data-driven entity runtime over a live world', () => {
             const ref = summon('minecraft:tnt', { x: 0.5, y: GROUND_Y, z: 0.5 });
 
             expect(ref).toBeUndefined();
-            expect(live.runtime.all()).toEqual([]);
+            expect(live.runtime.entities().toArray()).toEqual([]);
         });
     });
 
@@ -2643,7 +2688,7 @@ describe('the data-driven entity runtime over a live world', () => {
             const second = await session(folder);
             await second.world.loadChunk(0, 0);
 
-            const restored = second.live.runtime.all();
+            const restored = second.live.runtime.entities().toArray();
             expect(restored).toHaveLength(1);
             expect(restored[0]?.identifier).toBe('jsprismarine:dustling');
             // A data entity rather than an inert one: it has the component set the
@@ -2693,7 +2738,7 @@ describe('the data-driven entity runtime over a live world', () => {
             const second = await session(folder);
             await second.world.loadChunk(0, 0);
 
-            const villager = second.live.runtime.all()[0];
+            const villager = second.live.runtime.entities().toArray()[0];
             expect(villager?.brainMob?.id).toBe('minecraft:villager');
             expect(villager?.brain).toBeDefined();
         });
@@ -2713,7 +2758,10 @@ describe('the data-driven entity runtime over a live world', () => {
             const second = await session(folder);
             await second.world.loadChunk(0, 0);
 
-            const zombie = second.live.runtime.all().find((entity) => entity.identifier === 'minecraft:zombie');
+            const zombie = second.live.runtime
+                .entities()
+                .toArray()
+                .find((entity) => entity.identifier === 'minecraft:zombie');
             if (zombie === undefined) throw new Error('the saved legacy zombie was not migrated into the runtime');
             expect(zombie.instance.goals.names()).toContain('minecraft:behavior.nearest_attackable_target');
 
@@ -2730,7 +2778,10 @@ describe('the data-driven entity runtime over a live world', () => {
 
             live.restoreExisting(stored);
 
-            const zombie = live.runtime.all().find((entity) => entity.identifier === 'minecraft:zombie');
+            const zombie = live.runtime
+                .entities()
+                .toArray()
+                .find((entity) => entity.identifier === 'minecraft:zombie');
             if (zombie === undefined) throw new Error('the legacy zombie was not migrated into the data runtime');
             expect(zombie.instance.goals.names()).toContain('minecraft:behavior.nearest_attackable_target');
             expect(zombie.body.yaw).toBe(45);
@@ -2795,7 +2846,7 @@ describe('the data-driven entity runtime over a live world', () => {
             expect([...provider.listChunks(Dimensions.Overworld)]).toContainEqual({ x: 0, z: 0 });
             await setup.world.loadChunk(0, 0);
 
-            const zombie = setup.runtimes.at(DIMENSION)?.runtime.all()[0];
+            const zombie = setup.runtimes.at(DIMENSION)?.runtime.entities().toArray()[0];
             expect(zombie?.identifier).toBe('minecraft:zombie');
             expect(zombie?.instance.goals.names()).toContain('minecraft:behavior.nearest_attackable_target');
             expect(zombie?.body.yaw).toBe(90);
@@ -2820,7 +2871,7 @@ describe('the data-driven entity runtime over a live world', () => {
             await second.world.loadChunk(0, 0);
 
             expect(typesIn(second.world).filter((type) => type === 'minecraft:cow')).toHaveLength(1);
-            expect(second.live.runtime.all()).toHaveLength(1);
+            expect(second.live.runtime.entities().toArray()).toHaveLength(1);
             expect(second.live.actors.size).toBe(1);
         });
 
@@ -2836,7 +2887,7 @@ describe('the data-driven entity runtime over a live world', () => {
             const second = await session(folder);
             await second.world.loadChunk(0, 0);
 
-            const [stack] = second.live.runtime.all();
+            const [stack] = second.live.runtime.entities().toArray();
             expect(stack?.identifier).toBe('minecraft:item');
             expect(stack === undefined ? undefined : itemViewOf(stack)?.stack).toEqual({
                 name: 'minecraft:stone',
@@ -3047,7 +3098,10 @@ describe('the data-driven entity runtime over a live world', () => {
                 const shot = await loose(player.getActor()!, 20);
 
                 expect(shot).toBe(true);
-                const arrow = live.runtime.all().find((entity) => entity.identifier === 'minecraft:arrow');
+                const arrow = live.runtime
+                    .entities()
+                    .toArray()
+                    .find((entity) => entity.identifier === 'minecraft:arrow');
                 if (arrow === undefined) throw new Error('the bow arrow bypassed the data-driven entity runtime');
 
                 expect(arrow.body.owner).toBe(Number(player.getRuntimeId()));
@@ -3108,7 +3162,10 @@ describe('the data-driven entity runtime over a live world', () => {
                     expect(live.actors.actorOf(restored.id)).toBeUndefined();
                     expect((await world.getBlockState(0, FLOOR_Y, 0)).name).toBe('minecraft:air');
                     expect((await world.getBlockState(1, GROUND_Y, 0)).name).toBe('minecraft:air');
-                    const chained = live.runtime.all().find((entity) => entity.identifier === 'minecraft:tnt');
+                    const chained = live.runtime
+                        .entities()
+                        .toArray()
+                        .find((entity) => entity.identifier === 'minecraft:tnt');
                     expect(chained?.body.fuseTicks).toBeGreaterThanOrEqual(10);
                     expect(chained?.body.fuseTicks).toBeLessThanOrEqual(29);
                     expect(chained?.body.owner).toBe(restored.id);
@@ -3300,7 +3357,8 @@ describe('the data-driven entity runtime over a live world', () => {
                 await new BlockPhysics(world).update(2, FLOOR_Y + 1, 2, 0);
 
                 const fallingBlock = live.runtime
-                    .all()
+                    .entities()
+                    .toArray()
                     .find((entity) => entity.identifier === 'minecraft:falling_block');
                 if (fallingBlock === undefined) throw new Error('the sand bypassed the data-driven entity runtime');
                 expect(fallingBlock.spawnData).toEqual({ block: 'minecraft:sand' });
@@ -3375,17 +3433,26 @@ describe('the data-driven entity runtime over a live world', () => {
                         });
                     }
 
-                    const villager = live.runtime.all().find((entity) => entity.identifier === 'minecraft:villager_v2');
+                    const villager = live.runtime
+                        .entities()
+                        .toArray()
+                        .find((entity) => entity.identifier === 'minecraft:villager_v2');
                     if (villager === undefined)
                         throw new Error('the vanilla villager spawn egg action bypassed the data runtime');
-                    const zombies = live.runtime.all().filter((entity) => entity.identifier === 'minecraft:zombie');
+                    const zombies = live.runtime
+                        .entities()
+                        .toArray()
+                        .filter((entity) => entity.identifier === 'minecraft:zombie');
                     const zombie = zombies.find((entity) => entity.position.x < 5);
                     if (zombie === undefined)
                         throw new Error('the vanilla zombie spawn egg action bypassed the data runtime');
                     const waterZombie = zombies.find((entity) => entity.position.x > 22);
                     if (waterZombie === undefined)
                         throw new Error('the vanilla water zombie spawn egg action bypassed the data runtime');
-                    const pig = live.runtime.all().find((entity) => entity.identifier === 'minecraft:pig');
+                    const pig = live.runtime
+                        .entities()
+                        .toArray()
+                        .find((entity) => entity.identifier === 'minecraft:pig');
                     if (pig === undefined)
                         throw new Error('the vanilla pig spawn egg action bypassed the data runtime');
                     expect(villager.brain).toBeDefined();
@@ -3424,7 +3491,10 @@ describe('the data-driven entity runtime over a live world', () => {
                 live.runtime.setInLove(second.id, 400);
                 live.runtime.breedWith(first.body, mate);
 
-                const lamb = live.runtime.all().find((entity) => entity.id !== first.id && entity.id !== second.id);
+                const lamb = live.runtime
+                    .entities()
+                    .toArray()
+                    .find((entity) => entity.id !== first.id && entity.id !== second.id);
                 if (lamb === undefined) throw new Error('vanilla sheep breeding made no lamb');
                 const body = live.actors.actorOf(lamb.id);
                 if (body === undefined) throw new Error('the vanilla lamb has no client-facing actor');
@@ -3509,7 +3579,10 @@ describe('the data-driven entity runtime over a live world', () => {
                 if (body === undefined) throw new Error('the vanilla pig has no client-facing actor');
                 await useHeldItemOnEntity(player, body.getRuntimeId());
 
-                const creeper = live.runtime.all().find((entity) => entity.identifier === 'minecraft:creeper');
+                const creeper = live.runtime
+                    .entities()
+                    .toArray()
+                    .find((entity) => entity.identifier === 'minecraft:creeper');
                 if (creeper === undefined) throw new Error('the spawn egg created no creeper');
                 expect(creeper.position).toEqual(pig.position);
                 expect(creeper.instance.hasComponent('minecraft:is_baby')).toBe(false);
@@ -3542,7 +3615,10 @@ describe('the data-driven entity runtime over a live world', () => {
 
                 await useHeldItemOnEntity(player, pigBody.getRuntimeId());
 
-                const villager = live.runtime.all().find((entity) => entity.identifier === 'minecraft:villager_v2');
+                const villager = live.runtime
+                    .entities()
+                    .toArray()
+                    .find((entity) => entity.identifier === 'minecraft:villager_v2');
                 expect(villager?.position).toEqual(pig.position);
                 expect(villager && live.actors.actorOf(villager.id)).toBeDefined();
             });
@@ -3566,7 +3642,8 @@ describe('the data-driven entity runtime over a live world', () => {
                 await useHeldItemOnEntity(player, body.getRuntimeId());
 
                 const child = live.runtime
-                    .all()
+                    .entities()
+                    .toArray()
                     .find((entity) => entity.identifier === 'minecraft:villager_v2' && entity.id !== villager.id);
                 expect(child?.position).toEqual(villager.position);
                 expect(child?.instance.hasComponent('minecraft:is_baby')).toBe(true);
@@ -3593,7 +3670,8 @@ describe('the data-driven entity runtime over a live world', () => {
                 await useHeldItemOnEntity(player, body.getRuntimeId());
 
                 const baby = live.runtime
-                    .all()
+                    .entities()
+                    .toArray()
                     .find((entity) => entity.identifier === 'minecraft:zombie' && entity.id !== zombie.id);
                 expect(baby?.instance.hasComponent('minecraft:is_baby')).toBe(true);
                 const babyBody = baby && live.actors.actorOf(baby.id);
@@ -3622,7 +3700,8 @@ describe('the data-driven entity runtime over a live world', () => {
                     await useHeldItemOnEntity(player, body.getRuntimeId());
 
                     const baby = live.runtime
-                        .all()
+                        .entities()
+                        .toArray()
                         .find((entity) => entity.identifier === 'minecraft:zombie' && entity.id !== parent.id);
                     if (baby === undefined) throw new Error('the matching spawn egg created no baby zombie');
                     expect(baby.position).toEqual(parent.position);
@@ -3659,7 +3738,10 @@ describe('the data-driven entity runtime over a live world', () => {
 
                     for (let egg = 0; egg < 24; egg += 1) await useHeldItemOnEntity(player, body.getRuntimeId());
 
-                    const zombies = live.runtime.all().filter((entity) => entity.identifier === 'minecraft:zombie');
+                    const zombies = live.runtime
+                        .entities()
+                        .toArray()
+                        .filter((entity) => entity.identifier === 'minecraft:zombie');
                     expect(zombies).toHaveLength(25);
                     expect(zombies.filter((entity) => entity.instance.hasComponent('minecraft:is_baby'))).toHaveLength(
                         24
@@ -3697,7 +3779,8 @@ describe('the data-driven entity runtime over a live world', () => {
                 await useHeldItemOnEntity(player, body.getRuntimeId());
 
                 const lamb = live.runtime
-                    .all()
+                    .entities()
+                    .toArray()
                     .find((entity) => entity.identifier === 'minecraft:sheep' && entity.id !== sheep.id);
                 expect(lamb?.position).toEqual(sheep.position);
                 expect(lamb?.instance.hasComponent('minecraft:is_baby')).toBe(true);
@@ -3755,11 +3838,19 @@ describe('the data-driven entity runtime over a live world', () => {
                     player
                         .getInventory()
                         .setItemInHand(new ContainerEntry({ item: new Item({ name: egg }), count: 1 }));
-                    const existingIds = new Set(live.runtime.all().map((entity) => entity.id));
+                    const existingIds = new Set(
+                        live.runtime
+                            .entities()
+                            .toArray()
+                            .map((entity) => entity.id)
+                    );
 
                     await useHeldItemOnEntity(player, body.getRuntimeId());
 
-                    const offspring = live.runtime.all().find((entity) => !existingIds.has(entity.id));
+                    const offspring = live.runtime
+                        .entities()
+                        .toArray()
+                        .find((entity) => !existingIds.has(entity.id));
                     expect(offspring?.identifier).toBe(expectedChildIdentifier);
                     const offspringType = content.entities.registry.get(expectedChildIdentifier);
                     if (offspringType?.declaredComponents.includes('minecraft:is_baby')) {
@@ -3789,7 +3880,10 @@ describe('the data-driven entity runtime over a live world', () => {
 
                 live.runtime.breedWith(first.body, mate);
 
-                const tadpole = live.runtime.all().find((entity) => entity.identifier === 'minecraft:tadpole');
+                const tadpole = live.runtime
+                    .entities()
+                    .toArray()
+                    .find((entity) => entity.identifier === 'minecraft:tadpole');
                 expect(tadpole?.instance.hasComponent('minecraft:is_baby')).toBe(true);
                 expect(
                     live.actors
@@ -3820,7 +3914,8 @@ describe('the data-driven entity runtime over a live world', () => {
                     await useHeldItemOnEntity(player, body.getRuntimeId());
 
                     const newCreeper = live.runtime
-                        .all()
+                        .entities()
+                        .toArray()
                         .find((entity) => entity.identifier === 'minecraft:creeper' && entity.id !== creeper.id);
                     expect(newCreeper?.position).toEqual(creeper.position);
                     expect(newCreeper?.instance.hasComponent('minecraft:is_baby')).toBe(false);

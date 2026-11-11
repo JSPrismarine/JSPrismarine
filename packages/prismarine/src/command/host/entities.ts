@@ -9,7 +9,6 @@
  */
 import type { EntityCommandHost, EntityRef, Rotation, SelectorFacts, Vector3 } from '@jsprismarine/commands';
 import { matchSelector } from '@jsprismarine/commands';
-import { typeFamily } from '@jsprismarine/entities';
 import { javaEntityTypeToBedrock } from '@jsprismarine/mapping';
 import { getGametypeId, getGametypeName } from '@jsprismarine/minecraft';
 import { PositionMode } from '@jsprismarine/protocol';
@@ -20,14 +19,13 @@ import { DamageCause } from '../../entity/DamageCause';
 import { DamageSource } from '../../entity/DamageSource';
 import { damageSourceOfType, hasDamageType } from '../../entity/damageTypes';
 import { normalizeStatusEffectId } from '../../entity/StatusEffect';
-import { StoreActor } from '../../entity/data/storeActors';
+import type { StoreActor } from '../../entity/data/storeActors';
 import type { ExperienceHolder } from '../../entity/Experience';
 import { eyePositionAt } from '../../entity/playerEyes';
 import { addExperiencePoints, pointsForNextLevel } from '../../entity/Experience';
 import ContainerEntry from '../../inventory/ContainerEntry';
 import { itemFromContent } from '../../item/itemFromContent';
 import type { World } from '../../world/World';
-import type { WorldActor } from '../../world/WorldActor';
 import type { Scoreboard } from './scoreboard';
 import { scoreFactOf } from './scoreboard';
 import type { CommandPlayer } from './support';
@@ -103,16 +101,11 @@ const barFractionOf = (level: number, points: number): number => {
 /**
  * The type families of one entity, which is what `@e[family=...]` compares.
  *
- * A store entity answers from its live instance, because a component group added at runtime
+ * Answered from the store entity's live instance, because a component group added at runtime
  * brings its own `minecraft:type_family` with it and a zombie villager mid-conversion is in
- * different families than the one its file declares. The two kinds of entity no data instance
- * backs, the player and a dropped stack's body, fall back to the families their declaration
- * carries.
+ * different families than the one its file declares.
  */
-const familiesOf = (server: Server, entity: WorldActor): readonly string[] => {
-    if (entity instanceof StoreActor) return entity.entity.instance.families();
-    return server.getContent()?.entities.registry.get(entity.getType())?.params(typeFamily)?.family ?? [];
-};
+const familiesOf = (entity: StoreActor): readonly string[] => entity.entity.instance.families();
 
 /**
  * The facts an `EntityRef` does not carry, as far as this server can answer
@@ -128,7 +121,7 @@ const selectorFacts = (server: Server, scoreboard: Scoreboard): Partial<Selector
     tags: (ref) => resolveEntity(server, ref)?.getTags() ?? [],
     families: (ref) => {
         const entity = resolveEntity(server, ref);
-        return entity === undefined ? [] : familiesOf(server, entity);
+        return entity === undefined ? [] : familiesOf(entity);
     }
 });
 
@@ -197,7 +190,7 @@ const spawnIdentifierOf = (identifier: string): string => {
  * @param scoreboard - The scoreboard a selector's `scores=` reads.
  */
 export const entityCommandHost = (server: Server, scoreboard: Scoreboard): EntityCommandHost => {
-    const refsOf = (entities: readonly WorldActor[]): EntityRef[] => entities.map(entityRefOf);
+    const refsOf = (entities: readonly StoreActor[]): EntityRef[] => entities.map(entityRefOf);
 
     /**
      * Who a selector may name.
@@ -206,7 +199,7 @@ export const entityCommandHost = (server: Server, scoreboard: Scoreboard): Entit
      * `@a` does; anything else looks at the dimension the command is running
      * in, because that is the only place an `@e` can reach.
      */
-    const candidatesFor = (base: string, dimension: string): readonly WorldActor[] =>
+    const candidatesFor = (base: string, dimension: string): readonly StoreActor[] =>
         base === '@a' || base === '@p' || base === '@r'
             ? server
                   .getSessionManager()
@@ -217,7 +210,7 @@ export const entityCommandHost = (server: Server, scoreboard: Scoreboard): Entit
     const applyAttribute = (
         ref: EntityRef,
         attribute: string,
-        read: (id: string, entity: WorldActor) => number | undefined
+        read: (id: string, entity: StoreActor) => number | undefined
     ) => {
         const id = attributeIdOf(attribute);
         const entity = resolveEntity(server, ref);
@@ -252,22 +245,12 @@ export const entityCommandHost = (server: Server, scoreboard: Scoreboard): Entit
             // only way to kill it is to take it out of the world. The cause is
             // the one nothing turns aside: the ender dragon's damage rules
             // refuse a generic attacker-less blow, and `/kill` must not be one.
-            if (entity instanceof StoreActor) {
-                // A store entity dies through the store's damage pipeline, and one with no health,
-                // such as a boat, leaves the store.
-                const live = entity.getWorld().dataEntities();
-                if (entity.isAlive()) live.killEntity(entity, DamageSource.of(DamageCause.SelfDestruct), 'command');
-                else live.runtime.remove(entity.entity.id, 'body removed');
-                return true;
-            }
-
-            if (entity.isAlive()) return carryOut(entity.setHealth(0, DamageCause.SelfDestruct), true);
-
-            // A dead player is on the death screen, not an entity to clear away: taking it out of
-            // the world leaves it out when it respawns, and no `@s` finds it again.
-            if (resolvePlayer(server, ref) !== undefined) return false;
-
-            return carryOut(entity.getWorld().removeEntity(entity), true);
+            // An entity dies through the store's damage pipeline, and one with no health, such as
+            // a boat, leaves the store.
+            const live = entity.getWorld().dataEntities();
+            if (entity.isAlive()) live.killEntity(entity, DamageSource.of(DamageCause.SelfDestruct), 'command');
+            else live.runtime.remove(entity.entity.id, 'body removed');
+            return true;
         },
 
         damage: (ref, amount, damageType, origin) => {
@@ -288,11 +271,8 @@ export const entityCommandHost = (server: Server, scoreboard: Scoreboard): Entit
                 ...(from === undefined ? {} : { from }),
                 ...(origin?.at === undefined ? {} : { at: vectorOf(origin.at) })
             });
-            if (entity instanceof StoreActor) {
-                entity.getWorld().dataEntities().damageEntity(entity, amount, source, 'command');
-                return true;
-            }
-            return carryOut(entity.damage(amount, source), true);
+            entity.getWorld().dataEntities().damageEntity(entity, amount, source, 'command');
+            return true;
         },
 
         teleport: (ref, position, rotation, dimension) => {
@@ -318,21 +298,11 @@ export const entityCommandHost = (server: Server, scoreboard: Scoreboard): Entit
                     });
                 }
 
-                // A store entity moves in the store, and clients are shown a teleport.
-                if (entity instanceof StoreActor) {
-                    const driven = entity.entity;
-                    driven.body.yaw = rotation.yaw;
-                    driven.body.pitch = rotation.pitch;
-                    driven.body.teleportTo({ x: position.x, y: position.y, z: position.z });
-                    return;
-                }
-
-                return entity.setPosition({
-                    position: vectorOf(position),
-                    yaw: rotation.yaw,
-                    pitch: rotation.pitch,
-                    headYaw: rotation.yaw
-                });
+                // Any other entity moves in the store, and clients are shown a teleport.
+                const driven = entity.entity;
+                driven.body.yaw = rotation.yaw;
+                driven.body.pitch = rotation.pitch;
+                driven.body.teleportTo({ x: position.x, y: position.y, z: position.z });
             };
 
             // Only a player can change world here; any other entity's move keeps

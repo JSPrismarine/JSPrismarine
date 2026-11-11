@@ -2,7 +2,7 @@ import type { Vector3 } from '@jsprismarine/math';
 import { LevelEvent, LevelSoundEvent } from '@jsprismarine/minecraft';
 import { meleeEnchantmentBonus } from '../enchantment/melee';
 import { GameRules } from '../world/GameRuleManager';
-import type { WorldActor } from '../world/WorldActor';
+import type { StoreActor } from './data/storeActors';
 import { AttributeIds } from '@jsprismarine/protocol/wire/structures/Attribute';
 import { DamageCause } from './DamageCause';
 import { DamageSource } from './DamageSource';
@@ -71,10 +71,10 @@ export interface MeleeOptions {
  * player standing on a cow and a player standing beside one are both within reach of it, which is
  * what a player would expect and what a center-to-center check gets wrong for anything tall.
  * @param {Vector3} from - Where the blow comes from; for a player, their eyes.
- * @param {WorldActor} target - Who is being reached for.
+ * @param {StoreActor} target - Who is being reached for.
  * @returns {number} Blocks to the nearest point of the target's body; zero if inside it.
  */
-export const distanceToBody = (from: Vector3, target: WorldActor): number => {
+export const distanceToBody = (from: Vector3, target: StoreActor): number => {
     const at = target.getPosition();
     const { width, height } = target.getBox();
     const half = width / 2;
@@ -96,11 +96,11 @@ export const distanceToBody = (from: Vector3, target: WorldActor): number => {
  * A dead target is refused here rather than left to the damage pipeline, because a mob keeps its
  * place in the world for a second while its death animation plays and would otherwise be a
  * punchbag for that second.
- * @param {WorldActor} attacker - Who is swinging.
- * @param {WorldActor} target - Who at.
+ * @param {StoreActor} attacker - Who is swinging.
+ * @param {StoreActor} target - Who at.
  * @returns {boolean} `true` if the blow is permitted.
  */
-export const canHarm = (attacker: WorldActor, target: WorldActor): boolean => {
+export const canHarm = (attacker: StoreActor, target: StoreActor): boolean => {
     if (attacker === target || !target.isAlive()) return false;
 
     // A fight cannot cross worlds, and the runtime id a client names is only unique within one.
@@ -121,8 +121,8 @@ export const canHarm = (attacker: WorldActor, target: WorldActor): boolean => {
  * Returns `false` for every way a swing can fail to land - out of reach, refused by the rules,
  * absorbed by the target's grace period, canceled by a listener - and the caller wants that,
  * because a swing that did not land costs no hunger and wears out no weapon.
- * @param {WorldActor} attacker - Who is swinging.
- * @param {WorldActor} target - Who at.
+ * @param {StoreActor} attacker - Who is swinging.
+ * @param {StoreActor} target - Who at.
  * @param {MeleeOptions} [options] - What the caller knows about this particular blow.
  * @returns {Promise<boolean>} `true` if the target actually took damage.
  * @example
@@ -131,8 +131,8 @@ export const canHarm = (attacker: WorldActor, target: WorldActor): boolean => {
  * ```
  */
 export const meleeAttack = async (
-    attacker: WorldActor,
-    target: WorldActor,
+    attacker: StoreActor,
+    target: StoreActor,
     options: MeleeOptions = {}
 ): Promise<boolean> => {
     const { reach = DEFAULT_REACH, critical = false, knockbackLevels = 0 } = options;

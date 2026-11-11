@@ -56,7 +56,6 @@ const worldOf = (dimension: DimensionType, roster: string[] = [], level?: Level)
         addPlayer: async () => void roster.push('add'),
         savePlayerData: async () => void roster.push('save'),
         removePlayer: async () => void roster.push('remove'),
-        entityRelocated: () => {},
         broadcastMove: async () => {},
         getSpawnPosition: async () => new Vector3(8, 70, 8),
         getChunk: async (x, z) => new Chunk(x, z, new Map(), dimension)

@@ -89,7 +89,6 @@ const fakeWorld = (initial: BlockState, broken = fakeBlock(initial.name)) => {
         dimension: Dimensions.Overworld,
         // Empty and never written: a drop is a store stack. It is here because a world with no
         // entity map is not a world.
-        entities: new Map(),
         level: fakeLevel(),
         blockUpdates: new BlockUpdateScheduler(),
         systems: { onBlockChanged: () => {}, updateAround: () => {} },

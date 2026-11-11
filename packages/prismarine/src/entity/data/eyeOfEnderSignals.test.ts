@@ -33,7 +33,8 @@ const step = (fixture: EntityFixture, ticks = 1): void => {
 /** The dropped stacks the store holds. */
 const droppedStacks = (fixture: EntityFixture) =>
     fixture.runtime
-        .all()
+        .entities()
+        .toArray()
         .map((entity) => itemViewOf(entity)?.stack)
         .filter((stack) => stack !== undefined);
 

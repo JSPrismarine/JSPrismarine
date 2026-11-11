@@ -237,7 +237,8 @@ describe('the command layer on a booted server', () => {
 
         const summoned = world
             .dataEntities()
-            ?.runtime.all()
+            ?.runtime.entities()
+            .toArray()
             .find((entity) => entity.identifier === 'minecraft:pig' && entity.position.x === 11.5);
         expect(summoned?.position).toEqual({ x: 11.5, y: 70, z: 12.5 });
     });
@@ -638,7 +639,8 @@ describe('the command layer on a server with packs of its own', () => {
     const dataEntityAt = (x: number, z: number) =>
         world
             .dataEntities()
-            ?.runtime.all()
+            ?.runtime.entities()
+            .toArray()
             .find((entity) => Math.floor(entity.body.position.x) === x && Math.floor(entity.body.position.z) === z);
 
     it('built its content from the pack stack, the fixtures included', () => {

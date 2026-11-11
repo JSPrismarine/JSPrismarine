@@ -6,10 +6,10 @@ import { Error } from '@jsprismarine/errors';
 import { TICK_FUNCTION_TAG } from '@jsprismarine/mcfunction';
 import { CommandPermissionLevel } from '@jsprismarine/minecraft';
 
-import type { Entity, Server, Service } from '../';
+import type { Server, Service } from '../';
 import { collectAsyncCommands, deferCommandWork } from './deferred';
 import Timer from '../utils/Timer';
-import type { CommandExecutor } from './CommandExecutor';
+import type { CommandExecutor, CommandTarget } from './CommandExecutor';
 import { isCommandExecutor } from './CommandExecutor';
 import type { FunctionContent } from './function';
 import { FunctionRuntime, functionContentOf, loadServerFunctions } from './function';
@@ -600,11 +600,7 @@ export class CommandManager implements Service {
      * sender lacks the permission, the command is unknown, or it threw; in each of those
      * cases the sender has been sent the reason.
      */
-    public async dispatchCommand(
-        sender: CommandExecutor,
-        target: CommandExecutor | Entity,
-        input = ''
-    ): Promise<boolean> {
+    public async dispatchCommand(sender: CommandExecutor, target: CommandTarget, input = ''): Promise<boolean> {
         try {
             // Anything else an `@e` selector can match has no way to be answered.
             if (!isCommandExecutor(target)) {
@@ -653,7 +649,7 @@ export class CommandManager implements Service {
             this.server
                 .getLogger()
                 .debug(
-                    `Player ${target.getFormattedUsername()} tried to execute ${input}, but it failed with the error: ${error}`,
+                    `Player ${isCommandExecutor(target) ? target.getFormattedUsername() : target.getName()} tried to execute ${input}, but it failed with the error: ${error}`,
                     'CommandManager/dispatchCommand'
                 );
             this.server.getLogger().error(error);

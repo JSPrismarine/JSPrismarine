@@ -32,8 +32,6 @@ const emptyWorld = (): World => {
     const live = entities.entityRuntime(Dimensions.Overworld.name);
     const created: World = Object.assign(Object.create(World.prototype), {
         chunks: new Map(),
-        entities: new Map(),
-        entityChunkIndices: new Map(),
         players: new Map(),
         dimension: Dimensions.Overworld,
         // PvP on, so only the identity of the two sides decides a swing.

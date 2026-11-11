@@ -17,7 +17,6 @@ import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import type { Config } from '../config/Config';
 import type Console from '../Console';
-import { Entity } from '../entity/Entity';
 import ContainerEntry from '../inventory/ContainerEntry';
 import type { Logger } from '@jsprismarine/logger';
 import { AttributeIds } from '@jsprismarine/protocol/wire/structures/Attribute';
@@ -32,7 +31,6 @@ import type { ChunkScheduler } from './ChunkScheduler';
 import Chunk from './chunk/Chunk';
 import { Dimensions } from './Dimension';
 import type { Generator } from './Generator';
-import { Position } from './Position';
 import LevelDB from './providers/leveldb/LevelDB';
 import type Server from '../Server';
 import type WorldManager from './WorldManager';
@@ -131,13 +129,12 @@ const digestWithInsertionOrder = async (
 
         const first = buildPlayer(world, server, UUID.fromString('00000000-0000-4000-8000-000000000001'));
         const second = buildPlayer(world, server, UUID.fromString('00000000-0000-4000-8000-000000000002'));
-        // A non-player entity verifies the digest path that has no inventory to record.
-        const mob = new Entity({ position: new Position(4.5, 65, 0.5, world) });
-        // Construct entities in runtime-id order, then reverse map insertion to test canonical sorting.
+        // Build the players in runtime-id order, then reverse their entry to test canonical sorting.
+        // No mob: a store mob draws a fresh persistent identity at its spawn, so two levels never
+        // hash one the same. `WorldReplayState.test.ts` covers how a mob is hashed.
         const addFirst = () => world.addPlayer(first);
-        const addMob = () => world.addEntity(mob);
         const addSecond = () => world.addPlayer(second);
-        const additions = reverseEntityInsertion ? [addSecond, addMob, addFirst] : [addFirst, addMob, addSecond];
+        const additions = reverseEntityInsertion ? [addSecond, addFirst] : [addFirst, addSecond];
         for (const add of additions) await add();
 
         return world.replayStateDigest();

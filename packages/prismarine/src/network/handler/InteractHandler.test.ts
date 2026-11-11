@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 
 import type { Logger } from '@jsprismarine/logger';
 import type Server from '../../Server';
-import type { Entity } from '../../entity/Entity';
+import type { StoreActor } from '../../entity/data/storeActors';
 import { identityNamed } from '../../testing/sessionIdentity.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import { Position } from '../../world/Position';
@@ -31,7 +31,7 @@ const fakeSession = (options: { npcDistance?: number; tracked?: boolean } = {}) 
     const world: World = stub<World>({
         getActor: (runtimeId) =>
             runtimeId === NPC && options.npcDistance !== undefined
-                ? stub<Entity>({ getPosition: () => new Position(options.npcDistance ?? 0, 0, 0, world) })
+                ? stub<StoreActor>({ getPosition: () => new Position(options.npcDistance ?? 0, 0, 0, world) })
                 : null
     });
     const player = stubPlayerPort({

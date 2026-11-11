@@ -62,8 +62,8 @@ export interface EntityScene {
     readonly host: EntityHostFacts;
     /** The built content, read back lazily because the adapter exists before the content does. */
     content(): ServerContent;
-    /** Every live entity, in spawn order. */
-    all(): readonly DataEntity[];
+    /** Every live entity, in spawn order, walked in place. */
+    entities(): Generator<DataEntity, void, undefined>;
     /**
      * Every live entity within a radius of a position, unsorted.
      *

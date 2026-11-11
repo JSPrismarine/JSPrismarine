@@ -9,7 +9,7 @@ import type { World } from '../world/World';
 import type PlayerSession from '../network/PlayerSession';
 import { DamageCause } from '../entity/DamageCause';
 import { DamageSource } from '../entity/DamageSource';
-import type { Entity } from '../entity/Entity';
+import type { StoreActor } from '../entity/data/storeActors';
 import ContainerEntry from '../inventory/ContainerEntry';
 import HumanInventory from '../inventory/HumanInventory';
 import { Item } from '../item/Item';
@@ -309,8 +309,8 @@ const scene = () => {
     return { player, inventory, announced, port, source };
 };
 
-const mob = (type: string): Entity =>
-    stub<Entity>({
+const mob = (type: string): StoreActor =>
+    stub<StoreActor>({
         getType: () => type,
         getPosition: () => ({ getX: () => 0, getY: () => 64, getZ: () => 0 }) as never,
         getEquipment: () => ({}),

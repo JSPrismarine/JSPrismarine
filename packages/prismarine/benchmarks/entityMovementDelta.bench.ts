@@ -23,6 +23,7 @@ import type {
 import { buildServerContent } from '../src/content/ServerContent';
 import type { ServerContent } from '../src/content/ServerContent';
 import { entityContentGroups } from '../src/entity/contentAdapter';
+import type { DataEntity } from '../src/entity/data/DataEntity';
 import { EntityRuntime } from '../src/entity/data/EntityRuntime';
 import type { ContentItemEntity, EntityHostFacts, EntityWorldFacts } from '../src/entity/data/host';
 import { toPacketCompressionLevel, toPacketCompressionThreshold } from '../src/config/Config';
@@ -182,7 +183,7 @@ const movementRuntime = (seed: number, players: number) => {
     };
 };
 
-const poseOf = (entity: ReturnType<EntityRuntime['all']>[number]): Pose => ({
+const poseOf = (entity: DataEntity): Pose => ({
     runtimeEntityId: BigInt(entity.id),
     x: entity.position.x,
     y: entity.position.y,
@@ -212,13 +213,13 @@ const recordMovementScenario = (
     const { runtime, setTick } = movementRuntime(seed, players);
     for (const actor of actors) runtime.spawn(actor.identifier, actor.position);
 
-    const initial = runtime.all().map(poseOf);
+    const initial = runtime.entities().toArray().map(poseOf);
     const previous = new Map(initial.map((state) => [state.runtimeEntityId, state]));
     const updates: PoseUpdate[] = [];
     for (let tick = 1; tick <= TICKS; tick++) {
         setTick(tick);
         runtime.tick(tick);
-        for (const entity of runtime.all()) {
+        for (const entity of runtime.entities().toArray()) {
             const current = poseOf(entity);
             const prior = previous.get(current.runtimeEntityId);
             if (prior === undefined || !samePose(current, prior)) {
@@ -228,8 +229,10 @@ const recordMovementScenario = (
         }
     }
 
-    if (runtime.all().length !== actors.length) {
-        throw new Error(`${name} movement recording expected ${actors.length} mobs, found ${runtime.all().length}`);
+    if (runtime.entities().toArray().length !== actors.length) {
+        throw new Error(
+            `${name} movement recording expected ${actors.length} mobs, found ${runtime.entities().toArray().length}`
+        );
     }
 
     return { name, initial, updates };

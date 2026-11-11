@@ -1,6 +1,6 @@
 import { DamageCause } from './DamageCause';
 import type { DamageSource } from './DamageSource';
-import type { WorldActor } from '../world/WorldActor';
+import type { StoreActor } from './data/storeActors';
 
 /**
  * How a death is announced.
@@ -74,10 +74,10 @@ const ATTRIBUTED: Partial<Record<DamageCause, string>> = {
  * the `%entity.zombie.name` key vanilla uses, because a translation key nested inside another
  * key's parameter is not something every client resolves - and a message that renders as the raw
  * key is worse than one that renders in English.
- * @param {WorldActor} entity - Who to name.
+ * @param {StoreActor} entity - Who to name.
  * @returns {string} A name fit to put in a sentence.
  */
-const displayNameOf = (entity: WorldActor): string => {
+const displayNameOf = (entity: StoreActor): string => {
     const nametag = entity.getName();
     if (nametag) return nametag;
 
@@ -94,14 +94,14 @@ const displayNameOf = (entity: WorldActor): string => {
  *
  * By identifier, which every actor answers whatever holds it, so this module imports no class
  * that imports it back.
- * @param {WorldActor} entity - The entity to test.
+ * @param {StoreActor} entity - The entity to test.
  * @returns {boolean} `true` for a player.
  */
-const isPlayer = (entity: WorldActor): boolean => entity.getType() === PLAYER_TYPE;
+const isPlayer = (entity: StoreActor): boolean => entity.getType() === PLAYER_TYPE;
 
 /**
  * The line to announce a death with.
- * @param {WorldActor} victim - Who died.
+ * @param {StoreActor} victim - Who died.
  * @param {DamageSource} source - What killed them, and who is answerable for it.
  * @returns {DeathMessage} The key and its parameters.
  * @example
@@ -110,7 +110,7 @@ const isPlayer = (entity: WorldActor): boolean => entity.getType() === PLAYER_TY
  * // => { key: '%death.attack.player', parameters: ['Steve', 'Alex'] }
  * ```
  */
-export const deathMessage = (victim: WorldActor, source: DamageSource): DeathMessage => {
+export const deathMessage = (victim: StoreActor, source: DamageSource): DeathMessage => {
     const killer = source.attacker;
 
     if (source.deathMessageOverride !== undefined) {

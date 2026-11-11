@@ -4,7 +4,7 @@ import type { ChunkRequestOptions } from '../Generator';
 import type { Server } from '../../';
 import type Chunk from '../chunk/Chunk';
 import type { DimensionType } from '../Dimension';
-import type { WorldActor } from '../WorldActor';
+import type { StoreActor } from '../../entity/data/storeActors';
 import type { Level } from '../Level';
 import type Provider from './Provider';
 import type { LevelDatInputs } from './Provider';
@@ -28,7 +28,7 @@ const WORLD_DATA_FILE_NAME = 'jsprismarine-world.dat';
  * The provider serves every dimension of a save, so it cannot read one world's entity list;
  * whoever owns the worlds hands it this instead.
  */
-export type EntitySource = (dimension: DimensionType) => Iterable<WorldActor>;
+export type EntitySource = (dimension: DimensionType) => Iterable<StoreActor>;
 
 /**
  * What the provider formats share: the folder, the server, the fallback world data file and
@@ -118,7 +118,7 @@ export default abstract class BaseProvider implements Provider {
      * The live entities of one dimension, from the attached source, or from the attached world
      * when it is the only one.
      */
-    protected entitiesIn(dimension: DimensionType): Iterable<WorldActor> {
+    protected entitiesIn(dimension: DimensionType): Iterable<StoreActor> {
         if (this.entitySource !== null) return this.entitySource(dimension);
         if (this.world === undefined || this.world.getDimension().bedrockId !== dimension.bedrockId) return [];
         return this.world.actors();

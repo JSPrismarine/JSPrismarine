@@ -28,7 +28,7 @@ import type { ExperienceHolder } from '../../entity/Experience';
 import type HumanInventory from '../../inventory/HumanInventory';
 import type PlayerSession from '../../network/PlayerSession';
 import type { StoredSpawnPoint } from '../../world/RespawnPoint';
-import type { WorldActor } from '../../world/WorldActor';
+import type { StoreActor } from '../../entity/data/storeActors';
 import { dimensionByName } from '../../world/Dimension';
 import type { World } from '../../world/World';
 import { deferCommandWork } from '../deferred';
@@ -152,7 +152,7 @@ export const entityRefOf = (entity: ReferencedEntity): EntityRef => ({
  *
  * @returns The entity, or undefined when it has since despawned.
  */
-export const resolveEntity = (server: Server, ref: EntityRef): WorldActor | undefined => {
+export const resolveEntity = (server: Server, ref: EntityRef): StoreActor | undefined => {
     // A reference names a runtime id; one that names anything else names nothing here.
     if (!/^\d+$/.test(ref.id)) return undefined;
     const runtimeId = BigInt(ref.id);

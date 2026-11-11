@@ -88,7 +88,6 @@ const makeWorld = (legacyChunkScan: boolean, output: Output): World => {
         chunks,
         loading: new Map(),
         systems,
-        entities: new Map(),
         changes: { ...NULL_WORLD_CHANGE_SINK, flushBlockChanges: async () => {}, flushBlockEntities: async () => {} },
         getEntities: () => [],
         runBlockUpdates: async () => {},

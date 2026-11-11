@@ -1,5 +1,5 @@
 import type { PortalBlockRef } from '../../world/portal/DimensionTravel';
-import type { WorldActor } from '../../world/WorldActor';
+import type { StoreActor } from '../../entity/data/storeActors';
 import { Event } from '../Event';
 
 /**
@@ -10,10 +10,10 @@ import { Event } from '../Event';
  * `PlayerChangeDimensionEvent` once their timer runs out and a destination is known.
  */
 export default class EntityPortalEnterEvent extends Event {
-    private readonly entity: WorldActor;
+    private readonly entity: StoreActor;
     private readonly portal: PortalBlockRef;
 
-    public constructor(entity: WorldActor, portal: PortalBlockRef) {
+    public constructor(entity: StoreActor, portal: PortalBlockRef) {
         super();
 
         this.entity = entity;
@@ -21,7 +21,7 @@ export default class EntityPortalEnterEvent extends Event {
     }
 
     /** Who stepped into the portal: a legacy entity, or a store entity through its actor. */
-    public getEntity(): WorldActor {
+    public getEntity(): StoreActor {
         return this.entity;
     }
 

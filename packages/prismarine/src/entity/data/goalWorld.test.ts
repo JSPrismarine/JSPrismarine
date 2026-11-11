@@ -267,7 +267,10 @@ describe('the goal world over the entity runtime', () => {
             // The 60-tick courtship goal advances on selector updates, every other game tick.
             run(fixture, 120);
 
-            const babies = fixture.runtime.all().filter((entity) => entity.instance.hasComponent('minecraft:is_baby'));
+            const babies = fixture.runtime
+                .entities()
+                .toArray()
+                .filter((entity) => entity.instance.hasComponent('minecraft:is_baby'));
             expect(babies).toHaveLength(1);
             expect(babies[0]?.identifier).toBe('jsprismarine:breeder');
         });
@@ -279,7 +282,7 @@ describe('the goal world over the entity runtime', () => {
 
             run(fixture, 80);
 
-            expect(fixture.runtime.all()).toHaveLength(2);
+            expect(fixture.runtime.entities().toArray()).toHaveLength(2);
         });
 
         it('puts the pair on a cooldown, so one feeding makes one baby', () => {
@@ -292,9 +295,12 @@ describe('the goal world over the entity runtime', () => {
             run(fixture, 300);
 
             expect(first.body.breedCooldown).toBeGreaterThan(0);
-            expect(fixture.runtime.all().filter((entity) => entity.identifier === 'jsprismarine:breeder')).toHaveLength(
-                3
-            );
+            expect(
+                fixture.runtime
+                    .entities()
+                    .toArray()
+                    .filter((entity) => entity.identifier === 'jsprismarine:breeder')
+            ).toHaveLength(3);
         });
     });
 
@@ -354,7 +360,10 @@ describe('the goal world over the entity runtime', () => {
 
             run(fixture, 3);
 
-            const darts = fixture.runtime.all().filter((entity) => entity.identifier === 'jsprismarine:dart');
+            const darts = fixture.runtime
+                .entities()
+                .toArray()
+                .filter((entity) => entity.identifier === 'jsprismarine:dart');
             expect(darts.length).toBeGreaterThan(0);
             expect(darts[0]?.body.velocity.x).toBeGreaterThan(0);
         });

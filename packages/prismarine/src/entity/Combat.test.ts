@@ -1,14 +1,15 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { LevelEvent, LevelSoundEvent } from '@jsprismarine/minecraft';
 import { Vector3 } from '@jsprismarine/math';
-import { inertEntityRuntime, testEntityServer } from '../testing/entityServer';
+import { storeWorld } from '../testing/storeWorld.test.helper';
+import { stub, stubOf } from '../testing/stub.test.helper';
+import type GameRuleManager from '../world/GameRuleManager';
+import { StoreActor } from './data/storeActors';
+import { PLAYER_IDENTIFIER } from './playerOverlay';
 import { Item } from '../item/Item';
-import { Position } from '../world/Position';
 import { canHarm, CREATIVE_REACH, distanceToBody, meleeAttack, SURVIVAL_REACH } from './Combat';
-import { Attribute, AttributeIds } from '@jsprismarine/protocol/wire/structures/Attribute';
-import { GenericEntity } from '../testing/genericEntity.test.helper';
-import type { Entity } from './Entity';
+import { AttributeIds } from '@jsprismarine/protocol/wire/structures/Attribute';
 
 /**
  * Melee attacks.
@@ -23,47 +24,48 @@ const MOB_HEALTH = 10;
 /** A stack of one vanilla item, whose attack damage comes from its Java components. */
 const item = (name: string) => new Item({ name });
 
-/** Everything a fight reaches for, and nothing else. */
+/** Everything a fight reaches for, over a real entity store, and nothing else. */
 const scene = ({ pvp = true } = {}) => {
-    const noises: Array<{ type: string; sound: LevelSoundEvent }> = [];
+    const noises: Array<{ actor: StoreActor; sound: LevelSoundEvent }> = [];
     const effects: LevelEvent[] = [];
+    const { world, live } = storeWorld();
 
-    const world: any = {
-        getName: () => 'test',
-        getServer: () => testEntityServer(),
+    Object.assign(world, {
         sendActorEvent: async () => {},
-        sendActorSound: async (entity: Entity, sound: LevelSoundEvent) =>
-            void noises.push({ type: entity.getType(), sound }),
+        sendActorSound: async (actor: StoreActor, sound: LevelSoundEvent) => void noises.push({ actor, sound }),
         sendWorldEvent: async (_at: unknown, event: LevelEvent) => void effects.push(event),
-        entityRelocated: () => {},
         broadcastMove: async () => {},
-        getGameRuleManager: () => ({ getGameRule: () => [pvp, true] }),
+        sendActorMetadata: async () => {},
+        getGameRuleManager: () => stub<GameRuleManager>({ getGameRule: () => [pvp, true] }),
         getLoadedChunk: () => null,
-        getEntityIndex: () => ({ legacyWithin: () => [] }),
-        dataEntities: () => inertEntityRuntime()
-    };
+        getTicks: () => 0,
+        getActor: (runtimeId: bigint) => live.actors.actorOf(Number(runtimeId)) ?? null,
+        dataEntities: () => live
+    });
 
     /**
-     * A mob-shaped body at a place.
-     *
-     * `GenericEntity` is what the data-driven runtime gives every mob, so it is what a fight
-     * actually meets. The health is stated here rather than taken from a table, because every
-     * expectation below counts down from it.
+     * A mob at a place, in the store, seen through its actor. The health is stated here rather
+     * than taken from a table, because every expectation below counts down from it.
      */
-    const spawn = (identifier: string, x = 0, z = 0): GenericEntity => {
-        const body = new GenericEntity({ identifier, position: new Position(x, 64, z, world) });
-        body.attributes.setAttribute(
-            new Attribute({ name: AttributeIds.Health, min: 0, max: MOB_HEALTH, def: MOB_HEALTH })
-        );
-        return body;
+    const spawn = (identifier: string, x = 0, z = 0): StoreActor => {
+        const entity = live.runtime.spawn(identifier, { x, y: 64, z });
+        const actor = entity === undefined ? undefined : live.actors.actorOf(entity.id);
+        if (entity === undefined || actor === undefined) throw new Error(`the fixture declares no ${identifier}`);
+        entity.instance.attributes.set('health', MOB_HEALTH);
+        return actor;
     };
 
-    return { noises, effects, spawn, world };
+    return { noises, effects, spawn, world, live };
 };
 
-/** A person, for the rules that only apply between two of them. Position is their eyes. */
-const person = (world: any, x = 0, z = 0) =>
-    new GenericEntity({ identifier: 'minecraft:player', position: new Position(x, 64, z, world) });
+/** A person, for the rules that only apply between two of them: an actor of the player's type. */
+const person = (stage: ReturnType<typeof scene>, x = 0, z = 0): StoreActor =>
+    stubOf(StoreActor, {
+        getType: () => PLAYER_IDENTIFIER,
+        getWorld: () => stage.world,
+        getPosition: () => new Vector3(x, 64, z),
+        isAlive: () => true
+    });
 
 /**
  * Only the noises the attacker made.
@@ -71,8 +73,8 @@ const person = (world: any, x = 0, z = 0) =>
  * The one the target makes being hurt goes through the same channel, so an unfiltered list is
  * always a swing and a grunt rather than the swing under test.
  */
-const swings = (stage: ReturnType<typeof scene>): LevelSoundEvent[] =>
-    stage.noises.filter((noise) => noise.type === 'minecraft:zombie').map((noise) => noise.sound);
+const swings = (stage: ReturnType<typeof scene>, attacker: StoreActor): LevelSoundEvent[] =>
+    stage.noises.filter((noise) => noise.actor === attacker).map((noise) => noise.sound);
 
 describe('melee', () => {
     let stage: ReturnType<typeof scene>;
@@ -123,7 +125,7 @@ describe('melee', () => {
         });
 
         it('lands a blow within range', async () => {
-            const attacker = stage.spawn('minecraft:zombie', 0, 0);
+            const attacker = stage.spawn('minecraft:cow', 0, 0);
             const cow = stage.spawn('minecraft:cow', 2, 0);
 
             expect(await meleeAttack(attacker, cow, { reach: SURVIVAL_REACH, damage: 4 })).toBe(true);
@@ -131,7 +133,7 @@ describe('melee', () => {
         });
 
         it('refuses one out of range, and does not even make a noise about it', async () => {
-            const attacker = stage.spawn('minecraft:zombie', 0, 0);
+            const attacker = stage.spawn('minecraft:cow', 0, 0);
             const cow = stage.spawn('minecraft:cow', 40, 0);
 
             expect(await meleeAttack(attacker, cow, { reach: SURVIVAL_REACH, damage: 4 })).toBe(false);
@@ -143,22 +145,14 @@ describe('melee', () => {
             const near = scene();
             const far = scene();
 
-            const survival = await meleeAttack(
-                near.spawn('minecraft:zombie', 0, 0),
-                near.spawn('minecraft:cow', 4.5, 0),
-                {
-                    reach: SURVIVAL_REACH,
-                    damage: 4
-                }
-            );
-            const creative = await meleeAttack(
-                far.spawn('minecraft:zombie', 0, 0),
-                far.spawn('minecraft:cow', 4.5, 0),
-                {
-                    reach: CREATIVE_REACH,
-                    damage: 4
-                }
-            );
+            const survival = await meleeAttack(near.spawn('minecraft:cow', 0, 0), near.spawn('minecraft:cow', 4.5, 0), {
+                reach: SURVIVAL_REACH,
+                damage: 4
+            });
+            const creative = await meleeAttack(far.spawn('minecraft:cow', 0, 0), far.spawn('minecraft:cow', 4.5, 0), {
+                reach: CREATIVE_REACH,
+                damage: 4
+            });
 
             expect(survival).toBe(false);
             expect(creative).toBe(true);
@@ -168,7 +162,7 @@ describe('melee', () => {
     describe('what gets through', () => {
         it('falls back to the attacker’s own attack attribute', async () => {
             // The attribute and nothing else: no weapon, no stated damage.
-            const zombie = stage.spawn('minecraft:zombie', 0, 0);
+            const zombie = stage.spawn('minecraft:cow', 0, 0);
             zombie.attributes.setValue(AttributeIds.AttackDamage, 3);
             const cow = stage.spawn('minecraft:cow', 1, 0);
 
@@ -178,7 +172,7 @@ describe('melee', () => {
         });
 
         it('is half again as much for a critical, and throws stars', async () => {
-            const attacker = stage.spawn('minecraft:zombie', 0, 0);
+            const attacker = stage.spawn('minecraft:cow', 0, 0);
             const cow = stage.spawn('minecraft:cow', 1, 0);
 
             await meleeAttack(attacker, cow, { damage: 4, critical: true });
@@ -188,21 +182,22 @@ describe('melee', () => {
         });
 
         it('passes the sprint through to the blow, so it shoves harder', async () => {
-            // What the extra level *does* is `Entity.knockbackFrom`'s business and is tested
-            // there. All this has to get right is carrying it.
+            // What the extra level *does* is the damage pipeline's business and is tested there.
+            // All this has to get right is carrying it.
             const cow = stage.spawn('minecraft:cow', 1, 0);
-            await meleeAttack(stage.spawn('minecraft:zombie', 0, 0), cow, { damage: 1, knockbackLevels: 1 });
+            const blows = vi.spyOn(stage.live, 'damageEntity');
+            await meleeAttack(stage.spawn('minecraft:cow', 0, 0), cow, { damage: 1, knockbackLevels: 1 });
 
-            expect(cow.getLastDamageSource()?.knockbackLevels).toBe(1);
+            expect(blows.mock.calls[0]?.[2].knockbackLevels).toBe(1);
         });
 
         it('makes the empty-handed noise when the blow does nothing', async () => {
-            const attacker = stage.spawn('minecraft:zombie', 0, 0);
+            const attacker = stage.spawn('minecraft:cow', 0, 0);
             const cow = stage.spawn('minecraft:cow', 1, 0);
 
             await meleeAttack(attacker, cow, { damage: 0 });
 
-            expect(swings(stage)).toEqual([LevelSoundEvent.ATTACK_NODAMAGE]);
+            expect(swings(stage, attacker)).toEqual([LevelSoundEvent.ATTACK_NODAMAGE]);
             expect(cow.getHealth()).toBe(10);
         });
 
@@ -210,23 +205,13 @@ describe('melee', () => {
             const soft = scene();
             const hard = scene();
 
-            await meleeAttack(soft.spawn('minecraft:zombie', 0, 0), soft.spawn('minecraft:cow', 1, 0), { damage: 4 });
-            await meleeAttack(hard.spawn('minecraft:zombie', 0, 0), hard.spawn('minecraft:cow', 1, 0), {
-                damage: 4,
-                critical: true
-            });
+            const softly = soft.spawn('minecraft:cow', 0, 0);
+            const hardly = hard.spawn('minecraft:cow', 0, 0);
+            await meleeAttack(softly, soft.spawn('minecraft:cow', 1, 0), { damage: 4 });
+            await meleeAttack(hardly, hard.spawn('minecraft:cow', 1, 0), { damage: 4, critical: true });
 
-            expect(swings(soft)).toEqual([LevelSoundEvent.ATTACK]);
-            expect(swings(hard)).toEqual([LevelSoundEvent.ATTACK_STRONG]);
-        });
-
-        it('is swallowed by the target’s grace period, and costs the attacker nothing', async () => {
-            const attacker = stage.spawn('minecraft:zombie', 0, 0);
-            const cow = stage.spawn('minecraft:cow', 1, 0);
-
-            expect(await meleeAttack(attacker, cow, { damage: 3 })).toBe(true);
-            expect(await meleeAttack(attacker, cow, { damage: 3 })).toBe(false);
-            expect(cow.getHealth()).toBe(7);
+            expect(swings(soft, softly)).toEqual([LevelSoundEvent.ATTACK]);
+            expect(swings(hard, hardly)).toEqual([LevelSoundEvent.ATTACK_STRONG]);
         });
     });
 
@@ -244,23 +229,23 @@ describe('melee', () => {
             // A body keeps its place for a moment after the blow that killed it, and would
             // otherwise be a punchbag for that moment.
             expect(cow.isAlive()).toBe(false);
-            expect(canHarm(stage.spawn('minecraft:zombie', 1, 0), cow)).toBe(false);
+            expect(canHarm(stage.spawn('minecraft:cow', 1, 0), cow)).toBe(false);
         });
 
         it('lets a player hit a mob whatever the pvp gamerule says', () => {
             const off = scene({ pvp: false });
 
-            expect(canHarm(person(off.world, 0, 0), off.spawn('minecraft:cow', 1, 0))).toBe(true);
+            expect(canHarm(person(off, 0, 0), off.spawn('minecraft:cow', 1, 0))).toBe(true);
         });
 
         it('stops one player hitting another when pvp is off', () => {
             const off = scene({ pvp: false });
 
-            expect(canHarm(person(off.world, 0, 0), person(off.world, 1, 0))).toBe(false);
+            expect(canHarm(person(off, 0, 0), person(off, 1, 0))).toBe(false);
         });
 
         it('allows it when pvp is on', () => {
-            expect(canHarm(person(stage.world, 0, 0), person(stage.world, 1, 0))).toBe(true);
+            expect(canHarm(person(stage, 0, 0), person(stage, 1, 0))).toBe(true);
         });
     });
 });

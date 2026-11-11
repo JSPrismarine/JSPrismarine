@@ -252,4 +252,80 @@ describe('the damage pipeline', () => {
             expect(bitten.body.damage.last()).toMatchObject({ sourceId: attacker.id, cause: 'entity_attack' });
         });
     });
+
+    describe('the rules a swing keeps', () => {
+        /** A swing from `origin`, which keeps the grace period and shoves away from where it came. */
+        const swing = (target: number, amount: number, levels = 0, origin = { x: -1.5, y: GROUND.y, z: 0.5 }) =>
+            blow(target, amount, {
+                cause: 'attack',
+                source: { route: 'melee', graced: true, mitigated: true, knockback: { origin, levels } }
+            });
+
+        const cowOf = (runtime: ReturnType<typeof entityFixture>['runtime']) => {
+            const cow = runtime.spawn('minecraft:cow', GROUND);
+            if (cow === undefined) throw new Error('the fixture declares no minecraft:cow');
+            return cow;
+        };
+
+        it('takes another full hit once the grace has run out', () => {
+            const { runtime } = entityFixture();
+            const cow = cowOf(runtime);
+
+            runtime.damage(blow(cow.id, 3, { source: { route: 'melee', graced: true } }));
+            for (let tick = 1; tick <= 10; tick += 1) runtime.tick(tick);
+            const again = runtime.damage(blow(cow.id, 3, { source: { route: 'melee', graced: true } }));
+
+            expect(again).toMatchObject({ committed: true, taken: 3 });
+            expect(cow.instance.attributes.get('health')?.current).toBe(4);
+        });
+
+        it('lets the void through the grace period regardless', () => {
+            const { runtime } = entityFixture();
+            const cow = cowOf(runtime);
+
+            runtime.damage(blow(cow.id, 3, { source: { route: 'melee', graced: true } }));
+            const fall = runtime.damage(
+                blow(cow.id, 3, { cause: 'void', source: { route: 'void', graced: true, bypassesGrace: true } })
+            );
+
+            expect(fall).toMatchObject({ committed: true, taken: 3 });
+        });
+
+        it('pushes away from where the blow came, and harder for each Knockback level', () => {
+            const plain = entityFixture();
+            const strong = entityFixture();
+            const softly = cowOf(plain.runtime);
+            const hard = cowOf(strong.runtime);
+
+            plain.runtime.damage(swing(softly.id, 1));
+            strong.runtime.damage(swing(hard.id, 1, 2));
+
+            // The blow came from the west, so both go east, the Knockback II one further.
+            expect(softly.body.velocity.x).toBeGreaterThan(0);
+            expect(hard.body.velocity.x).toBeGreaterThan(softly.body.velocity.x);
+        });
+
+        it('does not shove again for the difference a harder hit inside the grace period takes', () => {
+            const { runtime } = entityFixture();
+            const cow = cowOf(runtime);
+
+            runtime.damage(swing(cow.id, 2));
+            const after = { ...cow.body.velocity };
+            const harder = runtime.damage(swing(cow.id, 5));
+
+            expect(harder).toMatchObject({ committed: true, taken: 3 });
+            expect(cow.body.velocity).toEqual(after);
+        });
+
+        it('picks a direction rather than dividing by zero when the blow comes from where it stands', () => {
+            const { runtime } = entityFixture();
+            const cow = cowOf(runtime);
+
+            runtime.damage(swing(cow.id, 1, 0, { ...GROUND }));
+
+            const { x, z } = cow.body.velocity;
+            expect(Number.isFinite(x) && Number.isFinite(z)).toBe(true);
+            expect(Math.hypot(x, z)).toBeGreaterThan(0);
+        });
+    });
 });

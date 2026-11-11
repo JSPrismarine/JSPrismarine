@@ -92,11 +92,9 @@ const fakeWorld = (initial: BlockState, { id = 1, dropName = initial.name } = {}
     world = Object.assign(Object.create(World.prototype), {
         chunks: new Map([[Chunk.packXZ(0, 0), chunk]]),
         dimension: Dimensions.Overworld,
-        entityChunkIndices: new Map(),
         level: fakeLevel(),
         blockUpdates: new BlockUpdateScheduler(),
         systems: { onBlockChanged: () => {}, updateAround: () => {} },
-        entities: new Map(),
         players: new Map(),
         getChunkAt: async () => chunk,
         getBlock: async () => block,
@@ -143,9 +141,7 @@ const emptyWorld = () => {
     world = Object.assign(Object.create(World.prototype), {
         name: 'flooded',
         dimension: Dimensions.Overworld,
-        entities: new Map(),
         players: new Map(),
-        entityChunkIndices: new Map(),
         chunks: new Map(),
         level: fakeLevel(),
         changes: NULL_WORLD_CHANGE_SINK,
