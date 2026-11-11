@@ -199,42 +199,40 @@ const shownAreas = computed(() => {
 
 .package-card nav {
     display: flex;
-    /* All three links fit one row on a card, so no card grows a second row for one pill. */
     flex-wrap: nowrap;
-    gap: 6px;
+    gap: 18px;
     padding-top: 10px;
     border-top: 1px solid var(--vp-c-divider);
 }
 
-/* The links are pills at every width: one look for one component, and a real target. */
+/* The links are quiet mono text: the card's name is the main way in, and a 2px edge would mark them as
+   controls. */
 .package-card nav a {
     display: inline-flex;
     align-items: center;
-    min-height: 32px;
-    padding: 0 9px;
+    min-height: 28px;
     font: 700 var(--jsp-label-size) var(--vp-font-family-mono);
+    color: var(--vp-c-text-2);
     white-space: nowrap;
-    color: var(--vp-c-text-1);
-    text-decoration: none;
-    border: 1.5px solid var(--vp-c-divider);
-    border-radius: 99px;
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
 }
 
 .package-card nav a:hover {
-    border-color: var(--vp-c-text-1);
+    color: var(--vp-c-text-1);
 }
 
-/* On a phone the pills reach the full touch target. */
+/* On a phone each link reaches the full touch target. */
 @media (max-width: 640px) {
     .package-card nav {
         flex-wrap: wrap;
-        gap: 8px;
+        gap: 0 20px;
         border-top: 0;
     }
 
     .package-card nav a {
         min-height: var(--jsp-target);
-        padding: 0 14px;
     }
 }
 

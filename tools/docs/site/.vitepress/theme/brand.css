@@ -451,6 +451,8 @@
 }
 
 .VPFooter .site-footer__heading {
+    /* Two lines high, so a long audience name does not push its column's links below the others. */
+    min-height: 3em;
     margin: 0 0 6px;
     font: 700 var(--jsp-label-size) var(--vp-font-family-mono);
     color: var(--vp-c-text-2);
@@ -486,6 +488,10 @@
         margin-bottom: 16px;
     }
 
+    .VPFooter .site-footer__version {
+        max-width: none;
+    }
+
     .VPFooter .site-footer__columns {
         grid-template-columns: repeat(2, minmax(0, 1fr));
         grid-auto-flow: row;
@@ -493,6 +499,21 @@
 
     .VPFooter .message .site-footer__column a {
         min-height: var(--jsp-target);
+    }
+
+    .VPFooter .site-footer__heading {
+        min-height: 0;
+    }
+
+    /* Project spans both columns and flows its links two by two, so the phone footer ends sooner. */
+    .VPFooter .site-footer__column:last-child {
+        display: grid;
+        grid-column: 1 / -1;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .VPFooter .site-footer__column:last-child .site-footer__heading {
+        grid-column: 1 / -1;
     }
 }
 
@@ -595,7 +616,7 @@
 .api-index .vp-doc h2 + p + ul {
     display: grid;
     /* Two columns even on a phone: most names are short. */
-    grid-template-columns: repeat(auto-fill, minmax(min(150px, 100%), 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(min(200px, 100%), 1fr));
     gap: 6px;
     padding: 0;
     list-style: none;
@@ -606,6 +627,8 @@
 }
 
 .api-index .vp-doc h2 + p + ul a {
+    /* An identifier never breaks at its hyphen. */
+    white-space: nowrap;
     display: flex;
     align-items: center;
     min-height: var(--jsp-target);

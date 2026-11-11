@@ -107,7 +107,7 @@ ink.
   and outline buttons have no shadow: an edge alone, filled on hover, so only the primary action
   looks like a key to press.
 - A 2px edge marks a control (a tab, a button, a filter). A link card is a soft fill with a hairline
-  and an arrow.
+  and an arrow. Links inside a card are text links; only the card or its title may look clickable.
 - A state bar, such as the current section under the header or the current page in the sidebar,
   needs 3:1 against the page (`--jsp-state`). Accent on the light page falls short, so the bar is
   forest there and accent in dark mode.
@@ -158,8 +158,8 @@ scrolling off the screen edge, and a two-column table stacks each row as its nam
   follow within a screen.
 - The package directory, the API reference index and its sidebar group packages by the areas in
   `packageAreas.ts`; the docs build fails when a published package has no area. The directory is
-  where packages are described; the API index lists their names only, as a grid of links, so the two
-  pages do different jobs. When every package shares one npm scope, the directory names it once above
+  where packages are described; the API index lists their names only, as a grid of links whose names
+  never wrap, so the two pages do different jobs. When every package shares one npm scope, the directory names it once above
   the cards instead of on each.
 - Menu and search previews end on a whole sentence where one fits.
 - The header's controls (Search, and on phones the Menu button) are controls, not primary actions:
