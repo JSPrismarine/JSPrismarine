@@ -380,7 +380,7 @@ export default class ItemStackRequestHandler implements PacketHandler<ItemStackR
         // says it has to be called for: the three rows are a function of the stack.
         const open = session.getOpenBlockContainer();
         if (open !== undefined && open.screen === WindowTypes.ENCHANTMENT && workstationChanged.size > 0) {
-            await refreshEnchantOptions(session, open);
+            await refreshEnchantOptions(session, open, server.getContent().enchantments, session.getWorld());
         }
 
         // Everyone else standing at the same chest. Their client holds its own copy of the
@@ -732,7 +732,12 @@ export default class ItemStackRequestHandler implements PacketHandler<ItemStackR
                         // recipe with net id 1 exists and an enchant option with net id 1 is
                         // not it.
                         if (open?.screen === WindowTypes.ENCHANTMENT) {
-                            const enchanted = takeEnchantOption(player, open, action.recipeNetId ?? 0);
+                            const enchanted = takeEnchantOption(
+                                player,
+                                open,
+                                action.recipeNetId ?? 0,
+                                server.getContent().enchantments
+                            );
                             if (enchanted === undefined) return deny('the enchanting table refused the row');
 
                             // Left for the `TAKE` that follows to place, the same way a creative
@@ -1005,7 +1010,12 @@ export default class ItemStackRequestHandler implements PacketHandler<ItemStackR
                         if (open?.screen !== WindowTypes.ANVIL) return deny('no anvil is open');
 
                         const typed = request.filterStrings[action.repetitions ?? 0];
-                        const result = takeAnvilResult(player, open, typed === '' ? undefined : typed);
+                        const result = takeAnvilResult(
+                            player,
+                            open,
+                            server.getContent().enchantments,
+                            typed === '' ? undefined : typed
+                        );
                         if (result === undefined) return deny('the anvil refused the combination');
 
                         created = result.stack;

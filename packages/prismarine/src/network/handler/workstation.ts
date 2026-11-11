@@ -5,9 +5,11 @@
  * recipe registry. This module maps each screen's `ContainerUiId` values to the player's inputs
  * kept in {@link import('../PlayerSession').OpenBlockContainer.inputs} while the screen is open.
  */
+import type { EnchantmentRegistry } from '@jsprismarine/enchantments';
 import { ContainerUiId, WindowTypes } from '@jsprismarine/minecraft';
 
 import { bookshelfPowerAround } from '../../enchantment/bookshelves';
+import type { BookshelfWorld } from '../../enchantment/bookshelves';
 import {
     enchantingRows,
     enchantmentSeedOf,
@@ -19,6 +21,7 @@ import type { EnchantingPlayer } from '../../enchantment/enchantingTable';
 import { takeFromAnvil } from '../../enchantment/anvil';
 import type { Item } from '../../item/Item';
 import type { KeyedPlayerHolder } from '../../keyedPlayer';
+import type { World } from '../../world/World';
 import type { OpenBlockContainer } from '../PlayerSession';
 
 /** The slot the item being worked on sits in. */
@@ -73,29 +76,46 @@ export interface WorkstationCraft {
 }
 
 /**
+ * The blocks around a table as the bookshelf count reads them, from loaded chunks only. A block
+ * whose chunk is not loaded reads as air, so it holds no shelf: the count never loads a chunk.
+ */
+const loadedShelves = (world: Pick<World, 'loadedBlockAt'>): BookshelfWorld => ({
+    getBlockState: async (x, y, z) => ({ name: world.loadedBlockAt(x, y, z)?.name ?? 'minecraft:air' })
+});
+
+/**
  * Redraws an open enchanting table's three rows for whatever is now in it.
  *
  * Called after any request that moved something into or out of the table, because the rows are
  * a function of the stack. The bookshelf power is worked out here and kept on the window, so
  * that the rows the player is shown and the row {@link takeEnchantOption} later applies are
  * drawn from the same number rather than from two walks of the same bookshelves.
+ *
+ * @param player - Who is shown the rows, and whose seed draws them.
+ * @param open - The open table.
+ * @param enchantments - The server's enchantments, which the rows are drawn from.
+ * @param world - The world the table stands in, whose loaded blocks hold the bookshelves.
  */
-export const refreshEnchantOptions = async (player: WorkstationPlayer, open: OpenBlockContainer): Promise<void> => {
-    const registry = player.getServer().getContent().enchantments;
+export const refreshEnchantOptions = async (
+    player: WorkstationPlayer,
+    open: OpenBlockContainer,
+    enchantments: EnchantmentRegistry,
+    world: Pick<World, 'loadedBlockAt'>
+): Promise<void> => {
     const stack = open.inputs[WORKSTATION_ITEM];
     if (stack === null || stack === undefined || stack.getName() === 'minecraft:air') {
         await sendEnchantOptions(player, []);
         return;
     }
 
-    open.bookshelfPower = await bookshelfPowerAround(player.getWorld(), {
+    open.bookshelfPower = await bookshelfPowerAround(loadedShelves(world), {
         x: open.position.getX(),
         y: open.position.getY(),
         z: open.position.getZ()
     });
 
-    const rows = enchantingRows(registry, stack, enchantmentSeedOf(player.keyed()), open.bookshelfPower);
-    await sendEnchantOptions(player, enchantOptionsOf(registry, rows));
+    const rows = enchantingRows(enchantments, stack, enchantmentSeedOf(player.keyed()), open.bookshelfPower);
+    await sendEnchantOptions(player, enchantOptionsOf(enchantments, rows));
 };
 
 /**
@@ -115,9 +135,9 @@ export const refreshEnchantOptions = async (player: WorkstationPlayer, open: Ope
 export const takeEnchantOption = (
     player: WorkstationPlayer,
     open: OpenBlockContainer,
-    enchantNetId: number
+    enchantNetId: number,
+    registry: EnchantmentRegistry
 ): WorkstationCraft | undefined => {
-    const registry = player.getServer().getContent().enchantments;
     const stack = open.inputs[WORKSTATION_ITEM];
     const row = enchantNetId - 1;
     if (stack === null || stack === undefined) return undefined;
@@ -149,9 +169,9 @@ export const takeEnchantOption = (
 export const takeAnvilResult = (
     player: WorkstationPlayer,
     open: OpenBlockContainer,
+    registry: EnchantmentRegistry,
     name?: string
 ): WorkstationCraft | undefined => {
-    const registry = player.getServer().getContent().enchantments;
     const base = open.inputs[WORKSTATION_ITEM];
     if (base === null || base === undefined) return undefined;
 
