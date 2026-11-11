@@ -86,7 +86,11 @@ export type PlayerComponentValues = {
     'movement.sneaking': boolean;
     /** Whether the client reported the player asleep in a bed. */
     'movement.sleeping': boolean;
-    /** Whether the client reported the player on the ground. */
+    /**
+     * Whether the client reported a legacy player on the ground. A store player's ground is its
+     * body's `on_ground` condition, which `EntityRuntime.applyClientMovement` writes, and nothing
+     * reads or writes this field for one. It goes with the legacy `Player`.
+     */
     'movement.onGround': boolean;
     /** Whether the player is sprinting. */
     'movement.sprinting': boolean;
