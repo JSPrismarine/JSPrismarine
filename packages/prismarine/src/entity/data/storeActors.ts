@@ -230,6 +230,16 @@ export class StoreActor implements ShownActor {
         return actorMetadataProjection(this.entity, leashHolderId);
     }
 
+    /**
+     * Writes what the entity decides about its metadata besides the projection, after the
+     * projection is written. A plain entity has nothing more; a player's components do.
+     *
+     * @returns Whether clients should be sent the metadata again.
+     */
+    public showPlayerState(): boolean {
+        return false;
+    }
+
     /** Writes the store's health into the attributes a client is sent, after a tick. */
     public showHealth(current: number): void {
         this.attributes.setValue(AttributeIds.Health, current);
@@ -427,7 +437,15 @@ export class StoreActor implements ShownActor {
 
     /** Whether the entity still refuses portals after a recent dimension change. */
     public isOnPortalCooldown(): boolean {
-        return this.portalCooldown > 0;
+        return this.getPortalCooldown() > 0;
+    }
+
+    /**
+     * Whether the portal cooldown waits this tick instead of counting down. A plain entity's never
+     * waits.
+     */
+    protected holdsPortalCooldown(): boolean {
+        return false;
     }
 
     /** The portal the entity is in contact with, if any. */
@@ -461,7 +479,8 @@ export class StoreActor implements ShownActor {
      * store.
      */
     public async update(_tick: number): Promise<void> {
-        if (this.portalCooldown > 0) this.portalCooldown--;
+        const cooldown = this.getPortalCooldown();
+        if (cooldown > 0 && !this.holdsPortalCooldown()) this.setPortalCooldown(cooldown - 1);
 
         const contact = this.portalContactState;
         if (contact !== undefined) {
@@ -486,7 +505,7 @@ export class StoreActor implements ShownActor {
     }
 
     /** A status effect's harm as a blow through the store's pipeline, and its healing as a heal. */
-    private applyStatusEffectTick(effect: StatusEffect, clock: number): void {
+    protected applyStatusEffectTick(effect: StatusEffect, clock: number): void {
         const health = this.entity.instance.attributes.get('health');
         if (health === undefined) return;
         const change = effectHealthChange(effect.id, effect.amplifier, clock, health.current, health.max);
@@ -682,6 +701,9 @@ export class StoreActors {
                     }
                 }
             }
+
+            // After the projection, which knows nothing of what a player's components keep.
+            if (actor.showPlayerState()) metadataChanged = true;
 
             let propertiesChanged = false;
             if (isTicking) {

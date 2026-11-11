@@ -25,7 +25,7 @@ import type {
     FilterEntityView,
     FilterItemView
 } from '@jsprismarine/entities';
-import { ActorEvent, LevelSoundEvent } from '@jsprismarine/minecraft';
+import { ActorEvent, DisconnectReason, LevelSoundEvent } from '@jsprismarine/minecraft';
 import { NBTTagCompound } from '@jsprismarine/nbt';
 
 import { singleDimension } from '../../content/world/adapter';
@@ -50,6 +50,9 @@ import type { ContentItemEntity, EntityHostFacts, EntityWorldFacts } from './hos
 import { EntityRuntime, PROJECTILE_EYE_HEIGHT_FRACTION } from './EntityRuntime';
 import { INERT_ACTOR, InertActor, StoreActor, StoreActors } from './storeActors';
 import { StorePlayers } from './storePlayers';
+import { storePlayerHostFacts } from './playerHostFacts';
+import { consumeHeldItem } from '../../item/interaction';
+import { clientOwnsMovement } from '../playerOverlay';
 import type { StoreActorBlows } from './storeActors';
 import { tradeDisplayNameOf } from './trading';
 import type { DataEntityRecord } from './persistence';
@@ -303,13 +306,40 @@ const givePlayerItem = (
     return left;
 };
 
+/**
+ * Finishes a store player's meal through the server's item code, which runs the held item's
+ * `onConsume` for the player its session speaks for.
+ */
+const finishMeal = (options: LiveEntityOptions, playerId: number): void => {
+    const world = options.liveWorld();
+    const session = world?.viewerOf(BigInt(playerId));
+    if (world === undefined || session === undefined) return;
+    try {
+        consumeHeldItem({
+            content: options.content(),
+            actors: world.getServer().getContentWorld().actorsAt(options.dimension),
+            player: session.getPlayer()
+        });
+    } catch (error: unknown) {
+        options.report(`a meal could not finish: ${String(error)}`);
+    }
+};
+
 /** The host facts over one live world. */
-const liveHost = (options: LiveEntityOptions, actors: StoreActors, runtime: () => EntityRuntime): EntityHostFacts => ({
+const liveHost = (
+    options: LiveEntityOptions,
+    actors: StoreActors,
+    runtime: () => EntityRuntime,
+    players: StorePlayers
+): EntityHostFacts => ({
+    ...storePlayerHostFacts(players, (player) => finishMeal(options, player.id)),
     damageMitigation: (target, intent) => {
         const world = options.liveWorld();
         if (world === undefined) return undefined;
         const content = world.getServer().getContent();
-        const equipment = viewableEquipmentOf(target.equipment, content);
+        // A store player wears what its inventory holds, which the store does not model yet.
+        const equipment =
+            players.of(target.id)?.getInventory().getEquipment() ?? viewableEquipmentOf(target.equipment, content);
         const worn = wornArmorOf(equipment);
         const enchantment =
             intent.source.bypassesEnchantments === true
@@ -452,6 +482,12 @@ const liveHost = (options: LiveEntityOptions, actors: StoreActors, runtime: () =
                 : DamageSource.projectileFrom(projectile, owner);
         void target.damage(amount, source).catch((error: unknown) => options.report(String(error)));
     },
+    playerImpulse: (id, impulse) => {
+        const session = options.liveWorld()?.viewerOf(BigInt(id));
+        void session
+            ?.sendMotion(new Vector3(impulse.x, impulse.y, impulse.z))
+            .catch((error: unknown) => options.report(String(error)));
+    },
     hurtFeedback: (id) => {
         const world = options.liveWorld();
         const target = actors.actorOf(id);
@@ -533,6 +569,8 @@ export class LiveEntityRuntime {
     private readonly removalListeners = new Set<(entity: DataEntity, reason: string) => void>();
     /** The saved identifier of each inert entity, by runtime id; see {@link LiveEntityRuntime.restoreInert}. */
     private readonly inertTypes = new Map<number, string>();
+    /** The players whose sessions this runtime has disconnected for failing their updates. */
+    private readonly failedPlayers = new Set<number>();
 
     /**
      * @param players - The server's store players, whose actors show them as players; empty
@@ -562,12 +600,13 @@ export class LiveEntityRuntime {
         this.runtime = new EntityRuntime({
             content: options.content,
             world: options.world,
-            host: liveHost(options, this.actors, () => this.runtime),
+            host: liveHost(options, this.actors, () => this.runtime, players),
             report: options.report,
             onSpawn: (entity) => this.actors.add(entity, this.runtime.leashHolderIdOf(entity.id)),
             onRemove: (entity, reason) => {
                 this.actors.remove(entity);
                 this.inertTypes.delete(entity.id);
+                this.failedPlayers.delete(entity.id);
                 for (const listener of this.removalListeners) listener(entity, reason);
             },
             gameEvents: {
@@ -577,6 +616,20 @@ export class LiveEntityRuntime {
             // One pool of runtime ids with the server's own entities.
             nextId: () => entityIds.next()
         });
+        // A player is its client's: one whose update keeps throwing is disconnected, and its leave
+        // takes the entity out of the store. The runtime asks again on every later failure until
+        // then, and the session is disconnected once.
+        this.runtime.onPlayerFailed = (entity, error) => {
+            if (this.failedPlayers.has(entity.id)) return;
+            const session = options.liveWorld()?.viewerOf(BigInt(entity.id));
+            if (session === undefined) return;
+            this.failedPlayers.add(entity.id);
+            options.report(`player ${entity.id} kept failing its update and was disconnected: ${String(error)}`);
+            void session
+                .getConnection()
+                .disconnect('Internal server error', false, DisconnectReason.UNKNOWN)
+                .catch((cause: unknown) => options.report(String(cause)));
+        };
         this.runtime.index.chunkChanged = (chunkX, chunkZ) =>
             options.liveWorld()?.storeEntityChunkChanged(chunkX, chunkZ);
         // The plugin `entityDamage` event is a before-hook: a listener can cancel the blow or
@@ -995,11 +1048,13 @@ export class LiveEntityRuntime {
         const records = new Map<WorldActor, DataEntityRecord>();
         for (const entity of this.runtime.all()) {
             const actor = this.actors.actorOf(entity.id);
+            // A player is saved as its player record, never with a chunk.
             if (
                 actor === undefined ||
                 !actor.shouldPersist() ||
                 actor instanceof ItemActor ||
-                actor instanceof InertActor
+                actor instanceof InertActor ||
+                clientOwnsMovement(entity.identifier)
             )
                 continue;
             records.set(

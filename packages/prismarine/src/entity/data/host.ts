@@ -12,7 +12,7 @@
  * is reported as absent rather than guessed, which is the same rule
  * `src/content/world/notWired.ts` applies at the other seam.
  */
-import type { FilterEntityView, FilterItemView } from '@jsprismarine/entities';
+import type { EntityPosition, FilterEntityView, FilterItemView } from '@jsprismarine/entities';
 import type { VillagerRaidEffect, VillagerRaidState } from '@jsprismarine/entity-brains';
 import type { StatusEffectInput } from '../StatusEffect';
 import type { DataEntity } from './DataEntity';
@@ -170,6 +170,14 @@ export interface EntityHostFacts {
      * @param id - The data-driven entity's runtime id.
      */
     hurtFeedback?(id: number): void;
+    /**
+     * Asks a player's client to take an impulse, such as a blow's shove. The client owns a
+     * player's movement (ADR 0008), so the store logs the impulse and moves nothing, and the
+     * client moves the player and reports where it went.
+     * @param id - The player's runtime id.
+     * @param impulse - The impulse, in blocks per tick.
+     */
+    playerImpulse?(id: number, impulse: EntityPosition): void;
     /**
      * Announces that an entity's data-defined death hold began, so clients play the long
      * death animation. Only the ender dragon's `minecraft:behavior.dragondeath` starts one.

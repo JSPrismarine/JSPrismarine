@@ -460,6 +460,40 @@ describe('a store player', () => {
             expect(components.get('abilities.gamemode')).toBe(Gametype.CREATIVE);
         });
 
+        it('turns blows aside in creative but the void and /kill, and every blow in spectator', () => {
+            const fixture = storePlayerFixture();
+            const { player, components } = standingPlayer(fixture);
+            const blow = (cause: string, amount = 2) =>
+                fixture.runtime.damage({ target: player.id, cause, amount, source: { route: 'command' } });
+
+            components.set('abilities.gamemode', Gametype.CREATIVE);
+            expect(blow('entity_attack').committed).toBe(false);
+            expect(blow('void').committed).toBe(true);
+            expect(blow('self_destruct').committed).toBe(true);
+            expect(healthOf(player)).toBe(16);
+
+            components.set('abilities.gamemode', Gametype.SPECTATOR);
+            expect(blow('void').committed).toBe(false);
+            expect(blow('self_destruct').committed).toBe(false);
+            expect(healthOf(player)).toBe(16);
+
+            components.set('abilities.gamemode', Gametype.SURVIVAL);
+            expect(blow('entity_attack').committed).toBe(true);
+            expect(healthOf(player)).toBe(14);
+        });
+
+        it('feeds and drains through the saturation and hunger effects', () => {
+            const fixture = storePlayerFixture();
+            const { player, components } = standingPlayer(fixture);
+            components.set('vitals.food', 10);
+
+            fixture.runtime.playerSystems.statusEffectTicked(player, { id: 'minecraft:saturation', amplifier: 0 });
+            expect(components.get('vitals.food')).toBe(11);
+
+            fixture.runtime.playerSystems.statusEffectTicked(player, { id: 'minecraft:hunger', amplifier: 0 });
+            expect(components.get('vitals.exhaustion')).toBeGreaterThan(0);
+        });
+
         it('reaches a player in adventure as in survival', () => {
             const fixture = storePlayerFixture();
             const { player, components } = standingPlayer(fixture);
