@@ -250,9 +250,9 @@ const installWorldSystems = (
  *
  * Built as the members the path calls over the real prototype rather than constructed, because
  * a `Player` is a network session and this is a test about what a click does to the world. The
- * prototype is there so the actor port's `instanceof Player` holds, which is what reads the
- * game mode off it. The inventory is a real one with the stack in hotbar slot 0, because a
- * placement takes from it.
+ * session answers `getPlayer`, which is how the actor port finds the player and reads its game
+ * mode. The inventory is a real one with the stack in hotbar slot 0, because a placement takes
+ * from it.
  */
 /**
  * Each player's runtime id. Distinct from each other and from real entities' ids, because
@@ -293,11 +293,13 @@ const playerHolding = (
             openWindow = opened;
             return openWindow;
         },
-        send: async () => {}
+        send: async () => {},
+        // The actor port finds a player through its session, which is how it reads the game mode.
+        getPlayer: (): Player => player
     };
 
     const runtimeId = nextPlayerRuntimeId++;
-    return Object.assign(Object.create(Player.prototype), {
+    const player: Player = Object.assign(Object.create(Player.prototype), {
         getWorld: () => world,
         getServer: () => world.getServer(),
         getInventory: () => inventory,
@@ -325,6 +327,7 @@ const playerHolding = (
         isSneaking: () => sneaking,
         gamemode
     });
+    return player;
 };
 
 /** The inventory sends {@link playerHolding}'s session counted, which the double alone carries. */
@@ -670,6 +673,7 @@ describe('useItemOnBlock', () => {
             };
             Object.assign(world, {
                 entities: new Map([[Number(player.getRuntimeId()), player]]),
+                players: new Map([[Number(player.getRuntimeId()), player]]),
                 dataEntities: () => ({ runtime: { eyesOfEnder: { launch } } })
             });
             return player;
