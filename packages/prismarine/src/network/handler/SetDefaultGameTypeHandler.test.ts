@@ -2,10 +2,7 @@ import type { Logger } from '@jsprismarine/logger';
 import { Gametype } from '@jsprismarine/minecraft';
 import { describe, expect, it } from 'vitest';
 
-import type Server from '../../Server';
-import type SessionManager from '../../SessionManager';
-import type { Config } from '../../config/Config';
-import type { PermissionManager } from '../../permission/PermissionManager';
+import { inputContext } from '../../testing/handlerContext.test.helper';
 import { identityNamed } from '../../testing/sessionIdentity.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import type ClientConnection from '../ClientConnection';
@@ -13,13 +10,14 @@ import { latestCodec } from '../codec/CodecRegistry';
 import type PlayerSession from '../PlayerSession';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import SetDefaultGameTypePacket from '@jsprismarine/protocol/packet/SetDefaultGameTypePacket';
+import type { HandlerServices } from './HandlerContext';
 import SetDefaultGameTypeHandler from './SetDefaultGameTypeHandler';
 
 /**
  * A server holding Survival as its default, with the requesting player and one other online.
  * Everything a packet handler may send is captured per player.
  */
-const fakeServer = ({ op }: { op: boolean }) => {
+const fakeServer = ({ op, saveFails = false }: { op: boolean; saveFails?: boolean }) => {
     const logged: string[] = [];
     const applied: Array<[string, Gametype | undefined]> = [];
     const committed: Array<[number, boolean | undefined]> = [];
@@ -43,25 +41,36 @@ const fakeServer = ({ op }: { op: boolean }) => {
     const requester = fakePlayer('Steve', '00000000-0000-0000-0000-000000000001', op);
     const other = fakePlayer('Alex', '00000000-0000-0000-0000-000000000002', false);
 
-    const server = stub<Server>({
-        getLogger: () =>
-            stub<Logger>({
-                warn: (...message) => void logged.push(String(message[0])),
-                debug: (...message) => void logged.push(String(message[0]))
-            }),
-        getConfig: () =>
-            stub<Config>({
-                getGamemode: () => configured,
-                setGamemode: (gamemode, commit) => {
+    const parts = {
+        log: stub<Logger>({
+            warn: (...message) => void logged.push(String(message[0])),
+            debug: (...message) => void logged.push(String(message[0])),
+            error: (message) => void logged.push(String(message))
+        }),
+        config: { getGamemode: () => configured },
+        services: {
+            defaults: stub<HandlerServices['defaults']>({
+                setGamemode: async (gamemode, commit) => {
                     committed.push([gamemode, commit]);
                     configured = Gametype[gamemode] ?? configured;
+                    if (saveFails) throw new Error('disk full');
                 }
             }),
-        getSessionManager: () => stub<SessionManager>({ getSessions: () => [requester.session, other.session] }),
-        getPermissionManager: () => stub<PermissionManager>({ isOp: (uuid) => ops.has(uuid) })
-    });
+            sessions: stub<HandlerServices['sessions']>({ getSessions: () => [requester.session, other.session] }),
+            permissions: stub<HandlerServices['permissions']>({ isOp: (uuid) => ops.has(uuid) })
+        }
+    };
 
-    return { logged, applied, committed, sent, server, session: requester.session };
+    /** Runs one request as the input step would, and returns what the handler handed the step. */
+    const handle = async (packet: SetDefaultGameTypePacket) => {
+        const { context, outputs, deferred, settled } = inputContext(requester.session, parts);
+        const returned = new SetDefaultGameTypeHandler().handle(packet, context);
+        const handed = { returned, outputs: outputs.length, deferred: deferred.length, applied: applied.length };
+        await settled();
+        return handed;
+    };
+
+    return { logged, applied, committed, sent, handle };
 };
 
 const request = (gamemode: Gametype): SetDefaultGameTypePacket =>
@@ -75,9 +84,9 @@ const defaults = (packets: NetworkPacket[] | undefined): Gametype[] =>
 
 describe('SetDefaultGameTypeHandler', () => {
     it('applies an operator request to the config and every player, then tells every client', async () => {
-        const { applied, committed, sent, server, session } = fakeServer({ op: true });
+        const { applied, committed, sent, handle } = fakeServer({ op: true });
 
-        await new SetDefaultGameTypeHandler().handle(request(Gametype.CREATIVE), server, session);
+        await handle(request(Gametype.CREATIVE));
 
         expect(committed).toEqual([[Gametype.CREATIVE, true]]);
         expect(applied).toEqual([
@@ -88,10 +97,39 @@ describe('SetDefaultGameTypeHandler', () => {
         expect(defaults(sent.get('Alex'))).toEqual([Gametype.CREATIVE]);
     });
 
-    it('refuses a player who is not an operator and sends the current default back', async () => {
-        const { applied, committed, logged, sent, server, session } = fakeServer({ op: false });
+    it('changes the default before it returns and defers moving the players onto it', async () => {
+        const { committed, handle } = fakeServer({ op: true });
 
-        await new SetDefaultGameTypeHandler().handle(request(Gametype.CREATIVE), server, session);
+        const handed = await handle(request(Gametype.CREATIVE));
+
+        expect(handed).toEqual({ returned: undefined, outputs: 0, deferred: 1, applied: 0 });
+        expect(committed).toEqual([[Gametype.CREATIVE, true]]);
+    });
+
+    it('logs a default it could not save and still moves the players onto it', async () => {
+        const { applied, logged, handle } = fakeServer({ op: true, saveFails: true });
+
+        await handle(request(Gametype.CREATIVE));
+
+        expect(logged).toEqual([`Could not save the default game type ${Gametype.CREATIVE}: Error: disk full`]);
+        expect(applied).toHaveLength(2);
+    });
+
+    it('hands the reply to a refused request to the step', async () => {
+        const { handle } = fakeServer({ op: false });
+
+        expect(await handle(request(Gametype.CREATIVE))).toEqual({
+            returned: undefined,
+            outputs: 1,
+            deferred: 0,
+            applied: 0
+        });
+    });
+
+    it('refuses a player who is not an operator and sends the current default back', async () => {
+        const { applied, committed, logged, sent, handle } = fakeServer({ op: false });
+
+        await handle(request(Gametype.CREATIVE));
 
         expect(committed).toEqual([]);
         expect(applied).toEqual([]);
@@ -101,13 +139,13 @@ describe('SetDefaultGameTypeHandler', () => {
     });
 
     it('refuses a value the config cannot hold without throwing', async () => {
-        const { applied, committed, logged, sent, server, session } = fakeServer({ op: true });
+        const { applied, committed, logged, sent, handle } = fakeServer({ op: true });
 
         // 42 is not a `Gametype`, so it has to come in off the wire: ZigZag of 42 is 0x54.
         const packet = new SetDefaultGameTypePacket(Buffer.from([latestCodec.ids.SetDefaultGameTypePacket!, 0x54]));
         packet.decode();
 
-        await new SetDefaultGameTypeHandler().handle(packet, server, session);
+        await handle(packet);
 
         expect(committed).toEqual([]);
         expect(applied).toEqual([]);
@@ -116,10 +154,10 @@ describe('SetDefaultGameTypeHandler', () => {
     });
 
     it('refuses the docs values a config has no name for', async () => {
-        const { committed, server, session } = fakeServer({ op: true });
+        const { committed, handle } = fakeServer({ op: true });
 
-        await new SetDefaultGameTypeHandler().handle(request(Gametype.DEFAULT), server, session);
-        await new SetDefaultGameTypeHandler().handle(request(Gametype.UNDEFINED), server, session);
+        await handle(request(Gametype.DEFAULT));
+        await handle(request(Gametype.UNDEFINED));
 
         expect(committed).toEqual([]);
     });

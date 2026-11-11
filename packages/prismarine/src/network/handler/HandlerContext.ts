@@ -46,8 +46,9 @@ export interface SessionContext {
 
 /**
  * The server-wide services an input-lane handler may use, each narrowed to the members handlers
- * call. Several still return promises, because they reach the disk or run commands and chat,
- * which can do anything; a handler that awaits one cannot be synchronous yet.
+ * call. The commands and the chat still return promises, because they can do anything, so a
+ * handler hands them to {@link InputStep.defer}. A service that writes a file changes memory at
+ * once and writes the file off the tick.
  */
 export interface HandlerServices {
     /** The content registries: items, blocks, recipes and enchantments. */
@@ -58,17 +59,23 @@ export interface HandlerServices {
     readonly creativeInventory: Pick<CreativeInventory, 'get'>;
     /** The other sessions on the server, and the player list. */
     readonly sessions: Pick<SessionManager, 'getSessions' | 'sessionOf' | 'getPlayerList'>;
-    /** The operator list and permission checks. `setOp` writes the operator file. */
-    readonly permissions: Pick<PermissionManager, 'isOp' | 'setOp' | 'can'>;
-    /** The command dispatcher. */
+    /**
+     * The operator list and permission checks. `setOpNow` changes the list in memory and writes
+     * the operator file off the tick.
+     */
+    readonly permissions: Pick<PermissionManager, 'isOp' | 'setOpNow' | 'can'>;
+    /** The command dispatcher. A command can do anything, so a handler defers it. */
     readonly commands: Pick<CommandManager, 'dispatchCommand'>;
-    /** Chat fan-out. */
+    /** Chat fan-out, which runs the plugins' chat listeners, so a handler defers it. */
     readonly chat: Pick<ChatManager, 'send'>;
     /** The console, as the sender of a server-issued line. */
     readonly console: ConsoleSender;
     /** The plugin events a handler raises. */
     readonly events: Pick<EventEmitter, 'post' | 'emit'>;
-    /** The server's default game mode, which `SetDefaultGameType` changes. */
+    /**
+     * The server's default game mode, which `SetDefaultGameType` changes. It changes in memory
+     * at once, and the config file is written off the tick.
+     */
     readonly defaults: Pick<Config, 'setGamemode'>;
 }
 
