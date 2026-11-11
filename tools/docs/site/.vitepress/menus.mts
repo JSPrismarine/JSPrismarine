@@ -1,4 +1,9 @@
+import { loadProject } from '../../project.mts';
+import { exampleExecutable } from './theme/landing.ts';
 import type { MegaMenu } from './theme/types.ts';
+
+/** The start command the Guides menu shows, read from the release build like the landing page's. */
+const startCommand = `./${exampleExecutable(loadProject())}`;
 
 /** The site's menu: SiteNav renders it on the bar, SitePhoneMenu below 768px, and the search indexes its sections. */
 export const megaMenus = [
@@ -8,9 +13,20 @@ export const megaMenus = [
         featured: {
             text: 'Run a server',
             description: 'Download the prebuilt server and start it. Nothing else to install.',
+            command: startCommand,
             link: '/guide/running#run-the-prebuilt-server'
         },
         sections: [
+            {
+                text: 'Play',
+                items: [
+                    {
+                        text: 'Joining a server',
+                        description: 'Add a server in Minecraft, versions and fixes.',
+                        link: '/guide/joining'
+                    }
+                ]
+            },
             {
                 text: 'Operate',
                 items: [
@@ -23,11 +39,6 @@ export const megaMenus = [
                         text: 'Every setting',
                         description: 'What each key in config.json does.',
                         link: '/guide/running#every-setting'
-                    },
-                    {
-                        text: 'Joining a server',
-                        description: 'For players: add a server, versions, fixes.',
-                        link: '/guide/joining'
                     },
                     {
                         text: 'Log levels',

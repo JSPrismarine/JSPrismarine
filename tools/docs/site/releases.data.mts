@@ -16,6 +16,8 @@ export interface ReleaseChange {
     html: string;
     /** The description's first sentence as plain text, for teasers. */
     summary: string;
+    /** Whether the change breaks or removes something an upgrader has to act on. */
+    breaking: boolean;
     commit?: { sha: string; url: string };
     pullRequest?: { number: number; url: string };
 }
@@ -124,8 +126,10 @@ async function load(): Promise<ReleaseData> {
                 }
                 const commit = COMMIT.exec(bullet);
                 const pull = PULL.exec(bullet);
+                const html = markChange(md.render(description));
                 release[kind].push({
-                    html: markChange(md.render(description)),
+                    html,
+                    breaking: html.includes('release__breaking'),
                     summary: firstSentence(description),
                     commit: commit ? { sha: commit[1], url: commit[2] } : undefined,
                     pullRequest: pull ? { number: Number(pull[1]), url: pull[2] } : undefined
@@ -151,9 +155,13 @@ export { data };
  * is plain text, and the paragraphs that break or remove something get a class the notes set apart.
  */
 function markChange(html: string) {
-    return html
-        .replace(/^<p>((?:[^<.!?]|<[^>]+>)+?[.!?])(?=\s|<\/p>)/, '<p><strong class="release__lead">$1</strong>')
-        .replace(/<p>(?=(?:Breaking|Removed)\b)/g, '<p class="release__breaking">');
+    return (
+        html
+            .replace(/^<p>((?:[^<.!?]|<[^>]+>)+?[.!?])(?=\s|<\/p>)/, '<p><strong class="release__lead">$1</strong>')
+            .replace(/<p>(?=(?:Breaking|Removed)\b)/g, '<p class="release__breaking">')
+            // The notes label these paragraphs, so a leading "Breaking:" would say it twice.
+            .replace(/<p class="release__breaking">Breaking:\s*/g, '<p class="release__breaking">')
+    );
 }
 
 export default {

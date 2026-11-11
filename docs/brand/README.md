@@ -127,18 +127,22 @@ scrolling off the screen edge, and a two-column table stacks each row as its nam
 - Release notes lead each change with its first sentence in bold. Inline code in them is mono and
   colored without a chip.
 - The parity tracker carries the site breadcrumb, and its rows and group tiles mark anything under
-  half passing with a signal square.
+  half passing with a signal square. Its status chips differ by shape as well as color, and only
+  defects and failures are filled signal.
+- The package directory and the API reference sidebar group packages by the areas in
+  `packageAreas.ts`; the docs build fails when a published package has no area.
 - Menu and search previews end on a whole sentence where one fits.
 - The header's Search is a control, not a primary action: an edge and no offset shadow.
 
 ## The landing page
 
 - The hero says what JSPrismarine is in plain words beside the headline, shows facts the repository
-  records (builds, protocol versions, packages, license), and offers one link per audience into the
-  tabs below it (`#start-play`, `#start-host` and so on).
-- Each audience tab is a card that names the audience and what it gets, so all four read before any
-  click; one panel shows at a time.
-- The solid accent and signal figure tiles stay: they carry the page's character.
+  records (builds, protocol versions, default port, license), and offers one link per audience into
+  the tabs below it (`#start-play`, `#start-host` and so on); phones get one line to the tabs.
+- Each audience tab is a card that names the audience with its tagline, so all four read before any
+  click; one panel shows at a time, headed by what that audience gets.
+- The solid accent and signal figure tiles stay: they carry the page's character. Each shows a figure
+  the hero does not.
 - The page ends on a call to action with a command to copy, plus a line for players and contributors,
   not on decoration. The footer under it links the main sections.
 

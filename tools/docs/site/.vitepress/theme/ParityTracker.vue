@@ -142,7 +142,7 @@ const percentage = trackerProgressPercent;
                     >{{ trackerPrimaryProgressPercent(behavior.passed, behavior.tracked) }}<span>%</span></strong
                 >
                 <div class="score-copy">
-                    <h2>gameplay behavior parity</h2>
+                    <h2>behavior parity</h2>
                     <span
                         >{{ behavior.passed.toLocaleString() }} of {{ behavior.tracked.toLocaleString() }} tracked
                         behavior comparisons passing. All comparisons, including data tables:
@@ -164,7 +164,7 @@ const percentage = trackerProgressPercent;
                 <li class="status-count passed">
                     <b>{{ tracker.passed.toLocaleString() }}</b> passing
                 </li>
-                <li class="status-count failed">
+                <li class="status-count failed" :class="{ 'is-zero': tracker.failed === 0 }">
                     <b>{{ tracker.failed.toLocaleString() }}</b> failing
                 </li>
                 <li class="status-count not-measured">
@@ -252,8 +252,8 @@ const percentage = trackerProgressPercent;
 
             <div class="results-heading">
                 <span
-                    >Showing {{ displayedCaseCount }} of {{ matchingCaseCount }} matching cases ·
-                    {{ tracker.cases.length }} tracked total</span
+                    >{{ displayedCaseCount.toLocaleString() }} of {{ matchingCaseCount.toLocaleString() }} matching
+                    cases shown · {{ tracker.cases.length.toLocaleString() }} tracked</span
                 >
                 <button type="button" class="expand-toggle" @click="expanded = !expanded">
                     {{ expanded ? 'Collapse all' : 'Expand all' }}
@@ -266,7 +266,7 @@ const percentage = trackerProgressPercent;
                 <summary>
                     <span class="family-title">
                         <span class="family-name">{{ family.id }}</span>
-                        <span class="family-count">{{ family.matchCount }} matching cases</span>
+                        <span class="family-count">{{ family.matchCount.toLocaleString() }} matching cases</span>
                     </span>
                     <span class="family-progress">
                         <span :class="{ 'is-gap': family.passed * 2 < trackerProgressTotal(family) }"
@@ -381,7 +381,7 @@ const percentage = trackerProgressPercent;
     align-items: center;
     margin: 0;
     font: 700 var(--jsp-label-size) var(--vp-font-family-mono);
-    color: var(--jsp-accent);
+    color: var(--jsp-mint);
     text-transform: uppercase;
     letter-spacing: 0.12em;
 }
@@ -526,12 +526,16 @@ progress::-moz-progress-bar {
     background: var(--jsp-term-muted);
 }
 
+/* Statuses differ by shape as well as color, and only defects and failures are filled signal. */
 .status-count.intentional::before {
-    background: var(--tracker-intentional);
+    background: transparent;
+    box-shadow: inset 0 0 0 1.5px var(--tracker-intentional);
 }
 
 .status-count.deferred::before {
-    background: var(--tracker-deferred);
+    background: transparent;
+    border-radius: 2px;
+    box-shadow: inset 0 0 0 1.5px var(--jsp-mint);
 }
 
 .tracker-notes {
@@ -1048,5 +1052,21 @@ progress::-moz-progress-bar {
 }
 .tracker-crumb {
     margin: 4px 4px 10px;
+}
+
+/* A zero count is good news, so its dot is a neutral mint ring rather than signal; ink would vanish on forest. */
+.status-count.is-zero::before {
+    background: transparent;
+    box-shadow: inset 0 0 0 1.5px var(--jsp-mint);
+}
+
+/* Section labels open on the short solid bar doc pages give their sections. */
+.tracker-section-title::before {
+    display: block;
+    width: 40px;
+    height: 5px;
+    margin-bottom: 14px;
+    content: '';
+    background: var(--vp-c-brand-1);
 }
 </style>

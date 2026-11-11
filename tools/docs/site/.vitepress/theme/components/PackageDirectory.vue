@@ -3,6 +3,7 @@ import { withBase } from 'vitepress';
 import { computed, ref } from 'vue';
 
 import type { PublishedPackage } from '../../../project.data.mts';
+import { groupPackages } from '../packageAreas';
 
 const props = defineProps<{ packages: PublishedPackage[]; repositoryUrl: string }>();
 const query = ref('');
@@ -13,10 +14,20 @@ const sharedVersion = computed(() => {
     return versions.size === 1 ? [...versions][0] : undefined;
 });
 
+const areas = computed(() => groupPackages(props.packages));
+
 const shown = computed(() => {
     const term = query.value.trim().toLowerCase();
     if (!term) return props.packages;
     return props.packages.filter(({ name, description }) => `${name} ${description}`.toLowerCase().includes(term));
+});
+
+/** The areas with the packages the filter keeps, leaving out areas it empties. */
+const shownAreas = computed(() => {
+    const kept = new Set(shown.value);
+    return areas.value
+        .map((area) => ({ ...area, packages: area.packages.filter((pkg) => kept.has(pkg)) }))
+        .filter((area) => area.packages.length);
 });
 </script>
 
@@ -33,23 +44,39 @@ const shown = computed(() => {
                     : `${shown.length} of ${packages.length}`
             }}{{ sharedVersion ? `, all at ${sharedVersion}` : '' }}
         </p>
-        <ul class="package-directory__grid">
-            <li v-for="pkg in shown" :key="pkg.name" class="package-card">
-                <div class="package-card__head">
-                    <h3>
-                        <span class="package-card__scope">{{ pkg.name.slice(0, pkg.name.indexOf('/') + 1) }}</span
-                        >{{ pkg.name.slice(pkg.name.indexOf('/') + 1) }}
-                    </h3>
-                    <span v-if="!sharedVersion" class="package-card__version">{{ pkg.version }}</span>
-                </div>
-                <p>{{ pkg.description }}</p>
-                <nav :aria-label="`${pkg.name} links`">
-                    <a :href="withBase(`/api/${pkg.name}/`)">API</a>
-                    <a :href="`${repositoryUrl}/tree/master/packages/${pkg.directory}#readme`">README</a>
-                    <a :href="`https://www.npmjs.com/package/${pkg.name}`">npm</a>
-                </nav>
-            </li>
-        </ul>
+        <nav class="package-directory__areas" aria-label="Package areas">
+            <a v-for="area in shownAreas" :key="area.id" :href="`#${area.id}`"
+                >{{ area.title }} <span>{{ area.packages.length }}</span></a
+            >
+        </nav>
+        <section v-for="area in shownAreas" :key="area.id" class="package-area">
+            <h2 :id="area.id">
+                {{ area.title }} <span class="package-area__count">{{ area.packages.length }}</span>
+            </h2>
+            <p class="package-area__description">{{ area.description }}</p>
+            <ul class="package-directory__grid">
+                <li v-for="pkg in area.packages" :key="pkg.name" class="package-card">
+                    <div class="package-card__head">
+                        <!-- The name opens the API reference; README and npm follow as quieter links. -->
+                        <h3>
+                            <a :href="withBase(`/api/${pkg.name}/`)"
+                                ><span class="package-card__scope">{{
+                                    pkg.name.slice(0, pkg.name.indexOf('/') + 1)
+                                }}</span
+                                >{{ pkg.name.slice(pkg.name.indexOf('/') + 1) }}</a
+                            >
+                        </h3>
+                        <span v-if="!sharedVersion" class="package-card__version">{{ pkg.version }}</span>
+                    </div>
+                    <p>{{ pkg.description }}</p>
+                    <nav :aria-label="`${pkg.name} links`">
+                        <a :href="withBase(`/api/${pkg.name}/`)">API</a>
+                        <a :href="`${repositoryUrl}/tree/master/packages/${pkg.directory}#readme`">README</a>
+                        <a :href="`https://www.npmjs.com/package/${pkg.name}`">npm</a>
+                    </nav>
+                </li>
+            </ul>
+        </section>
         <p v-if="!shown.length">No package matches “{{ query }}”.</p>
     </div>
 </template>
@@ -184,5 +211,68 @@ const shown = computed(() => {
 }
 .package-directory__search input::placeholder {
     color: var(--vp-c-text-2);
+}
+.package-area h2 {
+    margin-top: 40px;
+}
+
+.package-area__count {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 10px;
+    margin-left: 6px;
+    font: 700 var(--jsp-label-size) var(--vp-font-family-mono);
+    vertical-align: middle;
+    letter-spacing: 0;
+    color: var(--vp-c-text-1);
+    border: 1.5px solid var(--vp-c-divider);
+    border-radius: 99px;
+}
+
+/* A jump list of the areas, so the whole directory reads in one screen. */
+.package-directory__areas {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 4px 0 8px;
+}
+
+.package-directory__areas a {
+    display: inline-flex;
+    gap: 8px;
+    align-items: center;
+    min-height: 36px;
+    padding: 0 14px;
+    font-weight: 700;
+    color: var(--vp-c-text-1);
+    text-decoration: none;
+    border: 1.5px solid var(--vp-c-divider);
+    border-radius: 99px;
+}
+
+.package-directory__areas a:hover {
+    border-color: var(--vp-c-text-1);
+}
+
+.package-directory__areas span {
+    font: var(--jsp-label-size) var(--vp-font-family-mono);
+    color: var(--vp-c-text-2);
+}
+
+.package-area__description {
+    margin: 0 0 14px;
+    color: var(--vp-c-text-2);
+}
+
+.package-card h3 a {
+    font-weight: 800;
+    color: inherit;
+    text-decoration: none;
+}
+
+.package-card h3 a:hover {
+    text-decoration: underline;
+    text-decoration-thickness: 2px;
+    text-underline-offset: 3px;
 }
 </style>

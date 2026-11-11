@@ -65,6 +65,11 @@ const target = computed(() => (/^[a-z]+:/i.test(props.href) ? props.href : withB
     background: transparent;
 }
 
+/* Secondary actions keep the hard shadow at half depth, so the primary action stays the loudest. */
+:is(.is-outline, .is-secondary) {
+    --jsp-shadow-offset: 2px;
+}
+
 .is-secondary {
     color: var(--vp-c-text-1);
     background: transparent;

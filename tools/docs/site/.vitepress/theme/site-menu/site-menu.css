@@ -258,6 +258,7 @@
 .site-panel__featured {
     display: flex;
     flex-direction: column;
+    align-self: start;
     gap: 6px;
     padding: 16px;
     text-decoration: none;
@@ -277,7 +278,7 @@
     align-items: center;
     min-height: 34px;
     padding: 0 14px;
-    margin-top: auto;
+    margin-top: 14px;
     font: 700 var(--jsp-label-size) var(--vp-font-family-mono);
     color: var(--jsp-on-accent);
     text-transform: uppercase;
@@ -324,10 +325,14 @@
 }
 
 .site-panel__groups {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
-    gap: 8px 16px;
-    align-content: start;
+    /* Groups flow down columns, so a short group sits above the next instead of leaving a hole. */
+    columns: 2 210px;
+    column-gap: 16px;
+}
+
+.site-panel__group {
+    margin-bottom: 8px;
+    break-inside: avoid;
 }
 
 .site-panel__heading {

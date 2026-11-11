@@ -2,6 +2,7 @@
 import { ref } from 'vue';
 
 import type { Release, ReleaseChange } from '../../../releases.data.mts';
+import { releaseAnchor } from '../releases';
 
 /** Notes listed per group before its "show all" button; some releases carry hundreds. */
 const SHOWN = 6;
@@ -9,16 +10,22 @@ const SHOWN = 6;
 defineProps<{ releases: Release[] }>();
 const expanded = ref(new Set<string>());
 
-function anchor(version: string) {
-    return `v${version.replaceAll('.', '-')}`;
-}
-
 /** New features first, then fixes, leaving out empty groups. */
 function groups(release: Release): { title: string; changes: ReleaseChange[] }[] {
     return [
         { title: 'New', changes: [...release.major, ...release.minor] },
         { title: 'Fixes and changes', changes: release.patch }
     ].filter(({ changes }) => changes.length);
+}
+
+/** One line per release: how many changes of each kind, and how many break something. */
+function summary(release: Release) {
+    const changes = [...release.major, ...release.minor, ...release.patch];
+    const breaking = changes.filter((change) => change.breaking).length;
+    return [
+        ...groups(release).map(({ title, changes: group }) => `${group.length} ${title.toLowerCase()}`),
+        ...(breaking ? [`${breaking} breaking`] : [])
+    ].join(' · ');
 }
 
 function toggle(key: string) {
@@ -33,11 +40,12 @@ function toggle(key: string) {
         <article v-for="release in releases" :key="release.version" class="release">
             <header class="release__header">
                 <!-- The id sits on the heading, so the page outline lists each release. -->
-                <h2 :id="anchor(release.version)">
-                    <a :href="`#${anchor(release.version)}`">v{{ release.version }}</a>
+                <h2 :id="releaseAnchor(release.version)">
+                    <a :href="`#${releaseAnchor(release.version)}`">v{{ release.version }}</a>
                 </h2>
                 <span class="release__kind" :class="`is-${release.kind}`">{{ release.kind }}</span>
                 <time v-if="release.date" :datetime="release.date">{{ release.date }}</time>
+                <p class="release__summary">{{ summary(release) }}</p>
             </header>
 
             <section v-for="group in groups(release)" :key="group.title" class="release__group">
@@ -183,7 +191,26 @@ function toggle(key: string) {
 /* A paragraph that breaks or removes something carries a signal rule, so upgraders find it first. */
 .release__text :deep(.release__breaking) {
     padding-left: 12px;
+    margin: 8px 0;
     border-left: 3px solid var(--jsp-signal);
+}
+
+/* Every breaking note opens on the same label, whatever word its text starts with. */
+.release__text :deep(.release__breaking)::before {
+    display: block;
+    margin-bottom: 4px;
+    font: 700 var(--jsp-label-size) var(--vp-font-family-mono);
+    color: var(--vp-c-text-1);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    content: 'Breaking';
+}
+
+.release__summary {
+    flex-basis: 100%;
+    margin: 0;
+    font: var(--jsp-label-size) var(--vp-font-family-mono);
+    color: var(--vp-c-text-2);
 }
 
 .release__text :deep(p) {

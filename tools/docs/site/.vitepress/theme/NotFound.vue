@@ -20,7 +20,7 @@ const route = useRoute();
             >
             <span class="t-line"><span class="t-prompt">&gt;</span> <span class="t-cursor"></span></span>
         </TerminalWindow>
-        <p>Search with <kbd>/</kbd>, or start from one of these.</p>
+        <p>Search from the header, or start from one of these.</p>
         <div class="not-found__links">
             <BrandButton href="/">Home</BrandButton>
             <BrandButton href="/guide/running" variant="secondary">Run a server</BrandButton>
@@ -78,6 +78,9 @@ const route = useRoute();
 }
 
 .not-found__report a {
+    text-decoration: underline;
+    text-decoration-thickness: 2px;
+    text-underline-offset: 3px;
     color: var(--vp-c-brand-1);
 }
 </style>

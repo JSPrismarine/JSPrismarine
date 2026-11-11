@@ -1,10 +1,19 @@
 <script setup lang="ts">
 import { withBase } from 'vitepress';
 
+import { computed } from 'vue';
+
 import type { Release } from '../../../releases.data.mts';
+import { releaseAnchor } from '../releases';
 
 /** The newest release: its version, date and the first few new features. */
-withDefaults(defineProps<{ release: Release; limit?: number }>(), { limit: 3 });
+const props = withDefaults(defineProps<{ release: Release; limit?: number }>(), { limit: 3 });
+/** Changes an upgrader has to act on, which the tile points to rather than lists. */
+const breaking = computed(
+    () =>
+        [...props.release.major, ...props.release.minor, ...props.release.patch].filter((change) => change.breaking)
+            .length
+);
 </script>
 
 <template>
@@ -22,7 +31,12 @@ withDefaults(defineProps<{ release: Release; limit?: number }>(), { limit: 3 });
                 {{ change.summary }}
             </li>
         </ul>
-        <a :href="withBase('/releases')">Read the release notes</a>
+        <p class="latest-release__links">
+            <a :href="withBase('/releases')">Read the release notes</a>
+            <a v-if="breaking" :href="withBase(`/releases#${releaseAnchor(release.version)}`)"
+                >{{ breaking }} breaking, read before upgrading</a
+            >
+        </p>
     </div>
 </template>
 
@@ -100,10 +114,17 @@ withDefaults(defineProps<{ release: Release; limit?: number }>(), { limit: 3 });
         font-size: 16px;
     }
 
-    .latest-release a {
+    .latest-release__links {
         grid-area: link;
         align-self: end;
     }
+}
+
+.latest-release__links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 18px;
+    margin: 0;
 }
 
 .latest-release a {

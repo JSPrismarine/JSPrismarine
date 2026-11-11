@@ -9,6 +9,8 @@ export interface Audience {
     /** The tab label, written in the reader's voice: "I host". */
     tab: string;
     title: string;
+    /** What the audience gets, as the panel's heading; the tab card carries the shorter `title`. */
+    gets: string;
     pitch: string;
     /** A command or snippet shown beside the pitch. */
     code: string;
@@ -91,7 +93,7 @@ function onKeydown(event: KeyboardEvent) {
             :aria-labelledby="tabId(audience)"
         >
             <div class="audience-tabs__pitch">
-                <h3>{{ audience.title }}</h3>
+                <h3>{{ audience.gets }}</h3>
                 <p>{{ audience.pitch }}</p>
             </div>
             <div class="audience-tabs__code">
@@ -260,22 +262,17 @@ function onKeydown(event: KeyboardEvent) {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
+    /* On a phone the card keeps its mono label and left edge, set tighter so it fits. */
     .audience-tabs__list button {
-        align-content: center;
-        padding: 10px;
-        text-align: center;
-    }
-
-    /* On a phone the audience reads in sentence case so it fits, with what it gets set small beneath. */
-    .audience-tabs__hint {
-        font-size: 13px;
-        font-weight: 700;
+        padding: 10px 12px;
     }
 
     .audience-tabs__tab {
-        font: 700 15px var(--vp-font-family-base);
-        text-transform: none;
-        letter-spacing: 0;
+        letter-spacing: 0.04em;
+    }
+
+    .audience-tabs__hint {
+        font-size: 14px;
     }
 
     .audience-tabs__panel {

@@ -54,6 +54,10 @@ const startCommand = `chmod +x ${executable}\n./${executable}`;
                         audience.tab
                     }}</a>
                 </nav>
+                <!-- On a phone the tabs follow straight after, so one line points to them instead. -->
+                <p class="landing__jump-line">
+                    Here to play, build add-ons or contribute? <a href="#paths">Start where you are</a>
+                </p>
                 <dl class="landing__facts">
                     <div>
                         <dt>builds, no Node.js needed</dt>
@@ -64,8 +68,8 @@ const startCommand = `chmod +x ${executable}\n./${executable}`;
                         <dd>{{ project.protocols.length }}</dd>
                     </div>
                     <div>
-                        <dt>packages on npm</dt>
-                        <dd>{{ project.packages.length }}</dd>
+                        <dt>default port players join on</dt>
+                        <dd>{{ project.defaultPort }}</dd>
                     </div>
                     <div>
                         <dt>open source license</dt>
@@ -108,11 +112,13 @@ const startCommand = `chmod +x ${executable}\n./${executable}`;
 
         <BentoGrid>
             <BentoTile tone="accent" class="landing__stat">
-                <div class="bento-figure">1</div>
+                <div class="bento-figure">{{ latest.protocol }}</div>
                 <p class="bento-caption">
-                    <b>Executable</b>One file for {{ platformList(project) }}, with its runtime and data inside. Each
-                    release ships {{ project.executables.length }} builds.
-                    <a :href="project.releasesUrl">Download</a>
+                    <b>Protocol</b>Minecraft {{ latest.minecraft.join(', ') }} connects on it, and the server still
+                    speaks {{ project.protocols.length - 1 }} older protocol{{
+                        project.protocols.length === 2 ? '' : 's'
+                    }}.
+                    <a :href="withBase('/guide/joining')">Which versions join</a>
                 </p>
             </BentoTile>
             <BentoTile tone="signal" class="landing__stat">
@@ -299,7 +305,7 @@ const startCommand = `chmod +x ${executable}\n./${executable}`;
     flex-wrap: wrap;
     gap: 6px;
     align-items: center;
-    margin: 12px 0 24px;
+    margin: 20px 0 24px;
 }
 
 .landing__jump span {
@@ -329,6 +335,40 @@ const startCommand = `chmod +x ${executable}\n./${executable}`;
     color: var(--jsp-on-accent);
     background: var(--jsp-accent);
     border-color: var(--jsp-accent);
+}
+
+/* Phones get the one line in place of the four links. */
+.landing__jump-line {
+    display: none;
+}
+
+@media (max-width: 640px) {
+    .landing__jump {
+        display: none;
+    }
+
+    .landing__jump-line {
+        display: block;
+    }
+}
+
+.landing__jump-line {
+    margin: 14px 0 24px;
+    font-size: 15px;
+    color: var(--jsp-mint);
+}
+
+.landing__jump-line a {
+    font-weight: 800;
+    color: var(--jsp-cream);
+    text-decoration: underline;
+    text-decoration-thickness: 2px;
+    text-underline-offset: 3px;
+}
+
+.landing__jump-line a::after {
+    margin-left: 4px;
+    content: '↓';
 }
 
 .landing__install {
@@ -401,7 +441,7 @@ const startCommand = `chmod +x ${executable}\n./${executable}`;
 .landing .landing__stat {
     flex-direction: row;
     gap: clamp(16px, 3vw, 32px);
-    align-items: flex-end;
+    align-items: center;
     min-height: 0;
 }
 
@@ -522,6 +562,12 @@ const startCommand = `chmod +x ${executable}\n./${executable}`;
 }
 
 @media (max-width: 640px) {
+    /* A figure tile stacks its number over its caption, so the caption gets the full width. */
+    .landing .landing__stat {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
     /* Both calls to action take the full width, so neither reads as the smaller one by accident. */
     .landing__cta :deep(.brand-button) {
         flex: 1 1 100%;
@@ -545,21 +591,6 @@ const startCommand = `chmod +x ${executable}\n./${executable}`;
 
     .landing__prism {
         display: none;
-    }
-
-    /* On a phone the audience links take two even rows of full-size targets, above the terminal. */
-    .landing__jump {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-
-    .landing__jump span {
-        grid-column: 1 / -1;
-    }
-
-    .landing__jump a {
-        justify-content: center;
-        min-height: var(--jsp-target);
     }
 
     .landing__close {

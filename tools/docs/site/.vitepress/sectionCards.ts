@@ -7,7 +7,7 @@ type Token = ReturnType<MarkdownIt['parse']>[number];
  * Overview pages whose second-level sections are short lists of links. Each section renders as a card
  * in a grid, so the page reads as a set of starting points instead of a long list.
  */
-const cardPages = new Set(['guide/index.md']);
+const cardPages: ReadonlySet<string> = new Set(['guide/index.md']);
 
 /** Wraps every second-level section of a card page in a `doc-card` section inside one `doc-cards` grid. */
 export function sectionCardsPlugin(md: MarkdownIt) {

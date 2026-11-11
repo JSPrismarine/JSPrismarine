@@ -11,6 +11,8 @@ Start from what you are here to do.
 
 - [Joining a server](joining.md): add a server in Minecraft, which versions connect, and what to try
   when you cannot.
+- [Commands and functions](../data-driven/commands.md): how commands work, and running `.mcfunction`
+  files from a datapack.
 
 ## Host a server
 

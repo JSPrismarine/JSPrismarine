@@ -1,7 +1,7 @@
 ---
 title: Packages
 description: Every package JSPrismarine publishes to npm.
-outline: false
+outline: [2, 2]
 pageClass: is-wide
 aside: false
 ---

@@ -208,7 +208,7 @@
  * shows at rest, so the label sits beside it rather than under it, and stays visible on hover.
  */
 .vp-doc div[class*='language-'] > span.lang {
-    top: 20px;
+    top: 26px;
     right: 64px;
     font-size: var(--jsp-label-size);
     line-height: 1;
@@ -249,9 +249,16 @@
 
 /* On phones, code wraps instead of running off the screen edge with no sign that it scrolls. */
 @media (max-width: 640px) {
+    /* Break between words and at the hyphens names already have, never inside a word. */
     .vp-doc div[class*='language-'] pre {
         white-space: pre-wrap;
-        overflow-wrap: anywhere;
+        overflow-wrap: break-word;
+    }
+
+    /* Code blocks keep the page gutter and their corners, like every other block, instead of bleeding. */
+    .vp-doc div[class*='language-'] {
+        margin-inline: 0;
+        border-radius: var(--jsp-radius-control);
     }
 
     /* Wrapped lines keep clear of the copy button and the label in the block's top corner. */
@@ -312,8 +319,8 @@
 /* Long outline entries wrap instead of ending in an ellipsis. */
 .VPDocOutlineItem .outline-link {
     overflow: visible;
-    padding-left: 0.75em;
-    text-indent: -0.75em;
+    padding-left: 1.2em;
+    text-indent: -1.2em;
     text-overflow: clip;
     white-space: normal;
 }
@@ -421,7 +428,7 @@
     padding-bottom: 10px;
 }
 
-/* Overview pages set their sections as cards: see sectionCards.ts. Columns let short and tall cards stack without holes. */
+/* Overview pages set their sections as cards: see sectionCards.ts. Columns stack short and tall cards without holes. */
 .vp-doc .doc-cards {
     columns: 2 280px;
     column-gap: var(--jsp-gap);

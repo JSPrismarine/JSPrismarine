@@ -12,6 +12,7 @@ import { sidebar } from './sidebar.mts';
 import { prismSvg } from './theme/prism.ts';
 import { sectionCardsPlugin } from './sectionCards.ts';
 import { codeTheme } from './theme/codeTheme.ts';
+import { packageAreas } from './theme/packageAreas.ts';
 import { palette, paletteCss } from './theme/tokens.ts';
 
 const repositoryUrl = manifest.repository.url.replace(/^git\+/, '').replace(/\.git$/, '');
@@ -25,6 +26,25 @@ const base = `${new URL(siteUrl).pathname}${previewPath ? `${previewPath}/` : ''
 const discordInvite = /\]\((https:\/\/discord\.gg\/[\w-]+)\)/.exec(
     readFileSync(new URL('../../../../README.md', import.meta.url), 'utf8')
 )?.[1];
+
+/**
+ * The API reference sidebar: TypeDoc's package entries without the shared scope, grouped by the areas
+ * the package directory uses, so both pages sort packages the same way.
+ */
+function apiSidebar() {
+    const entries = new Map(typedocSidebar.map((entry) => [entry.text.replace(/^@[^/]+\//, ''), entry]));
+    const grouped = packageAreas.map((area) => ({
+        text: area.title,
+        items: area.packages.flatMap((name) => {
+            const entry = entries.get(name);
+            return entry ? [{ ...entry, text: name }] : [];
+        })
+    }));
+    // A package TypeDoc documents but no area lists still gets a place, rather than vanishing.
+    const placed = new Set<string>(packageAreas.flatMap((area) => area.packages));
+    const rest = [...entries].filter(([name]) => !placed.has(name)).map(([name, entry]) => ({ ...entry, text: name }));
+    return rest.length ? [...grouped, { text: 'Other', items: rest }] : grouped;
+}
 
 /** A mega menu section's link groups as a sidebar, for root pages that have no docs folder of their own. */
 function menuSidebar(section: string) {
@@ -125,7 +145,7 @@ export default defineConfig({
             '/packages': menuSidebar('Build'),
             '/releases': menuSidebar('Project'),
             '/brand-kit': menuSidebar('Project'),
-            '/api/': typedocSidebar.map((entry) => ({ ...entry, text: entry.text.replace(/^@[^/]+\//, '') }))
+            '/api/': apiSidebar()
         },
         socialLinks: [
             { icon: 'github', link: repositoryUrl },

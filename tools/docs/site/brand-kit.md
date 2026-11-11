@@ -275,8 +275,8 @@ hidden.
 
 .kit-type .kit-type__label {
     margin-top: 6px;
-    font: 700 11px var(--vp-font-family-mono);
-    color: var(--jsp-accent);
+    font: 700 var(--jsp-label-size) var(--vp-font-family-mono);
+    color: var(--jsp-mint);
     text-transform: uppercase;
     letter-spacing: 0.12em;
 }
