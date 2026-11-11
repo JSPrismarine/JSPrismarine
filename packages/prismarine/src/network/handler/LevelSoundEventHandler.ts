@@ -1,12 +1,11 @@
 import { Vector3 } from '@jsprismarine/math';
 import { LevelSoundEventName } from '@jsprismarine/minecraft';
-import type { PlayerSession } from '../../';
-import type Server from '../../Server';
 import { CREATIVE_REACH } from '../../entity/Combat';
 import { PLAYER_IDENTIFIER } from '../../entity/playerOverlay';
 import { SOUND_RADIUS } from '../../world/Proximity';
 import type LevelSoundEventPacket from '@jsprismarine/protocol/packet/LevelSoundEventPacket';
-import type PacketHandler from './PacketHandler';
+import type { InputContext } from './HandlerContext';
+import type { InputLaneHandler } from './SessionHandler';
 
 /**
  * How far from the sender a client-sent sound may claim to have happened.
@@ -28,8 +27,9 @@ const MAX_SOUND_DISTANCE = CREATIVE_REACH + 1;
 const NO_ACTOR_TYPES = new Set(['', ':']);
 
 /** Relays a sound a client reported to the other players near where it happened. */
-export default class LevelSoundEventHandler implements PacketHandler<LevelSoundEventPacket> {
+export default class LevelSoundEventHandler implements InputLaneHandler<LevelSoundEventPacket> {
     public static PacketName = 'LevelSoundEventPacket';
+    public readonly takes = 'context';
     public readonly phases = ['play'] as const;
     // Relays to the players near the sound, so it is an input though it writes nothing.
     public readonly lane = 'input';
@@ -42,17 +42,15 @@ export default class LevelSoundEventHandler implements PacketHandler<LevelSoundE
      * decoded fields, and the relay carries the same layout the client used, `Fire At Position`
      * and any sound name outside the enum included.
      */
-    public async handle(packet: LevelSoundEventPacket, server: Server, session: PlayerSession): Promise<void> {
+    public handle(packet: LevelSoundEventPacket, { session, log, services }: InputContext): undefined {
         const position = new Vector3(packet.positionX, packet.positionY, packet.positionZ);
 
         const drop = (reason: string) => {
             const sound = LevelSoundEventName[packet.sound] ?? packet.sound;
-            server
-                .getLogger()
-                .verbose(
-                    `Dropped sound ${sound} from ${session.identity.name}: ${reason}`,
-                    'LevelSoundEventHandler/handle'
-                );
+            log.verbose(
+                `Dropped sound ${sound} from ${session.identity.name}: ${reason}`,
+                'LevelSoundEventHandler/handle'
+            );
         };
 
         // A client only knows about the sounds it started, so the actor is itself or nobody.
@@ -82,12 +80,9 @@ export default class LevelSoundEventHandler implements PacketHandler<LevelSoundE
         //
         // The sender is left out: the client that sent this has already played it locally, and
         // echoing it back played everything twice for whoever made the noise.
-        server
-            .getWorldReplicators()
-            .for(session.getWorld())
-            .sendAround(position, packet, {
-                radius: SOUND_RADIUS,
-                exclude: { getRuntimeId: () => session.runtimeId }
-            });
+        services.replicators.for(session.getWorld()).sendAround(position, packet, {
+            radius: SOUND_RADIUS,
+            exclude: { getRuntimeId: () => session.runtimeId }
+        });
     }
 }

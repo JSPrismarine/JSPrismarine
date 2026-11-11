@@ -25,6 +25,7 @@ export type ContextSource = Pick<
     | 'getPermissionManager'
     | 'getCommandManager'
     | 'getChatManager'
+    | 'getWorldReplicators'
     | 'getConsoleSender'
     | 'post'
     | 'emit'
@@ -67,6 +68,9 @@ const servicesOf = (server: ContextSource): HandlerServices => ({
     },
     get chat() {
         return server.getChatManager();
+    },
+    get replicators() {
+        return server.getWorldReplicators();
     },
     get console() {
         return server.getConsoleSender();
