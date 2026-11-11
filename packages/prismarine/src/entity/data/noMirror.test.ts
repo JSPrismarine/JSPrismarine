@@ -2,7 +2,7 @@
  * The slice 4 target of the entity and tick re-architecture: no mirror class and no health
  * comparison.
  *
- * A store entity reaches clients and the legacy world code through its `StoreActor`, which reads
+ * A store entity reaches clients and the rest of the server through its `StoreActor`, which reads
  * the store and keeps no copy of it. The mirror was a legacy `Entity` per store entity, held in
  * the world's entity map and written from the store each tick. These checks fail if a class like
  * it comes back; `live.test.ts` checks the running world, which holds no store entity as a

@@ -5,7 +5,7 @@
  * network layer from the store: its position, rotation and velocity from the body, its health
  * from the instance, its equipment from the body's drops, and its metadata from the actor
  * metadata projection. Tracking, `AddActorPacket` and the per-tick updates encode a store entity
- * through it, so a client sees a store entity with no legacy body behind it.
+ * through it, from store state alone.
  *
  * {@link StoreActors.sync} is the per-tick half. It sends what changed since it last sent each
  * entity: a move, new metadata or synced properties, a health change and new equipment. That is
@@ -18,8 +18,8 @@
  * player (`storePlayers.ts`), a dropped stack (`itemActor.ts`), and a saved actor no pack
  * declares ({@link InertActor}).
  *
- * A store actor is also how the legacy world code reaches a store entity: commands and
- * selectors, legacy blasts and swings, interactions, saves, portals and the plugin events. It
+ * A store actor is also how the rest of the server reaches a store entity: commands and
+ * selectors, blasts and swings, interactions, saves, portals and the plugin events. It
  * answers them from the store and hands every effect back to it: a blow goes through the store's
  * damage pipeline, a shove onto the entity's body, a status effect or a tag into its component
  * state. It keeps no copy of the simulation. What it keeps beside the store is what the store
@@ -88,7 +88,7 @@ interface ShownPose {
     readonly pitch: number;
 }
 
-/** Where a store actor sends the blows and heals the legacy world code gives it. */
+/** Where a store actor sends the blows and heals the rest of the server gives it. */
 export interface StoreActorBlows {
     /** A blow through {@link StoreActor.damage} or a status effect, run through the store's pipeline. */
     hurt(entity: DataEntity, amount: number, source: DamageSource, route: DamageRoute): boolean;
@@ -99,7 +99,7 @@ export interface StoreActorBlows {
 }
 
 /**
- * One store entity as the network layer and the legacy world code read it.
+ * One store entity as the network layer and the rest of the server read it.
  *
  * Position, rotation, velocity, synced properties, status effects and the ground state are read
  * from the store on every call. The metadata, the attributes and the equipment are encoded
@@ -591,7 +591,7 @@ export interface StoreActorsOptions {
     world(): World | undefined;
     /** Receives everything the actors met and could not carry out. */
     report(message: string): void;
-    /** Where each actor sends the blows and heals the legacy world code gives it. */
+    /** Where each actor sends the blows and heals the rest of the server gives it. */
     readonly blows: StoreActorBlows;
     /**
      * The actor of a store player, which `entity/data/storePlayers.ts` builds from the player's

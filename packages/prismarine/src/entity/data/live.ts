@@ -5,8 +5,8 @@
  * for the blocks, the clock and the random draws, and `EntityHostFacts` for
  * the things an entity index does not hold - players, item stacks on the
  * ground, and damage going out to either. This module supplies both from a
- * live {@link World}, shows every entity to clients and to the legacy world
- * code through its {@link StoreActor}, and hands the whole thing to
+ * live {@link World}, shows every entity to clients and to the rest of the
+ * server through its {@link StoreActor}, and hands the whole thing to
  * `World.tick` as one call.
  *
  * {@link EntityRuntimes} is the registry the two ends meet in. The content
@@ -563,7 +563,7 @@ export class LiveEntityRuntime {
     public readonly runtime: EntityRuntime;
 
     /**
-     * Each entity as the clients are shown it and the legacy world code reaches it, read from
+     * Each entity as the clients are shown it and the rest of the server reaches it, read from
      * the store: an {@link ItemActor} for a dropped stack and an {@link InertActor} for a saved
      * actor no pack declares.
      */

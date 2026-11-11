@@ -29,8 +29,8 @@ export class EntityIdAllocator {
 }
 
 /**
- * The server's one pool of entity runtime ids. Legacy entities and every world's entity store
- * draw from it, so an id names one entity whichever kind it is, and a goal that holds the id of a
+ * The server's one pool of entity runtime ids. Every world's entity store and every login draw
+ * from it, so an id names one entity whichever world it is in, and a goal that holds the id of a
  * player cannot be handed a data-driven mob that happens to share it.
  */
 export const entityIds = new EntityIdAllocator();
