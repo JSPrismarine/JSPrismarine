@@ -507,7 +507,7 @@ describe('a block container a player can put things in', () => {
         const scene = await buildScene('progress');
         const { server, world, level, blocks } = scene;
         const player = buildPlayer(world, server, 'Smelter');
-        await world.addEntity(player);
+        await world.addPlayer(player);
         // The progress goes to the world's online players, which is what a joined player is.
         await player.enable();
 
@@ -558,7 +558,7 @@ describe('a block container a player can put things in', () => {
         const scene = await buildScene('progress-quiet');
         const { server, world, level, blocks } = scene;
         const player = buildPlayer(world, server, 'Smelter');
-        await world.addEntity(player);
+        await world.addPlayer(player);
         await player.enable();
 
         // Nothing to cook, so no counter moves and the screen needs no packet at all.
@@ -599,7 +599,7 @@ describe('a block container a player can put things in', () => {
     it('smelts an input in a lit furnace over world ticks', async () => {
         const scene = await buildScene('smelting');
         const { server, world, level, blocks } = scene;
-        await world.addEntity(buildPlayer(world, server, 'Smelter'));
+        await world.addPlayer(buildPlayer(world, server, 'Smelter'));
 
         blocks.setBlock(FURNACE, 'minecraft:furnace');
         blocks.setBlockData(FURNACE, {
@@ -913,8 +913,8 @@ describe('a block container a player can put things in', () => {
         const { server, world, level, blocks } = scene;
         const first = buildPlayer(world, server, 'First');
         const second = buildPlayer(world, server, 'Second');
-        await world.addEntity(first);
-        await world.addEntity(second);
+        await world.addPlayer(first);
+        await world.addPlayer(second);
 
         blocks.setBlock(CHEST, 'minecraft:chest');
         first

@@ -21,9 +21,9 @@ const fakeSession = () => {
 
     const world: World = stub<World>({
         getEntity: (runtimeId) => added.get(runtimeId) ?? null,
-        addEntity: async (entity) => {
-            order.push('addEntity');
-            added.set(entity.getRuntimeId(), entity);
+        addPlayer: async (player) => {
+            order.push('addPlayer');
+            added.set(player.getRuntimeId(), player);
         }
     });
 
@@ -51,7 +51,7 @@ describe('SetLocalPlayerAsInitializedHandler', () => {
 
         await new SetLocalPlayerAsInitializedHandler().handle(new SetLocalPlayerAsInitializedPacket(), server, session);
 
-        expect(order).toEqual(['addEntity', 'completeSpawn']);
+        expect(order).toEqual(['addPlayer', 'completeSpawn']);
     });
 
     it('completes the spawn exactly once', async () => {
@@ -71,7 +71,7 @@ describe('SetLocalPlayerAsInitializedHandler', () => {
         await handler.handle(new SetLocalPlayerAsInitializedPacket(), server, session);
         await handler.handle(new SetLocalPlayerAsInitializedPacket(), server, session);
 
-        expect(order).toEqual(['addEntity', 'completeSpawn']);
+        expect(order).toEqual(['addPlayer', 'completeSpawn']);
         expect(completeSpawn).toHaveBeenCalledOnce();
     });
 });

@@ -44,7 +44,7 @@ const worldOf = (dimension: DimensionType): World =>
     stub<World>({
         getName: () => `${dimension.name} world`,
         getDimension: () => dimension,
-        addEntity: async () => {},
+        addPlayer: async () => {},
         broadcastMove: async () => {},
         entityRelocated: () => {},
         getPlayers: () => [],

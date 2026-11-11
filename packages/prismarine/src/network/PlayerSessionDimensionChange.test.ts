@@ -53,9 +53,9 @@ const worldOf = (dimension: DimensionType, roster: string[] = [], level?: Level)
             if (level === undefined) throw new Error('this world was built without a level');
             return level;
         },
-        addEntity: async () => void roster.push('add'),
+        addPlayer: async () => void roster.push('add'),
         savePlayerData: async () => void roster.push('save'),
-        removeEntity: async () => void roster.push('remove'),
+        removePlayer: async () => void roster.push('remove'),
         entityRelocated: () => {},
         broadcastMove: async () => {},
         getPlayers: () => [],
