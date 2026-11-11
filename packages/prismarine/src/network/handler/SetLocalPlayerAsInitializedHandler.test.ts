@@ -29,18 +29,19 @@ const fakeSession = () => {
     });
 
     const completeSpawn = vi.fn(async () => void order.push('completeSpawn'));
-    const player = stubPlayerPort({
-        getName: () => 'Steve',
-        getRuntimeId: () => 7n,
-        getWorld: () => world,
-        completeSpawn
-    });
+    const player = stubPlayerPort({ getRuntimeId: () => 7n });
 
     return {
         completeSpawn,
         order,
         server: stub<Server>({ getLogger: () => stub<Logger>({ debug: () => {} }) }),
-        session: stub<PlayerSession>({ runtimeId: 7n, identity: identityNamed('Steve'), getPlayer: () => player })
+        session: stub<PlayerSession>({
+            runtimeId: 7n,
+            identity: identityNamed('Steve'),
+            getPlayer: () => player,
+            getWorld: () => world,
+            completeSpawn
+        })
     };
 };
 

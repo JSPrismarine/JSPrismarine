@@ -2,19 +2,8 @@ import type Server from '../../Server';
 import type PlayerSession from '../PlayerSession';
 import type RespawnPacket from '@jsprismarine/protocol/packet/RespawnPacket';
 import { PlayerRespawnState } from '@jsprismarine/minecraft';
-import type { respawnPoint } from '../../world/SpawnPlacement';
-import type { World } from '../../world/World';
 import type PacketHandler from './PacketHandler';
-import type { PlacedPlayer } from './playerPorts';
-
-/** The player as a client's respawn reads it. */
-interface RespawningPlayer extends PlacedPlayer {
-    readonly pitch: number;
-    readonly yaw: number;
-    isAlive(): boolean;
-    /** Where the player comes back: the spawn block and the eyes above it, in the world they are in. */
-    getRespawnPoint(): Promise<Pick<ReturnType<typeof respawnPoint>, 'block' | 'eyes'> & { readonly world: World }>;
-}
+import { storePlayerOf } from './playerPorts';
 
 /**
  * The client's half of the respawn exchange.
@@ -46,7 +35,7 @@ export default class RespawnHandler implements PacketHandler<RespawnPacket> {
     public readonly lane = 'input';
 
     public async handle(packet: RespawnPacket, server: Server, session: PlayerSession): Promise<void> {
-        const player: RespawningPlayer = session.getPlayer();
+        const player = storePlayerOf(session);
         const data = packet.getPacketData();
         if (data === null) throw new Error('Cannot handle RespawnPacket without decoded data');
 
@@ -62,11 +51,14 @@ export default class RespawnHandler implements PacketHandler<RespawnPacket> {
         // for anything.
         if (data.state !== PlayerRespawnState.CLIENT_READY_TO_SPAWN) return;
 
-        if (!player.isAlive()) {
-            const point = await player.getRespawnPoint();
+        if (player.getHealth() <= 0) {
+            // Where the player comes back: the spawn block and the eyes above it, in the world
+            // the spawn is in. `Player.getRespawnPoint` asks the level's search and clears a
+            // spawn point that no longer holds.
+            const point = await session.getPlayer().getRespawnPoint();
             // The dead body moves world first, facing as it fell; `Player.respawn` then stands
             // it at the eyes once the client's `Respawn` action arrives, as in one world.
-            if (point.world !== player.getWorld()) {
+            if (point.world !== session.getWorld()) {
                 await session.changeWorld({
                     world: point.world,
                     position: point.block,

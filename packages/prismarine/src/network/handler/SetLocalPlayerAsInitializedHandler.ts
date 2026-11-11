@@ -2,13 +2,6 @@ import type { PlayerSession } from '../../';
 import type { SetLocalPlayerAsInitializedPacket } from '@jsprismarine/protocol';
 import type Server from '../../Server';
 import type PacketHandler from './PacketHandler';
-import type { PlacedPlayer } from './playerPorts';
-
-/** The player as the end of its spawn reads it, besides the entity its world takes. */
-interface SpawningPlayer extends Pick<PlacedPlayer, 'getWorld'> {
-    /** Sends the state the client throws away while it spawns. */
-    completeSpawn(): Promise<void>;
-}
 
 /**
  * The client saying it has finished spawning and has a player to show.
@@ -31,12 +24,10 @@ export default class SetLocalPlayerAsInitializedHandler implements PacketHandler
         server: Server,
         session: PlayerSession
     ): Promise<void> {
-        const player: SpawningPlayer = session.getPlayer();
-
         // The player's own world, which is where `completeSpawn` and everything after it
         // look for them. It is the default world today, because that is the only one a join
-        // puts anybody in, but reading it off the player is what keeps the two in step.
-        const world = player.getWorld();
+        // puts anybody in, but reading it off the session is what keeps the two in step.
+        const world = session.getWorld();
 
         if (world.getActor(session.runtimeId) !== null) {
             server
@@ -57,6 +48,6 @@ export default class SetLocalPlayerAsInitializedHandler implements PacketHandler
         // but the client rebuilds its local player while spawning and loses them - the hunger
         // bar sat empty without this. It used to run from the burst as well, so everything
         // went out twice.
-        await player.completeSpawn();
+        await session.completeSpawn();
     }
 }
