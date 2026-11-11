@@ -1,9 +1,9 @@
 import type { Logger } from '@jsprismarine/logger';
 import { describe, expect, it, vi } from 'vitest';
 
-import type Player from '../../Player';
 import type Server from '../../Server';
 import { identityNamed } from '../../testing/sessionIdentity.test.helper';
+import { stubPlayerPort } from '../../testing/playerPort.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import type { World } from '../../world/World';
 import type PlayerSession from '../PlayerSession';
@@ -13,7 +13,7 @@ import ActorEventHandler from './ActorEventHandler';
 const setup = () => {
     const sendActorEvent = vi.fn<World['sendActorEvent']>(async () => {});
     const verbose = vi.fn();
-    const player = stub<Player>({
+    const player = stubPlayerPort({
         getName: () => 'runner',
         getRuntimeId: () => 7n,
         getWorld: () => stub<World>({ sendActorEvent })

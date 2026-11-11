@@ -2,10 +2,10 @@ import { Gametype } from '@jsprismarine/minecraft';
 import { describe, expect, it } from 'vitest';
 
 import type { Logger } from '@jsprismarine/logger';
-import type Player from '../../Player';
 import type Server from '../../Server';
 import type { Entity } from '../../entity/Entity';
 import { identityNamed } from '../../testing/sessionIdentity.test.helper';
+import { stubPlayerPort } from '../../testing/playerPort.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import { Position } from '../../world/Position';
 import type { World } from '../../world/World';
@@ -34,7 +34,7 @@ const fakeSession = (options: { npcDistance?: number; tracked?: boolean } = {}) 
                 ? stub<Entity>({ getPosition: () => new Position(options.npcDistance ?? 0, 0, 0, world) })
                 : null
     });
-    const player = stub<Player>({
+    const player = stubPlayerPort({
         gamemode: Gametype.SURVIVAL,
         getName: () => 'tester',
         getRuntimeId: () => SELF,

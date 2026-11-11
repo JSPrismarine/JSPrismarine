@@ -2,9 +2,9 @@ import type { Logger } from '@jsprismarine/logger';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { Entity } from '../../entity/Entity';
-import type Player from '../../Player';
 import type Server from '../../Server';
 import { identityNamed } from '../../testing/sessionIdentity.test.helper';
+import { stubPlayerPort } from '../../testing/playerPort.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import type { World } from '../../world/World';
 import type PlayerSession from '../PlayerSession';
@@ -28,7 +28,7 @@ const fakeSession = () => {
     });
 
     const completeSpawn = vi.fn(async () => void order.push('completeSpawn'));
-    const player: Player = stub<Player>({
+    const player = stubPlayerPort({
         getName: () => 'Steve',
         getRuntimeId: () => 7n,
         getWorld: () => world,
