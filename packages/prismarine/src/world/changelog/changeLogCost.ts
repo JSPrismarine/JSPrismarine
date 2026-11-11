@@ -11,18 +11,31 @@ export type ChangeLogCost = {
     readonly entries: number;
     /** An estimate of the bytes the entries hold, from {@link estimatePlainBytes}. */
     readonly bytes: number;
+    /** How many of the entries are block or block entity field entries. */
+    readonly blockEntries: number;
+    /** The estimated bytes of those entries, part of `bytes`. */
+    readonly blockBytes: number;
 };
 
 /**
  * Counts one sealed tick's entries and estimates their bytes. The result depends only on the
  * entries, so it is the same on every host.
  * @param {SealedTick} sealed - The tick to count.
- * @returns {ChangeLogCost} Its entry count and estimated bytes.
+ * @returns {ChangeLogCost} Its entry count and estimated bytes, in all and for blocks.
  */
 export function changeLogCost(sealed: SealedTick): ChangeLogCost {
     let bytes = 0;
-    for (const entry of sealed.entries) bytes += estimatePlainBytes(entry);
-    return { entries: sealed.entries.length, bytes };
+    let blockEntries = 0;
+    let blockBytes = 0;
+    for (const entry of sealed.entries) {
+        const size = estimatePlainBytes(entry);
+        bytes += size;
+        if (entry.kind === 'field' && (entry.field === 'block' || entry.field === 'block-entity')) {
+            blockEntries += 1;
+            blockBytes += size;
+        }
+    }
+    return { entries: sealed.entries.length, bytes, blockEntries, blockBytes };
 }
 
 /**
