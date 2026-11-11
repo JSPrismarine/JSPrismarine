@@ -47,10 +47,17 @@ struct Mux {
 	std::thread outboundThread;
 
 	void count(int stat) { stats[static_cast<size_t>(stat)].fetch_add(1, std::memory_order_relaxed); }
+
+	// Closed ports stop their thread first; a joinable std::thread would terminate the process.
+	~Mux() {
+		if (outboundThread.joinable()) outboundThread.detach();
+	}
 };
 
-std::mutex muxesMutex;
-std::map<int32_t, std::unique_ptr<Mux>> muxes;
+// Never destroyed: libjuice's mux thread holds a port's hooks until they are removed, and a port
+// still open at exit must not be freed under it.
+std::mutex &muxesMutex = *new std::mutex;
+std::map<int32_t, std::unique_ptr<Mux>> &muxes = *new std::map<int32_t, std::unique_ptr<Mux>>;
 int32_t nextHandle = 1;
 
 Mux *findMux(int32_t handle) {
@@ -179,6 +186,7 @@ void stopMux(Mux *mux) {
 	jsp::sendWake(mux->control, mux->controlPort);
 	if (mux->outboundThread.joinable()) mux->outboundThread.join();
 	jsp::closeSocket(mux->control);
+	mux->control = JSP_INVALID_SOCKET;
 }
 
 } // namespace
