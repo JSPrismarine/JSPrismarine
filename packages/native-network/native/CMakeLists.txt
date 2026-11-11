@@ -59,7 +59,8 @@ set(JSP_NATIVE_SOURCES
 	src/events.cpp
 	src/rtc.cpp
 	src/shared_port.cpp
-	src/socket.cpp)
+	src/socket.cpp
+	src/pin.cpp)
 
 function(jsp_configure target)
 	target_compile_features(${target} PRIVATE cxx_std_20)
@@ -68,6 +69,8 @@ function(jsp_configure target)
 	target_link_libraries(${target} PRIVATE datachannel-static LibJuice::LibJuiceStatic)
 	if(WIN32)
 		target_link_libraries(${target} PRIVATE ws2_32)
+	elseif(UNIX)
+		target_link_libraries(${target} PRIVATE ${CMAKE_DL_LIBS})
 	endif()
 endfunction()
 
@@ -83,6 +86,8 @@ elseif(UNIX)
 		"LINKER:--gc-sections"
 		"LINKER:--version-script=${CMAKE_CURRENT_SOURCE_DIR}/exports.map"
 		"LINKER:-z,now"
+		# libdatachannel's threads outlive any one runtime thread, so the library is never unloaded.
+		"LINKER:-z,nodelete"
 		-static-libstdc++ -static-libgcc)
 endif()
 
