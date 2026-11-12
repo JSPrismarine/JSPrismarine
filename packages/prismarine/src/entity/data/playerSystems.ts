@@ -50,6 +50,7 @@ import type { SurvivalPlayer } from '../survivalPlayer';
 import type { DamageIntent, DamageOutcome } from './damagePipeline';
 import type { DataEntity } from './DataEntity';
 import { bedrockCauseOf } from './legacyDamage';
+import { blockPositionOf } from './position';
 
 /** What the player systems need from the runtime that holds them. */
 export interface PlayerSystemsPorts {
@@ -92,13 +93,6 @@ export interface PlayerSystemsPorts {
     /** Finishes a player's meal of `item`, which feeds it. */
     finishMeal(id: number, item: string): void;
 }
-
-/** The block a position is in. */
-const blockOf = ({ x, y, z }: EntityPosition): ContentPosition => ({
-    x: Math.floor(x),
-    y: Math.floor(y),
-    z: Math.floor(z)
-});
 
 /**
  * What a store player hands the systems when its entity enters a store: its components, and the
@@ -348,7 +342,7 @@ export class PlayerSystems {
         if (wasOnGround || !entity.body.conditions.has('on_ground')) return;
 
         const damage = land(survival, ruleIsOn(this.ports.level, FALL_DAMAGE), () => {
-            const { x, y, z } = blockOf(to);
+            const { x, y, z } = blockPositionOf(to);
             return cushions(
                 this.ports.blockAt({ x, y, z })?.identifier,
                 this.ports.blockAt({ x, y: y - 1, z })?.identifier
@@ -388,7 +382,7 @@ export class PlayerSystems {
     /** Breath, read at the block the player's eyes are in, which a store player's feet are {@link EYE_HEIGHT} below. */
     private tickBreath(entity: DataEntity, survival: SurvivalPlayer): void {
         const { x, y, z } = entity.position;
-        const head = this.ports.blockAt(blockOf({ x, y: y + EYE_HEIGHT, z }));
+        const head = this.ports.blockAt(blockPositionOf({ x, y: y + EYE_HEIGHT, z }));
         const drowning = breathe(survival, head?.identifier, ruleIsOn(this.ports.level, DROWNING_DAMAGE));
         if (drowning !== undefined) this.hurt(entity, DamageCause.Drowning, drowning);
     }
