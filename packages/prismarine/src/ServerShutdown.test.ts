@@ -7,6 +7,9 @@ import type SessionManager from './SessionManager';
 import type { Networking } from './modules/network';
 import type { ServerTicker } from './modules/ticker';
 import { ShutdownLifecycle } from './ShutdownLifecycle';
+import type PlayerSession from './network/PlayerSession';
+import type { World } from './world/World';
+import { WorldMessages } from './world/WorldMessages';
 import { stub } from './testing/stub.test.helper';
 
 /** A lifecycle in the state a running shutdown leaves it: the next request is a force exit. */
@@ -40,6 +43,7 @@ const shutdownServer = (fields: Record<string, unknown> = {}): Server =>
         lifecycle: new ShutdownLifecycle(),
         console: undefined,
         networking: stub<Networking>({ admitInputs: () => 0, kill: () => {} }),
+        worldMessages: new WorldMessages(() => {}),
         sessionManager: stub<SessionManager>({ getSessions: () => [] }),
         ticker: stub<ServerTicker>({ stop: () => {} }),
         disable: async () => {},
@@ -114,6 +118,31 @@ describe('Server shutdown', () => {
         void server.shutdown({ stayAlive: true });
 
         expect(releases).toBe(1);
+    });
+
+    it('applies the last inputs and the world messages they filed before it kicks anyone', async () => {
+        const order: string[] = [];
+        const worldMessages = new WorldMessages(() => {});
+        const world = stub<World>({ runInputNow: (apply) => apply() });
+        const server = shutdownServer({
+            worldMessages,
+            networking: stub<Networking>({
+                // A last input that changes a player in another world, as `SetDefaultGameType` does.
+                admitInputs: () => {
+                    order.push('inputs');
+                    worldMessages.send(world, () => void order.push('message'));
+                    return 1;
+                },
+                kill: () => {}
+            }),
+            sessionManager: stub<SessionManager>({
+                getSessions: () => [stub<PlayerSession>({ kick: async () => void order.push('kick') })]
+            })
+        });
+
+        await server.shutdown({ stayAlive: true });
+
+        expect(order).toEqual(['inputs', 'message', 'kick']);
     });
 
     it('tells the operator that a second interrupt exits', async () => {

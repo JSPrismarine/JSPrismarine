@@ -604,8 +604,11 @@ export default class Server {
         try {
             // No tick will apply what is still held for the input step, so apply it here: a player
             // whose connection closed during the last tick is torn down and saved like the rest,
-            // rather than left in its world with nobody to remove it.
+            // rather than left in its world with nobody to remove it. Then the world messages those
+            // inputs filed, such as a default game type for the players of another world, so the
+            // records the kicks save hold what the inputs did.
             this.networking.admitInputs(Number.POSITIVE_INFINITY);
+            this.worldMessages.admit();
 
             // Kick all online players. `kickAllPlayers` would send the `KICKED` code, and a
             // client told the server shut down shows that code instead.
