@@ -26,7 +26,7 @@ The decisions are in ADRs 0006 to 0018. This page holds what does not fit an ADR
 - [ADR 0015](../adr/0015-a-tick-is-a-fixed-sequence-of-synchronous-phases.md): a tick is a fixed sequence of synchronous phases.
 - [ADR 0016](../adr/0016-replication-reads-the-change-log.md): replication reads the change log after the tick and keeps a replica.
 - [ADR 0017](../adr/0017-one-lifecycle-event-bus.md): one lifecycle event bus.
-- [ADR 0018](../adr/0018-a-save-is-a-snapshot-of-one-tick-boundary.md), proposed: a save is a snapshot of one tick boundary.
+- [ADR 0018](../adr/0018-a-save-is-a-snapshot-of-one-tick-boundary.md): a save is a snapshot of one tick boundary.
 
 ## What the review changed
 
@@ -93,7 +93,7 @@ A guard now returns pass, veto or replacement values for the parameters its pipe
 
 A save pass mixes ticks today. Autosave starts in the middle of a tick, captures every player at that instant and then serializes chunks eight at a time across later ticks. A crash can leave an item in a saved inventory and also in a chest saved later. An entity that changes chunk during the pass can be written twice or not at all.
 
-ADR 0018 proposes that a pass writes the state of one tick boundary and commits it as one atomic write. It is proposed and not accepted, because the commit is a synchronous LevelDB append on the server thread and its size is unknown. Slice 8 measures the bytes in a pass before the ADR is accepted.
+ADR 0018 says a pass writes the state of one tick boundary and commits it as one atomic write. It was proposed and not accepted, because the commit was a synchronous LevelDB append on the server thread and its size was unknown. B4 measured the bytes in a pass ([the measurement](../research/save-pass-measurement.md)), and the ADR was accepted on 2026-11-12 with the changes the measurement asked for: the cut belongs to the level, fresh chunks are written outside it, copy-on-write works per sub chunk, writes outside a pass join the next commit, and the commit leaves the server thread.
 
 ### A failed update left partial writes
 
@@ -115,7 +115,7 @@ Every slice lands on `master`, and a slice deletes what it replaces. The one exc
 5. **Players** move into the store, split into components, a network session and services for chat, permissions and persistence. `Entity`, `GenericEntity`, `Human`, the `Player` class and the adapter are deleted. No legacy entity remains after this slice.
 6. **Handlers.** The shared shape, a narrow context and synchronous input-lane handlers. The client package adopts the shape.
 7. **Replication reads the log.** Block and block entity writes go through logged setters, so the log is complete. Replication builds its replica, computes each audience once and encodes once for each codec group. Sends leave the simulation, which removes the largest class of awaits. Outbound packets count toward the tick that produced them.
-8. **Saves at a tick boundary**, if ADR 0018 is accepted after its measurement.
+8. **Saves at a tick boundary**, under ADR 0018.
 9. **The synchronous tick.** Dimension travel as messages, chunk tickets and waiting states for the dragon fight, worlds built outside ticks, and tick functions admitted as inputs. After this slice a tick completes without yielding, and ADR 0006 holds in full.
 10. **One lifecycle event bus.**
 11. **Explicit exports.** Prismarine's barrels and its `"./*"` export are replaced.
@@ -1067,7 +1067,7 @@ Rules that keep the packages apart:
 
 | Package | Slice | Depends on | Work                                                                              |
 | ------- | ----- | ---------- | --------------------------------------------------------------------------------- |
-| E1      | 8     | D3, B4     | Saves at a tick boundary, if ADR 0018 is accepted                                 |
+| E1      | 8     | D3, B4     | Saves at a tick boundary, under ADR 0018                                          |
 | E2      | 9     | D4         | Dimension travel as messages, and worlds built outside ticks                      |
 | E3      | 9     | D4         | Chunk tickets and waiting states for the dragon fight                             |
 | E4      | 9     | E2, E3     | Tick functions as inputs, and the test that a tick completes without yielding     |
