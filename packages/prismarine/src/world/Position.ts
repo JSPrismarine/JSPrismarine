@@ -1,5 +1,5 @@
 import { Vector3 } from '@jsprismarine/math';
-import type { World } from './';
+import type { World } from './World';
 
 /**
  * Represents the coordinates of a Vector3 in a given World.

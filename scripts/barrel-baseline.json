@@ -290,10 +290,6 @@
     "packages/prismarine/src/world/generators/factories/index.ts": {
         "noBarrelFile": 1
     },
-    "packages/prismarine/src/world/index.ts": {
-        "noBarrelFile": 1,
-        "noReExportAll": 8
-    },
     "packages/protocol/src/index.ts": {
         "noBarrelFile": 1,
         "noReExportAll": 112
