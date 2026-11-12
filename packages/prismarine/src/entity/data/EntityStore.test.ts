@@ -9,6 +9,7 @@ import type { EntityRuntime } from './EntityRuntime';
 import { entityFixture, FLOOR_Y, TestEntityWorld } from './testing';
 import { PLAYER_IDENTIFIER } from '../playerOverlay';
 import { storePlayerFixture } from '../../testing/storePlayer.test.helper';
+import { beginMeasuredTick } from '../../testing/changeTicks.test.helper';
 
 const GROUND = { x: 0.5, y: FLOOR_Y + 1, z: 0.5 };
 
@@ -134,7 +135,7 @@ class Planned extends Error {}
 describe('the entity store', () => {
     it('logs one entering entry, carrying the saved form, for a spawn and the writes that built it', () => {
         const { runtime } = fixture();
-        runtime.store.beginTick();
+        beginMeasuredTick(runtime.store);
         const entity = spawnLogged(runtime);
         const sealed = runtime.store.sealTick();
 
@@ -147,7 +148,7 @@ describe('the entity store', () => {
         const { runtime } = fixture();
         const entity = spawnLogged(runtime);
         const before = runtime.savedFormOf(entity);
-        runtime.store.beginTick();
+        beginMeasuredTick(runtime.store);
         runtime.remove(entity.id, 'test');
 
         expect(runtime.store.sealTick()?.entries).toEqual([
@@ -163,7 +164,7 @@ describe('the entity store', () => {
             const entity = spawnLogged(runtime);
             const other = spawnLogged(runtime, { x: 2.5, y: FLOOR_Y + 1, z: 0.5 });
             const before = savedForms(runtime);
-            runtime.store.beginTick();
+            beginMeasuredTick(runtime.store);
 
             const outcome = runtime.store.unit(() => {
                 write(entity, runtime, other);
@@ -175,7 +176,7 @@ describe('the entity store', () => {
             expect(runtime.store.sealTick()?.entries).toEqual([]);
 
             // The same write in a unit that finishes stays, as entries addressed to that field.
-            runtime.store.beginTick();
+            beginMeasuredTick(runtime.store);
             runtime.store.unit(() => write(entity, runtime, other));
             const entries = runtime.store.sealTick()?.entries ?? [];
             expect(entries).toContainEqual(
@@ -194,7 +195,7 @@ describe('the entity store', () => {
         const doomed = spawnLogged(runtime);
         doomed.body.nameTag = 'Doomed';
         const before = savedForms(runtime);
-        runtime.store.beginTick();
+        beginMeasuredTick(runtime.store);
 
         runtime.store.unit(() => {
             spawnLogged(runtime, { x: 4.5, y: FLOOR_Y + 1, z: 4.5 });
@@ -213,7 +214,7 @@ describe('the entity store', () => {
         spawnLogged(runtime, { x: 0.5, y: FLOOR_Y + 4, z: 6.5 });
         for (let tick = 1; tick <= 5; tick += 1) runtime.tick(tick);
         const before = savedForms(runtime);
-        runtime.store.beginTick();
+        beginMeasuredTick(runtime.store);
 
         // The tick runs inside one unit, so each entity's span closes into it and the throw at
         // the end reverts all of them, newest first.
@@ -231,13 +232,16 @@ describe('the entity store', () => {
         const { runtime } = fixture();
         runtime.spawn('minecraft:cow', GROUND);
         for (let tick = 1; tick <= 20; tick += 1) runtime.tick(tick);
+        // The spawn and the settling, made between ticks, open the first tick.
+        runtime.store.beginTick();
+        runtime.store.sealTick();
         runtime.store.beginTick();
         for (let tick = 21; tick <= 40; tick += 1) runtime.tick(tick);
 
         expect(runtime.store.sealTick()?.entries).toEqual([]);
     });
 
-    it('holds a block write between ticks for the next tick and counts an entity write between ticks as unlogged', () => {
+    it('holds the state entries made between ticks for the next tick, ahead of its own', () => {
         const { runtime } = fixture();
         const cow = runtime.spawn('minecraft:cow', GROUND);
         if (cow === undefined) throw new Error('the fixture spawns cows');
@@ -250,13 +254,44 @@ describe('the entity store', () => {
             data: { x: 2, y: 64, z: 2, block: 6 }
         });
         runtime.store.written(cow, 'tags', [], ['marked']);
+        runtime.store.writtenSlot(cow.id, 'inventory', 0, null, { identifier: 'minecraft:stick', count: 1 });
+        runtime.store.occurred({
+            kind: 'occurrence',
+            occurrence: 'action-rejected',
+            data: { action: 'test', entity: BigInt(cow.id), guard: 'test' }
+        });
         runtime.store.beginTick();
         runtime.store.writtenBlock(3, 64, 3, 0, 0, 7);
 
+        // A vetoed action is the one entry that is not held.
         expect(runtime.store.counts().unlogged).toBe(unlogged + 1);
-        expect(runtime.store.sealTick()?.entries).toEqual([
+        const entries = runtime.store.sealTick()?.entries ?? [];
+        expect(entries.map((entry) => (entry.kind === 'field' ? entry.field : entry.kind))).toEqual([
+            'membership',
+            'block',
+            'occurrence',
+            'entity',
+            'inventory-slot',
+            'block'
+        ]);
+        expect(entries[0]).toMatchObject({ kind: 'membership', change: 'enter', entity: BigInt(cow.id) });
+        expect(entries.slice(1)).toEqual([
             { kind: 'field', field: 'block', address: { x: 1, y: 64, z: 1, layer: 0 }, before: 0, after: 5 },
             { kind: 'occurrence', occurrence: 'block-shown', data: { x: 2, y: 64, z: 2, block: 6 } },
+            {
+                kind: 'field',
+                field: 'entity',
+                address: { entity: BigInt(cow.id), field: 'tags' },
+                before: [],
+                after: ['marked']
+            },
+            {
+                kind: 'field',
+                field: 'inventory-slot',
+                address: { entity: BigInt(cow.id), container: 'inventory', slot: 0 },
+                before: null,
+                after: { identifier: 'minecraft:stick', count: 1 }
+            },
             { kind: 'field', field: 'block', address: { x: 3, y: 64, z: 3, layer: 0 }, before: 0, after: 7 }
         ]);
     });
@@ -292,7 +327,7 @@ describe('the entity store', () => {
 
         let moved = 0;
         for (let tick = 4; tick <= 40; tick += 1) {
-            runtime.store.beginTick();
+            beginMeasuredTick(runtime.store);
             runtime.tick(tick);
             const sealed = runtime.store.sealTick();
             if (sealed === undefined) throw new Error('no tick was open');
@@ -313,7 +348,7 @@ describe('the entity store', () => {
         const { runtime } = fixture();
         for (let index = 0; index < 3; index += 1)
             runtime.spawn('jsprismarine:wanderer', { x: index * 4 + 0.5, y: FLOOR_Y + 1, z: 0.5 });
-        runtime.store.beginTick();
+        beginMeasuredTick(runtime.store);
         const logged = spawnLogged(runtime, { x: 0.5, y: FLOOR_Y + 1, z: 8.5 });
         for (const { write } of WRITES) write(logged, runtime, logged);
         runtime.tick(1);
@@ -334,7 +369,7 @@ describe('the entity store', () => {
         const snapshot = savedForms(live.runtime);
         const log = [];
         for (let tick = 4; tick <= 12; tick += 1) {
-            live.runtime.store.beginTick();
+            beginMeasuredTick(live.runtime.store);
             live.runtime.tick(tick);
             if (tick === 8) live.runtime.spawn('minecraft:cow', { x: 9.5, y: FLOOR_Y + 1, z: 9.5 });
             const sealed = live.runtime.store.sealTick();
@@ -390,7 +425,7 @@ describe('the entity store', () => {
                 loveAtStart = faulty.body.loveTicks;
                 const before = runtime.savedFormOf(faulty);
                 const healthyLove = healthy.body.loveTicks;
-                runtime.store.beginTick();
+                beginMeasuredTick(runtime.store);
                 runtime.tick(3 + failure);
                 const sealed = runtime.store.sealTick();
 
@@ -421,7 +456,7 @@ describe('the entity store', () => {
             world.failing = (at) => Math.abs(at.x - 20) < 4;
 
             for (let tick = 1; tick <= ENTITY_FAILURE_LIMIT + 1; tick += 1) {
-                runtime.store.beginTick();
+                beginMeasuredTick(runtime.store);
                 runtime.tick(tick);
                 runtime.store.sealTick();
                 expect(failed).toHaveLength(Math.max(0, tick - ENTITY_FAILURE_LIMIT + 1));
@@ -440,7 +475,7 @@ describe('the entity store', () => {
             world.failing = (at) => Math.abs(at.x - 20) < 4;
 
             for (let tick = 1; tick <= ENTITY_FAILURE_LIMIT; tick += 1) {
-                runtime.store.beginTick();
+                beginMeasuredTick(runtime.store);
                 runtime.tick(tick);
                 runtime.store.sealTick();
             }
@@ -454,7 +489,7 @@ describe('the entity store', () => {
             const entity = spawnLogged(runtime);
             for (let tick = 1; tick <= 20; tick += 1) {
                 world.failing = (at) => tick % 2 === 0 && Math.abs(at.x) < 4;
-                runtime.store.beginTick();
+                beginMeasuredTick(runtime.store);
                 runtime.tick(tick);
                 runtime.store.sealTick();
             }
@@ -466,7 +501,7 @@ describe('the entity store', () => {
             const { runtime, reports } = entityFixture(undefined, {}, EXTRA);
             const entity = spawnLogged(runtime);
             entity.body.loveTicks = 1000;
-            runtime.store.beginTick();
+            beginMeasuredTick(runtime.store);
 
             runtime.store.unit(() => {
                 runtime.store.written(entity, 'not-a-field', 1, 2);

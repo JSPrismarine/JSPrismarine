@@ -277,13 +277,15 @@ export const isBlockEntry = (entry: ChangeEntry): boolean =>
 
 /**
  * Whether an entry made between ticks is held for the next tick, which is when replication
- * sends it, rather than counted as unlogged: a block entry, or an occurrence replication sends.
- * A vetoed action is a record and not a send, so it is not held.
+ * sends it, rather than counted as unlogged: a state entry, or an occurrence replication sends.
+ * A vetoed action is a record and not a send, so it is not held, and neither is a chunk.
  * @param {ChangeEntry} entry - The entry.
  * @returns {boolean} Whether the next tick takes it.
  */
 export const isCarriedEntry = (entry: ChangeEntry): boolean =>
-    isBlockEntry(entry) || (entry.kind === 'occurrence' && entry.occurrence !== 'action-rejected');
+    entry.kind === 'membership' ||
+    entry.kind === 'field' ||
+    (entry.kind === 'occurrence' && entry.occurrence !== 'action-rejected');
 
 /**
  * An entry that changes authoritative state and has an inverse: what a store applies.

@@ -15,6 +15,7 @@ import { moveStorePlayer, spawnStorePlayer, StorePlayers } from './storePlayers'
 import type { DataEntity } from './DataEntity';
 import type { EntityFixture } from './testing';
 import { FLOOR_Y, TestEntityWorld } from './testing';
+import { beginMeasuredTick } from '../../testing/changeTicks.test.helper';
 
 /** A store player standing on the fixture's floor, and its components. */
 const standingPlayer = (fixture: EntityFixture, at = { x: 0.5, y: FLOOR_Y + 1, z: 0.5 }) => {
@@ -27,11 +28,18 @@ const healthOf = (entity: DataEntity) => entity.instance.attributes.get('health'
 /** The block a store player standing on the floor has its eyes in. */
 const HEAD = { x: 0, y: FLOOR_Y + 2, z: 0 };
 
-/** Ticks the runtime `count` times from `from`, inside one logged tick each, and returns every entry. */
+/**
+ * Ticks the runtime `count` times from `from`, inside one logged tick each, and returns every
+ * entry, the ones the store held from between ticks included.
+ */
 const ticks = (fixture: EntityFixture, count: number, from = 1) => {
     const entries = [];
-    for (let tick = from; tick < from + count; tick += 1)
-        entries.push(...logged(fixture.runtime, () => fixture.runtime.tick(tick)));
+    const { store } = fixture.runtime;
+    for (let tick = from; tick < from + count; tick += 1) {
+        store.beginTick();
+        fixture.runtime.tick(tick);
+        entries.push(...(store.sealTick()?.entries ?? []));
+    }
     return entries;
 };
 
@@ -162,6 +170,9 @@ describe('a store player', () => {
             const fixture = storePlayerFixture(new TestEntityWorld({ unloadedFromX: 0 }));
             const { components } = standingPlayer(fixture);
             components.set('vitals.air', 100);
+            // The setup's own write, held from between ticks, is not the ticks' to log.
+            beginMeasuredTick(fixture.runtime.store);
+            fixture.runtime.store.sealTick();
 
             const entries = ticks(fixture, 5);
             expect(components.get('vitals.air')).toBe(100);
@@ -248,8 +259,9 @@ describe('a store player', () => {
             const begun = logged(fixture.runtime, () => {
                 expect(fixture.runtime.playerSystems.beginMeal(player, 32)).toBe(true);
             });
-            // The meal began in the store's first tick. The level clock never moves here.
-            expect(components.get('consumption.meal')).toEqual({ startedAt: 1, ticks: 32, item: 'minecraft:bread' });
+            // The meal began in the store's second tick, after the one that sealed the spawn. The
+            // level clock never moves here.
+            expect(components.get('consumption.meal')).toEqual({ startedAt: 2, ticks: 32, item: 'minecraft:bread' });
             expect(fieldsOf(begun, 'consumption.meal')).toHaveLength(1);
 
             ticks(fixture, 31, 2);
@@ -361,6 +373,9 @@ describe('a store player', () => {
             const { player, components } = standingPlayer(fixture);
             fixture.runtime.playerSystems.setMining(player, mined(fixture));
             fixture.world.setBlock({ x: 0, y: FLOOR_Y, z: 0 }, 'minecraft:dirt');
+            // The setup's own write, held from between ticks, is not the ticks' to log.
+            beginMeasuredTick(fixture.runtime.store);
+            fixture.runtime.store.sealTick();
 
             const entries = ticks(fixture, 2);
 

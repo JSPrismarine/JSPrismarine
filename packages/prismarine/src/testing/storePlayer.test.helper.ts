@@ -18,6 +18,7 @@ import { PLAYER_IDENTIFIER } from '../entity/playerOverlay';
 import { StorePlayer } from '../entity/storePlayer';
 import type { StorePlayerIdentity } from '../entity/storePlayer';
 import type { ChangeEntry } from '../world/changelog/ChangeEntry';
+import { beginMeasuredTick } from './changeTicks.test.helper';
 
 /**
  * The parts of the shipped `entities/player.json` the store's player rules read: no
@@ -64,9 +65,12 @@ export const enteredStorePlayer = (
     return { player, entity };
 };
 
-/** Runs `work` inside one tick of the store's log and returns what it appended. */
+/**
+ * Runs `work` inside one tick of the store's log and returns what it appended, after a tick that
+ * seals what the setup wrote between ticks.
+ */
 export const logged = (runtime: EntityFixture['runtime'], work: () => void): readonly ChangeEntry[] => {
-    runtime.store.beginTick();
+    beginMeasuredTick(runtime.store);
     work();
     return runtime.store.sealTick()?.entries ?? [];
 };

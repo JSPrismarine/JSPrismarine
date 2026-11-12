@@ -30,6 +30,7 @@ import { writeBlockEntity } from '../blockentity/blockEntityWrite';
 import { worldBlockStorage } from './contentAdapter';
 import { createEngineWorld } from './EngineWorld';
 import { chestTags } from '../testing/sealedBlocks.test.helper';
+import { beginMeasuredChangeTick } from '../testing/changeTicks.test.helper';
 
 /** A world whose dimension's entity runtime is the real one the entity fixture builds. */
 const worldWithStore = () => {
@@ -251,7 +252,7 @@ describe('a world tick and its change log', () => {
         if (cow === undefined) throw new Error('the fixture declares no cow');
 
         // What the ticker does: open the tick, apply the inputs, then update the world.
-        world.beginChangeTick();
+        beginMeasuredChangeTick(world);
         await world.runInput(async () => {
             cow.body.nameTag = 'Daisy';
         });
@@ -274,7 +275,7 @@ describe('a world tick and its change log', () => {
         if (cow === undefined) throw new Error('the fixture declares no cow');
         const before = runtime.savedFormOf(cow);
 
-        world.beginChangeTick();
+        beginMeasuredChangeTick(world);
         await expect(
             world.runInput(async () => {
                 cow.instance.attributes.set('health', 1);
@@ -293,7 +294,7 @@ describe('a world tick and its change log', () => {
         if (cow === undefined) throw new Error('the fixture declares no cow');
         const before = runtime.savedFormOf(cow);
 
-        world.beginChangeTick();
+        beginMeasuredChangeTick(world);
         expect(() =>
             world.runInputNow(() => {
                 cow.instance.attributes.set('health', 1);
@@ -320,7 +321,7 @@ describe('a world tick and its change log', () => {
 
     it('names a chunk that enters the world in the tick that admitted it', async () => {
         const { world } = worldWithStore();
-        world.beginChangeTick();
+        beginMeasuredChangeTick(world);
         await world.loadChunk(2, 3);
         world.sealChangeTick();
 
@@ -332,7 +333,7 @@ describe('a world tick and its change log', () => {
         const cow = runtime.spawn('minecraft:cow', { x: 0.5, y: FLOOR_Y + 1, z: 0.5 });
         if (cow === undefined) throw new Error('the fixture declares no cow');
         cow.body.loveTicks = 100;
-        world.beginChangeTick();
+        beginMeasuredChangeTick(world);
         runtime.store.unit(() => {
             runtime.store.written(cow, 'not-a-field', 1, 2);
             throw new Error('planned');
@@ -360,7 +361,7 @@ describe('a world tick and its change log', () => {
             async ({ name, write }) => {
                 const { world, player } = await playerWithItems();
                 const before = world.replayStateDigest();
-                world.beginChangeTick();
+                beginMeasuredChangeTick(world);
 
                 const outcome = await world.getEntityStore().unitAsync(async () => {
                     write(player);
@@ -378,7 +379,7 @@ describe('a world tick and its change log', () => {
                 expect(world.replayStateDigest()).toBe(before);
 
                 // The same write in a unit that finishes is one entry.
-                world.beginChangeTick();
+                beginMeasuredChangeTick(world);
                 write(player);
                 world.sealChangeTick();
                 expect(world.lastChangeTick()?.entries).toHaveLength(1);
@@ -388,7 +389,7 @@ describe('a world tick and its change log', () => {
         it('logs one entry per slot written, with the value before it', async () => {
             const { world, player } = await playerWithItems();
             const id = player.getRuntimeId();
-            world.beginChangeTick();
+            beginMeasuredChangeTick(world);
 
             player.getPlayer().getInventory().setItem(0, entry('minecraft:bread', 2));
             player.getPlayer().getInventory().getArmor().setItem(3, entry('minecraft:iron_boots'));
@@ -422,7 +423,7 @@ describe('a world tick and its change log', () => {
 
         it('logs nothing for a write that leaves a slot as it was', async () => {
             const { world, player } = await playerWithItems();
-            world.beginChangeTick();
+            beginMeasuredChangeTick(world);
 
             player.getPlayer().getInventory().setItem(0, entry('minecraft:bread', 3));
             player.getPlayer().getInventory().setHandSlot(0);
@@ -448,7 +449,7 @@ describe('a world tick and its change log', () => {
                 const { world, player } = await survivalPlayer();
                 const before = read(player);
                 const digest = world.replayStateDigest();
-                world.beginChangeTick();
+                beginMeasuredChangeTick(world);
 
                 const outcome = await world.getEntityStore().unitAsync(async () => {
                     await write(player);
@@ -461,7 +462,7 @@ describe('a world tick and its change log', () => {
                 expect(read(player)).toEqual(before);
                 expect(world.replayStateDigest()).toBe(digest);
 
-                world.beginChangeTick();
+                beginMeasuredChangeTick(world);
                 await write(player);
                 world.sealChangeTick();
                 expect(world.lastChangeTick()?.entries).toEqual([
@@ -476,7 +477,7 @@ describe('a world tick and its change log', () => {
 
         it('logs the value an attribute took, not the one asked for', async () => {
             const { world, player } = await survivalPlayer();
-            world.beginChangeTick();
+            beginMeasuredChangeTick(world);
 
             player.getPlayer().setFood(40);
             player.getPlayer().setFood(25);
@@ -503,7 +504,7 @@ describe("a world's blocks and block entities in its change log", () => {
 
     /** Runs an empty tick, which logs the setup's writes between ticks so the tick under test holds only its own. */
     const settle = (world: World) => {
-        world.beginChangeTick();
+        beginMeasuredChangeTick(world);
         world.sealChangeTick();
     };
 
@@ -514,7 +515,7 @@ describe("a world's blocks and block entities in its change log", () => {
 
     it('appends exactly one entry for each block write, with the block before it', async () => {
         const { world, air, stone, dirt } = await worldWithChunk();
-        world.beginChangeTick();
+        beginMeasuredChangeTick(world);
 
         world.setLoadedBlockRuntimeId(1, 64, 1, stone);
         world.setLoadedBlockRuntimeId(2, 64, 1, stone);
@@ -532,7 +533,7 @@ describe("a world's blocks and block entities in its change log", () => {
 
     it.each([1, 16, 100])('appends %i entries for as many block writes', async (count) => {
         const { world, stone } = await worldWithChunk();
-        world.beginChangeTick();
+        beginMeasuredChangeTick(world);
 
         for (let index = 0; index < count; index++)
             world.setLoadedBlockRuntimeId(index % 16, 64 + (index >> 4), 3, stone);
@@ -562,7 +563,7 @@ describe("a world's blocks and block entities in its change log", () => {
         world.setLoadedBlockRuntimeId(1, 64, 1, stone);
         settle(world);
         const digest = world.replayStateDigest();
-        world.beginChangeTick();
+        beginMeasuredChangeTick(world);
 
         const outcome = world.getEntityStore().unit(() => {
             world.setLoadedBlockRuntimeId(1, 64, 1, dirt);
@@ -580,7 +581,7 @@ describe("a world's blocks and block entities in its change log", () => {
 
     it('logs a block entity as its data and one field for each slot, by block position', async () => {
         const { world } = await worldWithChunk();
-        world.beginChangeTick();
+        beginMeasuredChangeTick(world);
 
         writeBlockEntity(
             world,
@@ -600,7 +601,7 @@ describe("a world's blocks and block entities in its change log", () => {
         const at = { x: 4, y: 64, z: 4 };
         writeBlockEntity(world, chestTags(at, { 0: ['minecraft:bread', 3] }));
         settle(world);
-        world.beginChangeTick();
+        beginMeasuredChangeTick(world);
 
         writeBlockEntity(world, chestTags(at, { 0: ['minecraft:bread', 3], 7: ['minecraft:torch', 4] }));
         world.sealChangeTick();
@@ -618,7 +619,7 @@ describe("a world's blocks and block entities in its change log", () => {
         writeBlockEntity(world, chestTags({ x: 5, y: 64, z: 4 }, { 1: ['minecraft:dirt', 9] }));
         settle(world);
         const digest = world.replayStateDigest();
-        world.beginChangeTick();
+        beginMeasuredChangeTick(world);
 
         const outcome = world.getEntityStore().unit(() => {
             writeBlockEntity(world, chestTags(at, { 0: ['minecraft:bread', 2], 9: ['minecraft:stone', 1] }));
@@ -638,7 +639,7 @@ describe("a world's blocks and block entities in its change log", () => {
         const { world, stone } = await worldWithChunk();
         const at = { x: 4, y: 64, z: 4 };
         const digest = world.replayStateDigest();
-        world.beginChangeTick();
+        beginMeasuredChangeTick(world);
 
         const outcome = world.getEntityStore().unit(() => {
             world.setLoadedBlockRuntimeId(at.x, at.y, at.z, stone);
@@ -654,7 +655,7 @@ describe("a world's blocks and block entities in its change log", () => {
 
     it('logs what the engine systems write, which fluids, fire, redstone and blasts write through', async () => {
         const { world, air } = await worldWithChunk();
-        world.beginChangeTick();
+        beginMeasuredChangeTick(world);
 
         createEngineWorld(world).setBlock({ x: 6, y: 64, z: 6 }, { name: 'minecraft:stone', states: {} }, true);
         world.sealChangeTick();
@@ -671,7 +672,7 @@ describe("a world's blocks and block entities in its change log", () => {
         world.setLoadedBlockRuntimeId(from.x, from.y, from.z, stone);
         writeBlockEntity(world, chestTags(from, { 0: ['minecraft:bread', 3] }));
         settle(world);
-        world.beginChangeTick();
+        beginMeasuredChangeTick(world);
 
         // The write a piston's push makes, through the block storage the block behaviors write through.
         const { move } = worldBlockStorage(() => world);
