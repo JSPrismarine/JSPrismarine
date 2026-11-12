@@ -193,6 +193,21 @@ describe('two levels that share a dimension', () => {
         expect(alpha.loadedBlockAt(3, 70, 3)?.name).toBe('minecraft:air');
     });
 
+    it('writes a block placed through the content block world into the level it names', () => {
+        const dimension = beta.getDimension().name;
+        const blocks = server.getContent().world.blockWorld;
+
+        tick(() => {
+            blocks.at(dimension, OTHER_LEVEL).setBlock({ x: 4, y: 70, z: 4 }, 'minecraft:stone');
+            blocks.at(dimension, DEFAULT_LEVEL).setBlock({ x: 5, y: 70, z: 5 }, 'minecraft:stone');
+        });
+
+        expect(beta.loadedBlockAt(4, 70, 4)?.name).toBe('minecraft:stone');
+        expect(alpha.loadedBlockAt(4, 70, 4)?.name).toBe('minecraft:air');
+        expect(alpha.loadedBlockAt(5, 70, 5)?.name).toBe('minecraft:stone');
+        expect(beta.loadedBlockAt(5, 70, 5)?.name).toBe('minecraft:air');
+    });
+
     it('spawns a mob into the level that asked for it', () => {
         const spawned = beta.dataEntities().runtime.spawn('minecraft:pig', { x: 5.5, y: 70, z: 5.5 });
         if (spawned === undefined) throw new Error('the pig did not spawn');

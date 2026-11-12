@@ -19,6 +19,8 @@ import type { ServerContent } from '../content/ServerContent';
 export interface NeighborWorld {
     /** The dimension, whose adapter holds the blocks the hooks are raised on. */
     getDimension(): { readonly name: string };
+    /** The level, which with the dimension names the world's adapter. */
+    getLevel(): { readonly name: string };
     getServer(): {
         getContent(): ServerContent | undefined;
         getLogger(): { error(error: unknown): void };
@@ -39,7 +41,7 @@ export const notifyContentNeighbors = (world: NeighborWorld, at: ContentPosition
     if (content === undefined) return;
 
     try {
-        content.world.blockWorld.at(world.getDimension().name).notifyNeighbors(at);
+        content.world.blockWorld.at(world.getDimension().name, world.getLevel().name).notifyNeighbors(at);
     } catch (error: unknown) {
         server.getLogger().error(error);
     }

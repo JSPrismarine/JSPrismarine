@@ -58,10 +58,24 @@ import {
  */
 export type ContentLookup = () => ServerContent;
 
+/**
+ * `BlockWorld` as the server reads it. The block behaviors name a world by its dimension, which
+ * means the default level's; the server's own callers pass the level of a world of another, so
+ * a block placed in that level is written there.
+ */
+export interface ServerBlockWorld extends BlockWorld {
+    /**
+     * The actions for one world.
+     * @param dimension - The namespaced dimension identifier.
+     * @param level - The level's name, or undefined for the default level.
+     */
+    at(dimension: string, level?: string): BlockWorldActions;
+}
+
 /** The nine content world interfaces, all backed by one adapter. */
 export interface ContentWorldViews {
     /** `BlockWorld` for `@jsprismarine/block-behaviors`, which resolves a dimension per event. */
-    readonly blockWorld: BlockWorld;
+    readonly blockWorld: ServerBlockWorld;
     /** `WorldActions` for `@jsprismarine/item-behaviors`, resolved per interaction. */
     readonly itemActions: ItemWorldActions;
     /** `BlockLightView` for `@jsprismarine/lighting`, in the default dimension. */
@@ -89,7 +103,7 @@ export const contentWorldViews = (
     const main = () => world.at(defaultDimension);
 
     return {
-        blockWorld: { at: (dimension) => blockActionsOf(world.at(dimension), content) },
+        blockWorld: { at: (dimension, level) => blockActionsOf(world.at(dimension, level), content) },
         itemActions: itemActionsOf(() => world.at(itemInteractionDimension() ?? defaultDimension), content),
         lightView: lightViewOf(main(), content),
         engineWorld: engineWorldOf(main()),

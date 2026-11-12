@@ -62,7 +62,7 @@ export const blockContainerAt = (server: Server, world: World, at: Vector3): Blo
     const size = blockContainerOf(block.name)?.slots ?? 0;
     if (size === 0) return undefined;
 
-    const actions = content.world.blockWorld.at(world.getDimension().name);
+    const actions = content.world.blockWorld.at(world.getDimension().name, world.getLevel().name);
     const position: ContentPosition = { x: at.getX(), y: at.getY(), z: at.getZ() };
     const data = actions.getBlockData(position);
     const held = Array.from({ length: size }, (_unused, slot) => data?.items?.[slot]);
