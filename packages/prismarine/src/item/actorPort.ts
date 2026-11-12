@@ -293,10 +293,14 @@ export const createItemActorPort = (options: ItemActorPortOptions): ServerItemAc
             return true;
         }
 
+        // The stack the consumption writes from: the worn copy once the hit has spent durability,
+        // so writing the count back does not undo the wear.
+        let consumed = held;
         if (outcome.hurtItem !== undefined && outcome.hurtItem > 0 && held.getMaxDurability() > 0) {
             const broke = held.getDurability() <= outcome.hurtItem;
             spend(source, outcome.hurtItem, broke);
             if (broke) return true;
+            consumed = inventory.getItemInHand();
         }
 
         if (outcome.consumeItem === false) return true;
@@ -305,7 +309,7 @@ export const createItemActorPort = (options: ItemActorPortOptions): ServerItemAc
             const replacement = new ContainerEntry({ item: resultItem, count: 1 });
             if (heldEntry.getCount() === 1) inventory.setItemInHand(replacement);
             else {
-                inventory.setItemInHand(new ContainerEntry({ item: held, count: heldEntry.getCount() - 1 }));
+                inventory.setItemInHand(new ContainerEntry({ item: consumed, count: heldEntry.getCount() - 1 }));
                 const leftOver = inventory.addItem(replacement);
                 const position = player.getPosition();
                 if (leftOver > 0 && position !== undefined) {
@@ -320,7 +324,7 @@ export const createItemActorPort = (options: ItemActorPortOptions): ServerItemAc
                 }
             }
         } else {
-            inventory.setItemInHand(new ContainerEntry({ item: held, count: heldEntry.getCount() - 1 }));
+            inventory.setItemInHand(new ContainerEntry({ item: consumed, count: heldEntry.getCount() - 1 }));
         }
         return true;
     };

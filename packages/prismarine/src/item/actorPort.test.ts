@@ -242,6 +242,34 @@ describe('the item actor port', () => {
         expect(inventory.getItemInHand().getCustomName()).toBe('Returned sword');
     });
 
+    it('keeps the wear an interaction dealt when it also uses one of the stack', () => {
+        const recorded = recording();
+        const inventory = new HumanInventory();
+        const shears = new Item({ name: 'minecraft:shears' });
+        inventory.setItem(0, new ContainerEntry({ item: shears, count: 2 }));
+        const player = sessionOnPrototype(
+            {
+                getPosition: () => Position.fromVector3(new Vector3(1.5, 65, 1.5), stub<World>()),
+                gamemode: Gametype.SURVIVAL,
+                getInventory: () => inventory,
+                getServer: () => stub<Server>({ getContent: () => testContent() })
+            },
+            { runtimeId: 7n, actor: { getPosition: () => new Vector3(1.5, 65, 1.5) } }
+        );
+        const port = createItemActorPort({
+            world: () => worldDouble(player, recorded, stub<StoreActor>()),
+            entities: entityAccess(),
+            level: clock(),
+            interactWithEntity: () => ({ accepted: true, hurtItem: 3, consumeItem: true })
+        });
+        const targetSource = { identifier: 'minecraft:sheep', runtimeId: 9 };
+
+        expect(port.duringInteraction(SOURCE, targetSource, () => port.interactWithEntity(SOURCE))).toBe(true);
+
+        expect(inventory.getEntry(0)?.getCount()).toBe(1);
+        expect(inventory.getItemInHand().getDurability()).toBe(shears.getMaxDurability() - 3);
+    });
+
     it('wears the held tool by writing a worn copy into the hand slot', () => {
         const recorded = recording();
         const inventory = new HumanInventory();
