@@ -3,7 +3,9 @@ import { describe, expect, it } from 'vitest';
 
 import { buildServerContent } from './ServerContent';
 
-describe('resolved block state allocation', () => {
+// The digest covers the complete pinned stack, Java tags and all, which only the real-data jobs
+// have; the unit job builds the content without them and gets another digest.
+describe('resolved block state allocation', { tags: ['real-data'] }, () => {
     it('keeps the vanilla state digest unchanged', () => {
         const states = buildServerContent().blocks.states.map(
             ({ runtimeId, values, permutations, tags, javaTags, content }) => ({
