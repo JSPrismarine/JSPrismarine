@@ -117,7 +117,7 @@ const worldTicking = ({
             if (!runtimeIds.has(name)) runtimeIds.set(name, runtimeIds.size);
             return runtimeIds.get(name);
         },
-        runBlockUpdates: async () => void calls.push('blockUpdates'),
+        runBlockUpdates: () => void calls.push('blockUpdates'),
         systems: { tick: () => void calls.push('systems') },
         save: async () => {},
         server
@@ -180,17 +180,12 @@ describe('world', () => {
             ]);
         });
 
-        it('finishes entity updates in roster order before starting the next entity', async () => {
-            const started: string[] = [];
-            let firstFinished = false;
-            let finishFirst = () => {};
-            let signalFirstStarted = () => {};
-            const firstUpdateGate = new Promise<void>((resolve) => {
-                finishFirst = resolve;
-            });
-            const firstUpdateStarted = new Promise<void>((resolve) => {
-                signalFirstStarted = resolve;
-            });
+        it('runs each entity update to its end, in roster order, before the next one starts', async () => {
+            const steps: string[] = [];
+            const updating = (name: string) => () => {
+                steps.push(`start:${name}`);
+                steps.push(`finish:${name}`);
+            };
             const { world } = worldTicking({
                 entities: [
                     actorOf({
@@ -198,38 +193,26 @@ describe('world', () => {
                         getType: () => 'minecraft:player',
                         getRuntimeId: () => 1n,
                         claimUpdate: () => true,
-                        update: async () => {
-                            started.push('first');
-                            signalFirstStarted();
-                            await firstUpdateGate;
-                            firstFinished = true;
-                        }
+                        update: updating('first')
                     }),
                     actorOf({
                         getPosition: () => new Position(0, 64, 0, world),
                         getType: () => 'minecraft:player',
                         getRuntimeId: () => 2n,
                         claimUpdate: () => true,
-                        update: async () => {
-                            started.push('second');
-                            expect(firstFinished).toBe(true);
-                        }
+                        update: updating('second')
                     })
                 ]
             });
             Object.assign(world, {
-                touchPortals: async () => {},
+                touchPortals: () => {},
                 updateTracking: async () => {}
             });
 
             const update = world.update(1);
-            await firstUpdateStarted;
-            // Keep the first callback suspended while proving the next roster entry has not started.
-            expect(started).toEqual(['first']);
-            finishFirst();
+            // Both ran before the update's first wait, which is now only replication's.
+            expect(steps).toEqual(['start:first', 'finish:first', 'start:second', 'finish:second']);
             await update;
-
-            expect(started).toEqual(['first', 'second']);
         });
 
         it('ticks its entities without copying the whole entity list for an index', async () => {
@@ -245,7 +228,7 @@ describe('world', () => {
             // The passes that still read every entity stood in for, so what is left is the entity
             // loop, and nothing has to rebuild an index for it.
             Object.assign(world, {
-                touchPortals: async () => {},
+                touchPortals: () => {},
                 updateTracking: async () => {}
             });
             const copies = vi.spyOn(world, 'getActors');
@@ -281,7 +264,7 @@ describe('world', () => {
             });
             const { world } = worldTicking({ entities: [firstInserted, secondInserted] });
             Object.assign(world, {
-                touchPortals: async () => {},
+                touchPortals: () => {},
                 updateTracking: async () => {}
             });
 
@@ -354,25 +337,16 @@ describe('world', () => {
             expect(updated).toEqual([0, 1, 2]);
         });
 
-        it('waits for each asynchronous physics update before starting the next one', async () => {
+        it('runs the due physics updates in order, each to its end, before the update first waits', async () => {
             const { world } = worldTicking();
             const blockUpdates = new BlockUpdateScheduler();
             const updated: string[] = [];
-            let releaseFirst!: () => void;
-            const firstUpdate = new Promise<void>((resolve) => {
-                releaseFirst = resolve;
-            });
             for (let x = 0; x < 2; x++) blockUpdates.schedule(x, 64, 0, 0);
             Object.assign(world, {
                 blockUpdates,
                 physics: {
                     update: (x: number) => {
                         updated.push(`start:${x}`);
-                        if (x === 0) {
-                            return firstUpdate.then(() => {
-                                updated.push('finish:0');
-                            });
-                        }
                         updated.push(`finish:${x}`);
                     }
                 }
@@ -381,11 +355,8 @@ describe('world', () => {
             Reflect.deleteProperty(world, 'runBlockUpdates');
 
             const tick = world.update(1);
-            expect(updated).toEqual(['start:0']);
-            releaseFirst();
-            await tick;
-
             expect(updated).toEqual(['start:0', 'finish:0', 'start:1', 'finish:1']);
+            await tick;
         });
 
         it("reads the tick's sealed change log before it sends the block changes", async () => {

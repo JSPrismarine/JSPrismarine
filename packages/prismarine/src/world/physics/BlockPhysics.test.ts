@@ -156,7 +156,7 @@ const settle = async (world: TestWorld, physics: BlockPhysics, maxTicks = 200): 
         const due = world.updates.due(tick);
         if (due.length === 0 && world.updates.size() === 0) return tick;
 
-        for (const { x, y, z } of due) await physics.update(x, y, z, tick);
+        for (const { x, y, z } of due) physics.update(x, y, z, tick);
     }
 
     return maxTicks;
@@ -208,14 +208,12 @@ describe('block support', () => {
         expect(physics.update(2, GROUND + 1, 2, 1)).toBeUndefined();
     });
 
-    it('returns the async completion when an unsupported plant must be removed', async () => {
+    it('removes an unsupported plant before the update returns', () => {
         world.place(2, GROUND, 2, 'minecraft:air');
         world.place(2, GROUND + 1, 2, 'minecraft:dandelion');
 
-        const update = physics.update(2, GROUND + 1, 2, 1);
+        physics.update(2, GROUND + 1, 2, 1);
 
-        expect(update).toBeInstanceOf(Promise);
-        await update;
         expect(world.nameAt(2, GROUND + 1, 2)).toBe('minecraft:air');
     });
 
@@ -252,7 +250,7 @@ describe('falling blocks', () => {
         world.place(4, GROUND, 4, 'minecraft:air');
         world.place(4, GROUND + 1, 4, 'minecraft:sand');
 
-        await physics.update(4, GROUND + 1, 4, 1);
+        physics.update(4, GROUND + 1, 4, 1);
 
         expect(world.nameAt(4, GROUND + 1, 4)).toBe('minecraft:air');
         expect(world.spawnedEntities).toEqual([

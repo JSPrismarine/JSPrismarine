@@ -725,7 +725,7 @@ export class LiveEntityRuntime {
      * @param tick - The world's tick counter, which the pools' cadences use.
      * @param shouldTick - Optional chunk eligibility rule; omitted callers tick every entity.
      */
-    public async tick(tick: number, shouldTick?: (position: EntityPosition) => boolean): Promise<void> {
+    public tick(tick: number, shouldTick?: (position: EntityPosition) => boolean): void {
         if (!this.started && this.spawnWorld !== undefined) {
             this.runtime.startSpawning(this.spawnWorld);
             this.started = true;

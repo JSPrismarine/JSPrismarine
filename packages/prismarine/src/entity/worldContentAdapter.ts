@@ -197,9 +197,7 @@ export const worldEntityAccess = (options: WorldEntityAccessOptions): ContentEnt
 
             // Out of the block it names, as a block's own drop leaves it, so it can merge with
             // one from the block beside it.
-            void loaded.dropFromBlock(at, [stack]).catch((error: unknown) => {
-                loaded.getServer().getLogger().error(error);
-            });
+            loaded.dropFromBlock(at, [stack]);
         },
         countOfType: (identifier, at, radius) =>
             actorsWithin(live(), at.x, at.z, radius).filter(

@@ -47,6 +47,10 @@ export interface ShownActor {
 
 /** One entity as tracking reads it: where it is, how far it is followed, and how a client is shown it. */
 export interface ShownEntity extends TrackableEntity {
-    /** Shows the entity to one client, which for most entities is an `AddActorPacket`. */
+    /**
+     * Shows the entity to one client, which for most entities is an `AddActorPacket`. The packets
+     * are queued before it returns, and it throws when they cannot be built; the promise settles
+     * once the transport has framed them.
+     */
     spawnTo(session: PlayerSession): Promise<void>;
 }

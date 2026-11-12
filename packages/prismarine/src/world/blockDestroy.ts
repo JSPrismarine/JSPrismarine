@@ -41,7 +41,7 @@ export interface DestroyWorld extends BreakWorld {
         getLogger(): { error(error: unknown): void };
     };
     /** Puts the drops on the ground, one item entity each, popping out of the block. */
-    dropFromBlock(block: ContentPosition, contents: Array<Block | Item | null>): Promise<void>;
+    dropFromBlock(block: ContentPosition, contents: Array<Block | Item | null>): void;
 }
 
 /** One block being taken out of the world by something that is not a player. */
@@ -119,7 +119,5 @@ export const destroyBlock = (destruction: BlockDestruction): void => {
     const drops = destroyedBlockDrops(destruction);
     if (drops.length === 0) return;
 
-    void world.dropFromBlock(position, drops).catch((error: unknown) => {
-        world.getServer().getLogger().error(error);
-    });
+    world.dropFromBlock(position, drops);
 };

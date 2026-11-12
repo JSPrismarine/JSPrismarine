@@ -58,37 +58,37 @@ export class BossBar {
      * Shows the bar to a player with its current state. A player already subscribed is left
      * alone.
      */
-    public async addPlayer(session: PlayerSession): Promise<void> {
+    public addPlayer(session: PlayerSession): Promise<void> {
         const { runtimeId } = session;
-        if (this.subscribers.has(runtimeId)) return;
+        if (this.subscribers.has(runtimeId)) return Promise.resolve();
 
         this.subscribers.set(runtimeId, session);
         let bars = barsByPlayer.get(runtimeId);
         if (!bars) barsByPlayer.set(runtimeId, (bars = new Set()));
         bars.add(this);
 
-        await this.sendTo(session, BossEventUpdateType.Add);
+        return this.sendTo(session, BossEventUpdateType.Add);
     }
 
     /** Hides the bar from a player. A player the bar does not have is left alone. */
-    public async removePlayer(session: PlayerSession): Promise<void> {
+    public removePlayer(session: PlayerSession): Promise<void> {
         const { runtimeId } = session;
-        if (!this.subscribers.delete(runtimeId)) return;
+        if (!this.subscribers.delete(runtimeId)) return Promise.resolve();
 
         this.unlink(runtimeId);
-        if (session.isConnected()) await this.sendTo(session, BossEventUpdateType.Remove);
+        return session.isConnected() ? this.sendTo(session, BossEventUpdateType.Remove) : Promise.resolve();
     }
 
     /** Sets how full the bar is, clamped to 0..1, and updates every subscribed player. */
-    public async setPercent(value: number): Promise<void> {
+    public setPercent(value: number): Promise<void> {
         this.percent = Math.min(1, Math.max(0, value));
-        await this.broadcast(BossEventUpdateType.UpdatePercent);
+        return this.broadcast(BossEventUpdateType.UpdatePercent);
     }
 
     /** Sets the title above the bar and updates every subscribed player. */
-    public async setName(name: string): Promise<void> {
+    public setName(name: string): Promise<void> {
         this.name = name;
-        await this.broadcast(BossEventUpdateType.UpdateName);
+        return this.broadcast(BossEventUpdateType.UpdateName);
     }
 
     /**
@@ -97,12 +97,12 @@ export class BossBar {
      * the client's tracking range. The client keys the bar by actor, so every subscribed
      * player gets a Remove for the old actor and an Add for the new one.
      */
-    public async setActorUniqueId(actorUniqueId: bigint): Promise<void> {
-        if (actorUniqueId === this.actorUniqueId) return;
+    public setActorUniqueId(actorUniqueId: bigint): Promise<void> {
+        if (actorUniqueId === this.actorUniqueId) return Promise.resolve();
 
-        await this.broadcast(BossEventUpdateType.Remove);
+        const removed = this.broadcast(BossEventUpdateType.Remove);
         this.actorUniqueId = actorUniqueId;
-        await this.broadcast(BossEventUpdateType.Add);
+        return Promise.all([removed, this.broadcast(BossEventUpdateType.Add)]).then(() => undefined);
     }
 
     /** The sessions of the players subscribed to the bar, with disconnected ones dropped. */
@@ -150,12 +150,16 @@ export class BossBar {
         if (bars.size === 0) barsByPlayer.delete(runtimeId);
     }
 
-    private async broadcast(eventType: BossEventUpdateType): Promise<void> {
+    /** Queues an update for every subscribed player before it returns; settles once they are framed. */
+    private broadcast(eventType: BossEventUpdateType): Promise<void> {
         this.prune();
-        await Promise.all([...this.subscribers.values()].map(async (session) => this.sendTo(session, eventType)));
+        return Promise.all([...this.subscribers.values()].map((session) => this.sendTo(session, eventType))).then(
+            () => undefined
+        );
     }
 
-    private async sendTo(session: PlayerSession, eventType: BossEventUpdateType): Promise<void> {
+    /** Queues one update for one player before it returns; settles once it is framed. */
+    private sendTo(session: PlayerSession, eventType: BossEventUpdateType): Promise<void> {
         const packet = new BossEventPacket();
         packet.targetActorId = this.actorUniqueId;
         packet.eventType = eventType;
@@ -164,6 +168,6 @@ export class BossBar {
         packet.healthPercent = this.percent;
         packet.color = this.color;
         packet.overlay = this.overlay;
-        await session.send(packet);
+        return session.send(packet);
     }
 }
