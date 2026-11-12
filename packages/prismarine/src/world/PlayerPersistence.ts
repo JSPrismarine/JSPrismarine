@@ -58,6 +58,12 @@ export class PlayerPersistence {
      * player who leaves and joins again reads the record they left with.
      */
     private readonly writing = new Map<string, Promise<void>>();
+    /**
+     * The pending commit each key's last write to the fallback JSON waits for, while it waits. Such
+     * a write holds the player as they are after that pass's cut, so the record the pass hands
+     * over for the key is older and is not written.
+     */
+    private readonly waitingOn = new Map<string, Promise<void>>();
 
     public constructor(private readonly options: PlayerPersistenceOptions) {}
 
@@ -107,27 +113,53 @@ export class PlayerPersistence {
         const behind = this.options.provider.writePlayerData
             ? undefined
             : (this.options.pendingCommit?.() ?? Promise.resolve());
-        // After the key's last write, so the writes of one player land in the order they started.
+        return this.queue(key, record, requireSuccess, behind);
+    }
+
+    /**
+     * Queues one write behind the key's last write, so the writes of one player land in the order
+     * they started, and behind `behind` when it is given.
+     */
+    private queue(
+        key: string,
+        record: WorldPlayerData,
+        requireSuccess: boolean,
+        behind: Promise<void> | undefined
+    ): Promise<void> {
         const write = Promise.all([this.writing.get(key), behind]).then(() => this.write(key, record, requireSuccess));
         const settled = write.then(
             () => undefined,
             () => undefined
         );
         this.writing.set(key, settled);
+        if (behind === undefined) this.waitingOn.delete(key);
+        else this.waitingOn.set(key, behind);
         void settled.then(() => {
-            if (this.writing.get(key) === settled) this.writing.delete(key);
+            if (this.writing.get(key) !== settled) return;
+            this.writing.delete(key);
+            this.waitingOn.delete(key);
         });
         return write;
     }
 
     /**
-     * Writes a batch of records built at one moment, all at once.
+     * Writes the records a save pass's cut built, once the pass has committed and before the
+     * commit counts as settled, so a record saved after the cut, which waits for that, lands
+     * after these. A record of a key already saved after the cut is older than that one and is
+     * left out.
      *
      * @param records - Each player's record by key, as a save pass's cut built them.
      * @param requireSuccess - Propagate a persistence error, for a replay checkpoint.
      */
     public async saveAll(records: ReadonlyMap<string, WorldPlayerData>, requireSuccess = false): Promise<void> {
-        await Promise.all([...records].map(async ([key, record]) => this.save(key, record, requireSuccess)));
+        const pending = this.options.pendingCommit?.();
+        await Promise.all(
+            [...records].flatMap(([key, record]) =>
+                pending !== undefined && this.waitingOn.get(key) === pending
+                    ? []
+                    : [this.queue(key, record, requireSuccess, undefined)]
+            )
+        );
     }
 
     private async write(key: string, record: WorldPlayerData, requireSuccess: boolean): Promise<void> {

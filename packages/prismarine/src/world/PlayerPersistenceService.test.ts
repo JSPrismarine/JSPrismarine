@@ -103,6 +103,33 @@ describe('the player persistence service', () => {
         expect(order).toEqual(['write first', 'write second', 'read']);
     });
 
+    it("lands a fallback record saved after a pass's cut over the pass's older one", async () => {
+        // A pass whose cut is taken and whose commit is pending, as `LevelSave` keeps it.
+        let committed: () => void = () => {};
+        let committing: Promise<void> | undefined = new Promise<void>((resolve) => {
+            committed = resolve;
+        });
+        const persistence = new PlayerPersistence({
+            levelName: 'test',
+            folder,
+            provider: {},
+            logger: quiet,
+            isClosed: () => false,
+            pendingCommit: () => committing ?? Promise.resolve()
+        });
+
+        // The player leaves after the cut, so their newer record waits for the commit.
+        const left = persistence.save('Alex', { ...recordFor('Alex'), gamemode: 'Creative' });
+        // The commit lands, and the pass hands over the record its cut built, before the commit
+        // counts as settled.
+        await persistence.saveAll(new Map([['Alex', { ...recordFor('Alex'), gamemode: 'Survival' }]]));
+        committing = undefined;
+        committed();
+        await left;
+
+        expect((await persistence.load('Alex'))?.gamemode).toBe('Creative');
+    });
+
     it('writes nothing once the level has closed, and says so to a caller that needs the write', async () => {
         const stored = new Map<string, WorldPlayerData>();
         const persistence = new PlayerPersistence({
