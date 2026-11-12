@@ -9,7 +9,8 @@ import type { DataEntity } from '../entity/data/DataEntity';
 import { StorePlayerActor, StorePlayers } from '../entity/data/storePlayers';
 import { entityFixture, FLOOR_Y, TestEntityWorld } from '../entity/data/testing';
 import { PLAYER_IDENTIFIER } from '../entity/playerOverlay';
-import { SHIPPED_PLAYER } from '../testing/storePlayer.test.helper';
+import { enteredStorePlayer, SHIPPED_PLAYER } from '../testing/storePlayer.test.helper';
+import type { StorePlayer } from '../entity/storePlayer';
 import type { ShownActor, ShownEntity } from '../world/ShownActor';
 import type { World } from '../world/World';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
@@ -452,6 +453,27 @@ describe('network', () => {
                     [2.5, false],
                     [6.5, true]
                 ]);
+            });
+
+            it("queues a move for a player who turns only the head, with the head's yaw", async () => {
+                const watching = fakePlayer(1001n);
+                const { runtime, tick } = replicatorOverLog([watching.player]);
+                let player: StorePlayer | undefined;
+                await tick(() => (player = enteredStorePlayer({ runtime }).player));
+                watching.spy.frames.length = 0;
+
+                await tick(() => (player!.headYaw = 45));
+                await tick(() => (player!.headYaw = 45));
+
+                const moves = packetsIn(watching.spy.frames)
+                    .filter(({ name }) => name === 'MoveActorAbsolutePacket')
+                    .map(({ buffer }) => {
+                        const packet = new MoveActorAbsolutePacket(buffer);
+                        packet.codecProtocol = Codec2193.protocolVersion;
+                        packet.decode();
+                        return [packet.yaw, packet.headYaw];
+                    });
+                expect(moves).toStrictEqual([[0, 45]]);
             });
         });
 
