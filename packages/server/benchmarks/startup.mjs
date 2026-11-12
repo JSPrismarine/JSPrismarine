@@ -48,6 +48,7 @@ const run = (mode, sample) =>
                 ...process.env,
                 JSP_DIR: directory,
                 JSP_NO_TUI: '1',
+                JSP_BSTATS: '0',
                 NODE_ENV: 'production'
             },
             stdio: ['ignore', 'pipe', 'pipe']
