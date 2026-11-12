@@ -40,7 +40,7 @@ describe('World viewers', () => {
         expect(world.viewerOf(3n)).toBeUndefined();
     });
 
-    it('finds a player added through addPlayer before anyone is told it arrived, and none after removePlayer', async () => {
+    it('finds a player added through addPlayer when the tick that logged it seals, and none after removePlayer', async () => {
         let world: World | undefined;
         const entities = liveTestEntities(() => world);
         const live = entities.entityRuntime(Dimensions.Overworld.name);
@@ -57,23 +57,27 @@ describe('World viewers', () => {
         });
         world = created;
         const session = sessionOnPrototype({}, { runtimeId: 4n, position: new Position(0.5, 65.62, 0.5, created) });
-        // What the replicator sees when it shows an arriving player the world and a leaving one
-        // goes: the arrival already findable, the departure already not.
+        // What the replicator sees when it reads an arriving player's entering entry and a
+        // leaving one's leaving entry: the arrival already findable, the departure already not.
         const seen: Array<PlayerSession | undefined> = [];
-        created.attachChangeSink({
-            ...NULL_WORLD_CHANGE_SINK,
-            entityAdded: async (entity) => void seen.push(created.viewerOf(entity.getRuntimeId())),
-            entityRemoved: async (entity) => void seen.push(created.viewerOf(entity.getRuntimeId()))
+        created.attachChangeSink(NULL_WORLD_CHANGE_SINK);
+        created.getEntityStore().onSealed((sealed) => {
+            for (const entry of sealed.entries)
+                if (entry.kind === 'membership') seen.push(created.viewerOf(entry.entity));
         });
 
+        created.beginChangeTick();
         await created.addPlayer(session);
+        created.sealChangeTick();
         expect(created.viewerOf(4n)).toBe(session);
         // The world answers the store player's actor under the player's id, not the player.
         const actor = created.getActor(4n);
         expect(actor).toBeInstanceOf(StorePlayerActor);
         expect(actor instanceof StorePlayerActor && actor.player).toBe(session.getPlayer());
 
+        created.beginChangeTick();
         await created.removePlayer(session);
+        created.sealChangeTick();
         expect(created.viewerOf(4n)).toBeUndefined();
         expect(created.getActor(4n)).toBeNull();
         expect(seen).toEqual([session, undefined]);

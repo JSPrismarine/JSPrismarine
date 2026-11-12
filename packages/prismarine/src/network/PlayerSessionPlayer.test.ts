@@ -4,7 +4,7 @@ import { PositionMode } from '@jsprismarine/protocol';
 import { describe, expect, it, vi } from 'vitest';
 import type PlayerSession from './PlayerSession';
 import { AttributeIds } from '@jsprismarine/protocol/wire/structures/Attribute';
-import type { ShownActor } from '../world/ShownActor';
+import type { ShownEntity } from '../world/ShownActor';
 import { PORTAL_COOLDOWN_TICKS } from '../entity/PortalContact';
 import { blockMiningOf, playerMiningOf } from '../world/BlockMining';
 import { EYE_HEIGHT } from '../entity/playerEyes';
@@ -30,7 +30,7 @@ import type { World } from '../world/World';
 
 /**
  * Runs `n` ticks, the way the world does: the input step, the player's actor and its own part,
- * then the store's entity pass, which runs the player systems, and the sync after it.
+ * then the store's entity pass, which runs the player systems.
  */
 const tick = async (session: PlayerSession, n: number, from = 1) => {
     for (let i = 0; i < n; i++) {
@@ -44,6 +44,11 @@ const tick = async (session: PlayerSession, n: number, from = 1) => {
             .dataEntities()
             .tick(from + i);
     }
+};
+
+/** {@link tick}, each inside a tick of the store's log, whose changes replication then sends. */
+const replicatedTicks = async (fake: ReturnType<typeof fakePlayer>, n: number) => {
+    for (let i = 0; i < n; i++) await fake.logTick(() => tick(fake.session, 1, 1 + i));
 };
 
 /** Walks the player `blocks` meters east, one meter at a time, as movement packets do. */
@@ -383,10 +388,11 @@ describe("PlayerSession's player", () => {
         });
 
         it('reports the bubbles without a packet per tick', async () => {
-            const { session, sent } = fakePlayer({ underwater: true });
+            const fake = fakePlayer({ underwater: true });
+            const { sent } = fake;
             sent.length = 0;
 
-            await tick(session, 100);
+            await replicatedTicks(fake, 100);
 
             const updates = sent.filter((packet) => packet instanceof SetActorDataPacket);
             expect(updates.length).toBeGreaterThan(0);
@@ -829,7 +835,7 @@ describe("PlayerSession's player", () => {
             // Runtime ids come from one counter for the whole file, so a fixed id would sooner or
             // later be the player's own.
             const mobId = player.getRuntimeId() + 1_000_000n;
-            const mob = stub<ShownActor>({
+            const mob = stub<ShownEntity>({
                 getRuntimeId: () => mobId,
                 getPosition: () => new Position(4, 64, 4, session.getWorld()),
                 getTrackingRange: () => 8,

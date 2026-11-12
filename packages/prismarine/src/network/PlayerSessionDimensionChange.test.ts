@@ -28,7 +28,7 @@ import StopSoundPacket from '@jsprismarine/protocol/packet/StopSoundPacket';
 import UpdateAttributesPacket from '@jsprismarine/protocol/packet/UpdateAttributesPacket';
 import { describe, expect, it } from 'vitest';
 
-import type { ShownActor } from '../world/ShownActor';
+import type { ShownEntity } from '../world/ShownActor';
 import { EYE_HEIGHT } from '../entity/playerEyes';
 import { fakePlayer } from '../testing/fakePlayer.test.helper';
 import { inputContext } from '../testing/handlerContext.test.helper';
@@ -148,7 +148,7 @@ describe('PlayerSession.changeWorld', () => {
         const { session, player, sent } = fakePlayer();
         const mobId = player.getRuntimeId() + 1_000_000n;
         await session.considerEntity(
-            stub<ShownActor>({
+            stub<ShownEntity>({
                 getRuntimeId: () => mobId,
                 getPosition: () => new Position(4, 64, 4, session.getWorld()),
                 getTrackingRange: () => 8,

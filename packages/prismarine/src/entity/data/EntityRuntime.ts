@@ -406,6 +406,11 @@ export interface EntityRuntimeOptions {
     /** Called once per entity, after it has left the index. */
     onRemove?(entity: DataEntity, reason: string): void;
     /**
+     * The type clients are shown an entity as when it is not the entity's own, such as the type an
+     * inert actor was saved with, which its saved form carries as `shownAs`.
+     */
+    shownAs?(entity: DataEntity): string | undefined;
+    /**
      * Draws the next runtime id, so a host can keep one pool of them.
      *
      * A goal names a target by runtime id and does not care which index
@@ -432,6 +437,10 @@ const VILLAGE_POI_KINDS: readonly string[] = ['home', 'meeting', ...JAVA_POI_TYP
 
 /** How far from a position Java looks for the points of interest of its village. */
 const VILLAGE_RADIUS = 64;
+
+/** The type an entity is shown as, as the part of a saved form that holds it, or nothing for its own. */
+const shownAsOf = (shownAs: string | undefined): { readonly shownAs?: string } =>
+    shownAs === undefined ? {} : { shownAs };
 
 /** A store player's shown form as the part of a saved form that holds it, or nothing for any other entity. */
 const shownPlayerOf = (form: PlayerShownForm | undefined): { readonly player?: PlainRecord } =>
@@ -556,6 +565,7 @@ export class EntityRuntime implements EntityScene {
     private readonly onReport: (message: string) => void;
     private readonly onSpawn: (entity: DataEntity) => void;
     private readonly onRemove: (entity: DataEntity, reason: string) => void;
+    private readonly shownAs: (entity: DataEntity) => string | undefined;
     private readonly gameEvents: EntityRuntimeOptions['gameEvents'];
     private readonly gameEventListeners = new Map<number, EntityGameEventRegistration>();
     private readonly drawId: () => number;
@@ -641,6 +651,7 @@ export class EntityRuntime implements EntityScene {
         this.onReport = options.report ?? (() => undefined);
         this.onSpawn = options.onSpawn ?? (() => undefined);
         this.onRemove = options.onRemove ?? (() => undefined);
+        this.shownAs = options.shownAs ?? (() => undefined);
         this.gameEvents = options.gameEvents;
         this.drawId =
             options.nextId ??
@@ -1006,9 +1017,9 @@ export class EntityRuntime implements EntityScene {
      *
      * @returns Plain data with the runtime id, the position, the velocity, the record as it would
      *   be written, the tags, the status effects, the vehicle it rides, the online owner, the shown
-     *   conditions, the actor record tags and the attributes with their bounds, and for a store
-     *   player what clients are shown of it beside its entity (`entity/playerShown.ts`)
-     *   (`savedForm.ts` reads it back as logged fields).
+     *   conditions, the actor record tags and the attributes with their bounds, for a store
+     *   player what clients are shown of it beside its entity (`entity/playerShown.ts`), and the
+     *   type an inert actor is shown as (`savedForm.ts` reads it back as logged fields).
      */
     public savedFormOf(entity: DataEntity): PlainRecord {
         const { body } = entity;
@@ -1042,7 +1053,8 @@ export class EntityRuntime implements EntityScene {
                     return [[name, { base, min, max, current }]];
                 })
             ),
-            ...shownPlayerOf(this.playerSystems.shownFormOf(entity))
+            ...shownPlayerOf(this.playerSystems.shownFormOf(entity)),
+            ...shownAsOf(this.shownAs(entity))
         };
     }
 
@@ -1435,7 +1447,8 @@ export class EntityRuntime implements EntityScene {
     public remove(id: number, reason: string): void {
         const entity = this.store.get(id);
         if (entity === undefined) return;
-        const saved = this.store.tickOpen && this.store.hasEntered(entity) ? this.savedFormOf(entity) : undefined;
+        // Between ticks too, such as a command's kill: the store holds the entry for the next tick.
+        const saved = this.store.hasEntered(entity) ? this.savedFormOf(entity) : undefined;
         entity.removed = reason;
         this.store.detach(entity);
         this.byPersistentIdentity.delete(entity.persistentIdentity);

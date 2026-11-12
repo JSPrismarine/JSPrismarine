@@ -2,28 +2,21 @@
  * What a client is told about a mob's equipment, down to the bytes.
  *
  * `PlayerSessionEquipment.test.ts` covers the human path, which reads an armor container. This
- * covers the mob path, which reads the slot record on the entity itself, and pins the encoding
+ * covers the mob path (`equipmentPackets`), which reads the entity's own slot record, and pins the encoding
  * of both packets: they are positional, so a slot written in the wrong order or left out is a
  * client reading the next field's bytes as this one's.
  */
 import { WindowIds } from '@jsprismarine/minecraft';
 import { describe, expect, it } from 'vitest';
 
-import type { ShownActor } from '../world/ShownActor';
 import type { ViewableEquipment } from '../entity/predicateView';
 import { Item } from '../item/Item';
-import { stub } from '../testing/stub.test.helper';
-import type { SessionPlayer } from './sessionPlayers';
-import type ClientConnection from './ClientConnection';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import { MobArmorEquipmentPacket, MobEquipmentPacket } from '@jsprismarine/protocol';
 import type { ProtocolContext } from '@jsprismarine/protocol';
-import type { ProtocolCodec } from '@jsprismarine/protocol';
-import PlayerSession from './PlayerSession';
-import { sessionPlayerFields } from '../testing/playerSession.test.helper';
+import { equipmentPackets } from './replica/firstSight';
 
 const protocolContext: ProtocolContext = { protocolVersion: 2193 };
-const protocolCodec = stub<ProtocolCodec>({ protocolVersion: 2193, context: protocolContext });
 
 const packetData = <T>(packet: NetworkPacket<T>): T => {
     const data = packet.getPacketData();
@@ -31,28 +24,9 @@ const packetData = <T>(packet: NetworkPacket<T>): T => {
     return data;
 };
 
-/** A session whose connection records what goes out. */
-const recordingSession = () => {
-    const sent: NetworkPacket[] = [];
-    const connection = stub<ClientConnection>({
-        codec: protocolCodec,
-        sendDataPacket: async (packet) => void sent.push(packet)
-    });
-
-    const session: PlayerSession = Object.assign(Object.create(PlayerSession.prototype), {
-        connection,
-        ...sessionPlayerFields(stub<SessionPlayer>())
-    });
-
-    return { session, sent };
-};
-
-/** A mob whose equipment is the given set, which is all the send reads off it. */
-const mob = (equipment: ViewableEquipment): ShownActor =>
-    stub<ShownActor>({
-        getRuntimeId: () => 42n,
-        getEquipment: () => equipment
-    });
+/** What a client is sent of a mob wearing and holding `equipment`. */
+const shownWearing = (equipment: ViewableEquipment): NetworkPacket[] =>
+    equipmentPackets(42n, equipment, protocolContext);
 
 /** The packet at a position, reported as itself when it is missing. */
 const nth = <T>(packets: readonly T[], index: number, what: string): T => {
@@ -62,11 +36,9 @@ const nth = <T>(packets: readonly T[], index: number, what: string): T => {
 };
 
 describe('network', () => {
-    describe('PlayerSession.sendEquipmentFor', () => {
+    describe('equipmentPackets', () => {
         it('sends the worn slots and the main hand, and nothing for an empty off hand', async () => {
-            const { session, sent } = recordingSession();
-
-            await session.sendEquipmentFor(mob({ mainhand: new Item({ name: 'minecraft:bow', count: 1 }) }));
+            const sent = shownWearing({ mainhand: new Item({ name: 'minecraft:bow', count: 1 }) });
 
             // Two packets, not three: an off hand nothing is in is not worth a packet.
             expect(sent).toHaveLength(2);
@@ -75,15 +47,11 @@ describe('network', () => {
         });
 
         it('sends the armor before the hand, so a client dresses the mob it just spawned', async () => {
-            const { session, sent } = recordingSession();
-
-            await session.sendEquipmentFor(
-                mob({
-                    head: new Item({ name: 'minecraft:iron_helmet', count: 1 }),
-                    mainhand: new Item({ name: 'minecraft:iron_sword', count: 1 }),
-                    offhand: new Item({ name: 'minecraft:shield', count: 1 })
-                })
-            );
+            const sent = shownWearing({
+                head: new Item({ name: 'minecraft:iron_helmet', count: 1 }),
+                mainhand: new Item({ name: 'minecraft:iron_sword', count: 1 }),
+                offhand: new Item({ name: 'minecraft:shield', count: 1 })
+            });
 
             expect(sent).toHaveLength(3);
             expect(sent.map((packet) => packet.constructor.name)).toEqual([
@@ -97,9 +65,7 @@ describe('network', () => {
             // The packet is positional and fixed width. A client sent three pieces reads the
             // next packet's bytes as the fourth, which is why an empty slot travels as air
             // rather than being left out.
-            const { session, sent } = recordingSession();
-
-            await session.sendEquipmentFor(mob({ chest: new Item({ name: 'minecraft:iron_chestplate', count: 1 }) }));
+            const sent = shownWearing({ chest: new Item({ name: 'minecraft:iron_chestplate', count: 1 }) });
 
             const armor = nth(
                 sent.filter((packet) => packet instanceof MobArmorEquipmentPacket),
@@ -118,9 +84,7 @@ describe('network', () => {
         });
 
         it('names the mob slot fields the way vanilla does for an entity with no inventory', async () => {
-            const { session, sent } = recordingSession();
-
-            await session.sendEquipmentFor(mob({ mainhand: new Item({ name: 'minecraft:bow', count: 1 }) }));
+            const sent = shownWearing({ mainhand: new Item({ name: 'minecraft:bow', count: 1 }) });
 
             const hand = nth(
                 sent.filter((packet) => packet instanceof MobEquipmentPacket),
@@ -139,14 +103,10 @@ describe('network', () => {
         });
 
         it('sends the off hand for the offhand container when something is in it', async () => {
-            const { session, sent } = recordingSession();
-
-            await session.sendEquipmentFor(
-                mob({
-                    mainhand: new Item({ name: 'minecraft:bow', count: 1 }),
-                    offhand: new Item({ name: 'minecraft:shield', count: 1 })
-                })
-            );
+            const sent = shownWearing({
+                mainhand: new Item({ name: 'minecraft:bow', count: 1 }),
+                offhand: new Item({ name: 'minecraft:shield', count: 1 })
+            });
 
             const offhand = nth(
                 sent.filter((packet) => packet instanceof MobEquipmentPacket),
@@ -164,9 +124,7 @@ describe('network', () => {
         it('clears the main hand with air rather than by saying nothing', async () => {
             // A mob that put its item down has to be told about: leaving the hand unsent would
             // leave the client drawing whatever it was last given.
-            const { session, sent } = recordingSession();
-
-            await session.sendEquipmentFor(mob({}));
+            const sent = shownWearing({});
 
             const hand = nth(
                 sent.filter((packet) => packet instanceof MobEquipmentPacket),

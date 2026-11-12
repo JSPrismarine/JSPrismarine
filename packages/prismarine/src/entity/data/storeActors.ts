@@ -1,17 +1,12 @@
 /**
- * The store's entities, shown to clients from store state.
+ * The store's entities, as the rest of the server reaches them.
  *
- * Every entity in the store gets one {@link StoreActor}, a {@link ShownActor} that answers the
- * network layer from the store: its position, rotation and velocity from the body, its health
- * from the instance, its equipment from the body's drops, and its metadata from the actor
- * metadata projection. Tracking, `AddActorPacket` and the per-tick updates encode a store entity
- * through it, from store state alone.
- *
- * {@link StoreActors.sync} is the per-tick half. It sends what changed since it last sent each
- * entity: a move, new metadata or synced properties, a health change and new equipment. That is
- * replication's job, and it keeps what it sent, not a second copy of the simulation. Slice 7 of
- * the entity and tick re-architecture replaces the comparison with a read of the change log
- * ([ADR 0016](../../../../../docs/adr/0016-replication-reads-the-change-log.md)).
+ * Every entity in the store gets one {@link StoreActor}, a {@link ShownActor} that answers from
+ * the store: its position, rotation and velocity from the body, its health from the instance, its
+ * equipment from the body's drops, and its metadata from the actor metadata projection, each read
+ * when asked. What other clients are shown of an entity is not read here: replication sends it
+ * from the change log ([ADR 0016](../../../../../docs/adr/0016-replication-reads-the-change-log.md),
+ * `network/replica/EntityReplication.ts`).
  *
  * Nothing here is mob-specific. Any entity type in the store is shown the same way, with the
  * metadata its projection gives it. Three kinds of entity get an actor of their own: a store
@@ -31,14 +26,12 @@
 import { Vector3 } from '@jsprismarine/math';
 import type { EntityPosition } from '@jsprismarine/entities';
 import type { NBTTagCompound } from '@jsprismarine/nbt';
-import { AttributeIds } from '@jsprismarine/protocol/wire/structures/Attribute';
 import type { Attributes } from '@jsprismarine/protocol/wire/structures/Attribute';
+import { AttributeIds } from '@jsprismarine/protocol/wire/structures/Attribute';
 import { Metadata } from '@jsprismarine/protocol/wire/structures/Metadata';
 import type { SyncedProperties } from '@jsprismarine/protocol/wire/structures/SyncedProperties';
 
-import type { ServerContent } from '../../content/ServerContent';
-import { sameSyncedProperties, syncedPropertiesOf } from '../../network/actorProperties';
-import type PlayerSession from '../../network/PlayerSession';
+import { syncedPropertiesOf } from '../../network/actorProperties';
 import type Server from '../../Server';
 import type { PortalBlockRef } from '../../world/portal/DimensionTravel';
 import { portalRuleOf } from '../../world/portal/rules';
@@ -47,7 +40,7 @@ import type { ShownActor } from '../../world/ShownActor';
 import type { World } from '../../world/World';
 import { DamageCause } from '../DamageCause';
 import { DamageSource } from '../DamageSource';
-import { sameEquipmentItems, viewableEquipmentOf } from '../equipment';
+import { viewableEquipmentOf } from '../equipment';
 import { KNOCKBACK_LIFT } from '../knockback';
 import { PORTAL_COOLDOWN_TICKS, PORTAL_TRANSITION_TICKS, PortalContact, portalCooldownOf } from '../PortalContact';
 import type { ViewableEquipment } from '../predicateView';
@@ -61,28 +54,14 @@ import {
 import { effectHealthChange, tickStatusEffects } from '../StatusEffectTick';
 import { nbtBytesOf, nbtOfBytes } from '../../nbtBytes';
 import { healthAttributesOf } from './actorView';
-import type { ShownPose } from './actorView';
 import type { DataEntity, StatusEffectClock } from './DataEntity';
 import type { DamageRoute } from './damagePipeline';
 import { isDroppedItem } from './droppedItems';
-import type { EntityRuntime } from './EntityRuntime';
 import { acceptsStatusEffect } from './EntityRuntime';
 import type { EntityBox } from './facts';
 import { boxOf } from './facts';
-import {
-    actorMetadataInputs,
-    actorMetadataProjection,
-    applyActorMetadataProjection,
-    sameActorMetadataInputs,
-    sameActorMetadataProjection
-} from './actorMetadata';
-import type { ActorMetadataInputs, ActorMetadataProjection } from './actorMetadata';
-
-/** How far an entity has to move before the movement is worth putting on the wire, in blocks. */
-const MOVEMENT_EPSILON = 1e-4;
-
-/** How far clients follow a store entity, in chunks, which is the legacy entities' default. */
-const TRACKING_RANGE_CHUNKS = 8;
+import { actorMetadataProjection, applyActorMetadataProjection } from './actorMetadata';
+import type { ActorMetadataProjection } from './actorMetadata';
 
 /** Where a store actor sends the blows and heals the rest of the server gives it. */
 export interface StoreActorBlows {
@@ -95,54 +74,50 @@ export interface StoreActorBlows {
 }
 
 /**
- * One store entity as the network layer and the rest of the server read it.
- *
- * Position, rotation, velocity, synced properties, status effects and the ground state are read
- * from the store on every call. The metadata, the attributes and the equipment are encoded
- * forms that {@link StoreActors} rebuilds when the store changes them.
+ * One store entity as the network layer and the rest of the server read it, from the store on
+ * every call.
  */
 export class StoreActor implements ShownActor {
-    /** The actor metadata a client is sent, kept up to date by {@link StoreActors.sync}. */
-    public readonly metadata = new Metadata();
-    /** The attributes a client is sent, which carry the store's health. */
-    public readonly attributes: Attributes;
-
-    /** What this actor was last sent as, which {@link StoreActors.sync} measures changes against. */
-    public shownPose: ShownPose;
-    public shownProperties: SyncedProperties;
-    public shownProjection: ActorMetadataProjection;
-    public shownInputs: ActorMetadataInputs | undefined;
-    public shownOwner: number | undefined;
-    /** The teleport count the last move was measured against, so a teleport since is sent as one. */
-    public shownTeleports: number;
-    public shownEquipmentRevision = -1;
-    /** What a client is shown the actor holding and wearing, which {@link StoreActor.writeEquipment} keeps. */
-    protected equipment: ViewableEquipment = {};
-
     private portalCooldown = 0;
     private portalContactState: PortalContact | undefined;
     private lastUpdatedTick = -1;
     /** The tick of the last update that advanced the status effect clock, or -1 before the first. */
     private clockTick = -1;
 
+    /** The attributes the actor holds, whose health {@link StoreActor.attributes} brings up to the store's. */
+    protected readonly heldAttributes: Attributes;
+
     public constructor(
         /** The store entity behind the actor. */
         public readonly entity: DataEntity,
         private readonly world: World,
-        leashHolderId: number | undefined,
         private readonly blows: StoreActorBlows
     ) {
-        const content = world.getServer().getContent();
-        this.attributes = healthAttributesOf(entity.instance.attributes.get('health'));
+        this.heldAttributes = healthAttributesOf(entity.instance.attributes.get('health'));
+    }
 
-        const { width, height } = boxOf(content.entities.registry, entity.identifier);
-        this.metadata.setBoundingBox(width, height);
-        this.shownProjection = this.projectMetadata(leashHolderId);
-        applyActorMetadataProjection(this, this.shownProjection);
-        this.shownProperties = this.getSyncedProperties();
-        this.shownOwner = entity.body.owner;
-        this.shownPose = StoreActor.poseOf(entity);
-        this.shownTeleports = entity.body.teleports;
+    /**
+     * The actor metadata the store state projects to now, with the type's box: what a player's
+     * own client and a save read. It leaves out who holds the entity's leash, which only other
+     * clients are shown, and they are sent the replica's metadata.
+     */
+    public get metadata(): Metadata {
+        const metadata = new Metadata();
+        const { width, height } = boxOf(this.getServer().getContent().entities.registry, this.entity.identifier);
+        metadata.setBoundingBox(width, height);
+        applyActorMetadataProjection({ metadata }, this.projectMetadata());
+        return metadata;
+    }
+
+    /**
+     * The actor's attributes, with the store's health and its maximum now, which a save and the
+     * replay digest read.
+     */
+    public get attributes(): Attributes {
+        const health = this.entity.instance.attributes.get('health');
+        const shown = healthAttributesOf(health).getAttribute(AttributeIds.Health);
+        if (health !== undefined && shown !== null) this.heldAttributes.setAttribute(shown);
+        return this.heldAttributes;
     }
 
     /**
@@ -174,12 +149,6 @@ export class StoreActor implements ShownActor {
     /** The server the world belongs to. */
     public getServer(): Server {
         return this.world.getServer();
-    }
-
-    /** Where a store entity stands and faces now. */
-    public static poseOf(entity: DataEntity): ShownPose {
-        const at = entity.position;
-        return { x: at.x, y: at.y, z: at.z, yaw: entity.body.yaw, pitch: entity.body.pitch };
     }
 
     /** @inheritdoc */
@@ -217,27 +186,11 @@ export class StoreActor implements ShownActor {
     }
 
     /**
-     * The actor metadata the store state projects to, which the constructor and
-     * {@link StoreActors.sync} write into {@link StoreActor.metadata}.
+     * The actor metadata the store state projects to, which {@link StoreActor.metadata} writes.
      * @param leashHolderId - The runtime id of whatever holds the entity's leash.
      */
     public projectMetadata(leashHolderId?: number): ActorMetadataProjection {
         return actorMetadataProjection(this.entity, leashHolderId);
-    }
-
-    /**
-     * Writes what the entity decides about its metadata besides the projection, after the
-     * projection is written. A plain entity has nothing more; a player's components do.
-     *
-     * @returns Whether clients should be sent the metadata again.
-     */
-    public showPlayerState(): boolean {
-        return false;
-    }
-
-    /** Writes the store's health into the attributes a client is sent, after a tick. */
-    public showHealth(current: number): void {
-        this.attributes.setValue(AttributeIds.Health, current);
     }
 
     /** @inheritdoc */
@@ -247,7 +200,7 @@ export class StoreActor implements ShownActor {
 
     /** @inheritdoc */
     public getEquipment(): ViewableEquipment {
-        return this.equipment;
+        return viewableEquipmentOf(this.entity.equipment, this.getServer().getContent());
     }
 
     /** @inheritdoc */
@@ -526,35 +479,6 @@ export class StoreActor implements ShownActor {
         if (change.kind === 'heal') this.blows.heal(this.entity, change.amount);
         else this.blows.hurt(this.entity, change.amount, DamageSource.of(change.cause), 'status_effect');
     }
-
-    /** @inheritdoc */
-    public getTrackingRange(): number {
-        return TRACKING_RANGE_CHUNKS;
-    }
-
-    /** @inheritdoc */
-    public async spawnTo(session: PlayerSession): Promise<void> {
-        await session.sendAddActor(this);
-    }
-
-    /**
-     * Rebuilds the equipment items when the body's equipment revision moved.
-     *
-     * Two guards, cheapest first. The revision counter answers "has anything been written at
-     * all", which on a steady tick is false for every entity in the world, so nothing is built.
-     * When it has moved, the items are built and compared as the bytes they would be sent as.
-     *
-     * @returns Whether a client would see different equipment.
-     */
-    public writeEquipment(content: ServerContent): boolean {
-        if (this.shownEquipmentRevision === this.entity.body.equipmentRevision) return false;
-        this.shownEquipmentRevision = this.entity.body.equipmentRevision;
-
-        const worn = viewableEquipmentOf(this.entity.equipment, content);
-        if (sameEquipmentItems(this.equipment, worn)) return false;
-        this.equipment = worn;
-        return true;
-    }
 }
 
 /**
@@ -584,7 +508,7 @@ export class InertActor extends StoreActor {
         blows: StoreActorBlows,
         private readonly savedType: string
     ) {
-        super(entity, world, undefined, blows);
+        super(entity, world, blows);
     }
 
     /** The identifier the actor was saved with, not the inert type that holds it. */
@@ -646,118 +570,35 @@ export class StoreActors {
         return this.droppedItems;
     }
 
-    /** Shows a store entity the runtime just made to the clients in range. */
-    public add(entity: DataEntity, leashHolderId?: number): void {
+    /**
+     * Gives a store entity the runtime just made its actor. Clients are shown it from its
+     * entering entry in the change log.
+     */
+    public add(entity: DataEntity): void {
         const world = this.options.world();
         if (world === undefined) return;
 
         const actor =
             this.options.playerActor?.(entity, world, this.options.blows) ??
             this.options.builtInActor?.(entity, world, this.options.blows) ??
-            new StoreActor(entity, world, leashHolderId, this.options.blows);
-        // After the constructor, so an actor that reads its equipment elsewhere has been built.
-        actor.writeEquipment(world.getServer().getContent());
+            new StoreActor(entity, world, this.options.blows);
         this.actors.set(entity.id, actor);
         if (isDroppedItem(entity)) this.droppedItems++;
-        void world.showActor(actor).catch((error: unknown) => this.failed('show', error));
-    }
-
-    /** Takes a store entity the runtime removed off every client that was shown it. */
-    public remove(entity: DataEntity): void {
-        const actor = this.actors.get(entity.id);
-        this.actors.delete(entity.id);
-        if (actor === undefined) return;
-        if (isDroppedItem(entity)) this.droppedItems--;
-
-        const world = this.options.world();
-        if (world === undefined) return;
-        void world.hideActor(actor).catch((error: unknown) => this.failed('hide', error));
     }
 
     /**
-     * Sends clients what changed in the store since each entity was last sent, after a tick of
-     * the runtime: its health, equipment, metadata and synced properties, and its position.
-     *
-     * @param runtime - The entity runtime whose entities are shown.
-     * @param shouldSync - Optional chunk eligibility rule for derived metadata and properties.
-     * @returns The broadcasts, which the caller awaits with the rest of its tick.
+     * Forgets the actor of a store entity the runtime removed. Clients are told from its leaving
+     * entry in the change log.
      */
-    public sync(runtime: EntityRuntime, shouldSync?: (position: EntityPosition) => boolean): readonly Promise<void>[] {
-        const world = this.options.world();
-        if (world === undefined) return [];
-        const content = world.getServer().getContent();
-        const sends: Promise<void>[] = [];
-
-        for (const entity of runtime.entities()) {
-            const actor = this.actors.get(entity.id);
-            if (actor === undefined) continue;
-            const isTicking = shouldSync === undefined || shouldSync(entity.position);
-
-            const health = entity.instance.attributes.get('health');
-            if (health !== undefined) actor.showHealth(health.current);
-            if (actor.writeEquipment(content)) world.entityEquipmentChanged(actor);
-
-            const ownerChanged = actor.shownOwner !== entity.body.owner;
-            if (ownerChanged) actor.shownOwner = entity.body.owner;
-            let metadataChanged = false;
-            if (isTicking || ownerChanged) {
-                const leashHolderId = runtime.leashHolderIdOf(entity.id);
-                // Most ticks nothing a projection reads has changed, so it is not built at all.
-                const inputs = actorMetadataInputs(entity, leashHolderId);
-                if (!sameActorMetadataInputs(actor.shownInputs, inputs)) {
-                    actor.shownInputs = inputs;
-                    const projection = actor.projectMetadata(leashHolderId);
-                    metadataChanged = !sameActorMetadataProjection(actor.shownProjection, projection);
-                    if (metadataChanged) {
-                        applyActorMetadataProjection(actor, projection);
-                        actor.shownProjection = projection;
-                    }
-                }
-            }
-
-            // After the projection, which knows nothing of what a player's components keep.
-            if (actor.showPlayerState()) metadataChanged = true;
-
-            let propertiesChanged = false;
-            if (isTicking) {
-                const properties = actor.getSyncedProperties();
-                propertiesChanged = !sameSyncedProperties(actor.shownProperties, properties);
-                if (propertiesChanged) actor.shownProperties = properties;
-            }
-            if (metadataChanged || propertiesChanged) sends.push(world.sendActorMetadata(actor));
-
-            const move = this.showPose(world, actor);
-            if (move !== undefined) sends.push(move);
-        }
-        return sends;
+    public remove(entity: DataEntity): void {
+        const actor = this.actors.get(entity.id);
+        this.actors.delete(entity.id);
+        if (actor !== undefined && isDroppedItem(entity)) this.droppedItems--;
     }
 
     /** Forgets every actor, for a world that is closing. */
     public clear(): void {
         this.actors.clear();
         this.droppedItems = 0;
-    }
-
-    /** Sends a move when the entity stands or faces anywhere new. */
-    private showPose(world: World, actor: StoreActor): Promise<void> | undefined {
-        const entity = actor.entity;
-        const pose = StoreActor.poseOf(entity);
-        const shown = actor.shownPose;
-        const still =
-            Math.abs(shown.x - pose.x) < MOVEMENT_EPSILON &&
-            Math.abs(shown.y - pose.y) < MOVEMENT_EPSILON &&
-            Math.abs(shown.z - pose.z) < MOVEMENT_EPSILON &&
-            shown.yaw === pose.yaw &&
-            shown.pitch === pose.pitch;
-        const teleport = entity.body.teleports !== actor.shownTeleports;
-        actor.shownTeleports = entity.body.teleports;
-        if (still) return undefined;
-
-        actor.shownPose = pose;
-        return world.broadcastMove(actor, teleport);
-    }
-
-    private failed(what: string, error: unknown): void {
-        this.options.report(`could not ${what} a store entity to its clients: ${String(error)}`);
     }
 }

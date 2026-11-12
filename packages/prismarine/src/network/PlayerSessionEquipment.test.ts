@@ -14,7 +14,6 @@ import ContainerEntry from '../inventory/ContainerEntry';
 import HumanInventory from '../inventory/HumanInventory';
 import { Item } from '../item/Item';
 import { stub } from '../testing/stub.test.helper';
-import type { ShownPlayer } from '../world/ShownPlayer';
 import { stubPlayerPort } from '../testing/playerPort.test.helper';
 import Device from '../utils/Device';
 import { AddPlayerPacket, MobArmorEquipmentPacket, MobEquipmentPacket } from '@jsprismarine/protocol';
@@ -22,7 +21,9 @@ import type { AddPlayerPayload } from '@jsprismarine/protocol';
 import type { ProtocolContext } from '@jsprismarine/protocol';
 import UUID from '@jsprismarine/protocol/wire/structures/UUID';
 import { Metadata } from '@jsprismarine/protocol/wire/structures/Metadata';
-import type { Position } from '../world/Position';
+import { SyncedProperties } from '@jsprismarine/protocol/wire/structures/SyncedProperties';
+import { firstSightPackets } from './replica/firstSight';
+import type { FirstSight } from './replica/firstSight';
 import type ClientConnection from './ClientConnection';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import InventoryContentPacket from '@jsprismarine/protocol/packet/InventoryContentPacket';
@@ -94,27 +95,35 @@ const equippedHuman = () => {
     );
 };
 
-const position = () => stub<Position>({ getX: () => 1, getY: () => 64, getZ: () => 2 });
-
 /** The player being shown, with the pieces `sendAddPlayer` reads. */
-const shownPlayer = ({ op = false, device = null }: { op?: boolean; device?: Device | null } = {}) =>
-    stub<ShownPlayer>({
-        metadata: new Metadata(),
-        isFlying: () => false,
-        getEquipment: () => ({}),
-        getStatusEffects: () => [],
-        getUUID: () => UUID.fromRandom(),
-        getRuntimeId: () => 7n,
-        getName: () => 'Shown',
-        getPosition: position,
-        pitch: 0,
-        yaw: 0,
+/** A player's first sight, as replication builds it from the replica and the player's session. */
+const shownPlayer = ({ op = false, device = null }: { op?: boolean; device?: Device | null } = {}): FirstSight => ({
+    kind: 'player',
+    runtimeId: 7n,
+    view: {
+        identifier: 'minecraft:player',
+        pose: { x: 0, y: 64, z: 0, yaw: 0, pitch: 0 },
+        velocity: { x: 0, y: 0, z: 0 },
+        onGround: true,
+        metadata: { flags: [], properties: [] },
+        health: { current: 20, max: 20 },
+        properties: new SyncedProperties(),
+        statusEffects: [],
+        equipment: {}
+    },
+    metadata: new Metadata(),
+    player: {
         headYaw: 0,
+        handSlot: 0,
+        sprinting: false,
         gamemode: Gametype.SURVIVAL,
-        device,
-        platformChatId: '',
-        isOp: () => op
-    });
+        flying: false,
+        air: 300,
+        breathing: true
+    },
+    identity: { uuid: UUID.fromRandom(), name: 'Shown', platformChatId: '', device, op },
+    equipment: {}
+});
 
 describe('network', () => {
     describe('PlayerSession', () => {
@@ -233,13 +242,9 @@ describe('network', () => {
             });
         });
 
-        describe('sendAddPlayer', () => {
-            const spawn = async (shown: ShownPlayer): Promise<AddPlayerPayload> => {
-                const { session, sent } = sessionFor(stubPlayerPort({ getRuntimeId: () => 1n }));
-
-                await session.sendAddPlayer(shown);
-
-                const [packet] = sent;
+        describe("a player's first sight", () => {
+            const spawn = async (shown: FirstSight): Promise<AddPlayerPayload> => {
+                const [packet] = firstSightPackets(shown, { protocolVersion: 2193 });
                 expect(packet).toBeInstanceOf(AddPlayerPacket);
                 if (!(packet instanceof AddPlayerPacket)) throw new Error('AddPlayerPacket was not sent first');
                 const data = packet.getPacketData();

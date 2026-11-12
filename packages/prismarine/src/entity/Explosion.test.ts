@@ -91,7 +91,6 @@ const scene = ({ griefing = true, solid = false, block = '', content = emptyCont
         getServer: () => server,
         sendActorEvent: async () => {},
         sendActorSound: async () => {},
-        sendActorMetadata: async () => {},
         sendWorldEvent: async (_at: unknown, event: LevelEvent) => void effects.push(event),
         broadcastMove: async () => {},
         playNamedSound: () => {},

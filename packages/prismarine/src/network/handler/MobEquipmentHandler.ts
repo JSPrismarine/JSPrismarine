@@ -50,8 +50,8 @@ export default class MobEquipmentHandler implements InputLaneHandler<MobEquipmen
             return;
         }
 
-        // The players that see the sender are shown the stack now in its hand by
-        // `StoreActors.sync`, which reads the inventory each tick, with the armor and the off hand.
+        // The players that see the sender are shown the stack now in its hand by replication,
+        // from the logged hand slot, with the armor and the off hand.
         session.getPlayer().getInventory().setHandSlot(data.hotbarSlot);
     }
 }

@@ -727,13 +727,13 @@ const playerAt = (world: World, x: number, z: number, uuid?: string): PlayerSess
     return player;
 };
 
-/** What the fixture records instead of putting it on a wire. */
+/**
+ * What the fixture records instead of putting it on a wire. Moves and metadata are replicated
+ * from the change log, which `NetworkWorldReplicatorEntities.test.ts` covers.
+ */
 interface Broadcasts {
-    readonly moved: string[];
     readonly actorSounds: Array<{ identifier: string; entityId: bigint; sound: LevelSoundEvent }>;
     readonly actorEffects: Array<{ identifier: string; entityId: bigint; effect: ActorEvent }>;
-    /** The entities whose changed metadata the world fanned out, which is a `SetActorData` each. */
-    readonly metadataChanged: string[];
 }
 
 /**
@@ -757,7 +757,6 @@ const liveWorld = (
         world.sealChangeTick();
     };
     const broadcasts: Broadcasts = {
-        moved: [],
         get actorSounds() {
             seal();
             return heard.actorSounds;
@@ -765,8 +764,7 @@ const liveWorld = (
         get actorEffects() {
             seal();
             return heard.actorEffects;
-        },
-        metadataChanged: []
+        }
     };
     let content: ServerContent | undefined;
     // Keyed the way `World` keys its own map. A bigint here is not a type error, because
@@ -814,7 +812,6 @@ const liveWorld = (
 
     world.attachChangeSink({
         ...NULL_WORLD_CHANGE_SINK,
-        entityMoved: (entity) => void broadcasts.moved.push(entity.getType()),
         tickSealed: ({ entries }) => {
             for (const entry of entries) {
                 if (entry.kind !== 'occurrence') continue;
@@ -832,9 +829,6 @@ const liveWorld = (
                         effect: entry.data.event
                     });
             }
-        },
-        entityMetadataChanged: async (entity) => {
-            broadcasts.metadataChanged.push(entity.getType());
         }
     });
 
@@ -1705,7 +1699,6 @@ describe('the data-driven entity runtime over a live world', () => {
             const body = live.actors.actorOf(cow.id);
             expect(body?.getPosition().getX()).toBeCloseTo(cow.position.x, 5);
             expect(body?.getPosition().getZ()).toBeCloseTo(cow.position.z, 5);
-            expect(broadcasts.moved).toContain('minecraft:cow');
         });
     });
 
@@ -2066,7 +2059,7 @@ describe('the data-driven entity runtime over a live world', () => {
             const actor = live.actors.actorOf(cow.id);
             if (actor === undefined) throw new Error('the cow has no actor');
 
-            expect(world.shownActors()).toContain(actor);
+            expect([...world.actors()]).toContain(actor);
             expect(world.getActor(BigInt(cow.id))).toBe(actor);
 
             live.runtime.hurt(cow, undefined, 'entity_attack', 3);
@@ -3042,16 +3035,14 @@ describe('the data-driven entity runtime over a live world', () => {
             expect(broadcasts.actorSounds).toEqual([]);
         });
 
-        it('sends new actor metadata when the beam target moves at runtime', async () => {
+        it('projects a beam target moved at runtime into the actor metadata', async () => {
             const crystal = live.runtime.spawn('minecraft:ender_crystal', { x: 0.5, y: GROUND_Y, z: 0.5 });
             if (crystal === undefined) throw new Error('the fixture declares no minecraft:ender_crystal');
             await run(1);
-            broadcasts.metadataChanged.length = 0;
 
             crystal.body.beamTarget = { x: 0, y: 128, z: 0 };
             await live.tick(2);
 
-            expect(broadcasts.metadataChanged).toContain('minecraft:ender_crystal');
             const body = live.actors.actorOf(crystal.id);
             expect(body?.metadata.getPropertyValue(ActorDataID.BLOCK_TARGET)).toEqual(new Vector3(0, 128, 0));
         });

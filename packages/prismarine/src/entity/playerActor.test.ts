@@ -112,7 +112,7 @@ describe("a player's actor", () => {
 
         expect(session.getActor()).toBeUndefined();
         expect(world.getActor(player.getRuntimeId())).toBeNull();
-        expect(world.shownActors()).toEqual([]);
+        expect([...world.actors()]).toEqual([]);
         expect(player.getHealth()).toBe(20);
     });
 });

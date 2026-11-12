@@ -30,8 +30,6 @@ export const storeWorld = (dimension: DimensionType = Dimensions.Overworld): Sto
         getName: () => dimension.name,
         getServer: () => server,
         getDimension: () => dimension,
-        showActor: async () => {},
-        hideActor: async () => {},
         storeEntityChunkChanged: () => {}
     });
     return { world, server, live };

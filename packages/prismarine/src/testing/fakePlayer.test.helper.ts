@@ -14,6 +14,7 @@ import type { Config } from '../config/Config';
 import type ClientConnection from '../network/ClientConnection';
 import Codec2193 from '../network/codec/Codec2193';
 import { createConnectedPlayer } from '../network/createConnectedPlayer';
+import { NetworkWorldReplicator } from '../network/NetworkWorldReplicator';
 import type { PermissionManager } from '../permission/PermissionManager';
 import type { BlockMining } from '../world/BlockMining';
 import type { ChunkScheduler } from '../world/ChunkScheduler';
@@ -32,6 +33,7 @@ import { liveTestEntities } from './entityServer';
 import { fakeLevel } from './level';
 import { sessionsWith } from './playerSession.test.helper';
 import { stub } from './stub.test.helper';
+import { replicateEntities } from './changeTicks.test.helper';
 
 /** What a test says about the player's surroundings. */
 export interface FakePlayerOptions {
@@ -144,12 +146,6 @@ export const fakePlayer = ({ underwater = false, worlds: others = [], name = 'Te
             entities.entityRuntime(Dimensions.Overworld.name).actors.actorOf(Number(runtimeId)) ?? null,
         viewerOf: (runtimeId) => (runtimeId === player.getRuntimeId() ? session : undefined),
         getViewers: () => [session],
-        showActor: async () => {},
-        hideActor: async () => {},
-        // The player's own copy, which is the one a test of a single player reads.
-        sendActorMetadata: async (actor) => {
-            if (actor.getRuntimeId() === player.getRuntimeId()) await session.sendMetadataFor(actor);
-        },
         storeEntityChunkChanged: () => {},
         // Out of the store, as a real world takes a leaving player's entity out of its store.
         removePlayer: async (leaving) => {
@@ -230,7 +226,26 @@ export const fakePlayer = ({ underwater = false, worlds: others = [], name = 'Te
     const live = entities.entityRuntime(Dimensions.Overworld.name);
     enterStore(live.runtime, entities.players, player);
 
+    // The world's replication, which reads each tick of the store's log as it seals.
+    const replicator = new NetworkWorldReplicator(world, server);
+    live.runtime.store.onSealed((sealed) => replicator.tickSealed(sealed));
+    /**
+     * One tick of the store's log around `work`, then what replication sends of it, as a world's
+     * tick runs them.
+     */
+    const logTick = async (work: () => Promise<void>): Promise<void> => {
+        live.runtime.store.beginTick();
+        try {
+            await work();
+        } finally {
+            live.runtime.store.sealTick();
+        }
+        await replicateEntities(replicator);
+    };
+
     return {
+        replicator,
+        logTick,
         session,
         player,
         server,

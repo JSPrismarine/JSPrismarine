@@ -31,3 +31,23 @@ export const beginMeasuredChangeTick = (world: WorldTicks): void => {
     world.sealChangeTick();
     world.beginChangeTick();
 };
+
+/** The phases a world runs after its tick seals that send entities and what happened to them. */
+interface ReplicationPhases {
+    flushEntities(): Promise<void>;
+    flushOccurrences(): Promise<void>;
+    flushDepartures(): Promise<void>;
+    flushOwnerViews(): Promise<void>;
+}
+
+/**
+ * Sends what the sealed ticks a replicator read changed in its entities, in the order
+ * `World.replicateTick` runs the phases: the entities that entered and were written, the
+ * occurrences, the entities that left, and the owners' views.
+ */
+export const replicateEntities = async (replicator: ReplicationPhases): Promise<void> => {
+    await replicator.flushEntities();
+    await replicator.flushOccurrences();
+    await replicator.flushDepartures();
+    await replicator.flushOwnerViews();
+};

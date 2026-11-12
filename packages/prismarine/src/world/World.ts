@@ -47,7 +47,7 @@ import type { Breaker } from './blockBreak';
 import { EYE_HEIGHT } from '../entity/playerEyes';
 import { notifyContentNeighbors } from './neighborContent';
 import CoordinateUtils from './CoordinateUtils';
-import type { ShownActor } from './ShownActor';
+import type { ShownActor, ShownEntity } from './ShownActor';
 import { byRuntimeId } from './runtimeIdOrder';
 import type { NamedSoundOptions, WorldChangeSink } from './WorldChangeSink';
 import { NULL_WORLD_CHANGE_SINK } from './WorldChangeSink';
@@ -1020,7 +1020,7 @@ export class World implements Service {
         } finally {
             store.sealTick();
         }
-        await this.replicateTick();
+        await this.replicateTick(tick);
     }
 
     /**
@@ -1088,7 +1088,8 @@ export class World implements Service {
 
     /**
      * The phases of one tick, which {@link World.update} runs inside an open log tick, up to the
-     * entity tracking. The phases that send the tick's changes follow the seal.
+     * entity updates. The phases that send the tick's changes, the entity tracking among them,
+     * follow the seal.
      */
     private async tickWorld(tick: number): Promise<void> {
         // A tick already in flight when the shutdown starts would otherwise run on through
@@ -1204,25 +1205,6 @@ export class World implements Service {
         } finally {
             endDataEntitiesProfile?.();
         }
-
-        // Straight after the updates that changed them, and before anything else can add a body
-        // whose attributes have not been touched yet. Read again rather than reused: the spawn
-        // cycle above has put bodies in the world since the list was taken.
-        const endAttributesProfile = startProfile?.(`World.entityAttributes:${this.name}`);
-        try {
-            await this.flushEntityAttributes(this.actors());
-        } finally {
-            endAttributesProfile?.();
-        }
-
-        // After everything has moved but before the movement goes out, so an entity that came
-        // into range this tick is spawned before the first packet that says it moved.
-        const endTrackingProfile = startProfile?.(`World.entityTracking:${this.name}`);
-        try {
-            await this.updateTracking(tick);
-        } finally {
-            endTrackingProfile?.();
-        }
     }
 
     /**
@@ -1230,12 +1212,21 @@ export class World implements Service {
      * tick's change log, so the block changes come from the sealed tick
      * ([ADR 0016](../../../../docs/adr/0016-replication-reads-the-change-log.md)).
      */
-    private async replicateTick(): Promise<void> {
+    private async replicateTick(tick: number): Promise<void> {
         if (this.closing) return;
 
         const startProfile = profileSpanStarter(this.server);
 
-        // First, so what was said while the tick ran still reaches a client ahead of the block
+        // First, so an entity that entered is shown before anything is said about it or happens
+        // to it, and its equipment, metadata and health go out ahead of the movement.
+        const endEntitiesProfile = startProfile?.(`World.entities:${this.name}`);
+        try {
+            await this.changes.flushEntities();
+        } finally {
+            endEntitiesProfile?.();
+        }
+
+        // Next, so what was said while the tick ran still reaches a client ahead of the block
         // changes and the movement, as it did when each was sent the moment it happened.
         const endOccurrencesProfile = startProfile?.(`World.occurrences:${this.name}`);
         try {
@@ -1244,12 +1235,31 @@ export class World implements Service {
             endOccurrencesProfile?.();
         }
 
+        // After the occurrences, so an event about an entity that left, such as a killing blow's
+        // hurt flash, reaches the clients tracking it before it is taken away.
+        const endDeparturesProfile = startProfile?.(`World.departures:${this.name}`);
+        try {
+            await this.changes.flushDepartures();
+        } finally {
+            endDeparturesProfile?.();
+        }
+
         // Next, so a trade's new offers follow the trade as closely as a send after the seal can.
         const endOwnerViewsProfile = startProfile?.(`World.ownerViews:${this.name}`);
         try {
             await this.changes.flushOwnerViews();
         } finally {
             endOwnerViewsProfile?.();
+        }
+
+        // After the departures, since a pass hides whatever the replica no longer holds, and
+        // before the movement goes out, so an entity that came into range this tick is spawned
+        // before the first packet that says it moved.
+        const endTrackingProfile = startProfile?.(`World.entityTracking:${this.name}`);
+        try {
+            await this.updateTracking(tick);
+        } finally {
+            endTrackingProfile?.();
         }
 
         // After physics and after the entities, both of which change blocks, so a tick's block
@@ -1891,27 +1901,6 @@ export class World implements Service {
                 type: entity.getType()
             }
         });
-    }
-
-    /**
-     * Tells everyone watching that an entity now looks different.
-     * @param {ShownActor} entity - Who changed.
-     */
-    public async sendActorMetadata(entity: ShownActor): Promise<void> {
-        await this.changes.entityMetadataChanged(entity);
-    }
-
-    /**
-     * Tells everyone watching that an entity is holding or wearing something new.
-     *
-     * Called from `entity/data/storeActors.ts`, which has already dropped the writes that
-     * changed nothing.
-     * @param {ShownActor} entity - Whose equipment changed.
-     */
-    public entityEquipmentChanged(entity: ShownActor): void {
-        void this.changes
-            .entityEquipmentChanged(entity)
-            .catch((error: unknown) => this.server.getLogger().error(error));
     }
 
     /**
@@ -3660,37 +3649,6 @@ export class World implements Service {
     }
 
     /**
-     * Sends whatever changed about each entity's attributes this tick, and forgets it.
-     *
-     * Mirrors {@link World.flushMovement}: the entities record what changed as they change it,
-     * and the reporting happens once, here, rather than a packet per write. Health is the one
-     * that matters - a mob being hurt three times in a tick is one number to send, not three.
-     *
-     * Players are skipped on purpose. They drain their own dirty set in `PlayerSession`, which
-     * sends them things a mob has no equivalent of - the hunger and experience bars - and doing
-     * it here as well would send every one of those twice.
-     * @param {ShownActor[]} entities - Everything in the world, from the top of the tick.
-     */
-    private async flushEntityAttributes(entities: Iterable<ShownActor>): Promise<void> {
-        const updates: Promise<void>[] = [];
-        for (const entity of entities) {
-            try {
-                if (entity.getType() === PLAYER_IDENTIFIER) continue;
-
-                const dirty = entity.attributes.getDirty();
-                if (dirty.length === 0) continue;
-
-                entity.attributes.clearDirty();
-                updates.push(this.changes.entityAttributesChanged(entity, dirty));
-            } catch (error: unknown) {
-                updates.push(Promise.reject(error));
-            }
-        }
-
-        await Promise.all(updates);
-    }
-
-    /**
      * Brings every player's set of visible entities in line with where they now are.
      *
      * On an interval rather than every tick because it is O(players x entities) and a pass
@@ -3702,7 +3660,7 @@ export class World implements Service {
     private async updateTracking(tick: number): Promise<void> {
         if (tick % this.server.getConfig().getEntityTrackingInterval() !== 0) return;
 
-        await this.changes.reconcile(this.shownActors());
+        await this.changes.reconcile();
     }
 
     /**
@@ -3798,29 +3756,13 @@ export class World implements Service {
     }
 
     /**
-     * Every actor this world shows its clients: the store's entities.
+     * Every entity this world shows its clients, as replication holds it from the change log.
      *
      * What tracking reads, and it has to be every one, because a tracker hides anything it
      * holds that is missing from the set.
      */
-    public shownActors(): ShownActor[] {
-        return Array.from(this.dataEntities().actors.all());
-    }
-
-    /**
-     * Shows a store entity that just entered this world to the clients in range.
-     * @param actor - The store entity, as the network layer reads it.
-     */
-    public async showActor(actor: ShownActor): Promise<void> {
-        await this.changes.entityAdded(actor);
-    }
-
-    /**
-     * Takes a store entity that just left this world off every client that was shown it.
-     * @param actor - The store entity, as the network layer reads it.
-     */
-    public async hideActor(actor: ShownActor): Promise<void> {
-        await this.changes.entityRemoved(actor);
+    public shownEntities(): readonly ShownEntity[] {
+        return this.changes.shownEntities();
     }
 
     /**

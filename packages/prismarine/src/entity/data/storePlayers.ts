@@ -4,13 +4,14 @@
  * A store player is a {@link StorePlayer}: the `minecraft:player` entity, which holds the
  * position, the look, the health, the status effects and the metadata its components project,
  * and beside it the parts the store does not model yet, such as the identity, the inventory, the
- * game mode and the head yaw. {@link StorePlayerActor} shows it through
- * `PlayerSession.sendAddPlayer`, the abilities, the armor and the player list entry
- * ({@link ShownPlayer}).
+ * game mode and the head yaw. {@link StorePlayerActor} is how its own session and the world code
+ * read it ({@link ShownPlayer}).
  *
- * Every move, metadata change and equipment change reaches clients through `StoreActors.sync`,
- * as a mob's does, at most one move a tick. Removal from the store hides the player from every
- * client that was shown it, which covers a leave and a dimension change.
+ * Other clients are shown it from the change log, as a mob is: its entity enters the log with
+ * what they are shown of it beside its saved form (`entity/playerShown.ts`), and every move,
+ * metadata change and equipment change after that is replicated from the entries, at most one
+ * move a tick. Its leaving entry hides it from every client that was shown it, which covers a
+ * leave and a dimension change.
  *
  * A store player outlives its entity (`entity/storePlayer.ts`): {@link enterStore} gives it an
  * entity in a store under the id it was filed by, and {@link leaveStore} takes the entity out
@@ -20,8 +21,7 @@
  * Every live player is a store player, built at the login and entered at
  * `SetLocalPlayerAsInitialized` (`World.addPlayer`). Before that, and between the two stores of a
  * dimension change, it is in no store, and its own client is shown it through a
- * {@link DetachedPlayerView}. Slice 7 replaces the comparisons in `sync` with replication from the
- * change log.
+ * {@link DetachedPlayerView}.
  */
 import type { EntityPosition } from '@jsprismarine/entities';
 import { Gametype } from '@jsprismarine/minecraft';
@@ -32,15 +32,10 @@ import { SyncedProperties } from '@jsprismarine/protocol/wire/structures/SyncedP
 import type Skin from '@jsprismarine/protocol/wire/structures/skin/Skin';
 import type UUID from '@jsprismarine/protocol/wire/structures/UUID';
 
-import type PlayerSession from '../../network/PlayerSession';
 import type Device from '../../utils/Device';
 import type { ShownPlayer } from '../../world/ShownPlayer';
-import { PLAYER_TRACKING_RANGE_CHUNKS } from '../../world/ShownPlayer';
 import type { PortalRule } from '../../world/portal/rules';
 import type { World } from '../../world/World';
-import { sameEquipmentItems } from '../equipment';
-import { breathWorthSending } from '../playerBreath';
-import type { ShownBreath } from '../playerBreath';
 import { mayFlyIn } from '../playerComponents';
 import { clientOwnsMovement, PLAYER_IDENTIFIER } from '../playerOverlay';
 import { PORTAL_COOLDOWN_TICKS, PORTAL_TRANSITION_TICKS } from '../PortalContact';
@@ -193,7 +188,11 @@ export class StorePlayerActor extends StoreActor implements ShownPlayer {
      * None: other clients were never sent a legacy player's attributes, and its own client is
      * sent them by its session.
      */
-    public override readonly attributes = new Attributes([]);
+    public override get attributes(): Attributes {
+        return this.noAttributes;
+    }
+
+    private readonly noAttributes = new Attributes([]);
 
     /**
      * @param player - The store player behind the actor.
@@ -205,46 +204,23 @@ export class StorePlayerActor extends StoreActor implements ShownPlayer {
         world: World,
         blows: StoreActorBlows
     ) {
-        super(entity, world, undefined, blows);
-        this.showPlayerState();
+        super(entity, world, blows);
     }
 
     /**
-     * The breath the player's viewers were last sent, or undefined before the first projection;
-     * see {@link StorePlayerActor.showPlayerState}.
+     * The projection of the entity's components, then what the player's components decide about
+     * its metadata, which the projection knows nothing of: air and breathing, which the breath
+     * system keeps, sprinting, and whether it may fly, which its game mode decides, as a legacy
+     * player writes them into its own metadata.
      */
-    private shownBreath: ShownBreath | undefined;
-
-    /**
-     * Writes what the player's components decide about its metadata: air and breathing, which
-     * the breath system keeps, sprinting, and whether it may fly, which its game mode decides, as
-     * a legacy player writes them into its own metadata. Called after the projection of the
-     * entity's components, which knows nothing of these, so these win.
-     *
-     * @returns Whether viewers should be sent the metadata again: sprinting or flight changed, or
-     *   the breath moved far enough to show, as `breathWorthSending` judges it for a legacy player.
-     */
-    public override showPlayerState(): boolean {
+    public override get metadata(): Metadata {
+        const metadata = super.metadata;
         const components = this.player.getComponents();
-        const { metadata } = this;
-        const sprinting = components.get('movement.sprinting');
-        const canFly = mayFlyIn(components.get('abilities.gamemode'));
-        const changed = metadata.sprinting !== sprinting || metadata.canFly !== canFly;
-        metadata.setSprinting(sprinting);
-        metadata.setCanFly(canFly);
-
-        const breath = this.breathOf();
-        metadata.setAir(breath.air);
-        metadata.setBreathing(breath.breathing);
-        const breathMoved =
-            this.shownBreath === undefined || breathWorthSending(this.shownBreath, breath, components.maxAir());
-        if (breathMoved) this.shownBreath = breath;
-        return changed || breathMoved;
-    }
-
-    private breathOf(): ShownBreath {
-        const components = this.player.getComponents();
-        return { air: components.get('vitals.air'), breathing: components.get('vitals.breathing') };
+        metadata.setSprinting(components.get('movement.sprinting'));
+        metadata.setCanFly(mayFlyIn(components.get('abilities.gamemode')));
+        metadata.setAir(components.get('vitals.air'));
+        metadata.setBreathing(components.get('vitals.breathing'));
+        return metadata;
     }
 
     /** Claims the player's one update of a tick, which an actor in another world shares. */
@@ -316,22 +292,9 @@ export class StorePlayerActor extends StoreActor implements ShownPlayer {
         return this.player.headYaw;
     }
 
-    /** @inheritdoc */
-    public override getTrackingRange(): number {
-        return PLAYER_TRACKING_RANGE_CHUNKS;
-    }
-
-    /** A player appears to other clients as a player, not as a generic actor. */
-    public override async spawnTo(session: PlayerSession): Promise<void> {
-        await session.sendAddPlayer(this);
-    }
-
-    /** Reads the inventory's equipment. @returns Whether a client would see different equipment. */
-    public override writeEquipment(): boolean {
-        const worn = this.player.getInventory().getEquipment();
-        if (sameEquipmentItems(this.equipment, worn)) return false;
-        this.equipment = worn;
-        return true;
+    /** What the player holds and wears, from its inventory. */
+    public override getEquipment(): ViewableEquipment {
+        return this.player.getInventory().getEquipment();
     }
 
     /** @inheritdoc */
@@ -456,16 +419,6 @@ export class DetachedPlayerView implements ShownPlayer {
     /** @inheritdoc */
     public isOnGround(): boolean {
         return this.player.isOnGround();
-    }
-
-    /** @inheritdoc */
-    public getTrackingRange(): number {
-        return PLAYER_TRACKING_RANGE_CHUNKS;
-    }
-
-    /** A player appears to other clients as a player, which a world shows only once it holds it. */
-    public async spawnTo(session: PlayerSession): Promise<void> {
-        await session.sendAddPlayer(this);
     }
 
     /** @inheritdoc */

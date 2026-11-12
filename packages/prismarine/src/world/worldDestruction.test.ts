@@ -23,7 +23,7 @@ import { inertEntityRuntime } from '../testing/entityServer';
 import { stub } from '../testing/stub.test.helper';
 import type { ContentPosition } from '../content/world/adapter';
 import type PlayerSession from '../network/PlayerSession';
-import type { ShownActor } from './ShownActor';
+import type { StoreActor } from '../entity/data/storeActors';
 import { explode } from '../entity/Explosion';
 import { ItemActor as ItemEntity } from '../entity/data/itemActor';
 import type { ServerContent } from '../content/ServerContent';
@@ -39,6 +39,7 @@ import { contentBlockTickHandlers } from './blockTicks';
 import { fakeLevel } from '../testing/level';
 import type GameRuleManager from './GameRuleManager';
 import type { GameRuleEntry } from './GameRuleManager';
+import { collectAddedActors } from '../testing/addedActors.test.helper';
 
 /**
  * Every path that destroys a block, over a world with the real content behind it.
@@ -212,7 +213,7 @@ const fixturePalette = (): BlockPalette =>
 interface Fixture {
     world: World;
     chunk: Chunk;
-    spawned: ShownActor[];
+    spawned: StoreActor[];
     /** The world's game rules, by the name they were set under. A test writes into it. */
     rules: Map<string, GameRuleEntry>;
 }
@@ -224,7 +225,7 @@ const liveWorld = (
     entityRuntimes: EntityRuntimes
 ): Fixture => {
     const chunk = new Chunk(0, 0);
-    const spawned: ShownActor[] = [];
+    const spawned: StoreActor[] = [];
     const rules = new Map<string, GameRuleEntry>();
 
     const world: World = Object.assign(Object.create(World.prototype), {
@@ -260,7 +261,6 @@ const liveWorld = (
         removeEntity: async () => {},
         playNamedSound: () => {},
         spawnNamedParticle: () => {},
-        showActor: async (actor: ShownActor) => void spawned.push(actor),
         server: {
             getConfig: () => ({ getDifficulty: () => Difficulty.NORMAL, getProximityBroadcast: () => true }),
             // Block destruction and blasts must share the fixture's seeded world RNG.
@@ -280,6 +280,7 @@ const liveWorld = (
     });
 
     world.attachChangeSink(NULL_WORLD_CHANGE_SINK);
+    collectAddedActors(spawned);
     return { world, chunk, spawned, rules };
 };
 
@@ -301,7 +302,7 @@ const place = (chunk: Chunk, at: ContentPosition, identifier: string, states: Re
 describe('a block the world destroyed', () => {
     let world: World;
     let chunk: Chunk;
-    let spawned: ShownActor[];
+    let spawned: StoreActor[];
     let rules: Map<string, GameRuleEntry>;
     let content: ServerContent;
     let random: RandomSource;
