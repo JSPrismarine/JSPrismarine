@@ -1322,7 +1322,9 @@ export default class PlayerSession {
      * receiving it and nothing else - so pushing one player's settings to every session made
      * a single spectator set `worldImmutable` on everybody else's client. It goes to this
      * client alone. `UpdateAbilitiesPacket` does carry `targetActorUniqueId`, so it is
-     * genuinely about this player and belongs with everyone who can see them.
+     * genuinely about this player and belongs with everyone who can see them: the clients that
+     * track this player's entity. A client in another world, or one that has not spawned the
+     * player yet, has no actor for it, and gets the abilities with the player's first sight.
      */
     public announceSettings(): Promise<void> {
         return allSent([
@@ -1336,7 +1338,7 @@ export default class PlayerSession {
             ...this.server
                 .getSessionManager()
                 .getSessions()
-                .filter((session) => session !== this)
+                .filter((session) => session !== this && session.tracks(this.runtimeId))
                 .map(async (session) => session.sendAbilities(this.shown()))
         ]);
     }

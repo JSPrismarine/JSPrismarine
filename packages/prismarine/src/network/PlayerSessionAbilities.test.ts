@@ -144,11 +144,16 @@ describe('PlayerSession.sendAbilities', () => {
 });
 
 describe('PlayerSession.announceSettings', () => {
-    it('sends the adventure settings to its own client alone and the abilities to every client', async () => {
+    it('sends the adventure settings to its own client alone and the abilities to the clients that see it', async () => {
         const own = sessionFor(playerIn({ gamemode: Gametype.SPECTATOR }));
         const other = sessionFor(stub<ShownPlayer>({ gamemode: Gametype.SURVIVAL, getRuntimeId: () => 8n }));
+        // In another world, or not yet shown the player: it has no actor with that id.
+        const elsewhere = sessionFor(stub<ShownPlayer>({ gamemode: Gametype.SURVIVAL, getRuntimeId: () => 9n }));
+        Object.assign(other.session, { tracks: (runtimeId: bigint) => runtimeId === 7n });
+        Object.assign(elsewhere.session, { tracks: () => false });
         const server = stub<Server>({
-            getSessionManager: () => stub<SessionManager>({ getSessions: () => [own.session, other.session] })
+            getSessionManager: () =>
+                stub<SessionManager>({ getSessions: () => [own.session, other.session, elsewhere.session] })
         });
         Object.assign(own.session, { server });
 
@@ -163,5 +168,6 @@ describe('PlayerSession.announceSettings', () => {
         const [abilities] = other.sent;
         if (!(abilities instanceof UpdateAbilitiesPacket)) throw new Error('expected UpdateAbilitiesPacket');
         expect(abilities.targetActorUniqueId).toBe(7n);
+        expect(elsewhere.sent).toEqual([]);
     });
 });
