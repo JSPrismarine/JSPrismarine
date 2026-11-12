@@ -20,6 +20,6 @@ The encoded pass stays in memory until it commits. The count to watch is encoded
 
 `Database.write` in `@jsprismarine/leveldb` appends a batch of any size to the log as one record, so a pass can commit as one batch. A batch larger than the write buffer goes into the memtable whole and is flushed as one table, and a crash applies none of a batch whose record is incomplete. The call is synchronous today and its log is not synced by default. `Database.write` gains a per-call sync flag and an asynchronous commit that appends and syncs off the server thread, and no other write reaches the database while a commit is in flight.
 
-Three getters on `Chunk` hand out mutable state today (`getSubChunk`, `getOrCreateSubChunk` and `getBiomes`), and they have to stop before the hook is complete.
+`Chunk` hands out its sub chunks and biomes through read-only types (`ReadonlySubChunk`, `ReadonlyBlockStorage` and `ReadonlyChunkBiomes`), so a TypeScript caller writes through a method of `Chunk` or not at all. A generator or the provider builds sub chunks and a biome column and hands them to the chunk before it joins a world. The types are not copies, so a plain JavaScript caller can still write around the chunk. The pass counts such a write as `bypassedWrites` and logs it.
 
 The measurement could not establish how many chunks gameplay changes in an autosave interval. It is between none and every chunk a player keeps loaded, and the worst case is what the commit path has to carry.
