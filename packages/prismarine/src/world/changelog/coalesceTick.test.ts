@@ -80,7 +80,11 @@ describe('coalesceTick', () => {
             occurrence: 'actor-event',
             data: { entity: 1n, event: 2, data: 0 }
         };
-        const swing: ChangeEntry = { kind: 'occurrence', occurrence: 'animate', data: { entity: 1n, action: 1 } };
+        const swing: ChangeEntry = {
+            kind: 'occurrence',
+            occurrence: 'animate',
+            data: { entity: 1n, action: 1, data: 0, swingSource: null }
+        };
         const enter: ChangeEntry = { kind: 'membership', change: 'enter', entity: 3n, saved: { health: 4 } };
         const leave: ChangeEntry = { kind: 'membership', change: 'leave', entity: 1n, saved: { health: 0 } };
         const chunk: ChangeEntry = { kind: 'chunk', change: 'enter', x: 1, z: 1 };
