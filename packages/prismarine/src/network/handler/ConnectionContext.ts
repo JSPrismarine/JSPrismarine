@@ -70,6 +70,19 @@ export interface LoginServices {
     readonly bans: Pick<BanManager, 'isBanned'>;
     /** Where a login's player is built. */
     readonly players: JoinPreparation;
+    /**
+     * Takes a replaced connection's player out as that connection's next input, behind every
+     * input its client sent first, as a transport disconnect does. Kicked from the connection
+     * lane instead, the player left at once and the input step dropped what its client had
+     * already sent, so the record the new login reads lacked it.
+     *
+     * @param connection - The connection being replaced; its inputs are held under it.
+     * @param remove - Starts the removal, and takes the player out before it first awaits, as
+     *   `PlayerSession.kick` does.
+     * @returns Settles once the input step that applied the removal is over and the removal has
+     *   finished.
+     */
+    removeAsInput(connection: ClientConnection, remove: () => Promise<void>): Promise<void>;
 }
 
 /** What a handler of a connection with no player session is handed. */
