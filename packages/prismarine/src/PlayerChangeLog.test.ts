@@ -19,7 +19,7 @@ import { fakePlayer } from './testing/fakePlayer.test.helper';
 import type { ChangeEntry } from './world/changelog/ChangeEntry';
 
 /** A fake player in a real store, whose log is the one its writes reach. */
-const loggedPlayer = () => {
+const loggedPlayer = async () => {
     const fixture = fakePlayer();
     const { session, player, live } = fixture;
     player.gamemode = Gametype.SURVIVAL;
@@ -38,8 +38,10 @@ const loggedPlayer = () => {
     };
 
     // The store clears the breath the shipped `minecraft:breathable` keeps on a player's first
-    // tick, which appends one component entry; the cases below start after it.
+    // tick, which appends one component entry, and the player's first update starts its status
+    // effect clock, which appends one more; the cases below start after them.
     store.beginTick();
+    await session.getActor()?.update(0);
     live.runtime.tick(0);
     store.sealTick();
 
@@ -57,14 +59,14 @@ const fieldsOf = (entries: readonly ChangeEntry[]): string[] =>
 
 describe("a player's change log", () => {
     it('appends nothing while the player stands still with nothing to do', async () => {
-        const { tick } = loggedPlayer();
+        const { tick } = await loggedPlayer();
 
         // Past the four-second hunger clock and the one-second advancement check.
         for (let at = 1; at <= 100; at++) expect(await tick(at)).toEqual([]);
     });
 
     it('appends at most one entry per field a walking player changes in a tick', async () => {
-        const { session, player, tick } = loggedPlayer();
+        const { session, player, tick } = await loggedPlayer();
         let exhausting = 0;
 
         for (let at = 1; at <= 40; at++) {
@@ -86,7 +88,7 @@ describe("a player's change log", () => {
 
 describe("a player's movement belongs to its client", () => {
     it('logs a shove as one impulse occurrence and asks the client to take it', async () => {
-        const { session, player, sent, tick } = loggedPlayer();
+        const { session, player, sent, tick } = await loggedPlayer();
 
         const entries = await tick(1, async () => session.getActor()?.applyKnockback(1, 0, 0.4));
 
@@ -100,7 +102,7 @@ describe("a player's movement belongs to its client", () => {
     });
 
     it("moves a player the server moves as a teleport, and drops the client's stale reports", async () => {
-        const { session, sent } = loggedPlayer();
+        const { session, sent } = await loggedPlayer();
 
         await session.setPlayerPosition({ position: new Vector3(20, 70, 0), type: PositionMode.Teleport });
 
@@ -113,7 +115,7 @@ describe("a player's movement belongs to its client", () => {
 
 describe("a player's death keeps the entity", () => {
     it('commits a blow before the damage promise first waits', async () => {
-        const { session, player, server } = loggedPlayer();
+        const { session, player, server } = await loggedPlayer();
         const posted = vi.spyOn(server, 'post');
 
         const landing = session.getActor()?.damage(5, DamageCause.Generic);
@@ -128,7 +130,7 @@ describe("a player's death keeps the entity", () => {
     });
 
     it('keeps its runtime id and appends no membership entry through death and respawn', async () => {
-        const { session, player, roster, respawnRequests, tick } = loggedPlayer();
+        const { session, player, roster, respawnRequests, tick } = await loggedPlayer();
         const id = player.getRuntimeId();
 
         const death = await tick(1, async () => void (await session.getActor()?.damage(50, DamageCause.Generic)));

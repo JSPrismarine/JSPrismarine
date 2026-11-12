@@ -2350,14 +2350,12 @@ describe('the data-driven entity runtime over a live world', () => {
             live.runtime.merchant(villager)?.trade(0);
             const body = live.actors.actorOf(villager.id);
             live.persist();
-            if (body?.persistentNbt === null || body === undefined) throw new Error('nothing was saved');
-            const saved = JSON.parse(body.persistentNbt.getString('jsprismarine:entity', '')) as Record<
-                string,
-                unknown
-            >;
+            const tags = body?.persistentNbt;
+            if (tags === null || tags === undefined) throw new Error('nothing was saved');
+            const saved = JSON.parse(tags.getString('jsprismarine:entity', '')) as Record<string, unknown>;
             saved.merchant = { version: 1, experience: 'lots', offers: [] };
-            body.persistentNbt.addValue('jsprismarine:entity', new Types.StringVal(JSON.stringify(saved)));
-            const record = dataEntityRecordIn(body.persistentNbt);
+            tags.addValue('jsprismarine:entity', new Types.StringVal(JSON.stringify(saved)));
+            const record = dataEntityRecordIn(tags);
             if (record === undefined) throw new Error('the record could not be read back');
 
             const restored = live.runtime.restore(record, villager.position);

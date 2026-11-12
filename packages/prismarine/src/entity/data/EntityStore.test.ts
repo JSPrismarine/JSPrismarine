@@ -73,6 +73,12 @@ const WRITES: readonly {
     { field: 'invulnerable', write: ({ body }) => (body.invulnerable = true) },
     { field: 'fuseTicks', write: ({ body }) => (body.fuseTicks = 30) },
     { field: 'fireTicks', write: ({ body }) => (body.fireTicks = 80) },
+    { field: 'owner', write: ({ body }) => (body.owner = 7) },
+    // A new entity's clock starts again, as a new store actor's did, so no saved form holds it.
+    { field: 'statusEffectClock', write: ({ body }) => (body.statusEffectClock = { age: 40, tick: 9 }), saved: false },
+    { field: 'actorTags', write: ({ body }) => (body.actorTags = new Uint8Array([10, 0, 0])) },
+    { field: 'condition:in_water', write: ({ body }) => body.conditions.add('in_water') },
+    { field: 'condition:on_ground', write: ({ body }) => body.conditions.add('on_ground') },
     { field: 'projectileAge', write: ({ body }) => (body.projectileAge = 5), saved: false },
     { field: 'projectileStuck', write: ({ body }) => (body.projectileStuck = true), saved: false },
     {

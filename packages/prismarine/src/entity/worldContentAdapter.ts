@@ -159,8 +159,9 @@ export const worldEntityAccess = (options: WorldEntityAccessOptions): ContentEnt
             if (runtimeId !== 0 && data !== undefined) {
                 const spawned = loaded.dataEntities().actors.actorOf(runtimeId);
                 if (spawned !== undefined) {
-                    spawned.persistentNbt ??= new NBTTagCompound('');
-                    applyBlockEntityRecord(spawned.persistentNbt, data);
+                    const tags = spawned.persistentNbt ?? new NBTTagCompound('');
+                    applyBlockEntityRecord(tags, data);
+                    spawned.persistentNbt = tags;
                 }
             }
             return runtimeId;

@@ -23,9 +23,10 @@
  * answers them from the store and hands every effect back to it: a blow goes through the store's
  * damage pipeline, a shove onto the entity's body, a status effect or a tag into its component
  * state. It keeps no copy of the simulation. What it keeps beside the store is what the store
- * does not model yet: the actor record tags a save carries forward, the portal clock, and the
- * clock of the status effects. Slices 7 and 9 of the entity and tick re-architecture take those
- * over, with replication from the change log and travel as messages.
+ * does not model yet: the portal clock. Slice 9 of the entity and tick re-architecture takes it
+ * over, with travel as messages. The actor record tags a save carries forward and the clock of
+ * the status effects are logged fields of the entity's body, so replication can read them from
+ * the change log.
  */
 import { Vector3 } from '@jsprismarine/math';
 import type { EntityPosition } from '@jsprismarine/entities';
@@ -58,9 +59,10 @@ import {
     removeStatusEffectFromMap
 } from '../StatusEffect';
 import { effectHealthChange, tickStatusEffects } from '../StatusEffectTick';
+import { nbtBytesOf, nbtOfBytes } from '../../nbtBytes';
 import { healthAttributesOf } from './actorView';
 import type { ShownPose } from './actorView';
-import type { DataEntity } from './DataEntity';
+import type { DataEntity, StatusEffectClock } from './DataEntity';
 import type { DamageRoute } from './damagePipeline';
 import { isDroppedItem } from './droppedItems';
 import type { EntityRuntime } from './EntityRuntime';
@@ -115,17 +117,11 @@ export class StoreActor implements ShownActor {
     /** What a client is shown the actor holding and wearing, which {@link StoreActor.writeEquipment} keeps. */
     protected equipment: ViewableEquipment = {};
 
-    /**
-     * The actor record tags this server does not model, which the next save writes back, such
-     * as the actor's `UniqueID`. A save writes the entity's record into it first.
-     */
-    public persistentNbt: NBTTagCompound | null = null;
-
     private portalCooldown = 0;
     private portalContactState: PortalContact | undefined;
     private lastUpdatedTick = -1;
-    /** How many ticks the status effects have been ticked, the clock of an endless effect. */
-    private statusEffectAge = 0;
+    /** The tick of the last update that advanced the status effect clock, or -1 before the first. */
+    private clockTick = -1;
 
     public constructor(
         /** The store entity behind the actor. */
@@ -144,6 +140,22 @@ export class StoreActor implements ShownActor {
         this.shownProperties = this.getSyncedProperties();
         this.shownOwner = entity.body.owner;
         this.shownPose = StoreActor.poseOf(entity);
+    }
+
+    /**
+     * The actor record tags this server does not model, which the next save writes back, such
+     * as the actor's `UniqueID`. A save writes the entity's record into them first.
+     *
+     * They are kept in the store, as network NBT bytes in a logged field, so this answers a new
+     * compound on every read: change one by assigning it back.
+     */
+    public get persistentNbt(): NBTTagCompound | null {
+        const tags = this.entity.body.actorTags;
+        return tags === undefined ? null : nbtOfBytes(tags);
+    }
+
+    public set persistentNbt(tags: NBTTagCompound | null) {
+        this.entity.body.actorTags = tags === null ? undefined : nbtBytesOf(tags);
     }
 
     /** The entity as `/debug` lists it. */
@@ -458,7 +470,7 @@ export class StoreActor implements ShownActor {
      * once the contact is ready, and the status effects, whose harm and healing go through the
      * store.
      */
-    public async update(_tick: number): Promise<void> {
+    public async update(tick: number): Promise<void> {
         const cooldown = this.getPortalCooldown();
         if (cooldown > 0 && !this.holdsPortalCooldown()) this.setPortalCooldown(cooldown - 1);
 
@@ -475,13 +487,31 @@ export class StoreActor implements ShownActor {
             } else if (!ready && contact.hasExpired()) this.portalContactState = undefined;
         }
 
-        this.statusEffectAge++;
+        const age = this.advanceStatusEffectClock(tick);
         await tickStatusEffects({
             effects: this.entity.body.statusEffects,
-            age: this.statusEffectAge,
+            age,
             apply: (effect, clock) => this.applyStatusEffectTick(effect, clock),
             remove: (id) => this.removeStatusEffect(id)
         });
+    }
+
+    /**
+     * Advances the status effect clock by this update and reads it. The clock counts the
+     * entity's updates from its first one, and the store holds it as its reading at one update
+     * ({@link StatusEffectClock}), so only the first update and one after a gap write it.
+     * @returns The clock after this update.
+     */
+    private advanceStatusEffectClock(tick: number): number {
+        const { body } = this.entity;
+        const anchor = body.statusEffectClock;
+        const last = this.clockTick;
+        this.clockTick = tick;
+        if (anchor !== undefined && last === tick - 1) return anchor.age + (tick - anchor.tick);
+
+        const age = anchor === undefined || last === -1 ? 1 : anchor.age + (last - anchor.tick) + 1;
+        body.statusEffectClock = { age, tick };
+        return age;
     }
 
     /** A status effect's harm as a blow through the store's pipeline, and its healing as a heal. */

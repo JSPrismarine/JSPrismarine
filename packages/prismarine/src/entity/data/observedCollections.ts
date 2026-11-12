@@ -47,6 +47,49 @@ export class ObservedSet<T> extends Set<T> {
     }
 }
 
+/**
+ * A `Set` that tells its observer when one of a few watched values comes or goes, and keeps the
+ * rest to itself: a body's conditions, of which a client is shown two.
+ */
+export class WatchedSet<T> extends Set<T> {
+    /** Called after a watched value was added or removed, with whether it is present now. */
+    public observer: ((value: T, present: boolean) => void) | undefined;
+    private readonly watched: ReadonlySet<T>;
+
+    public constructor(watched: Iterable<T>) {
+        super();
+        this.watched = new Set(watched);
+    }
+
+    /** @inheritdoc */
+    public override add(value: T): this {
+        if (this.has(value)) return this;
+        super.add(value);
+        if (this.watched.has(value)) this.observer?.(value, true);
+        return this;
+    }
+
+    /** @inheritdoc */
+    public override delete(value: T): boolean {
+        if (!super.delete(value)) return false;
+        if (this.watched.has(value)) this.observer?.(value, false);
+        return true;
+    }
+
+    /** @inheritdoc */
+    public override clear(): void {
+        const gone = [...this].filter((value) => this.watched.has(value));
+        super.clear();
+        for (const value of gone) this.observer?.(value, false);
+    }
+
+    /** Adds or removes one value without telling the observer. */
+    public restore(value: T, present: boolean): void {
+        if (present) super.add(value);
+        else super.delete(value);
+    }
+}
+
 /** A `Map` that tells its observer the entries before each change. */
 export class ObservedMap<K, V> extends Map<K, V> {
     /** Called after a change, with the entries before it in insertion order. */
