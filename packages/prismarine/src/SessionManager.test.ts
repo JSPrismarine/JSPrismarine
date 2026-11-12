@@ -99,6 +99,33 @@ describe('SessionManager', () => {
             expect(replaced).toEqual([{ connection: joined, joined: null }]);
         });
 
+        it('hands a later login the join of a connection an earlier login replaced', () => {
+            const manager = new SessionManager();
+            const first = joinedAs(steve);
+            const second = stub<ClientConnection>({ getPlayerSession: () => null });
+            const third = stub<ClientConnection>({ getPlayerSession: () => null });
+            manager.add(1, first);
+            manager.add(2, second);
+            manager.add(3, third);
+            const firstJoin = new Promise<void>(() => {});
+            manager.reserveIdentity(first, steve);
+            manager.claimIdentity(first, steve, firstJoin);
+
+            // The second login shares only the name, the third only the XUID.
+            expect(manager.claimIdentity(second, { ...steve, xuid: '', uuid: 'b' }, Promise.resolve())).toEqual([
+                { connection: first, joined: firstJoin }
+            ]);
+            expect(
+                manager.claimIdentity(third, { name: 'Other', xuid: steve.xuid, uuid: 'c' }, Promise.resolve())
+            ).toEqual([{ connection: first, joined: firstJoin }]);
+
+            manager.remove(1);
+            manager.add(1, first);
+            expect(
+                manager.claimIdentity(third, { name: 'Other', xuid: steve.xuid, uuid: 'c' }, Promise.resolve())
+            ).toEqual([{ connection: first, joined: null }]);
+        });
+
         it('replaces a player whose saved record key another login would share', () => {
             const manager = new SessionManager();
             const joined = joinedAs(steve);
