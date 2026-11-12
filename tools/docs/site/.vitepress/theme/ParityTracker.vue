@@ -219,11 +219,7 @@ const percentage = trackerProgressPercent;
                     <h2>behavior parity</h2>
                     <span
                         >{{ count.format(behavior.passed) }} of {{ count.format(behavior.tracked) }} tracked behavior
-                        comparisons passing. All comparisons, including data tables:
-                        {{ trackerPrimaryProgressPercent(summary.passed, trackerProgressTotal(summary)) }}% ({{
-                            count.format(summary.passed)
-                        }}
-                        of {{ count.format(trackerProgressTotal(summary)) }}).</span
+                        comparisons passing.</span
                     >
                 </div>
             </div>
@@ -235,7 +231,10 @@ const percentage = trackerProgressPercent;
                 :aria-label="`${behavior.passed} of ${behavior.tracked} tracked behavior comparisons passing`"
             />
             <!-- The chips count every comparison; the headline counts behavior checks only. -->
-            <p class="overview-counts-label">All comparisons, including data tables</p>
+            <p class="overview-counts-label">
+                All comparisons, including data tables:
+                {{ trackerPrimaryProgressPercent(summary.passed, trackerProgressTotal(summary)) }}%
+            </p>
             <ul class="overview-counts" aria-label="All comparisons by status">
                 <li class="status-count passed">
                     <b>{{ count.format(summary.passed) }}</b> passing
