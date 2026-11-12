@@ -38,6 +38,8 @@ export default mergeConfig(
             ]
         },
         assetsInclude: ['node_modules/@jsprismarine/bedrock-data/{jsp,resource}/**/*'],
+        // Marks the build CI makes for npm, so `buildType()` tells it from one built in a checkout.
+        define: { BUILD_DIST: JSON.stringify(Boolean(process.env.CI)) },
         build: {
             lib: {
                 entry: input,

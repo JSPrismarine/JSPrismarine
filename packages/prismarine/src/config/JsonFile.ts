@@ -1,11 +1,9 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-import { serverVersion } from '../version';
+import { buildStamp, serverVersion } from '../version';
 import { parseConfigDocument } from './ConfigDocument';
 import type { ConfigDocument } from './ConfigDocument';
-
-declare const BUILD_TYPE: string | undefined;
 
 const SCHEMA_FILE_BY_CONFIG = new Map([
     ['config.json', 'config.schema.json'],
@@ -16,7 +14,8 @@ const SCHEMA_FILE_BY_CONFIG = new Map([
 const ARRAY_SCHEMA_COMMENT = /^[\t ]*\/\/ JSPrismarine schema:.*(?:\r?\n|$)/gm;
 
 const schemaVersion = (): string => {
-    if (typeof BUILD_TYPE !== 'undefined' && BUILD_TYPE === 'nightly') return 'unstable';
+    // A nightly executable's version is not on npm; an npm snapshot's own version is.
+    if (buildStamp() === 'nightly') return 'unstable';
     return serverVersion();
 };
 
