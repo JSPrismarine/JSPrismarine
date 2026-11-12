@@ -1,3 +1,4 @@
+import { testKernel } from '../../testing/kernel.test.helper';
 import { KernelEventBus } from '@jsprismarine/kernel';
 /**
  * Where a trip lands, over a real level with an Overworld, a Nether and an End in one LevelDB
@@ -135,8 +136,7 @@ const buildLevel = async ({ entities }: SceneOptions = {}) => {
             events.on(id, listener);
             return server;
         },
-        post: (id, ...args) => events.post(id, ...args),
-        emit: (id, ...args) => events.emit(id, ...args),
+        getKernel: () => testKernel(events),
         removeListener: () => server,
         getDimensionTravel: () => travel,
         getTick: () => 0,
