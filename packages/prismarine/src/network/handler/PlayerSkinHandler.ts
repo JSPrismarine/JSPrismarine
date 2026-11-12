@@ -71,7 +71,7 @@ const skinProblem = (skin: Skin): string | null => {
  * A client changing its skin mid-session.
  *
  * The skin is stored on the player and on the player's list entry, so the player list shows it
- * to anyone who joins later, and a fresh `PlayerSkinPacket` goes to every other online player,
+ * to anyone who joins later, and a fresh `PlayerSkinPacket` goes to every other player in play,
  * so they see the change now. The relay is written by the server's own skin writer rather than
  * forwarded as the bytes the client sent: a decoded packet keeps its buffer and would go out
  * again unchanged, carrying whatever `TrustedSkinFlag` the client claimed, where the server
@@ -123,7 +123,12 @@ export default class PlayerSkinHandler implements InputLaneHandler<PlayerSkinPac
         relay.newSkinName = packet.newSkinName;
         relay.oldSkinName = packet.oldSkinName;
 
-        const others = services.sessions.getSessions().filter((other) => other.runtimeId !== session.runtimeId);
+        // Only clients in play. One still in the resource pack exchange is online already, and a
+        // retail client handed a game packet then drops with `InitialConnection-90`; it learns
+        // the skin from the player list entry once it gets to play.
+        const others = services.sessions
+            .getSessions()
+            .filter((other) => other.runtimeId !== session.runtimeId && other.getConnection().phase === 'play');
         for (const other of others) step.output(other.send(relay));
 
         log.debug(
