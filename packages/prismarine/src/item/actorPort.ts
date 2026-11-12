@@ -17,6 +17,7 @@
  */
 import { duringItemInteraction } from './interactionContext';
 import { Vector3 } from '@jsprismarine/math';
+import { PositionMode } from '@jsprismarine/protocol';
 import { Gametype, LevelSoundEvent } from '@jsprismarine/minecraft';
 
 import { advancementConsumedItem, advancementDurabilityChanged } from '../advancement/triggers';
@@ -27,6 +28,7 @@ import { itemDropOf, itemOfDrop, storedItem } from '../inventory/persistence';
 import { damageCauseOf } from '../entity/DamageCause';
 import { DamageSource } from '../entity/DamageSource';
 import { normalizeStatusEffectId } from '../entity/StatusEffect';
+import { eyePositionAt } from '../entity/playerEyes';
 import { Item } from './Item';
 import { itemFromContent } from './itemFromContent';
 import type HumanInventory from '../inventory/HumanInventory';
@@ -57,6 +59,7 @@ export interface ItemPlayer extends AdvancementPlayer {
     addFood(food: number, saturation?: number): void;
     isOnGround(): boolean;
     getFallDistance(): number;
+    setPlayerPosition(options: { position: Vector3; type?: PositionMode }): Promise<void>;
 }
 
 /** The live world whose entities and players this port acts on. */
@@ -495,8 +498,20 @@ export const createItemActorPort = (options: ItemActorPortOptions): ServerItemAc
             : null;
         if (surface === null) return;
 
+        const feet = new Vector3(x + 0.5, surface + 1, z + 0.5);
+        // A player's own client is told through its session: replication shows the teleport to
+        // everyone else, and a client never told kept its old position and its next move put the
+        // player back. A player's position is its eyes.
+        const player = playerOf(source);
+        if (player !== undefined) {
+            void player
+                .setPlayerPosition({ position: eyePositionAt(feet), type: PositionMode.Teleport })
+                .catch((error: unknown) => loaded.getServer().getLogger().error(error));
+            return;
+        }
+
         // The entity moves in the store, which shows clients a teleport.
-        entity.entity.body.teleportTo({ x: x + 0.5, y: surface + 1, z: z + 0.5 });
+        entity.entity.body.teleportTo({ x: feet.getX(), y: feet.getY(), z: feet.getZ() });
     };
 
     const perform = (action: ActorItemAction): void => {
