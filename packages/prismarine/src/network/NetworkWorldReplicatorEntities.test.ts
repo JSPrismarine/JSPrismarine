@@ -28,6 +28,7 @@ import Codec2193 from './codec/Codec2193';
 import Codec2225 from './codec/Codec2225';
 import { NetworkWorldReplicator } from './NetworkWorldReplicator';
 import { replicateEntities } from '../testing/changeTicks.test.helper';
+import { sealOccurrences } from '../testing/occurrences.test.helper';
 
 /**
  * Who is shown what, as entities come and go.
@@ -615,7 +616,12 @@ describe('network', () => {
                 showIcon: true
             };
 
-            await replicator.statusEffectChanged(mob, effect, 'add');
+            sealOccurrences(replicator, {
+                kind: 'occurrence',
+                occurrence: 'status-effect',
+                data: { entity: mob.getRuntimeId(), change: 'add', effect }
+            });
+            await replicator.flushOccurrences();
 
             expect(encodes).toBe(1);
             expect(first.spy.frames).toHaveLength(1);

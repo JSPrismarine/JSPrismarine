@@ -358,9 +358,7 @@ export class StoreActor implements ShownActor {
     }
 
     private announceStatusEffect(effect: StatusEffect, change: StatusEffectChange): void {
-        void this.world
-            .sendStatusEffect(this, effect, change)
-            .catch((error: unknown) => this.getServer().getLogger().error(error));
+        this.world.sendStatusEffect(this, effect, change);
     }
 
     /** Ticks a non-player entity waits in a portal before it goes through, which is none. */
