@@ -68,7 +68,7 @@ export function buildAudiences(project: ProjectData): Audience[] {
             title: 'Join from the Servers tab.',
             gets: 'Join a server and see what works.',
             pitch: `Add a server's address and port in Minecraft ${minecraftRange(project)}. The demo server is open to try. ${signIn}`,
-            code: `Servers → Add Server\n  Server Name     ${project.demo.name}\n  Server Address  ${project.demo.address}\n  Port            ${project.demo.port}`,
+            code: `Servers → Add Server\nServer Name    ${project.demo.name}\nServer Address ${project.demo.address}\nPort           ${project.demo.port}`,
             links: [
                 { text: 'Joining', hint: 'versions and fixes', href: '/guide/joining' },
                 { text: 'Parity', hint: 'what matches vanilla', href: '/parity' },

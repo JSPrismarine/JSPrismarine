@@ -295,6 +295,11 @@ html:not(.dark) .audience-tabs__links a {
     .audience-tabs__panel {
         grid-template-columns: minmax(0, 1fr);
     }
+
+    /* A tighter inset lets the demo's address line fit a phone without scrolling. */
+    .audience-tabs__code {
+        padding: 16px 14px;
+    }
 }
 
 /* On a narrow phone the tabs stay two by two, so the panel starts sooner; the tagline drops a size
