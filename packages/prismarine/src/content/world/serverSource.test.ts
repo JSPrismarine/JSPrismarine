@@ -551,6 +551,21 @@ describe('serverWorldSource', () => {
         expect(spawnWorld.block({ x: 6, y: 63, z: 6 })).toBe('minecraft:grass_block');
     });
 
+    it('gives a level other than the default its own seed, as its worlds take theirs', () => {
+        const source = serverWorldSource({
+            worldFor: () => world,
+            content: () => content,
+            seed: 1n,
+            seedOf: (level) => (level === 'second' ? 2n : 3n),
+            difficulty: () => Difficulty.NORMAL,
+            defaultLevel: () => 'main'
+        });
+
+        expect(source.at(DIMENSION).level.seed).toBe(1n);
+        expect(source.at(DIMENSION, 'main').level.seed).toBe(1n);
+        expect(source.at(DIMENSION, 'second').level.seed).toBe(2n);
+    });
+
     it('drops game events when no listener is installed', () => {
         const adapter = serverWorldSource({
             worldFor: () => world,
