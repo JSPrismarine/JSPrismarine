@@ -501,9 +501,9 @@ export default class InventoryTransactionHandler implements InputLaneHandler<Inv
         if (data.actionType !== ItemReleaseActionType.RELEASE) return;
         if (player.getInventory().getItemInHand().getName() !== BOW) return;
 
-        // The arrow is in the world before `loose` first waits, on the bow's sound.
+        // The arrow and the bow's sound are written in this input's unit.
         const shooter = session.getActor();
-        if (shooter !== undefined) step.output(loose(shooter, drawn).then(() => undefined));
+        if (shooter !== undefined) loose(shooter, drawn);
     }
 
     /**

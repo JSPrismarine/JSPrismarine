@@ -57,7 +57,7 @@ import { testContent } from '../../testing/entityServer';
 // `vi.mock`, because test files share their worker and a module mock would outlive this file.
 beforeAll(() => {
     vi.spyOn(combat, 'meleeAttack').mockImplementation(() => true);
-    vi.spyOn(archery, 'loose').mockImplementation(async () => true);
+    vi.spyOn(archery, 'loose').mockImplementation(() => true);
     vi.spyOn(interaction, 'useItemOnBlock').mockImplementation((): InteractionResult => 'handled');
     vi.spyOn(interaction, 'useItemInAir').mockImplementation((): InteractionResult => 'handled');
 });

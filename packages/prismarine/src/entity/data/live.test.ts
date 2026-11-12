@@ -3154,7 +3154,7 @@ describe('the data-driven entity runtime over a live world', () => {
                 useVanillaContent();
 
                 const player = addPlayer(2, 2);
-                const shot = await loose(player.getActor()!, 20);
+                const shot = loose(player.getActor()!, 20);
 
                 expect(shot).toBe(true);
                 const arrow = live.runtime
