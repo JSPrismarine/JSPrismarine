@@ -156,7 +156,7 @@ describe('modules/ticker', () => {
         expect(order).toEqual(['inputs', 'functions', 'tick', 'world', 'network']);
     });
 
-    it('opens each world change log tick before the input step and seals one the world did not update', async () => {
+    it('opens each world change log tick before the input step and closes one the world did not update', async () => {
         const order: string[] = [];
         const harness = buildHarness({
             isTickingEnabled: () => false,
@@ -171,14 +171,48 @@ describe('modules/ticker', () => {
                     update: async () => {
                         order.push('world');
                     },
-                    sealChangeTick: () => order.push('seal')
+                    closeTick: () => void order.push('close')
                 }
             ]
         });
 
         await harness.ticker.advance();
 
-        expect(order).toEqual(['begin', 'inputs', 'world', 'seal']);
+        expect(order).toEqual(['begin', 'inputs', 'world', 'close']);
+    });
+
+    it('closes a frozen world in every tick without updating it, and the next world after one that throws', async () => {
+        const calls: string[] = [];
+        const harness = buildHarness({
+            isTickingEnabled: () => false,
+            getWorlds: () => [
+                {
+                    getName: () => 'first',
+                    update: () => void calls.push('update:first'),
+                    closeTick: (tick) => {
+                        calls.push(`close:first:${tick}`);
+                        throw new Error('planned');
+                    }
+                },
+                {
+                    getName: () => 'second',
+                    update: () => void calls.push('update:second'),
+                    closeTick: (tick) => void calls.push(`close:second:${tick}`)
+                }
+            ]
+        });
+        harness.ticker.setFrozen(true);
+
+        const first = harness.ticker.getTick();
+        await harness.ticker.advance();
+        await harness.ticker.advance();
+
+        expect(calls).toEqual([
+            `close:first:${first}`,
+            `close:second:${first}`,
+            `close:first:${first + 1}`,
+            `close:second:${first + 1}`
+        ]);
     });
 
     it('runs the simulation phases inside the tick, and chunk delivery and the poll outside it', async () => {

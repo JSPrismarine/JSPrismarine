@@ -180,6 +180,38 @@ describe('world', () => {
             ]);
         });
 
+        it('closes a tick it did not update with the sends alone, in the order an update sends them', () => {
+            const { world, calls } = worldTicking();
+
+            world.beginChangeTick();
+            world.closeTick(1);
+
+            // No block updates, no systems: the world held still. No time either, since its clock
+            // did not move.
+            expect(calls).toStrictEqual([
+                'tickSealed',
+                'flushEntities',
+                'flushOccurrences',
+                'flushDepartures',
+                'flushOwnerViews',
+                'reconcile',
+                'flushBlockChanges',
+                'flushBlockEntities',
+                'flushMovement'
+            ]);
+        });
+
+        it('sends nothing more when it closes a tick it already updated', async () => {
+            const { world, calls } = worldTicking();
+
+            world.beginChangeTick();
+            await world.update(1);
+            const updated = calls.length;
+            world.closeTick(1);
+
+            expect(calls).toHaveLength(updated);
+        });
+
         it('runs each entity update to its end, in roster order, before the next one starts', async () => {
             const steps: string[] = [];
             const updating = (name: string) => () => {

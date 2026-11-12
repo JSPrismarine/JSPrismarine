@@ -873,9 +873,22 @@ export class Level {
         for (const world of this.worldsInStemOrder()) world.beginChangeTick();
     }
 
-    /** Seals any world change log tick still open, for a level the ticker did not update. */
-    public sealChangeTick(): void {
-        for (const world of this.worlds()) world.sealChangeTick();
+    /**
+     * Closes the tick of every world whose change log tick is still open, for a level the ticker
+     * did not update, such as a frozen one. A world that throws is logged, and the worlds after
+     * it still close theirs.
+     *
+     * @param tick - The server tick.
+     */
+    public closeTick(tick: number): void {
+        for (const world of this.worlds()) {
+            try {
+                world.closeTick(tick);
+            } catch (error: unknown) {
+                this.server.getLogger().error(`World ${world.getName()} of ${this.name} failed to close tick ${tick}`);
+                this.server.getLogger().error(error);
+            }
+        }
     }
 
     /** The ready worlds in stem order, which is the order the level ticks them in. */
