@@ -1,11 +1,11 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { generateKeyPairSync } from 'node:crypto';
+import { createPublicKey, generateKeyPairSync } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 
 import { BEDROCK_CURVE } from './es384';
-import { NetherNetIdentity, verifySelfSignedIdentity } from './NetherNetIdentity';
+import { identityProofOf, NetherNetIdentity, provesKey, verifySelfSignedIdentity } from './NetherNetIdentity';
 
 /** A description in the shape a WebRTC stack writes, trimmed to what the identity touches. */
 const DESCRIPTION = [
@@ -134,6 +134,46 @@ describe('NetherNetIdentity', () => {
         );
 
         await expect(verifySelfSignedIdentity(forged, now)).rejects.toThrow('not signed by its own key');
+    });
+
+    describe('a proof of the key behind a description', () => {
+        const der = (key: typeof privateKey): string =>
+            createPublicKey(key).export({ type: 'spki', format: 'der' }).toString('base64');
+        const other = generateKeyPairSync('ec', { namedCurve: BEDROCK_CURVE }).privateKey;
+
+        it('proves the key that signed the fingerprints, and no other', async () => {
+            const proof = identityProofOf(
+                await new NetherNetIdentity(privateKey, { keyFormat: 'der' }).sign(DESCRIPTION)
+            );
+
+            expect(proof).toBeDefined();
+            expect(await provesKey(proof!, der(privateKey))).toBe(true);
+            expect(await provesKey(proof!, der(other))).toBe(false);
+            expect(await provesKey(proof!, 'not a key')).toBe(false);
+        });
+
+        it("proves the key under an authority's token, which a signed-in client carries", async () => {
+            const issued = new NetherNetIdentity(privateKey, { keyFormat: 'der', token: 'issued.by.authority' });
+
+            expect(await provesKey(identityProofOf(await issued.sign(DESCRIPTION))!, der(privateKey))).toBe(true);
+        });
+
+        it("proves nothing once the fingerprint is another certificate's", async () => {
+            const signed = await new NetherNetIdentity(privateKey, { keyFormat: 'der' }).sign(DESCRIPTION);
+            const swapped = signed.replace('a=fingerprint:sha-256 3B:6F', 'a=fingerprint:sha-256 00:00');
+
+            expect(await provesKey(identityProofOf(swapped)!, der(privateKey))).toBe(false);
+        });
+
+        it.each([
+            ['no identity', DESCRIPTION],
+            [
+                'an identity that is not an assertion',
+                DESCRIPTION.replace('m=application', 'a=identity:bm9wZQ==\r\nm=application')
+            ]
+        ])('has none for a description with %s', (_name, description) => {
+            expect(identityProofOf(description)).toBeUndefined();
+        });
     });
 
     it('refuses a description with no identity at all', async () => {

@@ -32,7 +32,7 @@ const EARLY_BYTES_LIMIT = 64 * 1024;
 const UNKNOWN_ADDRESS = new InetAddress('0.0.0.0', 0);
 
 /** The part of a NetherNet {@link Connection} the transport uses, so a test can stand one in. */
-export type NetherNetPeer = Pick<Connection, 'id' | 'closed' | 'send' | 'close'> & {
+export type NetherNetPeer = Pick<Connection, 'id' | 'closed' | 'send' | 'close' | 'provesKey'> & {
     readonly peer: Pick<Connection['peer'], 'remoteAddress'>;
 };
 
@@ -102,6 +102,14 @@ export class NetherNetTransportConnection implements TransportConnection {
      */
     public close(reason?: string): void {
         this.peer.close(reason);
+    }
+
+    /**
+     * Whether the client's offer was signed with this key: its `a=identity` covers the DTLS
+     * fingerprint the connection was made under.
+     */
+    public provesKey(identityPublicKey: string): Promise<boolean> {
+        return this.peer.provesKey(identityPublicKey);
     }
 }
 

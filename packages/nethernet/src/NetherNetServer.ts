@@ -5,6 +5,9 @@ import { Connection } from './Connection';
 import type { ConnectionOptions } from './Connection';
 import type { PortAllocator } from './PortAllocator';
 import { NETHERNET_LAN_PORT } from './NetherNetDefaults';
+import { identityProofOf } from './NetherNetIdentity';
+import type { IdentityProof } from './NetherNetIdentity';
+import { withoutIdentity } from './sdp';
 import { DiscoveryPacketType, decodeDiscoveryPacket, encodeDiscoveryPacket } from './protocol/Discovery';
 import type { DiscoveryPacket } from './protocol/Discovery';
 import { ErrorCode, SignalStructure, SignalType } from './protocol/Signal';
@@ -84,8 +87,10 @@ export class NetherNetServer extends EventEmitter {
      * `respond`. An offer for a connection ID already in use is ignored.
      * @param signal - The `CONNECTREQUEST`.
      * @param respond - Sends a signal back to that client.
+     * @param proof - What the offer's `a=identity` proves, when the caller took it out of the
+     *   offer already; read from the offer when absent.
      */
-    public async handleOffer(signal: SignalStructure, respond: SignalResponder): Promise<void> {
+    public async handleOffer(signal: SignalStructure, respond: SignalResponder, proof?: IdentityProof): Promise<void> {
         if (this.closed || this.connections.has(signal.connectionId)) return;
         const fail = (code: number, reason: string, connection?: Connection): void => {
             try {
@@ -150,9 +155,11 @@ export class NetherNetServer extends EventEmitter {
                 connection.peerEnded('disconnected');
         });
 
+        connection.identityProof = proof ?? identityProofOf(signal.data);
         connection.useRemoteDescription(signal.data);
         try {
-            connection.peer.setRemoteDescription('offer', signal.data);
+            // The identity is NetherNet's attribute; WebRTC does not know it.
+            connection.peer.setRemoteDescription('offer', withoutIdentity(signal.data));
         } catch (error: unknown) {
             fail(ErrorCode.FailedToSetRemoteDescription, withCause('offerfailed', error), connection);
             return;

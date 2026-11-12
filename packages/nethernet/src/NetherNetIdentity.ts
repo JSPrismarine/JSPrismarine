@@ -133,6 +133,56 @@ export class NetherNetIdentity {
     }
 }
 
+/**
+ * What a description's `a=identity` offers as proof of a key: the detached signature over the
+ * description's DTLS fingerprints, and the bytes it should cover. Whoever holds the key that
+ * made the signature is the peer whose certificate the connection's DTLS handshake checked.
+ */
+export interface IdentityProof {
+    /** The detached ES384 JWS from the assertion's `fingerprints`. */
+    readonly signature: string;
+    /** The canonical fingerprints of the description, which the signature should cover. */
+    readonly signed: string;
+}
+
+/**
+ * The proof a description's `a=identity` carries, without judging it: which key it proves is
+ * asked later with {@link provesKey}, once the peer has said who it is. A server uses this to
+ * tie a login to its connection, since NetherNet leaves out the encryption handshake that
+ * proves the login's key on RakNet.
+ * @param description - The SDP description, with its `a=fingerprint` lines.
+ * @returns The proof, or undefined when the description has no usable `a=identity`.
+ */
+export const identityProofOf = (description: string): IdentityProof | undefined => {
+    const line = description.split(/\r?\n/).find((candidate) => candidate.startsWith('a=identity:'));
+    if (line === undefined) return undefined;
+    try {
+        const identity: unknown = JSON.parse(Buffer.from(line.slice('a=identity:'.length), 'base64').toString());
+        if (!isRecord(identity) || typeof identity.assertion !== 'string') return undefined;
+        const assertion: unknown = JSON.parse(identity.assertion);
+        if (!isRecord(assertion) || typeof assertion.fingerprints !== 'string') return undefined;
+        return { signature: assertion.fingerprints, signed: canonicalFingerprints(sdpFingerprints(description)) };
+    } catch {
+        return undefined;
+    }
+};
+
+/**
+ * Whether a proof was made with a key: the holder of its private half signed the fingerprints
+ * of the description the proof came from.
+ * @param proof - The proof, from {@link identityProofOf}.
+ * @param publicKey - The key, as base64 DER, the form a login's `identityPublicKey` takes.
+ */
+export const provesKey = async (proof: IdentityProof, publicKey: string): Promise<boolean> => {
+    let key: KeyObject;
+    try {
+        key = createPublicKey({ key: Buffer.from(publicKey, 'base64'), format: 'der', type: 'spki' });
+    } catch {
+        return false;
+    }
+    return verifiesDetachedEs384(proof.signature, proof.signed, key);
+};
+
 /** What {@link verifySelfSignedIdentity} found in a description it accepted. */
 export interface VerifiedIdentity {
     /** The identity's public key, from the token's `cpk` claim. */

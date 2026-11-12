@@ -29,6 +29,7 @@ const fakePeer = (connectionId: bigint, remote?: { address: string; port: number
             return data.byteLength;
         },
         close: (reason) => void closed.push(reason),
+        provesKey: async (key) => key === 'proven-key',
         peer: { remoteAddress: () => remote }
     };
     return { peer, sent, closed };

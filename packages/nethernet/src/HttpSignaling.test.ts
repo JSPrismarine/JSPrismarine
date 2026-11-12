@@ -1,26 +1,31 @@
+import { generateKeyPairSync } from 'node:crypto';
 import http from 'node:http';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import { SignalStructure, SignalType } from './protocol/Signal';
+import { BEDROCK_CURVE } from './es384';
 import { HttpSignaling } from './HttpSignaling';
 import type { NetherNetOfferAnswerer } from './HttpSignaling';
+import { identityProofOf, NetherNetIdentity } from './NetherNetIdentity';
 
 const OFFER = 'v=0\r\na=identity:client-token\r\nm=application 9 UDP/DTLS/SCTP webrtc-datachannel\r\n';
 
 /** An answerer that records offers and answers each the way a test decides. */
 const fakeAnswerer = (answer: (signal: SignalStructure, respond: (signal: SignalStructure) => void) => void) => {
     const offers: SignalStructure[] = [];
+    const proofs: unknown[] = [];
     const closed: bigint[] = [];
     const connections = new Map<bigint, { close(reason?: string): void }>();
     const answerer: NetherNetOfferAnswerer = {
         connections,
-        handleOffer: async (signal, respond) => {
+        handleOffer: async (signal, respond, proof) => {
             offers.push(signal);
+            proofs.push(proof);
             connections.set(signal.connectionId, { close: () => void closed.push(signal.connectionId) });
             answer(signal, respond);
         }
     };
-    return { answerer, offers, closed, connections };
+    return { answerer, offers, proofs, closed, connections };
 };
 
 const running: HttpSignaling[] = [];
@@ -78,6 +83,23 @@ describe('HttpSignaling', () => {
         expect(offers[0]!.type).toBe(SignalType.ConnectRequest);
         // The client's identity is NetherNet's to check; WebRTC never sees it.
         expect(offers[0]!.data).toBe('v=0\r\nm=application 9 UDP/DTLS/SCTP webrtc-datachannel\r\n');
+    });
+
+    it("hands the answerer what the offer's identity proves, apart from the offer", async () => {
+        const { answerer, offers, proofs } = fakeAnswerer((signal, respond) =>
+            respond(new SignalStructure(SignalType.ConnectResponse, signal.connectionId, 'v=0\r\n'))
+        );
+        const base = await start(answerer);
+        const { privateKey } = generateKeyPairSync('ec', { namedCurve: BEDROCK_CURVE });
+        const offer = await new NetherNetIdentity(privateKey, { keyFormat: 'der' }).sign(
+            'v=0\r\na=fingerprint:sha-256 AA:BB\r\nm=application 9 UDP/DTLS/SCTP webrtc-datachannel\r\n'
+        );
+
+        await post(`${base}/v1/join/1`, offer);
+
+        expect(offers[0]!.data).not.toContain('a=identity');
+        expect(proofs[0]).toStrictEqual(identityProofOf(offer));
+        expect(proofs[0]).toBeDefined();
     });
 
     it.each([

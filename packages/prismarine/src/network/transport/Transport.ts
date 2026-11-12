@@ -53,6 +53,15 @@ export interface TransportConnection {
      * @param reason - Recorded as the disconnect reason the transport reports back.
      */
     close(reason?: string): Promise<void> | void;
+    /**
+     * Whether the client proved, while connecting, that it holds a key. Only a transport that
+     * encrypts the wire itself has this: there the session leaves Minecraft's encryption off, and
+     * with it the handshake that proves a login's identity key, so the transport's own handshake
+     * has to prove it, or a login somebody recorded could be sent again by anybody.
+     * @param identityPublicKey - The key a login names, as base64 DER.
+     * @returns False when the client proved another key or none.
+     */
+    provesKey?(identityPublicKey: string): Promise<boolean>;
 }
 
 /**

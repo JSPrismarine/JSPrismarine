@@ -7,6 +7,8 @@ import { familyOf, isPublicAddress, unmapped } from './addresses';
 
 import { SignalStructure, SignalType } from './protocol/Signal';
 import { randomUint64 } from './randomUint64';
+import { identityProofOf } from './NetherNetIdentity';
+import type { IdentityProof } from './NetherNetIdentity';
 import { withoutIdentity } from './sdp';
 import { describeCandidates, tracePeerConnection } from './tracePeerConnection';
 import { hasPublicCandidate } from './udpPorts';
@@ -40,7 +42,11 @@ export interface NetherNetOfferAnswerer {
     /** Every peer by connection ID, which a new offer's ID must not collide with. */
     readonly connections: ReadonlyMap<bigint, { close(reason?: string): void; readonly peer?: DriverPeer }>;
     /** Negotiates a peer for the offer, answering through `respond`. */
-    handleOffer(signal: SignalStructure, respond: (signal: SignalStructure) => void): Promise<void>;
+    handleOffer(
+        signal: SignalStructure,
+        respond: (signal: SignalStructure) => void,
+        proof?: IdentityProof
+    ): Promise<void>;
 }
 
 /**
@@ -276,7 +282,7 @@ export class HttpSignaling {
                 } else if (signal.type === SignalType.ConnectError) settle({ error: signal.data });
             };
             const request = new SignalStructure(SignalType.ConnectRequest, connectionId, withoutIdentity(offer));
-            answerer.handleOffer(request, respond).catch((error: unknown) => {
+            answerer.handleOffer(request, respond, identityProofOf(offer)).catch((error: unknown) => {
                 this.options.logger.error(error);
                 settle({ error: 'An error occurred while answering' });
             });
