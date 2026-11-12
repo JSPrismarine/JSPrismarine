@@ -3629,8 +3629,12 @@ export class World implements Service {
             return false;
 
         const live = this.dataEntities();
-        for (const entity of this.getEntityIndex().storeInChunk(chunk.getX(), chunk.getZ()))
+        const entities = this.getEntityIndex();
+        for (const entity of entities.storeInChunk(chunk.getX(), chunk.getZ()))
             if (entity.identifier !== PLAYER_IDENTIFIER) live.runtime.remove(entity.id, 'chunk unload');
+        // The stacks the save wrote with the chunk, which a reload brings back.
+        for (const item of entities.itemsInChunk(chunk.getX(), chunk.getZ()))
+            live.runtime.remove(item.id, 'chunk unload');
 
         this.getEntityStore().chunk('leave', chunk.getX(), chunk.getZ());
         this.dropChunk(chunk, index);
@@ -3798,10 +3802,12 @@ export class World implements Service {
 
     private markEntitiesInChunkChanged(chunk: Chunk): void {
         // A player is no part of a chunk's save, whichever kind of entity it is.
+        const entities = this.getEntityIndex();
         if (
-            this.getEntityIndex()
+            entities
                 .storeInChunk(chunk.getX(), chunk.getZ())
-                .some((entity) => entity.identifier !== PLAYER_IDENTIFIER)
+                .some((entity) => entity.identifier !== PLAYER_IDENTIFIER) ||
+            entities.itemsInChunk(chunk.getX(), chunk.getZ()).length > 0
         )
             chunk.markEntitiesChanged();
     }

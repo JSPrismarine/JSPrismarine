@@ -71,6 +71,33 @@ describe('EntityIndex', () => {
         expect(index.storeInChunk(-1, -2)).toEqual([]);
     });
 
+    it('reports each chunk a dropped stack enters and leaves, and lists it there', () => {
+        const { runtime } = entityFixture();
+        const { index } = runtime;
+        const reported: string[] = [];
+        index.chunkChanged = (chunkX, chunkZ) => reported.push(`${chunkX},${chunkZ}`);
+
+        const item = runtime.droppedItems.spawn(
+            { x: 15.5, y: Y, z: 0.5 },
+            { stack: { name: 'minecraft:dirt', count: 1 } }
+        );
+        if (item === undefined) throw new Error('the fixture declares no dropped item');
+        expect(reported).toEqual(['0,0']);
+        expect(index.itemsInChunk(0, 0)).toEqual([item]);
+        expect(index.storeInChunk(0, 0)).toEqual([]);
+
+        reported.length = 0;
+        item.position = { x: -0.5, y: Y, z: -16.5 };
+        expect(reported).toEqual(['0,0', '-1,-2']);
+        expect(index.itemsInChunk(0, 0)).toEqual([]);
+        expect(index.itemsInChunk(-1, -2)).toEqual([item]);
+
+        reported.length = 0;
+        runtime.remove(item.id, 'test');
+        expect(reported).toEqual(['-1,-2']);
+        expect(index.itemsInChunk(-1, -2)).toEqual([]);
+    });
+
     it('examines at most the candidates in the cells a query touches', () => {
         const { runtime } = entityFixture();
         // Three cows in each of ten cells along x, sixteen blocks apart.
