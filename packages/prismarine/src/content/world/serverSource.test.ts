@@ -134,7 +134,22 @@ const liveWorld = (
     runtimes: () => EntityRuntimes
 ): { world: World; chunk: Chunk; broadcasts: Broadcasts } => {
     const chunk = new Chunk(0, 0);
-    const broadcasts: Broadcasts = { sounds: [], particles: [] };
+    const heard: { readonly sounds: string[]; readonly particles: string[] } = { sounds: [], particles: [] };
+    /** Seals what the world logged so far, which hands its occurrences to the sink. */
+    const seal = () => {
+        world.beginChangeTick();
+        world.sealChangeTick();
+    };
+    const broadcasts: Broadcasts = {
+        get sounds() {
+            seal();
+            return heard.sounds;
+        },
+        get particles() {
+            seal();
+            return heard.particles;
+        }
+    };
 
     const world: World = Object.assign(Object.create(World.prototype), {
         chunks: new Map([[Chunk.packXZ(0, 0), chunk]]),
@@ -149,14 +164,21 @@ const liveWorld = (
             // these tests are about, so the double answers the same build the world does.
             getContent: content,
             // The store entities the adapter spawns, which the world lists through their actors.
-            getEntityRuntime: (dimension: string) => runtimes().at(dimension)
+            getEntityRuntime: (dimension: string) => runtimes().at(dimension),
+            // So its sounds and particles go into its change log, as a live world's do.
+            hasEntityRuntime: () => true
         }
     });
 
     world.attachChangeSink({
         ...NULL_WORLD_CHANGE_SINK,
-        namedSound: (_position, name) => void broadcasts.sounds.push(name),
-        namedParticle: (_position, name) => void broadcasts.particles.push(name)
+        tickSealed: ({ entries }) => {
+            for (const entry of entries) {
+                if (entry.kind !== 'occurrence') continue;
+                if (entry.occurrence === 'named-sound') heard.sounds.push(entry.data.name);
+                if (entry.occurrence === 'named-particle') heard.particles.push(entry.data.name);
+            }
+        }
     });
 
     Object.assign(world, {

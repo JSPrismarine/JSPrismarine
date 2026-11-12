@@ -2321,7 +2321,19 @@ export class World implements Service {
      * @param {NamedSoundOptions} [options] - Volume and pitch, when the definition's own are not wanted.
      */
     public playNamedSoundAt(position: Vector3, sound: string, options?: NamedSoundOptions): void {
-        this.changes.namedSound(position, sound, options);
+        if (!this.isHere(position)) return;
+        this.occurred({
+            kind: 'occurrence',
+            occurrence: 'named-sound',
+            data: {
+                x: position.getX(),
+                y: position.getY(),
+                z: position.getZ(),
+                name: sound,
+                volume: options?.volume ?? 1,
+                pitch: options?.pitch ?? 1
+            }
+        });
     }
 
     /**
@@ -2364,7 +2376,12 @@ export class World implements Service {
      * @param {string} particle - The effect's identifier.
      */
     public spawnNamedParticleAt(position: Vector3, particle: string): void {
-        this.changes.namedParticle(position, particle);
+        if (!this.isHere(position)) return;
+        this.occurred({
+            kind: 'occurrence',
+            occurrence: 'named-particle',
+            data: { x: position.getX(), y: position.getY(), z: position.getZ(), name: particle }
+        });
     }
 
     /**

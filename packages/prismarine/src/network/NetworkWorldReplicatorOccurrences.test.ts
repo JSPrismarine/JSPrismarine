@@ -4,12 +4,14 @@ import type { ProtocolCodec } from '@jsprismarine/protocol';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import LevelEventPacket from '@jsprismarine/protocol/packet/LevelEventPacket';
 import LevelSoundEventPacket from '@jsprismarine/protocol/packet/LevelSoundEventPacket';
+import SpawnParticleEffectPacket from '@jsprismarine/protocol/packet/SpawnParticleEffectPacket';
 import { describe, expect, it } from 'vitest';
 
 import type Server from '../Server';
 import type { Config } from '../config/Config';
 import { sealOccurrences } from '../testing/occurrences.test.helper';
 import { stub } from '../testing/stub.test.helper';
+import { Dimensions } from '../world/Dimension';
 import { Position } from '../world/Position';
 import type { World } from '../world/World';
 import type ClientConnection from './ClientConnection';
@@ -75,6 +77,7 @@ const viewer = (
 const replicatorOver = (viewers: PlayerSession[]) => {
     const world = stub<World>({
         getName: () => 'test',
+        getDimension: () => Dimensions.Nether,
         getViewers: () => viewers,
         viewerOf: (runtimeId) => viewers.find((session) => session.runtimeId === runtimeId)
     });
@@ -162,6 +165,26 @@ describe('network', () => {
                 expect(
                     near.sent.map((packet) => packet instanceof LevelEventPacket && packet.getPacketData()?.eventId)
                 ).toStrictEqual([LevelEvent.STOP_RAINING]);
+            });
+        });
+
+        describe('named-particle', () => {
+            it("names the world's dimension and the point it appears at", async () => {
+                const near = viewer(1n);
+                const replicator = replicatorOver([near.session]);
+
+                sealOccurrences(replicator, {
+                    kind: 'occurrence',
+                    occurrence: 'named-particle',
+                    data: { x: 1.5, y: 64.5, z: 2.5, name: 'minecraft:crop_growth_emitter' }
+                });
+                await replicator.flushOccurrences();
+
+                const packet = near.sent[0];
+                if (!(packet instanceof SpawnParticleEffectPacket)) throw new Error('expected a particle');
+                expect(packet.dimensionId).toBe(Dimensions.Nether.bedrockId);
+                expect(packet.effectName).toBe('minecraft:crop_growth_emitter');
+                expect(packet.position.getX()).toBe(1.5);
             });
         });
 
