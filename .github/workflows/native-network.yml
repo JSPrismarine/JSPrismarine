@@ -5,8 +5,9 @@ name: Native network
 # and the packed package is installed from an npm project.
 #
 # On master, when the native sources no longer match the manifest, it attaches the builds to a
-# GitHub release named for the sources' hash and commits the manifest that points at them. Run by
-# hand with `publish` set, it does the same on the branch it ran on. A pull request that changes
+# GitHub release named for the sources' hash and opens a pull request, set to merge once its
+# checks pass, that points the manifest at them. Run by hand with `publish` set, it does the same,
+# and commits the manifest straight to any branch but master. A pull request that changes
 # the sources needs neither: every job that installs builds its own library meanwhile
 # (.github/common/native-network).
 on:
@@ -66,7 +67,10 @@ jobs:
                       msvc: x64
         runs-on: ${{ matrix.runner }}
         steps:
+            # The machine user's token, so the manifest's pull request runs the required checks.
             - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+              with:
+                  token: ${{ secrets.MACHINE_USER }}
 
             - name: 🐧 Build in ${{ matrix.image }}
               if: ${{ matrix.image != '' }}
@@ -226,7 +230,10 @@ jobs:
 
             - name: 📝 Commit the manifest
               if: ${{ steps.sources.outputs.publish == 'true' }}
+              env:
+                  GH_TOKEN: ${{ secrets.MACHINE_USER }}
               run: |
+                  hash=${{ steps.release.outputs.hash }}
                   node packages/native-network/scripts/write-manifest.mts --artifacts artifacts \
                       --base-url "https://github.com/${GITHUB_REPOSITORY}/releases/download/${{ steps.release.outputs.tag }}"
                   git config user.name 'github-actions[bot]'
@@ -234,7 +241,19 @@ jobs:
                   git add packages/native-network/native/manifest.json
                   # Another run may have published these sources first.
                   if git diff --cached --quiet; then exit 0; fi
-                  git commit -m "build(native-network): point the manifest at builds ${{ steps.release.outputs.hash }}"
-                  # The branch may have moved while the builds ran; the manifest is the only file this touches.
-                  git pull --rebase origin "${GITHUB_REF_NAME}"
-                  git push origin "HEAD:${GITHUB_REF_NAME}"
+                  message="build(native-network): point the manifest at builds $hash"
+                  git commit -m "$message"
+                  if [ "$GITHUB_REF_NAME" != master ]; then
+                      # The branch may have moved while the builds ran; the manifest is the only file this touches.
+                      git pull --rebase origin "$GITHUB_REF_NAME"
+                      git push origin "HEAD:$GITHUB_REF_NAME"
+                      exit 0
+                  fi
+                  # master takes changes through pull requests that pass its required checks.
+                  branch="native-network/manifest-$hash"
+                  git push --force origin "HEAD:refs/heads/$branch"
+                  if ! gh pr view "$branch" >/dev/null 2>&1; then
+                      gh pr create --base master --head "$branch" --title "$message" \
+                          --body "Points @jsprismarine/native-network's manifest at the builds of native sources $hash, which the Native network workflow attached to the release native-network-build-$hash."
+                  fi
+                  gh pr merge "$branch" --auto --rebase

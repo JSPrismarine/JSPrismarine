@@ -77,8 +77,9 @@ published build only while the native sources still match the manifest's `build`
 The Native network workflow builds every platform on each change and checks each build's
 dependencies. It tests the Linux x64 build under Node.js, and installs the packed package with
 npm. When a push to `master` leaves the manifest behind the native sources, it attaches the
-builds to a release named `native-network-build-<hash>` for the sources' hash and commits the
-manifest that points at them; run by hand with `publish`, it does the same on any branch. Until
+builds to a release named `native-network-build-<hash>` for the sources' hash and opens a pull
+request, set to merge once its checks pass, that points the manifest at them. Run by hand with
+`publish`, it does the same, and commits the manifest straight to any branch but `master`. Until
 then, every CI job that installs the repository builds the library for its own runner, so a pull
 request that changes the native sources runs its tests without publishing anything. Publishing to
 npm refuses to run while the manifest does not match the sources.
