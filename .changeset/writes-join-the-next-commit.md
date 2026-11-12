@@ -1,0 +1,7 @@
+---
+'@jsprismarine/prismarine': minor
+---
+
+A write made outside a save pass joins the level's next commit (ADR 0018). A player's record on disconnect or on a dimension change, a chunk the unload pass writes, and the stackless-item rewrite of a loaded chunk are held by the LevelDB provider and committed ahead of the next pass's own writes, in the same batch, so a crash before that commit loses them together with the pass. Every read looks at the held writes first, so a player who rejoins or a chunk loaded again before the commit gets what was written. Once the held writes pass `HELD_WRITE_LIMIT`, the level's tick commits them early in a pass that cuts nothing, and closing the provider commits what is left. A provider used on its own still writes each batch at once.
+
+`BaseProvider.holdOutsideWrites` and `BaseProvider.heldWriteBytes` are new, and `SavePassStats` gains `heldWrites`, which a custom `ProviderSavePass` has to report. `LevelSave.enqueue` and `Level.enqueueSave` are removed, since no write outside a pass waits in the queue any more, so a stream of chunk unloads no longer delays the autosave. `Level.saveLevelData` runs as a pass that cuts only the level's own state, through `LevelSave.saveLevelData`. `Level.pendingSave` settles once a pending pass has committed. `Chunk.finishSaveCut` and `ChunkSaveCutHook.finish` let a later save of a chunk finish an earlier cut first, and `Chunk.markSavedAs` ignores a state older than the one it holds.
