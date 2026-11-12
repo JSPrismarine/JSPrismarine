@@ -3,8 +3,16 @@
 # `publish=false` to the step's outputs. Nightlies are published at most once every six hours; a
 # run that already owns the latest nightly's tag publishes again, so a rerun can finish its release.
 #
-# Reads BUILD_VERSION, GITHUB_REPOSITORY and GH_TOKEN.
+# NIGHTLY_FORCE=1, as a run started by hand sets, publishes whatever the interval says.
+#
+# Reads BUILD_VERSION, GITHUB_REPOSITORY, GH_TOKEN and NIGHTLY_FORCE.
 set -euo pipefail
+
+if [[ "${NIGHTLY_FORCE:-}" == 1 ]]; then
+    echo "publish=true" >> "$GITHUB_OUTPUT"
+    echo "Publishing the nightly release: this run was started by hand."
+    exit 0
+fi
 
 latest_nightly="$(gh api "repos/${GITHUB_REPOSITORY}/releases?per_page=100" \
     --jq '[.[] | select(.prerelease == true and (.tag_name | startswith("jsprismarine@")) and (.tag_name | contains("-nightly.")) and (.published_at != null)) | [.tag_name, .published_at]] | first // empty | @tsv')"

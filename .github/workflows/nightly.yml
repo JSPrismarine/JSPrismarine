@@ -1,8 +1,11 @@
 name: Executable
 
 # Runs when a file that reaches the executables changes. A push builds them to publish a nightly
-# release, and a pull request builds them to check they still compile and start.
+# release, and a pull request builds them to check they still compile and start. Run by hand on
+# master, it publishes a nightly whenever it is started, without the six-hour interval; on another
+# branch it only builds.
 on:
+    workflow_dispatch:
     push:
         branches:
             - master
@@ -117,7 +120,7 @@ jobs:
     nightly-release:
         name: 🌙 Publish nightly release
         needs: [nightly-version, executables]
-        if: github.event_name == 'push'
+        if: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/master') }}
         runs-on: ubuntu-latest
         concurrency:
             group: jsprismarine-nightly-release
@@ -128,6 +131,8 @@ jobs:
             GH_TOKEN: ${{ secrets.MACHINE_USER }}
             BUILD_TYPE: nightly
             BUILD_VERSION: ${{ needs.nightly-version.outputs.version }}
+            # A nightly started by hand is wanted now, whenever the last one was published.
+            NIGHTLY_FORCE: ${{ github.event_name == 'workflow_dispatch' && '1' || '' }}
         steps:
             - name: 🕶️ Checkout repository
               uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7

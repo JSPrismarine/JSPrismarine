@@ -36,7 +36,8 @@ nightly builds of `master`.
 | Windows, x64 | `prismarine-windows-x64.exe` |
 
 Nightly pre-releases are built for fewer platforms: Linux x64, macOS on Apple silicon and Windows
-x64.
+x64. They follow changes to `master` on their own, and a maintainer can publish one at any time by
+running the Executable workflow on `master` from the repository's Actions tab.
 
 Put the file in the folder you want the server to live in, then run it from there:
 
