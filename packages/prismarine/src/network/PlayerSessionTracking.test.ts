@@ -171,6 +171,25 @@ describe('network', () => {
                 expect(spawned).toEqual([2n, 2n]);
             });
 
+            it('keeps a newer spawn of the same id tracked when the older spawn fails to frame', async () => {
+                const { session, sent, entityAt } = trackingSession();
+                let failFirst: (error: Error) => void = () => {};
+                const sends = [new Promise<void>((_resolve, reject) => (failFirst = reject)), Promise.resolve()];
+                // Removed by a unit and added back by its undo: two spawns under one runtime id.
+                const entity = Object.assign(entityAt(2n, 1), { spawnTo: () => sends.shift() ?? Promise.resolve() });
+
+                const first = session.considerEntity(entity);
+                await session.dropEntity(entity);
+                await session.considerEntity(entity);
+                failFirst(new Error('framing failed'));
+                await expect(first).rejects.toThrow('framing failed');
+
+                // The failed spawn was already dropped, so the record it finds is not its own.
+                expect(session.tracks(2n)).toBe(true);
+                await session.dropEntity(entity);
+                expect(sent.filter((packet) => packet instanceof RemoveActorPacket)).toHaveLength(2);
+            });
+
             it('does not run while another pass is running', async () => {
                 const { session, spawned, entityAt } = trackingSession({ reconciling: true });
 

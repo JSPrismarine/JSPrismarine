@@ -63,7 +63,10 @@ export interface TrackingPlanRequest<T extends TrackableEntity> {
  * the spawner's radii should check that this is still true.
  */
 export class EntityTracker {
-    private readonly tracked = new Set<number>();
+    /** The entities this client holds, each with the number of the spawn that put it there. */
+    private readonly tracked = new Map<number, number>();
+    /** How many spawns were recorded, which numbers the next one. */
+    private spawns = 0;
     private readonly options: EntityTrackerOptions;
 
     public constructor(options: EntityTrackerOptions) {
@@ -96,7 +99,7 @@ export class EntityTracker {
 
         // Anything tracked and not seen this pass has left the world between passes, so it is
         // despawned by absence. Entries are struck off as they are met.
-        const missing = new Set(this.tracked);
+        const missing = new Set(this.tracked.keys());
 
         for (const entity of entities) {
             const runtimeId = entity.getRuntimeId();
@@ -159,9 +162,31 @@ export class EntityTracker {
         });
     }
 
-    /** Records that an entity is now on the client. */
-    public add(runtimeId: bigint): void {
-        this.tracked.add(Number(runtimeId));
+    /**
+     * Records that an entity is now on the client.
+     * @param {bigint} runtimeId - The entity's runtime id.
+     * @returns {number} The spawn's number, which {@link EntityTracker.removeSpawn} takes.
+     */
+    public add(runtimeId: bigint): number {
+        this.spawns += 1;
+        this.tracked.set(Number(runtimeId), this.spawns);
+        return this.spawns;
+    }
+
+    /**
+     * Forgets an entity if the spawn that put it on the client is still the one recorded.
+     *
+     * For a spawn whose send failed after it was recorded. By then the entity may have been
+     * dropped and spawned again under the same runtime id, as one a unit removed and its undo
+     * added back is, and the newer spawn's record is not the failed one's to take: a later drop
+     * would find nothing to remove, send no removal, and leave the actor on the client.
+     * @param {bigint} runtimeId - The entity's runtime id.
+     * @param {number} spawn - The number {@link EntityTracker.add} gave the spawn.
+     * @returns {boolean} Whether the record was this spawn's, and is gone.
+     */
+    public removeSpawn(runtimeId: bigint, spawn: number): boolean {
+        const key = Number(runtimeId);
+        return this.tracked.get(key) === spawn && this.tracked.delete(key);
     }
 
     /**
@@ -181,7 +206,7 @@ export class EntityTracker {
      * @returns {bigint[]} The runtime ids that were tracked, in no particular order.
      */
     public clear(): bigint[] {
-        const held = [...this.tracked].map(BigInt);
+        const held = [...this.tracked.keys()].map(BigInt);
         this.tracked.clear();
         return held;
     }
