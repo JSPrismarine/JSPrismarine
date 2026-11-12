@@ -268,8 +268,8 @@ async function copy() {
 }
 
 /*
- * On a phone the two stack, and the pass comes down over the lower half of the window. The blind stays
- * where it is, so its tab is gone; the land shows in the strip under the blind and beside the pass.
+ * On a phone the two stack, and the pass prints from a slot on the window's sill: its slot sits on the
+ * frame's lower edge, so the whole window, blind, tab and land, stays in view above it.
  */
 @media (max-width: 719px) {
     .demo {
@@ -283,20 +283,16 @@ async function copy() {
     }
 
     .demo__window {
-        --window-height: 430px;
-        --blind-cover: 50%;
+        --window-height: 380px;
+        --blind-cover: 55%;
         width: min(420px, 100% - 24px);
-    }
-
-    .demo__window :deep(.window-blind__tab) {
-        display: none;
     }
 
     .demo :deep(.pass) {
         --pass-width: 300px;
         position: relative;
         z-index: 3;
-        margin-top: -190px;
+        margin-top: -16px;
     }
 }
 </style>
