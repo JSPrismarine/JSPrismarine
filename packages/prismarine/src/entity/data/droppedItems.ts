@@ -29,6 +29,7 @@ import { DamageCause, damageCauseOf } from '../DamageCause';
 import { HAZARD_DAMAGE, HAZARD_INTERVAL, VOID_DEPTH } from '../Environment';
 import { hazardOf } from '../ai/BlockView';
 import type { DataEntity } from './DataEntity';
+import { blockPositionOf } from './position';
 import type { SpawnOptions } from './scene';
 
 /** The type of every dropped stack. */
@@ -477,7 +478,7 @@ export class DroppedItems {
      * Above and below the dimension's blocks is open, so a stack falls into the void.
      */
     private solidAt(x: number, y: number, z: number): boolean | undefined {
-        const block = { x: Math.floor(x), y: Math.floor(y), z: Math.floor(z) };
+        const block = blockPositionOf({ x, y, z });
         if (block.y < this.host.minY() || block.y >= this.host.maxY()) return false;
         return this.host.solidAt(block);
     }
