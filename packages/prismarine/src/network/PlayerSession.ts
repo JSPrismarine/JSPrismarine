@@ -1026,8 +1026,9 @@ export default class PlayerSession {
             });
 
             for (const entity of change.spawn) {
-                sends.push(entity.spawnTo(this));
+                const sent = entity.spawnTo(this);
                 this.entityTracker.add(entity.getRuntimeId());
+                sends.push(this.trackedOnceSent(entity.getRuntimeId(), sent));
             }
 
             for (const runtimeId of change.despawn) {
@@ -1054,7 +1055,20 @@ export default class PlayerSession {
 
         const sent = entity.spawnTo(this);
         this.entityTracker.add(entity.getRuntimeId());
-        return sent;
+        return this.trackedOnceSent(entity.getRuntimeId(), sent);
+    }
+
+    /**
+     * A spawn that is tracked from when it is queued, and forgotten again if the transport fails
+     * to frame it, so the next pass sends it rather than leave the entity invisible for good.
+     * Tracked first because the next pass may run before the send settles, and it must not send
+     * the same spawn twice.
+     */
+    private trackedOnceSent(runtimeId: bigint, sent: Promise<void>): Promise<void> {
+        return sent.catch((error: unknown) => {
+            this.entityTracker.remove(runtimeId);
+            throw error;
+        });
     }
 
     /**
@@ -2271,7 +2285,7 @@ export default class PlayerSession {
     public sendAttributes(attributes: Attributes = this.own().attributes): Promise<void> {
         const sent = this.sendAttributeList(attributes.getAttributes());
         attributes.clearDirty();
-        return sent;
+        return this.dirtyUnlessSent(attributes, sent);
     }
 
     /**
@@ -2287,7 +2301,19 @@ export default class PlayerSession {
 
         const sent = this.sendAttributeList(dirty);
         attributes.clearDirty();
-        return sent;
+        return this.dirtyUnlessSent(attributes, sent);
+    }
+
+    /**
+     * Marks the attributes changed again when their send fails to frame, so the next sync sends
+     * them: cleared only on success, a value that did not change again would stay stale on the
+     * client. Every attribute, since the set is small and a full list is what the client accepts.
+     */
+    private dirtyUnlessSent(attributes: Attributes, sent: Promise<void>): Promise<void> {
+        return sent.catch((error: unknown) => {
+            attributes.markAllDirty();
+            throw error;
+        });
     }
 
     private async sendAttributeList(attributes: Attribute[]): Promise<void> {
@@ -2691,7 +2717,11 @@ export default class PlayerSession {
         sends.push(
             spawn === null
                 ? outsideTick(() => overworldSpawnOf(world)).then((found) =>
-                      this.send(playerSpawnPositionPacket(this.getPlayer(), world, found))
+                      // A later change, or a disconnect, may have come first: the packet names this
+                      // world's level, and would overwrite what the client shows for the newer one.
+                      this.isConnected() && this.world === world
+                          ? this.send(playerSpawnPositionPacket(this.getPlayer(), world, found))
+                          : undefined
                   )
                 : this.send(playerSpawnPositionPacket(this.getPlayer(), world, spawn))
         );
