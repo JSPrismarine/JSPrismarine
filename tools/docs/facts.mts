@@ -396,6 +396,22 @@ function dataSources(sources: Sources): FactSource[] {
  * Every known fact, by name. A fact whose source is not on disk, such as a download the data scripts
  * have not fetched in this checkout, is present with a `null` value: markers for it keep their text.
  */
+/** The entry points `@jsprismarine/prismarine` publishes, read from its published exports map. */
+function prismarineEntryFacts() {
+    // Parsed JSON is an untyped boundary; only the published exports map is read.
+    const manifest: { publishConfig: { exports: Record<string, unknown> } } = JSON.parse(
+        sourceText('packages', 'prismarine', 'package.json')
+    );
+    const specifiers = Object.keys(manifest.publishConfig.exports)
+        .filter((key) => key !== './package.json')
+        .map((key) => (key === '.' ? '@jsprismarine/prismarine' : `@jsprismarine/prismarine/${key.slice(2)}`));
+    if (!specifiers.length) throw new Error('The docs facts no longer find the exports Prismarine publishes.');
+    return {
+        'prismarine.entryPoints.count': String(specifiers.length),
+        'prismarine.entryPoints.list': specifiers.join('\n')
+    };
+}
+
 export interface Facts {
     values: ReadonlyMap<string, string | null>;
     /** The sources that were not on disk, by label. */
@@ -445,6 +461,7 @@ export async function loadFacts(): Promise<Facts> {
             ...(await commandFacts()),
             ...(await configFacts()),
             ...eventFacts(),
+            ...prismarineEntryFacts(),
             ...tickBudgetFacts(),
             ...replicationFacts(),
             ...parityFamilyFacts(),

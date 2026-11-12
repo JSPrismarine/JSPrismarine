@@ -25,6 +25,14 @@ To install `@jsprismarine/prismarine`, use the following command:
 pnpm install @jsprismarine/prismarine --save
 ```
 
+## Entry points
+
+The package exports a fixed list of modules, each the module that defines what it exports. The
+root exports `Server`; import everything else from its own module, such as `Config` from
+`@jsprismarine/prismarine/config/Config`. A path that is not on the list does not resolve. The
+[extending guide](https://github.com/JSPrismarine/JSPrismarine/blob/master/docs/guide/extending.md#entry-points)
+lists them.
+
 ## Worlds and dimensions
 
 Each `worlds.<name>` entry in `config.json` is a `Level`: one save with one seed, clock, set of
