@@ -1,4 +1,5 @@
 import { Gametype } from '@jsprismarine/minecraft';
+import { AttributeIds } from '@jsprismarine/protocol/wire/structures/Attribute';
 import { describe, expect, it } from 'vitest';
 
 import { fakePlayer } from '../testing/fakePlayer.test.helper';
@@ -45,5 +46,42 @@ describe("PlayerSession's sends to its own client", () => {
 
         expect(player.isFlying()).toBe(false);
         expect(names(sent).filter((name) => name === 'UpdateAdventureSettingsPacket')).toHaveLength(2);
+    });
+
+    it('queues the whole spawn before completeSpawn returns', async () => {
+        const { session, player, sent } = fakePlayer();
+        player.attributes.setValue(AttributeIds.Health, 15);
+
+        const sends = session.completeSpawn();
+
+        const queued = names(sent);
+        expect(queued).toEqual([
+            // setGamemode with the current game mode: its sends, and no mining to stop.
+            'SetPlayerGameTypePacket',
+            'UpdatePlayerGameTypePacket',
+            'SetPlayerGameTypePacket',
+            'UpdateAdventureSettingsPacket',
+            'UpdateAbilitiesPacket',
+            'SetPlayerGameTypePacket',
+            'SetActorDataPacket',
+            'UpdateAbilitiesPacket',
+            // sendInventory: the contents, the hand, the armor window, and what the player wears.
+            'InventoryContentPacket',
+            'MobEquipmentPacket',
+            'InventoryContentPacket',
+            'MobArmorEquipmentPacket',
+            'MobEquipmentPacket',
+            // announceSettings, then the state the spawning client threw away.
+            'SetPlayerGameTypePacket',
+            'UpdateAdventureSettingsPacket',
+            'UpdateAbilitiesPacket',
+            'UpdateAttributesPacket',
+            'SetActorDataPacket'
+        ]);
+        // The attribute sync is written as sent, before the method returns.
+        expect(player.attributes.getDirty()).toEqual([]);
+
+        await sends;
+        expect(names(sent)).toEqual(queued);
     });
 });

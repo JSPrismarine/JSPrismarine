@@ -22,7 +22,7 @@ const fakeSession = () => {
 
     const world: World = stub<World>({
         getActor: (runtimeId) => added.get(runtimeId) ?? null,
-        addPlayer: async (player) => {
+        addPlayer: (player) => {
             order.push('addPlayer');
             const actor = player.getActor();
             if (actor !== undefined) added.set(player.getRuntimeId(), actor);
@@ -47,7 +47,7 @@ const fakeSession = () => {
     };
 };
 
-/** Applies one notice as the input step does: the handler, then the work it deferred. */
+/** Applies one notice as the input step does: the handler, then the sends it handed over. */
 const notify = async (handler: SetLocalPlayerAsInitializedHandler, session: PlayerSession): Promise<void> => {
     const { context, settled } = inputContext(session, { log: stub<HandlerLog>({ debug: () => {} }) });
     handler.handle(new SetLocalPlayerAsInitializedPacket(), context);
@@ -86,7 +86,7 @@ describe('SetLocalPlayerAsInitializedHandler', () => {
         expect(completeSpawn).toHaveBeenCalledOnce();
     });
 
-    it('defers the entry to the step and does nothing before it runs', () => {
+    it("adds the player and completes the spawn in the input's own unit", () => {
         const { order, session } = fakeSession();
         const { context, outputs, deferred } = inputContext(session);
 
@@ -94,8 +94,10 @@ describe('SetLocalPlayerAsInitializedHandler', () => {
             new SetLocalPlayerAsInitializedHandler().handle(new SetLocalPlayerAsInitializedPacket(), context)
         ).toBeUndefined();
 
-        expect(deferred).toHaveLength(1);
-        expect(outputs).toHaveLength(0);
-        expect(order).toEqual([]);
+        // Nothing deferred: both have written before the handler returns, and the one output is
+        // the spawn's sends.
+        expect(deferred).toHaveLength(0);
+        expect(outputs).toHaveLength(1);
+        expect(order).toEqual(['addPlayer', 'completeSpawn']);
     });
 });
