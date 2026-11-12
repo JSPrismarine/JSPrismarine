@@ -184,7 +184,7 @@ Each owns part of one object. Build it per dimension and hand a `ServerWorldSour
 
 ### Entities (`src/entity/`)
 
-- `entities`: `at`, `near`, `players`, `spawn`, `remove`, `drop`, `countOfType`. `spawn` puts an
+- `entities`: <!-- fact:content.entitiesApi -->`at`, `near`, `players`, `spawn`, `remove`, `drop`, `countOfType`<!-- /fact -->. `spawn` puts an
   entity into the store of the live world, which shows it to clients through its store actor and
   writes it into a save. The content entity registry decides which identifiers are spawnable, and
   an identifier it does not declare spawns nothing. A saved actor whose type no loaded pack
