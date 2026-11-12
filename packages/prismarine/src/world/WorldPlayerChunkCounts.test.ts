@@ -295,6 +295,27 @@ describe('world player chunk counts', () => {
         expect(world.getLoadedChunk(20, 0)).not.toBeNull();
     });
 
+    it('keeps a chunk a ticket holds, and unloads it once the ticket is released', async () => {
+        const world = worldWith(
+            [
+                [20, 0],
+                [21, 0]
+            ],
+            true
+        );
+        world['players'].set(1, playerAt(world, 0, 0));
+        // Loaded, so the request starts no load.
+        expect(world.chunkTickets().request('fight', [{ x: 20, z: 0 }])).toBe(true);
+
+        await world['unloadDistantChunks']();
+        expect(world.getLoadedChunk(20, 0)).not.toBeNull();
+        expect(world.getLoadedChunk(21, 0)).toBeNull();
+
+        world.chunkTickets().release('fight');
+        await world['unloadDistantChunks']();
+        expect(world.getLoadedChunk(20, 0)).toBeNull();
+    });
+
     it('keeps a chunk loaded when saving it fails', async () => {
         const world = worldWith([[20, 0]], true, async () => {
             throw new Error('chunk write failed');

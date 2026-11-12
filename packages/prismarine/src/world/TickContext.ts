@@ -36,6 +36,17 @@ export const runInTick = async <T>(work: () => Promise<T>): Promise<T> => {
 };
 
 /**
+ * Runs work as though no tick were running, so nothing it starts, and nothing those starts
+ * await, reads as inside a tick or reports a wait to a tracker. A chunk load a ticket starts runs
+ * this way, so the chunk waits for an input step even while the tick that asked is still open,
+ * and so does work a tick starts and must not wait for, such as building the world a trip goes to.
+ *
+ * @param work - The work to start.
+ * @returns What `work` returns.
+ */
+export const outsideTick = <T>(work: () => T): T => tickScopes.exit(() => waitTrackers.exit(work));
+
+/**
  * Whether the caller runs inside a tick's simulation phases ({@link runInTick}).
  *
  * The input step, world updates, the tick event and tick functions are inside. Chunk delivery,
@@ -43,18 +54,6 @@ export const runInTick = async <T>(work: () => Promise<T>): Promise<T> => {
  * are outside.
  */
 export const insideTick = (): boolean => tickScopes.getStore()?.open === true;
-
-/**
- * Starts work outside every tick, even when the caller runs inside one, so the work and
- * everything it awaits read {@link insideTick} as false. A chunk it loads then waits for the
- * next input step instead of entering the running tick.
- *
- * For work a tick starts and must not wait for, such as building the world a trip goes to.
- *
- * @param work - The work to start.
- * @returns What `work` returns.
- */
-export const outsideTick = <T>(work: () => T): T => tickScopes.exit(work);
 
 /**
  * The tick the caller runs inside, which reads as closed once that tick has finished, or
