@@ -1,4 +1,5 @@
 import { Vector3 } from '@jsprismarine/math';
+import { Gametype } from '@jsprismarine/minecraft';
 import { ActorEvent } from '@jsprismarine/minecraft';
 import { EYE_HEIGHT } from '../Human';
 import { describe, expect, it } from 'vitest';
@@ -51,13 +52,14 @@ const fakeWorld = (groundY: number, walls: (x: number, z: number) => boolean = (
     };
 };
 
-const fakePlayer = (x: number, y: number, z: number) => {
+const fakePlayer = (x: number, y: number, z: number, gamemode = Gametype.SURVIVAL) => {
     const sent: any[] = [];
     const held: ContainerEntry[] = [];
 
     return {
         sent,
         held,
+        gamemode,
         // A player is no longer a position itself, it has one - and the one it reports is its
         // eyes, `EYE_HEIGHT` above its feet. This used to report the feet, which is why every
         // pickup test passed while no player could pick anything up: an item on the floor is
@@ -341,6 +343,42 @@ describe('entity', () => {
         });
 
         describe('pickup', () => {
+            it('leaves drops available while only a spectator is in reach', async () => {
+                const world = fakeWorld(63);
+                const spectator = fakePlayer(0.5, 64, 0.5, Gametype.SPECTATOR);
+                world.players.push(spectator);
+                const item = droppedAt(world, 64);
+
+                await tick(item, 20);
+
+                expect(spectator.held).toHaveLength(0);
+                expect(spectator.sent).toHaveLength(0);
+                expect(world.removed).toHaveLength(0);
+
+                spectator.gamemode = Gametype.SURVIVAL;
+                await tick(item, 1);
+
+                expect(spectator.held).toEqual([item.getItem()]);
+                expect(world.removed).toEqual([item]);
+            });
+
+            it.each([Gametype.SURVIVAL, Gametype.CREATIVE, Gametype.ADVENTURE])(
+                'skips a spectator before an eligible player in mode %s',
+                async (gamemode) => {
+                    const world = fakeWorld(63);
+                    const spectator = fakePlayer(0.5, 64, 0.5, Gametype.SPECTATOR);
+                    const player = fakePlayer(0.5, 64, 0.5, gamemode);
+                    world.players.push(spectator, player);
+                    const item = droppedAt(world, 64);
+
+                    await tick(item, 20);
+
+                    expect(spectator.held).toHaveLength(0);
+                    expect(player.held).toEqual([item.getItem()]);
+                    expect(world.removed).toEqual([item]);
+                }
+            );
+
             it('does not pick up a stack removed by a concurrent merge', async () => {
                 const world = fakeWorld(63);
                 const [older, higher] = lying(world, [
