@@ -750,7 +750,7 @@ const liveWorld = (
     runtimes: EntityRuntimes;
     hold(content: ServerContent): void;
 } => {
-    const heard: Pick<Broadcasts, 'actorSounds'> = { actorSounds: [] };
+    const heard: Pick<Broadcasts, 'actorSounds' | 'actorEffects'> = { actorSounds: [], actorEffects: [] };
     /** Seals what the world logged so far, which hands its occurrences to the sink. */
     const seal = () => {
         world.beginChangeTick();
@@ -762,7 +762,10 @@ const liveWorld = (
             seal();
             return heard.actorSounds;
         },
-        actorEffects: [],
+        get actorEffects() {
+            seal();
+            return heard.actorEffects;
+        },
         metadataChanged: []
     };
     let content: ServerContent | undefined;
@@ -821,14 +824,14 @@ const liveWorld = (
                         entityId: entry.data.entity,
                         sound: entry.data.sound
                     });
+                if (entry.occurrence === 'actor-event')
+                    heard.actorEffects.push({
+                        // Read as the tick seals, when the entity is still in the world.
+                        identifier: world.getActor(entry.data.entity)?.getType() ?? 'removed',
+                        entityId: entry.data.entity,
+                        effect: entry.data.event
+                    });
             }
-        },
-        actorEffect: async (entity, effect) => {
-            broadcasts.actorEffects.push({
-                identifier: entity.getType(),
-                entityId: entity.getRuntimeId(),
-                effect
-            });
         },
         entityMetadataChanged: async (entity) => {
             broadcasts.metadataChanged.push(entity.getType());

@@ -68,7 +68,6 @@ const worldTicking = ({
         entityAttributesChanged: entityAttributesChanged ?? record('entityAttributesChanged'),
         entityMetadataChanged: record('entityMetadataChanged'),
         entityEquipmentChanged: record('entityEquipmentChanged'),
-        actorEffect: record('actorEffect'),
         entityAdded: record('entityAdded'),
         entityRemoved: record('entityRemoved'),
         timeChanged: record('timeChanged'),

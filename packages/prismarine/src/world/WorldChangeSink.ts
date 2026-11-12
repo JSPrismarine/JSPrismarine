@@ -1,4 +1,3 @@
-import type { ActorEvent } from '@jsprismarine/minecraft';
 import type { NBTTagCompound } from '@jsprismarine/nbt';
 import type { Attribute } from '@jsprismarine/protocol/wire/structures/Attribute';
 import type { StatusEffect, StatusEffectChange } from '../entity/StatusEffect';
@@ -75,15 +74,6 @@ export interface WorldChangeSink {
      * @param {number} z - The chunk's z, in chunks.
      */
     chunkLeft(x: number, z: number): void;
-
-    /**
-     * Something happened to one entity: it was hurt, it died, it swung an arm.
-     * @param {ShownActor} entity - Who it happened to.
-     * @param {ActorEvent} effect - What happened.
-     * @param {number} data - Extra detail, for the effects that carry any.
-     * @returns {Promise<void>} Resolves once it is on its way.
-     */
-    actorEffect(entity: ShownActor, effect: ActorEvent, data: number): Promise<void>;
 
     /**
      * An entity's attributes are not what they were - which in practice means it lost health.
@@ -230,7 +220,6 @@ export const NULL_WORLD_CHANGE_SINK: WorldChangeSink = {
     tickSealed: () => {},
     chunkEntered: () => {},
     chunkLeft: () => {},
-    actorEffect: async () => {},
     entityAttributesChanged: async () => {},
     statusEffectChanged: async () => {},
     entityMetadataChanged: async () => {},
