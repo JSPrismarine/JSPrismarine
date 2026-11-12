@@ -181,6 +181,55 @@ describe('ChunkAdmissions', () => {
         ]);
     });
 
+    it('admits a recorded completion that missed its tick at the first step that holds it', async () => {
+        const capture = new ChunkAdmissions();
+        const captured = recording(capture);
+        capture.activate();
+        void capture.hold(completion([], 1));
+        void capture.hold(completion([], 2));
+        await capture.admit(5);
+
+        const replay = new ChunkAdmissions();
+        replay.replay({ records: captured });
+        replay.activate();
+        const applied: string[] = [];
+        void replay.hold(completion(applied, 1));
+        expect(replay.admit(5)).toBe(1);
+
+        const late = replay.hold(completion(applied, 2));
+        expect(replay.admit(6)).toBe(1);
+
+        await expect(late).resolves.toBe(true);
+        expect(applied).toEqual(['1', '2']);
+        expect(replay.pending).toBe(0);
+        expect(replay.snapshot().divergences).toEqual([
+            expect.stringContaining('tick 5: recorded enter of world/minecraft:overworld chunk 2,0 was not ready'),
+            expect.stringContaining('tick 6: recorded enter of world/minecraft:overworld chunk 2,0 was admitted late')
+        ]);
+    });
+
+    it('rejects a completion whose content cannot be read, and applies the rest of the step', async () => {
+        const queue = new ChunkAdmissions();
+        const records = recording(queue);
+        queue.activate();
+        const applied: string[] = [];
+        const failure = new Error('serialization failed');
+        const broken = queue.hold({
+            ...completion(applied, 1),
+            content: () => {
+                throw failure;
+            }
+        });
+        const next = queue.hold(completion(applied, 2));
+
+        expect(queue.admit(1)).toBe(2);
+
+        await expect(broken).rejects.toBe(failure);
+        await expect(next).resolves.toBe(true);
+        expect(applied).toEqual(['2']);
+        expect(records.map(({ x }) => x)).toEqual([2]);
+    });
+
     it('chooses as live play does before the trace starts', async () => {
         const capture = new ChunkAdmissions();
         const captured = recording(capture);
