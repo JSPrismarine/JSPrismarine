@@ -446,16 +446,39 @@ describe('Level', () => {
             await reopened.level.disable();
         });
 
-        it('fails replay capture when the provider cannot save level metadata', async () => {
+        it('fails replay capture when the save pass cannot commit', async () => {
             const { level, provider } = buildLevel('capture-save-failure');
             await level.enable();
 
             const failure = new Error('provider write failed');
-            const writeWorldData = vi.spyOn(provider, 'writeWorldData').mockRejectedValue(failure);
+            const begin = provider.beginSavePass.bind(provider);
+            const beginSavePass = vi.spyOn(provider, 'beginSavePass').mockImplementation(() => {
+                const pass = begin();
+                pass.commit = async () => {
+                    throw failure;
+                };
+                return pass;
+            });
             try {
                 await expect(level.captureReplayInitialState()).rejects.toBe(failure);
             } finally {
-                writeWorldData.mockRestore();
+                beginSavePass.mockRestore();
+                await level.disable();
+            }
+        });
+
+        it('fails replay capture when the provider cannot write level.dat', async () => {
+            const { level, provider } = buildLevel('capture-level-dat-failure');
+            await level.enable();
+
+            const failure = new Error('level.dat write failed');
+            const saveLevelData = vi.spyOn(provider, 'saveLevelData').mockImplementation(() => {
+                throw failure;
+            });
+            try {
+                await expect(level.captureReplayInitialState()).rejects.toBe(failure);
+            } finally {
+                saveLevelData.mockRestore();
                 await level.disable();
             }
         });
@@ -468,11 +491,18 @@ describe('Level', () => {
             chunk.markChanged();
 
             const failure = new Error('chunk write failed');
-            const writeChunk = vi.spyOn(provider, 'writeChunk').mockRejectedValue(failure);
+            const begin = provider.beginSavePass.bind(provider);
+            const beginSavePass = vi.spyOn(provider, 'beginSavePass').mockImplementation(() => {
+                const pass = begin();
+                pass.cutChunk = () => {
+                    throw failure;
+                };
+                return pass;
+            });
             try {
                 await expect(level.captureReplayInitialState()).rejects.toBe(failure);
             } finally {
-                writeChunk.mockRestore();
+                beginSavePass.mockRestore();
                 await level.disable();
             }
         });

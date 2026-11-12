@@ -40,6 +40,9 @@ import type BaseProvider from './providers/BaseProvider';
 import { WorldWeather } from './Weather';
 import { World } from './World';
 import { PlayerPersistence } from './PlayerPersistence';
+import { LevelSave } from './LevelSave';
+import { profileSpanStarter } from '../profiling/ServerProfiler';
+import type { LevelDataAtCut } from './LevelSave';
 import { RespawnSearch } from './RespawnSearch';
 import { outsideTick } from './TickContext';
 import type { WorldData } from './World';
@@ -151,6 +154,8 @@ export class Level {
     private readonly server: Server;
     private readonly provider: BaseProvider;
     private readonly playerPersistence: PlayerPersistence;
+    /** When and how the level is written to disk; see {@link LevelSave}. */
+    private readonly saves: LevelSave;
     private readonly respawnSearch: RespawnSearch;
     private readonly stems: ReadonlyMap<string, LevelStem>;
     private readonly dimensionTypes: ReadonlyMap<string, DimensionType>;
@@ -207,12 +212,20 @@ export class Level {
         this.path = options.path;
         this.server = options.server;
         this.provider = options.provider;
+        this.saves = new LevelSave({
+            name: options.name,
+            provider: () => this.provider,
+            logger: () => this.server.getLogger(),
+            levelData: () => this.levelDataNow(),
+            savePlayers: async (records, requireSuccess) => this.playerPersistence.saveAll(records, requireSuccess)
+        });
         this.playerPersistence = new PlayerPersistence({
             levelName: options.name,
             folder: options.path,
             provider: options.provider,
             logger: () => this.server.getLogger(),
-            isClosed: () => this.closed
+            isClosed: () => this.closed,
+            pendingCommit: () => this.saves.pendingCommit()
         });
         this.respawnSearch = new RespawnSearch({
             hasStem: (stemId) => this.stems.has(stemId),
@@ -657,10 +670,9 @@ export class Level {
             throw new Error(`Provider '${this.provider.constructor.name}' cannot capture replay snapshots`);
         }
 
-        // Replay checkpoints cannot accept the ordinary save path's swallowed write failures.
-        await Promise.all([...this.worlds()].map((world) => world.saveForReplay()));
-        // Replay capture must fail on a metadata write error; the regular save path only logs it.
-        await this.writeLevelData();
+        // Replay checkpoints cannot accept the ordinary save path's swallowed write failures, the
+        // level data's included.
+        await this.saves.saveForReplay([...this.worlds()]);
         const snapshot = Buffer.from(capture.call(this.provider));
         const { activeContentFingerprint, worldgenFingerprint } = this.replayInputFingerprints();
         const gameRules = [...this.gameRuleManager.getGameRules()]
@@ -855,13 +867,23 @@ export class Level {
 
         this.currentTick++;
         this.weather.tick(this.currentTick);
-        for (const world of this.worldsInStemOrder()) {
+        const worlds = this.worldsInStemOrder();
+        for (const world of worlds) {
             try {
                 world.update(tick);
             } catch (error: unknown) {
                 this.server.getLogger().error(`World ${world.getName()} of ${this.name} failed tick ${tick}`);
                 this.server.getLogger().error(error);
             }
+        }
+
+        // After every world, so an autosave's cut is the state at the end of this tick in each
+        // dimension (ADR 0018).
+        const endSaveProfile = profileSpanStarter(this.server)?.(`Level.save:${this.name}`);
+        try {
+            this.saves.tick(this.currentTick, worlds);
+        } finally {
+            endSaveProfile?.();
         }
     }
 
@@ -902,58 +924,87 @@ export class Level {
     }
 
     /**
-     * Writes the whole level: every loaded world's players and chunks, then the level data.
+     * Writes the whole level in one pass: every loaded world's players and chunks, and the level
+     * data. See {@link LevelSave.save}.
      */
     public async save(): Promise<void> {
-        await Promise.all([...this.worlds()].map(async (world) => world.save()));
-        await this.saveLevelData();
+        await this.saves.save([...this.worlds()]);
+    }
+
+    /**
+     * Writes some of the level's worlds in one pass, with the level data: their players and
+     * changed chunks. A world asks for this to save itself.
+     * @param worlds - The worlds, ready or not.
+     */
+    public async saveWorlds(worlds: readonly World[]): Promise<void> {
+        await this.saves.save(worlds);
+    }
+
+    /**
+     * Runs a write to the save behind every other, such as a chunk the unload pass writes; see
+     * {@link LevelSave.enqueue}.
+     */
+    public async enqueueSave(write: () => Promise<void>): Promise<void> {
+        await this.saves.enqueue(write);
     }
 
     /**
      * Writes the level's own state through the provider: the spawn, rules, weather and stems
      * into the provider's record, and the spawn, clock, generator and Nether scale into
-     * `level.dat`.
+     * `level.dat`. Queued behind the level's other writes to the save.
      *
      * A level whose spawn is still unknown writes everything else and leaves the stored spawn
      * where it is. Overwriting a real spawn point with a guess would be worse than the gap.
      */
     public async saveLevelData(): Promise<void> {
         try {
-            await this.writeLevelData();
+            await this.saves.enqueue(async () => this.writeLevelData());
         } catch (error: unknown) {
             this.server.getLogger().error(`Failed to save level data for ${this.name}`);
             this.server.getLogger().error(error);
         }
     }
 
-    /** Writes provider and level.dat state, propagating errors to replay snapshot capture. */
-    private async writeLevelData(): Promise<void> {
+    /**
+     * The level's own state as it is now, for a save pass's cut: the record the provider keeps
+     * and what goes into `level.dat`. The provider merges the record over the one it holds, so a
+     * field left out keeps what the save already has.
+     */
+    private levelDataNow(): LevelDataAtCut {
         const spawn = this.spawn;
         if (spawn === null) {
             this.server.getLogger().debug(`No spawn point to save for ${this.name}`, 'Level/saveLevelData');
         }
 
         const stems = Object.fromEntries(this.stems);
-        const stored = (await this.provider.readWorldData()) ?? {};
         const dragonFight = this.dragonFightState();
         const raids = this.raidState();
-        const data: WorldPersistenceData = {
-            ...stored,
-            ...(spawn ? { spawn: { x: spawn.getX(), y: spawn.getY(), z: spawn.getZ() } } : {}),
-            gameRules: Array.from(this.gameRuleManager.getGameRules()),
-            weather: this.weather.saved(),
-            ...(this.provider.supportsChunkUnload === true ? {} : { entities: this.entitySnapshots() }),
-            worldGenSettings: { seed: this.seed.toString(), dimensions: stems },
-            ...(dragonFight === undefined ? {} : { dragonFight }),
-            ...(raids === undefined ? {} : { raids })
+        const position = spawn ? { x: spawn.getX(), y: spawn.getY(), z: spawn.getZ() } : undefined;
+        return {
+            record: {
+                ...(position === undefined ? {} : { spawn: position }),
+                gameRules: Array.from(this.gameRuleManager.getGameRules()),
+                weather: this.weather.saved(),
+                ...(this.provider.supportsChunkUnload === true ? {} : { entities: this.entitySnapshots() }),
+                worldGenSettings: { seed: this.seed.toString(), dimensions: stems },
+                ...(dragonFight === undefined ? {} : { dragonFight }),
+                ...(raids === undefined ? {} : { raids })
+            },
+            levelDat: {
+                ...(position === undefined ? {} : { spawn: position }),
+                time: this.currentTick,
+                stems,
+                netherScale: this.netherScale()
+            }
         };
-        await this.provider.writeWorldData(data);
-        this.provider.saveLevelData({
-            ...(spawn ? { spawn: data.spawn } : {}),
-            time: this.currentTick,
-            stems,
-            netherScale: this.netherScale()
-        });
+    }
+
+    /** Writes provider and level.dat state now, outside a pass. */
+    private async writeLevelData(): Promise<void> {
+        const { record, levelDat } = this.levelDataNow();
+        const stored = (await this.provider.readWorldData()) ?? {};
+        await this.provider.writeWorldData({ ...stored, ...record });
+        this.provider.saveLevelData(levelDat);
     }
 
     /** The raids the save held, which the Overworld's raid manager starts from. */
@@ -1035,9 +1086,16 @@ export class Level {
         this.closing = true;
 
         // Every built world, ready or not: a shutdown during a start region's generation is the
-        // ordinary case, and `World.disable` is what stops that generation and saves its chunks.
-        await Promise.all([...this.builtWorlds()].map(async (world) => world.disable()));
-        await this.saveLevelData();
+        // ordinary case, and `World.stop` is what stops that generation. Then one pass writes
+        // them all, with the level data.
+        const worlds = [...this.builtWorlds()];
+        await Promise.all(worlds.map(async (world) => world.stop()));
+        try {
+            await this.saves.save(worlds);
+        } catch (error: unknown) {
+            this.server.getLogger().error(`Failed to save level ${this.name}`);
+            this.server.getLogger().error(error);
+        }
         await this.provider.disable();
         this.closed = true;
     }

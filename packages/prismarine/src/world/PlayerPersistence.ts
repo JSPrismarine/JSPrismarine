@@ -20,6 +20,11 @@ export interface PlayerPersistenceOptions {
     readonly logger: () => Logger;
     /** Whether the level has closed, after which nothing is written. */
     readonly isClosed: () => boolean;
+    /**
+     * Settles once a save pass whose cut is taken has committed. A record saved while one is
+     * pending is written after it, so the older record in the pass never lands on top of it.
+     */
+    readonly pendingCommit?: () => Promise<void>;
 }
 
 /**
@@ -39,8 +44,9 @@ export interface PlayerPersistenceOptions {
  * account and survives a gamertag change, and the UUID is derived from it. Since #2951 one live
  * player holds a key at a time.
  *
- * A save cut under ADR 0018 builds every player's record at one tick boundary, without awaiting,
- * and hands the batch to {@link PlayerPersistence.saveAll}.
+ * A save pass under ADR 0018 builds every player's record at its cut and writes it with the
+ * pass, not through this. A provider without player storage gets them here once the pass has
+ * committed.
  */
 export class PlayerPersistence {
     /**
@@ -91,8 +97,11 @@ export class PlayerPersistence {
      *   failed write is logged and the next save tries again.
      */
     public save(key: string, record: WorldPlayerData, requireSuccess = false): Promise<void> {
+        // Taken now, not when the write runs: a record built before a cut is older than the one
+        // the cut holds and may land first, while one built after it has to land after (ADR 0018).
+        const behind = this.options.pendingCommit?.() ?? Promise.resolve();
         // After the key's last write, so the writes of one player land in the order they started.
-        const write = (this.writing.get(key) ?? Promise.resolve()).then(() => this.write(key, record, requireSuccess));
+        const write = Promise.all([this.writing.get(key), behind]).then(() => this.write(key, record, requireSuccess));
         const settled = write.then(
             () => undefined,
             () => undefined
@@ -102,6 +111,16 @@ export class PlayerPersistence {
             if (this.writing.get(key) === settled) this.writing.delete(key);
         });
         return write;
+    }
+
+    /**
+     * Writes a batch of records built at one moment, all at once.
+     *
+     * @param records - Each player's record by key, as a save pass's cut built them.
+     * @param requireSuccess - Propagate a persistence error, for a replay checkpoint.
+     */
+    public async saveAll(records: ReadonlyMap<string, WorldPlayerData>, requireSuccess = false): Promise<void> {
+        await Promise.all([...records].map(async ([key, record]) => this.save(key, record, requireSuccess)));
     }
 
     private async write(key: string, record: WorldPlayerData, requireSuccess: boolean): Promise<void> {
@@ -145,15 +164,6 @@ export class PlayerPersistence {
             this.options.logger().error(error);
             if (requireSuccess) throw error;
         }
-    }
-
-    /**
-     * Writes a batch of records built at one moment, all at once.
-     *
-     * @param records - Each player's record by key, as a save pass captured them.
-     */
-    public async saveAll(records: ReadonlyMap<string, WorldPlayerData>): Promise<void> {
-        await Promise.all([...records].map(async ([key, record]) => this.save(key, record)));
     }
 
     /**

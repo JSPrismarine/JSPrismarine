@@ -376,12 +376,21 @@ describe('a player logging out and back in', () => {
             const player = buildPlayer(world, server, UUID.fromString('00000000-0000-4000-8000-000000000003'));
             const getViewers = vi.spyOn(world, 'getViewers').mockReturnValue([player]);
 
+            // The cut holds every online player's record in the pass's batch.
             const failure = new Error('player write failed');
-            const writePlayerData = vi.spyOn(level.getProvider(), 'writePlayerData').mockRejectedValue(failure);
+            const provider = level.getProvider();
+            const begin = provider.beginSavePass.bind(provider);
+            const beginSavePass = vi.spyOn(provider, 'beginSavePass').mockImplementation(() => {
+                const pass = begin();
+                pass.putPlayer = () => {
+                    throw failure;
+                };
+                return pass;
+            });
             try {
                 await expect(level.captureReplayInitialState()).rejects.toBe(failure);
             } finally {
-                writePlayerData.mockRestore();
+                beginSavePass.mockRestore();
                 getViewers.mockRestore();
             }
         } finally {
