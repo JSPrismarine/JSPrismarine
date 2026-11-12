@@ -1,3 +1,4 @@
+import http from 'node:http';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import { SignalStructure, SignalType } from './protocol/Signal';
@@ -93,6 +94,79 @@ describe('HttpSignaling', () => {
 
         expect(response.status).toBe(200);
         expect(lines[0]).toContain(`(network ${logged})`);
+    });
+
+    describe('the address a client dialed', () => {
+        /** Posts an offer under a `Host` header and returns what `sign` was told the client dialed. */
+        const dialedWith = async (host: string, resolve?: (hostname: string) => Promise<string[]>) => {
+            const { answerer } = fakeAnswerer((signal, respond) =>
+                respond(new SignalStructure(SignalType.ConnectResponse, signal.connectionId, 'v=0\r\n'))
+            );
+            const seen: unknown[] = [];
+            const signaling = new HttpSignaling({
+                answerer,
+                status: () => '{}',
+                sign: (answer, dialed) => {
+                    seen.push(dialed);
+                    return answer;
+                },
+                logger: { debug: () => {}, info: () => {}, warn: () => {}, error: () => {} },
+                ...(resolve === undefined ? {} : { resolve })
+            });
+            running.push(signaling);
+            const port = await signaling.listen(0, '127.0.0.1');
+            const join = () =>
+                new Promise<void>((done, fail) => {
+                    const request = http.request(
+                        { host: '127.0.0.1', port, path: '/v1/join/1', method: 'POST', setHost: false },
+                        (response) => response.resume().on('end', done)
+                    );
+                    request.setHeader('Host', host);
+                    request.on('error', fail).end(OFFER);
+                });
+            await join();
+            return { dialed: seen[0], port, seen, join };
+        };
+
+        it.each([
+            ['an IPv4 address and its port', '203.0.113.9:25565', ['203.0.113.9'], 25565],
+            ['an IPv6 address in brackets', '[2001:db8::7]:25565', ['2001:db8::7'], 25565]
+        ])('reads %s from the Host header', async (_name, host, addresses, dialedPort) => {
+            const { dialed, port } = await dialedWith(host);
+
+            expect(dialed).toStrictEqual({ addresses, port: dialedPort, localPort: port });
+        });
+
+        it('takes the port signaling listens on for a Host without one', async () => {
+            const { dialed, port } = await dialedWith('203.0.113.9');
+
+            expect(dialed).toStrictEqual({ addresses: ['203.0.113.9'], port, localPort: port });
+        });
+
+        it('resolves a hostname once, and remembers what it resolved to', async () => {
+            const asked: string[] = [];
+            const { dialed, seen, join } = await dialedWith('Play.Example.com:19132', async (hostname) => {
+                asked.push(hostname);
+                return ['203.0.113.9', '2001:db8::7'];
+            });
+            await join();
+
+            expect(dialed).toMatchObject({ addresses: ['203.0.113.9', '2001:db8::7'], port: 19132 });
+            expect(seen[1]).toStrictEqual(dialed);
+            expect(asked).toStrictEqual(['play.example.com']);
+        });
+
+        it.each([
+            ['a Host that is no hostname', 'not a host:19132'],
+            ['a hostname that does not resolve', 'gone.example.com:19132']
+        ])('names nothing for %s, and still answers', async (_name, host) => {
+            const { dialed, seen } = await dialedWith(host, async () => {
+                throw new Error('ENOTFOUND');
+            });
+
+            expect(seen).toHaveLength(1);
+            expect(dialed).toBeUndefined();
+        });
     });
 
     it('picks a connection ID no live peer has for every offer', async () => {

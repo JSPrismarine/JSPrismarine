@@ -19,6 +19,7 @@ import {
     NetherNetServer,
     parseUdpPorts,
     PortAllocator,
+    withDialedCandidates,
     withMappedCandidates
 } from '@jsprismarine/nethernet';
 import type { PortRange, UdpPorts, WebRtcDriver } from '@jsprismarine/nethernet';
@@ -492,7 +493,16 @@ export class ServerNetworking implements Networking {
         this.signaling = new HttpSignaling({
             answerer: nethernet,
             status: () => joinStatusJson(netherNetStatusOf(serverName.getSnapshot())),
-            sign: (answer) => identity.sign(withMappedCandidates(answer, udpPorts.mappings, udpPorts.publicIp)),
+            // After the configured addresses, the one this client dialed: behind NAT or in a
+            // container it reaches the server where the interface addresses do not.
+            sign: (answer, dialed) =>
+                identity.sign(
+                    withDialedCandidates(
+                        withMappedCandidates(answer, udpPorts.mappings, udpPorts.publicIp),
+                        dialed,
+                        udpPorts.mappings
+                    )
+                ),
             logger
         });
         listening.push(

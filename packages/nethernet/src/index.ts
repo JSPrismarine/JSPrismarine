@@ -38,8 +38,15 @@ export {
 export { describeCandidates, tracePeerConnection } from './tracePeerConnection';
 export { fewestPeers, PortAllocator } from './PortAllocator';
 export type { PortLoad, PortSelectionStrategy } from './PortAllocator';
-export { parsePublicIp, parseUdpPorts, UdpPortsError, withMappedCandidates } from './udpPorts';
-export type { PortMapping, PortRange, UdpPorts } from './udpPorts';
+export {
+    hasPublicCandidate,
+    parsePublicIp,
+    parseUdpPorts,
+    UdpPortsError,
+    withDialedCandidates,
+    withMappedCandidates
+} from './udpPorts';
+export type { DialedAddress, PortMapping, PortRange, UdpPorts } from './udpPorts';
 export type { SdpFingerprint } from './sdp';
 export { candidateAddress } from './WebRtcDriver';
 export type {
