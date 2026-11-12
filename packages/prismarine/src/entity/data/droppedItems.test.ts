@@ -220,6 +220,28 @@ describe('dropped items in the store', () => {
             expect(second.removed).toBe('merged');
         });
 
+        it('leaves a stack with other data, such as a name, beside a plain one', () => {
+            const fixture = fixtureOf();
+            const plain = drop(fixture, 0.5, SURFACE, 0.5);
+            const named = drop(fixture, 0.6, SURFACE, 0.5, { stack: { ...cobblestone(), customName: 'Keep' } });
+
+            step(fixture);
+
+            expect([plain.removed, named.removed]).toEqual([undefined, undefined]);
+            expect(itemViewOf(named)?.stack.customName).toBe('Keep');
+        });
+
+        it('keeps the longer pickup delay and the younger age of the two it merges', () => {
+            const fixture = fixtureOf({ players: [player(7, 0.5, 0.5)] });
+            const old = drop(fixture, 0.5, SURFACE, 0.5, { pickupDelay: 0, age: 5000 });
+            drop(fixture, 0.6, SURFACE, 0.5, { pickupDelay: 40 });
+
+            step(fixture);
+
+            expect(itemViewOf(old)).toMatchObject({ pickupDelay: 40, age: 0 });
+            expect(fixture.world.given).toEqual([]);
+        });
+
         it('leaves a different item, a stack beyond half a block, and two that will not both fit', () => {
             const fixture = fixtureOf();
             const stone = drop(fixture, 0.5, SURFACE, 0.5);
@@ -429,7 +451,7 @@ describe('dropped items in the store', () => {
     it('undoes an update that throws and skips the stack for the rest of the tick', () => {
         const fixture = fixtureOf({ players: [player(7, 0.5, 0.5)] });
         const item = drop(fixture, 0.5, SURFACE + 2, 0.5, { pickupDelay: 0 });
-        drop(fixture, 0.6, SURFACE + 2, 0.5);
+        drop(fixture, 0.6, SURFACE + 2, 0.5, { pickupDelay: 0 });
         fixture.world.onGive = () => {
             throw new Error('the inventory is gone');
         };

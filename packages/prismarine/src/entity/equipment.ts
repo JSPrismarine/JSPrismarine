@@ -215,8 +215,8 @@ export const sameEquipmentItems = (left: ViewableEquipment, right: ViewableEquip
 export const sameEquipment = (left: MobEquipmentSet, right: MobEquipmentSet): boolean =>
     MOB_EQUIPMENT_SLOTS.every((slot) => sameDrop(left[slot], right[slot]));
 
-/** Whether two drops are the same item in the same condition. */
-const sameDrop = (left: ContentItemDrop | undefined, right: ContentItemDrop | undefined): boolean => {
+/** Whether two drops are the same item in the same condition, counts included. */
+export const sameDrop = (left: ContentItemDrop | undefined, right: ContentItemDrop | undefined): boolean => {
     if (left === undefined || right === undefined) return left === right;
 
     return (

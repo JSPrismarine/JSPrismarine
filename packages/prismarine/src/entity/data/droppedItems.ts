@@ -24,9 +24,10 @@ import type { ComponentStateRecord } from '@jsprismarine/entities/componentState
 import { defineComponentState, stateField } from '@jsprismarine/entities/componentState';
 
 import type { StoredItemStack } from '../../inventory/persistence';
-import { isStoredItemStack } from '../../inventory/persistence';
+import { isStoredItemStack, itemDropOf } from '../../inventory/persistence';
 import { DamageCause, damageCauseOf } from '../DamageCause';
 import { HAZARD_DAMAGE, HAZARD_INTERVAL, VOID_DEPTH } from '../Environment';
+import { sameDrop } from '../equipment';
 import { hazardOf } from '../ai/BlockView';
 import type { DataEntity } from './DataEntity';
 import { blockPositionOf } from './position';
@@ -224,6 +225,14 @@ export const itemViewOf = (entity: DataEntity): ItemView | undefined => {
 };
 
 /** Replaces part of a dropped stack's state, through the one logged write. */
+/**
+ * Whether two stacks are the same item with the same data, whatever their counts, so one may
+ * draw the other in: Java's `ItemStack.isSameItemSameComponents`, as far as a stack carries. A
+ * renamed or enchanted stack keeps what makes it so.
+ */
+const sameItem = (left: StoredItemStack, right: StoredItemStack): boolean =>
+    sameDrop(itemDropOf({ ...left, count: 0 }), itemDropOf({ ...right, count: 0 }));
+
 const updateView = (entity: DataEntity, view: ItemView, change: Partial<ItemView>): ItemView => {
     const next: ItemView = { ...view, ...change };
     writeState(entity, stateRecord(next));
@@ -541,12 +550,18 @@ export class DroppedItems {
             if (other === entity || other.removed !== undefined || other.id < entity.id) continue;
             const theirs = itemViewOf(other);
             if (theirs === undefined) continue;
-            if (theirs.stack.name !== view.stack.name || (theirs.stack.meta ?? 0) !== (view.stack.meta ?? 0)) continue;
+            if (!sameItem(theirs.stack, view.stack)) continue;
             const at = other.position;
             if (Math.hypot(at.x - x, at.y - y, at.z - z) > tuning.mergeRange) continue;
             if (view.stack.count + theirs.stack.count > max) continue;
 
-            view = updateView(entity, view, { stack: { ...view.stack, count: view.stack.count + theirs.stack.count } });
+            // Java's `ItemEntity.merge`: the longer pickup delay and the younger age, so a stack
+            // thrown a moment ago is not handed over at once, nor despawned with an old one.
+            view = updateView(entity, view, {
+                stack: { ...view.stack, count: view.stack.count + theirs.stack.count },
+                pickupDelay: Math.max(view.pickupDelay, theirs.pickupDelay),
+                age: Math.min(view.age, theirs.age)
+            });
             this.host.remove(other.id, 'merged');
             this.host.stackChanged(entity.id, view.stack.count);
         }
