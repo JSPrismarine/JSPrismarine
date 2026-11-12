@@ -52,6 +52,7 @@ import { leverLamp } from './scenarios/lever-lamp.mts';
 import { attackEntity } from './scenarios/attack-entity.mts';
 import { movement } from './scenarios/movement.mts';
 import { movementFanout } from './scenarios/movement-fanout.mts';
+import { frozenWorld } from './scenarios/frozen-world.mts';
 import { duplicateLogin } from './scenarios/duplicate-login.mts';
 import { rejoin } from './scenarios/rejoin.mts';
 import { movementRotation } from './scenarios/movement-rotation.mts';
@@ -100,6 +101,7 @@ const suites: ScenarioSuite[] = [
             lookDirection,
             gait,
             movementFanout,
+            frozenWorld,
             duplicateLogin,
             rejoin,
             movementRotation,
