@@ -80,7 +80,7 @@ describe('network', () => {
 
             const files = fs.readdirSync(dumpDir);
             expect(files.length).toBe(1);
-            expect(files[0]).toMatch(/^\d+-connection-1-TextPacket\.bin$/);
+            expect(files[0]).toMatch(/^\d+-connection-1-TextPacket-[0-9a-f]{8}\.bin$/);
             // Queued sends use transient bytes, so compare the dump with the actual wire payload.
             const [wirePacket] = BatchCodec.compressed({ algorithm: PacketCompressionAlgorithm.ZLIB }).decode(
                 framed[0]!

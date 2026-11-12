@@ -289,6 +289,10 @@ to a file of its own under `JSP_DEBUG_DUMP_DIR` (default: a
 `jsprismarine-packets` directory in the system temp directory). That is the
 exact byte sequence the client was given, ready to decode against the
 protocol documentation. A packet can be dumped and dropped at the same time.
+The server creates the directory readable only by its own user and refuses to
+dump into one that is a symbolic link, belongs to another user, or other users
+can write to. Each file gets a random suffix and is created new, never
+overwritten.
 
 The variables are read when a connection is made, so they can also go in
 `packages/server/.env.development.local`, which the server loads at startup.
