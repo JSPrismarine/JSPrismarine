@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import type { World } from './';
+import type { World } from './World';
 import { Position } from './Position';
 
 describe('world', () => {

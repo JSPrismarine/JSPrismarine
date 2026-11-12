@@ -1,5 +1,6 @@
 import type { WorldConfig, WorldPlayerData } from '../World';
-import type { Generator, World } from '../';
+import type { Generator } from '../Generator';
+import type { World } from '../World';
 import type { ChunkRequestOptions } from '../Generator';
 import type Server from '../../Server';
 import type Chunk from '../chunk/Chunk';
