@@ -67,9 +67,11 @@ export const lookVector = (yaw: number, pitch: number): Vector3 => {
  * nothing has to be added on top, and adding an eye height would put the arrow above their head.
  * @param {StoreActor} shooter - Who drew the bow.
  * @param {number} ticks - How long they drew it for.
- * @returns {Promise<boolean>} `false` if the draw was too short to be worth loosing.
+ * Synchronous: the arrow enters the store and the bow's sound is an occurrence in the change log
+ * before this returns.
+ * @returns {boolean} `false` if the draw was too short to be worth loosing.
  */
-export const loose = async (shooter: StoreActor, ticks: number): Promise<boolean> => {
+export const loose = (shooter: StoreActor, ticks: number): boolean => {
     const power = drawPower(ticks);
     if (power < MIN_POWER) return false;
 
@@ -91,7 +93,9 @@ export const loose = async (shooter: StoreActor, ticks: number): Promise<boolean
     );
     if (projectile === undefined) return false;
 
-    await world.sendActorSound(shooter, LevelSoundEvent.BOW);
+    void world
+        .sendActorSound(shooter, LevelSoundEvent.BOW)
+        .catch((error: unknown) => shooter.getServer().getLogger().error(error));
 
     return true;
 };
