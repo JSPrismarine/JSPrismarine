@@ -62,9 +62,12 @@ export const syncActorPropertyPacket = (
 /**
  * Builds the current values in the order the actor's synced definition packet declares them.
  *
- * @param properties - The entity's live property store.
+ * @param properties - The entity's live property store, or the same values read from the change
+ *   log over its type's definitions.
  */
-export const syncedPropertiesOf = (properties: PropertyValues): SyncedProperties => {
+export const syncedPropertiesOf = (
+    properties: Pick<PropertyValues, 'names' | 'definition' | 'get'>
+): SyncedProperties => {
     const synced = new SyncedProperties();
     let index = 0;
 
