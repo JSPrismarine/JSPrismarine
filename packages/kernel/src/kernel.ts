@@ -6,6 +6,18 @@ import type { Module, ModuleContext } from './module';
 import type { ServiceToken } from './token';
 
 /**
+ * A thrown value as a log line can carry it. A value whose `toString` or `stack` throws is named
+ * by its tag, so formatting the failure cannot fail too.
+ */
+const describeFailure = (error: unknown): string => {
+    try {
+        return error instanceof Error ? (error.stack ?? error.message) : String(error);
+    } catch {
+        return Object.prototype.toString.call(error);
+    }
+};
+
+/**
  * Error raised for kernel contract violations: missing providers, dependency
  * cycles, duplicate providers, out-of-phase calls, and undeclared `use()`.
  */
@@ -68,10 +80,7 @@ export class Kernel<Events extends EventMap = EventMap> {
         this.logger = options.logger ?? consoleLogger;
         const logger = this.logger;
         this.bus = new KernelEventBus<Events>({
-            onListenerError: (error, event) =>
-                logger.error(
-                    `A "${event}" listener failed: ${error instanceof Error ? (error.stack ?? error.message) : String(error)}`
-                )
+            onListenerError: (error, event) => logger.error(`A "${event}" listener failed: ${describeFailure(error)}`)
         });
     }
 
