@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
+import { stub } from '../testing/stub.test.helper';
 import { RespawnRequests } from './RespawnRequests';
-import type { RespawnAnswer } from './RespawnSearch';
+import type { RespawnAnswer, RespawnAttempt, RespawnRequest, RespawnSearch } from './RespawnSearch';
 
 const answerFor = (player: string): RespawnAnswer => ({
     player,
@@ -13,43 +14,73 @@ const answerFor = (player: string): RespawnAnswer => ({
     spawnPointLost: false
 });
 
-/** A search the test answers when it chooses. */
-const deferred = () => {
-    let answer: (value: RespawnAnswer) => void = () => {};
-    let fail: (error: unknown) => void = () => {};
-    const promise = new Promise<RespawnAnswer>((resolve, reject) => {
-        answer = resolve;
-        fail = reject;
+const requestOf = (player: string): RespawnRequest => ({
+    player,
+    spawnPoint: undefined,
+    body: { width: 0.6, height: 1.8, eyeHeight: 1.62 }
+});
+
+/** A search that waits for each player the test names in `waiting`, and counts its attempts. */
+const searchOf = (waiting: Set<string>, failing = new Set<string>()) => {
+    const attempts: string[] = [];
+    const search = stub<RespawnSearch>({
+        attempt: ({ player }): RespawnAttempt => {
+            attempts.push(player);
+            if (failing.has(player)) throw new Error(`the search for ${player} failed`);
+            return waiting.has(player) ? { kind: 'waiting' } : { kind: 'answer', answer: answerFor(player) };
+        }
     });
-    return { promise, answer, fail };
+    return { search, attempts };
 };
 
 describe('respawn requests', () => {
-    it('applies nothing until the input step, then every answer in the order the deaths filed them', async () => {
+    it('tries nothing until the input step, then applies every answer in the order filed', async () => {
         const requests = new RespawnRequests(() => {});
+        const { search, attempts } = searchOf(new Set());
         const applied: string[] = [];
-        const first = deferred();
-        const second = deferred();
-        requests.request(first.promise, async (answer) => void applied.push(answer.player));
-        requests.request(second.promise, async (answer) => void applied.push(answer.player));
+        requests.request(search, requestOf('first'), async (answer) => void applied.push(answer.player));
+        requests.request(search, requestOf('second'), async (answer) => void applied.push(answer.player));
 
-        // The second search finishes first, and its answer still waits its turn.
-        second.answer(answerFor('second'));
-        await Promise.resolve();
-        expect(applied).toEqual([]);
-
-        first.answer(answerFor('first'));
+        expect(attempts).toEqual([]);
         expect(await requests.admit()).toBe(2);
         expect(applied).toEqual(['first', 'second']);
         expect(requests.size).toBe(0);
     });
 
+    it('keeps a waiting request, and the later ones of its player, for a later step', async () => {
+        const requests = new RespawnRequests(() => {});
+        const waiting = new Set(['steve']);
+        const { search, attempts } = searchOf(waiting);
+        const applied: string[] = [];
+        const apply = (label: string) => async () => void applied.push(label);
+        requests.request(search, requestOf('steve'), apply('steve death'));
+        requests.request(search, requestOf('alex'), apply('alex death'));
+        requests.request(search, requestOf('steve'), apply('steve respawn'));
+
+        // Steve's chunks are not in: his first request waits, his second is not even tried,
+        // and Alex's answer does not wait for either.
+        expect(await requests.admit()).toBe(1);
+        expect(applied).toEqual(['alex death']);
+        expect(attempts).toEqual(['steve', 'alex']);
+        expect(requests.size).toBe(2);
+
+        // Another step without the chunks tries the head again and nothing else.
+        expect(await requests.admit()).toBe(0);
+        expect(attempts).toEqual(['steve', 'alex', 'steve']);
+
+        waiting.delete('steve');
+        expect(await requests.admit()).toBe(2);
+        expect(applied).toEqual(['alex death', 'steve death', 'steve respawn']);
+        expect(requests.size).toBe(0);
+    });
+
     it('leaves a request filed during the step for the next one', async () => {
         const requests = new RespawnRequests(() => {});
+        const { search } = searchOf(new Set());
         const applied: string[] = [];
-        requests.request(Promise.resolve(answerFor('dying')), async () => {
+        requests.request(search, requestOf('dying'), async () => {
             applied.push('dying');
-            requests.request(Promise.resolve(answerFor('later')), async () => void applied.push('later'));
+            requests.request(search, requestOf('later'), async () => void applied.push('later'));
         });
 
         await requests.admit();
@@ -58,17 +89,17 @@ describe('respawn requests', () => {
         expect(applied).toEqual(['dying', 'later']);
     });
 
-    it('reports a failed search and still applies the answers behind it', async () => {
+    it('reports a failed search, drops it and still applies the answers behind it', async () => {
         const reported: unknown[] = [];
         const requests = new RespawnRequests((error) => reported.push(error));
-        const failing = deferred();
+        const { search } = searchOf(new Set(), new Set(['broken']));
         const applied: string[] = [];
-        requests.request(failing.promise, async () => void applied.push('never'));
-        requests.request(Promise.resolve(answerFor('after')), async (answer) => void applied.push(answer.player));
-        failing.fail(new Error('the bed dimension failed to build'));
+        requests.request(search, requestOf('broken'), async () => void applied.push('never'));
+        requests.request(search, requestOf('after'), async (answer) => void applied.push(answer.player));
 
         expect(await requests.admit()).toBe(1);
         expect(applied).toEqual(['after']);
         expect(reported).toHaveLength(1);
+        expect(requests.size).toBe(0);
     });
 });

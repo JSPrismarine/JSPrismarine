@@ -27,11 +27,14 @@ const fakeSession = ({ alive = true, spawnWorld }: { alive?: boolean; spawnWorld
     const dropped: string[] = [];
     const world = stub<World>({});
     const standingAt = new Position(0, 64, 0, world);
+    /** The respawn requests the handler filed, which {@link handle} answers as an input step would. */
+    const requested: Array<() => Promise<void>> = [];
 
     return {
         done,
         dropped,
         standingAt,
+        requested,
         world,
         session: stub<PlayerSession>({
             runtimeId: 7n,
@@ -50,12 +53,15 @@ const fakeSession = ({ alive = true, spawnWorld }: { alive?: boolean; spawnWorld
                     yaw: 90,
                     pitch: -5
                 }),
-            getRespawnPoint: async () => ({
-                world: spawnWorld ?? world,
-                announced: new Vector3(100.5, 71.62, 100.5),
-                block: new Vector3(100, 70, 100),
-                eyes: new Vector3(100, 71.62, 100)
-            })
+            requestRespawnPoint: (apply) =>
+                void requested.push(async () =>
+                    apply({
+                        world: spawnWorld ?? world,
+                        announced: new Vector3(100.5, 71.62, 100.5),
+                        block: new Vector3(100, 70, 100),
+                        eyes: new Vector3(100, 71.62, 100)
+                    })
+                )
         }),
         log: stub<Logger>({ debug: (...message: string[]) => void dropped.push(message.join(' ')) })
     };
@@ -63,12 +69,13 @@ const fakeSession = ({ alive = true, spawnWorld }: { alive?: boolean; spawnWorld
 
 /** Applies one packet as the input step does: the handler, then what it deferred and sent. */
 const handle = async (
-    { session, log }: Pick<ReturnType<typeof fakeSession>, 'session' | 'log'>,
+    { session, log, requested }: Pick<ReturnType<typeof fakeSession>, 'session' | 'log' | 'requested'>,
     packet: RespawnPacket
 ): Promise<void> => {
     const { context, settled } = inputContext(session, { log });
     new RespawnHandler().handle(packet, context);
     await settled();
+    for (const answer of requested.splice(0)) await answer();
 };
 
 const respawn = (state: PlayerRespawnState, runtimeEntityId = 7n): RespawnPacket =>
@@ -99,18 +106,21 @@ describe('RespawnHandler', () => {
         ]);
     });
 
-    it("defers a dead player's answer, which waits on the respawn search", async () => {
-        // The search reads blocks that may not be loaded, so the handler itself sends nothing and
-        // leaves one piece of work for the input step to run after its unit.
+    it("files a dead player's answer as a respawn request, which an input step answers", async () => {
+        // The search reads blocks that may not be loaded, so the handler sends nothing, defers
+        // nothing and files one request.
         const fake = fakeSession({ alive: false });
         const { context, outputs, deferred, settled } = inputContext(fake.session, { log: fake.log });
 
         new RespawnHandler().handle(respawn(PlayerRespawnState.CLIENT_READY_TO_SPAWN), context);
 
         expect(fake.done).toEqual([]);
-        expect(deferred).toHaveLength(1);
+        expect(deferred).toHaveLength(0);
         expect(outputs).toHaveLength(0);
+        expect(fake.requested).toHaveLength(1);
         await settled();
+        expect(fake.done).toEqual([]);
+        await fake.requested[0]!();
         expect(fake.done).toHaveLength(2);
     });
 

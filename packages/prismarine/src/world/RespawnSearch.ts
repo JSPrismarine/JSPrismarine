@@ -11,11 +11,13 @@
  */
 import { Vector3 } from '@jsprismarine/math';
 
+import type { ChunkCoordinate } from './ChunkTickets';
 import { dimensionByName } from './DimensionType';
 import { resolveRespawn } from './RespawnPoint';
 import type { StoredSpawnPoint } from './RespawnPoint';
 import { clearRespawnFeet, respawnPoint } from './SpawnPlacement';
 import type { BodyBox } from './SpawnPlacement';
+import { outsideTick } from './TickContext';
 import type { World } from './World';
 
 /** A position as plain numbers. */
@@ -58,12 +60,14 @@ export interface RespawnAnswer {
     readonly spawnPointLost: boolean;
 }
 
-/** The worlds a search reads, which is where the chunk loads happen. */
+/** The worlds a search reads. */
 export interface RespawnWorlds {
     /** Whether the level the search belongs to has a stem of that id. */
     hasStem(stemId: string): boolean;
     /** The level's world of a stem, built and enabled when nobody has been there since the save opened. */
     world(stemId: string): Promise<World>;
+    /** The level's world of a stem if it is built and enabled, without building it. */
+    built(stemId: string): World | undefined;
     /** The world the world spawn is in: the default level's Overworld. */
     worldSpawn(): World;
 }
@@ -81,6 +85,57 @@ const exchangeAt = (block: Vector3, eyeHeight: number) => {
     return { announced: plain(point.announced), block: plain(point.block), eyes: plain(point.eyes) };
 };
 
+/** What one attempt found missing, which it has to wait for before its answer counts. */
+class Lacks {
+    /** Chunks not in memory, by the world they belong to. */
+    public readonly chunks = new Map<World, Map<string, ChunkCoordinate>>();
+    /** Stems whose world has not been built. */
+    public readonly worlds = new Set<string>();
+    /** Worlds that do not know their spawn yet. */
+    public readonly spawns = new Set<World>();
+
+    /**
+     * @param given - Worlds and spawns the caller already waited for, which {@link RespawnSearch.find}
+     *   hands to its next pass.
+     */
+    public constructor(
+        public readonly given: { readonly worlds: Map<string, World>; readonly spawns: Map<World, Vector3> } = {
+            worlds: new Map(),
+            spawns: new Map()
+        }
+    ) {}
+
+    public get any(): boolean {
+        return this.chunks.size > 0 || this.worlds.size > 0 || this.spawns.size > 0;
+    }
+
+    /**
+     * The name of the block state at a position, or undefined with its chunk recorded when the
+     * chunk is not in memory.
+     */
+    public nameAt(world: World, x: number, y: number, z: number): string | undefined {
+        const block = world.loadedBlockAt(x, y, z);
+        if (block !== undefined) return block.name;
+        // Outside the dimension's height there is nothing to load, and nothing stands.
+        const { minY, height } = world.getDimension();
+        if (y < minY || y >= minY + height) return 'minecraft:air';
+
+        const missing = this.chunks.get(world) ?? new Map<string, ChunkCoordinate>();
+        missing.set(`${x >> 4},${z >> 4}`, { x: x >> 4, z: z >> 4 });
+        this.chunks.set(world, missing);
+        return undefined;
+    }
+
+    /** Whether the block at a position is solid; false, with its chunk recorded, when the chunk is not in memory. */
+    public isSolid(world: World, x: number, y: number, z: number): boolean {
+        if (this.nameAt(world, x, y, z) === undefined) return false;
+        return world.loadedBlock(x, y, z)?.isSolid() ?? false;
+    }
+}
+
+/** What an attempt says: the answer, or that it waits for something it has asked for. */
+export type RespawnAttempt = { readonly kind: 'answer'; readonly answer: RespawnAnswer } | { readonly kind: 'waiting' };
+
 /**
  * One level's respawn search.
  *
@@ -90,22 +145,127 @@ const exchangeAt = (block: Vector3, eyeHeight: number) => {
  * `server.overworld()`, raised out of whatever their body overlaps there.
  */
 export class RespawnSearch {
+    /** The worlds each player's waiting attempts hold chunk tickets in. */
+    private readonly ticketed = new Map<string, Set<World>>();
+    /** Builds an attempt started, by stem, with how each ended once it has. */
+    private readonly building = new Map<string, { failed?: unknown }>();
+
     public constructor(private readonly worlds: RespawnWorlds) {}
 
     /**
-     * Finds where a player comes back.
+     * Tries to find where a player comes back, from what the worlds have loaded, without waiting.
      *
-     * Reads blocks and may load chunks or build a dimension, so it awaits. Writes nothing: a
-     * spawn point that stopped holding is reported in the answer, not cleared.
+     * When something is missing, the attempt asks for it and says it is waiting: a chunk through
+     * a ticket held in the player's name, a world or a world spawn by starting its build outside
+     * the tick. Asking again once it has arrived answers. Writes nothing to the world: a spawn
+     * point that stopped holding is reported in the answer, not cleared.
+     * @param request - Who is asking, their spawn point and their body.
+     * @throws When a world the attempt started building failed to build.
+     */
+    public attempt(request: RespawnRequest): RespawnAttempt {
+        const lacks = new Lacks();
+        const answer = this.search(request, lacks);
+        if (answer !== undefined && !lacks.any) {
+            this.release(request.player);
+            return { kind: 'answer', answer };
+        }
+
+        try {
+            for (const stemId of lacks.worlds) this.build(stemId);
+        } catch (error: unknown) {
+            this.release(request.player);
+            throw error;
+        }
+        const owner = `respawn:${request.player}`;
+        for (const [world, chunks] of lacks.chunks) {
+            world.chunkTickets().request(owner, chunks.values());
+            const worlds = this.ticketed.get(request.player) ?? new Set<World>();
+            worlds.add(world);
+            this.ticketed.set(request.player, worlds);
+        }
+        for (const world of lacks.spawns) {
+            outsideTick(() => {
+                world.getSpawnPosition().catch(() => undefined);
+            });
+        }
+        return { kind: 'waiting' };
+    }
+
+    /**
+     * Finds where a player comes back, loading what the search lacks and waiting for it.
+     *
+     * For portal travel out of the End, which still waits inside the tick until slice 9 turns
+     * travel into messages; a death and a respawn use {@link attempt}.
      * @param request - Who is asking, their spawn point and their body.
      */
     public async find(request: RespawnRequest): Promise<RespawnAnswer> {
+        const given = { worlds: new Map<string, World>(), spawns: new Map<World, Vector3>() };
+        const loaded = new Set<string>();
+        for (;;) {
+            const lacks = new Lacks(given);
+            const answer = this.search(request, lacks);
+            if (answer !== undefined && !lacks.any) return answer;
+
+            for (const stemId of lacks.worlds) given.worlds.set(stemId, await this.worlds.world(stemId));
+            for (const world of lacks.spawns) given.spawns.set(world, await world.getSpawnPosition());
+            const loads: Promise<unknown>[] = [];
+            for (const [world, chunks] of lacks.chunks) {
+                for (const [key, { x, z }] of chunks) {
+                    // A chunk loaded once and still missing would be asked for forever.
+                    const named = `${world.getName()}:${key}`;
+                    if (loaded.has(named)) throw new Error(`Chunk ${key} of ${world.getName()} did not stay loaded`);
+                    loaded.add(named);
+                    loads.push(world.getChunk(x, z));
+                }
+            }
+            await Promise.all(loads);
+        }
+    }
+
+    /** Gives up the chunk tickets a player's waiting attempts took. */
+    private release(player: string): void {
+        for (const world of this.ticketed.get(player) ?? []) world.chunkTickets().release(`respawn:${player}`);
+        this.ticketed.delete(player);
+    }
+
+    /** Starts building a stem's world outside the tick, once, and remembers how it ended. */
+    private build(stemId: string): void {
+        const known = this.building.get(stemId);
+        if (known !== undefined) {
+            if ('failed' in known) {
+                this.building.delete(stemId);
+                throw known.failed;
+            }
+            return;
+        }
+
+        const entry: { failed?: unknown } = {};
+        this.building.set(stemId, entry);
+        outsideTick(() => {
+            this.worlds.world(stemId).then(
+                () => {
+                    if (this.building.get(stemId) === entry) this.building.delete(stemId);
+                },
+                (error: unknown) => {
+                    entry.failed = error;
+                }
+            );
+        });
+    }
+
+    /**
+     * The search itself, over loaded chunks, recording in `lacks` whatever it could not read.
+     * An answer found while something lacked is a guess and does not count.
+     */
+    private search(request: RespawnRequest, lacks: Lacks): RespawnAnswer | undefined {
         const { player, spawnPoint, body } = request;
 
         // A point a bed, an anchor or `/spawnpoint` set is already resolved to where a body
         // stands: free of blocks, or forced where it was put.
         if (spawnPoint !== undefined) {
-            const own = await this.resolveOwnSpawn(spawnPoint);
+            const own = this.resolveOwnSpawn(spawnPoint, lacks);
+            // Whether the point holds is not known until its world and chunks are in.
+            if (lacks.any) return undefined;
             if (own !== undefined) {
                 return {
                     player,
@@ -121,16 +281,21 @@ export class RespawnSearch {
         // block, so it is raised out of whatever this player's body overlaps there: the body is
         // theirs, and so is how far the eyes sit above the feet.
         const world = this.worlds.worldSpawn();
-        const spawn = await world.getSpawnPosition();
+        const spawn = lacks.given.spawns.get(world) ?? world.getKnownSpawnPosition();
+        if (spawn === null) {
+            lacks.spawns.add(world);
+            return undefined;
+        }
         const { minY, height } = world.getDimension();
-        const feet = await clearRespawnFeet(
+        const feet = clearRespawnFeet(
             spawn,
             {
                 maxY: minY + height,
                 // Air is the common answer, and settles it without building the block.
-                isObstructed: async (x, y, z) =>
-                    (await world.getBlockState(x, y, z)).name !== 'minecraft:air' &&
-                    (await world.getBlock(x, y, z)).isSolid()
+                isObstructed: (x, y, z) => {
+                    const name = lacks.nameAt(world, x, y, z);
+                    return name !== undefined && name !== 'minecraft:air' && lacks.isSolid(world, x, y, z);
+                }
             },
             body
         );
@@ -151,19 +316,23 @@ export class RespawnSearch {
      * whether or not anybody has been near it since the save opened. A point naming a dimension
      * the level has no stem for is treated as a bed that is gone.
      */
-    private async resolveOwnSpawn(spawn: StoredSpawnPoint): Promise<{ stemId: string; position: Vector3 } | undefined> {
+    private resolveOwnSpawn(spawn: StoredSpawnPoint, lacks: Lacks): { stemId: string; position: Vector3 } | undefined {
         // The record keeps the client's spelling, `minecraft:nether`; the level keys its stems
         // by the Java one. A custom dimension spells both the same.
         const stemId = dimensionByName(spawn.dimension)?.id ?? spawn.dimension;
         if (!this.worlds.hasStem(stemId)) return undefined;
 
-        const world = await this.worlds.world(stemId);
+        const world = lacks.given.worlds.get(stemId) ?? this.worlds.built(stemId);
+        if (world === undefined) {
+            lacks.worlds.add(stemId);
+            return undefined;
+        }
         const { minY, height } = world.getDimension();
-        const resolved = await resolveRespawn(spawn, {
+        const resolved = resolveRespawn(spawn, {
             minY,
             maxY: minY + height,
-            isObstructed: async (x, y, z) => (await world.getBlock(x, y, z)).isSolid(),
-            getBlockName: async (x, y, z) => (await world.getBlockState(x, y, z)).name
+            isObstructed: (x, y, z) => lacks.isSolid(world, x, y, z),
+            getBlockName: (x, y, z) => lacks.nameAt(world, x, y, z) ?? 'minecraft:air'
         });
 
         return resolved.kind === 'honored' ? { stemId, position: resolved.position } : undefined;

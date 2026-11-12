@@ -289,9 +289,9 @@ export default class PlayerActionHandler implements InputLaneHandler<PlayerActio
             }
 
             case PlayerActionType.Respawn: {
-                // Deferred until slice 9: the respawn asks the respawn search where to stand
-                // the player, which may load chunks.
-                step.defer(async () => session.respawn());
+                // The respawn search reads chunks that may not be loaded, so the respawn is a
+                // request that the input step with the search's answer applies.
+                session.requestRespawn();
                 return;
             }
 

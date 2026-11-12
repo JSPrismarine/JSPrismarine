@@ -8,8 +8,8 @@ import type { RespawnTerrain } from './RespawnPoint';
 const terrainOf = (blocks: Readonly<Record<string, string>>): RespawnTerrain => ({
     minY: -64,
     maxY: 320,
-    getBlockName: async (x, y, z) => blocks[`${x},${y},${z}`] ?? 'minecraft:air',
-    isObstructed: async (x, y, z) => (blocks[`${x},${y},${z}`] ?? 'minecraft:air') !== 'minecraft:air'
+    getBlockName: (x, y, z) => blocks[`${x},${y},${z}`] ?? 'minecraft:air',
+    isObstructed: (x, y, z) => (blocks[`${x},${y},${z}`] ?? 'minecraft:air') !== 'minecraft:air'
 });
 
 const BED = { x: 10, y: 64, z: 10, dimension: 'minecraft:overworld' };
@@ -47,7 +47,7 @@ describe('a per-player spawn point', () => {
     });
 
     it('stands the player beside the bed rather than in it', async () => {
-        const resolved = await resolveRespawn(BED, terrainOf({ '10,64,10': 'minecraft:red_bed' }));
+        const resolved = resolveRespawn(BED, terrainOf({ '10,64,10': 'minecraft:red_bed' }));
 
         expect(resolved.kind).toBe('honored');
         if (resolved.kind !== 'honored') return;
@@ -56,8 +56,8 @@ describe('a per-player spawn point', () => {
     });
 
     it('gives up on a bed that is gone, which is Java answering with the world spawn', async () => {
-        expect((await resolveRespawn(BED, terrainOf({}))).kind).toBe('destroyed');
-        expect((await resolveRespawn(BED, terrainOf({ '10,64,10': 'minecraft:stone' }))).kind).toBe('destroyed');
+        expect(resolveRespawn(BED, terrainOf({})).kind).toBe('destroyed');
+        expect(resolveRespawn(BED, terrainOf({ '10,64,10': 'minecraft:stone' })).kind).toBe('destroyed');
     });
 
     it('gives up on a bed walled in on every side, the same way', async () => {
@@ -68,11 +68,11 @@ describe('a per-player spawn point', () => {
             }
         }
 
-        expect((await resolveRespawn(BED, terrainOf(walls))).kind).toBe('destroyed');
+        expect(resolveRespawn(BED, terrainOf(walls)).kind).toBe('destroyed');
     });
 
     it('steps over a column whose head space is blocked', async () => {
-        const resolved = await resolveRespawn(
+        const resolved = resolveRespawn(
             BED,
             terrainOf({
                 '10,64,10': 'minecraft:red_bed',
@@ -88,7 +88,7 @@ describe('a per-player spawn point', () => {
 
     it('uses a point /spawnpoint set whatever is standing there', async () => {
         const forced = { ...BED, forced: true };
-        const resolved = await resolveRespawn(forced, terrainOf({ '10,64,10': 'minecraft:stone' }));
+        const resolved = resolveRespawn(forced, terrainOf({ '10,64,10': 'minecraft:stone' }));
 
         expect(resolved.kind).toBe('honored');
         if (resolved.kind !== 'honored') return;

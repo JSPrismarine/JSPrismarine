@@ -2,23 +2,49 @@ import { Vector3 } from '@jsprismarine/math';
 import { describe, expect, it } from 'vitest';
 
 import type { Block } from '../block/Block';
-import { BlockState } from '../block/state/BlockState';
 import { EYE_HEIGHT } from '../entity/playerEyes';
 import { stub } from '../testing/stub.test.helper';
 import { Dimensions } from './DimensionType';
 import type { DimensionType } from './DimensionType';
+import type Chunk from './chunk/Chunk';
+import { ChunkTickets } from './ChunkTickets';
 import { RespawnSearch } from './RespawnSearch';
 import type { RespawnRequest } from './RespawnSearch';
 import type { World } from './World';
 
-/** A world of air with the named blocks placed, keyed by `x,y,z`. */
-const worldOf = (dimension: DimensionType, blocks: Record<string, string> = {}, spawn = new Vector3(0, 64, 0)) => {
+/**
+ * A world of air with the named blocks placed, keyed by `x,y,z`. The chunks named in `unloaded`,
+ * keyed by `x,z` in chunk coordinates, are not in memory until something loads them.
+ */
+const worldOf = (
+    dimension: DimensionType,
+    blocks: Record<string, string> = {},
+    spawn = new Vector3(0, 64, 0),
+    unloaded = new Set<string>()
+) => {
     const nameAt = (x: number, y: number, z: number): string => blocks[`${x},${y},${z}`] ?? 'minecraft:air';
+    const isLoaded = (x: number, z: number): boolean => !unloaded.has(`${x},${z}`);
+    const loads: string[] = [];
+    const tickets = new ChunkTickets({
+        isLoaded,
+        load: (x, z) => {
+            if (loads.includes(`${x},${z}`)) return false;
+            loads.push(`${x},${z}`);
+            return true;
+        }
+    });
     return stub<World>({
         getDimension: () => dimension,
+        getKnownSpawnPosition: () => spawn,
         getSpawnPosition: async () => spawn,
-        getBlockState: async (x, y, z) => new BlockState(nameAt(x, y, z)),
-        getBlock: async (x, y, z) => stub<Block>({ isSolid: () => nameAt(x, y, z) !== 'minecraft:air' })
+        chunkTickets: () => tickets,
+        getChunk: async (x, z) => {
+            unloaded.delete(`${x},${z}`);
+            return stub<Chunk>({});
+        },
+        loadedBlockAt: (x, y, z) => (isLoaded(x >> 4, z >> 4) ? { name: nameAt(x, y, z), states: {} } : undefined),
+        loadedBlock: (x, y, z) =>
+            isLoaded(x >> 4, z >> 4) ? stub<Block>({ isSolid: () => nameAt(x, y, z) !== 'minecraft:air' }) : undefined
     });
 };
 
@@ -29,14 +55,20 @@ const searchOver = ({ overworld = worldOf(Dimensions.Overworld), nether = worldO
         [Dimensions.Overworld.id, overworld],
         [Dimensions.Nether.id, nether]
     ]);
+    // The Overworld is the default world, which is always built.
+    const ready = new Set<string>([Dimensions.Overworld.id]);
     const search = new RespawnSearch({
         hasStem: (stemId) => worlds.has(stemId),
         world: async (stemId) => {
             built.push(stemId);
             const world = worlds.get(stemId);
             if (world === undefined) throw new Error(`no ${stemId}`);
+            // A build finishes on a later turn, never inside the call that starts it.
+            await Promise.resolve();
+            ready.add(stemId);
             return world;
         },
+        built: (stemId) => (ready.has(stemId) ? worlds.get(stemId) : undefined),
         worldSpawn: () => overworld
     });
     return { search, built };
@@ -131,5 +163,49 @@ describe('RespawnSearch', () => {
 
         expect(structuredClone(answer)).toEqual(answer);
         expect(await search.find(asked)).toEqual(answer);
+    });
+    describe('an attempt, which never waits', () => {
+        it('waits for a chunk it lacks with one ticket, and answers once the chunk is in', async () => {
+            const unloaded = new Set(['0,0']);
+            const overworld = worldOf(Dimensions.Overworld, {}, new Vector3(0, 64, 0), unloaded);
+            const { search } = searchOver({ overworld });
+            const tickets = overworld.chunkTickets();
+
+            expect(search.attempt(request())).toEqual({ kind: 'waiting' });
+            expect(search.attempt(request())).toEqual({ kind: 'waiting' });
+            expect(tickets.loadsStarted).toBe(1);
+            expect(tickets.holds(0, 0)).toBe(true);
+
+            unloaded.delete('0,0');
+            const attempt = search.attempt(request());
+            expect(attempt).toEqual({ kind: 'answer', answer: await search.find(request()) });
+            expect(tickets.holds(0, 0)).toBe(false);
+            expect(tickets.loadsStarted).toBe(1);
+        });
+
+        it('waits for a bed in a dimension not built yet, building it once', async () => {
+            const nether = worldOf(Dimensions.Nether, { '10,40,10': 'minecraft:red_bed' });
+            const { search, built } = searchOver({ nether });
+            const asked = request({ x: 10, y: 40, z: 10, dimension: Dimensions.Nether.id });
+
+            expect(search.attempt(asked)).toEqual({ kind: 'waiting' });
+            expect(search.attempt(asked)).toEqual({ kind: 'waiting' });
+            expect(built).toEqual([Dimensions.Nether.id]);
+
+            await new Promise<void>((resolve) => setImmediate(resolve));
+            expect(search.attempt(asked)).toMatchObject({ kind: 'answer', answer: { spawn: 'own' } });
+        });
+
+        it('asks for nothing at the world spawn while the bed it names is not loaded', () => {
+            const unloaded = new Set(['0,0', '2,2']);
+            const overworld = worldOf(Dimensions.Overworld, {}, new Vector3(0, 64, 0), unloaded);
+            const { search } = searchOver({ overworld });
+
+            expect(search.attempt(request({ x: 40, y: 64, z: 40, dimension: Dimensions.Overworld.id }))).toEqual({
+                kind: 'waiting'
+            });
+            expect(overworld.chunkTickets().holds(2, 2)).toBe(true);
+            expect(overworld.chunkTickets().holds(0, 0)).toBe(false);
+        });
     });
 });

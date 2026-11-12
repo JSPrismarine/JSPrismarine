@@ -3468,12 +3468,12 @@ export default class PlayerSession {
 
         // Where they will come back. The client will not offer the respawn button until it knows,
         // which is why a death screen that never became a respawn screen was stuck on
-        // "Respawning". The search may load chunks or build a dimension, so the death files it
-        // before its first wait and the next input step sends the death screen
-        // (`world/RespawnRequests.ts`), unless the player came back or left before then.
+        // "Respawning". The search reads chunks that may not be loaded, so the death files it
+        // and the input step that answers it sends the death screen (`world/RespawnRequests.ts`),
+        // unless the player came back or left before then.
         this.server
             .getRespawnRequests()
-            .request(this.world.getLevel().getRespawnSearch().find(this.respawnRequest()), async (answer) => {
+            .request(this.world.getLevel().getRespawnSearch(), this.respawnRequest(), async (answer) => {
                 if (this.getPlayer().getHealth() > 0 || !this.isConnected()) return;
                 await this.forgetLostSpawnPoint(answer);
                 await this.sendDeathScreen(Vector3.fromObject(answer.announced), message);
@@ -3509,14 +3509,38 @@ export default class PlayerSession {
      * The caller compares `world` with the player's own and changes world first when they
      * differ: see `RespawnHandler`.
      *
+     * Waits for whatever the search lacks, loading it, which inside a tick is a chunk load in the
+     * middle of the tick. Portal travel out of the End is the one caller left, until slice 9 turns
+     * travel into messages; a respawn files a request with {@link requestRespawnPoint}.
+     *
      * @see {@link respawnPoint} for the three positions the exchange needs.
      */
     public async getRespawnPoint(): Promise<RespawnDestination> {
+        return this.destinationOf(await this.world.getLevel().getRespawnSearch().find(this.respawnRequest()));
+    }
+
+    /**
+     * Asks where the player comes back, and hands the answer to `apply` at the input step that
+     * has it: the first one after everything the search reads is loaded
+     * (`world/RespawnRequests.ts`). {@link getRespawnPoint} says what the answer means.
+     *
+     * @param apply - What to do with the destination, inside the input step.
+     */
+    public requestRespawnPoint(apply: (destination: RespawnDestination) => Promise<void>): void {
+        this.server
+            .getRespawnRequests()
+            .request(this.world.getLevel().getRespawnSearch(), this.respawnRequest(), async (answer) =>
+                apply(await this.destinationOf(answer))
+            );
+    }
+
+    /** Clears a spawn point the answer says was lost, and names the world the answer is in. */
+    private async destinationOf(answer: RespawnAnswer): Promise<RespawnDestination> {
         const level = this.world.getLevel();
-        const answer = await level.getRespawnSearch().find(this.respawnRequest());
         await this.forgetLostSpawnPoint(answer);
 
         return {
+            // Built and ready: the search reads ready worlds only.
             world:
                 answer.spawn === 'own'
                     ? await level.world(answer.dimension)
@@ -3562,8 +3586,20 @@ export default class PlayerSession {
      * client's, and it decides how long it stays up. The client reports `ClientReadyToSpawn`
      * before it sends this, and has already put itself where the answer to that said: see
      * `RespawnHandler`.
+     *
+     * The respawn waits for the search's answer, so it is filed as a request and the input step
+     * that has the answer applies it ({@link requestRespawnPoint}).
      */
-    public async respawn(): Promise<void> {
+    public requestRespawn(): void {
+        this.server
+            .getRespawnRequests()
+            .request(this.world.getLevel().getRespawnSearch(), this.respawnRequest(), async (answer) =>
+                this.respawnAt(answer)
+            );
+    }
+
+    /** The respawn {@link requestRespawn} files, once the search has answered. */
+    private async respawnAt(answer: RespawnAnswer): Promise<void> {
         const player = this.getPlayer();
         // A player the server does not consider dead is put back where they already are, and
         // keeps everything. The answer still goes out: the client repeats the request once a
@@ -3577,10 +3613,8 @@ export default class PlayerSession {
 
             // Where the `ReadyToSpawn` put the client, and without a `MovePlayer`: a Bedrock
             // Dedicated Server sends none here, and the client is already there.
-            await this.setPlayerPosition(
-                { position: (await this.getRespawnPoint()).eyes, type: PositionMode.Respawn },
-                false
-            );
+            const { eyes } = await this.destinationOf(answer);
+            await this.setPlayerPosition({ position: eyes, type: PositionMode.Respawn }, false);
         }
 
         await this.sendRespawned();

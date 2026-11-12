@@ -20,7 +20,6 @@ import UpdateAttributesPacket from '@jsprismarine/protocol/packet/UpdateAttribut
 import { fakePlayer } from '../testing/fakePlayer.test.helper';
 import { stub } from '../testing/stub.test.helper';
 import type { Block } from '../block/Block';
-import { BlockState } from '../block/state/BlockState';
 import { Dimensions } from '../world/DimensionType';
 import { PORTALS } from '../world/portal/rules';
 import type { Level } from '../world/Level';
@@ -566,7 +565,9 @@ describe("PlayerSession's player", () => {
             await session.getActor()?.setHealth(1);
             await tick(session, MAX_AIR_TICKS + 20);
 
-            await session.respawn();
+            session.requestRespawn();
+
+            await session.getServer().getRespawnRequests().admit();
 
             expect(player.getHealth()).toBe(20);
             expect(player.getFood()).toBe(20);
@@ -589,7 +590,9 @@ describe("PlayerSession's player", () => {
             await tick(session, MAX_AIR_TICKS + 20);
             sent.length = 0;
 
-            await session.respawn();
+            session.requestRespawn();
+
+            await session.getServer().getRespawnRequests().admit();
 
             expect(sent.map((packet) => packet.constructor.name)).toEqual([
                 'ActorEventPacket',
@@ -605,7 +608,9 @@ describe("PlayerSession's player", () => {
             const { session, player } = fakePlayer();
             await session.getActor()?.setHealth(7);
 
-            await session.respawn();
+            session.requestRespawn();
+
+            await session.getServer().getRespawnRequests().admit();
 
             expect(player.getHealth()).toBe(7);
         });
@@ -670,7 +675,9 @@ describe("PlayerSession's player", () => {
             await tick(session, MAX_AIR_TICKS + 20);
             sent.length = 0;
 
-            await session.respawn();
+            session.requestRespawn();
+
+            await session.getServer().getRespawnRequests().admit();
 
             expect(sent.filter((packet) => packet instanceof RespawnPacket)).toHaveLength(0);
         });
@@ -688,8 +695,9 @@ describe("PlayerSession's player", () => {
                 getKnownSpawnPosition: () => new Vector3(8, 70, -3),
                 addPlayer: async () => {},
                 broadcastMove: async () => {},
-                getBlock: async (x, y, z) => stub<Block>({ isSolid: () => nameAt(x, y, z) !== 'minecraft:air' }),
-                getBlockState: async (x, y, z) => new BlockState(nameAt(x, y, z))
+                // Every chunk is in memory.
+                loadedBlockAt: (x, y, z) => ({ name: nameAt(x, y, z), states: {} }),
+                loadedBlock: (x, y, z) => stub<Block>({ isSolid: () => nameAt(x, y, z) !== 'minecraft:air' })
             });
         };
 
