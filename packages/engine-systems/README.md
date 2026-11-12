@@ -38,7 +38,9 @@ priority, and insertion order. Ticks drain by trigger tick, then priority, then 
 the per tick budget defaults to Java's 65536 for each list. The host drains the scheduler and
 dispatches each tick to the active block family's `onTick` hook. `TickList.snapshot()` and
 `TickScheduler.snapshot()` return copies of pending work in stable order for diagnostics and replay
-comparisons; they do not restore a queue.
+comparisons. A host that records its world's history sets `TickScheduler.observe`, which hears each
+tick queued and each tick taken off with its timing before and after, and writes a recorded change
+back with `TickList.restore`, which reports nothing.
 
 `TickList` uses one queue for the whole world. Java shards each list by chunk and merges those
 shards while draining, so a backlog can produce a different order. This queue runs the oldest due

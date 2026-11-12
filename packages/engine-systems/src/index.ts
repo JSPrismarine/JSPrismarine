@@ -43,7 +43,10 @@ export {
     TickList,
     TickScheduler,
     type ScheduledTick,
+    type ScheduledTickTiming,
     type TickHandler,
+    type TickListChange,
+    type TickListObserver,
     type TickPriority
 } from './scheduler';
 export {
