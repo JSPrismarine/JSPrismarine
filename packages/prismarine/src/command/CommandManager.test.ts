@@ -295,7 +295,6 @@ describe('command', () => {
                             enchantments: stub<ServerContent['enchantments']>({ ids: [] }),
                             definitions: stub<ServerContent['definitions']>({ damageTypes: new Map() })
                         }),
-                    emit: async () => {},
                     getKernel: () => testKernel(),
                     getLogger: () => logger,
                     getSessionManager: () => sessionManager,

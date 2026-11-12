@@ -110,8 +110,7 @@ const server = stub<Server>({
             error: (error: unknown) => {
                 throw error;
             }
-        }),
-    post: () => 0
+        })
 });
 replicator = new NetworkWorldReplicator(world, server);
 const session = stub<PlayerSession>({ getPlayer: () => mover, holdsMovementForTeleport: () => false });

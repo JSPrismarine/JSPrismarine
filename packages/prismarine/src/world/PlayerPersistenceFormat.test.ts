@@ -109,7 +109,6 @@ const testServer = (): Server => {
         on: () => server,
         removeListener: () => server,
         getKernel: () => testKernel(),
-        emit: async () => {},
         getTick: () => 0,
         getConsole: () => stub<Console>({ getFormattedUsername: () => 'Console' }),
         getLogger: () =>

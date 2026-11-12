@@ -102,18 +102,15 @@ async function configFacts() {
     };
 }
 
-/** The events `Server.on` accepts, read from the `EventTypes` union that types it. */
+/** The events `Server.on` accepts, read from the `ServerEvents` map that types it. */
 function eventFacts() {
     const source = readFileSync(
-        path.join(repoRoot, 'packages', 'prismarine', 'src', 'events', 'EventEmitter.ts'),
+        path.join(repoRoot, 'packages', 'prismarine', 'src', 'events', 'ServerEvents.ts'),
         'utf8'
     );
-    const union = /export type EventTypes =([\s\S]*?);/.exec(source)?.[1] ?? '';
-    const events = [...union.matchAll(/\['(\w+)', (\w+)\]/g)].map(([, name, type]) => [
-        `\`${name}\``,
-        `\`${type.replace(/^\w/, (letter) => letter.toUpperCase())}\``
-    ]);
-    if (!events.length) throw new Error('The docs facts no longer find the EventTypes union in EventEmitter.ts.');
+    const map = /export type ServerEvents = \{([\s\S]*?)\};/.exec(source)?.[1] ?? '';
+    const events = [...map.matchAll(/(\w+): \[(\w+)\];/g)].map(([, name, type]) => [`\`${name}\``, `\`${type}\``]);
+    if (!events.length) throw new Error('The docs facts no longer find the ServerEvents map in ServerEvents.ts.');
     return {
         'events.count': String(events.length),
         'events.table': `\n${table(['Event', 'Listener receives'], events)}\n`
