@@ -485,12 +485,19 @@ export default class PlayerSession {
         return this.clientCacheEnabled;
     }
 
-    /** Responds to requested blob misses and applies the client's acknowledgements. */
+    /**
+     * Responds to requested blob misses and applies the client's acknowledgements.
+     *
+     * Every status is answered, with an empty `ClientCacheMissResponse` when the client missed
+     * nothing. Bedrock Dedicated Server 1.26.60 does the same, 105 answers to 105 statuses in the
+     * capture docs/research/sub-chunk-requests-and-blob-cache.md describes. Do not skip the empty
+     * one to save a packet: the answer is what closes the client's cache transaction.
+     * @returns How many blobs went out.
+     */
     public async handleClientCacheBlobStatus(packet: ClientCacheBlobStatusPacket): Promise<number> {
         if (!this.clientCacheEnabled) return 0;
 
         const blobs = this.clientBlobCache.respond(packet.missingIds, packet.foundIds);
-        if (blobs.length === 0) return 0;
 
         const response = new ClientCacheMissResponsePacket();
         response.blobs = blobs;
@@ -500,6 +507,19 @@ export default class PlayerSession {
 
     /**
      * Answers requested sections with their bytes, block entities, heightmaps, and cache ids.
+     *
+     * The shape of each entry follows a capture of Bedrock Dedicated Server 1.26.60 answering a
+     * retail client, recorded in docs/research/sub-chunk-requests-and-blob-cache.md. With the
+     * client's blob cache on:
+     *
+     * - A section with blocks carries the hash of its terrain and a payload that is present even
+     *   when empty. The payload holds the section's block entities only.
+     * - An all-air section carries neither payload nor hash.
+     * - The answer is the same whether or not the client has confirmed the blob before.
+     *
+     * These look like things to simplify, such as dropping an empty payload or sending the terrain
+     * inline to save a round trip. A retail client leaves with a bad packet error
+     * (`ClientDisconnection-90`) on either, so change them only against a new capture.
      * @param packet - The requested chunk columns and absolute subchunk center.
      */
     public async handleSubChunkRequest(packet: SubChunkRequestPacket): Promise<number> {
@@ -571,7 +591,8 @@ export default class PlayerSession {
                 continue;
             }
             // Mojang's packet documentation: the payload is "absent when cache enabled and result
-            // is SuccessAllAir", and such a section queues no blob either.
+            // is SuccessAllAir", and such a section queues no blob either. With the cache off the
+            // payload stays, which is why this check sits below the uncached branch.
             if (allAir) {
                 entries.push(entry);
                 continue;
@@ -810,10 +831,18 @@ export default class PlayerSession {
             await publisherSend;
             const compressionLevel = this.server.getConfig().getPacketCompressionLevel();
             const requestMode = this.usesSubChunkRequests();
+            // With the client's blob cache on, a request-mode chunk names its biomes by hash and
+            // carries only the border block count, as Bedrock Dedicated Server 1.26.60 sends it.
+            // Sending the biomes inline with the cache off would be simpler and one round trip
+            // shorter, but the sub chunk answers that follow use the cache, and the server this
+            // was captured from never mixes the two for one client.
+            const cached = requestMode && this.clientCacheEnabled;
             for (const { chunk, payload, revision } of chunksToSend) {
                 // A world change while an earlier chunk was compressing or sending: the rest are
                 // the old world's, and the client has already been told it is somewhere else.
                 if (epoch !== this.chunkEpoch) return;
+                const biomes = cached ? this.clientBlobCache.prepareRequestBiomes(chunk) : undefined;
+                if (biomes !== undefined) this.clientBlobCache.track([biomes]);
                 const batch = await chunkBatchCache.getOrCreate(
                     chunk,
                     revision,
@@ -828,13 +857,14 @@ export default class PlayerSession {
                                 ? chunk.getNetworkSubChunkRequestLimit()
                                 : chunk.getNetworkSubChunkCount(),
                             clientSubChunkRequestsEnabled: requestMode,
-                            cached: false,
-                            payload
+                            ...(biomes === undefined
+                                ? { cached: false, payload }
+                                : { cached: true, blobHashes: [biomes.id], payload: biomes.tail })
                         })
                     ],
                     this.connection.compressionAlgorithm,
                     this.connection.compressionThreshold,
-                    requestMode ? 'request-mode' : 'uncached'
+                    biomes !== undefined ? 'request-mode-cached' : requestMode ? 'request-mode' : 'uncached'
                 );
                 if (epoch !== this.chunkEpoch) return;
 

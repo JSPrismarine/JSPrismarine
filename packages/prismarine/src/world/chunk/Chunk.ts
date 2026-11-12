@@ -344,7 +344,13 @@ export default class Chunk {
               : HeightMapDataType.HAS_DATA;
         const heightMap = heightMapType === HeightMapDataType.HAS_DATA ? heightmap : undefined;
 
-        return new SubChunkHeightmapData(heightMapType, heightMap, HeightMapDataType.ALL_COPIED);
+        // The render height map is the same one. Bedrock Dedicated Server 1.26.60 says so with
+        // ALL_COPIED when there is data to copy, and repeats the type when there is none: an
+        // all-air section above the ground is ALL_TOO_LOW twice in its answers. ALL_COPIED for
+        // every section is not what it sends. ALL_TOO_HIGH is repeated by the same reading and
+        // was not in the capture.
+        const renderType = heightMapType === HeightMapDataType.HAS_DATA ? HeightMapDataType.ALL_COPIED : heightMapType;
+        return new SubChunkHeightmapData(heightMapType, heightMap, renderType);
     }
 
     /**

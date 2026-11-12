@@ -349,15 +349,19 @@ describe('world', () => {
             const allTooHigh = chunk.networkSubChunkHeightmaps(-2);
             expect(allTooHigh.heightMapType).toBe(HeightMapDataType.ALL_TOO_HIGH);
             expect(allTooHigh.heightMap).toBeUndefined();
-            expect(allTooHigh.renderHeightMapType).toBe(HeightMapDataType.ALL_COPIED);
+            // With no data to copy, the render height map repeats the type.
+            expect(allTooHigh.renderHeightMapType).toBe(HeightMapDataType.ALL_TOO_HIGH);
 
             const mixed = chunk.networkSubChunkHeightmaps(4);
             expect(mixed.heightMapType).toBe(HeightMapDataType.HAS_DATA);
             expect(mixed.heightMap?.[0]?.[0]).toBe(6);
+            expect(mixed.renderHeightMapType).toBe(HeightMapDataType.ALL_COPIED);
 
+            // As Bedrock Dedicated Server 1.26.60 answers an all-air section above the ground.
             const allTooLow = chunk.networkSubChunkHeightmaps(5);
             expect(allTooLow.heightMapType).toBe(HeightMapDataType.ALL_TOO_LOW);
             expect(allTooLow.heightMap).toBeUndefined();
+            expect(allTooLow.renderHeightMapType).toBe(HeightMapDataType.ALL_TOO_LOW);
         });
 
         it('reconstructs the uncached payload from subchunk, biome, and cached-packet bytes', () => {
