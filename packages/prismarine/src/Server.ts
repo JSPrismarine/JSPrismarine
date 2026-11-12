@@ -432,6 +432,7 @@ export default class Server {
                 return this.content;
             },
             seed,
+            seedOf: (level) => worldSeedOf(this.config.getWorlds()[level]?.seed),
             difficulty: () => this.config.getDifficulty(),
             entityRuntimes: this.entityRuntimes,
             // The configured name rather than the world manager's default `Level`: the default

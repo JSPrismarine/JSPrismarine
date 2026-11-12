@@ -41,8 +41,17 @@ export interface ServerWorldSourceOptions {
     worldFor(dimension: string, level?: string): World | undefined;
     /** The built content, read at call time; see {@link ContentLookup}. */
     readonly content: ContentLookup;
-    /** The world seed, which `level.seed` reports and which seeds the default random source. */
+    /**
+     * The default level's world seed, which `level.seed` reports and which seeds the default
+     * random source.
+     */
     readonly seed: bigint;
+    /**
+     * The seed of a level other than the default, for its adapters' `level.seed` and random
+     * source. Left out, every level reports {@link seed}.
+     * @param level - The level's name.
+     */
+    seedOf?(level: string): bigint;
     /** The configured difficulty, as the protocol numbers it. */
     difficulty(): number;
     /** Replaces the random draws, which is how a test drives a probabilistic rule either way. */
@@ -99,6 +108,9 @@ const adapterFor = (
 ): DimensionWiring => {
     const world = () => options.worldFor(dimension, levelName);
     const content = options.content;
+    // Each level's own, as its worlds take theirs, so a second level neither reports the default
+    // level's seed nor replays the default level's random draws.
+    const seed = levelName === undefined ? options.seed : (options.seedOf?.(levelName) ?? options.seed);
 
     const {
         level,
@@ -108,12 +120,12 @@ const adapterFor = (
     } = worldContentGroups({
         dimension,
         world,
-        seed: options.seed,
+        seed,
         difficulty: options.difficulty,
         content,
         // Seeded from the world seed so a server replays its own draws, which is what makes
         // a bug in a probabilistic rule reproducible. It is not Java's `Random`.
-        random: options.random ?? seededRandom(Number(BigInt.asIntN(32, options.seed)))
+        random: options.random ?? seededRandom(Number(BigInt.asIntN(32, seed)))
     });
 
     const blockGroup = createContentBlockGroup({
