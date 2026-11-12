@@ -1,6 +1,4 @@
-import type { Kernel } from '@jsprismarine/kernel';
-import { KernelEventBus } from '@jsprismarine/kernel';
-import type { ServerEvents } from '../events/ServerEvents';
+import { testKernel } from './kernel.test.helper';
 /**
  * The server an entity standing in a test world reaches.
  *
@@ -131,10 +129,10 @@ export const testEntityServer = (options: TestEntityServerOptions = {}): Server 
     // One for the life of the double, as a real server keeps one per dimension: the world files
     // an entity in this runtime's index on arrival and asks the same index where it went.
     const entityRuntime = options.entityRuntime ?? inertEntityRuntime();
+    // One bus for the life of the double, as a server has one, so a test can listen on it.
+    const kernel = testKernel();
     return stub<Server>({
-        // The listener count, which is what the emitter answers and nothing here reads.
-        post: () => 0,
-        getKernel: () => stub<Kernel<ServerEvents>>({ events: new KernelEventBus<ServerEvents>() }),
+        getKernel: () => kernel,
         getTick: () => options.tick ?? 0,
         getRandom: () => () => options.chance ?? 0.5,
         getContent: () => options.content ?? testContent(),

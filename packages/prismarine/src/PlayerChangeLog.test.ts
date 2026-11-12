@@ -11,7 +11,7 @@ import { Gametype } from '@jsprismarine/minecraft';
 import { PositionMode } from '@jsprismarine/protocol';
 import MovePlayerPacket from '@jsprismarine/protocol/packet/MovePlayerPacket';
 import SetActorMotionPacket from '@jsprismarine/protocol/packet/SetActorMotionPacket';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 import { DamageCause } from './entity/DamageCause';
 
@@ -125,7 +125,8 @@ describe("a player's movement belongs to its client", () => {
 describe("a player's death keeps the entity", () => {
     it('commits a blow before the damage promise first waits', async () => {
         const { session, player, server } = await loggedPlayer();
-        const posted = vi.spyOn(server, 'post');
+        const posted: string[] = [];
+        server.getKernel().events.on('entityDeath', () => void posted.push('entityDeath'));
 
         const landing = session.getActor()?.damage(5, DamageCause.Generic);
         expect(player.getHealth()).toBe(15);
@@ -133,7 +134,7 @@ describe("a player's death keeps the entity", () => {
 
         const deathly = session.getActor()?.damage(50, DamageCause.Generic);
         expect(player.getHealth() > 0).toBe(false);
-        expect(posted.mock.calls.map(([name]) => name)).toContain('entityDeath');
+        expect(posted).toContain('entityDeath');
         expect(server.getRespawnRequests().size).toBe(1);
         await deathly;
     });

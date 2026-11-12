@@ -1,5 +1,4 @@
 import { isRecord } from '../../utils/isRecord';
-import EntityDamageEvent from '../../events/entity/EntityDamageEvent';
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -15,7 +14,7 @@ import { ActorFlags } from '@jsprismarine/minecraft/ActorFlags';
 import { ActorEvent, Difficulty, Gametype, LevelSoundEvent } from '@jsprismarine/minecraft';
 import { AttributeIds } from '@jsprismarine/protocol/wire/structures/Attribute';
 import { entityData, vanillaItemDefinitions } from '@jsprismarine/items';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from 'vitest';
 
 import { EYE_HEIGHT } from '../../entity/playerEyes';
 import type { RaidRecord } from '../../world/raid/RaidManager';
@@ -1722,10 +1721,10 @@ describe('the data-driven entity runtime over a live world', () => {
                 Object.assign(player.getActor()!, { inventory: new HumanInventory() });
                 const { cow, body } = await cowAt(1.5);
                 const posted: string[] = [];
-                vi.spyOn(world.getServer(), 'post').mockImplementation((id, ..._event) => {
-                    posted.push(id);
-                    return 0;
-                });
+                const events = world.getServer().getKernel().events;
+                for (const name of ['entityDamage', 'entityDeath'] as const) {
+                    onTestFinished(events.on(name, () => void posted.push(name)));
+                }
                 // Each trigger asks whether any criterion listens before it raises, so the order
                 // of the questions is the order the blow raised the triggers in.
                 const asked: string[] = [];
@@ -1749,10 +1748,12 @@ describe('the data-driven entity runtime over a live world', () => {
                 const player = addPlayer(0.5, 0.5);
                 Object.assign(player.getActor()!, { inventory: new HumanInventory() });
                 const { cow, body } = await cowAt(1.5);
-                vi.spyOn(world.getServer(), 'post').mockImplementation((_id, event) => {
-                    if (event instanceof EntityDamageEvent) event.setAmount(1);
-                    return 0;
-                });
+                onTestFinished(
+                    world
+                        .getServer()
+                        .getKernel()
+                        .events.on('entityDamage', (event) => event.setAmount(1))
+                );
 
                 meleeAttack(player.getActor()!, body, { damage: 5 });
 

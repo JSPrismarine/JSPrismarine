@@ -1,3 +1,4 @@
+import { testKernel } from '../testing/kernel.test.helper';
 import { KernelEventBus } from '@jsprismarine/kernel';
 import type { ServerEvents } from '../events/ServerEvents';
 /**
@@ -107,7 +108,7 @@ const testServer = (): Server => {
         getWorldManager: () => stub<WorldManager>({}),
         on: () => server,
         removeListener: () => server,
-        post: () => 0,
+        getKernel: () => testKernel(),
         emit: async () => {},
         getTick: () => 0,
         getConsole: () => stub<Console>({ getFormattedUsername: () => 'Console' }),

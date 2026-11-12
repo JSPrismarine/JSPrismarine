@@ -1,6 +1,4 @@
-import type { Kernel } from '@jsprismarine/kernel';
-import { KernelEventBus } from '@jsprismarine/kernel';
-import type { ServerEvents } from '../events/ServerEvents';
+import { testKernel } from './kernel.test.helper';
 import type { Logger } from '@jsprismarine/logger';
 import { Vector3 } from '@jsprismarine/math';
 import { InetAddress } from '@jsprismarine/raknet';
@@ -90,10 +88,11 @@ export const fakePlayer = ({ underwater = false, worlds: others = [], name = 'Te
     /** The world's tick, which the store's level clock reads; a test moves it. */
     const clock = { ticks: 0 };
 
+    // One bus for the life of the double, as a server has one, so a test can listen on it.
+    const kernel = testKernel();
     const server: Server = stub<Server>({
         on: () => server,
-        post: () => 0,
-        getKernel: () => stub<Kernel<ServerEvents>>({ events: new KernelEventBus<ServerEvents>() }),
+        getKernel: () => kernel,
         emit: async (name: string, event: unknown) => void events.push([name, event]),
         getTick: () => 0,
         getConsoleSender: () => stub<ConsoleSender>({ getFormattedUsername: () => 'Console' }),

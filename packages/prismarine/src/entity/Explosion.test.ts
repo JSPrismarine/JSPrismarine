@@ -1,3 +1,4 @@
+import { testKernel } from '../testing/kernel.test.helper';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { Difficulty, LevelEvent } from '@jsprismarine/minecraft';
@@ -75,7 +76,7 @@ const scene = ({ griefing = true, solid = false, block = '', content = emptyCont
     if (runtimeId === null) throw new Error(`no block state registered for ${blockName}`);
 
     const server = stub<Server>({
-        post: () => 0,
+        getKernel: () => testKernel(),
         getTick: () => 0,
         getRandom: () => () => 0.5,
         getConfig: () => stub<Config>({ getDifficulty: () => Difficulty.NORMAL }),
