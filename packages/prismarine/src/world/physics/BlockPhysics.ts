@@ -30,19 +30,17 @@ export class BlockPhysics {
      * @param {number} y - World y.
      * @param {number} z - World z.
      * @param {number} now - The current tick, for scheduling anything that follows.
-     * @returns A promise when an update changes the world, or nothing for a synchronous no-op.
      */
-    public update(x: number, y: number, z: number, now: number): void | Promise<void> {
+    public update(x: number, y: number, z: number, now: number): void {
         const name = this.nameAt(x, y, z);
         if (name === null) return;
 
         if (needsSupport(name) && !this.isSupported(x, y, z)) {
-            return this.breakUnsupported(x, y, z, now);
+            this.breakUnsupported(x, y, z, now);
+            return;
         }
 
-        if (falls(name) && this.canFallInto(x, y - 1, z)) {
-            return this.fall(name, x, y, z, now);
-        }
+        if (falls(name) && this.canFallInto(x, y - 1, z)) this.fall(name, x, y, z, now);
     }
 
     /** The block's state name, or null where nothing is loaded. */
@@ -87,9 +85,9 @@ export class BlockPhysics {
      * {@link import('../blockDestroy')}. A block the server has no catalog entry for leaves
      * nothing, which loses the drop rather than the physics.
      */
-    private async breakUnsupported(x: number, y: number, z: number, now: number): Promise<void> {
+    private breakUnsupported(x: number, y: number, z: number, now: number): void {
         destroyBlock({ world: this.world, position: { x, y, z } });
-        await this.world.setBlockByName(x, y, z, 'minecraft:air', now);
+        this.world.setBlockByName(x, y, z, 'minecraft:air', now);
     }
 
     /**
@@ -101,7 +99,7 @@ export class BlockPhysics {
      * place or another - so it could only ever descend at a fixed one block per step, and sand
      * would drift down rather than drop.
      */
-    private async fall(name: string, x: number, y: number, z: number, now: number): Promise<void> {
+    private fall(name: string, x: number, y: number, z: number, now: number): void {
         const position = { x: x + 0.5, y, z: z + 0.5 };
         const runtime = this.world.dataEntities().runtime;
         if (!runtime.content().entities.registry.has('minecraft:falling_block')) {
@@ -112,12 +110,12 @@ export class BlockPhysics {
             return;
         }
 
-        if (!(await this.world.setBlockByName(x, y, z, 'minecraft:air', now))) return;
+        if (!this.world.setBlockByName(x, y, z, 'minecraft:air', now)) return;
 
         const falling = runtime.spawn('minecraft:falling_block', position, { data: { block: name } });
         if (falling !== undefined) return;
 
-        await this.world.setBlockByName(x, y, z, name, now);
+        this.world.setBlockByName(x, y, z, name, now);
         this.world
             .getServer()
             .getLogger()

@@ -889,7 +889,7 @@ describe('the dragon fight over a live End world', () => {
                 emitTick: async () => {},
                 admitInputs: () => queue.admissions.admit(ticker.getTick()),
                 pollNetwork: () => 0,
-                getWorlds: () => [{ getName: () => 'the_end', update: () => fight.tick() }],
+                getWorlds: () => [{ getName: () => 'the_end', update: async () => fight.tick() }],
                 tickFunctions: async () => 0,
                 getChunkScheduler: () => ({ setBudget: () => {}, tick: async () => {} }),
                 getChunkCompletionQueue: () => queue,

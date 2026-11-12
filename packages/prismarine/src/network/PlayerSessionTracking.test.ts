@@ -50,9 +50,11 @@ const trackingSession = ({ viewDistance = 10, spawnFails = false, reconciling = 
             getRuntimeId: () => id,
             getPosition: () => stub<Position>({ getX: () => chunksEast * 16 + 8, getY: () => 64, getZ: () => 8 }),
             getTrackingRange: () => range,
-            spawnTo: async () => {
+            // A spawn queues its packets as it is called, so a failure to build them throws there.
+            spawnTo: () => {
                 if (spawnFails) throw new Error('the wire went away');
                 spawned.push(id);
+                return Promise.resolve();
             }
         });
 
@@ -152,7 +154,7 @@ describe('network', () => {
                 // means a failure leaves it flagged as delivered and nothing sends it again.
                 const { session, entityAt } = trackingSession({ spawnFails: true });
 
-                await expect(session.reconcileTrackedEntities([entityAt(2n, 1)])).rejects.toThrow();
+                expect(() => session.reconcileTrackedEntities([entityAt(2n, 1)])).toThrow();
 
                 expect(session.tracks(2n)).toBe(false);
             });
@@ -168,11 +170,11 @@ describe('network', () => {
             it('clears the reconciling flag even when a spawn threw', async () => {
                 const { session, entityAt } = trackingSession({ spawnFails: true });
 
-                await expect(session.reconcileTrackedEntities([entityAt(2n, 1)])).rejects.toThrow();
+                expect(() => session.reconcileTrackedEntities([entityAt(2n, 1)])).toThrow();
 
                 // A pass left flagged would be skipped silently; one that runs and throws again
                 // shows the flag was cleared.
-                await expect(session.reconcileTrackedEntities([entityAt(2n, 1)])).rejects.toThrow();
+                expect(() => session.reconcileTrackedEntities([entityAt(2n, 1)])).toThrow();
             });
         });
 

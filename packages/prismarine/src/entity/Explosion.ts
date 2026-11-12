@@ -54,13 +54,13 @@ interface CaughtEntity extends ExplosionEntity {
  * @param world - Where.
  * @param at - The center, in world coordinates rather than block coordinates.
  * @param options - How hard, and whose fault.
- * @returns Resolves once everything has been hurt and the blocks are gone.
+ * Everything has been hurt and the blocks are gone when this returns.
  * @example
  * ```typescript
- * await explode(world, creeper.getPosition(), { power: 3, source: creeper });
+ * explode(world, creeper.getPosition(), { power: 3, source: creeper });
  * ```
  */
-export const explode = async (world: World, at: Vector3, options: ExplosionOptions): Promise<void> => {
+export const explode = (world: World, at: Vector3, options: ExplosionOptions): void => {
     const { power, source = null, breaksBlocks = true } = options;
 
     world.sendWorldEvent(at, LevelEvent.PARTICLES_EXPLOSION, 0);
@@ -88,24 +88,23 @@ export const explode = async (world: World, at: Vector3, options: ExplosionOptio
 
     // After the rays rather than inside them, because each one is a fresh entity in the world
     // and a blast measures the world as it stood when it went off.
-    await Promise.all(caughtTnt.map(async (position) => primeTnt(world, position, source)));
+    for (const position of caughtTnt) primeTnt(world, position, source);
 
     // After the rays, so an entity is measured against the world as it still stands and a wall
     // shields what is behind it even though the wall is about to stop existing. Java's order.
-    await Promise.all(
-        blast.hits.map(async (hit) => {
-            const entity = hit.entity.entity;
-            if (!entity.isAlive()) return;
+    for (const hit of blast.hits) {
+        const entity = hit.entity.entity;
+        if (!entity.isAlive()) continue;
 
-            const blow = new DamageSource({ cause: DamageCause.Explosion, attacker: source });
-            // A store entity takes the blow through the store's damage pipeline.
-            if (world.dataEntities().damageEntity(entity, hit.damage, blow, 'explosion') === undefined)
-                await entity.damage(hit.damage, blow);
-            shove(entity, hit.knockback);
-        })
-    );
+        const blow = new DamageSource({ cause: DamageCause.Explosion, attacker: source });
+        // A store entity takes the blow through the store's damage pipeline; the actor's own
+        // `damage` hands it to the same pipeline and decides it before it returns.
+        if (world.dataEntities().damageEntity(entity, hit.damage, blow, 'explosion') === undefined)
+            void entity.damage(hit.damage, blow).catch((error: unknown) => world.getServer().getLogger().error(error));
+        shove(entity, hit.knockback);
+    }
 
-    await Promise.all(drops.map(async (drop) => world.dropFromBlock(drop.at, [drop.item])));
+    for (const drop of drops) world.dropFromBlock(drop.at, [drop.item]);
 };
 
 /**
@@ -129,7 +128,7 @@ const explosionWorldOf = (world: World): ExplosionWorld => createEngineWorld(wor
  * The blast has already written air over the block by the time this runs, so there is nothing
  * to clear first.
  */
-const primeTnt = async (world: World, at: BlockPosition, source: StoreActor | null): Promise<void> => {
+const primeTnt = (world: World, at: BlockPosition, source: StoreActor | null): void => {
     const [allowed] = world.getGameRuleManager().getGameRule(GameRules.TNTExplodes) ?? [true];
     if (!allowed) return;
 
@@ -212,8 +211,8 @@ const entitiesNear = (world: World, at: Vector3, power: number): readonly Caught
  * wall taken out by a radius-4 TNT blast yields cobblestone one time in four, which is the
  * loss players see.
  *
- * The drops are kept rather than put on the ground here, because the ground is `async` and
- * `castBlast` is not.
+ * The drops are kept and put on the ground once the blows have landed, so the ray cast writes
+ * nothing but blocks.
  */
 const collectDrops = (
     world: World,

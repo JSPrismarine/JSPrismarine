@@ -301,7 +301,7 @@ describe('world', () => {
             const { world, items, rolls } = emptyWorld();
             const cobblestone = () => new Item({ runtimeId: 4, name: 'minecraft:cobblestone', meta: 0 });
 
-            await world.dropFromBlock({ x: 3, y: 70, z: -4 }, [cobblestone(), null, cobblestone()]);
+            world.dropFromBlock({ x: 3, y: 70, z: -4 }, [cobblestone(), null, cobblestone()]);
 
             const dropped = items();
             expect(dropped).toHaveLength(2);
@@ -316,7 +316,7 @@ describe('world', () => {
             // The limit takes its slice before the spot is rolled.
             const full = emptyWorld();
             const flood = Array.from({ length: World.ITEM_ENTITY_LIMIT + 3 }, cobblestone);
-            await full.world.dropFromBlock({ x: 0, y: 64, z: 0 }, flood);
+            full.world.dropFromBlock({ x: 0, y: 64, z: 0 }, flood);
             expect(full.rolls()).toBe(World.ITEM_ENTITY_LIMIT * 5);
         });
 

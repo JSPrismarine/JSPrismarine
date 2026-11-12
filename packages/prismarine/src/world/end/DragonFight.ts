@@ -174,7 +174,7 @@ export class DragonFight {
      * A tick that lacks a chunk it needs asks for it with a ticket and returns, and the fight
      * stays where it is until a later tick finds the chunk loaded.
      */
-    public async tick(): Promise<void> {
+    public tick(): void {
         const died = this.died;
         if (died !== undefined) {
             const tickets = this.world.chunkTickets();
@@ -182,28 +182,32 @@ export class DragonFight {
 
             tickets.release(DEATH_TICKET);
             this.died = undefined;
-            await this.setDragonKilled(died).catch((error: unknown) => this.report(String(error)));
+            try {
+                this.setDragonKilled(died);
+            } catch (error: unknown) {
+                this.report(String(error));
+            }
         }
 
         this.ticks += 1;
-        if ((this.ticks - 1) % PLAYER_SCAN_INTERVAL === 0) await this.updatePlayers();
+        if ((this.ticks - 1) % PLAYER_SCAN_INTERVAL === 0) this.updatePlayers();
         if (!this.playerNear) return;
 
         if (this.fight.needsStateScanning) {
             if (!this.arenaLoaded()) return;
-            await this.scanState();
+            this.scanState();
         }
         if (this.fight.respawnStage !== undefined) {
-            await this.tickRespawn();
+            this.tickRespawn();
             return;
         }
         if (this.fight.dragonKilled) return;
 
-        await this.resolveDragon();
+        this.resolveDragon();
         if (this.dragon === undefined) return;
 
         if (this.ticks % CRYSTAL_HEAL_INTERVAL === 0) this.healFromCrystals(this.dragon);
-        await this.updateBar(this.dragon);
+        this.updateBar(this.dragon);
     }
 
     /**
@@ -215,15 +219,15 @@ export class DragonFight {
      * The fight tick after the 200-tick death hold ends calls this, which is the tick after
      * Java's `tickDeath` calls its counterpart.
      */
-    public async setDragonKilled(dragon: DataEntity): Promise<void> {
+    public setDragonKilled(dragon: DataEntity): void {
         if (this.fight.dragonUniqueId !== undefined && dragon.persistentIdentity !== this.fight.dragonUniqueId) return;
 
         const firstKill = !this.fight.previouslyKilled;
         this.dragon = undefined;
         this.fight.dragonUniqueId = undefined;
         this.lastBarPercent = 0;
-        await this.bar.setPercent(0);
-        for (const session of this.bar.players()) await this.bar.removePlayer(session);
+        this.sent(this.bar.setPercent(0));
+        for (const session of this.bar.players()) this.sent(this.bar.removePlayer(session));
 
         this.placeExitPortal(true);
         this.spawnNewGateway();
@@ -289,7 +293,7 @@ export class DragonFight {
     }
 
     /** Advances the saved 1 + 100 + 10×40 + 100 tick respawn sequence. */
-    private async tickRespawn(): Promise<void> {
+    private tickRespawn(): void {
         const stage = this.fight.respawnStage;
         if (stage === undefined) return;
 
@@ -330,7 +334,7 @@ export class DragonFight {
                 if (time % RESPAWN_PILLAR_TICKS === RESPAWN_PILLAR_TICKS - 1) {
                     if (!pillarLoaded) return;
                     tickets.release(PILLAR_TICKET);
-                    await this.resetSpike(spike);
+                    this.resetSpike(spike);
                 }
 
                 this.fight.respawnTime += 1;
@@ -343,7 +347,7 @@ export class DragonFight {
             case 'summoning_dragon':
                 this.setRespawnCrystalBeam(DRAGON_SPAWN);
                 this.fight.respawnTime += 1;
-                if (this.fight.respawnTime >= RESPAWN_SUMMON_TICKS) await this.finishRespawn();
+                if (this.fight.respawnTime >= RESPAWN_SUMMON_TICKS) this.finishRespawn();
                 return;
         }
     }
@@ -410,7 +414,7 @@ export class DragonFight {
      * Clears one pillar, emits its power-five blast, and rebuilds it with a protected crystal.
      * The caller has checked that the pillar's chunks are loaded.
      */
-    private async resetSpike(spike: EndSpike): Promise<void> {
+    private resetSpike(spike: EndSpike): void {
         const minX = spike.centerX - 10;
         const maxX = spike.centerX + 10;
         const minZ = spike.centerZ - 10;
@@ -439,7 +443,7 @@ export class DragonFight {
             }
         }
 
-        await explode(this.world, new Vector3(spike.centerX + 0.5, spike.height + 1, spike.centerZ + 0.5), {
+        explode(this.world, new Vector3(spike.centerX + 0.5, spike.height + 1, spike.centerZ + 0.5), {
             power: 5
         });
         endSpike([spike], true, DRAGON_SPAWN).place(features, new LegacyRandomSource(this.world.getSeed()), {
@@ -450,7 +454,7 @@ export class DragonFight {
     }
 
     /** Explodes the four driving crystals without block damage and spawns the next dragon. */
-    private async finishRespawn(): Promise<void> {
+    private finishRespawn(): void {
         const ids = new Set(this.fight.respawnCrystalIds);
         const crystals: DataEntity[] = [];
         for (const entity of this.world.dataEntities().runtime.entities())
@@ -464,9 +468,8 @@ export class DragonFight {
         this.respawnChunksLoaded = false;
         this.resetPillarCrystalOptions();
 
-        await Promise.all(
-            positions.map(({ x, y, z }) => explode(this.world, new Vector3(x, y, z), { power: 6, breaksBlocks: false }))
-        );
+        for (const { x, y, z } of positions)
+            explode(this.world, new Vector3(x, y, z), { power: 6, breaksBlocks: false });
 
         const dragon = this.world.dataEntities().runtime.spawn(DRAGON_IDENTIFIER, { ...DRAGON_SPAWN });
         this.fight.dragonKilled = false;
@@ -479,17 +482,17 @@ export class DragonFight {
             }
             return;
         }
-        await this.adopt(dragon);
+        this.adopt(dragon);
     }
 
     /** Puts the bar on the players in the arena and takes it off everyone else. */
-    private async updatePlayers(): Promise<void> {
+    private updatePlayers(): void {
         const near = this.world.getViewers().filter((session) => this.inArena(session.getViewPosition()));
         this.playerNear = near.length > 0;
 
-        if (!this.fight.dragonKilled) for (const session of near) await this.bar.addPlayer(session);
+        if (!this.fight.dragonKilled) for (const session of near) this.sent(this.bar.addPlayer(session));
         for (const session of this.bar.players()) {
-            if (this.fight.dragonKilled || !near.includes(session)) await this.bar.removePlayer(session);
+            if (this.fight.dragonKilled || !near.includes(session)) this.sent(this.bar.removePlayer(session));
         }
     }
 
@@ -509,7 +512,7 @@ export class DragonFight {
      * down through bedrock while above y 63. With no portal history and no live dragon, the
      * first dragon is owed, so `dragonKilled` stays false and the tick spawns one.
      */
-    private async scanState(): Promise<void> {
+    private scanState(): void {
         const found = this.findExitPortal();
         if (found !== undefined) {
             this.fight.exitPortalLocation = found.origin;
@@ -521,7 +524,7 @@ export class DragonFight {
 
         const dragon = this.findLiveDragon();
         if (dragon !== undefined) {
-            await this.adopt(dragon);
+            this.adopt(dragon);
             this.fight.dragonKilled = false;
         } else {
             this.fight.dragonKilled = true;
@@ -669,12 +672,12 @@ export class DragonFight {
      * whoever spawned it, and one that stays missing - the reference never resolved, or 1200
      * ticks passed - is replaced by a fresh spawn at (0, 128, 0), Java's `findOrCreateDragon`.
      */
-    private async resolveDragon(): Promise<void> {
+    private resolveDragon(): void {
         if (this.dragon !== undefined) return;
 
         const live = this.findLiveDragon();
         if (live !== undefined) {
-            await this.adopt(live);
+            this.adopt(live);
             this.ticksSinceDragonSeen = 0;
             return;
         }
@@ -693,7 +696,7 @@ export class DragonFight {
             }
             return;
         }
-        await this.adopt(spawned);
+        this.adopt(spawned);
     }
 
     /** The loaded dragon this fight's reference names, or any loaded dragon, Java's `getDragons`. */
@@ -707,10 +710,10 @@ export class DragonFight {
         return first;
     }
 
-    private async adopt(dragon: DataEntity): Promise<void> {
+    private adopt(dragon: DataEntity): void {
         this.dragon = dragon;
         this.fight.dragonUniqueId = dragon.persistentIdentity;
-        await this.bar.setActorUniqueId(this.actorIdOf(dragon));
+        this.sent(this.bar.setActorUniqueId(this.actorIdOf(dragon)));
     }
 
     /** The actor id the client tracks the dragon by, which is its runtime id and what the bar binds to. */
@@ -740,13 +743,18 @@ export class DragonFight {
     }
 
     /** Follows the dragon's health onto the bar, sending only when the percent moved. */
-    private async updateBar(dragon: DataEntity): Promise<void> {
+    private updateBar(dragon: DataEntity): void {
         const health = dragon.instance.attributes.get('health');
         const percent = health === undefined || health.max <= 0 ? 0 : health.current / health.max;
         if (percent === this.lastBarPercent) return;
 
         this.lastBarPercent = percent;
-        await this.bar.setPercent(percent);
+        this.sent(this.bar.setPercent(percent));
+    }
+
+    /** Lets the bar's sends go, which are queued already, and reports one that fails. */
+    private sent(sends: Promise<void>): void {
+        void sends.catch((error: unknown) => this.report(String(error)));
     }
 
     private report(message: string): void {

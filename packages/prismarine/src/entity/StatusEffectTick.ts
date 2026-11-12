@@ -75,7 +75,7 @@ export interface StatusEffectHolder {
     /** How many ticks the holder's effects have been ticked, the clock of an endless effect. */
     readonly age: number;
     /** What one effect does on the holder this tick, such as Poison's damage. */
-    apply(effect: StatusEffect, clock: number): Promise<void> | void;
+    apply(effect: StatusEffect, clock: number): void;
     /** Takes one spent effect off the holder and tells clients. */
     remove(id: string): void;
 }
@@ -89,14 +89,14 @@ export interface StatusEffectHolder {
  * effect acts on the first tick and is spent, and an effect with a duration of one tick still
  * acts before it expires.
  */
-export const tickStatusEffects = async (holder: StatusEffectHolder): Promise<void> => {
+export const tickStatusEffects = (holder: StatusEffectHolder): void => {
     const { effects } = holder;
     // Most entities carry no effects, and copying an empty map into an array every tick adds up.
     if (effects.size === 0) return;
 
     for (const effect of [...effects.values()]) {
         const clock = effect.durationTicks < 0 ? holder.age : effect.durationTicks;
-        await holder.apply(effect, clock);
+        holder.apply(effect, clock);
 
         // Applying an effect can kill the holder, clear its effects or replace this one.
         if (effects.get(effect.id) !== effect) continue;

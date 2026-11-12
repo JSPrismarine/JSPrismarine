@@ -232,9 +232,9 @@ export class StorePlayerActor extends StoreActor implements ShownPlayer {
      * The entity's part of the tick, then the player's own: its session, its attribute sync and
      * its triggers, which run for the player the session speaks for.
      */
-    public override async update(tick: number): Promise<void> {
-        await super.update(tick);
-        await this.getWorld().viewerOf(this.getRuntimeId())?.updatePlayer(tick);
+    public override update(tick: number): void {
+        super.update(tick);
+        this.getWorld().viewerOf(this.getRuntimeId())?.updatePlayer(tick);
     }
 
     /** A status effect's tick, and what the hunger and saturation effects do to the components. */

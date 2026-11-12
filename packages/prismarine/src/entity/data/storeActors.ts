@@ -424,7 +424,7 @@ export class StoreActor implements ShownActor {
      * through a portal once the contact is ready, and the status effects, whose harm and healing go through the
      * store.
      */
-    public async update(tick: number): Promise<void> {
+    public update(tick: number): void {
         const cooldown = this.getPortalCooldown();
         if (cooldown > 0 && !this.holdsPortalCooldown()) this.setPortalCooldown(cooldown - 1);
 
@@ -442,7 +442,7 @@ export class StoreActor implements ShownActor {
         }
 
         const age = this.advanceStatusEffectClock(tick);
-        await tickStatusEffects({
+        tickStatusEffects({
             effects: this.entity.body.statusEffects,
             age,
             apply: (effect, clock) => this.applyStatusEffectTick(effect, clock),

@@ -913,7 +913,7 @@ export default class PlayerSession {
      * makes a moving player see entities appear within a tick rather than on the next interval.
      * @param {number} _tick - The current server tick.
      */
-    public async update(tick: number): Promise<void> {
+    public update(tick: number): void {
         const pending = this.pendingChange;
         if (pending !== undefined && tick - pending.sinceTick >= LOADING_SCREEN_TIMEOUT_TICKS) {
             this.server
@@ -936,7 +936,8 @@ export default class PlayerSession {
                     'PlayerSession/update'
                 );
             pending.arrivalReleased = true;
-            await this.flush();
+            // Chunk delivery, which runs outside the tick and is not waited for.
+            this.released(this.flush());
         }
 
         if (!this.viewDistance) return;
@@ -950,8 +951,8 @@ export default class PlayerSession {
         this.lastChunkX = chunkX;
         this.lastChunkZ = chunkZ;
 
-        await this.needNewChunks();
-        await this.reconcileTrackedEntities();
+        this.released(this.needNewChunks());
+        this.released(this.reconcileTrackedEntities());
     }
 
     /**
@@ -979,10 +980,11 @@ export default class PlayerSession {
      * one - anything tracked and absent from it is taken to have left and is despawned.
      * Defaults to asking the world. For a single arrival, use {@link PlayerSession.considerEntity}.
      */
-    public async reconcileTrackedEntities(entities?: Iterable<ShownEntity>): Promise<void> {
-        if (this.reconciling || !this.isConnected()) return;
+    public reconcileTrackedEntities(entities?: Iterable<ShownEntity>): Promise<void> {
+        if (this.reconciling || !this.isConnected()) return allSent([]);
 
         this.reconciling = true;
+        const sends: Promise<void>[] = [];
         try {
             const change = this.entityTracker.plan({
                 viewer: this.getViewPosition(),
@@ -992,17 +994,18 @@ export default class PlayerSession {
             });
 
             for (const entity of change.spawn) {
-                await entity.spawnTo(this);
+                sends.push(entity.spawnTo(this));
                 this.entityTracker.add(entity.getRuntimeId());
             }
 
             for (const runtimeId of change.despawn) {
                 this.entityTracker.remove(runtimeId);
-                await this.sendRemoveActorById(runtimeId);
+                sends.push(this.sendRemoveActorById(runtimeId));
             }
         } finally {
             this.reconciling = false;
         }
+        return allSent(sends);
     }
 
     /**
@@ -1012,13 +1015,14 @@ export default class PlayerSession {
      * whole pass over everything in it.
      * @param {ShownEntity} entity - The entity to consider.
      */
-    public async considerEntity(entity: ShownEntity): Promise<void> {
-        if (!this.isConnected()) return;
-        if (entity.getRuntimeId() === this.runtimeId) return;
-        if (!this.entityTracker.shouldSpawn(entity, this.own().getPosition(), this.viewDistance)) return;
+    public considerEntity(entity: ShownEntity): Promise<void> {
+        if (!this.isConnected()) return allSent([]);
+        if (entity.getRuntimeId() === this.runtimeId) return allSent([]);
+        if (!this.entityTracker.shouldSpawn(entity, this.own().getPosition(), this.viewDistance)) return allSent([]);
 
-        await entity.spawnTo(this);
+        const sent = entity.spawnTo(this);
         this.entityTracker.add(entity.getRuntimeId());
+        return sent;
     }
 
     /**
@@ -1254,7 +1258,7 @@ export default class PlayerSession {
         );
     }
 
-    public async needNewChunks(forceResend = false, dist?: number): Promise<void> {
+    public needNewChunks(forceResend = false, dist?: number): Promise<void> {
         const position = this.own().getPosition();
         const currentXChunk = CoordinateUtils.fromBlockToChunk(position.getX());
         const currentZChunk = CoordinateUtils.fromBlockToChunk(position.getZ());
@@ -1309,9 +1313,9 @@ export default class PlayerSession {
             }
         }
 
-        if (!unloaded && this.chunkSendQueue.length !== 0) {
-            await this.sendNetworkChunkPublisher(dist ?? viewDistance, []);
-        }
+        if (!unloaded && this.chunkSendQueue.length !== 0)
+            return this.sendNetworkChunkPublisher(dist ?? viewDistance, []);
+        return allSent([]);
     }
 
     /** Records queued coordinates once; the sender owns the only nearest-first ordering pass. */
@@ -2242,13 +2246,14 @@ export default class PlayerSession {
      * Called every tick from the player's update: a value nothing tells the client about is
      * a value that only exists on the server.
      */
-    public async syncAttributes(): Promise<void> {
+    public syncAttributes(): Promise<void> {
         const { attributes } = this.own();
         const dirty = attributes.getDirty();
-        if (dirty.length === 0) return;
+        if (dirty.length === 0) return allSent([]);
 
-        await this.sendAttributeList(dirty);
+        const sent = this.sendAttributeList(dirty);
         attributes.clearDirty();
+        return sent;
     }
 
     private async sendAttributeList(attributes: Attribute[]): Promise<void> {
@@ -3353,14 +3358,14 @@ export default class PlayerSession {
      * mining cracks are the store's, in its entity pass.
      * @param tick - The current world-tick.
      */
-    public async updatePlayer(tick: number): Promise<void> {
-        await this.update(tick);
+    public updatePlayer(tick: number): void {
+        this.update(tick);
 
         // Anything that moved an attribute this tick - hunger, most of the time - goes out
         // here, as a single packet holding just what changed. The health is the entity's, so it
         // is copied into the client's table first.
         this.showOwnHealth();
-        await this.syncAttributes();
+        this.released(this.syncAttributes());
 
         // Every second, which is Java's own period for this pair. The `location` conditions are
         // about where the player is standing rather than about anything that happened, so there
@@ -3368,7 +3373,7 @@ export default class PlayerSession {
         if (tick % ADVANCEMENT_CHECK_TICKS === 0) advancementPlayerTick(this);
 
         // Every five minutes of ticks.
-        if (tick % (20 * 5 * 60 * 1) === 0) await this.sendTime(tick);
+        if (tick % (20 * 5 * 60 * 1) === 0) this.released(this.sendTime(tick));
     }
 
     /**

@@ -393,10 +393,13 @@ describe('PlayerSession.changeWorld', () => {
         await session.changeWorld(arrivalIn(worldOf(Dimensions.Nether)));
         const queued = await drain(session);
 
-        // Counted in ticks, not time.
-        await session.update(39);
+        // Counted in ticks, not time. The tick releases the columns and hands their delivery to
+        // the chunk pipeline, which a flush waits for.
+        session.update(39);
+        await session.flush();
         expect(levelChunks()).toBe(0);
-        await session.update(40);
+        session.update(40);
+        await session.flush();
         expect(levelChunks()).toBe(queued);
     });
 

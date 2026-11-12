@@ -485,13 +485,17 @@ export class EntityReplication {
             getRuntimeId: () => entity,
             getPosition: () => position,
             getTrackingRange: () => range,
-            spawnTo: async (session) => {
+            // Builds and queues the batch before it returns, so a batch that cannot be built
+            // throws here and the entity is not marked as shown.
+            spawnTo: (session) => {
                 const known = shown ?? this.shown.get(entity) ?? this.firstShown(held);
-                if (known === undefined || view === undefined) return;
+                if (known === undefined || view === undefined) return Promise.resolve();
                 const batch = this.firstSightBatch(entity, held, known, view, session);
-                if (batch === undefined) return;
+                if (batch === undefined) return Promise.resolve();
                 this.firstSights++;
-                await session.getConnection().sendSharedBatch(batch.content, batch.packets, false, batch.packetBuffers);
+                return session
+                    .getConnection()
+                    .sendSharedBatch(batch.content, batch.packets, false, batch.packetBuffers);
             }
         };
     }

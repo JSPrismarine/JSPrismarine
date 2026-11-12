@@ -1030,7 +1030,7 @@ export class World implements Service {
         this.blockLog();
         store.beginTick();
         try {
-            await this.tickWorld(tick);
+            this.tickWorld(tick);
         } finally {
             store.sealTick(this.tickHeader());
         }
@@ -1106,7 +1106,7 @@ export class World implements Service {
      * entity updates. The phases that send the tick's changes, the entity tracking among them,
      * follow the seal.
      */
-    private async tickWorld(tick: number): Promise<void> {
+    private tickWorld(tick: number): void {
         // A tick already in flight when the shutdown starts would otherwise run on through
         // the save and past the provider's close, and plenty of what a tick does - a block
         // update, a mob looking at the ground ahead of it - loads a chunk.
@@ -1139,7 +1139,7 @@ export class World implements Service {
             // froze every entity, spawner and furnace for minutes (the client e2e scenarios caught
             // players that never landed, furnaces that never lit and cows that never spawned).
             this.systems.prepareLighting?.();
-            await this.runBlockUpdates();
+            this.runBlockUpdates();
         } finally {
             endBlockUpdatesProfile?.();
         }
@@ -1193,18 +1193,16 @@ export class World implements Service {
         // reads. A dimension without a fight skips this on one flag read.
         const endDragonFightProfile = startProfile?.(`World.dragonFight:${this.name}`);
         try {
-            await this.getDragonFight()?.tick();
+            this.getDragonFight()?.tick();
         } finally {
             endDragonFightProfile?.();
         }
 
         const endEntityUpdatesProfile = startProfile?.(`World.entityUpdates:${this.name}`);
         try {
-            // Java completes each entity's tick callback before visiting the next ID. These
-            // updates are asynchronous in JS, so awaiting each one prevents overlapping mutations
-            // (such as two item entities merging and both being collected) from making replay
-            // outcomes depend on promise scheduling.
-            for (const entity of tickingEntities) await entity.update(tick);
+            // Java completes each entity's tick callback before visiting the next ID, and so does
+            // this loop: each update runs to its end before the next one starts.
+            for (const entity of tickingEntities) entity.update(tick);
         } finally {
             endEntityUpdatesProfile?.();
         }
@@ -1216,7 +1214,7 @@ export class World implements Service {
         // and the sixty vanilla spawn rules, through `@jsprismarine/spawning`.
         const endDataEntitiesProfile = startProfile?.(`World.dataEntities:${this.name}`);
         try {
-            await this.dataEntities().tick(tick, ({ x, z }) => isPositionTicking(x, z));
+            this.dataEntities().tick(tick, ({ x, z }) => isPositionTicking(x, z));
         } finally {
             endDataEntitiesProfile?.();
         }
@@ -3231,13 +3229,8 @@ export class World implements Service {
      * The scheduler's count is the only budget, and nothing here reads the clock: a slow host
      * runs the same updates as a fast one and ticks slower, so a replay agrees with live play.
      */
-    private async runBlockUpdates(): Promise<void> {
-        for (const { x, y, z } of this.blockUpdates.due(this.getTicks())) {
-            const update = this.physics.update(x, y, z, this.getTicks());
-            // Settled positions finish synchronously; state-changing updates still await here
-            // before the next position so block writes keep their Java tick order.
-            if (update !== undefined) await update;
-        }
+    private runBlockUpdates(): void {
+        for (const { x, y, z } of this.blockUpdates.due(this.getTicks())) this.physics.update(x, y, z, this.getTicks());
     }
 
     /**
@@ -3297,7 +3290,7 @@ export class World implements Service {
      * @param {ContentPosition} block - the block they came out of.
      * @param {Array} contents - what to drop, as for {@link World.dropContents}.
      */
-    public async dropFromBlock(block: ContentPosition, contents: Array<Block | Item | null>): Promise<void> {
+    public dropFromBlock(block: ContentPosition, contents: Array<Block | Item | null>): void {
         this.spillFromBlock(block, contents);
     }
 
