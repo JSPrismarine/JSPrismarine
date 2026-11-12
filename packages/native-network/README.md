@@ -80,8 +80,8 @@ npm. When a push to `master` leaves the manifest behind the native sources, it a
 builds to a release named `native-network-build-<hash>` for the sources' hash and commits the
 manifest that points at them; run by hand with `publish`, it does the same on any branch. Until
 then, every CI job that installs the repository builds the library for its own runner, so a pull
-request that changes the native sources runs its tests without publishing anything. The release
-workflow refuses to publish the package while the manifest does not match the sources.
+request that changes the native sources runs its tests without publishing anything. Publishing to
+npm refuses to run while the manifest does not match the sources.
 
 ## The libjuice patch
 

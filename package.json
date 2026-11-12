@@ -44,7 +44,7 @@
         "version": "changeset version",
         "postversion": "pnpm install",
         "version:unstable": "changeset version --snapshot unstable",
-        "release": "changeset publish",
+        "release": "node packages/native-network/scripts/check-manifest.mts && changeset publish",
         "release:unstable": "changeset publish --no-git-tag --tag unstable",
         "changeset": "changeset",
         "lint:american-filenames": "node scripts/check-american-filenames.mts",

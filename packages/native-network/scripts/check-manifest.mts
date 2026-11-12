@@ -1,8 +1,8 @@
 /**
  * Fails when the manifest a release would publish does not match the native sources, or lacks a
  * platform the package supports, so no published version points at builds of other sources.
- * The release workflow runs it before it publishes; the fix is the Native network workflow's
- * publish run on the branch.
+ * The root `release` script runs it before `changeset publish`; the Native network workflow
+ * publishes the builds and commits the manifest when a push to master leaves it behind.
  *
  *     node scripts/check-manifest.mts
  */
