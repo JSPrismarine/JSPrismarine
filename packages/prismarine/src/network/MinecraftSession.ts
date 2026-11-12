@@ -14,10 +14,10 @@ import {
 } from './encodePacketBatch';
 import type { PacketBatchOptions } from './encodePacketBatch';
 import { DEFAULT_COMPRESSION_LEVEL } from '@jsprismarine/protocol';
-import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { PacketLogFilter } from './PacketLogFilter';
+import { writePacketDump } from './packetDumpFile';
 import type { OutboundPacketRecorder } from './OutboundPacketTrace';
 
 /**
@@ -653,7 +653,8 @@ export default class MinecraftSession {
     /**
      * Writes an encoded packet to a file when `JSP_DEBUG_DUMP_PACKETS` names it.
      *
-     * One file per packet, `<millis>-<address>-<name>.bin`, holding the packet with its header
+     * One file per packet, `<millis>-connection-<id>-<name>-<random>.bin` in a directory only this
+     * user can write to (see `writePacketDump`), holding the packet with its header
      * and before batching and compression. A write failure is logged and otherwise ignored;
      * a debugging aid must not take the connection down with it.
      * @param packet - An encoded packet.
@@ -665,13 +666,15 @@ export default class MinecraftSession {
 
         // Shared batches may carry packet labels without the packet streams being prepared.
         const buffer = encodedBuffer ?? packet.getBuffer();
-        const file = path.join(this.dumpDir, `${Date.now()}-connection-${this.connection.id}-${name}.bin`);
         try {
-            fs.mkdirSync(this.dumpDir, { recursive: true });
-            fs.writeFileSync(file, buffer);
+            const file = writePacketDump(
+                this.dumpDir,
+                `${Date.now()}-connection-${this.connection.id}-${name}`,
+                buffer
+            );
             this.logger.warn(`Dumped §b${name}§r packet (${buffer.byteLength} bytes) to ${file}`);
         } catch (error: unknown) {
-            this.logger.warn(`Could not dump §b${name}§r packet to ${file}: ${String(error)}`);
+            this.logger.warn(`Could not dump §b${name}§r packet to ${this.dumpDir}: ${String(error)}`);
         }
     }
 
