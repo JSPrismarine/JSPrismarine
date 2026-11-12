@@ -4,6 +4,7 @@ import type { ChangeEntry } from '../../world/changelog/ChangeEntry';
 import type { DamageIntent } from './damagePipeline';
 import { PASS, VETO, replaceAmount } from './damagePipeline';
 import { entityFixture, FLOOR_Y, TestEntityWorld } from './testing';
+import { beginMeasuredTick } from '../../testing/changeTicks.test.helper';
 
 const GROUND = { x: 0.5, y: FLOOR_Y + 1, z: 0.5 };
 
@@ -43,7 +44,7 @@ const blow = (target: number, amount: number, overrides: Partial<DamageIntent> =
 
 /** Runs some work inside one open tick of the store's log and answers the entries it appended. */
 const logged = (store: ReturnType<typeof entityFixture>['runtime']['store'], work: () => void): ChangeEntry[] => {
-    store.beginTick();
+    beginMeasuredTick(store);
     work();
     return [...(store.sealTick()?.entries ?? [])];
 };

@@ -24,11 +24,13 @@
  * store from 1 and not by the level clock, because `/time set` moves the clock backwards and the
  * log only goes forward.
  *
- * A block or block entity write between ticks, such as a command a tick function runs, is held
- * and appended when the next tick opens, ahead of that tick's own entries. Replication reads
- * blocks only from the log, and the next tick is when such a write reached clients before it
- * did. An occurrence replication sends, such as a sound, is held the same way. Other writes
- * between ticks are still counted as unlogged.
+ * A state entry made between ticks, such as a block a command a tick function runs places or a
+ * mob it summons, is held and appended when the next tick opens, ahead of that tick's own
+ * entries. Replication reads blocks and entities only from the log, so an entity that entered
+ * between ticks would otherwise never reach a client, and the next tick is when such a write
+ * reached clients before it did. An occurrence replication sends, such as a sound, is held the
+ * same way. Other entries between ticks, a chunk or a vetoed action, are still counted as
+ * unlogged.
  */
 import type { ChangeEntry, OccurrenceEntry, OccurrenceKinds, StateEntry } from '../../world/changelog/ChangeEntry';
 import { isCarriedEntry } from '../../world/changelog/ChangeEntry';
@@ -74,9 +76,8 @@ const SUCCEEDED: UnitOutcome = { failed: false };
 /** What the store reports about itself, by count. */
 export interface EntityStoreCounts {
     /**
-     * Writes the log could not hold because no tick was open, such as an entity write between
-     * ticks. Block and block entity writes and the occurrences replication sends are held for
-     * the next tick instead.
+     * Entries the log could not hold because no tick was open, such as a chunk between ticks.
+     * State entries and the occurrences replication sends are held for the next tick instead.
      */
     readonly unlogged: number;
     /** Units that threw and were reverted. */
@@ -105,7 +106,7 @@ export class EntityStore {
     private readonly units: OpenUnit[] = [];
     private kept = 0;
     private readonly sealListeners = new Set<(sealed: SealedTick) => void>();
-    /** Block entries and sent occurrences made between ticks, for the next tick to open with. */
+    /** State entries and sent occurrences made between ticks, for the next tick to open with. */
     private readonly carried: ChangeEntry[] = [];
 
     /**
@@ -208,11 +209,7 @@ export class EntityStore {
     ): void {
         if (this.reverting) return;
         if (before === after || (before !== null && after !== null && samePlain(before, after))) return;
-        if (!this.open) {
-            this.unlogged += 1;
-            return;
-        }
-        this.log.append({
+        this.append({
             kind: 'field',
             field: 'inventory-slot',
             address: { entity: BigInt(id), container, slot },
@@ -458,11 +455,7 @@ export class EntityStore {
         const plainBefore = plainValue(before);
         const plainAfter = plainValue(after);
         if (samePlain(plainBefore, plainAfter)) return;
-        if (!this.open) {
-            this.unlogged += 1;
-            return;
-        }
-        this.log.append({
+        this.append({
             kind: 'field',
             field: 'entity',
             address: { entity: BigInt(id), field },

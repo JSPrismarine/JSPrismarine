@@ -172,16 +172,38 @@ describe('the entity replica', () => {
         expect(visited(300)).toEqual({ held: 300, read: 2, changed: 2 });
     });
 
-    it('passes over an entity whose entering entry it never read', () => {
+    it('holds an entity that entered between ticks from the next tick, with what it wrote since', () => {
         const { runtime, content } = entityFixture(new TestEntityWorld(), {}, EXTRA);
         const replica = new EntityReplica(() => content);
-        // Spawned with no tick open, so its entering entry is not in the log.
+        // Spawned and named with no tick open: the store holds both entries for the next tick.
         const entity = runtime.spawn('jsprismarine:shown', GROUND);
         if (entity === undefined) throw new Error('the fixture declares no jsprismarine:shown');
+        entity.body.nameTag = 'Between';
 
-        const changes = tickInto(runtime, replica, () => (entity.body.nameTag = 'unseen'));
+        const changes = tickInto(runtime, replica, () => undefined);
 
-        expect(replica.view(BigInt(entity.id))).toBeUndefined();
+        expect([...changes.entered]).toEqual([BigInt(entity.id)]);
+        expect(replica.view(BigInt(entity.id))).toEqual(entityViewOf(entity, runtime.leashHolderIdOf(entity.id)));
+    });
+
+    it('passes over an entry for an entity whose entering entry it never read', () => {
+        const { content } = entityFixture(new TestEntityWorld(), {}, EXTRA);
+        const replica = new EntityReplica(() => content);
+
+        const changes = replica.read({
+            tick: 1,
+            entries: [
+                {
+                    kind: 'field',
+                    field: 'entity',
+                    address: { entity: 7n, field: 'nameTag' },
+                    before: null,
+                    after: 'unseen'
+                }
+            ]
+        });
+
+        expect(replica.view(7n)).toBeUndefined();
         expect(changes.fields.size).toBe(0);
     });
 });
