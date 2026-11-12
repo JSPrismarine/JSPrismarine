@@ -1,6 +1,6 @@
 import type { Module } from '@jsprismarine/kernel';
 
-import { TickEvent } from '../events/Events';
+import TickEvent from '../events/other/TickEvent';
 import type { ServerEventBus } from '../events/ServerEvents';
 import { profileSpanStarter } from '../profiling/ServerProfiler';
 import { TickRecorder } from '../profiling/TickRecorder';

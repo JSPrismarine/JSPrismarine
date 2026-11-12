@@ -7,7 +7,7 @@ import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { startTestModule } from '@jsprismarine/kernel/testing';
-import type { TickEvent } from '../events/Events';
+import type TickEvent from '../events/other/TickEvent';
 import { attachProfiler, ServerProfiler } from '../profiling/ServerProfiler';
 import { ServerTicker, tickerModule } from './ticker';
 import type { TickerServer } from './ticker';
