@@ -86,6 +86,10 @@ Done when every judge has returned its scores table, its comparison and its rank
    it with claims, hiding a weak part from the capture) raises the score and lowers the artifact.
 6. Rebuild, capture, and look at every changed item yourself before the next round.
 
+Change the guide or spec only after the round is judged, in the commit that lands the change. A
+judge reads the guide, and a rule that already describes one version tells it which version is
+newer.
+
 Follow the repository's own rules for the changes themselves, and commit in small slices when the
 user asked for commits.
 

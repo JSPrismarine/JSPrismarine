@@ -34,6 +34,9 @@ The capture rules `shoot.mjs` applies, which a hand-rolled capture applies too:
 - Long pages cropped to a fixed top height, so images stay legible to a model.
 - Full-page captures draw fixed and sticky elements once, at the top. Each such artifact goes in
   the brief as a capture limit.
+- A full-page capture drops touch emulation while it draws, so `hover: none` and `pointer: coarse`
+  rules do not show in it. Give a touch-only style a width query too, or check it in a viewport or
+  element capture.
 
 For a surface that is not a web page (a TUI, a native screen), capture with that surface's own
 tool at fixed sizes and in each theme it supports.
