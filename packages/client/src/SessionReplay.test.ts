@@ -904,6 +904,7 @@ const replayOn = async (
             // What replication keeps of the world's block entities, read from the log (ADR 0016).
             blockReplica: live.server.getWorldReplicators().for(live.world).blockReplicaCounts(),
             entityReplica: live.server.getWorldReplicators().for(live.world).entityReplicaCounts(),
+            entityReplication: live.server.getWorldReplicators().for(live.world).entityReplicationCounts(),
             entityViewDivergences,
             entityViewsCompared,
             loggedTicks,
@@ -1210,6 +1211,14 @@ describe('live session replay', () => {
                     `entity replica after the replay: ${entityReplica.entities} entities in ${entityReplica.bytes} bytes; ` +
                         `${entityReplica.entriesRead} entity entries read; ${first.entityViewsCompared} views compared tick by tick`,
                     'Replica cost'
+                );
+                const replication = first.entityReplication;
+                reportProgress(
+                    `replication over the replay: ${first.blockReplica.entriesRead + entityReplica.entriesRead} entries read ` +
+                        `(${first.blockReplica.entriesRead} block, ${entityReplica.entriesRead} entity); ` +
+                        `${replication.visited} entities visited; ${replication.firstSightEncodes} first-sight encodes ` +
+                        `for ${replication.firstSights} first sights`,
+                    'Replication cost'
                 );
                 const replica = first.blockReplica;
                 reportProgress(
