@@ -161,7 +161,9 @@ export class TickList {
      */
     restore(at: BlockPosition, type: string, timing: ScheduledTickTiming | null): void {
         const key = identity({ at, type });
-        const index = this.queue.findIndex((tick) => identity(tick) === key);
+        // The set says whether the tick is queued, so a restore of one that is not skips the scan:
+        // an undo or a replay restores once per logged tick, which would read the queue each time.
+        const index = this.queued.has(key) ? this.queue.findIndex((tick) => identity(tick) === key) : -1;
         if (index !== -1) this.queue.splice(index, 1);
         if (timing === null) {
             this.queued.delete(key);
