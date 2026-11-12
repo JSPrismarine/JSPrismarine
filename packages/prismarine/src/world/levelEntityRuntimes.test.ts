@@ -16,6 +16,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import Server from '../Server';
 import { Config } from '../config/Config';
 import type { UnitOutcome } from '../entity/data/EntityStore';
+import { duringItemInteraction } from '../item/interactionContext';
 import { stubRakNetListener } from '../testing/rakNetListener.test.helper';
 import type { ChangeEntry } from './changelog/ChangeEntry';
 import type { World } from './World';
@@ -206,6 +207,19 @@ describe('two levels that share a dimension', () => {
         expect(alpha.loadedBlockAt(4, 70, 4)?.name).toBe('minecraft:air');
         expect(alpha.loadedBlockAt(5, 70, 5)?.name).toBe('minecraft:stone');
         expect(beta.loadedBlockAt(5, 70, 5)?.name).toBe('minecraft:air');
+    });
+
+    it('reads for an item interaction in the level it started in', () => {
+        const dimension = beta.getDimension().name;
+        const { blockWorld, itemActions } = server.getContent().world;
+        const at = { x: 6, y: 70, z: 6 };
+        tick(() => blockWorld.at(dimension, OTHER_LEVEL).setBlock(at, 'minecraft:stone'));
+
+        const seenIn = (level: string): string | undefined =>
+            duringItemInteraction({ dimension, level }, () => itemActions.blockAt(at)?.identifier);
+
+        expect(seenIn(OTHER_LEVEL)).toBe('minecraft:stone');
+        expect(seenIn(DEFAULT_LEVEL)).toBe('minecraft:air');
     });
 
     it('spawns a mob into the level that asked for it', () => {
