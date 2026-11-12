@@ -411,6 +411,9 @@ export default class WorldManager implements Service {
 
         await level.disable();
         this.levels.delete(level.name);
+        // After the save, which reads them: a level loaded again under this name would otherwise
+        // be handed the runtimes, and the entities, of this one.
+        if (this.server.hasEntityRuntime()) this.server.getContentWorld().closeLevel(level.name);
         for (const world of level.worlds()) {
             this.server.getLogger().verbose(`Successfully unloaded world ${world.getFormattedName()}!`);
         }

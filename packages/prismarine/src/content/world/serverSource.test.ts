@@ -566,6 +566,29 @@ describe('serverWorldSource', () => {
         expect(source.at(DIMENSION, 'second').level.seed).toBe(2n);
     });
 
+    it('forgets the adapters and runtimes of a level that unloaded, and keeps the others', () => {
+        const runtimes = new EntityRuntimes();
+        const source = serverWorldSource({
+            worldFor: () => world,
+            content: () => content,
+            seed: 1n,
+            difficulty: () => Difficulty.NORMAL,
+            entityRuntimes: runtimes,
+            defaultLevel: () => 'main'
+        });
+        const before = source.at(DIMENSION, 'second');
+        source.at(DIMENSION);
+        expect(runtimes.at(DIMENSION, 'second')).toBeDefined();
+
+        source.closeLevel('second');
+
+        expect(runtimes.at(DIMENSION, 'second')).toBeUndefined();
+        expect(source.entitiesAt(DIMENSION, 'second')).toBeUndefined();
+        expect(runtimes.at(DIMENSION)).toBeDefined();
+        // Loaded again, the level is given an adapter of its own, not the one before.
+        expect(source.at(DIMENSION, 'second')).not.toBe(before);
+    });
+
     it('drops game events when no listener is installed', () => {
         const adapter = serverWorldSource({
             worldFor: () => world,
