@@ -1,17 +1,17 @@
 import ContainerEntry from './ContainerEntry';
 import Inventory from './Inventory';
 import type { PlayerContainer, SlotValue } from './slotLog';
-import { itemOfSlotValue, slotValueOfItem } from './slotLog';
+import { itemOfSlotValue, slotValueOf, slotValueOfItem } from './slotLog';
 import type { Item } from '../item/Item';
 import type { ServerContent } from '../content/ServerContent';
 import type { PlainData } from '../world/changelog/PlainData';
 import type { ViewableEquipment } from '../entity/predicateView';
 
 /** Slots the hotbar reaches, and so the range a hand slot may name. */
-const HOTBAR_SIZE = 9;
+export const HOTBAR_SIZE = 9;
 
 /** Helmet, chestplate, leggings, boots - the order the client numbers them in. */
-const ARMOR_SLOTS = 4;
+export const ARMOR_SLOTS = 4;
 
 /** Three rows of nine, the same as a single chest. */
 const ENDER_CHEST_SLOTS = 27;
@@ -237,6 +237,15 @@ export default class HumanInventory extends Inventory {
             return undefined;
         const entry = target.getEntry(slot);
         return entry === null ? null : entry.toItemStack().withCount(entry.getCount());
+    }
+
+    /**
+     * What one slot holds, as its slot entries log it.
+     * @returns The value, or null for an empty slot or one this inventory does not have.
+     */
+    public slotValue(container: PlayerContainer, slot: number): SlotValue {
+        if (container === 'cursor') return slot === 0 ? slotValueOfItem(this.cursor) : null;
+        return slotValueOf(this.containerNamed(container)?.getEntry(slot) ?? null);
     }
 
     private containerNamed(container: PlayerContainer): Inventory | undefined {

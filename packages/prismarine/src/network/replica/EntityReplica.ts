@@ -30,7 +30,9 @@ import {
     statusEffectsIn,
     stringsIn
 } from '../../entity/data/entityFields';
-import { loggedFieldsOfSavedForm } from '../../entity/data/savedForm';
+import { loggedFieldsOfSavedForm, loggedSlotsOfSavedForm } from '../../entity/data/savedForm';
+import { shownPlayerStateIn, slotKey } from '../../entity/playerShown';
+import type { ShownPlayerState } from '../../entity/playerShown';
 import type { EntityId } from '../../world/changelog/ChangeEntry';
 import type { SealedTick } from '../../world/changelog/ChangeLog';
 import { estimatePlainBytes } from '../../world/changelog/changeLogCost';
@@ -147,7 +149,7 @@ export class EntityReplica {
             const { entity, container, slot } = entry.address;
             const held = this.entities.get(entity);
             if (held === undefined) continue;
-            const key = `${container}:${slot}`;
+            const key = slotKey(container, slot);
             held.slots.set(key, entry.after);
             if (!entered.has(entity)) addTo(slots, entity, key);
         }
@@ -177,7 +179,18 @@ export class EntityReplica {
      * @returns The item's saved form, null for an empty slot, or undefined when it is not held.
      */
     public slot(entity: EntityId, container: string, slot: number): PlainRecord | null | undefined {
-        return this.entities.get(entity)?.slots.get(`${container}:${slot}`);
+        return this.entities.get(entity)?.slots.get(slotKey(container, slot));
+    }
+
+    /**
+     * What clients are shown of a store player beside its entity: its head yaw, its hand, its
+     * sprint, its game mode and its breath.
+     * @returns The state, or undefined when the replica does not hold the entity or it is no store
+     *   player.
+     */
+    public player(entity: EntityId): ShownPlayerState | undefined {
+        const held = this.entities.get(entity);
+        return held === undefined ? undefined : shownPlayerStateIn((name) => held.fields.get(name));
     }
 
     /**
@@ -257,7 +270,7 @@ export class EntityReplica {
             persistentIdentity: typeof identity === 'string' ? identity : undefined,
             spawnBlock: spawnData !== undefined && isPlainRecord(spawnData) ? spawnData['block'] : undefined,
             fields: loggedFieldsOfSavedForm(saved),
-            slots: new Map()
+            slots: loggedSlotsOfSavedForm(saved)
         });
         if (typeof identity === 'string') this.byIdentity.set(identity, entity);
     }

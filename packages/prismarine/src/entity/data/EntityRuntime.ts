@@ -196,6 +196,7 @@ import { mergeStatusEffect, normalizeStatusEffectId, removeStatusEffectFromMap }
 import { clientOwnsMovement, PLAYER_IDENTIFIER } from '../playerOverlay';
 import type { Gametype } from '@jsprismarine/minecraft';
 import type { PlayerMining } from '../playerComponents';
+import type { PlayerShownForm } from '../playerShown';
 import { cancelMeal } from '../playerMeal';
 import type { StorePlayer } from '../storePlayer';
 
@@ -431,6 +432,10 @@ const VILLAGE_POI_KINDS: readonly string[] = ['home', 'meeting', ...JAVA_POI_TYP
 
 /** How far from a position Java looks for the points of interest of its village. */
 const VILLAGE_RADIUS = 64;
+
+/** A store player's shown form as the part of a saved form that holds it, or nothing for any other entity. */
+const shownPlayerOf = (form: PlayerShownForm | undefined): { readonly player?: PlainRecord } =>
+    form === undefined ? {} : { player: { fields: form.fields, slots: form.slots } };
 
 /** The live entities of one dimension, and the AI that drives them. */
 export class EntityRuntime implements EntityScene {
@@ -1001,7 +1006,8 @@ export class EntityRuntime implements EntityScene {
      *
      * @returns Plain data with the runtime id, the position, the velocity, the record as it would
      *   be written, the tags, the status effects, the vehicle it rides, the online owner, the shown
-     *   conditions, the actor record tags and the attributes with their bounds
+     *   conditions, the actor record tags and the attributes with their bounds, and for a store
+     *   player what clients are shown of it beside its entity (`entity/playerShown.ts`)
      *   (`savedForm.ts` reads it back as logged fields).
      */
     public savedFormOf(entity: DataEntity): PlainRecord {
@@ -1035,7 +1041,8 @@ export class EntityRuntime implements EntityScene {
                     const { base, min, max, current } = attribute;
                     return [[name, { base, min, max, current }]];
                 })
-            )
+            ),
+            ...shownPlayerOf(this.playerSystems.shownFormOf(entity))
         };
     }
 
