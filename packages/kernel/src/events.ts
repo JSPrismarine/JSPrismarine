@@ -134,8 +134,16 @@ export class KernelEventBus<Events extends EventMap = EventMap> implements Event
         for (const subscription of subscriptions) {
             const result = this.call(event, subscription, args);
             // Any thenable, not only a native promise: one from another realm, or a library's
-            // own, is not `instanceof Promise`, and its rejection would go unreported.
-            if (isThenable(result)) Promise.resolve(result).catch((error: unknown) => this.report(error, event));
+            // own, is not `instanceof Promise`, and its rejection would go unreported. Reading
+            // `then` runs a getter, which can throw like the listener itself.
+            let thenable: boolean;
+            try {
+                thenable = isThenable(result);
+            } catch (error) {
+                this.report(error, event);
+                continue;
+            }
+            if (thenable) Promise.resolve(result).catch((error: unknown) => this.report(error, event));
         }
         return subscriptions.length;
     }

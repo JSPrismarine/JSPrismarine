@@ -123,6 +123,26 @@ describe('KernelEventBus', () => {
         await vi.waitFor(() => expect(failures).toStrictEqual([rejected]));
     });
 
+    it('reports a returned value whose then getter throws, and calls the listeners after it', () => {
+        const failures: unknown[] = [];
+        const bus = new KernelEventBus<TestEvents>({ onListenerError: (error) => failures.push(error) });
+        const broken = new Error('broken then');
+        const calls: string[] = [];
+        bus.on('tick', () => {
+            calls.push('first');
+            return {
+                get then(): never {
+                    throw broken;
+                }
+            };
+        });
+        bus.on('tick', () => void calls.push('second'));
+
+        expect(bus.post('tick', 1)).toBe(2);
+        expect(calls).toStrictEqual(['first', 'second']);
+        expect(failures).toStrictEqual([broken]);
+    });
+
     it('keeps calling listeners when the error handler throws', async () => {
         const bus = new KernelEventBus<TestEvents>({
             onListenerError: () => {
