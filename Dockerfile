@@ -1,6 +1,6 @@
 # Builds and runs the dedicated server from compiled JavaScript.
 # The build context must include the bedrock-data resources submodule.
-FROM eclipse-temurin:25-jdk-jammy@sha256:e4f029273ed9e4444697df30bb6098dbe51477291598aebc54dd0b48d95d6ae7 AS temurin-jdk
+FROM eclipse-temurin:25-jdk-jammy@sha256:d63001a0ad477a36b9e40fe65452fb8c4da416aa61d6e572f5ba96266805c64b AS temurin-jdk
 
 FROM node:26-slim@sha256:e6bedef217677b276c591795e169840edd9096dbf13f29df8ef8d1856b8820bc AS builder
 
