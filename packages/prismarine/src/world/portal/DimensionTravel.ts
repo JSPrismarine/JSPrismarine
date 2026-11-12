@@ -149,7 +149,15 @@ const WAITING = 'waiting';
 export interface MoveTarget {
     /** The arrival once the move can land without waiting, or undefined while it cannot. */
     ready(): Arrival | undefined;
-    /** Starts what {@link MoveTarget.ready} waits for, outside every tick. */
+    /**
+     * Starts what {@link MoveTarget.ready} waits for, outside every tick, and settles once
+     * `ready` can answer.
+     *
+     * A move whose preparation settles, fulfilled or rejected, while `ready` still answers
+     * undefined is dropped at the next input step. Left filed, it would be prepared again at
+     * every step and hold the player's later moves behind it for good. A target whose work goes
+     * on after `prepare` settles therefore loses its move: wait for the work here.
+     */
     prepare(): Promise<void>;
 }
 
