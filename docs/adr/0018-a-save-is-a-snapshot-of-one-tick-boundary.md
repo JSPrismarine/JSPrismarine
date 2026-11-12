@@ -1,6 +1,6 @@
 # A save is a snapshot of one tick boundary
 
-Status: proposed
+Status: accepted, 2026-11-12, with the changes [the save pass measurement](../research/save-pass-measurement.md) asked for
 
 A save pass writes the authoritative state of one tick boundary of a level, called the save cut, for every dimension the level holds, and commits it as one atomic write. At the cut the level encodes the player and entity records, takes each chunk's entity membership, and marks the chunks that gameplay changed since the last pass. Those chunks are encoded over the following ticks, a bounded count each tick. A sub chunk of a marked chunk that is about to be written to is encoded first, with the chunk's height and biome record. Every chunk write goes through a method of `Chunk`, and no code outside generation and loading may hold a mutable sub chunk or biome store, so the hook sees every write. Once the last marked chunk is encoded, the bytes go to disk as one batch. The append and its sync run off the server thread, and the next pass waits for the commit. The level metadata travels in the same atomic write, and `level.dat` is rewritten afterward, once per pass of the level, as a copy through an atomic file replace.
 
