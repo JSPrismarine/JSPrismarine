@@ -10,7 +10,7 @@ Sources and the revisions read:
 - [CloudburstMC/Protocol](https://github.com/CloudburstMC/Protocol) at `f2d5463d`: `SubChunkSerializer_v486`, `_v2168` and `_v2193`.
 - [pmmp/BedrockProtocol](https://github.com/pmmp/BedrockProtocol) at `8eb5a390`: `src/SubChunkPacket.php` and `src/types/SubChunkPacketEntryCommon.php`.
 
-No Bedrock Dedicated Server was run for this note. Where the sources leave a question open, the last section says what a capture would settle.
+Added the same day: a capture of Bedrock Dedicated Server (BDS) 1.26.60.6 answering that iOS client, described under [What Bedrock Dedicated Server sends](#what-bedrock-dedicated-server-sends). It confirms the reading of the sources and settles three points they left open.
 
 ## Summary
 
@@ -20,6 +20,7 @@ No Bedrock Dedicated Server was run for this note. Where the sources leave a que
 - An all-air section queues no blob, so it has no hash. (Mojang, dragonfly.)
 - The blob of a section is its terrain alone. The block entities are not part of what is hashed. (dragonfly.)
 - This repository sent two shapes none of the sources send: the whole section inline beside its hash, and the hash with no payload once the client had confirmed it. The second is the shape the retail client left on.
+- BDS answers every `ClientCacheBlobStatus` with a `ClientCacheMissResponse`, an empty one when nothing was missed, and announces a request-mode chunk through the cache as well. (Capture.)
 
 ## The wire layout
 
@@ -112,6 +113,36 @@ For the chunk itself, in request mode, dragonfly sends a `LevelChunkPacket` with
 - `ClientCacheMissResponse` (server to client): the bytes of each missed blob with its hash. Mojang describes a blob as "Subchunk data ... plus biome data".
 - dragonfly records the hashes of each packet as a transaction and stops tracking once 4096 blobs wait unacknowledged, at which point it logs an error and sends the terrain inline without a hash.
 
+## What Bedrock Dedicated Server sends
+
+Captured 2026-11-12: BDS 1.26.60.6 for Linux in a container (`level-type=FLAT`, `online-mode=false`, `server-udp-ports=127.0.0.1:19140:19140`), an iOS client at protocol 2225 joining through `packages/client/tools/nethernet-proxy.mts`, which records every message both ways. The player stood still, walked about ten chunks out and back, died, respawned and left. 5381 packets in 75 seconds. (Run.)
+
+Every one of the 145 `SubChunkPacket`s had Cache Enabled true. Their 3592 entries had two shapes:
+
+| Entries | Result | Payload | Height map | Render height map | Hash |
+| --- | --- | --- | --- | --- | --- |
+| 2803 | 6 SuccessAllAir | Absent | 3 AllTooLow, no data | 3 AllTooLow, no data | Absent |
+| 789 | 1 Success | Present, zero bytes | 1 HasData, with data | 4 AllCopied, no data | Present |
+
+- The payload of a successful entry is present and empty: the flat world has no block entities. No entry carried terrain.
+- An all-air entry has neither payload nor hash, as dragonfly sends it.
+- The render height map is AllCopied only beside a height map that has data. Beside AllTooLow it repeats AllTooLow.
+- The answers after the walk back and after the respawn, for sections the client had confirmed before, have the same two shapes.
+
+All 783 `LevelChunkPacket`s had the same form, here for chunk 0, 0:
+
+```
+3a 00 00 00 00 01 02 01 01 93 df f8 d4 76 b3 c4 7a 01 00 00
+```
+
+Sub chunk count 0, the request limit present and 1, Cache Enabled true, one blob hash, a payload of one zero byte, and no biome update. That is dragonfly's cached form: the biomes are a blob.
+
+The cache exchange: 105 `ClientCacheBlobStatus` from the client and 105 `ClientCacheMissResponse` from the server. BDS answers each status, with a response of no blobs (3 bytes) when the client missed nothing.
+
+Around the death and respawn BDS sent, in order: `Respawn`, `NetworkChunkPublisherUpdate`, `SetActorData`, `UpdateAttributes` at the death; two `Respawn` after the client's own; then `ActorEvent`, `SetHealth`, `UpdateAttributes` and `SetActorData` after the client's `PlayerAction`; then the chunks around the spawn point as above.
+
+One more thing the capture needed: BDS 1.26.60 refuses a login (`NotAuthenticated`, 46) on a connection whose offer was not signed with the login's identity key, with `online-mode=false` as well. The proxy therefore logs in with a key of its own.
+
 ## What this repository sends
 
 `PlayerSession.handleSubChunkRequest`, before the change made alongside this note:
@@ -125,14 +156,22 @@ For the chunk itself, in request mode, dragonfly sends a `LevelChunkPacket` with
 
 On 2026-11-12 an iOS client joined three times and left with error 90 each time. The last packet the server sent before each disconnect was a `SubChunkPacket`, answered after the client had confirmed blobs: twice after a respawn and once after walking into new chunks. The join itself, where no blob was confirmed yet, never failed.
 
-After the change, a cached successful entry is the hash of the terrain plus the block entity payload, an all-air entry in a cached packet has neither, and the terrain goes out only in `ClientCacheMissResponse`. In the one session run since, the client was answered 64 sub chunk requests while walking without leaving. It still left with error 90 after a respawn, so that disconnect has another cause this note does not cover.
+After the change, a cached successful entry is the hash of the terrain plus the block entity payload, an all-air entry in a cached packet has neither, and the terrain goes out only in `ClientCacheMissResponse`. In the one session run since, the client was answered 64 sub chunk requests while walking without leaving. It still left with error 90 after a respawn.
 
-The request-mode `LevelChunkPacket` is sent with Cache Enabled false and the biomes inline for every client, while the `SubChunkPacket` answers to the same client use the cache. dragonfly uses the cache for both or for neither. Whether a client minds the mix is not known.
+Three more differences from the capture, changed after it:
+
+| What | This repository sent | BDS sends |
+| --- | --- | --- |
+| Answer to a `ClientCacheBlobStatus` that misses nothing | Nothing | An empty `ClientCacheMissResponse` |
+| Request-mode `LevelChunkPacket` to a client with the cache on | Cache Enabled false, biomes inline | Cache Enabled true, the biomes as a blob, a one-byte payload |
+| Render height map type beside AllTooLow | AllCopied | AllTooLow |
+
+Whether these three end the respawn disconnect was not yet tested with the retail client when this was written.
 
 ## Not checked
 
-- What Bedrock Dedicated Server itself sends. The points worth capturing, with a cache-enabled client through a proxy: whether a failed entry carries an empty payload or none, whether an all-air entry in a cached packet carries a hash, what the render height map type is, and what the request-mode `LevelChunkPacket` looks like with the cache on.
-- Whether the retail client's respawn disconnect involves these packets at all.
+- A world with terrain above a section. The capture is of a flat world, so it has no successful entry whose height map is AllTooHigh, no failed entry, and no block entities. This repository repeats AllTooHigh for the render height map by the same reading as AllTooLow, unverified.
+- Whether the retail client's respawn disconnect is one of the three differences above.
 - cinnabar's reading of the same entries. Its NetherNet build turns the cache on, and the client e2e suite stalls on chunk delivery after a far teleport with it.
 
 ## Reproduction
@@ -143,3 +182,4 @@ The request-mode `LevelChunkPacket` is sent with Cache Enabled false and the bio
 - Cloudburst: `bedrock-codec/src/main/java/org/cloudburstmc/protocol/bedrock/codec/v486/serializer/SubChunkSerializer_v486.java`, and the `v2168` and `v2193` serializers beside it.
 - pmmp: `src/types/SubChunkPacketEntryCommon.php` and `src/types/SubChunkPacketEntryWithCache.php`.
 - The retail sessions: a server from this branch with `log-level` `silly`, joined from an iOS client on the same network; the packet names before each disconnect are in its log.
+- The BDS capture: unpack the pinned `bedrock-server-1.26.60.6.zip`, set the properties named above, and run it in an `ubuntu:24.04` container for `linux/amd64` with `libcurl4`, TCP 19134 and UDP 19140 published. Run `node --import tsx packages/client/tools/nethernet-proxy.mts --upstream 127.0.0.1:19134 --out <dir>`, join the proxy's port from the game client, and split the result with `node --import tsx packages/client/tools/decode-capture.mts <dir>/connection-1.jsonl`. The packets land beside it with an `index.tsv`.
