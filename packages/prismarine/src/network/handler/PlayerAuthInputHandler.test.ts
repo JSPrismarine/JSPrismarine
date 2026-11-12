@@ -54,7 +54,7 @@ const fake = ({ serverAuthoritativeBreaking = false, changingDimension = false, 
         // Every chunk is loaded, and every block in it is stone.
         getLoadedChunk: () => stub<Chunk>({}),
         loadedBlockAt: () => ({ name: 'minecraft:stone', states: {} }),
-        sendWorldEvent: async () => {},
+        sendWorldEvent: () => {},
         startBlockCracking: async (position, face) => {
             calls.push(`crack ${position.getX()},${position.getY()},${position.getZ()} face ${face}`);
             return null;

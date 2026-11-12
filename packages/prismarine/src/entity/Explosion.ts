@@ -63,8 +63,8 @@ interface CaughtEntity extends ExplosionEntity {
 export const explode = async (world: World, at: Vector3, options: ExplosionOptions): Promise<void> => {
     const { power, source = null, breaksBlocks = true } = options;
 
-    await world.sendWorldEvent(at, LevelEvent.PARTICLES_EXPLOSION, 0);
-    if (source) await world.sendActorSound(source, LevelSoundEvent.EXPLODE);
+    world.sendWorldEvent(at, LevelEvent.PARTICLES_EXPLOSION, 0);
+    if (source) world.sendActorSound(source, LevelSoundEvent.EXPLODE);
 
     const center = { x: at.getX(), y: at.getY(), z: at.getZ() };
     const caught = entitiesNear(world, at, power);

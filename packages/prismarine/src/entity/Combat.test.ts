@@ -31,9 +31,9 @@ const scene = ({ pvp = true } = {}) => {
     const { world, live } = storeWorld();
 
     Object.assign(world, {
-        sendActorEvent: async () => {},
-        sendActorSound: async (actor: StoreActor, sound: LevelSoundEvent) => void noises.push({ actor, sound }),
-        sendWorldEvent: async (_at: unknown, event: LevelEvent) => void effects.push(event),
+        sendActorEvent: () => {},
+        sendActorSound: (actor: StoreActor, sound: LevelSoundEvent) => void noises.push({ actor, sound }),
+        sendWorldEvent: (_at: unknown, event: LevelEvent) => void effects.push(event),
         broadcastMove: async () => {},
         getGameRuleManager: () => stub<GameRuleManager>({ getGameRule: () => [pvp, true] }),
         getLoadedChunk: () => null,

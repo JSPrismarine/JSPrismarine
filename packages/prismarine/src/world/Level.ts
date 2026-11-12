@@ -258,11 +258,7 @@ export class Level {
             broadcast: (event, data) => {
                 for (const world of this.worlds()) {
                     if (!world.getDimension().java.hasSkylight) continue;
-                    world.sendWorldEvent(null, event, data).catch((error: unknown) => {
-                        this.server
-                            .getLogger()
-                            .error(`Failed to send weather to ${world.getFormattedName()}: ${error}`);
-                    });
+                    world.sendWorldEvent(null, event, data);
                 }
             }
         });

@@ -93,9 +93,7 @@ export const loose = (shooter: StoreActor, ticks: number): boolean => {
     );
     if (projectile === undefined) return false;
 
-    void world
-        .sendActorSound(shooter, LevelSoundEvent.BOW)
-        .catch((error: unknown) => shooter.getServer().getLogger().error(error));
+    world.sendActorSound(shooter, LevelSoundEvent.BOW);
 
     return true;
 };

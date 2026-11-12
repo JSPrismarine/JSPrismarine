@@ -12,7 +12,7 @@ import ActorEventPacket, { ActorEvent } from '@jsprismarine/protocol/packet/Acto
 import ActorEventHandler from './ActorEventHandler';
 
 const setup = () => {
-    const sendActorEvent = vi.fn<World['sendActorEvent']>(async () => {});
+    const sendActorEvent = vi.fn<World['sendActorEvent']>(() => {});
     const verbose = vi.fn();
     const player = stubPlayerPort({ getRuntimeId: () => 7n });
     const actor = stub<StorePlayerActor>({ getRuntimeId: () => 7n });
@@ -40,8 +40,8 @@ describe('ActorEventHandler', () => {
         await settled();
 
         expect(sendActorEvent).toHaveBeenCalledExactlyOnceWith(actor, ActorEvent.FEED, 260);
-        // Handed to the input step rather than awaited.
-        expect(outputs).toHaveLength(1);
+        // Logged in the handler's unit, so there is nothing to hand the input step.
+        expect(outputs).toHaveLength(0);
         expect(verbose).not.toHaveBeenCalled();
     });
 

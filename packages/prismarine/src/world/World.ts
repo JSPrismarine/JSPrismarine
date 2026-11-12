@@ -1869,7 +1869,7 @@ export class World implements Service {
      * @param {LevelEvent} event - Which effect.
      * @param {number} data - Extra detail, for the effects that carry any.
      */
-    public async sendWorldEvent(position: Vector3 | null, event: LevelEvent, data: number): Promise<void> {
+    public sendWorldEvent(position: Vector3 | null, event: LevelEvent, data: number): void {
         if (position !== null && !this.isHere(position)) return;
         this.occurred({
             kind: 'occurrence',
@@ -1894,7 +1894,7 @@ export class World implements Service {
      * @param {ShownActor} entity - Who made it.
      * @param {LevelSoundEvent} sound - Which noise.
      */
-    public async sendActorSound(entity: ShownActor, sound: LevelSoundEvent): Promise<void> {
+    public sendActorSound(entity: ShownActor, sound: LevelSoundEvent): void {
         const position = entity.getPosition();
         if (!this.isHere(position)) return;
         this.occurred({
@@ -2040,7 +2040,7 @@ export class World implements Service {
      * @param {ActorEvent} event - What happened.
      * @param {number} [data=0] - Extra detail, for the events that carry any.
      */
-    public async sendActorEvent(entity: ShownActor, event: ActorEvent, data = 0): Promise<void> {
+    public sendActorEvent(entity: ShownActor, event: ActorEvent, data = 0): void {
         this.occurred({
             kind: 'occurrence',
             occurrence: 'actor-event',

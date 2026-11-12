@@ -30,7 +30,7 @@ export default class ActorEventHandler implements InputLaneHandler<ActorEventPac
     public readonly lane = 'input';
 
     /** Relays an allowed event about the sender to the players tracking it, and drops the rest. */
-    public handle(packet: ActorEventPacket, { session, log, step }: InputContext): undefined {
+    public handle(packet: ActorEventPacket, { session, log }: InputContext): undefined {
         const player: ShownActor | undefined = session.getActor();
         // Nobody sees a player whose entity is in no store, so there is nobody to relay to.
         if (player === undefined) return;
@@ -51,6 +51,6 @@ export default class ActorEventHandler implements InputLaneHandler<ActorEventPac
             return;
         }
 
-        step.output(session.getWorld().sendActorEvent(player, packet.event, packet.data));
+        session.getWorld().sendActorEvent(player, packet.event, packet.data);
     }
 }

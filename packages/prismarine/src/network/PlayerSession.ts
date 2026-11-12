@@ -3471,7 +3471,7 @@ export default class PlayerSession {
 
         this.showOwnHealth();
         await this.sendAttributes();
-        await this.world.sendActorEvent(actor, ActorEvent.DEATH_ANIMATION);
+        this.world.sendActorEvent(actor, ActorEvent.DEATH_ANIMATION);
 
         await this.server.getChatManager().send(
             new Chat({
