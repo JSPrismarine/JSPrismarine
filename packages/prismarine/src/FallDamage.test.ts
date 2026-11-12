@@ -94,7 +94,7 @@ describe('fall damage', () => {
     });
 
     it('does not charge a flying player for descending', () => {
-        const { fall, taken } = fallingPlayer({ gamemode: Gametype.CREATIVE, flying: true });
+        const { fall, taken } = fallingPlayer({ flying: true });
 
         fall(10);
 
