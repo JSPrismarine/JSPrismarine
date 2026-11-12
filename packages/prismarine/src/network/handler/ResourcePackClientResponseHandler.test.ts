@@ -173,7 +173,7 @@ const harness = ({
             content,
             console: stub<ConsoleSender>({ getFormattedUsername: () => 'Console' }),
             events: {
-                post: ([, event]) => {
+                post: (_id, event) => {
                     if (cancelSpawn && event instanceof PlayerSpawnEvent) event.preventDefault();
                     return 0;
                 },

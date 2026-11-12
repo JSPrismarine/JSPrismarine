@@ -1,3 +1,5 @@
+import { KernelEventBus } from '@jsprismarine/kernel';
+import type { ServerEvents } from '../events/ServerEvents';
 /**
  * A player filling and emptying a chest, through the real handler and a real world.
  *
@@ -217,7 +219,7 @@ const buildScene = async (name: string) => {
                 getDifficulty: () => 2
             })
     });
-    const chat = new ChatManager(server);
+    const chat = new ChatManager(new KernelEventBus<ServerEvents>());
 
     // The spawn is known before the world opens, so enabling it searches for nothing.
     const level = testLevel({

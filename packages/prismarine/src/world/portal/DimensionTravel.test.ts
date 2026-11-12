@@ -1,3 +1,4 @@
+import { KernelEventBus } from '@jsprismarine/kernel';
 /**
  * Where a trip lands, over a real level with an Overworld, a Nether and an End in one LevelDB
  * save. The worlds are empty chunks, so a trip into the Nether finds no footing and forces a
@@ -26,7 +27,7 @@ import type { ServerContent } from '../../content/ServerContent';
 import { definitionOf, definitionsOf } from '../../content/ContentOptions';
 import { builtInEntityDefinitions, fixtureContentOptions, fixtureDefinitions } from '../../content/testing';
 import { serverWorldSource } from '../../content/world/serverSource';
-import { EventEmitter } from '../../events/EventEmitter';
+import type { ServerEvents } from '../../events/ServerEvents';
 import { EntityRuntimes } from '../../entity/data/live';
 import { ItemActor } from '../../entity/data/itemActor';
 import { InertActor } from '../../entity/data/storeActors';
@@ -127,15 +128,15 @@ const buildLevel = async ({ entities }: SceneOptions = {}) => {
     // it is ready, and an active one holds it for an input step, as the ticker's does.
     const completions = new ChunkCompletionQueue();
     // A real bus, so a test can listen for the travel events and cancel one.
-    const events = new EventEmitter();
+    const events = new KernelEventBus<ServerEvents>();
     const sessions = sessionsWith({ getPlayerList: () => new Map(), getAllPlayers: () => [] });
     const server: Server = stub<Server>({
         on: (id, listener) => {
             events.on(id, listener);
             return server;
         },
-        post: (pair) => events.post(pair),
-        emit: (id, event) => events.emit(id, event),
+        post: (id, ...args) => events.post(id, ...args),
+        emit: (id, ...args) => events.emit(id, ...args),
         removeListener: () => server,
         getDimensionTravel: () => travel,
         getTick: () => 0,

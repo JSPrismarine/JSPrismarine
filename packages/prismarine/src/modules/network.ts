@@ -232,7 +232,7 @@ export class ServerNetworking implements Networking {
             transport: this.transport,
             sessionManager: server.getSessionManager(),
             packetHandlerRegistry: server.getPacketHandlerRegistry(),
-            events: server,
+            events: server.getKernel().events,
             server,
             logger: server.getLogger(),
             logFilter: server.getPacketLogFilter(),
@@ -334,7 +334,7 @@ export class ServerNetworking implements Networking {
         listening.push(rakNetListening(raknet, `RakNet cannot listen on UDP port ${port}`));
         raknet.start(address, port);
         this.raknet = raknet;
-        return new RakNetTransport(raknet, this.server, ids);
+        return new RakNetTransport(raknet, this.server.getKernel().events, ids);
     }
 
     /**
@@ -353,7 +353,7 @@ export class ServerNetworking implements Networking {
         listening.push(rakNetListening(raknet, `RakNet cannot listen for IPv6 clients on UDP port ${port}`));
         raknet.start(IPV6_WILDCARD, port);
         this.raknetV6 = raknet;
-        return new RakNetTransport(raknet, this.server, ids);
+        return new RakNetTransport(raknet, this.server.getKernel().events, ids);
     }
 
     /**

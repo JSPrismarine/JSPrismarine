@@ -15,6 +15,6 @@ import { chatToken } from './tokens';
 export const socialModule = (server: Server): Module => ({
     id: 'prismarine:social',
     register: (ctx) => {
-        ctx.provide(chatToken, new ChatManager(server));
+        ctx.provide(chatToken, new ChatManager(server.getKernel().events));
     }
 });

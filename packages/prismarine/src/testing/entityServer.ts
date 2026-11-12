@@ -1,3 +1,6 @@
+import type { Kernel } from '@jsprismarine/kernel';
+import { KernelEventBus } from '@jsprismarine/kernel';
+import type { ServerEvents } from '../events/ServerEvents';
 /**
  * The server an entity standing in a test world reaches.
  *
@@ -131,6 +134,7 @@ export const testEntityServer = (options: TestEntityServerOptions = {}): Server 
     return stub<Server>({
         // The listener count, which is what the emitter answers and nothing here reads.
         post: () => 0,
+        getKernel: () => stub<Kernel<ServerEvents>>({ events: new KernelEventBus<ServerEvents>() }),
         getTick: () => options.tick ?? 0,
         getRandom: () => () => options.chance ?? 0.5,
         getContent: () => options.content ?? testContent(),

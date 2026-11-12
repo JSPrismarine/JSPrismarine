@@ -3,7 +3,7 @@ import { isIPv6 } from 'node:net';
 
 import type { InetAddress, RakNetSession } from '@jsprismarine/raknet';
 import { ConnectionPriority, Protocol } from '@jsprismarine/raknet';
-import type { EventEmitter } from '../../events/EventEmitter';
+import type { ServerEventBus } from '../../events/ServerEvents';
 import RaknetConnectEvent from '../../events/raknet/RaknetConnectEvent';
 import RaknetEncapsulatedPacketEvent from '../../events/raknet/RaknetEncapsulatedPacketEvent';
 import type { ConnectionId, ConnectionIds } from './ConnectionId';
@@ -37,7 +37,7 @@ export interface RakNetTransportSource {
 }
 
 /** Where the legacy `raknetConnect`/`raknetEncapsulatedPacket` events still go: the server's bus. */
-export type RaknetEventBus = Pick<EventEmitter, 'emit' | 'hasListeners'>;
+export type RaknetEventBus = Pick<ServerEventBus, 'emit' | 'hasListeners'>;
 
 /**
  * One RakNet session as a {@link TransportConnection}: frames leave reliable ordered on

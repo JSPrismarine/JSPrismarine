@@ -1,3 +1,5 @@
+import { KernelEventBus } from '@jsprismarine/kernel';
+import type { ServerEvents } from '../events/ServerEvents';
 /**
  * A player setting their own spawn point and coming back at it, through a real world.
  *
@@ -159,7 +161,7 @@ const buildScene = async (name: string) => {
                 getDifficulty: () => 2
             })
     });
-    const chat = new ChatManager(server);
+    const chat = new ChatManager(new KernelEventBus<ServerEvents>());
 
     // The spawn is known before the world opens, so enabling it searches for nothing.
     level = testLevel({

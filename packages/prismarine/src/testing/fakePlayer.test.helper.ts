@@ -1,3 +1,6 @@
+import type { Kernel } from '@jsprismarine/kernel';
+import { KernelEventBus } from '@jsprismarine/kernel';
+import type { ServerEvents } from '../events/ServerEvents';
 import type { Logger } from '@jsprismarine/logger';
 import { Vector3 } from '@jsprismarine/math';
 import { InetAddress } from '@jsprismarine/raknet';
@@ -90,6 +93,7 @@ export const fakePlayer = ({ underwater = false, worlds: others = [], name = 'Te
     const server: Server = stub<Server>({
         on: () => server,
         post: () => 0,
+        getKernel: () => stub<Kernel<ServerEvents>>({ events: new KernelEventBus<ServerEvents>() }),
         emit: async (name: string, event: unknown) => void events.push([name, event]),
         getTick: () => 0,
         getConsoleSender: () => stub<ConsoleSender>({ getFormattedUsername: () => 'Console' }),
@@ -126,7 +130,11 @@ export const fakePlayer = ({ underwater = false, worlds: others = [], name = 'Te
     });
 
     const sessions = sessionsWith({ getPlayerList: () => new Map(), getAllPlayers: () => [], getSessions: () => [] });
-    const chat = new ChatManager(server);
+    const chat = new ChatManager({
+        on: () => () => {},
+        off: () => {},
+        emit: async (name, ...args) => void events.push([name, args[0]])
+    });
     // The searches a death files, which a test admits as the input step would.
     const respawnRequests = new RespawnRequests((error) => void logged.push(String(error)));
     // The world changes a session files as messages, which a test admits as the input step would.

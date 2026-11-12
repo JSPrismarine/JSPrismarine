@@ -1,8 +1,9 @@
+import { KernelEventBus } from '@jsprismarine/kernel';
 import { performance } from 'node:perf_hooks';
 import { EventEmitter as NodeEventEmitter } from 'node:events';
 import { InetAddress, Protocol } from '@jsprismarine/raknet';
 import type { RakNetSession } from '@jsprismarine/raknet';
-import { EventEmitter } from '../src/events/EventEmitter';
+import type { ServerEvents } from '../src/events/ServerEvents';
 import { ConnectionIds } from '../src/network/transport/ConnectionId';
 import RakNetTransport from '../src/network/transport/RakNetTransport';
 import type { RakNetTransportSource } from '../src/network/transport/RakNetTransport';
@@ -20,7 +21,7 @@ frame.content = Buffer.from([0xfe, 0x00]);
 
 const run = async (withPluginListener: boolean): Promise<void> => {
     const source = new BenchSource();
-    const events = new EventEmitter();
+    const events = new KernelEventBus<ServerEvents>();
     if (withPluginListener) events.on('raknetEncapsulatedPacket', () => {});
 
     const transport = new RakNetTransport(source, events, new ConnectionIds());

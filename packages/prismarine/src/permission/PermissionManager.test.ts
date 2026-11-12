@@ -8,7 +8,7 @@ import pkg from '../../package.json' with { type: 'json' };
 import Console from '../Console';
 import { parseConfigDocument } from '../config/ConfigDocument';
 import type SessionManager from '../SessionManager';
-import type PlayerToggleOperatorEvent from '../events/player/PlayerToggleOperatorEvent';
+import PlayerToggleOperatorEvent from '../events/player/PlayerToggleOperatorEvent';
 import type PlayerSession from '../network/PlayerSession';
 import { fakePlayer } from '../testing/fakePlayer.test.helper';
 import { stub } from '../testing/stub.test.helper';
@@ -259,7 +259,7 @@ describe('permission', () => {
                     stub<SessionManager>({
                         findSession: ({ name }) => (name === 'carol' ? session : null)
                     }),
-                post: (entry) => (entry[0] === 'playerToggleOperator' ? posted.push(entry[1]) : posted.length)
+                post: (_id, event) => (event instanceof PlayerToggleOperatorEvent ? posted.push(event) : posted.length)
             });
             await opManager.enable();
 
@@ -304,10 +304,10 @@ describe('permission', () => {
                 const opManager = new PermissionManager({
                     getLogger: () => logger,
                     getSessionManager: () => stub<SessionManager>(),
-                    post: (entry) => {
-                        if (entry[0] !== 'playerToggleOperator') return 0;
-                        if (cancel) entry[1].preventDefault();
-                        return posted.push(entry[1]);
+                    post: (_id, event) => {
+                        if (!(event instanceof PlayerToggleOperatorEvent)) return 0;
+                        if (cancel) event.preventDefault();
+                        return posted.push(event);
                     }
                 });
                 return { opManager, posted };

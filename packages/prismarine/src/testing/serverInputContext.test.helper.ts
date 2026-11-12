@@ -17,10 +17,9 @@ import { stub } from './stub.test.helper';
  */
 export const serverInputContext = (server: Server, session: PlayerSession) => {
     const outputs: Promise<void>[] = [];
-    const services = stub<HandlerServices>({
-        events: { post: (pair) => server.post(pair), emit: (id, event) => server.emit(id, event) }
-    });
+    const services = stub<HandlerServices>({});
     Object.defineProperties(services, {
+        events: { get: () => server.getKernel().events },
         content: { get: () => server.getContent() },
         contentWorld: { get: () => server.getContentWorld() },
         creativeInventory: { get: () => server.getCreativeInventory() }

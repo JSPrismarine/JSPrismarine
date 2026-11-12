@@ -133,7 +133,7 @@ describe("a player's death keeps the entity", () => {
 
         const deathly = session.getActor()?.damage(50, DamageCause.Generic);
         expect(player.getHealth() > 0).toBe(false);
-        expect(posted.mock.calls.map(([[name]]) => name)).toContain('entityDeath');
+        expect(posted.mock.calls.map(([name]) => name)).toContain('entityDeath');
         expect(server.getRespawnRequests().size).toBe(1);
         await deathly;
     });

@@ -267,7 +267,7 @@ export default class ResourcePackClientResponseHandler implements InputLaneHandl
         );
 
         const spawnEvent = new PlayerSpawnEvent(session);
-        services.events.post(['playerSpawn', spawnEvent]);
+        services.events.post('playerSpawn', spawnEvent);
         if (spawnEvent.isCanceled()) return;
 
         // The burst reads the spawn of the world the player joins and the level's Overworld

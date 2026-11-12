@@ -1,3 +1,5 @@
+import { KernelEventBus } from '@jsprismarine/kernel';
+import type { ServerEvents } from '../events/ServerEvents';
 /**
  * A player logging out and back in, through a real world and a real LevelDB.
  *
@@ -86,7 +88,7 @@ const testServer = (world: () => World | undefined = () => undefined): Server =>
                 getEntityTrackingInterval: () => 4
             })
     });
-    const chat = new ChatManager(server);
+    const chat = new ChatManager(new KernelEventBus<ServerEvents>());
 
     return server;
 };
