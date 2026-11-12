@@ -248,6 +248,24 @@ describe('a LevelDB save pass', () => {
         await leveldb.disable();
     });
 
+    it('counts and logs a biome write that went around the chunk', async () => {
+        const leveldb = provider(scratch());
+        await leveldb.enable();
+        const chunk = twoSectionChunk(0, 0);
+        chunk.setBiome(0, 0, 0, 2);
+        errors.length = 0;
+
+        const pass = leveldb.beginSavePass();
+        pass.cutChunk(chunk, context());
+        // @ts-expect-error the view has no set; this stands in for an untyped caller
+        chunk.getBiomes().set(1, 0, 0, 3);
+        await pass.commit({ sync: false });
+
+        expect(pass.stats.bypassedWrites).toBe(1);
+        expect(errors).toHaveLength(1);
+        await leveldb.disable();
+    });
+
     it('writes nothing for a chunk that has not changed since the last pass', async () => {
         const leveldb = provider(scratch());
         await leveldb.enable();

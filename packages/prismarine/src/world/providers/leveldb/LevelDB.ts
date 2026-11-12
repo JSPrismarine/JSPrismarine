@@ -726,12 +726,13 @@ export default class LevelDB extends BaseProvider {
             counts.subChunkEncodes++;
             if (forced) counts.forcedSubChunkEncodes++;
         };
-        const bypassed = (chunk: Chunk, index: number) => {
+        const bypassed = (chunk: Chunk, part: number | 'biomes') => {
             counts.bypassedWrites++;
+            const what = part === 'biomes' ? 'The biomes' : `Sub chunk ${part}`;
             this.getServer()
                 .getLogger()
                 .error(
-                    `Sub chunk ${index} of chunk ${chunk.getX()},${chunk.getZ()} changed after the save cut without telling it; the save holds the later content`
+                    `${what} of chunk ${chunk.getX()},${chunk.getZ()} changed after the save cut without telling it; the save holds the later content`
                 );
         };
 
@@ -1405,8 +1406,8 @@ const entityIdentity = (entity: NBTTagCompound): string | undefined => {
 interface ChunkCutReport {
     /** One held-back sub chunk was encoded, before its turn when `forced`. */
     readonly encoded: (forced: boolean) => void;
-    /** A held-back sub chunk changed without a write telling the cut. */
-    readonly bypassed: (chunk: Chunk, index: number) => void;
+    /** A held-back sub chunk, or the biomes, changed without a write telling the cut. */
+    readonly bypassed: (chunk: Chunk, part: number | 'biomes') => void;
 }
 
 /**
@@ -1487,6 +1488,10 @@ class LevelDBChunkCut implements ChunkSaveCutHook {
     private encodeData3D(): void {
         if (!this.data3D) return;
         this.data3D = false;
+        // A biome write through the chunk encodes this first, so a revision past the cut's is a
+        // write that went around it, such as through the column a plain JavaScript caller holds.
+        if (this.chunk.getBiomes().getRevision() !== this.state.biomeRevision)
+            this.report.bypassed(this.chunk, 'biomes');
         this.put.data3D();
     }
 
