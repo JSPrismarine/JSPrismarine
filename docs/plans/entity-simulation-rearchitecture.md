@@ -1225,6 +1225,47 @@ F1 landed in the order of its split, with one change: the RakNet events moved in
   3. The three RakNet events are still awaited one listener at a time. They run outside the tick, and `raknetConnect` reads a cancel made after a wait, so they stay as they are until the transport has a guard of its own.
 - Checks at F1's head, on program head `8de27db6bc`: `pnpm run build`, `pnpm run typecheck`, `pnpm run lint:custom` and `pnpm run lint` pass; lint's one warning is the unused `Tag` in `packages/leveldb/src/db/VersionEdit.ts`. The Prismarine, kernel, parity, client, commands and server suites with `JSP_CONTENT_VANILLA=1` pass 541 files at load average 24 to 30. `commandStartup.test.ts` failed twice while another checkout's tests held its UDP port (#3000) and passed in the next full run. The built `@jsprismarine/prismarine` and `@jsprismarine/kernel`, loaded under the `jsprismarine:dist` condition, give `Server` its subscribe methods and no `post` or `emit`, and the bus reports a throwing listener and calls the next one.
 
+##### F2 split
+
+Written on 2026-11-12 at program head `9ecbe88282`.
+
+Prismarine exports `"."` and `"./*"`, so every file under `src/` is importable, and the barrel baseline holds 20 of its files, with 20 `noBarrelFile` and 77 `noReExportAll` findings. The root `index.ts` re-exports 13 directory barrels and `Managers.ts`, and `events/Events.ts`, `network/index.ts` and `blockentity/index.ts` gather symbols by importing and exporting them again, which Biome does not see. Outside the package, the server package imports 6 modules, the client's tests 10 and the parity suite about 70, and Prismarine's own benchmarks import it by name to pick up the built files under `jsprismarine:dist`.
+
+The published package keeps these entry points, each a module that defines what it exports:
+
+| Entry point | Why it is public |
+| --- | --- |
+| `.`, which becomes `Server.ts` | The class an embedder builds. `Server.ts` gains a named `Server` export beside its default one, so `import { Server } from '@jsprismarine/prismarine'` still works |
+| `./version` | `@jsprismarine/server` prints the version with `serverVersion` |
+| `./config/Config` | An embedder builds a `Config`, as the extending guide shows |
+| `./console/RemoteConsole`, `./console/RemoteLogTransport` | `@jsprismarine/server` attaches its console with them |
+| `./content/settings`, `./content/packStack` | `@jsprismarine/server` reads the content settings and resolves the pack stack before it builds a `Server` |
+| `./events/ServerEvents`, `./events/Event` and each event class's module under `events/` | Listeners receive these classes, and `ServerEvents` types `server.on` |
+| `./chat/Chat` | `ChatEvent.getChat()` returns it |
+| `./network/PlayerSession` | The player events and the `Server` getters hand out sessions |
+| `./network/InboundPacketTrace`, `./network/OutboundPacketTrace`, `./network/ReplayManifest` | The replay API the package README documents |
+| `./modules/tokens` | The kernel tokens are how a program reaches the server's services, which `Server`'s own comments and the README name |
+| `./world/Level`, `./world/World` | The README documents `Level.captureReplayInitialState` and `World.replayStateDigest`, and events return worlds |
+| `./world/GeneratorFactories` | A program registers a generator kind on it |
+| `./world/generators/datadriven/DataDrivenGenerator`, `./world/generators/datadriven/SharedTerrainTileStore` | The README's terrain cache and shared tile examples import them |
+
+Everything else becomes internal to the published package. The workspace keeps explicit entries, in `exports` but not in `publishConfig.exports`, for the internal modules its own consumers import today: the parity suite, the client's tests and Prismarine's benchmarks. Test helpers under `testing/` get a source target only, since the build does not emit them. pnpm writes `publishConfig.exports` over `exports` when it packs, so none of these reach npm. The two `null` entries go, because nothing is left for them to block.
+
+The barrels go, and each importer imports from the defining module: the root `index.ts`, `Managers.ts`, the directory `index.ts` files under `block`, `blockentity`, `command`, `command/function`, `command/host`, `config`, `console`, `content`, `entity`, `inventory`, `item`, `network`, `utils`, `world`, `world/generators/datadriven` and `world/generators/factories`, `events/Events.ts`, and the re-exports in `world/Dimension.ts` and `world/generators/datadriven/javaWorldgenData.ts`. `world/generators/factories/index.ts` keeps `builtInGeneratorFactories`, which it defines, in a module of its own. `network/Handlers.ts` stays: it is the handler registry's list, and nothing outside the package reads it once `network/index.ts` is gone.
+
+The order, so each commit builds:
+
+1. `"./*"` is replaced by an explicit entry for every specifier the workspace imports today. The root still points at `index.ts`, and no import changes.
+2. One barrel per commit, deepest first: the generator factories, the data-driven generator, `Dimension.ts` and `javaWorldgenData.ts`, then `world`, `entity`, `block`, `blockentity`, `item`, `inventory`, `content`, `config`, `console`, `command`, `network`, `utils`, `Managers.ts` and `events/Events.ts`. Each drops its line from the root `index.ts`, moves its importers to the defining modules and lowers the baseline with `node scripts/check-barrels.mts --update`.
+3. The root: `"."` points at `Server.ts`, `index.ts` is deleted, `publishConfig.exports` lists the public entries, and the API reference reads Prismarine's entry points from `publishConfig.exports`.
+4. A test fails when `scripts/barrel-baseline.json` has an entry under `packages/prismarine` or when the exports map has a pattern, which makes the slice 11 target gate.
+
+What a consumer changes:
+
+1. Import each symbol from the module that defines it, through one of the entry points above. `import { Config, Server } from '@jsprismarine/prismarine'` becomes `import { Server } from '@jsprismarine/prismarine'` and `import { Config } from '@jsprismarine/prismarine/config/Config'`.
+2. The root no longer exports `Events`, `Handlers`, `BlockEntities`, the managers or any other namespace. Event classes come from their own modules, such as `@jsprismarine/prismarine/events/chat/ChatEvent`.
+3. A path that is not an entry point above stops resolving from the published package. A program that needs one should open an issue, so the module can be made public on purpose.
+
 ## The gate for each slice
 
 - Typecheck, lint and tests pass.
