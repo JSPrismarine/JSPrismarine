@@ -59,6 +59,25 @@ describe('RequestAbilityHandler', () => {
         expect(outputs).toHaveLength(1);
     });
 
+    it("throws out of the handler when the flight event's listener throws, so its unit is undone", () => {
+        const { context, outputs } = fakeSession();
+        const session = stub<PlayerSession>({
+            identity: identityNamed('Steve'),
+            getPlayer: () => stubPlayerPort({ isFlying: () => false }),
+            setFlying: () => {
+                throw new Error('a listener failed');
+            }
+        });
+
+        expect(() =>
+            new RequestAbilityHandler().handle(request(AbilityLayerFlag.FLYING, RequestAbilityValueType.Bool, true), {
+                ...context,
+                session
+            })
+        ).toThrow('a listener failed');
+        expect(outputs).toEqual([]);
+    });
+
     it('applies a flight toggle and leaves the broadcast to the player', async () => {
         const { requested, resent, context, settled } = fakeSession();
 
