@@ -2,7 +2,7 @@ import { CHAT_TEXT_TYPE, ChatType } from './Chat';
 import type { Chat } from './Chat';
 import type { CommandExecutor } from '../command/CommandExecutor';
 import ChatEvent from '../events/chat/ChatEvent';
-import type { EventEmitter } from '../events/EventEmitter';
+import type { ServerEventBus } from '../events/ServerEvents';
 import type { PlayerIdentity } from '../playerIdentity';
 import { playerKeyOf } from '../playerIdentity';
 
@@ -71,7 +71,7 @@ export const chatRecipientOf = (
 });
 
 /** The part of the server's event bus chat uses. */
-export type ChatBus = Pick<EventEmitter, 'on' | 'removeListener' | 'emit'>;
+export type ChatBus = Pick<ServerEventBus, 'on' | 'off' | 'emit'>;
 
 /** A sender that names an account, which is what a player's own chat carries to the client. */
 const hasXuid = (sender: CommandExecutor): sender is CommandExecutor & { getXUID(): string | null } =>
@@ -149,7 +149,7 @@ export class ChatManager {
         const entry = this.recipients.get(recipient.key);
         if (entry?.recipient !== recipient) return;
         this.recipients.delete(recipient.key);
-        this.server.removeListener('chat', entry.listener);
+        this.server.off('chat', entry.listener);
     }
 
     /**

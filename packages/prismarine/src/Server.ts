@@ -1,5 +1,6 @@
 import { randomInt as cryptoRandomInt } from 'node:crypto';
 
+import type { EventListener } from '@jsprismarine/kernel';
 import { Kernel } from '@jsprismarine/kernel';
 import { DisconnectReason } from '@jsprismarine/minecraft';
 import type { RakNetListenerLike } from '@jsprismarine/raknet';
@@ -23,7 +24,6 @@ import type { LiveEntityRuntime } from './entity/data/live';
 import type { StorePlayers } from './entity/data/storePlayers';
 import type { ServerWorldHandle } from './content/world/serverSource';
 import { CommandManager } from './command/CommandManager';
-import { EventEmitter } from './events/EventEmitter';
 import { CreativeInventory } from './inventory/CreativeInventory';
 import { describeSupportedProtocols } from './network/codec/describeCodecs';
 import { joinContentPayloads } from './network/contentPayloads';
@@ -48,6 +48,7 @@ import { ServerTicker, tickerModule } from './modules/ticker';
 import type { TickRecorder } from './profiling/TickRecorder';
 import type { TickControl } from './modules/ticker';
 import { bansToken, chatToken, permissionsToken } from './modules/tokens';
+import type { ServerEventName, ServerEvents } from './events/ServerEvents';
 import Timer from './utils/Timer';
 import { worldSeedOf } from './utils/Seed';
 import { attachProfiler, ServerProfiler } from './profiling/ServerProfiler';
@@ -87,7 +88,7 @@ export interface ServerReplayRandomState {
  * JSPrismarine's main server class.
  * @public
  */
-export default class Server extends EventEmitter {
+export default class Server {
     /**
      * The network front door, run by the `prismarine:network` module.
      * Constructed here so the listener is reachable (and still undefined)
@@ -116,7 +117,7 @@ export default class Server extends EventEmitter {
      * instance, and the managers its modules hold, carries through
      * {@link Server.reload}'s disable-then-enable cycle.
      */
-    private readonly kernel: Kernel;
+    private readonly kernel: Kernel<ServerEvents>;
 
     /**
      * Feeds chunks to players a slice at a time.
@@ -264,7 +265,7 @@ export default class Server extends EventEmitter {
         onStopCommandComplete?: () => void;
         tickClock?: () => number;
     }) {
-        super();
+        this.kernel = new Kernel<ServerEvents>({ logger });
 
         this.chunkCompletionQueue = new ChunkCompletionQueue(undefined, {
             tick: () => this.getTick(),
@@ -295,7 +296,7 @@ export default class Server extends EventEmitter {
         this.commandManager = new CommandManager(this, onStopCommandComplete);
         this.ticker = new ServerTicker(
             {
-                emitTick: (event) => void this.post(['tick', event], (error) => this.logger.error(error)),
+                emitTick: (event) => void this.post('tick', event),
                 // Packets first, then the chunks that became ready since the last step, so every world
                 // sees them from its first update. A chunk an input-lane handler waits for enters at
                 // once, because the step cannot finish without it. Portal trips come after the chunks, so
@@ -337,11 +338,11 @@ export default class Server extends EventEmitter {
             });
             this.generationGovernor.start();
         }
-        this.kernel = this.buildKernel();
+        this.registerModules(this.kernel);
     }
 
     /**
-     * Builds the kernel and registers every manager module on it.
+     * Registers every manager module on the kernel.
      *
      * The kernel starts providers before their dependents and keeps
      * registration order among modules with no dependency edge between them.
@@ -350,8 +351,7 @@ export default class Server extends EventEmitter {
      * region is still generating, and neither module uses the other.
      * @internal
      */
-    private buildKernel(): Kernel {
-        const kernel = new Kernel({ logger: this.logger });
+    private registerModules(kernel: Kernel<ServerEvents>): void {
         kernel.register(
             contentModule(this, {
                 build: () => {
@@ -375,7 +375,6 @@ export default class Server extends EventEmitter {
         kernel.register(commandsModule(this.commandManager));
         kernel.register(worldsModule(this.worldManager, this.chunkScheduler));
         kernel.register(loadFunctionsModule(this.commandManager));
-        return kernel;
     }
 
     /**
@@ -684,8 +683,84 @@ export default class Server extends EventEmitter {
      * `modules/tokens`, e.g. `server.getKernel().get(bansToken)`.
      * @returns {Kernel} The kernel.
      */
-    public getKernel(): Kernel {
+    public getKernel(): Kernel<ServerEvents> {
         return this.kernel;
+    }
+
+    /**
+     * Subscribes to a server event, on the kernel's event bus. Listeners run in the order they
+     * subscribed, and the same function subscribes to an event once. A listener that throws or
+     * rejects is logged and stops nothing.
+     * @param id - The event; see {@link ServerEvents}.
+     * @param callback - Called with the event object each time the event is raised.
+     * @returns The server, for chaining.
+     */
+    public on<K extends ServerEventName>(id: K, callback: EventListener<ServerEvents[K]>): this {
+        this.kernel.events.on(id, callback);
+        return this;
+    }
+
+    /**
+     * Subscribes to the next occurrence of a server event only. See {@link Server.on}.
+     * @param id - The event.
+     * @param callback - Called with the event object once.
+     * @returns The server, for chaining.
+     */
+    public once<K extends ServerEventName>(id: K, callback: EventListener<ServerEvents[K]>): this {
+        this.kernel.events.once(id, callback);
+        return this;
+    }
+
+    /**
+     * Removes a listener that {@link Server.on} or {@link Server.once} subscribed.
+     * @param id - The event.
+     * @param callback - The listener as it was subscribed.
+     * @returns The server, for chaining.
+     */
+    public removeListener<K extends ServerEventName>(id: K, callback: EventListener<ServerEvents[K]>): this {
+        this.kernel.events.off(id, callback);
+        return this;
+    }
+
+    /**
+     * Removes the listeners {@link Server.on} and {@link Server.once} subscribed, to one event or to
+     * all of them. The server's own modules keep theirs.
+     * @param id - The event, or every event when omitted.
+     * @returns The server, for chaining.
+     */
+    public removeAllListeners(id?: ServerEventName): this {
+        this.kernel.events.removeAll(id);
+        return this;
+    }
+
+    /**
+     * Whether a server event has at least one listener.
+     * @param id - The event.
+     * @returns Whether anything listens for it.
+     */
+    public hasListeners(id: ServerEventName): boolean {
+        return this.kernel.events.hasListeners(id);
+    }
+
+    /**
+     * Raises a server event without waiting for its listeners.
+     * @param id - The event.
+     * @param args - The event object.
+     * @returns How many listeners were called.
+     * @internal
+     */
+    public post<K extends ServerEventName>(id: K, ...args: ServerEvents[K]): number {
+        return this.kernel.events.post(id, ...args);
+    }
+
+    /**
+     * Raises a server event and waits for each listener in turn.
+     * @param id - The event.
+     * @param args - The event object.
+     * @internal
+     */
+    public emit<K extends ServerEventName>(id: K, ...args: ServerEvents[K]): Promise<void> {
+        return this.kernel.events.emit(id, ...args);
     }
 
     /**

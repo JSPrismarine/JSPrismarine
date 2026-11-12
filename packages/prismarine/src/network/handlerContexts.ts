@@ -28,8 +28,7 @@ export type ContextSource = Pick<
     | 'getWorldReplicators'
     | 'getWorldMessages'
     | 'getConsoleSender'
-    | 'post'
-    | 'emit'
+    | 'getKernel'
 >;
 
 /**
@@ -79,10 +78,8 @@ const servicesOf = (server: ContextSource): HandlerServices => ({
     get console() {
         return server.getConsoleSender();
     },
-    // Bound rather than handed over, so a handler holds the two methods and not the server.
-    events: {
-        post: (pair) => server.post(pair),
-        emit: (id, event) => server.emit(id, event)
+    get events() {
+        return server.getKernel().events;
     },
     defaults: {
         setGamemode: (gamemode, commit) => server.getConfig().setGamemode(gamemode, commit)

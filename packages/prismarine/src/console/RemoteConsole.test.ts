@@ -1,3 +1,4 @@
+import { KernelEventBus } from '@jsprismarine/kernel';
 import type { ConsoleMessage, MessageLink, ServerMessage } from '@jsprismarine/console-protocol';
 import { memoryLinkPair, PROTOCOL_VERSION } from '@jsprismarine/console-protocol';
 import type { Logger } from '@jsprismarine/logger';
@@ -12,7 +13,7 @@ import { ChatType } from '../chat/Chat';
 import type { Config } from '../config/Config';
 import type { TickControl } from '../modules/ticker';
 import type PlayerSession from '../network/PlayerSession';
-import { EventEmitter } from '../events/EventEmitter';
+import type { ServerEvents } from '../events/ServerEvents';
 import ChatEvent from '../events/chat/ChatEvent';
 import type SessionManager from '../SessionManager';
 import { identityNamed } from '../testing/sessionIdentity.test.helper';
@@ -36,7 +37,7 @@ const fakeServer = (overrides: { dispatchCommand?: () => Promise<boolean>; playe
     let players = overrides.players ?? 0;
     let tps = 20;
     let tickRate = 20;
-    const events = new EventEmitter();
+    const events = new KernelEventBus<ServerEvents>();
     const server: Server = stub<Server>({
         getVersion: () => '1.2.3',
         getTPS: () => tps,
@@ -59,7 +60,7 @@ const fakeServer = (overrides: { dispatchCommand?: () => Promise<boolean>; playe
             return server;
         },
         removeListener: (id, callback) => {
-            events.removeListener(id, callback);
+            events.off(id, callback);
             return server;
         },
         shutdown

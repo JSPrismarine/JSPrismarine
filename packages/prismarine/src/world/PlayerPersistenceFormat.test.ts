@@ -1,3 +1,5 @@
+import { KernelEventBus } from '@jsprismarine/kernel';
+import type { ServerEvents } from '../events/ServerEvents';
 /**
  * The saved player record, byte for byte.
  *
@@ -125,7 +127,7 @@ const testServer = (): Server => {
                 getEntityTrackingInterval: () => 4
             })
     });
-    const chat = new ChatManager(server);
+    const chat = new ChatManager(new KernelEventBus<ServerEvents>());
     return server;
 };
 

@@ -275,7 +275,7 @@ export class DimensionTravel {
 
         if (!entity.isOnPortalCooldown() && entity.portalContact() === undefined) {
             const event = new EntityPortalEnterEvent(entity, portal);
-            this.server.post(['entityPortalEnter', event]);
+            this.server.post('entityPortalEnter', event);
             if (event.isCanceled()) return;
         }
 
@@ -308,7 +308,7 @@ export class DimensionTravel {
         if (session !== undefined) {
             const player = session.getPlayer();
             const event = new PlayerChangeDimensionEvent(session, from, arrival.world, arrival);
-            this.server.post(['playerChangeDimension', event]);
+            this.server.post('playerChangeDimension', event);
             if (event.isCanceled()) return;
 
             player.setPortalCooldown(PORTAL_COOLDOWN_TICKS.player);

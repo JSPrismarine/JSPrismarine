@@ -1,3 +1,6 @@
+import type { Kernel } from '@jsprismarine/kernel';
+import { KernelEventBus } from '@jsprismarine/kernel';
+import type { ServerEvents } from '../events/ServerEvents';
 import dgram from 'node:dgram';
 import { once } from 'node:events';
 import fs from 'node:fs';
@@ -29,6 +32,9 @@ import type Server from '../Server';
 import type { Networking } from './network';
 import { ServerNetworking, networkModule } from './network';
 import { networkToken } from './tokens';
+
+/** A kernel whose only part is its event bus, which the transports raise the RakNet events on. */
+const kernelDouble = () => stub<Kernel<ServerEvents>>({ events: new KernelEventBus<ServerEvents>() });
 
 /** The native WebRTC stack, or undefined on a machine with no build of it. */
 const driver = await loadNativeDriver().catch(() => undefined);
@@ -69,6 +75,7 @@ describe('modules/network', () => {
 
     it('refuses to start with every transport turned off', async () => {
         const server = stub<Server>({
+            getKernel: kernelDouble,
             getConfig: () =>
                 stub<Config>({
                     getGamemode: () => 'survival',
@@ -97,6 +104,7 @@ describe('modules/network', () => {
         warn?: (message: string) => void;
     } = {}) =>
         stub<Server>({
+            getKernel: kernelDouble,
             getConfig: () =>
                 stub<Config>({
                     getGamemode: () => 'survival',
@@ -220,6 +228,7 @@ describe('modules/network', () => {
 
     it('refuses to start NetherNet with a malformed server-udp-ports, before anything binds', async () => {
         const server = stub<Server>({
+            getKernel: kernelDouble,
             getConfig: () =>
                 stub<Config>({
                     getGamemode: () => 'survival',
@@ -241,6 +250,7 @@ describe('modules/network', () => {
     /** A server running RakNet alone, in socket or worker mode, on the IPv6 port given. */
     const rakNetServer = (portV6: number, warn: (message: string) => void = () => {}, worker = false) =>
         stub<Server>({
+            getKernel: kernelDouble,
             getConfig: () =>
                 stub<Config>({
                     getEnableQuery: () => false,
@@ -455,6 +465,7 @@ describe('modules/network', () => {
     /** A server running RakNet alone on 127.0.0.1, in socket mode, answering query on the port given. */
     const queryServer = (serverPort: number, queryPort: number, info: (message: string) => void = () => {}) =>
         stub<Server>({
+            getKernel: kernelDouble,
             getConfig: () =>
                 stub<Config>({
                     getEnableQuery: () => true,
@@ -590,6 +601,7 @@ describe('modules/network', () => {
 
     it('delegates replay to the started network dispatcher', async () => {
         const server = stub<Server>({
+            getKernel: kernelDouble,
             getConfig: () =>
                 stub<Config>({
                     getEnableQuery: () => false,
@@ -644,6 +656,7 @@ describe('modules/network', () => {
         { rakNet = true, query = false }: { rakNet?: boolean; query?: boolean } = {}
     ) =>
         stub<Server>({
+            getKernel: kernelDouble,
             getConfig: () =>
                 stub<Config>({
                     getGamemode: () => 'survival',

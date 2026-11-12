@@ -2,7 +2,7 @@ import type { TickWaitTracker } from '../world/TickWaits';
 import { trackTickWaits } from '../world/TickWaits';
 import type { Logger } from '@jsprismarine/logger';
 import type { InetAddress } from '@jsprismarine/raknet';
-import type { EventEmitter } from '../events/EventEmitter';
+import type { ServerEventBus } from '../events/ServerEvents';
 import { DisconnectReason, PacketCompressionAlgorithm } from '@jsprismarine/minecraft';
 import { BatchCodec } from '@jsprismarine/protocol';
 import RaknetDisconnectEvent from '../events/raknet/RaknetDisconnectEvent';
@@ -117,7 +117,7 @@ export interface NetworkDispatcherOptions<C extends TransportConnection> {
     /** Resolves a packet class name to its handler; packets resolve through each connection's codec. */
     packetHandlerRegistry: Pick<PacketHandlerRegistry, 'getHandler'>;
     /** Where the legacy `raknetDisconnect` event still goes. */
-    events: Pick<EventEmitter, 'emit'>;
+    events: Pick<ServerEventBus, 'emit'>;
     /**
      * Handed to the handlers that still take the whole server, and what the contexts of the
      * others are built from.

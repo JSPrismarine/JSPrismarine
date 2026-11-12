@@ -1,8 +1,9 @@
+import { KernelEventBus } from '@jsprismarine/kernel';
 import { TextPacketType } from '@jsprismarine/protocol';
 import { describe, expect, it } from 'vitest';
 
 import type { CommandExecutor } from '../command/CommandExecutor';
-import { EventEmitter } from '../events/EventEmitter';
+import type { ServerEvents } from '../events/ServerEvents';
 import ChatEvent from '../events/chat/ChatEvent';
 import type Server from '../Server';
 import { stub } from '../testing/stub.test.helper';
@@ -42,7 +43,7 @@ const say = (message: string, options: Partial<ConstructorParameters<typeof Chat
 
 describe('ChatManager', () => {
     it('sends a message to every joined player', async () => {
-        const chat = new ChatManager(new EventEmitter());
+        const chat = new ChatManager(new KernelEventBus<ServerEvents>());
         const steve = recipient('Steve');
         const alex = recipient('Alex');
         chat.join(steve.player);
@@ -67,7 +68,7 @@ describe('ChatManager', () => {
     });
 
     it("names a player's own chat by its author's name and XUID", async () => {
-        const chat = new ChatManager(new EventEmitter());
+        const chat = new ChatManager(new KernelEventBus<ServerEvents>());
         const alex = recipient('Alex');
         chat.join(alex.player);
         const author = sender('Steve', '2535');
@@ -96,7 +97,7 @@ describe('ChatManager', () => {
     });
 
     it('reaches only the operators on `*.ops` and only the named player on `*.player.<name>`', async () => {
-        const chat = new ChatManager(new EventEmitter());
+        const chat = new ChatManager(new KernelEventBus<ServerEvents>());
         const op = recipient('Op', { op: true });
         const steve = recipient('Steve');
         chat.join(op.player);
@@ -111,7 +112,7 @@ describe('ChatManager', () => {
     });
 
     it('reaches players from a `chat` event emitted without it', async () => {
-        const bus = new EventEmitter();
+        const bus = new KernelEventBus<ServerEvents>();
         const chat = new ChatManager(bus);
         const steve = recipient('Steve');
         chat.join(steve.player);
@@ -122,7 +123,7 @@ describe('ChatManager', () => {
     });
 
     it('stops the players who joined after a listener that cancels, and not the ones before it', async () => {
-        const bus = new EventEmitter();
+        const bus = new KernelEventBus<ServerEvents>();
         const chat = new ChatManager(bus);
         const early = recipient('Early');
         const late = recipient('Late');
@@ -137,7 +138,7 @@ describe('ChatManager', () => {
     });
 
     it('sends nothing to a player that left', async () => {
-        const bus = new EventEmitter();
+        const bus = new KernelEventBus<ServerEvents>();
         const chat = new ChatManager(bus);
         const steve = recipient('Steve');
         chat.join(steve.player);
@@ -151,7 +152,7 @@ describe('ChatManager', () => {
     });
 
     it('keeps the player holding a key when the player it replaced leaves', async () => {
-        const bus = new EventEmitter();
+        const bus = new KernelEventBus<ServerEvents>();
         const chat = new ChatManager(bus);
         const first = recipient('Steve');
         const second = recipient('Steve');
@@ -196,7 +197,7 @@ describe('chatRecipientOf', () => {
 
     it('sends each line to the session the registry files under the entity id', async () => {
         const { server, lines, leave } = registry(7n);
-        const chat = new ChatManager(new EventEmitter());
+        const chat = new ChatManager(new KernelEventBus<ServerEvents>());
         const steve = chatRecipientOf({ runtimeId: 7n, identity: { name: 'Steve', xuid: '', uuid: 'u' } }, server);
         chat.join(steve);
 

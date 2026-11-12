@@ -13,7 +13,7 @@ import { BatchCodec, TextPacketType } from '@jsprismarine/protocol';
 import type { Logger } from '@jsprismarine/logger';
 import { InetAddress } from '@jsprismarine/raknet';
 import type { ConnectionId } from '../src/network/transport/ConnectionId';
-import type { EventEmitter } from '../src/events/EventEmitter';
+import type { ServerEventBus } from '../src/events/ServerEvents';
 import type Server from '../src/Server';
 import { stub } from '../src/testing/stub.test.helper';
 import SessionManager from '../src/SessionManager';
@@ -148,7 +148,7 @@ const createReplayHarness = async (recorder?: InboundPacketRecorder) => {
         transport,
         sessionManager: new SessionManager(),
         packetHandlerRegistry: stub<PacketHandlerRegistry>({ getHandler: () => handler }),
-        events: stub<EventEmitter>({ emit: async () => {} }),
+        events: stub<ServerEventBus>({ emit: async () => {} }),
         server: stub<Server>({ getTick: () => tick }),
         logger,
         logFilter: new PacketLogFilter(),

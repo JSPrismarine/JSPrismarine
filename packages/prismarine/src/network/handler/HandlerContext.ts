@@ -14,7 +14,7 @@ import type { ConsoleSender } from '../../command/ConsoleSender';
 import type { Config } from '../../config/Config';
 import type { ServerContent } from '../../content/ServerContent';
 import type { ServerWorldHandle } from '../../content/world/serverSource';
-import type { EventEmitter } from '../../events/EventEmitter';
+import type { ServerEventBus } from '../../events/ServerEvents';
 import type { CreativeInventory } from '../../inventory/CreativeInventory';
 import type { PermissionManager } from '../../permission/PermissionManager';
 import type { WorldMessages } from '../../world/WorldMessages';
@@ -86,7 +86,7 @@ export interface HandlerServices {
     /** The console, as the sender of a server-issued line. */
     readonly console: ConsoleSender;
     /** The plugin events a handler raises. */
-    readonly events: Pick<EventEmitter, 'post' | 'emit'>;
+    readonly events: Pick<ServerEventBus, 'post' | 'emit'>;
     /**
      * The server's default game mode, which `SetDefaultGameType` changes. It changes in memory
      * at once, and the config file is written off the tick.

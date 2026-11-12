@@ -278,7 +278,7 @@ export class PermissionManager implements Service {
      */
     private toggleOp(target: PlayerSession, op: boolean): boolean {
         const event = new playerToggleOperatorEvent(target, op);
-        this.server.post(['playerToggleOperator', event]);
+        this.server.post('playerToggleOperator', event);
         if (event.isCanceled()) return false;
 
         const { uuid } = target.identity;

@@ -5,7 +5,7 @@ import type { Logger } from '@jsprismarine/logger';
 import { InetAddress } from '@jsprismarine/raknet';
 import { PacketCompressionAlgorithm } from '@jsprismarine/minecraft';
 import { BatchCodec } from '@jsprismarine/protocol';
-import type { EventEmitter } from '../events/EventEmitter';
+import type { ServerEventBus } from '../events/ServerEvents';
 import type Server from '../Server';
 import SessionManager from '../SessionManager';
 import { stub } from '../testing/stub.test.helper';
@@ -224,7 +224,7 @@ const makeDispatcher = (options?: {
         transport,
         sessionManager,
         packetHandlerRegistry,
-        events: stub<EventEmitter>({ emit: async () => {} }),
+        events: stub<ServerEventBus>({ emit: async () => {} }),
         server,
         logger,
         logFilter,

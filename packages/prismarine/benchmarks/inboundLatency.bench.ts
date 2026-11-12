@@ -15,7 +15,7 @@ import { BatchCodec } from '@jsprismarine/protocol';
 import TextPacket from '@jsprismarine/protocol/packet/TextPacket';
 import { TextPacketType } from '@jsprismarine/protocol';
 
-import type { EventEmitter } from '../src/events/EventEmitter';
+import type { ServerEventBus } from '../src/events/ServerEvents';
 import type Server from '../src/Server';
 import SessionManager from '../src/SessionManager';
 import { stub } from '../src/testing/stub.test.helper';
@@ -114,7 +114,7 @@ new NetworkDispatcher({
     transport,
     sessionManager,
     packetHandlerRegistry,
-    events: stub<EventEmitter>({ emit: async () => {} }),
+    events: stub<ServerEventBus>({ emit: async () => {} }),
     server,
     logger,
     logFilter: new PacketLogFilter(),

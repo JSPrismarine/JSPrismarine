@@ -1,4 +1,5 @@
 import { isRecord } from '../../utils/isRecord';
+import EntityDamageEvent from '../../events/entity/EntityDamageEvent';
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -1721,8 +1722,8 @@ describe('the data-driven entity runtime over a live world', () => {
                 Object.assign(player.getActor()!, { inventory: new HumanInventory() });
                 const { cow, body } = await cowAt(1.5);
                 const posted: string[] = [];
-                vi.spyOn(world.getServer(), 'post').mockImplementation((pair) => {
-                    posted.push(pair[0]);
+                vi.spyOn(world.getServer(), 'post').mockImplementation((id, ..._event) => {
+                    posted.push(id);
                     return 0;
                 });
                 // Each trigger asks whether any criterion listens before it raises, so the order
@@ -1748,8 +1749,8 @@ describe('the data-driven entity runtime over a live world', () => {
                 const player = addPlayer(0.5, 0.5);
                 Object.assign(player.getActor()!, { inventory: new HumanInventory() });
                 const { cow, body } = await cowAt(1.5);
-                vi.spyOn(world.getServer(), 'post').mockImplementation((pair) => {
-                    if (pair[0] === 'entityDamage') pair[1].setAmount(1);
+                vi.spyOn(world.getServer(), 'post').mockImplementation((_id, event) => {
+                    if (event instanceof EntityDamageEvent) event.setAmount(1);
                     return 0;
                 });
 

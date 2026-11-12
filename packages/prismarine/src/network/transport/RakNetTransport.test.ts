@@ -1,3 +1,4 @@
+import { KernelEventBus } from '@jsprismarine/kernel';
 import type { RemoteInfo } from 'node:dgram';
 import { EventEmitter as NodeEventEmitter } from 'node:events';
 import { describe, expect, it } from 'vitest';
@@ -5,8 +6,7 @@ import { describe, expect, it } from 'vitest';
 import type { Frame, InetAddress, RakNetSession } from '@jsprismarine/raknet';
 import { ConnectionPriority, Protocol } from '@jsprismarine/raknet';
 import type { Event } from '../../events/Event';
-import type { EventEmitter } from '../../events/EventEmitter';
-import { EventEmitter as ServerEventEmitter } from '../../events/EventEmitter';
+import type { ServerEventBus, ServerEvents } from '../../events/ServerEvents';
 import RaknetConnectEvent from '../../events/raknet/RaknetConnectEvent';
 import RaknetEncapsulatedPacketEvent from '../../events/raknet/RaknetEncapsulatedPacketEvent';
 import { deferred, settle } from '../../testing/manualTransport.test.helper';
@@ -49,7 +49,7 @@ const fakeSession = (token = 'host:port', onDisconnect: () => void = () => {}) =
 /** A server bus that records every legacy event, optionally canceling as it goes. */
 const fakeBus = (onEvent?: (event: Event) => void) => {
     const emitted: [string, Event][] = [];
-    const bus = stub<EventEmitter>({
+    const bus = stub<ServerEventBus>({
         hasListeners: (id: string) => id === 'raknetEncapsulatedPacket' && onEvent !== undefined,
         emit: async (id: string, event: Event) => {
             emitted.push([id, event]);
@@ -143,9 +143,9 @@ describe('network/transport', () => {
                 releaseConnect = resolve;
             });
             const connectStarted = deferred();
-            const bus = stub<EventEmitter>({
+            const bus = stub<ServerEventBus>({
                 hasListeners: () => false,
-                emit: async (id: string) => {
+                emit: async (id, ..._event) => {
                     if (id === 'raknetConnect') {
                         connectStarted.resolve();
                         await connectGate;
@@ -225,7 +225,7 @@ describe('network/transport', () => {
 
         it('checks the real server bus and awaits the legacy event before the frame listener', async () => {
             const listener = new FakeListener();
-            const events = new ServerEventEmitter();
+            const events = new KernelEventBus<ServerEvents>();
             const order: string[] = [];
             const emitted: RaknetEncapsulatedPacketEvent[] = [];
             const delivered = deferred();

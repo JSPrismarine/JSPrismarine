@@ -1,3 +1,5 @@
+import { KernelEventBus } from '@jsprismarine/kernel';
+import type { ServerEvents } from '../../events/ServerEvents';
 import type { Logger } from '@jsprismarine/logger';
 import { DisconnectReason } from '@jsprismarine/minecraft';
 import { Vector3 } from '@jsprismarine/math';
@@ -163,7 +165,7 @@ describe('network', () => {
                 post: vi.fn(),
                 emit: async () => {}
             });
-            const chat = new ChatManager(server);
+            const chat = new ChatManager(new KernelEventBus<ServerEvents>());
 
             // The session is built by `createConnectedPlayer` now, not mocked in: the
             // connection is handed the real one and only has to accept it.
