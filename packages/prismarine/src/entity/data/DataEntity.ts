@@ -131,15 +131,18 @@ export type LoggedBodyField =
 /** What {@link MobBody.onWrite} receives: one field, with its value before and after a change. */
 export type BodyWriteObserver = (field: LoggedBodyField, before: unknown, after: unknown) => void;
 
-/** Whether two values of a logged field are the same, comparing positions by coordinates. */
+/**
+ * Whether two values of a logged field are the same, comparing positions by coordinates, and
+ * numbers with `Object.is`, so a zero that changes sign is a change.
+ */
 const sameValue = (left: unknown, right: unknown): boolean => {
-    if (left === right) return true;
+    if (Object.is(left, right)) return true;
     if (!isRecord(left) || !isRecord(right)) return false;
     return (
         typeof left['x'] === 'number' &&
-        left['x'] === right['x'] &&
-        left['y'] === right['y'] &&
-        left['z'] === right['z'] &&
+        Object.is(left['x'], right['x']) &&
+        Object.is(left['y'], right['y']) &&
+        Object.is(left['z'], right['z']) &&
         Object.keys(left).length === 3 &&
         Object.keys(right).length === 3
     );
