@@ -68,8 +68,11 @@ export interface ComponentStateOptions {
 
 /** Field guards for {@link defineComponentState}. */
 export const stateField = {
-    /** A finite or infinite number. */
-    number: (value: unknown): value is number => typeof value === 'number',
+    /**
+     * A finite number. A JSON record writes `Infinity` and `NaN` as `null`, which this guard then
+     * refuses on restore, so the state would load as the component's initial state.
+     */
+    number: (value: unknown): value is number => typeof value === 'number' && Number.isFinite(value),
     /** A boolean. */
     boolean: (value: unknown): value is boolean => typeof value === 'boolean',
     /** An entity id, as the filter views report one. */
@@ -122,9 +125,11 @@ const isStateData = (value: unknown): value is ComponentStateData => {
     if (value === null) return true;
     switch (typeof value) {
         case 'boolean':
-        case 'number':
         case 'string':
             return true;
+        case 'number':
+            // As `stateField.number`: JSON keeps no other number.
+            return Number.isFinite(value);
         case 'object':
             return Array.isArray(value) ? value.every(isStateData) : isComponentStateRecord(value);
         default:

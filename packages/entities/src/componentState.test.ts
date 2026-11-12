@@ -140,6 +140,17 @@ describe('ComponentStates', () => {
         expect(writes).toEqual([]);
     });
 
+    it('refuses a number a JSON record cannot keep', () => {
+        const entity = spawn();
+        start(entity);
+
+        for (const count of [Number.POSITIVE_INFINITY, Number.NaN]) {
+            entity.componentState.set(COUNTER, { count, seen: [], last: null });
+            expect(entity.componentState.get(COUNTER)?.count).toBe(1);
+        }
+        expect(stateField.number(Number.NEGATIVE_INFINITY)).toBe(false);
+    });
+
     it('saves active declared components, with null for one that holds no state', () => {
         const entity = spawn();
         start(entity);
@@ -190,6 +201,7 @@ describe('isComponentStateRecord', () => {
         expect(isComponentStateRecord({ a: new Set() })).toBe(false);
         expect(isComponentStateRecord({ a: () => 1 })).toBe(false);
         expect(isComponentStateRecord({ a: undefined })).toBe(false);
+        expect(isComponentStateRecord({ a: { b: [Number.NaN] } })).toBe(false);
         expect(isComponentStateRecord(null)).toBe(false);
         expect(isComponentStateRecord([1])).toBe(false);
     });
