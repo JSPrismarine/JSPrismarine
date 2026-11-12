@@ -1,16 +1,24 @@
 import { Vector3 } from '@jsprismarine/math';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import type { Block } from '../block/Block';
+import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
+import { EntityIndex } from '../entity/data/entityIndex';
+import { EntityStore } from '../entity/data/EntityStore';
 import { EYE_HEIGHT } from '../entity/playerEyes';
+import type PlayerSession from '../network/PlayerSession';
+import { fakeLevel } from '../testing/level';
 import { stub } from '../testing/stub.test.helper';
 import { Dimensions } from './DimensionType';
 import type { DimensionType } from './DimensionType';
-import type Chunk from './chunk/Chunk';
+import Chunk from './chunk/Chunk';
 import { ChunkTickets } from './ChunkTickets';
+import { Position } from './Position';
+import type BaseProvider from './providers/BaseProvider';
 import { RespawnSearch } from './RespawnSearch';
 import type { RespawnRequest } from './RespawnSearch';
-import type { World } from './World';
+import { World } from './World';
+import { NULL_WORLD_CHANGE_SINK } from './WorldChangeSink';
 
 /**
  * A world of air with the named blocks placed, keyed by `x,y,z`. The chunks named in `unloaded`,
@@ -72,6 +80,82 @@ const searchOver = ({ overworld = worldOf(Dimensions.Overworld), nether = worldO
         worldSpawn: () => overworld
     });
     return { search, built };
+};
+
+/**
+ * An Overworld on the real prototype, with no chunk in memory and a provider that lets chunks
+ * unload, so the chunk tickets and the unload pass are the real ones. A ticket's load is only
+ * recorded; `admit` puts the recorded chunks in, as an input step would, with `blocks` placed.
+ * One player stands far away, because the unload pass does nothing in a world nobody is in.
+ */
+const unloadingWorld = (blocks: Record<string, string>) => {
+    const players = new Map<number, PlayerSession>();
+    const chunks = new Map<number, Chunk>();
+    const requested: string[] = [];
+    let due: [number, number][] = [];
+    const world: World = Object.assign(Object.create(World.prototype), {
+        // The sink the constructor would have set, which hears each chunk enter and leave.
+        changes: NULL_WORLD_CHANGE_SINK,
+        chunks,
+        loadedChunksRevision: 0,
+        players,
+        loading: new Map(),
+        level: fakeLevel({
+            provider: stub<BaseProvider>({ supportsChunkUnload: true, writeChunk: async (chunk) => chunk.markSaved() })
+        }),
+        getPlayers: () => Array.from(players.values()),
+        enqueueSave: async (write: () => Promise<void>) => write(),
+        getEntities: () => [],
+        actors: () => [].values(),
+        dataEntities: () => ({
+            persist: () => {},
+            unload: () => false,
+            runtime: { index: new EntityIndex(), store: new EntityStore(), remove: () => {} }
+        }),
+        systems: { onChunkUnloaded: () => {} },
+        dimension: Dimensions.Overworld,
+        server: {
+            // No content, so a block resolves from the full palette's schemas: the fixture
+            // content has stone but no air or bed.
+            getContent: () => undefined,
+            invalidateEntityBlockCaches: () => {},
+            getLogger: () => ({ error: vi.fn() })
+        },
+        loadTicketedChunk: (x: number, z: number) => {
+            requested.push(`${x},${z}`);
+            due.push([x, z]);
+            return true;
+        }
+    });
+    players.set(
+        1,
+        stub<PlayerSession>({
+            getViewDistance: () => 4,
+            getViewPosition: () => new Position(100 * 16, 64, 0, world)
+        })
+    );
+
+    const admit = (): void => {
+        for (const [x, z] of due) {
+            const chunk = new Chunk(x, z, new Map(), Dimensions.Overworld);
+            for (const [at, name] of Object.entries(blocks)) {
+                const [bx = 0, by = 0, bz = 0] = at.split(',').map(Number);
+                if (bx >> 4 !== x || bz >> 4 !== z) continue;
+                const runtimeId = BlockRuntimeIds.tryGetByState(name);
+                if (runtimeId === null) throw new Error(`the palette has no ${name}`);
+                chunk.setBlockRuntimeId(bx, by, bz, runtimeId);
+            }
+            chunk.markSaved();
+            // What registering an admitted chunk does to the state the search and the unload read.
+            chunks.set(Chunk.packXZ(x, z), chunk);
+            world['loadedChunksRevision'] += 1;
+            world['getPlayerChunkRefCounts']().chunkLoaded(chunk);
+            world['lastChunkIndex'] = -1;
+        }
+        due = [];
+    };
+    const unload = (): Promise<void> => world['unloadDistantChunks']();
+    return { world, requested, admit, unload };
 };
 
 const request = (spawnPoint?: RespawnRequest['spawnPoint']): RespawnRequest => ({
@@ -220,6 +304,62 @@ describe('RespawnSearch', () => {
             });
             expect(overworld.chunkTickets().holds(2, 2)).toBe(true);
             expect(overworld.chunkTickets().holds(0, 0)).toBe(false);
+        });
+
+        it('keeps every chunk it asked for until it answers, so an unload between attempts undoes none', async () => {
+            // A bed on the east edge of chunk (0, 0), walled north and south, so the player
+            // stands east of it in chunk (1, 0): the second attempt needs a chunk the first
+            // did not know about.
+            const { world, requested, admit, unload } = unloadingWorld({
+                '15,64,8': 'minecraft:bed',
+                '15,64,9': 'minecraft:stone',
+                '15,64,7': 'minecraft:stone'
+            });
+            const { search } = searchOver({ overworld: world });
+            const tickets = world.chunkTickets();
+            const asked = request({ x: 15, y: 64, z: 8, dimension: Dimensions.Overworld.id });
+
+            // Each attempt is followed by the input step that admits what it asked for and an
+            // unload pass, which takes every chunk neither a player nor a ticket keeps.
+            const kinds: string[] = [];
+            let attempt = search.attempt(asked);
+            kinds.push(attempt.kind);
+            while (attempt.kind === 'waiting' && kinds.length < 6) {
+                admit();
+                await unload();
+                attempt = search.attempt(asked);
+                kinds.push(attempt.kind);
+            }
+
+            expect(kinds).toEqual(['waiting', 'waiting', 'answer']);
+            expect(attempt).toMatchObject({ kind: 'answer', answer: { spawn: 'own', block: { x: 16, y: 64, z: 8 } } });
+            expect(requested).toEqual(['0,0', '1,0']);
+            expect([tickets.holds(0, 0), tickets.holds(1, 0)]).toEqual([false, false]);
+
+            await unload();
+            expect([world.getLoadedChunk(0, 0), world.getLoadedChunk(1, 0)]).toEqual([null, null]);
+        });
+
+        it('lets go of every chunk it asked for when the caller stops asking', () => {
+            const { world, admit } = unloadingWorld({
+                '15,64,8': 'minecraft:bed',
+                '15,64,9': 'minecraft:stone',
+                '15,64,7': 'minecraft:stone'
+            });
+            const { search } = searchOver({ overworld: world });
+            const tickets = world.chunkTickets();
+            const asked = request({ x: 15, y: 64, z: 8, dimension: Dimensions.Overworld.id });
+
+            expect(search.attempt(asked)).toEqual({ kind: 'waiting' });
+            admit();
+            expect(search.attempt(asked)).toEqual({ kind: 'waiting' });
+            expect([tickets.holds(0, 0), tickets.holds(1, 0)]).toEqual([true, true]);
+
+            search.release(asked.player);
+            expect([tickets.holds(0, 0), tickets.holds(1, 0)]).toEqual([false, false]);
+            expect(tickets.has(`respawn:${asked.player}`)).toBe(false);
+            // Nothing is left to give up a second time.
+            search.release(asked.player);
         });
     });
 });
