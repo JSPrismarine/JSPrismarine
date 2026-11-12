@@ -84,7 +84,8 @@ import type { ChunkAdmission, ChunkAdmissionScheduler } from './ChunkAdmissions'
 import { chunkAdmissionWorld } from './ChunkAdmissions';
 import type { ChunkCompletionScheduler } from './ChunkCompletionQueue';
 import type { TickWaitTracker } from './TickContext';
-import { currentTickScope, currentTickWaitTracker, insideTick } from './TickContext';
+import { currentTickScope, currentTickWaitTracker, insideTick, outsideTick } from './TickContext';
+import { ChunkTickets } from './ChunkTickets';
 import { isPortalBlock } from './portal/rules';
 import { furnaceScreenData, tickFurnace } from './cooking';
 import { tickSpawner } from './spawners';
@@ -652,6 +653,12 @@ export class World implements Service {
      * the prototype has one too.
      */
     private portalIndex: PortalIndex | undefined;
+
+    /**
+     * The chunk tickets systems inside the tick hold, built on first use as {@link portalIndex}
+     * is.
+     */
+    private tickets: ChunkTickets | undefined;
 
     /** The End's dragon fight, created on the first ask in a dimension that has one. */
     private dragonFight: DragonFight | undefined;
@@ -1403,6 +1410,35 @@ export class World implements Service {
         this.lastChunkSource = this.chunks;
         this.lastChunk = chunk;
         return chunk;
+    }
+
+    /**
+     * The chunk tickets of this world: how a system inside the tick asks for chunks it lacks
+     * without waiting for them. See {@link ChunkTickets}.
+     */
+    public chunkTickets(): ChunkTickets {
+        return (this.tickets ??= new ChunkTickets({
+            isLoaded: (x, z) => this.getLoadedChunk(x, z) !== null,
+            load: (x, z) => this.loadTicketedChunk(x, z)
+        }));
+    }
+
+    /**
+     * Starts loading a chunk for a ticket, outside the tick, so it enters at an input step even
+     * while the tick that asked is still running. Nobody waits for it; the ticket's owner asks
+     * again on a later tick.
+     */
+    private loadTicketedChunk(x: number, z: number): boolean {
+        if (this.loading.has(Chunk.packXZ(x, z)) || this.level.isClosed()) return false;
+
+        outsideTick(() => {
+            this.loadChunk(x, z).catch((error: unknown) => {
+                if (error instanceof GenerationStopped) return;
+                this.server.getLogger().error(`Failed to load ticketed chunk ${x},${z} of ${this.getFormattedName()}`);
+                this.server.getLogger().error(error);
+            });
+        });
+        return true;
     }
 
     /** The latest block-write version, unique across world instances and monotonic per world. */
@@ -3465,7 +3501,7 @@ export class World implements Service {
 
             const chunk = this.chunks.get(index);
             if (chunk === undefined) continue;
-            if (this.loading.has(index) || this.chunkNeededByPlayers(chunk)) continue;
+            if (this.loading.has(index) || this.chunkRetained(chunk)) continue;
             candidates.push(chunk);
         }
 
@@ -3523,8 +3559,7 @@ export class World implements Service {
         try {
             await this.enqueueSave(async () => {
                 this.getPlayerChunkRefCounts().synchronize(this.players);
-                if (this.chunks.get(index) !== chunk || this.loading.has(index) || this.chunkNeededByPlayers(chunk))
-                    return;
+                if (this.chunks.get(index) !== chunk || this.loading.has(index) || this.chunkRetained(chunk)) return;
 
                 const entities = saveContext.entitiesByChunk.get(index) ?? [];
                 if (chunk.getHasChanged() || entities.length > 0) {
@@ -3563,7 +3598,7 @@ export class World implements Service {
             this.chunks.get(index) !== chunk ||
             this.loading.has(index) ||
             chunk.getHasChanged() ||
-            this.chunkNeededByPlayers(chunk)
+            this.chunkRetained(chunk)
         )
             return false;
 
@@ -3692,8 +3727,12 @@ export class World implements Service {
         return portal;
     }
 
-    private chunkNeededByPlayers(chunk: Chunk): boolean {
-        return this.getPlayerChunkRefCounts().retains(chunk.getX(), chunk.getZ());
+    /** Whether a player's view or a chunk ticket keeps the chunk in memory. */
+    private chunkRetained(chunk: Chunk): boolean {
+        return (
+            this.getPlayerChunkRefCounts().retains(chunk.getX(), chunk.getZ()) ||
+            this.tickets?.holds(chunk.getX(), chunk.getZ()) === true
+        );
     }
 
     /** Builds the entity and actor indexes once for every chunk in a save or unload pass. */
