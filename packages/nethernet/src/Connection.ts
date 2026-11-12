@@ -1,5 +1,7 @@
 import { EventEmitter } from 'node:events';
 
+import { provesKey } from './NetherNetIdentity';
+import type { IdentityProof } from './NetherNetIdentity';
 import type { DriverChannel, DriverPeer } from './WebRtcDriver';
 
 /**
@@ -128,6 +130,8 @@ export class Connection extends EventEmitter {
     public reliable: DriverChannel | undefined;
     public unreliable: DriverChannel | undefined;
     private closedReason: string | undefined;
+    /** What the peer's description offered as proof of its key, when it carried an identity. */
+    public identityProof: IdentityProof | undefined;
     private readonly reassembler: Reassembler;
     private readonly maxBufferedBytes: number;
     private readonly queue: Uint8Array[] = [];
@@ -147,6 +151,16 @@ export class Connection extends EventEmitter {
         super();
         this.reassembler = new Reassembler(options.maxMessageBytes);
         this.maxBufferedBytes = options.maxBufferedBytes ?? DEFAULT_MAX_BUFFERED_BYTES;
+    }
+
+    /**
+     * Whether the peer proved it holds a key: its description's identity signed the fingerprint
+     * of the certificate this connection's DTLS handshake checked, with that key.
+     * @param publicKey - The key, as base64 DER.
+     * @returns False when it did not, or sent no identity.
+     */
+    public async provesKey(publicKey: string): Promise<boolean> {
+        return this.identityProof !== undefined && (await provesKey(this.identityProof, publicKey));
     }
 
     /**

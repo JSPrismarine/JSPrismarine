@@ -100,6 +100,15 @@ export default class LoginHandler implements ConnectionPacketHandler<LoginPacket
         if (server.getConfig().getOnlineMode()) {
             try {
                 const verified = await verifyLogin(login);
+                // A verified login only says the chain is real. Without Minecraft's encryption
+                // handshake, nothing else shows this client holds the chain's key and is not
+                // sending a login it recorded from somebody else.
+                if (!(await connection.provesIdentityKey(verified.identityPublicKey))) {
+                    throw new LoginRefused(
+                        'You must be logged in with Xbox Live to join.',
+                        "the connection's identity does not prove the login's key"
+                    );
+                }
                 identity = {
                     ...identity,
                     xuid: verified.xuid,

@@ -395,6 +395,18 @@ export default class MinecraftSession {
         return this.connection.capabilities;
     }
 
+    /**
+     * Whether the login's identity key is proven to be the client's. With Minecraft's encryption
+     * on, its handshake proves it, since only the key's holder can derive the session key. On a
+     * transport that encrypts by itself there is no such handshake, and the transport must say
+     * the client proved the key while connecting.
+     * @param identityPublicKey - The key the login names, as base64 DER.
+     */
+    public async provesIdentityKey(identityPublicKey: string): Promise<boolean> {
+        if (!this.connection.capabilities.encrypted) return true;
+        return (await this.connection.provesKey?.(identityPublicKey)) ?? false;
+    }
+
     /** Whether frames are encrypted in both directions. */
     public get isEncrypted(): boolean {
         return this.encryption !== undefined;

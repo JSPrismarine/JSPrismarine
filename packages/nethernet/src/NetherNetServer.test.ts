@@ -1,11 +1,14 @@
+import { createPublicKey, generateKeyPairSync } from 'node:crypto';
 import dgram from 'node:dgram';
 import { once } from 'node:events';
 import { describe, expect, it, vi } from 'vitest';
 
 import { SEGMENT_BYTES } from './Connection';
 import type { Connection } from './Connection';
+import { BEDROCK_CURVE } from './es384';
 import { LanDiscovery } from './LanDiscovery';
 import { NetherNetClient } from './NetherNetClient';
+import { NetherNetIdentity } from './NetherNetIdentity';
 import { NetherNetServer } from './NetherNetServer';
 import { PortAllocator } from './PortAllocator';
 import { SignalStructure, SignalType } from './protocol/Signal';
@@ -69,6 +72,35 @@ describe.skipIf(!nativeAvailable())('NetherNet over the native driver', async ()
             expect(toServer).toStrictEqual(messages);
             expect(toClient).toStrictEqual(messages);
             expect(server.connections.size).toBe(1);
+        } finally {
+            client.close();
+            server.close();
+        }
+    });
+
+    it("keeps what the offer's identity proves, and gives WebRTC the offer without it", async () => {
+        const server = new NetherNetServer({ driver, peerConfig: () => LOOPBACK });
+        const { privateKey } = generateKeyPairSync('ec', { namedCurve: BEDROCK_CURVE });
+        const key = createPublicKey(privateKey).export({ type: 'spki', format: 'der' }).toString('base64');
+        const stranger = generateKeyPairSync('ec', { namedCurve: BEDROCK_CURVE }).publicKey;
+        const opened = once(server, 'openConnection') as Promise<[Connection]>;
+        const client: NetherNetClient = new NetherNetClient({
+            driver,
+            peerConfig: LOOPBACK,
+            prepareOffer: (offer) => new NetherNetIdentity(privateKey, { keyFormat: 'der' }).sign(offer),
+            signal: (signal) => {
+                if (signal.type !== SignalType.ConnectRequest) return;
+                void server.handleOffer(signal, (reply) => client.handleSignal(reply));
+            }
+        });
+        try {
+            await client.connect();
+            const [connection] = await opened;
+
+            expect(await connection.provesKey(key)).toBe(true);
+            expect(
+                await connection.provesKey(stranger.export({ type: 'spki', format: 'der' }).toString('base64'))
+            ).toBe(false);
         } finally {
             client.close();
             server.close();

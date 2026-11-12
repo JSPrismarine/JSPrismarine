@@ -234,7 +234,7 @@ describe('network', () => {
                     });
                 };
 
-                const quiet = () => {
+                const quiet = (provesKey = true) => {
                     const disconnects: Array<[string, DisconnectReason | undefined]> = [];
                     const stubbed = stub<ClientConnection>({
                         codec: Codec2193,
@@ -242,6 +242,7 @@ describe('network', () => {
                         phase: 'login',
                         resumeLogin: null,
                         transportCapabilities: plainCapabilities,
+                        provesIdentityKey: async (key) => provesKey && key === accountKey,
                         sendDataPacket: async () => {},
                         startEncryption: () => {},
                         attachPlayerSession: vi.fn(),
@@ -310,6 +311,25 @@ describe('network', () => {
                     await held.resumeLogin?.();
 
                     expect(queries).toEqual([{ name: 'Steve', xuid: '2535400000000001' }]);
+                });
+
+                it("refuses a verified login on a connection that did not prove the login's key", async () => {
+                    // The login is real, and so replayable: over NetherNet no encryption handshake
+                    // shows that whoever sent it holds its key.
+                    arrange();
+                    const { connection: replayed, disconnects } = quiet(false);
+
+                    await new LoginHandler().handle(
+                        signedLogin({ AuthenticationType: 0, Token: signedToken() }),
+                        server,
+                        replayed
+                    );
+
+                    expect(disconnects).toEqual([
+                        ['You must be logged in with Xbox Live to join.', DisconnectReason.NOT_AUTHENTICATED]
+                    ]);
+                    expect(replayed.attachPlayerSession).not.toHaveBeenCalled();
+                    expect(kicked).toEqual([]);
                 });
 
                 it('refuses a forged token and leaves the named account connected', async () => {

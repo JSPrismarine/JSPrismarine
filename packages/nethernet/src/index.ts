@@ -24,8 +24,14 @@ export type { LanAdvertisement } from './LanAdvertisement';
 export { DEFAULT_CLIENT_TIMEOUT_MS, NetherNetClient } from './NetherNetClient';
 export type { NetherNetClientOptions, SignalSender } from './NetherNetClient';
 export { NETHERNET_LAN_PORT } from './NetherNetDefaults';
-export { canonicalFingerprints, NetherNetIdentity, verifySelfSignedIdentity } from './NetherNetIdentity';
-export type { IdentityKeyFormat, NetherNetIdentityOptions, VerifiedIdentity } from './NetherNetIdentity';
+export {
+    canonicalFingerprints,
+    identityProofOf,
+    NetherNetIdentity,
+    provesKey,
+    verifySelfSignedIdentity
+} from './NetherNetIdentity';
+export type { IdentityKeyFormat, IdentityProof, NetherNetIdentityOptions, VerifiedIdentity } from './NetherNetIdentity';
 export { DEFAULT_ACCEPT_TIMEOUT_MS, NetherNetServer } from './NetherNetServer';
 export type { NetherNetServerOptions, SignalResponder } from './NetherNetServer';
 export { decodeJoinStatus, joinStatusJson } from './NetherNetStatus';
