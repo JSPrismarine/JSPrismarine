@@ -17,6 +17,10 @@
 const SEPARATOR = '\u0000';
 
 /**
+ * The key one world's state is filed under: the bare dimension for the default level, and the
+ * level's name, a separator and the dimension for any other, so two levels' Overworlds never
+ * share a key and the default level's keys stay what they were.
+ *
  * @param dimension - The namespaced dimension identifier, such as `minecraft:overworld`.
  * @param level - The level's name, or undefined for the default level.
  * @returns The key.
