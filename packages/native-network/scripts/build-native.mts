@@ -28,7 +28,7 @@ import { fileURLToPath } from 'node:url';
 import { gzipSync } from 'node:zlib';
 import { parseArgs } from 'node:util';
 
-import { nativeSourceHash } from '../src/nativeHash.ts';
+import { nativeBuildDir, nativeSourceHash } from '../src/nativeHash.ts';
 import { platformKey, sharedLibraryName, staticLibraryName } from '../src/platform.ts';
 
 const packageDir = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -163,7 +163,7 @@ const buildOpenSsl = (): string => {
 await unpack();
 const key = platformKey();
 const out = resolve(values.out ?? join(packageDir, 'prebuilds', tls === 'mbedtls' ? key : `${key}-${tls}`));
-const buildDir = join(cacheDir, `build-${treeKey}-${key}-${tls}${values.debug ? '-debug' : ''}`);
+const buildDir = nativeBuildDir({ cacheDir, nativeDir, treeKey, platform: key, tls, debug: values.debug });
 const cmake = process.env.CMAKE ?? 'cmake';
 const buildType = values.debug ? 'Debug' : 'Release';
 
