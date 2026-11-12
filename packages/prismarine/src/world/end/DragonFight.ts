@@ -8,6 +8,7 @@
  * is spent and the experience is paid. Four crystals can start the pillar-reset sequence that
  * summons the dragon again.
  */
+import type { EntityPosition } from '@jsprismarine/entities';
 import { blockState, endGateway, endPodium, endSpike, endSpikesForSeed, shuffledCopy } from '@jsprismarine/features';
 import type { EndSpike } from '@jsprismarine/features';
 import { Vector3 } from '@jsprismarine/math';
@@ -104,6 +105,20 @@ const freshState = (): DragonFightState => ({
     respawnCrystalIds: []
 });
 
+/** What a dragon's death leaves the fight to act on once its chunks are loaded. */
+interface DragonDeath {
+    readonly persistentIdentity: string;
+    readonly position: EntityPosition;
+    /** The runtime id of whoever dealt the killing blow, when anybody did in this run. */
+    readonly killerId: number | undefined;
+}
+
+const deathOf = (dragon: DataEntity): DragonDeath => ({
+    persistentIdentity: dragon.persistentIdentity,
+    position: { ...dragon.position },
+    killerId: dragon.body.damage.last()?.sourceId
+});
+
 /**
  * The persistent dragon fight of one End world.
  *
@@ -139,9 +154,10 @@ export class DragonFight {
      * runs. The fight does nothing else until then.
      *
      * The removal listener can fire between ticks, from a console `/kill`, so the consequences
-     * always run from a tick.
+     * always run from a tick. The fight state carries where it died until then, so a save
+     * taken meanwhile keeps the death; the killer is a runtime id and does not outlive the run.
      */
-    private died: DataEntity | undefined;
+    private died: DragonDeath | undefined;
 
     /**
      * Restores a fight from its saved state, or starts a fresh one that scans the world on its
@@ -152,6 +168,9 @@ export class DragonFight {
         this.world = world;
         this.fight = state ?? freshState();
         this.respawnChunksLoaded = this.fight.respawnStage === undefined;
+        const { dragonDeathPosition, dragonUniqueId } = this.fight;
+        if (dragonDeathPosition !== undefined && dragonUniqueId !== undefined)
+            this.died = { persistentIdentity: dragonUniqueId, position: dragonDeathPosition, killerId: undefined };
         if (this.fight.gateways.length === 0) {
             this.fight.gateways = shuffledCopy(
                 Array.from({ length: GATEWAY_COUNT }, (_, index) => index),
@@ -176,14 +195,22 @@ export class DragonFight {
      */
     public tick(): void {
         const died = this.died;
-        if (died !== undefined) {
+        // A unit that removed the dragon as dead and then threw adds it back when it is undone,
+        // and no listener hears that. A dragon back in the world did not die.
+        const back = died === undefined ? undefined : this.liveDragonWith(died.persistentIdentity);
+        if (back !== undefined) {
+            this.died = undefined;
+            delete this.fight.dragonDeathPosition;
+            this.adopt(back);
+        } else if (died !== undefined) {
             const tickets = this.world.chunkTickets();
             if (!tickets.request(DEATH_TICKET, this.deathChunks())) return;
 
             tickets.release(DEATH_TICKET);
             this.died = undefined;
+            delete this.fight.dragonDeathPosition;
             try {
-                this.setDragonKilled(died);
+                this.killDragon(died);
             } catch (error: unknown) {
                 this.report(String(error));
             }
@@ -220,6 +247,10 @@ export class DragonFight {
      * Java's `tickDeath` calls its counterpart.
      */
     public setDragonKilled(dragon: DataEntity): void {
+        this.killDragon(deathOf(dragon));
+    }
+
+    private killDragon(dragon: DragonDeath): void {
         if (this.fight.dragonUniqueId !== undefined && dragon.persistentIdentity !== this.fight.dragonUniqueId) return;
 
         const firstKill = !this.fight.previouslyKilled;
@@ -285,7 +316,8 @@ export class DragonFight {
 
         this.dragon = undefined;
         if (reason === 'death' || reason === 'death_behavior') {
-            this.died = entity;
+            this.died = deathOf(entity);
+            this.fight.dragonDeathPosition = { ...this.died.position };
         } else if (reason !== 'chunk unload') {
             // Gone without dying or being saved - forget it, so the 1200-tick check spawns anew.
             this.fight.dragonUniqueId = undefined;
@@ -636,16 +668,16 @@ export class DragonFight {
      * yet, so the player who dealt the killing blow is also paid the total directly; take the
      * direct payment out when orb pickup lands, or a kill will pay twice.
      */
-    private awardExperience(dragon: DataEntity, firstKill: boolean): void {
+    private awardExperience(dragon: DragonDeath, firstKill: boolean): void {
         const xp = firstKill ? FIRST_KILL_EXPERIENCE : REPEAT_KILL_EXPERIENCE;
         const awards = [...Array.from({ length: 10 }, () => Math.floor(xp * 0.08)), Math.floor(xp * 0.2)];
         for (const value of awards) {
             this.world.dataEntities().runtime.spawn(XP_ORB_IDENTIFIER, { ...dragon.position }, { data: { value } });
         }
 
-        const killerId = dragon.body.damage.last()?.sourceId;
+        const { killerId } = dragon;
         const killer = this.world.getViewers().find((session) => Number(session.runtimeId) === killerId);
-        if (killer === undefined) return;
+        if (killerId === undefined || killer === undefined) return;
 
         addExperiencePoints(killer.getPlayer().getExperience(), xp);
     }
@@ -708,6 +740,14 @@ export class DragonFight {
             first ??= entity;
         }
         return first;
+    }
+
+    /** The loaded dragon with this persistent identity, if one is loaded. */
+    private liveDragonWith(identity: string): DataEntity | undefined {
+        for (const entity of this.world.dataEntities().runtime.entities()) {
+            if (entity.identifier === DRAGON_IDENTIFIER && entity.persistentIdentity === identity) return entity;
+        }
+        return undefined;
     }
 
     private adopt(dragon: DataEntity): void {

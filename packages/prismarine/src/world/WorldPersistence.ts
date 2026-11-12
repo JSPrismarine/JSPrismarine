@@ -72,6 +72,11 @@ export interface DragonFightState {
     dragonUniqueId?: string;
     /** Where the exit portal's podium stands, once found or placed. */
     exitPortalLocation?: { x: number; y: number; z: number };
+    /**
+     * Where the dragon {@link DragonFightState.dragonUniqueId} names died, while its portal,
+     * gateway, egg and experience still wait for their chunks to load.
+     */
+    dragonDeathPosition?: { x: number; y: number; z: number };
     /** The gateway indices not yet spent, seed-shuffled on first init and popped per kill. */
     gateways: number[];
     /** The respawn phase in progress, or absent when no respawn sequence runs. */
@@ -312,6 +317,8 @@ const dragonFightOf = (value: unknown): DragonFightState | undefined => {
     if (dragonUniqueId !== undefined && typeof dragonUniqueId !== 'string') return undefined;
     const exitPortalLocation = spawnOf(value['exitPortalLocation']);
     if (exitPortalLocation === undefined && value['exitPortalLocation'] !== undefined) return undefined;
+    const dragonDeathPosition = spawnOf(value['dragonDeathPosition']);
+    if (dragonDeathPosition === undefined && value['dragonDeathPosition'] !== undefined) return undefined;
     const rawStage = value['respawnStage'];
     const respawnStage = isRespawnStage(rawStage) ? rawStage : undefined;
     if (respawnStage === undefined && rawStage !== undefined) return undefined;
@@ -322,6 +329,7 @@ const dragonFightOf = (value: unknown): DragonFightState | undefined => {
         needsStateScanning,
         ...(dragonUniqueId === undefined ? {} : { dragonUniqueId }),
         ...(exitPortalLocation === undefined ? {} : { exitPortalLocation }),
+        ...(dragonDeathPosition === undefined ? {} : { dragonDeathPosition }),
         gateways,
         ...(respawnStage === undefined ? {} : { respawnStage }),
         respawnTime,
