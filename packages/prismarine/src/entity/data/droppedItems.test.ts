@@ -42,6 +42,8 @@ const player = (id: number, x: number, z: number, y = SURFACE): ContentEntity =>
     position: { x, y, z }
 });
 
+const spectator = (id: number, x: number, z: number): ContentEntity => ({ ...player(id, x, z), spectator: true });
+
 const countOf = (entity: DataEntity): number | undefined => itemViewOf(entity)?.stack.count;
 
 describe('dropped items in the store', () => {
@@ -227,6 +229,28 @@ describe('dropped items in the store', () => {
     });
 
     describe('pickup', () => {
+        it('leaves a stack where it lies while only a spectator is in reach', () => {
+            const fixture = fixtureOf({ players: [spectator(7, 0.5, 0.5)] });
+            const item = drop(fixture, 0.5, SURFACE, 0.5);
+
+            step(fixture, 20);
+
+            expect(fixture.world.given).toEqual([]);
+            expect(item.removed).toBeUndefined();
+        });
+
+        it('passes over a spectator for the next player in reach', () => {
+            const fixture = fixtureOf({ players: [spectator(7, 0.5, 0.5), player(8, 0.5, 0.5)] });
+            const item = drop(fixture, 0.5, SURFACE, 0.5);
+
+            step(fixture, 20);
+
+            expect(fixture.world.given).toEqual([
+                { playerId: 8, itemId: item.id, item: { identifier: 'minecraft:cobblestone', count: 1 } }
+            ]);
+            expect(item.removed).toBe('picked_up');
+        });
+
         it('waits out the pickup delay, then goes to a player standing on it and leaves the world', () => {
             const fixture = fixtureOf({ players: [player(7, 0.5, 0.5)] });
             const item = drop(fixture, 0.5, SURFACE, 0.5);
