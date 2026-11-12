@@ -1282,6 +1282,39 @@ describe('network', () => {
             expect(closed).toEqual([]);
         });
 
+        it('drops the packets a connection queues behind its held input past the bound, and logs it once', async () => {
+            const handled: string[] = [];
+            const { transport, dispatcher, lines } = makeSessionDispatcher({
+                lanes: { TextPacket: 'input', ClientCacheStatusPacket: 'read' },
+                handler: {
+                    phases: ['play'],
+                    handle: async (packet) => {
+                        handled.push(nameOf(packet));
+                    }
+                }
+            });
+            const { connection, closed } = fakeConnection(1);
+            await transport.emitConnect(connection);
+
+            // One input, then a flood of a packet whose handler waits behind it, as a client that
+            // sends `MovePlayer` after `PlayerAuthInput` does.
+            const over = 5;
+            const flood = Array.from({ length: MAX_HELD_INPUTS_PER_CONNECTION + over }, () => cacheStatus());
+            await transport.emitFrame(batchOf([message('held'), ...flood]), 1);
+            const warnings = () => lines.filter((line) => line.level === 'warn');
+            expect(warnings()).toHaveLength(1);
+
+            await dispatcher.admitInputs();
+            await turn();
+            expect(handled.filter((name) => name === 'read')).toHaveLength(MAX_HELD_INPUTS_PER_CONNECTION);
+
+            // Under its bound again, the next one waits as before, and the drop is summed up.
+            await transport.emitFrame(batchOf([message('again'), cacheStatus()]), 1);
+            expect(warnings()).toHaveLength(2);
+            expect(warnings()[1]!.message).toContain(`Dropped ${over} `);
+            expect(closed).toEqual([]);
+        });
+
         it('stamps a captured input with the tick whose input step applied it', async () => {
             const trace = new InboundPacketTrace();
             let tick = 10;

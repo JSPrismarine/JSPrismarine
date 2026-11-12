@@ -66,7 +66,8 @@ Dedicated Server's packet rate limiter rejects packets over its limits. A player
 input too, whether the client sent `Disconnect` or its connection closed, and it waits behind that
 client's own inputs. A packet in the `connection` or `read` lane runs when it arrives, unless an
 input the same client sent earlier is still waiting; then it waits behind that input, so a client
-never sees a reply that overtook its own action. The levels tick one after another, so this one step is the
+never sees a reply that overtook its own action. As many may wait as inputs may be held, and the
+server drops the ones past that with a warning. The levels tick one after another, so this one step is the
 input step of every world, and no handler runs in the middle of a world's update. A replay
 offers each recorded packet before the tick its capture recorded, and the same step applies it.
 

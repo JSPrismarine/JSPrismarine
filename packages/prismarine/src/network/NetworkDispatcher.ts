@@ -117,6 +117,10 @@ interface ConnectionInbound {
     lastInput: HeldInputState | undefined;
     /** How many input-lane packets were dropped since the connection last met its bound. */
     droppedInputs: number;
+    /** How many connection-lane and read-lane handlers wait in {@link deferred}. */
+    deferredHandlers: number;
+    /** How many of those were dropped since the connection last met its bound. */
+    droppedHandlers: number;
 }
 
 /** What the dispatcher needs from each collaborator; the server wires its own parts in. */
@@ -315,7 +319,9 @@ export default class NetworkDispatcher<C extends TransportConnection> {
                 deferred: new WorkChain(this.busyChains),
                 heldInputs: 0,
                 lastInput: undefined,
-                droppedInputs: 0
+                droppedInputs: 0,
+                deferredHandlers: 0,
+                droppedHandlers: 0
             };
             this.connectionInbound.set(connection, inbound);
         }
@@ -441,7 +447,10 @@ export default class NetworkDispatcher<C extends TransportConnection> {
      *   of its own still waiting, runs now, and the frame queue waits for it.
      * - Any other connection-lane or read-lane handler waits until the step that applies the last
      *   input its connection held before it is over, and until the connection's earlier waiting
-     *   handlers have run. The frame queue does not wait for it, so the connection's later inputs
+     *   handlers have run. A live one from a connection that already has
+     *   {@link MAX_HELD_INPUTS_PER_CONNECTION} of them waiting is dropped, as an input over the
+     *   bound is: a client that holds one input and floods any other packet would otherwise queue
+     *   one closure per packet for as long as a step is late. The frame queue does not wait for it, so the connection's later inputs
      *   are still held in arrival order. A client that sends a move and then asks for something
      *   the move changed gets the answer the move leads to. The step may also have applied inputs
      *   the client sent after the question, so the answer can be newer than the question, never
@@ -480,21 +489,62 @@ export default class NetworkDispatcher<C extends TransportConnection> {
         }
 
         if (inbound.heldInputs === 0 && inbound.deferred.idle) return { now: true, done: run() };
+        if (this.overDeferredBound(gated.packet, connection, inbound, expectedTick)) {
+            return { now: true, done: Promise.resolve() };
+        }
 
         const input = inbound.heldInputs > 0 ? inbound.lastInput : undefined;
+        inbound.deferredHandlers++;
         const done = inbound.deferred.append(async () => {
-            if (input !== undefined && !input.past) {
-                // Waiting only for an input step, which a stepping harness has to run.
-                inbound.deferred.tracker.park();
-                try {
-                    await input.settled;
-                } finally {
-                    inbound.deferred.tracker.unpark();
+            try {
+                if (input !== undefined && !input.past) {
+                    // Waiting only for an input step, which a stepping harness has to run.
+                    inbound.deferred.tracker.park();
+                    try {
+                        await input.settled;
+                    } finally {
+                        inbound.deferred.tracker.unpark();
+                    }
                 }
+                await run();
+            } finally {
+                inbound.deferredHandlers--;
             }
-            await run();
         });
         return { now: false, done };
+    }
+
+    /**
+     * {@link overBound} for the connection-lane and read-lane handlers waiting behind a held
+     * input, with the same bound and the same once-per-flood log.
+     *
+     * @param expectedTick - Set for a replayed record, which is never dropped.
+     */
+    private overDeferredBound(
+        packet: NetworkPacket<unknown>,
+        connection: ClientConnection,
+        inbound: ConnectionInbound,
+        expectedTick: number | undefined
+    ): boolean {
+        if (expectedTick === undefined && inbound.deferredHandlers >= MAX_HELD_INPUTS_PER_CONNECTION) {
+            this.packetPayloads?.delete(packet);
+            if (inbound.droppedHandlers === 0) {
+                this.logger.warn(
+                    `Connection ${connection.getConnectionId()} has ${MAX_HELD_INPUTS_PER_CONNECTION} packets waiting behind its inputs; dropping its packets until an input step lets some run`,
+                    'NetworkDispatcher/route'
+                );
+            }
+            inbound.droppedHandlers++;
+            return true;
+        }
+        if (inbound.droppedHandlers > 0) {
+            this.logger.warn(
+                `Dropped ${inbound.droppedHandlers} packets from connection ${connection.getConnectionId()} over its bound of ${MAX_HELD_INPUTS_PER_CONNECTION} waiting behind its inputs`,
+                'NetworkDispatcher/route'
+            );
+            inbound.droppedHandlers = 0;
+        }
+        return false;
     }
 
     /**
