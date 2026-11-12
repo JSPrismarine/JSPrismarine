@@ -126,6 +126,14 @@ interface PortalTrip {
     preparing: Promise<void> | undefined;
 }
 
+/** A player's move to a world that is already built, filed by code that cannot wait for the change. */
+interface WorldMove {
+    readonly session: PlayerSession;
+    readonly arrival: Arrival;
+    /** What follows the change, in the same input step. */
+    readonly then: () => Promise<void>;
+}
+
 /** Every chunk within `radius` blocks of a position on x and z, as chunk coordinates. */
 const chunksAround = (center: { readonly x: number; readonly z: number }, radius: number): [number, number][] => {
     const chunks: [number, number][] = [];
@@ -184,6 +192,8 @@ export const isMidDimensionChange = (entity: StoreActor): boolean =>
 export class DimensionTravel {
     /** The trips filed and not landed yet, in the order they started. */
     private trips: PortalTrip[] = [];
+    /** The moves filed and not carried out yet, in the order they were filed. */
+    private moves: WorldMove[] = [];
     /** The preparations running outside the ticks. */
     private readonly preparing = new Set<Promise<void>>();
 
@@ -353,14 +363,27 @@ export class DimensionTravel {
         return this.trips.some((trip) => trip.from === world && trip.entity === id);
     }
 
-    /** How many trips wait for an input step to land them. */
+    /**
+     * Moves a player to another world at the next input step, for code that runs where the change
+     * cannot be waited for, such as an input-lane handler. The change runs through
+     * `PlayerSession.changeWorld`, then `then`. A player who disconnected first is not moved.
+     *
+     * @param arrival - Where the player lands, in a world that is already built.
+     * @param then - What follows the change, such as the respawn exchange after the credits.
+     */
+    public move(session: PlayerSession, arrival: Arrival, then: () => Promise<void> = async () => {}): void {
+        this.moves.push({ session, arrival, then });
+    }
+
+    /** How many trips and moves wait for an input step to land them. */
     public get pending(): number {
-        return this.trips.length;
+        return this.moves.length + this.trips.length;
     }
 
     /**
-     * The input step's share: lands every trip whose destination is ready, in the order the trips
-     * started, and keeps the rest for a later step.
+     * The input step's share: carries out the moves filed since the last step, then lands every
+     * trip whose destination is ready, in the order the trips started, and keeps the rest for a
+     * later step.
      *
      * A destination is ready once its world is built and the chunks the arrival reads are loaded,
      * which the input step decides from loaded chunks alone, so a replay that admits the same
@@ -369,12 +392,13 @@ export class DimensionTravel {
      * in the tick this step opens. A trip whose traveler left its world in the meantime is
      * dropped.
      *
-     * @returns How many trips landed.
+     * @returns How many moves and trips landed.
      */
     public async admit(): Promise<number> {
+        let landed = await this.admitMoves();
+
         const due = this.trips;
         this.trips = [];
-        let landed = 0;
         for (const trip of due) {
             const traveler = trip.from.getActor(trip.entity);
             if (traveler === null) continue;
@@ -397,6 +421,25 @@ export class DimensionTravel {
             }
         }
         return landed;
+    }
+
+    /** Carries out the moves filed before this step, in order. */
+    private async admitMoves(): Promise<number> {
+        const due = this.moves;
+        this.moves = [];
+        let moved = 0;
+        for (const { session, arrival, then } of due) {
+            if (!session.isConnected()) continue;
+            try {
+                await session.changeWorld(arrival);
+                await then();
+                moved += 1;
+            } catch (error: unknown) {
+                this.server.getLogger().error(`Moving ${session.identity.name} to ${arrival.world.getName()} failed`);
+                this.server.getLogger().error(error);
+            }
+        }
+        return moved;
     }
 
     /** Settles once the destination of every filed trip has been prepared as far as it can be. */

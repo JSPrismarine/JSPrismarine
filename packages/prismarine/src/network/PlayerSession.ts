@@ -2523,22 +2523,27 @@ export default class PlayerSession {
      * Finishes held credits: the full dimension change sequence to the held arrival, sent as
      * a respawn, which is how Java's `PlayerList.respawn(player, true, ...)` answers the
      * credits. Called by `ShowCreditsHandler` when the client reports the credits finished.
+     *
+     * The change is a message: it runs at the next input step through `DimensionTravel.move`,
+     * so the handler that reports the finish waits for nothing.
      * @returns Whether credits were pending. A finish with none pending changes nothing.
      */
-    public async completeCredits(): Promise<boolean> {
+    public completeCredits(): boolean {
         const arrival = this.pendingCredits;
         if (arrival === undefined) return false;
 
         this.pendingCredits = undefined;
-        await this.changeWorld({ ...arrival, respawn: true, closesLoadingScreen: false });
-
-        // A respawn change is settled by the respawn exchange, as after a death: the client
-        // waits for where it comes back and shows its loading screen until it is told, so
-        // without it the client sat there until the server gave up on it a minute later. It goes
-        // out once the terrain is on the wire: told sooner, the client stands the player in a
-        // world with no ground and falls through it.
-        this.pendingRespawnAnswer = arrival.position;
-        await this.answerRespawnIfReady();
+        this.server
+            .getDimensionTravel()
+            .move(this, { ...arrival, respawn: true, closesLoadingScreen: false }, async () => {
+                // A respawn change is settled by the respawn exchange, as after a death: the client
+                // waits for where it comes back and shows its loading screen until it is told, so
+                // without it the client sat there until the server gave up on it a minute later. It
+                // goes out once the terrain is on the wire: told sooner, the client stands the
+                // player in a world with no ground and falls through it.
+                this.pendingRespawnAnswer = arrival.position;
+                await this.answerRespawnIfReady();
+            });
         return true;
     }
 

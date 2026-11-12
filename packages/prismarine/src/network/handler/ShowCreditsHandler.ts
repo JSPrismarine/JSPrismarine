@@ -17,18 +17,15 @@ export default class ShowCreditsHandler implements InputLaneHandler<ShowCreditsP
     public readonly lane = 'input';
 
     /** Completes the held world change on `Finished`, and drops anything else. */
-    public handle(packet: ShowCreditsPacket, { session, log, step }: InputContext): undefined {
+    public handle(packet: ShowCreditsPacket, { session, log }: InputContext): undefined {
         if (packet.creditsState === CreditsState.Finished) {
-            // Slice 9: the held change moves the player to another world, which builds it and
-            // loads its chunks, until dimension travel is a message the destination admits.
-            step.defer(async () => {
-                if (await session.completeCredits()) return;
+            // The held change is a message the next input step carries out, so nothing here waits.
+            if (session.completeCredits()) return;
 
-                log.debug(
-                    `${session.identity.name} reported the end credits finished with none pending`,
-                    'ShowCreditsHandler/handle'
-                );
-            });
+            log.debug(
+                `${session.identity.name} reported the end credits finished with none pending`,
+                'ShowCreditsHandler/handle'
+            );
             return;
         }
 

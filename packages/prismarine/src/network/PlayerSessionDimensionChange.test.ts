@@ -499,11 +499,14 @@ describe('PlayerSession.changeWorld', () => {
     });
 
     it('finishes the held arrival as a respawn change when the credits are over', async () => {
-        const { session, sent } = fakePlayer();
+        const { session, sent, travel } = fakePlayer();
         await session.startCredits(arrivalIn(worldOf(Dimensions.Nether)));
         sent.length = 0;
 
-        expect(await session.completeCredits()).toBe(true);
+        expect(session.completeCredits()).toBe(true);
+        // A message: nothing goes out until the next input step carries the change out.
+        expect(sent).toEqual([]);
+        expect(await travel.admit()).toBe(1);
 
         const change = sent.find((p): p is ChangeDimensionPacket => p instanceof ChangeDimensionPacket);
         expect(change?.getPacketData()?.dimension).toBe(Dimensions.Nether.bedrockId);
@@ -522,7 +525,8 @@ describe('PlayerSession.changeWorld', () => {
         expect(respawnStates()).toEqual([PlayerRespawnState.SEARCHING_FOR_SPAWN, PlayerRespawnState.READY_TO_SPAWN]);
 
         // The client repeating the finish is not a second change.
-        expect(await session.completeCredits()).toBe(false);
+        expect(session.completeCredits()).toBe(false);
+        expect(travel.pending).toBe(0);
     });
 
     it('does not hold later moves behind a death respawn, which the client closes no screen for', async () => {

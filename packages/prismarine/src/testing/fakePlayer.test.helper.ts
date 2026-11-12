@@ -24,6 +24,7 @@ import type WorldManager from '../world/WorldManager';
 import Chunk from '../world/chunk/Chunk';
 import { Dimensions } from '../world/DimensionType';
 import { RespawnRequests } from '../world/RespawnRequests';
+import { DimensionTravel } from '../world/portal/DimensionTravel';
 import { enterStore, leaveStore } from '../entity/data/storePlayers';
 import { entityIds } from '../entity/entityIds';
 import { EYE_HEIGHT } from '../entity/playerEyes';
@@ -104,6 +105,7 @@ export const fakePlayer = ({ underwater = false, worlds: others = [], name = 'Te
         removeListener: () => server,
         getChatManager: () => chat,
         getRespawnRequests: () => respawnRequests,
+        getDimensionTravel: () => travel,
         getChunkScheduler: () => stub<ChunkScheduler>({ add: () => {}, remove: () => {} }),
         getPermissionManager: () => stub<PermissionManager>({ permissionsOf: () => [], isOp }),
         getWorldManager: () => stub<WorldManager>({ getDefaultWorld: () => world }),
@@ -127,6 +129,8 @@ export const fakePlayer = ({ underwater = false, worlds: others = [], name = 'Te
     const chat = new ChatManager(server);
     // The searches a death files, which a test admits as the input step would.
     const respawnRequests = new RespawnRequests((error) => void logged.push(String(error)));
+    // The world changes a session files as messages, which a test admits as the input step would.
+    const travel = new DimensionTravel(server);
 
     const blockName = underwater ? 'minecraft:water' : 'minecraft:air';
     const world: World = stub<World>({
@@ -244,6 +248,7 @@ export const fakePlayer = ({ underwater = false, worlds: others = [], name = 'Te
     };
 
     return {
+        travel,
         replicator,
         logTick,
         session,
