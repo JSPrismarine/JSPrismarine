@@ -1570,7 +1570,7 @@ describe('DimensionTravel as messages', () => {
         scene.overworld.beginChangeTick();
         scene.nether.beginChangeTick();
         // The write `PlayerSession.setGamemode` makes before its sends.
-        messages.send(scene.nether, async () => bot.inputs().setPlayerGamemode(bot.getPlayer(), Gametype.CREATIVE));
+        messages.send(scene.nether, () => void bot.inputs().setPlayerGamemode(bot.getPlayer(), Gametype.CREATIVE));
         const filedHere = scene.overworld.sealChangeTick();
         const untouched = scene.nether.sealChangeTick();
 

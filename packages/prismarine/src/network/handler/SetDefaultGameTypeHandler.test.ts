@@ -1,5 +1,5 @@
 import type { Logger } from '@jsprismarine/logger';
-import { Gametype } from '@jsprismarine/minecraft';
+import { Gametype, getGametypeName } from '@jsprismarine/minecraft';
 import { describe, expect, it } from 'vitest';
 
 import { inputContext } from '../../testing/handlerContext.test.helper';
@@ -19,7 +19,15 @@ import SetDefaultGameTypeHandler from './SetDefaultGameTypeHandler';
  * A server holding Survival as its default, with the requesting player in the Overworld and one
  * other in the Nether. Everything a packet handler may send is captured per player.
  */
-const fakeServer = ({ op, saveFails = false }: { op: boolean; saveFails?: boolean }) => {
+const fakeServer = ({
+    op,
+    otherOp = false,
+    saveFails = false
+}: {
+    op: boolean;
+    otherOp?: boolean;
+    saveFails?: boolean;
+}) => {
     const logged: string[] = [];
     const applied: Array<[string, Gametype | undefined]> = [];
     const committed: Array<[number, boolean | undefined]> = [];
@@ -44,20 +52,25 @@ const fakeServer = ({ op, saveFails = false }: { op: boolean; saveFails?: boolea
     const fakePlayer = (name: string, uuid: string, isOp: boolean, world: World) => {
         const packets: NetworkPacket[] = [];
         sent.set(name, packets);
+        const where = { world };
         const session = stub<PlayerSession>({
             identity: identityNamed(name, uuid),
             getConnection: () =>
                 stub<ClientConnection>({ sendDataPacket: async (packet) => void packets.push(packet) }),
-            getWorld: () => world,
+            getWorld: () => where.world,
             setGamemode: async (mode?: Gametype) => void applied.push([name, mode]),
             released: (sends) => void sends.catch((error: unknown) => void logged.push(String(error)))
         });
         if (isOp) ops.add(uuid);
-        return { player: session, session };
+        /** Moves the player to another world, as a world change between two input steps does. */
+        const moveTo = (next: World) => {
+            where.world = next;
+        };
+        return { player: session, session, moveTo };
     };
 
     const requester = fakePlayer('Steve', '00000000-0000-0000-0000-000000000001', op, overworld);
-    const other = fakePlayer('Alex', '00000000-0000-0000-0000-000000000002', false, nether);
+    const other = fakePlayer('Alex', '00000000-0000-0000-0000-000000000002', otherOp, nether);
 
     const parts = {
         log: stub<Logger>({
@@ -70,7 +83,7 @@ const fakeServer = ({ op, saveFails = false }: { op: boolean; saveFails?: boolea
             defaults: stub<HandlerServices['defaults']>({
                 setGamemode: async (gamemode, commit) => {
                     committed.push([gamemode, commit]);
-                    configured = Gametype[gamemode] ?? configured;
+                    configured = getGametypeName(gamemode);
                     if (saveFails) throw new Error('disk full');
                 }
             }),
@@ -81,15 +94,15 @@ const fakeServer = ({ op, saveFails = false }: { op: boolean; saveFails?: boolea
     };
 
     /** Runs one request as the input step would, and returns what the handler handed the step. */
-    const handle = async (packet: SetDefaultGameTypePacket) => {
-        const { context, outputs, settled } = inputContext(requester.session, parts);
+    const handle = async (packet: SetDefaultGameTypePacket, from = requester.session) => {
+        const { context, outputs, settled } = inputContext(from, parts);
         const returned = new SetDefaultGameTypeHandler().handle(packet, context);
         const handed = { returned, outputs: outputs.length, applied: applied.length };
         await settled();
         return handed;
     };
 
-    return { logged, applied, committed, sent, handle, messages, inputs };
+    return { logged, applied, committed, sent, handle, messages, inputs, other, overworld };
 };
 
 const request = (gamemode: Gametype): SetDefaultGameTypePacket =>
@@ -137,6 +150,40 @@ describe('SetDefaultGameTypeHandler', () => {
             ['Alex', Gametype.CREATIVE]
         ]);
         expect(defaults(sent.get('Alex'))).toEqual([Gametype.CREATIVE]);
+    });
+
+    it('leaves every player on the later of two requests from two worlds in one step', async () => {
+        const { applied, handle, messages, other } = fakeServer({ op: true, otherOp: true });
+
+        // Steve asks for Creative from the Overworld, then Alex for Survival from the Nether, both
+        // before the step applies the messages: the Creative one for Alex is older than Alex's own.
+        await handle(request(Gametype.CREATIVE));
+        await handle(request(Gametype.SURVIVAL), other.session);
+        messages.admit();
+        await Promise.resolve();
+
+        const last = (name: string) => applied.filter(([player]) => player === name).at(-1)?.[1];
+        expect(last('Steve')).toBe(Gametype.SURVIVAL);
+        expect(last('Alex')).toBe(Gametype.SURVIVAL);
+    });
+
+    it('moves a player who changed world before the message was applied in the world they are in', async () => {
+        const { applied, handle, messages, inputs, other, overworld } = fakeServer({ op: true });
+
+        await handle(request(Gametype.CREATIVE));
+        other.moveTo(overworld);
+
+        // The Nether's unit cannot undo a write in the Overworld, so nothing is written there.
+        expect(messages.admit()).toBe(1);
+        expect(applied).toEqual([['Steve', Gametype.CREATIVE]]);
+        expect(messages.size).toBe(1);
+
+        expect(messages.admit()).toBe(1);
+        expect(inputs).toEqual(['nether', 'overworld']);
+        expect(applied).toEqual([
+            ['Steve', Gametype.CREATIVE],
+            ['Alex', Gametype.CREATIVE]
+        ]);
     });
 
     it('logs a default it could not save and still moves the players onto it', async () => {
