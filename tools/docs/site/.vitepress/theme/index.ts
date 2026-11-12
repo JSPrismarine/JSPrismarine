@@ -1,7 +1,9 @@
 import DefaultTheme from 'vitepress/theme';
+import type { Component } from 'vue';
 
 import './brand.css';
 import './site-menu/site-menu.css';
+import type { BrandComponentName } from './brandCatalog';
 import AudienceTabs from './components/AudienceTabs.vue';
 import BentoGrid from './components/BentoGrid.vue';
 import BentoTile from './components/BentoTile.vue';
@@ -24,7 +26,10 @@ import ContributorList from './ContributorList.vue';
 import Layout from './Layout.vue';
 import ParityTracker from './ParityTracker.vue';
 
-/** Brand components are global so any HTML-enabled page can use them; docs/brand lists them. */
+/**
+ * Brand components are global so any HTML-enabled page can use them. `brandCatalog.ts` says what each is
+ * for, and this has to hold exactly the components it lists: the brand guide's table is generated from it.
+ */
 const brandComponents = {
     AudienceTabs,
     BentoGrid,
@@ -44,7 +49,7 @@ const brandComponents = {
     TerminalWindow,
     Ticker,
     WindowBlind
-};
+} satisfies Record<BrandComponentName, Component>;
 
 export default {
     extends: DefaultTheme,
