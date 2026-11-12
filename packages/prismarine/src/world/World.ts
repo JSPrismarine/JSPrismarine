@@ -3451,13 +3451,24 @@ export class World implements Service {
      *
      * The one way a player enters a world, on its join and on its arrival from another. Until it
      * runs, nothing in the world can target or see the player. Synchronous, so the entry is part
-     * of the caller's unit.
+     * of the caller's unit, and an undo of that unit takes the player out again.
      * @param session - The player's session.
      */
     public addPlayer(session: PlayerSession): void {
-        this.players.set(Number(session.runtimeId), session);
-        if (enterStore(this.dataEntities().runtime, this.server.getStorePlayers(), session.getPlayer()) === undefined)
+        const id = Number(session.runtimeId);
+        const player = session.getPlayer();
+        const { runtime } = this.dataEntities();
+        this.players.set(id, session);
+        const entity = enterStore(runtime, this.server.getStorePlayers(), player);
+        if (entity === undefined)
             this.server.getLogger().warn(`The content declares no player, so ${session.identity.name} has no entity`);
+        // The undo of the caller's unit removes the entity, but the player map and the store
+        // player's hold on the entity are not in the log, so they are let go here. Left alone, the
+        // session stayed a viewer with no entity, and the player refused its next entry.
+        runtime.store.undoWith(() => {
+            if (this.players.get(id) === session) this.players.delete(id);
+            if (entity !== undefined) player.release(entity);
+        });
     }
 
     /**

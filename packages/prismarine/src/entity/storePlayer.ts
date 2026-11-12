@@ -209,6 +209,25 @@ export class StorePlayer implements PlayerRecordSource, PlayerRecordTarget {
         return true;
     }
 
+    /**
+     * Lets go of an entity whose entry into its store was undone, which leaves the player as it
+     * was before {@link StorePlayer.attach}: in no store, holding what it held then. Unlike
+     * {@link StorePlayer.detach}, it keeps no record, so the next entry starts the way this one did.
+     *
+     * @param entity - The entity the undone entry added, which the undo has taken out again.
+     * @returns Whether it was the player's entity.
+     */
+    public release(entity: DataEntity): boolean {
+        if (this.attached !== entity) return false;
+        // The undo wrote the entity's health back to what `attach` gave it, which is what the
+        // player held.
+        const health = this.getHealth();
+        this.log = undefined;
+        this.attached = undefined;
+        this.attributes.setValue(AttributeIds.Health, health);
+        return true;
+    }
+
     /** The entity id as the wire carries it, which every entity query knows the player by. */
     public getRuntimeId(): bigint {
         return BigInt(this.id);
