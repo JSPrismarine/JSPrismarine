@@ -106,6 +106,18 @@ describe("PlayerSession's player", () => {
         });
     });
 
+    describe("the fixture's world", () => {
+        it('takes the entity out of its store on a removal and back in on an addition', async () => {
+            const { session, player, world, live } = fakePlayer();
+
+            await world.removePlayer(session);
+            expect(live.runtime.store.has(player.id)).toBe(false);
+
+            await world.addPlayer(session);
+            expect(live.runtime.store.get(player.id)).toBe(player.entity);
+        });
+    });
+
     describe('isOp', () => {
         it('checks operator status by UUID', () => {
             const { session, player, isOp } = fakePlayer();
