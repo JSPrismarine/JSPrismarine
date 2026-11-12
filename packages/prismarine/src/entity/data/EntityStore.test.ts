@@ -4,7 +4,7 @@ import { coalesceTick } from '../../world/changelog/coalesceTick';
 import type { PlainRecord } from '../../world/changelog/PlainData';
 import type { EntityWorldFacts } from './host';
 import type { DataEntity } from './DataEntity';
-import { ENTITY_FAILURE_LIMIT } from './EntityStore';
+import { ENTITY_FAILURE_LIMIT, EntityStore } from './EntityStore';
 import type { EntityRuntime } from './EntityRuntime';
 import { entityFixture, FLOOR_Y, TestEntityWorld } from './testing';
 import { PLAYER_IDENTIFIER } from '../playerOverlay';
@@ -477,6 +477,81 @@ describe('the entity store', () => {
             expect(runtime.store.broken).toBeInstanceOf(Error);
             expect(reports.some((line) => line.includes('no writer for not-a-field'))).toBe(true);
             expect(entity.body.loveTicks).toBe(1000);
+        });
+    });
+
+    describe('a slot written back by an undo', () => {
+        /** A bare store whose undo writes slots back into `slots`, as a player's inventory does. */
+        const slotStore = () => {
+            const store = new EntityStore();
+            const slots = new Map<string, PlainRecord | null>();
+            store.addInverseWriter((inverse) => {
+                if (inverse.kind !== 'field' || inverse.field !== 'inventory-slot') return false;
+                slots.set(`${inverse.address.container}:${inverse.address.slot}`, inverse.after);
+                return true;
+            });
+            const write = (container: string, slot: number, name: string) => {
+                const before = slots.get(`${container}:${slot}`) ?? null;
+                const after = { name, count: 1 };
+                slots.set(`${container}:${slot}`, after);
+                store.writtenSlot(7, container, slot, before, after);
+            };
+            return { store, slots, write };
+        };
+        const fail = () => {
+            throw new Error('planned');
+        };
+
+        it('is shown to its owner once for each slot the unit wrote, in the order it wrote them', () => {
+            const { store, slots, write } = slotStore();
+            store.beginTick();
+
+            const outcome = store.unit(() => {
+                write('inventory', 4, 'minecraft:stone');
+                write('cursor', 0, 'minecraft:torch');
+                write('inventory', 4, 'minecraft:dirt');
+                fail();
+            });
+            const sealed = store.sealTick();
+
+            expect(outcome.failed).toBe(true);
+            expect(slots.get('inventory:4')).toBeNull();
+            expect(sealed?.entries).toEqual([
+                { kind: 'occurrence', occurrence: 'slot-shown', data: { entity: 7n, container: 'inventory', slot: 4 } },
+                { kind: 'occurrence', occurrence: 'slot-shown', data: { entity: 7n, container: 'cursor', slot: 0 } }
+            ]);
+        });
+
+        it('is shown again when the unit around the undone one is undone in turn', () => {
+            const { store, write } = slotStore();
+            store.beginTick();
+
+            store.unit(() => {
+                store.unit(() => {
+                    write('inventory', 1, 'minecraft:stone');
+                    fail();
+                });
+                write('armor', 0, 'minecraft:iron_helmet');
+                fail();
+            });
+            const sealed = store.sealTick();
+
+            // The inner undo's occurrence went with the outer span, and the outer undo names it again.
+            expect(sealed?.entries.map((entry) => (entry.kind === 'occurrence' ? entry.data : entry))).toEqual([
+                { entity: 7n, container: 'inventory', slot: 1 },
+                { entity: 7n, container: 'armor', slot: 0 }
+            ]);
+        });
+
+        it('shows nothing for a unit that finishes, or one that wrote no slot', () => {
+            const { store, write } = slotStore();
+            store.beginTick();
+
+            store.unit(() => write('inventory', 2, 'minecraft:stone'));
+            store.unit(fail);
+            const sealed = store.sealTick();
+
+            expect(sealed?.entries.map((entry) => entry.kind)).toEqual(['field']);
         });
     });
 });

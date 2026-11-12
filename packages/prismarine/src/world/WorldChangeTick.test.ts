@@ -357,7 +357,7 @@ describe('a world tick and its change log', () => {
 
         it.each(PLAYER_SLOT_WRITES)(
             'undoes a write to the $name, leaving the replay digest as it was',
-            async ({ write }) => {
+            async ({ name, write }) => {
                 const { world, player } = await playerWithItems();
                 const before = world.replayStateDigest();
                 world.beginChangeTick();
@@ -369,7 +369,12 @@ describe('a world tick and its change log', () => {
                 world.sealChangeTick();
 
                 expect(outcome.failed).toBe(true);
-                expect(world.lastChangeTick()?.entries).toEqual([]);
+                // The write leaves the log. A slot written back holds a stack with a new network
+                // id, so the log says to show the owner that slot again, and that is all it holds.
+                const left = world.lastChangeTick()?.entries ?? [];
+                expect(left.every((each) => each.kind === 'occurrence' && each.occurrence === 'slot-shown')).toBe(true);
+                // The hand slot is a field of the player and not a slot, so nothing is shown again.
+                expect(left).toHaveLength(name === 'inventory.handSlot' ? 0 : 1);
                 expect(world.replayStateDigest()).toBe(before);
 
                 // The same write in a unit that finishes is one entry.

@@ -169,10 +169,11 @@ export class ChangeLog {
      * partly reverted and the caller has to abandon the phase.
      * @param {Span} span - An open span.
      * @param {InverseApplier} apply - Writes an inverse to the store without logging it.
+     * @returns {readonly ChangeEntry[]} The entries removed, in the order they were appended.
      * @throws {ChangeLogError} When `span` is not open, the span holds a chunk entry, or `apply`
      * tries to append to the log or open a span.
      */
-    public revertSpan(span: Span, apply: InverseApplier): void {
+    public revertSpan(span: Span, apply: InverseApplier): readonly ChangeEntry[] {
         this.refuseWhileReverting('revert a span');
         const depth = this.spans.lastIndexOf(span);
         if (depth === -1) throw new ChangeLogError('Only an open span can be reverted');
@@ -195,6 +196,7 @@ export class ChangeLog {
         } finally {
             this.reverting = false;
         }
+        return removed;
     }
 
     /**

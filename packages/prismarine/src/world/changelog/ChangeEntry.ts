@@ -213,6 +213,18 @@ export interface OccurrenceKinds {
         readonly z: number;
         readonly block: number;
     }>;
+    /**
+     * A player's client is told what one of its own slots holds although no write is logged for
+     * it: the slot's write was undone, and the stack written back carries a new network id, which
+     * the client has to learn before it can name the stack in a request.
+     */
+    'slot-shown': OccurrenceShape<{
+        /** The player that carries the slot. */
+        readonly entity: EntityId;
+        /** The container, as an `inventory-slot` entry names it. */
+        readonly container: string;
+        readonly slot: number;
+    }>;
     /** An entity's emote. */
     emote: OccurrenceShape<{
         readonly entity: EntityId;

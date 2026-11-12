@@ -30,7 +30,7 @@
  * did. An occurrence replication sends, such as a sound, is held the same way. Other writes
  * between ticks are still counted as unlogged.
  */
-import type { ChangeEntry, OccurrenceEntry, StateEntry } from '../../world/changelog/ChangeEntry';
+import type { ChangeEntry, OccurrenceEntry, OccurrenceKinds, StateEntry } from '../../world/changelog/ChangeEntry';
 import { isCarriedEntry } from '../../world/changelog/ChangeEntry';
 import type { SealedTick, Span } from '../../world/changelog/ChangeLog';
 import { ChangeLog } from '../../world/changelog/ChangeLog';
@@ -484,17 +484,22 @@ export class EntityStore {
     private revert(span: Span): void {
         this.reverting = true;
         this.reverted += 1;
+        let removed: readonly ChangeEntry[];
         try {
-            this.log.revertSpan(span, (inverse) => {
+            removed = this.log.revertSpan(span, (inverse) => {
                 if (!this.writers.some((write) => write(inverse)))
                     throw new Error(`No writer knows ${addressed(inverse)}`);
             });
         } catch (error: unknown) {
             this.failure ??= error;
             this.report(`An inverse entry failed to write, so the store stops: ${String(error)}`);
+            return;
         } finally {
             this.reverting = false;
         }
+        // Logged after the undo, in the span around this one if there is one, so an undo of that
+        // span shows the slots again too.
+        for (const shown of slotsShownAgain(removed)) this.append(shown);
     }
 }
 
@@ -505,6 +510,24 @@ type OpenUnit = {
     pinned: boolean;
     /** Where each journal stood as the unit started, in registration order. */
     readonly marks: readonly number[];
+};
+
+/**
+ * The slots an undone span wrote, or showed again after an undo inside it, each once and in the
+ * order the span first named it. A slot written back holds a stack with a new network id, so its
+ * owner's client is shown it again.
+ */
+const slotsShownAgain = (removed: readonly ChangeEntry[]): OccurrenceEntry<'slot-shown'>[] => {
+    const shown = new Map<string, OccurrenceEntry<'slot-shown'>>();
+    for (const entry of removed) {
+        let at: OccurrenceKinds['slot-shown'] | undefined;
+        if (entry.kind === 'field' && entry.field === 'inventory-slot') at = entry.address;
+        else if (entry.kind === 'occurrence' && entry.occurrence === 'slot-shown') at = entry.data;
+        if (at === undefined) continue;
+        const key = `${at.entity}:${at.container}:${at.slot}`;
+        if (!shown.has(key)) shown.set(key, { kind: 'occurrence', occurrence: 'slot-shown', data: { ...at } });
+    }
+    return [...shown.values()];
 };
 
 /** What an inverse entry addresses, for the line that reports no writer knew it. */
