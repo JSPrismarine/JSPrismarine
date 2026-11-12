@@ -219,6 +219,13 @@ describe('Read bounds', () => {
         expect(() => read(s)).toThrow(/left in buffer/);
     });
 
+    it.each([-1, -4, 1.5, Number.NaN])('rejects a read of %s bytes without moving the read index', (length) => {
+        const s = new BinaryStream(Buffer.alloc(8));
+        s.skip(4);
+        expect(() => s.read(length)).toThrow(/must be a nonnegative integer/);
+        expect(s.getReadIndex()).toBe(4);
+    });
+
     it('allows a read that ends exactly at the last byte', () => {
         const s = new BinaryStream(Buffer.from([0x00, 0x00, 0x00, 0x2a]));
         expect(s.readInt()).toBe(42);
