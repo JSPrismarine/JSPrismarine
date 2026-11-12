@@ -697,6 +697,14 @@ progress::-moz-progress-bar {
     color: var(--vp-c-text-1);
 }
 
+/* Every case row keeps a slot for the square, so the scores line up whether a row has one or not. */
+.family-progress > span::before {
+    display: inline-block;
+    width: 9px;
+    margin-right: 6px;
+    content: '';
+}
+
 /* A group under half passing carries a signal square: the open gaps stand out from the finished groups. */
 .family-progress .is-gap::before,
 .group-option-count b.is-gap::before {
@@ -913,7 +921,7 @@ progress::-moz-progress-bar {
     gap: 6px 12px;
     align-items: center;
     /* One width for every row, so the scores and bars line up down the list. */
-    width: 48ch;
+    width: 50ch;
     font: var(--jsp-label-size) var(--vp-font-family-mono);
     font-variant-numeric: tabular-nums;
     color: var(--tracker-muted);

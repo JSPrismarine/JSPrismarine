@@ -767,6 +767,12 @@
     box-shadow: none;
 }
 
+/* The open sheet has its own search field, so the header's search button would repeat it. It keeps
+   its space, so Close stays exactly where Menu was. */
+.site-menu-open .site-phone__icon {
+    visibility: hidden;
+}
+
 .site-menu-open,
 .site-menu-open body {
     overflow: hidden;

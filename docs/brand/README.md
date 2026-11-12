@@ -164,11 +164,12 @@ scrolling off the screen edge, and a two-column table stacks each row as its nam
 - The package directory, the API reference index and its sidebar group packages by the areas in
   `packageAreas.ts`; the docs build fails when a published package has no area. The directory is
   where packages are described; the API index lists their names only, as a grid of links whose names
-  never wrap, so the two pages do different jobs. When every package shares one npm scope, the directory names it once above
+  never wrap or clip (cells at least 200 px wide, two to a row on phones), so the two pages do different jobs. When every package shares one npm scope, the directory names it once above
   the cards instead of on each.
 - Menu and search previews end on a whole sentence where one fits.
 - The header's controls (Search, and on phones the Menu button) are controls, not primary actions:
-  an edge and no offset shadow.
+  an edge and no offset shadow. While the phone menu is open, its own search field replaces the header's
+  search button, which keeps its space so Close stays where Menu was.
 
 ## The landing page
 

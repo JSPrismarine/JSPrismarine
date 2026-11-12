@@ -616,8 +616,8 @@
 /* The API index lists names only, as a grid of mono links per area: Packages is where they are described. */
 .api-index .vp-doc h2 + p + ul {
     display: grid;
-    /* Two columns even on a phone: most names are short. */
-    grid-template-columns: repeat(auto-fill, minmax(min(200px, 100%), 1fr));
+    /* Wide enough for the longest name and its arrow; a phone gets two columns below. */
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
     gap: 6px;
     padding: 0;
     list-style: none;
@@ -644,6 +644,19 @@
 
 .api-index .vp-doc h2 + p + ul a:hover {
     border-color: var(--vp-c-text-1);
+}
+
+/* A phone fits two cells a row: narrower padding and a size smaller keep the longest name and its
+   arrow inside a half-width cell. */
+@media (max-width: 640px) {
+    .api-index .vp-doc h2 + p + ul {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .api-index .vp-doc h2 + p + ul a {
+        padding: 0 10px;
+        font-size: 14px;
+    }
 }
 
 /* A link card carries an arrow, so the tiles read as links. */

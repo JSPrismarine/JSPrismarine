@@ -232,6 +232,12 @@ function toggle(key: string) {
     transform: rotate(90deg);
 }
 
+@media (max-width: 640px) {
+    .release__text :deep(.release__breaking > summary) {
+        min-height: var(--jsp-target);
+    }
+}
+
 .release__text :deep(.release__breaking > p) {
     margin: 4px 0 0;
 }
