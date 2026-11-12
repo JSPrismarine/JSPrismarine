@@ -519,10 +519,12 @@ export default class WorldManager implements Service {
      *
      * @param dimension - A Java `dimension_type` id, or the Bedrock spelling of a vanilla one.
      * @returns The level and the stem's id, or undefined when no stem of the default level has
-     *   that dimension.
+     *   that dimension, or no default level is loaded yet.
      */
     public stemFor(dimension: string): { readonly level: Level; readonly stemId: string } | undefined {
-        const level = this.getDefaultLevel();
+        // Unset until `enable` loads it, and a command can run before that.
+        const level = this.defaultLevel;
+        if (level === undefined) return undefined;
         const stemId = this.stemIdOf(level, dimension);
         return stemId === undefined ? undefined : { level, stemId };
     }

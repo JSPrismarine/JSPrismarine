@@ -261,6 +261,15 @@ describe('WorldManager', () => {
         await manager.disable();
     });
 
+    it('answers no stem before the default level is loaded, rather than throwing', () => {
+        const { manager } = buildManager('main', {
+            main: entryOf({ [Dimensions.Nether.id]: { type: Dimensions.Nether.id, generator: { type: TEST_KIND } } })
+        });
+
+        expect(manager.stemFor(Dimensions.Nether.id)).toBeUndefined();
+        expect(manager.startWorld(Dimensions.Nether.id)).toBeUndefined();
+    });
+
     it('starts a lazy dimension for a caller that cannot wait, and never answers another world for it', async () => {
         const { manager, builds } = buildManager('main', {
             main: entryOf({ [Dimensions.Nether.id]: { type: Dimensions.Nether.id, generator: { type: TEST_KIND } } })
