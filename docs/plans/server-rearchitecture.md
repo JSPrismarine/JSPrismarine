@@ -89,9 +89,13 @@ Progress (2026-10-30):
   `@jsprismarine/protocol` for the server and the client, and every handler takes a narrow
   context instead of the `Server`.
 - Slice 7 has landed: replication sends blocks, block entities, entities, transient facts such as
-  sounds and status effects, and an owner's own view from the sealed tick of each world's change
-  log, and keeps a replica of what clients are shown. The log is complete for everything the
-  replay digest hashes, so a snapshot plus the log reproduces the digest.
+  sounds and status effects, and most of an owner's own view from the sealed tick of each world's
+  change log, and keeps a replica of what clients are shown. Two parts of the owner's view still
+  come from outside the log: whole-inventory resends are sent from simulation code, and trade
+  offers are priced from the trading player when they go out, so the replica alone cannot answer
+  a trade screen. [D4f's list of what is not done](entity-simulation-rearchitecture.md#d4f-the-close) names
+  both. The log is complete for everything the replay digest hashes, so a snapshot plus the log
+  reproduces the digest.
 - Slice 11 has landed: `@jsprismarine/prismarine` exports a fixed list of entry points, each the
   module that defines what it exports, in place of `"./*"`. The root is `Server.ts`, and the
   package has no barrel left.
