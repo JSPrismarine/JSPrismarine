@@ -1,8 +1,10 @@
 import type { Logger } from '@jsprismarine/logger';
 import { ActorEvent, LevelEvent, LevelSoundEvent, PacketCompressionAlgorithm } from '@jsprismarine/minecraft';
 import type { ProtocolCodec } from '@jsprismarine/protocol';
+import { BatchCodec } from '@jsprismarine/protocol';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import ActorEventPacket from '@jsprismarine/protocol/packet/ActorEventPacket';
+import EmotePacket, { EmoteFlags } from '@jsprismarine/protocol/packet/EmotePacket';
 import LevelEventPacket from '@jsprismarine/protocol/packet/LevelEventPacket';
 import LevelSoundEventPacket from '@jsprismarine/protocol/packet/LevelSoundEventPacket';
 import SpawnParticleEffectPacket from '@jsprismarine/protocol/packet/SpawnParticleEffectPacket';
@@ -230,6 +232,40 @@ describe('network', () => {
                 expect(tracking.frames).toHaveLength(1);
                 expect(own.frames).toHaveLength(0);
                 expect(own.sent).toHaveLength(0);
+                expect(elsewhere.frames).toHaveLength(0);
+            });
+        });
+
+        describe('emote', () => {
+            it('reaches the players tracking the player as a packet encoded from its own fields', async () => {
+                // Not the bytes the client sent: the account and the flag are the server's.
+                const tracking = viewer(2n, { tracked: [1n] });
+                const elsewhere = viewer(3n);
+                const replicator = replicatorOver([tracking.session, elsewhere.session]);
+                const data = {
+                    entity: 1n,
+                    emote: '4c8ae710-df2e-47cd-814d-cc7bf21a3d67',
+                    lengthTicks: 40,
+                    xuid: 'steve-xuid',
+                    platformId: 'p',
+                    flags: EmoteFlags.ServerSide
+                };
+
+                sealOccurrences(replicator, { kind: 'occurrence', occurrence: 'emote', data });
+                await replicator.flushOccurrences();
+
+                const expected = Object.assign(new EmotePacket(), {
+                    actorRuntimeId: 1n,
+                    emoteId: data.emote,
+                    emoteLengthTicks: 40,
+                    xuid: 'steve-xuid',
+                    platformId: 'p',
+                    flags: EmoteFlags.ServerSide
+                });
+                const decoder = BatchCodec.compressed({ algorithm: PacketCompressionAlgorithm.ZLIB, threshold: 256 });
+                const [frame] = tracking.frames;
+                if (frame === undefined) throw new Error('nothing relayed');
+                expect(decoder.decode(frame)).toStrictEqual([expected.encodeTransient()]);
                 expect(elsewhere.frames).toHaveLength(0);
             });
         });

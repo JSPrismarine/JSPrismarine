@@ -39,6 +39,7 @@ import { encodePacketBatchFromBuffersBySize, encodePacketsForCodec, FullFlushFra
 import type { EncodedPacketBatch } from './encodePacketBatch';
 import ActorEventPacket from '@jsprismarine/protocol/packet/ActorEventPacket';
 import AnimatePacket from '@jsprismarine/protocol/packet/AnimatePacket';
+import EmotePacket from '@jsprismarine/protocol/packet/EmotePacket';
 import BlockActorDataPacket from '@jsprismarine/protocol/packet/BlockActorDataPacket';
 import BlockPos from '@jsprismarine/protocol/structure/BlockPos';
 import LevelSoundEventPacket from '@jsprismarine/protocol/packet/LevelSoundEventPacket';
@@ -100,6 +101,25 @@ const animatePacketOf = ({ entity, action, data, swingSource }: OccurrenceKinds[
     packet.action = action;
     packet.data = data;
     packet.swingSource = swingSource;
+    return packet;
+};
+
+/** A player's emote, as the players that see it are shown it: a packet the server encodes itself. */
+const emotePacketOf = ({
+    entity,
+    emote,
+    lengthTicks,
+    xuid,
+    platformId,
+    flags
+}: OccurrenceKinds['emote']): EmotePacket => {
+    const packet = new EmotePacket();
+    packet.actorRuntimeId = entity;
+    packet.emoteId = emote;
+    packet.emoteLengthTicks = lengthTicks;
+    packet.xuid = xuid;
+    packet.platformId = platformId;
+    packet.flags = flags;
     return packet;
 };
 
@@ -315,6 +335,10 @@ export class NetworkWorldReplicator implements WorldChangeSink {
             case 'animate':
                 return this.sendToTrackedEntity({ getRuntimeId: () => entry.data.entity }, () => [
                     animatePacketOf(entry.data)
+                ]);
+            case 'emote':
+                return this.sendToTrackedEntity({ getRuntimeId: () => entry.data.entity }, () => [
+                    emotePacketOf(entry.data)
                 ]);
             default:
                 // A shown block goes out with the block changes, and a vetoed action is a record.
