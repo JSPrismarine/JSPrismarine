@@ -68,6 +68,12 @@ const ITEM_CELL_SIZE = 2;
 /** How many item cells one chunk-aligned cell spans along each axis. */
 const ITEM_CELLS_PER_CELL = (1 << CELL_BITS) / ITEM_CELL_SIZE;
 
+/**
+ * How many cells `size` blocks wide a square query of `radius` reaches along one axis, at most.
+ * A query whose cells would outnumber the entities it can find reads the entities instead.
+ */
+const cellsAcross = (radius: number, size: number): number => (2 * radius) / size + 2;
+
 /** The cell one horizontal coordinate falls in. */
 const cellOf = (coordinate: number): number => Math.floor(coordinate) >> CELL_BITS;
 
@@ -203,8 +209,12 @@ export class EntityIndex {
      */
     public itemsWithin(x: number, z: number, radius: number): DataEntity[] {
         if (radius < 0) return [];
-        const found: DataEntity[] = [];
         const reach = radius * radius;
+        // An infinite radius would never finish walking its cells, and a wide one would visit
+        // more empty cells than there are stacks.
+        if (!(cellsAcross(radius, ITEM_CELL_SIZE) ** 2 <= this.filedItems.size))
+            return this.everyWithin(this.storeItemCells.values(), x, z, reach);
+        const found: DataEntity[] = [];
         const lowX = itemCellOf(x - radius);
         const highX = itemCellOf(x + radius);
         const lowZ = itemCellOf(z - radius);
@@ -254,8 +264,11 @@ export class EntityIndex {
     public storeWithin(x: number, z: number, radius: number): DataEntity[] {
         if (radius < 0) return [];
 
-        const found: DataEntity[] = [];
         const reach = radius * radius;
+        // As in `itemsWithin`; past 2^31 blocks the cell arithmetic also wraps.
+        if (!(cellsAcross(radius, 1 << CELL_BITS) ** 2 <= this.filed.size))
+            return this.everyWithin(this.cells.values(), x, z, reach);
+        const found: DataEntity[] = [];
         const lowX = cellOf(x - radius);
         const highX = cellOf(x + radius);
         const lowZ = cellOf(z - radius);
@@ -272,6 +285,23 @@ export class EntityIndex {
                 }
             }
 
+        return inIdOrder(found);
+    }
+
+    /**
+     * Every entity in `cells` within a horizontal reach of a point, in ascending runtime id order,
+     * which a query too wide for its cells reads instead of them.
+     */
+    private everyWithin(cells: Iterable<readonly DataEntity[]>, x: number, z: number, reach: number): DataEntity[] {
+        const found: DataEntity[] = [];
+        for (const cell of cells) {
+            this.examined += cell.length;
+            for (const entity of cell) {
+                const dx = entity.position.x - x;
+                const dz = entity.position.z - z;
+                if (dx * dx + dz * dz <= reach) found.push(entity);
+            }
+        }
         return inIdOrder(found);
     }
 
