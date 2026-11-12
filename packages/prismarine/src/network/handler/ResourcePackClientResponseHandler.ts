@@ -24,6 +24,7 @@ import { joinContentPayloads } from '../contentPayloads';
 import { knownOverworldSpawnOf, overworldSpawnOf, playerSpawnPositionPacket } from '../spawnPosition';
 import { allSent } from '../allSent';
 import { outsideTick } from '../../world/TickContext';
+import { whenInputCommits } from '../../world/inputUnit';
 import type { World } from '../../world/World';
 import { createStartGameData } from '../startGameData';
 import { sendCachedJoinPacket } from '../joinPacketCache';
@@ -204,11 +205,16 @@ export default class ResourcePackClientResponseHandler implements InputLaneHandl
                     return;
                 }
 
-                this.joined.add(session);
-
-                // Before the burst goes out: the client answers `StartGame` with play-phase
-                // packets - `RequestChunkRadius` first - while the burst is still being sent.
-                session.getConnection().phase = 'play';
+                // Once the input commits. Neither is in the log, so set inside the input they
+                // outlived an undo: the client's next `Completed` was dropped as a repeat, and in
+                // the play phase it would not even reach this handler. Committing is still before
+                // the burst goes out, which matters for the phase: the client answers `StartGame`
+                // with play-phase packets - `RequestChunkRadius` first - while the burst is still
+                // being sent.
+                whenInputCommits(session, () => {
+                    this.joined.add(session);
+                    session.getConnection().phase = 'play';
+                });
 
                 this.startJoin(context);
                 return;

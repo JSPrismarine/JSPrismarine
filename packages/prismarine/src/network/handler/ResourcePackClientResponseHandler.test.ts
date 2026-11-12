@@ -8,6 +8,7 @@ import { describe, expect, it, vi } from 'vitest';
 import type { ConsoleSender } from '../../command/ConsoleSender';
 import type { ServerContent } from '../../content/ServerContent';
 import { buildServerContent } from '../../content/ServerContent';
+import { EntityStore } from '../../entity/data/EntityStore';
 import { fixtureBlockPalette, fixtureContentOptions } from '../../content/testing';
 import PlayerSpawnEvent from '../../events/player/PlayerSpawnEvent';
 import { fakeLevel, TEST_OVERWORLD_STEM } from '../../testing/level';
@@ -86,7 +87,10 @@ const harness = ({
     const kick = vi.fn(async (_reason: string, _code?: DisconnectReason) => {});
     const debug = vi.fn((_message: string, _context?: string) => {});
 
+    /** The store whose unit a test applies the response in; with no tick open, there is none. */
+    const store = new EntityStore();
     const world = stub<World>({
+        getEntityStore: () => store,
         getTicks: () => 6000,
         getLevel: () => level,
         getStem: () => TEST_OVERWORLD_STEM,
@@ -114,6 +118,7 @@ const harness = ({
 
     const connection = stub<ClientConnection>({
         codec,
+        phase: 'resourcePacks',
         getAddress: () => new InetAddress('127.0.0.1', 19132),
         sendDataPacket: async (packet: NetworkPacket) => {
             sent.push(packet.constructor.name);
@@ -184,7 +189,7 @@ const harness = ({
         tick: 100
     };
 
-    return { sent, packets, announce, kick, debug, parts, session };
+    return { sent, packets, announce, kick, debug, parts, session, store };
 };
 
 const response = (status: ResourcePackStatus, packIds: string[] = []) =>
@@ -600,6 +605,41 @@ describe('ResourcePackClientResponseHandler', () => {
         await respond(handler, response(ResourcePackStatus.Completed), parts, session);
 
         expect(sent).toEqual(afterFirst);
+        expect(announce).toHaveBeenCalledOnce();
+    });
+
+    it('starts the join on a retry when the first attempt was undone', async () => {
+        // The guard and the play phase are not in the log, so they wait for the input to commit.
+        // Set inside it, they outlived an undo and dropped the client's retry.
+        const { sent, announce, debug, parts, session, store } = harness();
+        const handler = new ResourcePackClientResponseHandler();
+        const failing: ContextParts = {
+            ...parts,
+            services: {
+                ...parts.services,
+                events: {
+                    post: () => {
+                        throw new Error('a playerSpawn listener failed');
+                    }
+                }
+            }
+        };
+
+        store.beginTick();
+        const outcome = store.unit(() =>
+            handler.handle(response(ResourcePackStatus.Completed), inputContext(session, failing).context)
+        );
+        store.sealTick();
+
+        expect(outcome.failed).toBe(true);
+        expect(session.getConnection().phase).toBe('resourcePacks');
+        expect(sent).toEqual([]);
+
+        await respond(handler, response(ResourcePackStatus.Completed), parts, session);
+
+        expect(debug).not.toHaveBeenCalled();
+        expect(session.getConnection().phase).toBe('play');
+        expect(sent.filter((name) => name === 'StartGamePacket')).toHaveLength(1);
         expect(announce).toHaveBeenCalledOnce();
     });
 

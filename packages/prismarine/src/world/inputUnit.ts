@@ -27,3 +27,25 @@ export const applyInputNow = (session: PlayerSession, apply: () => void): void =
     }
     world.runInputNow(apply);
 };
+
+/**
+ * Runs work once the input being applied for a session has committed, and drops it when the
+ * input is undone. For state the change log does not hold, which an undo would leave as the
+ * input set it.
+ *
+ * Read the same way {@link applyInputNow} reads the world, so a session with no world behind it
+ * runs the work now, as it applies the input outside any unit.
+ *
+ * @param session - The session the packet arrived on.
+ * @param work - What to run once the input's writes stand.
+ */
+export const whenInputCommits = (session: PlayerSession, work: () => void): void => {
+    const world = session.getWorld?.();
+    if (world === undefined) {
+        work();
+        return;
+    }
+    world.getEntityStore().afterUnit((kept) => {
+        if (kept) work();
+    });
+};
