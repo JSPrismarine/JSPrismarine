@@ -137,7 +137,15 @@ const exitOnSkipProblems = (problems: readonly string[]): void => {
     for (const problem of problems) console.error(`  ${problem}`);
     process.exit(2);
 };
-const skipContext = { scenarios: allScenarios.map((scenario) => scenario.name), versions: readManifest().versions };
+const runSkipped = values['run-skipped'];
+const skipContext = {
+    scenarios: allScenarios.map((scenario) => scenario.name),
+    versions: readManifest().versions,
+    // Running a stale skip is how its fix is confirmed before the skip is deleted, so neither
+    // pass below may stop the run over one: a skip whose `fixedIn` is its own commit is stale to
+    // the first pass already, before the build is known.
+    allowStale: runSkipped
+};
 exitOnSkipProblems(skipProblems(pinSkips, skipContext));
 
 console.log('ensuring the pinned cinnabar build (the first run clones and compiles it)...');
@@ -154,15 +162,12 @@ console.log(
 // caught here, not in the unit tests. The build is the checkout's own commit, which a
 // `JSP_CINNABAR_PATH` checkout need not share with the pin, so the skips are the ones for it.
 const commit = buildCommit(cinnabar.pin, cinnabar.checkout);
-const runSkipped = values['run-skipped'];
 exitOnSkipProblems(
     skipProblems(
         pinSkips.filter((skip) => skip.commit === commit),
         {
             ...skipContext,
-            contains: (descendant, ancestor) => containsCommit(cinnabar.checkout, descendant, ancestor),
-            // Running a stale skip is how its fix is confirmed before the skip is deleted.
-            allowStale: runSkipped
+            contains: (descendant, ancestor) => containsCommit(cinnabar.checkout, descendant, ancestor)
         }
     )
 );
@@ -485,12 +490,21 @@ const runSuite = async (suite: ScenarioSuite, index: number): Promise<ScenarioRe
                     const recording = await client.recordStop().catch(() => undefined);
                     if (recording) console.log(`${scenario.name}: recording ${String(recording.path)}`);
                 }
-                // The turn goes back however the cleanup ends: a log copy that throws, such as onto
-                // an artifact folder that is no longer writable, would otherwise keep every other
-                // suite waiting for it.
+                // The turn goes back however the cleanup ends, and only once every additional
+                // client is closed: the next scenario to take it launches clients of its own. A
+                // log copy that throws, such as onto an artifact folder that is no longer
+                // writable, therefore costs that one log and nothing else.
                 try {
                     for (const [clientIndex, additional] of scenarioClients.entries()) {
-                        additional.keepLog(path.join(scenarioArtifacts, `additional-${clientIndex + 1}.client.log`));
+                        try {
+                            additional.keepLog(
+                                path.join(scenarioArtifacts, `additional-${clientIndex + 1}.client.log`)
+                            );
+                        } catch (error: unknown) {
+                            console.warn(
+                                `${scenario.name}: additional client ${clientIndex + 1}'s log was not kept: ${String(error)}`
+                            );
+                        }
                     }
                     for (const additional of scenarioClients.reverse()) {
                         await additional.close().catch((error: unknown) => {
