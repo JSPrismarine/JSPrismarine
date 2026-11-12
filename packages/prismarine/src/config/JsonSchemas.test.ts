@@ -85,7 +85,8 @@ describe('JSON schemas', () => {
                 'enable-process-title': true,
                 'enable-ticking': true,
                 'log-excluded-packets': ['SetTimePacket'],
-                'crafting-recipe-limit': -1
+                'crafting-recipe-limit': -1,
+                stats: { bstats: { enabled: false, 'log-errors': true } }
             },
             invalid: { port: '19132' }
         },
@@ -123,6 +124,16 @@ describe('JSON schemas', () => {
 
         expect(validate(valid)).toBe(true);
         expect(validate(invalid)).toBe(false);
+    });
+
+    describe('config.schema.json stats', () => {
+        const validate = (config: unknown) => ajv.compile(readSchema('config.schema.json'))(config);
+
+        it('limits stats.bstats to its four switches', () => {
+            expect(validate({ stats: { bstats: { 'log-sent-data': true } } })).toBe(true);
+            expect(validate({ stats: { bstats: { enabled: 'no' } } })).toBe(false);
+            expect(validate({ stats: { bstats: { 'submit-every': 1 } } })).toBe(false);
+        });
     });
 
     describe('config.schema.json worlds', () => {
