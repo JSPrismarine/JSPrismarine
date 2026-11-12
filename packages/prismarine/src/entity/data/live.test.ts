@@ -1733,6 +1733,9 @@ describe('the data-driven entity runtime over a live world', () => {
             // The entity pass counts love down, so it shows which cows the pass updated.
             faulty.body.loveTicks = 1000;
             healthy.body.loveTicks = 1000;
+            // The actor counts its portal cooldown down, which the log does not carry.
+            faultyActor.setPortalCooldown(10);
+            healthyActor.setPortalCooldown(10);
             let replicated = 0;
             world.attachChangeSink({
                 ...NULL_WORLD_CHANGE_SINK,
@@ -1752,9 +1755,11 @@ describe('the data-driven entity runtime over a live world', () => {
                 expect(faultyUpdates).toHaveBeenCalledTimes(tick);
                 expect(healthyUpdates).toHaveBeenCalledTimes(tick);
                 expect(healthy.body.loveTicks).toBe(1000 - tick);
+                expect(healthyActor.getPortalCooldown()).toBe(10 - tick);
                 expect(replicated).toBe(tick);
                 // Undone, and skipped by the entity pass for the rest of the tick.
                 expect(faulty.body.statusEffectClock).toBeUndefined();
+                expect(faultyActor.getPortalCooldown()).toBe(10);
                 expect(faulty.body.loveTicks).toBe(1000);
             }
 
@@ -1765,6 +1770,46 @@ describe('the data-driven entity runtime over a live world', () => {
                 ENTITY_FAILURE_LIMIT
             );
             expect(world.getEntityStore().broken).toBeUndefined();
+        });
+
+        it('files no portal trip for an actor update that throws after it, and keeps the contact', () => {
+            addPlayer(8.5, 8.5);
+            const faulty = live.runtime.spawn('minecraft:cow', { x: 0.5, y: GROUND_Y, z: 0.5 });
+            const healthy = live.runtime.spawn('minecraft:cow', { x: 2.5, y: GROUND_Y, z: 0.5 });
+            if (faulty === undefined || healthy === undefined) throw new Error('the fixture declares no minecraft:cow');
+            const faultyActor = live.actors.actorOf(faulty.id);
+            const healthyActor = live.actors.actorOf(healthy.id);
+            if (faultyActor === undefined || healthyActor === undefined) throw new Error('a cow has no store actor');
+            const update = faultyActor.update.bind(faultyActor);
+            vi.spyOn(faultyActor, 'update').mockImplementation((tick) => {
+                update(tick);
+                throw new Error('the actor update failed');
+            });
+            const departed: bigint[] = [];
+            Object.assign(world.getServer(), {
+                getDimensionTravel: () =>
+                    stub<DimensionTravel>({
+                        depart: (entity) => {
+                            departed.push(entity.getRuntimeId());
+                            return true;
+                        }
+                    })
+            });
+            // A mob goes through on its first tick in a portal, so each update below is ready to
+            // file its trip.
+            const portal = { world, position: new Vector3(0, GROUND_Y, 0), block: 'minecraft:portal' };
+            faultyActor.touchPortal(new Vector3(0.5, GROUND_Y, 0.5), portal);
+            healthyActor.touchPortal(new Vector3(2.5, GROUND_Y, 0.5), portal);
+            const contact = faultyActor.portalContact();
+
+            world.update(1);
+
+            expect(departed).toEqual([healthyActor.getRuntimeId()]);
+            expect(healthyActor.portalContact()).toBeUndefined();
+            // Put back as the touch left it, still inside and with no time counted.
+            expect(faultyActor.portalContact()).toBe(contact);
+            expect(contact?.getPortalTime()).toBe(0);
+            expect(contact?.tick(0)).toBe(true);
         });
 
         it('removes an entity whose entity pass keeps throwing, though its actor update finishes', () => {
