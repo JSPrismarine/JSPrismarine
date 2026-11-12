@@ -20,15 +20,16 @@ export interface NamedSoundOptions {
 /**
  * Where a world reports what just happened in it.
  *
- * The world's one outward-facing seam. It exists because half of what has to reach a client
- * is not state at all: a sound, a burst of particles, a block cracking are transient facts
- * that are gone by the end of the tick, so nothing downstream could recover them by looking
- * at the world afterwards. The world has to say them out loud.
+ * The world's one outward-facing seam. Half of what has to reach a client is not state at all:
+ * a sound, a burst of particles, a block cracking are transient facts that are gone by the end
+ * of the tick, so nothing downstream could recover them by looking at the world afterwards. The
+ * world logs them as occurrences in its change log, and the sink reads them from each sealed
+ * tick with the block changes, so an occurrence made in a unit that throws is never sent.
  *
  * What it must not do is say them in packets. Every method here is a fact about the world -
- * a block is now this, a sound happened there - and turning that into bytes, deciding who is
- * near enough to receive it and putting it on a connection is the network layer's business.
- * That is what `NetworkWorldReplicator` is.
+ * a block is now this, an entity moved - and turning that into bytes, deciding who is near
+ * enough to receive it and putting it on a connection is the network layer's business. That
+ * is what `NetworkWorldReplicator` is.
  *
  * The one-off facts are synchronous: they are notifications, not requests, and a world that
  * has just changed a block is not waiting to hear whether the news went out. The tick-phase
@@ -41,7 +42,8 @@ export interface WorldChangeSink {
      * One tick of the world's change log, sealed
      * ([ADR 0016](../../../../docs/adr/0016-replication-reads-the-change-log.md)). Its block and
      * block entity entries are what the world's content became, and the only way blocks reach
-     * clients.
+     * clients. Its occurrences, such as sounds, particles and actor events, are the only way
+     * those reach clients, and go out by {@link WorldChangeSink.flushOccurrences}.
      *
      * Read, not sent: the block changes go on the wire once, by
      * {@link WorldChangeSink.flushBlockChanges}, the same treatment {@link entityMoved} gets and
