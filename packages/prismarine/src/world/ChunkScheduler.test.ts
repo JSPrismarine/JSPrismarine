@@ -105,6 +105,28 @@ describe('world', () => {
             expect(finish).toHaveLength(1);
         });
 
+        it('leaves no park listener behind when the deliveries finish without parking', async () => {
+            const scheduler = new ChunkScheduler(1000, () => {}, 1);
+            const finish: Array<() => void> = [];
+            const sender = new ChunkSender();
+            for (let x = 0; x < 3; x++) sender.enqueue(x, 0);
+            scheduler.add({
+                sender,
+                deliver: () => new Promise<void>((resolve) => void finish.push(resolve)),
+                flush: async () => {},
+                isConnected: () => true
+            });
+
+            for (let wait = 0; wait < 3; wait++) {
+                await scheduler.tick();
+                const settling = scheduler.settled();
+                finish[wait]!();
+                await settling;
+                expect(scheduler['parkListeners']).toHaveLength(0);
+            }
+            expect(finish).toHaveLength(3);
+        });
+
         it('stops at the budget and resumes on the next tick', async () => {
             // The property the whole design rests on: a long queue costs a bounded amount
             // per tick instead of running to completion and freezing the server.

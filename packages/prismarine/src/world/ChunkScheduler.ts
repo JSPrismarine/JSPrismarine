@@ -137,15 +137,35 @@ export class ChunkScheduler {
     public async settled(): Promise<void> {
         while (!this.isIdle()) {
             const moving = [...this.inFlight].filter((task) => !this.parkedTasks.has(task));
-            await Promise.race([Promise.allSettled([...moving, ...this.flushTasks]), this.nextPark()]);
+            const park = this.nextPark();
+            try {
+                await Promise.race([Promise.allSettled([...moving, ...this.flushTasks]), park.parked]);
+            } finally {
+                // Only a park clears the listeners, so one left behind by a race the deliveries won
+                // would stay until the next park, one more for each such wait.
+                park.cancel();
+            }
         }
     }
 
-    /** Settles when a delivery next parks on a tick, which can make the scheduler idle. */
-    private nextPark(): Promise<void> {
-        return new Promise((resolve) => {
-            this.parkListeners.push(resolve);
+    /**
+     * Settles when a delivery next parks on a tick, which can make the scheduler idle.
+     *
+     * @returns The wait, and a cancel that drops its listener once nothing waits on it.
+     */
+    private nextPark(): { readonly parked: Promise<void>; readonly cancel: () => void } {
+        let listener!: () => void;
+        const parked = new Promise<void>((resolve) => {
+            listener = resolve;
         });
+        this.parkListeners.push(listener);
+        return {
+            parked,
+            cancel: () => {
+                const index = this.parkListeners.indexOf(listener);
+                if (index !== -1) this.parkListeners.splice(index, 1);
+            }
+        };
     }
 
     public get pending(): number {
