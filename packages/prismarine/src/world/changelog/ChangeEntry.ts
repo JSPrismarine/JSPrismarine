@@ -245,6 +245,24 @@ export interface OccurrenceKinds {
         readonly container: string;
         readonly slot: number;
     }>;
+    /**
+     * One of an entity's status effects was added, changed or taken off. The entity's
+     * `statusEffects` field carries the whole list, and this says which effect changed and how,
+     * which is what clients are sent.
+     */
+    'status-effect': OccurrenceShape<{
+        readonly entity: EntityId;
+        readonly change: 'add' | 'update' | 'remove';
+        /** The effect as it now is, or as it was for one taken off. */
+        readonly effect: {
+            readonly id: string;
+            readonly amplifier: number;
+            readonly durationTicks: number;
+            readonly ambient: boolean;
+            readonly showParticles: boolean;
+            readonly showIcon: boolean;
+        };
+    }>;
     /** An entity's emote. */
     emote: OccurrenceShape<{
         readonly entity: EntityId;

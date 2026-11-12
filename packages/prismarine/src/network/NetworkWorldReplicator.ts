@@ -5,11 +5,11 @@ import type { LevelSoundEvent } from '@jsprismarine/minecraft';
 import { LevelSoundEvent as SoundEvent } from '@jsprismarine/minecraft';
 import type { NBTTagCompound } from '@jsprismarine/nbt';
 import type Server from '../Server';
-import type { StatusEffect, StatusEffectChange } from '../entity/StatusEffect';
 import type { ShownActor, ShownEntity } from '../world/ShownActor';
 import { toNetworkGameRule } from '../world/GameRuleManager';
 import { Position } from '../world/Position';
 import { bedrockMobEffectId } from '../entity/StatusEffect';
+import { statusEffectPacket } from './replica/firstSight';
 import {
     effectiveViewDistance,
     isInView,
@@ -51,7 +51,6 @@ import LevelEventPacket from '@jsprismarine/protocol/packet/LevelEventPacket';
 import PlaySoundPacket from '@jsprismarine/protocol/packet/PlaySoundPacket';
 import SpawnParticleEffectPacket from '@jsprismarine/protocol/packet/SpawnParticleEffectPacket';
 import MoveActorAbsolutePacket from '@jsprismarine/protocol/packet/MoveActorAbsolutePacket';
-import MobEffectPacket, { MobEffectEvent } from '@jsprismarine/protocol/packet/MobEffectPacket';
 
 /**
  * The actor type a sound is attributed to, where vanilla sends something other than nothing.
@@ -399,6 +398,8 @@ export class NetworkWorldReplicator implements WorldChangeSink {
                 return undefined;
             case 'emote':
                 return this.sendToTrackedEntity(entry.data.entity, () => [emotePacketOf(entry.data)]);
+            case 'status-effect':
+                return this.sendStatusEffect(entry.data);
             default:
                 // A shown block goes out with the block changes, and a vetoed action is a record.
                 return undefined;
@@ -812,6 +813,23 @@ export class NetworkWorldReplicator implements WorldChangeSink {
         this.sendAround(new Vector3(position.x, position.y, position.z), packet, { radius: WORLD_EVENT_RADIUS });
     }
 
+    /**
+     * A status effect change of one entity, to the players tracking it, which share one encode
+     * for each group, and to its own client, whose packet carries the tick of its last input.
+     */
+    private async sendStatusEffect({ entity, change, effect }: OccurrenceKinds['status-effect']): Promise<void> {
+        if (bedrockMobEffectId(effect.id) === undefined) return;
+        const sends = [
+            this.sendToTrackedEntity(entity, () => {
+                const packet = statusEffectPacket(entity, effect, change, 0n);
+                return packet === undefined ? [] : [packet];
+            })
+        ];
+        const own = this.world.viewerOf(entity);
+        if (own !== undefined) sends.push(own.sendStatusEffect({ getRuntimeId: () => entity }, effect, change));
+        await Promise.all(sends);
+    }
+
     /** Something that happened to one entity, to the players tracking it and to its own client. */
     private async sendActorEvent({ entity, event, data }: OccurrenceKinds['actor-event']): Promise<void> {
         const packetForViewer = (): ActorEventPacket => {
@@ -824,38 +842,6 @@ export class NetworkWorldReplicator implements WorldChangeSink {
         const sends = [this.sendToTrackedEntity(entity, () => [packetForViewer()])];
         const own = this.world.viewerOf(entity);
         if (own !== undefined) sends.push(own.send(packetForViewer()));
-        await Promise.all(sends);
-    }
-
-    /** @inheritdoc */
-    public async statusEffectChanged(
-        entity: ShownActor,
-        effect: StatusEffect,
-        change: StatusEffectChange
-    ): Promise<void> {
-        const effectId = bedrockMobEffectId(effect.id);
-        if (effectId === undefined) return;
-
-        const packetForViewer = (): MobEffectPacket => {
-            const packet = new MobEffectPacket();
-            packet.targetRuntimeId = entity.getRuntimeId();
-            packet.eventId =
-                change === 'add'
-                    ? MobEffectEvent.Add
-                    : change === 'update'
-                      ? MobEffectEvent.Update
-                      : MobEffectEvent.Remove;
-            packet.effectId = effectId;
-            packet.effectAmplifier = effect.amplifier;
-            packet.showParticles = effect.showParticles;
-            packet.effectDurationTicks = effect.durationTicks;
-            packet.tick = 0n;
-            packet.ambient = effect.ambient;
-            return packet;
-        };
-        const sends = [this.sendToTrackedEntity(entity.getRuntimeId(), () => [packetForViewer()])];
-        const own = this.world.viewerOf(entity.getRuntimeId());
-        if (own !== undefined) sends.push(own.sendStatusEffect(entity, effect, change));
         await Promise.all(sends);
     }
 

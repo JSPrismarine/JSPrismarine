@@ -235,6 +235,31 @@ describe('world', () => {
             ]);
         });
 
+        it('logs a status effect change as an occurrence, and none for a unit that threw', async () => {
+            const { world, sealed } = await flatWorld();
+            const effect = {
+                id: 'minecraft:speed',
+                amplifier: 1,
+                durationTicks: 200,
+                ambient: false,
+                showParticles: true,
+                showIcon: true
+            };
+
+            world.beginChangeTick();
+            world.sendStatusEffect({ getRuntimeId: () => 7n }, effect, 'add');
+            const outcome = world.getEntityStore().unit(() => {
+                world.sendStatusEffect({ getRuntimeId: () => 7n }, effect, 'remove');
+                throw new Error('planned');
+            });
+            world.sealChangeTick();
+
+            expect(outcome.failed).toBe(true);
+            expect(sealed.at(-1)?.entries).toEqual([
+                { kind: 'occurrence', occurrence: 'status-effect', data: { entity: 7n, change: 'add', effect } }
+            ]);
+        });
+
         it('hands the sink an occurrence made between ticks with the next tick', async () => {
             const { world, sealed } = await flatWorld();
             world.beginChangeTick();

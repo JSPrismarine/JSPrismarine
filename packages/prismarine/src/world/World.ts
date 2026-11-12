@@ -2078,13 +2078,27 @@ export class World implements Service {
     }
 
     /**
-     * Tells clients tracking an entity about one status effect change.
-     * @param {ShownActor} entity - The actor whose effect changed.
+     * Tells clients tracking an entity, and its own client, about one status effect change. It is
+     * a `status-effect` occurrence in the change log, which replication sends after the tick seals.
+     * @param {Pick<ShownActor, 'getRuntimeId'>} entity - The actor whose effect changed.
      * @param {StatusEffect} effect - The effect state.
      * @param {StatusEffectChange} change - Whether it was added, updated, or removed.
      */
-    public async sendStatusEffect(entity: ShownActor, effect: StatusEffect, change: StatusEffectChange): Promise<void> {
-        await this.changes.statusEffectChanged?.(entity, effect, change);
+    public sendStatusEffect(
+        entity: Pick<ShownActor, 'getRuntimeId'>,
+        effect: StatusEffect,
+        change: StatusEffectChange
+    ): void {
+        const { id, amplifier, durationTicks, ambient, showParticles, showIcon } = effect;
+        this.occurred({
+            kind: 'occurrence',
+            occurrence: 'status-effect',
+            data: {
+                entity: entity.getRuntimeId(),
+                change,
+                effect: { id, amplifier, durationTicks, ambient, showParticles, showIcon }
+            }
+        });
     }
 
     /**

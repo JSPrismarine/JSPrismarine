@@ -1,5 +1,4 @@
 import type { NBTTagCompound } from '@jsprismarine/nbt';
-import type { StatusEffect, StatusEffectChange } from '../entity/StatusEffect';
 import type { SealedTick } from './changelog/ChangeLog';
 import type { ShownActor, ShownEntity } from './ShownActor';
 
@@ -75,17 +74,6 @@ export interface WorldChangeSink {
      * @param {number} z - The chunk's z, in chunks.
      */
     chunkLeft(x: number, z: number): void;
-
-    /**
-
-    /**
-     * An entity's active effect was added, refreshed, or removed.
-     * @param {ShownActor} entity - The affected actor.
-     * @param {StatusEffect} effect - The effect state that changed.
-     * @param {StatusEffectChange} change - What happened to the effect.
-     * @returns {Promise<void>} Resolves once the change is on its way.
-     */
-    statusEffectChanged?(entity: ShownActor, effect: StatusEffect, change: StatusEffectChange): Promise<void>;
 
     /**
      * A player's session moved its player, as a client's move or a teleport the server made.
@@ -204,7 +192,6 @@ export const NULL_WORLD_CHANGE_SINK: WorldChangeSink = {
     tickSealed: () => {},
     chunkEntered: () => {},
     chunkLeft: () => {},
-    statusEffectChanged: async () => {},
     entityMoved: () => {},
     timeChanged: async () => {},
     gameRuleChanged: async () => {},

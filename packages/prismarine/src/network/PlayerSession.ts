@@ -2902,11 +2902,15 @@ export default class PlayerSession {
 
     /**
      * Sends one effect state change to this client.
-     * @param {ShownActor} entity - The actor whose effect changed.
+     * @param {Pick<ShownActor, 'getRuntimeId'>} entity - The actor whose effect changed.
      * @param {StatusEffect} effect - The effect state.
      * @param {StatusEffectChange} change - Whether it was added, updated, or removed.
      */
-    public async sendStatusEffect(entity: ShownActor, effect: StatusEffect, change: StatusEffectChange): Promise<void> {
+    public async sendStatusEffect(
+        entity: Pick<ShownActor, 'getRuntimeId'>,
+        effect: StatusEffect,
+        change: StatusEffectChange
+    ): Promise<void> {
         const runtimeId = entity.getRuntimeId();
         const packet = statusEffectPacket(
             runtimeId,

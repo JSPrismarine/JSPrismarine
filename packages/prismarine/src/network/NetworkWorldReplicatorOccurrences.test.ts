@@ -170,6 +170,22 @@ describe('network', () => {
                     platformId: '',
                     flags: EmoteFlags.ServerSide
                 }
+            },
+            {
+                kind: 'occurrence',
+                occurrence: 'status-effect',
+                data: {
+                    entity: 99n,
+                    change: 'add',
+                    effect: {
+                        id: 'minecraft:speed',
+                        amplifier: 0,
+                        durationTicks: 100,
+                        ambient: false,
+                        showParticles: true,
+                        showIcon: true
+                    }
+                }
             }
         ];
 
