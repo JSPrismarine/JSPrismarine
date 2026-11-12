@@ -13,6 +13,7 @@ import Codec2193 from './codec/Codec2193';
 import type { ProtocolCodec } from '@jsprismarine/protocol';
 import type ClientConnection from './ClientConnection';
 import NetworkDispatcher from './NetworkDispatcher';
+import { INPUT_ADMISSION_BUDGET_PER_TICK } from './InputQueue';
 import TextPacket from '@jsprismarine/protocol/packet/TextPacket';
 import { PacketLogFilter } from './PacketLogFilter';
 import type PacketHandlerRegistry from './PacketHandlerRegistry';
@@ -1209,6 +1210,36 @@ describe('network', () => {
             }
         });
 
+        it("applies a lone input from one connection in the first step while another's backlog fills the budget", async () => {
+            const handled: string[] = [];
+            const { transport, dispatcher } = makeSessionDispatcher({
+                lanes: { TextPacket: 'input' },
+                handler: {
+                    phases: ['play'],
+                    handle: async (packet) => {
+                        handled.push(nameOf(packet));
+                    }
+                }
+            });
+            await transport.emitConnect(fakeConnection(1).connection);
+            await transport.emitConnect(fakeConnection(2).connection);
+
+            // As many as one step applies, from connection 1, then one input from connection 2.
+            const flood = Array.from({ length: INPUT_ADMISSION_BUDGET_PER_TICK }, (_unused, index) =>
+                message(`flood:${index}`)
+            );
+            await transport.emitFrame(batchOf(flood), 1);
+            await transport.emitFrame(frameOf(message('player')), 2);
+            expect(dispatcher.pendingInputs).toBe(INPUT_ADMISSION_BUDGET_PER_TICK + 1);
+
+            expect(dispatcher.admitInputs()).toBe(INPUT_ADMISSION_BUDGET_PER_TICK);
+            expect(handled).toContain('input:player');
+            const flooded = handled.filter((name) => name.startsWith('input:flood:'));
+            expect(flooded).toEqual(
+                flood.slice(0, flooded.length).map((packet) => `input:${packet.getPacketData()!.message}`)
+            );
+        });
+
         it('stamps a captured input with the tick whose input step applied it', async () => {
             const trace = new InboundPacketTrace();
             let tick = 10;
@@ -1356,6 +1387,39 @@ describe('network', () => {
             await dispatcher.admitInputs();
             await Promise.all([arrival, closed]);
             expect(order).toEqual(['input:last move', 'removed']);
+        });
+
+        it("keeps a player's removal behind its own inputs while other connections take their turns", async () => {
+            const order: string[] = [];
+            const { transport, dispatcher } = makeSessionDispatcher({
+                session: {
+                    session: stub<PlayerSession>({
+                        identity: STEVE,
+                        getWorld: () => stub<World>({ viewerOf: () => undefined, runInputNow: (apply) => apply() })
+                    }),
+                    phase: 'play'
+                },
+                lanes: { TextPacket: 'input' },
+                onClosePlayerSession: () => void order.push('removed'),
+                handler: {
+                    phases: ['play'],
+                    handle: async (packet) => {
+                        order.push(nameOf(packet));
+                    }
+                }
+            });
+            await transport.emitConnect(fakeConnection(1).connection);
+            await transport.emitConnect(fakeConnection(2).connection);
+
+            await transport.emitFrame(batchOf([message('1a'), message('1b'), message('1c')]), 1);
+            await transport.emitFrame(frameOf(message('2a')), 2);
+            const closed = transport.emitDisconnect(1, 'client disconnected');
+            await turn();
+            expect(dispatcher.pendingInputs).toBe(5);
+
+            while (dispatcher.pendingInputs > 0) dispatcher.admitInputs(2);
+            await closed;
+            expect(order).toEqual(['input:1a', 'input:2a', 'input:1b', 'input:1c', 'removed']);
         });
     });
 });

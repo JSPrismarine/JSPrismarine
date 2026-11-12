@@ -54,12 +54,14 @@ again at a later input step. A plugin's `tick` listener is called inside the tic
 first wait; what it does after that lands outside the tick.
 
 A tick starts with its input step, before any world updates. A packet whose handler declares the
-`input` lane does not run when it arrives: it waits, and the input step applies every input held
-since the last tick in the order they arrived, at most
-<!-- fact:tick.inputBudget -->4096<!-- /fact --> of them, leaving the rest in order for the next
-tick. A player's removal is an input too, whether the client sent `Disconnect` or its connection
-closed. A packet in the `connection` or `read` lane runs when it arrives, unless an input the same
-client sent earlier is still waiting; then it waits behind that input, so a client never sees a
+`input` lane does not run when it arrives: it waits, and the input step applies the inputs held
+since the last tick, at most <!-- fact:tick.inputBudget -->4096<!-- /fact --> of them. The step
+takes one input from each client in turn, so a client with a backlog gets the same share as one
+that sent a single move and cannot hold that move back. Each client's inputs keep the order they
+arrived in, and the rest wait for the next tick. A player's removal is an input too, whether the
+client sent `Disconnect` or its connection closed, and it waits behind that client's own inputs. A
+packet in the `connection` or `read` lane runs when it arrives, unless an input the same client
+sent earlier is still waiting; then it waits behind that input, so a client never sees a
 reply that overtook its own action. The levels tick one after another, so this one step is the
 input step of every world, and no handler runs in the middle of a world's update. A replay
 offers each recorded packet before the tick its capture recorded, and the same step applies it.
