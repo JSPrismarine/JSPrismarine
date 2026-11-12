@@ -460,12 +460,14 @@ describe('a store player', () => {
     describe('game mode', () => {
         it('spares a creative player hunger, breath and falls, and logs and undoes the change', () => {
             const fixture = storePlayerFixture();
+            fixture.world.setBlock(HEAD, 'minecraft:water');
             const { player, components } = standingPlayer(fixture);
             components.set('vitals.food', 0);
 
             const change = logged(fixture.runtime, () => components.set('abilities.gamemode', Gametype.CREATIVE));
             expect(fieldsOf(change, 'abilities.gamemode')).toHaveLength(1);
             ticks(fixture, 80);
+            expect(components.get('vitals.air')).toBe(components.maxAir());
             expect(dropFrom(fixture, player, 10)).toBeDefined();
             expect(healthOf(player)).toBe(20);
 
