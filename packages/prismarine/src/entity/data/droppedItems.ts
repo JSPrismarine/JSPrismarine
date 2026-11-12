@@ -453,12 +453,21 @@ export class DroppedItems {
         }
 
         let nextFeet = feet + motionY;
-        const landed = this.solidAt(x, nextFeet, z);
-        if (landed === undefined) return;
-        if (landed) {
+        // Falling, every block between here and the end of the step is tried, top down: a stack
+        // near its top speed of about two blocks a tick would otherwise pass through a slab of
+        // one block. The block the stack is in is not, so one sunk into a block does not climb out.
+        const top = Math.floor(feet);
+        const bottom = Math.floor(nextFeet);
+        let landed = false;
+        for (let block = motionY < 0 && bottom < top ? top - 1 : bottom; block >= bottom; block -= 1) {
+            const solid = this.solidAt(x, block, z);
+            if (solid === undefined) return;
+            if (!solid) continue;
             // The step would end inside a block, so it comes to rest on top of that one instead.
-            nextFeet = Math.floor(nextFeet) + 1;
+            landed = true;
+            nextFeet = block + 1;
             motionY = 0;
+            break;
         }
 
         const sideways = landed ? tuning.groundDrag : tuning.airDrag;
