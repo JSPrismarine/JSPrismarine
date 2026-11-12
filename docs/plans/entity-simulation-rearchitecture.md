@@ -155,7 +155,8 @@ As of 2026-11-11. The rows through C4f were checked at program head `7265972882`
 | E2 dimension travel as messages, E3 chunk tickets | Landed on the program branch; see the phase E notes |
 | E4 tick functions as inputs, and the synchronous tick | Landed on the program branch with E4a to E4f. Slice 9's target gates in `SynchronousTick.test.ts`; see the E4 notes |
 | F1 one lifecycle event bus | Landed on the program branch. Slice 10 is done; see the F1 notes under phase F |
-| E1 and F2 | Not started |
+| F2 explicit exports for Prismarine | Landed on the program branch. Slice 11 is done, and `noBarrel.test.ts` gates its target; see the F2 notes under phase F |
+| E1 | Not started |
 
 ## Phases and work packages
 
@@ -1265,6 +1266,23 @@ What a consumer changes:
 1. Import each symbol from the module that defines it, through one of the entry points above. `import { Config, Server } from '@jsprismarine/prismarine'` becomes `import { Server } from '@jsprismarine/prismarine'` and `import { Config } from '@jsprismarine/prismarine/config/Config'`.
 2. The root no longer exports `Events`, `Handlers`, `BlockEntities`, the managers or any other namespace. Event classes come from their own modules, such as `@jsprismarine/prismarine/events/chat/ChatEvent`.
 3. A path that is not an entry point above stops resolving from the published package. A program that needs one should open an issue, so the module can be made public on purpose.
+
+##### F2
+
+F2 landed with the entry points of its split and one change to the order: the root went first, not last. Moving every importer of the root `index.ts` to the defining modules in one commit left the directory barrels with no importer but the root, so each later commit deleted one barrel and touched only that barrel's own importers. A codemod over the TypeScript syntax tree did the moves: for each named import of a barrel it followed the re-exports to the module that declares the symbol and wrote one import per module. Nothing outside the package changed behavior; only import paths moved.
+
+- The barrels. Before: 20 Prismarine files in `scripts/barrel-baseline.json`, with 20 `noBarrelFile` and 77 `noReExportAll` findings. After: none. The root `index.ts`, `Managers.ts`, the 16 directory `index.ts` files and `events/Events.ts` are deleted, `world/Dimension.ts` and `javaWorldgenData.ts` no longer re-export, and `builtInGeneratorFactories` moved to `world/generators/factories/builtIn.ts`. Most directory barrels had no importer except the root; `utils`, `command/function`, `network` and the world barrels had one to three each.
+- The root. `"."` is `Server.ts`, which gained a named `Server` export, so `import { Server } from '@jsprismarine/prismarine'` is unchanged and `./Server` is no longer an entry. `packages/server` loads `Config`, `RemoteConsole` and `RemoteLogTransport` from their modules beside the root, and its declaration build maps the root to `Server.d.ts`. The handler check in `noServerAccess.test.ts` counts an import of the package root as an import of `Server`.
+- The exports maps. The published map has the 39 entry points of the split. The workspace map has those and 77 internal modules that the parity suite, the client's tests and the benchmarks import, 4 of them test helpers with a source target only. pnpm writes the published map over the workspace one when it packs. `network/index` became `network/contentPayloads`, the module the parity suite actually reads.
+- The API reference. `packages/prismarine/typedoc.config.mjs` reads the entry points from `publishConfig.exports`, so Typedoc documents the published modules and no others. The extending guide lists them through the `prismarine.entryPoints.list` docs fact, read from the same map.
+- The gate. `noBarrel.test.ts` fails when the baseline has a Prismarine entry, when either exports map has a pattern, when a workspace entry names a missing source module, or when a published entry is not a built workspace entry. With `pnpm run lint:barrels`, which fails on any barrel finding the baseline does not allow, it keeps slice 11's target.
+- The consumer check. The built `@jsprismarine/prismarine` and the 43 workspace packages it depends on, packed with `pnpm pack` and installed with npm in an empty ESM project, typecheck a file that imports all 39 entry points and a file that embeds the server as the extending guide does, under TypeScript 6 with `--moduleResolution NodeNext` and with `Bundler`, `skipLibCheck` off. An import of `world/chunk/Chunk` fails with TS2307 under both. At run time `world/chunk/Chunk`, `world/positionKeys`, `index` and `Server` throw `ERR_PACKAGE_PATH_NOT_EXPORTED`, and the root, `config/Config` and `version` load.
+- What a consumer changes is in the split, and the Changeset `prismarine-explicit-exports.md` (`minor` for Prismarine, `patch` for the server) lists where each former root export lives.
+- Left for later:
+  1. Re-exports Biome does not count. Five type-only re-exports (`BanManager.ts`, `World.ts`, `WorldManager.ts` and `DragonFight.ts` from the config types and `WorldPersistence.ts`) and nine modules that import a symbol and export it again, such as `inventory/WindowIds.ts`, `entity/Difficulty.ts` and `content/world/adapter.ts`. None is a barrel, and each is one or a few symbols.
+  2. `network/Handlers.ts` imports every handler and exports them again. It is the handler registry's list, nothing outside the package reads it, and replacing it with a list module of its own is a change to the registry.
+  3. The 77 internal workspace entries. A parity test that reaches an internal module keeps an entry for it; moving those tests onto public entry points, or making a module public on purpose, would shrink the list.
+- Checks at F2's head: `pnpm run build`, `pnpm run typecheck`, `pnpm run lint:custom` and `pnpm run lint` pass; lint's one warning is the unused `Tag` in `packages/leveldb/src/db/VersionEdit.ts`. With `JSP_CONTENT_VANILLA=1`, Prismarine's suite passes 446 files with 2 skipped, and the client, server, parity and commands suites pass 94 files, at load average 16 to 17. `SessionReplay.test.ts` passes with its baselines as they were, so the replay digests did not move. `pnpm exec vitest run scripts tools` passes 14 files. `node scripts/check-workspace-conditions.mjs` resolves every workspace export from source and from `dist`. Client e2e `dimensions` alone, then `spawn`, `chat`, `block-placement` and `death-respawn`, pass, and `spawn` passes against the built packages with `pnpm run e2e:client:dist`. `pnpm --filter @jsprismarine/docs run docs:stage` runs clean, and `typedoc --emit none` reports 0 errors.
 
 ## The gate for each slice
 
