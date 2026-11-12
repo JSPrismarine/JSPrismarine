@@ -141,7 +141,7 @@ const scene = (open: OpenBlockContainer) => {
     });
 
     const runtimeId = nextRuntimeId++;
-    const name = `tester-${runtimeId}`;
+    const name = `workstation-tester-${runtimeId}`;
     // The player as the request's steps read it, through its session.
     const player: PlayerSession = stub<PlayerSession>({
         getType: () => 'minecraft:player',

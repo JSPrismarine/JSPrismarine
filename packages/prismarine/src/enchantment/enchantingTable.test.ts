@@ -124,8 +124,10 @@ const scene = (built: ServerContent, world = worldOf(), random: () => number = (
     const attributes = new Attributes(Attributes.getPlayerDefaults());
 
     const runtimeId = nextRuntimeId++;
-    // Its own name, because per-player services are keyed by the name of a player with no XUID.
-    const name = `tester-${runtimeId}`;
+    // Its own name, because per-player services are keyed by the name of a player with no XUID,
+    // and this file's alone: test files share a module instance (`isolate: false`), so another
+    // file's `tester-<id>` would already hold a seed.
+    const name = `enchanting-tester-${runtimeId}`;
     const server = stub<Server>({ getContent: () => built, getRandom: () => random });
     const player: PlayerSession = stub<PlayerSession>({
         getType: () => 'minecraft:player',
