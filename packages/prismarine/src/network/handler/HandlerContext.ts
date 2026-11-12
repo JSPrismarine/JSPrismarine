@@ -17,6 +17,7 @@ import type { ServerWorldHandle } from '../../content/world/serverSource';
 import type { EventEmitter } from '../../events/EventEmitter';
 import type { CreativeInventory } from '../../inventory/CreativeInventory';
 import type { PermissionManager } from '../../permission/PermissionManager';
+import type { WorldMessages } from '../../world/WorldMessages';
 import type SessionManager from '../../SessionManager';
 import type { WorldReplicators } from '../NetworkWorldReplicator';
 import type PlayerSession from '../PlayerSession';
@@ -71,6 +72,11 @@ export interface HandlerServices {
     readonly chat: Pick<ChatManager, 'send'>;
     /** The per-world replicators, for a handler that relays a packet to the players near a point. */
     readonly replicators: Pick<WorldReplicators, 'for'>;
+    /**
+     * Changes for another world, which its input step applies. A handler applies an input in
+     * the sender's world and files what it changes anywhere else here.
+     */
+    readonly messages: Pick<WorldMessages, 'send'>;
     /** The console, as the sender of a server-issued line. */
     readonly console: ConsoleSender;
     /** The plugin events a handler raises. */

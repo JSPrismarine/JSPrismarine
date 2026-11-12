@@ -65,13 +65,17 @@ export default class SetDefaultGameTypeHandler implements InputLaneHandler<SetDe
         services.defaults.setGamemode(packet.gamemode, true).catch((error: unknown) => {
             log.error(`Could not save the default game type ${packet.gamemode}: ${error}`);
         });
-        const sessions = services.sessions.getSessions();
-        // `PlayerSession.setGamemode` waits for its sends and for the mining it stops, and it
-        // writes players in every world, not only the sender's. Slice 9, where a change to
-        // another world travels as a message, removes the wait.
-        step.defer(async () => {
-            await Promise.all(sessions.map(async (target) => target.setGamemode(packet.gamemode)));
-            await Promise.all(sessions.map(async (target) => sendDefault(config, target)));
-        });
+        // Each player's game mode is written in the world the player stands in: at once for the
+        // sender's world, whose input step this is, and as a message for any other world, which
+        // its own input step applies. Each client hears its new mode and then the default.
+        const world = session.getWorld();
+        for (const target of services.sessions.getSessions()) {
+            const change = async () => {
+                await target.setGamemode(packet.gamemode);
+                await sendDefault(config, target);
+            };
+            if (target.getWorld() === world) step.output(change());
+            else services.messages.send(target.getWorld(), change);
+        }
     }
 }
