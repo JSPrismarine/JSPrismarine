@@ -288,6 +288,9 @@ export class NetworkWorldReplicator implements WorldChangeSink {
             case 'world-effect':
                 this.sendWorldEffect(entry.data);
                 return undefined;
+            case 'block-sound':
+                this.sendBlockSound(entry.data);
+                return undefined;
             default:
                 // A shown block goes out with the block changes, and a vetoed action is a record.
                 return undefined;
@@ -594,30 +597,27 @@ export class NetworkWorldReplicator implements WorldChangeSink {
         }
     }
 
-    /** @inheritdoc */
-    public blockSound(
-        position: Vector3,
-        sound: LevelSoundEvent,
-        blockRuntimeId: number,
-        except?: Pick<ShownActor, 'getRuntimeId'>
-    ): void {
+    /** A block's noise, to the players near it but the one whose own client plays it. */
+    private sendBlockSound({ x, y, z, sound, block, except }: OccurrenceKinds['block-sound']): void {
         const packet = new LevelSoundEventPacket();
         packet.sound = sound;
 
         // Center of the block, not its corner: the sound is placed in the world and a whole
         // block off is audible when it is right next to you. Only the packet is centered - the
-        // audience is still resolved at the block itself, which is the position the world
-        // named and the one that still carries which world it is in.
-        packet.positionX = position.getX() + 0.5;
-        packet.positionY = position.getY() + 0.5;
-        packet.positionZ = position.getZ() + 0.5;
+        // audience is still resolved at the block itself.
+        packet.positionX = x + 0.5;
+        packet.positionY = y + 0.5;
+        packet.positionZ = z + 0.5;
 
-        packet.extraData = blockRuntimeId; // In this case refers to block runtime Id
+        packet.extraData = block; // In this case refers to block runtime Id
         packet.entityType = SOUND_ACTOR_TYPE[sound] ?? '';
         packet.isBabyMob = false;
         packet.disableRelativeVolume = false;
 
-        this.sendAround(position, packet, { radius: SOUND_RADIUS, exclude: except });
+        this.sendAround(new Vector3(x, y, z), packet, {
+            radius: SOUND_RADIUS,
+            ...(except === null ? {} : { exclude: { getRuntimeId: () => except } })
+        });
     }
 
     /** @inheritdoc */

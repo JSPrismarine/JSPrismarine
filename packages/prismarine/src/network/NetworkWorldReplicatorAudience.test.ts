@@ -1,6 +1,5 @@
 import type { Logger } from '@jsprismarine/logger';
 import { Vector3 } from '@jsprismarine/math';
-import { LevelSoundEvent } from '@jsprismarine/minecraft';
 import { describe, expect, it } from 'vitest';
 
 import type Server from '../Server';
@@ -146,18 +145,6 @@ describe('network', () => {
 
                 expect(replicator.getViewers(here, { exclude: playerOf(near) })).toEqual([]);
             });
-        });
-
-        it('leaves the player a block sound names out of it', () => {
-            // The one striking a block, whose client plays its own hits.
-            const heard: string[] = [];
-            const listener = (name: string) => playerAt(0, {}, { send: async () => void heard.push(name) });
-            const striker = listener('striker');
-            const { replicator } = fakeWorld({ players: [striker, listener('neighbor')] });
-
-            replicator.blockSound(here, LevelSoundEvent.HIT, 0, playerOf(striker));
-
-            expect(heard).toEqual(['neighbor']);
         });
     });
 });

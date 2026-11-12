@@ -78,24 +78,9 @@ export interface WorldChangeSink {
     chunkLeft(x: number, z: number): void;
 
     /**
-     * A block made a noise, such as a hit while it is mined.
-     * @param {Vector3} position - Where it happened, at the center of the block.
-     * @param {LevelSoundEvent} sound - Which noise.
-     * @param {number} blockRuntimeId - The block that made it.
-     * @param [except] - A player who already hears it, because their own client plays it, matched
-     *   by entity id.
-     */
-    blockSound(
-        position: Vector3,
-        sound: LevelSoundEvent,
-        blockRuntimeId: number,
-        except?: Pick<ShownActor, 'getRuntimeId'>
-    ): void;
-
-    /**
      * A named sound played at a position.
      *
-     * Separate from {@link blockSound} because the name is a string rather than a number. The
+     * Separate from a block's sound because the name is a string rather than a number. The
      * `LevelSoundEvent` enum covers a few dozen sounds; the engine systems and the block
      * behaviors name several hundred, `open.door` and `random.chestopen` among them, and
      * those travel as text.
@@ -128,7 +113,7 @@ export interface WorldChangeSink {
     /**
      * An entity made a noise: it was hit, it died, it swung at something.
      *
-     * Separate from {@link blockSound} because the wire format differs in a way that matters -
+     * Separate from a block's sound because the wire format differs in a way that matters -
      * a mob's sound carries which mob is making it, so a client can pick the zombie's grunt over
      * the skeleton's rattle, where a block's carries the block's runtime id instead. Sent to
      * whoever is near enough rather than to whoever is tracking, because a sound is audible from
@@ -283,7 +268,6 @@ export const NULL_WORLD_CHANGE_SINK: WorldChangeSink = {
     tickSealed: () => {},
     chunkEntered: () => {},
     chunkLeft: () => {},
-    blockSound: () => {},
     namedSound: () => {},
     namedParticle: () => {},
     actorEffect: async () => {},
