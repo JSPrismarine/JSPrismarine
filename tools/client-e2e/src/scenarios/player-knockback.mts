@@ -22,6 +22,9 @@ export const playerKnockback: Scenario = {
         await padReady;
         await standAt({ server, client, playerName }, STAND);
 
+        // A pig an earlier scenario left alive could be the one the damage selector takes, and a
+        // pig east of the player would shove it west.
+        server.command('kill @e[type=minecraft:pig]');
         server.command(`summon minecraft:pig ${STAND.x - 2} ${STAND.y} ${STAND.z}`);
         await sleep(500);
         const before = vec3(await client.state(), 'feet');
