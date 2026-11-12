@@ -9,7 +9,7 @@ import Chunk from '@jsprismarine/prismarine/world/chunk/Chunk';
 import { dimensionTypeOf, Dimensions, FIRST_CUSTOM_DIMENSION_ID } from '@jsprismarine/prismarine/world/DimensionType';
 import type { DimensionType } from '@jsprismarine/prismarine/world/DimensionType';
 import { Position } from '@jsprismarine/prismarine/world/Position';
-import type { ShownActor } from '@jsprismarine/prismarine/world/ShownActor';
+import type { ShownEntity } from '@jsprismarine/prismarine/world/ShownActor';
 import type { World } from '@jsprismarine/prismarine/world/World';
 import type { NetworkPacket, ProtocolCodec } from '@jsprismarine/protocol';
 import ChangeDimensionPacket from '@jsprismarine/protocol/packet/ChangeDimensionPacket';
@@ -65,7 +65,7 @@ const captureSequence = async (dimension: DimensionType = Dimensions.Nether): Pr
     const { session, player, sent } = fakePlayer();
     // A tracked mob in the world being left, so the change has an actor to remove.
     await session.considerEntity(
-        stub<ShownActor>({
+        stub<ShownEntity>({
             getRuntimeId: () => player.getRuntimeId() + 1_000_000n,
             getPosition: () => new Position(4, 64, 4, session.getWorld()),
             getTrackingRange: () => 8,

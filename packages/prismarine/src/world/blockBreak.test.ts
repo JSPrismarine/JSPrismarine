@@ -10,7 +10,6 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
 import { EntityRuntimes } from '../entity/data/live';
 import type { StoreActor } from '../entity/data/storeActors';
-import type { ShownActor } from './ShownActor';
 import { ItemActor as ItemEntity } from '../entity/data/itemActor';
 import ContainerEntry from '../inventory/ContainerEntry';
 import HumanInventory from '../inventory/HumanInventory';
@@ -33,6 +32,7 @@ import { Position } from './Position';
 import { fakeLevel } from '../testing/level';
 import type PlayerSession from '../network/PlayerSession';
 import { sessionOnPrototype } from '../testing/storePlayer.test.helper';
+import { collectAddedActors } from '../testing/addedActors.test.helper';
 
 /** The blocks this fixture declares, which are also the whole of its palette. */
 const BLOCKS = [
@@ -220,12 +220,12 @@ const liveWorld = (
 ): {
     world: World;
     chunk: Chunk;
-    spawned: ShownActor[];
+    spawned: StoreActor[];
     entities: Map<number, StoreActor>;
     players: Map<number, PlayerSession>;
 } => {
     const chunk = new Chunk(0, 0);
-    const spawned: ShownActor[] = [];
+    const spawned: StoreActor[] = [];
     // Where the item actor port finds the breaking player by the world's numeric runtime ID key.
     const entities = new Map<number, StoreActor>();
     // Where the world finds the breaking player's session by the same key.
@@ -242,7 +242,6 @@ const liveWorld = (
         getPlayers: () => [],
         notifyBlockBreak: () => {},
         sendWorldEvent: async () => {},
-        showActor: async (actor: ShownActor) => void spawned.push(actor),
         server: {
             getConfig: () => ({ getDifficulty: () => Difficulty.NORMAL, getProximityBroadcast: () => true }),
             getLogger: () => ({ debug: () => {}, error: () => {}, verbose: () => {}, warn: () => {} }),
@@ -253,6 +252,7 @@ const liveWorld = (
     });
 
     world.attachChangeSink(NULL_WORLD_CHANGE_SINK);
+    collectAddedActors(spawned);
     Object.assign(world, {
         systems: new WorldSystems({
             view: {
@@ -277,7 +277,7 @@ const place = (chunk: Chunk, at: ContentPosition, identifier: string, states: Re
 describe('breakBlockWithContent', () => {
     let world: World;
     let chunk: Chunk;
-    let spawned: ShownActor[];
+    let spawned: StoreActor[];
     let players: Map<number, PlayerSession>;
     let content: ServerContent;
 

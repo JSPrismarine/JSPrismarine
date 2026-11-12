@@ -1,12 +1,16 @@
+import BinaryStream from '@jsprismarine/binaryutils';
 import type { Logger } from '@jsprismarine/logger';
 import { describe, expect, it, vi } from 'vitest';
 
 import type Server from '../Server';
 import type { Config } from '../config/Config';
 import { stub, stubOf } from '../testing/stub.test.helper';
-import { StorePlayerActor } from '../entity/data/storePlayers';
+import type { DataEntity } from '../entity/data/DataEntity';
+import { StorePlayerActor, StorePlayers } from '../entity/data/storePlayers';
+import { entityFixture, FLOOR_Y, TestEntityWorld } from '../entity/data/testing';
 import { PLAYER_IDENTIFIER } from '../entity/playerOverlay';
-import type { ShownActor } from '../world/ShownActor';
+import { SHIPPED_PLAYER } from '../testing/storePlayer.test.helper';
+import type { ShownActor, ShownEntity } from '../world/ShownActor';
 import type { World } from '../world/World';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import type { ProtocolCodec } from '@jsprismarine/protocol';
@@ -15,13 +19,15 @@ import { BatchCodec } from '@jsprismarine/protocol';
 import MoveActorAbsolutePacket from '@jsprismarine/protocol/packet/MoveActorAbsolutePacket';
 import type ClientConnection from './ClientConnection';
 import type PlayerSession from './PlayerSession';
-import { Attribute } from '@jsprismarine/protocol/wire/structures/Attribute';
+import { ActorEvent } from '@jsprismarine/protocol/packet/ActorEventPacket';
+import UpdateAttributesPacket from '@jsprismarine/protocol/packet/UpdateAttributesPacket';
 import { Metadata } from '@jsprismarine/protocol/wire/structures/Metadata';
 import { SyncedProperties } from '@jsprismarine/protocol/wire/structures/SyncedProperties';
 import { Position } from '../world/Position';
 import Codec2193 from './codec/Codec2193';
 import Codec2225 from './codec/Codec2225';
 import { NetworkWorldReplicator } from './NetworkWorldReplicator';
+import { replicateEntities } from '../testing/changeTicks.test.helper';
 
 /**
  * Who is shown what, as entities come and go.
@@ -44,8 +50,11 @@ const fakeSession = (
     const frames: Buffer[] = [];
     const selfStateCalls: string[] = [];
     const tracked = new Set<bigint>();
+    /** What reached the session, frames and drops, in the order they did. */
+    const order: ('frame' | 'drop')[] = [];
 
     return {
+        order,
         considered,
         dropped,
         reconciled,
@@ -60,16 +69,25 @@ const fakeSession = (
                     codec,
                     compressionAlgorithm,
                     compressionThreshold,
-                    sendSharedBatch: async (content) => void frames.push(content),
+                    sendSharedBatch: async (content) => {
+                        frames.push(content);
+                        order.push('frame');
+                    },
                     sendSharedBatchAsync: async (batch) => void frames.push((await batch).content)
                 }),
-            sendAttributesFor: async () => void selfStateCalls.push('attributes'),
             sendMetadataFor: async () => void selfStateCalls.push('metadata'),
             sendStatusEffect: async () => void selfStateCalls.push('status effect'),
-            sendEquipmentFor: async () => void selfStateCalls.push('equipment'),
-            considerEntity: async (entity: ShownActor) => void considered.push(entity.getRuntimeId()),
-            dropEntity: async (entity: ShownActor) => void dropped.push(entity.getRuntimeId()),
-            reconcileTrackedEntities: async (entities: Iterable<ShownActor> = []) =>
+            // What `PlayerSession.considerEntity` does once the tracker says yes.
+            considerEntity: async function (this: PlayerSession, entity: ShownEntity) {
+                considered.push(entity.getRuntimeId());
+                await entity.spawnTo(this);
+                tracked.add(entity.getRuntimeId());
+            },
+            dropEntity: async (entity: Pick<ShownActor, 'getRuntimeId'>) => {
+                dropped.push(entity.getRuntimeId());
+                order.push('drop');
+            },
+            reconcileTrackedEntities: async (entities: Iterable<ShownEntity> = []) =>
                 void reconciled.push([...entities].map((one) => one.getRuntimeId())),
             send: async (packet: NetworkPacket) => void sent.push(packet),
             tracks: (runtimeId: bigint) => tracked.has(runtimeId)
@@ -120,20 +138,17 @@ const fakeMob = (runtimeId: bigint) => {
 
 const replicatorOver = ({
     players = [],
-    entities = [],
     proximity = true,
     fullFlushFragments = false
 }: {
     players?: PlayerSession[];
-    entities?: ShownActor[];
     proximity?: boolean;
     fullFlushFragments?: boolean;
 } = {}) => {
     const world = stub<World>({
         getName: () => 'test',
         getViewers: () => players,
-        viewerOf: (runtimeId) => players.find((player) => player.runtimeId === runtimeId),
-        shownActors: () => entities
+        viewerOf: (runtimeId) => players.find((player) => player.runtimeId === runtimeId)
     });
 
     const server = stub<Server>({
@@ -149,69 +164,293 @@ const replicatorOver = ({
 
     return new NetworkWorldReplicator(world, server);
 };
+
+/** An entity type that carries what a client is shown: health a group raises, a name tag and equipment. */
+const EXTRA = {
+    'jsprismarine:shown': {
+        description: { identifier: 'jsprismarine:shown', is_spawnable: true, is_summonable: true },
+        components: {
+            'minecraft:health': { value: 10, max: 10 },
+            'minecraft:movement': { value: 0.25 },
+            'minecraft:collision_box': { width: 0.6, height: 0.6 }
+        },
+        component_groups: { grown: { 'minecraft:health': { value: 30, max: 30 } } },
+        events: { grow: { add: { component_groups: ['grown'] } } }
+    }
+};
+
+/**
+ * A replicator fed the sealed ticks of a real entity store, as a world feeds it, over sessions
+ * that stand where the store's entities are.
+ */
+const replicatorOverLog = (players: PlayerSession[]) => {
+    const { runtime, content } = entityFixture(
+        new TestEntityWorld(),
+        {},
+        { ...EXTRA, [PLAYER_IDENTIFIER]: SHIPPED_PLAYER }
+    );
+    const world = stub<World>({
+        getName: () => 'test',
+        getViewers: () => players,
+        viewerOf: (runtimeId) => players.find((player) => player.runtimeId === runtimeId)
+    });
+    const server = stub<Server>({
+        getConfig: () =>
+            stub<Config>({
+                getProximityBroadcast: () => true,
+                getPacketCompressionLevel: () => 1,
+                getPacketCompressionThreshold: () => 256,
+                getPacketFullFlushFragments: () => false
+            }),
+        getLogger: () => stub<Logger>({ verbose: () => {}, error: () => {} }),
+        getContent: () => content,
+        getStorePlayers: () => new StorePlayers()
+    });
+    const replicator = new NetworkWorldReplicator(world, server);
+    /** One tick of the store around `work`, sealed into the replicator and flushed. */
+    const tick = async (work: () => void) => {
+        runtime.store.beginTick();
+        work();
+        const sealed = runtime.store.sealTick();
+        if (sealed === undefined) throw new Error('the tick did not seal');
+        replicator.tickSealed(sealed);
+        await replicateEntities(replicator);
+        await replicator.flushMovement();
+    };
+    const spawn = (at = { x: 0.5, y: FLOOR_Y + 1, z: 0.5 }) => {
+        const entity = runtime.spawn('jsprismarine:shown', at);
+        if (entity === undefined) throw new Error('the fixture declares jsprismarine:shown');
+        return entity;
+    };
+    return { runtime, replicator, tick, spawn };
+};
+
+/** Packet names by their wire id at protocol 2193. */
+const NAMES = new Map(Object.entries(Codec2193.ids).map(([name, id]) => [id, name]));
+
+/** The packets of every frame a session was handed, each by name with its bytes. */
+const packetsIn = (frames: readonly Buffer[]): { readonly name: string | undefined; readonly buffer: Buffer }[] => {
+    const decoder = BatchCodec.compressed({ algorithm: PacketCompressionAlgorithm.ZLIB, threshold: 256 });
+    return frames
+        .flatMap((frame) => decoder.decode(frame))
+        .map((buffer) => ({ name: NAMES.get(new BinaryStream(buffer).readUnsignedVarInt() & 0x3ff), buffer }));
+};
 describe('network', () => {
     describe('NetworkWorldReplicator entities', () => {
-        describe('entityAdded', () => {
-            it('shows an arriving player everything already here', async () => {
-                const { player, spy } = fakePlayer(1n);
-                const mob = fakeMob(2n);
-                const replicator = replicatorOver({ players: [player], entities: [mob] });
+        describe('an entity entering or leaving', () => {
+            it('offers an entity that entered to everyone already here', async () => {
+                const first = fakePlayer(1001n);
+                const second = fakePlayer(1002n);
+                const { tick, spawn } = replicatorOverLog([first.player, second.player]);
 
-                await replicator.entityAdded(player.getActor()!);
+                let id = 0n;
+                await tick(() => (id = BigInt(spawn().id)));
 
-                expect(spy.reconciled).toStrictEqual([[2n]]);
-            });
-
-            it('does not offer an arriving player to itself', async () => {
-                // A client is never sent a spawn for the entity it is controlling.
-                const { player, spy } = fakePlayer(1n);
-                const replicator = replicatorOver({ players: [player], entities: [player.getActor()!] });
-
-                await replicator.entityAdded(player.getActor()!);
-
-                expect(spy.considered).toStrictEqual([]);
-            });
-
-            it('offers an arriving mob to everyone already here', async () => {
-                const first = fakePlayer(1n);
-                const second = fakePlayer(2n);
-                const mob = fakeMob(3n);
-                const replicator = replicatorOver({ players: [first.player, second.player] });
-
-                await replicator.entityAdded(mob);
-
-                expect(first.spy.considered).toStrictEqual([3n]);
-                expect(second.spy.considered).toStrictEqual([3n]);
+                expect(first.spy.considered).toStrictEqual([id]);
+                expect(second.spy.considered).toStrictEqual([id]);
                 // A mob has no client, so nothing is shown the world on its behalf.
                 expect(first.spy.reconciled).toStrictEqual([]);
             });
 
-            it('shows an arriving player to the players already here', async () => {
-                // The bug this replaced: an arriving player was shown the world, but the world
-                // was never shown them.
-                const resident = fakePlayer(1n);
-                const arriving = fakePlayer(2n);
-                const replicator = replicatorOver({ players: [resident.player, arriving.player] });
+            it('shows an arriving player everything already here, and shows it to everyone but itself', async () => {
+                const resident = fakePlayer(1001n);
+                const players = [resident.player];
+                const { runtime, tick, spawn } = replicatorOverLog(players);
+                let mob = 0n;
+                await tick(() => (mob = BigInt(spawn().id)));
+                const id = runtime.nextEntityId();
+                const arriving = fakePlayer(BigInt(id));
+                players.push(arriving.player);
 
-                await replicator.entityAdded(arriving.player.getActor()!);
+                await tick(() => runtime.spawnPlayer(id, { x: 1.5, y: FLOOR_Y + 1, z: 0.5 }));
 
-                expect(resident.spy.considered).toStrictEqual([2n]);
+                expect(arriving.spy.reconciled).toStrictEqual([[mob, BigInt(id)]]);
+                expect(arriving.spy.considered).toStrictEqual([]);
+                expect(resident.spy.considered).toStrictEqual([mob, BigInt(id)]);
+            });
+
+            it('tells every client to forget an entity that left', async () => {
+                // Every client, tracking or not: a stale id left behind would block that entity
+                // from ever being tracked again.
+                const first = fakePlayer(1001n);
+                const second = fakePlayer(1002n);
+                const { runtime, tick, spawn } = replicatorOverLog([first.player, second.player]);
+                let id = 0;
+                await tick(() => (id = spawn().id));
+
+                await tick(() => runtime.remove(id, 'test'));
+
+                expect(first.spy.dropped).toStrictEqual([BigInt(id)]);
+                expect(second.spy.dropped).toStrictEqual([BigInt(id)]);
+            });
+
+            it('takes an entity removed between ticks off the clients with the next tick', async () => {
+                // A console command runs between ticks, so `/summon` and `/kill` both do.
+                const watching = fakePlayer(1001n);
+                const { runtime, tick, spawn } = replicatorOverLog([watching.player]);
+                const id = spawn().id;
+                await tick(() => {});
+                expect(watching.spy.considered).toStrictEqual([BigInt(id)]);
+
+                runtime.remove(id, 'killed');
+                await tick(() => {});
+
+                expect(watching.spy.dropped).toStrictEqual([BigInt(id)]);
+            });
+
+            it('sends what happened to an entity in the tick it left before taking it away', async () => {
+                // A killing blow: the hurt flash and the removal are logged in one tick, and the
+                // flash has to reach the client that still has the entity.
+                const watching = fakePlayer(1001n);
+                const { runtime, tick, spawn } = replicatorOverLog([watching.player]);
+                let id = 0;
+                await tick(() => (id = spawn().id));
+                watching.spy.frames.length = 0;
+                watching.spy.order.length = 0;
+
+                await tick(() => {
+                    runtime.store.occurred({
+                        kind: 'occurrence',
+                        occurrence: 'actor-event',
+                        data: { entity: BigInt(id), event: ActorEvent.HURT_ANIMATION, data: 0 }
+                    });
+                    runtime.remove(id, 'killed');
+                });
+
+                expect(watching.spy.order).toStrictEqual(['frame', 'drop']);
+                expect(packetsIn(watching.spy.frames).map(({ name }) => name)).toStrictEqual(['ActorEventPacket']);
+                expect(watching.spy.dropped).toStrictEqual([BigInt(id)]);
+            });
+
+            it('encodes a first sight once for each codec and compression group, whatever the viewers', async () => {
+                // Five viewers in three groups: three on one codec and compression, one on the
+                // same codec with another compression, and one on another codec.
+                const viewers = [
+                    fakePlayer(1001n),
+                    fakePlayer(1002n),
+                    fakePlayer(1003n),
+                    fakePlayer(1004n, Codec2193, PacketCompressionAlgorithm.SNAPPY, 1),
+                    fakePlayer(1005n, Codec2225)
+                ];
+                const { replicator, tick, spawn } = replicatorOverLog(viewers.map(({ player }) => player));
+
+                await tick(() => spawn());
+
+                expect(replicator.entityReplicationCounts()).toMatchObject({ firstSightEncodes: 3, firstSights: 5 });
+                const [first, second, third] = viewers;
+                expect(second!.spy.frames).toStrictEqual(first!.spy.frames);
+                expect(third!.spy.frames).toStrictEqual(first!.spy.frames);
+                expect(packetsIn(first!.spy.frames).map(({ name }) => name)).toStrictEqual(['AddActorPacket']);
             });
         });
 
-        describe('entityRemoved', () => {
-            it('tells every client to forget it', async () => {
-                // Every client, tracking or not: a stale id left behind would block that entity
-                // from ever being tracked again.
-                const first = fakePlayer(1n);
-                const second = fakePlayer(2n);
-                const mob = fakeMob(3n);
-                const replicator = replicatorOver({ players: [first.player, second.player] });
+        describe('what a tick wrote', () => {
+            it('visits the entities a tick wrote, whatever number the world holds', async () => {
+                const visited = async (held: number) => {
+                    const { replicator, tick, spawn } = replicatorOverLog([fakePlayer(1001n).player]);
+                    const entities: DataEntity[] = [];
+                    await tick(() => {
+                        for (let index = 0; index < held; index++)
+                            entities.push(spawn({ x: index * 2 + 0.5, y: FLOOR_Y + 1, z: 0.5 }));
+                    });
+                    const before = replicator.entityReplicationCounts().visited;
+                    await tick(() => {
+                        for (const entity of entities.slice(0, 2)) entity.body.nameTag = 'written';
+                    });
+                    return replicator.entityReplicationCounts().visited - before;
+                };
 
-                await replicator.entityRemoved(mob);
+                expect(await visited(3)).toBe(2);
+                expect(await visited(300)).toBe(2);
+            });
 
-                expect(first.spy.dropped).toStrictEqual([3n]);
-                expect(second.spy.dropped).toStrictEqual([3n]);
+            it("sends an entity's new metadata to the clients that have it and not to the rest", async () => {
+                const watching = fakePlayer(1001n);
+                const blind = fakePlayer(1002n);
+                const { tick, spawn } = replicatorOverLog([watching.player, blind.player]);
+                let entity: DataEntity | undefined;
+                await tick(() => (entity = spawn()));
+                blind.spy.tracked.clear();
+                watching.spy.frames.length = 0;
+                blind.spy.frames.length = 0;
+
+                await tick(() => (entity!.body.nameTag = 'Named'));
+
+                expect(packetsIn(watching.spy.frames).map(({ name }) => name)).toStrictEqual(['SetActorDataPacket']);
+                expect(blind.spy.frames).toHaveLength(0);
+            });
+
+            it('sends nothing for a tick that wrote what no client is shown', async () => {
+                const watching = fakePlayer(1001n);
+                const { tick, spawn } = replicatorOverLog([watching.player]);
+                let entity: DataEntity | undefined;
+                await tick(() => (entity = spawn()));
+                watching.spy.frames.length = 0;
+
+                await tick(() => (entity!.body.loveTicks = 600));
+
+                expect(watching.spy.frames).toHaveLength(0);
+            });
+
+            it("sends a mob's new equipment as its armor and its held item", async () => {
+                const watching = fakePlayer(1001n);
+                const { tick, spawn } = replicatorOverLog([watching.player]);
+                let entity: DataEntity | undefined;
+                await tick(() => (entity = spawn()));
+                watching.spy.frames.length = 0;
+
+                await tick(() => entity!.body.setEquipment({ mainhand: { identifier: 'minecraft:stick', count: 1 } }));
+
+                expect(packetsIn(watching.spy.frames).map(({ name }) => name)).toStrictEqual([
+                    'MobArmorEquipmentPacket',
+                    'MobEquipmentPacket'
+                ]);
+            });
+
+            it('sends the maximum health a group raised, not the one the entity spawned with (#2995)', async () => {
+                const watching = fakePlayer(1001n);
+                const { tick, spawn } = replicatorOverLog([watching.player]);
+                let entity: DataEntity | undefined;
+                await tick(() => (entity = spawn()));
+                watching.spy.frames.length = 0;
+
+                await tick(() => {
+                    entity!.instance.raise('grow', 'self', 'test');
+                    entity!.instance.applyQueuedEvents();
+                });
+
+                const updates = packetsIn(watching.spy.frames).filter(({ name }) => name === 'UpdateAttributesPacket');
+                expect(updates).toHaveLength(1);
+                const packet = new UpdateAttributesPacket(updates[0]!.buffer);
+                packet.codecProtocol = Codec2193.protocolVersion;
+                packet.decode();
+                expect(packet.attributes.map((attribute) => [attribute.getName(), attribute.getMax()])).toStrictEqual([
+                    ['minecraft:health', 30]
+                ]);
+            });
+
+            it('queues a move from the position a tick wrote, and snaps it after a teleport', async () => {
+                const watching = fakePlayer(1001n);
+                const { tick, spawn } = replicatorOverLog([watching.player]);
+                let entity: DataEntity | undefined;
+                await tick(() => (entity = spawn()));
+                watching.spy.frames.length = 0;
+
+                await tick(() => (entity!.body.position = { x: 2.5, y: FLOOR_Y + 1, z: 0.5 }));
+                await tick(() => entity!.body.teleportTo({ x: 6.5, y: FLOOR_Y + 1, z: 0.5 }));
+
+                const moves = packetsIn(watching.spy.frames)
+                    .filter(({ name }) => name === 'MoveActorAbsolutePacket')
+                    .map(({ buffer }) => {
+                        const packet = new MoveActorAbsolutePacket(buffer);
+                        packet.codecProtocol = Codec2193.protocolVersion;
+                        packet.decode();
+                        return [packet.position.getX(), (packet.flags & MoveActorAbsolutePacket.FLAG_TELEPORT) !== 0];
+                    });
+                expect(moves).toStrictEqual([
+                    [2.5, false],
+                    [6.5, true]
+                ]);
             });
         });
 
@@ -352,7 +591,7 @@ describe('network', () => {
             }
         });
 
-        it('shares entity-state packets while retaining the per-session path for an entity player', async () => {
+        it('shares a status effect among the clients tracking the actor', async () => {
             let encodes = 0;
             const codec: ProtocolCodec = {
                 ...Codec2193,
@@ -363,16 +602,10 @@ describe('network', () => {
             };
             const first = fakePlayer(1n, codec);
             const second = fakePlayer(2n, codec);
-            const mob = stub<ShownActor>({
-                getRuntimeId: () => 3n,
-                metadata: new Metadata(false),
-                getSyncedProperties: () => new SyncedProperties(),
-                getEquipment: () => ({})
-            });
+            const mob = stub<ShownActor>({ getRuntimeId: () => 3n });
             first.spy.tracked.add(3n);
             second.spy.tracked.add(3n);
             const replicator = replicatorOver({ players: [first.player, second.player] });
-            const attribute = new Attribute({ name: 'minecraft:health', min: 0, max: 20, def: 20, value: 15 });
             const effect = {
                 id: 'minecraft:speed',
                 amplifier: 0,
@@ -382,61 +615,12 @@ describe('network', () => {
                 showIcon: true
             };
 
-            await replicator.entityAttributesChanged(mob, [attribute]);
             await replicator.statusEffectChanged(mob, effect, 'add');
-            await replicator.entityMetadataChanged(mob);
-            await replicator.entityEquipmentChanged(mob);
 
-            expect(encodes).toBe(5);
-            expect(first.spy.frames).toHaveLength(4);
+            expect(encodes).toBe(1);
+            expect(first.spy.frames).toHaveLength(1);
             expect(second.spy.frames).toStrictEqual(first.spy.frames);
             expect(first.spy.sent).toHaveLength(0);
-        });
-
-        it('routes the player state changes but its equipment through its own input-tick-aware session methods', async () => {
-            const { player, spy } = fakePlayer(1n);
-            const replicator = replicatorOver({ players: [player] });
-            const attribute = new Attribute({ name: 'minecraft:health', min: 0, max: 20, def: 20, value: 15 });
-            const effect = {
-                id: 'minecraft:speed',
-                amplifier: 0,
-                durationTicks: 100,
-                ambient: false,
-                showParticles: true,
-                showIcon: true
-            };
-
-            await replicator.entityAttributesChanged(player.getActor()!, [attribute]);
-            await replicator.statusEffectChanged(player.getActor()!, effect, 'add');
-            await replicator.entityMetadataChanged(player.getActor()!);
-            await replicator.entityEquipmentChanged(player.getActor()!);
-
-            // No equipment: the client keeps its own inventory, and a held item named at hotbar slot
-            // zero would move its selection there.
-            expect(spy.selfStateCalls).toStrictEqual(['attributes', 'status effect', 'metadata']);
-            expect(spy.frames).toHaveLength(0);
-        });
-
-        describe('entityMetadataChanged', () => {
-            it("sends an actor's state to its observers and not to the client whose entity it is", async () => {
-                // A player in the entity store is shown through an actor, not through its
-                // session's player object, so the client is recognized by the shared runtime id.
-                const own = fakePlayer(1n);
-                const observer = fakePlayer(2n);
-                own.spy.tracked.add(1n);
-                observer.spy.tracked.add(1n);
-                const actor = stub<ShownActor>({
-                    getRuntimeId: () => 1n,
-                    metadata: new Metadata(),
-                    getSyncedProperties: () => new SyncedProperties()
-                });
-
-                const replicator = replicatorOver({ players: [own.player, observer.player] });
-                await replicator.entityMetadataChanged(actor);
-
-                expect(own.spy.frames).toHaveLength(0);
-                expect(observer.spy.frames).toHaveLength(1);
-            });
         });
 
         describe('flushMovement', () => {

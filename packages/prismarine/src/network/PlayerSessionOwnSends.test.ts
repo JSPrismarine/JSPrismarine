@@ -6,6 +6,7 @@ import InventorySlotPacket from '@jsprismarine/protocol/packet/InventorySlotPack
 import ContainerEntry from '../inventory/ContainerEntry';
 import { WindowIds } from '../inventory/WindowIds';
 import { Item } from '../item/Item';
+import { beginMeasuredTick } from '../testing/changeTicks.test.helper';
 import { fakePlayer } from '../testing/fakePlayer.test.helper';
 
 /** The names of the packets a fake player's client was sent, in order. */
@@ -32,7 +33,8 @@ describe("PlayerSession's sends to its own client", () => {
             'UpdateAdventureSettingsPacket',
             'UpdateAbilitiesPacket',
             'SetPlayerGameTypePacket',
-            'SetActorDataPacket',
+            // No SetActorData: whether the player may fly reaches it, and everyone who sees it,
+            // from the logged game mode after the tick seals.
             'UpdateAbilitiesPacket'
         ]);
 
@@ -67,7 +69,6 @@ describe("PlayerSession's sends to its own client", () => {
             'UpdateAdventureSettingsPacket',
             'UpdateAbilitiesPacket',
             'SetPlayerGameTypePacket',
-            'SetActorDataPacket',
             'UpdateAbilitiesPacket',
             // sendInventory: the contents, the hand, the armor window, and what the player wears.
             'InventoryContentPacket',
@@ -96,7 +97,7 @@ describe("PlayerSession's sends to its own client", () => {
         void session.sendInventory();
         const first = inventory.getEntry(0)?.toItemStack().stackNetworkId;
         const store = live.runtime.store;
-        store.beginTick();
+        beginMeasuredTick(store);
 
         store.unit(() => {
             inventory.setItem(0, new ContainerEntry({ item: new Item({ name: 'minecraft:stone' }), count: 1 }));

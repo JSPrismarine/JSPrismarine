@@ -1,9 +1,9 @@
 /**
- * A player in the entity store, shown to other clients through the current replicator.
+ * A player in the entity store, shown to other clients from the change log.
  *
  * The viewers are real players with real sessions, the replicator is the real one and the store
  * player is spawned the way package C4b's tests spawn one. Only the world around them is a
- * double that hands the store actors' announcements to the replicator, as `World` does. The
+ * double that hands each sealed tick of the store's log to the replicator, as `World` does. The
  * assertions count the packets each viewer receives.
  */
 import type { Logger } from '@jsprismarine/logger';
@@ -14,6 +14,7 @@ import MobEquipmentPacket from '@jsprismarine/protocol/packet/MobEquipmentPacket
 import MoveActorAbsolutePacket from '@jsprismarine/protocol/packet/MoveActorAbsolutePacket';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import RemoveActorPacket from '@jsprismarine/protocol/packet/RemoveActorPacket';
+import SetActorDataPacket from '@jsprismarine/protocol/packet/SetActorDataPacket';
 import UpdateAbilitiesPacket, { AbilityLayerFlag } from '@jsprismarine/protocol/packet/UpdateAbilitiesPacket';
 import type Skin from '@jsprismarine/protocol/wire/structures/skin/Skin';
 import UUID from '@jsprismarine/protocol/wire/structures/UUID';
@@ -38,7 +39,8 @@ import type { StorePlayer } from '../storePlayer';
 import type { StorePlayerIdentity } from '../storePlayer';
 import { entityFixture, FLOOR_Y } from './testing';
 import { StoreActors } from './storeActors';
-import { spawnStorePlayer, StorePlayerActor, StorePlayers } from './storePlayers';
+import { leaveStore, spawnStorePlayer, StorePlayerActor, StorePlayers } from './storePlayers';
+import { replicateEntities } from '../../testing/changeTicks.test.helper';
 
 /** The parts of the shipped `entities/player.json` these checks read. */
 const SHIPPED_PLAYER = {
@@ -80,8 +82,10 @@ const fixture = () => {
     const viewers = [fakePlayer({ name: 'Alex' }), fakePlayer({ name: 'Sam' })];
     for (const viewer of viewers) viewer.session['viewDistance'] = 4;
 
+    const players = new StorePlayers();
     const server = stub<Server>({
         getContent: () => store.content,
+        getStorePlayers: () => players,
         getPermissionManager: () => stub<PermissionManager>({ isOp: () => false }),
         getConfig: () =>
             stub<Config>({
@@ -92,21 +96,14 @@ const fixture = () => {
         getLogger: () => stub<Logger>({ verbose: () => {}, error: (error) => void reports.push(String(error)) })
     });
     const reports: string[] = [];
-    // The world's own wiring of the actors' announcements to its replicator.
     const world: World = stub<World>({
         getName: () => 'test',
         getServer: () => server,
         getViewers: () => viewers.map((viewer) => viewer.session),
         viewerOf: (runtimeId) => viewers.find((viewer) => viewer.player.getRuntimeId() === runtimeId)?.session,
-        shownActors: () => [...actors.all()],
-        showActor: async (actor) => replicator.entityAdded(actor),
-        hideActor: async (actor) => replicator.entityRemoved(actor),
-        broadcastMove: async (actor, teleport) => replicator.entityMoved(actor, teleport),
-        sendActorMetadata: async (actor) => replicator.entityMetadataChanged(actor),
-        entityEquipmentChanged: (actor) => void replicator.entityEquipmentChanged(actor)
+        shownEntities: () => replicator.shownEntities()
     });
     const replicator = new NetworkWorldReplicator(world, server);
-    const players = new StorePlayers();
     const actors = new StoreActors({
         world: () => world,
         report: (message) => void reports.push(message),
@@ -115,38 +112,46 @@ const fixture = () => {
     });
 
     /**
-     * Spawns a store player and announces it, as the live runtime's `onSpawn` does.
+     * One world tick around `work`: its writes logged, then what replication sends of the sealed
+     * tick, the movement last.
+     */
+    const tick = async (work: () => void = () => {}) => {
+        store.runtime.store.beginTick();
+        work();
+        const sealed = store.runtime.store.sealTick();
+        if (sealed !== undefined) replicator.tickSealed(sealed);
+        await replicateEntities(replicator);
+        await replicator.flushMovement();
+    };
+
+    /**
+     * Spawns a store player in a tick of its own, as the live runtime's `onSpawn` gives it an actor.
      * @param fill - Writes the player's parts before it is shown.
      */
-    const spawn = (identity: StorePlayerIdentity, fill?: (player: StorePlayer) => void) => {
-        const player = spawnStorePlayer(store.runtime, players, FEET, identity, (spawned) => {
-            spawned.skin = stub<Skin>({});
-            fill?.(spawned);
+    const spawn = async (identity: StorePlayerIdentity, fill?: (player: StorePlayer) => void) => {
+        let player: StorePlayer | undefined;
+        await tick(() => {
+            player = spawnStorePlayer(store.runtime, players, FEET, identity, (spawned) => {
+                spawned.skin = stub<Skin>({});
+                fill?.(spawned);
+            });
+            if (player?.entity !== undefined) actors.add(player.entity);
         });
         const entity = player?.entity;
         if (player === undefined || entity === undefined) throw new Error('the fixture declares no player');
-        actors.add(entity);
         const actor = actors.actorOf(entity.id);
         if (!(actor instanceof StorePlayerActor)) throw new Error('the player was given no player actor');
         return { player, entity, actor };
     };
 
-    /** One world tick's sends: what changed in the store, then the movement flush. */
-    const tick = async () => {
-        await Promise.all(actors.sync(store.runtime));
-        await replicator.flushMovement();
-    };
-
     return { store, viewers, actors, replicator, reports, spawn, spawnNextAs, tick };
 };
-
-/** Lets the announcements the actors start without awaiting reach the connections. */
-const settle = () => new Promise<void>((resolve) => setImmediate(resolve));
 
 /** The entity a packet names, whether it keeps its fields on itself or in its payload. */
 const entityOf = (packet: NetworkPacket<unknown>): bigint | undefined => {
     if (packet instanceof RemoveActorPacket) return packet.uniqueEntityId;
-    if (packet instanceof MoveActorAbsolutePacket) return packet.runtimeEntityId;
+    if (packet instanceof MoveActorAbsolutePacket || packet instanceof SetActorDataPacket)
+        return packet.runtimeEntityId;
     const data = packet.getPacketData();
     return isRecord(data) && typeof data['runtimeEntityId'] === 'bigint' ? data['runtimeEntityId'] : undefined;
 };
@@ -173,12 +178,10 @@ const payloadOf = <T>(packet: NetworkPacket<T>): T => {
 describe('a store player shown to other clients', () => {
     it('reaches each viewer as one AddPlayer, with the packets a legacy player is shown with', async () => {
         const { viewers, spawn } = fixture();
-        const [alex] = viewers;
         const identity = identityOf('Steve');
-        const { actor } = spawn(identity, (player) => {
+        const { actor } = await spawn(identity, (player) => {
             player.headYaw = 30;
         });
-        await settle();
 
         for (const viewer of viewers) {
             const added = ofType(viewer.sent, AddPlayerPacket);
@@ -191,35 +194,36 @@ describe('a store player shown to other clients', () => {
             // A client draws a player at its eyes, which is where a legacy player stands.
             expect(data.position.getY()).toBeCloseTo(FEET.y + EYE_HEIGHT);
             expect(data.metadata.nameTag).toBe('Steve');
+            // What a legacy player was shown with, in the same order.
+            expect(
+                viewer.sent
+                    .filter(
+                        (packet) => entityOf(packet) === actor.getRuntimeId() || packet instanceof UpdateAbilitiesPacket
+                    )
+                    .map((packet) => packet.getName())
+            ).toEqual(['AddPlayerPacket', 'UpdateAbilitiesPacket', 'MobArmorEquipmentPacket', 'MobEquipmentPacket']);
         }
-
-        // What a legacy player is shown with, in the same order, from the same code.
-        const legacy = fakePlayer({ name: 'Legacy' });
-        const before = alex!.sent.length;
-        await alex!.session.sendAddPlayer(legacy.session.shown());
-        const names = (packets: readonly NetworkPacket<unknown>[]) => packets.map((packet) => packet.getName());
-        expect(names(alex!.sent.slice(0, before))).toEqual(names(alex!.sent.slice(before)));
     });
 
     it('is never shown to the client whose own entity it is', async () => {
-        const { viewers, spawn, spawnNextAs, tick, store, actors } = fixture();
+        const { viewers, spawn, spawnNextAs, tick, store, replicator } = fixture();
         const [own, other] = viewers;
         // C4h's session holds its store entity's id; a store entity given a legacy viewer's id
         // stands in.
         spawnNextAs(own!.player.getRuntimeId());
-        const { entity } = spawn(identityOf('Steve'));
+        const { entity } = await spawn(identityOf('Steve'));
         const ownId = BigInt(entity.id);
-        await settle();
-        // The periodic pass, which hands every viewer every actor.
-        for (const viewer of viewers) await viewer.session.reconcileTrackedEntities([...actors.all()]);
+        // The periodic pass, which hands every viewer every entity.
+        await replicator.reconcile();
 
-        store.runtime.applyClientMovement(entity.id, {
-            position: { x: 3.5, y: FEET.y, z: 0.5 },
-            yaw: 90,
-            pitch: 0,
-            onGround: true
-        });
-        await tick();
+        await tick(() =>
+            store.runtime.applyClientMovement(entity.id, {
+                position: { x: 3.5, y: FEET.y, z: 0.5 },
+                yaw: 90,
+                pitch: 0,
+                onGround: true
+            })
+        );
 
         expect(ofType(own!.sent, AddPlayerPacket)).toHaveLength(0);
         expect(ofType(own!.sent, MoveActorAbsolutePacket, ownId)).toHaveLength(0);
@@ -229,18 +233,18 @@ describe('a store player shown to other clients', () => {
 
     it('sends at most one move a tick, from where the client last said it was', async () => {
         const { viewers, spawn, tick, store } = fixture();
-        const { entity, actor } = spawn(identityOf('Steve'));
-        await settle();
+        const { entity, actor } = await spawn(identityOf('Steve'));
 
-        for (const x of [2, 2.5, 3]) {
-            store.runtime.applyClientMovement(entity.id, {
-                position: { x, y: FEET.y, z: 0.5 },
-                yaw: 45,
-                pitch: 10,
-                onGround: true
-            });
-        }
-        await tick();
+        await tick(() => {
+            for (const x of [2, 2.5, 3]) {
+                store.runtime.applyClientMovement(entity.id, {
+                    position: { x, y: FEET.y, z: 0.5 },
+                    yaw: 45,
+                    pitch: 10,
+                    onGround: true
+                });
+            }
+        });
         // A tick in which the client reported nothing new sends nothing.
         await tick();
 
@@ -256,12 +260,11 @@ describe('a store player shown to other clients', () => {
 
     it('shows what it holds and wears when it comes into view, and each change after', async () => {
         const { viewers, spawn, tick } = fixture();
-        const { player, actor } = spawn(identityOf('Steve'), (spawned) => {
+        const { player, actor } = await spawn(identityOf('Steve'), (spawned) => {
             const inventory = spawned.getInventory();
             inventory.setItem(inventory.getHandSlotIndex(), entryOf('minecraft:diamond_sword'));
             inventory.getArmor().setItem(1, entryOf('minecraft:iron_chestplate'));
         });
-        await settle();
 
         const [alex] = viewers;
         const added = payloadOf(ofType(alex!.sent, AddPlayerPacket)[0]!);
@@ -274,9 +277,7 @@ describe('a store player shown to other clients', () => {
         expect(ofType(alex!.sent, MobArmorEquipmentPacket)).toHaveLength(0);
 
         const inventory = player.getInventory();
-        inventory.setItem(inventory.getHandSlotIndex(), entryOf('minecraft:bow'));
-        await tick();
-        await settle();
+        await tick(() => inventory.setItem(inventory.getHandSlotIndex(), entryOf('minecraft:bow')));
         expect(ofType(alex!.sent, MobArmorEquipmentPacket, actor.getRuntimeId())).toHaveLength(1);
         // The main hand; the off hand follows in a packet of its own window.
         const held = ofType(alex!.sent, MobEquipmentPacket, actor.getRuntimeId()).filter(
@@ -287,10 +288,9 @@ describe('a store player shown to other clients', () => {
 
     it("shows its game mode and abilities from its store player and the server's operator list", async () => {
         const { viewers, spawn } = fixture();
-        spawn(identityOf('Steve'), (player) => {
+        await spawn(identityOf('Steve'), (player) => {
             player.gamemode = Gametype.CREATIVE;
         });
-        await settle();
 
         const [alex] = viewers;
         expect(payloadOf(ofType(alex!.sent, AddPlayerPacket)[0]!).gamemode).toBe(Gametype.CREATIVE);
@@ -301,38 +301,39 @@ describe('a store player shown to other clients', () => {
         expect(layer.layerFlags.get(AbilityLayerFlag.OPERATOR_COMMANDS)).toBe(false);
     });
 
-    it('projects its breath, sprinting and flight into its metadata, and says when a send is due', () => {
-        const { spawn } = fixture();
-        const { player, actor } = spawn(identityOf('Steve'), (spawned) => {
+    it('sends its breath in steps, and its sprint and flight as they change', async () => {
+        const { viewers, spawn, tick } = fixture();
+        const [alex] = viewers;
+        const { player, actor } = await spawn(identityOf('Steve'), (spawned) => {
             spawned.getComponents().set('vitals.air', 250);
             spawned.getComponents().set('abilities.gamemode', Gametype.CREATIVE);
         });
         const components = player.getComponents();
-
         expect([actor.metadata.air, actor.metadata.breathing, actor.metadata.canFly]).toEqual([250, true, true]);
-        expect(actor.showPlayerState()).toBe(false);
 
         // Under the bar's step, nothing to send; across it, or a change of breathing, a send.
-        components.set('vitals.air', 249);
-        expect(actor.showPlayerState()).toBe(true);
-        components.set('vitals.air', 245);
-        expect(actor.showPlayerState()).toBe(false);
-        expect(actor.metadata.air).toBe(245);
-        components.set('vitals.breathing', false);
-        expect(actor.showPlayerState()).toBe(true);
+        const sends: number[] = [];
+        const writes: (() => void)[] = [
+            () => components.set('vitals.air', 249),
+            () => components.set('vitals.air', 245),
+            () => components.set('vitals.breathing', false),
+            () => components.set('movement.sprinting', true),
+            () => components.set('abilities.gamemode', Gametype.SURVIVAL)
+        ];
+        for (const write of writes) {
+            alex!.sent.length = 0;
+            await tick(write);
+            sends.push(ofType(alex!.sent, SetActorDataPacket, actor.getRuntimeId()).length);
+        }
 
-        components.set('movement.sprinting', true);
-        expect(actor.showPlayerState()).toBe(true);
-        expect(actor.metadata.sprinting).toBe(true);
-        components.set('abilities.gamemode', Gametype.SURVIVAL);
-        expect(actor.showPlayerState()).toBe(true);
-        expect(actor.metadata.canFly).toBe(false);
+        expect(sends).toEqual([1, 0, 1, 1, 1]);
+        expect([actor.metadata.air, actor.metadata.sprinting, actor.metadata.canFly]).toEqual([245, true, false]);
     });
 
-    it('is listed with the entry a legacy player is listed with', () => {
+    it('is listed with the entry a legacy player is listed with', async () => {
         const { spawn } = fixture();
         const identity = identityOf('Steve');
-        const { player, actor } = spawn(identity);
+        const { player, actor } = await spawn(identity);
 
         const entry = playerListEntryOf(actor);
         expect(entry.getUUID().equals(identity.uuid)).toBe(true);
@@ -343,18 +344,15 @@ describe('a store player shown to other clients', () => {
     });
 
     it('stays on screen through its death and leaves every screen once when it leaves the store', async () => {
-        const { viewers, spawn, tick, store, actors } = fixture();
-        const { entity, actor } = spawn(identityOf('Steve'));
-        await settle();
+        const { viewers, spawn, tick, store } = fixture();
+        const { player, entity, actor } = await spawn(identityOf('Steve'));
 
         // Death keeps a player in the store (ADR 0008), so nobody is told to remove it.
-        store.runtime.hurt(entity, undefined, 'entity_attack', 50);
-        await tick();
+        await tick(() => store.runtime.hurt(entity, undefined, 'entity_attack', 50));
         for (const viewer of viewers) expect(ofType(viewer.sent, RemoveActorPacket)).toHaveLength(0);
 
         // A leave or a dimension change takes the player out of this store.
-        actors.remove(entity);
-        await settle();
+        await tick(() => leaveStore(store.runtime, player, 'left_world'));
         for (const viewer of viewers) {
             expect(ofType(viewer.sent, RemoveActorPacket, actor.getRuntimeId())).toHaveLength(1);
             expect(viewer.session.tracks(actor.getRuntimeId())).toBe(false);
@@ -362,9 +360,9 @@ describe('a store player shown to other clients', () => {
         }
     });
 
-    it('takes one update a tick, whichever actor it is updated through', () => {
+    it('takes one update a tick, whichever actor it is updated through', async () => {
         const { spawn, actors } = fixture();
-        const { entity, actor } = spawn(identityOf('Steve'));
+        const { entity, actor } = await spawn(identityOf('Steve'));
         expect(actor.claimUpdate(1)).toBe(true);
 
         // A dimension change mid-tick gives the player a new actor in a world ticked later.

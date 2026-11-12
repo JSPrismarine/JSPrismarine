@@ -1,4 +1,4 @@
-import { Gametype } from '@jsprismarine/minecraft';
+import { Gametype, PacketCompressionAlgorithm } from '@jsprismarine/minecraft';
 import { Vector3 } from '@jsprismarine/math';
 import { describe, expect, it } from 'vitest';
 
@@ -9,7 +9,7 @@ import type { LiveEntityRuntime } from '../entity/data/live';
 import { Item } from '../item/Item';
 import { NetworkWorldReplicator } from '../network/NetworkWorldReplicator';
 import AddItemActorPacket from '@jsprismarine/protocol/packet/AddItemActorPacket';
-import PlayerSession from '../network/PlayerSession';
+import Codec2193 from '../network/codec/Codec2193';
 import BlockUpdateScheduler from './BlockUpdateScheduler';
 import { liveTestEntities } from '../testing/entityServer';
 import { Dimensions } from './Dimension';
@@ -17,6 +17,7 @@ import Chunk from './chunk/Chunk';
 import { World } from './World';
 import { NULL_WORLD_CHANGE_SINK } from './WorldChangeSink';
 import { fakeLevel } from '../testing/level';
+import { replicateEntities } from '../testing/changeTicks.test.helper';
 
 /** The dropped stacks of a dimension's store, by their actors. */
 const itemsOf = (live: LiveEntityRuntime): ItemEntity[] =>
@@ -53,21 +54,20 @@ const fakeWorld = (initial: BlockState, { id = 1, dropName = initial.name } = {}
     };
 
     // A session that shows what it is given, rather than recording that it was asked. The
-    // spawn goes through `Entity.spawnTo`, which is what picks `AddItemActor` over the
-    // generic `AddActor` - a choice no test covered. The packet is the session's own, encoded
-    // as it would be for the wire.
+    // spawn goes through the replicated entity's `spawnTo`, which is what picks `AddItemActor`
+    // over the generic `AddActor` - a choice no test covered. The packets are the shared batch's,
+    // encoded as they would be for the wire.
     const session: any = {
+        runtimeId: 99n,
         send: async (packet: any) => void sent.push(packet),
         sendDataPacket: async (packet: any) => void sent.push(packet),
-        connection: {
-            codec: { context: { protocolVersion: 2193 } },
-            sendDataPacket: async (packet: any) => {
-                packet.encode();
-                sent.push(packet);
-            }
-        },
+        getConnection: () => ({
+            codec: Codec2193,
+            compressionAlgorithm: PacketCompressionAlgorithm.ZLIB,
+            compressionThreshold: 256,
+            sendSharedBatch: async (_content: Buffer, packets: readonly unknown[]) => void sent.push(...packets)
+        }),
         considerEntity: async (entity: any) => entity.spawnTo(session),
-        sendAddItemActor: PlayerSession.prototype.sendAddItemActor,
         // Where the player stands and how far it sees, which the drop's audience is chosen by.
         getViewPosition: () => new Vector3(10, 64, -20),
         getViewDistance: () => 10
@@ -103,7 +103,7 @@ const fakeWorld = (initial: BlockState, { id = 1, dropName = initial.name } = {}
         getActors: () => [],
         sendWorldEvent: async () => {},
         server: {
-            getConfig: () => ({ getProximityBroadcast: () => true }),
+            getConfig: () => ({ getProximityBroadcast: () => true, getPacketCompressionLevel: () => 7 }),
             getLogger: () => ({ verbose: () => {}, error: () => {}, debug: () => {}, warn: () => {} }),
             // Every roll in the middle, so the drop starts at the middle of the block, still
             // pushed 0.2 upward.
@@ -117,9 +117,18 @@ const fakeWorld = (initial: BlockState, { id = 1, dropName = initial.name } = {}
     });
     if (world === undefined) throw new Error('unreachable');
 
-    world.attachChangeSink(new NetworkWorldReplicator(world, world.getServer()));
+    const replicator = new NetworkWorldReplicator(world, world.getServer());
+    world.attachChangeSink(replicator);
+    /** Breaks a block inside a tick of the world's log, and sends what the tick changed. */
+    const breakLogged = async (at: Vector3, by?: Parameters<World['breakBlock']>[1]) => {
+        world!.beginChangeTick();
+        await world!.breakBlock(at, by);
+        const sealed = world!.sealChangeTick();
+        if (sealed !== undefined) replicator.tickSealed(sealed);
+        await replicateEntities(replicator);
+    };
 
-    return { world, player, sent, items };
+    return { world, player, sent, items, breakLogged };
 };
 
 /**
@@ -163,9 +172,9 @@ const emptyWorld = () => {
 describe('world', () => {
     describe('block drops', () => {
         it('puts the dropped stack on the wire as an item actor', async () => {
-            const { world, player, sent } = fakeWorld(new BlockState('minecraft:cobblestone'));
+            const { breakLogged, player, sent } = fakeWorld(new BlockState('minecraft:cobblestone'));
 
-            await world.breakBlock(new Vector3(10, 64, -20), player);
+            await breakLogged(new Vector3(10, 64, -20), player);
 
             const spawn = sent.find((packet) => packet instanceof AddItemActorPacket);
             expect(spawn).toBeDefined();
@@ -176,9 +185,9 @@ describe('world', () => {
         });
 
         it('starts the drop inside the block that broke, and tells the client how fast it leaves', async () => {
-            const { world, player, sent } = fakeWorld(new BlockState('minecraft:cobblestone'));
+            const { breakLogged, player, sent } = fakeWorld(new BlockState('minecraft:cobblestone'));
 
-            await world.breakBlock(new Vector3(10, 64, -20), player);
+            await breakLogged(new Vector3(10, 64, -20), player);
 
             const spawn = sent.find((packet) => packet instanceof AddItemActorPacket)!;
             const data = spawn.getPacketData();

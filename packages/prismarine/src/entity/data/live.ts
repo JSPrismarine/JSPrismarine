@@ -41,7 +41,6 @@ import AnimatePacket, { AnimateAction } from '@jsprismarine/protocol/packet/Anim
 import { actorMotionIn, dataEntityRecordOf, writeDataEntityRecord } from './persistence';
 import { lookVector } from '../Archery';
 import { AttributeIds } from '@jsprismarine/protocol/wire/structures/Attribute';
-import { MetadataFlag } from '@jsprismarine/protocol/wire/structures/Metadata';
 import type { ContentItemDrop, ContentPosition } from '../../content/world/adapter';
 import type { DataEntity } from './DataEntity';
 import type { EntityItemInteraction } from './itemInteraction';
@@ -604,7 +603,8 @@ export class LiveEntityRuntime {
             world: options.world,
             host: liveHost(options, this.actors, () => this.runtime, players),
             report: options.report,
-            onSpawn: (entity) => this.actors.add(entity, this.runtime.leashHolderIdOf(entity.id)),
+            onSpawn: (entity) => this.actors.add(entity),
+            shownAs: (entity) => this.inertTypes.get(entity.id),
             onRemove: (entity, reason) => {
                 this.actors.remove(entity);
                 this.inertTypes.delete(entity.id);
@@ -730,7 +730,8 @@ export class LiveEntityRuntime {
     }
 
     /**
-     * Runs one server tick for eligible entities, then shows clients what changed.
+     * Runs one server tick for eligible entities. Clients are shown what it changed from the
+     * change log, after the world's tick seals.
      *
      * The spawn loop starts on the first tick because it reads the loaded spawn rules.
      *
@@ -744,7 +745,6 @@ export class LiveEntityRuntime {
         }
 
         this.runtime.tick(tick, shouldTick);
-        await Promise.all(this.actors.sync(this.runtime, shouldTick));
     }
 
     /** The dropped stacks of this dimension. */
@@ -1175,10 +1175,8 @@ export class LiveEntityRuntime {
         if (actor !== undefined) {
             actor.setPortalCooldown(stored.portalCooldown);
             // Primed and counting, as the legacy body showed a saved TNT, and saved with its fuse.
-            if (stored.fuse !== undefined) {
-                actor.metadata.setInt(MetadataFlag.FUSE_TIME, stored.fuse);
-                actor.metadata.setIgnited(true);
-            }
+            // An inert actor's fuse never burns down, so it is shown as the fuse a body holds.
+            if (stored.fuse !== undefined) entity.body.fuseTicks = stored.fuse;
         }
         return entity;
     }

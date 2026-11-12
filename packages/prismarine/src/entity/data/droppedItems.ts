@@ -67,6 +67,17 @@ export const itemState = defineComponentState(ITEM_COMPONENT, {
     pickupDelay: stateField.number
 });
 
+/** The logged field a dropped stack's state is written as, which holds its stack. */
+export const ITEM_STATE_FIELD = `component:${itemState.component}`;
+
+/**
+ * The stack a dropped stack's logged state holds, for a reader of the change log.
+ * @param state - The value of {@link ITEM_STATE_FIELD}.
+ * @returns The stack, or undefined when the state holds none.
+ */
+export const itemStackOfState = (state: unknown): StoredItemStack | undefined =>
+    itemState.is(state) && isStoredItemStack(state.stack) ? state.stack : undefined;
+
 /** What a dropped stack starts with or comes back from a save with. */
 export interface ItemStart {
     /** The stack. */

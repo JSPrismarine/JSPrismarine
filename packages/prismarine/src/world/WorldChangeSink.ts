@@ -1,8 +1,7 @@
 import type { NBTTagCompound } from '@jsprismarine/nbt';
-import type { Attribute } from '@jsprismarine/protocol/wire/structures/Attribute';
 import type { StatusEffect, StatusEffectChange } from '../entity/StatusEffect';
 import type { SealedTick } from './changelog/ChangeLog';
-import type { ShownActor } from './ShownActor';
+import type { ShownActor, ShownEntity } from './ShownActor';
 
 /**
  * How loud and how high a named sound plays, when the definition's own values are not wanted.
@@ -78,17 +77,6 @@ export interface WorldChangeSink {
     chunkLeft(x: number, z: number): void;
 
     /**
-     * An entity's attributes are not what they were - which in practice means it lost health.
-     *
-     * Attributes used to reach a client exactly once, inside the packet that spawned the entity,
-     * because the only code that sent them had the local player's runtime id written into it. So
-     * a mob's health could fall all the way to zero on the server with nothing said about it, and
-     * the bar over a hurt zombie never moved until it abruptly died.
-     * @param {ShownActor} entity - Whose attributes changed.
-     * @param {Attribute[]} attributes - Only the ones that changed.
-     * @returns {Promise<void>} Resolves once they are on their way.
-     */
-    entityAttributesChanged(entity: ShownActor, attributes: Attribute[]): Promise<void>;
 
     /**
      * An entity's active effect was added, refreshed, or removed.
@@ -100,53 +88,10 @@ export interface WorldChangeSink {
     statusEffectChanged?(entity: ShownActor, effect: StatusEffect, change: StatusEffectChange): Promise<void>;
 
     /**
-     * An entity now looks different: alight, swelling, sneaking.
+     * A player's session moved its player, as a client's move or a teleport the server made.
      *
-     * The other half of {@link entityAttributesChanged}, and missing for the same reason. Sent
-     * whole rather than as a diff, because the packet carries the entity's whole metadata anyway.
-     * @param {ShownActor} entity - Who changed.
-     * @returns {Promise<void>} Resolves once it is on its way.
-     */
-    entityMetadataChanged(entity: ShownActor): Promise<void>;
-
-    /**
-     * An entity is holding or wearing something other than what it was.
-     *
-     * Only for an entity a client already has: `AddActorPacket` has no room for equipment, so
-     * the spawn path sends it itself and this covers everything afterwards. Before it existed,
-     * nothing did - a mob's equipment was written once, at the spawn, and a villager's trade
-     * offer and an enderman's carried block reached no client at all.
-     *
-     * Sent rather than recorded, which is the opposite of a block entity change and right
-     * for the opposite reason. A batched flush earns its keep where many changes share a tick,
-     * and equipment changes a handful of times in a mob's life: the guard that matters is the
-     * one in `entity/data/storeActors.ts`, which drops a write whose bytes match what the actor
-     * last showed, so an unchanged mob produces nothing to batch in the first place.
-     * @param {ShownActor} entity - Whose equipment changed.
-     * @returns {Promise<void>} Resolves once it is on its way.
-     */
-    entityEquipmentChanged(entity: ShownActor): Promise<void>;
-
-    /**
-     * An entity is now in this world.
-     * @param {ShownActor} entity - The arrival. Already in the world's maps when this is called.
-     * @returns {Promise<void>} Resolves once everyone who should see it has been told.
-     */
-    entityAdded(entity: ShownActor): Promise<void>;
-
-    /**
-     * An entity is no longer in this world.
-     * @param {ShownActor} entity - The departure. Already out of the world's maps when this is
-     * called, so that a leaving player is not among the clients told about its own departure.
-     * @returns {Promise<void>} Resolves once everyone has been told.
-     */
-    entityRemoved(entity: ShownActor): Promise<void>;
-
-    /**
-     * An entity has moved.
-     *
-     * The hottest path in the server: every entity, every tick it moves. Recorded rather than
-     * sent, and put on the wire once by {@link WorldChangeSink.flushMovement}.
+     * Recorded rather than sent, and put on the wire once by {@link WorldChangeSink.flushMovement}.
+     * Every other move of an entity is read from the change log.
      * @param {ShownActor} entity - The entity that moved.
      */
     entityMoved(entity: ShownActor, teleport?: boolean): void;
@@ -169,21 +114,47 @@ export interface WorldChangeSink {
     gameRuleChanged(name: string, value: boolean | number, editable: boolean): Promise<void>;
 
     /**
+     * Tick phase: send what the sealed ticks did to the world's entities - which entered, and
+     * the equipment, metadata and health of those whose fields they wrote - and queue their moves
+     * for {@link WorldChangeSink.flushMovement} and their departures for
+     * {@link WorldChangeSink.flushDepartures}. Runs after the seal, first of the sends, so an
+     * entity that entered is shown before anything about it changes or happens to it.
+     * @returns {Promise<void>} Resolves once they are on their way.
+     */
+    flushEntities(): Promise<void>;
+
+    /**
+     * Tick phase: take the entities that left off every client. Runs after
+     * {@link WorldChangeSink.flushOccurrences}, so what happened to an entity in the tick it
+     * left, such as the hurt flash of a killing blow, reaches the clients tracking it first.
+     * @returns {Promise<void>} Resolves once they are on their way.
+     */
+    flushDepartures(): Promise<void>;
+
+    /**
      * Tick phase: bring everyone's idea of what is visible in line with where things now are.
      *
-     * Runs after everything has moved and before the movement goes out, so that an entity that
-     * came into range this tick is spawned before the first packet that says it moved.
-     * @param {ShownActor[]} entities - Everything currently in the world.
+     * Runs after {@link WorldChangeSink.flushEntities} and before the movement goes out, so that
+     * an entity that came into range this tick is spawned before the first packet that says it
+     * moved.
      * @returns {Promise<void>} Resolves once the pass is done.
      */
-    reconcile(entities: readonly ShownActor[]): Promise<void>;
+    reconcile(): Promise<void>;
+
+    /**
+     * Every entity of the world as tracking reads it, which a player's own pass shows from.
+     * @returns The entities.
+     */
+    shownEntities(): readonly ShownEntity[];
 
     /**
      * Tick phase: send the occurrences of the ticks read since the last flush, such as sounds,
      * particles and actor events, in the order the log holds them.
      *
-     * Runs first, so a block's break particles still reach a client ahead of the block change,
-     * as they did when they were sent the moment they happened.
+     * Runs after {@link WorldChangeSink.flushEntities} and ahead of the block changes, so a
+     * block's break particles still reach a client ahead of the block change, as they did when
+     * they were sent the moment they happened, and an event about an entity that entered reaches
+     * a client that was just shown it.
      * @returns {Promise<void>} Resolves once they are on their way.
      */
     flushOccurrences(): Promise<void>;
@@ -233,18 +204,16 @@ export const NULL_WORLD_CHANGE_SINK: WorldChangeSink = {
     tickSealed: () => {},
     chunkEntered: () => {},
     chunkLeft: () => {},
-    entityAttributesChanged: async () => {},
     statusEffectChanged: async () => {},
-    entityMetadataChanged: async () => {},
-    entityEquipmentChanged: async () => {},
-    entityAdded: async () => {},
-    entityRemoved: async () => {},
     entityMoved: () => {},
     timeChanged: async () => {},
     gameRuleChanged: async () => {},
+    flushEntities: async () => {},
+    flushDepartures: async () => {},
     reconcile: async () => {},
     flushOccurrences: async () => {},
     flushOwnerViews: async () => {},
+    shownEntities: () => [],
     flushBlockChanges: async () => {},
     flushBlockEntities: async () => {},
     flushMovement: async () => {}

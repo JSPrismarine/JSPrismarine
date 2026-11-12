@@ -1,11 +1,11 @@
 /**
- * A dropped stack of the store as clients and the world code see it.
+ * A dropped stack of the store as the world code sees it.
  *
  * A stack is a store entity like any other, with the actor every store entity has. What this
- * subclass changes is how it is shown: as an `AddItemActor` carrying the stack, followed less far
- * than anything else, with no metadata or health updates, and with blows handed to the dropped
- * item system, which takes health off a stack with no grace period. Everything it reports it reads
- * from the store entity behind it.
+ * subclass changes is what it reports: no metadata beyond its box, attributes no packet carries,
+ * and blows handed to the dropped item system, which takes health off a stack with no grace
+ * period. Everything it reports it reads from the store entity behind it. Clients are shown it as
+ * an `AddItemActor` from the change log (`network/replica/firstSight.ts`).
  */
 import type { Vector3 } from '@jsprismarine/math';
 import { AttributeIds, Attributes } from '@jsprismarine/protocol/wire/structures/Attribute';
@@ -13,7 +13,6 @@ import { AttributeIds, Attributes } from '@jsprismarine/protocol/wire/structures
 import ContainerEntry from '../../inventory/ContainerEntry';
 import type { StoredItemStack } from '../../inventory/persistence';
 import { restoredItem } from '../../inventory/persistence';
-import type PlayerSession from '../../network/PlayerSession';
 import type { World } from '../../world/World';
 import { DamageCause } from '../DamageCause';
 import type { DamageSource } from '../DamageSource';
@@ -52,12 +51,16 @@ export class ItemActor extends StoreActor {
         blows: StoreActorBlows,
         private readonly items: DroppedItems
     ) {
-        super(entity, world, undefined, blows);
+        super(entity, world, blows);
         // The defaults every legacy entity had, unsent: no packet carries a stack's attributes,
         // and the replay digest hashes these.
         const health = Attributes.getDefaults().find((attribute) => attribute.getName() === AttributeIds.Health);
-        if (health !== undefined) this.attributes.setAttribute(health);
-        this.attributes.clearDirty();
+        if (health !== undefined) this.heldAttributes.setAttribute(health);
+    }
+
+    /** The defaults, as the stack was given them: a stack's health is not shown. */
+    public override get attributes(): Attributes {
+        return this.heldAttributes;
     }
 
     /** The stack a player picks up, as the item actor packet carries it. */
@@ -92,26 +95,9 @@ export class ItemActor extends StoreActor {
         return false;
     }
 
-    /**
-     * Dropped stacks are followed less far than anything else, as in vanilla: they are the most
-     * numerous entity in any world and the least worth seeing at a distance.
-     * @returns {number} The tracking radius in chunks.
-     */
-    public override getTrackingRange(): number {
-        return 6;
-    }
-
     /** @inheritdoc */
     public override projectMetadata(_leashHolderId?: number): ActorMetadataProjection {
         return NO_PROJECTION;
-    }
-
-    /** A stack's health is not shown, so a burning stack sends no attribute updates. */
-    public override showHealth(_current: number): void {}
-
-    /** A dropped stack goes on the wire as an item actor, not as a generic one. */
-    public override async spawnTo(session: PlayerSession): Promise<void> {
-        await session.sendAddItemActor(this);
     }
 
     /** A blow goes to the dropped item system, which takes the stack's health with no grace period. */

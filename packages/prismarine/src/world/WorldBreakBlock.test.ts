@@ -16,6 +16,7 @@ import { Dimensions } from './Dimension';
 import Chunk from './chunk/Chunk';
 import { World } from './World';
 import { fakeLevel } from '../testing/level';
+import { collectAddedActors } from '../testing/addedActors.test.helper';
 
 /**
  * A world reduced to what breaking a block touches. The real one wants a server, a provider
@@ -83,7 +84,7 @@ const fakeWorld = (initial: BlockState, broken = fakeBlock(initial.name)) => {
     // Built on the real prototype, so that `breakBlock` and everything it reaches for -
     // `setBlockRuntimeId`, `dropContents`, `dropItem` - is the code under test rather than more of
     // the stand-in. Only what touches the disk, the network or a chunk is replaced.
-    // Where a drop becomes a store stack, whose actor arrives through `showActor` below.
+    // Where a drop becomes a store stack, whose actor the store's `add` hands `spawned`.
     let live: World | undefined;
     const entities = liveTestEntities(() => live);
     const world: World = Object.assign(Object.create(World.prototype), {
@@ -104,7 +105,6 @@ const fakeWorld = (initial: BlockState, broken = fakeBlock(initial.name)) => {
         sendWorldEvent: async (position: Vector3 | null, event: LevelEvent, data: number) => {
             events.push({ position, event, data });
         },
-        showActor: async (actor: any) => void spawned.push(actor),
         server: {
             getConfig: () => ({
                 getProximityBroadcast: () => true,
@@ -126,6 +126,7 @@ const fakeWorld = (initial: BlockState, broken = fakeBlock(initial.name)) => {
         }
     });
     live = world;
+    collectAddedActors(spawned);
 
     // The real replicator over the fake world, so that what a break puts on the wire - and to
     // whom - is still the code under test. The world itself no longer builds those packets.

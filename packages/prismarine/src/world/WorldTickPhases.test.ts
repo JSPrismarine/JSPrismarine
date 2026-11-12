@@ -5,14 +5,12 @@ import path from 'node:path';
 import { Vector3 } from '@jsprismarine/math';
 import { describe, expect, it, vi } from 'vitest';
 
-import { Attributes, AttributeIds } from '@jsprismarine/protocol/wire/structures/Attribute';
 import type { DataEntity } from '../entity/data/DataEntity';
 import type { StoreActors } from '../entity/data/storeActors';
 import { StoreActor } from '../entity/data/storeActors';
 import type PlayerSession from '../network/PlayerSession';
 import { stub, stubOf } from '../testing/stub.test.helper';
 import type { DimensionTravel, PortalBlockRef } from './portal/DimensionTravel';
-import type { ShownActor } from './ShownActor';
 import type { SystemBlock } from './WorldSystems';
 import BlockUpdateScheduler from './BlockUpdateScheduler';
 import { Dimensions } from './Dimension';
@@ -38,14 +36,12 @@ const worldTicking = ({
     trackingInterval = 1,
     currentTick = 20,
     entities = [],
-    entityAttributesChanged,
     blockAt = () => ({ name: 'minecraft:air', states: {} }),
     travel
 }: {
     trackingInterval?: number;
     currentTick?: number;
     entities?: StoreActor[];
-    entityAttributesChanged?: WorldChangeSink['entityAttributesChanged'];
     /** What stands at a block, for the portal check; air everywhere by default. */
     blockAt?: (x: number, y: number, z: number) => SystemBlock | undefined;
     /** The travel service the world reports portal contacts to. */
@@ -65,16 +61,14 @@ const worldTicking = ({
         chunkEntered: () => calls.push('chunkEntered'),
         chunkLeft: () => calls.push('chunkLeft'),
         entityMoved: () => calls.push('entityMoved'),
-        entityAttributesChanged: entityAttributesChanged ?? record('entityAttributesChanged'),
-        entityMetadataChanged: record('entityMetadataChanged'),
-        entityEquipmentChanged: record('entityEquipmentChanged'),
-        entityAdded: record('entityAdded'),
-        entityRemoved: record('entityRemoved'),
         timeChanged: record('timeChanged'),
         gameRuleChanged: record('gameRuleChanged'),
+        flushEntities: record('flushEntities'),
         reconcile: record('reconcile'),
         flushOccurrences: record('flushOccurrences'),
+        flushDepartures: record('flushDepartures'),
         flushOwnerViews: record('flushOwnerViews'),
+        shownEntities: () => [],
         flushBlockChanges: record('flushBlockChanges'),
         flushBlockEntities: record('flushBlockEntities'),
         flushMovement: record('flushMovement')
@@ -149,25 +143,6 @@ const actorOf = (members: Parameters<typeof stubOf<StoreActor>>[1] & Pick<StoreA
     return actor;
 };
 
-/** Ids for the attribute doubles, so each is its own entry in the store's map. */
-let nextId = 100;
-
-const dirtyEntity = (world: World) => {
-    const attributes = new Attributes();
-    attributes.setValue(AttributeIds.Health, 19);
-    const position = new Position(0, 64, 0, world);
-    const entity = actorOf({
-        attributes,
-        getRuntimeId: () => BigInt(++nextId),
-        getPosition: () => position,
-        getType: () => 'minecraft:cow',
-        claimUpdate: () => true,
-        update: async () => {}
-    });
-
-    return { entity, attributes };
-};
-
 describe('world', () => {
     describe('tick phases', () => {
         it('reconciles what is visible before the movement goes out', async () => {
@@ -190,10 +165,12 @@ describe('world', () => {
             expect(calls).toStrictEqual([
                 'blockUpdates',
                 'systems',
-                'reconcile',
                 'tickSealed',
+                'flushEntities',
                 'flushOccurrences',
+                'flushDepartures',
                 'flushOwnerViews',
+                'reconcile',
                 'flushBlockChanges',
                 'flushBlockEntities',
                 'flushMovement',
@@ -240,7 +217,6 @@ describe('world', () => {
             });
             Object.assign(world, {
                 touchPortals: async () => {},
-                flushEntityAttributes: async () => {},
                 updateTracking: async () => {}
             });
 
@@ -268,16 +244,15 @@ describe('world', () => {
             // loop, and nothing has to rebuild an index for it.
             Object.assign(world, {
                 touchPortals: async () => {},
-                flushEntityAttributes: async () => {},
                 updateTracking: async () => {}
             });
             const copies = vi.spyOn(world, 'getActors');
-            const shown = vi.spyOn(world, 'shownActors');
+            const shown = vi.spyOn(world, 'shownEntities');
 
             await world.update(1);
 
             expect(updated).toEqual([1n]);
-            // The loop and the attribute pass walk the store's actors in place.
+            // The loop walks the store's actors in place.
             expect(copies).not.toHaveBeenCalled();
             expect(shown).not.toHaveBeenCalled();
         });
@@ -305,7 +280,6 @@ describe('world', () => {
             const { world } = worldTicking({ entities: [firstInserted, secondInserted] });
             Object.assign(world, {
                 touchPortals: async () => {},
-                flushEntityAttributes: async () => {},
                 updateTracking: async () => {}
             });
 
@@ -342,7 +316,10 @@ describe('world', () => {
                         'World.dragonFight:tick-test-world',
                         'World.entityUpdates:tick-test-world',
                         'World.dataEntities:tick-test-world',
-                        'World.entityAttributes:tick-test-world',
+                        'World.entities:tick-test-world',
+                        'World.occurrences:tick-test-world',
+                        'World.departures:tick-test-world',
+                        'World.ownerViews:tick-test-world',
                         'World.entityTracking:tick-test-world',
                         'World.blockChanges:tick-test-world',
                         'World.blockEntities:tick-test-world',
@@ -464,28 +441,29 @@ describe('world', () => {
             expect(calls).toContain('flushMovement');
         });
 
-        it('continues flushing later attributes after a synchronous sink failure', async () => {
-            const entities: StoreActor[] = [];
-            const sent: ShownActor[] = [];
-            let failingEntity: StoreActor | undefined;
-            const { world } = worldTicking({
-                entities,
-                entityAttributesChanged: (entity) => {
-                    sent.push(entity);
-                    if (entity === failingEntity) throw new Error('attribute sink failed');
-                    return Promise.resolve();
-                }
-            });
-            const first = dirtyEntity(world);
-            const second = dirtyEntity(world);
-            const third = dirtyEntity(world);
-            failingEntity = second.entity;
-            entities.push(first.entity, second.entity, third.entity);
+        it("sends the entities' changes from the sealed tick, before the tracking and the movement", async () => {
+            // An entity that entered is shown before anything is said about it, and replication
+            // reads the entities only from the log, so the flush comes after the seal.
+            const { world, calls } = worldTicking();
 
-            await expect(world.update(1)).rejects.toThrow('attribute sink failed');
+            await world.update(1);
 
-            expect(sent).toEqual([first.entity, second.entity, third.entity]);
-            expect([first, second, third].map(({ attributes }) => attributes.getDirty())).toEqual([[], [], []]);
+            expect(calls.indexOf('tickSealed')).toBeLessThan(calls.indexOf('flushEntities'));
+            expect(calls.indexOf('flushEntities')).toBeLessThan(calls.indexOf('reconcile'));
+            expect(calls.indexOf('flushEntities')).toBeLessThan(calls.indexOf('flushMovement'));
+        });
+
+        it('shows what entered before the occurrences and takes what left away after them', async () => {
+            // An event about an entity has to reach a client that has the entity: after its
+            // AddActor, and before its RemoveActor, such as a killing blow's hurt flash.
+            const { world, calls } = worldTicking();
+
+            await world.update(1);
+
+            expect(calls.indexOf('flushEntities')).toBeLessThan(calls.indexOf('flushOccurrences'));
+            expect(calls.indexOf('flushOccurrences')).toBeLessThan(calls.indexOf('flushDepartures'));
+            // A visibility pass hides what the replica no longer holds, so it follows the departures.
+            expect(calls.indexOf('flushDepartures')).toBeLessThan(calls.indexOf('reconcile'));
         });
     });
 });
@@ -505,7 +483,6 @@ describe('world portal contacts', () => {
         return actorOf({
             getType: () => 'minecraft:player',
             getRuntimeId: () => 1n,
-            attributes: new Attributes(),
             getPosition: () => position,
             getWorld: () => position.getWorld(),
             getFeetY: () => feet.getY(),
