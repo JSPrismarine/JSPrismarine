@@ -2,19 +2,11 @@
 import assert from 'node:assert/strict';
 
 import type { CinnabarClient } from '../client.mts';
-import type { JspServer } from '../jsp-server.mts';
 import type { Scenario } from '../scenario.mts';
-import { untilTicks, waitTicks } from '../scenario.mts';
+import { onlineCount, untilTicks, waitTicks } from '../scenario.mts';
 
 /** The name both clients log in with. */
 const TWIN = 'jsp-e2e-twin';
-
-/** How many players the server counts as online, from the `list` command. */
-const onlineCount = async (server: JspServer): Promise<number> => {
-    const reply = server.waitForLine(/There are \d+ players online/, 10_000);
-    server.command('list');
-    return Number(/There are (\d+) players online/.exec(await reply)?.[1]);
-};
 
 /** Whether the client is in the world. A client the server let go may refuse to answer at all. */
 const inWorld = async (client: CinnabarClient): Promise<boolean> => {
