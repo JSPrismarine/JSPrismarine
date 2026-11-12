@@ -2,6 +2,7 @@ import dgram from 'node:dgram';
 import { once } from 'node:events';
 import { describe, expect, it, vi } from 'vitest';
 
+import { SEGMENT_BYTES } from './Connection';
 import type { Connection } from './Connection';
 import { LanDiscovery } from './LanDiscovery';
 import { NetherNetClient } from './NetherNetClient';
@@ -54,8 +55,8 @@ describe.skipIf(!nativeAvailable())('NetherNet over the native driver', async ()
             const toClient: Buffer[] = [];
             server.on('encapsulated', (message: Buffer) => toServer.push(message));
             client.on('encapsulated', (message: Buffer) => toClient.push(message));
-            // One byte, one segment exactly, one more than a segment, and many segments.
-            const sizes = [1, 10_000, 10_001, 250_000];
+            // One byte, one segment exactly, one more than a segment, and several segments.
+            const sizes = [1, SEGMENT_BYTES, SEGMENT_BYTES + 1, 1_000_000];
             const messages = sizes.map((size, index) => Buffer.alloc(size, index + 1));
 
             for (const message of messages) client.send(message);

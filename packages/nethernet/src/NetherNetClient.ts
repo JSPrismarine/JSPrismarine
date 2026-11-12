@@ -1,6 +1,7 @@
 import { EventEmitter } from 'node:events';
 
 import { Connection } from './Connection';
+import type { ConnectionOptions } from './Connection';
 import { ErrorCode, SignalStructure, SignalType } from './protocol/Signal';
 import { randomUint64 } from './randomUint64';
 import type { PeerConfig, WebRtcDriver } from './WebRtcDriver';
@@ -25,6 +26,8 @@ export interface NetherNetClientOptions {
     readonly prepareOffer?: (offer: string) => string | Promise<string>;
     /** How long the join may take, answer and connection together. */
     readonly timeoutMs?: number;
+    /** How much the connection accepts and buffers; the protocol's limits when absent. */
+    readonly connection?: ConnectionOptions;
 }
 
 /**
@@ -65,7 +68,7 @@ export class NetherNetClient extends EventEmitter {
         this.timer = setTimeout(() => this.fail(ErrorCode.NegotiationTimeoutWaitingForResponse), timeoutMs);
 
         const peer = this.options.driver.createPeer(this.options.peerConfig);
-        const connection = new Connection(this.connectionId, peer);
+        const connection = new Connection(this.connectionId, peer, this.options.connection);
         this.connection = connection;
         connection.on('message', (message: Buffer) => this.emit('encapsulated', message));
         connection.once('close', (reason: string) => this.end(reason));
@@ -98,6 +101,7 @@ export class NetherNetClient extends EventEmitter {
         if (this.closed || connection === undefined || signal.connectionId !== this.connectionId) return;
         switch (signal.type) {
             case SignalType.ConnectResponse:
+                connection.useRemoteDescription(signal.data);
                 try {
                     connection.peer.setRemoteDescription('answer', signal.data);
                 } catch {

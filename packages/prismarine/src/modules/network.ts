@@ -9,6 +9,7 @@ import {
     ServerName,
     WorkerServerSocket
 } from '@jsprismarine/raknet';
+import { DEFAULT_MAX_DECOMPRESSED_LENGTH } from '@jsprismarine/protocol';
 import type { RakNetListenerLike } from '@jsprismarine/raknet';
 import {
     HttpSignaling,
@@ -479,6 +480,8 @@ export class ServerNetworking implements Networking {
             // Discovery is IPv4 broadcast, so an IPv6 bind address leaves it on every interface.
             host: isIPv4(address) ? address : '0.0.0.0',
             peerConfig: () => (wildcard ? {} : { bindAddress: address }),
+            // A batch never inflates past this, so no message that carries one is longer.
+            connection: { maxMessageBytes: DEFAULT_MAX_DECOMPRESSED_LENGTH },
             ...(ports === undefined ? {} : { ports })
         });
         if (ports !== undefined) {

@@ -1,5 +1,15 @@
 export { BEDROCK_CURVE, compactEs384, detachedEs384, verifiesDetachedEs384 } from './es384';
-export { Connection, MAX_MESSAGE_BYTES, Reassembler, SEGMENT_BYTES, segment } from './Connection';
+export {
+    Connection,
+    DEFAULT_MAX_BUFFERED_BYTES,
+    MAX_MESSAGE_BYTES,
+    MAX_SEGMENTS,
+    Reassembler,
+    SEGMENT_BYTES,
+    segment,
+    segmentBytesFor
+} from './Connection';
+export type { ConnectionOptions } from './Connection';
 export { HttpSignaling } from './HttpSignaling';
 export type { HttpSignalingOptions, NetherNetOfferAnswerer, SignalingLogger } from './HttpSignaling';
 export { DISCOVERY_INTERVAL_MS, LanDiscovery } from './LanDiscovery';

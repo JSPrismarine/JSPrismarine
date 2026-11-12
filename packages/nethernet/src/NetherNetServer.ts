@@ -2,6 +2,7 @@ import dgram from 'node:dgram';
 import { EventEmitter } from 'node:events';
 
 import { Connection } from './Connection';
+import type { ConnectionOptions } from './Connection';
 import type { PortAllocator } from './PortAllocator';
 import { NETHERNET_LAN_PORT } from './NetherNetDefaults';
 import { DiscoveryPacketType, decodeDiscoveryPacket, encodeDiscoveryPacket } from './protocol/Discovery';
@@ -41,6 +42,8 @@ export interface NetherNetServerOptions {
      * absent.
      */
     readonly ports?: PortAllocator;
+    /** How much each connection accepts and buffers; the protocol's limits when absent. */
+    readonly connection?: ConnectionOptions;
 }
 
 /** A close reason with what went wrong, so the log line that reports it says why. */
@@ -105,7 +108,8 @@ export class NetherNetServer extends EventEmitter {
                     port === undefined
                         ? config
                         : { ...config, enableIceUdpMux: true, portRangeBegin: port, portRangeEnd: port }
-                )
+                ),
+                this.options.connection
             );
         } catch {
             if (port !== undefined) this.options.ports?.release(port);
@@ -146,6 +150,7 @@ export class NetherNetServer extends EventEmitter {
                 connection.peerEnded('disconnected');
         });
 
+        connection.useRemoteDescription(signal.data);
         try {
             connection.peer.setRemoteDescription('offer', signal.data);
         } catch (error: unknown) {
