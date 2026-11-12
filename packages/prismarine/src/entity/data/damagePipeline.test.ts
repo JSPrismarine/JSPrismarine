@@ -5,6 +5,8 @@ import type { DamageIntent } from './damagePipeline';
 import { PASS, VETO, replaceAmount } from './damagePipeline';
 import { entityFixture, FLOOR_Y, TestEntityWorld } from './testing';
 import { beginMeasuredTick } from '../../testing/changeTicks.test.helper';
+import { SHIPPED_PLAYER } from '../../testing/storePlayer.test.helper';
+import { PLAYER_IDENTIFIER } from '../playerOverlay';
 
 const GROUND = { x: 0.5, y: FLOOR_Y + 1, z: 0.5 };
 
@@ -273,6 +275,49 @@ describe('the damage pipeline', () => {
             const runs = Object.fromEntries(runtime.damagePipeline.runsByRoute());
             expect(runs).toMatchObject({ mob_attack: 1, fire: 1, void: 1 });
             expect(bitten.body.damage.last()).toMatchObject({ sourceId: attacker.id, cause: 'entity_attack' });
+        });
+    });
+
+    describe('a mob hitting a player in the store', () => {
+        it('keeps the resistance and the grace period a player has', () => {
+            const { runtime } = entityFixture(
+                undefined,
+                {},
+                {
+                    [PLAYER_IDENTIFIER]: SHIPPED_PLAYER,
+                    'jsprismarine:biter': {
+                        components: {
+                            'minecraft:collision_box': { width: 0.6, height: 1.8 },
+                            'minecraft:health': { value: 10, max: 10 },
+                            'minecraft:attack': { damage: 5 }
+                        }
+                    }
+                }
+            );
+            const biter = runtime.spawn('jsprismarine:biter', { ...GROUND, x: 1.5 });
+            const player = runtime.spawn(PLAYER_IDENTIFIER, GROUND);
+            const target = player === undefined ? undefined : runtime.mobById(player.id);
+            if (biter === undefined || player === undefined || target === undefined)
+                throw new Error('the fixture declares no biter or player');
+            player.body.statusEffects.set('minecraft:resistance', {
+                id: 'minecraft:resistance',
+                amplifier: 1,
+                durationTicks: 100,
+                ambient: false,
+                showParticles: true,
+                showIcon: true
+            });
+            const health = (): number | undefined => player.instance.attributes.get('health')?.current;
+            const before = health() ?? 0;
+
+            runtime.attack(biter.body, target);
+            const once = before - (health() ?? 0);
+            runtime.attack(biter.body, target);
+
+            // Resistance II takes 40% of the blow, and the second swing lands inside the grace.
+            expect(biter.body.facts.attackDamage).toBe(5);
+            expect(once).toBeCloseTo(3, 6);
+            expect(before - (health() ?? 0)).toBeCloseTo(once, 6);
         });
     });
 
