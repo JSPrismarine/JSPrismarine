@@ -2952,6 +2952,33 @@ describe('the data-driven entity runtime over a live world', () => {
             expect(typesIn(second.world).filter((type) => type === 'minecraft:zombie')).toHaveLength(1);
         });
 
+        it('takes a dropped stack out with its chunk, so a reload brings back one', async () => {
+            const folder = mkdtempSync(join(tmpdir(), 'jsp-entity-item-unload-'));
+            folders.push(folder);
+
+            const opened = await session(folder);
+            await opened.world.loadChunk(0, 0);
+            const item = opened.live.runtime.droppedItems.spawn(
+                { x: 2.5, y: GROUND_Y, z: 3.5 },
+                { stack: { name: 'minecraft:dirt', count: 1 } }
+            );
+            if (item === undefined) throw new Error('the fixture declares no dropped item');
+            await opened.world.saveChunks();
+
+            const chunk = opened.world.getLoadedChunk(0, 0);
+            if (chunk === null) throw new Error('the chunk is not loaded');
+            await opened.world['unloadChunks']([chunk]);
+            expect(opened.world.getLoadedChunk(0, 0)).toBeNull();
+            expect(opened.live.runtime.byId(item.id)).toBeUndefined();
+
+            await opened.world.loadChunk(0, 0);
+            const items = opened.live.runtime
+                .entities()
+                .toArray()
+                .filter((entity) => entity.identifier === 'minecraft:item');
+            expect(items).toHaveLength(1);
+        });
+
         it('brings a saved mob back with the portal cooldown it was saved with', () => {
             const nbt = savedActorNbt('minecraft:zombie', { x: 2.5, y: GROUND_Y + 4, z: 3.5 });
             nbt.addValue('PortalCooldown', new Types.NumberVal(123));

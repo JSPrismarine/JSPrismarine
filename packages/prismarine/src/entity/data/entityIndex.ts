@@ -65,6 +65,9 @@ const LARGE_BOX_HEIGHT = 3;
 /** How wide one dropped item cell is, in blocks. */
 const ITEM_CELL_SIZE = 2;
 
+/** How many item cells one chunk-aligned cell spans along each axis. */
+const ITEM_CELLS_PER_CELL = (1 << CELL_BITS) / ITEM_CELL_SIZE;
+
 /** The cell one horizontal coordinate falls in. */
 const cellOf = (coordinate: number): number => Math.floor(coordinate) >> CELL_BITS;
 
@@ -129,8 +132,8 @@ export class EntityIndex {
     private readonly filedItems = new Map<number, number>();
 
     /**
-     * Hears each chunk a store entity other than a dropped stack or a player enters, leaves or
-     * moves within.
+     * Hears each chunk a store entity other than a player enters, leaves or moves within, a
+     * dropped stack's each time it changes two-block cell.
      * A cell is sixteen blocks wide and aligned to the chunks, so the cell an entity is filed
      * under is the chunk it stands in. The world marks the chunk changed, so a save writes the
      * chunk an entity left as well as the one it entered, and a chunk does not leave the world
@@ -227,6 +230,21 @@ export class EntityIndex {
     public storeInChunk(chunkX: number, chunkZ: number): DataEntity[] {
         const cell = this.cells.get(keyOf(chunkX, chunkZ));
         return cell === undefined ? [] : inIdOrder([...cell]);
+    }
+
+    /**
+     * The dropped stacks of the store that lie in one chunk, in ascending runtime id order, which
+     * a chunk that leaves the world takes with it beside {@link EntityIndex.storeInChunk}.
+     */
+    public itemsInChunk(chunkX: number, chunkZ: number): DataEntity[] {
+        const found: DataEntity[] = [];
+        const span = ITEM_CELLS_PER_CELL;
+        for (let cellX = chunkX * span; cellX < (chunkX + 1) * span; cellX += 1)
+            for (let cellZ = chunkZ * span; cellZ < (chunkZ + 1) * span; cellZ += 1) {
+                const cell = this.storeItemCells.get(keyOf(cellX, cellZ));
+                if (cell !== undefined) found.push(...cell);
+            }
+        return inIdOrder(found);
     }
 
     /**
@@ -460,11 +478,13 @@ export class EntityIndex {
         const cell = this.storeItemCells.get(key);
         if (cell === undefined) this.storeItemCells.set(key, [entity]);
         else cell.push(entity);
+        this.reportItemCell(key);
     }
 
     /** Takes one dropped stack of the store out of its two-block cell. */
     private unfileItem(entity: DataEntity, key: number): void {
         this.filedItems.delete(entity.id);
+        this.reportItemCell(key);
         const cell = this.storeItemCells.get(key);
         if (cell === undefined) return;
         const at = cell.indexOf(entity);
@@ -490,6 +510,18 @@ export class EntityIndex {
         if (listener === undefined || clientOwnsMovement(entity.identifier)) return;
         const signed = (cell: number): number => (cell >= KEY_SPAN / 2 ? cell - KEY_SPAN : cell);
         listener(signed(Math.floor(key / KEY_SPAN)), signed(key % KEY_SPAN));
+    }
+
+    /**
+     * Tells the listener which chunk a dropped stack entered or left, which the two-block cell
+     * lies in: a stack is part of its chunk's save as a mob is.
+     */
+    private reportItemCell(key: number): void {
+        const listener = this.chunkChanged;
+        if (listener === undefined) return;
+        const signed = (cell: number): number => (cell >= KEY_SPAN / 2 ? cell - KEY_SPAN : cell);
+        const chunkOf = (cell: number): number => Math.floor(signed(cell) / ITEM_CELLS_PER_CELL);
+        listener(chunkOf(Math.floor(key / KEY_SPAN)), chunkOf(key % KEY_SPAN));
     }
 
     /** Removes one entity's ordinary width from the incremental maximum. */
