@@ -20,6 +20,25 @@ describe('plainOf', () => {
         expect(copy).toEqual({ id: 7n, position: new Float64Array([1, 2, 3]) });
     });
 
+    it('copies a Buffer, whose slice shares its memory', () => {
+        const tags = Buffer.from([10, 0, 0]);
+        const copy = plainOf({ tags });
+
+        tags[0] = 9;
+        expect(copy).toEqual({ tags: Buffer.from([10, 0, 0]) });
+    });
+
+    it('keeps a `__proto__` key as data, and tells two values under it apart', () => {
+        const before = plainOf(JSON.parse('{"__proto__":1}'));
+        const after = plainOf(JSON.parse('{"__proto__":{"x":2}}'));
+
+        expect(before).not.toBeUndefined();
+        expect(Object.keys(before ?? {})).toEqual(['__proto__']);
+        expect(Object.getPrototypeOf(after)).toBe(Object.prototype);
+        expect(samePlain(before!, after!)).toBe(false);
+        expect(samePlain(before!, plainOf(JSON.parse('{"__proto__":1}'))!)).toBe(true);
+    });
+
     it('refuses a value with no plain form', () => {
         expect(plainOf(new Map())).toBeUndefined();
         expect(plainOf({ run: () => 1 })).toBeUndefined();

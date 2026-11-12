@@ -67,6 +67,8 @@ export function plainOf(value: unknown): PlainData | undefined {
             return undefined;
     }
     if (value === null) return null;
+    // `Buffer.prototype.slice` shares the buffer's memory, so a Buffer is copied with `Buffer.from`.
+    if (Buffer.isBuffer(value)) return Buffer.from(value);
     if (ArrayBuffer.isView(value)) return isTypedArray(value) ? value.slice() : undefined;
     if (Array.isArray(value)) {
         const items: PlainData[] = [];
@@ -84,7 +86,10 @@ export function plainOf(value: unknown): PlainData | undefined {
         if (item === undefined) continue;
         const plain = plainOf(item);
         if (plain === undefined) return undefined;
-        record[key] = plain;
+        // Assigning `__proto__` would call the inherited setter instead of making the key.
+        if (key === '__proto__')
+            Object.defineProperty(record, key, { value: plain, enumerable: true, writable: true, configurable: true });
+        else record[key] = plain;
     }
     return record;
 }
