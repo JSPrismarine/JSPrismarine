@@ -40,7 +40,7 @@ import { requireJavaWorldgenRegistries } from './generators/datadriven/javaWorld
 import type BaseProvider from './providers/BaseProvider';
 import { WorldWeather } from './Weather';
 import { World } from './World';
-import { PLAYER_DATA_FOLDER } from './WorldPaths';
+import { PLAYER_DATA_FOLDER, playerDataFileName } from './WorldPaths';
 import type { WorldData } from './World';
 import type { RaidRecord } from './raid/RaidManager';
 import type { DragonFightState, LegacyWorldEntity, SavedRaid, WorldPersistenceData } from './WorldPersistence';
@@ -974,8 +974,8 @@ export class Level {
             this.server.getLogger().error(error);
         }
 
-        const file = this.playerDataFile(key);
-        if (!fs.existsSync(file)) return null;
+        const file = await this.existingPlayerDataFile(key);
+        if (file === undefined) return null;
 
         // Parsed JSON is a boundary the compiler cannot see; the file is trusted as written.
         const data: unknown = (await readJsonFile(file, '{}')).get([]);
@@ -1010,6 +1010,20 @@ export class Level {
 
             const file = this.playerDataFile(key);
             await fs.promises.mkdir(path.dirname(file), { recursive: true });
+            // Another key's record still under its old name, which is this key's name now, moves
+            // to its owner's new name first, so this save neither reads nor overwrites it.
+            const owner = await this.foreignOwnerOf(key, file);
+            if (owner !== undefined) {
+                const ownersFile = this.playerDataFile(owner);
+                if (fs.existsSync(ownersFile)) {
+                    throw new Error(`${file} holds ${owner}'s record, which also has ${ownersFile}`);
+                }
+                await fs.promises.rename(file, ownersFile);
+            }
+            // A record still under the name it had before names were escaped moves to the new
+            // one, so the save extends it rather than starting the player over.
+            const legacy = await this.legacyPlayerDataFile(key);
+            if (legacy !== undefined && !fs.existsSync(file)) await fs.promises.rename(legacy, file);
             const document = await readJsonFile(file, '{}');
             for (const [field, value] of Object.entries(data)) document.set([field], value);
             await writeJsonFile(file, document);
@@ -1020,7 +1034,73 @@ export class Level {
         }
     }
 
+    /**
+     * Where the fallback JSON for a player key lives: one file directly in the save's player
+     * data folder, whatever the key holds.
+     * @throws Error when the file would land anywhere else, which {@link playerDataFileName}
+     *   should already have made impossible.
+     */
     private playerDataFile(key: string): string {
-        return path.join(this.path, PLAYER_DATA_FOLDER, `${key}.json`);
+        const folder = path.resolve(this.path, PLAYER_DATA_FOLDER);
+        const file = path.resolve(folder, playerDataFileName(key));
+        if (path.dirname(file) !== folder)
+            throw new Error(`Player data for ${JSON.stringify(key)} would leave ${folder}`);
+        return file;
+    }
+
+    /**
+     * The fallback JSON a key was stored in before {@link playerDataFileName} escaped names, when
+     * that differs from today's name, is a regular file directly in the player data folder, and
+     * holds this key's record. A name that pointed anywhere else, or at a link, is never read.
+     *
+     * The name alone does not say whose record it is: `100%25.json` is both where key `100%25`
+     * used to live and where key `100%` lives now. Only a key with a character that is now
+     * escaped can have a legacy file, and a key like that is a player name, so the record's
+     * `username` has to be the key. A key holding NUL never had a file, since no file name can.
+     */
+    private async legacyPlayerDataFile(key: string): Promise<string | undefined> {
+        if (key.includes('\0')) return undefined;
+
+        const folder = path.resolve(this.path, PLAYER_DATA_FOLDER);
+        const legacy = path.resolve(folder, `${key}.json`);
+        if (path.dirname(legacy) !== folder || legacy === this.playerDataFile(key)) return undefined;
+        if (!fs.lstatSync(legacy, { throwIfNoEntry: false })?.isFile()) return undefined;
+
+        try {
+            return (await readJsonFile(legacy, '{}')).get(['username']) === key ? legacy : undefined;
+        } catch {
+            return undefined;
+        }
+    }
+
+    /**
+     * The key whose record sits in `file`, today's name for `key`, when it is not `key`'s own.
+     *
+     * Only an escaped key's name can be another key's legacy name: `100%25.json` is where key
+     * `100%` lives now and where key `100%25` lived before. An escaped key is a player name, and
+     * every record stores the player's `username`, so the file is another key's exactly when its
+     * `username` differs from `key` and names the file the way the old scheme did.
+     */
+    private async foreignOwnerOf(key: string, file: string): Promise<string | undefined> {
+        if (playerDataFileName(key) === `${key}.json` || !fs.existsSync(file)) return undefined;
+
+        try {
+            const username = (await readJsonFile(file, '{}')).get(['username']);
+            return typeof username === 'string' && username !== key && `${username}.json` === path.basename(file)
+                ? username
+                : undefined;
+        } catch {
+            return undefined;
+        }
+    }
+
+    /**
+     * The file a key's fallback record is in now: today's name first, unless it holds another
+     * key's legacy record, else its own legacy name.
+     */
+    private async existingPlayerDataFile(key: string): Promise<string | undefined> {
+        const file = this.playerDataFile(key);
+        if (fs.existsSync(file) && (await this.foreignOwnerOf(key, file)) === undefined) return file;
+        return this.legacyPlayerDataFile(key);
     }
 }
