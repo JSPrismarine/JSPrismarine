@@ -16,6 +16,8 @@ interface PendingRespawn {
     readonly search: RespawnSearch;
     readonly request: RespawnRequest;
     readonly apply: (answer: RespawnAnswer) => void;
+    /** Whether this is the world spawn asked for after the search for the player's own point threw. */
+    readonly fallback?: boolean;
 }
 
 /** The respawn searches waiting for an input step. */
@@ -45,6 +47,10 @@ export class RespawnRequests {
      * answer. A request still waiting stays for the next step, and so do the later requests of
      * the same player, so one player's answers apply in the order they were asked for.
      *
+     * A search that throws, such as one whose spawn point's world failed to build, is reported
+     * and asked again for the world spawn alone. The death screen and the respawn wait for an
+     * answer, and a client that never gets one cannot leave the death screen.
+     *
      * @returns How many answers were applied.
      */
     public admit(): number {
@@ -71,6 +77,9 @@ export class RespawnRequests {
                 applied += 1;
             } catch (error: unknown) {
                 this.report(error);
+                if (pending.fallback === true || pending.request.spawnPoint === undefined) continue;
+                blocked.add(player);
+                waiting.push({ ...pending, request: { ...pending.request, spawnPoint: undefined }, fallback: true });
             }
         }
         // A request an answer filed goes after the ones that were already waiting.

@@ -103,4 +103,29 @@ describe('respawn requests', () => {
         expect(reported).toHaveLength(1);
         expect(requests.size).toBe(0);
     });
+
+    it('answers the world spawn for a player whose own spawn point the search failed on', async () => {
+        const reported: unknown[] = [];
+        const requests = new RespawnRequests((error) => reported.push(error));
+        const asked: (string | undefined)[] = [];
+        const search = stub<RespawnSearch>({
+            attempt: ({ player, spawnPoint }): RespawnAttempt => {
+                asked.push(spawnPoint?.dimension);
+                if (spawnPoint !== undefined) throw new Error('the bed world did not build');
+                return { kind: 'answer', answer: answerFor(player) };
+            }
+        });
+        const applied: string[] = [];
+        const bed = { x: 1, y: 64, z: 1, dimension: 'minecraft:nether' };
+        requests.request(search, { ...requestOf('steve'), spawnPoint: bed }, async () => void applied.push('death'));
+        requests.request(search, requestOf('steve'), async () => void applied.push('respawn'));
+
+        expect(requests.admit()).toBe(0);
+        expect(reported).toHaveLength(1);
+        expect(requests.admit()).toBe(2);
+
+        expect(asked).toEqual(['minecraft:nether', undefined, undefined]);
+        expect(applied).toEqual(['death', 'respawn']);
+        expect(requests.size).toBe(0);
+    });
 });
