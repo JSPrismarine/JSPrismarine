@@ -557,7 +557,7 @@ export class DimensionTravel {
         trip.released = true;
         trip.from.getLevel().readyWorld(trip.route.to)?.chunkTickets().release(trip.ticket);
         // The search gives up its ticket when it answers, which a dropped trip never asks again for.
-        trip.respawnFor?.abandonRespawnPoint();
+        trip.respawnFor?.abandonRespawnPoint(trip.from.getLevel());
     }
 
     /**
