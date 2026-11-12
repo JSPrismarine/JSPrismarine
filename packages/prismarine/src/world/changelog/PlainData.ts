@@ -24,6 +24,11 @@ export type PlainTypedArray =
  * No functions, no class instances with behavior and no `undefined`, so an object with methods
  * (a `Vector3`, an entity) does not satisfy it and the compiler rejects it where plain data is
  * required.
+ *
+ * A plain value is a tree, as a JSON value is: no object or array holds itself, directly or
+ * further down. A structured clone would keep such a cycle, but {@link plainOf},
+ * {@link samePlain} and `estimatePlainBytes` walk each value down to its leaves, which a cycle
+ * never reaches.
  */
 export type PlainData =
     null | boolean | number | bigint | string | PlainTypedArray | readonly PlainData[] | PlainRecord;
