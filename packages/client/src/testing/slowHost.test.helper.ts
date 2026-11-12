@@ -70,7 +70,6 @@ const workspaceOrigin = (): string | undefined => {
 const hold = (api: string, origin: string, deliver: () => void): (() => void) => {
     const work: HeldWork = { api, origin };
     holding.add(work);
-    heldCount++;
     let turns = 0;
     let canceled = false;
     const turn = (): void => {
@@ -80,6 +79,8 @@ const hold = (api: string, origin: string, deliver: () => void): (() => void) =>
             return;
         }
         holding.delete(work);
+        // Counted on delivery, so a held immediate that was cleared does not count as one held.
+        heldCount++;
         deliver();
     };
     originalSetImmediate(turn);
@@ -285,7 +286,7 @@ export const SlowHost = {
         const pendingTimers = [...timers].filter(([timer]) => timer.hasRef()).map(([, work]) => work);
         return [...holding, ...pendingTimers];
     },
-    /** How many completions the host has held since it loaded. */
+    /** How many held completions the host has delivered since it loaded. */
     get heldCount(): number {
         return heldCount;
     }
