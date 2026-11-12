@@ -31,6 +31,13 @@ export default class SessionManager {
      */
     private readonly claims: Map<ClientConnection, LoginClaim> = new Map();
 
+    /**
+     * The join of each connection a login replaced, kept until the connection goes. A later login
+     * of the same account that finds the replaced connection still there waits for that join too,
+     * rather than disconnecting it while its join is still running.
+     */
+    private readonly replacedJoins: Map<ClientConnection, Promise<void> | null> = new Map();
+
     public add(id: ConnectionId, connection: ClientConnection): void {
         this.connections.set(id, connection);
     }
@@ -45,7 +52,10 @@ export default class SessionManager {
 
     public remove(id: ConnectionId): boolean {
         const connection = this.connections.get(id);
-        if (connection !== undefined) this.claims.delete(connection);
+        if (connection !== undefined) {
+            this.claims.delete(connection);
+            this.replacedJoins.delete(connection);
+        }
         return this.connections.delete(id);
     }
 
@@ -80,7 +90,8 @@ export default class SessionManager {
      * A match is any connection that reserved a matching account, at any phase from the login to
      * the spawn, and any connection whose player matches, for a player that joined without a
      * reservation. Each match loses its reservation here, so its own login stops at its next
-     * {@link SessionManager.holdsIdentity} check.
+     * {@link SessionManager.holdsIdentity} check. A connection an earlier login replaced comes back
+     * with the join it was running then, so this login waits for it as the earlier one does.
      * @param connection - The connection whose login is being let in.
      * @param identity - The account its login names.
      * @param joined - Settles when this connection's join has finished or failed.
@@ -96,6 +107,7 @@ export default class SessionManager {
             if (other === connection || !sameAccount(claim.identity, identity)) continue;
             replaced.push({ connection: other, joined: claim.joined });
             this.claims.delete(other);
+            this.replacedJoins.set(other, claim.joined);
         }
 
         for (const other of this.connections.values()) {
@@ -103,7 +115,7 @@ export default class SessionManager {
             if (replaced.some((entry) => entry.connection === other)) continue;
             const session = other.getPlayerSession();
             if (session !== null && sameAccount(session.identity, identity)) {
-                replaced.push({ connection: other, joined: null });
+                replaced.push({ connection: other, joined: this.replacedJoins.get(other) ?? null });
             }
         }
 
