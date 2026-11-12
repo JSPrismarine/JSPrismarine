@@ -149,7 +149,13 @@ export default class SessionManager {
      * @returns The session, or null when no online player has that id.
      */
     public sessionOf(id: bigint): PlayerSession | null {
-        return this.getSessions().find((session) => session.runtimeId === id) ?? null;
+        // Walks the connections in place rather than through `getSessions`: chat looks a
+        // recipient up once per delivery, and a broadcast would build one array per recipient.
+        for (const connection of this.connections.values()) {
+            const session = connection.getPlayerSession();
+            if (session?.runtimeId === id && session.isConnected()) return session;
+        }
+        return null;
     }
 
     /**
