@@ -15,8 +15,8 @@ Progress (2026-10-30):
 - Phase 6: the ticker, networking (`prismarine:network`), and shutdown-interrupt extractions are
   done; the content build, packet handlers, commands, worlds and `#minecraft:load` run as kernel
   modules with declared dependencies, so `Server.enable` is the config, the logger, `kernel.start()`
-  and the console, and `Server.disable` is `kernel.stop()` plus the config and the logger; the kernel-backed `getXxxManager()` getters are deprecated; the kernel and the token
-  barrel are exported from `@jsprismarine/prismarine` as the module API; block changes reach the
+  and the console, and `Server.disable` is `kernel.stop()` plus the config and the logger; the kernel-backed `getXxxManager()` getters are deprecated; `Server.getKernel()` and the
+  tokens in `@jsprismarine/prismarine/modules/tokens` are the module API; block changes reach the
   replicators from each world's change log, which replaced the typed `WorldChange` stream.
 - Phase 7: Protocol package ownership is complete. `@jsprismarine/protocol` owns the packet
   classes, wire definitions, structures, packet id tables, codec construction, codec registry,
@@ -92,6 +92,9 @@ Progress (2026-10-30):
   sounds and status effects, and an owner's own view from the sealed tick of each world's change
   log, and keeps a replica of what clients are shown. The log is complete for everything the
   replay digest hashes, so a snapshot plus the log reproduces the digest.
+- Slice 11 has landed: `@jsprismarine/prismarine` exports a fixed list of entry points, each the
+  module that defines what it exports, in place of `"./*"`. The root is `Server.ts`, and the
+  package has no barrel left.
 - Accepted deviation: `ServerName` advertises only the newest supported version rather than every
   registered codec version. This matches what a Bedrock Dedicated Server of that version
   advertises; as the constructor comment in `packages/raknet/src/utils/ServerName.ts` records,
