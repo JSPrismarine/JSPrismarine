@@ -508,12 +508,23 @@ export default class WorldManager implements Service {
         const stemId = this.stemIdOf(level, dimension);
         if (stemId === undefined) return undefined;
 
-        // `Level.world` records the world before its first await, so it can be answered now.
-        level.world(stemId).catch((error: unknown) => {
-            this.server.getLogger().error(`Failed to build the ${dimension} dimension`);
-            this.server.getLogger().error(error);
-        });
+        // Built outside every tick, so a command run inside one does not load the world's chunks
+        // into it. `Level.world` records the world before its first await, so it can be answered now.
+        void level.prepareWorld(stemId);
         return level.loadedWorld(stemId);
+    }
+
+    /**
+     * The default level's stem of a dimension, without building its world.
+     *
+     * @param dimension - A Java `dimension_type` id, or the Bedrock spelling of a vanilla one.
+     * @returns The level and the stem's id, or undefined when no stem of the default level has
+     *   that dimension.
+     */
+    public stemFor(dimension: string): { readonly level: Level; readonly stemId: string } | undefined {
+        const level = this.getDefaultLevel();
+        const stemId = this.stemIdOf(level, dimension);
+        return stemId === undefined ? undefined : { level, stemId };
     }
 
     /** A stem by its id first, which is how the vanilla three are named, then by the type it binds. */

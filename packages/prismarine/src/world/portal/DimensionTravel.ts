@@ -35,6 +35,7 @@ import type { Arrival } from '../../network/PlayerSession';
 import type Server from '../../Server';
 import { Dimensions } from '../Dimension';
 import { requestedSpawnPosition } from '../SpawnPlacement';
+import type { Level } from '../Level';
 import { outsideTick } from '../TickContext';
 import type { World } from '../World';
 import { createNetherPortal } from './create';
@@ -126,12 +127,58 @@ interface PortalTrip {
     preparing: Promise<void> | undefined;
 }
 
-/** A player's move to a world that is already built, filed by code that cannot wait for the change. */
+/**
+ * Where a player's move goes, which may need its world built or its spawn found before the input
+ * step can carry the move out.
+ */
+export interface MoveTarget {
+    /** The arrival once the move can land without waiting, or undefined while it cannot. */
+    ready(): Arrival | undefined;
+    /** Starts what {@link MoveTarget.ready} waits for, outside every tick. */
+    prepare(): Promise<void>;
+}
+
+/** A move to a world that is already built, with nothing to prepare. */
+export const arrivalTarget = (arrival: Arrival): MoveTarget => ({
+    ready: () => arrival,
+    prepare: async () => {}
+});
+
+/**
+ * A move into a level's world of one stem, which is built outside every tick when nobody has
+ * entered it yet.
+ *
+ * @param place - The feet position and facing in the world, once it is built.
+ */
+export const stemTarget = (level: Level, stemId: string, place: Omit<Arrival, 'world'>): MoveTarget => ({
+    ready: () => {
+        const world = level.readyWorld(stemId);
+        return world === undefined ? undefined : { ...place, world };
+    },
+    prepare: async () => level.prepareWorld(stemId)
+});
+
+/**
+ * A move to a world's spawn, where a joining player's feet go before the terrain is consulted
+ * ({@link requestedSpawnPosition}). A world that has not found its spawn searches for it outside
+ * every tick.
+ */
+export const spawnTarget = (world: World, facing: Pick<Arrival, 'yaw' | 'pitch'>): MoveTarget => ({
+    ready: () => {
+        const spawn = world.getKnownSpawnPosition();
+        return spawn === null ? undefined : { ...facing, world, position: requestedSpawnPosition(spawn) };
+    },
+    prepare: async () => outsideTick(async () => void (await world.getSpawnPosition()))
+});
+
+/** A player's move to another world, filed by code that cannot wait for the change. */
 interface WorldMove {
     readonly session: PlayerSession;
-    readonly arrival: Arrival;
+    readonly target: MoveTarget;
     /** What follows the change, in the same input step. */
     readonly then: () => Promise<void>;
+    /** The preparation of the target running for this move, if one is. */
+    preparing: Promise<void> | undefined;
 }
 
 /** Every chunk within `radius` blocks of a position on x and z, as chunk coordinates. */
@@ -365,14 +412,26 @@ export class DimensionTravel {
 
     /**
      * Moves a player to another world at the next input step, for code that runs where the change
-     * cannot be waited for, such as an input-lane handler. The change runs through
+     * cannot be waited for, such as an input-lane handler or a command. The change runs through
      * `PlayerSession.changeWorld`, then `then`. A player who disconnected first is not moved.
      *
      * @param arrival - Where the player lands, in a world that is already built.
      * @param then - What follows the change, such as the respawn exchange after the credits.
      */
     public move(session: PlayerSession, arrival: Arrival, then: () => Promise<void> = async () => {}): void {
-        this.moves.push({ session, arrival, then });
+        this.moveTo(session, arrivalTarget(arrival), then);
+    }
+
+    /**
+     * {@link DimensionTravel.move} to a target that may not be ready yet, such as a world nobody
+     * has entered. The target is prepared outside every tick, and the move waits for the input
+     * step at which it is ready. A player's later moves wait behind an earlier one, so they land
+     * in the order they were filed.
+     */
+    public moveTo(session: PlayerSession, target: MoveTarget, then: () => Promise<void> = async () => {}): void {
+        const move: WorldMove = { session, target, then, preparing: undefined };
+        this.moves.push(move);
+        this.prepareMove(move);
     }
 
     /** How many trips and moves wait for an input step to land them. */
@@ -423,13 +482,27 @@ export class DimensionTravel {
         return landed;
     }
 
-    /** Carries out the moves filed before this step, in order. */
+    /**
+     * Carries out the moves filed before this step whose targets are ready, in order, and keeps
+     * the rest, with every later move of the same player, for a later step.
+     */
     private async admitMoves(): Promise<number> {
         const due = this.moves;
         this.moves = [];
+        const waiting = new Set<PlayerSession>();
         let moved = 0;
-        for (const { session, arrival, then } of due) {
+        for (const move of due) {
+            const { session, target, then } = move;
             if (!session.isConnected()) continue;
+
+            const arrival = waiting.has(session) ? undefined : target.ready();
+            if (arrival === undefined) {
+                waiting.add(session);
+                this.moves.push(move);
+                this.prepareMove(move);
+                continue;
+            }
+
             try {
                 await session.changeWorld(arrival);
                 await then();
@@ -442,7 +515,24 @@ export class DimensionTravel {
         return moved;
     }
 
-    /** Settles once the destination of every filed trip has been prepared as far as it can be. */
+    /** Prepares a move's target outside every tick, one preparation per move at a time. */
+    private prepareMove(move: WorldMove): void {
+        if (move.preparing !== undefined || move.target.ready() !== undefined) return;
+
+        const preparing: Promise<void> = outsideTick(async () => move.target.prepare())
+            .catch((error: unknown) => {
+                this.server.getLogger().error(`Failed to prepare the move of ${move.session.identity.name}`);
+                this.server.getLogger().error(error);
+            })
+            .finally(() => {
+                move.preparing = undefined;
+                this.preparing.delete(preparing);
+            });
+        move.preparing = preparing;
+        this.preparing.add(preparing);
+    }
+
+    /** Settles once the destination of every filed trip and move has been prepared as far as it can be. */
     public async prepared(): Promise<void> {
         await Promise.all(this.preparing);
     }
