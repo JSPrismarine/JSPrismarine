@@ -34,20 +34,23 @@ export const beginMeasuredChangeTick = (world: WorldTicks): void => {
 
 /** The phases a world runs after its tick seals that send entities and what happened to them. */
 interface ReplicationPhases {
-    flushEntities(): Promise<void>;
-    flushOccurrences(): Promise<void>;
-    flushDepartures(): Promise<void>;
-    flushOwnerViews(): Promise<void>;
+    flushEntities(): void;
+    flushOccurrences(): void;
+    flushDepartures(): void;
+    flushOwnerViews(): void;
 }
 
 /**
  * Sends what the sealed ticks a replicator read changed in its entities, in the order
  * `World.replicateTick` runs the phases: the entities that entered and were written, the
- * occurrences, the entities that left, and the owners' views.
+ * occurrences, the entities that left, and the owners' views. Each phase queues its packets as
+ * it is called; this settles after a turn of the event loop, so a transport that frames later
+ * has framed them.
  */
 export const replicateEntities = async (replicator: ReplicationPhases): Promise<void> => {
-    await replicator.flushEntities();
-    await replicator.flushOccurrences();
-    await replicator.flushDepartures();
-    await replicator.flushOwnerViews();
+    replicator.flushEntities();
+    replicator.flushOccurrences();
+    replicator.flushDepartures();
+    replicator.flushOwnerViews();
+    await new Promise<void>((resolve) => setImmediate(resolve));
 };

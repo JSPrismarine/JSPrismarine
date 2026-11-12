@@ -38,6 +38,7 @@ import type { RespawnAnswer, RespawnRequest } from '../world/RespawnSearch';
 import { spawnTarget } from '../world/portal/DimensionTravel';
 import type { respawnPoint } from '../world/SpawnPlacement';
 import { outsideTick } from '../world/TickContext';
+import { allSent } from './allSent';
 import type Server from '../Server';
 import { commandPermissionOf } from '../command/CommandManager';
 import { PLAYER_SOFT_ENUM } from '../command/jsprismarineCommands';
@@ -319,18 +320,6 @@ const OWN_SLOT_WINDOWS: Partial<Record<PlayerContainer, { readonly windowId: num
         offhand: { windowId: WindowIds.OFFHAND, containerId: ContainerUiId.OFFHAND },
         cursor: { windowId: WindowIds.PLAYER_ONLY_UI, containerId: ContainerUiId.CURSOR }
     };
-
-/**
- * Waits for sends that were all queued before this was called, in the order they were made.
- *
- * A send queues its packet before its first await (`MinecraftSession.sendDataPacket`), so a
- * method that calls each send in turn and hands the promises here has queued every packet when
- * it returns, and has written everything it writes. Awaiting each send in turn instead queued
- * the next packet, and made the writes after it, only once the transport framed the last.
- */
-const allSent = async (sends: readonly Promise<void>[]): Promise<void> => {
-    await Promise.all(sends);
-};
 
 /** What a move packet reads of the actor that moved: its id, where it is, where it faces and whether it stands. */
 export type MovedActor = Pick<ShownActor, 'getRuntimeId' | 'getPosition' | 'pitch' | 'yaw' | 'headYaw' | 'isOnGround'>;
@@ -1032,9 +1021,9 @@ export default class PlayerSession {
      * the client still has an entity it does not, and block it from ever being sent again.
      * @param entity - The entity that is going away.
      */
-    public async dropEntity(entity: Pick<ShownActor, 'getRuntimeId'>): Promise<void> {
-        if (!this.entityTracker.remove(entity.getRuntimeId())) return;
-        await this.sendRemoveActorById(entity.getRuntimeId());
+    public dropEntity(entity: Pick<ShownActor, 'getRuntimeId'>): Promise<void> {
+        if (!this.entityTracker.remove(entity.getRuntimeId())) return allSent([]);
+        return this.sendRemoveActorById(entity.getRuntimeId());
     }
 
     /**
@@ -1781,17 +1770,18 @@ export default class PlayerSession {
      * @param at - The block the properties belong to.
      * @param properties - The property values by id, as the station reports them.
      */
-    public async sendContainerData(at: Vector3, properties: ReadonlyMap<number, number>): Promise<void> {
+    public sendContainerData(at: Vector3, properties: ReadonlyMap<number, number>): Promise<void> {
         const open = this.blockContainer;
-        if (open === undefined) return;
+        if (open === undefined) return allSent([]);
         if (
             open.position.getX() !== at.getX() ||
             open.position.getY() !== at.getY() ||
             open.position.getZ() !== at.getZ()
         ) {
-            return;
+            return allSent([]);
         }
 
+        const sends: Promise<void>[] = [];
         for (const [id, value] of properties) {
             if (this.containerData.get(id) === value) continue;
             this.containerData.set(id, value);
@@ -1800,8 +1790,9 @@ export default class PlayerSession {
             packet.containerId = open.windowId;
             packet.id = id;
             packet.value = value;
-            await this.send(packet);
+            sends.push(this.send(packet));
         }
+        return allSent(sends);
     }
 
     /**

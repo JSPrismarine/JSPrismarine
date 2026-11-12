@@ -29,11 +29,11 @@ export interface NamedSoundOptions {
  * enough to receive it and putting it on a connection is the network layer's business. That
  * is what `NetworkWorldReplicator` is.
  *
- * The one-off facts are synchronous: they are notifications, not requests, and a world that
- * has just changed a block is not waiting to hear whether the news went out. The tick-phase
- * methods at the bottom are awaited, because the order the tick runs them in is a correctness
- * guarantee - an entity that came into range has to be spawned before the first packet that
- * says it moved.
+ * Every method is synchronous: a world that has just changed a block is not waiting to hear
+ * whether the news went out. The tick-phase methods at the bottom queue their packets before
+ * they return and do not wait for the transport, so the order the tick calls them in is the
+ * order the packets leave in, which is a correctness guarantee - an entity that came into range
+ * has to be spawned before the first packet that says it moved.
  */
 export interface WorldChangeSink {
     /**
@@ -87,9 +87,8 @@ export interface WorldChangeSink {
     /**
      * The world's clock has been read for broadcasting.
      * @param {number} ticks - The world's time of day.
-     * @returns {Promise<void>} Resolves once it is on its way.
      */
-    timeChanged(ticks: number): Promise<void>;
+    timeChanged(ticks: number): void;
 
     /**
      * A game rule now has a different value, or may now be changed by a player when it could
@@ -97,9 +96,8 @@ export interface WorldChangeSink {
      * @param {string} name - The rule's name, spelled as the client spells it.
      * @param {boolean | number} value - What it is now.
      * @param {boolean} editable - Whether a player may change it from the settings screen.
-     * @returns {Promise<void>} Resolves once it is on its way.
      */
-    gameRuleChanged(name: string, value: boolean | number, editable: boolean): Promise<void>;
+    gameRuleChanged(name: string, value: boolean | number, editable: boolean): void;
 
     /**
      * Tick phase: send what the sealed ticks did to the world's entities - which entered, and
@@ -107,17 +105,15 @@ export interface WorldChangeSink {
      * for {@link WorldChangeSink.flushMovement} and their departures for
      * {@link WorldChangeSink.flushDepartures}. Runs after the seal, first of the sends, so an
      * entity that entered is shown before anything about it changes or happens to it.
-     * @returns {Promise<void>} Resolves once they are on their way.
      */
-    flushEntities(): Promise<void>;
+    flushEntities(): void;
 
     /**
      * Tick phase: take the entities that left off every client. Runs after
      * {@link WorldChangeSink.flushOccurrences}, so what happened to an entity in the tick it
      * left, such as the hurt flash of a killing blow, reaches the clients tracking it first.
-     * @returns {Promise<void>} Resolves once they are on their way.
      */
-    flushDepartures(): Promise<void>;
+    flushDepartures(): void;
 
     /**
      * Tick phase: bring everyone's idea of what is visible in line with where things now are.
@@ -125,9 +121,8 @@ export interface WorldChangeSink {
      * Runs after {@link WorldChangeSink.flushEntities} and before the movement goes out, so that
      * an entity that came into range this tick is spawned before the first packet that says it
      * moved.
-     * @returns {Promise<void>} Resolves once the pass is done.
      */
-    reconcile(): Promise<void>;
+    reconcile(): void;
 
     /**
      * Every entity of the world as tracking reads it, which a player's own pass shows from.
@@ -143,9 +138,8 @@ export interface WorldChangeSink {
      * block's break particles still reach a client ahead of the block change, as they did when
      * they were sent the moment they happened, and an event about an entity that entered reaches
      * a client that was just shown it.
-     * @returns {Promise<void>} Resolves once they are on their way.
      */
-    flushOccurrences(): Promise<void>;
+    flushOccurrences(): void;
 
     /**
      * Tick phase: send each player's client what the ticks read since the last flush changed in
@@ -154,15 +148,13 @@ export interface WorldChangeSink {
      *
      * Runs after {@link WorldChangeSink.flushOccurrences}, as close to the input that made the
      * change as a send after the seal can be.
-     * @returns {Promise<void>} Resolves once they are on their way.
      */
-    flushOwnerViews(): Promise<void>;
+    flushOwnerViews(): void;
 
     /**
      * Tick phase: send the block changes this tick produced, as one batch each.
-     * @returns {Promise<void>} Resolves once the batches are framed.
      */
-    flushBlockChanges(): Promise<void>;
+    flushBlockChanges(): void;
 
     /**
      * Tick phase: send the block entity changes this tick produced, one packet per position.
@@ -170,15 +162,13 @@ export interface WorldChangeSink {
      * Runs after {@link WorldChangeSink.flushBlockChanges} so that a block entity placed and
      * filled in the same tick is announced as a block before it is announced as a block
      * entity - see {@link WorldChangeSink.tickSealed}.
-     * @returns {Promise<void>} Resolves once they are on their way.
      */
-    flushBlockEntities(): Promise<void>;
+    flushBlockEntities(): void;
 
     /**
      * Tick phase: send the movement this tick produced, as one batch each.
-     * @returns {Promise<void>} Resolves once the batches are framed.
      */
-    flushMovement(): Promise<void>;
+    flushMovement(): void;
 }
 
 /**
@@ -193,15 +183,15 @@ export const NULL_WORLD_CHANGE_SINK: WorldChangeSink = {
     chunkEntered: () => {},
     chunkLeft: () => {},
     entityMoved: () => {},
-    timeChanged: async () => {},
-    gameRuleChanged: async () => {},
-    flushEntities: async () => {},
-    flushDepartures: async () => {},
-    reconcile: async () => {},
-    flushOccurrences: async () => {},
-    flushOwnerViews: async () => {},
+    timeChanged: () => {},
+    gameRuleChanged: () => {},
+    flushEntities: () => {},
+    flushDepartures: () => {},
+    reconcile: () => {},
+    flushOccurrences: () => {},
+    flushOwnerViews: () => {},
     shownEntities: () => [],
-    flushBlockChanges: async () => {},
-    flushBlockEntities: async () => {},
-    flushMovement: async () => {}
+    flushBlockChanges: () => {},
+    flushBlockEntities: () => {},
+    flushMovement: () => {}
 };
