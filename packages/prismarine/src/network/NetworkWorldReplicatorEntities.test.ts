@@ -15,7 +15,6 @@ import { BatchCodec } from '@jsprismarine/protocol';
 import MoveActorAbsolutePacket from '@jsprismarine/protocol/packet/MoveActorAbsolutePacket';
 import type ClientConnection from './ClientConnection';
 import type PlayerSession from './PlayerSession';
-import { ActorEvent } from '@jsprismarine/protocol/packet/ActorEventPacket';
 import { Attribute } from '@jsprismarine/protocol/wire/structures/Attribute';
 import { Metadata } from '@jsprismarine/protocol/wire/structures/Metadata';
 import { SyncedProperties } from '@jsprismarine/protocol/wire/structures/SyncedProperties';
@@ -383,14 +382,13 @@ describe('network', () => {
                 showIcon: true
             };
 
-            await replicator.actorEffect(mob, ActorEvent.HURT_ANIMATION, 0);
             await replicator.entityAttributesChanged(mob, [attribute]);
             await replicator.statusEffectChanged(mob, effect, 'add');
             await replicator.entityMetadataChanged(mob);
             await replicator.entityEquipmentChanged(mob);
 
-            expect(encodes).toBe(6);
-            expect(first.spy.frames).toHaveLength(5);
+            expect(encodes).toBe(5);
+            expect(first.spy.frames).toHaveLength(4);
             expect(second.spy.frames).toStrictEqual(first.spy.frames);
             expect(first.spy.sent).toHaveLength(0);
         });

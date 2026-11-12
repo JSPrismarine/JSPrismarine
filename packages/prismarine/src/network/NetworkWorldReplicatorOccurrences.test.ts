@@ -1,7 +1,8 @@
 import type { Logger } from '@jsprismarine/logger';
-import { LevelEvent, LevelSoundEvent, PacketCompressionAlgorithm } from '@jsprismarine/minecraft';
+import { ActorEvent, LevelEvent, LevelSoundEvent, PacketCompressionAlgorithm } from '@jsprismarine/minecraft';
 import type { ProtocolCodec } from '@jsprismarine/protocol';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
+import ActorEventPacket from '@jsprismarine/protocol/packet/ActorEventPacket';
 import LevelEventPacket from '@jsprismarine/protocol/packet/LevelEventPacket';
 import LevelSoundEventPacket from '@jsprismarine/protocol/packet/LevelSoundEventPacket';
 import SpawnParticleEffectPacket from '@jsprismarine/protocol/packet/SpawnParticleEffectPacket';
@@ -185,6 +186,30 @@ describe('network', () => {
                 expect(packet.dimensionId).toBe(Dimensions.Nether.bedrockId);
                 expect(packet.effectName).toBe('minecraft:crop_growth_emitter');
                 expect(packet.position.getX()).toBe(1.5);
+            });
+        });
+
+        describe('actor-event', () => {
+            it("reaches the players tracking the entity and the entity's own client, and nobody else", async () => {
+                const own = viewer(1n);
+                const tracking = viewer(2n, { tracked: [1n] });
+                const elsewhere = viewer(3n);
+                const replicator = replicatorOver([own.session, tracking.session, elsewhere.session]);
+
+                sealOccurrences(replicator, {
+                    kind: 'occurrence',
+                    occurrence: 'actor-event',
+                    data: { entity: 1n, event: ActorEvent.FEED, data: 7 }
+                });
+                await replicator.flushOccurrences();
+
+                // The trackers share one encode; the entity's own client is sent its own packet.
+                const packet = own.sent[0];
+                if (!(packet instanceof ActorEventPacket)) throw new Error('expected an actor event');
+                expect([packet.runtimeEntityId, packet.event, packet.data]).toStrictEqual([1n, ActorEvent.FEED, 7]);
+                expect(tracking.frames).toHaveLength(1);
+                expect(elsewhere.frames).toHaveLength(0);
+                expect(elsewhere.sent).toHaveLength(0);
             });
         });
 

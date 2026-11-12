@@ -37,7 +37,6 @@ import type ClientConnection from './ClientConnection';
 import type PlayerSession from './PlayerSession';
 import { encodePacketBatchFromBuffersBySize, encodePacketsForCodec, FullFlushFragmentCache } from './encodePacketBatch';
 import type { EncodedPacketBatch } from './encodePacketBatch';
-import type { ActorEvent } from '@jsprismarine/protocol/packet/ActorEventPacket';
 import ActorEventPacket from '@jsprismarine/protocol/packet/ActorEventPacket';
 import BlockActorDataPacket from '@jsprismarine/protocol/packet/BlockActorDataPacket';
 import BlockPos from '@jsprismarine/protocol/structure/BlockPos';
@@ -300,6 +299,8 @@ export class NetworkWorldReplicator implements WorldChangeSink {
             case 'actor-sound':
                 this.sendActorSound(entry.data);
                 return undefined;
+            case 'actor-event':
+                return this.sendActorEvent(entry.data);
             default:
                 // A shown block goes out with the block changes, and a vetoed action is a record.
                 return undefined;
@@ -690,17 +691,17 @@ export class NetworkWorldReplicator implements WorldChangeSink {
         this.sendAround(new Vector3(position.x, position.y, position.z), packet, { radius: WORLD_EVENT_RADIUS });
     }
 
-    /** @inheritdoc */
-    public async actorEffect(entity: ShownActor, effect: ActorEvent, data: number): Promise<void> {
+    /** Something that happened to one entity, to the players tracking it and to its own client. */
+    private async sendActorEvent({ entity, event, data }: OccurrenceKinds['actor-event']): Promise<void> {
         const packetForViewer = (): ActorEventPacket => {
             const packet = new ActorEventPacket();
-            packet.runtimeEntityId = entity.getRuntimeId();
-            packet.event = effect;
+            packet.runtimeEntityId = entity;
+            packet.event = event;
             packet.data = data;
             return packet;
         };
-        const sends = [this.sendToTrackedEntity(entity, () => [packetForViewer()])];
-        const own = this.world.viewerOf(entity.getRuntimeId());
+        const sends = [this.sendToTrackedEntity({ getRuntimeId: () => entity }, () => [packetForViewer()])];
+        const own = this.world.viewerOf(entity);
         if (own !== undefined) sends.push(own.send(packetForViewer()));
         await Promise.all(sends);
     }
@@ -878,7 +879,7 @@ export class NetworkWorldReplicator implements WorldChangeSink {
      * @param packetsForCodec - Builds the packet values with the selected codec's context.
      */
     private async sendToTrackedEntity(
-        entity: ShownActor,
+        entity: Pick<ShownActor, 'getRuntimeId'>,
         packetsForCodec: (codec: ProtocolCodec) => readonly NetworkPacket<unknown>[]
     ): Promise<void> {
         const runtimeId = entity.getRuntimeId();

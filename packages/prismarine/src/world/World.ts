@@ -2028,13 +2028,19 @@ export class World implements Service {
 
     /**
      * Tells everyone watching that something happened to one entity - it was hurt, it died,
-     * it swung an arm. The client plays the animation and the sound that go with it.
+     * it swung an arm. The client plays the animation and the sound that go with it. It is an
+     * `actor-event` occurrence in the change log, which replication sends to the players
+     * tracking the entity and to the entity's own client.
      * @param {ShownActor} entity - The entity it happened to.
      * @param {ActorEvent} event - What happened.
      * @param {number} [data=0] - Extra detail, for the events that carry any.
      */
     public async sendActorEvent(entity: ShownActor, event: ActorEvent, data = 0): Promise<void> {
-        await this.changes.actorEffect(entity, event, data);
+        this.occurred({
+            kind: 'occurrence',
+            occurrence: 'actor-event',
+            data: { entity: entity.getRuntimeId(), event, data }
+        });
     }
 
     /**
