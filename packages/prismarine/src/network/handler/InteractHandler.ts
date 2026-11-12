@@ -32,6 +32,11 @@ export default class InteractHandler implements InputLaneHandler<InteractPacket>
     // Input, not read: opening the inventory adds to the window table input handlers check.
     public readonly lane = 'input';
 
+    /**
+     * Acts on one interaction in the sender's input unit. Opening the inventory files the window
+     * before this returns and hands the sends to `step.output`, so the window is open once the
+     * handler returns and its packets go out after it.
+     */
     public handle(packet: InteractPacket, { session, log, step }: InputContext): undefined {
         switch (packet.action) {
             case InteractAction.StopRiding:
