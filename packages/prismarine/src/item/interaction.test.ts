@@ -55,6 +55,8 @@ const BLOCKS = [
     'minecraft:stone',
     'minecraft:dirt',
     'minecraft:farmland',
+    'minecraft:water',
+    'minecraft:lava',
     'minecraft:oak_planks',
     'minecraft:fire',
     'minecraft:wheat',
@@ -77,6 +79,11 @@ const BLOCKS = [
 
 /** The items the fixture declares, which is one of each family the tests reach. */
 const ITEMS = [
+    'minecraft:bucket',
+    'minecraft:glass_bottle',
+    'minecraft:water_bucket',
+    'minecraft:lava_bucket',
+    'minecraft:potion',
     'minecraft:bone_meal',
     'minecraft:wheat_seeds',
     'minecraft:bread',
@@ -394,6 +401,26 @@ describe('useItemOnBlock', () => {
             faceLocation: { x: 0.5, y: 1, z: 0.5 },
             ...(rotation === undefined ? {} : { rotation })
         });
+
+    describe.each([Gametype.SURVIVAL, Gametype.CREATIVE])('liquid containers in mode %s', (gamemode) => {
+        it.each([
+            ['minecraft:water', 'minecraft:bucket'],
+            ['minecraft:lava', 'minecraft:bucket'],
+            ['minecraft:water', 'minecraft:glass_bottle']
+        ])('charges one container when using %s with %s', (liquid, container) => {
+            const at = { x: 3, y: 64, z: 3 };
+            place(chunk, at, liquid, { liquid_depth: 0 });
+            const player = playerHolding(world, new Item({ name: container, count: 2, content }), false, gamemode);
+
+            expect(click(player, at)).toBe('handled');
+
+            expect(player.getInventory().getEntry(0)?.getCount()).toBe(gamemode === Gametype.CREATIVE ? 2 : 1);
+            expect(sessionOf(player).inventoriesSent).toBe(1);
+            expect(world.loadedBlockAt(at.x, at.y, at.z)?.name).toBe(
+                container === 'minecraft:bucket' ? 'minecraft:air' : liquid
+            );
+        });
+    });
 
     it('runs the block family, so a door opens for a player', () => {
         place(chunk, { x: 2, y: 63, z: 2 }, 'minecraft:stone');
