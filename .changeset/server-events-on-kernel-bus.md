@@ -1,0 +1,5 @@
+---
+'@jsprismarine/prismarine': minor
+---
+
+The server's events move to the kernel's event bus, and the legacy `EventEmitter` is deleted. `Server` no longer extends it. `server.on`, `once`, `removeListener`, `removeAllListeners` and `hasListeners` keep their names and arguments and subscribe on `server.getKernel().events`, which is typed by the new `ServerEvents` map with the same 18 events and event classes. `server.emit`, `server.post`, `server.evtThirdParty`, `EventEmitter`, `PluginEventEmitter` and `EventTypes` are removed, so a plugin can no longer raise a server event. Each event is raised where and when it was before. What a listener sees differently: listeners run one after another in subscription order, so a `raknetConnect`, `raknetDisconnect` or `raknetEncapsulatedPacket` listener waits for the one before it; a listener that throws or rejects is logged and no longer stops the listeners after it or the action that raised the event; and subscribing the same function to an event twice still calls it once. `TickerServer` takes the bus as `events` in place of `emitTick`, and the handler services' `events` is the bus.

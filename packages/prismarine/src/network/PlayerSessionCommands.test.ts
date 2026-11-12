@@ -35,7 +35,6 @@ const commandsSentTo = async ({
     const sessions: PlayerSession[] = [];
     const logger = stub<Logger>({ verbose() {}, debug() {}, info() {}, warn() {}, error() {} });
     const server = stub<Server>({
-        emit: async () => {},
         getLogger: () => logger,
         // No pack stack, so the command layer offers the commands a server without one has.
         getContent: () => testContent(),
@@ -153,7 +152,6 @@ describe('PlayerSession', () => {
             const sessions: PlayerSession[] = [];
             const logger = stub<Logger>({ verbose() {}, debug() {}, info() {}, warn() {}, error() {} });
             const server = stub<Server>({
-                emit: async () => {},
                 getLogger: () => logger,
                 getContent: () => testContent(),
                 getSessionManager: () => stub<SessionManager>({ getSessions: () => sessions }),

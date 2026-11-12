@@ -161,9 +161,7 @@ describe('network', () => {
                 getBanManager: banManager,
                 getTick: () => 0,
                 on: vi.fn(),
-                removeListener: vi.fn(),
-                post: vi.fn(),
-                emit: async () => {}
+                removeListener: vi.fn()
             });
             const chat = new ChatManager(new KernelEventBus<ServerEvents>());
 

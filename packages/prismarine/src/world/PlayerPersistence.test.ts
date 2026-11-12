@@ -69,7 +69,6 @@ const testServer = (world: () => World | undefined = () => undefined): Server =>
         getWorldManager: () => stub<WorldManager>({}),
         on: () => server,
         getKernel: () => testKernel(),
-        emit: async () => {},
         getTick: () => 0,
         getConsole: () => stub<Console>({ getFormattedUsername: () => 'Console' }),
         getLogger: () =>

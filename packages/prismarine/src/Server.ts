@@ -743,27 +743,6 @@ export default class Server {
     }
 
     /**
-     * Raises a server event without waiting for its listeners.
-     * @param id - The event.
-     * @param args - The event object.
-     * @returns How many listeners were called.
-     * @internal
-     */
-    public post<K extends ServerEventName>(id: K, ...args: ServerEvents[K]): number {
-        return this.kernel.events.post(id, ...args);
-    }
-
-    /**
-     * Raises a server event and waits for each listener in turn.
-     * @param id - The event.
-     * @param args - The event object.
-     * @internal
-     */
-    public emit<K extends ServerEventName>(id: K, ...args: ServerEvents[K]): Promise<void> {
-        return this.kernel.events.emit(id, ...args);
-    }
-
-    /**
      * Returns the command manager.
      * @returns {CommandManager} The command manager.
      */

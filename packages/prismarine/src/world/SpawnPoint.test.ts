@@ -128,7 +128,6 @@ const buildScene = async (name: string) => {
         getChatManager: () => chat,
         on: () => server,
         getKernel: () => testKernel(),
-        emit: async () => {},
         getTick: () => 0,
         getRandom: () => () => 0.5,
         getConsole: () => stub<Console>({ getFormattedUsername: () => 'Console' }),

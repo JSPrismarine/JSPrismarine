@@ -687,9 +687,7 @@ describe('modules/network', () => {
             getVersion: () => '0.0.0-test',
             getPacketHandlerRegistry: () => stub<ReturnType<Server['getPacketHandlerRegistry']>>({}),
             getPacketLogFilter: () => new PacketLogFilter(),
-            getSessionManager: () => new SessionManager(),
-            // The joined NetherNet client reaches the dispatcher, which announces it.
-            emit: async () => {}
+            getSessionManager: () => new SessionManager()
         });
 
     /** Joins by address on the signaling port and returns the UDP port NetherNet's media uses. */

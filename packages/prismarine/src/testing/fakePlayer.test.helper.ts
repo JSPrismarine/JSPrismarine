@@ -93,7 +93,6 @@ export const fakePlayer = ({ underwater = false, worlds: others = [], name = 'Te
     const server: Server = stub<Server>({
         on: () => server,
         getKernel: () => kernel,
-        emit: async (name: string, event: unknown) => void events.push([name, event]),
         getTick: () => 0,
         getConsoleSender: () => stub<ConsoleSender>({ getFormattedUsername: () => 'Console' }),
         getLogger: () =>
