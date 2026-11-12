@@ -10,6 +10,8 @@ import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 
+import { repoRoot } from './project.mts';
+
 /** One command the server registers. */
 export interface CommandData {
     name: string;
@@ -67,26 +69,35 @@ export async function loadCommands() {
     };
 }
 
+let freshConfig: Promise<string> | undefined;
+
+/** The `config.json` the server's own config code writes into an empty folder, written once per run. */
+function freshConfigText(): Promise<string> {
+    freshConfig ??= (async () => {
+        const { Config } = await import('../../packages/prismarine/src/config/Config.ts');
+        const { readContentSettings } = await import('../../packages/prismarine/src/content/settings.ts');
+        const folder = mkdtempSync(path.join(os.tmpdir(), 'jsp-docs-config-'));
+        const cwd = process.cwd();
+        try {
+            // The config code writes to the working directory, so point it at the empty folder.
+            process.chdir(folder);
+            readContentSettings();
+            await new Config().enable();
+            return readFileSync(path.join(folder, 'config.json'), 'utf8');
+        } finally {
+            process.chdir(cwd);
+            rmSync(folder, { recursive: true, force: true });
+        }
+    })();
+    return freshConfig;
+}
+
 /**
  * Every `config.json` setting, read from the file the server's own config code writes into an empty
  * folder, so the list is exactly what a fresh server of this version writes.
  */
 export async function loadSettings(): Promise<SettingData[]> {
-    const { Config } = await import('../../packages/prismarine/src/config/Config.ts');
-    const { readContentSettings } = await import('../../packages/prismarine/src/content/settings.ts');
-    const folder = mkdtempSync(path.join(os.tmpdir(), 'jsp-docs-config-'));
-    const cwd = process.cwd();
-    let written: string;
-    try {
-        // The config code writes to the working directory, so point it at the empty folder.
-        process.chdir(folder);
-        readContentSettings();
-        await new Config().enable();
-        written = readFileSync(path.join(folder, 'config.json'), 'utf8');
-    } finally {
-        process.chdir(cwd);
-        rmSync(folder, { recursive: true, force: true });
-    }
+    const written = await freshConfigText();
     // A comment line, then the top-level key it explains, as the config writer lays them out. Values
     // are left out: some, such as `chunk-workers`, depend on the machine that wrote the file.
     return [...written.matchAll(/^ {4}\/\/ (.+)\n {4}"([^"]+)":/gm)].map(([, comment, key]) => ({ key, comment }));
@@ -96,4 +107,40 @@ export async function loadSettings(): Promise<SettingData[]> {
 export async function loadOptionalSettings(): Promise<SettingData[]> {
     const { optionalSettings } = await import('../../packages/prismarine/src/config/Config.ts');
     return optionalSettings().map(({ key, comment }) => ({ key, comment }));
+}
+
+/** One key of the `stats.bstats` section, as a fresh server writes it. */
+export interface BStatsSettingData {
+    /** The full path, such as `stats.bstats.enabled`. */
+    key: string;
+    /** The value a fresh server writes. */
+    value: string;
+    /** The key's description, from its doc comment on `BStatsConfig`. */
+    description: string;
+}
+
+/**
+ * The `stats.bstats` settings: each key and value from the file a fresh server writes, with the doc
+ * comment `BStatsConfig` gives the key, which is also the description in the config schema.
+ */
+export async function loadBStatsSettings(): Promise<BStatsSettingData[]> {
+    const { parseConfigDocument } = await import('../../packages/prismarine/src/config/ConfigDocument.ts');
+    const section = parseConfigDocument(await freshConfigText()).get(['stats', 'bstats']);
+    if (typeof section !== 'object' || section === null) {
+        throw new Error('The docs facts no longer find stats.bstats in a fresh config.json.');
+    }
+    const source = readFileSync(
+        path.join(repoRoot, 'packages', 'prismarine', 'src', 'config', 'JsonConfigTypes.ts'),
+        'utf8'
+    );
+    const body = /export interface BStatsConfig \{([\s\S]*?)\n\}/.exec(source)?.[1] ?? '';
+    const descriptions = new Map(
+        [...body.matchAll(/\/\*\* (.+?) \*\/\n\s+'?([\w-]+)'?\?:/g)].map(([, description, key]) => [key, description])
+    );
+    return Object.entries(section).map(([key, value]) => {
+        const description = descriptions.get(key);
+        if (!description)
+            throw new Error(`The docs facts find no doc comment for stats.bstats.${key} on BStatsConfig.`);
+        return { key: `stats.bstats.${key}`, value: JSON.stringify(value), description };
+    });
 }

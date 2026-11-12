@@ -367,17 +367,22 @@ Older servers kept their settings in `config.yml` or `config.yaml`. The server
 does not read those files and ignores them if they exist. Move any settings you
 still need into `config.json` (where `//` comments are allowed).
 
+The server reports anonymous usage statistics to bStats unless you turn it off in `config.json`
+or set <!-- fact:bstats.optOut -->`JSP_BSTATS=0`<!-- /fact --> in the environment.
+[Usage statistics](usage-statistics.md) lists what it sends and how to turn it off.
+
 `packet-full-flush-fragments` is an opt-in compression prototype. It stays off by default until
 the server has been checked with retail Bedrock clients on Windows and Android.
 
 ### Every setting
 
-A fresh server writes these <!-- fact:config.count -->38<!-- /fact --> settings, each with the comment below
+A fresh server writes these <!-- fact:config.count -->40<!-- /fact --> settings, each with the comment below
 above it. The list comes from the code that writes the file, so it matches what your version writes.
 
 <!-- fact:config.table -->
 | Setting                               | What it does                                                                                                                                                                                                                                                                                                                                        |
 | ------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `server-uuid`                         | Identifies this server. Generated on first start.                                                                                                                                                                                                                                                                                                   |
 | `log-level`                           | How much the console and the log file say: error, warn, info, verbose, debug or silly.                                                                                                                                                                                                                                                              |
 | `server-port`                         | The port the server listens on, as Bedrock Dedicated Server's server-port: TCP for NetherNet signaling, and UDP for RakNet and NetherNet. Unless server-udp-ports or query-port is set, RakNet's IPv4 listener, NetherNet's players and query all use this one UDP port; RakNet's IPv6 listener uses server-portv6. Bedrock clients look for 19132. |
 | `server-portv6`                       | The UDP port RakNet listens on for IPv6 clients when server-ip is 0.0.0.0. Bedrock clients look for 19133. It may equal server-port.                                                                                                                                                                                                                |
@@ -413,6 +418,7 @@ above it. The list comes from the code that writes the file, so it matches what 
 | `enable-ticking`                      | Whether the world ticks. Off is only useful for tests.                                                                                                                                                                                                                                                                                              |
 | `log-excluded-packets`                | Packet class names kept out of the traffic log at the silly level.                                                                                                                                                                                                                                                                                  |
 | `crafting-recipe-limit`               | How many recipes to send: -1 for all, 0 for none, or a cap.                                                                                                                                                                                                                                                                                         |
+| `stats`                               | The services the server reports anonymous usage statistics to, one section each.                                                                                                                                                                                                                                                                    |
 | `content-strict`                      | Whether a pack that reports an error stops the server instead of loading short.                                                                                                                                                                                                                                                                     |
 | `content-world-packs`                 | Extra behavior pack directories this world loads, after the vanilla ones.                                                                                                                                                                                                                                                                           |
 | `content-datapacks`                   | Java datapack directories this world loads, after the vanilla one.                                                                                                                                                                                                                                                                                  |

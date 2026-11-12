@@ -27,6 +27,8 @@ Start from what you are here to do.
 - [Worlds](running.md#worlds) and [world seeds](running.md#world-seeds): presets, dimensions and
   seeds.
 - [Log levels](log-levels.md): what each level prints and how to choose one.
+- [Usage statistics](usage-statistics.md): what the server reports to bStats, and how to turn it
+  off.
 
 ## Build add-ons and plugins
 
