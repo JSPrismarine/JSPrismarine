@@ -37,7 +37,12 @@ const executable = process.platform === 'win32' && !binary.toLowerCase().endsWit
 const BUDGET_MS = 600_000;
 
 const directory = mkdtempSync(path.join(os.tmpdir(), 'jsp-smoke-'));
-const child = spawn(path.resolve(executable), ['--no-tui'], { cwd: directory, stdio: ['pipe', 'pipe', 'pipe'] });
+// JSP_BSTATS=0: a smoke run never reports usage statistics.
+const child = spawn(path.resolve(executable), ['--no-tui'], {
+    cwd: directory,
+    env: { ...process.env, JSP_BSTATS: '0' },
+    stdio: ['pipe', 'pipe', 'pipe']
+});
 
 const errors = [];
 let listening = false;

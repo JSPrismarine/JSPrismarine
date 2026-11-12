@@ -561,6 +561,8 @@ const writePreloadSummary = (report: PreloadReport): void => {
 };
 
 const run = async (): Promise<void> => {
+    // The server runs in this process, and a benchmark server never reports usage statistics.
+    process.env.JSP_BSTATS = '0';
     const { terrain, baselinePath, updateBaselinePath, preload, workers, host } = parseArguments(
         process.argv.slice(2).filter((arg) => arg !== '--')
     );

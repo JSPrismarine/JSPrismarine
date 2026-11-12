@@ -52,6 +52,7 @@ const run = (sample, baseline) =>
                     JSP_DIR: directory,
                     JSP_HOST_STARTUP_STARTED_AT: String(startedAt),
                     JSP_NO_TUI: '1',
+                    JSP_BSTATS: '0',
                     NODE_ENV: 'development'
                 },
                 stdio: ['ignore', 'pipe', 'pipe']
