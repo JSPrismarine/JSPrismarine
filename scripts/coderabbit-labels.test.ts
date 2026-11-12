@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -103,6 +103,17 @@ describe('syncCodeRabbitLabels', () => {
 });
 
 describe('writeLabelManifest', () => {
+    it.each([
+        ['name', { name: '', color: 'ffffff' }],
+        ['color', { name: 'Blank', color: '' }],
+        ['alias', { name: 'Blank', color: 'ffffff', aliases: [''] }]
+    ])('rejects an empty %s and writes no manifest', async (_field, label) => {
+        const dir = repo([...LABELS, label]);
+        const file = join(dir, 'manifest.yml');
+        expect(await writeLabelManifest({ root: dir, file })).toHaveLength(1);
+        expect(existsSync(file)).toBe(false);
+    });
+
     it('writes the catalog without the CodeRabbit field', async () => {
         const dir = repo();
         const file = join(dir, 'manifest.yml');

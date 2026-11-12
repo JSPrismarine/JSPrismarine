@@ -53,8 +53,8 @@ function isStringArray(value: unknown): value is string[] {
 /** Checks one catalog entry and returns it as a label, or `undefined` after recording its errors. */
 function readLabel(entry: Record<string, unknown>, errors: string[]): Label | undefined {
     const { name, color, description, aliases, ai_apply_when: instructions } = entry;
-    if (typeof name !== 'string' || typeof color !== 'string') {
-        errors.push(`Every label in ${LABELS_FILE} needs a string name and color.`);
+    if (typeof name !== 'string' || name === '' || typeof color !== 'string' || color === '') {
+        errors.push(`Every label in ${LABELS_FILE} needs a non-empty string name and color.`);
         return undefined;
     }
     const unknown = Object.keys(entry).filter((field) => !ALLOWED_FIELDS.has(field));
@@ -62,7 +62,9 @@ function readLabel(entry: Record<string, unknown>, errors: string[]): Label | un
     if (description !== undefined && typeof description !== 'string') {
         errors.push(`The description of ${name} must be a string.`);
     }
-    if (aliases !== undefined && !isStringArray(aliases)) errors.push(`The aliases of ${name} must be strings.`);
+    if (aliases !== undefined && (!isStringArray(aliases) || aliases.includes(''))) {
+        errors.push(`The aliases of ${name} must be non-empty strings.`);
+    }
     if (instructions !== undefined) {
         if (typeof instructions !== 'string' || instructions.trim() === '') {
             errors.push(`ai_apply_when for ${name} must be a non-empty string.`);
