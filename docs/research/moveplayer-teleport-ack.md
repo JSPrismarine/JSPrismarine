@@ -25,7 +25,7 @@ on a timer.
 
 The server takes no movement from a client's `MovePlayer`: `MovePlayerHandler` drops the packet,
 and the teleport hold keeps its one rule, the `HandledTeleport` input flag within 4 blocks of the
-target on x and z, or the timeout. The bot harness moves with `PlayerAuthInput` and adopts the
+target, measured as horizontal distance, or the timeout. The bot harness moves with `PlayerAuthInput` and adopts the
 teleports it is sent (#3041).
 This was decided after the research, on 2026-11-12; see [Recommendation](#recommendation). The
 research first proposed releasing the hold on a `MovePlayer` within one block of the target, or on
@@ -313,7 +313,7 @@ For a `MovePlayer` from the client while `teleportAwaitingAck` is set:
 - Release the hold on a `PlayerActionPacket` with `HandledTeleport`, then apply later reports.
 - Otherwise drop the report, as now.
 
-Leave the `PlayerAuthInput` rule as it is: the flag within 4 blocks on x and z, or the timeout.
+Leave the `PlayerAuthInput` rule as it is: the flag within 4 blocks of horizontal distance, or the timeout.
 
 ### Code changes
 
