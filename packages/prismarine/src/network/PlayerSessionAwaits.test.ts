@@ -76,13 +76,16 @@ describe("the owner's view's awaits", () => {
     });
 
     it('writes and queues without awaiting in the methods the input handlers run in their unit', () => {
-        // `SetPlayerGameType`, `SetLocalPlayerAsInitialized` and the moves that land a flyer run
-        // these in an input's unit. An await in one would put the writes after it outside the
+        // `SetPlayerGameType`, `SetLocalPlayerAsInitialized`, `RequestAbility`, `Interact`,
+        // `ServerboundLoadingScreen` and the movement handlers run these in an input's unit. An await in one would put the writes after it outside the
         // unit, and the packets after it behind the transport's framing.
         const session = methodsOf(new URL('./PlayerSession.ts', import.meta.url));
         const inUnit = [
             'setGamemode',
             'setFlying',
+            'setPlayerPosition',
+            'openMainInventory',
+            'releaseArrivalChunks',
             'stopMining',
             'completeSpawn',
             'sendInventory',
