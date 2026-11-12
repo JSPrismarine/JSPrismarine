@@ -598,6 +598,10 @@ Each slice is a commit or a few, with its tests, on `dev/webrtc-backend`.
       so the start passed and every join failed with error 13. The server port is now opened as a
       shared port whenever NetherNet's UDP covers it, so a taken port stops the start, and query
       answers through its rings when RakNet is off.
+    - Run 2026-11-12 on the dev host with cinnabar's NetherNet build, after that fix: `spawn` and
+      `kick` pass over NetherNet with `--udp-ports` `shared`, `single`, `range` and
+      `range-with-server-port`. On the first try, each range layout had one suite stuck on the
+      loading screen and passed when run again, the same flake `master`'s CI retries.
     - Add a kick scenario that asserts the client shows the kick's reason.
     - Join with a retail client from outside the local network, with a mapping and
       `server-public-ip`.
