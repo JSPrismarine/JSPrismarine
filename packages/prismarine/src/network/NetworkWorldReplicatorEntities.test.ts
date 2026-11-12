@@ -280,6 +280,26 @@ describe('network', () => {
                 expect(resident.spy.considered).toStrictEqual([mob, BigInt(id)]);
             });
 
+            it('shows the entities after one whose first sight cannot be built, and replicates on', async () => {
+                const watching = fakePlayer(1001n);
+                const { tick, spawn } = replicatorOverLog([watching.player]);
+                let first = 0n;
+                let second = 0n;
+                // What a first sight too large to share does: it throws while the flush runs.
+                const consider = watching.player.considerEntity.bind(watching.player);
+                watching.player.considerEntity = (entity) => {
+                    if (entity.getRuntimeId() === first) throw new Error('too large to share');
+                    return consider(entity);
+                };
+
+                await tick(() => {
+                    first = BigInt(spawn().id);
+                    second = BigInt(spawn({ x: 2.5, y: FLOOR_Y + 1, z: 0.5 }).id);
+                });
+
+                expect(watching.spy.considered).toStrictEqual([second]);
+            });
+
             it('tells every client to forget an entity that left', async () => {
                 // Every client, tracking or not: a stale id left behind would block that entity
                 // from ever being tracked again.
