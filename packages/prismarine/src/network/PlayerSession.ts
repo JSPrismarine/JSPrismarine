@@ -347,7 +347,6 @@ export default class PlayerSession {
     /** What this client is shown of its own player while the player is in no store. */
     private detached: DetachedPlayerView | undefined;
 
-
     /** Whether the player finished joining and has not left; see {@link PlayerSession.isConnected}. */
     private joined = false;
 
