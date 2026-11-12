@@ -396,6 +396,27 @@ describe('a world tick and its change log', () => {
         expect(errors.filter((line) => String(line).includes('stopped ticking'))).toHaveLength(1);
     });
 
+    it('applies no input once its store could not undo a unit', () => {
+        const { world, runtime } = worldWithStore();
+        const cow = runtime.spawn('minecraft:cow', { x: 0.5, y: FLOOR_Y + 1, z: 0.5 });
+        if (cow === undefined) throw new Error('the fixture declares no cow');
+        beginMeasuredChangeTick(world);
+        runtime.store.unit(() => {
+            runtime.store.written(cow, 'not-a-field', 1, 2);
+            throw new Error('planned');
+        });
+        expect(runtime.store.broken).toBeInstanceOf(Error);
+
+        let applied = 0;
+        world.runInputNow(() => {
+            applied += 1;
+            cow.body.loveTicks = 600;
+        });
+
+        expect(applied).toBe(0);
+        expect(cow.body.loveTicks).toBe(0);
+    });
+
     describe("a player's inventory", () => {
         const playerWithItems = async () => {
             const { world } = worldWithStore();

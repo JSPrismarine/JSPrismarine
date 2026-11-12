@@ -1085,10 +1085,16 @@ export class World implements Service {
      * Applies one input as a unit of the change log, which closes when the input returns: when it
      * throws, what it wrote is undone and the error is thrown on to the caller.
      *
+     * A world whose entity store failed to undo a unit drops the input unapplied. Its state no
+     * longer matches its log and it has stopped ticking ({@link World.update} reports that once),
+     * so an input would go on writing to a half-undone world.
+     *
      * @param apply - The input's handler.
      */
     public runInputNow(apply: () => void): void {
-        const outcome = this.getEntityStore().unit(apply);
+        const store = this.getEntityStore();
+        if (store.broken !== undefined) return;
+        const outcome = store.unit(apply);
         if (outcome.failed) throw outcome.error;
     }
 
