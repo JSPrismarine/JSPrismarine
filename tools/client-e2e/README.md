@@ -53,7 +53,9 @@ stop it answering the client's keepalives and acknowledgements, and the client k
 through a stall. `--no-raknet-worker` runs it on the game thread instead.
 
 Gameplay and dimension scenarios share one server and client; natural spawning uses a separate
-server because it needs a cow spawn fixture that could affect gameplay checks. The runner resets
+server because it needs a cow spawn fixture that could affect gameplay checks. The
+`level-isolation` scenario gets a server of its own with a second `worlds` entry, whose mobs and
+world every other scenario would also have to tick. The runner resets
 the player, inventory, drops, and controls between scenarios, then stops each server and removes
 its temporary data. The two suites run concurrently by default; use `--concurrency 1` when
 debugging or when passing `--port`. `--record` writes a separate `run.mp4` under each scenario's

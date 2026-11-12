@@ -47,6 +47,8 @@ export interface Scenario {
         preloadRadius?: number;
         /** Starts the pinned normal Overworld at seed 1234 for the climate-spawn scenario. */
         worldgenSpawn?: boolean;
+        /** Adds a second flat level whose Overworld shares the default level's dimension. */
+        secondLevel?: boolean;
     };
     run: (context: ScenarioContext) => Promise<void>;
 }
