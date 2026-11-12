@@ -940,7 +940,7 @@ export class EntityRuntime implements EntityScene {
     ): DataEntity | undefined {
         const entity = this.create(identifier, at, options, undefined, false, id);
         if (entity === undefined) return undefined;
-        options.prepare?.(entity);
+        this.prepare(entity, options.prepare);
         if (
             !this.hasValidFallingBlockData(entity) ||
             !this.droppedItems.isValid(entity) ||
@@ -1020,10 +1020,25 @@ export class EntityRuntime implements EntityScene {
         entity.body.containerCapacity = this.containerCapacityOf(entity.instance);
         this.syncGameEventListener(entity);
         this.startFuse(entity);
-        prepare?.(entity);
+        this.prepare(entity, prepare);
         this.store.enter(entity, this.savedFormOf(entity));
         this.onSpawn(entity);
         return entity;
+    }
+
+    /**
+     * Runs a caller's `prepare` on an entity the index holds and the log does not yet, and takes
+     * the entity back out when it throws, so no entity stays in the queries that never entered
+     * the log or reached a client.
+     */
+    private prepare(entity: DataEntity, prepare: ((entity: DataEntity) => void) | undefined): void {
+        if (prepare === undefined) return;
+        try {
+            prepare(entity);
+        } catch (error: unknown) {
+            this.remove(entity.id, 'invalid_spawn_data');
+            throw error;
+        }
     }
 
     /**

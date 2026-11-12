@@ -378,6 +378,21 @@ describe('the entity store', () => {
         expect(runtime.store.size).toBe(3);
     });
 
+    it('takes an entity back out when the spawn or restore that prepares it throws', () => {
+        const { runtime } = fixture();
+        const record = dataEntityRecordOf(spawnLogged(runtime), undefined);
+        beginMeasuredTick(runtime.store);
+        const planned = (): never => {
+            throw new Error('planned');
+        };
+
+        expect(() => runtime.spawn('jsprismarine:logged', GROUND, { prepare: planned })).toThrow('planned');
+        expect(() => runtime.restore(record, GROUND, undefined, planned)).toThrow('planned');
+
+        expect(runtime.store.size).toBe(1);
+        expect(runtime.store.sealTick()?.entries.filter((entry) => entry.kind === 'membership')).toEqual([]);
+    });
+
     it('keeps a stored stack from changing through the object its caller still holds', () => {
         const { runtime } = fixture();
         const entity = spawnLogged(runtime);
