@@ -31,6 +31,8 @@ Start from what you are here to do.
   seeds.
 - [Log levels](log-levels.md): what each level prints and how to choose one.
 - [Error reference](../errors/README.md): what an error in the log means, by its code.
+- [Usage statistics](usage-statistics.md): what the server reports to bStats, and how to turn it
+  off.
 
 ## Build add-ons and plugins
 
