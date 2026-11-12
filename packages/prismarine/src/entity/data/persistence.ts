@@ -25,8 +25,7 @@
  */
 import type { AttributeName, EntityPosition, PropertyValue } from '@jsprismarine/entities';
 import { ATTRIBUTES, noEffects } from '@jsprismarine/entities';
-import type { ComponentStateRecord, ComponentStateSnapshot } from '@jsprismarine/entities/componentState';
-import { isComponentStateRecord } from '@jsprismarine/entities/componentState';
+import type { ComponentStateSnapshot } from '@jsprismarine/entities/componentState';
 import type { NBTTagCompound } from '@jsprismarine/nbt';
 import { merchantSnapshotIn } from '@jsprismarine/trading';
 import type { MerchantSnapshot } from '@jsprismarine/trading';
@@ -59,8 +58,12 @@ export interface DataEntityRecord {
      * The state each active component keeps between ticks, such as a timer or an air supply, by
      * component name, with `null` for a component that holds none. A record written before this
      * field existed leaves it out, and its components keep the state they initialize with.
+     *
+     * Saved as `ComponentStates.snapshot` gives it, and read back as the file holds it: restoring
+     * checks each value against its component and reports one that does not fit, which it could
+     * not do for an entry the reader had already dropped.
      */
-    readonly componentState?: ComponentStateSnapshot;
+    readonly componentState?: ComponentStateSnapshot | Readonly<Record<string, unknown>>;
     /** Attribute name to its current value; the bounds come back from the components. */
     readonly attributes: Readonly<Partial<Record<AttributeName, number>>>;
     readonly yaw: number;
@@ -304,15 +307,9 @@ const propertiesOf = (value: unknown): Record<string, PropertyValue> => {
     return properties;
 };
 
-/** Saved component state, keeping only entries that are plain data or `null`. */
-const componentStateOf = (value: unknown): ComponentStateSnapshot | undefined => {
-    if (!isObject(value)) return undefined;
-    const state: Record<string, ComponentStateRecord | null> = {};
-    for (const [component, written] of Object.entries(value)) {
-        if (written === null || isComponentStateRecord(written)) state[component] = written;
-    }
-    return state;
-};
+/** Saved component state, by component name, each value as the file holds it. */
+const componentStateOf = (value: unknown): Readonly<Record<string, unknown>> | undefined =>
+    isObject(value) ? value : undefined;
 
 const attributesOf = (value: unknown): Partial<Record<AttributeName, number>> => {
     const attributes: Partial<Record<AttributeName, number>> = {};

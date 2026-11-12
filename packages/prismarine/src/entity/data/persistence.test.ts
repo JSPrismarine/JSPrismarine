@@ -280,5 +280,15 @@ describe('the data entity record', () => {
             expect(restored.instance.componentState.get(AIR_STATE)).toEqual({ remaining: 60, untilHurt: 10 });
             expect(reports.some((line) => line.includes('minecraft:breathable'))).toBe(true);
         });
+
+        it('says so for saved state that is not a record at all', () => {
+            const { restored, reports } = savedAfter(50, (record) => ({
+                ...record,
+                componentState: { ...record.componentState, 'minecraft:breathable': [10, 10] }
+            }));
+
+            expect(restored.instance.componentState.get(AIR_STATE)).toEqual({ remaining: 60, untilHurt: 10 });
+            expect(reports.some((line) => line.includes('minecraft:breathable'))).toBe(true);
+        });
     });
 });
