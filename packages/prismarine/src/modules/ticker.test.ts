@@ -10,7 +10,7 @@ import { startTestModule } from '@jsprismarine/kernel/testing';
 import type TickEvent from '../events/other/TickEvent';
 import { attachProfiler, ServerProfiler } from '../profiling/ServerProfiler';
 import { ServerTicker, tickerModule } from './ticker';
-import type { TickerServer } from './ticker';
+import type { TickerServer, TickerWorld } from './ticker';
 import { tickerToken } from './tokens';
 import { ChunkCompletionQueue } from '../world/ChunkCompletionQueue';
 import { insideTick } from '../world/TickContext';
@@ -38,7 +38,7 @@ const buildHarness = (overrides: Partial<TickerServer> = {}) => {
         admitInputs: () => 0,
         pollNetwork: () => 0,
         getWorlds: () => [],
-        tickFunctions: async () => 0,
+        tickFunctions: () => 0,
         getChunkScheduler: () => ({
             setBudget: () => {},
             tick: async () => {}
@@ -139,13 +139,14 @@ describe('modules/ticker', () => {
             getWorlds: () => [
                 {
                     getName: () => 'world',
-                    update: async () => {
+                    update: () => {
                         order.push('world');
                     }
                 }
             ],
-            tickFunctions: async () => {
+            tickFunctions: () => {
                 order.push('functions');
+                return 0;
             }
         });
 
@@ -168,7 +169,7 @@ describe('modules/ticker', () => {
                 {
                     getName: () => 'world',
                     beginChangeTick: () => order.push('begin'),
-                    update: async () => {
+                    update: () => {
                         order.push('world');
                     },
                     closeTick: () => void order.push('close')
@@ -229,13 +230,14 @@ describe('modules/ticker', () => {
             getWorlds: () => [
                 {
                     getName: () => 'world',
-                    update: async () => {
+                    update: () => {
                         inside.world = insideTick();
                     }
                 }
             ],
-            tickFunctions: async () => {
+            tickFunctions: () => {
                 inside.functions = insideTick();
+                return 0;
             },
             getChunkScheduler: () => ({
                 setBudget: () => {},
@@ -340,7 +342,7 @@ describe('modules/ticker', () => {
             getWorlds: () => [
                 {
                     getName: () => 'overworld',
-                    update: async () => {
+                    update: () => {
                         order.push('world');
                     }
                 }
@@ -362,7 +364,7 @@ describe('modules/ticker', () => {
         const events: string[] = [];
         const errors: unknown[] = [];
         const failure = new Error('the overworld broke');
-        const world = (name: string, work: () => void) => ({
+        const world = (name: string, work: () => void): TickerWorld => ({
             getName: () => name,
             update: (tick: number) => {
                 events.push(`start ${name} ${tick}`);
@@ -438,7 +440,7 @@ describe('modules/ticker', () => {
         const directory = mkdtempSync(path.join(tmpdir(), 'jsprismarine-ticker-profile-'));
         vi.stubEnv('JSP_DIR', directory);
         const harness = buildHarness({
-            getWorlds: () => [{ getName: () => 'overworld', update: async () => {} }]
+            getWorlds: () => [{ getName: () => 'overworld', update: () => {} }]
         });
         const profiler = new ServerProfiler();
         attachProfiler(harness.deps, profiler);
@@ -479,13 +481,14 @@ describe('modules/ticker', () => {
         harness.events.on('tick', (event) => {
             eventLoopOrder.push(`tick:${event.getTick()}`);
         });
-        harness.deps.tickFunctions = async () => {
+        harness.deps.tickFunctions = () => {
             if (!stalled) {
                 stalled = true;
                 vi.advanceTimersByTime(75);
                 // Let the queued I/O callback run before the overdue tick resumes.
                 setImmediate(() => eventLoopOrder.push('io'));
             }
+            return 0;
         };
         const timeout = recordCalls('setTimeout');
         const immediate = recordCalls('setImmediate');
@@ -509,11 +512,12 @@ describe('modules/ticker', () => {
     it('keeps the event loop awake between back-to-back catch-up ticks', async () => {
         const harness = buildHarness();
         let stalled = false;
-        harness.deps.tickFunctions = async () => {
+        harness.deps.tickFunctions = () => {
             if (!stalled) {
                 stalled = true;
                 vi.advanceTimersByTime(75);
             }
+            return 0;
         };
         const immediate = recordCalls('setImmediate');
         const handle = await startTestModule(tickerModule(harness.ticker));
@@ -579,7 +583,7 @@ describe('modules/ticker', () => {
                 getWorlds: () => [
                     {
                         getName: () => 'world',
-                        update: async (tick: number) => {
+                        update: (tick: number) => {
                             updated.push(tick);
                         }
                     }
@@ -679,7 +683,7 @@ describe('modules/ticker', () => {
         // The second tick stalls for 2.5 seconds of fake time, putting the loop
         // past the 2000 ms catch-up limit.
         let stalled = false;
-        harness.deps.tickFunctions = async () => {
+        harness.deps.tickFunctions = () => {
             if (harness.ticker.getTick() === 1 && !stalled) {
                 stalled = true;
                 vi.advanceTimersByTime(2500);
@@ -735,8 +739,11 @@ describe('modules/ticker', () => {
             const updates: number[] = [];
             const functions: number[] = [];
             const harness = buildHarness({
-                getWorlds: () => [{ getName: () => 'w', update: async (tick) => void updates.push(tick) }],
-                tickFunctions: async () => void functions.push(1)
+                getWorlds: () => [{ getName: () => 'w', update: (tick) => void updates.push(tick) }],
+                tickFunctions: () => {
+                    functions.push(1);
+                    return 1;
+                }
             });
             const handle = await startTestModule(tickerModule(harness.ticker));
             try {
@@ -761,7 +768,7 @@ describe('modules/ticker', () => {
         it('steps a frozen world by the ticks asked for and then holds still again', async () => {
             const updates: number[] = [];
             const harness = buildHarness({
-                getWorlds: () => [{ getName: () => 'w', update: async (tick) => void updates.push(tick) }]
+                getWorlds: () => [{ getName: () => 'w', update: (tick) => void updates.push(tick) }]
             });
             const handle = await startTestModule(tickerModule(harness.ticker));
             try {
