@@ -8,6 +8,7 @@ import { stub, stubOf } from '../testing/stub.test.helper';
 import type { DataEntity } from '../entity/data/DataEntity';
 import { StorePlayerActor, StorePlayers } from '../entity/data/storePlayers';
 import { entityFixture, FLOOR_Y, TestEntityWorld } from '../entity/data/testing';
+import { dataEntityRecordOf } from '../entity/data/persistence';
 import { PLAYER_IDENTIFIER } from '../entity/playerOverlay';
 import { enteredStorePlayer, SHIPPED_PLAYER } from '../testing/storePlayer.test.helper';
 import type { StorePlayer } from '../entity/storePlayer';
@@ -17,6 +18,7 @@ import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import type { ProtocolCodec } from '@jsprismarine/protocol';
 import { PacketCompressionAlgorithm } from '@jsprismarine/minecraft';
 import { BatchCodec } from '@jsprismarine/protocol';
+import AddActorPacket from '@jsprismarine/protocol/packet/AddActorPacket';
 import MoveActorAbsolutePacket from '@jsprismarine/protocol/packet/MoveActorAbsolutePacket';
 import type ClientConnection from './ClientConnection';
 import type PlayerSession from './PlayerSession';
@@ -52,11 +54,14 @@ const fakeSession = (
     const frames: Buffer[] = [];
     const selfStateCalls: string[] = [];
     const tracked = new Set<bigint>();
+    /** The batches handed over while they still compressed, which a test can wait for. */
+    const pending: Promise<unknown>[] = [];
     /** What reached the session, frames and drops, in the order they did. */
     const order: ('frame' | 'drop')[] = [];
 
     return {
         order,
+        pending,
         considered,
         dropped,
         reconciled,
@@ -75,7 +80,10 @@ const fakeSession = (
                         frames.push(content);
                         order.push('frame');
                     },
-                    sendSharedBatchAsync: async (batch) => void frames.push((await batch).content)
+                    sendSharedBatchAsync: (batch) => {
+                        pending.push(batch);
+                        return batch.then(({ content }) => void frames.push(content));
+                    }
                 }),
             sendMetadataFor: async () => void selfStateCalls.push('metadata'),
             sendStatusEffect: async () => void selfStateCalls.push('status effect'),
@@ -343,6 +351,46 @@ describe('network', () => {
                 expect(second!.spy.frames).toStrictEqual(first!.spy.frames);
                 expect(third!.spy.frames).toStrictEqual(first!.spy.frames);
                 expect(packetsIn(first!.spy.frames).map(({ name }) => name)).toStrictEqual(['AddActorPacket']);
+            });
+
+            it('shows an entity that left and entered again in one tick as it entered the second time', async () => {
+                const watching = fakePlayer(1001n);
+                const { runtime, tick, spawn } = replicatorOverLog([watching.player]);
+
+                await tick(() => {
+                    const entity = spawn();
+                    const record = dataEntityRecordOf(entity, runtime.poolOf(entity.id));
+                    runtime.remove(entity.id, 'test');
+                    runtime.restore(record, { x: 4.5, y: FLOOR_Y + 1, z: 0.5 }, entity.id);
+                });
+
+                const spawns = packetsIn(watching.spy.frames)
+                    .filter(({ name }) => name === 'AddActorPacket')
+                    .map(({ buffer }) => {
+                        const packet = new AddActorPacket(buffer);
+                        packet.codecProtocol = Codec2193.protocolVersion;
+                        packet.decode();
+                        return packet.position.getX();
+                    });
+                expect(spawns.at(-1)).toBe(4.5);
+            });
+
+            it('sends a first sight too large to compress on the thread through the queue it holds', async () => {
+                const watching = fakePlayer(1001n);
+                const { runtime, tick } = replicatorOverLog([watching.player]);
+
+                await tick(
+                    () =>
+                        void runtime.spawn(
+                            'jsprismarine:shown',
+                            { x: 0.5, y: FLOOR_Y + 1, z: 0.5 },
+                            { prepare: (entity) => (entity.body.nameTag = 'n'.repeat(70_000)) }
+                        )
+                );
+
+                expect(watching.spy.pending).toHaveLength(1);
+                await Promise.all(watching.spy.pending);
+                expect(packetsIn(watching.spy.frames).map(({ name }) => name)).toContain('AddActorPacket');
             });
         });
 

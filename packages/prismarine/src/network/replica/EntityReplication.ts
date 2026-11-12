@@ -75,6 +75,12 @@ const UNSHOWN_FIELDS: ReadonlySet<string> = new Set([
 /** What a dropped stack's metadata projects to: nothing beyond its box. */
 const NO_PROJECTION: ActorMetadataProjection = { flags: [], properties: [] };
 
+/** One first-sight batch, encoded or compressing, with the packet to name if it fails. */
+type FirstSightBatch = {
+    readonly batch: EncodedPacketBatch | Promise<EncodedPacketBatch>;
+    readonly first: NetworkPacket<unknown>;
+};
+
 /** What the viewers of one entity were last sent of it. */
 type Shown = {
     readonly kind: ShownKind;
@@ -131,7 +137,7 @@ export class EntityReplication {
     private fields = new Map<EntityId, Set<string>>();
     private slots = new Map<EntityId, Set<string>>();
     /** The first-sight batches of this flush, by entity, then codec, then compression settings. */
-    private readonly sights = new Map<EntityId, Map<ProtocolCodec, Map<string, EncodedPacketBatch>>>();
+    private readonly sights = new Map<EntityId, Map<ProtocolCodec, Map<string, FirstSightBatch>>>();
     private visited = 0;
     private firstSightEncodes = 0;
     private firstSights = 0;
@@ -248,6 +254,9 @@ export class EntityReplication {
     private showMembership(membership: MembershipChange): Promise<void> {
         const { entity } = membership;
         const runtimeId = entity;
+        // A first sight encoded for an earlier entry of this flush shows the entity as it entered
+        // then; one that enters again is shown as it enters now.
+        this.sights.delete(entity);
         if (membership.change === 'leave') {
             this.shown.delete(entity);
             return this.drop(entity);
@@ -493,9 +502,12 @@ export class EntityReplication {
             spawnTo: (session) => {
                 const known = shown ?? this.shown.get(entity) ?? this.firstShown(held);
                 if (known === undefined || view === undefined) return Promise.resolve();
-                const batch = this.firstSightBatch(entity, held, known, view, session);
-                if (batch === undefined) return Promise.resolve();
+                const sight = this.firstSightBatch(entity, held, known, view, session);
+                if (sight === undefined) return Promise.resolve();
                 this.firstSights++;
+                const { batch, first } = sight;
+                // A large one compresses off the thread, and its place in the queue is held now.
+                if (batch instanceof Promise) return session.getConnection().sendSharedBatchAsync(batch, first);
                 return session
                     .getConnection()
                     .sendSharedBatch(batch.content, batch.packets, false, batch.packetBuffers);
@@ -510,7 +522,7 @@ export class EntityReplication {
         shown: Shown,
         view: EntityView,
         session: PlayerSession
-    ): EncodedPacketBatch | undefined {
+    ): FirstSightBatch | undefined {
         const connection = session.getConnection();
         const { codec } = connection;
         let byCodec = this.sights.get(entity);
@@ -530,17 +542,19 @@ export class EntityReplication {
         const sight = this.sightData(entity, held, shown, view);
         if (sight === undefined) return undefined;
         const packets = firstSightPackets(sight, codec.context);
-        if (packets.length === 0) return undefined;
+        const [first] = packets;
+        if (first === undefined) return undefined;
+        // A dropped stack carries its item's NBT, so a shulker box full of written books can pass
+        // the size that compresses off the thread.
         const batch = encodePacketBatchBySize(packets, codec, {
             compressionLevel: this.ports.compressionLevel(),
             compressionAlgorithm: connection.compressionAlgorithm,
             compressionThreshold: connection.compressionThreshold
         });
-        // A batch large enough to compress off the thread is a chunk's, never an entity's.
-        if (batch instanceof Promise) throw new Error(`The first sight of entity ${entity} is too large to share`);
         this.firstSightEncodes++;
-        byCompression.set(key, batch);
-        return batch;
+        const encoded = { batch, first };
+        byCompression.set(key, encoded);
+        return encoded;
     }
 
     private sightData(entity: EntityId, held: HeldEntity, shown: Shown, view: EntityView): FirstSight | undefined {
