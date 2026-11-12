@@ -57,7 +57,8 @@ pnpm add @jsprismarine/prismarine @jsprismarine/logger
 
 ```typescript
 import { Logger } from '@jsprismarine/logger';
-import { Config, Server } from '@jsprismarine/prismarine';
+import { Server } from '@jsprismarine/prismarine';
+import { Config } from '@jsprismarine/prismarine/config/Config';
 
 // Reads config.json in the working directory, and writes it with every default if it is missing.
 const config = new Config();
@@ -81,6 +82,61 @@ The server reads its game data the way the prebuilt server does: from
 `node_modules/.cache/jsprismarine/` in the working directory. Point `JSP_VANILLA_BEHAVIOR_PACK`,
 `JSP_VANILLA_DATAPACK` and `JSP_JAVA_REPORTS` at copies made by a checkout, or run a
 `minecraft:flat` world, which needs no Java data. [Running JSPrismarine](running.md) has the details.
+
+### Entry points
+
+The package publishes <!-- fact:prismarine.entryPoints.count -->39<!-- /fact --> entry points, and
+each one is the module that defines what it exports. The root exports `Server` and nothing else.
+Import every other symbol from its own module, such as `Config` from
+`@jsprismarine/prismarine/config/Config`. Each event class and `PlayerSession` is the default
+export of its module. A path that is not in this list does not resolve:
+
+<!-- fact:prismarine.entryPoints.list -->
+```text
+@jsprismarine/prismarine
+@jsprismarine/prismarine/chat/Chat
+@jsprismarine/prismarine/config/Config
+@jsprismarine/prismarine/console/RemoteConsole
+@jsprismarine/prismarine/console/RemoteLogTransport
+@jsprismarine/prismarine/content/packStack
+@jsprismarine/prismarine/content/settings
+@jsprismarine/prismarine/events/chat/ChatEvent
+@jsprismarine/prismarine/events/entity/EntityDamageEvent
+@jsprismarine/prismarine/events/entity/EntityDeathEvent
+@jsprismarine/prismarine/events/entity/EntityPortalEnterEvent
+@jsprismarine/prismarine/events/Event
+@jsprismarine/prismarine/events/other/TickEvent
+@jsprismarine/prismarine/events/player/PlayerChangeDimensionEvent
+@jsprismarine/prismarine/events/player/PlayerConnectEvent
+@jsprismarine/prismarine/events/player/PlayerDespawnEvent
+@jsprismarine/prismarine/events/player/PlayerDisconnectEvent
+@jsprismarine/prismarine/events/player/PlayerEvent
+@jsprismarine/prismarine/events/player/PlayerMoveEvent
+@jsprismarine/prismarine/events/player/PlayerSetGamemodeEvent
+@jsprismarine/prismarine/events/player/PlayerSpawnEvent
+@jsprismarine/prismarine/events/player/PlayerToggleFlightEvent
+@jsprismarine/prismarine/events/player/PlayerToggleOperatorEvent
+@jsprismarine/prismarine/events/player/PlayerToggleSprintEvent
+@jsprismarine/prismarine/events/raknet/RaknetConnectEvent
+@jsprismarine/prismarine/events/raknet/RaknetDisconnectEvent
+@jsprismarine/prismarine/events/raknet/RaknetEncapsulatedPacketEvent
+@jsprismarine/prismarine/events/ServerEvents
+@jsprismarine/prismarine/modules/tokens
+@jsprismarine/prismarine/network/InboundPacketTrace
+@jsprismarine/prismarine/network/OutboundPacketTrace
+@jsprismarine/prismarine/network/PlayerSession
+@jsprismarine/prismarine/network/ReplayManifest
+@jsprismarine/prismarine/version
+@jsprismarine/prismarine/world/GeneratorFactories
+@jsprismarine/prismarine/world/generators/datadriven/DataDrivenGenerator
+@jsprismarine/prismarine/world/generators/datadriven/SharedTerrainTileStore
+@jsprismarine/prismarine/world/Level
+@jsprismarine/prismarine/world/World
+```
+<!-- /fact -->
+
+If your program needs a module that is not an entry point, open an issue, so it can be made
+public on purpose.
 
 ### Events
 
