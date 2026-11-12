@@ -213,6 +213,27 @@ describe('network', () => {
             });
         });
 
+        describe('animate', () => {
+            it('reaches the players tracking the animated player once each, and not the player', async () => {
+                const own = viewer(1n, { tracked: [1n] });
+                const tracking = viewer(2n, { tracked: [1n] });
+                const elsewhere = viewer(3n);
+                const replicator = replicatorOver([own.session, tracking.session, elsewhere.session]);
+
+                sealOccurrences(replicator, {
+                    kind: 'occurrence',
+                    occurrence: 'animate',
+                    data: { entity: 1n, action: 1, data: 2.5, swingSource: 'attack' }
+                });
+                await replicator.flushOccurrences();
+
+                expect(tracking.frames).toHaveLength(1);
+                expect(own.frames).toHaveLength(0);
+                expect(own.sent).toHaveLength(0);
+                expect(elsewhere.frames).toHaveLength(0);
+            });
+        });
+
         describe('actor-sound', () => {
             it('attributes a mob sound to the mob that made it, and a player sound to no type', async () => {
                 // A player's client plays its own player sounds, and naming the player type
