@@ -1,4 +1,4 @@
-import type { TickEvent } from '../src/events/Events';
+import type TickEvent from '../src/events/other/TickEvent';
 import { KernelEventBus } from '@jsprismarine/kernel';
 import type { ServerEvents } from '../src/events/ServerEvents';
 /**
