@@ -75,6 +75,7 @@ import { isDroppedItem, itemTuningOf, itemViewOf } from './droppedItems';
 import { ItemActor } from './itemActor';
 import { storedItemActorOf } from '../EntitySerializer';
 import type { StoredActor } from '../EntitySerializer';
+import { worldKeyOf } from '../../world/worldKey';
 
 /** A held or equipped item as the entity filter language reads it. */
 const filterItemOf = (item: Item | undefined): FilterItemView | undefined =>
@@ -215,6 +216,11 @@ export interface KeptActorState {
 export interface LiveEntityOptions {
     /** The namespaced dimension identifier, such as `minecraft:overworld`. */
     readonly dimension: string;
+    /**
+     * The `worlds.<name>` level the dimension belongs to, or undefined for the default level,
+     * which is the one the content packages address by dimension alone.
+     */
+    readonly level?: string;
     /** The built content, read at call time; the runtime outlives any one build. */
     content(): ServerContent;
     /** The groups the blocks, world and effects subsystems own, for this dimension. */
@@ -316,7 +322,7 @@ const finishMeal = (options: LiveEntityOptions, playerId: number): void => {
     try {
         consumeHeldItem({
             content: options.content(),
-            actors: world.getServer().getContentWorld().actorsAt(options.dimension),
+            actors: world.getServer().getContentWorld().actorsAt(options.dimension, options.level),
             player: session
         });
     } catch (error: unknown) {
@@ -1164,55 +1170,67 @@ export class LiveEntityRuntime {
 }
 
 /**
- * The data-driven entity runtimes of a server, one per dimension.
+ * The data-driven entity runtimes of a server, one per world: each dimension of each level.
  *
  * Held by the server rather than by either end: the content world adapter
- * opens one while it assembles a dimension's groups, and that dimension's
- * `World` looks it up by name to tick it.
+ * opens one while it assembles a world's groups, and that `World` looks it up
+ * by its dimension and level to tick it. Keyed by both, as {@link worldKeyOf}
+ * says why.
  */
 export class EntityRuntimes {
-    private readonly byDimension = new Map<string, LiveEntityRuntime>();
+    private readonly byWorld = new Map<string, LiveEntityRuntime>();
 
-    /** The server's store players, which every dimension's actors read. */
+    /** The server's store players, which every world's actors read. */
     public readonly players = new StorePlayers();
 
     /**
-     * The runtime for one dimension, built on first ask and kept.
+     * The runtime for one world, built on first ask and kept.
      *
-     * @returns The existing runtime when the dimension already has one, so an
-     *   adapter rebuilt for the same dimension drives the same entities.
+     * @returns The existing runtime when the world already has one, so an
+     *   adapter rebuilt for the same world drives the same entities.
      */
     public open(options: LiveEntityOptions): LiveEntityRuntime {
-        const existing = this.byDimension.get(options.dimension);
+        const key = worldKeyOf(options.dimension, options.level);
+        const existing = this.byWorld.get(key);
         if (existing !== undefined) return existing;
 
         const created = new LiveEntityRuntime(options, this.players);
-        this.byDimension.set(options.dimension, created);
+        this.byWorld.set(key, created);
         return created;
     }
 
-    /** The runtime of one dimension, or undefined when nothing opened one. */
-    public at(dimension: string): LiveEntityRuntime | undefined {
-        return this.byDimension.get(dimension);
+    /**
+     * The runtime of one world, or undefined when nothing opened one.
+     * @param dimension - The namespaced dimension identifier.
+     * @param level - The level's name, or undefined for the default level.
+     */
+    public at(dimension: string, level?: string): LiveEntityRuntime | undefined {
+        return this.byWorld.get(worldKeyOf(dimension, level));
     }
 
-    /** Resolves the goal world from whichever dimension owns this instance. */
+    /** Resolves the goal world from whichever world owns this instance. */
     public goalWorldFor(instance: EntityInstance) {
-        for (const runtime of this.byDimension.values()) {
+        for (const runtime of this.byWorld.values()) {
             const goalWorld = runtime.runtime.goalWorldFor(instance);
             if (goalWorld !== undefined) return goalWorld;
         }
         return undefined;
     }
 
-    /** Forgets one dimension's runtime, which is what closing its world does. */
-    public close(dimension: string): void {
-        this.byDimension.get(dimension)?.actors.clear();
-        this.byDimension.delete(dimension);
+    /**
+     * Forgets one world's runtime, which is what closing it does.
+     * @param dimension - The namespaced dimension identifier.
+     * @param level - The level's name, or undefined for the default level.
+     */
+    public close(dimension: string, level?: string): void {
+        const key = worldKeyOf(dimension, level);
+        this.byWorld.get(key)?.actors.clear();
+        this.byWorld.delete(key);
     }
 
     /** Forgets every runtime, which is what a server shutdown does once the worlds are down. */
     public closeAll(): void {
-        for (const dimension of [...this.byDimension.keys()]) this.close(dimension);
+        for (const runtime of this.byWorld.values()) runtime.actors.clear();
+        this.byWorld.clear();
     }
 }

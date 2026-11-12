@@ -451,20 +451,22 @@ export default class WorldManager implements Service {
     }
 
     /**
-     * The default level's loaded world of a dimension, without building one.
+     * A level's loaded world of a dimension, without building one.
      *
      * @param dimension - A Java `dimension_type` id such as `minecraft:the_nether`, or the
      *   Bedrock spelling of a vanilla one, which is how the content runtime keys its worlds.
-     * @returns The world, or undefined before the default level exists or while that dimension
-     *   is still lazy.
+     * @param level - The level's folder name, as it keys `worlds.<name>`; left out for the
+     *   default level.
+     * @returns The world, or undefined before the level exists or while that dimension is still
+     *   lazy.
      */
-    public getWorldByDimension(dimension: string): World | undefined {
+    public getWorldByDimension(dimension: string, level?: string): World | undefined {
         let wanted = this.dimensionIds.get(dimension);
         if (wanted === undefined) {
             wanted = dimensionByName(dimension)?.id ?? dimension;
             this.dimensionIds.set(dimension, wanted);
         }
-        return this.defaultLevel?.readyWorldOfType(wanted);
+        return (level === undefined ? this.defaultLevel : this.levels.get(level))?.readyWorldOfType(wanted);
     }
 
     /**

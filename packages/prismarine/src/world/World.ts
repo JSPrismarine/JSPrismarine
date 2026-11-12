@@ -1747,7 +1747,7 @@ export class World implements Service {
             this.loadedChunksRevision++;
             this.getPlayerChunkRefCounts().chunkLoaded(chunk);
             this.getPortalIndex().chunkLoaded(chunk);
-            this.server.invalidateEntityBlockCaches?.(this.dimension.name, x, z);
+            this.server.invalidateEntityBlockCaches?.(this.dimension.name, this.levelName(), x, z);
             // The only thing that changes what `getLoadedChunk` should answer.
             this.lastChunkIndex = -1;
             this.markEntitiesInChunkChanged(chunk);
@@ -2739,7 +2739,7 @@ export class World implements Service {
         runtimeId: number
     ): SystemBlock {
         this.blockWriteVersion = World.nextBlockWriteVersion++;
-        this.server.invalidateEntityBlockCaches?.(this.dimension.name, x >> 4, z >> 4);
+        this.server.invalidateEntityBlockCaches?.(this.dimension.name, this.levelName(), x >> 4, z >> 4);
         const state = chunk.getBlock(x, y, z);
         this.getPortalIndex().blockChanged({ x, y, z }, previous.name, state.name);
         const next: SystemBlock = { name: state.name, states: state.properties };
@@ -3627,7 +3627,7 @@ export class World implements Service {
         this.loadedChunksRevision++;
         this.getPlayerChunkRefCounts().chunkUnloaded(chunk);
         this.portalIndex?.chunkUnloaded(chunk);
-        this.server.invalidateEntityBlockCaches?.(this.dimension.name, chunk.getX(), chunk.getZ());
+        this.server.invalidateEntityBlockCaches?.(this.dimension.name, this.levelName(), chunk.getX(), chunk.getZ());
         this.lastChunkIndex = -1;
         this.lastChunk = null;
         this.lastChunkSource = null;
@@ -3776,14 +3776,28 @@ export class World implements Service {
     }
 
     /**
-     * The data-driven entities of this world's dimension.
+     * The data-driven entities of this world.
      *
      * What drives every mob's behavior: its components, its goals, its brain, the spawn cycle
      * and the despawn pass.
-     * @returns {LiveEntityRuntime} This dimension's runtime.
+     *
+     * Asked for by level as well as dimension, because the runtime's store holds this world's
+     * change log and another level has the same dimension: by dimension alone, a second level's
+     * Overworld wrote its blocks, mobs and undos into the default level's.
+     * @returns {LiveEntityRuntime} This world's runtime.
      */
     public dataEntities(): LiveEntityRuntime {
-        return this.server.getEntityRuntime(this.dimension.name);
+        return this.server.getEntityRuntime(this.dimension.name, this.levelName());
+    }
+
+    /**
+     * The name of the level this world is one dimension of, which keys its entity runtime.
+     *
+     * `?.` because a world built on the prototype in a test never ran the constructor that sets
+     * the level. Undefined stands for the default level, which is the only one such a world has.
+     */
+    private levelName(): string | undefined {
+        return this.level?.name;
     }
 
     /**
@@ -3869,7 +3883,10 @@ export class World implements Service {
      * @returns {StoreActor | null} The entity, or null if nothing here has that id.
      */
     public getActor(runtimeId: bigint): StoreActor | null {
-        return this.server.getEntityRuntime?.(this.dimension.name).actors.actorOf(Number(runtimeId)) ?? null;
+        return (
+            this.server.getEntityRuntime?.(this.dimension.name, this.levelName()).actors.actorOf(Number(runtimeId)) ??
+            null
+        );
     }
 
     /**
