@@ -5,15 +5,19 @@ import './site-menu/site-menu.css';
 import AudienceTabs from './components/AudienceTabs.vue';
 import BentoGrid from './components/BentoGrid.vue';
 import BentoTile from './components/BentoTile.vue';
+import BoardingPass from './components/BoardingPass.vue';
 import BrandButton from './components/BrandButton.vue';
 import CopyButton from './components/CopyButton.vue';
+import DemoServer from './components/DemoServer.vue';
 import LatestRelease from './components/LatestRelease.vue';
 import PackageDirectory from './components/PackageDirectory.vue';
 import ParityBars from './components/ParityBars.vue';
+import PassingLand from './components/PassingLand.vue';
 import ReleaseNotes from './components/ReleaseNotes.vue';
 import PrismMark from './components/PrismMark.vue';
 import TerminalWindow from './components/TerminalWindow.vue';
 import Ticker from './components/Ticker.vue';
+import WindowBlind from './components/WindowBlind.vue';
 import ContributorList from './ContributorList.vue';
 import Layout from './Layout.vue';
 import ParityTracker from './ParityTracker.vue';
@@ -23,15 +27,19 @@ const brandComponents = {
     AudienceTabs,
     BentoGrid,
     BentoTile,
+    BoardingPass,
     BrandButton,
     CopyButton,
+    DemoServer,
     LatestRelease,
     PackageDirectory,
     ParityBars,
+    PassingLand,
     PrismMark,
     ReleaseNotes,
     TerminalWindow,
-    Ticker
+    Ticker,
+    WindowBlind
 };
 
 export default {
