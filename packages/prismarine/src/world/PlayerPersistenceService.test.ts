@@ -66,6 +66,43 @@ describe('the player persistence service', () => {
         expect(await persistence.load('Steve')).toBeNull();
     });
 
+    it('reads a record only once the write a tick handed off for its key has landed, and writes one key in order', async () => {
+        const stored = new Map<string, WorldPlayerData>();
+        const order: string[] = [];
+        let finishFirst = () => {};
+        const firstWrite = new Promise<void>((resolve) => {
+            finishFirst = resolve;
+        });
+        const persistence = new PlayerPersistence({
+            levelName: 'test',
+            folder,
+            provider: {
+                writePlayerData: async (key, data) => {
+                    order.push(`write ${data.username}`);
+                    if (data.username === 'first') await firstWrite;
+                    stored.set(key, data);
+                },
+                readPlayerData: async (key) => {
+                    order.push('read');
+                    return stored.get(key) ?? null;
+                }
+            },
+            logger: quiet,
+            isClosed: () => false
+        });
+
+        // A world change and then a leave, each started by a tick that did not wait for it.
+        void persistence.save('Alex', recordFor('first'));
+        void persistence.save('Alex', recordFor('second'));
+        const read = persistence.load('Alex');
+        await new Promise<void>((resolve) => setImmediate(resolve));
+        expect(order).toEqual(['write first']);
+
+        finishFirst();
+        expect((await read)?.username).toBe('second');
+        expect(order).toEqual(['write first', 'write second', 'read']);
+    });
+
     it('writes nothing once the level has closed, and says so to a caller that needs the write', async () => {
         const stored = new Map<string, WorldPlayerData>();
         const persistence = new PlayerPersistence({
