@@ -13,7 +13,7 @@
             "minecraft:light_emission": 0,
             "minecraft:light_dampening": 15,
             "minecraft:movable": {
-                "movement_type": "push_pull"
+                "movement_type": "immovable"
             },
             "minecraft:display_name": "tile.bedrock.name",
             "jsprismarine:behavior": "jsprismarine:inert",
@@ -21,7 +21,7 @@
                 "friction": 0.6,
                 "random_tick": false,
                 "requires_correct_tool": false,
-                "push_reaction": "push_pull",
+                "push_reaction": "immovable",
                 "source": "java"
             }
         }

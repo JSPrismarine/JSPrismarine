@@ -1,3 +1,6 @@
+import { readFileSync } from 'node:fs';
+
+import { blockProperties } from '@jsprismarine/blocks/components';
 import { describe, expect, it } from 'vitest';
 
 import { AIR } from '../identifiers';
@@ -46,6 +49,27 @@ describe('planPush', () => {
 });
 
 describe('performPush', () => {
+    it('cannot push or pull bedrock with the shipped movement classification', () => {
+        const definition = JSON.parse(
+            readFileSync(new URL('../../../blocks/vanilla_overlay/blocks/bedrock.block.json', import.meta.url), 'utf8')
+        );
+        const parsed = blockProperties.schema(
+            definition['minecraft:block'].components['jsprismarine:block_properties']
+        );
+        if (!parsed.ok) throw new Error('the shipped bedrock properties must be valid');
+        const world = createVoxelWorld().overworld;
+        world.defineProperties('minecraft:bedrock', parsed.value);
+        world.set({ x: 1, y: 0, z: 0 }, 'minecraft:bedrock');
+        expect(performPush(world, piston, 'east')).toBe(false);
+        expect(world.identifierAt({ x: 1, y: 0, z: 0 })).toBe('minecraft:bedrock');
+        expect(world.identifierAt({ x: 2, y: 0, z: 0 })).toBe(AIR);
+        world.set({ x: 1, y: 0, z: 0 }, AIR);
+        world.set({ x: 2, y: 0, z: 0 }, 'minecraft:bedrock');
+        expect(performPull(world, piston, 'east')).toBe(false);
+        expect(world.identifierAt({ x: 2, y: 0, z: 0 })).toBe('minecraft:bedrock');
+        expect(world.identifierAt({ x: 1, y: 0, z: 0 })).toBe(AIR);
+    });
+
     it('moves the whole run one position along, far end first', () => {
         const world = createVoxelWorld().overworld;
         world.set({ x: 1, y: 0, z: 0 }, 'minecraft:stone');

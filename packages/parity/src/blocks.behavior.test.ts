@@ -1,5 +1,8 @@
 import { VANILLA_BLOCK_FAMILIES, bindFamily, heldItem, isFallingBlock } from '@jsprismarine/block-behaviors';
 import type { FamilyHarness } from '@jsprismarine/block-behaviors';
+import { createVoxelWorld } from '@jsprismarine/block-behaviors';
+import { performPull, performPush, planPush } from '@jsprismarine/block-behaviors/rules/piston';
+import { blockProperties } from '@jsprismarine/blocks/components';
 import { behaviorFor } from '@jsprismarine/blocks';
 import { bedrockBlockEntityDyeIndexOf, javaBlockStateToBedrock } from '@jsprismarine/mapping';
 import { blocksTable } from '@jsprismarine/mapping/tables';
@@ -700,6 +703,28 @@ const REFERENCES_NEEDED = [
 ] as const;
 
 describeFamily(FAMILIES.blocksBehavior, REFERENCES_NEEDED, () => {
+    it('prevents pushing and pulling bedrock using the shipped server definition', () => {
+        const world = createVoxelWorld().overworld;
+        const properties = serverContent()
+            .blocks.types.get('minecraft:bedrock')!
+            .state()
+            .content.params(blockProperties)!;
+        world.defineProperties('minecraft:bedrock', properties);
+        const origin = { x: 0, y: 0, z: 0 };
+        const front = { x: 1, y: 0, z: 0 };
+        const beyond = { x: 2, y: 0, z: 0 };
+        world.set(front, 'minecraft:bedrock');
+        expect(planPush(world, origin, 'east')).toMatchObject({ blocked: true, moved: [] });
+        expect(performPush(world, origin, 'east')).toBe(false);
+        expect(world.identifierAt(front)).toBe('minecraft:bedrock');
+        expect(world.identifierAt(beyond)).toBe('minecraft:air');
+        world.set(front, 'minecraft:air');
+        world.set(beyond, 'minecraft:bedrock');
+        expect(performPull(world, origin, 'east')).toBe(false);
+        expect(world.identifierAt(beyond)).toBe('minecraft:bedrock');
+        expect(world.identifierAt(front)).toBe('minecraft:air');
+    });
+
     it('exercises each Java block behavior against the server block families', { timeout: 180_000 }, () => {
         const rows = measureScenarios(FAMILIES.blocksBehavior, import.meta.filename, scenarioGroup(scenarios));
 
