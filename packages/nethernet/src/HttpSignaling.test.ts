@@ -25,12 +25,16 @@ const fakeAnswerer = (answer: (signal: SignalStructure, respond: (signal: Signal
 const running: HttpSignaling[] = [];
 
 /** Starts signaling on an ephemeral loopback port and returns its base URL. */
-const start = async (answerer: NetherNetOfferAnswerer, answerTimeoutMs?: number) => {
+const start = async (
+    answerer: NetherNetOfferAnswerer,
+    answerTimeoutMs?: number,
+    info: (line: string) => void = () => {}
+) => {
     const signaling = new HttpSignaling({
         answerer,
         status: () => '{"name":"Test"}',
         sign: (answer) => `${answer}a=identity:signed\r\n`,
-        logger: { debug: () => {}, info: () => {}, warn: () => {}, error: () => {} },
+        logger: { debug: () => {}, info, warn: () => {}, error: () => {} },
         answerTimeoutMs
     });
     running.push(signaling);
@@ -71,9 +75,24 @@ describe('HttpSignaling', () => {
         expect(await response.text()).toBe('v=0\r\na=identity:signed\r\n');
         expect(offers).toHaveLength(1);
         expect(offers[0]!.type).toBe(SignalType.ConnectRequest);
-        expect(offers[0]!.networkId).toBe(18446744073709551615n);
         // The client's identity is NetherNet's to check; WebRTC never sees it.
         expect(offers[0]!.data).toBe('v=0\r\nm=application 9 UDP/DTLS/SCTP webrtc-datachannel\r\n');
+    });
+
+    it.each([
+        ['a GUID', '3f2504e0-4f89-11d3-9a0c-0305e82c3301', '3f2504e0-4f89-11d3-9a0c-0305e82c3301'],
+        ['text with a line break, which it quotes in the log', 'a%0Ab', '"a\\nb"']
+    ])('takes %s for a network ID, which the guide leaves opaque', async (_name, segment, logged) => {
+        const { answerer } = fakeAnswerer((signal, respond) =>
+            respond(new SignalStructure(SignalType.ConnectResponse, signal.connectionId, 'v=0\r\n'))
+        );
+        const lines: string[] = [];
+        const base = await start(answerer, undefined, (line) => lines.push(line));
+
+        const response = await post(`${base}/v1/join/${segment}`, OFFER);
+
+        expect(response.status).toBe(200);
+        expect(lines[0]).toContain(`(network ${logged})`);
     });
 
     it('picks a connection ID no live peer has for every offer', async () => {
@@ -135,8 +154,8 @@ describe('HttpSignaling', () => {
     });
 
     it.each([
-        ['a network ID that is not a number', '/v1/join/abc', OFFER, 400],
-        ['a network ID past 64 bits', '/v1/join/18446744073709551616', OFFER, 400],
+        ['an empty network ID', '/v1/join/', OFFER, 400],
+        ['a network ID longer than one can be', `/v1/join/${'1'.repeat(129)}`, OFFER, 400],
         ['an empty offer', '/v1/join/1', '', 400],
         ['an offer too large to be one', '/v1/join/1', 'x'.repeat(64 * 1024 + 1), 413]
     ])('refuses %s', async (_name, path, body, status) => {
