@@ -1,3 +1,4 @@
+import { isRecord } from '../../utils/isRecord';
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -2386,7 +2387,8 @@ describe('the data-driven entity runtime over a live world', () => {
             live.persist();
             const tags = body?.persistentNbt;
             if (tags === null || tags === undefined) throw new Error('nothing was saved');
-            const saved = JSON.parse(tags.getString('jsprismarine:entity', '')) as Record<string, unknown>;
+            const saved: unknown = JSON.parse(tags.getString('jsprismarine:entity', ''));
+            if (!isRecord(saved)) throw new Error('the saved entity is not an object');
             saved.merchant = { version: 1, experience: 'lots', offers: [] };
             tags.addValue('jsprismarine:entity', new Types.StringVal(JSON.stringify(saved)));
             const record = dataEntityRecordIn(tags);
