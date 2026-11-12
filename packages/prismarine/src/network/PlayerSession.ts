@@ -263,9 +263,15 @@ export interface OpenBlockContainer {
 
 /** What a trade screen needs from the trader it is open on. */
 export interface TradeSource {
-    /** The offers with the prices the player pays now. */
+    /**
+     * The offers with the prices the player pays now. A change this makes to the trader, such as
+     * a cured discount drawn on the first ask, is logged as the trader's `merchant` field.
+     */
     offers(context?: TradeContext): readonly LiveOffer[];
-    /** Runs one trade; see {@link Merchant.trade}. */
+    /**
+     * Runs one trade; see {@link Merchant.trade}. The trade has to log the trader's `merchant`
+     * field: that entry is what sends an open screen its new offers, and nothing else redraws it.
+     */
     trade(index: number, context?: TradeContext): TradeResult;
     /** The experience each level asks for. */
     tierRequirements(): readonly number[];
