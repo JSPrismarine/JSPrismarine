@@ -3482,8 +3482,15 @@ export class World implements Service {
      * @param session - The player's session.
      */
     public removePlayer(session: PlayerSession): void {
-        this.players.delete(Number(session.runtimeId));
-        leaveStore(this.dataEntities().runtime, session.getPlayer(), 'left_world');
+        const id = Number(session.runtimeId);
+        const { runtime } = this.dataEntities();
+        this.players.delete(id);
+        leaveStore(runtime, session.getPlayer(), 'left_world');
+        // The undo of the caller's unit adds the entity back and the runtime hands it to the store
+        // player again, but the player map is not in the log.
+        runtime.store.undoWith(() => {
+            if (runtime.store.has(id) && !this.players.has(id)) this.players.set(id, session);
+        });
     }
 
     /**

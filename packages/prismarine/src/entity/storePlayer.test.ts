@@ -17,7 +17,7 @@ import {
     storePlayerFixture
 } from '../testing/storePlayer.test.helper';
 import type { ChangeEntry } from '../world/changelog/ChangeEntry';
-import { enterStore, leaveStore, StorePlayers } from './data/storePlayers';
+import { enterStore, leaveStore, reattachStorePlayer, StorePlayers } from './data/storePlayers';
 import type { EntityFixture } from './data/testing';
 import { FLOOR_Y } from './data/testing';
 
@@ -128,6 +128,25 @@ describe('a store player', () => {
             });
             expect(nether.runtime.store.tick).not.toBe(startedAt);
             expect(player.getComponents().get('consumption.meal')?.startedAt).toBe(nether.runtime.store.tick);
+        });
+
+        it('takes its entity back when the unit that left the store is undone', () => {
+            const fixture = storePlayerFixture();
+            const players = new StorePlayers();
+            fixture.runtime.onPlayerReentered = reattachStorePlayer(fixture.runtime, players);
+            const { player } = enteredStorePlayer(fixture, undefined, players);
+            logged(fixture.runtime, () => {});
+
+            // The slot write is undone after the entity comes back, and needs the player's parts.
+            undone(fixture, () => {
+                player.getInventory().setItem(0, diamonds(2));
+                leaveStore(fixture.runtime, player, 'changed dimension');
+            });
+
+            expect(fixture.runtime.store.get(player.id)).toBe(player.entity);
+            expect(player.getInventory().getItem(0).getName()).toBe('minecraft:air');
+            const entries = logged(fixture.runtime, () => player.getInventory().setItem(0, diamonds(1)));
+            expect(slotEntries(entries)).toHaveLength(1);
         });
 
         it('runs its survival in the store it entered, on the same components', () => {

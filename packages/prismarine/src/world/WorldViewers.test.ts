@@ -118,4 +118,26 @@ describe('World viewers', () => {
         expect(created.viewerOf(5n)).toBe(session);
         expect(created.getActor(5n)).toBeInstanceOf(StorePlayerActor);
     });
+
+    it('takes back a removal whose input was undone, entity, parts and viewer', () => {
+        const created = storeWorld();
+        const session = sessionOnPrototype({}, { runtimeId: 6n, position: new Position(0.5, 65.62, 0.5, created) });
+        created.beginChangeTick();
+        created.addPlayer(session);
+        created.sealChangeTick();
+
+        created.beginChangeTick();
+        expect(() =>
+            created.runInputNow(() => {
+                created.removePlayer(session);
+                throw new Error('the change failed after the leave');
+            })
+        ).toThrow('the change failed after the leave');
+        created.sealChangeTick();
+
+        expect(created.getEntityStore().broken).toBeUndefined();
+        expect(created.viewerOf(6n)).toBe(session);
+        expect(created.getActor(6n)).toBeInstanceOf(StorePlayerActor);
+        expect(session.getPlayer().entity).toBe(created.dataEntities().runtime.store.get(6));
+    });
 });

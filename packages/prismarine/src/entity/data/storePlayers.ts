@@ -141,6 +141,21 @@ export const leaveStore = (runtime: EntityRuntime, player: StorePlayer, reason: 
 };
 
 /**
+ * What a runtime's `onPlayerReentered` runs: hands a player's entity that an undo or a replay adds
+ * back to the store player it belongs to, which the leave detached and kept filed, so the slot and
+ * field entries written back after it find the player's parts. A store player that holds an entity
+ * in another store by then is left as it is.
+ *
+ * @returns The callback to set as the runtime's `onPlayerReentered`.
+ */
+export const reattachStorePlayer =
+    (runtime: EntityRuntime, players: StorePlayers) =>
+    (entity: DataEntity): void => {
+        const player = players.of(entity.id);
+        if (player !== undefined && player.entity === undefined) player.attach(entity, runtime.playerSystems);
+    };
+
+/**
  * Applies a move a store player's client reported: the body's position, look and ground through
  * `EntityRuntime.applyClientMovement`, which charges the walk and pays for a landing, and the head
  * yaw, which the player keeps beside its entity because the body has none.
