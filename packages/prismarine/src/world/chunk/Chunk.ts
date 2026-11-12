@@ -169,7 +169,7 @@ export default class Chunk {
     private serializedRequestSkeletonAt = -1;
     private readonly serializedRequestSubChunks = new Map<
         number,
-        { readonly revision: number; readonly bytes: Buffer }
+        { readonly revision: number; readonly bytes: Buffer; readonly terrainBytes: number }
     >();
     private networkHeightmap: { readonly revision: number; readonly values: Uint16Array } | null = null;
     private networkRevision = 0;
@@ -262,6 +262,21 @@ export default class Chunk {
      * @param y - Absolute subchunk index, including client padding for a shallow vanilla dimension.
      */
     public networkSerializeRequestSubChunk(y: number): Buffer {
+        return this.serializeRequestSubChunk(y).bytes;
+    }
+
+    /**
+     * One requested sub chunk in the two parts a client with the blob cache on is sent: the
+     * terrain, which it caches under a hash, and the block entities that belong to the sub chunk,
+     * which travel in the packet beside the hash.
+     * @param y - Absolute subchunk index, including client padding for a shallow vanilla dimension.
+     */
+    public networkSerializeRequestSubChunkParts(y: number): { terrain: Buffer; blockEntities: Buffer } {
+        const { bytes, terrainBytes } = this.serializeRequestSubChunk(y);
+        return { terrain: bytes.subarray(0, terrainBytes), blockEntities: bytes.subarray(terrainBytes) };
+    }
+
+    private serializeRequestSubChunk(y: number): { readonly bytes: Buffer; readonly terrainBytes: number } {
         const client = clientRangeOf(this.dimension);
         if (!Number.isInteger(y) || y < minSubChunk(client) || y > maxSubChunk(client)) {
             throw new RangeError(`Invalid subchunk height: ${y}`);
@@ -269,10 +284,11 @@ export default class Chunk {
 
         const revision = this.getNetworkRevision();
         const cached = this.serializedRequestSubChunks.get(y);
-        if (cached?.revision === revision) return cached.bytes;
+        if (cached?.revision === revision) return cached;
 
         const stream = new BinaryStream();
         (this.subChunkAtIndex(y) ?? Chunk.EMPTY_SUBCHUNK).networkSerialize(stream);
+        const terrainBytes = stream.getBuffer().byteLength;
 
         if (this.blockEntities.size > 0) {
             const writer = new NBTWriter(stream, ByteOrder.LITTLE_ENDIAN);
@@ -282,9 +298,9 @@ export default class Chunk {
             }
         }
 
-        const bytes = stream.getBuffer();
-        this.serializedRequestSubChunks.set(y, { revision, bytes });
-        return bytes;
+        const serialized = { revision, bytes: stream.getBuffer(), terrainBytes };
+        this.serializedRequestSubChunks.set(y, serialized);
+        return serialized;
     }
 
     /**

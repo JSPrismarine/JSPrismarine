@@ -29,7 +29,13 @@ interface CachedSubChunkBlob extends ClientBlob {
     readonly revision: number;
 }
 
-interface CachedRequestSubChunkBlob extends ClientBlob {
+/** A requested sub chunk's terrain as a blob, with what travels beside its hash. */
+export interface RequestSubChunkBlob extends ClientBlob {
+    /** The sub chunk's block entities, which are not part of the blob. */
+    readonly blockEntities: Buffer;
+}
+
+interface CachedRequestSubChunkBlob extends RequestSubChunkBlob {
     readonly revision: number;
 }
 
@@ -64,11 +70,13 @@ export class ClientBlobCache {
     }
 
     /**
-     * Serializes and hashes one request-mode subchunk, reusing an unchanged revision.
+     * Serializes one request-mode subchunk and hashes its terrain, reusing an unchanged revision.
+     * The blob is the terrain alone: the block entities travel in the packet, as Bedrock
+     * Dedicated Server sends them.
      * @param chunk - The requested chunk column.
      * @param y - Absolute subchunk index.
      */
-    public prepareRequestSubChunk(chunk: Chunk, y: number): ClientBlob {
+    public prepareRequestSubChunk(chunk: Chunk, y: number): RequestSubChunkBlob {
         let cachedByY = requestBlobsByChunk.get(chunk);
         if (cachedByY === undefined) {
             cachedByY = new Map();
@@ -79,8 +87,8 @@ export class ClientBlobCache {
         const previous = cachedByY.get(y);
         if (previous?.revision === revision) return previous;
 
-        const data = chunk.networkSerializeRequestSubChunk(y);
-        const blob: CachedRequestSubChunkBlob = { id: xxHash64(data), data, revision };
+        const { terrain, blockEntities } = chunk.networkSerializeRequestSubChunkParts(y);
+        const blob: CachedRequestSubChunkBlob = { id: xxHash64(terrain), data: terrain, blockEntities, revision };
         cachedByY.set(y, blob);
         return blob;
     }
