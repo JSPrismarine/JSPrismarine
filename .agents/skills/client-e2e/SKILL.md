@@ -38,7 +38,9 @@ CI runs the same suite on macOS through `.github/workflows/client-e2e.yml` for p
 touching the wire or gameplay packages, with each pinned commit's cinnabar build cached once and the
 artifacts uploaded as `client-e2e-evidence`. A red Client E2E check means a real client failed
 against the PR's server; read the job summary table and the uploaded artifacts first. Every
-transport a protocol's entry lists runs and gates the check.
+transport a protocol's entry lists runs and gates the check. A scenario a pinned build cannot pass
+through no fault of the server is skipped on that build in `tools/client-e2e/src/pin-skips.mts`;
+the README's "Skipping a scenario on a build" says when that is acceptable.
 
 ## Driving the client interactively
 

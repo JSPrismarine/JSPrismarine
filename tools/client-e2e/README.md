@@ -35,6 +35,8 @@ pnpm run e2e:client -- --protocol 2193 movement chat
 pnpm run e2e:client -- --compression-algorithm zlib movement chat
 pnpm run e2e:client -- --protocol 2225 --transport nethernet spawn
 pnpm run e2e:client -- --concurrency 1 --record --artifacts /tmp/evidence
+# Also run the scenarios the build skips, to check whether it still needs its skips.
+pnpm run e2e:client -- --protocol <protocol> --run-skipped <scenario>
 ```
 
 `--compression-algorithm` selects the algorithm the scratch server advertises: `snappy` (the
@@ -92,8 +94,8 @@ other, so a pin bump compiles only the crates that changed, and it links with `m
 Actions saves each finished build, the checkout, the stamp and the binaries the e2e jobs restore,
 as one entry per commit, outside its workspace. A build on `master` of the latest protocol also
 saves cargo's intermediate directory, which only the next build reads, and a build on `master`
-deletes the entries of commits `cinnabar.json` no longer pins. The runner also writes a pass/fail
-table to the job summary.
+deletes the entries of commits `cinnabar.json` no longer pins. The runner also writes a table of
+passed, failed and skipped scenarios to the job summary.
 
 `--retry` runs each failed scenario once more, on a server and client of its own, and CI passes it.
 A scenario that passes the second time passes the run, and the job summary and a warning annotation
@@ -128,7 +130,44 @@ while testing a different client commit).
 
 Moving a pin is one edit to `commit`. `ensure` cross-checks the build's Bedrock target
 (`assets/bedrock-target.json` in the checkout) against the protocol and the protocols this checkout
-serves, and the matrix fails if a newly supported protocol has no pin.
+serves, and the matrix fails if a newly supported protocol has no pin. Every skip written for the
+old commit then fails validation until someone re-checks it, as the next section describes.
+
+## Skipping a scenario on a build
+
+Some pins cannot move: an older protocol keeps the last cinnabar commit that speaks it, even when a
+later commit fixes a client bug a scenario runs into. `src/pin-skips.mts` lists the scenarios such a
+build skips. The runner does not run them on that build, prints a line for each with its reason and
+references, and counts them as skipped, never as passed, in the run's summary and the job summary.
+`--retry` does not retry them. `--run-skipped` runs them anyway.
+
+A skip is acceptable only when the pinned client is wrong and the pin cannot move to a commit that
+fixes it. It is not the answer to a server bug, which gets fixed, or to a flaky scenario, which gets
+made deterministic; `--retry` already reports flakiness. Before adding one, show that the server is
+right: a packet log of what the client sends, a unit test of the server side, or another client
+build that passes the scenario.
+
+To add a skip, append an entry to `src/pin-skips.mts`:
+
+- `scenario`: the scenario's name. Split a scenario first when only part of it fails, so the rest
+  keeps running on that build, the way `glass-bottle-filling` started as a round of
+  `liquid-containers`.
+- `commit`: the full commit of the failing build, as `cinnabar.json` pins it.
+- `reason.client`: what the client does wrong, such as the input it mishandles or the packet it
+  sends or leaves out.
+- `reason.server`: why the server is not at fault, with the evidence.
+- `references`: https links to the JSPrismarine issue that tracks the skip, the client's fix and
+  any upstream report.
+- `fixedIn`: the cinnabar commit that fixes the client, once one exists.
+
+`src/skips.test.mts` and the runner reject an entry whose scenario or commit is not in use, whose
+reason halves are under the minimum length `src/skips.mts` sets or hold a placeholder, or that has no
+https reference. The runner also rejects a skip whose build already contains its `fixedIn` commit,
+which it reads from the checkout's history. The messages say what to add.
+
+To remove a skip, run the scenario on the build with `--run-skipped`. The runner says when a skipped
+scenario passed. Delete the entry once it passes reliably, or when the pin moves: a moved pin fails
+validation until the skip is deleted or re-checked and set to the new commit.
 
 ## Interactive driving
 
@@ -151,7 +190,7 @@ pnpm run e2e:client -- --protocol 2225 --transport nethernet --udp-ports range-w
 ## Adding a scenario
 
 Add a file under `src/scenarios/` exporting a `Scenario` (see `src/scenario.mts`) and register it
-in the compatible suite in `src/run.mts`. A scenario receives its suite's server (console commands, log
+in the compatible suite in `src/suites.mts`. A scenario receives its suite's server (console commands, log
 matching), its in-world client (input, state, captures), and an artifacts directory. Scenarios in
 one suite run sequentially with a reset between them; separate suites can run concurrently, so keep
 files inside the provided artifacts directory and avoid shared mutable state. A scenario that starts

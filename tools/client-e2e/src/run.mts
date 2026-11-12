@@ -7,137 +7,30 @@
  * pnpm --filter @jsprismarine/client-e2e run e2e movement                # a selection
  * pnpm --filter @jsprismarine/client-e2e run e2e --concurrency 2 --record # parallel suites, with recordings
  * pnpm --filter @jsprismarine/client-e2e run e2e --retry                 # failed scenarios run once more
+ * pnpm --filter @jsprismarine/client-e2e run e2e --run-skipped           # also the scenarios pin-skips.mts skips
  * ```
  *
  * Evidence lands in `--artifacts` (default: a fresh temporary directory, printed at the end).
- * Exits 0 only when the client joins and every selected scenario passes.
+ * Exits 0 only when the client joins and every selected scenario the build does not skip passes.
  */
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { parseArgs } from 'node:util';
 
-import { ensureCinnabar, parseTransport } from './cinnabar.mts';
+import { buildName, containsCommit, ensureCinnabar, parseTransport, readManifest } from './cinnabar.mts';
 import { CinnabarClient } from './client.mts';
 import { startServer, UDP_PORTS_LAYOUTS } from './jsp-server.mts';
 import { createMutex } from './mutex.mts';
 import type { ScenarioResult } from './retry.mts';
 import { mergeRetries, retrySuites } from './retry.mts';
 import { sleep, standAt, untilPlayersOnline } from './scenario.mts';
-import type { Scenario } from './scenario.mts';
-import { chat } from './scenarios/chat.mts';
-import { spectatorPickup } from './scenarios/spectator-pickup.mts';
-import { miningDrops } from './scenarios/mining-drops.mts';
-import { itemDropPickup } from './scenarios/item-drop-pickup.mts';
-import { farmland } from './scenarios/farmland.mts';
-import { furnace } from './scenarios/furnace.mts';
-import { villagerTrade } from './scenarios/villager-trade.mts';
-import { glassBottleFilling, liquidContainers } from './scenarios/liquid-containers.mts';
-import { eating } from './scenarios/eating.mts';
-import { litFurnace } from './scenarios/lit-furnace.mts';
-import { recipeBook } from './scenarios/recipe-book.mts';
-import { jump } from './scenarios/jump.mts';
-import { gait } from './scenarios/gait.mts';
-import { lookDirection } from './scenarios/look-direction.mts';
-import { damage } from './scenarios/damage.mts';
-import { playerKnockback } from './scenarios/player-knockback.mts';
-import { fallDamage } from './scenarios/fall-damage.mts';
-import { title } from './scenarios/title.mts';
-import { blockPlacement } from './scenarios/block-placement.mts';
-import { deathRespawn } from './scenarios/death-respawn.mts';
-import { teleportWhileDead } from './scenarios/teleport-while-dead.mts';
-import { spawnpointRespawn } from './scenarios/spawnpoint-respawn.mts';
-import { summonEntity } from './scenarios/summon-entity.mts';
-import { pistonBedrock } from './scenarios/piston-bedrock.mts';
-import { leverLamp } from './scenarios/lever-lamp.mts';
-import { attackEntity } from './scenarios/attack-entity.mts';
-import { movement } from './scenarios/movement.mts';
-import { movementFanout } from './scenarios/movement-fanout.mts';
-import { frozenWorld } from './scenarios/frozen-world.mts';
-import { duplicateLogin } from './scenarios/duplicate-login.mts';
-import { rejoin } from './scenarios/rejoin.mts';
-import { movementRotation } from './scenarios/movement-rotation.mts';
-import { naturalSpawnPlacement } from './scenarios/natural-spawn-placement.mts';
-import { naturalSpawnUnderCanopy } from './scenarios/natural-spawn-under-canopy.mts';
-import { placementOverlap } from './scenarios/placement-overlap.mts';
-import { spawn } from './scenarios/spawn.mts';
-import { subChunkBlockChanges } from './scenarios/sub-chunk-block-changes.mts';
-import { worldgenSpawn } from './scenarios/worldgen-spawn.mts';
-import { levelIsolation } from './scenarios/level-isolation.mts';
-import { kick } from './scenarios/kick.mts';
-import { teleport } from './scenarios/teleport.mts';
-import { edgeChunkBlockChange } from './scenarios/edge-chunk-block-change.mts';
-import { dimensionsScenario } from './scenarios/dimensions.mts';
-import { enderDragon } from './scenarios/ender-dragon.mts';
-import { chunkCompletionReadiness } from './scenarios/chunk-completion-readiness.mts';
+import { pinSkips } from './pin-skips.mts';
 import { cachedChunkDelivery } from './scenarios/cached-chunk-delivery.mts';
-import { subChunkRequestDelivery } from './scenarios/subchunk-request-delivery.mts';
-
-interface ScenarioSuite {
-    name: string;
-    scenarios: Scenario[];
-}
-
-const suites: ScenarioSuite[] = [
-    {
-        name: 'gameplay-and-dimensions',
-        scenarios: [
-            cachedChunkDelivery,
-            subChunkRequestDelivery,
-            spawn,
-            chunkCompletionReadiness,
-            movement,
-            jump,
-            attackEntity,
-            leverLamp,
-            pistonBedrock,
-            summonEntity,
-            deathRespawn,
-            teleportWhileDead,
-            blockPlacement,
-            title,
-            fallDamage,
-            damage,
-            playerKnockback,
-            lookDirection,
-            gait,
-            movementFanout,
-            frozenWorld,
-            duplicateLogin,
-            rejoin,
-            movementRotation,
-            chat,
-            miningDrops,
-            spectatorPickup,
-            itemDropPickup,
-            edgeChunkBlockChange,
-            subChunkBlockChanges,
-            teleport,
-            furnace,
-            litFurnace,
-            villagerTrade,
-            eating,
-            liquidContainers,
-            glassBottleFilling,
-            recipeBook,
-            placementOverlap,
-            enderDragon,
-            dimensionsScenario,
-            spawnpointRespawn,
-            // Last, because it reshapes the terrain it runs on - tilled ground, planted wheat
-            // and a water source stay behind - and nothing should have to play on top of that.
-            farmland
-        ]
-    },
-    // Natural spawning needs its own content fixture so roaming cows cannot affect gameplay checks.
-    // The canopy one runs last: it roofs the world over, and nothing after it would see the sky.
-    { name: 'natural-spawn', scenarios: [naturalSpawnPlacement, naturalSpawnUnderCanopy] },
-    { name: 'worldgen-spawn', scenarios: [worldgenSpawn] },
-    // Its own suite, because the second level is a world every other scenario would also tick.
-    { name: 'levels', scenarios: [levelIsolation] },
-    // Its own suite: a kicked client is gone, so nothing can run after it.
-    { name: 'kick', scenarios: [kick] }
-];
+import { worldgenSpawn } from './scenarios/worldgen-spawn.mts';
+import type { ScenarioSuite } from './suites.mts';
+import { suites } from './suites.mts';
+import { applySkips, describeSkip, skipProblems } from './skips.mts';
 
 // pnpm forwards the literal `--` separators it was given; drop them so flags stay flags.
 const argv = process.argv.slice(2).filter((argument) => argument !== '--');
@@ -147,6 +40,7 @@ const { values, positionals } = parseArgs({
     options: {
         record: { type: 'boolean', default: false },
         retry: { type: 'boolean', default: false },
+        'run-skipped': { type: 'boolean', default: false },
         artifacts: { type: 'string' },
         port: { type: 'string' },
         protocol: { type: 'string' },
@@ -195,7 +89,7 @@ if (new Set(requestedNames).size !== requestedNames.length) {
     throw new Error('each scenario can only be selected once in a run');
 }
 const requested = new Set(requestedNames);
-const selectedSuites = suites
+const requestedSuites = suites
     .map((suite) => ({ ...suite, scenarios: suite.scenarios.filter((scenario) => requested.has(scenario.name)) }))
     .filter((suite) => suite.scenarios.length > 0);
 
@@ -232,9 +126,19 @@ if (
 ) {
     throw new Error('--port must be an integer from 1 to 65535');
 }
-if (requestedPort !== undefined && concurrency > 1 && selectedSuites.length > 1) {
+if (requestedPort !== undefined && concurrency > 1 && requestedSuites.length > 1) {
     throw new Error('--port can only be used with one suite at a time; use --concurrency 1');
 }
+
+/** Prints what is wrong with the declared skips and stops the run, or does nothing when they hold. */
+const exitOnSkipProblems = (problems: readonly string[]): void => {
+    if (problems.length === 0) return;
+    console.error(`src/pin-skips.mts has ${problems.length} problem(s):`);
+    for (const problem of problems) console.error(`  ${problem}`);
+    process.exit(2);
+};
+const skipContext = { scenarios: allScenarios.map((scenario) => scenario.name), versions: readManifest().versions };
+exitOnSkipProblems(skipProblems(pinSkips, skipContext));
 
 console.log('ensuring the pinned cinnabar build (the first run clones and compiles it)...');
 const cinnabar = ensureCinnabar(
@@ -245,6 +149,27 @@ const { transport } = cinnabar.pin;
 console.log(
     `client targets Bedrock ${cinnabar.target.gameVersion} (protocol ${cinnabar.target.wireProtocol}) over ${transport}`
 );
+
+// Only the checkout knows the build's history, so a skip whose build already has its fix is
+// caught here, not in the unit tests.
+const { commit } = cinnabar.pin;
+exitOnSkipProblems(
+    skipProblems(
+        pinSkips.filter((skip) => skip.commit === commit),
+        { ...skipContext, contains: (descendant, ancestor) => containsCommit(cinnabar.checkout, descendant, ancestor) }
+    )
+);
+const runSkipped = values['run-skipped'];
+const { suites: selectedSuites, skipped } = applySkips(requestedSuites, pinSkips, commit, runSkipped);
+for (const skip of skipped) {
+    console.log(
+        runSkipped
+            ? `${skip.scenario}: running despite its skip on cinnabar ${buildName(commit)} (--run-skipped)`
+            : `${skip.scenario}: skipped on cinnabar ${buildName(commit)} (protocol ${cinnabar.pin.protocol})`
+    );
+    for (const line of describeSkip(skip).split('\n')) console.log(`${skip.scenario}:   ${line}`);
+}
+const skippedCount = runSkipped ? 0 : skipped.length;
 
 const serverLogs: string[] = new Array(selectedSuites.length);
 
@@ -683,18 +608,37 @@ for (const result of results) {
     console.warn(process.env.GITHUB_ACTIONS ? `::warning title=Flaky client e2e scenario::${message}` : message);
 }
 const failures = results.filter((result) => !result.ok).length;
+const passed = results.length - failures;
+if (runSkipped) {
+    for (const skip of skipped) {
+        if (results.find((result) => result.name === skip.scenario)?.ok !== true) continue;
+        console.log(
+            `${skip.scenario}: passed on cinnabar ${buildName(commit)} despite its skip; ` +
+                'delete the skip from src/pin-skips.mts if it passes reliably'
+        );
+    }
+}
 fs.writeFileSync(path.join(artifacts, 'server.log'), serverLogs.filter(Boolean).join('\n'));
 // On GitHub Actions, put the verdicts on the run's summary page beside the uploaded artifacts.
 if (process.env.GITHUB_STEP_SUMMARY) {
     const escape = (text: string): string => text.replaceAll('|', '\\|').replaceAll('\n', ' ');
-    const rows = results.map(
-        (result) =>
-            `| ${result.name} | ${result.retried ? 'pass on retry' : result.ok ? 'pass' : 'FAIL'} | ${escape(result.note)} |`
-    );
+    const rows = [
+        ...results.map(
+            (result) =>
+                `| ${result.name} | ${result.retried ? 'pass on retry' : result.ok ? 'pass' : 'FAIL'} | ${escape(result.note)} |`
+        ),
+        ...(runSkipped ? [] : skipped).map(
+            (skip) =>
+                `| ${skip.scenario} | skipped | ${escape(`${skip.reason.client} ${skip.reason.server}`)} ` +
+                `${skip.references.map((reference) => `[${escape(reference)}](${reference})`).join(', ')} |`
+        )
+    ];
     fs.appendFileSync(
         process.env.GITHUB_STEP_SUMMARY,
         [
             `## Client e2e (cinnabar ${cinnabar.target.gameVersion}, protocol ${cinnabar.target.wireProtocol}, ${transport})`,
+            '',
+            `${passed} passed, ${failures} failed, ${skippedCount} skipped on cinnabar ${buildName(commit)}.`,
             '',
             '| scenario | result | note |',
             '| --- | --- | --- |',
@@ -704,5 +648,5 @@ if (process.env.GITHUB_STEP_SUMMARY) {
     );
 }
 console.log(`artifacts: ${artifacts}`);
-console.log(failures === 0 ? 'e2e: all scenarios passed' : `e2e: ${failures} failure(s)`);
+console.log(`e2e: ${passed} passed, ${failures} failed, ${skippedCount} skipped`);
 process.exit(failures === 0 ? 0 : 1);
