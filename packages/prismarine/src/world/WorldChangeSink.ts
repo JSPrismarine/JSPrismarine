@@ -1,4 +1,4 @@
-import type { ActorEvent, LevelSoundEvent } from '@jsprismarine/minecraft';
+import type { ActorEvent } from '@jsprismarine/minecraft';
 import type { NBTTagCompound } from '@jsprismarine/nbt';
 import type { Attribute } from '@jsprismarine/protocol/wire/structures/Attribute';
 import type { StatusEffect, StatusEffectChange } from '../entity/StatusEffect';
@@ -84,19 +84,6 @@ export interface WorldChangeSink {
      * @returns {Promise<void>} Resolves once it is on its way.
      */
     actorEffect(entity: ShownActor, effect: ActorEvent, data: number): Promise<void>;
-
-    /**
-     * An entity made a noise: it was hit, it died, it swung at something.
-     *
-     * Separate from a block's sound because the wire format differs in a way that matters -
-     * a mob's sound carries which mob is making it, so a client can pick the zombie's grunt over
-     * the skeleton's rattle, where a block's carries the block's runtime id instead. Sent to
-     * whoever is near enough rather than to whoever is tracking, because a sound is audible from
-     * further than a mob is worth drawing.
-     * @param {ShownActor} entity - Who made it.
-     * @param {LevelSoundEvent} sound - Which noise.
-     */
-    actorSound(entity: ShownActor, sound: LevelSoundEvent): void;
 
     /**
      * An entity's attributes are not what they were - which in practice means it lost health.
@@ -244,7 +231,6 @@ export const NULL_WORLD_CHANGE_SINK: WorldChangeSink = {
     chunkEntered: () => {},
     chunkLeft: () => {},
     actorEffect: async () => {},
-    actorSound: () => {},
     entityAttributesChanged: async () => {},
     statusEffectChanged: async () => {},
     entityMetadataChanged: async () => {},

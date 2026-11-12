@@ -750,7 +750,21 @@ const liveWorld = (
     runtimes: EntityRuntimes;
     hold(content: ServerContent): void;
 } => {
-    const broadcasts: Broadcasts = { moved: [], actorSounds: [], actorEffects: [], metadataChanged: [] };
+    const heard: Pick<Broadcasts, 'actorSounds'> = { actorSounds: [] };
+    /** Seals what the world logged so far, which hands its occurrences to the sink. */
+    const seal = () => {
+        world.beginChangeTick();
+        world.sealChangeTick();
+    };
+    const broadcasts: Broadcasts = {
+        moved: [],
+        get actorSounds() {
+            seal();
+            return heard.actorSounds;
+        },
+        actorEffects: [],
+        metadataChanged: []
+    };
     let content: ServerContent | undefined;
     // Keyed the way `World` keys its own map. A bigint here is not a type error, because
     // `pnpm typecheck` skips test files, and `getLoadedChunk` would answer null for every
@@ -775,7 +789,9 @@ const liveWorld = (
                 // What a command resolves an entity reference through.
                 getLevels: () => [stub<Level>({ worlds: () => [world].values() })]
             }),
-        getContent: () => content
+        getContent: () => content,
+        // So the world's occurrences go into its change log, as a live world's do.
+        hasEntityRuntime: () => true
     });
 
     const world: World = Object.assign(Object.create(World.prototype), {
@@ -796,12 +812,17 @@ const liveWorld = (
     world.attachChangeSink({
         ...NULL_WORLD_CHANGE_SINK,
         entityMoved: (entity) => void broadcasts.moved.push(entity.getType()),
-        actorSound: (entity, sound) =>
-            void broadcasts.actorSounds.push({
-                identifier: entity.getType(),
-                entityId: entity.getRuntimeId(),
-                sound
-            }),
+        tickSealed: ({ entries }) => {
+            for (const entry of entries) {
+                if (entry.kind !== 'occurrence') continue;
+                if (entry.occurrence === 'actor-sound')
+                    heard.actorSounds.push({
+                        identifier: entry.data.type,
+                        entityId: entry.data.entity,
+                        sound: entry.data.sound
+                    });
+            }
+        },
         actorEffect: async (entity, effect) => {
             broadcasts.actorEffects.push({
                 identifier: entity.getType(),
