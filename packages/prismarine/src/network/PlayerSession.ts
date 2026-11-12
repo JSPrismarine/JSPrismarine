@@ -578,18 +578,26 @@ export default class PlayerSession {
      * taken out of its world and the player list, and said to have left, and
      * {@link PlayerSession.disable} runs whether or not that succeeded.
      *
-     * `ClientConnection.closePlayerSession` calls this once per connection. Every write is made
-     * and every packet queued before this returns; the record's save is handed to work outside
-     * the tick, and a later read of the record waits for it.
-     * @throws {Error} What the player's leave threw, after the session is disabled.
+     * `ClientConnection.closePlayerSession` calls this once per connection. Outside a unit of the
+     * world's change log, every write is made and every packet queued before this returns. Inside
+     * one, such as a kick from an input, all of it waits for the unit to end, whether it commits
+     * or is undone. The record's save is handed to work outside the tick, and a later read of the
+     * record waits for it.
+     * @throws {Error} What the player's leave threw, after the session is disabled, when no unit
+     *   is open. Inside one, the store reports it.
      * @group Lifecycle
      */
     public leave(): void {
-        try {
-            this.takePlayerOff();
-        } finally {
-            this.disable();
-        }
+        // Not in the unit, though it writes: a leave cannot be undone, since the goodbye is
+        // queued and the connection hangs up whatever the unit does. Inside the unit, an undo
+        // brought the player's entity back into the world with no session behind it.
+        this.world.getEntityStore().afterUnit(() => {
+            try {
+                this.takePlayerOff();
+            } finally {
+                this.disable();
+            }
+        });
     }
 
     /**

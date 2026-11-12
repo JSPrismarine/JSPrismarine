@@ -23,6 +23,49 @@ describe('PlayerSession', () => {
 
             expect(disconnects).toEqual([['unknown reason', false, DisconnectReason.KICKED]]);
         });
+
+        /** A player whose kick takes it off as a real connection's does, by leaving. */
+        const leavingOnKick = () => {
+            const fake = fakePlayer();
+            fake.connection.disconnect = async () => fake.session.leave();
+            return fake;
+        };
+
+        it('takes the player off once a unit that kicked it is undone, and the undo brings no entity back', () => {
+            // The goodbye is queued and the connection hangs up whatever the unit does, so the
+            // leave stands. Inside the unit, the undo restored the entity with no session behind it.
+            const { session, player, live, roster } = leavingOnKick();
+            const { store } = live.runtime;
+
+            store.beginTick();
+            const outcome = store.unit(() => {
+                void session.kick('Too much lag');
+                throw new Error('the rest of the unit failed');
+            });
+            store.sealTick();
+
+            expect(outcome.failed).toBe(true);
+            expect(roster).toEqual(['save', 'remove']);
+            expect(store.get(player.id)).toBeUndefined();
+            expect(session.isConnected()).toBe(false);
+        });
+
+        it('takes the player off after the unit that kicked it, not inside it', () => {
+            const { session, player, live, roster } = leavingOnKick();
+            const { store } = live.runtime;
+            let inside: string[] = [];
+
+            store.beginTick();
+            store.unit(() => {
+                void session.kick('Too much lag');
+                inside = [...roster];
+            });
+            store.sealTick();
+
+            expect(inside).toEqual([]);
+            expect(roster).toEqual(['save', 'remove']);
+            expect(store.get(player.id)).toBeUndefined();
+        });
     });
 
     describe('getWorld', () => {
