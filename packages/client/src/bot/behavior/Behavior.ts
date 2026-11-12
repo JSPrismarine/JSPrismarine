@@ -1,4 +1,5 @@
 import type { NetworkPacket } from '@jsprismarine/protocol';
+import type { Walk } from '../../playerAuthInput';
 import type Bot from '../Bot';
 import type Random from '../Random';
 
@@ -9,6 +10,13 @@ export interface BehaviorContext {
     /** How many times this bot has ticked since it spawned. */
     readonly tick: number;
     send(packet: NetworkPacket<any>): Promise<void>;
+    /**
+     * Has the bot send its `PlayerAuthInput` for this tick, after every behavior has run, from
+     * the pose the behaviors left it in. A real client sends one input per tick, so two
+     * behaviors asking in the same tick still send one.
+     * @param walk - How far the behavior moved the bot, when it walked.
+     */
+    input(walk?: Walk): void;
     /** Counted into the report, so a run can say what it actually did. */
     record(action: string): void;
 }

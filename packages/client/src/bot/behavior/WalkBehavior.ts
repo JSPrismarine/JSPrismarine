@@ -1,5 +1,3 @@
-import { MovePlayerPacket, PositionMode } from '@jsprismarine/protocol';
-
 import type { Behavior, BehaviorContext } from './Behavior';
 
 /** How far a walking player covers in one server tick, in blocks. Vanilla is about this. */
@@ -27,7 +25,7 @@ export default class WalkBehavior implements Behavior {
     private legTicksLeft = 0;
     private headingRadians = 0;
 
-    public async tick(context: BehaviorContext): Promise<void> {
+    public tick(context: BehaviorContext): void {
         const { bot, random } = context;
 
         if (this.legTicksLeft <= 0) {
@@ -36,27 +34,17 @@ export default class WalkBehavior implements Behavior {
         }
         this.legTicksLeft--;
 
-        bot.position.x += Math.cos(this.headingRadians) * BLOCKS_PER_TICK;
-        bot.position.z += Math.sin(this.headingRadians) * BLOCKS_PER_TICK;
-        // Yaw is degrees clockwise from south in Bedrock, and the head follows the body
-        // unless something else is turning it.
+        // Yaw is degrees clockwise from south (+z) in Bedrock, so facing it is (-sin, cos) on
+        // x and z. The bot walks the way it faces, as a client holding forward does, and the
+        // head follows the body unless something else is turning it.
+        const x = -Math.sin(this.headingRadians) * BLOCKS_PER_TICK;
+        const z = Math.cos(this.headingRadians) * BLOCKS_PER_TICK;
+        bot.position.x += x;
+        bot.position.z += z;
         bot.yaw = (this.headingRadians * 180) / Math.PI;
         bot.headYaw = bot.yaw;
 
-        await context.send(
-            new MovePlayerPacket({
-                runtimeEntityId: bot.runtimeEntityId,
-                position: { ...bot.position },
-                pitch: bot.pitch,
-                yaw: bot.yaw,
-                headYaw: bot.headYaw,
-                mode: PositionMode.Normal,
-                onGround: true,
-                ridingEntityRuntimeId: 0n,
-                tick: BigInt(context.tick)
-            })
-        );
-
+        context.input({ x, z });
         context.record('move');
     }
 }

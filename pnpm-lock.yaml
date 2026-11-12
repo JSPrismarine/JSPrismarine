@@ -505,6 +505,9 @@ importers:
       '@jsprismarine/logger':
         specifier: workspace:*
         version: link:../logger
+      '@jsprismarine/math':
+        specifier: workspace:*
+        version: link:../math
       '@jsprismarine/minecraft':
         specifier: workspace:*
         version: link:../minecraft

@@ -101,7 +101,7 @@ describe('a fleet against a real server', { tags: ['real-data', 'performance'] }
 
         const report = fleet.report();
 
-        // The packets went somewhere: every one was decoded by the real MovePlayerHandler,
+        // The packets went somewhere: every one was decoded by the real PlayerAuthInputHandler,
         // so a mis-encoded position would have shown up as a decode error rather than as a
         // count.
         expect(report.actions.move).toBeGreaterThan(0);
