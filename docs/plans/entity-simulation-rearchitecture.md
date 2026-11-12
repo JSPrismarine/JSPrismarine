@@ -1357,7 +1357,7 @@ Each target is a count or a structure asserted in a test. None is a duration.
 | No wall-clock read inside the world systems phase, with `performance.now` stubbed to throw               | 1                |
 | A replay applies each recorded input at the tick the capture stamped                                     | 1                |
 | An index query examines at most the candidates in the cells it touches, on a fixed scenario              | 2                |
-| Applying a span and then its inverse leaves the replay digest unchanged, for every entry kind            | 2                |
+| Applying a span and then its inverse leaves the replay digest unchanged, for each field and membership entry kind; undoing a span that holds a chunk entry is refused | 2                |
 | An idle world appends no entries, and N walking mobs append at most N position entries in a tick         | 2                |
 | No mirror class and no health comparison                                                                 | 4                |
 | No `Entity`, `GenericEntity` or `Human` class, and no array copy through `all()` or `getEntities()`      | 5                |
