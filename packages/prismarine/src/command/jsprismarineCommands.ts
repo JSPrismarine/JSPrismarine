@@ -24,6 +24,7 @@ import { CommandPermissionLevel, getGametypeId } from '@jsprismarine/minecraft';
 import type Server from '../Server';
 import type { Config } from '../config/Config';
 import { describeSupportedProtocols } from '../network/codec/describeCodecs';
+import { softwareLabel } from '../version';
 import { deferCommandWork } from './deferred';
 import { resolvePlayer } from './host/support';
 
@@ -187,7 +188,7 @@ export const registerJsprismarineCommands = (registry: CommandRegistry<CommandSo
         lit('version').executes(
             command((context) => {
                 source(context).sendFeedback(
-                    `This server is running on JSPrismarine §ev${server.getVersion()}§r for Minecraft: Bedrock Edition, speaking ${describeSupportedProtocols().join('; ')}`
+                    `This server is running on ${softwareLabel(true)} for Minecraft: Bedrock Edition, speaking ${describeSupportedProtocols().join('; ')}`
                 );
                 return RAN;
             })

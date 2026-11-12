@@ -1,10 +1,6 @@
 import { GENERATION_HOST_ROLE } from '@jsprismarine/chunkgen/hostRole';
 import yargs from 'yargs/yargs';
-import pkg from '../../package.json' with { type: 'json' };
-
-declare const BUILD_VERSION: string | undefined;
-
-const buildVersion = typeof BUILD_VERSION === 'undefined' ? pkg.version : BUILD_VERSION;
+import { serverVersion } from '@jsprismarine/prismarine/version';
 
 /**
  * The roles the entry point can take; `server` is what the host spawns its child with, and the
@@ -60,7 +56,7 @@ export const serverCli = (argv: readonly string[]) =>
             hidden: true
         })
         .help('help', 'Show this help message')
-        .version('version', 'Show the server version', buildVersion)
+        .version('version', 'Show the server version', serverVersion())
         .alias('version', 'v')
         .completion('completion', 'Generate a shell completion script')
         .strict()

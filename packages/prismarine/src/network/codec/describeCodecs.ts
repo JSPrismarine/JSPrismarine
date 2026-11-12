@@ -1,9 +1,9 @@
-import { latestCodec, registeredCodecs } from './CodecRegistry';
+import { about } from '../../about';
 
 /**
- * One human-readable phrase per registered codec, newest protocol version first, for the
- * startup banner and the `/version` command. Both read from the codec registry, so a codec
- * added there shows up in every diagnostic without a second list to maintain.
+ * One human-readable phrase per protocol the server speaks, newest protocol version first, for
+ * the startup banner and the `/version` command. Both read from {@link about}, so a codec
+ * added to the registry shows up in every diagnostic without a second list to maintain.
  *
  * The newest entry is marked as advertised: `ServerName` puts only the newest Minecraft
  * version in the MOTD, matching Bedrock Dedicated Server, while a session may still negotiate
@@ -16,8 +16,8 @@ import { latestCodec, registeredCodecs } from './CodecRegistry';
  * ```
  */
 export const describeSupportedProtocols = (): string[] =>
-    registeredCodecs.map((codec) => {
-        const versions = codec.minecraftVersions.map((version) => `§e${version}§r`).join(', ');
-        const advertised = codec === latestCodec ? ' (advertised in the MOTD)' : '';
-        return `protocol §e${codec.protocolVersion}§r: ${versions}${advertised}`;
+    about().protocols.map((protocol) => {
+        const versions = protocol.minecraftVersions.map((version) => `§e${version}§r`).join(', ');
+        const advertised = protocol.advertised ? ' (advertised in the MOTD)' : '';
+        return `protocol §e${protocol.protocolVersion}§r: ${versions}${advertised}`;
     });

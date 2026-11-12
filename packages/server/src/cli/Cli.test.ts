@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import pkg from '../../package.json' with { type: 'json' };
+import { serverVersion } from '@jsprismarine/prismarine/version';
 import { parseServerArgs, serverCli } from './Cli';
 
 describe('parseServerArgs', () => {
@@ -64,7 +64,7 @@ describe('parseServerArgs', () => {
                 exit.mockRestore();
             }
 
-            expect(output).toEqual([pkg.version]);
+            expect(output).toEqual([serverVersion()]);
         }
     });
 

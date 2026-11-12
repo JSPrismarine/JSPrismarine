@@ -33,8 +33,7 @@ describe("this server's own commands", () => {
             getBanManager: () => stub<BanManager>({ setBanned, setUnbanned }),
             getSessionManager: () => stub<SessionManager>({ getAllPlayers: () => [target] }),
             getTPS: () => 18.5,
-            getTick: () => 42,
-            getVersion: () => '1.2.3-nightly.1'
+            getTick: () => 42
         });
         registry = new CommandRegistry<CommandSource>();
         registerJsprismarineCommands(registry, server);
@@ -86,7 +85,8 @@ describe("this server's own commands", () => {
     });
 
     it('reports the version with the same v prefix as the startup log', async () => {
-        await run('version');
+        vi.stubGlobal('BUILD_VERSION', '1.2.3-nightly.1');
+        await run('version').finally(() => vi.unstubAllGlobals());
 
         expect(feedback[0]).toContain('JSPrismarine §ev1.2.3-nightly.1§r');
     });

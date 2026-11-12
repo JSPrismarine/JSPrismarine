@@ -6,11 +6,11 @@ import { FileTransport, Logger } from '@jsprismarine/logger';
 import type { Config as ServerConfig, Server as PrismarineServer } from '@jsprismarine/prismarine';
 import { readContentSettings } from '@jsprismarine/prismarine/content/settings';
 import { resolvePackStack } from '@jsprismarine/prismarine/content/packStack';
+import { serverVersion } from '@jsprismarine/prismarine/version';
 
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import pkg from '../package.json' with { type: 'json' };
 import type { ServerArgs } from './cli/Cli';
 import { parseServerArgs } from './cli/Cli';
 import { handleFatalErrors } from './host/fatal';
@@ -362,7 +362,7 @@ const main = async (): Promise<void> => {
             ? await loadTuiFrontend({
                   // The config file lives in the child, so the title bar shows the product name.
                   serverName: 'JSPrismarine',
-                  version: pkg.version,
+                  version: `v${serverVersion()}`,
                   historyFile: dataPath('.console_history')
               })
             : undefined;

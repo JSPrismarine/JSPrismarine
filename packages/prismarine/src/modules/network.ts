@@ -38,7 +38,8 @@ import MultiTransport from '../network/transport/MultiTransport';
 import NetherNetTransport from '../network/transport/NetherNetTransport';
 import RakNetTransport from '../network/transport/RakNetTransport';
 import type { Transport, TransportConnection } from '../network/transport/Transport';
-import { latestCodec } from '../network/codec/CodecRegistry';
+import { about } from '../about';
+import { softwareLabel } from '../version';
 import type Server from '../Server';
 import { withCwd } from '../utils/cwd';
 import { networkToken } from './tokens';
@@ -127,7 +128,8 @@ export class ServerNetworking implements Networking {
     public async start(address: string, port: number): Promise<void> {
         const server = this.server;
         const config = server.getConfig();
-        this.serverName = new ServerName(server, latestCodec);
+        const { protocolVersion, minecraftVersion } = about();
+        this.serverName = new ServerName(server, { protocolVersion, minecraftVersions: [minecraftVersion] });
         // Players arrive over every transport, so RakNet's sessions are not the count; see countConnection.
         this.serverName.ownPlayerCount();
 
@@ -319,7 +321,7 @@ export class ServerNetworking implements Networking {
         const status = (): QueryStatus => ({
             motd: serverName.getMotd(),
             version: serverName.getVersion(),
-            software: `JSPrismarine ${server.getVersion()}`,
+            software: softwareLabel(),
             map: config.getLevelName(),
             onlinePlayers: serverName.getOnlinePlayerCount(),
             maxPlayers: serverName.getMaxPlayerCount(),

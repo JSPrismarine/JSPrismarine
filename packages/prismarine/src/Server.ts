@@ -61,7 +61,7 @@ import type { Config } from './config/Config';
 import type { RemoteConsole } from './console/RemoteConsole';
 
 import type { Logger } from '@jsprismarine/logger';
-import { serverVersion } from './version';
+import { serverVersion, softwareLabel } from './version';
 
 /** The active random streams held by a server at one replay boundary. */
 export interface ServerReplayRandomState {
@@ -250,7 +250,7 @@ export default class Server extends EventEmitter {
 
         const protocols = describeSupportedProtocols();
         logger.info(
-            `Starting JSPrismarine server version §ev${serverVersion()}§r for Minecraft: Bedrock Edition on ${protocols.length} protocol version${protocols.length === 1 ? '' : 's'}:`
+            `Starting ${softwareLabel(true)} for Minecraft: Bedrock Edition on ${protocols.length} protocol version${protocols.length === 1 ? '' : 's'}:`
         );
         for (const protocol of protocols) logger.info(`  ${protocol}`);
 
