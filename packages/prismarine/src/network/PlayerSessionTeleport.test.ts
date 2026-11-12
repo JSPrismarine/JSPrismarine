@@ -3,13 +3,14 @@ import { describe, expect, it } from 'vitest';
 import { Vector3 } from '@jsprismarine/math';
 import type { Logger } from '@jsprismarine/logger';
 import { PositionMode } from '@jsprismarine/protocol';
-import type Player from '../Player';
 import type Server from '../Server';
 import type { Config } from '../config/Config';
 import { sessionFor } from '../testing/playerSession.test.helper';
 import { stub } from '../testing/stub.test.helper';
 import type { ChunkScheduler } from '../world/ChunkScheduler';
+import type { ShownActor } from '../world/ShownActor';
 import type ClientConnection from './ClientConnection';
+import type { SessionPlayer } from './sessionPlayers';
 
 /**
  * After a teleport the client keeps sending its old position until it applies the teleport, and
@@ -20,15 +21,15 @@ describe('PlayerSession after a teleport', () => {
     const arrange = () => {
         let tick = 100;
         const at = { x: 0.5, y: 64, z: 0.5 };
-        const player = stub<Player>({
-            viewDistance: 2,
+        // The session's own player, as a move packet reads it.
+        const mover = stub<ShownActor>({
             pitch: 0,
             yaw: 0,
             headYaw: 0,
             getRuntimeId: () => 1n,
             isOnGround: () => true,
             getPosition: () =>
-                stub<ReturnType<Player['getPosition']>>({ getX: () => at.x, getY: () => at.y, getZ: () => at.z })
+                stub<ReturnType<ShownActor['getPosition']>>({ getX: () => at.x, getY: () => at.y, getZ: () => at.z })
         });
         const server = stub<Server>({
             getTick: () => tick,
@@ -42,15 +43,18 @@ describe('PlayerSession after a teleport', () => {
                     getPacketCompressionLevel: () => 7
                 })
         });
-        const session = sessionFor(server, stub<ClientConnection>({ sendDataPacket: async () => {} }), player, {
-            runtimeId: 1n
-        });
+        const session = sessionFor(
+            server,
+            stub<ClientConnection>({ sendDataPacket: async () => {} }),
+            stub<SessionPlayer>({}),
+            { runtimeId: 1n }
+        );
         const teleport = async (x: number, z: number) => {
             at.x = x;
             at.z = z;
-            await session.sendMove(player, PositionMode.Teleport);
+            await session.sendMove(mover, PositionMode.Teleport);
         };
-        return { session, teleport, advance: (ticks: number) => void (tick += ticks) };
+        return { session, mover, teleport, advance: (ticks: number) => void (tick += ticks) };
     };
 
     it('holds no position before any teleport', () => {
@@ -89,8 +93,8 @@ describe('PlayerSession after a teleport', () => {
     });
 
     it('holds nothing after a move that is not a teleport', async () => {
-        const { session } = arrange();
-        await session.sendMove(session.getPlayer(), PositionMode.Normal);
+        const { session, mover } = arrange();
+        await session.sendMove(mover, PositionMode.Normal);
 
         expect(session.holdsMovementForTeleport(new Vector3(9, 64, 9), false)).toBe(false);
     });
