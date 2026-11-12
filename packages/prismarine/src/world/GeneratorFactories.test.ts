@@ -7,7 +7,7 @@ import { Dimensions } from './Dimension';
 import type { Generator } from './Generator';
 import { GeneratorFactories } from './GeneratorFactories';
 import type { GeneratorBuildContext, GeneratorFactory } from './GeneratorFactories';
-import { builtInGeneratorFactories } from './generators/factories';
+import { builtInGeneratorFactories } from './generators/factories/builtIn';
 
 const quiet = { info: () => {}, warn: () => {} };
 

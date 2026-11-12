@@ -13,7 +13,7 @@ import type { GeneratorLogger } from './BaseGenerator';
 import type { DimensionType } from './DimensionType';
 import type { Generator } from './Generator';
 import type { ChunkCompletionScheduler } from './ChunkCompletionQueue';
-import { builtInGeneratorFactories } from './generators/factories';
+import { builtInGeneratorFactories } from './generators/factories/builtIn';
 import type { JavaWorldgenRegistries } from './generators/datadriven/javaWorldgenData';
 
 /** Everything a factory may read while building one dimension's generator. */

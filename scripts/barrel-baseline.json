@@ -284,9 +284,6 @@
     "packages/prismarine/src/world/generators/datadriven/javaWorldgenData.ts": {
         "noBarrelFile": 1
     },
-    "packages/prismarine/src/world/generators/factories/index.ts": {
-        "noBarrelFile": 1
-    },
     "packages/protocol/src/index.ts": {
         "noBarrelFile": 1,
         "noReExportAll": 112
