@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 
 import type { Scenario } from '../scenario.mts';
-import { sleep, vec3 } from '../scenario.mts';
+import { placeBlockAndWait, sleep, vec3 } from '../scenario.mts';
 
 type Context = Parameters<Scenario['run']>[0];
 
@@ -35,6 +35,11 @@ export const gait: Scenario = {
     name: 'gait',
     description: 'sprinting outpaces walking and sneaking is slower than walking',
     run: async (context) => {
+        // Its own strip at y 63, rather than the one the reset between scenarios lays: run first
+        // in a suite, as a retry runs it, the player was teleported above nothing and fell to
+        // their death. A sprint covers about seven blocks, so the strip runs to z 20.
+        context.server.command('fill -2 63 -2 2 63 20 minecraft:stone');
+        await placeBlockAndWait(context.server, { x: 0, y: 63, z: 20 }, 'minecraft:stone');
         const walk = await travel(context, {});
         const sprint = await travel(context, { sprint: true });
         const sneak = await travel(context, { sneak: true });
