@@ -15,6 +15,7 @@ import type { DataEntity } from '../entity/data/DataEntity';
 import type { ExperienceHolder } from '../entity/Experience';
 import type { ViewableEquipment } from '../entity/predicateView';
 import { blockMiningOf } from '../world/BlockMining';
+import { sameSpawnPoint } from '../world/RespawnPoint';
 import type { StoredSpawnPoint } from '../world/RespawnPoint';
 import type { KeyedPlayer } from '../keyedPlayer';
 import type { EntityRuntime } from '../entity/data/EntityRuntime';
@@ -3636,7 +3637,8 @@ export default class PlayerSession {
      * than walking the bed's neighbors again.
      */
     private forgetLostSpawnPoint(answer: RespawnAnswer): void {
-        if (!answer.spawnPointLost) return;
+        // The search may have waited for chunks, and a point set meanwhile is not the lost one.
+        if (!answer.spawnPointLost || !sameSpawnPoint(this.getPlayer().getSpawnPoint(), answer.spawnPoint)) return;
 
         this.getPlayer().setSpawnPoint(undefined);
         this.released(

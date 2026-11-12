@@ -58,6 +58,11 @@ export interface RespawnAnswer {
      * it and is told, so the next death goes straight to the world spawn.
      */
     readonly spawnPointLost: boolean;
+    /**
+     * The spawn point the search examined, the request's. A player who set another one while
+     * the search waited keeps it.
+     */
+    readonly spawnPoint: StoredSpawnPoint | undefined;
 }
 
 /** The worlds a search reads. */
@@ -243,7 +248,8 @@ export class RespawnSearch {
                     spawn: 'own',
                     dimension: own.stemId,
                     ...exchangeAt(own.position, body.eyeHeight),
-                    spawnPointLost: false
+                    spawnPointLost: false,
+                    spawnPoint
                 };
             }
         }
@@ -276,7 +282,8 @@ export class RespawnSearch {
             spawn: 'world',
             dimension: world.getDimension().id,
             ...exchangeAt(new Vector3(spawn.getX(), feet, spawn.getZ()), body.eyeHeight),
-            spawnPointLost: spawnPoint !== undefined
+            spawnPointLost: spawnPoint !== undefined,
+            spawnPoint
         };
     }
 

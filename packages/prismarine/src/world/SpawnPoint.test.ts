@@ -40,6 +40,7 @@ import type ClientConnection from '../network/ClientConnection';
 import { connectedSession, sessionsWith } from '../testing/playerSession.test.helper';
 import type { PermissionManager } from '../permission/PermissionManager';
 import type PlayerSession from '../network/PlayerSession';
+import type { RespawnDestination } from '../network/PlayerSession';
 import type Server from '../Server';
 import { stub } from '../testing/stub.test.helper';
 import UUID from '@jsprismarine/protocol/wire/structures/UUID';
@@ -55,6 +56,7 @@ import { OVERWORLD_STEM_ID } from '@jsprismarine/worldgen';
 import { testLevel } from '../testing/level';
 import type { Level } from './Level';
 import { ChunkCompletionQueue } from './ChunkCompletionQueue';
+import { RespawnRequests } from './RespawnRequests';
 import { ChatManager } from '../chat/ChatManager';
 import { respawnPointOf } from '../testing/respawnPoint.test.helper';
 
@@ -122,6 +124,9 @@ const buildScene = async (name: string) => {
 
     const sessions = sessionsWith();
     const entityRuntimes = new EntityRuntimes();
+    const respawnRequests = new RespawnRequests((error) => {
+        throw error;
+    });
 
     const server: Server = stub<Server>({
         getSessionManager: () => sessions,
@@ -136,6 +141,7 @@ const buildScene = async (name: string) => {
         getChunkScheduler: () => stub<ChunkScheduler>({ add: () => {}, remove: () => {} }),
         getPermissionManager: () => stub<PermissionManager>({ getPermissions: async () => [] }),
         getChunkCompletionQueue: () => new ChunkCompletionQueue(),
+        getRespawnRequests: () => respawnRequests,
         getContent: () => {
             if (content === undefined) throw new Error('the content was read before it was built');
             return content;
@@ -206,6 +212,7 @@ const buildScene = async (name: string) => {
         server,
         world,
         level,
+        respawnRequests,
         content,
         contentWorld,
         blocks: content.world.blockWorld.at('minecraft:overworld')
@@ -276,6 +283,30 @@ describe('a player with a spawn point of their own', () => {
         const fallback = await respawnPointOf(player);
         expect([fallback.block.getX(), fallback.block.getY(), fallback.block.getZ()]).toEqual([0, 70, 0]);
         expect(player.getSpawnPoint()).toBeUndefined();
+
+        await scene.level.disable();
+    }, 120_000);
+
+    it('keeps a point set while the search for a lost one waited', async () => {
+        const scene = await buildScene('reset');
+        const player = buildPlayer(scene.world, scene.server, UUID.fromRandom());
+        scene.blocks.setBlock(BED, 'minecraft:bed');
+        expect(clickOn(scene, player, BED)).toBe('handled');
+        scene.blocks.setBlock(BED, 'minecraft:stone');
+
+        // The request carries the bed, which is gone; the player sets another point before the
+        // input step answers it.
+        const answered: RespawnDestination[] = [];
+        player.requestRespawnPoint((destination) => void answered.push(destination));
+        const reset = { x: 32, y: 65, z: -17, dimension: 'minecraft:overworld', forced: true };
+        player.getPlayer().setSpawnPoint(reset);
+        for (let step = 0; step < 100 && answered.length === 0; step += 1) {
+            scene.respawnRequests.admit();
+            await new Promise<void>((resolve) => setImmediate(resolve));
+        }
+
+        expect(answered).toHaveLength(1);
+        expect(player.getSpawnPoint()).toEqual(reset);
 
         await scene.level.disable();
     }, 120_000);

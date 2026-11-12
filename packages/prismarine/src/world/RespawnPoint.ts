@@ -38,6 +38,22 @@ export interface StoredSpawnPoint {
 }
 
 /**
+ * Whether two spawn points are the same point, set the same way.
+ * @param a - One point, or undefined for none.
+ * @param b - The other.
+ * @returns True when both are absent, or both name the same block, dimension and kind.
+ */
+export const sameSpawnPoint = (a: StoredSpawnPoint | undefined, b: StoredSpawnPoint | undefined): boolean =>
+    a === b ||
+    (a !== undefined &&
+        b !== undefined &&
+        a.x === b.x &&
+        a.y === b.y &&
+        a.z === b.z &&
+        a.dimension === b.dimension &&
+        (a.forced ?? false) === (b.forced ?? false));
+
+/**
  * What resolving a spawn point needs to know about the world it names, read synchronously from
  * the chunks the world has loaded.
  */
