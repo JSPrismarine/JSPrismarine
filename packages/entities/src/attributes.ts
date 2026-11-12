@@ -127,6 +127,26 @@ export class Attributes {
     }
 
     /**
+     * Moves an attribute's maximum, as `/attribute max_health base set` does, and holds its base
+     * and its value now to the new bound.
+     *
+     * @returns The stored maximum, never below the minimum, or undefined when the attribute is
+     *   undeclared.
+     */
+    public setMax(name: AttributeName, max: number): number | undefined {
+        const attribute = this.values.get(name);
+        if (attribute === undefined) return undefined;
+        const bounded = Math.max(attribute.min, max);
+        this.put(name, {
+            ...attribute,
+            max: bounded,
+            base: Math.min(attribute.base, bounded),
+            current: Math.min(attribute.current, bounded)
+        });
+        return bounded;
+    }
+
+    /**
      * Puts an attribute back exactly as an {@link AttributeWrite} described it, bounds and all,
      * or removes it for `null`. This is how a host undoes a change.
      */
