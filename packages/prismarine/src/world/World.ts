@@ -1015,6 +1015,9 @@ export class World implements Service {
         } finally {
             store.sealTick(this.tickHeader());
         }
+        // A unit of this tick may have failed to undo, which stops the actor loop without a throw:
+        // what the store holds is no longer trusted, so none of it goes to the clients.
+        if (store.broken !== undefined) return;
         this.replicateTick(tick, true);
     }
 
