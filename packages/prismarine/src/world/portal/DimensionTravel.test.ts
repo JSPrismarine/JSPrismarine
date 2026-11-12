@@ -18,7 +18,7 @@ import ChangeDimensionPacket from '@jsprismarine/protocol/packet/ChangeDimension
 import ShowCreditsPacket, { CreditsState } from '@jsprismarine/protocol/packet/ShowCreditsPacket';
 import type { DimensionTypeDefinition, LevelStem } from '@jsprismarine/worldgen';
 import { OVERWORLD_STEM_ID } from '@jsprismarine/worldgen';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { BlockRuntimeIds } from '../../block/state/BlockRuntimeIds';
 import type { Config } from '../../config/Config';
@@ -30,6 +30,7 @@ import { builtInEntityDefinitions, fixtureContentOptions, fixtureDefinitions } f
 import { serverWorldSource } from '../../content/world/serverSource';
 import type { ServerEvents } from '../../events/ServerEvents';
 import { EntityRuntimes } from '../../entity/data/live';
+import { dataEntityRecordOf } from '../../entity/data/persistence';
 import { ItemActor } from '../../entity/data/itemActor';
 import { InertActor } from '../../entity/data/storeActors';
 import EntitySerializer from '../../entity/EntitySerializer';
@@ -889,6 +890,46 @@ describe('DimensionTravel.transfer of a data-driven mob', () => {
         expect(arrived[0]!.getPosition().getY()).toBe(70);
         expect(arrived[0]!.yaw).toBe(90);
         expect(arrived[0]!.getPortalCooldown()).toBe(300);
+
+        await scene.level.disable();
+    }, 60_000);
+
+    it("carries a trader's offers into the destination runtime", async () => {
+        const scene = await buildScene({ entities: TRAVELER_ENTITIES });
+        const overworldLive = scene.server.getEntityRuntime(Dimensions.Overworld.name);
+        const netherLive = scene.server.getEntityRuntime(Dimensions.Nether.name);
+        const spawned = overworldLive.runtime.spawn(TRAVELER, { x: 80.5, y: 64, z: 0.5 });
+        if (spawned === undefined) throw new Error('the fixture declares the traveler');
+        const merchant = { version: 1, experience: 12, generatedTiers: 1, offers: [] } as const;
+        const record = { ...dataEntityRecordOf(spawned, undefined), merchant };
+        overworldLive.runtime.remove(spawned.id, 'test restore');
+        const trader = overworldLive.runtime.restore(record, { x: 80.5, y: 64, z: 0.5 });
+        const actor = trader === undefined ? undefined : overworldLive.actors.actorOf(trader.id);
+        if (actor === undefined) throw new Error('the runtime gave the trader no actor');
+
+        scene.travel.transfer(actor, { world: scene.nether, position: new Vector3(10.5, 70, 0.5), yaw: 0, pitch: 0 });
+
+        const arrived = netherLive.runtime.entities().toArray();
+        expect(arrived).toHaveLength(1);
+        expect(netherLive.runtime.merchantSnapshotOf(arrived[0]!)).toEqual(merchant);
+
+        await scene.level.disable();
+    }, 60_000);
+
+    it('leaves the mob where it was when the destination cannot take it', async () => {
+        const scene = await buildScene({ entities: TRAVELER_ENTITIES });
+        const overworldLive = scene.server.getEntityRuntime(Dimensions.Overworld.name);
+        const netherLive = scene.server.getEntityRuntime(Dimensions.Nether.name);
+        const spawned = overworldLive.runtime.spawn(TRAVELER, { x: 80.5, y: 64, z: 0.5 });
+        const actor = spawned === undefined ? undefined : overworldLive.actors.actorOf(spawned.id);
+        if (spawned === undefined || actor === undefined) throw new Error('the fixture declares the traveler');
+        const refused = vi.spyOn(netherLive, 'restoreRecord').mockReturnValue(undefined);
+
+        scene.travel.transfer(actor, { world: scene.nether, position: new Vector3(10.5, 70, 0.5), yaw: 0, pitch: 0 });
+
+        expect(refused).toHaveBeenCalledTimes(1);
+        expect(overworldLive.runtime.byId(spawned.id)).toBe(spawned);
+        expect(netherLive.runtime.entities().toArray()).toEqual([]);
 
         await scene.level.disable();
     }, 60_000);
