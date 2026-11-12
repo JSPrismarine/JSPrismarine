@@ -921,8 +921,8 @@ export class LiveEntityRuntime {
         if (itemIdentifier.endsWith('_spawn_egg') || player.isSneaking()) return false;
         const entity = this.runtime.byId(id);
         if (entity === undefined) return false;
-        const merchant = this.runtime.merchant(entity);
-        if (merchant === undefined) return false;
+        const source = this.runtime.tradeSource(entity);
+        if (source === undefined) return false;
         const title = tradeDisplayNameOf(entity.instance);
 
         const playerId = Number(session.runtimeId);
@@ -931,7 +931,7 @@ export class LiveEntityRuntime {
         void session
             .openTradeWindow({
                 trader,
-                source: merchant,
+                source,
                 ...(title === undefined ? {} : { title }),
                 context: () => {
                     const hero = session.getActor()?.getStatusEffect('minecraft:village_hero');

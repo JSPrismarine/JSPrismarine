@@ -10,14 +10,71 @@
  *
  * `@jsprismarine/trading` owns the tiers, the demand and the restock; this
  * module is only the wiring between a live entity's components and one
- * `Merchant`.
+ * `Merchant`, and the logging of what a trader offers: a draw, a trade and a
+ * restock each change the `Merchant` in place, so each is logged as the
+ * trader's {@link MERCHANT_FIELD} before and after it.
  */
 import type { EntityInstance } from '@jsprismarine/entities';
-import { Merchant, parseEconomyTradeTable, parseTradeTableComponent } from '@jsprismarine/trading';
+import { Merchant, merchantSnapshotIn, parseEconomyTradeTable, parseTradeTableComponent } from '@jsprismarine/trading';
 import type { MerchantSnapshot } from '@jsprismarine/trading';
 import type { RandomSource } from '@jsprismarine/predicates';
 
 import type { ServerContent } from '../../content/ServerContent';
+import type { TradeSource } from '../../network/PlayerSession';
+import type { PlainData } from '../../world/changelog/PlainData';
+import { plainOf } from '../../world/changelog/PlainData';
+import { LoggedFieldError } from './entityFields';
+
+/**
+ * The entity field a trader's offers are logged under: its {@link MerchantSnapshot} in the form a
+ * save writes, or null before it has drawn any.
+ */
+export const MERCHANT_FIELD = 'merchant';
+
+/**
+ * A trader's offers as the log holds them: the JSON round trip a save makes, so the value is
+ * plain data and is what a save would write.
+ */
+export const merchantFieldOf = (snapshot: MerchantSnapshot | undefined): PlainData => {
+    if (snapshot === undefined) return null;
+    const plain = plainOf(JSON.parse(JSON.stringify(snapshot)));
+    if (plain === undefined) throw new LoggedFieldError('a merchant snapshot has no plain form');
+    return plain;
+};
+
+/**
+ * Reads a logged {@link MERCHANT_FIELD} back.
+ * @returns The snapshot, or undefined for a trader that has drawn nothing.
+ */
+export const merchantIn = (value: PlainData): MerchantSnapshot | undefined => {
+    if (value === null) return undefined;
+    return merchantSnapshotIn(value) ?? wrongMerchant(value);
+};
+
+const wrongMerchant = (value: PlainData): never => {
+    throw new LoggedFieldError(`merchant cannot hold ${JSON.stringify(value)}`);
+};
+
+/**
+ * One trader as a trade screen sees it. Its merchant is read again on every call, because undoing
+ * a trade builds the merchant again from the logged offers, and each trade is logged.
+ * @param current - The trader's merchant now.
+ * @param logged - Runs a change to a merchant and logs its offers before and after.
+ */
+export const loggedMerchantSource = (
+    current: () => Merchant,
+    logged: <T>(merchant: Merchant, change: () => T) => T
+): TradeSource => ({
+    offers: (context) => current().offers(context),
+    trade: (index, context) => {
+        const merchant = current();
+        return logged(merchant, () => merchant.trade(index, context));
+    },
+    tierRequirements: () => current().tierRequirements(),
+    get level() {
+        return current().level;
+    }
+});
 
 /** The modern component, which carries the discount parameters as well as the table. */
 export const ECONOMY_TRADE_TABLE = 'minecraft:economy_trade_table';

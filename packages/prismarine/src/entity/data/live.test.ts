@@ -84,6 +84,7 @@ import { EntityRuntimes } from './live';
 import type { EntityRef } from '@jsprismarine/commands';
 import type { LiveEntityRuntime } from './live';
 import type { Generator } from '../../world/Generator';
+import type { ChangeEntry } from '../../world/changelog/ChangeEntry';
 
 /**
  * The data-driven entity runtime, driving a real world.
@@ -2313,6 +2314,39 @@ describe('the data-driven entity runtime over a live world', () => {
             expect(merchant?.offers().flatMap((offer) => offer.offer.gives.map((stack) => stack.item))).toEqual([
                 'minecraft:emerald'
             ]);
+        });
+
+        it('logs the offers a trade changes, and an undone trade gives them back', () => {
+            const villager = live.runtime.spawn('minecraft:villager_v2', { x: 0.5, y: GROUND_Y, z: 0.5 });
+            if (villager === undefined) throw new Error('the fixture declares no minecraft:villager_v2');
+            const { store } = live.runtime;
+            store.beginTick();
+            const source = live.runtime.tradeSource(villager);
+            if (source === undefined) throw new Error('the villager carries no trade table');
+            const drawn = store.sealTick()?.entries ?? [];
+
+            store.beginTick();
+            store.unit(() => {
+                source.trade(0);
+                throw new Error('the trade is undone');
+            });
+            const undone = store.sealTick()?.entries ?? [];
+            const usesAfterUndo = source.offers()[0]?.uses;
+
+            store.beginTick();
+            source.trade(0);
+            const traded = store.sealTick()?.entries ?? [];
+
+            const merchantEntries = (entries: readonly ChangeEntry[]) =>
+                entries.filter(
+                    (entry) => entry.kind === 'field' && entry.field === 'entity' && entry.address.field === 'merchant'
+                );
+            // The first ask draws the offers, which is a change from none.
+            expect(merchantEntries(drawn)).toEqual([expect.objectContaining({ before: null })]);
+            expect(merchantEntries(undone)).toEqual([]);
+            expect(usesAfterUndo).toBe(0);
+            expect(merchantEntries(traded)).toHaveLength(1);
+            expect(source.offers()[0]?.uses).toBe(1);
         });
 
         it('keeps a villager’s offers, uses and experience across a save and a restore', () => {
