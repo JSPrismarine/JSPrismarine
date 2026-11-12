@@ -63,6 +63,13 @@ const ATTRIBUTE_IDS: Readonly<Record<string, string>> = {
     'minecraft:luck': AttributeIds.Luck
 };
 
+/**
+ * The store's attributes of an entity, where `max_health` is kept: as the maximum of its `health`
+ * attribute, written through the store so the change log records it. The legacy table an actor
+ * answers for `attributes` is not read for health while the entity is in a store.
+ */
+const storeAttributesOf = (entity: StoreActor) => entity.entity.instance.attributes;
+
 const attributeIdOf = (name: string): string | undefined =>
     ATTRIBUTE_IDS[name.includes(':') ? name : `minecraft:${name}`];
 
@@ -509,17 +516,31 @@ export const entityCommandHost = (server: Server, scoreboard: Scoreboard): Entit
         listTags: (ref) => resolveEntity(server, ref)?.getTags() ?? [],
 
         getAttributeBase: (ref, attribute) =>
-            applyAttribute(ref, attribute, (id, entity) => entity.attributes.getAttribute(id)?.getDefault()),
+            applyAttribute(ref, attribute, (id, entity) =>
+                id === AttributeIds.Health
+                    ? storeAttributesOf(entity).get('health')?.max
+                    : entity.attributes.getAttribute(id)?.getDefault()
+            ),
         setAttributeBase: (ref, attribute, value) => {
             const id = attributeIdOf(attribute);
             const entity = resolveEntity(server, ref);
             if (id === undefined || entity === undefined) return false;
+            if (id === AttributeIds.Health) {
+                const health = storeAttributesOf(entity);
+                const before = health.get('health')?.max;
+                const after = health.setMax('health', value);
+                return after !== undefined && after !== before;
+            }
             // A player logs the write through the component field the attribute is kept in.
             const player = resolvePlayer(server, ref);
             return player !== undefined ? player.setAttributeValue(id, value) : entity.attributes.setValue(id, value);
         },
         getAttributeValue: (ref, attribute) =>
-            applyAttribute(ref, attribute, (id, entity) => entity.attributes.getAttribute(id)?.getValue()),
+            applyAttribute(ref, attribute, (id, entity) =>
+                id === AttributeIds.Health
+                    ? storeAttributesOf(entity).get('health')?.max
+                    : entity.attributes.getAttribute(id)?.getValue()
+            ),
         addAttributeModifier: () => unsupported('attribute modifiers'),
         removeAttributeModifier: () => unsupported('attribute modifiers'),
         getAttributeModifier: () => unsupported('attribute modifiers')
