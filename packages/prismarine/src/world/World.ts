@@ -2054,6 +2054,15 @@ export class World implements Service {
     }
 
     /**
+     * Shows a player's emote to the players that see the player. It is an `emote` occurrence in
+     * the change log, which replication sends to the players tracking the player.
+     * @param {OccurrenceKinds['emote']} emote - Whose emote, and the fields the relay carries.
+     */
+    public relayEmote(emote: OccurrenceKinds['emote']): void {
+        this.occurred({ kind: 'occurrence', occurrence: 'emote', data: emote });
+    }
+
+    /**
      * Tells clients tracking an entity about one status effect change.
      * @param {ShownActor} entity - The actor whose effect changed.
      * @param {StatusEffect} effect - The effect state.
