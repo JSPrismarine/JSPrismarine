@@ -8,6 +8,9 @@ import pkg from '../../package.json' with { type: 'json' };
 import Console from '../Console';
 import { parseConfigDocument } from '../config/ConfigDocument';
 import type Player from '../Player';
+import type PlayerSession from '../network/PlayerSession';
+import type SessionManager from '../SessionManager';
+import { fakePlayer } from '../testing/fakePlayer.test.helper';
 import { stub } from '../testing/stub.test.helper';
 import UUID from '@jsprismarine/protocol/wire/structures/UUID';
 import { canExecute, PermissionManager } from './PermissionManager';
@@ -261,6 +264,69 @@ describe('permission', () => {
             text = readFileSync(file, 'utf8');
             expect(plain(text)).toStrictEqual([{ name: 'bob', uuid: bobUuid, level: 4 }]);
             expect(text).toContain('// The owner.');
+        });
+
+        /**
+         * A real player, connected to a real permission manager over this test's directory. The
+         * network session is a double that reports whether the player could run `/stop` each time
+         * it is asked to send the command list.
+         */
+        const operatorCandidate = async (sendAvailableCommands?: () => Promise<void>) => {
+            const { player, server } = fakePlayer();
+            const permissionsWhenCommandsSent: boolean[] = [];
+            const real = new PermissionManager({
+                getLogger: () => logger,
+                getSessionManager: () => stub<SessionManager>({ getPlayerByExactName: () => player }),
+                post: () => 0
+            });
+            Object.assign(server, { getPermissionManager: () => real });
+            vi.spyOn(player, 'getNetworkSession').mockReturnValue(
+                stub<PlayerSession>({
+                    sendAvailableCommands:
+                        sendAvailableCommands ??
+                        (async () =>
+                            void permissionsWhenCommandsSent.push(real.can(player).execute('minecraft.command.stop')))
+                })
+            );
+            vi.spyOn(player, 'sendSettings').mockResolvedValue();
+            await real.enable();
+            return { player, manager: real, permissionsWhenCommandsSent };
+        };
+
+        it("drops a deopped player's operator permissions before their next command", async () => {
+            const { player, manager: real, permissionsWhenCommandsSent } = await operatorCandidate();
+
+            await real.setOp(player.getName(), true);
+            expect(player.getPermissions()).toContain('*');
+            expect(real.can(player).execute('minecraft.command.stop')).toBe(true);
+
+            await real.setOp(player.getName(), false);
+            expect(player.getPermissions()).not.toContain('*');
+            expect(real.can(player).execute('minecraft.command.stop')).toBe(false);
+            // The command list each change sends reflects the status it set.
+            expect(permissionsWhenCommandsSent).toStrictEqual([true, false]);
+        });
+
+        it("applies a player's replaced grants without a reconnect", async () => {
+            const { player, manager: real } = await operatorCandidate();
+
+            real.setPermissions(player, ['minecraft.command.kick']);
+            expect(real.can(player).execute('minecraft.command.kick')).toBe(true);
+
+            real.setPermissions(player, []);
+            expect(real.can(player).execute('minecraft.command.kick')).toBe(false);
+        });
+
+        it('saves a deop even when the command list cannot be sent', async () => {
+            const { player, manager: real } = await operatorCandidate(async () => {
+                throw new Error('the client went away');
+            });
+            await real['writeOp'](player.getUUID().toString(), player.getName(), true);
+
+            expect(await real.setOp(player.getName(), false)).toBe(false);
+
+            expect(plain(readFileSync(path.join(directory, 'ops.json'), 'utf8'))).toStrictEqual([]);
+            expect(player.isOp()).toBe(false);
         });
     });
 });

@@ -152,7 +152,6 @@ export default class Player extends Human {
      * each other at runtime.
      */
     private networkSession: PlayerSession | null = null;
-    private permissions: string[];
 
     /**
      * The identity the client logged in with.
@@ -285,7 +284,6 @@ export default class Player extends Human {
         super({ position });
 
         this.timer = new Timer();
-        this.permissions = [];
 
         this.address = address;
         this.uuid = identity.uuid;
@@ -341,7 +339,6 @@ export default class Player extends Human {
         loadAdvancements(this, playerData.advancements);
         enchantmentSeedOf(this, playerData.enchantmentSeed);
 
-        this.permissions = await this.server.getPermissionManager().getPermissions(this);
         this.gamemode = getGametypeId(playerData.gamemode || this.server.getConfig().getGamemode());
         this.restoreCarriedState(playerData);
 
@@ -757,8 +754,13 @@ export default class Player extends Human {
         return `<${this.getName()}>`;
     }
 
+    /**
+     * Get the player's current permissions, read from the permission manager on every call so
+     * a revoked operator status or grant applies at once.
+     * @returns The player's effective permissions.
+     */
     public getPermissions(): string[] {
-        return this.permissions;
+        return this.server.getPermissionManager().permissionsOf(this);
     }
 
     /**
