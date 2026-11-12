@@ -13,8 +13,11 @@ import { packetIds as packetIds2193 } from './v2193';
 /** The protocol version, as `RequestNetworkSettings` carries it. */
 export const protocolVersion = 2225;
 
-/** The Minecraft versions that speak protocol 2225, in ascending order. */
-export const minecraftVersions: readonly string[] = ['1.26.60'];
+/**
+ * The Minecraft versions that speak protocol 2225, in ascending order. The 1.26.61 and 1.26.62
+ * hotfixes kept 1.26.60's protocol number and wire layout.
+ */
+export const minecraftVersions: readonly string[] = ['1.26.60', '1.26.61', '1.26.62'];
 
 /**
  * The packets 1.26.60 added, keyed by the names their classes export from the packet barrel.

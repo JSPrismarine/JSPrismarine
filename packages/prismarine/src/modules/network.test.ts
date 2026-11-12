@@ -236,8 +236,13 @@ describe('modules/network', () => {
             await networking.start('0.0.0.0', port);
 
             // 0x1c is an unconnected pong.
-            expect((await pingOnce('127.0.0.1', port))[0]).toBe(0x1c);
+            const pong = await pingOnce('127.0.0.1', port);
+            expect(pong[0]).toBe(0x1c);
             expect((await pingOnce('::1', port))[0]).toBe(0x1c);
+            // The eighth field, after the server id, names the software, as other third-party servers do.
+            const fields = pong.toString('latin1').split(';');
+            expect(fields[3]).toBe(about().minecraftVersion);
+            expect(fields[7]).toBe('JSPrismarine');
             expect([networking.getServerName()!.getPort(), networking.getServerName()!.getPortV6()]).toStrictEqual([
                 port,
                 port

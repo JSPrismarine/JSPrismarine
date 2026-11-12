@@ -13,15 +13,20 @@ const serverName = () =>
 describe('network/nethernet/advertiseOnLan', () => {
     it('advertises at once and again whenever the server name changes, until stopped', () => {
         const name = serverName();
+        name.setName('JSPrismarine');
         const sent: Buffer[] = [];
-        const stop = advertiseOnLan({ setAdvertisement: (buffer) => void sent.push(buffer) }, name, 'world', true, 'n');
+        const stop = advertiseOnLan({ setAdvertisement: (buffer) => void sent.push(buffer) }, name, true, 'n');
 
         name.setOnlinePlayerCount(2);
         stop();
         name.setOnlinePlayerCount(3);
 
         expect(sent.map((buffer) => decodeLanAdvertisement(buffer).playerCount)).toStrictEqual([0, 2]);
-        expect(decodeLanAdvertisement(sent[0]!)).toMatchObject({ motd: 'Hello', levelName: 'world', nonce: 'n' });
+        expect(decodeLanAdvertisement(sent[0]!)).toMatchObject({
+            motd: 'Hello',
+            levelName: 'JSPrismarine',
+            nonce: 'n'
+        });
     });
 
     it('makes nonces of up to 16 hex digits that differ between starts', () => {

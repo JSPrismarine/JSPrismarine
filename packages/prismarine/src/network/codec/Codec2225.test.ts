@@ -41,7 +41,7 @@ describe('network/codec', () => {
     describe('Codec2225', () => {
         it('speaks protocol 2225 for 1.26.60, and the registry names it the latest', () => {
             expect(Codec2225.protocolVersion).toBe(2225);
-            expect(Codec2225.minecraftVersions).toStrictEqual(['1.26.60']);
+            expect(Codec2225.minecraftVersions).toStrictEqual(['1.26.60', '1.26.61', '1.26.62']);
             expect(codecForProtocol(2225)).toBe(Codec2225);
             expect(latestCodec).toBe(Codec2225);
         });

@@ -5,7 +5,7 @@ import { netherNetStatusOf } from './netherNetStatusOf';
 
 const snapshot: ServerNameSnapshot = {
     motd: 'Dedicated Server',
-    name: 'JSRakNet',
+    name: 'JSPrismarine',
     protocol: 2193,
     version: '1.26.51',
     onlinePlayers: 0,
@@ -17,10 +17,10 @@ const snapshot: ServerNameSnapshot = {
 };
 
 describe('network/nethernet/netherNetStatusOf', () => {
-    it('reads the status from the server name and the level', () => {
-        expect(netherNetStatusOf({ ...snapshot, gamemode: 'creative', onlinePlayers: 2 }, 'world')).toStrictEqual({
+    it('reads the status from the server name, with its software name as the level', () => {
+        expect(netherNetStatusOf({ ...snapshot, gamemode: 'creative', onlinePlayers: 2 })).toStrictEqual({
             motd: 'Dedicated Server',
-            levelName: 'world',
+            levelName: 'JSPrismarine',
             protocol: 2193,
             version: '1.26.51',
             playerCount: 2,

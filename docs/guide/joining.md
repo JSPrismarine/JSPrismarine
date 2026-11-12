@@ -22,7 +22,7 @@ already have. This page is for them, and for the host answering their questions.
 
 The server speaks Bedrock protocols <!-- fact:protocol.list -->2225 and 2193<!-- /fact -->, so
 Minecraft <!-- fact:minecraft.oldest -->1.26.50<!-- /fact --> through
-<!-- fact:minecraft.newest -->1.26.60<!-- /fact --> can join. The server list shows the newest of
+<!-- fact:minecraft.newest -->1.26.62<!-- /fact --> can join. The server list shows the newest of
 these. A client outside that range sees Minecraft's **Outdated client** or **Outdated server**
 screen: update the game, or ask the host to update the server.
 

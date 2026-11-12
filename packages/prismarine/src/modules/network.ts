@@ -128,8 +128,11 @@ export class ServerNetworking implements Networking {
     public async start(address: string, port: number): Promise<void> {
         const server = this.server;
         const config = server.getConfig();
-        const { protocolVersion, minecraftVersion } = about();
+        const { software, protocolVersion, minecraftVersion } = about();
         this.serverName = new ServerName(server, { protocolVersion, minecraftVersions: [minecraftVersion] });
+        // The pong's second name and NetherNet's `level` name the software, as other
+        // third-party servers fill them, rather than the level players join.
+        this.serverName.setName(software);
         // Players arrive over every transport, so RakNet's sessions are not the count; see countConnection.
         this.serverName.ownPlayerCount();
 
@@ -488,7 +491,7 @@ export class ServerNetworking implements Networking {
         const identity = NetherNetIdentity.loadOrCreate(withCwd(NETHERNET_IDENTITY_FILE));
         this.signaling = new HttpSignaling({
             answerer: nethernet,
-            status: () => joinStatusJson(netherNetStatusOf(serverName.getSnapshot(), config.getLevelName())),
+            status: () => joinStatusJson(netherNetStatusOf(serverName.getSnapshot())),
             sign: (answer) => identity.sign(withMappedCandidates(answer, udpPorts.mappings, udpPorts.publicIp)),
             logger
         });
@@ -507,12 +510,7 @@ export class ServerNetworking implements Networking {
         );
 
         if (config.getEnableLanVisibility()) {
-            this.stopLanAdvertisement = advertiseOnLan(
-                nethernet,
-                serverName,
-                config.getLevelName(),
-                config.getOnlineMode()
-            );
+            this.stopLanAdvertisement = advertiseOnLan(nethernet, serverName, config.getOnlineMode());
             nethernet.listen().then(
                 () => logger.info(`Visible to NetherNet clients on the local network (UDP port ${NETHERNET_LAN_PORT})`),
                 (error: unknown) =>

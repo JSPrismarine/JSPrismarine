@@ -17,7 +17,6 @@ export const lanNonce = (): string => randomBytes(8).readBigUInt64BE().toString(
  * MOTD, version or player counts change.
  * @param target - The NetherNet server answering discovery.
  * @param serverName - The status every transport advertises.
- * @param levelName - The level players join.
  * @param onlineMode - Whether the server requires Xbox Live sign-in.
  * @param nonce - This server start's token.
  * @returns A function that stops following the server name.
@@ -25,15 +24,12 @@ export const lanNonce = (): string => randomBytes(8).readBigUInt64BE().toString(
 export const advertiseOnLan = (
     target: LanAdvertisementTarget,
     serverName: ServerName,
-    levelName: string,
     onlineMode: boolean,
     nonce: string = lanNonce()
 ): (() => void) => {
     const advertise = () =>
         target.setAdvertisement(
-            encodeLanAdvertisement(
-                lanAdvertisementOf(netherNetStatusOf(serverName.getSnapshot(), levelName), onlineMode, nonce)
-            )
+            encodeLanAdvertisement(lanAdvertisementOf(netherNetStatusOf(serverName.getSnapshot()), onlineMode, nonce))
         );
     advertise();
     return serverName.onChange(advertise);
