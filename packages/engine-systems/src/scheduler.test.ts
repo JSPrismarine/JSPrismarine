@@ -307,7 +307,8 @@ describe('TickList', () => {
 
     it('keeps a queued tick where it was scheduled when the caller moves its position', () => {
         const list = new TickList();
-        const position = at(3);
+        // The caller's own object, which the readonly parameter type does not stop it changing.
+        const position = { x: 3, y: 0, z: 0 };
         list.schedule(position, 'minecraft:water', 1);
         position.x = 9;
 
