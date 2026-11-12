@@ -53,3 +53,4 @@ export type { BotOptions } from './bot/Bot';
 export type { FleetOptions } from './bot/Fleet';
 export type { FleetReport, LatencySummary } from './bot/Metrics';
 export type { Behavior, BehaviorContext } from './bot/behavior/Behavior';
+export type { Walk } from './playerAuthInput';

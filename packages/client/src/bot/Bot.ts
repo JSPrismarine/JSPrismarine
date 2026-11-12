@@ -1,11 +1,14 @@
 import { OfflineAuthProvider } from '@jsprismarine/auth';
 import Client from '../Client';
-import { RequestChunkRadiusPacket } from '@jsprismarine/protocol';
+import { playerAuthInput } from '../playerAuthInput';
+import { MovePlayerPacket, PositionMode, RequestChunkRadiusPacket } from '@jsprismarine/protocol';
 
 import type { Identity } from '@jsprismarine/auth';
 import type { Logger } from '@jsprismarine/logger';
 import type { NetworkPacket } from '@jsprismarine/protocol';
+import type { ITransport } from '../net/ITransport';
 import type Random from './Random';
+import type { Walk } from '../playerAuthInput';
 import type { Behavior } from './behavior/Behavior';
 
 /** The server's own rate, and therefore the rate a client's input is meaningful at. */
@@ -22,15 +25,22 @@ export interface BotOptions {
     readonly logger: Logger;
     readonly viewDistance: number;
     readonly loginTimeoutMs?: number;
+    /** A transport to use in place of dialing `host` and `port`, such as an in-process one. */
+    readonly transport?: ITransport;
 }
 
 /**
  * One synthetic player: a client, a position it believes in, and the behaviors driving it.
  *
  * The position is the bot's own rather than the client's because the client core has no game
- * state layer yet - it knows where it started, from `StartGame`, and nothing after that. For
- * load generation that is enough and honestly so: a bot walks through walls, and the numbers
- * it produces are still real, because the server does the same work either way.
+ * state layer yet. It starts where `StartGame` puts it and moves when the server moves it, and
+ * otherwise only where its behaviors walk it. For load generation that is enough and honestly
+ * so: a bot walks through walls, and the numbers it produces are still real, because the
+ * server does the same work either way.
+ *
+ * It moves as a client of a supported protocol does, with one `PlayerAuthInputPacket` per tick
+ * it has something to report. `MovePlayerPacket` is client-bound only since protocol 818, and
+ * the server drops one a client sends.
  */
 export default class Bot {
     public position = { x: 0, y: 0, z: 0 };
@@ -44,6 +54,8 @@ export default class Bot {
     private ticker: NodeJS.Timeout | undefined;
     private ticks = 0;
     private stopped = false;
+    /** Whether the next input says the bot applied a teleport the server sent it. */
+    private handledTeleport = false;
 
     /** Counted per action name, merged into the fleet report. */
     public readonly actions: Map<string, number> = new Map();
@@ -57,9 +69,28 @@ export default class Bot {
             host: options.host,
             port: options.port,
             network: options.network,
+            transport: options.transport,
             logger: options.logger,
             auth: new OfflineAuthProvider({ displayName: options.displayName }),
             loginTimeoutMs: options.loginTimeoutMs
+        });
+
+        // A teleport or a respawn reset is the server moving this player. A real client takes
+        // the new pose and says so with `HandledTeleport` in its next input; until it does,
+        // the server ignores the positions it reports (`holdsMovementForTeleport`), and a bot
+        // that went on from where it was would be moved back there once the hold timed out.
+        this.client.getSession().registerHandler(MovePlayerPacket, {
+            phases: ['login', 'play'],
+            handle: (move) => {
+                if (move.runtimeEntityId !== this.runtimeEntityId) return;
+                if (move.mode !== PositionMode.Teleport && move.mode !== PositionMode.Respawn) return;
+
+                this.position = { ...move.position };
+                this.pitch = move.pitch;
+                this.yaw = move.yaw;
+                this.headYaw = move.headYaw;
+                this.handledTeleport = true;
+            }
         });
     }
 
@@ -117,20 +148,24 @@ export default class Bot {
     }
 
     /**
-     * Runs one tick of every behavior.
+     * Runs one tick of every behavior, then sends the tick's input if a behavior asked for one.
      *
-     * Behaviors run in sequence rather than concurrently: two of them sending a move in the
-     * same tick would have the server apply whichever framed first, and a bot that
-     * teleported between two positions every tick is not a player.
+     * {@link Bot.start} calls it every {@link TICK_INTERVAL_MS}; a test that steps the server
+     * itself can call it in step. Behaviors run in sequence rather than concurrently, and
+     * whatever they do to the pose goes out in one input, as a real client's tick does.
      */
-    private async tick(): Promise<void> {
+    public async tick(): Promise<void> {
         if (this.stopped || !this.client.isConnected()) return;
 
+        let input: { walk: Walk | undefined } | undefined;
         const context = {
             bot: this,
             random: this.options.random,
             tick: this.ticks,
             send: (packet: NetworkPacket<any>) => this.send(packet),
+            input: (walk?: Walk) => {
+                input = { walk: walk ?? input?.walk };
+            },
             record: (action: string) => this.actions.set(action, (this.actions.get(action) ?? 0) + 1)
         };
 
@@ -142,6 +177,23 @@ export default class Bot {
                 // losing a bot silently changes what is being measured.
                 this.options.logger.debug(
                     `Behavior ${behavior.name} failed for ${this.options.displayName}: ${
+                        error instanceof Error ? error.message : String(error)
+                    }`
+                );
+            }
+        }
+
+        if (input !== undefined) {
+            // Once, on the first input after the teleport: from here the bot reports from the
+            // target, and the server takes its positions again. Taken before the send waits, so
+            // a teleport that arrives meanwhile flags the input after this one.
+            const handledTeleport = this.handledTeleport;
+            this.handledTeleport = false;
+            try {
+                await this.send(playerAuthInput(this, { tick: BigInt(this.ticks), walk: input.walk, handledTeleport }));
+            } catch (error: unknown) {
+                this.options.logger.debug(
+                    `Input failed for ${this.options.displayName}: ${
                         error instanceof Error ? error.message : String(error)
                     }`
                 );
