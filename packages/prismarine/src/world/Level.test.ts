@@ -507,6 +507,106 @@ describe('Level', () => {
             await level.disable();
         });
 
+        it('keeps a fallback player record inside the player data folder whatever the key holds', async () => {
+            const { level, provider } = buildLevel('player-keys');
+            // A provider without player storage, so records go to the fallback JSON files.
+            Object.defineProperty(provider, 'writePlayerData', { value: undefined });
+            Object.defineProperty(provider, 'readPlayerData', { value: undefined });
+            await level.enable();
+            const folder = path.join(scratch, 'player-keys');
+            const record = { gamemode: 'survival', position: { x: 0, y: 64, z: 0, pitch: 0, yaw: 0, headYaw: 0 } };
+
+            await level.savePlayerData('../../escaped', record);
+
+            expect(fs.existsSync(path.join(scratch, 'escaped.json'))).toBe(false);
+            expect(fs.readdirSync(path.join(folder, 'playerdata'))).toEqual(['..%2F..%2Fescaped.json']);
+            expect(await level.getPlayerData('../../escaped')).toMatchObject({ gamemode: 'survival' });
+
+            await level.disable();
+        });
+
+        it('keeps a record saved under a name from before names were escaped', async () => {
+            const { level, provider } = buildLevel('legacy-player-keys');
+            Object.defineProperty(provider, 'writePlayerData', { value: undefined });
+            Object.defineProperty(provider, 'readPlayerData', { value: undefined });
+            await level.enable();
+            const folder = path.join(scratch, 'legacy-player-keys', 'playerdata');
+            fs.mkdirSync(folder, { recursive: true });
+            fs.writeFileSync(
+                path.join(folder, '100%.json'),
+                JSON.stringify({ username: '100%', gamemode: 'creative', flying: true })
+            );
+
+            expect(await level.getPlayerData('100%')).toMatchObject({ gamemode: 'creative' });
+
+            const record = { gamemode: 'survival', position: { x: 0, y: 64, z: 0, pitch: 0, yaw: 0, headYaw: 0 } };
+            await level.savePlayerData('100%', record);
+
+            expect(fs.readdirSync(folder)).toEqual(['100%25.json']);
+            // Moved and extended, not replaced: what the save did not set is still there.
+            expect(await level.getPlayerData('100%')).toMatchObject({ gamemode: 'survival', flying: true });
+
+            await level.disable();
+        });
+
+        it("never takes another key's record for a legacy one", async () => {
+            const { level, provider } = buildLevel('player-key-collision');
+            Object.defineProperty(provider, 'writePlayerData', { value: undefined });
+            Object.defineProperty(provider, 'readPlayerData', { value: undefined });
+            await level.enable();
+            const folder = path.join(scratch, 'player-key-collision', 'playerdata');
+            const record = { gamemode: 'survival', position: { x: 0, y: 64, z: 0, pitch: 0, yaw: 0, headYaw: 0 } };
+
+            // Key `100%` is stored as `100%25.json`, which is also the name key `100%25` had before.
+            await level.savePlayerData('100%', { ...record, username: '100%' });
+
+            expect(await level.getPlayerData('100%25')).toBeNull();
+            await level.savePlayerData('100%25', { ...record, username: '100%25', gamemode: 'creative' });
+
+            expect(fs.readdirSync(folder).sort()).toEqual(['100%2525.json', '100%25.json'].sort());
+            expect(await level.getPlayerData('100%')).toMatchObject({ username: '100%', gamemode: 'survival' });
+
+            await level.disable();
+        });
+
+        it("leaves another key's legacy record alone when it sits under this key's new name", async () => {
+            const { level, provider } = buildLevel('player-key-upgrade-collision');
+            Object.defineProperty(provider, 'writePlayerData', { value: undefined });
+            Object.defineProperty(provider, 'readPlayerData', { value: undefined });
+            await level.enable();
+            const folder = path.join(scratch, 'player-key-upgrade-collision', 'playerdata');
+            fs.mkdirSync(folder, { recursive: true });
+            // Written before names were escaped, by key `100%25`. Today it is key `100%`'s name.
+            fs.writeFileSync(
+                path.join(folder, '100%25.json'),
+                JSON.stringify({ username: '100%25', gamemode: 'creative', flying: true })
+            );
+            const record = { gamemode: 'survival', position: { x: 0, y: 64, z: 0, pitch: 0, yaw: 0, headYaw: 0 } };
+
+            expect(await level.getPlayerData('100%')).toBeNull();
+            await level.savePlayerData('100%', { ...record, username: '100%' });
+
+            expect(fs.readdirSync(folder).sort()).toEqual(['100%2525.json', '100%25.json'].sort());
+            expect(await level.getPlayerData('100%')).toMatchObject({ username: '100%', gamemode: 'survival' });
+            expect(await level.getPlayerData('100%25')).toMatchObject({
+                username: '100%25',
+                gamemode: 'creative',
+                flying: true
+            });
+
+            await level.disable();
+        });
+
+        it('reads no legacy record for a key holding NUL, rather than throwing', async () => {
+            const { level, provider } = buildLevel('player-key-nul');
+            Object.defineProperty(provider, 'readPlayerData', { value: undefined });
+            await level.enable();
+
+            expect(await level.getPlayerData('a\u0000b')).toBeNull();
+
+            await level.disable();
+        });
+
         it('declines to write a player record once it has closed', async () => {
             const { level } = buildLevel('closed');
             await level.enable();
