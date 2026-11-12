@@ -91,7 +91,10 @@ describe('liquidFamily and buckets', () => {
         const harness = bindFamily(liquidFamily, 'minecraft:water');
         harness.dimension.set(origin, 'minecraft:water', { liquid_depth: 0 });
 
-        expect(harness.interact(origin, { itemStack: heldItem('minecraft:bucket') })).toBe(true);
+        expect(harness.interact(origin, { itemStack: heldItem('minecraft:bucket') })).toEqual({
+            consumed: true,
+            consumesHeldItem: true
+        });
 
         expect(harness.dimension.identifierAt(origin)).toBe(AIR);
         expect(harness.dimension.drops.map((entry) => entry.drop.identifier)).toEqual(['minecraft:water_bucket']);
@@ -108,7 +111,10 @@ describe('liquidFamily and buckets', () => {
 
         expect(harness.interact(origin, { itemStack: heldItem('minecraft:glass_bottle') })).toBeUndefined();
 
-        harness.interact(origin, { itemStack: heldItem('minecraft:bucket') });
+        expect(harness.interact(origin, { itemStack: heldItem('minecraft:bucket') })).toEqual({
+            consumed: true,
+            consumesHeldItem: true
+        });
 
         expect(harness.dimension.drops.map((entry) => entry.drop.identifier)).toEqual(['minecraft:lava_bucket']);
     });
@@ -117,7 +123,10 @@ describe('liquidFamily and buckets', () => {
         const harness = bindFamily(liquidFamily, 'minecraft:water');
         harness.dimension.set(origin, 'minecraft:water', { liquid_depth: 0 });
 
-        expect(harness.interact(origin, { itemStack: heldItem('minecraft:glass_bottle') })).toBe(true);
+        expect(harness.interact(origin, { itemStack: heldItem('minecraft:glass_bottle') })).toEqual({
+            consumed: true,
+            consumesHeldItem: true
+        });
 
         expect(harness.dimension.identifierAt(origin)).toBe('minecraft:water');
         expect(harness.dimension.drops.map((entry) => entry.drop.identifier)).toEqual(['minecraft:potion']);

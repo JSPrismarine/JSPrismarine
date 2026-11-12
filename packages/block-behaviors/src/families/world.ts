@@ -38,14 +38,14 @@ export const liquidFamily = defineFamily(
                 world.dropItem(event.block.position, { identifier: bucketOf(liquid), count: 1 });
                 world.playSound(event.block.position, `bucket.fill_${liquid}`);
                 world.notifyNeighbors(event.block.position);
-                return true;
+                return { consumed: true, consumesHeldItem: true };
             }
 
             if (liquid === 'water' && isGlassBottle(event.itemStack)) {
                 // A bottle scoops water without taking the source with it.
                 world.dropItem(event.block.position, { identifier: 'minecraft:potion', count: 1 });
                 world.playSound(event.block.position, 'bucket.fill_water');
-                return true;
+                return { consumed: true, consumesHeldItem: true };
             }
 
             return undefined;
