@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createMarkdownRenderer } from 'vitepress';
@@ -9,6 +9,8 @@ const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..'
 const changelog = path.join(repoRoot, 'packages', 'prismarine', 'CHANGELOG.md');
 /** Releases shown in full on the page; older ones are linked on GitHub. */
 const SHOWN_RELEASES = 6;
+/** Versions read for the landing page's release line, patches included, so it has feature releases to show. */
+const HISTORY_RELEASES = 14;
 
 /** Characters of body text after a note's lead sentence beyond which the body folds behind "Details". */
 const FOLD_AFTER = 360;
@@ -38,11 +40,34 @@ export interface Release {
     dependencyUpdates: number;
 }
 
+/** A release in brief, for the landing page's release line: enough to draw a stop and say what it brought. */
+export interface ReleaseSummary {
+    version: string;
+    /** The day the release was tagged, when the checkout has its tag. */
+    date?: string;
+    kind: Release['kind'];
+    /** How many changes the release holds, dependency bumps aside. */
+    changes: number;
+    /** How many of those break or remove something. */
+    breaking: number;
+    dependencyUpdates: number;
+    /** The first sentences of its first changes. */
+    highlights: string[];
+    /** Whether the releases page shows this release in full, so a link can point at it there. */
+    shownInFull: boolean;
+}
+
 export interface ReleaseData {
     releases: Release[];
+    /** The newest versions in brief, newest first, reaching further back than `releases` does. */
+    history: ReleaseSummary[];
     /** Every version in the changelog, including those not shown in full. */
     totalReleases: number;
     changelogUrl: string;
+    /** Changesets merged since the newest release that name the server: what the next release holds so far. */
+    pending: number;
+    /** Where those waiting changesets can be read. */
+    pendingUrl: string;
 }
 
 const COMMIT = /\[`([0-9a-f]{7})`\]\((https:\/\/github\.com\/[^)]+\/commit\/[0-9a-f]+)\)/;
@@ -55,6 +80,17 @@ function repositoryUrl() {
         readFileSync(path.join(repoRoot, 'package.json'), 'utf8')
     );
     return manifest.repository.url.replace(/^git\+/, '').replace(/\.git$/, '');
+}
+
+/** Counts the changesets waiting for a release whose front matter names the server package. */
+function pendingChangesets() {
+    const directory = path.join(repoRoot, '.changeset');
+    return readdirSync(directory)
+        .filter((file) => file.endsWith('.md') && file !== 'README.md')
+        .filter((file) => {
+            const frontMatter = readFileSync(path.join(directory, file), 'utf8').split('---')[1] ?? '';
+            return frontMatter.includes('@jsprismarine/prismarine');
+        }).length;
 }
 
 /** Reads the tag date of each server release; a shallow checkout without tags yields none. */
@@ -104,7 +140,7 @@ async function load(): Promise<ReleaseData> {
     const dates = tagDates();
     const versions = source.split(/^## /m).slice(1);
 
-    const releases = versions.slice(0, SHOWN_RELEASES).map((block): Release => {
+    const parsed = versions.slice(0, Math.max(SHOWN_RELEASES, HISTORY_RELEASES)).map((block): Release => {
         const [heading, ...rest] = block.split('\n');
         const version = heading.trim();
         const release: Release = {
@@ -143,8 +179,26 @@ async function load(): Promise<ReleaseData> {
         return release;
     });
 
+    const releases = parsed.slice(0, SHOWN_RELEASES);
+    const history = parsed.map((release, index): ReleaseSummary => {
+        const changes = [...release.major, ...release.minor, ...release.patch];
+        return {
+            version: release.version,
+            date: release.date,
+            kind: release.kind,
+            changes: changes.length,
+            breaking: changes.filter((change) => change.breaking).length,
+            dependencyUpdates: release.dependencyUpdates,
+            highlights: changes.slice(0, 3).map((change) => change.summary),
+            shownInFull: index < SHOWN_RELEASES
+        };
+    });
+
     return {
         releases,
+        history,
+        pending: pendingChangesets(),
+        pendingUrl: `${repositoryUrl()}/tree/master/.changeset`,
         totalReleases: versions.length,
         changelogUrl: `${repositoryUrl()}/blob/master/${path.relative(repoRoot, changelog).split(path.sep).join('/')}`
     };
@@ -188,6 +242,6 @@ function markChange(html: string) {
 }
 
 export default {
-    watch: ['../../../packages/prismarine/CHANGELOG.md'],
+    watch: ['../../../packages/prismarine/CHANGELOG.md', '../../../.changeset/*.md'],
     load
 };

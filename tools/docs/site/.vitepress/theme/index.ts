@@ -13,7 +13,9 @@ import LatestRelease from './components/LatestRelease.vue';
 import PackageDirectory from './components/PackageDirectory.vue';
 import ParityBars from './components/ParityBars.vue';
 import PassingLand from './components/PassingLand.vue';
+import ReleaseLine from './components/ReleaseLine.vue';
 import ReleaseNotes from './components/ReleaseNotes.vue';
+import RouteLine from './components/RouteLine.vue';
 import PrismMark from './components/PrismMark.vue';
 import TerminalWindow from './components/TerminalWindow.vue';
 import Ticker from './components/Ticker.vue';
@@ -36,7 +38,9 @@ const brandComponents = {
     ParityBars,
     PassingLand,
     PrismMark,
+    ReleaseLine,
     ReleaseNotes,
+    RouteLine,
     TerminalWindow,
     Ticker,
     WindowBlind

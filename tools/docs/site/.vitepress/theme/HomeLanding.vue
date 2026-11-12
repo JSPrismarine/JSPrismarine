@@ -9,9 +9,9 @@ import BentoTile from './components/BentoTile.vue';
 import BrandButton from './components/BrandButton.vue';
 import CopyButton from './components/CopyButton.vue';
 import DemoServer from './components/DemoServer.vue';
-import LatestRelease from './components/LatestRelease.vue';
 import ParityBars from './components/ParityBars.vue';
 import PrismMark from './components/PrismMark.vue';
+import ReleaseLine from './components/ReleaseLine.vue';
 import TerminalWindow from './components/TerminalWindow.vue';
 import Ticker from './components/Ticker.vue';
 import {
@@ -162,8 +162,17 @@ const startCommand = `chmod +x ${executable}\n./${executable}`;
                 </p>
                 <ParityBars />
             </BentoTile>
-            <BentoTile v-if="releases.releases[0]" tone="accent" :span="6">
-                <LatestRelease :release="releases.releases[0]" />
+            <BentoTile v-if="releases.releases[0]" tone="deep" :span="6">
+                <p class="bento-caption">
+                    <b>Ride the releases</b>Each stop is a release, sized by how much it changed. Pick one to read what
+                    it brought. <a :href="withBase('/releases')">All release notes</a>
+                </p>
+                <ReleaseLine
+                    :history="releases.history"
+                    :changelog-url="releases.changelogUrl"
+                    :pending="releases.pending"
+                    :pending-url="releases.pendingUrl"
+                />
             </BentoTile>
         </BentoGrid>
 
