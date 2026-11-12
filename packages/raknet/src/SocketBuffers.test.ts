@@ -32,7 +32,7 @@ describe('configureSocketBuffers', () => {
         expect(effective.sendBufferSize).toBe(boundSocket.getSendBufferSize());
         expect(effective.recvBufferSize).toBeGreaterThan(0);
         expect(effective.sendBufferSize).toBeGreaterThan(0);
-        expect(logger.info).toHaveBeenCalledWith(expect.stringContaining('effective recv='), 'test');
+        expect(logger.verbose).toHaveBeenCalledWith(expect.stringContaining('effective recv='), 'test');
     });
 
     it('logs a buffer request rejected by the operating system and reports actual sizes', () => {
@@ -58,7 +58,7 @@ describe('configureSocketBuffers', () => {
             'Could not set the receive buffer, error=unsupported',
             'RakNet/SocketBuffers/setRecvBufferSize requested=4096'
         );
-        expect(logger.info).toHaveBeenCalledWith(
+        expect(logger.verbose).toHaveBeenCalledWith(
             expect.stringContaining('effective recv=1024 send=2048'),
             'RakNet/SocketBuffers'
         );
