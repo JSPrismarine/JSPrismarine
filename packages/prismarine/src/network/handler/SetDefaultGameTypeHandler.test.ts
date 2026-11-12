@@ -11,11 +11,13 @@ import type PlayerSession from '../PlayerSession';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import SetDefaultGameTypePacket from '@jsprismarine/protocol/packet/SetDefaultGameTypePacket';
 import type { HandlerServices } from './HandlerContext';
+import type { World } from '../../world/World';
+import { WorldMessages } from '../../world/WorldMessages';
 import SetDefaultGameTypeHandler from './SetDefaultGameTypeHandler';
 
 /**
- * A server holding Survival as its default, with the requesting player and one other online.
- * Everything a packet handler may send is captured per player.
+ * A server holding Survival as its default, with the requesting player in the Overworld and one
+ * other in the Nether. Everything a packet handler may send is captured per player.
  */
 const fakeServer = ({ op, saveFails = false }: { op: boolean; saveFails?: boolean }) => {
     const logged: string[] = [];
@@ -25,21 +27,36 @@ const fakeServer = ({ op, saveFails = false }: { op: boolean; saveFails?: boolea
     let configured = 'Survival';
 
     const ops = new Set<string>();
-    const fakePlayer = (name: string, uuid: string, isOp: boolean) => {
+    /** A world whose input step applies a message as it is, recording that it ran there. */
+    const worldNamed = (name: string) =>
+        stub<World>({
+            getName: () => name,
+            runInput: async (apply) => {
+                inputs.push(name);
+                await apply();
+            }
+        });
+    /** The worlds a message was applied in, in order. */
+    const inputs: string[] = [];
+    const overworld = worldNamed('overworld');
+    const nether = worldNamed('nether');
+    const messages = new WorldMessages((error) => void logged.push(String(error)));
+    const fakePlayer = (name: string, uuid: string, isOp: boolean, world: World) => {
         const packets: NetworkPacket[] = [];
         sent.set(name, packets);
         const session = stub<PlayerSession>({
             identity: identityNamed(name, uuid),
             getConnection: () =>
                 stub<ClientConnection>({ sendDataPacket: async (packet) => void packets.push(packet) }),
+            getWorld: () => world,
             setGamemode: async (mode?: Gametype) => void applied.push([name, mode])
         });
         if (isOp) ops.add(uuid);
         return { player: session, session };
     };
 
-    const requester = fakePlayer('Steve', '00000000-0000-0000-0000-000000000001', op);
-    const other = fakePlayer('Alex', '00000000-0000-0000-0000-000000000002', false);
+    const requester = fakePlayer('Steve', '00000000-0000-0000-0000-000000000001', op, overworld);
+    const other = fakePlayer('Alex', '00000000-0000-0000-0000-000000000002', false, nether);
 
     const parts = {
         log: stub<Logger>({
@@ -57,7 +74,8 @@ const fakeServer = ({ op, saveFails = false }: { op: boolean; saveFails?: boolea
                 }
             }),
             sessions: stub<HandlerServices['sessions']>({ getSessions: () => [requester.session, other.session] }),
-            permissions: stub<HandlerServices['permissions']>({ isOp: (uuid) => ops.has(uuid) })
+            permissions: stub<HandlerServices['permissions']>({ isOp: (uuid) => ops.has(uuid) }),
+            messages
         }
     };
 
@@ -70,7 +88,7 @@ const fakeServer = ({ op, saveFails = false }: { op: boolean; saveFails?: boolea
         return handed;
     };
 
-    return { logged, applied, committed, sent, handle };
+    return { logged, applied, committed, sent, handle, messages, inputs };
 };
 
 const request = (gamemode: Gametype): SetDefaultGameTypePacket =>
@@ -84,9 +102,10 @@ const defaults = (packets: NetworkPacket[] | undefined): Gametype[] =>
 
 describe('SetDefaultGameTypeHandler', () => {
     it('applies an operator request to the config and every player, then tells every client', async () => {
-        const { applied, committed, sent, handle } = fakeServer({ op: true });
+        const { applied, committed, sent, handle, messages } = fakeServer({ op: true });
 
         await handle(request(Gametype.CREATIVE));
+        await messages.admit();
 
         expect(committed).toEqual([[Gametype.CREATIVE, true]]);
         expect(applied).toEqual([
@@ -97,19 +116,33 @@ describe('SetDefaultGameTypeHandler', () => {
         expect(defaults(sent.get('Alex'))).toEqual([Gametype.CREATIVE]);
     });
 
-    it('changes the default before it returns and defers moving the players onto it', async () => {
-        const { committed, handle } = fakeServer({ op: true });
+    it("moves the sender's world in the handler and sends every other world a message for its input step", async () => {
+        const { applied, committed, sent, handle, messages, inputs } = fakeServer({ op: true });
 
         const handed = await handle(request(Gametype.CREATIVE));
 
-        expect(handed).toEqual({ returned: undefined, outputs: 0, deferred: 1, applied: 0 });
+        // Nothing deferred: Steve's world changes in the handler's unit, with the sends handed
+        // to the step, and Alex in the Nether is untouched until a message is applied there.
+        expect(handed).toEqual({ returned: undefined, outputs: 1, deferred: 0, applied: 1 });
         expect(committed).toEqual([[Gametype.CREATIVE, true]]);
+        expect(applied).toEqual([['Steve', Gametype.CREATIVE]]);
+        expect(sent.get('Alex')).toEqual([]);
+        expect(messages.size).toBe(1);
+
+        expect(await messages.admit()).toBe(1);
+        expect(inputs).toEqual(['nether']);
+        expect(applied).toEqual([
+            ['Steve', Gametype.CREATIVE],
+            ['Alex', Gametype.CREATIVE]
+        ]);
+        expect(defaults(sent.get('Alex'))).toEqual([Gametype.CREATIVE]);
     });
 
     it('logs a default it could not save and still moves the players onto it', async () => {
-        const { applied, logged, handle } = fakeServer({ op: true, saveFails: true });
+        const { applied, logged, handle, messages } = fakeServer({ op: true, saveFails: true });
 
         await handle(request(Gametype.CREATIVE));
+        await messages.admit();
 
         expect(logged).toEqual([`Could not save the default game type ${Gametype.CREATIVE}: Error: disk full`]);
         expect(applied).toHaveLength(2);
