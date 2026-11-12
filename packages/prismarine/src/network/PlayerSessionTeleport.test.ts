@@ -92,6 +92,15 @@ describe('PlayerSession after a teleport', () => {
         expect(session.holdsMovementForTeleport(new Vector3(101.5, 64, 101.5), false)).toBe(false);
     });
 
+    it('holds an input at the target that does not carry the flag', async () => {
+        // Only the flag ends the hold before the timeout: a position alone cannot tell a client
+        // that applied the teleport from one that walked to the same place.
+        const { session, teleport } = arrange();
+        await teleport(101.5, 101.5);
+
+        expect(session.holdsMovementForTeleport(new Vector3(101.5, 64, 101.5), false)).toBe(true);
+    });
+
     it('holds nothing after a move that is not a teleport', async () => {
         const { session, mover } = arrange();
         await session.sendMove(mover, PositionMode.Normal);

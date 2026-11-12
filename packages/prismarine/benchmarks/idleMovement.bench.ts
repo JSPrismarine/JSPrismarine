@@ -10,8 +10,8 @@ import type ClientConnection from '../src/network/ClientConnection';
 import type PlayerSession from '../src/network/PlayerSession';
 import Codec2193 from '../src/network/codec/Codec2193';
 import { NetworkWorldReplicator } from '../src/network/NetworkWorldReplicator';
-import { applyClientMovement } from '../src/network/handler/MovePlayerHandler';
-import type { MovementContext } from '../src/network/handler/MovePlayerHandler';
+import { applyClientMovement } from '../src/network/handler/PlayerAuthInputHandler';
+import type { MovementContext } from '../src/network/handler/PlayerAuthInputHandler';
 import { stub } from '../src/testing/stub.test.helper';
 import { Position } from '../src/world/Position';
 import type { World } from '../src/world/World';
@@ -38,7 +38,8 @@ const pose = {
     pitch: 3.5,
     yaw: 165.25,
     headYaw: 164.5,
-    onGround: true
+    onGround: true,
+    handledTeleport: false
 };
 /** The moving player's actor, which is what replication shows. */
 const moverBody = stub<StorePlayerActor>({
@@ -130,7 +131,8 @@ const movement = {
     pitch: 3.5,
     yaw: 165.25,
     headYaw: 164.5,
-    onGround: true
+    onGround: true,
+    handledTeleport: false
 };
 
 const started = performance.now();

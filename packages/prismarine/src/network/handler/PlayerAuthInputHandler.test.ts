@@ -17,6 +17,7 @@ import { describe, expect, it, vi } from 'vitest';
 import type { EntityRuntime } from '../../entity/data/EntityRuntime';
 import type { LiveEntityRuntime } from '../../entity/data/live';
 import { PlayerComponents } from '../../entity/playerComponents';
+import type { StorePlayer } from '../../entity/storePlayer';
 import type { Block } from '../../block/Block';
 import type HumanInventory from '../../inventory/HumanInventory';
 import { Item } from '../../item/Item';
@@ -24,6 +25,7 @@ import { inputContext } from '../../testing/handlerContext.test.helper';
 import { identityNamed } from '../../testing/sessionIdentity.test.helper';
 import { stubPlayerPort } from '../../testing/playerPort.test.helper';
 import { stub } from '../../testing/stub.test.helper';
+import type { ShownActor } from '../../world/ShownActor';
 import type { ShownPlayer } from '../../world/ShownPlayer';
 import BlockPosition from '../../world/BlockPosition';
 import { Position } from '../../world/Position';
@@ -31,18 +33,19 @@ import type { World } from '../../world/World';
 import type Chunk from '../../world/chunk/Chunk';
 import type PlayerSession from '../PlayerSession';
 import type { Arrival } from '../PlayerSession';
+import type { HandlerServices } from './HandlerContext';
 import Codec2193 from '../codec/Codec2193';
 import type { ServerAuthInputItemUse, ServerPlayerAuthInput } from '../PlayerAuthInputAdapter';
 import { playerAuthInputFromProtocol, playerAuthInputToProtocol } from '../PlayerAuthInputAdapter';
 import InventoryTransactionHandler from './InventoryTransactionHandler';
-import PlayerAuthInputHandler, { rejectionReason } from './PlayerAuthInputHandler';
+import PlayerAuthInputHandler, { applyClientMovement, rejectionReason } from './PlayerAuthInputHandler';
 
 /**
  * A session whose player records what is done to it, and a server that posts nothing.
  *
  * Only what the handler touches is faked, and the movement path goes through the real
  * `applyClientMovement`: the point of these tests is that an input packet reaches the same
- * code a `MovePlayerPacket` does, and the same code a `PlayerActionPacket` does.
+ * code a `PlayerActionPacket` does.
  */
 const fake = ({ serverAuthoritativeBreaking = false, changingDimension = false, awaitingTeleport = false } = {}) => {
     const calls: string[] = [];
@@ -200,6 +203,68 @@ const blockPlacement = (): ServerAuthInputItemUse => ({
 });
 
 describe('PlayerAuthInputHandler', () => {
+    it('keeps posting movement events but queues movement only for changed poses', async () => {
+        const world = stub<World>({
+            getViewers: () => [],
+            broadcastMove: vi.fn(async () => {})
+        });
+        const pose = {
+            position: new Position(0, 64, 0, world),
+            pitch: 0,
+            yaw: 0,
+            headYaw: 0,
+            onGround: false
+        };
+        const store = stub<StorePlayer>({ getPosition: () => pose.position, isOnGround: () => pose.onGround });
+        Object.defineProperties(store, {
+            pitch: { get: () => pose.pitch },
+            yaw: { get: () => pose.yaw },
+            headYaw: { get: () => pose.headYaw }
+        });
+        const actor = stub<ShownActor>({});
+        const session = stub<PlayerSession>({
+            runtimeId: 7n,
+            identity: identityNamed('tester'),
+            getPlayer: () => store,
+            getWorld: () => world,
+            getViewPosition: () => pose.position,
+            shown: () => stub<ShownPlayer>({}),
+            setPlayerPosition: vi.fn(async ({ position, pitch, yaw, headYaw }) => {
+                pose.position = new Position(position.getX(), position.getY(), position.getZ(), world);
+                pose.pitch = pitch ?? pose.pitch;
+                pose.yaw = yaw ?? pose.yaw;
+                pose.headYaw = headYaw ?? pose.headYaw;
+                await world.broadcastMove(actor);
+            }),
+            setOnGround: vi.fn((onGround: boolean) => void (pose.onGround = onGround)),
+            holdsMovementForTeleport: () => false
+        });
+        let events = 0;
+        const { context, settled } = inputContext(session, {
+            services: { events: stub<HandlerServices['events']>({ post: () => ++events }) }
+        });
+        const movement = {
+            position: new Vector3(3, 70, -4),
+            pitch: 5,
+            yaw: 90,
+            headYaw: 85,
+            onGround: true,
+            handledTeleport: false
+        };
+
+        applyClientMovement(context, movement);
+        applyClientMovement(context, movement);
+        applyClientMovement(context, { ...movement, yaw: 91 });
+        applyClientMovement(context, { ...movement, yaw: 91, onGround: false });
+        await settled();
+
+        expect(events).toBe(4);
+        expect(session.setPlayerPosition).toHaveBeenCalledTimes(2);
+        expect(session.setOnGround).toHaveBeenCalledTimes(2);
+        // Position plus landing queues twice; the tick replicator coalesces both into the final pose.
+        expect(world.broadcastMove).toHaveBeenCalledTimes(4);
+    });
+
     it('moves the player to where the input says they are', async () => {
         const scene = fake();
         const { calls, session } = scene;

@@ -270,6 +270,14 @@ the server repeats the teleport.
 
 ## Recommendation
 
+**Decided, 2026-11-12:** the server takes no movement from a client's `MovePlayer`, and the rule
+below was not kept. No client of a supported protocol moves with the packet, and Mojang's docs name
+`PlayerAuthInput`'s predicted vehicle as the server-bound equivalent of the one field a vehicle rider
+filled in, so not even the `OnlyHeadRot` case remains. A rule kept for the bot harness alone was
+not worth its cost. `MovePlayerHandler` drops the packet with a debug line, the teleport hold keeps
+its one rule (the `HandledTeleport` input flag at the target, or the timeout), and the bot moves with
+`PlayerAuthInput` and adopts the teleports it is sent (#3041).
+
 ### Options weighed
 
 1. **Release on a `MovePlayer` near the target.** This is the rule of every server that saw
