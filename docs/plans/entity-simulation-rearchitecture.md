@@ -1108,6 +1108,16 @@ E2b left these notes.
 - Left for E4, updated: `admit` still awaits `changeWorld` for each move and trip, which saves the player record and awaits its sends, and `transfer` awaits the `playerChangeDimension` event and `startCredits`' send. A trip out of the End awaits the respawn search for a player and `getSpawnPosition` for anything else. `touch` awaits `entityPortalEnter`. `WorldMessages.admit` awaits each message's sends, and `completeDimensionChange`'s output awaits `overworldSpawnOf`, which reads the level's spawn and builds the Overworld only before it has one. `spawnTarget` searches a spawn outside the tick, and that search writes the world's spawn between ticks. `outsideTick` becomes a call that clears the tick flag once the tick is synchronous. `WorldManager.worldFor` still awaits a build and has no production caller left.
 - Checks at this head, on `1559b5ec5f`: `pnpm run typecheck`, `pnpm run lint:custom` and `pnpm run lint` pass. The Prismarine suite with `JSP_CONTENT_VANILLA=1` passes, 442 files and 4496 tests, with 2 files and 10 tests skipped. The parity and client suites pass, 69 files and 399 tests, `SessionReplay.test.ts` and `protocol.dimension-change` included. Client e2e `dimensions` alone, then `spawn`, `rejoin`, `death-respawn`, `spawnpoint-respawn`, `ender-dragon`, `teleport` and `chat` pass.
 
+##### E3
+
+E3 is too large for one pass, so it runs as three parts, in this order. Each part removes its own `IN_TICK_CHUNK_LOADS` entry.
+
+| Part | Work | Removes |
+| --- | --- | --- |
+| E3a | Chunk tickets on `World`: a ticket starts the loads it lacks outside the tick, so each chunk enters at an input step, and keeps its chunks from unloading until released. The dragon fight waits for its arena, for the chunks its death consequences write and for each pillar it resets | The dragon fight entry |
+| E3b | The respawn search reads loaded chunks only. An attempt that lacks a chunk takes a ticket and waits, and `RespawnRequests` tries it again at each input step. The death, the `Respawn` handler and the respawn action file requests | The respawn search entry, and the two respawn `step.defer` calls |
+| E3c | `World.setBlockRuntimeId`, `setBlockByName` and `breakBlock` write into loaded chunks only, and `breakBlock` writes before it first waits | The `World.setBlockRuntimeId` entry, and the three block action `step.defer` calls |
+
 ### Phase F: cleanup
 
 | Package | Slice | Depends on | Work                                                       |
