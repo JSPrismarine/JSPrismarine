@@ -5,13 +5,14 @@ name: Client E2E
 # Every job runs on GitHub's `ubuntu-latest`. The runner has no GPU, so the client draws through
 # Mesa's software Vulkan driver (lavapipe) into a hidden window on a virtual X display (Xvfb);
 # cinnabar accepts a CPU adapter when it is the only one. The client build is slow, so it runs
-# once per pin in cinnabar-build, only for the pins the `changes` job found no cache entry for. When
-# every pin is cached, no build job starts and client-e2e goes straight to the scenarios, restoring
-# that entry, so a run only boots the server, joins, and plays.
+# once per pinned commit in cinnabar-build, only for the commits the `changes` job found no cache
+# entry for. When every build is cached, no build job starts and client-e2e goes straight to the
+# scenarios, restoring that entry, so a run only boots the server, joins, and plays.
 #
-# tools/client-e2e/cinnabar.json pins a client per protocol and transport. A NetherNet pin runs the
-# scenarios against a server with RakNet off, since Bedrock 1.26.60 joins over NetherNet only. Its
-# pin is a cinnabar development commit, and its build and e2e jobs gate the run like any other pin's.
+# tools/client-e2e/cinnabar.json pins one cinnabar commit per protocol and lists the transports it
+# runs over. client-e2e runs once per protocol and transport, and every run of a commit restores the
+# same build. A NetherNet run plays against a server with RakNet off, since Bedrock 1.26.60 joins
+# over NetherNet only.
 #
 # The workflow runs on every push and pull request so the `✅ Client E2E` job always reports: it is
 # the one branch rules require. A change that touches no package code or dependencies (docs, the
@@ -132,8 +133,9 @@ jobs:
             # scenarios. They are read here, not in a job of their own, which would wait for a
             # second runner before the first build or scenario could start.
             #
-            # One entry per cinnabar pin of a served protocol: { protocol, transport, commit, name },
-            # where `name` is what the pin's caches go by (v2225, v2225-nethernet).
+            # One entry per declared transport of a served protocol:
+            # { protocol, transport, commit, name, build }, where `name` labels the run (v2225,
+            # v2225-nethernet) and `build` is the commit's cache directory, shared by its runs.
             - name: Set matrix from the cinnabar pins
               id: matrix
               if: ${{ github.event_name == 'workflow_dispatch' || (steps.filter.outputs.code == 'true' && steps.select.outputs.mode != 'none') }}
@@ -145,14 +147,13 @@ jobs:
                   if [ "$LATEST_ONLY" = true ]; then latest=(--latest-only); fi
                   pins="$(node tools/client-e2e/src/pin-matrix.mts "${latest[@]}")"
                   echo "pins=$pins" >> "$GITHUB_OUTPUT"
-                  # The pin that keeps cinnabar's compiled dependencies: the newest protocol's first,
-                  # which is its RakNet pin when it has one.
-                  echo "latest=$(jq -r 'max_by(.protocol).protocol as $newest | map(select(.protocol == $newest))[0].name' <<< "$pins")" >> "$GITHUB_OUTPUT"
+                  # The build that keeps cinnabar's compiled dependencies: the newest protocol's.
+                  echo "latest=$(jq -r 'max_by(.protocol).build' <<< "$pins")" >> "$GITHUB_OUTPUT"
                   echo "scenarios=$SCENARIOS" >> "$GITHUB_OUTPUT"
 
             # A run can restore entries saved on its own ref or on master. The key matches the one
             # cinnabar-build writes, whose `runner.os` is `Linux`.
-            - name: Find the pins without a cached client build
+            - name: Find the builds without a cache entry
               id: builds
               if: ${{ github.event_name == 'workflow_dispatch' || (steps.filter.outputs.code == 'true' && steps.select.outputs.mode != 'none') }}
               env:
@@ -161,7 +162,7 @@ jobs:
               run: |
                   missing=()
                   while read -r name commit; do
-                      key="Linux-cinnabar-${name}-${commit}"
+                      key="Linux-cinnabar-build-${commit}"
                       found=false
                       for ref in "$GITHUB_REF" refs/heads/master; do
                           if gh api "repos/$GITHUB_REPOSITORY/actions/caches?ref=$ref&key=$key" |
@@ -172,11 +173,12 @@ jobs:
                       done
                       echo "$name ($key): cached=$found"
                       if [ "$found" = false ]; then missing+=("$name"); fi
-                  done < <(jq -r '.[] | "\(.name) \(.commit)"' <<< "$PINS")
-                  echo "build=$(jq -c --args '$ARGS.positional as $missing | map(select(.name | IN($missing[])))' "${missing[@]}" <<< "$PINS")" >> "$GITHUB_OUTPUT"
+                  done < <(jq -r 'unique_by(.build)[] | "\(.build) \(.commit)"' <<< "$PINS")
+                  # One entry per build: the first run that uses it, which `ensure` builds for.
+                  echo "build=$(jq -c --args '$ARGS.positional as $missing | unique_by(.build) | map(select(.build | IN($missing[])))' "${missing[@]}" <<< "$PINS")" >> "$GITHUB_OUTPUT"
 
     cinnabar-build:
-        name: 🔨 Build cinnabar client (${{ matrix.pin.name }})
+        name: 🔨 Build cinnabar client (${{ matrix.pin.build }})
         needs: changes
         if: ${{ needs.changes.outputs.code == 'true' && needs.changes.outputs.build != '[]' }}
         strategy:
@@ -189,21 +191,23 @@ jobs:
         timeout-minutes: 180
         permissions:
             contents: read
-            # Lets the last step delete the builds of pins this one replaced.
+            # Lets the last step delete the builds of commits no protocol pins any more.
             actions: write
         steps:
             - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
-            # One entry per pin and commit, so bumping one pin leaves the others cached. The
-            # compiled dependencies are keyed the same way in an entry of their own.
+            # One entry per commit, so bumping one protocol's pin leaves the others cached, and every
+            # protocol and transport that pins a commit shares its entry. The compiled dependencies
+            # are keyed by protocol and commit in an entry of their own, so a bump restores its
+            # protocol's previous ones first.
             - name: Resolve the cache key
               id: pin
               env:
-                  NAME: ${{ matrix.pin.name }}
+                  PROTOCOL: ${{ matrix.pin.protocol }}
                   COMMIT: ${{ matrix.pin.commit }}
               run: |
-                  echo "key=${RUNNER_OS}-cinnabar-${NAME}-${COMMIT}" >> "$GITHUB_OUTPUT"
-                  echo "deps-key=${RUNNER_OS}-cinnabar-deps-${NAME}-${COMMIT}" >> "$GITHUB_OUTPUT"
+                  echo "key=${RUNNER_OS}-cinnabar-build-${COMMIT}" >> "$GITHUB_OUTPUT"
+                  echo "deps-key=${RUNNER_OS}-cinnabar-deps-v${PROTOCOL}-${COMMIT}" >> "$GITHUB_OUTPUT"
 
             # Only look the entry up: a hit means the build is done, and the e2e job downloads it.
             # The `changes` job already found none, so this guards against a build saved since.
@@ -211,25 +215,16 @@ jobs:
               id: cinnabar-cache
               uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
               with:
-                  path: ${{ runner.temp }}/jsprismarine/cinnabar/${{ matrix.pin.name }}
+                  path: ${{ runner.temp }}/jsprismarine/cinnabar/${{ matrix.pin.build }}
                   key: ${{ steps.pin.outputs.key }}
                   lookup-only: true
-
-            # A pin change misses the exact key but restores the previous pin's build, so cargo
-            # only recompiles what differs.
-            - name: Restore the previous pin's build
-              if: ${{ steps.cinnabar-cache.outputs.cache-hit != 'true' }}
-              uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
-              with:
-                  path: ${{ runner.temp }}/jsprismarine/cinnabar/${{ matrix.pin.name }}
-                  key: ${{ steps.pin.outputs.key }}
-                  restore-keys: |
-                      ${{ runner.os }}-cinnabar-${{ matrix.pin.name }}-
 
             # Cargo's intermediate directory from the closest earlier build: every third-party crate
             # compiled, which is most of a cold build. Cargo checks registry and git crates by hash,
             # so a pin that keeps a crate's version reuses it and compiles only what changed.
-            # Another protocol's entry still holds most of the same crates.
+            # Another protocol's entry still holds most of the same crates. Nothing restores the
+            # previous build itself, whose directory is named by another commit: these entries are
+            # what carry its work forward.
             - name: Restore the compiled dependencies
               id: deps
               if: ${{ steps.cinnabar-cache.outputs.cache-hit != 'true' }}
@@ -238,17 +233,16 @@ jobs:
                   path: ${{ runner.temp }}/jsprismarine/cinnabar-deps
                   key: ${{ steps.pin.outputs.deps-key }}
                   restore-keys: |
-                      ${{ runner.os }}-cinnabar-deps-${{ matrix.pin.name }}-
                       ${{ runner.os }}-cinnabar-deps-v${{ matrix.pin.protocol }}-
                       ${{ runner.os }}-cinnabar-deps-
 
             # A cache restores only to the path it was saved from, and the build directory's path
-            # names the protocol, so the entry lives at one path and moves into place for the build.
+            # names the commit, so the entry lives at one path and moves into place for the build.
             - name: Put the compiled dependencies in place
               if: ${{ steps.cinnabar-cache.outputs.cache-hit != 'true' }}
               env:
                   DEPS: ${{ runner.temp }}/jsprismarine/cinnabar-deps
-                  BUILD: ${{ runner.temp }}/jsprismarine/cinnabar/${{ matrix.pin.name }}/build
+                  BUILD: ${{ runner.temp }}/jsprismarine/cinnabar/${{ matrix.pin.build }}/build
               run: |
                   if [ -d "$DEPS" ] && [ ! -e "$BUILD" ]; then
                       mkdir -p "$(dirname "$BUILD")"
@@ -313,21 +307,21 @@ jobs:
               if: ${{ steps.cinnabar-cache.outputs.cache-hit != 'true' }}
               env:
                   DEPS: ${{ runner.temp }}/jsprismarine/cinnabar-deps
-                  BUILD: ${{ runner.temp }}/jsprismarine/cinnabar/${{ matrix.pin.name }}/build
+                  BUILD: ${{ runner.temp }}/jsprismarine/cinnabar/${{ matrix.pin.build }}/build
               run: |
                   rm -rf "$DEPS"
                   mv "$BUILD" "$DEPS"
                   du -sh "$DEPS"
 
-            # Saved only when this pin had no entry of its own, so an exact hit is not uploaded again,
-            # and only for the latest protocol's pin on master. An entry is 1.8 GB that only the next
+            # Saved only when this build had no entry of its own, so an exact hit is not uploaded
+            # again, and only for the latest protocol's build on master. An entry is 1.8 GB that only the next
             # build reads. Another protocol's build restores the latest one's, which holds most of
             # the same crates, and a pull request's copy would be visible to that pull request
             # alone while pushing master's entries out of the repository's 10 GB of cache.
             - name: Save the compiled dependencies
               if: >-
                   ${{ steps.cinnabar-cache.outputs.cache-hit != 'true' && steps.deps.outputs.cache-hit != 'true'
-                  && github.event_name != 'pull_request' && matrix.pin.name == needs.changes.outputs.latest }}
+                  && github.event_name != 'pull_request' && matrix.pin.build == needs.changes.outputs.latest }}
               uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
               with:
                   path: ${{ runner.temp }}/jsprismarine/cinnabar-deps
@@ -340,32 +334,37 @@ jobs:
               if: ${{ steps.cinnabar-cache.outputs.cache-hit != 'true' }}
               uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
               with:
-                  path: ${{ runner.temp }}/jsprismarine/cinnabar/${{ matrix.pin.name }}
+                  path: ${{ runner.temp }}/jsprismarine/cinnabar/${{ matrix.pin.build }}
                   key: ${{ steps.pin.outputs.key }}
 
             # A bumped pin leaves its predecessor's build and compiled dependencies behind, and enough
             # of those push the repository over its cache limit, which evicts whichever entry was
             # used least recently. Only master prunes: a pull request that dropped them would take
-            # away what other pull requests fall back to.
+            # away what other pull requests fall back to. A build stays while any protocol pins its
+            # commit, read from cinnabar.json rather than this run's matrix, which a latest-only run
+            # narrows.
             - name: Delete the builds of replaced pins
               if: ${{ github.ref == 'refs/heads/master' && github.event_name != 'pull_request' }}
               env:
                   GH_TOKEN: ${{ github.token }}
-                  NAME: ${{ matrix.pin.name }}
-                  KEY: ${{ steps.pin.outputs.key }}
-                  # Only the latest protocol's pin keeps compiled dependencies, so another deletes its own.
-                  DEPS_KEY: ${{ matrix.pin.name == needs.changes.outputs.latest && steps.pin.outputs.deps-key || 'none' }}
+                  PROTOCOL: ${{ matrix.pin.protocol }}
+                  # Only the latest protocol's build keeps compiled dependencies, so another deletes its own.
+                  DEPS_KEY: ${{ matrix.pin.build == needs.changes.outputs.latest && steps.pin.outputs.deps-key || 'none' }}
               run: |
-                  # The prefix of v2225 also starts v2225-nethernet's keys, so only a key that is the
-                  # prefix and a commit belongs to this pin.
-                  prune() {
-                      gh cache list --repo "$GITHUB_REPOSITORY" --key "$1" --limit 100 --json id,key |
-                          jq -r --arg prefix "$1" --arg keep "$2" \
-                              '.[] | select(.key != $keep and (.key | ltrimstr($prefix) | test("^[0-9a-f]{40}$"))) | .id' |
-                          while read -r id; do gh cache delete "$id" --repo "$GITHUB_REPOSITORY"; done
-                  }
-                  prune "${RUNNER_OS}-cinnabar-${NAME}-" "$KEY"
-                  prune "${RUNNER_OS}-cinnabar-deps-${NAME}-" "$DEPS_KEY"
+                  pinned="$(jq -c '[.versions[].commit]' tools/client-e2e/cinnabar.json)"
+                  delete() { while read -r id; do gh cache delete "$id" --repo "$GITHUB_REPOSITORY"; done; }
+                  prefix="${RUNNER_OS}-cinnabar-build-"
+                  gh cache list --repo "$GITHUB_REPOSITORY" --key "$prefix" --limit 100 --json id,key |
+                      jq -r --arg prefix "$prefix" --argjson pinned "$pinned" \
+                          '.[] | (.key | ltrimstr($prefix)) as $commit
+                              | select(($commit | test("^[0-9a-f]{40}$")) and ($pinned | index($commit) | not)) | .id' |
+                      delete
+                  # Only a key that is the prefix and a commit belongs to this protocol.
+                  prefix="${RUNNER_OS}-cinnabar-deps-v${PROTOCOL}-"
+                  gh cache list --repo "$GITHUB_REPOSITORY" --key "$prefix" --limit 100 --json id,key |
+                      jq -r --arg prefix "$prefix" --arg keep "$DEPS_KEY" \
+                          '.[] | select(.key != $keep and (.key | ltrimstr($prefix) | test("^[0-9a-f]{40}$"))) | .id' |
+                      delete
 
     # cinnabar-build still runs on a push that reuses the pull request's results: a pull request's
     # cache entries are invisible to master, so this is where a new pin's build reaches master.
@@ -373,7 +372,7 @@ jobs:
         name: >-
             🎮 Client E2E (protocol ${{ matrix.pin.protocol }}${{ matrix.pin.transport == 'nethernet' && ', NetherNet' || '' }})
         needs: [changes, cinnabar-build]
-        # A skipped cinnabar-build means every pin was already cached.
+        # A skipped cinnabar-build means every build was already cached.
         if: >-
             ${{ !cancelled() && needs.changes.result == 'success' && needs.changes.outputs.code == 'true'
             && (needs.cinnabar-build.result == 'success' || needs.cinnabar-build.result == 'skipped')
@@ -446,8 +445,8 @@ jobs:
             - name: Restore the cinnabar build
               uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
               with:
-                  path: ${{ runner.temp }}/jsprismarine/cinnabar/${{ matrix.pin.name }}
-                  key: ${{ runner.os }}-cinnabar-${{ matrix.pin.name }}-${{ matrix.pin.commit }}
+                  path: ${{ runner.temp }}/jsprismarine/cinnabar/${{ matrix.pin.build }}
+                  key: ${{ runner.os }}-cinnabar-build-${{ matrix.pin.commit }}
                   fail-on-cache-miss: true
 
             # A suite is one server and one client, and with no GPU the client renders on the CPU, so
@@ -518,14 +517,14 @@ jobs:
             - name: 🔎 Show the client logs
               if: ${{ failure() }}
               run: |
-                  for log in "$RUNNER_TEMP"/jsprismarine/cinnabar/"$NAME"/*/repo/.local/developer-control/logs/*.log; do
+                  for log in "$RUNNER_TEMP"/jsprismarine/cinnabar/"$BUILD"/repo/.local/developer-control/logs/*.log; do
                       [ -f "$log" ] || continue
                       echo "::group::$(basename "$log")"
                       tail -n 80 "$log"
                       echo "::endgroup::"
                   done
               env:
-                  NAME: ${{ matrix.pin.name }}
+                  BUILD: ${{ matrix.pin.build }}
 
             - name: 📤 Upload evidence
               if: ${{ !cancelled() }}
@@ -534,7 +533,7 @@ jobs:
                   name: client-e2e-evidence-${{ matrix.pin.name }}
                   path: |
                       ${{ runner.temp }}/client-e2e
-                      ${{ runner.temp }}/jsprismarine/cinnabar/${{ matrix.pin.name }}/*/repo/.local/developer-control/logs
+                      ${{ runner.temp }}/jsprismarine/cinnabar/${{ matrix.pin.build }}/repo/.local/developer-control/logs
                   if-no-files-found: warn
 
     # The check branch rules require. A matrix job's name depends on its protocols, and a skipped

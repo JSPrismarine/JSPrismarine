@@ -25,7 +25,7 @@ message rather than forcing a join.
 pnpm run e2e:client                      # every scenario
 pnpm run e2e:client movement            # a selection
 pnpm run e2e:client -- --record         # also record the run as MP4
-pnpm run e2e:client -- --protocol 2225 --transport nethernet   # the NetherNet pin, RakNet off
+pnpm run e2e:client -- --protocol 2225 --transport nethernet   # over NetherNet, RakNet off
 ```
 
 The runner boots a scratch flat-world server with `online-mode` off, joins it headlessly, runs
@@ -35,10 +35,10 @@ behavior, add a scenario for it: see "Adding a scenario" in
 [`tools/client-e2e/README.md`](../../../tools/client-e2e/README.md).
 
 CI runs the same suite on macOS through `.github/workflows/client-e2e.yml` for pull requests
-touching the wire or gameplay packages, with the cinnabar build cached on the pin and the
+touching the wire or gameplay packages, with each pinned commit's cinnabar build cached once and the
 artifacts uploaded as `client-e2e-evidence`. A red Client E2E check means a real client failed
-against the PR's server; read the job summary table and the uploaded artifacts first. The
-NetherNet entry pins a cinnabar development commit and fails the run like any other entry.
+against the PR's server; read the job summary table and the uploaded artifacts first. Every
+transport a protocol's entry lists runs and gates the check.
 
 ## Driving the client interactively
 

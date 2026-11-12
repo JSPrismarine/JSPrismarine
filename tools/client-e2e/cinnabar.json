@@ -2,13 +2,12 @@
     "repository": "https://github.com/cinnabar-mc/cinnabar.git",
     "versions": {
         "2193": {
-            "commit": "485c24673e9df7ba31a6788e24797cbc4a18c2a5"
+            "commit": "485c24673e9df7ba31a6788e24797cbc4a18c2a5",
+            "transports": ["raknet"]
         },
         "2225": {
             "commit": "ae1c2073fc3bda1be7ce4a014acc080c6e31ecd5",
-            "nethernet": {
-                "commit": "ae1c2073fc3bda1be7ce4a014acc080c6e31ecd5"
-            }
+            "transports": ["raknet", "nethernet"]
         }
     }
 }

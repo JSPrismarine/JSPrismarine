@@ -77,6 +77,9 @@ deferred.
   `minecraftVersion`, `serverVersion`, the `bin-linux` zip URL, Mojang's sha1 from
   [Bedrock-OSS/BDS-Versions](https://github.com/Bedrock-OSS/BDS-Versions), and the sha256 and
   size measured on download. Then `pnpm --filter @jsprismarine/bedrock-data run fetch:sources --protocol <N>`.
+- Pin the cinnabar commit that speaks N in `tools/client-e2e/cinnabar.json` with
+  `"transports": ["nethernet"]`: new protocols run over NetherNet only, and only older ones keep
+  RakNet. The "Version pin" section of `tools/client-e2e/README.md` describes the entry.
 - Add N to the `PROTOCOLS` map in `packages/client/src/Client.ts` with its Minecraft version
   string and the `StartGamePacket` layout it reads. The client is a data-capture and bring-up
   client, so only the packets it decodes need versioning here.

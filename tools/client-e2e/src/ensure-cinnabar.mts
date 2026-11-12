@@ -12,7 +12,11 @@ if (protocolVersion !== undefined && (!Number.isSafeInteger(protocolVersion) || 
     throw new Error('--protocol must be a positive integer');
 }
 
-const { checkout, binaries, clientBinary, target } = ensureCinnabar(protocolVersion, parseTransport(values.transport));
+const { pin, checkout, binaries, clientBinary, target } = ensureCinnabar(
+    protocolVersion,
+    values.transport === undefined ? undefined : parseTransport(values.transport)
+);
+console.log(`cinnabar ${pin.commit.slice(0, 12)} for protocol ${pin.protocol} over ${pin.transport}`);
 console.log(`cinnabar checkout: ${checkout}`);
 console.log(`client: ${clientBinary}`);
 console.log(`mcp server: ${binaries.mcp} --repo ${checkout}`);
