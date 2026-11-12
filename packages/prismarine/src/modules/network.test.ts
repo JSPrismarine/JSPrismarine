@@ -487,8 +487,13 @@ describe('modules/network', () => {
         }
     });
 
-    /** A server running RakNet and NetherNet with NetherNet's UDP on the game port. */
-    const sharedPortServer = (worker: boolean, udpPorts: string, portV6: number | undefined) =>
+    /** A server running NetherNet with its UDP on the game port, and RakNet unless told otherwise. */
+    const sharedPortServer = (
+        worker: boolean,
+        udpPorts: string,
+        portV6: number | undefined,
+        { rakNet = true, query = false }: { rakNet?: boolean; query?: boolean } = {}
+    ) =>
         stub<Server>({
             getConfig: () =>
                 stub<Config>({
@@ -496,10 +501,13 @@ describe('modules/network', () => {
                     getMaxPlayers: () => 2,
                     getMotd: () => 'shared server',
                     getOnlineMode: () => false,
-                    getEnableRakNet: () => true,
+                    getEnableRakNet: () => rakNet,
                     getEnableNetherNet: () => true,
                     getUseRakNetWorker: () => worker,
-                    getEnableQuery: () => false,
+                    getEnableQuery: () => query,
+                    // Unset, query-port follows server-port.
+                    getQueryPort: () => 19_132,
+                    getServerPort: () => 19_132,
                     getEnableLanVisibility: () => false,
                     getServerPortV6Setting: () => portV6,
                     getServerUdpPorts: () => udpPorts,
@@ -515,12 +523,42 @@ describe('modules/network', () => {
                     verbose: () => {},
                     warn: () => {}
                 }),
+            getVersion: () => '0.0.0-test',
             getPacketHandlerRegistry: () => stub<ReturnType<Server['getPacketHandlerRegistry']>>({}),
             getPacketLogFilter: () => new PacketLogFilter(),
             getSessionManager: () => new SessionManager(),
             // The joined NetherNet client reaches the dispatcher, which announces it.
             emit: async () => {}
         });
+
+    /** Joins by address on the signaling port and returns the UDP port NetherNet's media uses. */
+    const joinedMediaPort = async (port: number): Promise<number | undefined> => {
+        const client: NetherNetClient = new NetherNetClient({
+            driver: driver!,
+            signal: (signal) => {
+                if (signal.type !== SignalType.ConnectRequest) return;
+                void exchangeOffer(
+                    { host: '127.0.0.1', port },
+                    client.networkId,
+                    signal.data,
+                    AbortSignal.timeout(10_000)
+                ).then(async (answer) => {
+                    const { description } = await verifySelfSignedIdentity(answer);
+                    client.handleSignal(
+                        new SignalStructure(SignalType.ConnectResponse, client.connectionId, description)
+                    );
+                });
+            }
+        });
+        try {
+            const connected = once(client, 'connected') as Promise<[Connection]>;
+            await client.connect();
+            const [connection] = await connected;
+            return connection.peer.remoteAddress()?.port;
+        } finally {
+            client.close();
+        }
+    };
 
     it.skipIf(driver === undefined).each([
         // The table in docs/plans/webrtc-backend.md: what is written, and where each listener goes.
@@ -545,30 +583,27 @@ describe('modules/network', () => {
             expect((await pingOnce('127.0.0.1', port))[0]).toBe(0x1c);
             expect((await pingOnce('::1', portV6))[0]).toBe(0x1c);
 
-            // And a NetherNet client joining by address, its media on the same port.
-            const client: NetherNetClient = new NetherNetClient({
-                driver: driver!,
-                signal: (signal) => {
-                    if (signal.type !== SignalType.ConnectRequest) return;
-                    void exchangeOffer(
-                        { host: '127.0.0.1', port },
-                        client.networkId,
-                        signal.data,
-                        AbortSignal.timeout(10_000)
-                    ).then(async (answer) => {
-                        const { description } = await verifySelfSignedIdentity(answer);
-                        client.handleSignal(
-                            new SignalStructure(SignalType.ConnectResponse, client.connectionId, description)
-                        );
-                    });
-                }
-            });
-            const connected = once(client, 'connected') as Promise<[Connection]>;
-            await client.connect();
-            const [connection] = await connected;
-            // NetherNet's UDP on server-udp-ports, or on server-port beside RakNet.
-            expect(connection.peer.remoteAddress()?.port).toBe(udpPort);
-            client.close();
+            // And a NetherNet client joining by address, its media on server-udp-ports, or on
+            // server-port beside RakNet.
+            expect(await joinedMediaPort(port)).toBe(udpPort);
+        } finally {
+            networking.kill();
+            vi.unstubAllEnvs();
+            fs.rmSync(dataDirectory, { recursive: true, force: true });
+        }
+    });
+
+    it.skipIf(driver === undefined)('answers query and NetherNet on the server port with RakNet off', async () => {
+        const port = await portFreeOnBothFamilies();
+        const networking = new ServerNetworking(sharedPortServer(false, '', undefined, { rakNet: false, query: true }));
+        const dataDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'jsp-network-'));
+        vi.stubEnv('JSP_DIR', dataDirectory);
+        try {
+            await networking.start('0.0.0.0', port);
+
+            const [motd] = await queryBasicStat(port);
+            expect(motd).toBe('shared server');
+            expect(await joinedMediaPort(port)).toBe(port);
         } finally {
             networking.kill();
             vi.unstubAllEnvs();
