@@ -73,6 +73,28 @@ describe('LoginSequence settling', () => {
         // RequestNetworkSettings, then the Login the credentials were waited for.
         expect(transport.sent).toHaveLength(2);
     });
+
+    it('stops waiting on its auth provider once the login fails, and sends no late Login', async () => {
+        const auth = new GatedAuthProvider({ displayName: 'Gated' });
+        const { transport, session, login } = newLogin(auth);
+        const result = login.run();
+        await session.settled();
+
+        await transport.deliver(settings());
+        for (let index = 0; index < 8; index++) await turn();
+        expect(session.isIdle()).toBe(false);
+
+        login.onTransportClosed('closed');
+        await expect(result).rejects.toThrow(/Disconnected during login: closed/);
+        // The provider has not answered, and the failed login no longer counts as work.
+        await session.settled();
+        expect(session.isIdle()).toBe(true);
+
+        auth.open();
+        for (let index = 0; index < 8; index++) await turn();
+        await session.settled();
+        expect(transport.sent).toHaveLength(1);
+    });
 });
 
 describe('LoginSequence steps', () => {
