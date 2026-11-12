@@ -150,7 +150,7 @@ const { values, positionals } = parseArgs({
         artifacts: { type: 'string' },
         port: { type: 'string' },
         protocol: { type: 'string' },
-        transport: { type: 'string', default: 'raknet' },
+        transport: { type: 'string' },
         'udp-ports': { type: 'string', default: 'shared' },
         'public-ip': { type: 'string' },
         'compression-algorithm': { type: 'string', default: 'snappy' },
@@ -207,7 +207,6 @@ const protocolVersion = values.protocol === undefined ? undefined : Number(value
 if (protocolVersion !== undefined && (!Number.isSafeInteger(protocolVersion) || protocolVersion <= 0)) {
     throw new Error('--protocol must be a positive integer');
 }
-const transport = parseTransport(values.transport);
 const udpPorts = UDP_PORTS_LAYOUTS.find((layout) => layout === values['udp-ports']);
 if (udpPorts === undefined) {
     throw new Error(`--udp-ports must be one of ${UDP_PORTS_LAYOUTS.join(', ')}, not ${values['udp-ports']}`);
@@ -238,7 +237,11 @@ if (requestedPort !== undefined && concurrency > 1 && selectedSuites.length > 1)
 }
 
 console.log('ensuring the pinned cinnabar build (the first run clones and compiles it)...');
-const cinnabar = ensureCinnabar(protocolVersion, transport);
+const cinnabar = ensureCinnabar(
+    protocolVersion,
+    values.transport === undefined ? undefined : parseTransport(values.transport)
+);
+const { transport } = cinnabar.pin;
 console.log(
     `client targets Bedrock ${cinnabar.target.gameVersion} (protocol ${cinnabar.target.wireProtocol}) over ${transport}`
 );

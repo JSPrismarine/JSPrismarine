@@ -1,10 +1,10 @@
 /**
  * Resolves and builds the pinned cinnabar checkout that the e2e harness drives.
  *
- * Protocol pins live in `cinnabar.json`, one per wire protocol and transport. Checkouts are cached
- * under `$XDG_CACHE_HOME/jsprismarine/cinnabar/<pin>/<commit>/repo`; each pin's Cargo and Go
- * outputs stay under its shared `$XDG_CACHE_HOME/jsprismarine/cinnabar/<pin>` directory, where
- * `<pin>` is `v<protocol>` for RakNet and `v<protocol>-nethernet` for NetherNet.
+ * `cinnabar.json` gives each wire protocol one cinnabar commit and the transports it runs over. A
+ * build belongs to its commit, not to a protocol or transport: its checkout and its Cargo and Go
+ * outputs live under `$XDG_CACHE_HOME/jsprismarine/cinnabar/<build>`, where `<build>` is the
+ * commit's first 12 characters, so every entry that names a commit shares one build.
  */
 import { execFileSync, spawnSync } from 'node:child_process';
 import fs from 'node:fs';
@@ -29,14 +29,16 @@ const cacheRoot = (): string =>
 export const CLIENT_TRANSPORTS = ['raknet', 'nethernet'] as const;
 export type ClientTransport = (typeof CLIENT_TRANSPORTS)[number];
 
-/** Parses a `--transport` value, defaulting to RakNet. */
-export const parseTransport = (value: string | undefined): ClientTransport => {
-    const transport = CLIENT_TRANSPORTS.find((candidate) => candidate === (value ?? 'raknet'));
-    if (transport === undefined) throw new Error(`--transport must be ${CLIENT_TRANSPORTS.join(' or ')}`);
-    return transport;
+const isTransport = (value: unknown): value is ClientTransport =>
+    CLIENT_TRANSPORTS.some((transport) => transport === value);
+
+/** Parses a `--transport` value. */
+export const parseTransport = (value: string): ClientTransport => {
+    if (!isTransport(value)) throw new Error(`--transport must be ${CLIENT_TRANSPORTS.join(' or ')}, not ${value}`);
+    return value;
 };
 
-/** One client build: the wire protocol it speaks and the transport its pin is for. */
+/** One client run: the wire protocol it speaks and the transport it joins over. */
 export interface PinTarget {
     protocol: number;
     transport: ClientTransport;
@@ -48,94 +50,144 @@ export interface CinnabarPin {
     commit: string;
 }
 
-/** The name a pin's caches go by: `v<protocol>`, with `-nethernet` for a NetherNet pin. */
-export const pinName = ({ protocol, transport }: PinTarget): string =>
+/** One `versions` entry of `cinnabar.json`: a protocol's build and the transports it runs over. */
+export interface PinnedVersion {
+    protocol: number;
+    commit: string;
+    transports: ClientTransport[];
+}
+
+/** What `cinnabar.json` declares. */
+export interface PinManifest {
+    repository: string;
+    versions: PinnedVersion[];
+}
+
+/** The name a build's cache directory goes by: its commit's first 12 characters. */
+export const buildName = (commit: string): string => commit.slice(0, 12);
+
+/** The name of one protocol and transport's run, for job labels and artifacts: `v2225-nethernet`. */
+export const runName = ({ protocol, transport }: PinTarget): string =>
     transport === 'raknet' ? `v${protocol}` : `v${protocol}-${transport}`;
 
-const isCommit = (value: unknown): value is string => typeof value === 'string' && /^[0-9a-f]{40}$/.test(value);
-
-/** Every pin `cinnabar.json` declares, NetherNet ones read from each version's `nethernet` entry. */
-const readPins = (): { repository: string; pins: (PinTarget & { commit: string })[] } => {
-    const file: unknown = JSON.parse(fs.readFileSync(pinFile, 'utf8'));
-    if (!isRecord(file) || typeof file.repository !== 'string' || !isRecord(file.versions)) {
-        throw new Error(`${pinFile} must contain a repository and protocol-keyed versions`);
-    }
-    const pins = Object.entries(file.versions).flatMap(([key, version]) => {
-        const protocol = Number(key);
-        if (!isRecord(version)) throw new Error(`${pinFile} version ${key} must be an object`);
-        const raknet =
-            version.commit === undefined ? [] : [{ protocol, transport: 'raknet' as const, commit: version.commit }];
-        const nethernet =
-            version.nethernet === undefined
-                ? []
-                : [
-                      {
-                          protocol,
-                          transport: 'nethernet' as const,
-                          commit: isRecord(version.nethernet) ? version.nethernet.commit : undefined
-                      }
-                  ];
-        return [...raknet, ...nethernet].map((pin) => {
-            if (!isCommit(pin.commit)) throw new Error(`${pinFile} has no full commit for ${pinName(pin)}`);
-            return { ...pin, commit: pin.commit };
-        });
-    });
-    return { repository: file.repository, pins };
-};
-
-/** Reads the cinnabar commit pinned for one Bedrock wire protocol and transport. */
-export const readPin = (target: PinTarget): CinnabarPin => {
-    const { repository, pins } = readPins();
-    const pin = pins.find(
-        (candidate) => candidate.protocol === target.protocol && candidate.transport === target.transport
-    );
-    if (pin === undefined) {
-        throw new Error(`${pinFile} has no ${target.transport} pin for wire protocol ${target.protocol}`);
-    }
-    return { repository, commit: pin.commit };
-};
+export const isCommit = (value: unknown): value is string => typeof value === 'string' && /^[0-9a-f]{40}$/.test(value);
 
 /**
- * The client builds CI runs: every pin for a protocol this checkout serves, oldest protocol first.
- * @param latestOnly - Keep only the newest served protocol's pins.
- * @throws When a served protocol has no pin at all.
+ * Checks the shape of a parsed `cinnabar.json`.
+ *
+ * @param file - The parsed JSON.
+ * @param source - The file's path, for the error messages.
+ * @throws When an entry has no full commit, or lists no transports, an unknown one or one twice.
  */
-export const pinMatrix = (latestOnly = false): (PinTarget & { commit: string; name: string })[] => {
+export const parseManifest = (file: unknown, source: string): PinManifest => {
+    if (!isRecord(file) || typeof file.repository !== 'string' || !isRecord(file.versions)) {
+        throw new Error(`${source} must contain a repository and protocol-keyed versions`);
+    }
+    const versions = Object.entries(file.versions).map(([key, version]): PinnedVersion => {
+        const protocol = Number(key);
+        if (!Number.isSafeInteger(protocol) || protocol <= 0) {
+            throw new Error(`${source} version key ${key} must be a wire protocol number`);
+        }
+        if (!isRecord(version)) throw new Error(`${source} version ${key} must be an object`);
+        if (!isCommit(version.commit)) {
+            throw new Error(`${source} version ${key} needs a full 40-character cinnabar commit in commit`);
+        }
+        const { transports } = version;
+        if (
+            !Array.isArray(transports) ||
+            transports.length === 0 ||
+            !transports.every(isTransport) ||
+            new Set(transports).size !== transports.length
+        ) {
+            throw new Error(
+                `${source} version ${key} must list the transports its build runs over, each once, ` +
+                    `from ${CLIENT_TRANSPORTS.join(' and ')}`
+            );
+        }
+        return { protocol, commit: version.commit, transports };
+    });
+    return { repository: file.repository, versions };
+};
+
+/** Reads `cinnabar.json`. */
+export const readManifest = (): PinManifest => parseManifest(JSON.parse(fs.readFileSync(pinFile, 'utf8')), pinFile);
+
+/**
+ * Picks the build and transport for one run.
+ *
+ * @param manifest - The pins.
+ * @param protocol - The wire protocol to run.
+ * @param transport - The transport asked for, or `undefined` for the first one the version lists.
+ * @throws When the protocol has no entry, or its build does not run over `transport`.
+ */
+export const resolvePin = (
+    manifest: PinManifest,
+    protocol: number,
+    transport: ClientTransport | undefined
+): PinTarget & CinnabarPin => {
+    const version = manifest.versions.find((candidate) => candidate.protocol === protocol);
+    if (version === undefined) throw new Error(`${pinFile} has no cinnabar pin for wire protocol ${protocol}`);
+    const [first] = version.transports;
+    const chosen = transport ?? first;
+    if (chosen === undefined || !version.transports.includes(chosen)) {
+        throw new Error(
+            `protocol ${protocol} runs over ${version.transports.join(' and ')} only; ` +
+                `cinnabar.json lists no ${String(chosen)} transport for it`
+        );
+    }
+    return { protocol, transport: chosen, repository: manifest.repository, commit: version.commit };
+};
+
+/** One run CI makes: a protocol over one of its transports, with the build it uses. */
+export interface MatrixEntry extends PinTarget {
+    commit: string;
+    /** The run's label, from {@link runName}. */
+    name: string;
+    /** The build's cache directory, from {@link buildName}, shared by every run of the commit. */
+    build: string;
+}
+
+/**
+ * The client runs CI makes: every declared transport of every protocol this checkout serves,
+ * oldest protocol first.
+ * @param latestOnly - Keep only the newest served protocol's runs.
+ * @throws When a served protocol has no pin.
+ */
+export const pinMatrix = (latestOnly = false, manifest = readManifest()): MatrixEntry[] => {
     const served = servedProtocols();
     const protocols = latestOnly ? served.slice(-1) : served;
-    const { pins } = readPins();
-    for (const protocol of protocols) {
-        if (!pins.some((pin) => pin.protocol === protocol)) {
+    return protocols.flatMap((protocol) => {
+        const version = manifest.versions.find((candidate) => candidate.protocol === protocol);
+        if (version === undefined) {
             throw new Error(`${pinFile} has no cinnabar pin for served wire protocol ${protocol}`);
         }
-    }
-    return pins
-        .filter((pin) => protocols.includes(pin.protocol))
-        .sort(
-            (left, right) =>
-                left.protocol - right.protocol ||
-                CLIENT_TRANSPORTS.indexOf(left.transport) - CLIENT_TRANSPORTS.indexOf(right.transport)
-        )
-        .map((pin) => ({ ...pin, name: pinName(pin) }));
+        return version.transports.map((transport) => ({
+            protocol,
+            transport,
+            commit: version.commit,
+            name: runName({ protocol, transport }),
+            build: buildName(version.commit)
+        }));
+    });
 };
 
 export const isRecord = (value: unknown): value is Record<string, unknown> =>
     typeof value === 'object' && value !== null && !Array.isArray(value);
 
-/** Where one pin's checkout lives, honoring a `JSP_CINNABAR_PATH` override. */
-export const checkoutDir = (pin: CinnabarPin, target: PinTarget): string => {
+const buildCacheDirectory = (commit: string): string => path.resolve(cacheRoot(), buildName(commit));
+
+/** Where one build's checkout lives, honoring a `JSP_CINNABAR_PATH` override. */
+export const checkoutDir = (commit: string): string => {
     const override = process.env.JSP_CINNABAR_PATH;
     if (override) return path.resolve(override);
-    return path.resolve(cacheRoot(), pinName(target), pin.commit.slice(0, 12), 'repo');
+    return path.join(buildCacheDirectory(commit), 'repo');
 };
 
-const pinCacheDirectory = (name: string): string => path.resolve(cacheRoot(), name);
+/** Cargo's intermediate build directory for one build, outside its checkout. */
+export const buildDirectory = (commit: string): string => path.join(buildCacheDirectory(commit), 'build');
 
-/** Cargo's intermediate build directory for one pin, outside all cinnabar checkouts. */
-export const buildDirectory = (target: PinTarget): string => path.join(pinCacheDirectory(pinName(target)), 'build');
-
-/** Cargo's final target directory for one pin, outside all cinnabar checkouts. */
-export const targetDirectory = (target: PinTarget): string => path.join(pinCacheDirectory(pinName(target)), 'target');
+/** Cargo's final target directory for one build, outside its checkout. */
+export const targetDirectory = (commit: string): string => path.join(buildCacheDirectory(commit), 'target');
 
 /** Client path that preserves Cinnabar's development-checkout root detection. */
 export const developmentClientBinary = (checkout: string): string => path.join(checkout, 'target', 'debug', 'cinnabar');
@@ -213,8 +265,8 @@ const ensureDevelopmentLinks = (checkout: string, built: ReturnType<typeof binar
 };
 
 /** Clones the pinned commit when the cache is cold. A `JSP_CINNABAR_PATH` checkout is used as-is. */
-export const ensureCheckout = (pin: CinnabarPin, target: PinTarget): string => {
-    const checkout = checkoutDir(pin, target);
+export const ensureCheckout = (pin: CinnabarPin): string => {
+    const checkout = checkoutDir(pin.commit);
     if (process.env.JSP_CINNABAR_PATH) {
         if (!fs.existsSync(checkout)) {
             throw new Error(`JSP_CINNABAR_PATH points at ${checkout}, which does not exist`);
@@ -232,13 +284,30 @@ export const ensureCheckout = (pin: CinnabarPin, target: PinTarget): string => {
     return checkout;
 };
 
-const stampFile = (protocolCache: string): string => path.join(protocolCache, '.jsprismarine-e2e-stamp');
+/**
+ * Whether `ancestor` is `commit` or one of its ancestors, as the checkout's history tells it.
+ *
+ * @returns `undefined` when the checkout cannot tell, such as when it has never fetched `ancestor`.
+ */
+export const containsCommit = (checkout: string, commit: string, ancestor: string): boolean | undefined => {
+    const result = spawnSync('git', ['merge-base', '--is-ancestor', ancestor, commit], {
+        cwd: checkout,
+        stdio: 'ignore'
+    });
+    return result.status === 0 ? true : result.status === 1 ? false : undefined;
+};
 
-/** Cargo's output directories inside a pin cache. A cold pin copies both from a donor. */
+const stampFile = (cache: string): string => path.join(cache, '.jsprismarine-e2e-stamp');
+
+/** Cargo's output directories inside a build's cache. A cold build copies both from a donor. */
 const seededDirectories = ['build', 'target'] as const;
 
-/** Pin caches other than `target`'s with a finished build that can seed a new cache. */
-const builtDonors = (target: PinTarget): { name: string; protocol: number }[] => {
+/**
+ * Caches other than `commit`'s with a finished build that can seed a new one: those built from
+ * `commit` itself first, then the most recently built. The `v<protocol>` caches an older harness
+ * kept per protocol and transport qualify too, so the first build in this layout starts from them.
+ */
+const builtDonors = (commit: string): string[] => {
     let entries: fs.Dirent[];
     try {
         entries = fs.readdirSync(cacheRoot(), { withFileTypes: true });
@@ -246,51 +315,46 @@ const builtDonors = (target: PinTarget): { name: string; protocol: number }[] =>
         return [];
     }
     return entries
+        .filter((entry) => entry.isDirectory() && entry.name !== buildName(commit))
         .flatMap((entry) => {
-            const match = entry.isDirectory() ? /^v(\d+)(?:-[a-z]+)?$/.exec(entry.name) : null;
-            return match ? [{ name: entry.name, protocol: Number(match[1]) }] : [];
+            const cache = path.resolve(cacheRoot(), entry.name);
+            if (!seededDirectories.every((directory) => fs.existsSync(path.join(cache, directory)))) return [];
+            const stamp = readStamp(cache);
+            if (stamp === undefined) return [];
+            const sameCommit = stamp.split('\n')[0] === commit;
+            return [{ cache, sameCommit, builtAt: fs.statSync(stampFile(cache)).mtimeMs }];
         })
-        .filter(({ name }) => {
-            const cache = pinCacheDirectory(name);
-            return (
-                name !== pinName(target) &&
-                readStamp(cache) !== undefined &&
-                seededDirectories.every((directory) => fs.existsSync(path.join(cache, directory)))
-            );
-        });
+        .sort((left, right) => Number(right.sameCommit) - Number(left.sameCommit) || right.builtAt - left.builtAt)
+        .map(({ cache }) => cache);
 };
 
 /**
- * Starts a pin with no build of its own from the pin of the closest protocol that has one.
+ * Starts a build with no outputs of its own from the most recently finished one.
  *
  * Cargo keys registry dependencies by name, version, features, and toolchain, not by checkout
- * path, so the donor's `build/` and `target/` let the new pin compile only its workspace crates and
- * the dependencies whose versions differ. A protocol that already has either directory, even from
- * an older pin, keeps its own cache. Each directory is copied under a temporary name and renamed,
- * so an interrupted copy leaves nothing behind that looks like a partial cache.
+ * path, so the donor's `build/` and `target/` let the new build compile only its workspace crates
+ * and the dependencies whose versions differ. Each directory is copied under a temporary name and
+ * renamed, so an interrupted copy leaves nothing behind that looks like a partial cache.
  */
-const seedFromDonor = (target: PinTarget): void => {
-    const protocolCache = pinCacheDirectory(pinName(target));
-    if (seededDirectories.some((name) => fs.existsSync(path.join(protocolCache, name)))) return;
-    const distance = (protocol: number): number => Math.abs(protocol - target.protocol);
-    const [donor] = builtDonors(target).sort(
-        (left, right) => distance(left.protocol) - distance(right.protocol) || right.protocol - left.protocol
-    );
+const seedFromDonor = (commit: string): void => {
+    const cache = buildCacheDirectory(commit);
+    if (seededDirectories.some((name) => fs.existsSync(path.join(cache, name)))) return;
+    const [donor] = builtDonors(commit);
     if (donor === undefined) return;
 
-    console.log(`seeding the ${pinName(target)} build cache from ${donor.name}...`);
-    fs.mkdirSync(protocolCache, { recursive: true });
+    console.log(`seeding the ${buildName(commit)} build cache from ${path.basename(donor)}...`);
+    fs.mkdirSync(cache, { recursive: true });
     const staged = seededDirectories.map((name) => {
-        const staging = path.join(protocolCache, `${name}.seeding`);
+        const staging = path.join(cache, `${name}.seeding`);
         fs.rmSync(staging, { recursive: true, force: true });
         // Cargo compares file times to decide what is stale, so the copy must keep them. A clone
         // makes the copy free where the filesystem supports it (APFS) and falls back to a real copy.
-        fs.cpSync(path.join(pinCacheDirectory(donor.name), name), staging, {
+        fs.cpSync(path.join(donor, name), staging, {
             recursive: true,
             preserveTimestamps: true,
             mode: fs.constants.COPYFILE_FICLONE
         });
-        return [staging, path.join(protocolCache, name)] as const;
+        return [staging, path.join(cache, name)] as const;
     });
     for (const [staging, destination] of staged) fs.renameSync(staging, destination);
 };
@@ -299,21 +363,22 @@ const seedFromDonor = (target: PinTarget): void => {
  * Builds the client (with developer control), the MCP controller, and the Go core.
  *
  * The first build fetches the vanilla asset pack and compiles the whole client, which takes a
- * while and needs the network. One external build cache per protocol makes repeated calls a fast
- * no-op and lets separate worktrees reuse the same build. A protocol without a cache starts from
- * a copy of the closest built protocol's cache, so only the differing dependencies compile.
+ * while and needs the network. Each commit's build lives in one cache directory, so repeated
+ * calls are a fast no-op, and every protocol, transport and worktree that pins the commit uses
+ * the same build. A commit without a build starts from a copy of the most recent one, so only the
+ * differing crates compile.
  *
- * @param target - The pin whose cache should hold the build.
+ * @param commit - The pinned commit, whose cache holds the build.
  * @throws When a required toolchain (cargo, go) is missing or a build step fails.
  */
-export const ensureBuilt = (checkout: string, target: PinTarget): void => {
-    const protocolCache = pinCacheDirectory(pinName(target));
-    const cargoBuildDir = buildDirectory(target);
-    const targetDir = targetDirectory(target);
+export const ensureBuilt = (checkout: string, commit: string): void => {
+    const cache = buildCacheDirectory(commit);
+    const cargoBuildDir = buildDirectory(commit);
+    const targetDir = targetDirectory(commit);
     const built = binaries(targetDir);
     const expected = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: checkout, encoding: 'utf8' }).trim();
-    const expectedStamp = `${expected}\nprotocol-cache-v1`;
-    if (readStamp(protocolCache) === expectedStamp && Object.values(built).every((binary) => fs.existsSync(binary))) {
+    const expectedStamp = `${expected}\ncommit-cache-v1`;
+    if (readStamp(cache) === expectedStamp && Object.values(built).every((binary) => fs.existsSync(binary))) {
         ensureDevelopmentLinks(checkout, built);
         return;
     }
@@ -324,16 +389,14 @@ export const ensureBuilt = (checkout: string, target: PinTarget): void => {
     if (!commandExists('ffmpeg')) {
         console.warn('ffmpeg is not on PATH; the client builds, but record_start will fail');
     }
-    seedFromDonor(target);
+    seedFromDonor(commit);
     fs.mkdirSync(cargoBuildDir, { recursive: true });
     fs.mkdirSync(targetDir, { recursive: true });
     const sharedCompilerCacheEnv = commandExists('sccache')
         ? {
               RUSTC_WRAPPER: process.env.RUSTC_WRAPPER ?? 'sccache',
-              // Strip both source and protocol-specific artifact roots so shared crate keys match.
-              SCCACHE_BASEDIRS: [process.env.SCCACHE_BASEDIRS, checkout, protocolCache]
-                  .filter(Boolean)
-                  .join(path.delimiter),
+              // Strip both source and build-specific artifact roots so shared crate keys match.
+              SCCACHE_BASEDIRS: [process.env.SCCACHE_BASEDIRS, checkout, cache].filter(Boolean).join(path.delimiter),
               ...(process.env.SCCACHE_GHA_ENABLED === 'true'
                   ? {}
                   : { SCCACHE_DIR: process.env.SCCACHE_DIR ?? path.join(cacheRoot(), 'sccache') })
@@ -357,35 +420,35 @@ export const ensureBuilt = (checkout: string, target: PinTarget): void => {
     run('go', ['build', '-o', built.core, './core/cmd/bedrock-core'], checkout);
 
     ensureDevelopmentLinks(checkout, built);
-    fs.writeFileSync(stampFile(protocolCache), `${expected}\nprotocol-cache-v1\n`);
+    fs.writeFileSync(stampFile(cache), `${expected}\ncommit-cache-v1\n`);
 };
 
-const readStamp = (protocolCache: string): string | undefined => {
+const readStamp = (cache: string): string | undefined => {
     try {
-        return fs.readFileSync(stampFile(protocolCache), 'utf8').trim();
+        return fs.readFileSync(stampFile(cache), 'utf8').trim();
     } catch {
         return undefined;
     }
 };
 
 /**
- * Resolves, builds, and version-checks the cinnabar pin for a served protocol.
+ * Resolves, builds, and version-checks the cinnabar build for a served protocol.
  *
  * @param requestedProtocol - Wire protocol to test. Defaults to the highest served protocol.
- * @param transport - Which of the protocol's pins to build.
- * @returns The checkout path, its binaries, and the Bedrock version it targets.
- * @throws When this JSPrismarine checkout does not serve the client's wire protocol.
+ * @param requestedTransport - Transport to run over. Defaults to the first one the protocol lists.
+ * @returns The pin, the checkout path, its binaries, and the Bedrock version it targets.
+ * @throws When this JSPrismarine checkout does not serve the protocol, or the protocol's build does
+ * not run over the transport.
  */
-export const ensureCinnabar = (requestedProtocol?: number, transport: ClientTransport = 'raknet') => {
+export const ensureCinnabar = (requestedProtocol?: number, requestedTransport?: ClientTransport) => {
     const served = servedProtocols();
     if (served.length === 0) throw new Error('packages/bedrock-data/sources.json declares no BDS protocols');
     const protocolVersion = requestedProtocol ?? served.at(-1)!;
     if (!Number.isSafeInteger(protocolVersion) || !served.includes(protocolVersion)) {
         throw new Error(`wire protocol ${protocolVersion} is not served; this checkout serves ${served.join(', ')}`);
     }
-    const pinTarget: PinTarget = { protocol: protocolVersion, transport };
-    const pin = readPin(pinTarget);
-    const checkout = ensureCheckout(pin, pinTarget);
+    const pin = resolvePin(readManifest(), protocolVersion, requestedTransport);
+    const checkout = ensureCheckout(pin);
     const target = bedrockTarget(checkout);
     if (target.wireProtocol !== protocolVersion) {
         throw new Error(
@@ -393,10 +456,11 @@ export const ensureCinnabar = (requestedProtocol?: number, transport: ClientTran
                 `but the pin is for ${protocolVersion}. Update the cinnabar pin.`
         );
     }
-    ensureBuilt(checkout, pinTarget);
+    ensureBuilt(checkout, pin.commit);
     return {
+        pin,
         checkout,
-        binaries: binaries(targetDirectory(pinTarget)),
+        binaries: binaries(targetDirectory(pin.commit)),
         clientBinary: developmentClientBinary(checkout),
         target
     };

@@ -7,14 +7,14 @@
 import { spawn } from 'node:child_process';
 import fs from 'node:fs';
 
-import { binaries, checkoutDir, readPin, servedProtocols, targetDirectory } from './cinnabar.mts';
+import { binaries, checkoutDir, readManifest, resolvePin, servedProtocols, targetDirectory } from './cinnabar.mts';
 
 const protocolVersion = servedProtocols().at(-1);
 if (protocolVersion === undefined) throw new Error('packages/bedrock-data/sources.json declares no BDS protocols');
-// The RakNet pin: the one `ensure` builds when it is given no transport.
-const target = { protocol: protocolVersion, transport: 'raknet' } as const;
-const checkout = checkoutDir(readPin(target), target);
-const mcp = binaries(targetDirectory(target)).mcp;
+// The build `ensure` makes when it is given no protocol: the newest served one's.
+const { commit } = resolvePin(readManifest(), protocolVersion, undefined);
+const checkout = checkoutDir(commit);
+const mcp = binaries(targetDirectory(commit)).mcp;
 if (!fs.existsSync(mcp)) {
     console.error(`${mcp} is not built. Run: pnpm --filter @jsprismarine/client-e2e run ensure`);
     process.exit(1);
