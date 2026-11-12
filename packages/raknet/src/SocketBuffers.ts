@@ -63,7 +63,7 @@ export const configureSocketBuffers = (
         recvBufferSize: socket.getRecvBufferSize(),
         sendBufferSize: socket.getSendBufferSize()
     };
-    logger.info(
+    logger.verbose(
         `UDP socket buffers requested recv=${requestedRecv} send=${requestedSend}; effective recv=${effective.recvBufferSize} send=${effective.sendBufferSize}`,
         context
     );
