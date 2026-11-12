@@ -2496,6 +2496,30 @@ describe('the data-driven entity runtime over a live world', () => {
             expect(source.offers()[0]?.uses).toBe(1);
         });
 
+        it('logs the cured discount the first offers a curing player is shown draw', () => {
+            const villager = live.runtime.spawn('minecraft:villager_v2', { x: 0.5, y: GROUND_Y, z: 0.5 });
+            if (villager === undefined) throw new Error('the fixture declares no minecraft:villager_v2');
+            const { store } = live.runtime;
+            store.beginTick();
+            const source = live.runtime.tradeSource(villager);
+            if (source === undefined) throw new Error('the villager carries no trade table');
+            store.sealTick();
+
+            store.beginTick();
+            source.offers({ curedByPlayer: true });
+            const shown = store.sealTick()?.entries ?? [];
+            store.beginTick();
+            source.offers({ curedByPlayer: true });
+            const shownAgain = store.sealTick()?.entries ?? [];
+
+            const merchant = (entries: readonly ChangeEntry[]) =>
+                entries.filter(
+                    (entry) => entry.kind === 'field' && entry.field === 'entity' && entry.address.field === 'merchant'
+                );
+            expect(merchant(shown)).toHaveLength(1);
+            expect(merchant(shownAgain)).toEqual([]);
+        });
+
         it('keeps a villager’s offers, uses and experience across a save and a restore', () => {
             const villager = live.runtime.spawn('minecraft:villager_v2', { x: 0.5, y: GROUND_Y, z: 0.5 });
             if (villager === undefined) throw new Error('the fixture declares no minecraft:villager_v2');
