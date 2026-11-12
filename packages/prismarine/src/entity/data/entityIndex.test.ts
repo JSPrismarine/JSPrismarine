@@ -98,6 +98,25 @@ describe('EntityIndex', () => {
         expect(index.itemsInChunk(-1, -2)).toEqual([]);
     });
 
+    it('answers an infinite or very wide radius by reading each entity once', () => {
+        const { runtime } = entityFixture();
+        const { index } = runtime;
+        const cow = runtime.spawn('minecraft:cow', { x: 0.5, y: Y, z: 0.5 });
+        const far = runtime.spawn('minecraft:cow', { x: 40_000.5, y: Y, z: -9_000.5 });
+        const item = runtime.droppedItems.spawn(
+            { x: 3.5, y: Y, z: 0.5 },
+            { stack: { name: 'minecraft:dirt', count: 1 } }
+        );
+        if (cow === undefined || far === undefined || item === undefined)
+            throw new Error('the fixture declares no cow or dropped item');
+
+        expect(examinedBy(index, () => expect(index.storeWithin(0, 0, Infinity)).toEqual([cow, far]))).toBe(2);
+        expect(examinedBy(index, () => expect(index.itemsWithin(0, 0, Infinity)).toEqual([item]))).toBe(1);
+        expect(examinedBy(index, () => expect(index.storeWithin(0, 0, 100_000)).toEqual([cow, far]))).toBe(2);
+        expect(examinedBy(index, () => expect(index.itemsWithin(0, 0, 100_000)).toEqual([item]))).toBe(1);
+        expect(index.storeWithin(0, 0, 10)).toEqual([cow]);
+    });
+
     it('examines at most the candidates in the cells a query touches', () => {
         const { runtime } = entityFixture();
         // Three cows in each of ten cells along x, sixteen blocks apart.
