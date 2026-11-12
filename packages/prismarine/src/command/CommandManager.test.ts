@@ -209,7 +209,7 @@ describe('command', () => {
         });
 
         /** A manager over the test server with some of its parts replaced, and feedback on. */
-        const managerOver = (parts: Partial<Server>, onStopCommandComplete?: () => void) => {
+        const managerOver = (parts: Partial<Server>, onStopCommandComplete?: (stopped: boolean) => void) => {
             const gameRules = stub<GameRuleManager>({
                 getGameRule: (name: string) => (name === 'sendCommandFeedback' ? [true, true] : null)
             });
@@ -242,8 +242,8 @@ describe('command', () => {
         it('tells the process entry a /stop finished once its shutdown has, though its feedback failed', async () => {
             const stopped = vi.fn();
             let finishShutdown = () => {};
-            const shutdown = new Promise<void>((resolve) => {
-                finishShutdown = resolve;
+            const shutdown = new Promise<boolean>((resolve) => {
+                finishShutdown = () => resolve(true);
             });
             const commandManager = managerOver({ shutdown: () => shutdown }, stopped);
             await commandManager.enable();
@@ -264,6 +264,25 @@ describe('command', () => {
             finishShutdown();
             await settled;
             expect(stopped).toHaveBeenCalledTimes(1);
+            expect(stopped).toHaveBeenCalledWith(true);
+        });
+
+        it('tells the process entry and the sender a /stop whose shutdown failed', async () => {
+            // `Server.shutdown` with `stayAlive` fulfills false when a step failed, such as a
+            // world save that threw. The process entry used to exit 0 regardless.
+            const stopped = vi.fn();
+            const commandManager = managerOver({ shutdown: async () => false }, stopped);
+            await commandManager.enable();
+
+            const console = new Console(server);
+            const sendMessage = vi.spyOn(console, 'sendMessage').mockImplementation(() => {});
+
+            await expect(commandManager.dispatchCommand(console, console, '/stop')).resolves.toBe(false);
+
+            expect(stopped).toHaveBeenCalledExactlyOnceWith(false);
+            expect(sendMessage.mock.calls.map(([message]) => message)).toContainEqual(
+                expect.stringContaining('did not shut down cleanly')
+            );
         });
 
         describe('permission config integration', () => {

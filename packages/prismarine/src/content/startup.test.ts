@@ -61,7 +61,7 @@ const debugConfig = (levelName: string) =>
 
 const bootstrap = async (levelName: string): Promise<Server> => {
     const server = new Server({ logger: new Logger(), config: debugConfig(levelName), headless: true });
-    vi.spyOn(server, 'shutdown').mockResolvedValue(undefined);
+    vi.spyOn(server, 'shutdown').mockResolvedValue(true);
     // Bind an OS-assigned UDP port so parallel server startup tests cannot collide.
     await server.bootstrap('127.0.0.1', 0);
     return server;

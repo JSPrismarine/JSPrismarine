@@ -68,7 +68,7 @@ const buildCommands = (server: Server, content?: Parameters<typeof buildVanillaC
 
 export class CommandManager implements Service {
     private readonly server: Server;
-    private readonly onStopCommandComplete: (() => void) | undefined;
+    private readonly onStopCommandComplete: ((stopped: boolean) => void) | undefined;
     /** The shutdown the last `stop` started, which the stop notice waits for. */
     private requestedShutdown: Promise<void> | undefined;
 
@@ -102,7 +102,7 @@ export class CommandManager implements Service {
     /** A function source other than the server's content; see {@link CommandManager.setFunctionContent}. */
     private functionContent: FunctionContent | undefined;
 
-    public constructor(server: Server, onStopCommandComplete?: () => void) {
+    public constructor(server: Server, onStopCommandComplete?: (stopped: boolean) => void) {
         this.server = server;
         this.onStopCommandComplete = onStopCommandComplete;
         this.randomSequences = new RandomSequences(() => server.getWorldManager().getDefaultWorld().getSeed());
@@ -647,15 +647,15 @@ export class CommandManager implements Service {
                 // does not have.
                 if (failures.length > 0) await this.tellFailure(sender, failures[0]);
                 // Told once the shutdown finished, whatever became of the feedback around it: a
-                // player who ran `/stop` is kicked by it, and a send to them can fail.
-                if (
-                    shutdown !== undefined &&
-                    (await shutdown.then(
+                // player who ran `/stop` is kicked by it, and a send to them can fail. Told when
+                // it failed too, so the process entry can exit with a code that says so rather
+                // than keep running.
+                if (shutdown !== undefined) {
+                    const stopped = await shutdown.then(
                         () => true,
                         () => false
-                    ))
-                ) {
-                    this.onStopCommandComplete?.();
+                    );
+                    this.onStopCommandComplete?.(stopped);
                 }
                 return failures.length === 0;
             });
