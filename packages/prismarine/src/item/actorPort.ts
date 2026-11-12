@@ -728,7 +728,9 @@ export const createItemActorPort = (options: ItemActorPortOptions): ServerItemAc
             else targets.set(source.runtimeId, target);
 
             try {
-                return duringItemInteraction(options.level.dimension, body);
+                // The level beside the dimension: two levels can hold the same dimension, and the
+                // item's actions have to land in the one its block writes go to.
+                return duringItemInteraction({ dimension: level.dimension, level: world()?.getLevel().name }, body);
             } finally {
                 if (previous === undefined) targets.delete(source.runtimeId);
                 else targets.set(source.runtimeId, previous);

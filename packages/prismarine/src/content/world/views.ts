@@ -34,7 +34,7 @@ import type { BlockLightProperties, BlockLightView } from '@jsprismarine/lightin
 import type { BlockReference, WorldActions as ItemWorldActions } from '@jsprismarine/item-behaviors';
 import type { SpawnWorld } from '@jsprismarine/spawning';
 
-import { itemInteractionDimension } from '../../item/interactionContext';
+import { itemInteractionWorld } from '../../item/interactionContext';
 
 import type { ServerContent } from '../ServerContent';
 import type { ContentBlock, ContentPosition, ServerWorldAdapter, ServerWorldSource } from './adapter';
@@ -104,7 +104,13 @@ export const contentWorldViews = (
 
     return {
         blockWorld: { at: (dimension, level) => blockActionsOf(world.at(dimension, level), content) },
-        itemActions: itemActionsOf(() => world.at(itemInteractionDimension() ?? defaultDimension), content),
+        // The world the interaction started in, level and all, so an item used in a second level
+        // acts on that level, where `blockWorld.at` sends its block writes, and not on the
+        // default level's world of the same dimension.
+        itemActions: itemActionsOf(() => {
+            const interaction = itemInteractionWorld();
+            return interaction === undefined ? main() : world.at(interaction.dimension, interaction.level);
+        }, content),
         lightView: lightViewOf(main(), content),
         engineWorld: engineWorldOf(main()),
         spawnWorld: spawnWorldOf(main(), content),
