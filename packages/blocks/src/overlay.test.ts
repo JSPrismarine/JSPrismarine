@@ -90,6 +90,13 @@ describe('the jsprismarine_vanilla overlay generator', () => {
 });
 
 describe('the committed overlay pack', () => {
+    it('keeps bedrock immovable in both movement components', () => {
+        const definition = JSON.parse(readFileSync(join(packDirectory, 'blocks/bedrock.block.json'), 'utf8'));
+        const components = definition['minecraft:block'].components;
+        expect(components['minecraft:movable'].movement_type).toBe('immovable');
+        expect(components['jsprismarine:block_properties'].push_reaction).toBe('immovable');
+    });
+
     it('loads as a real Bedrock behavior pack', () => {
         const { definitions, diagnostics } = load([{ kind: 'directory', path: packDirectory }]);
 

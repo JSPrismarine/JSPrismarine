@@ -267,6 +267,9 @@ export const generateVanillaOverlay = (
     for (const identifier of identifiers) {
         const bedrockOnly = properties.bedrockOnly.has(identifier);
         const row = properties.propertiesOf(identifier) ?? BEDROCK_ONLY_FALLBACK;
+        // Bedrock's mining restriction does not govern piston movement.
+        const movement =
+            identifier === 'minecraft:bedrock' ? 'immovable' : (MOVEMENT_TYPES[row.pushReaction] ?? 'push_pull');
         const behavior = behaviorFor(identifier);
         behaviorCounts.set(behavior, (behaviorCounts.get(behavior) ?? 0) + 1);
 
@@ -283,7 +286,7 @@ export const generateVanillaOverlay = (
             'minecraft:friction': friction,
             'minecraft:light_emission': row.lightEmission,
             'minecraft:light_dampening': row.lightDampening,
-            'minecraft:movable': { movement_type: MOVEMENT_TYPES[row.pushReaction] ?? 'push_pull' }
+            'minecraft:movable': { movement_type: movement }
         };
         const permutations: { condition: string; components: Record<string, unknown> }[] = [];
 
@@ -340,7 +343,7 @@ export const generateVanillaOverlay = (
             friction: row.friction,
             random_tick: row.randomTick,
             requires_correct_tool: row.requiresCorrectTool,
-            push_reaction: MOVEMENT_TYPES[row.pushReaction] ?? 'push_pull',
+            push_reaction: movement,
             source: bedrockOnly ? 'fallback' : 'java'
         };
 
