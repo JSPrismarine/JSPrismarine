@@ -40,6 +40,11 @@ export interface SkipContext {
      * Without it, only a `fixedIn` equal to the skipped commit counts as fixed.
      */
     contains?: (commit: string, ancestor: string) => boolean | undefined;
+    /**
+     * Accept a skip whose build already contains its fix, for the `--run-skipped` run that
+     * confirms the fix before the skip is deleted.
+     */
+    allowStale?: boolean;
 }
 
 const wordCount = (text: string): number => text.split(/\s+/).filter((word) => /\w/.test(word)).length;
@@ -125,7 +130,10 @@ export const skipProblems = (skips: readonly ScenarioSkip[], context: SkipContex
         if (skip.fixedIn !== undefined) {
             if (!isCommit(skip.fixedIn)) {
                 problem('fixedIn must be the full 40-character cinnabar commit that fixes the client');
-            } else if (skip.fixedIn === skip.commit || context.contains?.(skip.commit, skip.fixedIn) === true) {
+            } else if (
+                context.allowStale !== true &&
+                (skip.fixedIn === skip.commit || context.contains?.(skip.commit, skip.fixedIn) === true)
+            ) {
                 problem(
                     `the build already contains the fix ${buildName(skip.fixedIn)} (fixedIn), so the skip is ` +
                         'stale: confirm with --run-skipped that the scenario passes, then delete the skip'

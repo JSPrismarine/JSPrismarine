@@ -264,6 +264,17 @@ const ensureDevelopmentLinks = (checkout: string, built: ReturnType<typeof binar
     }
 };
 
+/** The commit a checkout is at. */
+export const checkoutHead = (checkout: string): string =>
+    execFileSync('git', ['rev-parse', 'HEAD'], { cwd: checkout, encoding: 'utf8' }).trim();
+
+/**
+ * The commit of the build a run uses: a `JSP_CINNABAR_PATH` checkout's own, which may differ
+ * from the pin, and the pinned one otherwise.
+ */
+export const buildCommit = (pin: CinnabarPin, checkout: string): string =>
+    process.env.JSP_CINNABAR_PATH ? checkoutHead(checkout) : pin.commit;
+
 /** Clones the pinned commit when the cache is cold. A `JSP_CINNABAR_PATH` checkout is used as-is. */
 export const ensureCheckout = (pin: CinnabarPin): string => {
     const checkout = checkoutDir(pin.commit);
@@ -271,7 +282,7 @@ export const ensureCheckout = (pin: CinnabarPin): string => {
         if (!fs.existsSync(checkout)) {
             throw new Error(`JSP_CINNABAR_PATH points at ${checkout}, which does not exist`);
         }
-        const head = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: checkout, encoding: 'utf8' }).trim();
+        const head = checkoutHead(checkout);
         if (head !== pin.commit) {
             console.warn(`JSP_CINNABAR_PATH is at ${head.slice(0, 12)}, not the pinned ${pin.commit.slice(0, 12)}`);
         }
@@ -279,8 +290,22 @@ export const ensureCheckout = (pin: CinnabarPin): string => {
     }
     if (fs.existsSync(path.join(checkout, '.git'))) return checkout;
     fs.mkdirSync(path.dirname(checkout), { recursive: true });
-    run('git', ['clone', '--filter=blob:none', pin.repository, checkout], path.dirname(checkout));
-    run('git', ['checkout', '--detach', pin.commit], checkout);
+    // Cloned beside the checkout and renamed into place, since the protocols' transports share
+    // one checkout per commit: a run that starts on a cold cache while another still clones finds
+    // no `.git` to mistake for a whole checkout, and a rename onto one that landed first fails,
+    // after which this run uses that one.
+    const staging = fs.mkdtempSync(`${checkout}.clone-`);
+    try {
+        run('git', ['clone', '--filter=blob:none', pin.repository, staging], path.dirname(checkout));
+        run('git', ['checkout', '--detach', pin.commit], staging);
+        try {
+            fs.renameSync(staging, checkout);
+        } catch (error) {
+            if (!fs.existsSync(path.join(checkout, '.git'))) throw error;
+        }
+    } finally {
+        fs.rmSync(staging, { recursive: true, force: true });
+    }
     return checkout;
 };
 
