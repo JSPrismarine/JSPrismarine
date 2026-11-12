@@ -5,14 +5,15 @@ import type { RespawnDestination } from '../network/PlayerSession';
  * Where a player comes back, asked as a trip out of the End asks: again after each turn of the
  * event loop, which lets the chunks and worlds the search waits for arrive, until it answers.
  *
+ * No count of turns bounds the wait: a chunk load or a world build does not finish in a known
+ * number of them. The test's own timeout does.
+ *
  * @param session - The player's session.
- * @throws When the search has not answered after a hundred attempts.
  */
 export const respawnPointOf = async (session: PlayerSession): Promise<RespawnDestination> => {
-    for (let attempts = 0; attempts < 100; attempts += 1) {
+    for (;;) {
         const destination = session.attemptRespawnPoint();
         if (destination !== undefined) return destination;
         await new Promise<void>((resolve) => setImmediate(resolve));
     }
-    throw new Error(`The respawn search never answered for ${session.identity.name}`);
 };
