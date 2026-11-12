@@ -116,6 +116,22 @@ function tagDates() {
     }
 }
 
+/**
+ * The day a release's heading entered the changelog, for a release that has no tag of its own. The
+ * release commit adds the heading, so the oldest commit that changed its count is the release.
+ */
+function changelogDate(version: string) {
+    try {
+        const days = execFileSync('git', ['log', '--format=%cs', '-S', `## ${version}\n`, '--', changelog], {
+            cwd: repoRoot,
+            encoding: 'utf8'
+        });
+        return days.trim().split('\n').filter(Boolean).at(-1);
+    } catch {
+        return undefined;
+    }
+}
+
 /** Splits a section into its top-level bullets, keeping each bullet's continuation lines. */
 function bullets(section: string) {
     return section
@@ -145,7 +161,7 @@ async function load(): Promise<ReleaseData> {
         const version = heading.trim();
         const release: Release = {
             version,
-            date: dates.get(version),
+            date: dates.get(version) ?? changelogDate(version),
             kind: 'patch',
             major: [],
             minor: [],
