@@ -16,7 +16,7 @@ Encoding everything at the cut puts all 642 records into one tick. Encoding each
 
 ## Consequences
 
-The encoded pass stays in memory until it commits. The count to watch is encoded bytes held per pass. A changed chunk encodes to about 22 KB, so the pass for a level holding the default 441 chunks around one player holds at most about 10 MB.
+The encoded pass stays in memory until it commits. The count to watch is encoded bytes held per pass. A changed chunk encodes to about 22 KB, so the pass for the 441 chunks the measurement loaded around one player holds at most about 10 MB.
 
 `Database.write` in `@jsprismarine/leveldb` appends a batch of any size to the log as one record, so a pass can commit as one batch. A batch larger than the write buffer goes into the memtable whole and is flushed as one table, and a crash applies none of a batch whose record is incomplete. The call is synchronous today and its log is not synced by default. `Database.write` gains a per-call sync flag and an asynchronous commit that appends and syncs off the server thread, and no other write reaches the database while a commit is in flight.
 
