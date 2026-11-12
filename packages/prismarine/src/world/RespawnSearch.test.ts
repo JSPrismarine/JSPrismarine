@@ -342,6 +342,54 @@ describe('RespawnSearch', () => {
             expect([world.getLoadedChunk(0, 0), world.getLoadedChunk(1, 0)]).toEqual([null, null]);
         });
 
+        it('lets go of the chunks it asked for when the search throws', () => {
+            const unloaded = new Set(['2,2']);
+            const overworld = worldOf(
+                Dimensions.Overworld,
+                { '40,64,40': 'minecraft:red_bed' },
+                new Vector3(0, 64, 0),
+                unloaded
+            );
+            const { search } = searchOver({ overworld });
+            const tickets = overworld.chunkTickets();
+            const asked = request({ x: 40, y: 64, z: 40, dimension: Dimensions.Overworld.id });
+
+            expect(search.attempt(asked)).toEqual({ kind: 'waiting' });
+            expect(tickets.holds(2, 2)).toBe(true);
+
+            // The chunk is in, and a block beside the bed has no declared type.
+            unloaded.delete('2,2');
+            Object.assign(overworld, {
+                loadedBlock: () => {
+                    throw new Error('No block named minecraft:unknown');
+                }
+            });
+            expect(() => search.attempt(asked)).toThrow('No block named minecraft:unknown');
+            expect(tickets.holds(2, 2)).toBe(false);
+        });
+
+        it('throws a world spawn search that failed at the next attempt, and searches again after', async () => {
+            const overworld = worldOf(Dimensions.Overworld);
+            let searches = 0;
+            Object.assign(overworld, {
+                getKnownSpawnPosition: () => null,
+                getSpawnPosition: async () => {
+                    searches += 1;
+                    throw new Error('the spawn chunk failed to generate');
+                }
+            });
+            const { search } = searchOver({ overworld });
+
+            expect(search.attempt(request())).toEqual({ kind: 'waiting' });
+            expect(search.attempt(request())).toEqual({ kind: 'waiting' });
+            await new Promise<void>((resolve) => setImmediate(resolve));
+
+            expect(() => search.attempt(request())).toThrow('the spawn chunk failed to generate');
+            expect(searches).toBe(1);
+            expect(search.attempt(request())).toEqual({ kind: 'waiting' });
+            expect(searches).toBe(2);
+        });
+
         it('lets go of every chunk it asked for when the caller stops asking', () => {
             const { world, admit } = unloadingWorld({
                 '15,64,8': 'minecraft:bed',
