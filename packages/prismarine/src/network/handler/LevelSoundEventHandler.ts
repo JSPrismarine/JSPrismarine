@@ -2,7 +2,6 @@ import { Vector3 } from '@jsprismarine/math';
 import { LevelSoundEventName } from '@jsprismarine/minecraft';
 import { CREATIVE_REACH } from '../../entity/Combat';
 import { PLAYER_IDENTIFIER } from '../../entity/playerOverlay';
-import { SOUND_RADIUS } from '../../world/Proximity';
 import type LevelSoundEventPacket from '@jsprismarine/protocol/packet/LevelSoundEventPacket';
 import type { InputContext } from './HandlerContext';
 import type { InputLaneHandler } from './SessionHandler';
@@ -30,18 +29,17 @@ const NO_ACTOR_TYPES = new Set(['', ':']);
 export default class LevelSoundEventHandler implements InputLaneHandler<LevelSoundEventPacket> {
     public static PacketName = 'LevelSoundEventPacket';
     public readonly phases = ['play'] as const;
-    // Relays to the players near the sound, so it is an input though it writes nothing.
+    // Logs an occurrence that replication relays to the players near the sound.
     public readonly lane = 'input';
 
     /**
      * Broadcasts the sound from its own position when it is the sender's to make: attributed
      * to the sender or to no actor, and within reach of where the sender stands.
      *
-     * The sound goes out as the instance the client sent. The packet codec preserves its
-     * decoded fields, and the relay carries the same layout the client used, `Fire At Position`
-     * and any sound name outside the enum included.
+     * The sound goes out with every field the client sent, `Fire At Position` included. A
+     * sound name outside the enum decodes to -1 and goes out as an empty name, as it always did.
      */
-    public handle(packet: LevelSoundEventPacket, { session, log, services }: InputContext): undefined {
+    public handle(packet: LevelSoundEventPacket, { session, log }: InputContext): undefined {
         const position = new Vector3(packet.positionX, packet.positionY, packet.positionZ);
 
         const drop = (reason: string) => {
@@ -70,18 +68,30 @@ export default class LevelSoundEventHandler implements InputLaneHandler<LevelSou
             return;
         }
 
-        // Relayed through the world's replicator rather than through the world itself: this
-        // is a packet a client sent being handed to other clients, which is network business
-        // from end to end and never was the world's.
-        //
-        // The sound carries its own position, so it is broadcast from there rather than from
-        // the player, and only as far as a sound should carry.
-        //
-        // The sender is left out: the client that sent this has already played it locally, and
-        // echoing it back played everything twice for whoever made the noise.
-        services.replicators.for(session.getWorld()).sendAround(position, packet, {
-            radius: SOUND_RADIUS,
-            exclude: { getRuntimeId: () => session.runtimeId }
+        // The sound carries its own position, so it is played from there rather than from the
+        // player, and only as far as a sound should carry. The sender is left out: the client
+        // that sent this has already played it locally, and echoing it back played everything
+        // twice for whoever made the noise. Replication sends it when the tick seals, rebuilt
+        // from the fields the client sent, which is what the relay always carried.
+        session.getWorld().relaySound({
+            sender: session.runtimeId,
+            x: packet.positionX,
+            y: packet.positionY,
+            z: packet.positionZ,
+            sound: packet.sound,
+            data: packet.extraData,
+            type: packet.entityType,
+            baby: packet.isBabyMob,
+            global: packet.disableRelativeVolume,
+            actor: packet.entityUniqueId,
+            firedAt:
+                packet.fireAtPosition === null
+                    ? null
+                    : {
+                          x: packet.fireAtPosition.getX(),
+                          y: packet.fireAtPosition.getY(),
+                          z: packet.fireAtPosition.getZ()
+                      }
         });
     }
 }

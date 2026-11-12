@@ -12,7 +12,10 @@ import { describe, expect, it } from 'vitest';
 
 import type Server from '../Server';
 import type { Config } from '../config/Config';
+import { inputContext } from '../testing/handlerContext.test.helper';
 import { sealOccurrences } from '../testing/occurrences.test.helper';
+import { stubPlayerPort } from '../testing/playerPort.test.helper';
+import { identityNamed } from '../testing/sessionIdentity.test.helper';
 import { stub } from '../testing/stub.test.helper';
 import { Dimensions } from '../world/Dimension';
 import { Position } from '../world/Position';
@@ -20,6 +23,7 @@ import type { World } from '../world/World';
 import type ClientConnection from './ClientConnection';
 import Codec2193 from './codec/Codec2193';
 import Codec2225 from './codec/Codec2225';
+import LevelSoundEventHandler from './handler/LevelSoundEventHandler';
 import { NetworkWorldReplicator } from './NetworkWorldReplicator';
 import type PlayerSession from './PlayerSession';
 
@@ -233,6 +237,49 @@ describe('network', () => {
                 expect(own.frames).toHaveLength(0);
                 expect(own.sent).toHaveLength(0);
                 expect(elsewhere.frames).toHaveLength(0);
+            });
+        });
+
+        describe('relayed-sound', () => {
+            it("plays a client's sound to the players near it but the sender, with the bytes the client sent", async () => {
+                // A step with a Fire At Position, from the client's own bytes, through the handler
+                // and the log to the wire.
+                const bytes = Buffer.concat([
+                    Buffer.from([0x7b, 0x04]),
+                    Buffer.from('step'),
+                    Buffer.from([0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x80, 0x42, 0x00, 0x00, 0x00, 0x00]), // 0, 64, 0
+                    Buffer.from([0x01]), // Data -1
+                    Buffer.from([0x10]),
+                    Buffer.from('minecraft:player'),
+                    Buffer.from([0x00, 0x00]), // Is Baby, Is Global
+                    Buffer.from([0x07, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]), // Actor Unique Id, the sender
+                    Buffer.from([0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]) // Fire At Position
+                ]);
+                const incoming = new LevelSoundEventPacket(bytes);
+                incoming.decode();
+                const sender = viewer(7n);
+                const near = viewer(8n);
+                const replicator = replicatorOver([sender.session, near.session]);
+                const world = stub<World>({
+                    relaySound: (sound) =>
+                        sealOccurrences(replicator, { kind: 'occurrence', occurrence: 'relayed-sound', data: sound })
+                });
+                const session = stub<PlayerSession>({
+                    runtimeId: 7n,
+                    identity: identityNamed('tester'),
+                    getPlayer: () => stubPlayerPort({ getPosition: () => new Position(0, 64, 0, world) }),
+                    getWorld: () => world
+                });
+                const { context } = inputContext(session, { log: stub<Logger>({ verbose: () => {} }) });
+
+                new LevelSoundEventHandler().handle(incoming, context);
+                await replicator.flushOccurrences();
+
+                expect(sender.sent).toHaveLength(0);
+                const relayed = near.sent[0];
+                if (!(relayed instanceof LevelSoundEventPacket)) throw new Error('expected a sound');
+                relayed.encode();
+                expect(relayed.getBuffer()).toEqual(bytes);
             });
         });
 

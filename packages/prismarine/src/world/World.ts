@@ -2063,6 +2063,16 @@ export class World implements Service {
     }
 
     /**
+     * Plays a sound a player's client made, such as a step, to the players near it. The sender's
+     * own client already played it. It is a `relayed-sound` occurrence in the change log, which
+     * replication sends to everyone near the sound but the sender.
+     * @param {OccurrenceKinds['relayed-sound']} sound - Who made it, and the fields their client sent.
+     */
+    public relaySound(sound: OccurrenceKinds['relayed-sound']): void {
+        this.occurred({ kind: 'occurrence', occurrence: 'relayed-sound', data: sound });
+    }
+
+    /**
      * Tells clients tracking an entity about one status effect change.
      * @param {ShownActor} entity - The actor whose effect changed.
      * @param {StatusEffect} effect - The effect state.
