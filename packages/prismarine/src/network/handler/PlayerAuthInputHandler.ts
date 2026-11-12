@@ -154,15 +154,24 @@ export default class PlayerAuthInputHandler implements PacketHandler<PlayerAuthI
 
         if (!player.isOnline()) return;
 
-        await applyClientMovement(server, session, {
-            position: input.position,
-            pitch: input.pitch,
-            yaw: input.yaw,
-            headYaw: input.headYaw,
-            // The input has no "on ground" bit. A vertical collision is the nearest thing it
-            // says: the ground pushing back, every tick the player stands on it.
-            onGround: input.inputData.has(PlayerAuthInputData.VERTICAL_COLLISION)
-        });
+        // After a teleport the client's inputs name where it was until one carries
+        // `HandledTeleport`. Moving the player by them would undo the teleport on the server
+        // alone; the rest of the input is still acted on.
+        const stale = session.holdsMovementForTeleport(
+            input.position,
+            input.inputData.has(PlayerAuthInputData.HANDLED_TELEPORT)
+        );
+        if (!stale) {
+            await applyClientMovement(server, session, {
+                position: input.position,
+                pitch: input.pitch,
+                yaw: input.yaw,
+                headYaw: input.headYaw,
+                // The input has no "on ground" bit. A vertical collision is the nearest thing it
+                // says: the ground pushing back, every tick the player stands on it.
+                onGround: input.inputData.has(PlayerAuthInputData.VERTICAL_COLLISION)
+            });
+        }
 
         for (const [flag, action] of FLAG_ACTIONS) {
             if (input.inputData.has(flag)) await this.actions.handleAction(action, NOWHERE, 0, server, session);

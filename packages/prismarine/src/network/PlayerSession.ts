@@ -169,6 +169,16 @@ export interface PendingDimensionChange {
 }
 
 /**
+ * How long input positions stay ignored after a teleport when the client never says it handled
+ * it: five seconds. Long enough for a slow client to apply the teleport, short enough that one
+ * which does not set `HandledTeleport` can move again.
+ */
+const TELEPORT_ACK_TIMEOUT_TICKS = 100;
+
+/** How far from the teleport's target, in blocks, the acknowledging input may be. */
+const TELEPORT_ACK_RADIUS = 4;
+
+/**
  * Ticks a client has to close the loading screen of a dimension change before the server
  * finishes the change for it: a minute, well past the slowest world build.
  *
@@ -402,6 +412,8 @@ export default class PlayerSession {
      * player changed world does not record the old world's coordinates as loaded in the new.
      */
     private chunkEpoch = 0;
+    /** The last teleport sent to this client that it has not said it handled, and when. */
+    private teleportAwaitingAck: { readonly x: number; readonly z: number; readonly sentAtTick: number } | undefined;
 
     public constructor(server: Server, connection: ClientConnection, player: Player) {
         this.server = server;
@@ -2358,7 +2370,44 @@ export default class PlayerSession {
             ...(mode === PositionMode.Teleport ? { teleportCause: 0, teleportItemId: 0 } : {}),
             tick: player === this.player ? this.lastInputTick : 0n
         });
+        // From here until the client says it handled the teleport, its inputs still name where
+        // it was; see holdsMovementForTeleport.
+        if (player === this.player && mode === PositionMode.Teleport) {
+            this.teleportAwaitingAck = { x: position.getX(), z: position.getZ(), sentAtTick: this.server.getTick() };
+        }
         await this.send(packet);
+    }
+
+    /**
+     * Whether an input's position must be ignored because the client has not yet handled a
+     * teleport the server sent it.
+     *
+     * The client goes on sending inputs from where it was until it applies the `MovePlayer`, and
+     * the first input from the new place carries `HandledTeleport`. A retail client was captured
+     * doing exactly that, with one stale input arriving after the teleport about one time in
+     * three. Taking the stale position moves the player back on the server while the client
+     * stands at the target, and the server then sends chunks for the wrong place. A client that
+     * stops sending inputs while it waits for chunks never recovers from that.
+     *
+     * The hold ends on a `HandledTeleport` input at the target, which tells two teleports sent
+     * in a row apart, or after {@link TELEPORT_ACK_TIMEOUT_TICKS}, so a client that never sets the
+     * flag is not frozen in place.
+     * @param position - Where the input says the player is.
+     * @param handledTeleport - Whether the input carries `HandledTeleport`.
+     */
+    public holdsMovementForTeleport(position: Vector3, handledTeleport: boolean): boolean {
+        const awaiting = this.teleportAwaitingAck;
+        if (awaiting === undefined) return false;
+
+        const dx = position.getX() - awaiting.x;
+        const dz = position.getZ() - awaiting.z;
+        const atTarget = dx * dx + dz * dz <= TELEPORT_ACK_RADIUS * TELEPORT_ACK_RADIUS;
+        const timedOut = this.server.getTick() - awaiting.sentAtTick > TELEPORT_ACK_TIMEOUT_TICKS;
+        if ((handledTeleport && atTarget) || timedOut) {
+            this.teleportAwaitingAck = undefined;
+            return false;
+        }
+        return true;
     }
 
     /**

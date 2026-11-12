@@ -38,7 +38,7 @@ import PlayerAuthInputHandler, { rejectionReason } from './PlayerAuthInputHandle
  * `applyClientMovement`: the point of these tests is that an input packet reaches the same
  * code a `MovePlayerPacket` does, and the same code a `PlayerActionPacket` does.
  */
-const fake = ({ serverAuthoritativeBreaking = false, changingDimension = false } = {}) => {
+const fake = ({ serverAuthoritativeBreaking = false, changingDimension = false, awaitingTeleport = false } = {}) => {
     const calls: string[] = [];
     const logged: string[] = [];
     const world = stub<World>({
@@ -89,7 +89,8 @@ const fake = ({ serverAuthoritativeBreaking = false, changingDimension = false }
         recordInputTick: vi.fn(),
         pendingDimensionChange: () =>
             changingDimension ? { loadingScreenId: 3, arrival: stub<Arrival>() } : undefined,
-        pendingCreditsArrival: () => undefined
+        pendingCreditsArrival: () => undefined,
+        holdsMovementForTeleport: (_position, handledTeleport) => awaitingTeleport && !handledTeleport
     });
     const server = stub<Server>({
         post: () => 0,
@@ -316,6 +317,22 @@ describe('PlayerAuthInputHandler', () => {
         expect(logged).toEqual([
             'Ignored the Item Use Transaction of an input from tester: the PERFORM_ITEM_INTERACTION flag is not set'
         ]);
+    });
+
+    it('ignores where an input says the player is until the client has handled a teleport', async () => {
+        // A client goes on sending its old position until it applies the teleport. Taking it
+        // would move the player back on the server while the client stands at the target.
+        const { player, session, server } = fake({ awaitingTeleport: true });
+
+        await new PlayerAuthInputHandler().handle(input(), server, session);
+        expect(player.setPlayerPosition).not.toHaveBeenCalled();
+
+        await new PlayerAuthInputHandler().handle(
+            input((packet) => packet.inputData.add(PlayerAuthInputData.HANDLED_TELEPORT)),
+            server,
+            session
+        );
+        expect(player.setPlayerPosition).toHaveBeenCalledOnce();
     });
 
     it('drops the whole input while a dimension change is pending, after recording its tick', async () => {

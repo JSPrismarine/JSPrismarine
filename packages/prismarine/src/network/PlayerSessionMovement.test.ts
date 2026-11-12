@@ -41,6 +41,8 @@ const movementSession = () => {
             sendDataPacket: async (packet: MovePlayerPacket | SetActorMotionPacket) => void sent.push(packet)
         },
         player,
+        // A teleport notes the server tick it went out on.
+        server: { getTick: () => 0 },
         lastInputTick: 0n
     });
 

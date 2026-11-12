@@ -6,6 +6,7 @@ import {
     NewInteractionModel,
     PlayStatus,
     PlayerActionType,
+    PlayerAuthInputData,
     PositionMode
 } from '@jsprismarine/protocol';
 import ChangeDimensionPacket from '@jsprismarine/protocol/packet/ChangeDimensionPacket';
@@ -72,7 +73,7 @@ const arrivalIn = (world: World, extra: Partial<Arrival> = {}): Arrival => ({
 const indexOf = (sent: unknown[], matches: (packet: unknown) => boolean) => sent.findIndex(matches);
 
 /** The input a client sends standing at `position`, with the fields `rejectionReason` checks. */
-const inputAt = (position: Vector3): PlayerAuthInputPacket =>
+const inputAt = (position: Vector3, handledTeleport = false): PlayerAuthInputPacket =>
     new PlayerAuthInputPacket(
         playerAuthInputToProtocol(
             {
@@ -81,7 +82,7 @@ const inputAt = (position: Vector3): PlayerAuthInputPacket =>
                 position,
                 moveVector: { x: 0, y: 0 },
                 headYaw: 0,
-                inputData: new Set(),
+                inputData: new Set(handledTeleport ? [PlayerAuthInputData.HANDLED_TELEPORT] : []),
                 inputMode: InputMode.Undefined,
                 playMode: ClientPlayMode.Normal,
                 interactionModel: NewInteractionModel.Touch,
@@ -402,6 +403,14 @@ describe('PlayerSession.changeWorld', () => {
         await screens.handle(screenClosed(id), server, session);
         expect(session.pendingDimensionChange()).toBeUndefined();
 
+        // The change ends with a teleport to the arrival, and the client's first input from
+        // there says it handled it. From then on its positions count again.
+        const arrival = player.getPosition();
+        await inputs.handle(
+            inputAt(new Vector3(arrival.getX(), arrival.getY(), arrival.getZ()), true),
+            server,
+            session
+        );
         await inputs.handle(inputAt(new Vector3(3, 70, -4)), server, session);
         expect(player.getPosition().getX()).toBe(3);
     });
