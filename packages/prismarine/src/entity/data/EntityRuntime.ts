@@ -2166,10 +2166,10 @@ export class EntityRuntime implements EntityScene {
     /**
      * Deals one entity's melee damage to another.
      *
-     * A target this index does not hold is a player, and a player's health is
-     * the server's rather than the runtime's, so the blow goes out through
-     * {@link EntityHostFacts.hurt}. A host that supplies no route for it is
-     * told once per swing rather than letting the mob connect with nothing.
+     * A target this index does not hold goes out through {@link EntityHostFacts.hurt}, and a
+     * host that supplies no route for it is told once per swing rather than letting the mob
+     * connect with nothing. A player in the store takes the blow here, with the armor,
+     * resistance, absorption and grace period the host's route gives a player.
      */
     public attack(attacker: MobBody, target: GoalMob): void {
         if (typeof target.id !== 'number') return;
@@ -2190,7 +2190,8 @@ export class EntityRuntime implements EntityScene {
         }
 
         if (other !== undefined) {
-            this.hurt(other, attacker.id, 'entity_attack', damage);
+            const player = clientOwnsMovement(other.identifier);
+            this.hurt(other, attacker.id, 'entity_attack', damage, player ? { mitigated: true, graced: true } : {});
             if (attackerEntity !== undefined) this.applyAttackStatusEffect(attackerEntity, target.id);
             return;
         }
@@ -2365,8 +2366,16 @@ export class EntityRuntime implements EntityScene {
         sourceId: number | undefined,
         cause: string,
         amount: number,
-        options: { readonly feedback?: boolean; readonly route?: DamageRoute } = {}
+        options: {
+            readonly feedback?: boolean;
+            readonly route?: DamageRoute;
+            /** Whether armor, resistance and absorption take their share, as for a player. */
+            readonly mitigated?: boolean;
+            /** Whether the target's grace period after a blow turns this one aside. */
+            readonly graced?: boolean;
+        } = {}
     ): boolean {
+        const { feedback, mitigated, graced } = options;
         const outcome = this.damage({
             target: entity.id,
             ...(sourceId === undefined ? {} : { attacker: sourceId }),
@@ -2374,7 +2383,9 @@ export class EntityRuntime implements EntityScene {
             amount,
             source: {
                 route: options.route ?? 'mob_attack',
-                ...(options.feedback === undefined ? {} : { feedback: options.feedback })
+                ...(feedback === undefined ? {} : { feedback }),
+                ...(mitigated === undefined ? {} : { mitigated }),
+                ...(graced === undefined ? {} : { graced })
             }
         });
         return outcome.committed && outcome.taken > 0;
