@@ -1,12 +1,10 @@
-import { ComponentRegistry } from '@jsprismarine/content';
 import { describe, expect, it } from 'vitest';
 
 import type { ComponentStateWrite } from '../componentState';
 import { observing, tickThenUndo } from '../componentState.test.helper';
 import type { EntityEnvironment, EntityInstance } from '../entityInstance';
 import { EntityTypes } from '../entityTypes';
-import type { EntityHooks, EntityStatusEffect } from '../hooks';
-import { mobEffect } from './effects';
+import type { EntityStatusEffect } from '../hooks';
 
 /** `minecraft:mob_effect`'s cooldown, asserted by the effects it applies and the state it keeps. */
 
@@ -30,12 +28,9 @@ const world = () => {
     return { applied, environment };
 };
 
+// The default registry, which is what a server spawns from.
 const spawn = (environment: EntityEnvironment): EntityInstance => {
-    // `DATA_COMPONENTS` claims `minecraft:mob_effect` before the default registry reaches this
-    // factory, so the test builds a registry of the factory alone.
-    const components = new ComponentRegistry<EntityHooks>();
-    components.register(mobEffect);
-    const types = new EntityTypes({ components });
+    const types = new EntityTypes();
     types.load([{ data: pufferfish, pack: 'vanilla', path: 'entities/test.json' }]);
     return types.spawn('test:puffer', { environment });
 };
