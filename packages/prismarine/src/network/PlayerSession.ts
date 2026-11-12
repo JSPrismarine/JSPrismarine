@@ -1028,7 +1028,6 @@ export default class PlayerSession {
 
             for (const entity of change.spawn) {
                 const sent = entity.spawnTo(this);
-                this.entityTracker.add(entity.getRuntimeId());
                 sends.push(this.trackedOnceSent(entity.getRuntimeId(), sent));
             }
 
@@ -1054,20 +1053,23 @@ export default class PlayerSession {
         if (entity.getRuntimeId() === this.runtimeId) return allSent([]);
         if (!this.entityTracker.shouldSpawn(entity, this.own().getPosition(), this.viewDistance)) return allSent([]);
 
-        const sent = entity.spawnTo(this);
-        this.entityTracker.add(entity.getRuntimeId());
-        return this.trackedOnceSent(entity.getRuntimeId(), sent);
+        return this.trackedOnceSent(entity.getRuntimeId(), entity.spawnTo(this));
     }
 
     /**
-     * A spawn that is tracked from when it is queued, and forgotten again if the transport fails
-     * to frame it, so the next pass sends it rather than leave the entity invisible for good.
+     * Tracks a spawn from when it is queued, and forgets it again if the transport fails to
+     * frame it, so the next pass sends it rather than leave the entity invisible for good.
      * Tracked first because the next pass may run before the send settles, and it must not send
      * the same spawn twice.
+     *
+     * Only the spawn that is still the tracked one is forgotten. A send can fail after its entity
+     * was dropped and spawned again under the same runtime id, and that newer spawn's record
+     * has to stay for the drop that follows it ({@link EntityTracker.removeSpawn}).
      */
     private trackedOnceSent(runtimeId: bigint, sent: Promise<void>): Promise<void> {
+        const spawn = this.entityTracker.add(runtimeId);
         return sent.catch((error: unknown) => {
-            this.entityTracker.remove(runtimeId);
+            this.entityTracker.removeSpawn(runtimeId, spawn);
             throw error;
         });
     }
