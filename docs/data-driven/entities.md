@@ -622,7 +622,7 @@ with the bow sound vanilla Bedrock plays. `EyeOfEnderSignals` flies it as Java <
 far from the structure toward a point part of the way there and above the throw, near it toward the
 structure point itself, easing its speed toward the distance left each tick. At the end of its
 lifetime it plays its break sound and leaves, dropping the eye as a stack or bursting into
-`LevelEvent` 2003, as the roll made when it was thrown decided. Its definition is
+`LevelEvent.PARTICLES_EYE_OF_ENDER_DEATH`, as the roll made when it was thrown decided. Its definition is
 `minecraft:transient`, so it is never saved, since a restored eye would have no thrower.
 
 Clients are shown a mob, the eye and every other entity from the world's change log
