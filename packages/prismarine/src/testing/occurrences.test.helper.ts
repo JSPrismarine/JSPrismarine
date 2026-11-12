@@ -15,6 +15,7 @@ import type { WorldChangeSink } from '../world/WorldChangeSink';
 import { NULL_WORLD_CHANGE_SINK } from '../world/WorldChangeSink';
 import { inertEntityRuntime } from './entityServer';
 import { stub } from './stub.test.helper';
+import type { StubMembers } from './stub.test.helper';
 
 let ticks = 0;
 
@@ -30,10 +31,12 @@ export const sealOccurrences = (sink: Pick<WorldChangeSink, 'tickSealed'>, ...en
  * A world double built on the prototype, whose occurrences go into a real store's change log, as
  * a ticking world's do.
  * @param members - The world's members the code under test reads, over the double's own.
+ * @param serverMembers - The server's members the code under test reads, beside the ones the
+ *   change log needs.
  * @returns The world, its store, and `occurrences`, which seals the open tick, opens the next and
  *   returns the sealed tick's occurrences in order.
  */
-export const occurrenceWorld = (members: object = {}) => {
+export const occurrenceWorld = (members: object = {}, serverMembers: StubMembers<Server> = {}) => {
     const runtime = inertEntityRuntime();
     const store: EntityStore = runtime.runtime.store;
     store.beginTick();
@@ -48,7 +51,8 @@ export const occurrenceWorld = (members: object = {}) => {
             server: stub<Server>({
                 getEntityRuntime: () => runtime,
                 hasEntityRuntime: () => true,
-                getLogger: () => stub<Logger>({ verbose: (message: string) => void verbose.push(message) })
+                getLogger: () => stub<Logger>({ verbose: (message: string) => void verbose.push(message) }),
+                ...serverMembers
             })
         },
         members

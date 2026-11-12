@@ -6,9 +6,25 @@ import { blockMiningOf, playerMiningOf } from './BlockMining';
 
 describe('the mining conversions', () => {
     it('carry a block between the world and the component and back', () => {
-        const mining = { position: new Vector3(3, 64, -2), face: 1, runtimeId: 42, progressPerTick: 1200 };
+        const mining = {
+            position: new Vector3(3, 64, -2),
+            face: 1,
+            runtimeId: 42,
+            progressPerTick: 1200,
+            breakTicks: 55,
+            startedAt: 90
+        };
 
-        expect(playerMiningOf(mining)).toEqual({ x: 3, y: 64, z: -2, face: 1, runtimeId: 42, progressPerTick: 1200 });
+        expect(playerMiningOf(mining)).toEqual({
+            x: 3,
+            y: 64,
+            z: -2,
+            face: 1,
+            runtimeId: 42,
+            progressPerTick: 1200,
+            breakTicks: 55,
+            startedAt: 90
+        });
         expect(blockMiningOf(playerMiningOf(mining))).toEqual(mining);
     });
 

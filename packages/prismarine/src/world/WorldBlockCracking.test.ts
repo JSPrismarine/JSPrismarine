@@ -6,7 +6,6 @@ import type { Block } from '../block/Block';
 import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
 import { BlockState } from '../block/state/BlockState';
 import { Item } from '../item/Item';
-import type Server from '../Server';
 import { stub } from '../testing/stub.test.helper';
 import { occurrenceWorld } from '../testing/occurrences.test.helper';
 
@@ -22,15 +21,18 @@ const fakeWorld = (initial: BlockState, breakSeconds: number) => {
     const at: { state: BlockState; loaded: boolean } = { state: initial, loaded: true };
     const clock = { tick: 40 };
 
-    const { world, occurrences } = occurrenceWorld({
-        loadedBlockAt: () => (at.loaded ? { name: at.state.name, states: at.state.properties } : undefined),
-        loadedBlockRuntimeIdAt: () => (at.loaded ? BlockRuntimeIds.get(at.state) : undefined),
-        server: stub<Server>({ getTick: () => clock.tick }),
-        loadedBlock: () =>
-            stub<Block>({
-                getBreakTime: (tool) => (tool?.getName() === 'minecraft:iron_pickaxe' ? breakSeconds : breakSeconds * 5)
-            })
-    });
+    const { world, occurrences } = occurrenceWorld(
+        {
+            loadedBlockAt: () => (at.loaded ? { name: at.state.name, states: at.state.properties } : undefined),
+            loadedBlockRuntimeIdAt: () => (at.loaded ? BlockRuntimeIds.get(at.state) : undefined),
+            loadedBlock: () =>
+                stub<Block>({
+                    getBreakTime: (tool) =>
+                        tool?.getName() === 'minecraft:iron_pickaxe' ? breakSeconds : breakSeconds * 5
+                })
+        },
+        { getTick: () => clock.tick }
+    );
 
     /** The world effects logged since the last call, as each was asked for. */
     const effects = () =>

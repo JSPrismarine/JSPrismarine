@@ -17,6 +17,7 @@ import { describe, expect, it, vi } from 'vitest';
 import type { EntityRuntime } from '../../entity/data/EntityRuntime';
 import type { LiveEntityRuntime } from '../../entity/data/live';
 import { PlayerComponents } from '../../entity/playerComponents';
+import type { Block } from '../../block/Block';
 import type HumanInventory from '../../inventory/HumanInventory';
 import { Item } from '../../item/Item';
 import { inputContext } from '../../testing/handlerContext.test.helper';
@@ -54,6 +55,9 @@ const fake = ({ serverAuthoritativeBreaking = false, changingDimension = false, 
         // Every chunk is loaded, and every block in it is stone.
         getLoadedChunk: () => stub<Chunk>({}),
         loadedBlockAt: () => ({ name: 'minecraft:stone', states: {} }),
+        // A block that gives way at once, so a predicted break needs no mining timed first,
+        // which is why `startBlockCracking` below starts none.
+        loadedBlock: () => stub<Block>({ getBreakTime: () => 0 }),
         sendWorldEvent: () => {},
         startBlockCracking: (position, face) => {
             calls.push(`crack ${position.getX()},${position.getY()},${position.getZ()} face ${face}`);

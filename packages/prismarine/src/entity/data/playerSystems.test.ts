@@ -346,7 +346,9 @@ describe('a store player', () => {
             z: 0,
             face: 1,
             runtimeId: fixture.world.runtimeIdOf('minecraft:stone'),
-            progressPerTick: 900
+            progressPerTick: 900,
+            breakTicks: 73,
+            startedAt: 0
         });
 
         it('animates the cracks every tick: the particles off the face, then the progress', () => {
@@ -423,7 +425,9 @@ describe('a store player', () => {
                 z: 0,
                 face: 1,
                 runtimeId: 1,
-                progressPerTick: 9
+                progressPerTick: 9,
+                breakTicks: 7282,
+                startedAt: 0
             });
 
             fixture.runtime.hurt(player, undefined, 'entity_attack', 50);

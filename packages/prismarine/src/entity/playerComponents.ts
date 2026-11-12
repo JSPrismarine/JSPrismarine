@@ -27,8 +27,9 @@ import { isPlainRecord, plainOf } from '../world/changelog/PlainData';
 import { booleanField, numberField, optionalNumberField } from './data/entityFields';
 
 /**
- * The block a player is mining, as plain data: its position, the face being mined, its runtime id
- * and how much of the 65535 a full break takes one tick is worth.
+ * The block a player is mining, as plain data: its position, the face being mined, its runtime id,
+ * how much of the 65535 a full break takes one tick is worth, how many ticks the break takes for
+ * the tool in hand (infinite for a block that never breaks) and the tick the mining began on.
  */
 export interface PlayerMining {
     readonly x: number;
@@ -37,6 +38,8 @@ export interface PlayerMining {
     readonly face: number;
     readonly runtimeId: number;
     readonly progressPerTick: number;
+    readonly breakTicks: number;
+    readonly startedAt: number;
 }
 
 /**
@@ -213,16 +216,18 @@ const startedAtIn = (value: PlainData): number | null => optionalNumberField('it
 const miningIn = (value: PlainData): PlayerMining | null => {
     if (value === null) return null;
     if (isPlainRecord(value)) {
-        const { x, y, z, face, runtimeId, progressPerTick } = value;
+        const { x, y, z, face, runtimeId, progressPerTick, breakTicks, startedAt } = value;
         if (
             typeof x === 'number' &&
             typeof y === 'number' &&
             typeof z === 'number' &&
             typeof face === 'number' &&
             typeof runtimeId === 'number' &&
-            typeof progressPerTick === 'number'
+            typeof progressPerTick === 'number' &&
+            typeof breakTicks === 'number' &&
+            typeof startedAt === 'number'
         )
-            return { x, y, z, face, runtimeId, progressPerTick };
+            return { x, y, z, face, runtimeId, progressPerTick, breakTicks, startedAt };
     }
     throw new TypeError(`mining.block cannot hold ${JSON.stringify(value)}`);
 };

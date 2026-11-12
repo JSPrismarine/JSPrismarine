@@ -1,6 +1,7 @@
 import { WindowIds } from '@jsprismarine/minecraft';
 
 import HumanInventory from '../../inventory/HumanInventory';
+import { blockMiningOf, playerMiningOf } from '../../world/BlockMining';
 import type MobEquipmentPacket from '@jsprismarine/protocol/packet/MobEquipmentPacket';
 import type { InputContext } from './HandlerContext';
 import type { InputLaneHandler } from './SessionHandler';
@@ -52,6 +53,21 @@ export default class MobEquipmentHandler implements InputLaneHandler<MobEquipmen
 
         // The players that see the sender are shown the stack now in its hand by replication,
         // from the logged hand slot, with the armor and the off hand.
-        session.getPlayer().getInventory().setHandSlot(data.hotbarSlot);
+        const player = session.getPlayer();
+        const inventory = player.getInventory();
+        const previousSlot = inventory.getHandSlotIndex();
+        inventory.setHandSlot(data.hotbarSlot);
+
+        // A block being mined was timed for the tool held when mining began. A switch starts the
+        // mining over for the new tool, as a Bedrock client restarts its own break progress, so a
+        // fast tool's time cannot be kept for a block finished with a slow one. A report of the
+        // slot already held changes nothing.
+        const mining = blockMiningOf(player.getComponents().get('mining.block'));
+        if (mining !== null && data.hotbarSlot !== previousSlot) {
+            const world = session.getWorld();
+            world.stopBlockCracking(mining.position);
+            const restarted = world.startBlockCracking(mining.position, mining.face, inventory.getItemInHand(), null);
+            session.inputs().setPlayerMining(player, playerMiningOf(restarted));
+        }
     }
 }
