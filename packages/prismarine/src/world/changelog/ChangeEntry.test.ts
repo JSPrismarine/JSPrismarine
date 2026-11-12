@@ -46,7 +46,11 @@ const everyKind: readonly ChangeEntry[] = [
     removal,
     { kind: 'chunk', change: 'enter', x: -3, z: 4 },
     { kind: 'occurrence', occurrence: 'actor-event', data: { entity: 9n, event: 2, data: 0 } },
-    { kind: 'occurrence', occurrence: 'emote', data: { entity: 7n, emote: 'wave' } }
+    {
+        kind: 'occurrence',
+        occurrence: 'emote',
+        data: { entity: 7n, emote: 'wave', lengthTicks: 20, xuid: '', platformId: '', flags: 0 }
+    }
 ];
 
 describe('change entries', () => {

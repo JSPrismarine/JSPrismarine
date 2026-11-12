@@ -88,7 +88,11 @@ describe('ChangeLog', () => {
             const log = new ChangeLog();
             log.begin(1);
             log.append(moved(1n, 1));
-            log.append({ kind: 'occurrence', occurrence: 'animate', data: { entity: 1n, action: 1 } });
+            log.append({
+                kind: 'occurrence',
+                occurrence: 'animate',
+                data: { entity: 1n, action: 1, data: 0, swingSource: null }
+            });
             const sealed = log.seal();
             expect(structuredClone(sealed)).toEqual(sealed);
         });
@@ -133,7 +137,11 @@ describe('ChangeLog', () => {
             const before = store.snapshot();
             const span = log.startSpan();
             for (const entry of stateEntries) store.write(entry);
-            store.write({ kind: 'occurrence', occurrence: 'animate', data: { entity: 1n, action: 1 } });
+            store.write({
+                kind: 'occurrence',
+                occurrence: 'animate',
+                data: { entity: 1n, action: 1, data: 0, swingSource: null }
+            });
             expect(store.snapshot()).not.toEqual(before);
 
             log.revertSpan(span, store.apply);
@@ -159,7 +167,11 @@ describe('ChangeLog', () => {
             const [first, second] = stateEntries;
             if (!first || !second) throw new Error('fixture');
             store.write(first);
-            store.write({ kind: 'occurrence', occurrence: 'emote', data: { entity: 1n, emote: 'wave' } });
+            store.write({
+                kind: 'occurrence',
+                occurrence: 'emote',
+                data: { entity: 1n, emote: 'wave', lengthTicks: 20, xuid: '', platformId: '', flags: 0 }
+            });
             store.write(second);
 
             const applied: StateEntry[] = [];

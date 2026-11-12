@@ -261,6 +261,28 @@ describe('the entity store', () => {
         ]);
     });
 
+    it('holds an occurrence replication sends between ticks for the next tick, and not a vetoed action', () => {
+        const { runtime } = fixture();
+        const { unlogged } = runtime.store.counts();
+
+        runtime.store.occurred({
+            kind: 'occurrence',
+            occurrence: 'world-effect',
+            data: { position: null, effect: 3001, data: 100 }
+        });
+        runtime.store.occurred({
+            kind: 'occurrence',
+            occurrence: 'action-rejected',
+            data: { action: 'damage', entity: 1n, guard: 'plugin' }
+        });
+        runtime.store.beginTick();
+
+        expect(runtime.store.counts().unlogged).toBe(unlogged + 1);
+        expect(runtime.store.sealTick()?.entries).toEqual([
+            { kind: 'occurrence', occurrence: 'world-effect', data: { position: null, effect: 3001, data: 100 } }
+        ]);
+    });
+
     it('appends at most one position write per walking mob in a tick', () => {
         const { runtime } = fixture();
         const walkers = 6;

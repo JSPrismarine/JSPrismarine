@@ -1,4 +1,4 @@
-import type { ActorEvent, LevelSoundEvent } from '@jsprismarine/minecraft';
+import type { ActorEvent, LevelEvent, LevelSoundEvent } from '@jsprismarine/minecraft';
 
 import { blockPositionKey } from '../positionKeys';
 import type { PlainData, PlainRecord } from './PlainData';
@@ -118,14 +118,82 @@ export interface OccurrenceKinds {
     /** An actor event on one entity, such as being hurt, dying or eating. */
     'actor-event': OccurrenceShape<{ readonly entity: EntityId; readonly event: ActorEvent; readonly data: number }>;
     /** An entity's animation, such as swinging an arm. */
-    animate: OccurrenceShape<{ readonly entity: EntityId; readonly action: number }>;
-    /** A sound at a position. */
-    sound: OccurrenceShape<{
+    animate: OccurrenceShape<{
+        readonly entity: EntityId;
+        readonly action: number;
+        /** What the action carries, zero for the ones that carry nothing. */
+        readonly data: number;
+        /** What caused a swing, by name, or null. */
+        readonly swingSource: string | null;
+    }>;
+    /**
+     * A block made a noise, such as a hit while it is mined. The position is the block's, and
+     * replication centers the sound in it.
+     */
+    'block-sound': OccurrenceShape<{
+        readonly x: number;
+        readonly y: number;
+        readonly z: number;
+        readonly sound: LevelSoundEvent;
+        /** The runtime id of the block that made it. */
+        readonly block: number;
+        /** A player whose own client already plays it, or null when everybody near hears it. */
+        readonly except: EntityId | null;
+    }>;
+    /** A sound by its client definition's name, such as `random.chestopen`, at a point. */
+    'named-sound': OccurrenceShape<{
+        readonly x: number;
+        readonly y: number;
+        readonly z: number;
+        readonly name: string;
+        /** A multiplier on the definition's volume. */
+        readonly volume: number;
+        /** A multiplier on the definition's pitch. */
+        readonly pitch: number;
+    }>;
+    /** A particle effect by its identifier, such as `minecraft:crop_growth_emitter`, at a point. */
+    'named-particle': OccurrenceShape<{
+        readonly x: number;
+        readonly y: number;
+        readonly z: number;
+        readonly name: string;
+    }>;
+    /** A numbered level event, such as a block's cracks or a splash, at a point or for the whole world. */
+    'world-effect': OccurrenceShape<{
+        /** Where, or null for the world as a whole. */
+        readonly position: { readonly x: number; readonly y: number; readonly z: number } | null;
+        readonly effect: LevelEvent;
+        readonly data: number;
+    }>;
+    /** An entity made a noise, such as being hit or swinging at something, where it stood. */
+    'actor-sound': OccurrenceShape<{
+        readonly entity: EntityId;
+        readonly x: number;
+        readonly y: number;
+        readonly z: number;
+        readonly sound: LevelSoundEvent;
+        /** The entity's type, which tells a client whose sound to play. */
+        readonly type: string;
+    }>;
+    /**
+     * A sound a client reported making, passed on to the players near it with the fields the
+     * client sent.
+     */
+    'relayed-sound': OccurrenceShape<{
+        /** The player whose client made it, which already played it. */
+        readonly sender: EntityId;
         readonly x: number;
         readonly y: number;
         readonly z: number;
         readonly sound: LevelSoundEvent;
         readonly data: number;
+        readonly type: string;
+        readonly baby: boolean;
+        readonly global: boolean;
+        /** The entity the sound belongs to, or -1 for none. */
+        readonly actor: EntityId;
+        /** Where a projectile sound was fired from, or null. */
+        readonly firedAt: { readonly x: number; readonly y: number; readonly z: number } | null;
     }>;
     /**
      * An impulse aimed at a body whose client owns its movement, such as a blow's knockback on a
@@ -145,7 +213,16 @@ export interface OccurrenceKinds {
         readonly block: number;
     }>;
     /** An entity's emote. */
-    emote: OccurrenceShape<{ readonly entity: EntityId; readonly emote: string }>;
+    emote: OccurrenceShape<{
+        readonly entity: EntityId;
+        /** The emote piece's uuid. */
+        readonly emote: string;
+        readonly lengthTicks: number;
+        /** The account the emote belongs to, as the server knows it. */
+        readonly xuid: string;
+        readonly platformId: string;
+        readonly flags: number;
+    }>;
     /**
      * A staged action that a guard vetoed, which is all the log holds of it
      * ([ADR 0013](../../../../../docs/adr/0013-vetoable-actions-are-staged.md)).
@@ -184,6 +261,16 @@ export type ChangeEntry = FieldEntry | MembershipEntry | ChunkEntry | Occurrence
 export const isBlockEntry = (entry: ChangeEntry): boolean =>
     (entry.kind === 'field' && (entry.field === 'block' || entry.field === 'block-entity')) ||
     (entry.kind === 'occurrence' && entry.occurrence === 'block-shown');
+
+/**
+ * Whether an entry made between ticks is held for the next tick, which is when replication
+ * sends it, rather than counted as unlogged: a block entry, or an occurrence replication sends.
+ * A vetoed action is a record and not a send, so it is not held.
+ * @param {ChangeEntry} entry - The entry.
+ * @returns {boolean} Whether the next tick takes it.
+ */
+export const isCarriedEntry = (entry: ChangeEntry): boolean =>
+    isBlockEntry(entry) || (entry.kind === 'occurrence' && entry.occurrence !== 'action-rejected');
 
 /**
  * An entry that changes authoritative state and has an inverse: what a store applies.
