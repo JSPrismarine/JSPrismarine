@@ -9,6 +9,7 @@ import type { DataEntity } from '../entity/data/DataEntity';
 import { StorePlayerActor, StorePlayers } from '../entity/data/storePlayers';
 import { entityFixture, FLOOR_Y, TestEntityWorld } from '../entity/data/testing';
 import { dataEntityRecordOf } from '../entity/data/persistence';
+import { Item } from '../item/Item';
 import { PLAYER_IDENTIFIER } from '../entity/playerOverlay';
 import { enteredStorePlayer, SHIPPED_PLAYER } from '../testing/storePlayer.test.helper';
 import type { StorePlayer } from '../entity/storePlayer';
@@ -544,6 +545,13 @@ describe('network', () => {
                     })
                     .filter((data) => data?.windowId === WindowIds.OFFHAND);
                 expect(offhands).toHaveLength(1);
+                // Air, and not the shield again: a packet that named the old item would pass a
+                // count alone and leave the shield in the viewers' sight.
+                const item = offhands[0]?.item;
+                if (item === undefined) throw new Error('the off hand packet has no item');
+                expect(Item.fromStackDescriptor({ protocolVersion: Codec2193.protocolVersion }, item).getName()).toBe(
+                    'minecraft:air'
+                );
             });
 
             it("queues a move for a player who turns only the head, with the head's yaw", async () => {
