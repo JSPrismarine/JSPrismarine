@@ -38,8 +38,7 @@ CI runs the same suite on macOS through `.github/workflows/client-e2e.yml` for p
 touching the wire or gameplay packages, with the cinnabar build cached on the pin and the
 artifacts uploaded as `client-e2e-evidence`. A red Client E2E check means a real client failed
 against the PR's server; read the job summary table and the uploaded artifacts first. The
-NetherNet entry, named `allowed to fail`, pins a cinnabar development commit and may fail
-without failing the run while NetherNet support is unfinished on both sides.
+NetherNet entry pins a cinnabar development commit and fails the run like any other entry.
 
 ## Driving the client interactively
 

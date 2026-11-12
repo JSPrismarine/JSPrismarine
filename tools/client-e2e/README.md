@@ -76,9 +76,8 @@ in `packages/bedrock-data/sources.json`, listed by `src/pin-matrix.mts`, and run
 on `ubuntu-latest` for each one, with the client rendering through Mesa's software Vulkan driver on
 a virtual X display. The job runs as many suites at once as the runner's cores and memory allow. A second matrix runs the full suite with `snappy` and `none` across every
 supported protocol, covering retail-client negotiation without duplicating the `zlib` jobs. Each
-pin's job uploads evidence and an LCOV report to Codecov. A NetherNet pin's build and e2e jobs set
-`continue-on-error`, so they report a failure without failing the run until NetherNet works end to
-end in both the server and cinnabar. A preceding job builds each
+pin's job uploads evidence and an LCOV report to Codecov. A NetherNet pin's build and e2e jobs gate
+the run like any other pin's. A preceding job builds each
 pinned client that has no cached build. It restores cargo's compiled dependencies from the closest
 earlier build, its own protocol's first and then any other, so a pin bump compiles only the crates
 that changed, and it links with `mold`. Locally, source checkouts live
