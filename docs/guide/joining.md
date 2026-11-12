@@ -18,6 +18,18 @@ already have. This page is for them, and for the host answering their questions.
    <!-- fact:server.port -->19132<!-- /fact --> unless the host changed `server-port` in `config.json`.
 4. Save it and select it from the list to join.
 
+## Try the demo server
+
+To see a JSPrismarine server before you have one to join, add the demo server: the address is
+<!-- fact:demo.address -->`demo.jsprismarine.dev`<!-- /fact --> and the port is
+<!-- fact:demo.port -->19132<!-- /fact -->. It is open to anyone. The
+[landing page](https://jsprismarine.dev/#demo) also has a button that opens Minecraft and joins it
+for you.
+
+<!-- fact:demo.sponsor -->RespawnHost<!-- /fact --> provides part of its hosting. Rent a server of
+your own at <!-- fact:demo.sponsorLink -->[rspwn.click/jsprismarine](https://rspwn.click/jsprismarine)<!-- /fact --> for
+<!-- fact:demo.discount -->15%<!-- /fact --> off, and you help pay for our test servers.
+
 ## Which versions connect
 
 The server speaks Bedrock protocols <!-- fact:protocol.list -->2225 and 2193<!-- /fact -->, so

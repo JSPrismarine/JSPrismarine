@@ -466,6 +466,12 @@ export async function loadFacts(): Promise<Facts> {
         Object.entries({
             'server.version': project.version,
             'server.port': String(project.defaultPort),
+            'demo.address': project.demo.address,
+            'demo.port': String(project.demo.port),
+            'demo.sponsor': project.demo.sponsor.name,
+            'demo.discount': project.demo.sponsor.discount,
+            // A whole Markdown link, since a marker cannot sit inside a link's target.
+            'demo.sponsorLink': `[${project.demo.sponsor.url.replace(/^https?:\/\//, '')}](${project.demo.sponsor.url})`,
             'nethernet.lanPort': String(project.netherNetLanPort),
             'nethernet.identityFile': project.netherNetIdentityFile,
             'server.onlineMode': project.onlineMode ? 'on' : 'off',
