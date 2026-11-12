@@ -54,6 +54,10 @@ export const loadVanillaEntityTypes = (): EntityTypes => {
  * Resolves the entity types `@jsprismarine/entities` ships in its `vanilla_overlay`, the engine
  * entities Mojang's pack has no file for, such as the dropped item, which the server loads over
  * the vanilla pack.
+ *
+ * A load error drops the definition it names, and a row that then finds no type would compare
+ * against nothing, so an error fails the load rather than leave a type out.
+ * @throws {Error} When an overlay definition does not load.
  */
 export const loadOverlayEntityTypes = (): EntityTypes => {
     const manifest = createRequire(import.meta.url).resolve('@jsprismarine/entities/package.json');
@@ -66,6 +70,10 @@ export const loadOverlayEntityTypes = (): EntityTypes => {
     }
 
     const types = new EntityTypes();
-    types.load(files);
+    const errors = types.load(files).filter((diagnostic) => diagnostic.severity === 'error');
+    if (errors.length > 0) {
+        const lines = errors.map((error) => `${error.path ?? error.pack}: ${error.message}`);
+        throw new Error(`the entity overlay did not load:\n${lines.join('\n')}`);
+    }
     return types;
 };
