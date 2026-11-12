@@ -490,12 +490,6 @@ const liveHost = (
                 : DamageSource.projectileFrom(projectile, owner);
         void target.damage(amount, source).catch((error: unknown) => options.report(String(error)));
     },
-    playerImpulse: (id, impulse) => {
-        const session = options.liveWorld()?.viewerOf(BigInt(id));
-        void session
-            ?.sendMotion(new Vector3(impulse.x, impulse.y, impulse.z))
-            .catch((error: unknown) => options.report(String(error)));
-    },
     hurtFeedback: (id) => {
         const world = options.liveWorld();
         const target = actors.actorOf(id);
