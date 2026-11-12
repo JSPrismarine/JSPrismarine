@@ -46,6 +46,9 @@ import BaseProvider from '../BaseProvider';
 import type { SaveIdentity } from '../BaseProvider';
 import type { Level } from '../../Level';
 import Chunk from '../../chunk/Chunk';
+import type { ChunkPersistedState, ChunkSaveCutHook } from '../../chunk/Chunk';
+import type SubChunk from '../../chunk/SubChunk';
+import type { ProviderSavePass } from '../SavePass';
 import { ChunkBiomes } from '../../chunk/ChunkBiomes';
 import type { BlockEntity } from '../../../blockentity/BlockEntity';
 import type { DimensionType } from '../../DimensionType';
@@ -363,6 +366,22 @@ export default class LevelDB extends BaseProvider {
             );
     }
 
+    /**
+     * Writes a batch that is not a save pass's: before returning when no commit is appending,
+     * and behind the commit otherwise.
+     *
+     * Not always through `commit`, although that would be simpler. A chunk the unload pass
+     * writes or a player record is a few kilobytes, which the thread pool's round trip costs more
+     * than it saves, and appended at once it is on disk before the event loop turns, so an
+     * unloading chunk is ready to leave at the next input step as it always was. A save pass's
+     * batch can be megabytes, and goes through `commit` whatever this does.
+     */
+    private async writeSmall(batch: WriteBatch): Promise<void> {
+        const database = this.requireDatabase();
+        if (database.appending) await database.commit(batch);
+        else database.write(batch);
+    }
+
     private requireDatabase(): Database {
         if (!this.database) throw new Error('The world provider is not enabled');
 
@@ -376,6 +395,11 @@ export default class LevelDB extends BaseProvider {
 
     /** Reads world state from the provider record, or from `level.dat` on an imported world. */
     public override async readWorldData(): Promise<WorldPersistenceData | null> {
+        return this.readWorldDataNow();
+    }
+
+    /** {@link LevelDB.readWorldData}, which reads nothing it has to wait for. */
+    private readWorldDataNow(): WorldPersistenceData {
         const value = this.requireDatabase().get(WORLD_DATA_KEY);
         if (value !== null) {
             const encoded = this.readActorNbt(value).getString('Data', '');
@@ -409,6 +433,11 @@ export default class LevelDB extends BaseProvider {
      * the generator, when the world saves its level data.
      */
     public override async writeWorldData(data: WorldPersistenceData): Promise<void> {
+        await this.writeSmall(new WriteBatch().put(WORLD_DATA_KEY, this.levelRecordOf(data)));
+    }
+
+    /** The provider record's value for some world metadata, of which it keeps the fields below. */
+    private levelRecordOf(data: WorldPersistenceData): Buffer {
         const metadata: WorldPersistenceData = {
             ...(data.spawn === undefined ? {} : { spawn: data.spawn }),
             ...(data.gameRules === undefined ? {} : { gameRules: data.gameRules }),
@@ -418,7 +447,7 @@ export default class LevelDB extends BaseProvider {
         };
         const root = new NBTTagCompound('');
         root.addValue('Data', new Types.StringVal(JSON.stringify(worldPersistenceJsonOf(metadata))));
-        this.requireDatabase().write(new WriteBatch().put(WORLD_DATA_KEY, this.writeActorNbt(root)));
+        return this.writeActorNbt(root);
     }
 
     /** Moves legacy world metadata and actor snapshots into LevelDB before the sidecar is removed. */
@@ -445,7 +474,7 @@ export default class LevelDB extends BaseProvider {
     public async writePlayerData(identifier: string, data: WorldPlayerData): Promise<void> {
         const batch = new WriteBatch();
         batch.put(encodePlayerServerKey(identifier), this.writeActorNbt(playerDataToNbt(data, this.knownDimensions())));
-        this.requireDatabase().write(batch);
+        await this.writeSmall(batch);
     }
 
     private readPlayerNbt(value: Buffer): WorldPlayerData {
@@ -522,15 +551,117 @@ export default class LevelDB extends BaseProvider {
         return chunk;
     }
 
+    /**
+     * Writes one chunk as it is now, in a batch of its own.
+     *
+     * A save pass of one chunk, cut and committed at once; see {@link LevelDB.beginSavePass}.
+     */
     public async writeChunk(chunk: Chunk, saveContext?: ChunkSaveContext): Promise<void> {
-        const database = this.requireDatabase();
         const dimension = chunk.getDimension();
         const context =
             saveContext?.dimensionId === dimension.bedrockId ? saveContext : this.createSaveContext(dimension);
+        const pass = this.savePass(async (batch) => this.writeSmall(batch));
+        pass.cutChunk(chunk, context);
+        await pass.commit({ sync: false });
+    }
+
+    /**
+     * Starts a save pass whose writes go to the database as one batch (ADR 0018).
+     *
+     * A chunk's actor records, digest, block entities and the deletions it needs are encoded when
+     * it is cut. Its changed sub chunks and its `Data3D` are encoded later, by
+     * {@link ProviderSavePass.encode}, or first when a write is about to reach them, so a write
+     * after the cut costs at most one sub chunk and the height and biome record.
+     */
+    public beginSavePass(): ProviderSavePass {
+        return this.savePass(async (batch, sync) => this.requireDatabase().commit(batch, { sync }));
+    }
+
+    /** A save pass whose batch `write` puts into the database. */
+    private savePass(write: (batch: WriteBatch, sync: boolean) => Promise<void>): ProviderSavePass {
+        const database = this.requireDatabase();
         const batch = new WriteBatch();
+        const cuts: LevelDBChunkCut[] = [];
+        const counts = { subChunkEncodes: 0, forcedSubChunkEncodes: 0, bypassedWrites: 0 };
+        let pending = 0;
+        let open = true;
+        const encoded = (forced: boolean) => {
+            pending--;
+            counts.subChunkEncodes++;
+            if (forced) counts.forcedSubChunkEncodes++;
+        };
+        const bypassed = (chunk: Chunk, index: number) => {
+            counts.bypassedWrites++;
+            this.getServer()
+                .getLogger()
+                .error(
+                    `Sub chunk ${index} of chunk ${chunk.getX()},${chunk.getZ()} changed after the save cut without telling it; the save holds the later content`
+                );
+        };
+
+        const letGo = () => {
+            open = false;
+            for (const cut of cuts) cut.chunk.setSaveCut(null);
+        };
+
+        return {
+            cutChunk: (chunk, context) => {
+                if (!open) throw new Error('This save pass has already committed');
+                const cut = this.cutChunk(database, batch, chunk, context, { encoded, bypassed });
+                pending += cut.pending;
+                cuts.push(cut);
+            },
+            putPlayer: (key, record) => {
+                const playerKey = encodePlayerServerKey(key);
+                const value = this.writeActorNbt(playerDataToNbt(record, this.knownDimensions()));
+                if (!database.get(playerKey)?.equals(value)) batch.put(playerKey, value);
+                return true;
+            },
+            putLevelRecord: (data) => {
+                const value = this.levelRecordOf({ ...this.readWorldDataNow(), ...data });
+                if (!database.get(WORLD_DATA_KEY)?.equals(value)) batch.put(WORLD_DATA_KEY, value);
+            },
+            get pendingEncodes() {
+                return pending;
+            },
+            encode: (budget) => {
+                let done = 0;
+                for (const cut of cuts) {
+                    if (done >= budget) break;
+                    done += cut.encodeNext(budget - done);
+                }
+                return done;
+            },
+            commit: async ({ sync }) => {
+                for (const cut of cuts) cut.encodeNext(Number.POSITIVE_INFINITY);
+                letGo();
+                if (batch.count > 0) {
+                    this.chunkWriteBatchBytes += batch.approximateSize;
+                    await write(batch, sync);
+                }
+                for (const cut of cuts) cut.chunk.markSavedAs(cut.state);
+            },
+            abandon: letGo,
+            get stats() {
+                return { keys: batch.count, bytes: batch.approximateSize, ...counts };
+            }
+        };
+    }
+
+    /** Encodes what a chunk's cut writes at once into the batch, and holds back its sub chunks. */
+    private cutChunk(
+        database: Database,
+        batch: WriteBatch,
+        chunk: Chunk,
+        context: ChunkSaveContext,
+        report: ChunkCutReport
+    ): LevelDBChunkCut {
+        const dimension = chunk.getDimension();
         const key = (tag: ChunkTag, subChunk?: number) =>
             encodeChunkKey({ x: chunk.getX(), z: chunk.getZ(), dimension: dimension.bedrockId, tag, subChunk });
+        const state = chunk.persistedStateNow();
         const changes = chunk.getPersistenceChanges();
+        const held = new Map<number, { subChunk: SubChunk; revision: number }>();
 
         for (const { index, subChunk, stored } of changes.subChunks) {
             if (!stored || subChunk === null) {
@@ -541,14 +672,7 @@ export default class LevelDB extends BaseProvider {
                 continue;
             }
 
-            batch.put(key(ChunkTag.SubChunkPrefix, index), encodeSubChunk(subChunk, index, subChunk.sourceVersion));
-        }
-
-        if (changes.data3D) {
-            batch.put(
-                key(ChunkTag.Data3D),
-                encodeData3D({ heightmap: chunk.heightmap(), palettes: chunk.getBiomes().toSectionIds() }, dimension)
-            );
+            held.set(index, { subChunk, revision: subChunk.getRevision() });
         }
 
         const versionKey = key(ChunkTag.Version);
@@ -574,11 +698,20 @@ export default class LevelDB extends BaseProvider {
 
         this.writeEntities(database, batch, chunk, key, context);
 
-        if (batch.count > 0) {
-            this.chunkWriteBatchBytes += batch.approximateSize;
-            database.write(batch);
-        }
-        chunk.markSaved();
+        const cut = new LevelDBChunkCut(chunk, state, held, changes.data3D, report, {
+            subChunk: (index, subChunk) =>
+                batch.put(key(ChunkTag.SubChunkPrefix, index), encodeSubChunk(subChunk, index, subChunk.sourceVersion)),
+            data3D: () =>
+                batch.put(
+                    key(ChunkTag.Data3D),
+                    encodeData3D(
+                        { heightmap: chunk.heightmap(), palettes: chunk.getBiomes().toSectionIds() },
+                        dimension
+                    )
+                )
+        });
+        if (cut.pending > 0 || changes.data3D) chunk.setSaveCut(cut);
+        return cut;
     }
 
     // ------------------------------------------------------------ block entities
@@ -730,7 +863,7 @@ export default class LevelDB extends BaseProvider {
             hasUpdates = true;
         }
 
-        if (hasUpdates) database.write(batch);
+        if (hasUpdates) await this.writeSmall(batch);
     }
 
     private actorIdentitiesInChunk(database: Database, x: number, z: number, dimension: number): Set<string> {
@@ -1093,3 +1226,89 @@ const entityIdentity = (entity: NBTTagCompound): string | undefined => {
 
     return `${type}|${position.map(Math.fround).join(',')}`;
 };
+
+/** What a chunk's cut tells its pass as it encodes. */
+interface ChunkCutReport {
+    /** One held-back sub chunk was encoded, before its turn when `forced`. */
+    readonly encoded: (forced: boolean) => void;
+    /** A held-back sub chunk changed without a write telling the cut. */
+    readonly bypassed: (chunk: Chunk, index: number) => void;
+}
+
+/**
+ * The part of a chunk a LevelDB save pass holds back after the cut: its changed sub chunks and
+ * its `Data3D`, encoded into the pass's batch on the pass's schedule or before a write reaches
+ * them (ADR 0018).
+ */
+class LevelDBChunkCut implements ChunkSaveCutHook {
+    private data3D: boolean;
+
+    public constructor(
+        public readonly chunk: Chunk,
+        /** The chunk as the cut saw it, which it is marked saved as once the pass commits. */
+        public readonly state: ChunkPersistedState,
+        private readonly held: Map<number, { readonly subChunk: SubChunk; readonly revision: number }>,
+        data3D: boolean,
+        private readonly report: ChunkCutReport,
+        private readonly put: {
+            readonly subChunk: (index: number, subChunk: SubChunk) => void;
+            readonly data3D: () => void;
+        }
+    ) {
+        this.data3D = data3D;
+    }
+
+    /** How many sub chunks are still held back. */
+    public get pending(): number {
+        return this.held.size;
+    }
+
+    public beforeSubChunkWrite(index: number): void {
+        // The heightmap in `Data3D` is computed from every section, so any block write can move it.
+        this.encodeData3D();
+        this.encodeSubChunk(index, true);
+        this.releaseWhenDone();
+    }
+
+    public beforeBiomeWrite(): void {
+        this.encodeData3D();
+        this.releaseWhenDone();
+    }
+
+    /**
+     * Encodes up to `budget` held-back sub chunks, and the `Data3D` with the first of them.
+     * @returns How many sub chunks it encoded.
+     */
+    public encodeNext(budget: number): number {
+        let done = 0;
+        this.encodeData3D();
+        for (const index of [...this.held.keys()]) {
+            if (done >= budget) break;
+            this.encodeSubChunk(index, false);
+            done++;
+        }
+        this.releaseWhenDone();
+        return done;
+    }
+
+    private encodeSubChunk(index: number, forced: boolean): void {
+        const held = this.held.get(index);
+        if (held === undefined) return;
+
+        this.held.delete(index);
+        if (held.subChunk.getRevision() !== held.revision) this.report.bypassed(this.chunk, index);
+        this.put.subChunk(index, held.subChunk);
+        this.report.encoded(forced);
+    }
+
+    private encodeData3D(): void {
+        if (!this.data3D) return;
+        this.data3D = false;
+        this.put.data3D();
+    }
+
+    /** Lets the chunk go once nothing of it is held back, so later writes cost it nothing. */
+    private releaseWhenDone(): void {
+        if (this.held.size === 0 && !this.data3D) this.chunk.setSaveCut(null);
+    }
+}

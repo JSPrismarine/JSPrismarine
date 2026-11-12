@@ -10,6 +10,7 @@ import type { Level } from '../Level';
 import type Provider from './Provider';
 import type { LevelDatInputs } from './Provider';
 import type { ChunkSaveContext } from './ChunkSaveContext';
+import type { ProviderSavePass, SavePassStats } from './SavePass';
 
 import BinaryStream from '@jsprismarine/binaryutils';
 import { ByteOrder, NBTReader, NBTTagCompound, NBTWriter, Types } from '@jsprismarine/nbt';
@@ -207,6 +208,40 @@ export default abstract class BaseProvider implements Provider {
             ...stored,
             entities: stored?.entities ?? data.entities
         });
+    }
+
+    /**
+     * Starts a save pass (ADR 0018).
+     *
+     * This one writes through {@link BaseProvider.writeChunk} and
+     * {@link BaseProvider.writeWorldData} when it commits, chunk by chunk, so it is neither a
+     * snapshot of the cut nor one atomic write. It serves the formats that keep no chunks, whose
+     * `writeChunk` writes nothing; a format that does keep them overrides this.
+     */
+    public beginSavePass(): ProviderSavePass {
+        const chunks: Array<{ chunk: Chunk; context: ChunkSaveContext }> = [];
+        let record: WorldPersistenceData | undefined;
+        return {
+            cutChunk: (chunk, context) => {
+                chunks.push({ chunk, context });
+            },
+            putPlayer: () => false,
+            putLevelRecord: (data) => {
+                record = data;
+            },
+            pendingEncodes: 0,
+            encode: () => 0,
+            commit: async () => {
+                for (const { chunk, context } of chunks) await this.writeChunk(chunk, context);
+                if (record !== undefined) await this.writeWorldData({ ...(await this.readWorldData()), ...record });
+            },
+            abandon: () => {
+                chunks.length = 0;
+            },
+            get stats(): SavePassStats {
+                return { keys: 0, bytes: 0, subChunkEncodes: 0, forcedSubChunkEncodes: 0, bypassedWrites: 0 };
+            }
+        };
     }
 
     /** Persists provider-specific level metadata when the format supports it. */
