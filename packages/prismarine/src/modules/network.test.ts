@@ -18,10 +18,12 @@ import {
 } from '@jsprismarine/nethernet';
 import type { Connection } from '@jsprismarine/nethernet';
 import { UnconnectedPing } from '@jsprismarine/raknet';
+import { about } from '../about';
 import type { Config } from '../config/Config';
 import SessionManager from '../SessionManager';
 import PacketLogFilter from '../network/PacketLogFilter';
 import { stub } from '../testing/stub.test.helper';
+import { softwareLabel } from '../version';
 import type Server from '../Server';
 import type { Networking } from './network';
 import { ServerNetworking, networkModule } from './network';
@@ -363,8 +365,11 @@ describe('modules/network', () => {
             getSessionManager: () => new SessionManager()
         });
 
-    /** Runs a handshake and a basic stat against a query port, returning the stat's strings. */
-    const queryBasicStat = async (port: number): Promise<string[]> => {
+    /**
+     * Runs a handshake and a stat against a query port, returning the stat's strings.
+     * @param full - Pads the token, which asks for the full stat instead of the basic one.
+     */
+    const queryStat = async (port: number, full = false): Promise<string[]> => {
         const client = dgram.createSocket('udp4');
         const replies: Buffer[] = [];
         client.on('message', (message) => replies.push(message));
@@ -379,7 +384,7 @@ describe('modules/network', () => {
             const handshake = await send(0x09, Buffer.alloc(0));
             const token = Buffer.alloc(4);
             token.writeInt32BE(Number(handshake.subarray(5, -1).toString('latin1')));
-            const stat = await send(0x00, token);
+            const stat = await send(0x00, full ? Buffer.concat([token, Buffer.alloc(4)]) : token);
             return stat.subarray(5).toString('latin1').split('\0');
         } finally {
             client.close();
@@ -395,8 +400,33 @@ describe('modules/network', () => {
             const name = networking.getServerName()!;
             expect(name.getPort()).not.toBe(19132);
 
-            const [motd, gameType, map, online, max] = await queryBasicStat(name.getPort());
+            const [motd, gameType, map, online, max] = await queryStat(name.getPort());
             expect([motd, gameType, map, online, max]).toStrictEqual(['query server', 'SMP', 'world', '0', '5']);
+        } finally {
+            networking.kill();
+        }
+    });
+
+    it('answers a full stat with the version, software and players every other surface reports', async () => {
+        const networking = new ServerNetworking(queryServer(19_132, 19_132));
+
+        try {
+            await networking.start('127.0.0.1', 0);
+            const fields = await queryStat(networking.getServerName()!.getPort(), true);
+
+            // The key-value section opens with `splitnum` and its padding, and ends at an empty key.
+            const pairs = fields.slice(2, fields.indexOf('', 2));
+            const keys = Object.fromEntries(pairs.flatMap((field, i) => (i % 2 === 0 ? [[field, pairs[i + 1]]] : [])));
+            expect(keys).toMatchObject({
+                hostname: 'query server',
+                version: about().minecraftVersion,
+                server_engine: softwareLabel(),
+                plugins: softwareLabel(),
+                numplayers: '0',
+                maxplayers: '5'
+            });
+            // The player section follows its padding, empty with nobody online.
+            expect(fields.slice(fields.indexOf('\x01player_') + 1)).toStrictEqual(['', '', '']);
         } finally {
             networking.kill();
         }
@@ -416,7 +446,7 @@ describe('modules/network', () => {
             await vi.waitFor(() => expect(bound).toHaveLength(1));
             expect(bound[0]).not.toBe(networking.getServerName()!.getPort());
 
-            const [motd] = await queryBasicStat(bound[0]!);
+            const [motd] = await queryStat(bound[0]!);
             expect(motd).toBe('query server');
         } finally {
             networking.kill();
@@ -599,7 +629,7 @@ describe('modules/network', () => {
         try {
             await networking.start('0.0.0.0', port);
 
-            const [motd] = await queryBasicStat(port);
+            const [motd] = await queryStat(port);
             expect(motd).toBe('shared server');
             expect(await joinedMediaPort(port)).toBe(port);
         } finally {

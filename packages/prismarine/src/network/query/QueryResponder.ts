@@ -24,7 +24,7 @@ export interface QueryStatus {
     readonly motd: string;
     /** The game version the server speaks. */
     readonly version: string;
-    /** The server software, reported as `plugins`. */
+    /** The server software and its version, reported as `server_engine` and `plugins`. */
     readonly software: string;
     /** The world players join, reported as `map`. */
     readonly map: string;
@@ -137,17 +137,26 @@ const basicStat = (sessionId: number, status: QueryStatus): Buffer => {
     ]);
 };
 
-/** The long status: every key a Bedrock server reports, then the player names. */
+/**
+ * The long status: every key a Bedrock server reports, then the player names. The software goes
+ * in `server_engine`, as PocketMine-MP reports it, and leads `plugins`, as Spigot and
+ * CraftBukkit report it, so tools reading either key name the server.
+ */
 const fullStat = (sessionId: number, status: QueryStatus): Buffer => {
     const fields: [string, string][] = [
         ['hostname', status.motd],
         ['gametype', 'SMP'],
         ['game_id', 'MINECRAFTPE'],
         ['version', status.version],
+        ['server_engine', status.software],
+        // TODO: list the loaded plugins after the software, as `software: a; b`, once the
+        // plugin API reports them. Until then the software alone is what Spigot sends with none.
         ['plugins', status.software],
         ['map', status.map],
         ['numplayers', String(status.onlinePlayers)],
         ['maxplayers', String(status.maxPlayers)],
+        // TODO: report `whitelist` as `on` or `off`, as PocketMine-MP and Bedrock Dedicated
+        // Server do, once the server has an allow-list to report.
         ['hostport', String(status.hostPort)],
         ['hostip', status.hostIp]
     ];

@@ -6,7 +6,7 @@ import type { QueryStatus } from './QueryResponder';
 const STATUS: QueryStatus = {
     motd: 'A JSPrismarine server',
     version: '1.26.51',
-    software: 'JSPrismarine 0.19.2',
+    software: 'JSPrismarine v0.19.2',
     map: 'world',
     onlinePlayers: 2,
     maxPlayers: 20,
@@ -86,7 +86,8 @@ describe('network/query/QueryResponder', () => {
             gametype: 'SMP',
             game_id: 'MINECRAFTPE',
             version: '1.26.51',
-            plugins: 'JSPrismarine 0.19.2',
+            server_engine: 'JSPrismarine v0.19.2',
+            plugins: 'JSPrismarine v0.19.2',
             map: 'world',
             numplayers: '2',
             maxplayers: '20',

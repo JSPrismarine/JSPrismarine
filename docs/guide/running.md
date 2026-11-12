@@ -477,6 +477,11 @@ that server lists and status tools use to read its MOTD, world, player count and
 tool asks for a challenge token first and gets a status reply only by sending that token back, so
 a forged source address cannot turn the server into an amplifier.
 
+A basic stat carries what a server list shows: the MOTD, the world, and the online and maximum
+player counts. A full stat adds the Minecraft version the server advertises, the software and
+its version, as `server_engine` and as `plugins`, and the names of the players online. `plugins`
+lists no plugins yet.
+
 `query-port` picks the UDP port. Left out, as a fresh config leaves it, query answers on
 `server-port`, on the RakNet socket beside the game, so a firewall needs nothing more. Any other port gets a socket of
 its own, bound to `server-ip`; when another program holds that port, the server starts anyway and
