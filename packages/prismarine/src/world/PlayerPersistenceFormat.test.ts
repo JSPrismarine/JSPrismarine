@@ -459,4 +459,21 @@ describe('a store player record', () => {
 
         expect(record).toEqual(before);
     });
+
+    it('skips a broken attribute entry, and takes the record health when the table has none', () => {
+        const source = buildStorePlayer();
+        giveStoreState(source);
+        const record = playerRecordFrom(source, fixtureServices(), Dimensions.Overworld);
+        const { [AttributeIds.Health]: _health, ...rest } = record.attributes ?? {};
+        // Parsed JSON is the boundary here: a hand-edited fallback file can hold anything.
+        const broken = JSON.parse(
+            JSON.stringify({ ...record, health: 4, attributes: { ...rest, 'minecraft:broken': null } })
+        ) as typeof record;
+
+        const player = buildStorePlayer();
+        applyPlayerRecord(player, broken, 'survival', testContent());
+
+        expect(player.getHealth()).toBe(4);
+        expect(player.attributes.getValue(AttributeIds.PlayerLevel)).toBe(27);
+    });
 });
