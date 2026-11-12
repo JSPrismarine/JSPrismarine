@@ -143,6 +143,60 @@ function tickBudgetFacts() {
     );
 }
 
+/** A source file the facts below quote, read as text. */
+const sourceText = (...segments: string[]) => readFileSync(path.join(repoRoot, ...segments), 'utf8');
+
+/**
+ * How far clients follow an entity, and how the chunk admission step shares its turns, read off the
+ * constants that decide them.
+ */
+function replicationFacts() {
+    const shown = sourceText('packages', 'prismarine', 'src', 'world', 'ShownActor.ts');
+    const range = (name: string) => {
+        const value = new RegExp(`export const ${name} = (\\d+);`).exec(shown)?.[1];
+        if (value === undefined) throw new Error(`The docs facts no longer find ${name} in ShownActor.ts.`);
+        return value;
+    };
+    const admissions = sourceText('packages', 'prismarine', 'src', 'world', 'ChunkAdmissions.ts');
+    const lanes = /private static readonly lanes: readonly GenerationPriority\[\] = \[([^\]]*)\]/.exec(admissions)?.[1];
+    if (lanes === undefined) throw new Error('The docs facts no longer find the lane rotation in ChunkAdmissions.ts.');
+    const turns = (lane: string) => {
+        const count = lanes.split(`'${lane}'`).length - 1;
+        if (count === 0) throw new Error(`The lane rotation in ChunkAdmissions.ts has no ${lane} turn.`);
+        return String(count);
+    };
+    return {
+        'tracking.actorRangeChunks': range('ACTOR_TRACKING_RANGE_CHUNKS'),
+        'tracking.itemRangeChunks': range('ITEM_TRACKING_RANGE_CHUNKS'),
+        'tick.chunkAdmissionTurns.immediate': turns('immediate'),
+        'tick.chunkAdmissionTurns.soon': turns('soon'),
+        'tick.chunkAdmissionTurns.idle': turns('idle')
+    };
+}
+
+/** The rows of each parity family group, such as `parity.families.gameplay`, in declaration order. */
+function parityFamilyFacts() {
+    const families = sourceText('packages', 'parity', 'src', 'families.ts');
+    const body = /export const FAMILIES = \{([\s\S]*?)\n\} as const;/.exec(families)?.[1];
+    if (body === undefined) throw new Error('The docs facts no longer find FAMILIES in families.ts.');
+    const rows = new Map<string, string[]>();
+    for (const [, group, row] of body.matchAll(/: '([a-z][a-z0-9-]*)\.([a-z0-9-]+(?:\.[a-z0-9-]+)*)'/g)) {
+        if (group === undefined || row === undefined) continue;
+        rows.set(group, [...(rows.get(group) ?? []), row]);
+    }
+    if (rows.size === 0) throw new Error('The docs facts find no family ids in families.ts.');
+    return Object.fromEntries([...rows].map(([group, names]) => [`parity.families.${group}`, names.join(', ')]));
+}
+
+/** How often a client e2e server writes its coverage, in seconds. */
+function e2eFacts() {
+    const exit = sourceText('tools', 'client-e2e', 'src', 'coverage-exit.mjs');
+    const milliseconds = /setInterval\(takeCoverage, ([\d_]+)\)/.exec(exit)?.[1];
+    if (milliseconds === undefined)
+        throw new Error('The docs facts no longer find the coverage interval in coverage-exit.mjs.');
+    return { 'e2e.coverageIntervalSeconds': String(Number(milliseconds.replaceAll('_', '')) / 1000) };
+}
+
 /** The download cache the data scripts fill, where the generated game data lives. */
 const cacheRoot = path.join(repoRoot, 'node_modules', '.cache', 'jsprismarine');
 
@@ -394,7 +448,10 @@ export async function loadFacts(): Promise<Facts> {
             ...(await commandFacts()),
             ...(await configFacts()),
             ...eventFacts(),
-            ...tickBudgetFacts()
+            ...tickBudgetFacts(),
+            ...replicationFacts(),
+            ...parityFamilyFacts(),
+            ...e2eFacts()
         })
     );
     const missing: string[] = [];

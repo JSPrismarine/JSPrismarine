@@ -69,7 +69,7 @@ but the verdicts are the same.
 The runner prints the artifacts directory (screenshots, recordings, a combined server log, and a
 server log per suite) and exits non-zero when any scenario fails. The root `pnpm run e2e:client`
 command also collects V8 coverage from the server processes and writes an LCOV report to
-`coverage/client-e2e/lcov.info`. Each server writes a coverage file every 10 seconds, and each
+`coverage/client-e2e/lcov.info`. Each server writes a coverage file every <!-- fact:e2e.coverageIntervalSeconds -->10<!-- /fact --> seconds, and each
 file repeats the server's whole source map cache, so a full run leaves about a hundred files of
 about 35 MB each. `.c8rc.json` sets `merge-async`, so the report reads and merges them one at a
 time rather than holding every one in memory at once.

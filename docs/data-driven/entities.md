@@ -639,7 +639,7 @@ interactions and trades, saves and the replay digest, portal travel and spawner 
 their actors, and the actor hands every effect back to the store: a blow goes through the damage
 pipeline, a shove onto the body, a tag or a status effect into the entity's state. A dropped
 stack gets an `ItemActor` from `entity/data/itemActor.ts`; clients are shown it as an
-`AddItemActor`, follow it six chunks rather than eight, and are sent no metadata or attribute
+`AddItemActor`, follow it <!-- fact:tracking.itemRangeChunks -->6<!-- /fact --> chunks rather than <!-- fact:tracking.actorRangeChunks -->8<!-- /fact -->, and are sent no metadata or attribute
 updates for it. A saved actor whose type no loaded pack declares comes back as an `InertActor`: a store entity of the entity overlay's
 [`jsprismarine:inert_actor`](../../packages/entities/vanilla_overlay/entities/inert_actor.json)
 type, which has health and runs nothing, shown and saved under the

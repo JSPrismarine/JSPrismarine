@@ -18,12 +18,18 @@ import { rootPages } from './sections.mts';
 
 const write = process.argv.includes('--write');
 
-/** Every Markdown file a fact marker may sit in: the docs tree, the root README and the root pages. */
+/** Package pages outside the docs tree that quote values the code owns. */
+const packagePages = ['packages/parity/README.md', 'tools/client-e2e/README.md'];
+
+/**
+ * Every Markdown file a fact marker may sit in: the docs tree, the root README, the root pages and
+ * the package pages above.
+ */
 function markdownFiles() {
     const docs = readdirSync(path.join(repoRoot, 'docs'), { recursive: true, encoding: 'utf8' })
         .filter((entry) => entry.endsWith('.md'))
         .map((entry) => path.join('docs', entry));
-    return ['README.md', ...rootPages.map(({ source }) => source), ...docs];
+    return ['README.md', ...rootPages.map(({ source }) => source), ...packagePages, ...docs];
 }
 
 const { values: facts, missing } = await loadFacts();
