@@ -167,7 +167,15 @@ import type { EntityItemInteraction } from './itemInteraction';
 import { JAVA_POI_TYPES, PointsOfInterest } from './poi';
 import { RideIndex } from './riding';
 import type { EntityScene, SpawnOptions } from './scene';
-import { merchantFor, professionOf } from './trading';
+import {
+    loggedMerchantSource,
+    MERCHANT_FIELD,
+    merchantFieldOf,
+    merchantFor,
+    merchantIn,
+    professionOf
+} from './trading';
+import type { TradeSource } from '../../network/PlayerSession';
 import {
     WILLING_FOOD_POINTS,
     digest,
@@ -1130,6 +1138,14 @@ export class EntityRuntime implements EntityScene {
             case 'condition':
                 body.conditions.restore(name, booleanField(field)(value));
                 return;
+            case MERCHANT_FIELD: {
+                // Built again from the logged offers on the next ask, which a trade screen makes.
+                const snapshot = merchantIn(value);
+                this.merchants.delete(entity.id);
+                if (snapshot === undefined) this.merchantSnapshots.delete(entity.id);
+                else this.merchantSnapshots.set(entity.id, snapshot);
+                return;
+            }
             case 'leash': {
                 const holder = identityIn(field, value);
                 if (holder === undefined) this.leashHolders.delete(entity.id);
@@ -4021,7 +4037,7 @@ export class EntityRuntime implements EntityScene {
         const today = last?.day === day ? last.count : 0;
         if (today >= RESTOCKS_PER_DAY || (last !== undefined && now < last.at + RESTOCK_GAP_TICKS)) return;
 
-        merchant.resupply();
+        this.changeMerchant(entity, merchant, () => merchant.resupply());
         this.restocks.set(entity.id, { day, count: today + 1, at: now });
     }
 
@@ -4352,8 +4368,32 @@ export class EntityRuntime implements EntityScene {
             ...(saved === undefined ? {} : { snapshot: saved }),
             report: (code, message) => this.report(`${entity.identifier} trade table ${code}: ${message}`)
         });
-        if (built !== undefined) this.merchants.set(entity.id, built);
+        if (built === undefined) return undefined;
+        this.merchants.set(entity.id, built);
+        // The first ask draws the offers, or the tiers a save did not hold.
+        this.store.written(entity, MERCHANT_FIELD, merchantFieldOf(saved), merchantFieldOf(built.snapshot()));
         return built;
+    }
+
+    /**
+     * One trader as a trade screen trades with it, with every trade logged.
+     * @returns The source, or undefined for an entity that does not trade.
+     */
+    public tradeSource(entity: DataEntity): TradeSource | undefined {
+        const first = this.merchant(entity);
+        if (first === undefined) return undefined;
+        return loggedMerchantSource(
+            () => this.merchant(entity) ?? first,
+            (merchant, change) => this.changeMerchant(entity, merchant, change)
+        );
+    }
+
+    /** Runs a change to a trader's merchant and logs its offers before and after it. */
+    private changeMerchant<T>(entity: DataEntity, merchant: Merchant, change: () => T): T {
+        const before = merchantFieldOf(merchant.snapshot());
+        const result = change();
+        this.store.written(entity, MERCHANT_FIELD, before, merchantFieldOf(merchant.snapshot()));
+        return result;
     }
 
     /**
