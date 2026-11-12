@@ -6,6 +6,7 @@ import { javaBlockStateToBedrock } from '@jsprismarine/mapping';
 import { Generator } from '@jsprismarine/minecraft';
 import type { NBTTagCompound } from '@jsprismarine/nbt';
 import { ByteOrder, NBTReader, NBTWriter } from '@jsprismarine/nbt';
+import { replaceFileAtomically } from '@jsprismarine/leveldb';
 import type { FlatGeneratorSettings, GeneratorDefinition } from '@jsprismarine/worldgen';
 
 import { bedrockBiomeIdOf } from '../../generators/datadriven/javaTranslation';
@@ -78,8 +79,9 @@ export const readLevelDat = (worldPath: string): LevelDat | null => {
 /**
  * Writes `level.dat`, keeping the previous one as `level.dat_old`.
  *
- * The backup is not ceremony: it is what the game itself falls back to, so a world whose
- * `level.dat` was truncated by a crash still opens.
+ * The backup is not ceremony: it is what the game itself falls back to. The new file replaces
+ * the old one by a rename of a synced copy (ADR 0018), so a crash leaves one whole `level.dat` or
+ * the other, never a truncated one.
  */
 export const writeLevelDat = (worldPath: string, level: LevelDat): void => {
     const file = path.join(worldPath, LEVEL_DAT_FILE_NAME);
@@ -88,7 +90,7 @@ export const writeLevelDat = (worldPath: string, level: LevelDat): void => {
         fs.copyFileSync(file, path.join(worldPath, LEVEL_DAT_BACKUP_FILE_NAME));
     }
 
-    fs.writeFileSync(file, encodeLevelDat(level));
+    replaceFileAtomically(file, encodeLevelDat(level));
 };
 
 export const readLevelName = (worldPath: string): string | null => {
