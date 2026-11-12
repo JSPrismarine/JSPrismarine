@@ -1159,10 +1159,12 @@ describe('network', () => {
         it('gates a packet behind a held input on the phase that input leaves the connection in', async () => {
             const order: string[] = [];
             const { transport, built, dispatcher } = makeSessionDispatcher({
+                // Still in the resource pack exchange, which the held input ends.
+                session: { session: stub<PlayerSession>({ identity: STEVE }), phase: 'resourcePacks' },
                 lanes: { TextPacket: 'input', ClientCacheStatusPacket: 'read' },
                 phasesOf: { ClientCacheStatusPacket: ['play'] },
                 handler: {
-                    phases: ['play'],
+                    phases: ['resourcePacks', 'play'],
                     handle: async (packet) => {
                         order.push(nameOf(packet));
                         // Like the resource pack response that starts the game.
