@@ -250,10 +250,12 @@ export const startItem = (entity: DataEntity, start: ItemStart): void => {
     entity.position = { x: at.x, y: at.y + tuning.positionOffset, z: at.z };
 };
 
-/** A player as the pickup reads one: where its feet are and who it is. */
+/** A player as the pickup reads one: where its feet are, who it is, and whether it only watches. */
 export interface ItemTaker {
     readonly id: number;
     readonly position: EntityPosition;
+    /** A spectator takes nothing, so a stack stays for the next player in reach. */
+    readonly spectator?: boolean;
 }
 
 /** What {@link DroppedItems} needs from the runtime and the server behind it. */
@@ -541,7 +543,8 @@ export class DroppedItems {
     }
 
     /**
-     * Gives the stack to the first player standing close enough, and takes it out of the world.
+     * Gives the stack to the first player standing close enough who is not a spectator, and takes
+     * it out of the world.
      *
      * A full inventory leaves it where it is. A partial fit leaves what did not fit on the ground.
      */
@@ -549,7 +552,9 @@ export class DroppedItems {
         const view = itemViewOf(entity);
         if (view === undefined || view.pickupDelay > 0) return;
 
-        const taker = this.host.players().find((player) => this.reaches(entity, player, tuning));
+        const taker = this.host
+            .players()
+            .find((player) => player.spectator !== true && this.reaches(entity, player, tuning));
         if (taker === undefined) return;
 
         const left = this.host.give(taker.id, entity.id, view.stack);
