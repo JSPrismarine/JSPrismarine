@@ -50,7 +50,8 @@ import { Level } from '../Level';
 import LevelDB from '../providers/leveldb/LevelDB';
 import type { World } from '../World';
 import type WorldManager from '../WorldManager';
-import { DimensionTravel, END_ARRIVAL_YAW } from './DimensionTravel';
+import { DimensionTravel, END_ARRIVAL_YAW, stemTarget } from './DimensionTravel';
+import { WorldMessages } from '../WorldMessages';
 import type { PortalArrival, PortalBlockRef } from './DimensionTravel';
 import { ChunkCompletionQueue } from '../ChunkCompletionQueue';
 import type { SealedTick } from '../changelog/ChangeLog';
@@ -1229,6 +1230,117 @@ describe('DimensionTravel as messages', () => {
         if (end === undefined) throw new Error('the End was not built');
         expect(cowsIn(overworld)).toEqual([]);
         expect(cowsIn(end).map((cow) => cow.getPosition())).toEqual([new Vector3(100.5, 50, 0.5)]);
+
+        await scene.level.disable();
+    }, 60_000);
+
+    it('files a move into a dimension nobody entered without waiting, builds it outside the tick, and lands it as one leave and one enter', async () => {
+        const scene = await buildLevel();
+        const overworld = await scene.level.world(OVERWORLD_STEM_ID);
+        const bot = playerAt(scene.server, overworld, new Vector3(0.5, 64, 0.5));
+        overworld.addPlayer(bot);
+        closeSetup(overworld);
+
+        // Whether each build the move asks for runs inside a tick.
+        const builds: boolean[] = [];
+        const build = scene.level.world.bind(scene.level);
+        scene.level.world = async (dimensionId) => {
+            builds.push(insideTick());
+            return build(dimensionId);
+        };
+
+        // What a cross-dimension `/tp` files, inside the tick of the input that ran it.
+        overworld.beginChangeTick();
+        await runInTick(async () => {
+            scene.travel.moveTo(
+                bot,
+                stemTarget(scene.level, NETHER_STEM_ID, { position: new Vector3(10, 70, 10), yaw: 0, pitch: 0 })
+            );
+        });
+        const filed = overworld.sealChangeTick();
+
+        expect(builds).toEqual([false]);
+        expect(scene.travel.pending).toBe(1);
+        expect(memberships(filed)).toEqual([]);
+        expect(bot.getWorld()).toBe(overworld);
+
+        // The input steps until the Nether is built and the move lands.
+        await scene.travel.prepared();
+        const nether = scene.level.readyWorld(NETHER_STEM_ID);
+        if (nether === undefined) throw new Error('the Nether was not built');
+        overworld.beginChangeTick();
+        nether.beginChangeTick();
+        expect(await scene.travel.admit()).toBe(1);
+        const left = overworld.sealChangeTick();
+        const entered = nether.sealChangeTick();
+
+        expect(bot.getWorld()).toBe(nether);
+        expect(bot.getFeetY()).toBeCloseTo(70);
+        expect(memberships(left)).toEqual([['leave', bot.runtimeId]]);
+        expect(memberships(entered)).toEqual([['enter', bot.runtimeId]]);
+
+        await scene.level.disable();
+    }, 60_000);
+
+    it("holds a player's later move behind an earlier one that is not ready, so they land in order", async () => {
+        const scene = await buildLevel();
+        const overworld = await scene.level.world(OVERWORLD_STEM_ID);
+        const end = await scene.level.world(END_STEM_ID);
+        const bot = playerAt(scene.server, overworld, new Vector3(0.5, 64, 0.5));
+        overworld.addPlayer(bot);
+        const seen: string[] = [];
+        const { changeWorld } = bot;
+        bot.changeWorld = async (arrival, options) => {
+            seen.push(arrival.world.getDimension().id);
+            await changeWorld.call(bot, arrival, options);
+        };
+
+        scene.travel.moveTo(
+            bot,
+            stemTarget(scene.level, NETHER_STEM_ID, { position: new Vector3(0, 70, 0), yaw: 0, pitch: 0 })
+        );
+        scene.travel.move(bot, { world: end, position: new Vector3(0, 70, 0), yaw: 0, pitch: 0 });
+
+        // The Nether is not built at this step, so the End waits behind it.
+        expect(await scene.travel.admit()).toBe(0);
+        expect(seen).toEqual([]);
+
+        await settle(scene.travel);
+        expect(seen).toEqual([Dimensions.Nether.id, Dimensions.TheEnd.id]);
+
+        await scene.level.disable();
+    }, 60_000);
+
+    it('applies a message for another world in that world at the input step, and in no other', async () => {
+        const scene = await buildScene();
+        const bot = playerAt(scene.server, scene.nether, new Vector3(0.5, 70, 0.5));
+        scene.nether.addPlayer(bot);
+        closeSetup(scene.overworld, scene.nether);
+        const messages = new WorldMessages((error) => {
+            throw error;
+        });
+
+        // An input in the Overworld changes a player in the Nether, as `SetDefaultGameType` does.
+        scene.overworld.beginChangeTick();
+        scene.nether.beginChangeTick();
+        // The write `PlayerSession.setGamemode` makes before its sends.
+        messages.send(scene.nether, async () => bot.inputs().setPlayerGamemode(bot.getPlayer(), Gametype.CREATIVE));
+        const filedHere = scene.overworld.sealChangeTick();
+        const untouched = scene.nether.sealChangeTick();
+
+        expect(filedHere?.entries).toEqual([]);
+        expect(untouched?.entries).toEqual([]);
+        expect(bot.getPlayer().gamemode).not.toBe(Gametype.CREATIVE);
+
+        scene.overworld.beginChangeTick();
+        scene.nether.beginChangeTick();
+        expect(await messages.admit()).toBe(1);
+        const elsewhere = scene.overworld.sealChangeTick();
+        const applied = scene.nether.sealChangeTick();
+
+        expect(bot.getPlayer().gamemode).toBe(Gametype.CREATIVE);
+        expect(elsewhere?.entries).toEqual([]);
+        expect(applied?.entries.length).toBeGreaterThan(0);
 
         await scene.level.disable();
     }, 60_000);
