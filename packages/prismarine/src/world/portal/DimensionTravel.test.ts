@@ -792,7 +792,8 @@ describe('DimensionTravel.transfer out of the End', () => {
         await scene.travel.transfer(player.getActor()!, await exitArrival(scene, player));
         sent.length = 0;
 
-        expect(await player.completeCredits()).toBe(true);
+        expect(player.completeCredits()).toBe(true);
+        expect(await scene.travel.admit()).toBe(1);
 
         const change = sent.find((packet): packet is ChangeDimensionPacket => packet instanceof ChangeDimensionPacket);
         expect(change?.getPacketData()?.respawn).toBe(true);

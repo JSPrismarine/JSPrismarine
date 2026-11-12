@@ -15,7 +15,7 @@ describe('ShowCreditsHandler', () => {
         let completions = 0;
         const session = stub<PlayerSession>({
             identity: STEVE,
-            completeCredits: async () => {
+            completeCredits: () => {
                 completions += 1;
                 return pending;
             }
@@ -27,7 +27,7 @@ describe('ShowCreditsHandler', () => {
         });
 
         new ShowCreditsHandler().handle(packet, context);
-        // The world change waits, so it runs after the handler's unit and none of it before.
+        // The world change is a message the session files, so the handler finishes the credits itself.
         const completedInHandler = completions;
         await settled();
         return { logged, completions, completedInHandler, deferred: deferred.length };
@@ -38,8 +38,8 @@ describe('ShowCreditsHandler', () => {
             pending: true
         });
 
-        expect(completedInHandler).toBe(0);
-        expect(deferred).toBe(1);
+        expect(completedInHandler).toBe(1);
+        expect(deferred).toBe(0);
         expect(completions).toBe(1);
         expect(logged).toEqual([]);
     });
