@@ -157,8 +157,8 @@ const readsIdentity = (node: Node): boolean => {
  * outside {@link CONNECTION_IMPORTS}, a call on its `PlayerSession` or
  * `ClientConnection` outside the allowed members, or a use of the player beyond its identity.
  */
-const worldAccess = (file: string): string[] => {
-    const source = parseSourceFile(file, readFileSync(file, 'utf8'));
+const worldAccess = (file: string, text = readFileSync(file, 'utf8')): string[] => {
+    const source = parseSourceFile(file, text);
     const found: string[] = [];
     const kinds = parameterKinds(source);
     const playerVariables = new Set<string>();
@@ -185,6 +185,11 @@ const worldAccess = (file: string): string[] => {
         if (kind === 'PlayerSession' && member === 'getConnection') {
             const call = node.parent;
             const next = call?.parent;
+            // A connection held in a variable is checked where the variable is used, as a
+            // `ClientConnection` parameter is; the walk reaches those uses after the declaration.
+            if (next !== undefined && isVariableDeclaration(next) && isIdentifier(next.name)) {
+                kinds.set(next.name.text, 'ClientConnection');
+            }
             const chained = next !== undefined && isPropertyAccess(next) ? memberName(next) : null;
             if (chained !== null && CONNECTION_WORLD_MEMBERS.has(chained)) found.push(`calls connection.${chained}`);
         }
@@ -275,6 +280,20 @@ describe('network/handler/Lane', () => {
     it('flags the world access it guards against', () => {
         expect(worldAccess(`${here}SetPlayerGameTypeHandler.ts`)).toContain('calls session.sendGamemode');
         expect(worldAccess(`${here}AnimateHandler.ts`).some((use) => use.includes('getWorld'))).toBe(true);
+    });
+
+    it('follows a connection the handler keeps in a variable', () => {
+        const handler = `
+            import type { SessionContext } from './SessionHandler';
+            export default class Reaching {
+                public handle(_packet: unknown, { session }: SessionContext): void {
+                    const connection = session.getConnection();
+                    connection.getPlayerSession()?.getPlayer();
+                }
+            }
+        `;
+
+        expect(worldAccess(`${here}Reaching.ts`, handler)).toContain('calls connection.getPlayerSession');
     });
 
     it('merges two handlers into the stricter lane', () => {
