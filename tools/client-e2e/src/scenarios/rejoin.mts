@@ -2,9 +2,8 @@
 import assert from 'node:assert/strict';
 
 import type { CinnabarClient } from '../client.mts';
-import type { JspServer } from '../jsp-server.mts';
 import type { Scenario } from '../scenario.mts';
-import { healthOf, sleep, untilTicks, vec3 } from '../scenario.mts';
+import { healthOf, onlineCount, sleep, untilTicks, vec3 } from '../scenario.mts';
 
 /** The name both visits log in with, so the second finds the record the first left. */
 const RETURNING = 'jsp-e2e-rejoin';
@@ -13,13 +12,6 @@ const RETURNING = 'jsp-e2e-rejoin';
 const SPOT = { x: 8, y: 4, z: 8 };
 
 const NETHER_STATES: readonly unknown[] = [1, 'minecraft:nether', 'Nether'];
-
-/** How many players the server counts as online, from the `list` command. */
-const onlineCount = async (server: JspServer): Promise<number> => {
-    const reply = server.waitForLine(/There are \d+ players online/, 10_000);
-    server.command('list');
-    return Number(/There are (\d+) players online/.exec(await reply)?.[1]);
-};
 
 /** Waits until the client is in the Nether with its loading screen closed and chunks around it. */
 const settleInNether = async (client: CinnabarClient): Promise<Record<string, unknown>> => {
