@@ -239,8 +239,10 @@ export default class NetworkDispatcher<C extends TransportConnection> {
         // A player's removal is an input, whatever caused it, so it waits for the input step
         // like a packet from the same client would, and after every input that client sent
         // before it. Awaited, so a reconnect from the same address, which the transport orders
-        // behind this close, never finds the old player still in its world.
-        await this.inputs.hold(() => {
+        // behind this close, never finds the old player still in its world. Held under the same
+        // connection as its packets: the step takes each connection's inputs in order, and under
+        // a source of its own the removal could run in an earlier round than the client's inputs.
+        await this.inputs.hold(session, () => {
             // Read here, before the tear-down, which detaches the session and takes the player
             // out of its world. A player is only added to a world once the client reports itself
             // initialized, so a session whose player is not in one belongs to a client that gave
@@ -418,9 +420,9 @@ export default class NetworkDispatcher<C extends TransportConnection> {
      * Decides when a packet's handler runs
      * ([ADR 0009](../../../../docs/adr/0009-external-inputs-enter-once-per-tick.md)):
      *
-     * - An input-lane handler is held for the next input step, behind every input held before it.
-     *   The frame queue goes on at once, so every input a connection sends before a step is
-     *   applied in that step, up to the step's budget.
+     * - An input-lane handler is held for the next input step, behind every input its connection
+     *   held before it. The frame queue goes on at once, so every input a connection sends before
+     *   a step is applied in that step, up to the connection's share of the step's budget.
      * - A connection-lane or read-lane handler from a connection with no held input, and nothing
      *   of its own still waiting, runs now, and the frame queue waits for it.
      * - Any other connection-lane or read-lane handler waits until the step that applies the last
@@ -444,7 +446,9 @@ export default class NetworkDispatcher<C extends TransportConnection> {
         const run = () => this.runHandler(gated, connection, recordInbound, expectedTick);
 
         if (gated.handler.lane === 'input') {
-            const done = this.inputs.hold(() => this.runInputHandler(gated, connection, recordInbound, expectedTick));
+            const done = this.inputs.hold(connection, () =>
+                this.runInputHandler(gated, connection, recordInbound, expectedTick)
+            );
             inbound.heldInputs++;
             const state: HeldInputState = {
                 past: false,
