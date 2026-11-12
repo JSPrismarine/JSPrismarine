@@ -24,6 +24,28 @@ const worldWith = (...sessions: PlayerSession[]): World =>
         players: new Map(sessions.map((session) => [Number(session.runtimeId), session]))
     });
 
+/** A world on the real prototype whose players enter a real entity store of the fixture content. */
+const storeWorld = (): World => {
+    let world: World | undefined;
+    const entities = liveTestEntities(() => world);
+    const live = entities.entityRuntime(Dimensions.Overworld.name);
+    const server = stub<Server>({
+        getEntityRuntime: () => live,
+        getStorePlayers: () => entities.players,
+        getContent: () => entities.content()
+    });
+    const created: World = Object.assign(Object.create(World.prototype), {
+        tickHeader: () => QUIET_TICK_HEADER,
+        chunks: new Map(),
+        players: new Map(),
+        dimension: Dimensions.Overworld,
+        server
+    });
+    world = created;
+    created.attachChangeSink(NULL_WORLD_CHANGE_SINK);
+    return created;
+};
+
 describe('World viewers', () => {
     it("lists the sessions of the world's online players", () => {
         const joined = playerWith(1n, true);
@@ -43,27 +65,11 @@ describe('World viewers', () => {
     });
 
     it('finds a player added through addPlayer when the tick that logged it seals, and none after removePlayer', async () => {
-        let world: World | undefined;
-        const entities = liveTestEntities(() => world);
-        const live = entities.entityRuntime(Dimensions.Overworld.name);
-        const server = stub<Server>({
-            getEntityRuntime: () => live,
-            getStorePlayers: () => entities.players,
-            getContent: () => entities.content()
-        });
-        const created: World = Object.assign(Object.create(World.prototype), {
-            tickHeader: () => QUIET_TICK_HEADER,
-            chunks: new Map(),
-            players: new Map(),
-            dimension: Dimensions.Overworld,
-            server
-        });
-        world = created;
+        const created = storeWorld();
         const session = sessionOnPrototype({}, { runtimeId: 4n, position: new Position(0.5, 65.62, 0.5, created) });
         // What the replicator sees when it reads an arriving player's entering entry and a
         // leaving one's leaving entry: the arrival already findable, the departure already not.
         const seen: Array<PlayerSession | undefined> = [];
-        created.attachChangeSink(NULL_WORLD_CHANGE_SINK);
         created.getEntityStore().onSealed((sealed) => {
             for (const entry of sealed.entries)
                 if (entry.kind === 'membership') seen.push(created.viewerOf(entry.entity));
@@ -84,5 +90,32 @@ describe('World viewers', () => {
         expect(created.viewerOf(4n)).toBeUndefined();
         expect(created.getActor(4n)).toBeNull();
         expect(seen).toEqual([session, undefined]);
+    });
+
+    it('takes back an entry whose input was undone, so the player can be added again', () => {
+        // `SetLocalPlayerAsInitialized` adds the player and completes its spawn in one input. The
+        // player map and the store player's hold on its entity are not in the log, so an undo of
+        // the entry alone left a viewer with no entity, which a second add refused.
+        const created = storeWorld();
+        const session = sessionOnPrototype({}, { runtimeId: 5n, position: new Position(0.5, 65.62, 0.5, created) });
+
+        created.beginChangeTick();
+        expect(() =>
+            created.runInputNow(() => {
+                created.addPlayer(session);
+                throw new Error('the spawn failed after the entry');
+            })
+        ).toThrow('the spawn failed after the entry');
+        created.sealChangeTick();
+
+        expect(created.viewerOf(5n)).toBeUndefined();
+        expect(created.getActor(5n)).toBeNull();
+        expect(session.getPlayer().entity).toBeUndefined();
+
+        created.beginChangeTick();
+        created.addPlayer(session);
+        created.sealChangeTick();
+        expect(created.viewerOf(5n)).toBe(session);
+        expect(created.getActor(5n)).toBeInstanceOf(StorePlayerActor);
     });
 });

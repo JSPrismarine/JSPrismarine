@@ -34,7 +34,8 @@ export default class SetLocalPlayerAsInitializedHandler implements InputLaneHand
 
         // The join's result enters the world here, as this input: the player the login built
         // in front of the join, and whose record it loaded. Both writes are in this input's unit,
-        // so a failure in `completeSpawn` undoes the entry too. This is when everyone else gets
+        // so a failure in `completeSpawn` undoes the entry too, and `addPlayer` takes the session
+        // out of the player map again, which the log does not hold. This is when everyone else gets
         // an `AddPlayer` for it, since the client is saying it has a player to show.
         world.addPlayer(session);
 
