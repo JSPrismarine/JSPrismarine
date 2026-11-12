@@ -93,6 +93,14 @@ one batch, appended and synced off the server thread, and `level.dat` is rewritt
 a rename. A crash before that batch is on disk leaves the previous save as it was. A save that is
 asked for, such as a shutdown's, takes its cut between two ticks and writes at once.
 
+A player's record written when they leave or change dimension, and a chunk written as it
+unloads, are not written on their own. The provider holds them and commits them ahead of the next
+pass's own writes, in the same batch, so a crash loses them together with that pass's state and
+never leaves one beside world state from another moment. Reads answer from the held writes, so a
+player who rejoins, or a chunk loaded again, before the next pass gets what was written. When the
+held writes grow past `HELD_WRITE_LIMIT`, the level commits them early in a pass of their own,
+still one batch, and a shutdown commits them with its pass.
+
 `WorldManager` loads every entry under `worlds`, not only `level-name`; `level-name` is the one
 players join. For each entry it reads the config in either spelling, reads the stems the save was
 generated with, resolves the stems from the preset, the entry's `dimensions` and the saved ones in
