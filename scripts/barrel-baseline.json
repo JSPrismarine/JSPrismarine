@@ -202,6 +202,9 @@
         "noBarrelFile": 1,
         "noReExportAll": 11
     },
+    "packages/native-network/src/index.ts": {
+        "noBarrelFile": 1
+    },
     "packages/nbt/src/index.ts": {
         "noBarrelFile": 1,
         "noReExportAll": 1
