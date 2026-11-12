@@ -1,9 +1,12 @@
 import { createHash } from 'node:crypto';
+import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import type { Server } from 'node:http';
 import { createServer } from 'node:http';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import os from 'node:os';
+import path from 'node:path';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { downloadVerified, provisionPackagedData } from './provision';
+import { downloadVerified, provisionBehaviorPacks, provisionPackagedData } from './provision';
 
 /** A minimal one-file zip (stored, no compression) so the download has real bytes to verify. */
 const storedZip = (name: string, data: Buffer): Buffer => {
@@ -47,9 +50,11 @@ describe('provision', () => {
     let server: Server;
     let base: string;
     const zip = storedZip('behavior_packs/vanilla/manifest.json', Buffer.from('{}'));
+    let downloads = 0;
 
     beforeAll(async () => {
         server = createServer((request, response) => {
+            if (request.url === '/bds.zip') downloads += 1;
             if (request.url === '/bds.zip') response.end(zip);
             else if (request.url === '/corrupt.zip') response.end(Buffer.from('not the pinned bytes'));
             else response.writeHead(404).end();
@@ -89,5 +94,83 @@ describe('provision', () => {
     it('does nothing outside a single executable', async () => {
         // `isSea()` is false under vitest, so this must not touch the disk or the network.
         await expect(provisionPackagedData(() => {})).resolves.toBeUndefined();
+    });
+
+    describe('the behavior pack cache', () => {
+        let scratch: string;
+        let cacheDir: string;
+        const silent = (): void => {};
+        const packFor = (versionRoot: string) => path.join(versionRoot, 'behavior_packs');
+
+        beforeEach(() => {
+            scratch = mkdtempSync(path.join(os.tmpdir(), 'jsp-provision-'));
+            cacheDir = path.join(scratch, 'user-cache');
+            downloads = 0;
+            vi.stubEnv('JSP_VANILLA_BEHAVIOR_PACK', '');
+        });
+
+        afterEach(() => {
+            vi.unstubAllEnvs();
+            rmSync(scratch, { recursive: true, force: true });
+        });
+
+        it('downloads once and reuses the pack from any working directory', async () => {
+            const bds = pin(`${base}/bds.zip`, zip);
+            await provisionBehaviorPacks(path.join(scratch, 'a', 'node_modules'), bds, silent, cacheDir);
+            const shared = path.join(cacheDir, 'bds', bds.serverVersion);
+            expect(process.env.JSP_VANILLA_BEHAVIOR_PACK).toBe(packFor(shared));
+            expect(existsSync(path.join(packFor(shared), 'vanilla', 'manifest.json'))).toBe(true);
+
+            vi.stubEnv('JSP_VANILLA_BEHAVIOR_PACK', '');
+            await provisionBehaviorPacks(path.join(scratch, 'b', 'node_modules'), bds, silent, cacheDir);
+            expect(downloads).toBe(1);
+            expect(process.env.JSP_VANILLA_BEHAVIOR_PACK).toBe(packFor(shared));
+        });
+
+        it('downloads again when the pinned version changes', async () => {
+            const modules = path.join(scratch, 'node_modules');
+            await provisionBehaviorPacks(modules, pin(`${base}/bds.zip`, zip), silent, cacheDir);
+            vi.stubEnv('JSP_VANILLA_BEHAVIOR_PACK', '');
+            const repinned = { ...pin(`${base}/bds.zip`, zip), serverVersion: '1.26.60.1' };
+            await provisionBehaviorPacks(modules, repinned, silent, cacheDir);
+            expect(downloads).toBe(2);
+            expect(process.env.JSP_VANILLA_BEHAVIOR_PACK).toBe(packFor(path.join(cacheDir, 'bds', '1.26.60.1')));
+        });
+
+        it.each([
+            ['never finished', undefined],
+            ['came from another digest', JSON.stringify({ sha256: 'another' })]
+        ])('replaces an unpack that %s', async (_, marker) => {
+            const bds = pin(`${base}/bds.zip`, zip);
+            const shared = path.join(cacheDir, 'bds', bds.serverVersion);
+            mkdirSync(path.join(packFor(shared), 'vanilla'), { recursive: true });
+            if (marker !== undefined) writeFileSync(path.join(shared, 'complete.json'), marker);
+            await provisionBehaviorPacks(path.join(scratch, 'node_modules'), bds, silent, cacheDir);
+            expect(downloads).toBe(1);
+            expect(existsSync(path.join(packFor(shared), 'vanilla', 'manifest.json'))).toBe(true);
+        });
+
+        it('uses a pack an older build unpacked into the working directory', async () => {
+            const bds = pin(`${base}/bds.zip`, zip);
+            const modules = path.join(scratch, 'node_modules');
+            const local = path.join(modules, '.cache', 'jsprismarine', 'bds', bds.serverVersion, 'unpacked');
+            mkdirSync(path.join(packFor(local), 'vanilla'), { recursive: true });
+            writeFileSync(path.join(packFor(local), 'vanilla', 'manifest.json'), '{}');
+            await provisionBehaviorPacks(modules, bds, silent, cacheDir);
+            expect(downloads).toBe(0);
+            expect(process.env.JSP_VANILLA_BEHAVIOR_PACK).toBe(packFor(local));
+        });
+
+        it('leaves a user-set override alone', async () => {
+            vi.stubEnv('JSP_VANILLA_BEHAVIOR_PACK', '/somewhere/behavior_packs');
+            await provisionBehaviorPacks(
+                path.join(scratch, 'node_modules'),
+                pin(`${base}/bds.zip`, zip),
+                silent,
+                cacheDir
+            );
+            expect(downloads).toBe(0);
+            expect(process.env.JSP_VANILLA_BEHAVIOR_PACK).toBe('/somewhere/behavior_packs');
+        });
     });
 });

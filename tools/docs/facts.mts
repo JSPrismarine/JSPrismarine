@@ -21,6 +21,7 @@
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 
+import { userCacheDir } from '../../packages/server/src/packaged/userCache.ts';
 import { palette } from './site/.vitepress/theme/tokens.ts';
 import { loadCommands, loadOptionalSettings, loadSettings } from './code-data.mts';
 import { loadProject, repoRoot } from './project.mts';
@@ -345,6 +346,11 @@ export async function loadFacts(): Promise<Facts> {
             'bds.version': bds.serverVersion,
             'bds.minecraft': bds.minecraftVersion,
             'bds.size': megabytes(bds.sizeInBytes),
+            // The packaged server's download cache, written with each platform's placeholders.
+            'cache.windows': userCacheDir({ LOCALAPPDATA: '%LOCALAPPDATA%' }, 'win32', '%USERPROFILE%'),
+            'cache.macos': userCacheDir({}, 'darwin', '~'),
+            'cache.xdg': userCacheDir({ XDG_CACHE_HOME: '$XDG_CACHE_HOME' }, 'linux', '~'),
+            'cache.linux': userCacheDir({}, 'linux', '~'),
             'samples.tag': sources.bedrockSamples.tag,
             'java.version': sources.javaServer.version,
             'java.size': megabytes(sources.javaServer.sizeInBytes),

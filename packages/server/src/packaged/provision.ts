@@ -16,13 +16,17 @@
  *   license does not allow redistributing the zip, so the binary fetches it from Mojang on the
  *   user's machine instead, with progress, and verifies the digest before unpacking. Only the
  *   `behavior_packs/` entries are written; the rest of the 95 MB zip is server binaries this
- *   project does not run.
+ *   project does not run. The pack goes to the user's cache directory rather than the working
+ *   directory, so a server started from another folder reuses it, and the server reads it
+ *   through `JSP_VANILLA_BEHAVIOR_PACK`.
  *
- * Everything is idempotent: a warm directory provisions nothing, and `JSP_VANILLA_BEHAVIOR_PACK`
- * skips the download outright for offline machines that already hold a copy.
+ * Everything is idempotent: a warm directory provisions nothing, a pack already in the user
+ * cache for the pinned version and digest is not downloaded again, and a user-set
+ * `JSP_VANILLA_BEHAVIOR_PACK` skips the download outright for offline machines that already hold
+ * a copy.
  */
 import { createHash } from 'node:crypto';
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 
@@ -31,6 +35,7 @@ import { readZip } from '@jsprismarine/packs';
 
 import { decodeDataBundle } from './dataBundle';
 import { EMBEDDED_DATA_BUNDLE, EMBEDDED_DATA_MANIFEST, EMBEDDED_NATIVE_LIBRARY, hasEmbeddedData } from './embeddedData';
+import { userCacheDir } from './userCache';
 
 /** The SEA asset keys `scripts/package-sea.mts` writes. */
 export const SEA_ASSETS = {
@@ -177,24 +182,36 @@ export const downloadVerified = async (
 /** The environment variable that points at a local BDS `behavior_packs` folder instead. */
 const BDS_OVERRIDE = 'JSP_VANILLA_BEHAVIOR_PACK';
 
+/** The file that marks an unpacked pin as complete, holding the digest it came from. */
+const PIN_MARKER = 'complete.json';
+
+/** Whether `versionRoot` holds a finished unpack of exactly this pin. */
+const holdsPin = (versionRoot: string, pin: SeaDataManifest['bds']): boolean => {
+    try {
+        const recorded: unknown = JSON.parse(readFileSync(path.join(versionRoot, PIN_MARKER), 'utf8'));
+        return (
+            typeof recorded === 'object' &&
+            recorded !== null &&
+            'sha256' in recorded &&
+            recorded.sha256 === pin.sha256 &&
+            existsSync(path.join(versionRoot, 'behavior_packs'))
+        );
+    } catch {
+        return false;
+    }
+};
+
 /**
- * Downloads and unpacks the vanilla Bedrock behavior pack, unless it is already on disk or
- * {@link BDS_OVERRIDE} points somewhere else.
+ * Downloads the pin and unpacks its `behavior_packs/` into `versionRoot`.
  *
- * @throws With the URL and the remedy when the download cannot complete, because a server
- *   without the pack defines no blocks and cannot generate or serve a world.
+ * The files go to a sibling directory first and are renamed into place with the marker inside,
+ * so an interrupted run leaves no half-written pack that a later start would trust.
  */
-const provisionBehaviorPacks = async (
-    modulesRoot: string,
-    manifest: SeaDataManifest,
+const downloadBehaviorPacks = async (
+    versionRoot: string,
+    pin: SeaDataManifest['bds'],
     log: (line: string) => void
 ): Promise<void> => {
-    if (process.env[BDS_OVERRIDE]) return;
-
-    const pin = manifest.bds;
-    const root = path.join(modulesRoot, '.cache', 'jsprismarine', 'bds', pin.serverVersion, 'unpacked');
-    if (existsSync(path.join(root, 'behavior_packs'))) return;
-
     log(`Downloading the vanilla Bedrock behavior pack (Bedrock Dedicated Server ${pin.serverVersion}, ~95 MiB)...`);
     let entries: Map<string, Uint8Array>;
     try {
@@ -209,15 +226,83 @@ const provisionBehaviorPacks = async (
         );
     }
 
+    const staging = `${versionRoot}.partial-${process.pid}`;
+    rmSync(staging, { recursive: true, force: true });
     let written = 0;
     for (const [name, bytes] of entries) {
         if (!name.startsWith('behavior_packs/')) continue;
-        writeFileAt(root, name, bytes);
+        writeFileAt(staging, name, bytes);
         written += 1;
     }
 
-    if (written === 0) throw new Error(`the Bedrock Dedicated Server zip at ${pin.url} holds no behavior_packs/`);
+    if (written === 0) {
+        rmSync(staging, { recursive: true, force: true });
+        throw new Error(`the Bedrock Dedicated Server zip at ${pin.url} holds no behavior_packs/`);
+    }
+    writeFileSync(path.join(staging, PIN_MARKER), `${JSON.stringify({ sha256: pin.sha256 }, null, 4)}\n`);
+
+    // A leftover without a marker is an older interrupted unpack; a complete one means another
+    // server finished the same download first, and its copy is as good as this one.
+    if (existsSync(versionRoot) && !holdsPin(versionRoot, pin)) rmSync(versionRoot, { recursive: true, force: true });
+    try {
+        renameSync(staging, versionRoot);
+    } catch (error) {
+        rmSync(staging, { recursive: true, force: true });
+        if (!holdsPin(versionRoot, pin)) throw error;
+    }
     log(`Unpacked ${written} behavior pack files.`);
+};
+
+/**
+ * Finds or downloads the vanilla Bedrock behavior pack and points {@link BDS_OVERRIDE} at it,
+ * unless the user already set that variable.
+ *
+ * The download lands in {@link userCacheDir} under the pinned server version, and is reused
+ * while its marker records the pinned digest, so a new pin downloads once and an unchanged one
+ * never again, whichever folder the server starts in. A pack an older build unpacked into the
+ * working directory is used where it is, and when the user cache cannot be created the download
+ * falls back to the working directory.
+ *
+ * @param cacheDir - The user cache directory; a parameter so tests can use a temporary one.
+ * @throws With the URL and the remedy when the download cannot complete, because a server
+ *   without the pack defines no blocks and cannot generate or serve a world.
+ */
+export const provisionBehaviorPacks = async (
+    modulesRoot: string,
+    pin: SeaDataManifest['bds'],
+    log: (line: string) => void,
+    cacheDir: string = userCacheDir()
+): Promise<void> => {
+    if (process.env[BDS_OVERRIDE]) return;
+
+    const local = path.join(modulesRoot, '.cache', 'jsprismarine', 'bds', pin.serverVersion, 'unpacked');
+    const shared = path.join(cacheDir, 'bds', pin.serverVersion);
+    const use = (versionRoot: string): void => {
+        // Inherited by the server and generation host processes this one starts.
+        process.env[BDS_OVERRIDE] = path.join(versionRoot, 'behavior_packs');
+    };
+
+    if (holdsPin(shared, pin)) {
+        use(shared);
+        return;
+    }
+    if (existsSync(path.join(local, 'behavior_packs'))) {
+        use(local);
+        return;
+    }
+
+    let target = shared;
+    try {
+        mkdirSync(path.dirname(shared), { recursive: true });
+    } catch (error) {
+        const cause = error instanceof Error ? error.message : String(error);
+        log(`Could not create the cache directory ${path.dirname(shared)} (${cause}); using ${local}.`);
+        target = local;
+        mkdirSync(path.dirname(local), { recursive: true });
+    }
+
+    await downloadBehaviorPacks(target, pin, log);
+    use(target);
 };
 
 /**
@@ -236,7 +321,7 @@ export const provisionPackagedData = async (
     const modulesRoot = path.resolve(process.cwd(), 'node_modules');
 
     extractBundle(modulesRoot, manifest, assets, log);
-    await provisionBehaviorPacks(modulesRoot, manifest, log);
+    await provisionBehaviorPacks(modulesRoot, manifest.bds, log);
     const nativeLibrary = assets.nativeLibrary();
     if (nativeLibrary !== undefined) {
         provideEmbeddedLibrary(nativeLibrary, path.join(modulesRoot, '.cache', 'jsprismarine'));

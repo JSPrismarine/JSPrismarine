@@ -57,13 +57,17 @@ downloaded. Clear the download flag once with `xattr -d com.apple.quarantine pri
 (or the app's name), or Control-click the app and choose **Open**. On Windows, SmartScreen may warn
 about an unrecognized app; choose **More info**, then **Run anyway**.
 
-The first start in a folder needs a network connection and takes a minute. The server unpacks the
-data it carries (Mojang's Java Edition world generation data and this project's packs), then
-downloads the vanilla behavior pack from Mojang's Bedrock Dedicated Server (about <!-- fact:bds.size -->95 MB<!-- /fact -->), checking
-its digest. Mojang's license does not allow shipping that pack inside the executable. Both land in
-`node_modules/.cache/jsprismarine/` in that folder, so later starts need no network. On a machine
-that cannot reach Mojang's servers, set `JSP_VANILLA_BEHAVIOR_PACK` to a copy of a Bedrock
-Dedicated Server `behavior_packs` folder.
+The first start needs a network connection and takes a minute. The server unpacks the data it
+carries (Mojang's Java Edition world generation data and this project's packs) into
+`node_modules/.cache/jsprismarine/` in the folder it starts in. It then downloads the vanilla
+behavior pack from Mojang's Bedrock Dedicated Server (about <!-- fact:bds.size -->95 MB<!-- /fact -->), checking its digest, because
+Mojang's license does not allow shipping that pack inside the executable. The pack goes to your
+user cache directory: <!-- fact:cache.windows -->`%LOCALAPPDATA%\JSPrismarine\Cache`<!-- /fact --> on Windows,
+<!-- fact:cache.macos -->`~/Library/Caches/JSPrismarine`<!-- /fact --> on macOS and <!-- fact:cache.xdg -->`$XDG_CACHE_HOME/jsprismarine`<!-- /fact --> (or
+<!-- fact:cache.linux -->`~/.cache/jsprismarine`<!-- /fact -->) elsewhere. A server started from any folder reuses it, and a build pinned
+to a newer Bedrock Dedicated Server downloads that version once. On a machine that cannot reach
+Mojang's servers, set `JSP_VANILLA_BEHAVIOR_PACK` to a copy of a Bedrock Dedicated Server
+`behavior_packs` folder.
 
 The server then creates `config.json`, its player lists and `worlds/` in the same folder and starts
 listening on port <!-- fact:server.port -->19132<!-- /fact -->. Players add it in Minecraft under **Servers → Add Server** with your
