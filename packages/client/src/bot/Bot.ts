@@ -56,6 +56,8 @@ export default class Bot {
     private stopped = false;
     /** Whether the next input says the bot applied a teleport the server sent it. */
     private handledTeleport = false;
+    /** The tick still running, which a tick asked for meanwhile waits on rather than overlaps. */
+    private running: Promise<void> | undefined;
 
     /** Counted per action name, merged into the fleet report. */
     public readonly actions: Map<string, number> = new Map();
@@ -153,8 +155,19 @@ export default class Bot {
      * {@link Bot.start} calls it every {@link TICK_INTERVAL_MS}; a test that steps the server
      * itself can call it in step. Behaviors run in sequence rather than concurrently, and
      * whatever they do to the pose goes out in one input, as a real client's tick does.
+     *
+     * One tick runs at a time. A call made while one still waits on a behavior or a send gets
+     * that tick's promise and starts none of its own, so two ticks never share a tick number,
+     * send one input number twice or interleave their changes to the pose.
      */
-    public async tick(): Promise<void> {
+    public tick(): Promise<void> {
+        this.running ??= this.runTick().finally(() => {
+            this.running = undefined;
+        });
+        return this.running;
+    }
+
+    private async runTick(): Promise<void> {
         if (this.stopped || !this.client.isConnected()) return;
 
         let input: { walk: Walk | undefined } | undefined;
@@ -192,6 +205,9 @@ export default class Bot {
             try {
                 await this.send(playerAuthInput(this, { tick: BigInt(this.ticks), walk: input.walk, handledTeleport }));
             } catch (error: unknown) {
+                // The acknowledgment did not reach the server, so the next input carries it. A
+                // teleport that arrived during the send is still flagged either way.
+                if (handledTeleport) this.handledTeleport = true;
                 this.options.logger.debug(
                     `Input failed for ${this.options.displayName}: ${
                         error instanceof Error ? error.message : String(error)
