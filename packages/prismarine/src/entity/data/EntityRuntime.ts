@@ -1262,7 +1262,14 @@ export class EntityRuntime implements EntityScene {
         if (facts === undefined) return undefined;
         const brainMob = brainMobFor(content.entities.brains, reference);
 
+        if (fixedId !== undefined && this.store.has(fixedId)) {
+            this.report(`asked to add ${reference} under runtime id ${fixedId}, which another entity holds`);
+            return undefined;
+        }
         const id = fixedId ?? this.drawId();
+        // A fixed id, such as one a snapshot carries into a fresh runtime, must not come round again
+        // from the counter. A host's own pool is the host's to keep apart.
+        if (fixedId !== undefined && fixedId >= this.nextId) this.nextId = fixedId + 1;
 
         // The body comes first: a goal component builds its support while the instance is being
         // constructed, and that reads the actuator straight away.

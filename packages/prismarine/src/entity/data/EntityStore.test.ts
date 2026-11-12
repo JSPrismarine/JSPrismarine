@@ -5,6 +5,7 @@ import type { PlainRecord } from '../../world/changelog/PlainData';
 import type { EntityHostFacts, EntityWorldFacts } from './host';
 import type { DataEntity } from './DataEntity';
 import { ENTITY_FAILURE_LIMIT, EntityStore } from './EntityStore';
+import { dataEntityRecordOf } from './persistence';
 import type { EntityRuntime } from './EntityRuntime';
 import { entityFixture, FLOOR_Y, TestEntityWorld } from './testing';
 import { PLAYER_IDENTIFIER } from '../playerOverlay';
@@ -357,6 +358,24 @@ describe('the entity store', () => {
         expect(runtime.store.sealTick()?.entries).toEqual([
             { kind: 'occurrence', occurrence: 'world-effect', data: { position: null, effect: 3001, data: 100 } }
         ]);
+    });
+
+    it('draws no runtime id a restored entity holds, and refuses a second entity under one', () => {
+        const captured = fixture().runtime;
+        const records = [spawnLogged(captured), spawnLogged(captured)].map((entity) => ({
+            id: entity.id,
+            record: dataEntityRecordOf(entity, undefined)
+        }));
+
+        const { runtime } = fixture();
+        const restored = records.map(({ id, record }) => runtime.restore(record, GROUND, id));
+        expect(restored.map((entity) => entity?.id)).toEqual(records.map(({ id }) => id));
+
+        const spawned = spawnLogged(runtime);
+        expect(records.map(({ id }) => id)).not.toContain(spawned.id);
+        expect(runtime.restore(records[0]!.record, GROUND, records[0]!.id)).toBeUndefined();
+        expect(runtime.byId(records[0]!.id)).toBe(restored[0]);
+        expect(runtime.store.size).toBe(3);
     });
 
     it('keeps a stored stack from changing through the object its caller still holds', () => {
