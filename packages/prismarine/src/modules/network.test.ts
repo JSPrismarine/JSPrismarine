@@ -1,6 +1,4 @@
-import type { Kernel } from '@jsprismarine/kernel';
-import { KernelEventBus } from '@jsprismarine/kernel';
-import type { ServerEvents } from '../events/ServerEvents';
+import { testKernel } from '../testing/kernel.test.helper';
 import dgram from 'node:dgram';
 import { once } from 'node:events';
 import fs from 'node:fs';
@@ -34,7 +32,7 @@ import { ServerNetworking, networkModule } from './network';
 import { networkToken } from './tokens';
 
 /** A kernel whose only part is its event bus, which the transports raise the RakNet events on. */
-const kernelDouble = () => stub<Kernel<ServerEvents>>({ events: new KernelEventBus<ServerEvents>() });
+const kernelDouble = () => testKernel();
 
 /** The native WebRTC stack, or undefined on a machine with no build of it. */
 const driver = await loadNativeDriver().catch(() => undefined);

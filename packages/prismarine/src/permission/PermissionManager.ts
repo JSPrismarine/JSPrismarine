@@ -25,7 +25,7 @@ const isPlayerPermissions = (value: unknown): value is PlayerPermissions =>
 /**
  * The parts of the server the permission manager uses. A test can hand in these alone.
  */
-export type PermissionManagerServer = Pick<Server, 'getLogger' | 'getSessionManager' | 'post'>;
+export type PermissionManagerServer = Pick<Server, 'getLogger' | 'getSessionManager' | 'getKernel'>;
 
 const PERMISSION_FILE_NAME = 'permissions.json';
 const OPS_FILE_NAME = 'ops.json';
@@ -278,7 +278,7 @@ export class PermissionManager implements Service {
      */
     private toggleOp(target: PlayerSession, op: boolean): boolean {
         const event = new playerToggleOperatorEvent(target, op);
-        this.server.post('playerToggleOperator', event);
+        this.server.getKernel().events.post('playerToggleOperator', event);
         if (event.isCanceled()) return false;
 
         const { uuid } = target.identity;

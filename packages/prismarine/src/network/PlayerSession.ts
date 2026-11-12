@@ -3412,7 +3412,7 @@ export default class PlayerSession {
         mode ??= player.gamemode;
 
         const event = new PlayerSetGamemodeEvent(this, mode);
-        this.server.post('playerSetGamemode', event);
+        this.server.getKernel().events.post('playerSetGamemode', event);
         if (event.isCanceled()) return allSent([]);
 
         const sends: Promise<void>[] = [];
@@ -3444,7 +3444,7 @@ export default class PlayerSession {
         }
 
         const event = new PlayerToggleFlightEvent(this, flying);
-        this.server.post('playerToggleFlight', event);
+        this.server.getKernel().events.post('playerToggleFlight', event);
         if (event.isCanceled()) return allSent([]);
 
         this.inputs().setPlayerFlying(player, event.getIsFlying());
@@ -3457,7 +3457,7 @@ export default class PlayerSession {
         if (sprinting === player.isSprinting()) return;
 
         const event = new PlayerToggleSprintEvent(this, sprinting);
-        this.server.post('playerToggleSprint', event);
+        this.server.getKernel().events.post('playerToggleSprint', event);
         if (event.isCanceled()) return;
 
         // Replication shows the logged change to the player and its viewers.
