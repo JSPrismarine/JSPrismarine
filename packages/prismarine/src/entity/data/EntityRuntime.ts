@@ -140,7 +140,14 @@ import type { DataEntityRecord } from './persistence';
 import { applyDataEntityRecord, dataEntityRecordFrom, dataEntityRecordOf } from './persistence';
 import { EntityStore } from './EntityStore';
 import { DamagePipeline } from './damagePipeline';
-import type { DamageComputation, DamageCommitResult, DamageIntent, DamageOutcome, DamageRoute } from './damagePipeline';
+import type {
+    DamageComputation,
+    DamageCommitResult,
+    DamageIntent,
+    DamageOutcome,
+    DamageRoute,
+    DamageSourceFacts
+} from './damagePipeline';
 import { DamageSensingSlot, damageGuards, damageModifiers } from './damageStages';
 import { INVULNERABILITY_TICKS } from '../Damage';
 import type { HitGrace } from './damageStages';
@@ -2206,8 +2213,13 @@ export class EntityRuntime implements EntityScene {
 
         if (other !== undefined) {
             const player = clientOwnsMovement(other.identifier);
-            this.hurt(other, attacker.id, 'entity_attack', damage, player ? { mitigated: true, graced: true } : {});
-            if (attackerEntity !== undefined) this.applyAttackStatusEffect(attackerEntity, target.id);
+            // A blow a guard turned aside, such as a second swing inside the target's grace
+            // period, hit nothing, so it leaves no effect either: Java's `doHurtTarget` adds its
+            // effect only once `hurt` answered true. A blow the armor or the absorption took whole
+            // still landed, which is why this reads the commit and not the health taken.
+            const blow = player ? { mitigated: true, graced: true } : {};
+            const landed = this.blow(other, attacker.id, 'entity_attack', damage, blow).committed;
+            if (landed && attackerEntity !== undefined) this.applyAttackStatusEffect(attackerEntity, target.id);
             return;
         }
 
@@ -2390,8 +2402,20 @@ export class EntityRuntime implements EntityScene {
             readonly graced?: boolean;
         } = {}
     ): boolean {
+        const outcome = this.blow(entity, sourceId, cause, amount, options);
+        return outcome.committed && outcome.taken > 0;
+    }
+
+    /** Runs the blow {@link EntityRuntime.hurt} describes, and answers with what the pipeline did with it. */
+    private blow(
+        entity: DataEntity,
+        sourceId: number | undefined,
+        cause: string,
+        amount: number,
+        options: Pick<Partial<DamageSourceFacts>, 'feedback' | 'route' | 'mitigated' | 'graced'>
+    ): DamageOutcome {
         const { feedback, mitigated, graced } = options;
-        const outcome = this.damage({
+        return this.damage({
             target: entity.id,
             ...(sourceId === undefined ? {} : { attacker: sourceId }),
             cause,
@@ -2403,7 +2427,6 @@ export class EntityRuntime implements EntityScene {
                 ...(graced === undefined ? {} : { graced })
             }
         });
-        return outcome.committed && outcome.taken > 0;
     }
 
     /**
