@@ -180,6 +180,28 @@ describe('world', () => {
             ]);
         });
 
+        it('seals and sends nothing of a tick whose store failed to undo a unit', () => {
+            const { world, calls } = worldTicking();
+            // A unit in the tick that throws, and whose undo throws too, as a failed rollback does.
+            Object.assign(world, {
+                systems: {
+                    tick: () => {
+                        world.getEntityStore().unit(() => {
+                            world.getEntityStore().undoWith(() => {
+                                throw new Error('the undo failed');
+                            });
+                            throw new Error('the unit failed');
+                        });
+                    }
+                }
+            });
+
+            world.update(1);
+
+            expect(world.getEntityStore().broken).toBeInstanceOf(Error);
+            expect(calls).toStrictEqual(['blockUpdates', 'tickSealed']);
+        });
+
         it('closes a tick it did not update with the sends alone, in the order an update sends them', () => {
             const { world, calls } = worldTicking();
 
