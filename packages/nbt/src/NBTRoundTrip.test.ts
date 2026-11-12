@@ -309,3 +309,29 @@ describe('nbt', () => {
         });
     });
 });
+
+describe('negative lengths', () => {
+    /** A root compound holding one tag of `type` named `n`, whose payload starts with `length`. */
+    const withLength = (type: number, length: number, listType?: number): Buffer => {
+        const stream = new BinaryStream();
+        stream.writeByte(10);
+        stream.writeUnsignedShortLE(0);
+        stream.writeByte(type);
+        stream.writeUnsignedShortLE(1);
+        stream.write(Buffer.from('n'));
+        if (listType !== undefined) stream.writeByte(listType);
+        stream.writeIntLE(length);
+        stream.writeByte(0);
+        return stream.getBuffer();
+    };
+
+    it.each([
+        ['byte array', withLength(7, -9), /Negative byte array length/],
+        ['int array', withLength(11, -9), /Negative int array length/],
+        ['list', withLength(9, -9, 10), /Negative list length/]
+    ])('refuses a %s whose length is negative', (_name, buffer, message) => {
+        const stream = new BinaryStream(buffer);
+        const reader = new NBTReader(stream, ByteOrder.LITTLE_ENDIAN);
+        expect(() => reader.parse()).toThrow(message);
+    });
+});

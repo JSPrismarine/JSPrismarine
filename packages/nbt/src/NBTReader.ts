@@ -90,7 +90,7 @@ export default class NBTReader extends NBTStreamReader {
     private readTagListValue(): Set<any> {
         this.expectInput(this.isUsingVarint() ? 2 : 5, 'Invalid NBT Data: Expected TAGList header', false);
         const listType: number = this.readByteValue().getValue();
-        let listLength: number = this.readIntValue().getValue();
+        let listLength = this.readLength('Invalid NBT Data: Negative list length');
 
         this.alterAllocationLimit(Allocation.ARRAY_LIST);
         this.alterAllocationLimit(Allocation.REFERENCE);
