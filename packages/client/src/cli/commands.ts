@@ -1,4 +1,4 @@
-import { Logger } from '@jsprismarine/logger';
+import { Logger, terminalText } from '@jsprismarine/logger';
 import { PacketIdentifier } from '@jsprismarine/protocol';
 import { ClientSocket } from '@jsprismarine/raknet';
 import { writeFile } from 'node:fs/promises';
@@ -7,7 +7,6 @@ import Fleet from '../bot/Fleet';
 import { formatReport } from '../bot/Metrics';
 import { UsageError, parseCount, parseDuration, parseNetwork, parsePercent, parseRate } from './Cli';
 import { conditionLink } from '../net/LinkConditions';
-import { terminalText } from '../terminalText';
 
 import { isPacket } from '../net/ClientPacketRegistry';
 
