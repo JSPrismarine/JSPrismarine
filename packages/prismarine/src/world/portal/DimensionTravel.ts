@@ -337,8 +337,8 @@ export class DimensionTravel {
      * and the arrival takes the cooldown.
      */
     private transferStoreEntity(actor: StoreActor, arrival: Arrival): void {
-        const from = this.server.getEntityRuntime(actor.getWorld().getDimension().name);
-        const to = this.server.getEntityRuntime(arrival.world.getDimension().name);
+        const from = actor.getWorld().dataEntities();
+        const to = arrival.world.dataEntities();
         const { entity } = actor;
         const at = { x: arrival.position.getX(), y: arrival.position.getY(), z: arrival.position.getZ() };
 
@@ -386,9 +386,7 @@ export class DimensionTravel {
 
     /** Whether the entity rides or is ridden, as far as the data-driven runtime of its world knows. */
     private isInRide(entity: StoreActor): boolean {
-        return this.server
-            .getEntityRuntime(entity.getWorld().getDimension().name)
-            .isInRide(Number(entity.getRuntimeId()));
+        return entity.getWorld().dataEntities().isInRide(Number(entity.getRuntimeId()));
     }
 
     /**

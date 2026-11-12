@@ -79,7 +79,10 @@ const contentUse = (
     rotation?: InteractionRotation
 ): InteractionResult => {
     const { content } = services;
-    const actors = services.contentWorld.actorsAt(player.getWorld().getDimension().name);
+    const actors = services.contentWorld.actorsAt(
+        player.getWorld().getDimension().name,
+        player.getWorld().getLevel().name
+    );
 
     try {
         return useItemOnBlock({
@@ -119,7 +122,10 @@ const contentUseOnEntity = (
     data: UseItemOnEntityData
 ): InteractionResult => {
     const { content } = services;
-    const actors = services.contentWorld.actorsAt(player.getWorld().getDimension().name);
+    const actors = services.contentWorld.actorsAt(
+        player.getWorld().getDimension().name,
+        player.getWorld().getLevel().name
+    );
 
     const target = player.getWorld().getActor(data.entityRuntimeId);
     if (target === null) return 'declined';
@@ -149,7 +155,10 @@ const contentUseOnEntity = (
  */
 const contentUseInAir = ({ services, log }: ContentHooks, player: InteractingPlayer): InteractionResult => {
     const { content } = services;
-    const actors = services.contentWorld.actorsAt(player.getWorld().getDimension().name);
+    const actors = services.contentWorld.actorsAt(
+        player.getWorld().getDimension().name,
+        player.getWorld().getLevel().name
+    );
 
     try {
         return useItemInAir({ content, actors, player });

@@ -189,11 +189,11 @@ export default class Server {
     private contentWorld: ServerWorldHandle | undefined;
 
     /**
-     * The data-driven entity runtimes, one per dimension.
+     * The data-driven entity runtimes, one per world: each dimension of each level.
      *
-     * Filled by the content world source as it assembles each dimension's adapter, and read
-     * by that dimension's `World` to tick it. A dimension gains its runtime the first time
-     * anything asks for its adapter, so the map is empty until then.
+     * Filled by the content world source as it assembles each world's adapter, and read
+     * by that `World` to tick it. A world gains its runtime the first time anything asks
+     * for its adapter, so the map is empty until then.
      */
     private entityRuntimes = new EntityRuntimes();
 
@@ -423,16 +423,21 @@ export default class Server {
         const timer = new Timer();
         this.contentWorld = serverWorldSource({
             // By dimension rather than by name: the content packages address a world as
-            // `minecraft:overworld`, and the default level has one world per dimension. A
-            // dimension still lazy answers undefined, as one nobody has entered holds nothing.
-            worldFor: (dimension) => this.worldManager.getWorldByDimension(dimension),
+            // `minecraft:overworld`, and the default level has one world per dimension. A world
+            // of another level passes its level, as `getEntityRuntime` does. A dimension still
+            // lazy answers undefined, as one nobody has entered holds nothing.
+            worldFor: (dimension, level) => this.worldManager.getWorldByDimension(dimension, level),
             content: () => {
                 if (!this.content) throw new Error('the content world was read before the content was built');
                 return this.content;
             },
             seed,
             difficulty: () => this.config.getDifficulty(),
-            entityRuntimes: this.entityRuntimes
+            entityRuntimes: this.entityRuntimes,
+            // The configured name rather than the world manager's default `Level`: the default
+            // level's worlds are built, and ask for their runtimes, before the manager records
+            // which level is the default.
+            defaultLevel: () => this.config.getLevelName()
         });
 
         try {
@@ -831,22 +836,27 @@ export default class Server {
     }
 
     /**
-     * The data-driven entities of one dimension.
+     * The data-driven entities of one world.
      *
-     * Asking builds the dimension's content adapter if nothing has yet, so a world that
+     * Asking builds the world's content adapter if nothing has yet, so a world that
      * loads after the content was built still gets a runtime.
+     *
+     * Each level's dimension has its own: the runtime holds the store whose change log carries
+     * the world's block writes, and two levels each have an Overworld.
      * @param {string} dimension - The namespaced dimension identifier.
-     * @returns {LiveEntityRuntime} The runtime for that dimension.
+     * @param {string} [level] - The `worlds.<name>` level, left out for the default level.
+     * @returns {LiveEntityRuntime} The runtime for that world.
      */
-    public getEntityRuntime(dimension: string): LiveEntityRuntime {
-        this.getContentWorld().at(dimension);
-        const runtime = this.entityRuntimes.at(dimension);
+    public getEntityRuntime(dimension: string, level?: string): LiveEntityRuntime {
+        const world = this.getContentWorld();
+        world.at(dimension, level);
+        const runtime = world.entitiesAt(dimension, level);
         if (!runtime) throw new Error(`no entity runtime was built for ${dimension}`);
         return runtime;
     }
 
     /**
-     * The server's store players, by entity id, which every dimension's entity runtime shows and
+     * The server's store players, by entity id, which every world's entity runtime shows and
      * runs. A player is filed when its entity first enters a store and forgotten when it leaves the
      * server.
      * @returns {StorePlayers} The store players.
@@ -856,14 +866,20 @@ export default class Server {
     }
 
     /**
-     * Invalidates cached block reads held by the dimension's entity runtime.
+     * Invalidates cached block reads held by one world's entity runtime.
      * @param dimension - The namespaced dimension identifier.
+     * @param level - The world's level, or undefined for the default level.
      * @param chunkX - The changed chunk's x coordinate; omit both coordinates to clear all chunks.
      * @param chunkZ - The changed chunk's z coordinate.
      * @internal
      */
-    public invalidateEntityBlockCaches(dimension: string, chunkX?: number, chunkZ?: number): void {
-        this.entityRuntimes.at(dimension)?.runtime.invalidateBlockCaches(chunkX, chunkZ);
+    public invalidateEntityBlockCaches(
+        dimension: string,
+        level: string | undefined,
+        chunkX?: number,
+        chunkZ?: number
+    ): void {
+        this.contentWorld?.entitiesAt(dimension, level)?.runtime.invalidateBlockCaches(chunkX, chunkZ);
     }
 
     /**

@@ -1,5 +1,6 @@
 /**
- * The assembly step: the four subsystems' groups, spread into one adapter per dimension.
+ * The assembly step: the four subsystems' groups, spread into one adapter per world, which is
+ * each dimension of each level.
  *
  * Each subsystem exports a factory for the groups it owns and knows nothing about the other
  * three. This is the one module that knows all four, and it is what a running server passes
@@ -21,18 +22,23 @@ import { resolveTransform } from '../../item/blockTransformers';
 import { createContentItemGroup } from '../../item/contentAdapter';
 import { createItemActorPort } from '../../item/actorPort';
 import { entityContentGroups } from '../../entity/contentAdapter';
-import type { EntityRuntimes } from '../../entity/data/live';
+import type { EntityRuntimes, LiveEntityRuntime } from '../../entity/data/live';
 import { worldEntityAccess } from '../../entity/worldContentAdapter';
 import { worldBlockEntities, worldBlockStorage, worldContentGroups } from '../../world/contentAdapter';
 import type { World } from '../../world/World';
+import { worldKeyOf, worldOfKey } from '../../world/worldKey';
 import type { ServerItemActorPort } from '../../item/actorPort';
 import type { ContentEffectSink, ServerWorldAdapter, ServerWorldSource } from './adapter';
 import type { ContentLookup } from './views';
 
 /** What {@link serverWorldSource} is built over. */
 export interface ServerWorldSourceOptions {
-    /** The live world of one dimension, or undefined when none of it is loaded. */
-    worldFor(dimension: string): World | undefined;
+    /**
+     * The live world of one dimension, or undefined when none of it is loaded.
+     * @param dimension - The namespaced dimension identifier.
+     * @param level - The level's name, or undefined for the default level.
+     */
+    worldFor(dimension: string, level?: string): World | undefined;
     /** The built content, read at call time; see {@link ContentLookup}. */
     readonly content: ContentLookup;
     /** The world seed, which `level.seed` reports and which seeds the default random source. */
@@ -46,12 +52,20 @@ export interface ServerWorldSourceOptions {
      *
      * Supplied by a server that runs its entities through
      * `@jsprismarine/entities` rather than through the written classes. One
-     * runtime is opened per dimension as that dimension's adapter is
-     * assembled, because the `spawning` and `ai` groups are projections of it.
+     * runtime is opened per world as that world's adapter is assembled,
+     * because the `spawning` and `ai` groups are projections of it.
      * Left out, and those two groups stay absent and every member of them says
      * which subsystem owes it.
      */
     readonly entityRuntimes?: EntityRuntimes;
+    /**
+     * The default level's name. A caller that names it reaches the same world as one that
+     * passes no level, which is how the content packages address it.
+     *
+     * Left out, and the source serves one level: whatever level a caller names, it reaches the
+     * default level's worlds, so a test's world double and its level double are one world.
+     */
+    defaultLevel?(): string | undefined;
 }
 
 /** The `effects` group, which is three broadcasts and nothing read back. */
@@ -69,15 +83,21 @@ const worldEffectSink = (world: () => World | undefined, dimension: string): Con
     };
 };
 
-/** One dimension's adapter and the actor port inside it, which the interaction path also needs. */
+/** One world's adapter and the actor port inside it, which the interaction path also needs. */
 interface DimensionWiring {
     readonly adapter: ServerWorldAdapter;
     readonly actors: ServerItemActorPort;
+    /** The world's entity runtime, when the source was given {@link ServerWorldSourceOptions.entityRuntimes}. */
+    readonly live: LiveEntityRuntime | undefined;
 }
 
-/** Builds the adapter for one dimension. */
-const adapterFor = (dimension: string, options: ServerWorldSourceOptions): DimensionWiring => {
-    const world = () => options.worldFor(dimension);
+/** Builds the adapter for one dimension of one level, `levelName` undefined meaning the default. */
+const adapterFor = (
+    dimension: string,
+    levelName: string | undefined,
+    options: ServerWorldSourceOptions
+): DimensionWiring => {
+    const world = () => options.worldFor(dimension, levelName);
     const content = options.content;
 
     const {
@@ -121,7 +141,7 @@ const adapterFor = (dimension: string, options: ServerWorldSourceOptions): Dimen
         spawnDataDriven: (identifier, at, data) => {
             if (identifier === 'minecraft:item' || identifier === 'minecraft:player') return undefined;
 
-            const live = options.entityRuntimes?.at(dimension);
+            const live = options.entityRuntimes?.at(dimension, levelName);
             const reference = identifier.includes('<') ? identifier.slice(0, identifier.indexOf('<')) : identifier;
             if (live === undefined || !content().entities.registry.has(reference)) return undefined;
 
@@ -135,6 +155,7 @@ const adapterFor = (dimension: string, options: ServerWorldSourceOptions): Dimen
     // opened before the adapter and handed the finished adapter afterwards; see `attach`.
     const live = options.entityRuntimes?.open({
         dimension,
+        level: levelName,
         content,
         world: { level, blocks, effects, random },
         entities,
@@ -224,7 +245,7 @@ const adapterFor = (dimension: string, options: ServerWorldSourceOptions): Dimen
     };
 
     live?.attach(adapter);
-    return { actors, adapter };
+    return { actors, adapter, live };
 };
 
 /** Writes one of the entity runtime's reports to the server log, when there is a server. */
@@ -241,10 +262,34 @@ const reportFrom = (world: () => World | undefined, dimension: string, message: 
  * a target for themselves.
  */
 export interface ServerWorldHandle extends ServerWorldSource {
-    /** The item actor port of one dimension; see {@link ServerItemActorPort.duringInteraction}. */
-    actorsAt(dimension: string): ServerItemActorPort;
-    /** Captures the seeded random stream of each content adapter already built. */
-    saveRandomStates(): readonly (readonly [dimension: string, state: SeededRandomState])[];
+    /**
+     * The adapter for one world.
+     *
+     * The content packages call this with a dimension alone and so reach the default level. A
+     * world of another `worlds.<name>` entry passes its level, so its blocks, random stream and
+     * entity runtime are its own rather than the default level's.
+     * @param dimension - The namespaced dimension identifier, such as `minecraft:overworld`.
+     * @param level - The level's name, or undefined for the default level.
+     */
+    at(dimension: string, level?: string): ServerWorldAdapter;
+    /**
+     * The item actor port of one world; see {@link ServerItemActorPort.duringInteraction}.
+     * @param dimension - The namespaced dimension identifier.
+     * @param level - The level's name, or undefined for the default level.
+     */
+    actorsAt(dimension: string, level?: string): ServerItemActorPort;
+    /**
+     * The entity runtime of one world, or undefined when its adapter was not built yet or the
+     * source runs no data-driven entities. Builds nothing.
+     * @param dimension - The namespaced dimension identifier.
+     * @param level - The level's name, or undefined for the default level.
+     */
+    entitiesAt(dimension: string, level?: string): LiveEntityRuntime | undefined;
+    /**
+     * Captures the seeded random stream of each content adapter already built, under its
+     * {@link worldKeyOf} key, which for the default level is the bare dimension.
+     */
+    saveRandomStates(): readonly (readonly [world: string, state: SeededRandomState])[];
     /** Restores exactly the adapter streams represented by a replay state. */
     restoreRandomStates(states: unknown): void;
 }
@@ -252,35 +297,46 @@ export interface ServerWorldHandle extends ServerWorldSource {
 /**
  * The world the content packages act through on a running server.
  *
- * @returns A source that hands out one adapter per dimension, built on first use and kept,
- *   so the block group's neighbor-update budget and the item cooldowns of a dimension outlive
- *   the call that made them.
+ * @returns A source that hands out one adapter per world, built on first use and kept, so the
+ *   block group's neighbor-update budget and the item cooldowns of a world outlive the call that
+ *   made them.
  */
 export const serverWorldSource = (options: ServerWorldSourceOptions): ServerWorldHandle => {
     const wirings = new Map<string, DimensionWiring>();
     const entityRuntimes = options.entityRuntimes;
 
-    const wiringAt = (dimension: string): DimensionWiring => {
-        const existing = wirings.get(dimension);
+    // By world rather than by dimension: every level has an Overworld, and an adapter holds the
+    // world's random stream, cooldowns and entity runtime, which belong to that one world.
+    // The default level named and the default level left out are one world, filed once.
+    const keyOf = (dimension: string, level: string | undefined): string =>
+        worldKeyOf(
+            dimension,
+            options.defaultLevel === undefined || level === options.defaultLevel() ? undefined : level
+        );
+
+    const wiringAt = (key: string): DimensionWiring => {
+        const existing = wirings.get(key);
         if (existing) return existing;
 
-        const created = adapterFor(dimension, options);
-        wirings.set(dimension, created);
+        const { dimension, level } = worldOfKey(key);
+        const created = adapterFor(dimension, level, options);
+        wirings.set(key, created);
         return created;
     };
 
     return {
-        at: (dimension) => wiringAt(dimension).adapter,
-        actorsAt: (dimension) => wiringAt(dimension).actors,
+        at: (dimension, level) => wiringAt(keyOf(dimension, level)).adapter,
+        actorsAt: (dimension, level) => wiringAt(keyOf(dimension, level)).actors,
+        entitiesAt: (dimension, level) => wirings.get(keyOf(dimension, level))?.live,
         saveRandomStates: () =>
             [...wirings]
                 .sort(([left], [right]) => left.localeCompare(right))
-                .map(([dimension, wiring]) => {
+                .map(([key, wiring]) => {
                     const random = wiring.adapter.random;
                     if (!isStatefulRandomSource(random)) {
-                        throw new Error(`The ${dimension} content random source cannot be saved for replay`);
+                        throw new Error(`The ${key} content random source cannot be saved for replay`);
                     }
-                    return [dimension, random.saveState()] as const;
+                    return [key, random.saveState()] as const;
                 }),
         restoreRandomStates: (states: unknown) => {
             if (!Array.isArray(states)) throw new TypeError('Invalid content random states');
@@ -298,7 +354,7 @@ export const serverWorldSource = (options: ServerWorldSourceOptions): ServerWorl
                 entries.set(entry[0], entry[1]);
             }
 
-            const missing = [...wirings.keys()].filter((dimension) => !entries.has(dimension));
+            const missing = [...wirings.keys()].filter((key) => !entries.has(key));
             if (missing.length > 0) {
                 throw new Error(`Replay state has no content random stream for: ${missing.join(', ')}`);
             }
@@ -312,19 +368,19 @@ export const serverWorldSource = (options: ServerWorldSourceOptions): ServerWorl
                 throw new Error('The configured content random source cannot be restored for replay');
             }
 
-            for (const dimension of entries.keys()) {
-                if (wirings.has(dimension)) continue;
-                wiringAt(dimension);
+            for (const key of entries.keys()) {
+                if (wirings.has(key)) continue;
+                wiringAt(key);
             }
 
-            const prepared = [...entries].map(([dimension, state]) => {
-                const random = wirings.get(dimension)!.adapter.random;
+            const prepared = [...entries].map(([key, state]) => {
+                const random = wirings.get(key)!.adapter.random;
                 if (!isStatefulRandomSource(random)) {
-                    throw new Error(`The ${dimension} content random source cannot be restored for replay`);
+                    throw new Error(`The ${key} content random source cannot be restored for replay`);
                 }
                 const candidate = seededRandom(0);
                 candidate.restoreState(state);
-                return { dimension, random, state };
+                return { random, state };
             });
 
             for (const entry of prepared) entry.random.restoreState(entry.state);

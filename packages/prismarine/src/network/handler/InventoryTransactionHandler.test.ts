@@ -21,6 +21,7 @@ import { stubPlayerPort } from '../../testing/playerPort.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import BlockPosition from '../../world/BlockPosition';
 import { Dimensions } from '../../world/DimensionType';
+import type { Level } from '../../world/Level';
 import { Position } from '../../world/Position';
 import type { World } from '../../world/World';
 import type Chunk from '../../world/chunk/Chunk';
@@ -106,6 +107,8 @@ const fake = (
         // Every chunk is loaded but those past x 1000, so a break there finds none.
         getLoadedChunk: (cx) => (cx < 1000 >> 4 ? stub<Chunk>({}) : null),
         getDimension: () => Dimensions.Overworld,
+        // The content actor port is looked up by the world's level as well as its dimension.
+        getLevel: () => stub<Level>({ name: 'world' }),
         dropFromPlayer: async (_player, contents) => {
             for (const content of contents) if (content instanceof Item) dropped.push(content);
         }
