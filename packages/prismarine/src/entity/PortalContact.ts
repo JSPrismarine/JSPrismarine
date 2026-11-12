@@ -115,4 +115,20 @@ export class PortalContact {
     public getPortal(): PortalBlockRef | undefined {
         return this.portal;
     }
+
+    /**
+     * Captures the contact as it is now, for the undo of a unit that advances it, since the change
+     * log does not carry it.
+     *
+     * @returns What puts the contact back as it was.
+     */
+    public restorer(): () => void {
+        const { portalTime, insideThisTick, entryPosition, portal } = this;
+        return () => {
+            this.portalTime = portalTime;
+            this.insideThisTick = insideThisTick;
+            this.entryPosition = entryPosition;
+            this.portal = portal;
+        };
+    }
 }

@@ -425,10 +425,24 @@ export class StoreActor implements ShownActor {
      * store.
      */
     public update(tick: number): void {
+        const store = this.world.getEntityStore();
         const cooldown = this.getPortalCooldown();
+        const contact = this.portalContactState;
+        const clockTick = this.clockTick;
+        const restoreContact = contact?.restorer();
+        // The world runs this update as a unit, and the portal clock, the contact and the status
+        // effect clock's last tick live here, not in the log, so an undone update puts them back
+        // itself. Left out, an update that threw still counted the cooldown down and the contact
+        // on, and the entity went through a portal on time its undone updates never spent.
+        store.undoWith(() => {
+            this.setPortalCooldown(cooldown);
+            this.portalContactState = contact;
+            this.clockTick = clockTick;
+            restoreContact?.();
+        });
+
         if (cooldown > 0 && !this.holdsPortalCooldown()) this.setPortalCooldown(cooldown - 1);
 
-        const contact = this.portalContactState;
         if (contact !== undefined) {
             const portal = contact.getPortal();
             const rule = portal === undefined ? undefined : portalRuleOf(portal.block);
@@ -436,8 +450,12 @@ export class StoreActor implements ShownActor {
             if (ready && portal !== undefined) {
                 this.portalContactState = undefined;
                 // A message: the destination lands the trip in its input step, and this tick
-                // does not wait for it to be built or loaded.
-                this.getServer().getDimensionTravel().depart(this, portal);
+                // does not wait for it to be built or loaded. Filed once the update's unit ends,
+                // and only when it kept its writes: a filed trip cannot be taken back, and an
+                // update that threw after this would otherwise send the entity anyway.
+                store.afterUnit((kept) => {
+                    if (kept) this.getServer().getDimensionTravel().depart(this, portal);
+                });
             } else if (!ready && contact.hasExpired()) this.portalContactState = undefined;
         }
 
