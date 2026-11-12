@@ -269,7 +269,8 @@ describe('a store player shown to other clients', () => {
         const [alex] = viewers;
         const added = payloadOf(ofType(alex!.sent, AddPlayerPacket)[0]!);
         expect(itemName(added.carriedItem)).toBe('minecraft:diamond_sword');
-        expect(ofType(alex!.sent, MobArmorEquipmentPacket, actor.getRuntimeId())).toHaveLength(1);
+        const armor = ofType(alex!.sent, MobArmorEquipmentPacket, actor.getRuntimeId());
+        expect(armor.map((packet) => itemName(payloadOf(packet).chest))).toEqual(['minecraft:iron_chestplate']);
 
         alex!.sent.length = 0;
         await tick();
