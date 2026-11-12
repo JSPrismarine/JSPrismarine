@@ -105,6 +105,31 @@ describe('a store player', () => {
             expect(players.of(player.id)).toBe(player);
         });
 
+        it('ends an unfinished meal on leaving, since the next store keeps another clock', () => {
+            const overworld = storePlayerFixture();
+            const nether = storePlayerFixture();
+            const { player, entity } = enteredStorePlayer(overworld);
+            overworld.world.held.set(player.id, 'minecraft:bread');
+            nether.world.held.set(player.id, 'minecraft:bread');
+            logged(overworld.runtime, () => overworld.runtime.tick(1));
+            logged(overworld.runtime, () => {
+                expect(overworld.runtime.playerSystems.beginMeal(entity, 32)).toBe(true);
+            });
+            const startedAt = overworld.runtime.store.tick;
+            expect(player.getComponents().get('consumption.meal')?.startedAt).toBe(startedAt);
+
+            const left = logged(overworld.runtime, () => leaveStore(overworld.runtime, player, 'changed dimension'));
+
+            expect(player.getComponents().get('consumption.meal')).toBeNull();
+            expect(left.map((entry) => entry.kind)).toEqual(['field', 'membership']);
+            const arrived = enterStore(nether.runtime, new StorePlayers(), player)!;
+            logged(nether.runtime, () => {
+                expect(nether.runtime.playerSystems.beginMeal(arrived, 32)).toBe(true);
+            });
+            expect(nether.runtime.store.tick).not.toBe(startedAt);
+            expect(player.getComponents().get('consumption.meal')?.startedAt).toBe(nether.runtime.store.tick);
+        });
+
         it('runs its survival in the store it entered, on the same components', () => {
             const overworld = storePlayerFixture();
             const nether = storePlayerFixture();

@@ -37,6 +37,7 @@ import type { ShownPlayer } from '../../world/ShownPlayer';
 import type { PortalRule } from '../../world/portal/rules';
 import type { World } from '../../world/World';
 import { mayFlyIn } from '../playerComponents';
+import { cancelMeal } from '../playerMeal';
 import { clientOwnsMovement, PLAYER_IDENTIFIER } from '../playerOverlay';
 import { PORTAL_COOLDOWN_TICKS, PORTAL_TRANSITION_TICKS } from '../PortalContact';
 import type { StatusEffect } from '../StatusEffect';
@@ -123,7 +124,8 @@ export const enterStore = (
  * Takes a store player's entity out of its store and keeps what the next store needs: the
  * position, the look, the health, and the entity's record, tags and status effects. The player
  * stays filed, because it is the same player in the next store; `StorePlayers.delete` forgets it
- * once it leaves the server.
+ * once it leaves the server. An unfinished meal ends here: it counts on this store's tick, and the
+ * next store's clock is another one.
  *
  * @param reason - Why the entity left, as `EntityRuntime.remove` takes it.
  * @returns Whether the player had an entity in `runtime`'s store.
@@ -131,6 +133,8 @@ export const enterStore = (
 export const leaveStore = (runtime: EntityRuntime, player: StorePlayer, reason: string): boolean => {
     const { entity } = player;
     if (entity === undefined || runtime.store.get(entity.id) !== entity) return false;
+    const components = player.getComponents();
+    if (components.get('consumption.meal') !== null) cancelMeal(components);
     player.detach(dataEntityRecordOf(entity, runtime.poolOf(entity.id), runtime.leashHolderIdentityOf(entity.id)));
     runtime.remove(entity.id, reason);
     return true;
