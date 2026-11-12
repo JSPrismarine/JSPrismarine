@@ -50,6 +50,10 @@ import type { OutboundPacketRecorder } from './network/OutboundPacketTrace';
 import type { Transport } from './network/transport/Transport';
 import { permissionsModule } from './modules/permissions';
 import { socialModule } from './modules/social';
+import { statsModule, statsProvidersModule } from './modules/stats';
+import { serverBStatsProvider } from './stats/bstats/serverBStats';
+import { serverMetrics } from './stats/serverMetrics';
+import type { StatsProvider } from './stats/StatsProvider';
 import { worldsModule } from './modules/worlds';
 import { ServerTicker, tickerModule } from './modules/ticker';
 import type { TickRecorder } from './profiling/TickRecorder';
@@ -74,6 +78,7 @@ import type { Config } from './config/Config';
 import type { RemoteConsole } from './console/RemoteConsole';
 
 import type { Logger } from '@jsprismarine/logger';
+import { errorMessage } from './utils/errorMessage';
 import { serverVersion, softwareLabel } from './version';
 import { PrismarineServerErrors } from '@jsprismarine/errors/prismarine/server';
 
@@ -141,7 +146,7 @@ export default class Server {
         // A stopping generator refuses every chunk still queued, and a stopping server has
         // nobody to send them to; `stop` logged a warning and a stack trace for each one.
         if (error instanceof GenerationStopped) return;
-        const reason = error instanceof Error ? error.message : String(error);
+        const reason = errorMessage(error);
         this.logger.warn(
             coord
                 ? `Failed to send chunk §b${coord.x}, ${coord.z}§r: ${reason}`
@@ -265,6 +270,8 @@ export default class Server {
      *   the shutdown failed, such as when a world could not be saved.
      * @param [options.tickClock] - The clock the tick loop schedules and times its phases by,
      *   `performance.now` by default. Nothing a tick simulates reads it.
+     * @param {StatsProvider[]} [options.statsProviders] - Stats providers to run beside the
+     *   built-in bStats one, started after it on every kernel start and stopped before it.
      * @returns {Server} The server instance.
      */
     public constructor({
@@ -277,7 +284,8 @@ export default class Server {
         transport,
         chunkAdmissionBudget,
         onStopCommandComplete,
-        tickClock
+        tickClock,
+        statsProviders = []
     }: {
         logger: Logger;
         config: Config;
@@ -289,6 +297,7 @@ export default class Server {
         chunkAdmissionBudget?: number;
         onStopCommandComplete?: (stopped: boolean) => void;
         tickClock?: () => number;
+        statsProviders?: readonly StatsProvider[];
     }) {
         this.kernel = new Kernel<ServerEvents>({ logger });
 
@@ -362,7 +371,7 @@ export default class Server {
             });
             this.generationGovernor.start();
         }
-        this.registerModules(this.kernel);
+        this.registerModules(this.kernel, statsProviders);
     }
 
     /**
@@ -373,9 +382,23 @@ export default class Server {
      * One place relies on that order rather than on an edge: the commands start
      * before the worlds, because the console takes commands while the start
      * region is still generating, and neither module uses the other.
+     *
+     * The stats registry comes first so any module can depend on `statsToken`, and the stats
+     * providers last: they depend on the registry, so among these modules they start after every
+     * other one, including any that registers a metric in its `start()`, and stop first.
+     * @param statsProviders - The embedder's providers, run after the built-in bStats one.
      * @internal
      */
-    private registerModules(kernel: Kernel<ServerEvents>): void {
+    private registerModules(kernel: Kernel<ServerEvents>, statsProviders: readonly StatsProvider[]): void {
+        kernel.register(
+            statsModule({
+                metrics: serverMetrics({
+                    config: this.config,
+                    networking: this.networking,
+                    sessions: this.sessionManager
+                })
+            })
+        );
         kernel.register(
             contentModule(this, {
                 build: () => {
@@ -399,6 +422,7 @@ export default class Server {
         kernel.register(commandsModule(this.commandManager));
         kernel.register(worldsModule(this.worldManager, this.chunkScheduler));
         kernel.register(loadFunctionsModule(this.commandManager));
+        kernel.register(statsProvidersModule({ providers: [serverBStatsProvider(this.config), ...statsProviders] }));
     }
 
     /**
@@ -702,9 +726,7 @@ export default class Server {
                 const profileFile = await this.profiler?.save();
                 if (profileFile) process.stderr.write(`JSPrismarine trace saved to ${profileFile}\n`);
             } catch (error: unknown) {
-                process.stderr.write(
-                    `JSPrismarine trace could not be saved: ${error instanceof Error ? error.message : String(error)}\n`
-                );
+                process.stderr.write(`JSPrismarine trace could not be saved: ${errorMessage(error)}\n`);
             }
 
             // The listener might not have started if we kill the server really early.
