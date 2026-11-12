@@ -1041,8 +1041,9 @@ export class LiveEntityRuntime {
      */
     public persist(): void {
         for (const [actor, record] of this.savedRecords()) {
-            actor.persistentNbt ??= new NBTTagCompound('');
-            writeDataEntityRecord(actor.persistentNbt, record);
+            const tags = actor.persistentNbt ?? new NBTTagCompound('');
+            writeDataEntityRecord(tags, record);
+            actor.persistentNbt = tags;
         }
     }
 

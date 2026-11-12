@@ -101,7 +101,7 @@ import { bedrockItemDrops } from '../../item/bedrockDrops';
 import { dropOfRolledStack } from '../../item/lootStack';
 import { itemOfDrop } from '../../inventory/persistence';
 import { canBreed, offspringIdentifierOf, offspringOf, spendLove } from './breeding';
-import { DataEntity, MobBody, distance } from './DataEntity';
+import { DataEntity, MobBody, SHOWN_CONDITIONS, distance } from './DataEntity';
 import { EntityIndex } from './entityIndex';
 import { detonate } from './explosion';
 import {
@@ -148,6 +148,7 @@ import { KNOCKBACK_LIFT, knockbackOf } from '../knockback';
 import {
     attributeIn,
     attributeNamed,
+    booleanField,
     bodyFieldValue,
     componentStateIn,
     equipmentInventorySlotsIn,
@@ -1012,7 +1013,10 @@ export class EntityRuntime implements EntityScene {
             record: written,
             tags: [...body.tags],
             statusEffects: [...body.statusEffects.values()].map((effect) => ({ ...effect })),
-            vehicle: this.rides.vehicleOf(entity.id) ?? null
+            vehicle: this.rides.vehicleOf(entity.id) ?? null,
+            owner: body.owner ?? null,
+            conditions: SHOWN_CONDITIONS.filter((condition) => body.conditions.has(condition)),
+            actorTags: body.actorTags ?? null
         };
     }
 
@@ -1021,7 +1025,7 @@ export class EntityRuntime implements EntityScene {
      * had. This is the inverse of a removal.
      */
     private reenter(saved: PlainRecord): void {
-        const { id, position, velocity, record, tags, statusEffects, vehicle } = saved;
+        const { id, position, velocity, record, tags, statusEffects, vehicle, owner, conditions, actorTags } = saved;
         const restored = record === undefined ? undefined : dataEntityRecordFrom(record);
         const at = bodyFieldValue('position', position ?? null);
         if (typeof id !== 'number' || restored === undefined)
@@ -1031,6 +1035,10 @@ export class EntityRuntime implements EntityScene {
         entity.body.restore('velocity', bodyFieldValue('velocity', velocity ?? null));
         entity.body.tags.replace(stringsIn('tags', tags ?? []));
         entity.body.statusEffects.replace(statusEffectsIn(statusEffects ?? []).map((effect) => [effect.id, effect]));
+        entity.body.restore('owner', bodyFieldValue('owner', owner ?? null));
+        entity.body.restore('actorTags', bodyFieldValue('actorTags', actorTags ?? null));
+        const shown = stringsIn('conditions', conditions ?? []);
+        for (const condition of SHOWN_CONDITIONS) entity.body.conditions.restore(condition, shown.includes(condition));
         const ridden = linkIn('vehicle', vehicle ?? null);
         if (ridden !== undefined) this.rides.mount(id, ridden);
     }
@@ -1119,6 +1127,9 @@ export class EntityRuntime implements EntityScene {
                 this.index.refreshFamilies(entity);
                 return;
             }
+            case 'condition':
+                body.conditions.restore(name, booleanField(field)(value));
+                return;
             case 'leash': {
                 const holder = identityIn(field, value);
                 if (holder === undefined) this.leashHolders.delete(entity.id);

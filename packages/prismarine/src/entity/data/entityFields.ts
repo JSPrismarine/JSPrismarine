@@ -18,7 +18,7 @@ import { isPlainList, isPlainRecord } from '../../world/changelog/PlainData';
 import type { MobEquipmentSlot } from '../equipment';
 import { MOB_EQUIPMENT_SLOTS } from '../equipment';
 import type { StatusEffect } from '../StatusEffect';
-import type { LoggedBodyState } from './DataEntity';
+import type { LoggedBodyState, StatusEffectClock } from './DataEntity';
 import { containerSlotsOf, equipmentOf, positionOf } from './persistence';
 
 /** A logged value had a shape its field never holds. */
@@ -78,6 +78,10 @@ const BODY_FIELDS: { readonly [K in keyof LoggedBodyState]: (value: PlainData) =
     invulnerable: booleanField('invulnerable'),
     fuseTicks: optionalNumberField('fuseTicks'),
     fireTicks: numberField('fireTicks'),
+    owner: optionalNumberField('owner'),
+    statusEffectClock: (value) => (value === null ? undefined : statusEffectClockIn(value)),
+    actorTags: (value) =>
+        value === null ? undefined : value instanceof Uint8Array ? value : wrong('actorTags', value),
     projectileAge: numberField('projectileAge'),
     projectileStuck: booleanField('projectileStuck'),
     equipment: (value) => equipmentOf(value) ?? wrong('equipment', value),
@@ -100,6 +104,12 @@ export const stringsIn = (field: string, value: PlainData): string[] =>
     isPlainList(value) && value.every((item) => typeof item === 'string')
         ? value.filter((item): item is string => typeof item === 'string')
         : wrong(field, value);
+
+/** Reads a logged status effect clock. */
+const statusEffectClockIn = (value: PlainData): StatusEffectClock =>
+    isPlainRecord(value) && typeof value['age'] === 'number' && typeof value['tick'] === 'number'
+        ? { age: value['age'], tick: value['tick'] }
+        : wrong('statusEffectClock', value);
 
 /** Reads a logged list of status effects. */
 export const statusEffectsIn = (value: PlainData): StatusEffect[] => {

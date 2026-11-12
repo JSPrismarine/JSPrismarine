@@ -116,7 +116,8 @@ describe('World.replayStateDigest', () => {
         const after = world.replayStateDigest();
 
         expect(freshActor.persistentNbt).toBeNull();
-        expect(savedActor.persistentNbt).toBe(savedNbt);
+        // The tags are held as bytes, so the actor answers a copy with the same record.
+        expect(savedActor.persistentNbt?.getString(DATA_ENTITY_TAG, '')).toBe('{"health":7}');
         expect(savedNbt.children.get(DATA_ENTITY_TAG)).toBe(savedRecord);
         expect(savedNbt.getString(DATA_ENTITY_TAG, '')).toBe('{"health":7}');
         expect(after).not.toBe(before);

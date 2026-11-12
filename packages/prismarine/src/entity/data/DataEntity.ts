@@ -27,7 +27,7 @@ import { MOB_EQUIPMENT_SLOTS, NO_EQUIPMENT, sameEquipment } from '../equipment';
 import type { EntityFacts } from './facts';
 import { liveFactsOf } from './facts';
 import { moveOnAxis } from './collision';
-import { ObservedMap, ObservedSet } from './observedCollections';
+import { ObservedMap, ObservedSet, WatchedSet } from './observedCollections';
 import { entityEyePosition } from './position';
 import { walkStride } from './travel';
 
@@ -88,6 +88,15 @@ export interface LoggedBodyState {
     invulnerable: boolean;
     fuseTicks: number | undefined;
     fireTicks: number;
+    /** The online owner's runtime id, or undefined while its owner is offline or absent. */
+    owner: number | undefined;
+    /** The status effect clock, as its reading at one update ({@link StatusEffectClock}). */
+    statusEffectClock: StatusEffectClock | undefined;
+    /**
+     * The actor record tags this server does not model, as network NBT bytes, which the next save
+     * writes back, such as the actor's `UniqueID`.
+     */
+    actorTags: Uint8Array | undefined;
     projectileAge: number;
     projectileStuck: boolean;
     equipment: MobEquipmentSet;
@@ -95,8 +104,29 @@ export interface LoggedBodyState {
     containerSlots: readonly (ContentItemDrop | undefined)[];
 }
 
+/**
+ * How many ticks an entity's status effects have been ticked, which is the clock of an effect
+ * that never runs out, logged as its reading at one update: `age` at the update of tick `tick`,
+ * and one more for each tick since while the updates run tick after tick. So it is written at
+ * the entity's first update and after a gap, and not every tick.
+ */
+export type StatusEffectClock = { readonly age: number; readonly tick: number };
+
+/**
+ * The conditions a client is shown, out of the many a body keeps: being in water, which a
+ * swimming mob's metadata shows, and standing on the ground, which a move carries.
+ */
+export const SHOWN_CONDITIONS = ['in_water', 'on_ground'] as const;
+
+/** One of {@link SHOWN_CONDITIONS}. */
+export type ShownCondition = (typeof SHOWN_CONDITIONS)[number];
+
+/** The logged field of a shown condition, which holds whether the body has it. */
+export const conditionField = (condition: ShownCondition): `condition:${ShownCondition}` => `condition:${condition}`;
+
 /** The name of one {@link LoggedBodyState} field, or of a collection the body reports. */
-export type LoggedBodyField = keyof LoggedBodyState | 'tags' | 'statusEffects' | 'equipmentInventorySlots';
+export type LoggedBodyField =
+    keyof LoggedBodyState | 'tags' | 'statusEffects' | 'equipmentInventorySlots' | `condition:${ShownCondition}`;
 
 /** What {@link MobBody.onWrite} receives: one field, with its value before and after a change. */
 export type BodyWriteObserver = (field: LoggedBodyField, before: unknown, after: unknown) => void;
@@ -161,8 +191,11 @@ export class MobBody {
     /** Whether the next client movement update must snap to this body's position. */
     public teleportPending = false;
 
-    /** The boolean facts a brain reads off the body, such as `on_ground` or `aggressive`. */
-    public readonly conditions = new Set<string>();
+    /**
+     * The boolean facts a brain reads off the body, such as `on_ground` or `aggressive`. The
+     * {@link SHOWN_CONDITIONS} are logged.
+     */
+    public readonly conditions = new WatchedSet<string>(SHOWN_CONDITIONS);
 
     /** The entity's dynamic string tags, shared with `/tag` and `has_tag` filters. */
     public readonly tags = new ObservedSet<string>();
@@ -407,7 +440,31 @@ export class MobBody {
     public lastPusher: number | undefined;
 
     /** The online owner's runtime id, or undefined while its owner is offline or absent. */
-    public owner: number | undefined;
+    public get owner(): number | undefined {
+        return this.logged.owner;
+    }
+
+    public set owner(owner: number | undefined) {
+        this.write('owner', owner);
+    }
+
+    /** The status effect clock as it was last written; see {@link StatusEffectClock}. */
+    public get statusEffectClock(): StatusEffectClock | undefined {
+        return this.logged.statusEffectClock;
+    }
+
+    public set statusEffectClock(clock: StatusEffectClock | undefined) {
+        this.write('statusEffectClock', clock);
+    }
+
+    /** The actor record tags this server does not model, as network NBT bytes. */
+    public get actorTags(): Uint8Array | undefined {
+        return this.logged.actorTags;
+    }
+
+    public set actorTags(tags: Uint8Array | undefined) {
+        this.write('actorTags', tags);
+    }
 
     /** Stable player identity behind {@link MobBody.owner}, retained across server restarts. */
     public get ownerIdentity(): string | undefined {
@@ -541,6 +598,9 @@ export class MobBody {
             invulnerable: false,
             fuseTicks: undefined,
             fireTicks: 0,
+            owner: undefined,
+            statusEffectClock: undefined,
+            actorTags: undefined,
             projectileAge: 0,
             projectileStuck: false,
             equipment: NO_EQUIPMENT,
@@ -557,6 +617,10 @@ export class MobBody {
             );
         this.equipmentInventorySlots.observer = (before) =>
             this.report('equipmentInventorySlots', before, [...this.equipmentInventorySlots]);
+        this.conditions.observer = (condition, present) => {
+            const shown = SHOWN_CONDITIONS.find((name) => name === condition);
+            if (shown !== undefined) this.report(conditionField(shown), !present, present);
+        };
     }
 
     /**
