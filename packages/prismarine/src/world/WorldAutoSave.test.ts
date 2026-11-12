@@ -50,7 +50,7 @@ const GROUND = -60;
 /** Enough chunks for the save to take more than one batch of `SAVE_BATCH_SIZE`. */
 const CHUNK_COUNT = 20;
 
-/** Two minutes of ticks, which is `World.AUTO_SAVE_INTERVAL_TICKS`. */
+/** Two minutes of ticks, which is `AUTO_SAVE_INTERVAL_TICKS` in `LevelSave.ts`. */
 const AUTO_SAVE_TICK = 20 * 120;
 
 let scratch: string;

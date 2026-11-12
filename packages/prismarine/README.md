@@ -55,7 +55,8 @@ the order returned by `records()`, awaiting each `replayInboundRecord()` call be
 `serialize()` writes a versioned JSON trace, and
 `InboundPacketTrace.deserialize()` reads it back, including traces in the previous format version.
 The packet trace is separate from the initial-state manifest. `Level.captureReplayInitialState()`
-saves ready worlds, fails if a player or chunk write fails, and then records effective content and
+saves the ready worlds in one save pass, fails if the pass cannot hold a player, a chunk or the
+level data or cannot commit, and then records effective content and
 world-generation fingerprints, serializable RNG state, loaded-world digests, and a provider
 snapshot of persisted data. The built-in LevelDB
 provider captures every database record, `level.dat`, `level.dat_old`, `levelname.txt`, and fallback
