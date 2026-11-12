@@ -1,3 +1,6 @@
+import { testKernel } from '../testing/kernel.test.helper';
+import { KernelEventBus } from '@jsprismarine/kernel';
+import type { ServerEvents } from '../events/ServerEvents';
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -8,13 +11,20 @@ import pkg from '../../package.json' with { type: 'json' };
 import Console from '../Console';
 import { parseConfigDocument } from '../config/ConfigDocument';
 import type SessionManager from '../SessionManager';
-import PlayerToggleOperatorEvent from '../events/player/PlayerToggleOperatorEvent';
+import type PlayerToggleOperatorEvent from '../events/player/PlayerToggleOperatorEvent';
 import type PlayerSession from '../network/PlayerSession';
 import { fakePlayer } from '../testing/fakePlayer.test.helper';
 import { stub } from '../testing/stub.test.helper';
 import { canExecute, PermissionManager } from './PermissionManager';
 import type { PermissionManagerServer } from './PermissionManager';
 import { identityNamed } from '../testing/sessionIdentity.test.helper';
+
+/** A kernel whose bus has one `playerToggleOperator` listener. */
+const kernelPosting = (listener: (event: PlayerToggleOperatorEvent) => void) => {
+    const events = new KernelEventBus<ServerEvents>();
+    events.on('playerToggleOperator', listener);
+    return testKernel(events);
+};
 
 const FILFAT_UUID = 'fbf8646c-652c-38c4-96ff-a29d86cb5943';
 
@@ -119,7 +129,7 @@ describe('permission', () => {
                 getSessionManager: () => {
                     throw new Error('not needed here');
                 },
-                post: () => {
+                getKernel: () => {
                     throw new Error('not needed here');
                 }
             };
@@ -259,7 +269,7 @@ describe('permission', () => {
                     stub<SessionManager>({
                         findSession: ({ name }) => (name === 'carol' ? session : null)
                     }),
-                post: (_id, event) => (event instanceof PlayerToggleOperatorEvent ? posted.push(event) : posted.length)
+                getKernel: () => kernelPosting((event) => void posted.push(event))
             });
             await opManager.enable();
 
@@ -282,7 +292,7 @@ describe('permission', () => {
             const opManager: PermissionManager = new PermissionManager({
                 getLogger: () => logger,
                 getSessionManager: () => stub<SessionManager>({ findSession: () => session }),
-                post: () => 0
+                getKernel: () => kernelPosting(() => {})
             });
             const session = stub<PlayerSession>({
                 identity: identityNamed('dave', uuid),
@@ -304,11 +314,11 @@ describe('permission', () => {
                 const opManager = new PermissionManager({
                     getLogger: () => logger,
                     getSessionManager: () => stub<SessionManager>(),
-                    post: (_id, event) => {
-                        if (!(event instanceof PlayerToggleOperatorEvent)) return 0;
-                        if (cancel) event.preventDefault();
-                        return posted.push(event);
-                    }
+                    getKernel: () =>
+                        kernelPosting((event) => {
+                            if (cancel) event.preventDefault();
+                            posted.push(event);
+                        })
                 });
                 return { opManager, posted };
             };

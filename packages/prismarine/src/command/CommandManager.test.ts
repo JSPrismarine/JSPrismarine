@@ -1,3 +1,4 @@
+import { testKernel } from '../testing/kernel.test.helper';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -264,7 +265,7 @@ describe('command', () => {
                 const permissionManager = new PermissionManager({
                     getLogger: () => logger,
                     getSessionManager: () => sessionManager,
-                    post: () => 0
+                    getKernel: () => testKernel()
                 });
                 const console = stub<ConsoleSender>({
                     getName: () => 'Console',
@@ -295,7 +296,7 @@ describe('command', () => {
                             definitions: stub<ServerContent['definitions']>({ damageTypes: new Map() })
                         }),
                     emit: async () => {},
-                    post: () => 0,
+                    getKernel: () => testKernel(),
                     getLogger: () => logger,
                     getSessionManager: () => sessionManager,
                     getPermissionManager: () => permissionManager,
@@ -341,7 +342,7 @@ describe('command', () => {
                 const reloadedManager = new PermissionManager({
                     getLogger: () => logger,
                     getSessionManager: () => sessionManager,
-                    post: () => 0
+                    getKernel: () => testKernel()
                 });
                 await reloadedManager.enable();
                 expect(reloadedManager.isOp(targetUuid)).toBe(true);
