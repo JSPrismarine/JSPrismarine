@@ -41,7 +41,14 @@ import {
 import { brandPurposes } from './site/.vitepress/theme/brandCatalog.ts';
 import { palette } from './site/.vitepress/theme/tokens.ts';
 import type { ErrorData, ErrorDomainData } from './code-data.mts';
-import { loadCommands, loadErrors, loadOptionalSettings, loadServerCommands, loadSettings } from './code-data.mts';
+import {
+    loadBStatsSettings,
+    loadCommands,
+    loadErrors,
+    loadOptionalSettings,
+    loadServerCommands,
+    loadSettings
+} from './code-data.mts';
 import { loadProject, repoRoot } from './project.mts';
 
 /** Pinned downloads in `packages/bedrock-data/sources.json`, as far as the docs quote them. */
@@ -214,6 +221,11 @@ async function commandReferenceFacts() {
     };
 }
 
+/** Fails the facts run for a setting a page names that a fresh config no longer writes. */
+const missingSetting = (key: string): never => {
+    throw new Error(`The docs facts no longer find ${key} in a fresh config.json.`);
+};
+
 /** Settings facts, from the file a fresh server writes. */
 async function configFacts() {
     const rows = (await loadSettings()).map(({ key, comment }) => [`\`${key}\``, comment]);
@@ -228,6 +240,84 @@ async function configFacts() {
         'config.contentTable': `\n${table(
             ['Setting', 'What it does'],
             rows.filter(([key]) => key.startsWith('`content-'))
+        )}\n`
+    };
+}
+
+/** bStats facts, from the chart table, the service constants, the schedule and the settings. */
+async function bstatsFacts() {
+    const { BSTATS_CHARTS, chartId } = await import('../../packages/prismarine/src/stats/bstats/charts.ts');
+    const { BSTATS_ENDPOINT, BSTATS_PLATFORM, BSTATS_SERVICE_ID, BSTATS_SERVICE_NAME } =
+        await import('../../packages/prismarine/src/stats/bstats/service.ts');
+    const { BSTATS_SCHEDULE } = await import('../../packages/prismarine/src/stats/bstats/BStatsProvider.ts');
+    const { BSTATS_OPT_OUT, CI_VARIABLE } = await import('../../packages/prismarine/src/stats/bstats/serverBStats.ts');
+    const { TEST_RUNNER_VARIABLE } = await import('../../packages/prismarine/src/utils/isTestRunner.ts');
+    const { buildPayload } = await import('../../packages/prismarine/src/stats/bstats/payload.ts');
+    const { DEVICE_OS_NAMES } = await import('../../packages/prismarine/src/stats/serverMetrics.ts');
+    const { SERVER_UUID_FILE } = await import('../../packages/prismarine/src/serverUuid.ts');
+    const settings = await loadBStatsSettings();
+    // One sample host per kind of `node:os` type, run through the payload builder.
+    const osSamples = [
+        ['Linux', { type: 'Linux', release: '6.1.0-18-amd64', version: '#1 SMP PREEMPT_DYNAMIC Debian 6.1.76-1' }],
+        ['macOS 14.5', { type: 'Darwin', release: '23.5.0', version: 'Darwin Kernel Version 23.5.0' }],
+        ['Windows 11', { type: 'Windows_NT', release: '10.0.22631', version: 'Windows 11 Pro' }],
+        ['FreeBSD', { type: 'FreeBSD', release: '13.1-RELEASE-p9', version: 'FreeBSD 13.1-RELEASE-p9' }]
+    ] as const;
+    const osFields = ['nodeOsType', 'nodeOsRelease', 'nodeOsVersion'] as const;
+    const settingKey = (key: string) => (settings.some((setting) => setting.key === key) ? key : missingSetting(key));
+    const minutes = (ms: number) => `${ms / 60_000} minutes`;
+    const firstMs = BSTATS_SCHEDULE.firstDelayMinMs;
+    return {
+        'bstats.service': BSTATS_SERVICE_NAME,
+        'bstats.serviceId': String(BSTATS_SERVICE_ID),
+        'bstats.servicePage': `[${BSTATS_SERVICE_NAME} on bStats](https://bstats.org/plugin/${BSTATS_PLATFORM}/${BSTATS_SERVICE_NAME}/${BSTATS_SERVICE_ID})`,
+        'bstats.endpoint': BSTATS_ENDPOINT,
+        // The file that holds the UUID bStats sends as the server's identity.
+        'bstats.serverUuidFile': SERVER_UUID_FILE,
+        'bstats.firstSubmit': `${firstMs / 60_000} to ${minutes(firstMs + BSTATS_SCHEDULE.firstDelaySpreadMs)}`,
+        'bstats.secondSubmit': minutes(BSTATS_SCHEDULE.secondDelaySpreadMs),
+        'bstats.period': minutes(BSTATS_SCHEDULE.periodMs),
+        'bstats.optOut': `${BSTATS_OPT_OUT.variable}=${BSTATS_OPT_OUT.off[0]}`,
+        'bstats.optOutVariable': BSTATS_OPT_OUT.variable,
+        'bstats.ciVariable': CI_VARIABLE,
+        'bstats.testRunnerVariable': TEST_RUNNER_VARIABLE,
+        'bstats.osExamples': `\n${table(
+            ['Host', ...osFields.map((field) => `\`${field}\``)],
+            osSamples.map(([host, os]) => {
+                const platform = { ...os, arch: 'x64', coreCount: 1, memoryGb: 1 };
+                const payload = buildPayload({ platform, metrics: new Map() }, '');
+                return [host, ...osFields.map((field) => `\`${payload[field]}\``)];
+            })
+        )}\n`,
+        'bstats.playerPlatformChart': BSTATS_CHARTS.player_platform.title,
+        'bstats.playerPlatforms': Object.values(DEVICE_OS_NAMES)
+            .map((name) => `\`${name}\``)
+            .join(', '),
+        'bstats.optOutValues': BSTATS_OPT_OUT.off.map((value) => `\`${value}\``).join(', '),
+        'bstats.optInValues': BSTATS_OPT_OUT.on.map((value) => `\`${value}\``).join(', '),
+        'bstats.enabledKey': settingKey('stats.bstats.enabled'),
+        'bstats.logSentDataKey': settingKey('stats.bstats.log-sent-data'),
+        'bstats.logErrorsKey': settingKey('stats.bstats.log-errors'),
+        'bstats.endpointKey': settingKey('stats.bstats.endpoint'),
+        // The smallest `config.json` that turns bStats off, built from the key's path.
+        'bstats.optOutConfig': JSON.stringify(
+            settingKey('stats.bstats.enabled')
+                .split('.')
+                .reduceRight<unknown>((value, key) => ({ [key]: value }), false),
+            null,
+            4
+        ),
+        'bstats.settings': `\n${table(
+            ['Setting', 'Default', 'What it does'],
+            settings.map(({ key, value, description }) => [`\`${key}\``, `\`${value}\``, description])
+        )}\n`,
+        'bstats.charts': `\n${table(
+            ['Chart', 'ID', 'What it sends'],
+            Object.entries(BSTATS_CHARTS).map(([name, { title, description }]) => [
+                title,
+                `\`${chartId(name)}\``,
+                description
+            ])
         )}\n`
     };
 }
@@ -717,6 +807,7 @@ export async function loadFacts(): Promise<Facts> {
             ...(await commandReferenceFacts()),
             ...(await errorFacts()),
             ...(await configFacts()),
+            ...(await bstatsFacts()),
             ...eventFacts(),
             ...prismarineEntryFacts(),
             ...leveldbFacts(),
@@ -753,7 +844,8 @@ function replaceValue(marked: string, value: string) {
     const fence = /^(\s*)(```+)([^\n]*)\n[\s\S]*?\n\2(\s*)$/.exec(marked);
     if (fence) return `${fence[1]}${fence[2]}${fence[3]}\n${value}\n${fence[2]}${fence[4]}`;
     const code = /^(`+)[\s\S]*\1$/.exec(marked);
-    if (code) return `${code[1]}${value}${code[1]}`;
+    // A value written as Markdown code already, such as a list of `values`, keeps its own backticks.
+    if (code && !/^`[\s\S]*`$/.test(value)) return `${code[1]}${value}${code[1]}`;
     return value;
 }
 
