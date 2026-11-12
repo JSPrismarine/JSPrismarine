@@ -291,11 +291,13 @@ export default class Server extends EventEmitter {
             emitTick: (event) => this.emit('tick', event),
             // Packets first, then the chunks that became ready since the last step, so every world
             // sees them from its first update. A chunk an input-lane handler waits for enters at
-            // once, because the step cannot finish without it.
+            // once, because the step cannot finish without it. Portal trips come after the chunks, so
+            // a trip whose arrival chunks this step admitted lands in it.
             admitInputs: async () =>
                 (await this.networking.admitInputs()) +
                 (await this.chunkCompletionQueue.admissions.admit(this.getTick())) +
-                (await this.respawnRequests.admit()),
+                (await this.respawnRequests.admit()) +
+                (await this.dimensionTravel.admit()),
             pollNetwork: () => this.networking.pollInbound(),
             // The levels, not the worlds: a level advances its clock once and ticks each of its worlds.
             getWorlds: () => this.worldManager.getLevels(),

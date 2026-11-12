@@ -420,8 +420,8 @@ export class StoreActor implements ShownActor {
     }
 
     /**
-     * The part of a tick the store does not run yet: the portal clock, a trip through a portal
-     * once the contact is ready, and the status effects, whose harm and healing go through the
+     * The part of a tick the store does not run yet: the portal clock, the start of a trip
+     * through a portal once the contact is ready, and the status effects, whose harm and healing go through the
      * store.
      */
     public async update(tick: number): Promise<void> {
@@ -435,9 +435,9 @@ export class StoreActor implements ShownActor {
             const ready = contact.tick(this.getPortalTransitionTicks(rule));
             if (ready && portal !== undefined) {
                 this.portalContactState = undefined;
-                const travel = this.getServer().getDimensionTravel();
-                const arrival = await travel.resolve(this, portal);
-                if (arrival !== undefined) await travel.transfer(this, arrival);
+                // A message: the destination lands the trip in its input step, and this tick
+                // does not wait for it to be built or loaded.
+                this.getServer().getDimensionTravel().depart(this, portal);
             } else if (!ready && contact.hasExpired()) this.portalContactState = undefined;
         }
 
