@@ -290,7 +290,7 @@ describe('a level save pass', () => {
                 for (let x = 0; x < CHUNKS; x++) world.setBlockRuntimeId(x * 16 + (step % 16), 64, 0, gold);
             level.update(++tick);
         }
-        await level.enqueueSave(async () => {});
+        await level.pendingSave();
 
         expect(pass.stats.forcedSubChunkEncodes).toBeGreaterThan(0);
         expect(passes.map(({ stats }) => stats.bypassedWrites)).toEqual(passes.map(() => 0));
