@@ -39,7 +39,7 @@ import {
 import { OVERWORLD_STEM_ID } from '@jsprismarine/worldgen';
 import { decodeData3D, encodeData3D } from './BiomeCodec';
 import { playerDataFromNbt, playerDataToNbt } from './PlayerCodec';
-import { decodeSubChunk, encodeSubChunk } from './SubChunkCodec';
+import { decodeSubChunk, encodeSubChunk, writableSubChunkVersion } from './SubChunkCodec';
 import { OverlayBatch } from './OverlayBatch';
 import { Dimensions } from '../../DimensionType';
 import { maxSubChunk, minSubChunk } from '../../Dimension';
@@ -879,7 +879,10 @@ export default class LevelDB extends BaseProvider {
         const data3D = changes.data3D || emptied;
         const cut = new LevelDBChunkCut(chunk, state, held, data3D, report, {
             subChunk: (index, subChunk) =>
-                batch.put(key(ChunkTag.SubChunkPrefix, index), encodeSubChunk(subChunk, index, subChunk.sourceVersion)),
+                batch.put(
+                    key(ChunkTag.SubChunkPrefix, index),
+                    encodeSubChunk(subChunk, index, writableSubChunkVersion(subChunk))
+                ),
             data3D: () =>
                 batch.put(
                     key(ChunkTag.Data3D),
@@ -1479,9 +1482,12 @@ class LevelDBChunkCut implements ChunkSaveCutHook {
         const held = this.held.get(index);
         if (held === undefined) return;
 
-        this.held.delete(index);
         if (held.subChunk.getRevision() !== held.revision) this.report.bypassed(this.chunk, index);
+        // Let go of only once it is in the batch, so a section whose encode throws is still
+        // counted as pending, and the pass that cannot finish is abandoned rather than committed
+        // without it.
         this.put.subChunk(index, held.subChunk);
+        this.held.delete(index);
         this.report.encoded(forced);
     }
 

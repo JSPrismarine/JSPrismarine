@@ -16,7 +16,7 @@ import type { WorldPlayerData } from '../config/JsonConfigTypes';
 import type Server from '../Server';
 import { inertEntityRuntime, liveTestEntities, testContent } from '../testing/entityServer';
 import { testLevel } from '../testing/level';
-import { stub } from '../testing/stub.test.helper';
+import { stub, stubOf } from '../testing/stub.test.helper';
 import Chunk from './chunk/Chunk';
 import { ChunkCompletionQueue } from './ChunkCompletionQueue';
 import { subChunkCount } from './Dimension';
@@ -24,10 +24,11 @@ import { Dimensions } from './DimensionType';
 import type { DimensionType } from './DimensionType';
 import type { Generator } from './Generator';
 import type { Level } from './Level';
-import { AUTO_SAVE_INTERVAL_TICKS, HELD_WRITE_LIMIT, SAVE_ENCODE_BUDGET } from './LevelSave';
+import { AUTO_SAVE_INTERVAL_TICKS, HELD_WRITE_LIMIT, LevelSave, SAVE_ENCODE_BUDGET } from './LevelSave';
 import { DimensionTravel } from './portal/DimensionTravel';
 import { decodeChunkKey, encodePlayerServerKey } from './providers/leveldb/LevelDBKeys';
 import LevelDB from './providers/leveldb/LevelDB';
+import BaseProvider from './providers/BaseProvider';
 import type { ProviderSavePass } from './providers/SavePass';
 import type { World } from './World';
 
@@ -513,5 +514,52 @@ describe('a write outside a pass', () => {
         } finally {
             await reader.disable();
         }
+    });
+});
+
+describe('a pass whose encode fails', () => {
+    it('is abandoned, so the commit it held and the saves behind it go on', async () => {
+        const passes: string[] = [];
+        const passOf = (encodes: boolean): ProviderSavePass =>
+            stub<ProviderSavePass>({
+                cutChunk: () => {},
+                putPlayer: () => true,
+                putLevelRecord: () => {},
+                pendingEncodes: 1,
+                encode: () => {
+                    if (!encodes) throw new Error('Sub chunk version 1 holds a single layer');
+                    return 1;
+                },
+                commit: async () => void passes.push('committed'),
+                abandon: () => void passes.push('abandoned'),
+                stats: {
+                    keys: 0,
+                    bytes: 0,
+                    heldWrites: 0,
+                    subChunkEncodes: 0,
+                    forcedSubChunkEncodes: 0,
+                    bypassedWrites: 0
+                }
+            });
+        let begun = 0;
+        const provider = stubOf(BaseProvider, {
+            holdOutsideWrites: () => {},
+            heldWriteBytes: () => 0,
+            beginSavePass: () => passOf(begun++ > 0)
+        });
+        const errors: unknown[] = [];
+        const saves = new LevelSave({
+            name: 'failing',
+            provider: () => provider,
+            logger: () => stub<Logger>({ error: (error) => void errors.push(error), verbose: () => {} })
+        });
+
+        // The autosave's cut falls due, and its first encode throws.
+        saves.tick(AUTO_SAVE_INTERVAL_TICKS, []);
+        await saves.pendingCommit();
+        await saves.save([]);
+
+        expect(passes).toEqual(['abandoned', 'committed']);
+        expect(errors).not.toEqual([]);
     });
 });
