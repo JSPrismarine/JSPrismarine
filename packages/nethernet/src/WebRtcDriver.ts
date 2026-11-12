@@ -7,6 +7,9 @@
 /** A peer connection's state, as the W3C `connectionState` names it. */
 export type PeerState = 'new' | 'connecting' | 'connected' | 'disconnected' | 'failed' | 'closed';
 
+/** A peer's ICE agent state, as the W3C `iceConnectionState` names it. */
+export type IceState = 'new' | 'checking' | 'connected' | 'completed' | 'failed' | 'disconnected' | 'closed';
+
 /** Where a peer binds and which local ports it may use. */
 export interface PeerConfig {
     /** STUN and TURN server URLs. */
@@ -43,6 +46,8 @@ export interface DriverChannel {
 /** One WebRTC peer connection. */
 export interface DriverPeer {
     readonly state: PeerState;
+    /** How far ICE got: `checking` until a connectivity check passes both ways. */
+    readonly iceState: IceState;
     /** Applies the remote description. A remote offer makes the stack answer by itself. */
     setRemoteDescription(type: 'offer' | 'answer', sdp: string): void;
     /** Adds a remote candidate line, with or without `a=`. */
@@ -53,6 +58,7 @@ export interface DriverPeer {
     localDescription(): Promise<string>;
     onDataChannel(listener: (channel: DriverChannel) => void): void;
     onStateChange(listener: (state: PeerState) => void): void;
+    onIceStateChange(listener: (state: IceState) => void): void;
     /** The remote address of the candidate pair ICE selected, once connected. */
     remoteAddress(): PeerAddress | undefined;
     /** The local address of the selected pair, once connected. */

@@ -42,4 +42,12 @@ export { parsePublicIp, parseUdpPorts, UdpPortsError, withMappedCandidates } fro
 export type { PortMapping, PortRange, UdpPorts } from './udpPorts';
 export type { SdpFingerprint } from './sdp';
 export { candidateAddress } from './WebRtcDriver';
-export type { DriverChannel, DriverPeer, PeerAddress, PeerConfig, PeerState, WebRtcDriver } from './WebRtcDriver';
+export type {
+    DriverChannel,
+    DriverPeer,
+    IceState,
+    PeerAddress,
+    PeerConfig,
+    PeerState,
+    WebRtcDriver
+} from './WebRtcDriver';

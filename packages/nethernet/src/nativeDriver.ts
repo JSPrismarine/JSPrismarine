@@ -68,6 +68,9 @@ const peerOf = (peer: PeerConnection, explain: Explain): DriverPeer => {
         get state() {
             return peer.connectionState;
         },
+        get iceState() {
+            return peer.iceConnectionState;
+        },
         setRemoteDescription: (type, sdp) => explain(() => peer.setRemoteDescription({ type, sdp })),
         addRemoteCandidate: (candidate, sdpMid) => explain(() => peer.addRemoteCandidate(candidate, sdpMid)),
         createDataChannel: (label, options) => channelOf(explain(() => peer.createDataChannel(label, options))),
@@ -77,6 +80,9 @@ const peerOf = (peer: PeerConnection, explain: Explain): DriverPeer => {
         },
         onStateChange: (listener) => {
             peer.on('connectionstatechange', listener);
+        },
+        onIceStateChange: (listener) => {
+            peer.on('iceconnectionstatechange', listener);
         },
         remoteAddress: () => {
             const pair = peer.selectedCandidatePair();
