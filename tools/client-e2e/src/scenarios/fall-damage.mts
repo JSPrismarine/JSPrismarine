@@ -2,20 +2,12 @@
 import assert from 'node:assert/strict';
 
 import type { Scenario } from '../scenario.mts';
-import { placeBlockAndWait, sleep, vec3, waitTicks } from '../scenario.mts';
+import { healthOf, placeBlockAndWait, sleep, vec3, waitTicks } from '../scenario.mts';
 
 type Context = Parameters<Scenario['run']>[0];
 
 /** How far above the feet a player's eyes are, which is where `server_position` is measured. */
 const EYE_HEIGHT = 1.62;
-
-const health = async (client: Context['client']): Promise<number> => {
-    const value = (await client.state()).health;
-    assert.ok(typeof value === 'object' && value !== null, 'state.health present');
-    const current = (value as Record<string, unknown>).current;
-    assert.ok(typeof current === 'number', `health.current is a number: ${JSON.stringify(value)}`);
-    return current;
-};
 
 /** Where the feet stand on the scenario's floor, which is at y 63. */
 const FLOOR = 64;
@@ -75,15 +67,15 @@ export const fallDamage: Scenario = {
         // drop used to fall to the flat world's ground at y -60 and never land where it looked.
         server.command('fill -2 63 -2 2 63 2 minecraft:stone');
         await placeBlockAndWait(server, { x: 0, y: 63, z: 0 }, 'minecraft:stone');
-        const start = await health(client);
+        const start = healthOf(await client.state()).current;
 
         await dropFrom(context, 67);
         await waitTicks(server, 10);
-        assert.equal(await health(client), start, 'a three block drop should not hurt');
+        assert.equal(healthOf(await client.state()).current, start, 'a three block drop should not hurt');
 
         await dropFrom(context, 75);
         await waitTicks(server, 10);
-        const hurt = await health(client);
+        const hurt = healthOf(await client.state()).current;
         assert.ok(hurt < start - 4, `an eleven block fall left health at ${hurt} from ${start}`);
 
         log(`fall took health from ${start} to ${hurt}`);
@@ -94,7 +86,7 @@ export const fallDamage: Scenario = {
         await placeBlockAndWait(server, { x: 0, y: 63, z: 0 }, 'minecraft:hay_block');
         await dropFrom(context, 75);
         await waitTicks(server, 10);
-        const onHay = await health(client);
+        const onHay = healthOf(await client.state()).current;
         assert.ok(onHay >= hurt, `an eleven block fall onto hay took health from ${hurt} to ${onHay}`);
         await placeBlockAndWait(server, { x: 0, y: 63, z: 0 }, 'minecraft:stone');
         log(`an eleven block fall onto hay left health at ${onHay}`);

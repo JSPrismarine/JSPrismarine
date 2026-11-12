@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import type { CinnabarClient } from '../client.mts';
 import type { JspServer } from '../jsp-server.mts';
 import type { Scenario } from '../scenario.mts';
-import { sleep, untilTicks, vec3 } from '../scenario.mts';
+import { healthOf, sleep, untilTicks, vec3 } from '../scenario.mts';
 
 /** The name both visits log in with, so the second finds the record the first left. */
 const RETURNING = 'jsp-e2e-rejoin';
@@ -19,16 +19,6 @@ const onlineCount = async (server: JspServer): Promise<number> => {
     const reply = server.waitForLine(/There are \d+ players online/, 10_000);
     server.command('list');
     return Number(/There are (\d+) players online/.exec(await reply)?.[1]);
-};
-
-/** The health the client shows, as its current and maximum. */
-const healthOf = (state: Record<string, unknown>): { current: number; maximum: number } => {
-    const health = state.health as { current?: unknown; maximum?: unknown } | undefined;
-    assert.ok(
-        typeof health?.current === 'number' && typeof health.maximum === 'number',
-        `state.health is not a pair of numbers: ${JSON.stringify(state.health)}`
-    );
-    return { current: health.current, maximum: health.maximum };
 };
 
 /** Waits until the client is in the Nether with its loading screen closed and chunks around it. */

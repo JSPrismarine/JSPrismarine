@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 
 import type { Scenario } from '../scenario.mts';
-import { sleep, vec3, waitTicks } from '../scenario.mts';
+import { healthOf, sleep, vec3, waitTicks } from '../scenario.mts';
 
 /**
  * Where each change lands. The Overworld is the one dimension whose chunks are loaded when the
@@ -77,10 +77,10 @@ export const dimensionsScenario: Scenario = {
             // Landing must not hurt. A player who fell to the floor of a dimension whose ground
             // was missing dies a moment later, and the client then never reports the next
             // change's loading screen, which is how this used to fail three steps further on.
-            const health = state.health as { current?: unknown; maximum?: unknown } | undefined;
+            const health = healthOf(state);
             assert.equal(
-                health?.current,
-                health?.maximum,
+                health.current,
+                health.maximum,
                 `the player was hurt arriving in ${destination.id}: ${JSON.stringify(health)}`
             );
 
