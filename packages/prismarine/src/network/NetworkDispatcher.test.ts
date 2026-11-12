@@ -686,6 +686,20 @@ describe('network', () => {
             ).toBe(true);
         });
 
+        it('drops a packet without decoding it when no handler accepts it in the current phase', async () => {
+            const decode = vi.spyOn(TextPacket.prototype, 'decode');
+            const unhandled = makeDispatcher();
+            await unhandled.transport.emitConnect(fakeConnection(1).connection);
+            const wrongPhase = makeDispatcher({ handler: { phases: ['play'], handle: async () => {} } });
+            await wrongPhase.transport.emitConnect(fakeConnection(1).connection);
+
+            await unhandled.transport.emitFrame(frameOf(message('nobody handles this')), 1);
+            await wrongPhase.transport.emitFrame(frameOf(message('too early')), 1);
+
+            expect(decode).not.toHaveBeenCalled();
+            decode.mockRestore();
+        });
+
         it('hands a play-phase handler the player session once login has created one', async () => {
             const session = stub<PlayerSession>();
             const trace = new InboundPacketTrace();
