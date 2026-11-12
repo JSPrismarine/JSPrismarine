@@ -185,4 +185,31 @@ describe('a wire layout', () => {
         expect(Object.hasOwn(decoded, '__proto__')).toBe(true);
         expect(Object.getPrototypeOf(decoded)).toBe(Object.prototype);
     });
+
+    it.each([true, false])(
+        'keeps an object-valued __proto__ field and fallback as own properties (compiled: %s)',
+        (useCompiler) => {
+            const object: WireType<{ readonly inner: number }> = {
+                wire: 'test object',
+                read: (stream) => ({ inner: stream.readUnsignedVarInt() }),
+                write: (stream, value) => stream.writeUnsignedVarInt(value.inner)
+            };
+            const fallback = { inner: -1 };
+            const definition = definePacket('ProtoObjectPacket', {
+                ['__proto__']: object,
+                ['constructor']: gated(since(PROTOCOL_2193 + 1, 'test gate'), object, fallback)
+            });
+            const layout = layoutAt(definition, PROTOCOL_2193, useCompiler);
+            const stream = new BinaryStream();
+            stream.writeUnsignedVarInt(5);
+
+            const decoded = layout.decode(new BinaryStream(stream.getBuffer()));
+
+            expect(layout.implementation).toBe(useCompiler ? 'compiled' : 'walker');
+            expect(Object.getPrototypeOf(decoded)).toBe(Object.prototype);
+            expect(Object.getOwnPropertyDescriptor(decoded, '__proto__')?.value).toEqual({ inner: 5 });
+            expect(Object.getOwnPropertyDescriptor(decoded, 'constructor')?.value).toBe(fallback);
+            expect('inner' in decoded).toBe(false);
+        }
+    );
 });

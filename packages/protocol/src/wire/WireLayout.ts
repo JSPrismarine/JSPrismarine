@@ -135,9 +135,19 @@ const resolve = (definition: PacketDefinition, protocolVersion: number, useCompi
         decode:
             compiled?.decode ??
             ((stream: BinaryStream): Record<string, unknown> => {
+                // Own data properties, as the compiled decoder's computed keys make: assigning
+                // would run the inherited `__proto__` setter for a field of that name.
                 const payload: Record<string, unknown> = {};
-                for (const { key, of } of frozenFields) payload[key] = of.read(stream);
-                for (const [key, fallback] of frozenAbsent) payload[key] = fallback;
+                const set = (key: string, value: unknown): void => {
+                    Object.defineProperty(payload, key, {
+                        value,
+                        writable: true,
+                        enumerable: true,
+                        configurable: true
+                    });
+                };
+                for (const { key, of } of frozenFields) set(key, of.read(stream));
+                for (const [key, fallback] of frozenAbsent) set(key, fallback);
                 return payload;
             })
         // The walker is type-erased internally; the definition's field map carries the real
