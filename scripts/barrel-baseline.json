@@ -239,10 +239,6 @@
         "noBarrelFile": 1,
         "noReExportAll": 6
     },
-    "packages/prismarine/src/config/index.ts": {
-        "noBarrelFile": 1,
-        "noReExportAll": 5
-    },
     "packages/prismarine/src/console/index.ts": {
         "noBarrelFile": 1,
         "noReExportAll": 2
