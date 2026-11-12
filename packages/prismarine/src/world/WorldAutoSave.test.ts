@@ -132,6 +132,9 @@ class GatedLevelDB extends LevelDB {
     /** How many were ever between their cut and the end of their commit at once, which is the overlap signal. */
     public concurrentPasses = 0;
 
+    /** The last pass started, whose encodes a test can count. */
+    public lastPass: ProviderSavePass | undefined;
+
     private inside = 0;
     private open = false;
     private release: () => void = () => {};
@@ -169,6 +172,7 @@ class GatedLevelDB extends LevelDB {
 
     public override beginSavePass(): ProviderSavePass {
         const pass = super.beginSavePass();
+        this.lastPass = pass;
         const commit = pass.commit.bind(pass);
         const cutChunk = pass.cutChunk.bind(pass);
         let chunks = 0;
@@ -296,9 +300,17 @@ describe('the autosave a tick starts', () => {
 
     it('finishes an autosave a shutdown finds still encoding, before the provider closes', async () => {
         const { world, provider, level } = await loadedWorld('shutdown');
+        // Four more sections in every chunk, so the cut holds more sub chunks than one tick's
+        // encode budget and the shutdown starts with some still to encode.
+        const dirt = BlockRuntimeIds.getByName('minecraft:dirt');
+        for (let x = 0; x < CHUNK_COUNT; x++) {
+            const chunk = await world.getChunk(x, 0);
+            for (const y of [0, 16, 32, 48]) chunk.setBlockRuntimeId(0, y, 0, dirt);
+        }
 
         world.setTicks(AUTO_SAVE_TICK - 1);
         level.update(AUTO_SAVE_TICK);
+        expect(provider.lastPass?.pendingEncodes).toBeGreaterThan(0);
         // No more ticks: a shutdown stops them, so the encoding the ticks would have done is the
         // shutdown's to finish.
         let shutDown = false;
@@ -315,6 +327,7 @@ describe('the autosave a tick starts', () => {
         // Every chunk reached disk before the database closed, and nothing threw on the way.
         expect(shutDown).toBe(true);
         expect(provider.written).toBeGreaterThanOrEqual(CHUNK_COUNT);
+        expect(provider.lastPass?.pendingEncodes).toBe(0);
     });
 
     it('lets a tick finish while an unload write is pending, then round trips its entity', async () => {
