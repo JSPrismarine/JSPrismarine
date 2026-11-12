@@ -1,10 +1,9 @@
-import { Gametype } from '@jsprismarine/minecraft';
+import type { Gametype } from '@jsprismarine/minecraft';
 
 import type SetPlayerGameTypePacket from '@jsprismarine/protocol/packet/SetPlayerGameTypePacket';
+import { isGametype } from '../../isGametype';
 import type { InputContext } from './HandlerContext';
 import type { InputLaneHandler } from './SessionHandler';
-
-const isGametype = (value: number): value is Gametype => Gametype[value] !== undefined;
 
 /** The sender as this handler sees it: what the permission check reads, and the change. */
 interface GamemodePlayer {
