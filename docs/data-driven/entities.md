@@ -376,7 +376,7 @@ them. A damage sensor reads Bedrock's cause names, so a player's swing is `entit
 The commit applies the blow and runs a death inside the same call. When lethal damage queues a
 self event, the event applies before the runtime decides what the death is. That lets the Ender
 Dragon's data-defined death event activate `minecraft:behavior.dragondeath`; the goal holds its
-controls for 200 ticks, then removes it.
+controls for <!-- fact:goal.dragonDeathTicks -->200<!-- /fact --> ticks, then removes it.
 
 ## Filters
 
@@ -618,7 +618,7 @@ a `minecraft:projectile`. Using an eye in the air runs `vanilla:eye_of_ender` in
 target it performs a `signal` action and spends one eye outside creative. The server's actor port
 passes the tag to `World.locateStructure`, which reads its members off the generator as `/locate`
 does, and throws the eye through `EntityRuntime.eyesOfEnder` half a body above the thrower's feet,
-with the bow sound vanilla Bedrock plays. `EyeOfEnderSignals` flies it as Java 26.3's `EyeOfEnder`:
+with the bow sound vanilla Bedrock plays. `EyeOfEnderSignals` flies it as Java <!-- fact:java.version -->26.3<!-- /fact -->'s `EyeOfEnder`:
 far from the structure toward a point part of the way there and above the throw, near it toward the
 structure point itself, easing its speed toward the distance left each tick. At the end of its
 lifetime it plays its break sound and leaves, dropping the eye as a stack or bursting into

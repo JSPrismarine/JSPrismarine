@@ -185,6 +185,38 @@ function parityFamilyFacts() {
     return Object.fromEntries([...rows].map(([group, names]) => [`parity.families.${group}`, names.join(', ')]));
 }
 
+/**
+ * Values the entity docs and the content README quote, read off the code that decides them: how
+ * long the dragon's death goal holds, how many categories the conformance claim excludes, and the
+ * methods content packages call on a dimension's entities.
+ */
+function entityFacts() {
+    const specials = sourceText('packages', 'entity-goals', 'src', 'goals', 'specials.ts');
+    const deathTicks = /const DRAGON_DEATH_TICKS = (\d+);/.exec(specials)?.[1];
+    if (deathTicks === undefined) throw new Error('The docs facts no longer find DRAGON_DEATH_TICKS in specials.ts.');
+
+    const exclusions = sourceText('packages', 'parity', 'src', 'conformance.exclusions.test.ts');
+    const excluded = /const EXCLUDED = \[([\s\S]*?)\] as const;/.exec(exclusions)?.[1];
+    if (excluded === undefined)
+        throw new Error('The docs facts no longer find EXCLUDED in conformance.exclusions.test.ts.');
+    const excludedCount = (excluded.match(/\bcategory:/g) ?? []).length;
+    if (excludedCount === 0) throw new Error('EXCLUDED in conformance.exclusions.test.ts lists no category.');
+
+    const adapter = sourceText('packages', 'prismarine', 'src', 'content', 'world', 'adapter.ts');
+    const access = /export interface ContentEntityAccess \{([\s\S]*?)\n\}/.exec(adapter)?.[1];
+    if (access === undefined) throw new Error('The docs facts no longer find ContentEntityAccess in adapter.ts.');
+    const methods = [...access.matchAll(/^ {4}(\w+)\(/gm)].flatMap(([, name]) => (name === undefined ? [] : [name]));
+    if (methods.length === 0) throw new Error('ContentEntityAccess in adapter.ts declares no method.');
+
+    return {
+        'goal.dragonDeathTicks': deathTicks,
+        'parity.conformanceExclusions': String(excludedCount),
+        // The page wraps the list in inline code, which the facts keep around the value, so the
+        // names are joined by the backticks that close one and open the next.
+        'content.entitiesApi': methods.join('`, `')
+    };
+}
+
 /** How often a client e2e server writes its coverage, in seconds. */
 function e2eFacts() {
     const exit = sourceText('tools', 'client-e2e', 'src', 'coverage-exit.mjs');
@@ -465,7 +497,8 @@ export async function loadFacts(): Promise<Facts> {
             ...tickBudgetFacts(),
             ...replicationFacts(),
             ...parityFamilyFacts(),
-            ...e2eFacts()
+            ...e2eFacts(),
+            ...entityFacts()
         })
     );
     const missing: string[] = [];
