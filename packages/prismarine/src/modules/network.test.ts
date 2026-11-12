@@ -17,7 +17,7 @@ import {
     verifySelfSignedIdentity
 } from '@jsprismarine/nethernet';
 import type { Connection } from '@jsprismarine/nethernet';
-import { UnconnectedPing } from '@jsprismarine/raknet';
+import { UnconnectedPing, UnconnectedPong } from '@jsprismarine/raknet';
 import { about } from '../about';
 import type { Config } from '../config/Config';
 import SessionManager from '../SessionManager';
@@ -225,6 +225,28 @@ describe('modules/network', () => {
         }
     };
 
+    /**
+     * The fields of the server name in an unconnected pong. The datagram's own header holds the
+     * server GUID, random bytes that can include `;`, so only the decoded server name is split.
+     */
+    const pongFields = (datagram: Buffer): string[] => {
+        const pong = new UnconnectedPong(datagram);
+        pong.decode();
+        return pong.serverName.split(';');
+    };
+
+    it('reads the server name of a pong whose GUID bytes include a semicolon', () => {
+        const pong = new UnconnectedPong();
+        pong.timestamp = 1n;
+        pong.serverGuid = 0x3b3b3b3b3b3b3b3bn;
+        pong.serverName = 'MCPE;test server;944;1.26.62;0;1';
+        pong.encode();
+
+        // Splitting the whole datagram counts the GUID's semicolons as field separators.
+        expect(pong.getBuffer().toString('latin1').split(';')[3]).not.toBe('1.26.62');
+        expect(pongFields(pong.getBuffer())[3]).toBe('1.26.62');
+    });
+
     it.each([
         ['socket', false],
         ['worker', true]
@@ -240,7 +262,7 @@ describe('modules/network', () => {
             expect(pong[0]).toBe(0x1c);
             expect((await pingOnce('::1', port))[0]).toBe(0x1c);
             // The eighth field, after the server id, names the software, as other third-party servers do.
-            const fields = pong.toString('latin1').split(';');
+            const fields = pongFields(pong);
             expect(fields[3]).toBe(about().minecraftVersion);
             expect(fields[7]).toBe('JSPrismarine');
             expect([networking.getServerName()!.getPort(), networking.getServerName()!.getPortV6()]).toStrictEqual([
