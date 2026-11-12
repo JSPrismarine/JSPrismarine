@@ -21,6 +21,7 @@ export const manualConnection = (id: ConnectionId, closed: (string | undefined)[
     id,
     address: manualAddress,
     capabilities: plainCapabilities,
+    transport: 'RakNet',
     sendFrame: () => {},
     close: (reason) => void closed.push(reason)
 });

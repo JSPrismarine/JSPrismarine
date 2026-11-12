@@ -1,6 +1,12 @@
 import type { InetAddress } from '@jsprismarine/raknet';
 import type { ConnectionId } from './ConnectionId';
 
+/** The display name of each transport a connection can arrive over, keyed by a lowercase id. */
+export const TransportNames = { raknet: 'RakNet', nethernet: 'NetherNet' } as const;
+
+/** One of {@link TransportNames}: `RakNet` or `NetherNet`. */
+export type TransportName = (typeof TransportNames)[keyof typeof TransportNames];
+
 /**
  * What a transport does for the session layer, so the layers above can decide what they
  * still have to do themselves: batch, compress, encrypt, or re-order.
@@ -37,6 +43,8 @@ export interface TransportConnection {
     readonly address: InetAddress;
     /** What this connection's transport does on its own - see {@link TransportCapabilities}. */
     readonly capabilities: TransportCapabilities;
+    /** The transport this connection arrived over. */
+    readonly transport: TransportName;
     /**
      * Queues one frame for the client.
      * @param payload - The frame's bytes, ready for the wire.

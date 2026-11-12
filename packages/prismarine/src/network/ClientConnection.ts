@@ -10,7 +10,7 @@ import type { PacketLogFilter } from './PacketLogFilter';
 import type { SessionPhase } from './SessionPhase';
 import { RakNetTransportConnection } from './transport/RakNetTransport';
 import type { ConnectionId } from './transport/ConnectionId';
-import type { TransportConnection } from './transport/Transport';
+import type { TransportConnection, TransportName } from './transport/Transport';
 import { PrismarineNetworkErrors } from '@jsprismarine/errors/prismarine/network';
 
 /**
@@ -140,6 +140,11 @@ export default class ClientConnection extends MinecraftSession {
     /** Where the client connected from, whichever transport carried it. */
     public getAddress(): InetAddress {
         return this.transportConnection.address;
+    }
+
+    /** The transport the client connected over. */
+    public getTransport(): TransportName {
+        return this.transportConnection.transport;
     }
 
     /**
