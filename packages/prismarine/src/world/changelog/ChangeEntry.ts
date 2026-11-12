@@ -43,6 +43,26 @@ export interface FieldKinds {
         { readonly x: number; readonly y: number; readonly z: number; readonly field: string },
         PlainData
     >;
+    /**
+     * A position waiting for a block update, as the tick it comes due, or nothing. The queue runs
+     * in the order positions were first queued, which a reader that applies the entries in order
+     * keeps.
+     */
+    'block-update': FieldKindShape<{ readonly x: number; readonly y: number; readonly z: number }, number | null>;
+    /**
+     * A scheduled block or fluid tick, addressed by its list, its position and the block or fluid
+     * it runs for, holding its timing, or nothing.
+     */
+    'scheduled-tick': FieldKindShape<
+        {
+            readonly list: 'block' | 'fluid';
+            readonly x: number;
+            readonly y: number;
+            readonly z: number;
+            readonly type: string;
+        },
+        { readonly triggerTick: number; readonly priority: number; readonly subTickOrder: number } | null
+    >;
 }
 
 /** The name of a field kind. */
@@ -318,7 +338,9 @@ const FIELD_KEYS: { readonly [K in FieldKind]: (address: FieldKinds[K]['address'
     // The common layer packs into one exact integer. Other layers are rare, so a string is fine.
     block: ({ x, y, z, layer }) => (layer === 0 ? blockPositionKey(x, y, z) : `${layer}:${x},${y},${z}`),
     'inventory-slot': ({ entity, container, slot }) => `${entity}:${container}:${slot}`,
-    'block-entity': ({ x, y, z, field }) => `${x},${y},${z}:${field}`
+    'block-entity': ({ x, y, z, field }) => `${x},${y},${z}:${field}`,
+    'block-update': ({ x, y, z }) => blockPositionKey(x, y, z),
+    'scheduled-tick': ({ list, x, y, z, type }) => `${list}:${x},${y},${z}:${type}`
 };
 
 /**

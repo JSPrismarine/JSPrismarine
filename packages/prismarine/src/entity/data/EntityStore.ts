@@ -32,7 +32,13 @@
  * same way. Other entries between ticks, a chunk or a vetoed action, are still counted as
  * unlogged.
  */
-import type { ChangeEntry, OccurrenceEntry, OccurrenceKinds, StateEntry } from '../../world/changelog/ChangeEntry';
+import type {
+    ChangeEntry,
+    FieldKinds,
+    OccurrenceEntry,
+    OccurrenceKinds,
+    StateEntry
+} from '../../world/changelog/ChangeEntry';
 import { isCarriedEntry } from '../../world/changelog/ChangeEntry';
 import type { SealedTick, Span } from '../../world/changelog/ChangeLog';
 import { ChangeLog } from '../../world/changelog/ChangeLog';
@@ -53,20 +59,6 @@ export const ENTITY_FAILURE_LIMIT = 3;
  *   the order it was registered.
  */
 export type InverseWriter = (inverse: StateEntry) => boolean;
-
-/**
- * Work queued outside the log that undoing a unit also takes back, such as the block updates a
- * reverted block write scheduled. The store marks each journal as a unit starts, rolls it back to
- * that mark when the unit is reverted, and lets it forget once no unit is open.
- */
-export interface UnitJournal {
-    /** Where the journal stands as a unit starts. */
-    markUnit(): number;
-    /** Takes back everything recorded since `mark`, newest first. */
-    revertUnit(mark: number): void;
-    /** Forgets what was recorded, once no unit is open. */
-    settleUnits(): void;
-}
 
 /** How a unit of work ended. */
 export type UnitOutcome = { readonly failed: false } | { readonly failed: true; readonly error: unknown };
@@ -93,7 +85,6 @@ export class EntityStore {
     private readonly entered = new WeakSet<DataEntity>();
     private readonly log = new ChangeLog();
     private readonly writers: InverseWriter[] = [];
-    private readonly journals: UnitJournal[] = [];
     private ticks = 0;
     private open = false;
     private reverting = false;
@@ -244,6 +235,27 @@ export class EntityStore {
     }
 
     /**
+     * Logs one change to the block update queue: a position queued, moved to an earlier tick or
+     * taken off, as the tick it comes due before and after, or null for none.
+     */
+    public writtenBlockUpdate(x: number, y: number, z: number, before: number | null, after: number | null): void {
+        if (before === after) return;
+        this.append({ kind: 'field', field: 'block-update', address: { x, y, z }, before, after });
+    }
+
+    /**
+     * Logs one scheduled block or fluid tick queued or taken off, with its timing before and
+     * after, or null for none.
+     */
+    public writtenScheduledTick(
+        address: FieldKinds['scheduled-tick']['address'],
+        before: FieldKinds['scheduled-tick']['value'],
+        after: FieldKinds['scheduled-tick']['value']
+    ): void {
+        this.append({ kind: 'field', field: 'scheduled-tick', address, before, after });
+    }
+
+    /**
      * Appends an occurrence, which changes no state: something replication sends, or the
      * record of an action a guard vetoed.
      */
@@ -286,11 +298,6 @@ export class EntityStore {
     /** Registers a writer for inverse entries; the first one that knows the entity writes it. */
     public addInverseWriter(writer: InverseWriter): void {
         this.writers.push(writer);
-    }
-
-    /** Registers a journal that undoing a unit rolls back with the unit's span. */
-    public addUnitJournal(journal: UnitJournal): void {
-        this.journals.push(journal);
     }
 
     /** Opens the next tick of the log, or does nothing when one is already open. */
@@ -425,11 +432,7 @@ export class EntityStore {
     }
 
     private startUnit(): OpenUnit {
-        const unit: OpenUnit = {
-            span: this.log.startSpan(),
-            pinned: false,
-            marks: this.journals.map((journal) => journal.markUnit())
-        };
+        const unit: OpenUnit = { span: this.log.startSpan(), pinned: false };
         this.units.push(unit);
         return unit;
     }
@@ -437,17 +440,14 @@ export class EntityStore {
     private endUnit(unit: OpenUnit, threw: boolean): void {
         const depth = this.units.lastIndexOf(unit);
         if (depth !== -1) this.units.length = depth;
-        if (threw && !unit.pinned) {
-            this.revert(unit.span);
-            this.journals.forEach((journal, index) => journal.revertUnit(unit.marks[index] ?? 0));
-        } else {
+        if (threw && !unit.pinned) this.revert(unit.span);
+        else {
             if (threw) {
                 this.kept += 1;
                 this.report('A unit that threw keeps its writes: a chunk entered inside it, and that cannot be undone');
             }
             this.log.closeSpan(unit.span);
         }
-        if (this.units.length === 0) for (const journal of this.journals) journal.settleUnits();
     }
 
     private writtenField(id: bigint | number, field: string, before: unknown, after: unknown): void {
@@ -501,8 +501,6 @@ type OpenUnit = {
     readonly span: Span;
     /** Set once a chunk entered inside the unit, which keeps its writes if it throws. */
     pinned: boolean;
-    /** Where each journal stood as the unit started, in registration order. */
-    readonly marks: readonly number[];
 };
 
 /**
