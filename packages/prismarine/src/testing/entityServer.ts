@@ -67,7 +67,13 @@ export const inertEntityRuntime = (): LiveEntityRuntime =>
             content: () => testContent(),
             blockBroken: () => {},
             index: new EntityIndex(),
-            store: new EntityStore()
+            store: new EntityStore(),
+            // Holds no entity to count failures against, so a world double's actor update runs as
+            // it is, and a throw reaches the test.
+            runUpdate: (_entity, _name, update) => {
+                update();
+                return true;
+            }
         }),
         actors: stub<StoreActors>({ all: () => [][Symbol.iterator](), actorOf: () => undefined }),
         // Nothing it holds rides anything, so nothing is kept out of a portal.

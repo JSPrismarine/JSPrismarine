@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import { BlockPalette, vanillaBlockPalette } from '@jsprismarine/blocks';
+import type { Logger } from '@jsprismarine/logger';
 import { java_entity_attributes, legacy_item_aux_aliases } from '@jsprismarine/bedrock-data';
 import { MemoryModuleTypes } from '@jsprismarine/entity-brains';
 import { Navigator, navigationProfile } from '@jsprismarine/entity-goals';
@@ -43,6 +44,7 @@ import { PLAYER_IDENTIFIER } from '../playerOverlay';
 import { entityCommandHost } from '../../command/host/entities';
 import { Scoreboard } from '../../command/host/scoreboard';
 import type WorldManager from '../../world/WorldManager';
+import type { DimensionTravel } from '../../world/portal/DimensionTravel';
 import type { Level } from '../../world/Level';
 import BlockUpdateScheduler from '../../world/BlockUpdateScheduler';
 import Chunk from '../../world/chunk/Chunk';
@@ -76,6 +78,7 @@ import { MetadataFlag } from '@jsprismarine/protocol/wire/structures/Metadata';
 import { ItemActor as ItemEntity } from './itemActor';
 import { itemViewOf } from './droppedItems';
 import type { DataEntity } from './DataEntity';
+import { ENTITY_FAILURE_LIMIT } from './EntityStore';
 import { builtInEntityDefinitions } from '../../content/testing';
 import { spawnDeclared } from './testing';
 import { loose } from '../Archery';
@@ -719,7 +722,12 @@ const playerAt = (world: World, x: number, z: number, uuid?: string): PlayerSess
             tracks: () => false,
             send: async () => {},
             sendInventory: async () => {},
-            getConnection: () => stub<ReturnType<PlayerSession['getConnection']>>({ codec: Codec2193 })
+            getConnection: () =>
+                stub<ReturnType<PlayerSession['getConnection']>>({
+                    codec: Codec2193,
+                    // What the end of a world tick drains, for a test that runs `World.update`.
+                    flushOutboundPackets: async () => {}
+                })
         },
         { runtimeId: BigInt(id), uuid: identity, position: new Position(x, GROUND_Y + EYE_HEIGHT, z, world) }
     );
@@ -1701,6 +1709,78 @@ describe('the data-driven entity runtime over a live world', () => {
             const body = live.actors.actorOf(cow.id);
             expect(body?.getPosition().getX()).toBeCloseTo(cow.position.x, 5);
             expect(body?.getPosition().getZ()).toBeCloseTo(cow.position.z, 5);
+        });
+    });
+
+    describe('the world tick', () => {
+        it('undoes an actor update that throws, and runs the other actors, the entity pass and replication', () => {
+            addPlayer(8.5, 8.5);
+            const faulty = live.runtime.spawn('minecraft:cow', { x: 0.5, y: GROUND_Y, z: 0.5 });
+            const healthy = live.runtime.spawn('minecraft:cow', { x: 2.5, y: GROUND_Y, z: 0.5 });
+            if (faulty === undefined || healthy === undefined) throw new Error('the fixture declares no minecraft:cow');
+            const faultyActor = live.actors.actorOf(faulty.id);
+            const healthyActor = live.actors.actorOf(healthy.id);
+            if (faultyActor === undefined || healthyActor === undefined) throw new Error('a cow has no store actor');
+
+            // The real update, which writes the status effect clock on an entity's first update,
+            // then a throw, so the update has written by the time it throws.
+            const update = faultyActor.update.bind(faultyActor);
+            const faultyUpdates = vi.spyOn(faultyActor, 'update').mockImplementation((tick) => {
+                update(tick);
+                throw new Error('the actor update failed');
+            });
+            const healthyUpdates = vi.spyOn(healthyActor, 'update');
+            // The entity pass counts love down, so it shows which cows the pass updated.
+            faulty.body.loveTicks = 1000;
+            healthy.body.loveTicks = 1000;
+            let replicated = 0;
+            world.attachChangeSink({
+                ...NULL_WORLD_CHANGE_SINK,
+                flushEntities: async () => void (replicated += 1)
+            });
+            const logged: string[] = [];
+            const log = (...message: unknown[]): void => void logged.push(String(message[0]));
+            Object.assign(world.getServer(), {
+                getLogger: () => stub<Logger>({ verbose: log, debug: log, info: log, warn: log, error: log }),
+                // No cow stands in a portal, so the travel the tick reports contacts to is never asked.
+                getDimensionTravel: () => stub<DimensionTravel>({})
+            });
+
+            for (let tick = 1; tick <= ENTITY_FAILURE_LIMIT; tick += 1) {
+                world.update(tick);
+
+                expect(faultyUpdates).toHaveBeenCalledTimes(tick);
+                expect(healthyUpdates).toHaveBeenCalledTimes(tick);
+                expect(healthy.body.loveTicks).toBe(1000 - tick);
+                expect(replicated).toBe(tick);
+                // Undone, and skipped by the entity pass for the rest of the tick.
+                expect(faulty.body.statusEffectClock).toBeUndefined();
+                expect(faulty.body.loveTicks).toBe(1000);
+            }
+
+            expect(healthy.body.statusEffectClock).toBeDefined();
+            expect(live.runtime.byId(faulty.id)).toBeUndefined();
+            expect(live.runtime.byId(healthy.id)).toBe(healthy);
+            expect(logged.filter((line) => line.includes('threw in its actor update'))).toHaveLength(
+                ENTITY_FAILURE_LIMIT
+            );
+            expect(world.getEntityStore().broken).toBeUndefined();
+        });
+
+        it('removes an entity whose entity pass keeps throwing, though its actor update finishes', () => {
+            addPlayer(8.5, 8.5);
+            const cow = live.runtime.spawn('minecraft:cow', { x: 0.5, y: GROUND_Y, z: 0.5 });
+            if (cow === undefined) throw new Error('the fixture declares no minecraft:cow');
+            vi.spyOn(cow.instance, 'tick').mockImplementation(() => {
+                throw new Error('the components failed');
+            });
+            Object.assign(world.getServer(), { getDimensionTravel: () => stub<DimensionTravel>({}) });
+
+            for (let tick = 1; tick < ENTITY_FAILURE_LIMIT; tick += 1) world.update(tick);
+            expect(live.runtime.byId(cow.id)).toBe(cow);
+
+            world.update(ENTITY_FAILURE_LIMIT);
+            expect(live.runtime.byId(cow.id)).toBeUndefined();
         });
     });
 
