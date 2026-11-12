@@ -1,5 +1,6 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { settleOnFakeClock } from './fakeClock.test.helper.mts';
 import { healthOf, readHealth, untilPlayersOnline, vec3 } from './scenario.mts';
 
 /**
@@ -23,14 +24,17 @@ const listingServer = (counts: readonly number[]) => {
     return { server, lists: () => lists };
 };
 
+afterEach(() => {
+    vi.useRealTimers();
+});
+
 describe('untilPlayersOnline', () => {
     it('keeps asking until a closed client has left', async () => {
         vi.useFakeTimers();
         const { server, lists } = listingServer([2, 2, 1]);
 
         const alone = untilPlayersOnline(server, 1);
-        await vi.runAllTimersAsync();
-        await alone;
+        await settleOnFakeClock(alone);
 
         expect(lists()).toBe(3);
     });
@@ -41,8 +45,7 @@ describe('untilPlayersOnline', () => {
 
         const alone = untilPlayersOnline(server, 1);
         const failed = expect(alone).rejects.toThrow('the server still counts 2 players online, not 1');
-        await vi.runAllTimersAsync();
-        await failed;
+        await settleOnFakeClock(failed);
     });
 });
 
