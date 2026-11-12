@@ -17,6 +17,7 @@ import Chunk from './chunk/Chunk';
 import { World } from './World';
 import { fakeLevel } from '../testing/level';
 import { collectAddedActors } from '../testing/addedActors.test.helper';
+import { QUIET_TICK_HEADER } from '../testing/tickHeader.test.helper';
 
 /**
  * A world reduced to what breaking a block touches. The real one wants a server, a provider
@@ -88,6 +89,7 @@ const fakeWorld = (initial: BlockState, broken = fakeBlock(initial.name)) => {
     let live: World | undefined;
     const entities = liveTestEntities(() => live);
     const world: World = Object.assign(Object.create(World.prototype), {
+        tickHeader: () => QUIET_TICK_HEADER,
         chunks: new Map([[Chunk.packXZ(0, 0), chunk]]),
         dimension: Dimensions.Overworld,
         // Empty and never written: a drop is a store stack. It is here because a world with no

@@ -18,6 +18,7 @@ import { World } from './World';
 import { NULL_WORLD_CHANGE_SINK } from './WorldChangeSink';
 import { fakeLevel } from '../testing/level';
 import { replicateEntities } from '../testing/changeTicks.test.helper';
+import { QUIET_TICK_HEADER } from '../testing/tickHeader.test.helper';
 
 /** The dropped stacks of a dimension's store, by their actors. */
 const itemsOf = (live: LiveEntityRuntime): ItemEntity[] =>
@@ -90,6 +91,7 @@ const fakeWorld = (initial: BlockState, { id = 1, dropName = initial.name } = {}
     const live = liveTestEntities(() => world);
     const items = () => itemsOf(live.entityRuntime(Dimensions.Overworld.name));
     world = Object.assign(Object.create(World.prototype), {
+        tickHeader: () => QUIET_TICK_HEADER,
         chunks: new Map([[Chunk.packXZ(0, 0), chunk]]),
         dimension: Dimensions.Overworld,
         level: fakeLevel(),
@@ -148,6 +150,7 @@ const emptyWorld = () => {
     const live = liveTestEntities(() => world);
     const items = () => itemsOf(live.entityRuntime(Dimensions.Overworld.name));
     world = Object.assign(Object.create(World.prototype), {
+        tickHeader: () => QUIET_TICK_HEADER,
         name: 'flooded',
         dimension: Dimensions.Overworld,
         players: new Map(),

@@ -99,6 +99,7 @@ import type { EntityStore } from '../entity/data/EntityStore';
 import type { OccurrenceEntry, OccurrenceKinds, StateEntry } from './changelog/ChangeEntry';
 import { Position } from './Position';
 import type { SealedTick } from './changelog/ChangeLog';
+import type { TickHeader } from './changelog/TickHeader';
 import type { ChangeLogCost } from './changelog/changeLogCost';
 import { changeLogCost } from './changelog/changeLogCost';
 
@@ -1024,7 +1025,7 @@ export class World implements Service {
         try {
             await this.tickWorld(tick);
         } finally {
-            store.sealTick();
+            store.sealTick(this.tickHeader());
         }
         await this.replicateTick(tick);
     }
@@ -1044,7 +1045,8 @@ export class World implements Service {
      * @returns The sealed tick, or undefined when none was open.
      */
     public sealChangeTick(): SealedTick | undefined {
-        return this.getEntityStore().sealTick();
+        const store = this.getEntityStore();
+        return store.tickOpen ? store.sealTick(this.tickHeader()) : undefined;
     }
 
     /**
@@ -3810,6 +3812,35 @@ export class World implements Service {
     }
 
     /**
+     * What this world's own clocks and in-flight work are now: the part of the replay digest that
+     * no change log entry carries, which each sealed tick holds as its header.
+     * @returns {TickHeader} A plain copy.
+     */
+    public tickHeader(): TickHeader {
+        const level = this.getLevel();
+        const { queued, deferred } = this.systems.lighting.pending;
+        return {
+            tick: this.getTicks(),
+            weather: { ...level.getWeather().saved() },
+            gameRules: Array.from(
+                level.getGameRuleManager().getGameRules(),
+                ([name, [value, editable]]) => [name, [value, editable]] as const
+            ),
+            // A request already in flight can add a chunk to the simulation later. It is absent
+            // from `chunks` until then, so record its packed position and mutable priority as part
+            // of the state that will determine future ticks. Sort by the packed position because
+            // request arrival order is not world state.
+            pendingChunkLoads: [...this.loading]
+                .map(([position, load]) => [position, load.urgency.value] as const)
+                .sort(([left], [right]) => left - right),
+            // Random tick positions use Java's own stateful generator, separate from server RNG.
+            randomTickState: this.systems.getRandomTickState(),
+            // Keep the digest cost bounded; the lighting queue can contain a large flood.
+            pendingLighting: { queued, deferred }
+        };
+    }
+
+    /**
      * Hashes loaded chunks, selected pending simulation work, and live entity state for one replay
      * tick.
      *
@@ -3817,33 +3848,28 @@ export class World implements Service {
      * duplicate or missing stacks can leave every other world field unchanged. Scheduler queues
      * are copied in processing order; lighting is represented by queue depth only, so this digest
      * compares those boundaries but cannot restore them.
+     *
+     * Everything here is either written through the change log or in the tick header, so a
+     * snapshot of the world plus the log of the ticks after it reaches the digest of any of them.
+     * @param {TickHeader} [header] - The clocks and in-flight work to hash, which are this world's
+     * own unless a replay of the log hands it those of the sealed tick it reached.
      */
-    public replayStateDigest(): string {
+    public replayStateDigest(header: TickHeader = this.tickHeader()): string {
         const hash = createHash('sha256');
-        const level = this.getLevel();
-        const pendingLighting = this.systems.lighting.pending;
         hash.update(
             JSON.stringify({
                 dimension: this.getDimension().id,
                 seed: this.getSeed().toString(),
-                tick: this.getTicks(),
-                weather: level.getWeather().saved(),
-                gameRules: [...level.getGameRuleManager().getGameRules()],
-                // A request already in flight can add a chunk to the simulation later. It is
-                // absent from `chunks` until then, so record its packed position and mutable
-                // priority as part of the state that will determine future ticks. Sort by the
-                // packed position because request arrival order is not world state.
-                pendingChunkLoads: [...this.loading]
-                    .map(([position, load]) => [position, load.urgency.value] as const)
-                    .sort(([left], [right]) => left - right),
+                tick: header.tick,
+                weather: header.weather,
+                gameRules: header.gameRules,
+                pendingChunkLoads: header.pendingChunkLoads,
                 // Physics updates interact in order, and due() leaves the tail after its 4096-update budget.
                 pendingBlockUpdates: this.blockUpdates.snapshot(),
                 // The scheduler snapshot keeps Java's separate block and fluid lists and tick order.
                 pendingScheduledTicks: this.systems.ticks.snapshot(),
-                // Random tick positions use Java's own stateful generator, separate from server RNG.
-                randomTickState: this.systems.getRandomTickState(),
-                // Keep the digest cost bounded; the lighting queue can contain a large flood.
-                pendingLighting: { queued: pendingLighting.queued, deferred: pendingLighting.deferred }
+                randomTickState: header.randomTickState,
+                pendingLighting: header.pendingLighting
             })
         );
 

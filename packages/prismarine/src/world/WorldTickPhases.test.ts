@@ -22,6 +22,7 @@ import { fakeLevel } from '../testing/level';
 import { attachProfiler, ServerProfiler } from '../profiling/ServerProfiler';
 import type GameRuleManager from './GameRuleManager';
 import type BaseProvider from './providers/BaseProvider';
+import { QUIET_TICK_HEADER } from '../testing/tickHeader.test.helper';
 
 /**
  * The order a tick reports what happened in it.
@@ -95,6 +96,7 @@ const worldTicking = ({
     // stand-in. Only what would reach the disk, a chunk or the network is replaced.
     const runtimeIds = new Map<string, number>();
     const world: World = Object.assign(Object.create(World.prototype), {
+        tickHeader: () => QUIET_TICK_HEADER,
         players: new Map(),
         chunks: new Map(),
         name: 'tick-test-world',
